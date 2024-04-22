@@ -798,9 +798,8 @@ function DivTempHeight({ children, height }) {
   });
 
   const style: CSS = {
-    overflow: "hidden",
     minHeight: height,
-    paddingTop: "3px", // for the hover bar buttons in insert-cell.tsx, otherwise they're cut off
+    paddingTop: "5px", // for the cell buttons on top of the input, otherwise they're cut off
   };
 
   return (

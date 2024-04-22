@@ -8,16 +8,15 @@ The toolbar at the top of each cell
 */
 
 import { Map } from "immutable";
-import { React, CSS } from "../app-framework";
 
-import { Slideshow } from "./cell-toolbar-slideshow";
-import { Attachments } from "./cell-toolbar-attachments";
-import { TagsToolbar } from "./cell-toolbar-tags";
-import { Metadata } from "./cell-toolbar-metadata";
-import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignment";
+import { CSS, React } from "@cocalc/frontend/app-framework";
 
 import { JupyterActions } from "./browser-actions";
-
+import { Attachments } from "./cell-toolbar-attachments";
+import { Metadata } from "./cell-toolbar-metadata";
+import { Slideshow } from "./cell-toolbar-slideshow";
+import { TagsToolbar } from "./cell-toolbar-tags";
+import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignment";
 import { PROMPT_MIN_WIDTH } from "./prompt/base";
 
 const STYLE: CSS = {
@@ -55,5 +54,5 @@ export const CellToolbar: React.FC<CellToolbarProps> = React.memo(
         <T actions={actions} cell={cell} />
       </div>
     );
-  }
+  },
 );

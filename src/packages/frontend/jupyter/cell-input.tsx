@@ -7,13 +7,14 @@
 React component that describes the input of a cell
 */
 
-import { Button, Tooltip } from "antd";
+import { Button, Dropdown, Space, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
+import { CSS, React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import CopyButton from "@cocalc/frontend/components/copy-button";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import PasteButton from "@cocalc/frontend/components/paste-button";
@@ -32,9 +33,14 @@ import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
 import { Position } from "./insert-cell/types";
-import { LLMExplainCell } from "./llm";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
+
+const MINI_BUTTONS_STYLE: CSS = {
+  position: "absolute",
+  right: "2px",
+  top: "-22px",
+};
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -195,15 +201,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         return;
       }
       return (
-        <Button.Group
-          style={{
-            position: "absolute",
-            right: 0,
-            top: "-20px",
-          }}
-        >
+        <Button.Group style={MINI_BUTTONS_STYLE}>
           <Button
-            style={{ color: "#666", fontSize: "11px" }}
+            style={{ color: COLORS.GRAY_M, fontSize: "11px" }}
             size="small"
             type="text"
             onClick={handle_md_double_click}
@@ -211,7 +211,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             <Icon name="edit" /> Edit
           </Button>
           <Button
-            style={{ color: "#666", fontSize: "11px" }}
+            style={{ color: COLORS.GRAY_M, fontSize: "11px" }}
             size="small"
             type="text"
             onClick={handle_upload_click}
@@ -517,6 +517,42 @@ function ComputeServerPrompt({ id }) {
 function CodeBar({ props, frameActions }) {
   const [formatting, setFormatting] = useState<boolean>(false);
 
+  function renderCodeBarRunStop() {
+    if (
+      props.id == null ||
+      props.actions == null ||
+      props.actions.is_closed()
+    ) {
+      return;
+    }
+    switch (props.cell.get("state")) {
+      case "busy":
+      case "run":
+      case "start":
+        return (
+          <Button
+            size="small"
+            type="text"
+            onClick={() => props.actions?.signal("SIGINT")}
+            style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+          >
+            <Icon name="stop" /> Stop
+          </Button>
+        );
+      default:
+        return (
+          <Button
+            size="small"
+            type="text"
+            onClick={() => props.actions?.run_cell(props.id)}
+            style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+          >
+            <Icon name="step-forward" /> Run
+          </Button>
+        );
+    }
+  }
+
   function renderCodeBarComputeServer() {
     if (!props.is_current || !props.computeServerId) return;
     return <ComputeServerPrompt id={props.computeServerId} />;
@@ -536,12 +572,107 @@ function CodeBar({ props, frameActions }) {
 
   function renderCodeBarLLMButtons() {
     if (!props.llmTools) return;
+    // return (
+    //   <LLMExplainCell
+    //     id={props.id}
+    //     actions={props.actions}
+    //     llmTools={props.llmTools}
+    //   />
+    // );
+
+    const style: CSS = {
+      fontSize: "11px",
+      ...(props.is_current
+        ? { background: COLORS.AI_ASSISTANT_BG, color: "black", opacity: 0.75 }
+        : { color: COLORS.GRAY_M }),
+    };
+
     return (
-      <LLMExplainCell
-        id={props.id}
-        actions={props.actions}
-        llmTools={props.llmTools}
-      />
+      <Dropdown
+        trigger={["click", "hover"]}
+        mouseLeaveDelay={1.5}
+        menu={{
+          items: [
+            {
+              key: "0",
+              label: (
+                <Tooltip
+                  title={
+                    "Ask a large langauge model to gain some insight into the code in that cell."
+                  }
+                  placement={"left"}
+                >
+                  Explain
+                </Tooltip>
+              ),
+              onClick: () => console.log("Explain"),
+            },
+            {
+              key: "1",
+              label: (
+                <Tooltip
+                  title={
+                    "Describe the problem of that cell to a large langauge model in order to get a bugfixed version."
+                  }
+                  placement={"left"}
+                >
+                  Bugfixing
+                </Tooltip>
+              ),
+              onClick: () => console.log("Bugfix"),
+            },
+            {
+              key: "2",
+              label: (
+                <Tooltip
+                  title={
+                    "Ask a large language model to improve the code in that cell."
+                  }
+                  placement={"left"}
+                >
+                  Improve
+                </Tooltip>
+              ),
+              onClick: () => console.log("Improve"),
+            },
+            {
+              key: "3",
+              label: (
+                <Tooltip
+                  title={
+                    "Translate the code in that cell to another language using AI."
+                  }
+                  placement={"left"}
+                >
+                  Translate
+                </Tooltip>
+              ),
+              onClick: () => console.log("Translate"),
+            },
+          ],
+        }}
+      >
+        <Tooltip title="Use AI assistance on this cell">
+          <Button
+            disabled={formatting}
+            type="text"
+            size="small"
+            style={style}
+            icon={
+              <AIAvatar
+                size={13}
+                style={{ position: "relative", top: "-3px" }}
+                innerStyle={{}}
+              />
+            }
+          >
+            <Space size="small">
+              Tools
+              <Icon name="angle-down" />
+            </Space>
+          </Button>
+        </Tooltip>
+      </Dropdown>
     );
   }
 
@@ -612,23 +743,19 @@ function CodeBar({ props, frameActions }) {
   const input: string | undefined = props.cell.get("input")?.trim();
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        right: "2px",
-        top: "-20px",
-      }}
-      className="hidden-xs"
-    >
+    <div style={MINI_BUTTONS_STYLE} className="hidden-xs">
       <div
         style={{
           display: "flex",
+          gap: "3px",
+          alignItems: "flex-start",
           color: COLORS.GRAY_M,
           fontSize: "11px",
         }}
       >
-        {renderCodeBarComputeServer()}
         {renderCodeBarCellTiming()}
+        {renderCodeBarRunStop()}
+        {renderCodeBarComputeServer()}
         {renderCodeBarLLMButtons()}
         {renderCodeBarFormatButton()}
         {renderCodeBarCopyPasteButtons(input)}

@@ -17,6 +17,7 @@ import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LLMTools } from "@cocalc/jupyter/types";
+import { COLORS } from "@cocalc/util/theme";
 import type { JupyterActions } from "../browser-actions";
 import { RawPrompt } from "./raw-prompt";
 
@@ -94,7 +95,7 @@ export default function LLMExplainCell({
         }
       >
         <Button
-          style={{ color: "#666", fontSize: "11px" }}
+          style={{ color: COLORS.GRAY_M, fontSize: "11px" }}
           size="small"
           type="text"
           disabled={gettingExplanation}

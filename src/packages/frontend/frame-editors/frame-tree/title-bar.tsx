@@ -76,6 +76,7 @@ interface EditorActions extends Actions {
 }
 
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import { COLORS } from "@cocalc/util/theme";
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = COL_BAR_BACKGROUND;
@@ -531,7 +532,7 @@ export function FrameTitleBar(props: Props) {
         buttonStyle={{
           ...button_style(),
           ...(!darkMode
-            ? { backgroundColor: "#f6bf61", color: "#333" }
+            ? { backgroundColor: COLORS.AI_ASSISTANT_BG, color: COLORS.AI_ASSISTANT_TXT }
             : undefined),
         }}
         visible={props.tab_is_visible && props.is_visible}
