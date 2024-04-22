@@ -47,6 +47,7 @@ const EDITOR_SPEC = {
       "help",
     ]),
     buttons: set([
+      "format-ai_formula",
       "readonly_view",
       "decrease_font_size",
       "increase_font_size",

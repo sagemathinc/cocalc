@@ -7,19 +7,21 @@
 Top-level react component for editing R markdown documents
 */
 
-import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
 import { set } from "@cocalc/util/misc";
-import { derive_rmd_output_filename } from "./utils";
-import { EditorDescription } from "../frame-tree/types";
-import { createEditor } from "../frame-tree/editor";
+
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
-import { SETTINGS_SPEC } from "../settings/editor";
+import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { IFrameHTML } from "../html-editor/iframe-html";
-import { PDFJS } from "../latex-editor/pdfjs";
 import { pdfjsCommands } from "../latex-editor/editor";
+import { PDFJS } from "../latex-editor/pdfjs";
+import { RenderedMarkdown } from "../markdown-editor/rendered-markdown";
+import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+
 import { BuildLog } from "./build-log";
+import { derive_rmd_output_filename } from "./utils";
 
 const EDITOR_SPEC = {
   cm: {
@@ -46,6 +48,11 @@ const EDITOR_SPEC = {
       "redo",
       "format",
       "build",
+    ]),
+    buttons: set([
+      "format-ai_formula",
+      "decrease_font_size",
+      "increase_font_size",
     ]),
   } as EditorDescription,
 
