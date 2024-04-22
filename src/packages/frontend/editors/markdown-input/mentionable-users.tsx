@@ -132,57 +132,56 @@ function mentionableUsers({
   const project_users = getProjectUsers();
 
   const users_store = redux.getStore("users");
+
   const mentions: Item[] = [];
 
   if (enabledLLMs.openai) {
     // NOTE: all modes are included, including the 16k version, because:
     //       (1) if you use GPT-3.5 too much you hit your limit,
-    //       (2) this is a non-free BUT CHEAP model you can actually use after hitting your limit, which is muh cheaper than GPT-4.
-    for (const m of MODELS_OPENAI) {
-      if (selectableLLMs.includes(m)) {
-        const show_llm_main_menu = m === model;
-        const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
-        const v = "openai";
-        const search_term = `${v}chat${m.replace(/-/g, "").toLowerCase()}`;
-        if (!search || search_term.includes(search)) {
-          mentions.push({
-            value: model2service(m),
-            label: (
-              <LLMTooltip model={m}>
-                <OpenAIAvatar size={size} /> {LLM_USERNAMES[m]}{" "}
-                <LLMModelPrice model={m} floatRight />
-              </LLMTooltip>
-            ),
-            search: search_term,
-            is_llm: true,
-            show_llm_main_menu,
-          });
-        }
+    //       (2) this is a non-free BUT CHEAP model you can actually use after hitting your limit, which is much cheaper than GPT-4.
+    for (const moai of MODELS_OPENAI) {
+      if (!selectableLLMs.includes(moai)) continue;
+      const show_llm_main_menu = moai === model;
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+      const v = "openai";
+      const search_term = `${v}chat${moai.replace(/-/g, "").toLowerCase()}`;
+      if (!search || search_term.includes(search)) {
+        mentions.push({
+          value: model2service(moai),
+          label: (
+            <LLMTooltip model={moai}>
+              <OpenAIAvatar size={size} /> {LLM_USERNAMES[moai]}{" "}
+              <LLMModelPrice model={moai} floatRight />
+            </LLMTooltip>
+          ),
+          search: search_term,
+          is_llm: true,
+          show_llm_main_menu,
+        });
       }
     }
   }
 
   if (enabledLLMs.google) {
     for (const m of GOOGLE_MODELS) {
-      if (selectableLLMs.includes(m)) {
-        const show_llm_main_menu = m === model;
-        const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
-        const v = model2vendor(m);
-        const search_term = `${v}${m.replace(/-/g, "").toLowerCase()}`;
-        if (!search || search_term.includes(search)) {
-          mentions.push({
-            value: model2service(m),
-            label: (
-              <LLMTooltip model={m}>
-                <GoogleGeminiLogo size={size} /> {LLM_USERNAMES[m]}{" "}
-                <LLMModelPrice model={m} floatRight />
-              </LLMTooltip>
-            ),
-            search: search_term,
-            is_llm: true,
-            show_llm_main_menu,
-          });
-        }
+      if (!selectableLLMs.includes(m)) continue;
+      const show_llm_main_menu = m === model;
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+      const v = model2vendor(m);
+      const search_term = `${v}${m.replace(/-/g, "").toLowerCase()}`;
+      if (!search || search_term.includes(search)) {
+        mentions.push({
+          value: model2service(m),
+          label: (
+            <LLMTooltip model={m}>
+              <GoogleGeminiLogo size={size} /> {LLM_USERNAMES[m]}{" "}
+              <LLMModelPrice model={m} floatRight />
+            </LLMTooltip>
+          ),
+          search: search_term,
+          is_llm: true,
+          show_llm_main_menu,
+        });
       }
     }
   }
@@ -210,52 +209,52 @@ function mentionableUsers({
         });
       }
     }
+  }
 
-    if (enabledLLMs.anthropic) {
-      for (const m of ANTHROPIC_MODELS) {
-        if (!selectableLLMs.includes(m)) continue;
-        const show_llm_main_menu = m === model;
-        const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
-        const name = LLM_USERNAMES[m] ?? m;
-        const s = model2vendor(m);
-        const search_term = `${s}${m}${name}`.toLowerCase();
-        if (!search || search_term.includes(search)) {
-          mentions.push({
-            value: model2service(m),
-            label: (
-              <LLMTooltip model={m}>
-                <AnthropicAvatar size={size} /> {name}{" "}
-                <LLMModelPrice model={m} floatRight />
-              </LLMTooltip>
-            ),
-            search: search_term,
-            is_llm: true,
-            show_llm_main_menu,
-          });
-        }
+  if (enabledLLMs.anthropic) {
+    for (const m of ANTHROPIC_MODELS) {
+      if (!selectableLLMs.includes(m)) continue;
+      const show_llm_main_menu = m === model;
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+      const name = LLM_USERNAMES[m] ?? m;
+      const s = model2vendor(m);
+      const search_term = `${s}${m}${name}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
+        mentions.push({
+          value: model2service(m),
+          label: (
+            <LLMTooltip model={m}>
+              <AnthropicAvatar size={size} /> {name}{" "}
+              <LLMModelPrice model={m} floatRight />
+            </LLMTooltip>
+          ),
+          search: search_term,
+          is_llm: true,
+          show_llm_main_menu,
+        });
       }
     }
+  }
 
-    if (enabledLLMs.ollama && !isEmpty(ollama)) {
-      for (const [m, conf] of Object.entries(ollama)) {
-        const show_llm_main_menu = m === model;
-        const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
-        const value = toOllamaModel(m);
-        const search_term = `${m}${value}${conf.display}`.toLowerCase();
-        if (!search || search_term.includes(search)) {
-          mentions.push({
-            value,
-            label: (
-              <span>
-                <OllamaAvatar size={size} /> {conf.display}{" "}
-                <LLMModelPrice model={m} floatRight />
-              </span>
-            ),
-            search: search_term,
-            is_llm: true,
-            show_llm_main_menu,
-          });
-        }
+  if (enabledLLMs.ollama && !isEmpty(ollama)) {
+    for (const [m, conf] of Object.entries(ollama)) {
+      const show_llm_main_menu = m === model;
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+      const value = toOllamaModel(m);
+      const search_term = `${m}${value}${conf.display}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
+        mentions.push({
+          value,
+          label: (
+            <span>
+              <OllamaAvatar size={size} /> {conf.display}{" "}
+              <LLMModelPrice model={m} floatRight />
+            </span>
+          ),
+          search: search_term,
+          is_llm: true,
+          show_llm_main_menu,
+        });
       }
     }
   }
@@ -275,7 +274,7 @@ function mentionableUsers({
       label,
       search: s,
       is_llm: false,
-      show_llm_main_menu: true, // irrelevant, but that's what it will do for standard user accouns
+      show_llm_main_menu: true, // irrelevant, but that's what it will do for standard user accounts
     });
   }
 
