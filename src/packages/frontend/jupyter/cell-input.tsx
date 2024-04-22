@@ -31,10 +31,10 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
+import { Position } from "./insert-cell/types";
 import { LLMExplainCell } from "./llm";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
-import { Position } from "./insert-cell/types";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -88,7 +88,6 @@ export interface CellInputProps {
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
-    const [formatting, setFormatting] = useState<boolean>(false);
     const frameActions = useNotebookFrameActions();
 
     const haveAIGenerateCell =
@@ -408,102 +407,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
     }
 
-    function renderCodeBar() {
-      if (fileContext.disableExtraButtons) return null;
-      const input = props.cell.get("input")?.trim();
-      return (
-        <div
-          style={{
-            position: "absolute",
-            right: "2px",
-            top: "-20px",
-          }}
-          className="hidden-xs"
-        >
-          <div
-            style={{
-              display: "flex",
-              color: COLORS.GRAY_M,
-              fontSize: "11px",
-            }}
-          >
-            {props.is_current && props.computeServerId ? (
-              <ComputeServerPrompt id={props.computeServerId} />
-            ) : null}
-            {props.cell.get("start") != null && (
-              <div style={{ marginTop: "5px" }}>
-                <CellTiming
-                  start={props.cell.get("start")}
-                  end={props.cell.get("end")}
-                />
-              </div>
-            )}
-            {props.llmTools ? (
-              <LLMExplainCell
-                id={props.id}
-                actions={props.actions}
-                llmTools={props.llmTools}
-              />
-            ) : undefined}
-            {/* Should only show formatter button if there is a way to format this code. */}
-            {!props.is_readonly && props.actions != null && (
-              <Tooltip title="Format this code to look nice" placement="top">
-                <Button
-                  disabled={formatting}
-                  type="text"
-                  size="small"
-                  style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-                  onClick={async () => {
-                    // kind of a hack: clicking on this button makes this cell
-                    // the selected one
-                    try {
-                      setFormatting(true);
-                      await delay(1);
-                      await frameActions.current?.format_selected_cells();
-                    } finally {
-                      setFormatting(false);
-                    }
-                  }}
-                >
-                  <Icon
-                    name={formatting ? "spinner" : "sitemap"}
-                    spin={formatting}
-                  />{" "}
-                  Format
-                </Button>
-              </Tooltip>
-            )}
-            {input ? (
-              <CopyButton
-                size="small"
-                value={props.cell.get("input") ?? ""}
-                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-              />
-            ) : (
-              <PasteButton
-                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-                paste={(text) =>
-                  frameActions.current?.set_cell_input(props.id, text)
-                }
-              />
-            )}
-            {input && (
-              <div
-                style={{
-                  marginLeft: "3px",
-                  padding: "4px",
-                  borderLeft: "1px solid #ccc",
-                  borderTop: "1px solid #ccc",
-                }}
-              >
-                {props.index + 1}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
     function render_hidden(): JSX.Element {
       return (
         <CellHiddenPart
@@ -538,7 +441,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           >
             {render_input_prompt(type)}
             {render_input_value(type)}
-            {type == "code" && renderCodeBar()}
+            {type === "code" && !fileContext.disableExtraButtons ? (
+              <CodeBar props={props} frameActions={frameActions} />
+            ) : undefined}
           </div>
         </div>
       </FileContext.Provider>
@@ -606,5 +511,129 @@ function ComputeServerPrompt({ id }) {
         />
       </div>
     </Tooltip>
+  );
+}
+
+function CodeBar({ props, frameActions }) {
+  const [formatting, setFormatting] = useState<boolean>(false);
+
+  function renderCodeBarComputeServer() {
+    if (!props.is_current || !props.computeServerId) return;
+    return <ComputeServerPrompt id={props.computeServerId} />;
+  }
+
+  function renderCodeBarCellTiming() {
+    if (props.cell.get("start") == null) return;
+    return (
+      <div style={{ marginTop: "5px" }}>
+        <CellTiming
+          start={props.cell.get("start")}
+          end={props.cell.get("end")}
+        />
+      </div>
+    );
+  }
+
+  function renderCodeBarLLMButtons() {
+    if (!props.llmTools) return;
+    return (
+      <LLMExplainCell
+        id={props.id}
+        actions={props.actions}
+        llmTools={props.llmTools}
+      />
+    );
+  }
+
+  function renderCodeBarFormatButton() {
+    // Should only show formatter button if there is a way to format this code.
+    if (props.is_readonly || props.actions == null) return;
+    return (
+      <Tooltip title="Format this code to look nice" placement="top">
+        <Button
+          disabled={formatting}
+          type="text"
+          size="small"
+          style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+          onClick={async () => {
+            // kind of a hack: clicking on this button makes this cell
+            // the selected one
+            try {
+              setFormatting(true);
+              await delay(1);
+              await frameActions.current?.format_selected_cells();
+            } finally {
+              setFormatting(false);
+            }
+          }}
+        >
+          <Icon name={formatting ? "spinner" : "sitemap"} spin={formatting} />{" "}
+          Format
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  function renderCodeBarCopyPasteButtons(input: string | undefined) {
+    if (input) {
+      return (
+        <CopyButton
+          size="small"
+          value={props.cell.get("input") ?? ""}
+          style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+        />
+      );
+    } else {
+      return (
+        <PasteButton
+          style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+          paste={(text) => frameActions.current?.set_cell_input(props.id, text)}
+        />
+      );
+    }
+  }
+
+  function renderCodeBarIndexNumber(input: string | undefined) {
+    if (!input) return;
+    return (
+      <div
+        style={{
+          marginLeft: "3px",
+          padding: "4px",
+          borderLeft: "1px solid #ccc",
+          borderTop: "1px solid #ccc",
+        }}
+      >
+        {props.index + 1}
+      </div>
+    );
+  }
+
+  const input: string | undefined = props.cell.get("input")?.trim();
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        right: "2px",
+        top: "-20px",
+      }}
+      className="hidden-xs"
+    >
+      <div
+        style={{
+          display: "flex",
+          color: COLORS.GRAY_M,
+          fontSize: "11px",
+        }}
+      >
+        {renderCodeBarComputeServer()}
+        {renderCodeBarCellTiming()}
+        {renderCodeBarLLMButtons()}
+        {renderCodeBarFormatButton()}
+        {renderCodeBarCopyPasteButtons(input)}
+        {renderCodeBarIndexNumber(input)}
+      </div>
+    </div>
   );
 }
