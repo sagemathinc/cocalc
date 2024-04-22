@@ -6,6 +6,7 @@ import {
   model2vendor,
   OLLAMA_PREFIX,
   USER_SELECTABLE_LANGUAGE_MODELS,
+  USER_SELECTABLE_LLMS_BY_VENDOR,
 } from "./llm-utils";
 
 describe("llm", () => {
@@ -49,6 +50,15 @@ describe("llm", () => {
       expect(LANGUAGE_MODEL_SERVICES.includes(vendor)).toBe(true);
     },
   );
+
+  test(`check model by vendor`, () => {
+    for (const vendor in USER_SELECTABLE_LLMS_BY_VENDOR) {
+      const models = USER_SELECTABLE_LLMS_BY_VENDOR[vendor];
+      for (const model of models) {
+        expect(model2vendor(model)).toBe(vendor);
+      }
+    }
+  });
 
   test("just checking the price", () => {
     expect(1_000_000 * LLM_COST["gpt-4"].prompt_tokens).toBeCloseTo(30);

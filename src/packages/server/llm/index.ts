@@ -234,7 +234,7 @@ interface EvalVertexAIProps {
   maxTokens?: number; // only gemini-pro
 }
 
-async function evaluateGoogleGenAI({
+export async function evaluateGoogleGenAI({
   client,
   system,
   history,
@@ -282,7 +282,7 @@ async function evaluateGoogleGenAI({
   throw Error("Google Vertex AI API called failed"); // this should never get reached.
 }
 
-async function evaluateOpenAI({
+export async function evaluateOpenAI({
   system,
   history,
   input,

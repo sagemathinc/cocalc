@@ -198,7 +198,7 @@ export default function LLMSelector({
     return ret;
   }
 
-  // all models selectable here must be in selectableLLMs(default: USER_SELECTABLE_LANGUAGE_MODELS) + the custom ones from the ollama configuration
+  // all models selectable here must be in selectableLLMs(default: USER_SELECTABLE_LANGUAGE_MODELS) + the custom ones from the Ollama configuration
   return (
     <Select
       dropdownStyle={style}

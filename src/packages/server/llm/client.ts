@@ -26,7 +26,11 @@ const clientCache: { [key: string]: OpenAI | GoogleGenAIClient } = {};
 export async function getClient(
   model?: LanguageModel,
 ): Promise<OpenAI | GoogleGenAIClient> {
-  const vendor = model == null ? "openai" : model2vendor(model);
+  if (model == null) {
+    throw new Error("llm: model not specified");
+  }
+
+  const vendor = model2vendor(model);
 
   switch (vendor) {
     case "openai":
