@@ -1,47 +1,20 @@
-import { Flex, List, Typography } from "antd";
+import { ReactNode } from "react";
+
+import { Card, Col, Layout, List, Row, Space, Typography } from "antd";
 
 import { COLORS } from "@cocalc/util/theme";
-import { TitleProps } from "antd/es/typography/Title";
 
-export interface TitleComponentProps {
-  name: string;
-  jobTitle?: string;
-  level?: TitleProps['level'];
-}
+import Footer from "components/landing/footer";
+import Header from "components/landing/header";
+import Head from "components/landing/head";
+import Image, { StaticImageData } from "components/landing/image";
 
-export const TitleComponent = (
-  {
-    name,
-    jobTitle,
-    level=3,
-  }: TitleComponentProps
-) => (
-  <Flex
-    justify="space-between"
-    align="baseline"
-    wrap="wrap"
-    style={{
-      marginBottom: "24px"
-    }}>
-    <Typography.Title
-      style={{
-        margin: 0,
-      }}
-      level={level}
-    >{name}</Typography.Title>
-    {jobTitle && (
-      <Typography.Title
-        style={{
-          margin: 0,
-          color: COLORS.GRAY,
-        }}
-        level={level}
-      >{jobTitle}</Typography.Title>
-    )}
-  </Flex>
-);
+import { MAX_WIDTH } from "lib/config";
+import { Customize, CustomizeType } from "lib/customize";
 
-export interface ExperienceComponentProps {
+import { TitleComponent } from "./title-component";
+
+interface ExperienceComponentProps {
   experiences: Array<{
     institution: string;
     position: string;
@@ -49,7 +22,7 @@ export interface ExperienceComponentProps {
   }>;
 };
 
-export const ExperienceComponent = (
+const ExperienceComponent = (
   { experiences }: ExperienceComponentProps
 ) => (
   <List
@@ -76,3 +49,86 @@ export const ExperienceComponent = (
     )}
   />
 );
+
+export interface TeamBioProps {
+  customize: CustomizeType;
+  givenName: string;
+  surname: string;
+  position: string;
+  positionShort: string;
+  positionTimeframe: string;
+  image?: string | StaticImageData;
+  imageAlt?: string;
+  background: ReactNode;
+  companyRole: ReactNode;
+  personalSection: ReactNode;
+  pastExperience: ExperienceComponentProps['experiences'];
+}
+
+export const TeamBio = (props: TeamBioProps) => {
+  const fullName = `${props.givenName} ${props.surname}`;
+
+  return (
+    <Customize value={props.customize}>
+    <Head title={`Team - ${fullName}`}/>
+    <Layout>
+      <Header page="about" subPage="team"/>
+      <Layout.Content
+        style={{
+          backgroundColor: "white",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: MAX_WIDTH,
+            margin: "15px auto",
+            padding: "15px",
+            backgroundColor: "white",
+          }}
+        >
+          <Space direction="vertical" size="middle">
+            <TitleComponent name={`Meet ${fullName}.`} level={2}/>
+
+            <Row wrap gutter={24}>
+              <Col xs={24} md={12}>
+                <Card
+                  style={{
+                    maxWidth: "512px"
+                  }}
+                  cover={props.image && (
+                    <Image
+                      src={props.image}
+                      alt={props.imageAlt || fullName}
+                    />
+                  )}
+                >
+                  <Card.Meta
+                    title={`${fullName}, ${props.positionShort}`}
+                    description={props.positionTimeframe}
+                  />
+                </Card>
+              </Col>
+              <Col xs={24} md={12}>
+                <Typography.Title level={5}>
+                  {props.position}
+                </Typography.Title>
+
+                {props.companyRole}
+
+                {props.personalSection}
+              </Col>
+            </Row>
+
+            <Typography.Title level={4}>Background</Typography.Title>
+            {props.background}
+
+            <Typography.Title level={4}>Previous Experience</Typography.Title>
+            <ExperienceComponent experiences={props.pastExperience} />
+          </Space>
+        </div>
+        <Footer/>
+      </Layout.Content>
+    </Layout>
+  </Customize>
+  )
+}

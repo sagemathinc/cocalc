@@ -2,7 +2,7 @@ import { Layout } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 
-import { TitleComponent } from "components/about/team";
+import { TitleComponent } from "components/about/title-component";
 import Footer from "components/landing/footer";
 import Header from "components/landing/header";
 import Head from "components/landing/head";
@@ -65,9 +65,11 @@ const dataSource: DataSource = [
   },
   {
     landingPages: true,
-    link: "https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#HaraldSchilly",
-    title: <TitleComponent name="Harald Schilly"
-                           jobTitle="CTO at SageMath, Inc."/>,
+    link: "/about/team/harald-schilly",
+    title: <TitleComponent
+      name="Harald Schilly"
+      jobTitle="CTO at SageMath, Inc."
+    />,
     image: HaraldSchillyImage,
     description: (
       <>
@@ -79,10 +81,10 @@ const dataSource: DataSource = [
         pushing CoCalc's capabilities into new and exciting territory.
 
         Learn more about Harald's enthusiam for software{" "}
-        <A href="https://about.cocalc.com/the-people-behind-sagemath-inc-and-cocalc/#HaraldSchilly">here</A>,
-        or reach out to Harald at <A
-        href="mailto:hsy@sagemath.com">hsy@sagemath.com</A> for more information
-        about his projects or for advice on the perfect marinara sauce.
+        <A href="/about/team/harald-schilly">here</A>, or reach out to Harald
+        at <A href="mailto:hsy@sagemath.com">hsy@sagemath.com</A> for more
+        information about his projects or for advice on the perfect marinara
+        sauce.
 
         <TeamSocialMediaComponent links={{
           facebook: "https://www.facebook.com/harald.schilly",
