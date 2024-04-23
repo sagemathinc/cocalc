@@ -394,6 +394,15 @@ function getItems({
           icon: <Icon name="medkit" />,
           label: "Support",
         },
+        {
+          key: "videos",
+          icon: <Icon name="youtube" />,
+          label: (
+            <A href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ">
+              Videos
+            </A>
+          ),
+        },
       ],
     },
     {
