@@ -7,6 +7,7 @@ import {
   computeDiskCost,
 } from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
 import { optionKey } from "@cocalc/util/compute/cloud/hyperstack/pricing";
+import { Alert } from "antd";
 
 export default function Disk(props) {
   if (props.priceData == null || props.IMAGES == null) {
@@ -17,12 +18,12 @@ export default function Disk(props) {
   // this data can be null -- I saw this when a bunch of machine types ("flavors") disappeared...
   const data = props.priceData.options[optionKey(props.configuration)];
   const numTimes =
-    props.data?.disks == null ? 0 : Math.max(props.data?.disks.length, 2) - 2;
+    props.data?.disks == null ? 0 : Math.max(props.data?.disks.length, 1) - 1;
   return (
     <div>
       <DiskGeneric
         {...props}
-        disabled={numTimes >= 24}
+        disabled={numTimes >= 25}
         noType
         minSizeGb={getMinDiskSizeGb(props)}
         maxSizeGb={1048576}
@@ -49,6 +50,22 @@ export default function Disk(props) {
         rate={
           <>{currency(props.priceData.ssd_cost_per_hour * 730)}/GB per month</>
         }
+        beforeBody={
+          numTimes >= 1 ? (
+            <Alert
+              showIcon
+              type="warning"
+              style={{ float: "right", width: "400px" }}
+              description={
+                <>
+                  You can enlarge your disk <b>at most 25 times</b>.
+                  You have enlarged this disk {numTimes}{" "}
+                  {plural(numTimes, "time")}.
+                </>
+              }
+            />
+          ) : undefined
+        }
       />
       {cost_per_hour_data != null && (
         <div>
@@ -69,13 +86,6 @@ export default function Disk(props) {
         <div>
           <b>Caching:</b> Some of your {data?.ephemeral}GB local SSD is used for
           caching to make the data disk much faster.
-        </div>
-      )}
-      {numTimes > 0 && (
-        <div>
-          <b>NOTE:</b> You can only currently enlarge your disk on Hyperstack at
-          most 24 times. You have enlarged this disk {numTimes}{" "}
-          {plural(numTimes, "time")}.
         </div>
       )}
     </div>
