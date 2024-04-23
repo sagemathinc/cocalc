@@ -10,7 +10,7 @@ overrides:
   undici@<5.28.3: ^5.28.4
   postcss@<8.4.31: ^8.4.31
   retry-request@<7.0.1: ^7.0.2
-  '@langchain/core': ^0.1.52
+  '@langchain/core': ^0.1.58
   '@mistralai/mistralai': node_modules/@cocalc/mistralai
   katex@<0.16.9: ^0.16.10
 
@@ -1362,20 +1362,23 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
       '@langchain/anthropic':
-        specifier: ^0.1.9
-        version: 0.1.9(encoding@0.1.13)
+        specifier: ^0.1.14
+        version: 0.1.14(encoding@0.1.13)
       '@langchain/community':
-        specifier: ^0.0.43
-        version: 0.0.43(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
+        specifier: ^0.0.49
+        version: 0.0.49(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
       '@langchain/core':
-        specifier: ^0.1.52
-        version: 0.1.52
+        specifier: ^0.1.58
+        version: 0.1.58
       '@langchain/google-genai':
-        specifier: ^0.0.10
-        version: 0.0.10
+        specifier: ^0.0.11
+        version: 0.0.11
       '@langchain/mistralai':
-        specifier: ^0.0.16
-        version: 0.0.16
+        specifier: ^0.0.19
+        version: 0.0.19
+      '@langchain/openai':
+        specifier: ^0.0.28
+        version: 0.0.28(encoding@0.1.13)
       '@mistralai/mistralai':
         specifier: node_modules/@cocalc/mistralai
         version: link:node_modules/@cocalc/mistralai
@@ -1491,8 +1494,8 @@ importers:
         specifier: ^1.0.1
         version: 1.0.1
       langchain:
-        specifier: ^0.1.30
-        version: 0.1.30(@google-ai/generativelanguage@1.1.0)(axios@1.6.8)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
+        specifier: ^0.1.33
+        version: 0.1.33(@google-ai/generativelanguage@1.1.0)(axios@1.6.8)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -2199,14 +2202,13 @@ packages:
       throttle-debounce: 5.0.0
     dev: false
 
-  /@anthropic-ai/sdk@0.17.2(encoding@0.1.13):
-    resolution: {integrity: sha512-xDfL/OblarYcwTSN2xBhynXJTkaTaxr8/v1fRKdT3grOZ4TrzIdrFfaTM771proR4g3uLe76PFSF3+gPjI6Gpw==}
+  /@anthropic-ai/sdk@0.20.5(encoding@0.1.13):
+    resolution: {integrity: sha512-d0ch+zp6/gHR4+2wqWV7JU1EJ7PpHc3r3F6hebovJTouY+pkaId1FuYYaVsG3l/gyqhOZUwKCMSMqcFNf+ZmWg==}
     dependencies:
-      '@types/node': 18.19.26
+      '@types/node': 18.19.31
       '@types/node-fetch': 2.6.11
       abort-controller: 3.0.0
       agentkeepalive: 4.5.0
-      digest-fetch: 1.3.0
       form-data-encoder: 1.7.2
       formdata-node: 4.4.1
       node-fetch: 2.6.7(encoding@0.1.13)
@@ -2218,7 +2220,7 @@ packages:
   /@anthropic-ai/sdk@0.9.1(encoding@0.1.13):
     resolution: {integrity: sha512-wa1meQ2WSfoY8Uor3EdrJq0jTiZJoKoSii2ZVWRY1oN4Tlr5s59pADg9T79FTbPe1/se5c3pBeZgJL63wmuoBA==}
     dependencies:
-      '@types/node': 18.19.26
+      '@types/node': 18.19.31
       '@types/node-fetch': 2.6.11
       abort-controller: 3.0.0
       agentkeepalive: 4.5.0
@@ -3713,12 +3715,12 @@ packages:
       - crypto
     dev: false
 
-  /@langchain/anthropic@0.1.9(encoding@0.1.13):
-    resolution: {integrity: sha512-A2xir/F8xC8DFS2nKFKR//YB5XfnJCtWl0uncCZXMmZhfW7W44RhXC+tV+97afPzRK8lJSjCdOZvi673TbqeyQ==}
+  /@langchain/anthropic@0.1.14(encoding@0.1.13):
+    resolution: {integrity: sha512-7wkBVT0FiuuM6YovDivJmVxLppRul6ID+lQqJPDLrkp0tdEE2yjDvdlrYQJ9thlJ7d4XNV3B95wqXgG3CO8QHQ==}
     engines: {node: '>=18'}
     dependencies:
-      '@anthropic-ai/sdk': 0.17.2(encoding@0.1.13)
-      '@langchain/core': 0.1.52
+      '@anthropic-ai/sdk': 0.20.5(encoding@0.1.13)
+      '@langchain/core': 0.1.58
       fast-xml-parser: 4.3.6
       zod: 3.22.4
       zod-to-json-schema: 3.22.4(zod@3.22.4)
@@ -3726,8 +3728,8 @@ packages:
       - encoding
     dev: false
 
-  /@langchain/community@0.0.43(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21):
-    resolution: {integrity: sha512-60TjV3knGGOPHfbJxLpuwARr8oA0r6Txm8wTFvFx+TjRUrloyBUcWSbJIdm62gAwBJDEHmdjjyWOOzU+eewcuA==}
+  /@langchain/community@0.0.49(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21):
+    resolution: {integrity: sha512-+6LoV+r7CWk2o0F4QWjJwJ+Qvxgpx6Ta6os0shWkkyY2e+xH04EAkXpMHFjur/+1oodmqiHD/gHYxzZTT3B8aw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@aws-crypto/sha256-js': ^5.0.0
@@ -3742,7 +3744,7 @@ packages:
       '@azure/search-documents': ^12.0.0
       '@clickhouse/client': ^0.2.5
       '@cloudflare/ai': '*'
-      '@datastax/astra-db-ts': ^0.1.4
+      '@datastax/astra-db-ts': ^1.0.0
       '@elastic/elasticsearch': ^8.4.0
       '@getmetal/metal-sdk': '*'
       '@getzep/zep-js': ^0.9.0
@@ -3788,6 +3790,7 @@ packages:
       couchbase: ^4.3.0
       discord.js: ^14.14.1
       dria: ^0.0.3
+      duck-duck-scrape: ^2.2.5
       faiss-node: ^0.5.1
       firebase-admin: ^11.9.0 || ^12.0.0
       google-auth-library: ^8.9.0
@@ -3937,6 +3940,8 @@ packages:
         optional: true
       dria:
         optional: true
+      duck-duck-scrape:
+        optional: true
       faiss-node:
         optional: true
       firebase-admin:
@@ -4003,8 +4008,8 @@ packages:
         optional: true
     dependencies:
       '@google-ai/generativelanguage': 1.1.0(encoding@0.1.13)
-      '@langchain/core': 0.1.52
-      '@langchain/openai': 0.0.19(encoding@0.1.13)
+      '@langchain/core': 0.1.58
+      '@langchain/openai': 0.0.28(encoding@0.1.13)
       expr-eval: 2.0.2
       flat: 5.0.2
       google-auth-library: 9.4.1(encoding@0.1.13)
@@ -4012,12 +4017,13 @@ packages:
       lodash: 4.17.21
       uuid: 9.0.1
       zod: 3.22.4
+      zod-to-json-schema: 3.22.5(zod@3.22.4)
     transitivePeerDependencies:
       - encoding
     dev: false
 
-  /@langchain/core@0.1.52:
-    resolution: {integrity: sha512-AEyP99r7jijF33pyzaWtqCkiO9crotgethqq7jznAGlIojMCL9BT/id2DjVyN32SGFTpet273kkjsmEdFSHqpA==}
+  /@langchain/core@0.1.58:
+    resolution: {integrity: sha512-a3b2wQbseLLnoRfQY3W6cnbSreHlPfrCoi41kznzzXTgToPK7cSeCn1wOK4CmLdWu9HCk8cm3x5yM5FXPNEP+Q==}
     engines: {node: '>=18'}
     dependencies:
       ansi-styles: 5.2.0
@@ -4026,6 +4032,7 @@ packages:
       js-tiktoken: 1.0.10
       langsmith: 0.1.13
       ml-distance: 4.0.1
+      mustache: 4.2.0
       p-queue: 6.6.2
       p-retry: 4.6.2
       uuid: 9.0.1
@@ -4033,33 +4040,34 @@ packages:
       zod-to-json-schema: 3.22.4(zod@3.22.4)
     dev: false
 
-  /@langchain/google-genai@0.0.10:
-    resolution: {integrity: sha512-neFuCoMew9t8IYM5srh6RVUFQsZxqPtAFVJ0mWtZqHXtb627MECs5FYr+xw1ptPKSbhIAN5H8sgdObqes4bN3A==}
+  /@langchain/google-genai@0.0.11:
+    resolution: {integrity: sha512-o4+r+ETmcPqcrRTJeJQQ0c796IAx1dvVkZvFsUqLhTIteIQuAc2KenY/UDGQxZVghw6fZf4irN/PvkNHJjfgWw==}
     engines: {node: '>=18'}
     dependencies:
       '@google/generative-ai': 0.1.3
-      '@langchain/core': 0.1.52
+      '@langchain/core': 0.1.58
     dev: false
 
-  /@langchain/mistralai@0.0.16:
-    resolution: {integrity: sha512-rSJ4UaxmCftOyJXdgNMXCZmVVRMlsQb2JjG1PUYeCBxQryUBJxeDcRe30Yluwo/1Zh7LVi7FfYXac5K7lhjgQw==}
+  /@langchain/mistralai@0.0.19:
+    resolution: {integrity: sha512-Uin/jve1NCZLAFa9dpOKzE3Y2+uSnMJQX5ria9vO3lnTGRlvBwcMhyGDoTYdI+gnQgHH4ceBoIBzJDlVG+WVWw==}
     engines: {node: '>=18'}
     dependencies:
-      '@langchain/core': 0.1.52
+      '@langchain/core': 0.1.58
       '@mistralai/mistralai': link:node_modules/@cocalc/mistralai
+      uuid: 9.0.1
       zod: 3.22.4
-      zod-to-json-schema: 3.22.4(zod@3.22.4)
+      zod-to-json-schema: 3.22.5(zod@3.22.4)
     dev: false
 
-  /@langchain/openai@0.0.19(encoding@0.1.13):
-    resolution: {integrity: sha512-b1CHZCNVc2u4LZbFc1Ls0T7U4LWNGvMeQsrNidLZT5jbjg6VzzDZuVCDPGqCwUc8bzFWvPBO52oT1Wy+aCOX6w==}
+  /@langchain/openai@0.0.28(encoding@0.1.13):
+    resolution: {integrity: sha512-2s1RA3/eAnz4ahdzsMPBna9hfAqpFNlWdHiPxVGZ5yrhXsbLWWoPcF+22LCk9t0HJKtazi2GCIWc0HVXH9Abig==}
     engines: {node: '>=18'}
     dependencies:
-      '@langchain/core': 0.1.52
+      '@langchain/core': 0.1.58
       js-tiktoken: 1.0.10
       openai: 4.33.0(encoding@0.1.13)
       zod: 3.22.4
-      zod-to-json-schema: 3.22.4(zod@3.22.4)
+      zod-to-json-schema: 3.22.5(zod@3.22.4)
     transitivePeerDependencies:
       - encoding
     dev: false
@@ -5421,12 +5429,6 @@ packages:
     resolution: {integrity: sha512-2Q2NeB6BmiTFQi4DHBzncSoq/cJMLDdhPaAoJFnFCyD9a8VPZRf7a1GAwp1Edb7ROaZc5Jz/tnZyL6EsWMRaqw==}
     dependencies:
       undici-types: 5.26.5
-
-  /@types/node@18.19.26:
-    resolution: {integrity: sha512-+wiMJsIwLOYCvUqSdKTrfkS8mpTp+MPINe6+Np4TAGFWWRWiBQ5kSq9nZGCSPkzx9mvT+uEukzpX4MOSCydcvw==}
-    dependencies:
-      undici-types: 5.26.5
-    dev: false
 
   /@types/node@18.19.31:
     resolution: {integrity: sha512-ArgCD39YpyyrtFKIqMDvjz79jto5fcI/SVUs2HwB+f0dAzq68yqOdyaSivLiLugSziTpNXLQrVb7RZFmdZzbhA==}
@@ -12250,8 +12252,8 @@ packages:
     engines: {node: '>=18.0.0'}
     dev: false
 
-  /langchain@0.1.30(@google-ai/generativelanguage@1.1.0)(axios@1.6.8)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21):
-    resolution: {integrity: sha512-5h/vNMmutQ98tbB0sPDlAileZVca6A2McFgGa3+D56Dm8mSSCzTQL2DngPA6h09DlKDpSr7+6PdFw5Hoj0ZDSw==}
+  /langchain@0.1.33(@google-ai/generativelanguage@1.1.0)(axios@1.6.8)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21):
+    resolution: {integrity: sha512-IrRd839x8eAmDutHNDMHGzIjufyWt/ckJrnRB2WifIJmtLWNRNQo5jZd7toeBU0UOVOQxoPtQGYf8lR0ar7vIQ==}
     engines: {node: '>=18'}
     peerDependencies:
       '@aws-sdk/client-s3': ^3.310.0
@@ -12411,9 +12413,9 @@ packages:
     dependencies:
       '@anthropic-ai/sdk': 0.9.1(encoding@0.1.13)
       '@google-ai/generativelanguage': 1.1.0(encoding@0.1.13)
-      '@langchain/community': 0.0.43(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
-      '@langchain/core': 0.1.52
-      '@langchain/openai': 0.0.19(encoding@0.1.13)
+      '@langchain/community': 0.0.49(@google-ai/generativelanguage@1.1.0)(encoding@0.1.13)(google-auth-library@9.4.1)(lodash@4.17.21)
+      '@langchain/core': 0.1.58
+      '@langchain/openai': 0.0.28(encoding@0.1.13)
       axios: 1.6.8
       binary-extensions: 2.2.0
       google-auth-library: 9.4.1(encoding@0.1.13)
@@ -12475,6 +12477,7 @@ packages:
       - cohere-ai
       - discord.js
       - dria
+      - duck-duck-scrape
       - encoding
       - firebase-admin
       - googleapis
@@ -13318,6 +13321,11 @@ packages:
 
   /murmurhash-js@1.0.0:
     resolution: {integrity: sha512-TvmkNhkv8yct0SVBSy+o8wYzXjE4Zz3PCesbfs8HiCXXdcTuocApFv11UWlNFWKYsP2okqrhb7JNlSm9InBhIw==}
+    dev: false
+
+  /mustache@4.2.0:
+    resolution: {integrity: sha512-71ippSywq5Yb7/tVYyGbkBggbU8H3u5Rz56fH60jGFgr8uHwxs+aSKeqmluIVzM0m0kB7xQjKS6qPfd0b2ZoqQ==}
+    hasBin: true
     dev: false
 
   /mute-stream@0.0.8:
@@ -19158,6 +19166,14 @@ packages:
 
   /zod-to-json-schema@3.22.4(zod@3.22.4):
     resolution: {integrity: sha512-2Ed5dJ+n/O3cU383xSY28cuVi0BCQhF8nYqWU5paEpl7fVdqdAmiLdqLyfblbNdfOFwFfi/mqU4O1pwc60iBhQ==}
+    peerDependencies:
+      zod: ^3.22.4
+    dependencies:
+      zod: 3.22.4
+    dev: false
+
+  /zod-to-json-schema@3.22.5(zod@3.22.4):
+    resolution: {integrity: sha512-+akaPo6a0zpVCCseDed504KBJUQpEW5QZw7RMneNmKw+fGaML1Z9tUNLnHHAC8x6dzVRO1eB2oEMyZRnuBZg7Q==}
     peerDependencies:
       zod: ^3.22.4
     dependencies:

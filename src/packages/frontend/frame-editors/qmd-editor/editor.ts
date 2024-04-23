@@ -46,6 +46,11 @@ const EDITOR_SPEC = {
       "format",
       "build",
     ]),
+    buttons: set([
+      "format-ai_formula",
+      "decrease_font_size",
+      "increase_font_size",
+    ]),
   } as EditorDescription,
 
   iframe: {

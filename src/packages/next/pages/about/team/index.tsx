@@ -33,7 +33,6 @@ const TeamSocialMediaComponent = ({ links }: Pick<SocialMediaIconListProps, 'lin
 
 const dataSource: DataSource = [
   {
-    landingPages: true,
     link: "/about/team/william-stein",
     title: <TitleComponent
       name="William Stein"
@@ -64,7 +63,6 @@ const dataSource: DataSource = [
     ),
   },
   {
-    landingPages: true,
     link: "/about/team/harald-schilly",
     title: <TitleComponent
       name="Harald Schilly"
@@ -98,7 +96,6 @@ const dataSource: DataSource = [
     ),
   },
   {
-    landingPages: true,
     link: "/about/team/andrey-novoseltsev",
     title: <TitleComponent
       name="Andrey Novoseltsev"
@@ -128,7 +125,6 @@ const dataSource: DataSource = [
     ),
   },
   {
-    landingPages: true,
     link: "/about/team/blaec-bejarano",
     title: <TitleComponent
       name="Blaec Bejarano"

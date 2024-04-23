@@ -1777,8 +1777,9 @@ export function to_money(n: number, d = 2): string {
 }
 
 // numbers with commas -- https://stackoverflow.com/questions/2901102/how-to-format-a-number-with-commas-as-thousands-separators
-export function commas(n: number) : string {
-  if (n == null) { // in case of bugs, at least fail with empty in prod
+export function commas(n: number): string {
+  if (n == null) {
+    // in case of bugs, at least fail with empty in prod
     return "";
   }
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -2521,6 +2522,7 @@ export function hexColorToRGBA(col: string, opacity?: number): string {
   }
 }
 
+// returns an always positive integer, not negative ones. useful for "scrolling backwards", etc.
 export function strictMod(a: number, b: number): number {
   return ((a % b) + b) % b;
 }
