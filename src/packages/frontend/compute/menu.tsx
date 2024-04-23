@@ -128,13 +128,19 @@ function getItems({
       key: "top-jupyterlab",
       label: "JupyterLab",
       icon: <Icon name="jupyter" />,
-      disabled: apps["jupyterlab"] == null || server.state != "running",
+      disabled:
+        apps["jupyterlab"] == null ||
+        server.state != "running" ||
+        !server.data?.externalIp,
     },
     {
       key: "top-vscode",
       label: "VS Code",
       icon: <Icon name="vscode" />,
-      disabled: apps["vscode"] == null || server.state != "running",
+      disabled:
+        apps["vscode"] == null ||
+        server.state != "running" ||
+        !server.data?.externalIp,
     },
     {
       type: "divider",
