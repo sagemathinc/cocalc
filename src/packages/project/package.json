@@ -44,7 +44,7 @@
     "expect": "^26.6.2",
     "express": "^4.19.2",
     "express-rate-limit": "^6.3.0",
-    "formidable": "^1.2.2",
+    "formidable": "^3.2.4",
     "get-port": "^5.1.1",
     "googlediff": "^0.1.0",
     "json-stable-stringify": "^1.0.1",
