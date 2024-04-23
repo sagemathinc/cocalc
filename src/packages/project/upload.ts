@@ -12,7 +12,7 @@ Upload form handler
 const MAX_FILE_SIZE_MB = 10000;
 
 import { Router } from "express";
-import { IncomingForm } from "formidable";
+import formidable from "formidable";
 import {
   appendFile,
   copyFile,
@@ -56,45 +56,68 @@ export default function init(): Router {
     if (!HOME) {
       throw Error("HOME env var must be set");
     }
-    const uploadDir = join(HOME, dest_dir);
-    const options = {
-      uploadDir,
-      keepExtensions: true,
-      maxFileSize: MAX_FILE_SIZE_MB * 1024 * 1024,
-    };
-    const form = new IncomingForm(options);
-    // Using the uploadDir option to options is broken. formidable is a mess.
-    form.uploadDir = uploadDir;
 
     try {
+      const uploadDir = join(HOME, dest_dir);
+
       // ensure target path existsJS
-      dbg("ensure target path exists... ", options.uploadDir);
-      await mkdir(options.uploadDir, { recursive: true });
+      dbg("ensure target path exists... ", uploadDir);
+      await mkdir(uploadDir, { recursive: true });
+
+      const form = formidable({
+        uploadDir,
+        keepExtensions: true,
+        maxFileSize: MAX_FILE_SIZE_MB * 1024 * 1024,
+      });
+
       dbg("parsing form data...");
-      const { fields, files } = await form_parse(form, req);
-      // dbg(`finished parsing form data. ${JSON.stringify({ fields, files })}`);
-      if (files.file?.path == null || files.file?.name == null) {
-        dbg("error parsing form data");
-        throw Error("files.file.[path | name] is null");
-      } else {
-        dbg(`uploading '${files.file.name}' -> '${files.file.path}'`);
+      // https://github.com/node-formidable/formidable?tab=readme-ov-file#parserequest-callback
+      const [fields, files] = await form.parse(req);
+      //dbg(`finished parsing form data. ${JSON.stringify({ fields, files })}`);
+
+      /* Just for the sake of understanding this, this is how this looks like in the real world (formidable@3):
+      > files.file[0]
+      {
+        size: 80789,
+        filepath: '/home/hsy/p/cocalc/src/data/projects/c8787b71-a85f-437b-9d1b-29833c3a199e/asdf/asdf/8e3e4367333e45275a8d1aa03.png',
+        newFilename: '8e3e4367333e45275a8d1aa03.png',
+        mimetype: 'application/octet-stream',
+        mtime: '2024-04-23T09:25:53.197Z',
+        originalFilename: 'Screenshot from 2024-04-23 09-20-40.png'
       }
 
-      dbg(
-        `'${files.file.name}' -> '${files.file.path}' worked; ${JSON.stringify(
-          fields
-        )}`
-      );
+      > fields
+      {
+        dzuuid: [ 'b4a26289-ddd5-42fc-bfa8-b18847a048a3' ],
+        dzchunkindex: [ '0' ],
+        dztotalfilesize: [ '80789' ],
+        dzchunksize: [ '8000000' ],
+        dztotalchunkcount: [ '1' ],
+        dzchunkbyteoffset: [ '0' ]
+      }
+      */
 
-      const dest = join(HOME, dest_dir, fields.fullPath ?? files.file.name);
+      // Now, the strategy is to assemble to file chunk by chunk and save it with the original filename
+      const chunkFullPath = files.file[0]?.filepath;
+      const originalFn = files.file[0]?.originalFilename;
+
+      if (chunkFullPath == null || originalFn == null) {
+        dbg("error parsing form data");
+        throw Error("files.file[0].[filepath | originalFilename] is null");
+      } else {
+        dbg(`uploading '${chunkFullPath}' -> '${originalFn}'`);
+      }
+
+      const dest = join(HOME, dest_dir, originalFn);
       dbg(`dest='${dest}'`);
       await ensureContainingDirectoryExists(dest);
+
       dbg("append the next chunk onto the destination file...");
       await handle_chunk_data(
         parseInt(fields.dzchunkindex),
         parseInt(fields.dztotalchunkcount),
-        files.file.path,
-        dest
+        chunkFullPath,
+        dest,
       );
 
       res.send("received upload:\n\n");
@@ -106,7 +129,12 @@ export default function init(): Router {
   return router;
 }
 
-async function handle_chunk_data(index, total, chunk, dest): Promise<void> {
+async function handle_chunk_data(
+  index: number,
+  total: number,
+  chunk: string,
+  dest: string,
+): Promise<void> {
   const temp = dest + ".partial-upload";
   if (index === 0) {
     // move chunk to the temp file
@@ -121,19 +149,6 @@ async function handle_chunk_data(index, total, chunk, dest): Promise<void> {
   if (index === total - 1) {
     await moveFile(temp, dest);
   }
-}
-
-// Get around that form.parse returns two extra args in its callback
-function form_parse(form, req): Promise<{ fields; files }> {
-  return new Promise<{ fields; files }>((resolve, reject) => {
-    form.parse(req, (err, fields, files) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve({ fields, files });
-      }
-    });
-  });
 }
 
 async function moveFile(src: string, dest: string): Promise<void> {

@@ -429,7 +429,16 @@ export async function formatAction(
 
     if (cmd === "ai_formula") {
       if (project_id == null) throw new Error("ai_formula requires project_id");
-      insertAIFormula(editor, project_id);
+      const formula = await insertAIFormula(project_id);
+      const value = removeDollars(removeBlankLines(formula.trim()));
+      const node: Node = {
+        type: "math_inline",
+        value,
+        isVoid: true,
+        isInline: true,
+        children: [{ text: "" }],
+      };
+      Transforms.insertFragment(editor, [node]);
       return;
     }
 
@@ -660,4 +669,17 @@ function formatQuote(editor): void {
       mode: "lowest",
     });
   }
+}
+
+// Get rid of starting and ending $..$ or $$..$$ dollar signs
+function removeDollars(formula: string): string {
+  if (formula.startsWith("$") && formula.endsWith("$")) {
+    return formula.substring(1, formula.length - 1);
+  }
+
+  if (formula.startsWith("$$") && formula.endsWith("$$")) {
+    return formula.substring(2, formula.length - 2);
+  }
+
+  return formula;
 }

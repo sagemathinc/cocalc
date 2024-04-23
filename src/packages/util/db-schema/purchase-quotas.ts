@@ -91,11 +91,11 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "Google Gemini 1.0 Pro",
     color: "#4285f4",
   },
-  "google-gemini-1.0-ultra-latest": {
+  "google-gemini-1.0-ultra": {
     display: "Google Gemini 1.0 Ultra",
     color: "#4285f4",
   },
-  "google-gemini-1.5-pro-latest": {
+  "google-gemini-1.5-pro": {
     display: "Google Gemini 1.5 Pro",
     color: "#4285f4",
   },
