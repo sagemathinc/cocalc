@@ -7,14 +7,13 @@
 React component that describes the input of a cell
 */
 
-import { Button, Dropdown, Space, Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CSS, React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import CopyButton from "@cocalc/frontend/components/copy-button";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import PasteButton from "@cocalc/frontend/components/paste-button";
@@ -25,7 +24,11 @@ import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/con
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { filename_extension, startswith } from "@cocalc/util/misc";
+import {
+  filename_extension,
+  numToOrdinal,
+  startswith,
+} from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { CellHiddenPart } from "./cell-hidden-part";
@@ -33,14 +36,27 @@ import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
 import { Position } from "./insert-cell/types";
+import { LLMCellTool } from "./llm";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
+import { CODE_BAR_BTN_STYLE } from "./consts";
 
 const MINI_BUTTONS_STYLE: CSS = {
   position: "absolute",
   right: "2px",
   top: "-22px",
-};
+} as const;
+
+const MINI_BUTTONS_STYLE_INNER: CSS = {
+  display: "flex",
+  gap: "3px",
+  alignItems: "flex-start",
+  ...CODE_BAR_BTN_STYLE,
+  borderTop: `1px solid ${COLORS.GRAY_L}`,
+  borderLeft: `1px solid ${COLORS.GRAY_L}`,
+  borderRight: `1px solid ${COLORS.GRAY_L}`,
+  borderRadius: "3px 3px 3px 0",
+} as const;
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -201,24 +217,29 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         return;
       }
       return (
-        <Button.Group style={MINI_BUTTONS_STYLE}>
-          <Button
-            style={{ color: COLORS.GRAY_M, fontSize: "11px" }}
-            size="small"
-            type="text"
-            onClick={handle_md_double_click}
-          >
-            <Icon name="edit" /> Edit
-          </Button>
-          <Button
-            style={{ color: COLORS.GRAY_M, fontSize: "11px" }}
-            size="small"
-            type="text"
-            onClick={handle_upload_click}
-          >
-            <Icon name="image" />
-          </Button>
-        </Button.Group>
+        <div
+          style={{ ...MINI_BUTTONS_STYLE, top: "-25px" }}
+          className="hidden-xs"
+        >
+          <div style={MINI_BUTTONS_STYLE_INNER}>
+            <Button
+              style={CODE_BAR_BTN_STYLE}
+              size="small"
+              type="text"
+              onClick={handle_md_double_click}
+            >
+              <Icon name="edit" /> Edit
+            </Button>
+            <Button
+              style={CODE_BAR_BTN_STYLE}
+              size="small"
+              type="text"
+              onClick={handle_upload_click}
+            >
+              <Icon name="image" />
+            </Button>
+          </div>
+        </div>
       );
     }
 
@@ -494,7 +515,7 @@ function ComputeServerPrompt({ id }) {
     >
       <div
         style={{
-          fontSize: "11px",
+          fontSize: CODE_BAR_BTN_STYLE.fontSize,
           margin: "5px 15px 0 0",
         }}
       >
@@ -530,25 +551,29 @@ function CodeBar({ props, frameActions }) {
       case "run":
       case "start":
         return (
-          <Button
-            size="small"
-            type="text"
-            onClick={() => props.actions?.signal("SIGINT")}
-            style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-          >
-            <Icon name="stop" /> Stop
-          </Button>
+          <Tooltip placement="top" title="Stop this cell">
+            <Button
+              size="small"
+              type="text"
+              onClick={() => props.actions?.signal("SIGINT")}
+              style={CODE_BAR_BTN_STYLE}
+            >
+              <Icon name="stop" /> Stop
+            </Button>
+          </Tooltip>
         );
       default:
         return (
-          <Button
-            size="small"
-            type="text"
-            onClick={() => props.actions?.run_cell(props.id)}
-            style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-          >
-            <Icon name="step-forward" /> Run
-          </Button>
+          <Tooltip placement="top" title="Run this cell">
+            <Button
+              size="small"
+              type="text"
+              onClick={() => props.actions?.run_cell(props.id)}
+              style={CODE_BAR_BTN_STYLE}
+            >
+              <Icon name="step-forward" /> Run
+            </Button>
+          </Tooltip>
         );
     }
   }
@@ -561,7 +586,7 @@ function CodeBar({ props, frameActions }) {
   function renderCodeBarCellTiming() {
     if (props.cell.get("start") == null) return;
     return (
-      <div style={{ marginTop: "5px" }}>
+      <div style={{ margin: "4px 4px 4px 10px" }}>
         <CellTiming
           start={props.cell.get("start")}
           end={props.cell.get("end")}
@@ -572,107 +597,13 @@ function CodeBar({ props, frameActions }) {
 
   function renderCodeBarLLMButtons() {
     if (!props.llmTools) return;
-    // return (
-    //   <LLMExplainCell
-    //     id={props.id}
-    //     actions={props.actions}
-    //     llmTools={props.llmTools}
-    //   />
-    // );
-
-    const style: CSS = {
-      fontSize: "11px",
-      ...(props.is_current
-        ? { background: COLORS.AI_ASSISTANT_BG, color: "black", opacity: 0.75 }
-        : { color: COLORS.GRAY_M }),
-    };
-
     return (
-      <Dropdown
-        trigger={["click", "hover"]}
-        mouseLeaveDelay={1.5}
-        menu={{
-          items: [
-            {
-              key: "0",
-              label: (
-                <Tooltip
-                  title={
-                    "Ask a large langauge model to gain some insight into the code in that cell."
-                  }
-                  placement={"left"}
-                >
-                  Explain
-                </Tooltip>
-              ),
-              onClick: () => console.log("Explain"),
-            },
-            {
-              key: "1",
-              label: (
-                <Tooltip
-                  title={
-                    "Describe the problem of that cell to a large langauge model in order to get a bugfixed version."
-                  }
-                  placement={"left"}
-                >
-                  Bugfixing
-                </Tooltip>
-              ),
-              onClick: () => console.log("Bugfix"),
-            },
-            {
-              key: "2",
-              label: (
-                <Tooltip
-                  title={
-                    "Ask a large language model to improve the code in that cell."
-                  }
-                  placement={"left"}
-                >
-                  Improve
-                </Tooltip>
-              ),
-              onClick: () => console.log("Improve"),
-            },
-            {
-              key: "3",
-              label: (
-                <Tooltip
-                  title={
-                    "Translate the code in that cell to another language using AI."
-                  }
-                  placement={"left"}
-                >
-                  Translate
-                </Tooltip>
-              ),
-              onClick: () => console.log("Translate"),
-            },
-          ],
-        }}
-      >
-        <Tooltip title="Use AI assistance on this cell">
-          <Button
-            disabled={formatting}
-            type="text"
-            size="small"
-            style={style}
-            icon={
-              <AIAvatar
-                size={13}
-                style={{ position: "relative", top: "-3px" }}
-                innerStyle={{}}
-              />
-            }
-          >
-            <Space size="small">
-              Tools
-              <Icon name="angle-down" />
-            </Space>
-          </Button>
-        </Tooltip>
-      </Dropdown>
+      <LLMCellTool
+        id={props.id}
+        actions={props.actions}
+        llmTools={props.llmTools}
+        is_current={props.is_current}
+      />
     );
   }
 
@@ -685,7 +616,7 @@ function CodeBar({ props, frameActions }) {
           disabled={formatting}
           type="text"
           size="small"
-          style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+          style={CODE_BAR_BTN_STYLE}
           onClick={async () => {
             // kind of a hack: clicking on this button makes this cell
             // the selected one
@@ -711,13 +642,13 @@ function CodeBar({ props, frameActions }) {
         <CopyButton
           size="small"
           value={props.cell.get("input") ?? ""}
-          style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+          style={CODE_BAR_BTN_STYLE}
         />
       );
     } else {
       return (
         <PasteButton
-          style={{ fontSize: "11px", color: COLORS.GRAY_M }}
+          style={CODE_BAR_BTN_STYLE}
           paste={(text) => frameActions.current?.set_cell_input(props.id, text)}
         />
       );
@@ -727,16 +658,22 @@ function CodeBar({ props, frameActions }) {
   function renderCodeBarIndexNumber(input: string | undefined) {
     if (!input) return;
     return (
-      <div
-        style={{
-          marginLeft: "3px",
-          padding: "4px",
-          borderLeft: "1px solid #ccc",
-          borderTop: "1px solid #ccc",
-        }}
+      <Tooltip
+        placement="top"
+        title={`This is the ${numToOrdinal(
+          props.index + 1,
+        )} cell in the notebook.`}
       >
-        {props.index + 1}
-      </div>
+        <div
+          style={{
+            marginLeft: "1px",
+            padding: "4px 5px 4px 6px",
+            borderLeft: `1px solid ${COLORS.GRAY_LL}`,
+          }}
+        >
+          {props.index + 1}
+        </div>
+      </Tooltip>
     );
   }
 
@@ -744,15 +681,7 @@ function CodeBar({ props, frameActions }) {
 
   return (
     <div style={MINI_BUTTONS_STYLE} className="hidden-xs">
-      <div
-        style={{
-          display: "flex",
-          gap: "3px",
-          alignItems: "flex-start",
-          color: COLORS.GRAY_M,
-          fontSize: "11px",
-        }}
-      >
+      <div style={MINI_BUTTONS_STYLE_INNER}>
         {renderCodeBarCellTiming()}
         {renderCodeBarRunStop()}
         {renderCodeBarComputeServer()}

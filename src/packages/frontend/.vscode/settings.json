@@ -5,7 +5,6 @@
     "spellright.documentTypes": [
         "markdown",
         "latex",
-        "plaintext",
-        "typescriptreact"
+        "plaintext"
     ]
 }

@@ -253,3 +253,34 @@ describe("test round2up and round2down for various inputs", () => {
     }
   });
 });
+
+describe("numToOrdinal", () => {
+  const { numToOrdinal } = misc;
+  it("appends proper suffixes", () => {
+    expect(numToOrdinal(1)).toBe("1st");
+    expect(numToOrdinal(2)).toBe("2nd");
+    expect(numToOrdinal(3)).toBe("3rd");
+    expect(numToOrdinal(4)).toBe("4th");
+    expect(numToOrdinal(5)).toBe("5th");
+    expect(numToOrdinal(6)).toBe("6th");
+    expect(numToOrdinal(7)).toBe("7th");
+    expect(numToOrdinal(8)).toBe("8th");
+    expect(numToOrdinal(9)).toBe("9th");
+    expect(numToOrdinal(10)).toBe("10th");
+    expect(numToOrdinal(11)).toBe("11th");
+    expect(numToOrdinal(12)).toBe("12th");
+    expect(numToOrdinal(13)).toBe("13th");
+    expect(numToOrdinal(21)).toBe("21st");
+    expect(numToOrdinal(22)).toBe("22nd");
+    expect(numToOrdinal(23)).toBe("23rd");
+    expect(numToOrdinal(24)).toBe("24th");
+    expect(numToOrdinal(42)).toBe("42nd");
+    expect(numToOrdinal(101)).toBe("101st");
+    expect(numToOrdinal(202)).toBe("202nd");
+    expect(numToOrdinal(303)).toBe("303rd");
+    expect(numToOrdinal(1000)).toBe("1000th");
+  });
+  it("Falls back in other cases", () => {
+    expect(numToOrdinal(-1)).toBe("-1th");
+  });
+});

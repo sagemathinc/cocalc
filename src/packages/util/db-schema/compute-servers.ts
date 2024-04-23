@@ -16,6 +16,7 @@ import {
   DEFAULT_FLAVOR as DEFAULT_HYPERSTACK_FLAVOR,
   DEFAULT_DISK as DEFAULT_HYPERSTACK_DISK,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import { COLORS } from "@cocalc/util/theme";
 
 // These are just fallbacks in case something is wrong with the image configuration.
 export const STANDARD_DISK_SIZE = 20;
@@ -246,7 +247,7 @@ export const STATE_INFO: {
   },
   running: {
     label: "Running",
-    color: "#389e0d",
+    color: COLORS.RUN,
     actions: ["stop", "deprovision", "reboot", "suspend"],
     icon: "run",
     stable: true,
