@@ -63,6 +63,8 @@ export interface Image {
   icon: string;
   // Link to a URL with the source for building this image.
   source: string;
+  // optional list of links to videos about this image, ordered from lowest to highest priority.
+  videos?: string[];
   // The versions of this image that we claim to have built.
   // The ones with role='prod' (or not specified) are shown
   // to users as options.
