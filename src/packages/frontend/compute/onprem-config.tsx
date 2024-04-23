@@ -14,6 +14,7 @@ import { SELECTOR_WIDTH } from "./google-cloud-config";
 import Proxy from "./proxy";
 import { useImages } from "./images-hook";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
+import { A, Icon } from "@cocalc/frontend/components";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
@@ -84,9 +85,28 @@ export default function OnPremCloudConfiguration({
   return (
     <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "15px" }}>
-        You can connect any UBUNTU VIRTUAL MACHINE that you have a root acount
-        on to this CoCalc project and seamlessly run Jupyter notebooks and
-        terminals using it. On Prem compute servers are currently free.
+        <div style={{ color: "#666", marginBottom: "5px" }}>
+          <b>On Prem Compute Server</b>
+        </div>
+        You can connect your own <b>Ubuntu 22.04 Virtual Machine</b> to this
+        CoCalc project and seamlessly run Jupyter notebooks and terminals on it.
+        <ul>
+          <li>
+            Watch the{" "}
+            <A href="https://youtu.be/NkNx6tx3nu0">
+              <Icon name="youtube" /> compute server tutorial
+            </A>
+            .
+          </li>
+          <li>On-Prem compute servers are currently free.</li>
+          <li>
+            <A href="https://doc-cloud.cocalc.com/overview.html">
+              CoCalc-Cloud
+            </A>{" "}
+            is a related on-prem product for running a self-contained CoCalc
+            cluster.
+          </li>
+        </ul>
       </div>
       <div style={{ color: "#666", marginBottom: "5px" }}>
         <b>Architecture</b>
