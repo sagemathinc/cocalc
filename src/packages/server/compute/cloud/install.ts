@@ -136,34 +136,10 @@ export function installZpool({ cloud }: { cloud: Cloud }) {
     // ZFS can make things better.
     return "";
   }
-  // We retry repeatedly below because sometimes the volume hasn't quite
-  // become available when booting up.
   return `
 
 cd /cocalc/hyperstack
-
-# Initialize attempt counter.
-attempt=0
-# Set the maximum number of allowed attempts.
-max_attempts=30
-
-# Try executing zpool-init.sh until it succeeds.
-while ! ./zpool-init.sh
-do
-  # Increment the attempt counter.
-  ((attempt++))
-
-  # Check if the maximum number of attempts has been reached.
-  if [ "$attempt" -eq "$max_attempts" ]; then
-    echo "zpool-init.sh failed after $max_attempts attempts."
-    exit 1
-  fi
-
-  echo "Attempt $attempt/$max_attempts failed. Retrying in 2 seconds..."
-  sleep 2
-done
-
-echo "zpool-init.sh executed successfully."
+./zpool-init.sh
 `;
 }
 
