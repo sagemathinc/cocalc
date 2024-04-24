@@ -50,10 +50,10 @@ runcmd:
     set -v
     crontab -l | grep "@reboot /root/cocalc-startup.sh"
     if [ $? -ne 0 ]; then
-      # first boot ever, and crontab not setup, so we we add /root/cocalc-start.sh to
-      # crontab and run it. Otherwise, it will already be run.
-      (crontab -l 2>/dev/null; echo "@reboot /root/cocalc-startup.sh") | crontab -
-      /root/cocalc-startup.sh
+        # first boot ever, and crontab not setup, so we we add /root/cocalc-start.sh to
+        # crontab and run it. Otherwise, it will already be run.
+        (crontab -l 2>/dev/null; echo "@reboot /root/cocalc-startup.sh") | crontab -
+        /root/cocalc-startup.sh
     fi
 `;
 }

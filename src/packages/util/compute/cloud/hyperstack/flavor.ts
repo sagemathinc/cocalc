@@ -12,9 +12,13 @@ export function humanFlavor(flavor_name: string) {
   return HUMAN[flavor_name] ?? flavor_name;
 }
 
-const noGPU = new Set(Object.keys(HUMAN));
-export function hasGPU(flavor_name: string): boolean {
-  return !noGPU.has(flavor_name);
+export function hasGPU(
+  configuration: { region_name: string; flavor_name: string },
+  priceData: HyperstackPriceData,
+): boolean {
+  const key = optionKey(configuration);
+  const data = priceData.options[key];
+  return !!data?.gpu;
 }
 
 export function hasLocalSSD(

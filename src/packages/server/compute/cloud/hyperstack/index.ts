@@ -559,7 +559,7 @@ export async function getStartupParams(server: ComputeServer) {
   }
   const priceData = await getPricingData();
   return {
-    gpu: hasGPU(configuration.flavor_name),
+    gpu: hasGPU(configuration, priceData),
     local_ssd: hasLocalSSD(configuration, priceData) ? "/dev/vdb" : "",
   };
 }
