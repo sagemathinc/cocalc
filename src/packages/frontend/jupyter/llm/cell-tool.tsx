@@ -75,13 +75,12 @@ export function LLMCellTool({
   const { project_id, path } = useFrameContext();
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [mode, setMode] = useState<Mode | null>(null);
 
   if (actions == null || llmTools == null) {
     return null;
   }
   const { model, setModel } = llmTools;
-
-  const [mode, setMode] = useState<Mode | null>(null);
 
   function renderDropdown() {
     const style: CSS = {
@@ -134,12 +133,14 @@ export function LLMCellTool({
   }
 
   function getDescription() {
+    if (mode == null) return <Alert type="error" message={"No mode set"} />;
     const message = createMessage({
       id,
       actions,
       model,
       open: true,
-      full: false,
+      preview: true,
+      mode,
     });
     return (
       <div
@@ -157,9 +158,10 @@ export function LLMCellTool({
   }
 
   async function onConfirm() {
+    if (mode == null) return;
     setIsQuerying(true);
     try {
-      await getExplanation({ id, actions, project_id, path, model });
+      await getExplanation({ id, actions, project_id, path, model, mode });
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -193,7 +195,7 @@ export function LLMCellTool({
   function renderOkText() {
     return (
       <>
-        <Icon name={"paper-plane"} /> Ask {modelToName(model)} (enter)
+        <Icon name={"paper-plane"} /> Ask {modelToName(model)}
       </>
     );
   }
@@ -220,14 +222,16 @@ export function LLMCellTool({
         onCancel={onCancel}
         okText={renderOkText()}
       >
+        {/* TODO: this wrapper idea comes from PopconfirmKeyboard but it seemingly does not work with a dropdown */}
         <a href="#" onKeyDown={handleKeyDown} tabIndex={0}>
           {renderDropdown()}
         </a>
       </Popconfirm>
       {error ? (
         <Alert
-          style={{ maxWidth: "600px", margin: "15px 0" }}
+          style={{ maxWidth: "600px", fontSize: "10px", margin: "0" }}
           type="error"
+          banner
           showIcon
           closable
           message={error}
@@ -240,18 +244,20 @@ export function LLMCellTool({
 
 async function getExplanation({
   id,
+  mode,
   actions,
   project_id,
   path,
   model,
 }: {
   id: string;
+  mode: Mode;
   actions: JupyterActions;
   project_id: string;
   path: string;
   model: LanguageModel;
 }) {
-  const message = createMessage({ id, actions, model, open: false });
+  const message = createMessage({ id, actions, model, mode });
   if (!message) {
     console.warn("getHelp -- no cell with id", id);
     return;
@@ -266,11 +272,24 @@ async function getExplanation({
   });
 }
 
-function createMessage({ id, actions, model, open, full = true }): string {
+function createMessage({
+  id,
+  actions,
+  model,
+  open = false,
+  mode,
+  preview = false,
+}: {
+  id: string;
+  mode: Mode;
+  actions: JupyterActions;
+  open?: boolean; // expand <details></details>
+  preview?: boolean; // preview raw text does not include the details tags (only what's inside of it)
+  model: LanguageModel;
+}): string {
   const cell = actions.store.get("cells").get(id);
-  if (!cell) {
-    return "";
-  }
+  if (!cell) return "";
+
   const kernel_info = actions.store.get("kernel_info");
   const language = kernel_info.get("language");
   const message = createMessageText({
@@ -278,10 +297,11 @@ function createMessage({ id, actions, model, open, full = true }): string {
     cell,
     open,
     kernel_info,
-    full,
+    preview,
+    mode,
   });
   const mention = modelToMention(model);
-  return full ? `${mention} ${message}` : message;
+  return preview ? message : `${mention} ${message}`;
 }
 
 function createMessageText({
@@ -289,18 +309,19 @@ function createMessageText({
   cell,
   open,
   kernel_info,
-  full,
+  preview,
+  mode,
 }): string {
   const message: string[] = [];
   message.push(
-    `Explain the following ${kernel_info.get(
+    `${capitalize(mode)} the following ${kernel_info.get(
       "display_name",
     )} code that is in a Jupyter notebook:`,
   );
 
-  if (full) message.push(`<details${open ? " open" : ""}>`);
+  if (!preview) message.push(`<details${open ? " open" : ""}>`);
   message.push(`\`\`\`${language}\n${cell.get("input")}\n\`\`\``);
-  if (full) message.push(`</details>`);
+  if (!preview) message.push(`</details>`);
 
   return message.join("\n\n");
 }
