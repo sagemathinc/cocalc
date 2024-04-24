@@ -26,10 +26,18 @@ export async function startupScriptViaApi({ compute_server_id, api_key }) {
 export async function cloudInitScript({ compute_server_id, api_key }) {
   // This is a little tricky because we want it to run *every* time,
   // not just the first time, and cloud init doesn't have a nice way to
-  // do that.
+  // do that. That's why there is /root/cocalc-startup.sh
+  // ALSO, we reset /usr/local/sbin/prepare_ephemeral_disk.sh, since
+  // otherwise the user's data volume gets deleted by an overly
+  // aggressive script from hyperstack, which is very bad for us.
   return `#cloud-config
 
 write_files:
+  - path: /usr/local/sbin/prepare_ephemeral_disk.sh
+    permissions: "0700"
+    content: |
+        #!/bin/bash
+        echo "explicitly disabling ephemeral disk configuration to block what hyperstack does -- otherwise this would delete the user volume!"
   - path: /root/cocalc-startup.sh
     permissions: "0700"
     content: |
@@ -73,6 +81,7 @@ export default async function startupScript({
   auth_token,
   proxy,
   installUser: doInstallUser,
+  local_ssd,
 }: {
   cloud: Cloud;
   image?: string; // compute image
@@ -88,6 +97,7 @@ export default async function startupScript({
   auth_token: string;
   proxy;
   installUser?: boolean;
+  local_ssd?: boolean;
 }) {
   if (!api_key) {
     throw Error("api_key must be specified");
@@ -108,6 +118,7 @@ set -v
 
 export COCALC_CLOUD=${cloud}
 export DEBIAN_FRONTEND=noninteractive
+export COCALC_LOCAL_SSD=${local_ssd ?? ""}
 
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 

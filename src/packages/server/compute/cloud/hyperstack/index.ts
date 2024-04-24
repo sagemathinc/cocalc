@@ -35,7 +35,10 @@ import {
 } from "./names";
 import { attachVolumes, increaseDiskSize } from "./disk";
 import { cloudInitScript } from "@cocalc/server/compute/cloud/startup-script";
-import { hasGPU } from "@cocalc/util/compute/cloud/hyperstack/flavor";
+import {
+  hasGPU,
+  hasLocalSSD,
+} from "@cocalc/util/compute/cloud/hyperstack/flavor";
 import { createTTLCache } from "@cocalc/server/compute/database-cache";
 
 const logger = getLogger("server:compute:hyperstack");
@@ -549,12 +552,14 @@ export async function cost(
   }
 }
 
-export function getStartupParams(server: ComputeServer) {
+export async function getStartupParams(server: ComputeServer) {
   const { configuration } = server;
   if (configuration?.cloud != "hyperstack") {
     throw Error("must have a hyperstack configuration");
   }
+  const priceData = await getPricingData();
   return {
     gpu: hasGPU(configuration.flavor_name),
+    local_ssd: hasLocalSSD(configuration, priceData) ? "/dev/vdb" : "",
   };
 }

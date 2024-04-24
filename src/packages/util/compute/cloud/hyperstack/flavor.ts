@@ -1,3 +1,5 @@
+import { optionKey, HyperstackPriceData } from "./pricing";
+
 // NOTE: keys here also assumed to be the flavors without a gpu below!
 const HUMAN = {
   s: "n1-cpu-extrasmall",
@@ -11,6 +13,15 @@ export function humanFlavor(flavor_name: string) {
 }
 
 const noGPU = new Set(Object.keys(HUMAN));
-export function hasGPU(flavor_name: string) {
+export function hasGPU(flavor_name: string): boolean {
   return !noGPU.has(flavor_name);
+}
+
+export function hasLocalSSD(
+  configuration: { region_name: string; flavor_name: string },
+  priceData: HyperstackPriceData,
+): boolean {
+  const key = optionKey(configuration);
+  const data = priceData.options[key];
+  return !!data?.ephemeral;
 }
