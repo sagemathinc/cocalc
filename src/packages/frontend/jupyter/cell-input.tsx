@@ -35,11 +35,11 @@ import { CellHiddenPart } from "./cell-hidden-part";
 import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
+import { CODE_BAR_BTN_STYLE } from "./consts";
 import { Position } from "./insert-cell/types";
 import { LLMCellTool } from "./llm";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
-import { CODE_BAR_BTN_STYLE } from "./consts";
 
 const MINI_BUTTONS_STYLE: CSS = {
   position: "absolute",
@@ -106,6 +106,7 @@ export interface CellInputProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   setShowAICellGen?: (show: Position) => void;
+  dragHandle?: JSX.Element;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
@@ -130,6 +131,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             end={props.cell.get("end")}
             actions={props.actions}
             id={props.id}
+            dragHandle={props.dragHandle}
           />
         </HiddenXS>
       );
@@ -499,6 +501,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       (next.llmTools?.model ?? "") !== (cur.llmTools?.model ?? "") ||
       next.index !== cur.index ||
       next.computeServerId != cur.computeServerId ||
+      next.dragHandle !== cur.dragHandle ||
       (next.cell_toolbar === "slideshow" &&
         next.cell.get("slide") !== cur.cell.get("slide"))
     ),

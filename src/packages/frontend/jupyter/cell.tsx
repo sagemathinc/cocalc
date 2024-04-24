@@ -57,6 +57,7 @@ interface Props {
   is_visible?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
+  dragHandle?: JSX.Element;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -83,7 +84,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.computeServerId !== props.computeServerId ||
     (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
-      (nextProps.is_current || props.is_current))
+      (nextProps.is_current || props.is_current)) ||
+    nextProps.dragHandle !== props.dragHandle
   );
 }
 
@@ -132,6 +134,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         llmTools={props.llmTools}
         computeServerId={props.computeServerId}
         setShowAICellGen={setShowAICellGen}
+        dragHandle={props.dragHandle}
       />
     );
   }
@@ -310,10 +313,18 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     style.background = "#e3f2fd";
   }
 
+  if (props.isFirst) {
+    // make room for InsertCell(above)
+    style.marginTop = "30px";
+  }
+
   function render_insert_cell(
     position: "above" | "below" = "above",
   ): JSX.Element | null {
     if (props.actions == null || IS_TOUCH) {
+      return null;
+    }
+    if (position === "above" && !props.isFirst) {
       return null;
     }
     return (
@@ -340,7 +351,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
   // Note that the cell id is used for scroll functionality, so *is* important.
   return (
     <>
-      {props.isFirst ? render_insert_cell("above") : undefined}
+      {render_insert_cell("above")}
       <div
         style={style}
         onMouseUp={props.is_current ? undefined : click_on_cell}

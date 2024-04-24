@@ -25,7 +25,6 @@ import { useDebounce } from "use-debounce";
 
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
 import {
   DragHandle,
   SortableItem,
@@ -435,23 +434,19 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       index = cell_list.indexOf(id) ?? 0;
     }
+    const dragHandle = actions?.store.is_cell_editable(id) ? (
+      <DragHandle
+        id={id}
+        style={{
+          position: "relative",
+          left: 0,
+          top: 0,
+          color: "#aaa",
+        }}
+      />
+    ) : undefined;
     return (
       <div key={id}>
-        {actions?.store.is_cell_editable(id) && (
-          <HiddenXS>
-            <div style={{ position: "relative", zIndex: 1 }}>
-              <DragHandle
-                id={id}
-                style={{
-                  position: "absolute",
-                  left: 15,
-                  top: 12.5,
-                  color: "#aaa",
-                }}
-              />
-            </div>
-          </HiddenXS>
-        )}
         <Cell
           id={id}
           index={index}
@@ -479,6 +474,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           computeServerId={computeServerId}
           isFirst={isFirst}
           isLast={isLast}
+          dragHandle={dragHandle}
         />
       </div>
     );
