@@ -55,6 +55,14 @@ ${ephemeral}
     content: |
         #!/bin/bash
         ${await startupScriptViaApi({ compute_server_id, api_key })}
+        # If the script fails (e.g., due to timing weirdness), we
+        # try restarting docker and running it again.
+        sleep 1
+        service docker restart
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
+        sleep 3
+        service docker restart
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
 
 runcmd:
   - |
