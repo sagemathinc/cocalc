@@ -21,6 +21,7 @@ import {
   hardRebootVirtualMachine,
   importKeyPair,
   startVirtualMachine,
+  getImages,
 } from "./client";
 import { setData as setData0 } from "@cocalc/server/compute/util";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -45,11 +46,18 @@ const logger = getLogger("server:compute:hyperstack");
 
 initDatabaseCache();
 
-// TODO: This 29 comes from the following -- it should be computed dynamically
-// probably once per server start (?).
-// > i = await getImages()  // from client
-// i[5]  <-- id=29 is the one "Ubuntu Server 22.04 LTS R535 CUDA 12.2"
-// const BOOT_IMAGE_ID = { "CANADA-1": 29, "NORWAY-1": 33 };
+export async function getImageName(region_name: string): Promise<string> {
+  const images = await getImages();
+  const ubuntu = images.filter(
+    (x) => x.region_name == region_name && x.type == "Ubuntu",
+  )[0].images;
+  const cuda = ubuntu.filter(
+    (x) => x.version.includes("CUDA") && x.version.includes("22.04"),
+  )[0];
+  // as of writing this is always "Ubuntu Server 22.04 LTS R535 CUDA 12.2"
+  // but I could imagine it randomly changing...
+  return cuda.name;
+}
 
 // by default we open up tcp for ports 22, 80 and 443 (ssh and webserver)
 const SECURITY_RULES = [
@@ -215,7 +223,7 @@ export async function start(server: ComputeServer) {
       const [vm] = await createVirtualMachines({
         name: await getServerName(server),
         environment_name,
-        image_name: "Ubuntu Server 22.04 LTS R535 CUDA 12.2",
+        image_name: await getImageName(server.configuration.region_name),
         key_name: await ensureKeyPair(
           server.configuration.region_name,
           environment_name,
