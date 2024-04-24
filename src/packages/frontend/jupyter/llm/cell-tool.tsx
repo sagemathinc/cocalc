@@ -2,25 +2,38 @@
 Use ChatGPT to explain what the code in a cell does.
 */
 
-import { Alert, Button, Dropdown, Popconfirm, Space, Tooltip } from "antd";
-import { CSSProperties, useState } from "react";
+import {
+  Alert,
+  Button,
+  Collapse,
+  Dropdown,
+  Flex,
+  Input,
+  Popconfirm,
+  Space,
+  Switch,
+  Tooltip,
+} from "antd";
+import { CSSProperties, useEffect, useState } from "react";
 
-import { CSS } from "@cocalc/frontend/app-framework";
+import { CSS, useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import { Text } from "@cocalc/frontend/components";
+import { Paragraph, Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import LLMSelector, {
-  LanguageModel,
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { capitalize } from "@cocalc/util/misc";
+import { LanguageModel, getLLMCost } from "@cocalc/util/db-schema/llm-utils";
+import { capitalize, round2up } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { LLMModelName } from "../../components/llm-name";
 import type { JupyterActions } from "../browser-actions";
 import { CODE_BAR_BTN_STYLE } from "../consts";
+import { cellOutputToText } from "../output-messages/ansi";
 import { RawPrompt } from "./raw-prompt";
 
 interface Props {
@@ -31,13 +44,36 @@ interface Props {
   is_current?: boolean;
 }
 
+const TARGET_LANGS = [
+  "Python",
+  "R",
+  "SageMath",
+  "Octave",
+  "Matlab",
+  "JavaScript",
+  "C++",
+] as const;
+type TargetLanguage = (typeof TARGET_LANGS)[number];
+
 const MODES = ["explain", "bugfix", "improve", "translate"] as const;
 type Mode = (typeof MODES)[number];
+
+type PromptGen = ({
+  language,
+  kernel_display,
+  targetLangauge,
+  bug,
+}: {
+  language: string;
+  kernel_display: string;
+  bug?: string;
+  targetLangauge?: TargetLanguage;
+}) => string;
 
 interface LLMTool {
   icon: string;
   descr: string;
-  prompt: string;
+  prompt: PromptGen;
 }
 
 const ACTIONS: { [mode in Mode]: LLMTool } = {
@@ -45,23 +81,29 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
     icon: "sound-outlined",
     descr:
       "Ask a large langauge model to gain some insight into the code in that cell.",
-    prompt: "...",
+    prompt: ({ kernel_display }) =>
+      `Explain the following ${kernel_display} code in a Jupyter Notebook cell:`,
   },
   bugfix: {
     icon: "clean-outlined",
     descr:
       "Describe the problem of that cell to a large langauge model in order to get a bugfixed version.",
-    prompt: "",
+    prompt: ({ kernel_display, bug }) =>
+      `Bugfix the follwing ${kernel_display} code in a Jupyter Notebook cell.${
+        bug ? ` The problem is: "${bug}".` : ""
+      }`,
   },
   improve: {
     icon: "rise-outlined",
     descr: "Ask a large language model to improve the code in that cell.",
-    prompt: "",
+    prompt: ({ language }) =>
+      `Review and improve the following ${language} code in a Jupyter Notebook cell:`,
   },
   translate: {
     icon: "translation-outlined",
     descr: "Translate the code in that cell to another language using AI.",
-    prompt: "",
+    prompt: ({ language, targetLangauge = "R" }) =>
+      `Translate the following ${language} code to ${targetLangauge}.`,
   },
 } as const;
 
@@ -76,11 +118,85 @@ export function LLMCellTool({
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [mode, setMode] = useState<Mode | null>(null);
+  const [bug, setBug] = useState<string>("");
+  const [targetLangauge, setTargetLanguage] =
+    useState<TargetLanguage>("Python");
+  const [includeOutput, setIncludeOutput] = useState<boolean>(false);
+  const [description, setDescription] = useState<JSX.Element | null>(null);
+
+  useEffect(() => {
+    if (mode == null || actions == null) return;
+    // we change the target language to R, if the cell language is python – otherwise target is python
+    const kernel_info = actions.store.get("kernel_info");
+    const language = kernel_info.get("language");
+    if (language === "Python" && targetLangauge === "Python") {
+      setTargetLanguage("R");
+    }
+  }, [mode, actions]);
+
+  useAsyncEffect(async () => {
+    if (mode == null || llmTools == null) {
+      setDescription(null);
+      return;
+    }
+    const { model } = llmTools;
+    const { message, tokens } = await createMessage({
+      id,
+      actions,
+      model,
+      includeOutput,
+      open: true,
+      preview: true,
+      mode,
+      bug,
+      targetLangauge,
+    });
+    setDescription(
+      <Space
+        direction="vertical"
+        style={{
+          width: "550px",
+          overflow: "auto",
+          maxWidth: "90vw",
+          maxHeight: "90vh",
+          paddingRight: "20px",
+        }}
+      >
+        {renderControls()}
+        {renderIncludeOutput()}
+        <Collapse
+          items={[
+            {
+              key: "1",
+              label: <>This will be sent to {modelToName(model)}</>,
+              children: <RawPrompt input={message} />,
+            },
+          ]}
+        />
+        {renderPriceEstimation(model, tokens)}
+      </Space>,
+    );
+  }, [mode, id, actions, llmTools?.model, includeOutput, bug, targetLangauge]);
 
   if (actions == null || llmTools == null) {
     return null;
   }
-  const { model, setModel } = llmTools;
+
+  function renderPriceEstimation(model: LanguageModel, tokens: number) {
+    const pay_as_you_go_openai_markup_percentage = 30;
+    const { prompt_tokens, completion_tokens } = getLLMCost(
+      model,
+      pay_as_you_go_openai_markup_percentage,
+    );
+    const cost1 = tokens * prompt_tokens + 50 * completion_tokens;
+    const cost2 = tokens * prompt_tokens + 1000 * completion_tokens;
+    console.log({ tokens, cost1, cost2 });
+    return (
+      <Paragraph type="secondary" style={{ textAlign: "right" }}>
+        Cost estimation: about ${round2up(cost1)} to ${round2up(cost2)}
+      </Paragraph>
+    );
+  }
 
   function renderDropdown() {
     const style: CSS = {
@@ -132,36 +248,60 @@ export function LLMCellTool({
     );
   }
 
-  function getDescription() {
-    if (mode == null) return <Alert type="error" message={"No mode set"} />;
-    const message = createMessage({
-      id,
-      actions,
-      model,
-      open: true,
-      preview: true,
-      mode,
-    });
+  function renderControls() {
+    switch (mode) {
+      case "bugfix":
+        return (
+          <div>
+            <Text>Describe the problem or bug:</Text>
+            <Input
+              value={bug}
+              onChange={(e) => setBug(e.target.value)}
+              placeholder={"Describe the problem…"}
+            />
+          </div>
+        );
+    }
+    return null;
+  }
+
+  function renderIncludeOutput() {
+    if (llmTools == null) return;
     return (
-      <div
-        style={{
-          width: "550px",
-          overflow: "auto",
-          maxWidth: "90vw",
-          maxHeight: "300px",
-        }}
-      >
-        The following will be sent to {modelToName(model)}:
-        <RawPrompt input={message} />
-      </div>
+      <Flex align="center" gap="10px">
+        <Flex flex={0}>
+          <Switch
+            onChange={(val) => setIncludeOutput(val)}
+            unCheckedChildren={"No output"}
+            checkedChildren={"Include output"}
+          />
+        </Flex>
+        <Flex flex={1}>
+          <Text type="secondary">
+            Including output helps <LLMModelName model={llmTools.model} /> to
+            better understand the code!
+          </Text>
+        </Flex>
+      </Flex>
     );
   }
 
   async function onConfirm() {
-    if (mode == null) return;
+    if (mode == null || llmTools == null) return;
+    const { model } = llmTools;
     setIsQuerying(true);
     try {
-      await getExplanation({ id, actions, project_id, path, model, mode });
+      await getExplanation({
+        id,
+        actions,
+        project_id,
+        path,
+        model,
+        includeOutput,
+        mode,
+        bug,
+        targetLangauge,
+      });
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -180,12 +320,13 @@ export function LLMCellTool({
       // should actually never happen
       return <Text strong>Select a tool to use on this cell...</Text>;
     }
+    if (llmTools == null) return;
     return (
       <Text strong>
         {capitalize(mode)} this cell using{" "}
         <LLMSelector
-          model={model}
-          setModel={setModel}
+          model={llmTools.model}
+          setModel={llmTools.setModel}
           project_id={project_id}
         />
       </Text>
@@ -193,9 +334,10 @@ export function LLMCellTool({
   }
 
   function renderOkText() {
+    if (llmTools == null) return <></>;
     return (
       <>
-        <Icon name={"paper-plane"} /> Ask {modelToName(model)}
+        <Icon name={"paper-plane"} /> Ask {modelToName(llmTools.model)}
       </>
     );
   }
@@ -217,7 +359,7 @@ export function LLMCellTool({
         open={mode != null}
         icon={<AIAvatar size={20} />}
         title={renderTitle()}
-        description={getDescription()}
+        description={description}
         onConfirm={onConfirm}
         onCancel={onCancel}
         okText={renderOkText()}
@@ -246,18 +388,32 @@ async function getExplanation({
   id,
   mode,
   actions,
+  includeOutput,
   project_id,
   path,
   model,
+  bug,
+  targetLangauge,
 }: {
   id: string;
   mode: Mode;
+  includeOutput: boolean;
   actions: JupyterActions;
   project_id: string;
   path: string;
   model: LanguageModel;
+  bug: string;
+  targetLangauge: TargetLanguage;
 }) {
-  const message = createMessage({ id, actions, model, mode });
+  const { message } = await createMessage({
+    id,
+    actions,
+    model,
+    mode,
+    includeOutput,
+    bug,
+    targetLangauge,
+  });
   if (!message) {
     console.warn("getHelp -- no cell with id", id);
     return;
@@ -272,56 +428,97 @@ async function getExplanation({
   });
 }
 
-function createMessage({
+async function createMessage({
   id,
   actions,
   model,
+  includeOutput,
   open = false,
   mode,
   preview = false,
+  bug,
+  targetLangauge,
 }: {
   id: string;
   mode: Mode;
   actions: JupyterActions;
+  includeOutput: boolean;
   open?: boolean; // expand <details></details>
   preview?: boolean; // preview raw text does not include the details tags (only what's inside of it)
   model: LanguageModel;
-}): string {
+  bug: string;
+  targetLangauge: TargetLanguage;
+}): Promise<{ message: string; tokens: number }> {
   const cell = actions.store.get("cells").get(id);
-  if (!cell) return "";
+  if (!cell) return { message: "", tokens: 0 };
 
   const kernel_info = actions.store.get("kernel_info");
   const language = kernel_info.get("language");
-  const message = createMessageText({
+
+  const kernel_display = kernel_info.get("display_name");
+  const prompt = ACTIONS[mode].prompt({
+    language,
+    kernel_display,
+    bug,
+    targetLangauge,
+  });
+  const { message, tokens } = await createMessageText({
+    model,
     language,
     cell,
+    includeOutput,
     open,
     kernel_info,
     preview,
     mode,
+    prompt,
   });
   const mention = modelToMention(model);
-  return preview ? message : `${mention} ${message}`;
+  return { message: preview ? message : `${mention} ${message}`, tokens };
 }
 
-function createMessageText({
+async function createMessageText({
+  model,
   language,
   cell,
+  includeOutput,
   open,
-  kernel_info,
   preview,
-  mode,
-}): string {
-  const message: string[] = [];
-  message.push(
-    `${capitalize(mode)} the following ${kernel_info.get(
-      "display_name",
-    )} code that is in a Jupyter notebook:`,
+  prompt,
+}: {
+  model: LanguageModel;
+  language: string;
+  preview: boolean;
+  mode: Mode;
+  includeOutput: boolean;
+  open: boolean;
+  cell: any;
+  prompt: string;
+  kernel_info: any;
+}): Promise<{ message: string; tokens: number }> {
+  // do not import until needed -- it is HUGE!
+  const { truncateMessage, getMaxTokens, numTokensUpperBound } = await import(
+    "@cocalc/frontend/misc/llm"
   );
 
-  if (!preview) message.push(`<details${open ? " open" : ""}>`);
-  message.push(`\`\`\`${language}\n${cell.get("input")}\n\`\`\``);
-  if (!preview) message.push(`</details>`);
+  const chunks: string[] = [];
 
-  return message.join("\n\n");
+  chunks.push(prompt);
+
+  if (!preview) chunks.push(`<details${open ? " open" : ""}>`);
+  chunks.push(`\`\`\`${language}\n${cell.get("input")}\n\`\`\``);
+  if (includeOutput) {
+    chunks.push("Output:");
+    const fullOutput = cellOutputToText(cell);
+
+    // The output could be huge – we truncate to half of what we can send
+    const maxTokens = getMaxTokens(model) / 2;
+    const output = truncateMessage(fullOutput, maxTokens);
+
+    chunks.push(`\`\`\`\n${output}\n\`\`\``);
+  }
+  if (!preview) chunks.push(`</details>`);
+
+  const message = chunks.join("\n\n");
+  return { message, tokens: numTokensUpperBound(message, getMaxTokens(model)) };
 }

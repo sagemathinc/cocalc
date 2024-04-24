@@ -21,3 +21,37 @@ export function is_ansi(s: any): boolean {
       s.indexOf("\b") != -1)
   );
 }
+
+// Google's Gemini came up with that moster …
+const ANSI_REGEX =
+  /[\u001B\u009B][\[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+
+// Extract a plain-text representation of a given cell
+export function cellOutputToText(cell): string {
+  const raw = cell.get("output");
+  if (!raw) return "";
+
+  const output: string[] = [];
+
+  for (let i = 0; i < raw.size; i++) {
+    const o = raw.get(`${i}`)?.toJS();
+
+    const txt = o?.data?.["text/plain"];
+    if (typeof txt === "string") {
+      output.push(txt);
+    }
+
+    if (typeof o.text === "string") {
+      output.push(o.text);
+    }
+
+    if (o.traceback != null) {
+      const trace = o.traceback.join("\n");
+      output.push(trace.replaceAll(ANSI_REGEX, ""));
+    }
+
+    output.push();
+  }
+
+  return output.join("\n");
+}
