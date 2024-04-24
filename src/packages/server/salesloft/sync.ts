@@ -20,12 +20,12 @@ The following are the custom_fields that we actually use:
   - cocalc_created: date when cocalc account was created (UTC timestamp)
   - cocalc_last_active: date when cocalc account was last active (UTC timestamp)
   - stripe_customer_id: if they interacted with our payment system, they will have a stripe id
-  - cocalc_tags: if they entered tags when creating their account
   - cocalc_notes: if we typed in notes about them via our CRM
   - cocalc_purchase_timestamp: the most recent timestamp where we updated information about their spend, based on daily statements
   - cocalc_balance: their balance at cocalc_purchase_timestamp, from the most recent daily statement
   - cocalc_last_month_spend: amount they spent during the last 30 days, according to daily statements only
   - cocalc_last_year_spend: the total amount they have spent during the last year, according to monthly statements
+  - cocalc_tags: zero or more of 'personal' or 'student' or 'instructor' or 'professional', separated by comma (no space, in alphabetical order)
 
 RATE LIMITS:
 
@@ -166,7 +166,7 @@ function toSalesloft({
       cocalc_created,
       cocalc_last_active,
       stripe_customer_id,
-      cocalc_tags,
+      cocalc_tags: cocalc_tags ? cocalc_tags.join(",") : undefined,
       cocalc_notes,
     },
   };
