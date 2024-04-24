@@ -234,6 +234,9 @@ export async function start(server: ComputeServer) {
         user_data: await cloudInitScript({
           compute_server_id: server.id,
           api_key: server.api_key,
+          local_ssd: hasLocalSSD(server.configuration, await getPricingData())
+            ? "/dev/vdb"
+            : "",
         }),
       });
       externalIp = vm?.floating_ip;

@@ -23,21 +23,33 @@ export async function startupScriptViaApi({ compute_server_id, api_key }) {
   return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
 }
 
-export async function cloudInitScript({ compute_server_id, api_key }) {
+export async function cloudInitScript({
+  compute_server_id,
+  api_key,
+  local_ssd,
+}) {
   // This is a little tricky because we want it to run *every* time,
   // not just the first time, and cloud init doesn't have a nice way to
   // do that. That's why there is /root/cocalc-startup.sh
-  // ALSO, we reset /usr/local/sbin/prepare_ephemeral_disk.sh, since
-  // otherwise the user's data volume gets deleted by an overly
-  // aggressive script from hyperstack, which is very bad for us.
-  return `#cloud-config
 
-write_files:
+  let ephemeral = "";
+  if (!local_ssd) {
+    // When no local_ssd, we reset /usr/local/sbin/prepare_ephemeral_disk.sh, since
+    // otherwise the user's data volume gets deleted by an non-ZFS aware
+    // script from hyperstack, which is very bad for us.
+    ephemeral = `
   - path: /usr/local/sbin/prepare_ephemeral_disk.sh
     permissions: "0700"
     content: |
         #!/bin/bash
         echo "explicitly disabling ephemeral disk configuration to block what hyperstack does -- otherwise this would delete the user volume!"
+`;
+  }
+
+  return `#cloud-config
+
+write_files:
+${ephemeral}
   - path: /root/cocalc-startup.sh
     permissions: "0700"
     content: |
