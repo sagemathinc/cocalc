@@ -821,12 +821,71 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard VM's stay running until you stop them, whereas spot VM's are up
-        to 91% off, but{" "}
-        <b>will automatically stop when there is a surge in demand.</b> They
-        might also not be available in a given region, so you may have to try
-        different regions.{" "}
-        {configuration.acceleratorType && <> Spot GPU's are in high demand.</>}
+        Standard VM's run until you stop them, whereas spot VM's are up to 91%
+        off, but will automatically stop when there is a surge in demand. Spot
+        instances might also not be available in a given region, so you may have
+        to try different regions.{" "}
+        {configuration.acceleratorType && (
+          <> GPU's are always in high demand.</>
+        )}
+        {newSpot && (
+          <Alert
+            style={{ margin: "5px 0" }}
+            type="warning"
+            showIcon
+            description={
+              <div style={{ maxWidth: "100%" }}>
+                This is a heavily discounted spot instance. It will
+                automatically{" "}
+                {configuration.autoRestart ? " reboot if possible " : " stop "}{" "}
+                when there is a surge in demand.
+                {!disabled && (
+                  <Popconfirm
+                    title="Switch to Standard?"
+                    description={
+                      <div style={{ maxWidth: "450px" }}>
+                        This will switch to a non-discounted standard instance,
+                        which stays running even if there is high demand. You
+                        can switch back to a spot instance using the blue toggle
+                        above.
+                      </div>
+                    }
+                    onConfirm={() => {
+                      setNewSpot(false);
+                      setConfig({ spot: false });
+                    }}
+                    okText="Switch to Standard"
+                    cancelText="Cancel"
+                  >
+                    <Button type="link">Switch to Standard</Button>
+                  </Popconfirm>
+                )}
+                {!configuration.autoRestart && (
+                  <Popconfirm
+                    title="Enable Automatic Restart?"
+                    description={
+                      <div style={{ maxWidth: "450px" }}>
+                        CoCalc will automatically restart your compute server if
+                        it is killed due to high demand. Note that there might
+                        not be any compute resources available, in which case
+                        you will have to wait for your server to start. You can
+                        disable this in the "Automatically Restart" section
+                        below.
+                      </div>
+                    }
+                    onConfirm={() => {
+                      setConfig({ autoRestart: true });
+                    }}
+                    okText="Enable Automatic Restart"
+                    cancelText="Cancel"
+                  >
+                    <Button type="link">Enable Automatic Restart</Button>
+                  </Popconfirm>
+                )}
+              </div>
+            }
+          />
+        )}
       </div>
     </div>
   );
