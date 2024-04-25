@@ -18,7 +18,7 @@ import { CSSProperties, useEffect, useState } from "react";
 
 import { CSS, useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import { Paragraph, Text } from "@cocalc/frontend/components";
+import { Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -26,9 +26,10 @@ import LLMSelector, {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { LanguageModel, getLLMCost } from "@cocalc/util/db-schema/llm-utils";
-import { capitalize, round2up } from "@cocalc/util/misc";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { LLMModelName } from "../../components/llm-name";
 import type { JupyterActions } from "../browser-actions";
@@ -173,29 +174,13 @@ export function LLMCellTool({
             },
           ]}
         />
-        {renderPriceEstimation(model, tokens)}
+        <LLMCostEstimation model={model} tokens={tokens} />
       </Space>,
     );
   }, [mode, id, actions, llmTools?.model, includeOutput, bug, targetLangauge]);
 
   if (actions == null || llmTools == null) {
     return null;
-  }
-
-  function renderPriceEstimation(model: LanguageModel, tokens: number) {
-    const pay_as_you_go_openai_markup_percentage = 30;
-    const { prompt_tokens, completion_tokens } = getLLMCost(
-      model,
-      pay_as_you_go_openai_markup_percentage,
-    );
-    const cost1 = tokens * prompt_tokens + 50 * completion_tokens;
-    const cost2 = tokens * prompt_tokens + 1000 * completion_tokens;
-    console.log({ tokens, cost1, cost2 });
-    return (
-      <Paragraph type="secondary" style={{ textAlign: "right" }}>
-        Cost estimation: about ${round2up(cost1)} to ${round2up(cost2)}
-      </Paragraph>
-    );
   }
 
   function renderDropdown() {
@@ -515,7 +500,7 @@ async function createMessageText({
     const maxTokens = getMaxTokens(model) / 2;
     const output = truncateMessage(fullOutput, maxTokens);
 
-    chunks.push(`\`\`\`\n${output}\n\`\`\``);
+    chunks.push(`\`\`\`text\n${output}\n\`\`\``);
   }
   if (!preview) chunks.push(`</details>`);
 

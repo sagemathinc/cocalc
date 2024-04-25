@@ -156,7 +156,7 @@ export class WebappConfiguration {
     }
     const vID = this.get_vanity_id(host);
     const config = this.data.pub;
-    const vanity = this.get_vanity(vID);
+    const vanity = await this.get_vanity(vID);
     return { ...config, ...vanity, ...{ country, dns: host } };
   }
 

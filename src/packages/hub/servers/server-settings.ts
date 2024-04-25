@@ -84,7 +84,11 @@ export default async function getServerSettings(): Promise<ServerSettingsDynamic
               ? spec.to_val(spec.default, allRaw)
               : spec.default;
           // we don't bother to set empty strings or empty arrays
-          if (fallbackVal === "" || isEmpty(fallbackVal)) continue;
+          if (
+            (typeof fallbackVal === "string" && fallbackVal === "") ||
+            (Array.isArray(fallbackVal) && isEmpty(fallbackVal))
+          )
+            continue;
           all[field] = fallbackVal;
           // site-settings end up in the "pub" object as well
           // while "all" is the one we keep to us, contains secrets
@@ -94,6 +98,9 @@ export default async function getServerSettings(): Promise<ServerSettingsDynamic
         }
       }
     }
+
+    // Since we want to tell users about the estimated LLM interaction price, we have to send the markup as well.
+    pub["_llm_markup"] = all.pay_as_you_go_openai_markup_percentage;
 
     // PRECAUTION: never make the required version bigger than version_recommended_browser. Very important
     // not to stupidly completely eliminate all cocalc users by a typo...
