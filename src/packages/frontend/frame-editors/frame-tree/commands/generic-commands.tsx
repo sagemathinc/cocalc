@@ -16,6 +16,7 @@ import { SEARCH_COMMANDS } from "./const";
 import { addCommands } from "./commands";
 import { set_account_table } from "@cocalc/frontend/account/util";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
 
 addCommands({
   "split-row": {
@@ -686,6 +687,20 @@ addCommands({
       "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
     onClick: () => {
       openSupportTab();
+    },
+  },
+  videos: {
+    alwaysShow: true,
+    pos: 10,
+    group: "help-link",
+    icon: "youtube",
+    label: "Videos",
+    button: "Videos",
+    title: "Browse videos about CoCalc.",
+    onClick: () => {
+      openNewTab(
+        "https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ",
+      );
     },
   },
   [SEARCH_COMMANDS]: {

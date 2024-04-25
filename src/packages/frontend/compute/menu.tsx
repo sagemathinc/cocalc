@@ -128,13 +128,19 @@ function getItems({
       key: "top-jupyterlab",
       label: "JupyterLab",
       icon: <Icon name="jupyter" />,
-      disabled: apps["jupyterlab"] == null || server.state != "running",
+      disabled:
+        apps["jupyterlab"] == null ||
+        server.state != "running" ||
+        !server.data?.externalIp,
     },
     {
       key: "top-vscode",
       label: "VS Code",
       icon: <Icon name="vscode" />,
-      disabled: apps["vscode"] == null || server.state != "running",
+      disabled:
+        apps["vscode"] == null ||
+        server.state != "running" ||
+        !server.data?.externalIp,
     },
     {
       type: "divider",
@@ -387,6 +393,15 @@ function getItems({
           key: "support",
           icon: <Icon name="medkit" />,
           label: "Support",
+        },
+        {
+          key: "videos",
+          icon: <Icon name="youtube" />,
+          label: (
+            <A href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ">
+              Videos
+            </A>
+          ),
         },
       ],
     },

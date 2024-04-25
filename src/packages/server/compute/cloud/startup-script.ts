@@ -23,17 +23,45 @@ export async function startupScriptViaApi({ compute_server_id, api_key }) {
   return `curl -fsS ${apiServer}/compute/${compute_server_id}/onprem/start/${api_key} | sudo bash 2>&1 | tee /var/log/cocalc-startup.log`;
 }
 
-export async function cloudInitScript({ compute_server_id, api_key }) {
+export async function cloudInitScript({
+  compute_server_id,
+  api_key,
+  local_ssd,
+}) {
   // This is a little tricky because we want it to run *every* time,
   // not just the first time, and cloud init doesn't have a nice way to
-  // do that.
+  // do that. That's why there is /root/cocalc-startup.sh
+
+  let ephemeral = "";
+  if (!local_ssd) {
+    // When no local_ssd, we reset /usr/local/sbin/prepare_ephemeral_disk.sh, since
+    // otherwise the user's data volume gets deleted by an non-ZFS aware
+    // script from hyperstack, which is very bad for us.
+    ephemeral = `
+  - path: /usr/local/sbin/prepare_ephemeral_disk.sh
+    permissions: "0700"
+    content: |
+        #!/bin/bash
+        echo "explicitly disabling ephemeral disk configuration to block what hyperstack does -- otherwise this would delete the user volume!"
+`;
+  }
+
   return `#cloud-config
 
 write_files:
+${ephemeral}
   - path: /root/cocalc-startup.sh
     permissions: "0700"
     content: |
         #!/bin/bash
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
+        # If the script fails (e.g., due to timing weirdness), we
+        # try restarting docker and running it again.
+        sleep 1
+        service docker restart
+        ${await startupScriptViaApi({ compute_server_id, api_key })}
+        sleep 3
+        service docker restart
         ${await startupScriptViaApi({ compute_server_id, api_key })}
 
 runcmd:
@@ -42,10 +70,10 @@ runcmd:
     set -v
     crontab -l | grep "@reboot /root/cocalc-startup.sh"
     if [ $? -ne 0 ]; then
-      # first boot ever, and crontab not setup, so we we add /root/cocalc-start.sh to
-      # crontab and run it. Otherwise, it will already be run.
-      (crontab -l 2>/dev/null; echo "@reboot /root/cocalc-startup.sh") | crontab -
-      /root/cocalc-startup.sh
+        # first boot ever, and crontab not setup, so we we add /root/cocalc-start.sh to
+        # crontab and run it. Otherwise, it will already be run.
+        (crontab -l 2>/dev/null; echo "@reboot /root/cocalc-startup.sh") | crontab -
+        /root/cocalc-startup.sh
     fi
 `;
 }
@@ -73,6 +101,7 @@ export default async function startupScript({
   auth_token,
   proxy,
   installUser: doInstallUser,
+  local_ssd,
 }: {
   cloud: Cloud;
   image?: string; // compute image
@@ -88,6 +117,7 @@ export default async function startupScript({
   auth_token: string;
   proxy;
   installUser?: boolean;
+  local_ssd?: boolean;
 }) {
   if (!api_key) {
     throw Error("api_key must be specified");
@@ -108,6 +138,7 @@ set -v
 
 export COCALC_CLOUD=${cloud}
 export DEBIAN_FRONTEND=noninteractive
+export COCALC_LOCAL_SSD=${local_ssd ?? ""}
 
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 

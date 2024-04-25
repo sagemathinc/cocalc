@@ -264,6 +264,11 @@ export function ImageLinks({ image, style }: { image; style? }) {
       <A style={{ flex: 1 }} href={data.url}>
         <Icon name="external-link" /> {data.label}
       </A>
+      {data.videos != null && data.videos.length > 0 && (
+        <A style={{ flex: 1 }} href={data.videos[0]}>
+          <Icon name="youtube" /> Video
+        </A>
+      )}
       <A style={{ flex: 1 }} href={data.source}>
         <Icon name="github" /> Source
       </A>

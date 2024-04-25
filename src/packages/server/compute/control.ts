@@ -777,7 +777,7 @@ export async function setTestNetworkUsage({
   testNetworkUsage[id] = { amount, cost };
 }
 
-async function getStartupParams(id: number): Promise<{
+export async function getStartupParams(id: number): Promise<{
   cloud: Cloud;
   project_id: string;
   gpu?: boolean;

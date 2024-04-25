@@ -8,9 +8,7 @@ import type { Region } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { DEFAULT_DISK } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import getLogger from "@cocalc/backend/logger";
 import getPricingData from "./pricing-data";
-import computeCost, {
-  BOOT_DISK_SIZE_GB,
-} from "@cocalc/util/compute/cloud/hyperstack/compute-cost";
+import computeCost from "@cocalc/util/compute/cloud/hyperstack/compute-cost"; //  BOOT_DISK_SIZE_GB,
 import {
   createVolume,
   createEnvironment,
@@ -23,6 +21,7 @@ import {
   hardRebootVirtualMachine,
   importKeyPair,
   startVirtualMachine,
+  getImages,
 } from "./client";
 import { setData as setData0 } from "@cocalc/server/compute/util";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -37,18 +36,28 @@ import {
 } from "./names";
 import { attachVolumes, increaseDiskSize } from "./disk";
 import { cloudInitScript } from "@cocalc/server/compute/cloud/startup-script";
-import { hasGPU } from "@cocalc/util/compute/cloud/hyperstack/flavor";
+import {
+  hasGPU,
+  hasLocalSSD,
+} from "@cocalc/util/compute/cloud/hyperstack/flavor";
 import { createTTLCache } from "@cocalc/server/compute/database-cache";
 
 const logger = getLogger("server:compute:hyperstack");
 
 initDatabaseCache();
 
-// TODO: This 29 comes from the following -- it should be computed dynamically
-// probably once per server start (?).
-// > i = await getImages()  // from client
-// i[5]  <-- id=29 is the one "Ubuntu Server 22.04 LTS R535 CUDA 12.2"
-const BOOT_IMAGE_ID = { "CANADA-1": 29, "NORWAY-1": 33 };
+export async function getImageName(region_name: string): Promise<string> {
+  const images = await getImages();
+  const ubuntu = images.filter(
+    (x) => x.region_name == region_name && x.type == "Ubuntu",
+  )[0].images;
+  const cuda = ubuntu.filter(
+    (x) => x.version.includes("CUDA") && x.version.includes("22.04"),
+  )[0];
+  // as of writing this is always "Ubuntu Server 22.04 LTS R535 CUDA 12.2"
+  // but I could imagine it randomly changing...
+  return cuda.name;
+}
 
 // by default we open up tcp for ports 22, 80 and 443 (ssh and webserver)
 const SECURITY_RULES = [
@@ -152,29 +161,29 @@ export async function start(server: ComputeServer) {
     // If the disk doesn't exist, create it.
     const disks = data.disks ?? [];
     let environment_name: null | string = null;
+    //     if (disks.length == 0) {
+    //       logger.debug("start: creating boot disk");
+    //       environment_name = await ensureEnvironment(
+    //         server.configuration.region_name,
+    //       );
+    //       // ATTN: could have disk get created by setData below fails (e.g., our database is down),
+    //       // and then we just have a wasted disk floating around.  This illustrates the importance
+    //       // of periodic garbage collection.
+    //       // Unfortunately, this takes a LONG time.
+    //       const volume = await createVolume({
+    //         name: await getDiskName(server, 0),
+    //         size: BOOT_DISK_SIZE_GB,
+    //         environment_name,
+    //         image_id: BOOT_IMAGE_ID[server.configuration.region_name],
+    //       });
+    //       disks.push(volume.id);
+    //       await setData({
+    //         id: server.id,
+    //         data: { disks },
+    //       });
+    //     }
     if (disks.length == 0) {
-      logger.debug("start: creating boot disk");
-      environment_name = await ensureEnvironment(
-        server.configuration.region_name,
-      );
-      // ATTN: could have disk get created by setData below fails (e.g., our database is down),
-      // and then we just have a wasted disk floating around.  This illustrates the importance
-      // of periodic garbage collection.
-      // Unfortunately, this takes a LONG time.
-      const volume = await createVolume({
-        name: await getDiskName(server, 0),
-        size: BOOT_DISK_SIZE_GB,
-        environment_name,
-        image_id: BOOT_IMAGE_ID[server.configuration.region_name],
-      });
-      disks.push(volume.id);
-      await setData({
-        id: server.id,
-        data: { disks },
-      });
-    }
-    if (disks.length == 1) {
-      // TODO: **always** need to ensure there are at least two disks -- the boot disk and the user data disk
+      // TODO: **always** need to ensure there are at least one disk -- the user data disk
       environment_name = await ensureEnvironment(
         server.configuration.region_name,
       );
@@ -200,6 +209,7 @@ export async function start(server: ComputeServer) {
       });
     }
     let externalIp = data.externalIp;
+    const starting = async () => await stateCache.set(server.id, "starting");
     if (!data.vm?.id) {
       logger.debug("start: no existing VM, so create one");
       // [vm] since returns a LIST of vm's
@@ -208,52 +218,41 @@ export async function start(server: ComputeServer) {
           server.configuration.region_name,
         );
       }
-      let vm;
-      const t0 = Date.now();
-      let d = 3000;
-      // wait up to 30 minutes until the boot volume exists (we get an error)
-      // trying to create the VM until it exists.  This is VERY SLOW for the
-      // norway data center, but much faster for canada-1.
-      const volume_name = await getDiskName(server, 0);
-      while (Date.now() - t0 <= 1000 * 60 * 8) {
-        await stateCache.set(server.id, "starting");
-        try {
-          [vm] = await createVirtualMachines({
-            name: await getServerName(server),
-            environment_name,
-            volume_name,
-            key_name: await ensureKeyPair(
-              server.configuration.region_name,
-              environment_name,
-            ),
-            assign_floating_ip: true,
-            flavor_name: server.configuration.flavor_name,
-            security_rules: SECURITY_RULES,
-            user_data: await cloudInitScript({
-              compute_server_id: server.id,
-              api_key: server.api_key,
-            }),
-          });
-          break;
-        } catch (err) {
-          if (err.message.includes(`Volume ${volume_name} does not exist`)) {
-            d = Math.min(10000, d * 1.3);
-            await delay(d);
-          } else {
-            throw err;
-          }
-        }
-      }
+
+      await starting();
+      const [vm] = await createVirtualMachines({
+        name: await getServerName(server),
+        environment_name,
+        image_name: await getImageName(server.configuration.region_name),
+        key_name: await ensureKeyPair(
+          server.configuration.region_name,
+          environment_name,
+        ),
+        assign_floating_ip: true,
+        flavor_name: server.configuration.flavor_name,
+        security_rules: SECURITY_RULES,
+        user_data: await cloudInitScript({
+          compute_server_id: server.id,
+          api_key: server.api_key,
+          local_ssd: hasLocalSSD(server.configuration, await getPricingData())
+            ? "/dev/vdb"
+            : "",
+        }),
+      });
       externalIp = vm?.floating_ip;
       data.vm = vm;
       await setData({
         id: server.id,
         data: { vm },
       });
-      if (disks.length > 1) {
+      if (disks.length > 0) {
         logger.debug(`start: attach the other ${disks.length} disks`);
         // this is painful since you can't attach disks until the VM is getting going sufficiently.
-        await attachVolumes({ vm_id: vm.id, volume_ids: disks.slice(1) });
+        await attachVolumes({
+          vm_id: vm.id,
+          volume_ids: disks,
+          f: starting,
+        });
       }
     } else {
       logger.debug("start: using existing VM with id", data.vm.id);
@@ -261,12 +260,7 @@ export async function start(server: ComputeServer) {
       await startVirtualMachine(data.vm.id);
     }
     if (!externalIp && data.vm?.id != null) {
-      await waitForIp(
-        data.vm.id,
-        server.id,
-        10 * 60 * 1000,
-        async () => await stateCache.set(server.id, "starting"),
-      );
+      await waitForIp(data.vm.id, server.id, 10 * 60 * 1000, starting);
     }
   } finally {
     await stateCache.delete(server.id);
@@ -509,8 +503,9 @@ export async function state(server: ComputeServer): Promise<State> {
     vm.status?.toLowerCase() == "error" ||
     vm.power_state?.toLowerCase() == "error" ||
     vm.vm_state?.toLowerCase() == "error" ||
-    (vm.volume_attachments?.length ?? 0) <= 1
+    (vm.volume_attachments?.length ?? 0) <= 0
   ) {
+    logger.debug("state: incomplete VM -- deleting", vm);
     await deleteVirtualMachine(data.vm.id);
     await waitUntilDeleted(data.vm.id, 2 * 60 * 1000);
     await setData({
@@ -568,12 +563,14 @@ export async function cost(
   }
 }
 
-export function getStartupParams(server: ComputeServer) {
+export async function getStartupParams(server: ComputeServer) {
   const { configuration } = server;
   if (configuration?.cloud != "hyperstack") {
     throw Error("must have a hyperstack configuration");
   }
+  const priceData = await getPricingData();
   return {
-    gpu: hasGPU(configuration.flavor_name),
+    gpu: hasGPU(configuration, priceData),
+    local_ssd: hasLocalSSD(configuration, priceData) ? "/dev/vdb" : "",
   };
 }

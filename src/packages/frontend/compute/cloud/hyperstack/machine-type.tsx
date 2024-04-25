@@ -12,7 +12,7 @@ import {
   PurchaseOption,
   optionKey,
 } from "@cocalc/util/compute/cloud/hyperstack/pricing";
-import { Alert, Checkbox, Tag, Select, Tooltip } from "antd";
+import { Checkbox, Tag, Select, Tooltip } from "antd";
 const { CheckableTag } = Tag;
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { getModelLinks, toGPU } from "./util";
@@ -41,7 +41,7 @@ const TAGS = {
     search: ["norway"],
     desc: "in Norway",
     group: 2,
-    tip: "🇳🇴 Only show servers in Norway. (WARNING: creating servers in Norway takes an extra 5 minutes.)",
+    tip: "🇳🇴 Only show servers in Norway.",
   },
 };
 
@@ -336,27 +336,6 @@ export default function MachineType({
             }),
           )}
         </div>
-      )}
-      {region_name?.toLowerCase()?.includes("norway") && (
-        <Alert
-          style={{ margin: "10px 0" }}
-          showIcon
-          type="warning"
-          message={
-            <>
-              <b>🇳🇴 WARNING:</b> Creating a new Hyperstack compute server in
-              Norway takes <b>an extra 5 minutes.</b>
-            </>
-          }
-          description={
-            <>
-              Initial creation of servers in Norway takes an extra{" "}
-              <b>5 minutes</b>. Starting and stopping your server after you
-              create it is fast. Create your servers in Canada if possible; it's
-              faster and the GPU selection is better.
-            </>
-          }
-        />
       )}
     </div>
   );
