@@ -37,9 +37,6 @@ export default function NVIDIA({
       <span
         style={{
           cursor: "pointer",
-          border: "1px solid #76b900",
-          padding: "2.5px",
-          borderRadius: "2.5px 5px",
         }}
       >
         {count} × NVIDIA {gpu} {plural(count, "GPU")}
@@ -47,7 +44,6 @@ export default function NVIDIA({
     </Popover>
   );
 }
-
 
 export function GPUSpecs({ gpu, count }) {
   const spec = GPU_SPECS[gpu];
