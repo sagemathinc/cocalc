@@ -187,7 +187,7 @@ export function Complete(props: Props) {
         len += 1;
       }
       const i = strictMod(selectedUser, len);
-      if (i < len - 1) {
+      if (i < len) {
         return items_user[i]?.value;
       } else {
         return "sub_llm";
