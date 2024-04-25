@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import Anser from "anser";
+
 let Ansi = require("@cocalc/ansi-to-react");
 if (Ansi.default) {
   // Total hack to workaround some weird issue with Typescript, modules
@@ -21,10 +23,6 @@ export function is_ansi(s: any): boolean {
       s.indexOf("\b") != -1)
   );
 }
-
-// Google's Gemini came up with that moster …
-const ANSI_REGEX =
-  /[\u001B\u009B][\[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 // Extract a plain-text representation of a given cell
 export function cellOutputToText(cell): string {
@@ -47,7 +45,7 @@ export function cellOutputToText(cell): string {
 
     if (o.traceback != null) {
       const trace = o.traceback.join("\n");
-      output.push(trace.replaceAll(ANSI_REGEX, ""));
+      output.push(Anser.ansiToText(trace));
     }
 
     output.push();

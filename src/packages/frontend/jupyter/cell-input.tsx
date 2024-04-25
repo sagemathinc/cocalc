@@ -442,7 +442,16 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             {render_input_prompt(type)}
             {render_input_value(type)}
             {type === "code" && !fileContext.disableExtraButtons ? (
-              <CellButtonBar props={props} frameActions={frameActions} />
+              <CellButtonBar
+                id={props.id}
+                index={props.index}
+                actions={props.actions}
+                cell={props.cell}
+                is_current={props.is_current}
+                is_readonly={props.is_readonly}
+                computeServerId={props.computeServerId}
+                llmTools={props.llmTools}
+              />
             ) : undefined}
           </div>
         </div>

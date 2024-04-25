@@ -89,7 +89,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
   );
 }
 
-export const Cell: React.FC<Props> = React.memo((props) => {
+export const Cell: React.FC<Props> = React.memo((props: Props) => {
   const [showAICellGen, setShowAICellGen] = useState<Position>(null);
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
@@ -329,9 +329,9 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     }
     return (
       <InsertCell
+        id={id}
         project_id={props.project_id}
         hide={!props.is_visible}
-        id={id}
         llmTools={props.llmTools}
         key={id + "insert" + position}
         position={position}

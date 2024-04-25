@@ -1,27 +1,38 @@
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Paragraph } from "@cocalc/frontend/components";
-import { LanguageModel, getLLMCost } from "@cocalc/util/db-schema/llm-utils";
-import { round2up } from "@cocalc/util/misc";
-
-// Note: use the "await imported" numTokensUpperBound function to get the number of tokens
+import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
+import {
+  LanguageModel,
+  getLLMCost,
+  isFreeModel,
+} from "@cocalc/util/db-schema/llm-utils";
+import { round2down, round2up } from "@cocalc/util/misc";
 
 export function LLMCostEstimation({
   model,
-  tokens,
+  tokens, // Note: use the "await imported" numTokensUpperBound function to get the number of tokens
 }: {
   model: LanguageModel;
   tokens: number;
 }) {
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
+
+  if (isFreeModel(model, isCoCalcCom)) {
+    return (
+      <Text style={{ textAlign: "right" }}>This model is free to use.</Text>
+    );
+  }
 
   const { prompt_tokens, completion_tokens } = getLLMCost(model, llm_markup);
   // NOTE: lower/upper number of output tokens is just a good guess.
   // It could go up to the model's output token limit (maybe even 2000)
   const cost1 = tokens * prompt_tokens + 50 * completion_tokens;
   const cost2 = tokens * prompt_tokens + 1000 * completion_tokens;
+  const txt1 = round2down(cost1).toFixed(2);
+  const txt2 = round2up(cost2).toFixed(2);
   return (
-    <Paragraph type="secondary" style={{ textAlign: "right" }}>
-      Cost estimation: ${round2up(cost1)} to ${round2up(cost2)}{" "}
+    <Text style={{ textAlign: "right" }}>
+      Estimated cost: {txt1} to {txt2}{" "}
       <HelpIcon title="LLM Cost Estimation">
         <Paragraph>
           The cost of calling a large language model is based on the number of
@@ -40,6 +51,6 @@ export function LLMCostEstimation({
           the total cost could be a bit higher.
         </Paragraph>
       </HelpIcon>
-    </Paragraph>
+    </Text>
   );
 }
