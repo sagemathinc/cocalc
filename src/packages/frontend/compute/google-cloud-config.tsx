@@ -56,7 +56,7 @@ import { availableClouds } from "./config";
 
 export const SELECTOR_WIDTH = "350px";
 
-const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu2;
+export const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu2;
 
 //     {
 //   acceleratorType: "nvidia-l4",

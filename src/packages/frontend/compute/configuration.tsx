@@ -120,6 +120,7 @@ function Config({
         onChange={onChange}
         disabled={disabled}
         state={state}
+        setCloud={setCloud}
       />
     );
   } else {
