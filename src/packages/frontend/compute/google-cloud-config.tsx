@@ -7,9 +7,11 @@ import { reloadImages, useImages, useGoogleImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import {
+  Alert,
   Button,
   Checkbox,
   Divider,
+  Popconfirm,
   Radio,
   Select,
   Spin,
@@ -50,6 +52,7 @@ import Disk from "@cocalc/frontend/compute/cloud/common/disk";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { search_match, search_split } from "@cocalc/util/misc";
+import { availableClouds } from "./config";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -84,6 +87,7 @@ interface Props {
   disabled?: boolean;
   state?: State;
   data?;
+  setCloud?;
 }
 
 export default function GoogleCloudConfiguration({
@@ -95,6 +99,7 @@ export default function GoogleCloudConfiguration({
   disabled,
   state,
   data,
+  setCloud,
 }: Props) {
   const [IMAGES, ImagesError] = useImages();
   const [googleImages, ImagesErrorGoogle] = useGoogleImages();
@@ -299,6 +304,7 @@ export default function GoogleCloudConfiguration({
           setConfig={setConfig}
           configuration={configuration}
           IMAGES={IMAGES}
+          setCloud={setCloud}
         />
       ),
     },
@@ -1176,7 +1182,15 @@ const ACCELERATOR_TYPES = [
         </A>
 */
 
-function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
+function GPU({
+  priceData,
+  setConfig,
+  configuration,
+  disabled,
+  state,
+  IMAGES,
+  setCloud,
+}) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
@@ -1312,6 +1326,40 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
                 </div>
               ) /* this is mostly a google limitation, not cocalc, though we will eventually do somthing involving recreating the machine.  BUT note that e.g., changing the count for L4's actually breaks booting up! */
             }
+            {setCloud != null &&
+              availableClouds().includes("hyperstack") &&
+              (state ?? "deprovisioned") == "deprovisioned" && (
+                <Alert
+                  showIcon
+                  style={{ margin: "5px 0" }}
+                  type="info"
+                  description={
+                    <div>
+                      Hyperstack cloud offers non-spot NVIDIA H100, A100, L40,
+                      and RTX-A4/5/6000 GPUs at about half the price of Google
+                      cloud.{" "}
+                      <Popconfirm
+                        title="Switch to Hyperstack"
+                        description={
+                          <div style={{ maxWidth: "450px" }}>
+                            This will change the cloud for this compute server
+                            to Hyperstack, and reset its configuration. Your
+                            compute server is not storing any data so this is
+                            safe.
+                          </div>
+                        }
+                        onConfirm={() => {
+                          setCloud("hyperstack");
+                        }}
+                        okText="Switch to Hyperstack"
+                        cancelText="Cancel"
+                      >
+                        <Button type="link">Switch...</Button>
+                      </Popconfirm>
+                    </div>
+                  }
+                />
+              )}
           </div>
         )}
       </div>

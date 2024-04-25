@@ -213,6 +213,7 @@ export default function ComputeServer({
         configuration={configuration}
         data={data}
         onChange={onConfigurationChange}
+        setCloud={onCloudChange}
       />
     </div>
   );

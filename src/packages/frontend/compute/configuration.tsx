@@ -14,6 +14,7 @@ interface Props {
   project_id?: string;
   onChange?: (configuration: ConfigurationType) => void;
   state?: State;
+  setCloud?;
 }
 
 export default function Configuration({
@@ -24,6 +25,7 @@ export default function Configuration({
   project_id,
   onChange,
   state,
+  setCloud,
 }: Props) {
   const disabled =
     (state ?? "deprovisioned") != "deprovisioned" && state != "off";
@@ -63,6 +65,7 @@ export default function Configuration({
         onChange={onChange}
         disabled={disabled}
         state={state}
+        setCloud={setCloud}
       />
     </>
   );
@@ -77,6 +80,7 @@ function Config({
   onChange,
   disabled,
   state,
+  setCloud,
 }) {
   if (configuration?.cloud == "google-cloud") {
     return (
@@ -89,6 +93,7 @@ function Config({
         onChange={onChange}
         disabled={disabled}
         state={state}
+        setCloud={setCloud}
       />
     );
   } else if (configuration?.cloud == "onprem") {
