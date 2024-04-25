@@ -1,8 +1,8 @@
 import {
-  CLOUDS_BY_NAME,
   Cloud as CloudType,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
+import { CLOUDS_BY_NAME } from "@cocalc/util/compute/cloud/clouds";
 import { Select, Space, Spin, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { setServerCloud } from "./api";
