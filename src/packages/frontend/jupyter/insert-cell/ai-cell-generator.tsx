@@ -13,6 +13,8 @@ import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
@@ -23,9 +25,9 @@ import {
 import { plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
+import { RawPrompt } from "../llm/raw-prompt";
 import { Position } from "./types";
 import { insertCell } from "./util";
-import { RawPrompt } from "../llm/raw-prompt";
 
 interface AIGenerateCodeCellProps {
   actions: JupyterActions;
@@ -44,6 +46,7 @@ export function AIGenerateCodeCell({
   setShowAICellGen,
   showAICellGen,
 }: AIGenerateCodeCellProps) {
+  const { actions: project_actions } = useProjectContext();
   const { project_id, path } = useFrameContext();
 
   const [querying, setQuerying] = useState<boolean>(false);
@@ -97,6 +100,15 @@ export function AIGenerateCodeCell({
       prevCodeContents: includePreviousCells > 0 ? prevCodeContents : "",
       includePreviousCells,
     });
+
+    // we also log this
+    const event: LLMEvent = {
+      event: "llm",
+      usage: "jupyter-cell-generate",
+      model,
+      path,
+    };
+    project_actions?.log(event);
   }
 
   return (

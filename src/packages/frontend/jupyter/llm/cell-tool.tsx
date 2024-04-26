@@ -17,6 +17,7 @@ import {
   Tooltip,
 } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { Entries } from "type-fest";
 
 import { CSS, useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
@@ -29,12 +30,13 @@ import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import track from "@cocalc/frontend/user-tracking";
 import { LLMTools } from "@cocalc/jupyter/types";
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize, getRandomColor, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Entries } from "type-fest";
 import { JupyterActions } from "../browser-actions";
 import { CODE_BAR_BTN_STYLE } from "../consts";
 import { cellOutputToText } from "../output-messages/ansi";
@@ -76,7 +78,7 @@ const MODES = [
   "document",
   "translate",
 ] as const;
-type Mode = (typeof MODES)[number];
+export type Mode = (typeof MODES)[number];
 
 type PromptGen = ({
   language,
@@ -192,6 +194,7 @@ export function LLMCellTool({
   llmTools,
   is_current,
 }: Props) {
+  const { actions: project_actions } = useProjectContext();
   const { project_id, path } = useFrameContext();
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -270,6 +273,16 @@ export function LLMCellTool({
       tag: `jupyter-cell-llm:${mode}`,
       noNotification: true,
     });
+
+    // we also log this
+    const event: LLMEvent = {
+      event: "llm",
+      usage: "jupyter-cell-buttons",
+      model: llmTools?.model,
+      mode,
+      path,
+    };
+    project_actions?.log(event);
   }
 
   async function createMessage(
@@ -594,6 +607,7 @@ export function LLMCellTool({
                   <Input
                     defaultValue={otherLanguage}
                     onChange={(e) => setOtherLanguage(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder="Enter language..."
                     style={{ display: "inline-block" }}
                   />
@@ -635,7 +649,6 @@ export function LLMCellTool({
         <Flex align="center" gap="10px">
           <Flex flex={0}>
             <Switch
-              defaultChecked={mode === "bugfix"}
               onChange={(val) => setIncludeOutput(val)}
               unCheckedChildren={"No output"}
               checkedChildren={"Include output"}

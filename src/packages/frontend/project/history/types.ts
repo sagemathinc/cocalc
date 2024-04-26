@@ -8,8 +8,10 @@ import { Map } from "immutable";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import type { ComputeServerEvent } from "@cocalc/util/compute/log";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+
+import type { Mode as JupyterCellLLMMode } from "@cocalc/frontend/jupyter/llm/cell-tool";
 
 export type EventRecord = {
   id: string;
@@ -34,6 +36,7 @@ export type ProjectEvent =
   | ProjectControlEvent
   | FileActionEvent
   | LibraryEvent
+  | LLMEvent
   | UpgradeEvent
   | PayAsYouGoUpgradeEvent
   | LicenseEvent
@@ -130,6 +133,14 @@ export type AssistantEvent = {
   lang: string;
   entry: string[];
   path: string;
+};
+
+export type LLMEvent = {
+  event: "llm";
+  usage: "jupyter-cell-buttons" | "jupyter-cell-generate";
+  model?: string;
+  path: string;
+  mode?: JupyterCellLLMMode | null; // "jupyter-cell-buttons"
 };
 
 export type MiniTermEvent = {
