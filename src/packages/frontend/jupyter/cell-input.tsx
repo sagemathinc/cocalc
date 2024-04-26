@@ -90,11 +90,17 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
     const frameActions = useNotebookFrameActions();
 
-    const haveAIGenerateCell =
-      props.llmTools &&
-      redux
-        .getStore("projects")
-        .hasLanguageModelEnabled(props.project_id, "generate-cell");
+    // NOTE: These two flags are primarily used to enable/disable tools in course projects
+    const projectsStore = redux.getStore("projects");
+    const haveAIGenerateCell: boolean =
+      props.llmTools != null &&
+      projectsStore.hasLanguageModelEnabled(props.project_id, "generate-cell");
+    const haveLLMCellTools: boolean =
+      props.llmTools != null &&
+      projectsStore.hasLanguageModelEnabled(
+        props.project_id,
+        "jupyter-cell-llm",
+      );
 
     function render_input_prompt(type: string): Rendered {
       return (
@@ -451,6 +457,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
                 is_readonly={props.is_readonly}
                 computeServerId={props.computeServerId}
                 llmTools={props.llmTools}
+                haveLLMCellTools={haveLLMCellTools}
               />
             ) : undefined}
           </div>

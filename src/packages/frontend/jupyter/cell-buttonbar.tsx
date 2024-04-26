@@ -37,6 +37,7 @@ interface Props {
   is_current: boolean;
   computeServerId?: number;
   llmTools?: LLMTools;
+  haveLLMCellTools: boolean; // decides if we show the LLM Tools, depends on student project in a course, etc.
   index: number;
   is_readonly: boolean;
 }
@@ -50,7 +51,8 @@ function areEqual(prev: Props, next: Props): boolean {
     next.computeServerId !== prev.computeServerId ||
     (next.llmTools?.model ?? "") !== (prev.llmTools?.model ?? "") ||
     next.is_current !== prev.is_current ||
-    next.is_readonly !== prev.is_readonly
+    next.is_readonly !== prev.is_readonly ||
+    next.haveLLMCellTools !== prev.haveLLMCellTools
   );
 }
 
@@ -64,6 +66,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     llmTools,
     index,
     is_readonly,
+    haveLLMCellTools,
   }: Props) => {
     const frameActions = useNotebookFrameActions();
     const [formatting, setFormatting] = useState<boolean>(false);
@@ -125,7 +128,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarLLMButtons() {
-      if (!llmTools) return;
+      if (!llmTools || !haveLLMCellTools) return;
       return (
         <LLMCellTool
           id={id}
