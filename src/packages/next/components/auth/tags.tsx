@@ -42,6 +42,9 @@ export default function Tags({
       tags.delete(tag);
     }
     setTags(new Set(tags));
+    try {
+      localStorage.sign_up_tags = JSON.stringify(Array.from(tags));
+    } catch (_) {}
   };
 
   function onContact(e: CheckboxChangeEvent) {
@@ -77,6 +80,9 @@ export default function Tags({
             // status={!signupReason.trim() ? "error" : undefined} // for now, this is optional
             onChange={(e) => {
               setSignupReason(e.target.value);
+              try {
+                localStorage.sign_up_usage_intent = e.target.value;
+              } catch (_) {}
             }}
           />
         ) : undefined}

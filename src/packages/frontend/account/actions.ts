@@ -118,7 +118,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
         // should never ever happen
         this.setState({
           sign_in_error: `The server responded with invalid message when signing in: ${JSON.stringify(
-            mesg
+            mesg,
           )}`,
         });
         return;
@@ -131,7 +131,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     email_address: string,
     password: string,
     token?: string,
-    usage_intent?: string
+    usage_intent?: string,
   ): Promise<void> {
     this.setState({ signing_up: true });
     let mesg;
@@ -149,7 +149,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     } catch (err) {
       // generic error.
       this.setState(
-        fromJS({ sign_up_error: { generic: JSON.stringify(err) } }) as any
+        fromJS({ sign_up_error: { generic: JSON.stringify(err) } }) as any,
       );
       return;
     } finally {
@@ -188,7 +188,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     try {
       // actually request to delete the account
       await this.account_client.delete_account(
-        this.redux.getStore("account").get_account_id()
+        this.redux.getStore("account").get_account_id(),
       );
     } catch (err) {
       this.setState({
@@ -217,7 +217,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
 
   public async reset_password(
     reset_code: string,
-    new_password: string
+    new_password: string,
   ): Promise<void> {
     try {
       await this.account_client.reset_forgot_password(reset_code, new_password);
@@ -235,7 +235,7 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
 
   public async sign_out(
     everywhere: boolean,
-    sign_in: boolean = false
+    sign_in: boolean = false,
   ): Promise<void> {
     // disable redirection from sign in/up...
     deleteRememberMe(appBasePath);
@@ -354,4 +354,19 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       });
     }
   }
+
+  processSignUpTags = async () => {
+    if (localStorage.sign_up_tags) {
+      await webapp_client.async_query({
+        query: {
+          accounts: {
+            tags: JSON.parse(localStorage.sign_up_tags),
+            sign_up_usage_intent: localStorage.sign_up_usage_intent,
+          },
+        },
+      });
+      delete localStorage.sign_up_tags;
+      delete localStorage.sign_up_usage_intent;
+    }
+  };
 }
