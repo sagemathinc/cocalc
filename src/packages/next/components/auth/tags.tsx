@@ -136,9 +136,9 @@ export default function Tags({
     });
   }
 
-  const warningStyle: CSS = warning
-    ? { border: `1px solid ${COLORS.ANTD_RED_WARN}` }
-    : {};
+  const warningStyle = {
+    border: `1px solid ${warning ? COLORS.ANTD_RED_WARN : "transparent"}`,
+  } as const;
 
   return (
     <div style={style}>
