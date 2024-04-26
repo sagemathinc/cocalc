@@ -1,5 +1,6 @@
 import type {
   Configuration as ConfigurationType,
+  ComputeServerTemplate,
   State,
 } from "@cocalc/util/db-schema/compute-servers";
 import GoogleCloudConfiguration from "./google-cloud-config";
@@ -15,6 +16,7 @@ interface Props {
   onChange?: (configuration: ConfigurationType) => void;
   state?: State;
   setCloud?;
+  template?: ComputeServerTemplate;
 }
 
 export default function Configuration({
@@ -26,6 +28,7 @@ export default function Configuration({
   onChange,
   state,
   setCloud,
+  template,
 }: Props) {
   const disabled =
     (state ?? "deprovisioned") != "deprovisioned" && state != "off";
@@ -66,6 +69,7 @@ export default function Configuration({
         disabled={disabled}
         state={state}
         setCloud={setCloud}
+        template={template}
       />
     </>
   );
@@ -81,6 +85,7 @@ function Config({
   disabled,
   state,
   setCloud,
+  template,
 }) {
   if (configuration?.cloud == "google-cloud") {
     return (
@@ -94,6 +99,7 @@ function Config({
         disabled={disabled}
         state={state}
         setCloud={setCloud}
+        template={template}
       />
     );
   } else if (configuration?.cloud == "onprem") {
@@ -107,6 +113,7 @@ function Config({
         onChange={onChange}
         disabled={disabled}
         state={state}
+        template={template}
       />
     );
   } else if (configuration?.cloud == "hyperstack") {
@@ -121,6 +128,7 @@ function Config({
         disabled={disabled}
         state={state}
         setCloud={setCloud}
+        template={template}
       />
     );
   } else {
