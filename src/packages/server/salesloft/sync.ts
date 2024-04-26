@@ -166,7 +166,7 @@ function toSalesloft({
       cocalc_created,
       cocalc_last_active,
       stripe_customer_id,
-      cocalc_tags: cocalc_tags ? cocalc_tags.join(",") : undefined,
+      cocalc_tags: cocalc_tags ? cocalc_tags.sort().join(",") : undefined,
       cocalc_notes,
     },
   };
