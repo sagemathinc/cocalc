@@ -72,7 +72,7 @@ export async function sync(
     "accounts",
   );
   const { rows } = await cocalc.query(
-    "SELECT account_id AS cocalc_account_id, salesloft_id, created AS cocalc_created, last_active AS cocalc_last_active, stripe_customer_id, tags AS cocalc_tags, notes AS cocalc_notes, email_address, first_name, last_name FROM accounts WHERE account_id=ANY($1) AND email_address IS NOT NULL",
+    "SELECT account_id AS cocalc_account_id, salesloft_id, created AS cocalc_created, last_active AS cocalc_last_active, stripe_customer_id, tags AS cocalc_tags, notes AS cocalc_notes, email_address, first_name, last_name, sign_up_usage_intent FROM accounts WHERE account_id=ANY($1) AND email_address IS NOT NULL",
     [account_ids],
   );
   log("got ", rows.length, " records with an email address");
@@ -156,6 +156,7 @@ function toSalesloft({
   stripe_customer_id,
   cocalc_tags,
   cocalc_notes,
+  sign_up_usage_intent,
 }) {
   const data = {
     first_name,
@@ -168,6 +169,7 @@ function toSalesloft({
       stripe_customer_id,
       cocalc_tags: cocalc_tags ? cocalc_tags.sort().join(",") : undefined,
       cocalc_notes,
+      sign_up_usage_intent,
     },
   };
   // TODO: this is because the custom fields must be explicitly manually
