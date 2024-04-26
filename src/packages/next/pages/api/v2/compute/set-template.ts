@@ -5,7 +5,7 @@ on some cloud provider.
 */
 
 import getAccountId from "lib/account/get-account";
-import { setTemplate } from "@cocalc/server/compute/template";
+import { setTemplate } from "@cocalc/server/compute/templates";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 

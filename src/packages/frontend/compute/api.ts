@@ -70,7 +70,6 @@ export async function setTemplate(opts: {
   id: number;
   template: ComputeServerTemplate;
 }) {
-  console.log(opts);
   return await api("compute/set-template", opts);
 }
 
