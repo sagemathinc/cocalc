@@ -1,5 +1,5 @@
 import { Alert, Checkbox, Switch } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
 
@@ -8,6 +8,9 @@ export default function AutoRestart({ setConfig, configuration, loading }) {
     !!configuration.autoRestart,
   );
   const [help, setHelp] = useState<boolean>(false);
+  useEffect(() => {
+    setAutoRestart(configuration.autoRestart);
+  }, [configuration]);
   return (
     <div>
       <div style={{ color: "#666", marginBottom: "5px" }}>

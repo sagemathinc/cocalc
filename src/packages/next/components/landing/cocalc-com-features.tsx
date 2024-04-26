@@ -517,7 +517,7 @@ export function CoCalcComFeatures() {
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
-        title="Extensive ChatGPT Integration"
+        title="Extensive Generative AI Integration"
         icon="robot"
         imageComponent={<ChatGPTHelp size="large" tag={"index"} />}
         anchor="a-realtimesync"
@@ -525,8 +525,11 @@ export function CoCalcComFeatures() {
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
       >
         <Paragraph>
-          <A href={"https://doc.cocalc.com/chatgpt.html"}>ChatGPT</A> is highly
-          integrated into {siteName}. This helps you{" "}
+          A wide range of{" "}
+          <A href={"https://doc.cocalc.com/chatgpt.html"}>
+            Generative AI Large Language Models
+          </A>{" "}
+          are highly integrated into {siteName}. This helps you{" "}
           <A href={"https://doc.cocalc.com/chatgpt.html#jupyter-notebooks"}>
             fix errors
           </A>
