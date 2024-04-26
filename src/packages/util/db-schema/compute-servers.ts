@@ -3,20 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Table } from "./types";
-import { ID } from "./crm";
-import { NOTES } from "./crm";
-import { SCHEMA as schema } from "./index";
 import type {
   Region as HyperstackRegion,
   VirtualMachine as HyperstackVirtualMachine,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
-import {
-  DEFAULT_REGION as DEFAULT_HYPERSTACK_REGION,
-  DEFAULT_FLAVOR as DEFAULT_HYPERSTACK_FLAVOR,
-  DEFAULT_DISK as DEFAULT_HYPERSTACK_DISK,
-} from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { COLORS } from "@cocalc/util/theme";
+import { ID, NOTES } from "./crm";
+import { SCHEMA as schema } from "./index";
+import { Table } from "./types";
+export {
+  CLOUDS_BY_NAME,
+  GOOGLE_CLOUD_DEFAULTS,
+  ON_PREM_DEFAULTS,
+} from "@cocalc/util/compute/cloud/clouds";
 
 // These are just fallbacks in case something is wrong with the image configuration.
 export const STANDARD_DISK_SIZE = 20;
@@ -330,138 +329,6 @@ export function getMinDiskSizeGb({
   } else {
     return STANDARD_DISK_SIZE;
   }
-}
-
-// I think it could be very confusing to have anything
-// here by default, since most people won't even know
-// about excludes, and will just think sync is broken
-// if a random default folder is excluded!
-const DEFAULT_EXCLUDE_FROM_SYNC = [] as const;
-
-const GCLOUD_SPOT_DEFAULT = true;
-
-export const GOOGLE_CLOUD_DEFAULTS = {
-  cpu: {
-    image: "python",
-    cloud: "google-cloud",
-    region: "us-east5",
-    zone: "us-east5-a",
-    machineType: "n2d-highmem-2",
-    spot: GCLOUD_SPOT_DEFAULT,
-    diskSizeGb: 10,
-    diskType: "pd-balanced",
-    externalIp: true,
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-  gpu: {
-    image: "pytorch",
-    spot: GCLOUD_SPOT_DEFAULT,
-    region: "asia-northeast1",
-    cloud: "google-cloud",
-    zone: "asia-northeast1-a",
-    diskType: "pd-balanced",
-    diskSizeGb: 60,
-    externalIp: true,
-    machineType: "n1-highmem-2",
-    acceleratorType: "nvidia-tesla-t4",
-    acceleratorCount: 1,
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-  gpu2: {
-    image: "pytorch",
-    spot: GCLOUD_SPOT_DEFAULT,
-    zone: "us-central1-b",
-    cloud: "google-cloud",
-    region: "us-central1",
-    diskType: "pd-balanced",
-    diskSizeGb: 60,
-    externalIp: true,
-    machineType: "g2-standard-4",
-    acceleratorType: "nvidia-l4",
-    acceleratorCount: 1,
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-} as const;
-
-export const ON_PREM_DEFAULTS = {
-  cpu: {
-    image: "python",
-    gpu: false,
-    cloud: "onprem",
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-  gpu: {
-    image: "pytorch",
-    gpu: true,
-    cloud: "onprem",
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-};
-
-// The ones that are at all potentially worth exposing to users.
-const CLOUDS: {
-  [short: string]: {
-    name: Cloud;
-    label: string;
-    image?: string;
-    defaultConfiguration: Configuration;
-  };
-} = {
-  google: {
-    name: "google-cloud",
-    label: "Google Cloud Platform",
-    image:
-      "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
-    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.cpu,
-  },
-  lambda: {
-    name: "lambda-cloud",
-    label: "Lambda Cloud",
-    image: "https://cloud.lambdalabs.com/static/images/lambda-logo.svg",
-    defaultConfiguration: {
-      cloud: "lambda-cloud",
-      image: "python",
-      instance_type_name: "gpu_1x_a10",
-      region_name: "us-west-1",
-      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-    },
-  },
-  hyperstack: {
-    name: "hyperstack",
-    label: "Hyperstack GPU Cloud",
-    image: "https://console.hyperstack.cloud/hyperstack-wordmark.svg",
-    defaultConfiguration: {
-      cloud: "hyperstack",
-      image: "anaconda-gpu",
-      region_name: DEFAULT_HYPERSTACK_REGION,
-      flavor_name: DEFAULT_HYPERSTACK_FLAVOR,
-      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-      diskSizeGb: DEFAULT_HYPERSTACK_DISK,
-    },
-  },
-  onprem: {
-    name: "onprem",
-    label: "On Prem",
-    defaultConfiguration: {
-      cloud: "onprem",
-      image: "python",
-      arch: "x86_64",
-      gpu: false,
-      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-    },
-  },
-};
-
-export const CLOUDS_BY_NAME: {
-  [name: string]: {
-    name: Cloud;
-    label: string;
-    image?: string;
-    defaultConfiguration: Configuration;
-  };
-} = {};
-for (const short in CLOUDS) {
-  CLOUDS_BY_NAME[CLOUDS[short].name] = CLOUDS[short];
 }
 
 interface BaseConfiguration {

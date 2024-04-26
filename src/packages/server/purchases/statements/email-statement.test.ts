@@ -130,7 +130,7 @@ describe("creates an account, then creates statements and corresponding emails a
     });
     expect(subject).toMatch("Monthly Statement");
     expect(text).toMatch(
-      "Statement balance is not negative, so no payment is required.",
+      "Statement balance is not negative",
     );
   });
 

@@ -22,7 +22,7 @@ import ComputeServerSelector from "public/features/cocalc-compute_server-select-
 import A from "components/misc/A";
 
 export const component = "Compute Servers";
-export const title = `Enhance your project with ${component}`;
+export const title = `Enhance your projects with ${component}`;
 export const logo = "servers";
 
 export default function ComputeServer({ customize }) {
@@ -102,7 +102,7 @@ export default function ComputeServer({ customize }) {
                     <li>
                       Use the{" "}
                       <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/colab.md">
-                        Google Colab Softwar Environment with a GPU
+                        Google Colab Software Environment with a GPU
                       </A>
                     </li>
                     <li>
