@@ -12,6 +12,7 @@ import { delay } from "awaiting";
 import { Map } from "immutable";
 import React, { useState } from "react";
 
+import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import CopyButton from "@cocalc/frontend/components/copy-button";
 import PasteButton from "@cocalc/frontend/components/paste-button";
@@ -68,8 +69,13 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     is_readonly,
     haveLLMCellTools,
   }: Props) => {
+    const { project_id, path } = useFrameContext();
     const frameActions = useNotebookFrameActions();
     const [formatting, setFormatting] = useState<boolean>(false);
+
+    function trackButton(button: string) {
+      track("jupyter-cell-buttonbar", { button, project_id, path });
+    }
 
     function renderCodeBarRunStop() {
       if (id == null || actions == null || actions.is_closed()) {
@@ -86,7 +92,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
                 type="text"
                 onClick={() => {
                   actions?.signal("SIGINT");
-                  track("jupyter-cell-buttonbar", { button: "stop" });
+                  trackButton("stop");
                 }}
                 style={CODE_BAR_BTN_STYLE}
               >
@@ -102,7 +108,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
                 type="text"
                 onClick={() => {
                   actions?.run_cell(id);
-                  track("jupyter-cell-buttonbar", { button: "run" });
+                  trackButton("run");
                 }}
                 style={CODE_BAR_BTN_STYLE}
               >
@@ -159,7 +165,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
               } finally {
                 setFormatting(false);
               }
-              track("jupyter-cell-buttonbar", { button: "format" });
+              trackButton("format");
             }}
           >
             <Icon name={formatting ? "spinner" : "sitemap"} spin={formatting} />{" "}
@@ -184,7 +190,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             style={CODE_BAR_BTN_STYLE}
             paste={(text) => {
               frameActions.current?.set_cell_input(id, text);
-              track("jupyter-cell-buttonbar", { button: "paste" });
+              trackButton("paste");
             }}
           />
         );
