@@ -16,7 +16,7 @@ interface Props {
   tags: Set<string>;
   setTags: (tags: Set<string>) => void;
   signupReason: string;
-  setSingupReason: (reason: string) => void;
+  setSignupReason: (reason: string) => void;
   minTags: number;
   what: string;
   style?: CSS;
@@ -28,7 +28,7 @@ export default function Tags({
   tags,
   setTags,
   signupReason,
-  setSingupReason,
+  setSignupReason,
   minTags,
   style,
   what,
@@ -76,7 +76,7 @@ export default function Tags({
             value={signupReason}
             // status={!signupReason.trim() ? "error" : undefined} // for now, this is optional
             onChange={(e) => {
-              setSingupReason(e.target.value);
+              setSignupReason(e.target.value);
             }}
           />
         ) : undefined}
