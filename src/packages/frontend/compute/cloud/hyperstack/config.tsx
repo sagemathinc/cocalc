@@ -38,6 +38,7 @@ interface Props {
   disabled?: boolean;
   state?: State;
   data?;
+  setCloud?;
 }
 
 export default function HyperstackConfig({
@@ -49,6 +50,7 @@ export default function HyperstackConfig({
   disabled,
   state,
   data,
+  setCloud,
 }: Props) {
   const [priceData, setPriceData] = useState<HyperstackPriceData | null>(null);
   const [IMAGES, ImagesError] = useImages();
@@ -159,6 +161,7 @@ export default function HyperstackConfig({
           </div>
           <MachineType
             setConfig={setConfig}
+            setCloud={setCloud}
             configuration={configuration}
             state={state}
             disabled={

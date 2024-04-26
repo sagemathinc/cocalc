@@ -58,18 +58,29 @@ export default function ComputeServers() {
         in your local project.
       </Paragraph>
       <Paragraph>
-        These machines optionally come with <Text strong>GPU support</Text>. The
-        pre-configured software environments make it very easy to make use of
-        them, right out of the box. These software environments include
-        SageMath, Google Colab, Julia, PyTorch, Tensorflow and CUDA Toolkit,
-        accommodating a versatile range of applications. You can also run any
-        command as root, install anything you want, and use Docker and
-        Kubernetes.
+        These machines optionally come with{" "}
+        <Text strong>extensive GPU support</Text>, from a single NVIDIA T4 to
+        eight H100's, with many options in between, including L4 and L40,
+        RTX-A4/5/6000, and A100 with 40GB and 80GB. The finely configured
+        software images include SageMath, Anaconda,{" "}
+        <A href="https://youtu.be/kcxyShH3wYE">Google Colab</A>, Julia,{" "}
+        <A href="https://youtu.be/JG6jm6yv_KE">PyTorch</A>, Tensorflow and{" "}
+        <A href="https://youtu.be/OMN1af0LUcA">Open WebUI</A>, accommodating a
+        versatile range of uses. The pre-configured software environments make
+        it very easy to make use of them, right out of the box. You can also run
+        any command as{" "}
+        <A href="https://doc.cocalc.com/compute_server.html#becoming-root-and-port-forwarding">
+          root
+        </A>
+        , install anything you want, and use Docker and Kubernetes.
       </Paragraph>
       <Paragraph>
-        Your <Text strong>files are synchronized</Text>. Therefore, you can
-        seamlessly switch between local and remote computing. You also have much
-        more disk storage on the remote machine.
+        Your{" "}
+        <A href="https://doc.cocalc.com/compute_server.html#compute-server-filesystem">
+          <Text strong>files are synchronized</Text>
+        </A>
+        . Therefore, you can seamlessly switch between local and remote
+        computing. You also have much more disk storage on the remote machine.
       </Paragraph>
       <Paragraph>
         Usage of these machines is <Text strong>billed by the second</Text>. The
