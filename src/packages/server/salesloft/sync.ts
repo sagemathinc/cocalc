@@ -162,6 +162,7 @@ function toSalesloft({
     first_name,
     last_name,
     email_address,
+    tags: cocalc_tags,
     custom_fields: {
       cocalc_account_id,
       cocalc_created,

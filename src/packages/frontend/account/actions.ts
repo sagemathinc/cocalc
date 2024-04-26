@@ -5,7 +5,7 @@
 
 import { fromJS } from "immutable";
 import { join } from "path";
-
+import { once } from "@cocalc/util/async-utils";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { AccountClient } from "@cocalc/frontend/client/account";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -29,6 +29,7 @@ export class AccountActions extends Actions<AccountState> {
   _init(store): void {
     store.on("change", this.derive_show_global_info);
     store.on("change", this.update_unread_news);
+    this.processSignUpTags();
   }
 
   private help(): string {
@@ -356,7 +357,13 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
   }
 
   processSignUpTags = async () => {
-    if (localStorage.sign_up_tags) {
+    if (!localStorage.sign_up_tags) {
+      return;
+    }
+    try {
+      if (!webapp_client.is_signed_in()) {
+        await once(webapp_client, "signed_in");
+      }
       await webapp_client.async_query({
         query: {
           accounts: {
@@ -367,6 +374,8 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
       });
       delete localStorage.sign_up_tags;
       delete localStorage.sign_up_usage_intent;
+    } catch (err) {
+      console.warn("processSignUpTags", err);
     }
   };
 }
