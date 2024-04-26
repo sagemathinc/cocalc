@@ -2,6 +2,7 @@ import type {
   Images,
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
+  ComputeServerTemplate,
 } from "@cocalc/util/db-schema/compute-servers";
 import { reloadImages, useImages, useGoogleImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
@@ -53,6 +54,7 @@ import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { availableClouds } from "./config";
+import Template from "@cocalc/frontend/compute/cloud/common/template";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -88,6 +90,7 @@ interface Props {
   state?: State;
   data?;
   setCloud?;
+  template?: ComputeServerTemplate;
 }
 
 export default function GoogleCloudConfiguration({
@@ -100,6 +103,7 @@ export default function GoogleCloudConfiguration({
   state,
   data,
   setCloud,
+  template,
 }: Props) {
   const [IMAGES, ImagesError] = useImages();
   const [googleImages, ImagesErrorGoogle] = useGoogleImages();
@@ -496,7 +500,14 @@ export default function GoogleCloudConfiguration({
     {
       key: "admin",
       label: <></>,
-      value: <Admin id={id} configuration={configuration} loading={loading} />,
+      value: (
+        <Admin
+          id={id}
+          configuration={configuration}
+          loading={loading}
+          template={template}
+        />
+      ),
     },
   ];
 
@@ -1878,7 +1889,7 @@ function CostPerHour({
   );
 }
 
-function Admin({ id, configuration, loading }) {
+function Admin({ id, configuration, loading, template }) {
   const isAdmin = useTypedRedux("account", "is_admin");
   const [error, setError] = useState<string>("");
   const [calling, setCalling] = useState<boolean>(false);
@@ -1918,6 +1929,7 @@ function Admin({ id, configuration, loading }) {
         <pre>
           id={id}, configuration={JSON.stringify(configuration, undefined, 2)}
         </pre>
+        <Template id={id} template={template} />
       </div>
     </div>
   );

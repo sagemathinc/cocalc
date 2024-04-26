@@ -1,6 +1,7 @@
 import api from "@cocalc/frontend/client/api";
 import type {
   Action,
+  ComputeServerTemplate,
   Configuration,
   Cloud,
   Images,
@@ -57,12 +58,20 @@ export async function setServerTitle(opts: { id: number; title: string }) {
   return await api("compute/set-server-title", opts);
 }
 
-// server must be off
 export async function setServerConfiguration(opts: {
   id: number;
   configuration;
 }) {
   return await api("compute/set-server-configuration", opts);
+}
+
+// only for admins!
+export async function setTemplate(opts: {
+  id: number;
+  template: ComputeServerTemplate;
+}) {
+  console.log(opts);
+  return await api("compute/set-template", opts);
 }
 
 export async function setServerCloud(opts: { id: number; cloud: string }) {

@@ -1,6 +1,7 @@
 import type {
-  State,
+  ComputeServerTemplate,
   OnPremCloudConfiguration,
+  State,
 } from "@cocalc/util/db-schema/compute-servers";
 import { ON_PREM_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
 import { Checkbox, Divider, Select, Spin } from "antd";
@@ -15,6 +16,8 @@ import Proxy from "./proxy";
 import { useImages } from "./images-hook";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 import { A, Icon } from "@cocalc/frontend/components";
+import Template from "@cocalc/frontend/compute/cloud/common/template";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   configuration: OnPremCloudConfiguration;
@@ -27,6 +30,7 @@ interface Props {
   disabled?: boolean;
   state?: State;
   data?;
+  template?: ComputeServerTemplate;
 }
 
 export default function OnPremCloudConfiguration({
@@ -38,6 +42,7 @@ export default function OnPremCloudConfiguration({
   disabled,
   state,
   data,
+  template,
 }: Props) {
   const [IMAGES, ImagesError] = useImages();
   const [loading, setLoading] = useState<boolean>(false);
@@ -176,8 +181,17 @@ export default function OnPremCloudConfiguration({
         </>
       )}
       {loading && <Spin style={{ marginLeft: "15px" }} />}
+      <Admin id={id} template={template} />
     </div>
   );
+}
+
+function Admin({ id, template }) {
+  const isAdmin = useTypedRedux("account", "is_admin");
+  if (!isAdmin) {
+    return null;
+  }
+  return <Template id={id} template={template} />;
 }
 
 function Image(props) {
