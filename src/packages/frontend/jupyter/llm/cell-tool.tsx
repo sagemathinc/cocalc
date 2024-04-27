@@ -62,7 +62,7 @@ const TARGET_LANGS = [
   "Julia",
   "Octave",
   "JavaScript",
-  "C++",
+  "C/C++",
   "Java",
   "Matlab",
   OTHER_LANG,
@@ -101,7 +101,7 @@ interface LLMTool {
 }
 
 const IMPROVEMENTS = [
-  "code quality", // will be filled in by default, just as a convencience
+  "code quality", // first entry will be filled in by default, as a convencience
   "execution speed",
   "memory usage",
   "readability",
@@ -109,7 +109,7 @@ const IMPROVEMENTS = [
   "style",
 ] as const;
 
-const MODIFICATIONS: { label: string; value: string }[] = [
+const MODIFICATIONS: Readonly<{ label: string; value: string }[]> = [
   {
     label: "Simplify",
     value: "Make the code more readable and easier to understand.",
@@ -126,26 +126,29 @@ const MODIFICATIONS: { label: string; value: string }[] = [
   },
 ] as const;
 
-const jupytercell = (language) =>
-  `provided ${capitalize(language)} code in a Jupyter Notebook cell`;
+const jupytercell = ({ language, kernel_display }) =>
+  `provided ${capitalize(
+    language,
+  )} code in a Jupyter Notebook cell (kernel: "${kernel_display}")`;
 
 const ACTIONS: { [mode in Mode]: LLMTool } = {
   explain: {
     icon: "sound-outlined",
     descr: "Gain some insight into the code in that cell.",
-    prompt: ({ language, stepByStep }) =>
+    prompt: ({ language, stepByStep, kernel_display }) =>
       `Your task is to give a ${
         stepByStep ? `step-by-step explanation` : `short high-level summary`
-      } of the ${jupytercell(language)}:`,
+      } of the ${jupytercell({ language, kernel_display })}:`,
   },
   bugfix: {
     icon: "clean-outlined",
     descr:
       "Describe the problem of that cell in order to get a bugfixed version.",
-    prompt: ({ language, extra }) =>
-      `Your task is to analyze the ${jupytercell(
+    prompt: ({ language, extra, kernel_display }) =>
+      `Your task is to analyze the ${jupytercell({
         language,
-      )}. Identify any bugs or errors. Explain the problems you found in the original code and how your fixes address them.${
+        kernel_display,
+      })}. Identify any bugs or errors. Explain the problems you found in the original code and how your fixes address them.${
         extra
           ? ` In particular, the problem you have to fix is: "${extra}".`
           : ""
@@ -154,34 +157,37 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   modify: {
     icon: "edit",
     descr: "Modify the code in the cell",
-    prompt: ({ language, extra }) =>
-      `Your task is to modify the provided ${capitalize(
+    prompt: ({ language, extra, kernel_display }) =>
+      `Your task is to modify the ${jupytercell({
         language,
-      )} code in a Jupyter Notebook cell. The modification is "${extra}"`,
+        kernel_display,
+      })}. The modification is "${extra}"`,
   },
   improve: {
     icon: "rise-outlined",
     descr: "Improve the code in that cell.",
-    prompt: ({ language, extra }) =>
-      `Your task is to analyze the ${jupytercell(
+    prompt: ({ language, extra, kernel_display }) =>
+      `Your task is to analyze the ${jupytercell({
         language,
-      )}. Identify any areas of improvments. The new code must be functional, efficient, and adhere to best practices. Explain how your code improves it.${
+        kernel_display,
+      })}. Identify any areas of improvments. The new code must be functional, efficient, and adhere to best practices. Explain how your code improves it.${
         extra ? ` In particular, optimize this aspect: "${extra}"` : ""
       }`,
   },
   document: {
     icon: "book",
     descr: "Add documentation",
-    prompt: ({ language }) =>
-      `Your task is to add documentation to the ${jupytercell(
+    prompt: ({ language, kernel_display }) =>
+      `Your task is to add documentation to the ${jupytercell({
         language,
-      )}. The new code must be exactly the same. Insert additional documentation comments and/or rewrite and expand existing comments.`,
+        kernel_display,
+      })}. The new code must be exactly the same. Insert additional documentation comments and rewrite existing comments.`,
   },
   translate: {
     icon: "translation-outlined",
     descr: "Translate the code in that cell to another language using AI.",
     prompt: ({ language, target = "R" }) =>
-      `Your task is to translate the following ${capitalize(
+      `Your task is to translate the provided ${capitalize(
         language,
       )} code to ${target}.`,
   },
@@ -377,27 +383,27 @@ export function LLMCellTool({
         trigger={["click"]}
         mouseLeaveDelay={1.5}
         menu={{
-          items: (
-            Object.entries(ACTIONS) as Entries<{ [mode in Mode]: LLMTool }>
-          ).map(([mode, action]) => {
-            return {
-              key: mode,
-              label: (
-                <Tooltip title={action.descr} placement={"left"}>
-                  <Icon name={action.icon} /> {capitalize(mode)}
-                </Tooltip>
-              ),
-              onClick: () => {
-                setMode(mode as Mode);
-                track(TRACKING_KEY, {
-                  action: "selected",
-                  mode,
-                  path,
-                  project_id,
-                });
-              },
-            };
-          }),
+          items: (Object.entries(ACTIONS) as Entries<typeof ACTIONS>).map(
+            ([mode, action]) => {
+              return {
+                key: mode,
+                label: (
+                  <Tooltip title={action.descr} placement={"left"}>
+                    <Icon name={action.icon} /> {capitalize(mode)}
+                  </Tooltip>
+                ),
+                onClick: () => {
+                  setMode(mode as Mode);
+                  track(TRACKING_KEY, {
+                    action: "selected",
+                    mode,
+                    path,
+                    project_id,
+                  });
+                },
+              };
+            },
+          ),
         }}
       >
         <Tooltip title="Use AI assistance on this cell">
