@@ -58,6 +58,7 @@ class ComputeServersTable extends Table {
           purchase_id: null,
           detailed_state: null,
           position: null,
+          template: null,
         },
       ],
     };

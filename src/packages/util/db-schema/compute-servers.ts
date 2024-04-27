@@ -557,6 +557,11 @@ export interface ComponentState {
   expire?: number;
 }
 
+export interface ComputeServerTemplate {
+  enabled?: boolean;
+  priority?: number;
+}
+
 export interface ComputeServerUserInfo {
   id: number;
   account_id: string;
@@ -583,6 +588,7 @@ export interface ComputeServerUserInfo {
   detailed_state?: { [name: string]: ComponentState };
   update_purchase?: boolean;
   last_purchase_update?: Date;
+  template?: ComputeServerTemplate;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -620,6 +626,7 @@ Table({
           purchase_id: null,
           position: null,
           detailed_state: null,
+          template: null,
         },
       },
       set: {
@@ -756,6 +763,11 @@ Table({
       desc: "Map from component name to something like {state:'running',time:Date.now()}, e.g., {vm: {state:'running', time:393939938484}}, filesystem: {state:'updating', time:939398484892}, uptime:{state:'22:56:33 up 3 days,  9:28,  0 users,  load average: 0.93, 0.73, 0.56', time:?}}.  This is used to provide users with insight into what's currently happening on their compute server.",
     },
     notes: NOTES,
+    template: {
+      type: "map",
+      pg_type: "jsonb",
+      desc: "Use this compute server configuration as a public template.  Only admins can set this field for now. The exact structure of this jsonb is yet to be determined.",
+    },
   },
 });
 
@@ -773,6 +785,7 @@ Table({
         fields: {
           ...schema.compute_servers.user_query?.get?.fields,
           notes: null,
+          template: null,
         },
       },
       set: {
@@ -783,6 +796,7 @@ Table({
           color: true,
           deleted: true,
           notes: true,
+          template: true,
         },
       },
     },

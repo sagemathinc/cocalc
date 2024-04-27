@@ -508,6 +508,7 @@ export default function Menu({
             break;
 
           case "documentation":
+          case "videos":
             // click opens new tab anyways
             break;
 

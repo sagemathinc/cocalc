@@ -79,7 +79,7 @@ function SignUp0({
     onCoCalcCom,
   } = useCustomize();
   const [tags, setTags] = useState<Set<string>>(new Set());
-  const [signupReason, setSingupReason] = useState<string>("");
+  const [signupReason, setSignupReason] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [registrationToken, setRegistrationToken] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -131,18 +131,15 @@ function SignUp0({
   const what = "role";
 
   submittable.current = !!(
-    (
-      requiredSSO == null &&
-      (!requiresToken2 || registrationToken) &&
-      email &&
-      isValidEmailAddress(email) &&
-      password &&
-      password.length >= 6 &&
-      firstName?.trim() &&
-      lastName?.trim() &&
-      !needsTags
-    )
-    // && (!showContact || !requestContact || signupReason.trim()) // optional for now
+    requiredSSO == null &&
+    (!requiresToken2 || registrationToken) &&
+    email &&
+    isValidEmailAddress(email) &&
+    password &&
+    password.length >= 6 &&
+    firstName?.trim() &&
+    lastName?.trim() &&
+    !needsTags
   );
 
   async function signUp() {
@@ -278,7 +275,7 @@ function SignUp0({
         <Tags
           setTags={setTags}
           signupReason={signupReason}
-          setSingupReason={setSingupReason}
+          setSignupReason={setSignupReason}
           tags={tags}
           minTags={minTags}
           what={what}
