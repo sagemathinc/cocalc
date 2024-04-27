@@ -2,10 +2,10 @@
 Get Templates
 */
 
-import getAccountId from "lib/account/get-account";
-import { getTemplates } from "@cocalc/server/compute/templates";
-import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
+import { getTemplates } from "@cocalc/server/compute/templates";
+import getAccountId from "lib/account/get-account";
+import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
@@ -30,5 +30,5 @@ async function get(req) {
       throw Error("only admin are allowed to specify noCache");
     }
   }
-  return await getImages({ noCache: !!noCache });
+  return await getTemplates();
 }
