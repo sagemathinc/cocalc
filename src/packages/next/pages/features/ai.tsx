@@ -33,7 +33,7 @@ import ChatGptGenerateCode from "/public/features/chatgpt-generate-code.png";
 import ChatGptJupyterCell from "/public/features/chatgpt-jupyter-linear-regression-cell.png";
 import ChatGptJupyterPrompt from "/public/features/chatgpt-jupyter-linear-regression-prompt.png";
 
-const title = `AI Assistance`;
+const title = `AI Assistant`;
 const component = title;
 
 export default function AI({ customize }) {
@@ -62,20 +62,25 @@ export default function AI({ customize }) {
             subtitle={
               <>
                 <div>
-                  CoCalc integrates large language models such as{" "}
-                  <A href="https://openai.com/chatgpt">OpenAI's ChatGPT</A> or{" "}
+                  CoCalc integrates large language models including{" "}
+                  <A href="https://openai.com/">OpenAI's ChatGPT</A>,{" "}
                   <A href="https://deepmind.google/technologies/gemini/">
                     Google's Gemini
-                  </A>{" "}
-                  as virtual assistants. They generate human-like responses and
-                  code, assist with programming, explain error messages, and
+                  </A>
+                  ,{" "}
+                  <A href="https://www.anthropic.com/claude">
+                    Anthropic's Claude
+                  </A>
+                  , and <A href="https://mistral.ai/">Mistral</A> as virtual
+                  assistants. They generate human-like responses and code,
+                  assist with programming, explain error messages, and
                   ultimately making it easier for you to get your work done.
                 </div>
               </>
             }
             image={AILLMQuery}
-            alt={"AI assistance in CoCalc"}
-            caption={"AI assistance in a CoCalc"}
+            alt={"AI Assistant in CoCalc"}
+            caption={"AI Assistant in CoCalc"}
           />
 
           <Pitch
@@ -119,7 +124,7 @@ export default function AI({ customize }) {
             description={
               <>
                 <Paragraph style={{ marginTop: "20px" }}>
-                  There are various places where AI assistants appears in
+                  There are various places where an AI Assistant appears in
                   CoCalc, as illustrated below and{" "}
                   <A href="https://doc.cocalc.com/chatgpt.html">
                     explained in the docs

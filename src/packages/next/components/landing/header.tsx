@@ -250,7 +250,7 @@ export default function Header(props: Props) {
         )}{" "}
       </Layout.Header>
       <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
-      {openaiEnabled && page == "features" && (
+      {openaiEnabled && page == "features" && subPage != "compute-server" && (
         <div style={{ width: "700px", maxWidth: "100%", margin: "15px auto" }}>
           <ChatGPTHelp
             size="large"

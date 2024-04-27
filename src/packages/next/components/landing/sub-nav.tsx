@@ -85,7 +85,7 @@ const features = {
   x11: { label: "X11" },
   div1: { type: "divider" },
   "compute-server": { label: "Compute" },
-  ai: { label: "AI Assist" },
+  ai: { label: "AI Assistant" },
   compare: { label: "Compare" },
   api: { label: "API" },
 } as const;
