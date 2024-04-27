@@ -10,12 +10,13 @@ export default function ComputeServerTemplates({ style }: { style? }) {
       <PublicTemplates style={style} setId={setId} />
       {id != null && (
         <Button
+          size="large"
           type="primary"
           onClick={() => {
             console.log("make compute server from template", { id });
           }}
         >
-          <Icon name="cloud-server" /> Create Compute Server...
+          <Icon name="server" /> Create Compute Server...
         </Button>
       )}
     </div>
