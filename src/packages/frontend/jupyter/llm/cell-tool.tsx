@@ -371,12 +371,13 @@ export function LLMCellTool({
   }
 
   function renderDropdown() {
-    const style: CSS = {
-      ...CODE_BAR_BTN_STYLE,
-      ...(is_current
-        ? { color: COLORS.AI_ASSISTANT_FONT, fontWeight: "bold" }
-        : {}),
-    } as const;
+    const txtStyle: CSS = is_current
+      ? {
+          color: COLORS.AI_ASSISTANT_FONT,
+          // this makes it bold without "moving around"
+          textShadow: `1px 0 0 ${COLORS.AI_ASSISTANT_FONT}`,
+        }
+      : {};
 
     return (
       <Dropdown
@@ -411,17 +412,17 @@ export function LLMCellTool({
             disabled={isQuerying}
             type="text"
             size="small"
-            style={style}
+            style={CODE_BAR_BTN_STYLE}
             icon={
               <AIAvatar
                 size={14}
-                style={{ position: "relative", top: "-3px" }}
+                style={{ position: "relative", top: "-4px", left: "4px" }}
                 iconColor={is_current ? COLORS.AI_ASSISTANT_FONT : undefined}
               />
             }
           >
             <Space size="small">
-              Tools
+              <span style={txtStyle}>Tools</span>
               <Icon name="angle-down" />
             </Space>
           </Button>

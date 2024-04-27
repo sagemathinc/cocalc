@@ -119,7 +119,7 @@ const MAIN_COLORS = {
   AI_ASSISTANT_BG: "#f6bf61", // e.g. the orange background of the button bar AI button
   AI_ASSISTANT_TXT: "#303030", // the text color for the above
   // a darker variant of AI_ASSISNTANT_BG for text
-  AI_ASSISTANT_FONT: "#f3a41e",
+  AI_ASSISTANT_FONT: "#f0a11d",
 
   RUN: "#389e0d", // the green color of the run button
 } as const;
