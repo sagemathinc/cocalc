@@ -5,15 +5,15 @@
 
 import { Button, Tag } from "antd";
 import { join } from "path";
-
 import basePath from "@cocalc/backend/base-path";
 import { COLORS } from "@cocalc/util/theme";
 import Info from "components/landing/info";
 import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import { useCustomize } from "lib/customize";
-import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
+//import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
 import { LANDING_HEADER_LEVEL } from "./constants";
+import ComputeServerTemplates from "./compute-server-templates";
 
 export default function ComputeServers() {
   const { computeServersEnabled, siteName } = useCustomize();
@@ -34,12 +34,10 @@ export default function ComputeServers() {
         </>
       }
       icon="servers"
-      image={ComputeServerInfographic}
+      imageComponent={<ComputeServerTemplates />}
       narrow={true}
       anchor="a-compute"
-      alt={
-        "Infographic showing how you connect from CoCalc to other machines for various tasks."
-      }
+      alt={"Compute server templates"}
       style={{ backgroundColor: COLORS.YELL_LLL }}
     >
       <Paragraph>

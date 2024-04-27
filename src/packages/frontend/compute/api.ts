@@ -9,9 +9,8 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
-
+import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { redux } from "@cocalc/frontend/app-framework";
 
 export async function createServer(opts: {
   project_id: string;
@@ -71,6 +70,10 @@ export async function setTemplate(opts: {
   template: ComputeServerTemplate;
 }) {
   return await api("compute/set-template", opts);
+}
+
+export async function getTemplates(): Promise<ConfigurationTemplate> {
+  return await api("compute/get-templates");
 }
 
 export async function setServerCloud(opts: { id: number; cloud: string }) {
@@ -201,9 +204,7 @@ async function getImagesFor({
     const images = await api(
       endpoint,
       // admin reload forces fetch data from github and/or google cloud - normal users just have their cache ignored above
-      reload && redux.getStore("account").get("is_admin")
-        ? { noCache: true }
-        : undefined,
+      reload ? { noCache: true } : undefined,
     );
     cacheSet(cloud, images);
     return images;

@@ -11,12 +11,9 @@ import { computeCost } from "@cocalc/server/compute/control";
 import { getServerNoCheck } from "@cocalc/server/compute/get-servers";
 import getLogger from "@cocalc/backend/logger";
 import { cmp } from "@cocalc/util/misc";
-import type {
-  Cloud,
-  Configuration,
-  ComputeServerTemplate,
-} from "@cocalc/util/db-schema/compute-servers";
+import type { ComputeServerTemplate } from "@cocalc/util/db-schema/compute-servers";
 import { createTTLCache } from "@cocalc/server/compute/database-cache";
+import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
 
 const logger = getLogger("server:compute:templates");
 
@@ -59,16 +56,6 @@ export async function setTemplate({
 
 // Get all template compute server configurations, along with their current price.
 
-interface Template {
-  title: string;
-  color: string;
-  cloud: Cloud;
-  configuration: Configuration;
-  template: ComputeServerTemplate;
-  avatar_image_tiny?: string;
-  cost_per_hour: { running: number; off: number };
-}
-
 export async function getTemplates() {
   if (await getCache().has(CACHE_KEY)) {
     return await getCache().get(CACHE_KEY);
@@ -77,7 +64,7 @@ export async function getTemplates() {
   const { rows } = await pool.query(
     "SELECT id, title, color, cloud, configuration, template, avatar_image_tiny FROM compute_servers WHERE template#>>'{enabled}'='true'",
   );
-  const templates: Template[] = [];
+  const templates: ConfigurationTemplate[] = [];
   for (const row of rows) {
     const server = await getServerNoCheck(row.id);
     let cost_per_hour;
