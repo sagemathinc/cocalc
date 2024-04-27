@@ -1,7 +1,8 @@
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { commas, plural } from "@cocalc/util/misc";
 import { Popover, Table } from "antd";
-import { A, Icon } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
 
 export default function NVIDIA({
   gpu,

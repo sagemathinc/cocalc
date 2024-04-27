@@ -14,6 +14,9 @@ import { cmp } from "@cocalc/util/misc";
 import type { ComputeServerTemplate } from "@cocalc/util/db-schema/compute-servers";
 import { createTTLCache } from "@cocalc/server/compute/database-cache";
 import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
+import { getImages } from "@cocalc/server/compute/images";
+import getGoogleCloudPricingData from "@cocalc/server/compute/cloud/google-cloud/pricing-data";
+import getHyperstackPricingData from "@cocalc/server/compute/cloud/hyperstack/pricing-data";
 
 const logger = getLogger("server:compute:templates");
 
@@ -62,7 +65,7 @@ export async function getTemplates() {
   }
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, title, color, cloud, configuration, template, avatar_image_tiny FROM compute_servers WHERE template#>>'{enabled}'='true'",
+    "SELECT id, title, color, cloud, configuration, template, avatar_image_tiny, position FROM compute_servers WHERE template#>>'{enabled}'='true'",
   );
   const templates: ConfigurationTemplate[] = [];
   for (const row of rows) {
@@ -82,8 +85,31 @@ export async function getTemplates() {
     templates.push({ ...row, cost_per_hour });
   }
   templates.sort(
-    (x, y) => -cmp(x.template.priority ?? 0, y.template.priority ?? 0),
+    (x, y) =>
+      -cmp(
+        x.template.priority ?? x.position ?? 0,
+        y.template.priority ?? y.position ?? 0,
+      ),
   );
-  await getCache().set(CACHE_KEY, templates);
-  return templates;
+  const clouds = new Set<string>();
+  for (const template of templates) {
+    sanitizeTemplate(template);
+    clouds.add(template.cloud);
+  }
+  const data = {
+    images: await getImages(),
+    hyperstackPriceData: clouds.has("hyperstack")
+      ? await getHyperstackPricingData()
+      : undefined,
+    googleCloudPriceData: clouds.has("google-cloud")
+      ? await getGoogleCloudPricingData()
+      : undefined,
+  };
+  const x = { templates, data };
+  await getCache().set(CACHE_KEY, x);
+  return x;
+}
+
+function sanitizeTemplate(template) {
+  delete template["configuration"]?.authToken;
 }

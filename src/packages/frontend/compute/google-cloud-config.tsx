@@ -55,6 +55,10 @@ import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { availableClouds } from "./config";
 import Template from "@cocalc/frontend/compute/cloud/common/template";
+import Specs, {
+  RamAndCpu,
+} from "@cocalc/frontend/compute/cloud/google-cloud/specs";
+import { displayAcceleratorType } from "@cocalc/frontend/compute/cloud/google-cloud/accelerator";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -165,43 +169,12 @@ export default function GoogleCloudConfiguration({
     return <Spin />;
   }
 
-  const gpu = configuration.acceleratorType
-    ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
-        configuration.acceleratorType,
-      )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}, `
-    : "";
-
   const summary = (
-    <div>
-      {configuration.spot ? "Spot " : "Standard "} {configuration.machineType}{" "}
-      with {gpu}
-      {priceData ? (
-        <span>
-          <RamAndCpu
-            machineType={configuration.machineType}
-            priceData={priceData}
-            inline
-          />
-        </span>
-      ) : (
-        ""
-      )}
-      , and a{" "}
-      {configuration.diskSizeGb ??
-        `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
-      GB{" "}
-      {configuration.diskType?.includes("hyper") ? (
-        "hyperdisk"
-      ) : (
-        <>
-          {(configuration.diskType ?? "pd-standard") != "pd-standard"
-            ? " SSD "
-            : " HDD "}{" "}
-          disk
-        </>
-      )}{" "}
-      in {configuration.zone}.
-    </div>
+    <Specs
+      configuration={configuration}
+      priceData={priceData}
+      IMAGES={IMAGES}
+    />
   );
 
   if (!editable || !project_id) {
@@ -1147,49 +1120,6 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   );
 }
 
-function RamAndCpu({
-  machineType,
-  priceData,
-  style,
-  inline,
-}: {
-  machineType: string;
-  priceData;
-  style?;
-  inline?: boolean;
-}) {
-  const data = priceData.machineTypes[machineType];
-  if (data == null) return null;
-  const { memory } = data;
-  let { vcpu } = data;
-  if (!vcpu || !memory) return null;
-  if (machineType == "e2-micro") {
-    vcpu = "0.25-2";
-  } else if (machineType == "e2-small") {
-    vcpu = "0.5-2";
-  } else if (machineType == "e2-medium") {
-    vcpu = "1-2";
-  }
-  if (inline) {
-    return (
-      <span style={style}>
-        {vcpu} {plural(vcpu, "vCPU")}, {memory} GB RAM
-      </span>
-    );
-  }
-  return (
-    <div style={{ color: "#666", ...style }}>
-      <b>{plural(vcpu, "vCPU")}: </b>
-      <div
-        style={{ width: "65px", textAlign: "left", display: "inline-block" }}
-      >
-        {vcpu}
-      </div>
-      <b>Memory:</b> {memory} GB
-    </div>
-  );
-}
-
 function BootDisk(props) {
   return (
     <Disk
@@ -1444,18 +1374,6 @@ function GPU({
         </div>
       ) : undefined}
 */
-
-function displayAcceleratorType(acceleratorType, memory?) {
-  let x = acceleratorType
-    .replace("tesla-", "")
-    .replace("nvidia-", "NVIDIA ")
-    .replace("-", " - ")
-    .toUpperCase();
-  if (x.includes("GB") || !memory) {
-    return x;
-  }
-  return `${x} - ${memory} GB`;
-}
 
 function ensureConsistentConfiguration(
   priceData,

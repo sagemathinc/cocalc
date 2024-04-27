@@ -11,7 +11,7 @@ import Info from "components/landing/info";
 import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import { useCustomize } from "lib/customize";
-//import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
+import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
 import { LANDING_HEADER_LEVEL } from "./constants";
 import ComputeServerTemplates from "./compute-server-templates";
 
@@ -31,12 +31,11 @@ export default function ComputeServers() {
           <sup>
             <Tag color={COLORS.ANTD_GREEN}>new</Tag>
           </sup>
+          <ComputeServerTemplates />
         </>
       }
       icon="servers"
-      imageComponent={
-        <ComputeServerTemplates style={{ height: "500px", overflow: "auto" }} />
-      }
+      image={ComputeServerInfographic}
       narrow={true}
       anchor="a-compute"
       alt={"Compute server templates"}

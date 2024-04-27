@@ -241,7 +241,7 @@ function Videos() {
           {YOUTUBE_IDS.map(({ id, title }) => {
             n += 1;
             return (
-              <VideoItem id={id} number={n} current={current} title={title} />
+              <VideoItem key={id} id={id} number={n} current={current} title={title} />
             );
           })}
         </Carousel>
