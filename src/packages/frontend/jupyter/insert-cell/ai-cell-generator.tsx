@@ -1,6 +1,6 @@
 import { Button, Input, InputNumber, Popover, Space } from "antd";
 import { throttle } from "lodash";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -23,9 +23,9 @@ import {
 import { plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
+import { RawPrompt } from "../llm/raw-prompt";
 import { Position } from "./types";
 import { insertCell } from "./util";
-import { RawPrompt } from "../llm/raw-prompt";
 
 interface AIGenerateCodeCellProps {
   actions: JupyterActions;
@@ -51,34 +51,17 @@ export function AIGenerateCodeCell({
   const [prompt, setPrompt] = useState<string>("");
   const [includePreviousCells, setIncludePreviousCells] = useState<number>(1);
 
-  const prevCodeContents = getPreviousNonemptyCodeCellContents(
-    frameActions.current,
-    id,
-    showAICellGen,
-    includePreviousCells,
-  );
+  function getPrevCodeContents(): string {
+    if (includePreviousCells === 0 || showAICellGen == null) return "";
+    return getPreviousNonemptyCodeCellContents(
+      frameActions.current,
+      id,
+      showAICellGen,
+      includePreviousCells,
+    );
+  }
 
-  const input = useMemo(() => {
-    if (!showAICellGen) return "";
-
-    const { input } = getInput({
-      frameActions,
-      prompt,
-      actions,
-      position: showAICellGen,
-      model,
-      prevCodeContents: includePreviousCells > 0 ? prevCodeContents : "",
-    });
-    return input;
-  }, [
-    showAICellGen,
-    prompt,
-    model,
-    includePreviousCells > 0,
-    prevCodeContents,
-  ]);
-
-  function doQuery() {
+  function doQuery(prevCodeContents: string) {
     setQuerying(true);
     if (showAICellGen == null) return;
     queryLanguageModel({
@@ -94,9 +77,78 @@ export function AIGenerateCodeCell({
         setShowAICellGen(null);
         setQuerying(false);
       },
-      prevCodeContents: includePreviousCells > 0 ? prevCodeContents : "",
+      prevCodeContents,
       includePreviousCells,
     });
+  }
+
+  // called, when actually displayed
+  function renderContent() {
+    const prevCodeContents = getPrevCodeContents();
+
+    const { input } = getInput({
+      frameActions,
+      prompt,
+      actions,
+      position: showAICellGen,
+      model,
+      prevCodeContents,
+    });
+
+    return (
+      <div style={{ width: "500px", maxWidth: "90vw" }}>
+        <>
+          <Paragraph>Describe what the new cell should do.</Paragraph>
+          <Paragraph>
+            <Input.TextArea
+              allowClear
+              autoFocus
+              value={prompt}
+              onChange={(e) => {
+                setPrompt(e.target.value);
+              }}
+              placeholder="Describe the new cell..."
+              onPressEnter={(e) => {
+                if (!e.shiftKey) return;
+                doQuery(prevCodeContents);
+              }}
+              autoSize={{ minRows: 2, maxRows: 6 }}
+            />
+          </Paragraph>
+          <Paragraph>
+            <Space>
+              Context: include previous{" "}
+              <InputNumber
+                min={0}
+                max={10}
+                size={"small"}
+                value={includePreviousCells}
+                onChange={(value) => setIncludePreviousCells(value ?? 1)}
+              />{" "}
+              {plural(includePreviousCells, "code cell.", "code cells.")}
+            </Space>
+          </Paragraph>
+          <Paragraph>
+            The following prompt will be sent to {modelToName(model)}:
+          </Paragraph>
+          <RawPrompt input={input} />
+          <Paragraph style={{ textAlign: "center", marginTop: "30px" }}>
+            <Space size="large">
+              <Button onClick={() => setShowAICellGen(null)}>Cancel</Button>
+              <Button
+                type="primary"
+                onClick={() => doQuery(prevCodeContents)}
+                disabled={!prompt.trim()}
+                loading={querying}
+              >
+                <Icon name={"paper-plane"} /> Generate Using{" "}
+                {modelToName(model)} (shift+enter)
+              </Button>
+            </Space>
+          </Paragraph>
+        </>
+      </div>
+    );
   }
 
   return (
@@ -120,63 +172,9 @@ export function AIGenerateCodeCell({
         </div>
       )}
       open={showAICellGen != null}
-      content={() => (
-        <div style={{ width: "500px", maxWidth: "90vw" }}>
-          <>
-            <Paragraph>Describe what the new cell should do.</Paragraph>
-            <Paragraph>
-              <Input.TextArea
-                allowClear
-                autoFocus
-                value={prompt}
-                onChange={(e) => {
-                  setPrompt(e.target.value);
-                }}
-                placeholder="Describe the new cell..."
-                onPressEnter={(e) => {
-                  if (!e.shiftKey) return;
-                  doQuery();
-                }}
-                autoSize={{ minRows: 2, maxRows: 6 }}
-              />
-            </Paragraph>
-            {prevCodeContents ? (
-              <Paragraph>
-                <Space>
-                  Context: include previous{" "}
-                  <InputNumber
-                    min={0}
-                    max={10}
-                    size={"small"}
-                    value={includePreviousCells}
-                    onChange={(value) => setIncludePreviousCells(value ?? 1)}
-                  />{" "}
-                  {plural(includePreviousCells, "code cell.", "code cells.")}
-                </Space>
-              </Paragraph>
-            ) : undefined}
-            <Paragraph>
-              The following prompt will be sent to {modelToName(model)}:
-            </Paragraph>
-            <RawPrompt input={input} />
-            <Paragraph style={{ textAlign: "center", marginTop: "30px" }}>
-              <Space size="large">
-                <Button onClick={() => setShowAICellGen(null)}>Cancel</Button>
-                <Button
-                  type="primary"
-                  onClick={doQuery}
-                  disabled={!prompt.trim()}
-                  loading={querying}
-                >
-                  <Icon name={"paper-plane"} /> Generate Using{" "}
-                  {modelToName(model)} (shift+enter)
-                </Button>
-              </Space>
-            </Paragraph>
-          </>
-        </div>
-      )}
+      content={renderContent}
       trigger={[]}
+      destroyTooltipOnHide
     >
       {children}
     </Popover>
