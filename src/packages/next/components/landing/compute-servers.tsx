@@ -34,7 +34,9 @@ export default function ComputeServers() {
         </>
       }
       icon="servers"
-      imageComponent={<ComputeServerTemplates />}
+      imageComponent={
+        <ComputeServerTemplates style={{ height: "500px", overflow: "auto" }} />
+      }
       narrow={true}
       anchor="a-compute"
       alt={"Compute server templates"}
