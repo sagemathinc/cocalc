@@ -3,6 +3,7 @@ import { Icon } from "@cocalc/frontend/components";
 import {
   createServer,
   computeServerAction,
+  getTemplate,
   setServerConfiguration,
 } from "./api";
 import { useEffect, useState } from "react";
@@ -19,6 +20,7 @@ import { randomColor } from "./color";
 import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import costPerHour from "./cost";
 import { Docs } from "./compute-servers";
+import PublicTemplates from "@cocalc/frontend/compute/public-templates";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -46,14 +48,31 @@ function genericDefaults(conf) {
 export default function CreateComputeServer({ project_id, onCreate }) {
   const account_id = useTypedRedux("account", "account_id");
   const create_compute_server = useRedux(["create_compute_server"], project_id);
+  const create_compute_server_template_id = useRedux(
+    ["create_compute_server_template_id"],
+    project_id,
+  );
   const [editing, setEditing] = useState<boolean>(create_compute_server);
+  const [templateId, setTemplateId] = useState<number | undefined>(
+    create_compute_server_template_id,
+  );
+  const [templates, setTemplates] = useState<boolean>(
+    !!create_compute_server_template_id,
+  );
+
   useEffect(() => {
-    if (create_compute_server) {
-      redux
-        .getProjectActions(project_id)
-        .setState({ create_compute_server: false });
+    if (create_compute_server_template_id) {
+      setConfigToTemplate(create_compute_server_template_id);
     }
-  }, [create_compute_server]);
+    return () => {
+      if (create_compute_server) {
+        redux
+          .getProjectActions(project_id)
+          .setState({ create_compute_server: false });
+      }
+    };
+  }, []);
+
   const [creating, setCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -69,6 +88,25 @@ export default function CreateComputeServer({ project_id, onCreate }) {
     setColor(randomColor());
     setCloud(defaultCloud());
     setConfiguration(defaultConfiguration());
+  };
+
+  const [loadingTemplate, setLoadingTemplate] = useState<boolean>(false);
+  const setConfigToTemplate = async (id) => {
+    setTemplateId(id);
+    let template;
+    try {
+      setLoadingTemplate(true);
+      template = await getTemplate(id);
+    } catch (err) {
+      setError(`${err}`);
+      return;
+    } finally {
+      setLoadingTemplate(false);
+    }
+    setTitle(template.title);
+    setColor(template.color);
+    setCloud(template.cloud);
+    setConfiguration(template.configuration);
   };
 
   useEffect(() => {
@@ -201,7 +239,33 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }}
         open={editing}
         destroyOnClose
-        title={"Create Compute Server"}
+        title={
+          <div>
+            <div style={{ display: "flex" }}>
+              Create Compute Server
+              {!templates && (
+                <Button
+                  onClick={() => {
+                    setTemplates(true);
+                  }}
+                  style={{ marginLeft: "30px", marginTop: "-5px" }}
+                >
+                  Templates...
+                </Button>
+              )}
+            </div>
+            {templates && (
+              <div style={{ textAlign: "center", color: "#666" }}>
+                <div>Templates</div>
+                <PublicTemplates
+                  disabled={loadingTemplate}
+                  defaultId={templateId}
+                  setId={setConfigToTemplate}
+                />
+              </div>
+            )}
+          </div>
+        }
         footer={
           <div style={{ display: "flex" }}>
             {footer}

@@ -57,6 +57,23 @@ export async function setTemplate({
   await getCache().delete(CACHE_KEY);
 }
 
+const FIELDS =
+  " id, title, color, cloud, configuration, template, avatar_image_tiny, position ";
+
+export async function getTemplate(id): Promise<ConfigurationTemplate> {
+  logger.debug("getTemplate", { id });
+  const pool = getPool("medium");
+  const { rows } = await pool.query(
+    `SELECT ${FIELDS} FROM compute_servers WHERE id=$1 AND template#>>'{enabled}'='true'`,
+    [id],
+  );
+  if (rows.length == 0) {
+    throw Error(`no tempalte with id (=${id})`);
+  }
+  sanitizeTemplate(rows[0]);
+  return rows[0];
+}
+
 // Get all template compute server configurations, along with their current price.
 
 export async function getTemplates() {
@@ -65,7 +82,7 @@ export async function getTemplates() {
   }
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, title, color, cloud, configuration, template, avatar_image_tiny, position FROM compute_servers WHERE template#>>'{enabled}'='true'",
+    `SELECT ${FIELDS} FROM compute_servers WHERE template#>>'{enabled}'='true'`,
   );
   const templates: ConfigurationTemplate[] = [];
   for (const row of rows) {

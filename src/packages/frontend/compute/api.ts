@@ -9,7 +9,10 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import type { HyperstackPriceData } from "@cocalc/util/compute/cloud/hyperstack/pricing";
-import type { ConfigurationTemplates } from "@cocalc/util/compute/templates";
+import type {
+  ConfigurationTemplate,
+  ConfigurationTemplates,
+} from "@cocalc/util/compute/templates";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export async function createServer(opts: {
@@ -70,6 +73,10 @@ export async function setTemplate(opts: {
   template: ComputeServerTemplate;
 }) {
   return await api("compute/set-template", opts);
+}
+
+export async function getTemplate(id: number): Promise<ConfigurationTemplate> {
+  return await api("compute/get-template", { id });
 }
 
 export async function getTemplates(): Promise<ConfigurationTemplates> {

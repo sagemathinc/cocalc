@@ -13,15 +13,19 @@ import { RenderImage } from "./images";
 export default function PublicTemplates({
   style,
   setId,
+  defaultId,
+  disabled,
 }: {
   style?;
   setId: (number) => void;
+  defaultId?: number;
+  disabled?: boolean;
 }) {
   const [templates, setTemplates] = useState<ConfigurationTemplate[] | null>(
     null,
   );
   const [options, setOptions] = useState<any[]>([]);
-  const [value, setValue0] = useState<number | null>(null);
+  const [value, setValue0] = useState<number | undefined>(defaultId);
   const setValue = (n: number) => {
     setValue0(n);
     setId(n);
@@ -51,12 +55,14 @@ export default function PublicTemplates({
   }, []);
 
   if (templates == null || options.length == 0) {
+    // not loaded or no configured templates right now.
     return null;
   }
 
   return (
     <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
       <Select
+        disabled={disabled}
         value={value}
         onChange={setValue}
         options={options}
