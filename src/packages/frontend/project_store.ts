@@ -260,17 +260,16 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 
   getInitialState = (): ProjectStoreState => {
-    let create_compute_server_template_id = QueryParams.get(
-      "compute-server-template",
-    )
-      ? parseInt(QueryParams.get("compute-server-template") ?? '0')
-      : undefined;
-    let create_compute_server;
-    if (create_compute_server_template_id) {
-      QueryParams.remove("compute-server-template");
-      create_compute_server = true;
-    } else {
-      create_compute_server = false;
+    let create_compute_server_template_id: number | undefined = undefined;
+    let create_compute_server: boolean | undefined = undefined;
+    const template = QueryParams.get("compute-server-template");
+    if (template) {
+      const [id, project_id] = template.split(".");
+      if (id && project_id == this.project_id) {
+        create_compute_server_template_id = parseInt(id);
+        create_compute_server = true;
+        QueryParams.remove("compute-server-template");
+      }
     }
     const other_settings = redux.getStore("account")?.get("other_settings");
     let compute_server_id;

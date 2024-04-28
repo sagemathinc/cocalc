@@ -9,9 +9,10 @@ import { field_cmp } from "@cocalc/util/cmp";
 interface Props {
   label?: string;
   onChange: (project: { project_id: string; title: string }) => void;
+  defaultOpen?: boolean;
 }
 
-export default function SelectProject({ label, onChange }: Props) {
+export default function SelectProject({ label, onChange, defaultOpen }: Props) {
   const { error, value, loading } = useDatabase({
     projects: [{ title: null, project_id: null, last_edited: null }],
   });
@@ -39,9 +40,10 @@ export default function SelectProject({ label, onChange }: Props) {
         {!loading &&
           (!error && value && projects.length > 0 ? (
             <Select
+              defaultOpen={defaultOpen}
               showSearch
               style={{ width: "100%" }}
-              placeholder={"Select a project..."}
+              placeholder={"Select a Project..."}
               optionFilterProp="label"
               options={projects}
               onChange={(x) => (x ? onChange(JSON.parse(`${x}`)) : undefined)}

@@ -51,13 +51,14 @@ export default function ComputeServerTemplates({ style }: { style? }) {
       {state == "select-project" && (
         <div style={{ maxWidth: "600px", margin: "auto" }}>
           <SelectProject
+            defaultOpen
             onChange={({ project_id }) => {
               console.log("selected", project_id, { basePath });
               window.location.href = join(
                 basePath,
                 "projects",
                 project_id,
-                `servers?compute-server-template=${id}`,
+                `servers?compute-server-template=${id}.${project_id}`,
               );
             }}
           />
