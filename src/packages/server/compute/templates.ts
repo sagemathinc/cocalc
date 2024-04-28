@@ -68,7 +68,7 @@ export async function getTemplate(id): Promise<ConfigurationTemplate> {
     [id],
   );
   if (rows.length == 0) {
-    throw Error(`no tempalte with id (=${id})`);
+    throw Error(`no template with id (=${id})`);
   }
   sanitizeTemplate(rows[0]);
   return rows[0];

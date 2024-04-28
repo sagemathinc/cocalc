@@ -13,6 +13,7 @@ import {
   Cloud as CloudType,
 } from "@cocalc/util/db-schema/compute-servers";
 import { replace_all } from "@cocalc/util/misc";
+import { randomPetName } from "@cocalc/frontend/project/utils";
 import ShowError from "@cocalc/frontend/components/error";
 import ComputeServer from "./compute-server";
 import { useTypedRedux, useRedux, redux } from "@cocalc/frontend/app-framework";
@@ -21,6 +22,7 @@ import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/
 import costPerHour from "./cost";
 import { Docs } from "./compute-servers";
 import PublicTemplates from "@cocalc/frontend/compute/public-templates";
+import { delay } from "awaiting";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -82,31 +84,45 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   const [configuration, setConfiguration] = useState<any>(
     defaultConfiguration(),
   );
-
-  const resetConfig = () => {
-    setTitle(defaultTitle());
-    setColor(randomColor());
-    setCloud(defaultCloud());
-    setConfiguration(defaultConfiguration());
+  const resetConfig = async () => {
+    try {
+      setLoadingTemplate(true);
+      await delay(1);
+      setTitle(defaultTitle());
+      setColor(randomColor());
+      setCloud(defaultCloud());
+      setConfiguration(defaultConfiguration());
+    } finally {
+      setLoadingTemplate(false);
+    }
   };
 
   const [loadingTemplate, setLoadingTemplate] = useState<boolean>(false);
+  const [currentTemplateId, setCurrentTemplateId] = useState<
+    number | undefined
+  >(create_compute_server_template_id);
   const setConfigToTemplate = async (id) => {
     setTemplateId(id);
     let template;
     try {
       setLoadingTemplate(true);
       template = await getTemplate(id);
+      setTitle(template.title);
+      setColor(template.color);
+      setCloud(template.cloud);
+      const { configuration } = template;
+      if (configuration.dns) {
+        // TODO: should automatically ensure this randomly isn't taken.  Can implement
+        // that later.
+        configuration.dns += `-${randomPetName().toLowerCase()}`;
+      }
+      setConfiguration(configuration);
     } catch (err) {
       setError(`${err}`);
       return;
     } finally {
       setLoadingTemplate(false);
     }
-    setTitle(template.title);
-    setColor(template.color);
-    setCloud(template.cloud);
-    setConfiguration(template.configuration);
   };
 
   useEffect(() => {
@@ -260,8 +276,16 @@ export default function CreateComputeServer({ project_id, onCreate }) {
                 <PublicTemplates
                   disabled={loadingTemplate}
                   defaultId={templateId}
-                  setId={setConfigToTemplate}
+                  setId={setCurrentTemplateId}
                 />
+                <Button
+                  disabled={!currentTemplateId}
+                  onClick={async () => {
+                    await setConfigToTemplate(currentTemplateId);
+                  }}
+                >
+                  Use This Template
+                </Button>
               </div>
             )}
           </div>
@@ -311,23 +335,26 @@ export default function CreateComputeServer({ project_id, onCreate }) {
               </Button>
             </div>
           )}
-          <ComputeServer
-            server={{
-              project_id,
-              account_id,
-              title,
-              color,
-              cloud,
-              configuration,
-            }}
-            editable={!creating}
-            controls={{
-              onColorChange: setColor,
-              onTitleChange: setTitle,
-              onCloudChange: setCloud,
-              onConfigurationChange: setConfiguration,
-            }}
-          />
+          {loadingTemplate && <Spin />}
+          {!loadingTemplate && (
+            <ComputeServer
+              server={{
+                project_id,
+                account_id,
+                title,
+                color,
+                cloud,
+                configuration,
+              }}
+              editable={!creating}
+              controls={{
+                onColorChange: setColor,
+                onTitleChange: setTitle,
+                onCloudChange: setCloud,
+                onConfigurationChange: setConfiguration,
+              }}
+            />
+          )}
         </div>
       </Modal>
     </div>

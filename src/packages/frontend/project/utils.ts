@@ -8,7 +8,6 @@ import * as dogNames from "dog-names";
 import * as os_path from "path";
 import { generate as heroku } from "project-name-generator";
 import * as superb from "superb";
-
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { BASE_URL } from "@cocalc/frontend/misc";
@@ -26,6 +25,10 @@ import {
   unreachable,
   uuid,
 } from "@cocalc/util/misc";
+
+export function randomPetName() {
+  return Math.random() > 0.5 ? catNames.random() : dogNames.allRandom();
+}
 
 export const NewFilenameFamilies: { [name in NewFilenameTypes]: string } = {
   iso: "Current time",
@@ -200,8 +203,7 @@ export class NewFilenames {
 
       case "pet":
       case "ymd_pet":
-        const n =
-          Math.random() > 0.5 ? catNames.random() : dogNames.allRandom();
+        const n = randomPetName();
         const p = this.get_superb();
         return [p, n.toLowerCase()];
 
