@@ -52,9 +52,10 @@ export default function ComputeServers() {
         <Text strong>
           tell your terminals and Jupyter Notebooks to run on these machines
         </Text>
-        . These compute servers open up new possibilities by utilizing enhanced
-        computing resources, extending far beyond the bounds of what you can do
-        in your local project.
+        , or with one click launch JupyterLab or VS Code. These compute servers
+        open up new possibilities by utilizing enhanced computing resources,
+        extending far beyond the bounds of what you can do in your local
+        project.
       </Paragraph>
       <Paragraph>
         These machines optionally come with{" "}

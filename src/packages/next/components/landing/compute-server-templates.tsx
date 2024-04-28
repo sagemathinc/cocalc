@@ -7,6 +7,7 @@ import useProfile from "lib/hooks/profile";
 import SelectProject from "components/project/select";
 import basePath from "lib/base-path";
 import { join } from "path";
+import apiPost from "lib/api/post";
 
 type State = "browse" | "sign-in" | "select-project";
 
@@ -43,7 +44,6 @@ export default function ComputeServerTemplates({ style }: { style? }) {
           title="Create Account"
           why="to build your compute server"
           onSuccess={() => {
-            console.log("signed up!", profile?.account_id);
             setState("select-project");
           }}
         />
@@ -52,8 +52,19 @@ export default function ComputeServerTemplates({ style }: { style? }) {
         <div style={{ maxWidth: "600px", margin: "auto" }}>
           <SelectProject
             defaultOpen
-            onChange={({ project_id }) => {
-              console.log("selected", project_id, { basePath });
+            allowCreate
+            onChange={async ({ project_id, title }) => {
+              if (!project_id) {
+                // create the project
+                const response = await apiPost("/projects/create", {
+                  title,
+                });
+                project_id = response.project_id;
+                if (!project_id) {
+                  // didn't work -- TODO: show error
+                  return;
+                }
+              }
               window.location.href = join(
                 basePath,
                 "projects",

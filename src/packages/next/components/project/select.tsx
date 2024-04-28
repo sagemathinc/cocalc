@@ -5,14 +5,21 @@ import useDatabase from "lib/hooks/database";
 import { Alert, Divider, Select, Space } from "antd";
 import Loading from "components/share/loading";
 import { field_cmp } from "@cocalc/util/cmp";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   label?: string;
   onChange: (project: { project_id: string; title: string }) => void;
   defaultOpen?: boolean;
+  allowCreate?: boolean;
 }
 
-export default function SelectProject({ label, onChange, defaultOpen }: Props) {
+export default function SelectProject({
+  label,
+  onChange,
+  defaultOpen,
+  allowCreate,
+}: Props) {
   const { error, value, loading } = useDatabase({
     projects: [{ title: null, project_id: null, last_edited: null }],
   });
@@ -22,11 +29,21 @@ export default function SelectProject({ label, onChange, defaultOpen }: Props) {
     }
     const cmp = field_cmp("last_edited");
     value.projects.sort((a, b) => cmp(b, a)); // so newest first
-    const v: { label: string; value: string }[] = [];
+    const v: { label: string | JSX.Element; value: string }[] = [];
     for (const x of value.projects) {
       v.push({
         label: x.title,
         value: JSON.stringify({ project_id: x.project_id, title: x.title }),
+      });
+    }
+    if (allowCreate) {
+      v.push({
+        label: (
+          <>
+            <Icon name="plus-circle" /> Create Project...
+          </>
+        ),
+        value: JSON.stringify({ project_id: "", title: "Untitled Project" }),
       });
     }
     return v;
@@ -49,7 +66,7 @@ export default function SelectProject({ label, onChange, defaultOpen }: Props) {
               onChange={(x) => (x ? onChange(JSON.parse(`${x}`)) : undefined)}
             />
           ) : (
-            <div>You do not have any projects yet.</div>
+            <div>You do not have any recent projects.</div>
           ))}
       </Space>
     </div>
