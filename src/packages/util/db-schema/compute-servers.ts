@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Table } from "./types";
-import { ID } from "./crm";
-import { NOTES } from "./crm";
-import { SCHEMA as schema } from "./index";
 import type {
   Region as HyperstackRegion,
   VirtualMachine as HyperstackVirtualMachine,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import { COLORS } from "@cocalc/util/theme";
+import { ID, NOTES } from "./crm";
+import { SCHEMA as schema } from "./index";
+import { Table } from "./types";
 export {
   CLOUDS_BY_NAME,
   GOOGLE_CLOUD_DEFAULTS,
@@ -248,7 +248,7 @@ export const STATE_INFO: {
   },
   running: {
     label: "Running",
-    color: "#389e0d",
+    color: COLORS.RUN,
     actions: ["stop", "deprovision", "reboot", "suspend"],
     icon: "run",
     stable: true,

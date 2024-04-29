@@ -3,8 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Tooltip } from "antd";
-import React from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -21,6 +19,8 @@ import {
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
+import ComputeLogEntry from "@cocalc/frontend/compute/log-entry";
+import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
@@ -31,7 +31,12 @@ import track from "@cocalc/frontend/user-tracking";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+import { Tooltip } from "antd";
+import React from "react";
 import { Col, Grid, Row } from "react-bootstrap";
+import AIAvatar from "../../components/ai-avatar";
+import { modelToName } from "../../frame-editors/llm/llm-selector";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
 import type {
@@ -40,6 +45,7 @@ import type {
   FileActionEvent,
   LibraryEvent,
   LicenseEvent,
+  LLMEvent,
   MiniTermEvent,
   OpenFile,
   PayAsYouGoUpgradeEvent,
@@ -52,9 +58,6 @@ import type {
   X11Event,
 } from "./types";
 import { isUnknownEvent } from "./types";
-import ComputeLogEntry from "@cocalc/frontend/compute/log-entry";
-import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
-import { COLORS } from "@cocalc/util/theme";
 
 const TRUNC = 90;
 
@@ -491,6 +494,60 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
+    function render_llm(event: LLMEvent): Rendered {
+      const { usage, model, path } = event;
+
+      const name = (
+        <>
+          <AIAvatar size={14} style={{ top: "-4px" }} />
+          {model ? `LLM (${modelToName(model)})` : "LLM"}
+        </>
+      );
+
+      const pathLink = (
+        <PathLink
+          path={path}
+          full={true}
+          style={cursor ? selected_item : undefined}
+          trunc={TRUNC}
+          project_id={project_id}
+        />
+      );
+
+      switch (usage) {
+        case "jupyter-cell-button":
+          const mode = event.mode;
+          return (
+            <span>
+              queried an {name} to {mode || "modify"} a cell in {pathLink}
+            </span>
+          );
+
+        case "jupyter-generate-cell":
+          return (
+            <span>
+              used an {name} to generate cells in {pathLink}
+            </span>
+          );
+
+        case "jupyter-generate-notebook":
+          return (
+            <span>
+              used an {name} to generate the Jupyter Notebook {pathLink}
+            </span>
+          );
+
+        default:
+          misc.unreachable(usage);
+          // This is only for forward compatibility reasons.
+          return (
+            <span>
+              used an {name} in {pathLink}
+            </span>
+          );
+      }
+    }
+
     function render_assistant(event: AssistantEvent): Rendered {
       switch (event.action) {
         case "insert":
@@ -667,6 +724,8 @@ export const LogEntry: React.FC<Props> = React.memo(
           return render_public_path(event);
         case "software_environment":
           return render_software_environment(event);
+        case "llm":
+          return render_llm(event);
         default:
           return <span>Unknown event: {JSON.stringify(event)}</span>;
       }

@@ -12,14 +12,15 @@ which has different constraints!  See
 src/packages/frontend/frame-editors/whiteboard-editor/elements/code/input-prompt.tsx
 */
 
+import { Button, Space } from "antd";
 import React from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Tip } from "@cocalc/frontend/components/tip";
-import { Button, Space } from "antd";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { capitalize } from "@cocalc/util/misc";
 import { INPUT_STYLE, InputPromptProps } from "./base";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {
   const frameActions = useNotebookFrameActions();
@@ -142,18 +143,31 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
     </div>
   );
 
-  return (
-    <div
-      style={{
-        ...INPUT_STYLE,
-        cursor: "pointer",
-        marginTop: "8.5px",
-        ...props.style,
-      }}
-    >
-      <Tip title={title} tip={tip} placement="top">
-        In [{n}]:
-      </Tip>
-    </div>
-  );
+  function renderPrompt() {
+    return (
+      <div
+        style={{
+          ...INPUT_STYLE,
+          cursor: "pointer",
+          marginTop: "8.5px",
+          ...props.style,
+        }}
+      >
+        <Tip title={title} tip={tip} placement="top">
+          In [{n}]:
+        </Tip>
+      </div>
+    );
+  }
+
+  if (props.dragHandle != null) {
+    return (
+      <div>
+        <div style={{ float: "left" }}>{props.dragHandle}</div>
+        {renderPrompt()}
+      </div>
+    );
+  } else {
+    return renderPrompt();
+  }
 };

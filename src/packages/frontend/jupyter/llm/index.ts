@@ -1,5 +1,4 @@
 import LLMError from "./error";
 export { LLMError };
 
-import LLMExplainCell from "./explain";
-export { LLMExplainCell };
+export { LLMCellTool } from "./cell-tool";

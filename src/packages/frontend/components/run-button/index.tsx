@@ -25,6 +25,7 @@ import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import { path_split, plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import api from "./api";
 import { getFromCache, saveToCache } from "./cache";
 import getKernel from "./get-kernel";
@@ -298,7 +299,7 @@ export default function RunButton({
           }}
         >
           <Icon
-            style={running ? { color: "#389e0d" } : undefined}
+            style={running ? { color: COLORS.RUN } : undefined}
             name={running ? "cocalc-ring" : "step-forward"}
             spin={running}
           />
@@ -405,7 +406,7 @@ export default function RunButton({
                     }}
                   >
                     <Icon
-                      style={running ? { color: "#389e0d" } : undefined}
+                      style={running ? { color: COLORS.RUN } : undefined}
                       name={running ? "cocalc-ring" : "step-forward"}
                       spin={running}
                     />

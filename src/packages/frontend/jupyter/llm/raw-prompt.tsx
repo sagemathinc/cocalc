@@ -1,7 +1,13 @@
+import { CSS } from "@cocalc/frontend/app-framework";
 import { Paragraph } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
-export function RawPrompt({ input }) {
+interface Props {
+  input: JSX.Element | string;
+  style?: CSS;
+}
+
+export function RawPrompt({ input, style }: Props) {
   return (
     <Paragraph
       style={{
@@ -15,6 +21,7 @@ export function RawPrompt({ input }) {
         fontFamily: "monospace",
         whiteSpace: "pre-wrap",
         color: COLORS.GRAY_M,
+        ...style,
       }}
     >
       {input}

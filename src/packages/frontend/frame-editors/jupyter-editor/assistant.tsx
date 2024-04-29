@@ -7,7 +7,7 @@
 Frame for using the assistant to put code snippets in a Jupyter notebook.
 */
 
-import { Rendered, Component } from "../../app-framework";
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
 
 interface Props {
   project_id: string;

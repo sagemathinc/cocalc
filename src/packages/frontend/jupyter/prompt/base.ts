@@ -28,6 +28,7 @@ export interface InputPromptProps {
   hideMove?: boolean;
   hideCut?: boolean;
   hideRun?: boolean;
+  dragHandle?: JSX.Element;
 }
 
 export const OUTPUT_STYLE: React.CSSProperties = {
