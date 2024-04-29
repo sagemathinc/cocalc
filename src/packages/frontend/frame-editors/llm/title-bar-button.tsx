@@ -13,13 +13,17 @@ import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
+  Paragraph,
   Title,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
@@ -139,6 +143,7 @@ export default function LanguageModelTitleBarButton({
   setShowDialog,
   noLabel,
 }: Props) {
+  const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [error, setError] = useState<string>("");
   const [custom, setCustom] = useState<string>("");
   const frameType = actions._get_frame_type(id);
@@ -151,6 +156,8 @@ export default function LanguageModelTitleBarButton({
   const [scope, setScope] = useState<Scope | "all">(() =>
     showDialog ? getScope(id, actions) : "all",
   );
+  const [tokens, setTokens] = useState<number>(0);
+
   const describeRef = useRef<any>(null);
   const buttonsRef = useRef<any>(null);
   const scopeRef = useRef<any>(null);
@@ -184,7 +191,13 @@ export default function LanguageModelTitleBarButton({
       // don't waste time on update if it is not visible.
       return;
     }
-    const { input, inputOrig } = await updateInput(actions, id, scope, model);
+    const { input, inputOrig, tokens } = await updateInput(
+      actions,
+      id,
+      scope,
+      model,
+    );
+    setTokens(tokens);
     setInput(input);
     setTruncated(
       Math.round(
@@ -195,7 +208,7 @@ export default function LanguageModelTitleBarButton({
     );
     setTruncatedReason(
       `Input truncated from ${inputOrig.length} to ${input.length} characters.${
-        model == "gpt-3.5-turbo"
+        getMaxTokens(model) < 5000 // cutoff between GPT 3.5 and GPT 4
           ? "  Try using a different model with a bigger context size."
           : ""
       }`,
@@ -245,166 +258,182 @@ export default function LanguageModelTitleBarButton({
     actions.focus();
   };
 
-  return (
-    <Popover
-      title={
-        <div style={{ fontSize: "18px" }}>
-          <Button
-            onClick={() => {
-              setShowDialog(false);
-              setError("");
-              actions.focus();
-            }}
-            type="text"
-            style={{ float: "right", color: COLORS.GRAY_M }}
-          >
-            <Icon name="times" />
-          </Button>
-          <div style={{ float: "right" }}>
-            <TitleBarButtonTour
-              describeRef={describeRef}
-              buttonsRef={buttonsRef}
-              scopeRef={scopeRef}
-              contextRef={contextRef}
-              submitRef={submitRef}
-            />
-          </div>
-          <Title level={4}>
-            <AIAvatar size={22} /> What would you like to do using{" "}
-            {modelToName(model)}?
-          </Title>
-          Switch model:{" "}
-          <LLMSelector
-            project_id={project_id}
-            model={model}
-            setModel={setModel}
+  function renderTitle() {
+    return (
+      <div style={{ fontSize: "18px" }}>
+        <Button
+          onClick={() => {
+            setShowDialog(false);
+            setError("");
+            actions.focus();
+          }}
+          type="text"
+          style={{ float: "right", color: COLORS.GRAY_M }}
+        >
+          <Icon name="times" />
+        </Button>
+        <div style={{ float: "right" }}>
+          <TitleBarButtonTour
+            describeRef={describeRef}
+            buttonsRef={buttonsRef}
+            scopeRef={scopeRef}
+            contextRef={contextRef}
+            submitRef={submitRef}
           />
         </div>
-      }
-      open={visible && showDialog}
-      content={() => {
-        return (
-          <Space
-            direction="vertical"
-            style={{ width: "800px", maxWidth: "90vw" }}
-          >
-            <div ref={describeRef}>
-              <Input.TextArea
-                allowClear
-                autoFocus
-                style={{ flex: 1 }}
-                placeholder={"What you want to do..."}
-                value={custom}
-                onChange={(e) => {
-                  setCustom(e.target.value);
-                  setTag("");
-                  if (e.target.value) {
-                    setDescription(getCustomDescription(frameType));
-                  } else {
-                    setDescription("");
-                  }
-                }}
-                onPressEnter={(e) => {
-                  if (e.shiftKey) {
-                    doIt();
-                  }
-                }}
-                autoSize={{ minRows: 2, maxRows: 10 }}
-              />
-            </div>
-            {showOptions && (
-              <>
-                <div
-                  ref={buttonsRef}
-                  style={{ overflowX: "auto", textAlign: "center" }}
-                >
-                  or{" "}
-                  <Button.Group style={{ marginLeft: "5px" }}>
-                    {PRESETS.map((preset) => (
-                      <Button
-                        type={preset.tag == tag ? "primary" : undefined}
-                        key={preset.tag}
-                        onClick={() => {
-                          setTag(preset.tag);
-                          setDescription(preset.description);
-                          setCustom(preset.command);
-                        }}
-                        disabled={querying}
-                      >
-                        <Icon name={preset.icon} />
-                        {preset.label}
-                      </Button>
-                    ))}
-                  </Button.Group>
-                </div>
-              </>
-            )}
-            {showOptions && (
-              <div
-                style={{
-                  marginTop: "5px",
-                  color: "#444",
-                  maxHeight: "40vh",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <div style={{ marginBottom: "5px" }} ref={scopeRef}>
-                  {truncated < 100 ? (
-                    <Tooltip title={truncatedReason}>
-                      <div style={{ float: "right" }}>
-                        Truncated ({truncated}% remains)
-                      </div>
-                    </Tooltip>
-                  ) : (
-                    <div style={{ float: "right" }}>
-                      NOT Truncated (100% included)
-                    </div>
-                  )}
-                  {modelToName(model)} will see:
-                  <Radio.Group
-                    size="small"
-                    style={{ margin: "0 10px" }}
-                    value={scope}
-                    onChange={(e) => {
-                      const scope = e.target.value;
-                      setScope(scope);
-                    }}
-                    options={scopeOptions}
-                    optionType="button"
-                    buttonStyle="solid"
-                  />
-                  <Button size="small" type="text" onClick={doUpdateInput}>
-                    <Icon name="refresh" /> Update
-                  </Button>
-                </div>
-                <div ref={contextRef} style={{ overflowY: "auto" }}>
-                  <Context
-                    value={input}
-                    info={actions.languageModelGetLanguage()}
-                  />
-                </div>
-              </div>
-            )}{" "}
-            {description}
-            <div style={{ textAlign: "center" }} ref={submitRef}>
+        <Title level={4}>
+          <AIAvatar size={22} /> What would you like to do using{" "}
+          {modelToName(model)}?
+        </Title>
+        Select model:{" "}
+        <LLMSelector
+          project_id={project_id}
+          model={model}
+          setModel={setModel}
+        />
+      </div>
+    );
+  }
+
+  function renderOptions() {
+    if (!showOptions) return;
+    return (
+      <>
+        <div
+          ref={buttonsRef}
+          style={{ overflowX: "auto", textAlign: "center" }}
+        >
+          or{" "}
+          <Button.Group style={{ marginLeft: "5px" }}>
+            {PRESETS.map((preset) => (
               <Button
-                disabled={querying || (!tag && !custom.trim())}
-                type="primary"
-                size="large"
-                onClick={doIt}
+                type={preset.tag == tag ? "primary" : undefined}
+                key={preset.tag}
+                onClick={() => {
+                  setTag(preset.tag);
+                  setDescription(preset.description);
+                  setCustom(preset.command);
+                }}
+                disabled={querying}
               >
-                <Icon
-                  name={querying ? "spinner" : "paper-plane"}
-                  spin={querying}
-                />{" "}
-                Ask {modelToName(model)} (shift+enter)
+                <Icon name={preset.icon} />
+                {preset.label}
               </Button>
-            </div>
-            {error && <Alert type="error" message={error} />}
-          </Space>
-        );
-      }}
+            ))}
+          </Button.Group>
+        </div>
+      </>
+    );
+  }
+
+  function renderShowOptions() {
+    if (!showOptions) return;
+
+    return (
+      <div
+        style={{
+          marginTop: "5px",
+          color: COLORS.GRAY_D,
+          maxHeight: "40vh",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div style={{ marginBottom: "5px" }} ref={scopeRef}>
+          {truncated < 100 ? (
+            <Tooltip title={truncatedReason}>
+              <div style={{ float: "right" }}>
+                Truncated ({truncated}% remains)
+              </div>
+            </Tooltip>
+          ) : (
+            <div style={{ float: "right" }}>NOT Truncated (100% included)</div>
+          )}
+          {modelToName(model)} will see:
+          <Radio.Group
+            size="small"
+            style={{ margin: "0 10px" }}
+            value={scope}
+            onChange={(e) => {
+              const scope = e.target.value;
+              setScope(scope);
+            }}
+            options={scopeOptions}
+            optionType="button"
+            buttonStyle="solid"
+          />
+          <Button size="small" type="text" onClick={doUpdateInput}>
+            <Icon name="refresh" /> Update
+          </Button>
+        </div>
+        <div ref={contextRef} style={{ overflowY: "auto" }}>
+          <Context value={input} info={actions.languageModelGetLanguage()} />
+        </div>
+      </div>
+    );
+  }
+
+  function renderCostEstimation() {
+    if (!is_cocalc_com || tokens === 0) return;
+    return (
+      <div style={{ textAlign: "center" }}>
+        <LLMCostEstimation model={model} tokens={tokens} type="secondary" />
+      </div>
+    );
+  }
+
+  function renderContent() {
+    return (
+      <Space direction="vertical" style={{ width: "800px", maxWidth: "90vw" }}>
+        <Paragraph ref={describeRef}>
+          <Input.TextArea
+            allowClear
+            autoFocus
+            style={{ flex: 1 }}
+            placeholder={"What you want to do..."}
+            value={custom}
+            onChange={(e) => {
+              setCustom(e.target.value);
+              setTag("");
+              if (e.target.value) {
+                setDescription(getCustomDescription(frameType));
+              } else {
+                setDescription("");
+              }
+            }}
+            onPressEnter={(e) => {
+              if (e.shiftKey) {
+                doIt();
+              }
+            }}
+            autoSize={{ minRows: 2, maxRows: 10 }}
+          />
+        </Paragraph>
+        {renderOptions()}
+        {renderShowOptions()}
+        {description}
+        {renderCostEstimation()}
+        <Paragraph style={{ textAlign: "center" }} ref={submitRef}>
+          <Button
+            disabled={querying || (!tag && !custom.trim())}
+            type="primary"
+            size="large"
+            onClick={doIt}
+          >
+            <Icon name={querying ? "spinner" : "paper-plane"} spin={querying} />{" "}
+            Ask {modelToName(model)} (shift+enter)
+          </Button>
+        </Paragraph>
+        {error ? <Alert type="error" message={error} /> : undefined}
+      </Space>
+    );
+  }
+
+  return (
+    <Popover
+      title={renderTitle()}
+      open={visible && showDialog}
+      content={renderContent}
     >
       <Button
         style={buttonStyle}
@@ -418,7 +447,7 @@ export default function LanguageModelTitleBarButton({
         <span ref={buttonRef}>
           <AIAvatar
             size={18}
-            iconColor="#333"
+            iconColor={COLORS.AI_ASSISTANT_TXT}
             style={{ top: "-2px", marginRight: "1px" }}
           />
           {noLabel ? (
@@ -439,21 +468,22 @@ async function updateInput(
   id,
   scope,
   model: LanguageModel,
-): Promise<{ input: string; inputOrig: string }> {
-  if (scope == "none") {
-    return { input: "", inputOrig: "" };
+): Promise<{ input: string; inputOrig: string; tokens: number }> {
+  if (scope === "none") {
+    return { input: "", inputOrig: "", tokens: 0 };
   }
   let input = actions.languageModelGetContext(id, scope);
   const inputOrig = input;
+  // Truncate input (also this MUST be a lazy import):
+  const { truncateMessage, getMaxTokens, numTokensUpperBound } = await import(
+    "@cocalc/frontend/misc/llm"
+  );
   if (input.length > 2000) {
-    // Truncate input (also this MUST be a lazy import):
-    const { truncateMessage, getMaxTokens } = await import(
-      "@cocalc/frontend/misc/llm"
-    );
     const maxTokens = getMaxTokens(model) - 1000; // 1000 tokens reserved for output and the prompt below.
     input = truncateMessage(input, maxTokens);
   }
-  return { input, inputOrig };
+  const tokens = numTokensUpperBound(input, getMaxTokens(model));
+  return { input, inputOrig, tokens };
 }
 
 function getScope(id, actions: Actions): Scope {

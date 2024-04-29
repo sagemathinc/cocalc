@@ -1,3 +1,5 @@
+import { BaseType } from "antd/es/typography/Base";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
 import {
@@ -32,9 +34,11 @@ That's the basis for the number 100 and 1000 below!
 export function LLMCostEstimation({
   model,
   tokens, // Note: use the "await imported" numTokensUpperBound function to get the number of tokens
+  type,
 }: {
   model: LanguageModel;
   tokens: number;
+  type?: BaseType;
 }) {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
@@ -53,7 +57,7 @@ export function LLMCostEstimation({
   const txt1 = round2down(cost1).toFixed(2);
   const txt2 = round2up(cost2).toFixed(2);
   return (
-    <Text style={{ textAlign: "right" }}>
+    <Text style={{ textAlign: "right" }} type={type}>
       Estimated cost: ${txt1} to ${txt2}{" "}
       <HelpIcon title="LLM Cost Estimation">
         <Paragraph>

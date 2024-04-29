@@ -1,9 +1,9 @@
 import type { SelectProps } from "antd";
-import { Select, Tag, Tooltip } from "antd";
+import { Select, Space, Tag, Tooltip } from "antd";
 import type { ConfigProviderProps } from "antd/lib/config-provider";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Text } from "@cocalc/frontend/components";
+import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
   ANTHROPIC_MODELS,
@@ -44,6 +44,8 @@ export default function LLMSelector({
   size = "middle",
   project_id,
 }: Props) {
+  const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
+
   // ATTN: you cannot use useProjectContext because this component is used outside a project context
   // when it is opened via an error in the gutter of a latex document. (I don't know why, maybe fixable)
   const projectsStore = redux.getStore("projects");
@@ -198,18 +200,46 @@ export default function LLMSelector({
     return ret;
   }
 
+  function renderHelp() {
+    return (
+      <HelpIcon title={"Language Model Selection"}>
+        <>
+          <Paragraph>
+            This selector determines which language model will be used to
+            generate the response. You can select from a variety of models, each
+            with its own strengths and weaknesses. Your choice will become the
+            default the next time you use an LLM.
+          </Paragraph>
+          {is_cocalc_com ? (
+            <Paragraph>
+              The models marked as "{FREE}" do not incur any charges. However,
+              they are rate limited to avoid abuse. The more capable models are
+              marked "{PAID}" and charged by the number of tokens – i.e.
+              "pay-as-you-go" – and do not have rate limitations. Usually, these
+              charges are very small!
+            </Paragraph>
+          ) : undefined}
+          <Paragraph></Paragraph>
+        </>
+      </HelpIcon>
+    );
+  }
+
   // all models selectable here must be in selectableLLMs(default: USER_SELECTABLE_LANGUAGE_MODELS) + the custom ones from the Ollama configuration
   return (
-    <Select
-      dropdownStyle={style}
-      size={size}
-      value={model}
-      onChange={setModel}
-      style={{ width: 300 }}
-      optionLabelProp={"display"}
-      popupMatchSelectWidth={false}
-      options={getOptions()}
-    />
+    <Space direction="horizontal" style={{ whiteSpace: "nowrap" }}>
+      <Select
+        dropdownStyle={style}
+        size={size}
+        value={model}
+        onChange={setModel}
+        style={{ width: 300 }}
+        optionLabelProp={"display"}
+        popupMatchSelectWidth={false}
+        options={getOptions()}
+      />
+      {renderHelp()}
+    </Space>
   );
 }
 
@@ -227,6 +257,9 @@ export function modelToMention(model: LanguageModel): string {
     model,
   )} >@${modelToName(model)}</span>`;
 }
+
+const FREE = "free";
+const PAID = "paid";
 
 export function LLMModelPrice({
   model,
@@ -247,11 +280,11 @@ export function LLMModelPrice({
 
   return isFreeModel(model, is_cocalc_com) ? (
     <Tag color="success" {...props}>
-      free
+      {FREE}
     </Tag>
   ) : (
     <Tag color="error" {...props}>
-      paid
+      {PAID}
     </Tag>
   );
 }
