@@ -22,7 +22,7 @@ import ServiceTag from "./service";
 
 export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
 
-export const PRESETS = [0, 25, 100, 1000];
+export const PRESETS = [0, 100, 500, 2000];
 export const STEP = 5;
 
 interface ServiceQuota {

@@ -6,7 +6,6 @@
 import { Button } from "antd";
 import { join } from "path";
 import { CSSProperties, ReactNode } from "react";
-
 import { Paragraph } from "components/misc";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";

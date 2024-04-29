@@ -20,19 +20,26 @@ import ComputeServerCreate from "public/features/cocalc-compute_server-create-20
 import ComputeServerGPU from "public/features/cocalc-compute_server-gpu-20231127.png";
 import ComputeServerSelector from "public/features/cocalc-compute_server-select-20231127.png";
 import A from "components/misc/A";
+import ComputeServerTemplates from "components/landing/compute-server-templates";
 
 export const component = "Compute Servers";
 export const title = `Enhance your projects with ${component}`;
 export const logo = "servers";
 
 export default function ComputeServer({ customize }) {
-  const { siteName } = customize;
+  const { computeServersEnabled, siteName } = customize;
+  if (!computeServersEnabled) {
+    return <div>Compute Servers are not enabled on this server.</div>;
+  }
   return (
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
         <Header page="features" subPage="compute-server" />
         <Layout.Content>
+          <div style={{ textAlign: "center", margin: "15px 0" }}>
+            <ComputeServerTemplates />
+          </div>
           <Content
             landing
             startup={component}
@@ -55,7 +62,6 @@ export default function ComputeServer({ customize }) {
               </div>
             }
           />
-
           <Pitch
             col1={
               <>

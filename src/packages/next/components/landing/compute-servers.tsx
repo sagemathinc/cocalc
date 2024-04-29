@@ -5,7 +5,6 @@
 
 import { Button, Tag } from "antd";
 import { join } from "path";
-
 import basePath from "@cocalc/backend/base-path";
 import { COLORS } from "@cocalc/util/theme";
 import Info from "components/landing/info";
@@ -14,6 +13,7 @@ import A from "components/misc/A";
 import { useCustomize } from "lib/customize";
 import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
 import { LANDING_HEADER_LEVEL } from "./constants";
+import ComputeServerTemplates from "./compute-server-templates";
 
 export default function ComputeServers() {
   const { computeServersEnabled, siteName } = useCustomize();
@@ -31,15 +31,14 @@ export default function ComputeServers() {
           <sup>
             <Tag color={COLORS.ANTD_GREEN}>new</Tag>
           </sup>
+          <ComputeServerTemplates />
         </>
       }
       icon="servers"
       image={ComputeServerInfographic}
       narrow={true}
       anchor="a-compute"
-      alt={
-        "Infographic showing how you connect from CoCalc to other machines for various tasks."
-      }
+      alt={"Compute server templates"}
       style={{ backgroundColor: COLORS.YELL_LLL }}
     >
       <Paragraph>
@@ -53,9 +52,10 @@ export default function ComputeServers() {
         <Text strong>
           tell your terminals and Jupyter Notebooks to run on these machines
         </Text>
-        . These compute servers open up new possibilities by utilizing enhanced
-        computing resources, extending far beyond the bounds of what you can do
-        in your local project.
+        , or with one click launch JupyterLab or VS Code. These compute servers
+        open up new possibilities by utilizing enhanced computing resources,
+        extending far beyond the bounds of what you can do in your local
+        project.
       </Paragraph>
       <Paragraph>
         These machines optionally come with{" "}

@@ -11,12 +11,12 @@ import { computeCost } from "@cocalc/server/compute/control";
 import { getServerNoCheck } from "@cocalc/server/compute/get-servers";
 import getLogger from "@cocalc/backend/logger";
 import { cmp } from "@cocalc/util/misc";
-import type {
-  Cloud,
-  Configuration,
-  ComputeServerTemplate,
-} from "@cocalc/util/db-schema/compute-servers";
+import type { ComputeServerTemplate } from "@cocalc/util/db-schema/compute-servers";
 import { createTTLCache } from "@cocalc/server/compute/database-cache";
+import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
+import { getImages } from "@cocalc/server/compute/images";
+import getGoogleCloudPricingData from "@cocalc/server/compute/cloud/google-cloud/pricing-data";
+import getHyperstackPricingData from "@cocalc/server/compute/cloud/hyperstack/pricing-data";
 
 const logger = getLogger("server:compute:templates");
 
@@ -57,17 +57,24 @@ export async function setTemplate({
   await getCache().delete(CACHE_KEY);
 }
 
-// Get all template compute server configurations, along with their current price.
+const FIELDS =
+  " id, title, color, cloud, configuration, template, avatar_image_tiny, position ";
 
-interface Template {
-  title: string;
-  color: string;
-  cloud: Cloud;
-  configuration: Configuration;
-  template: ComputeServerTemplate;
-  avatar_image_tiny?: string;
-  cost_per_hour: { running: number; off: number };
+export async function getTemplate(id): Promise<ConfigurationTemplate> {
+  logger.debug("getTemplate", { id });
+  const pool = getPool("medium");
+  const { rows } = await pool.query(
+    `SELECT ${FIELDS} FROM compute_servers WHERE id=$1 AND template#>>'{enabled}'='true'`,
+    [id],
+  );
+  if (rows.length == 0) {
+    throw Error(`no template with id (=${id})`);
+  }
+  sanitizeTemplate(rows[0]);
+  return rows[0];
 }
+
+// Get all template compute server configurations, along with their current price.
 
 export async function getTemplates() {
   if (await getCache().has(CACHE_KEY)) {
@@ -75,9 +82,9 @@ export async function getTemplates() {
   }
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id, title, color, cloud, configuration, template, avatar_image_tiny FROM compute_servers WHERE template#>>'{enabled}'='true'",
+    `SELECT ${FIELDS} FROM compute_servers WHERE template#>>'{enabled}'='true'`,
   );
-  const templates: Template[] = [];
+  const templates: ConfigurationTemplate[] = [];
   for (const row of rows) {
     const server = await getServerNoCheck(row.id);
     let cost_per_hour;
@@ -95,8 +102,31 @@ export async function getTemplates() {
     templates.push({ ...row, cost_per_hour });
   }
   templates.sort(
-    (x, y) => -cmp(x.template.priority ?? 0, y.template.priority ?? 0),
+    (x, y) =>
+      -cmp(
+        x.template.priority ?? x.position ?? 0,
+        y.template.priority ?? y.position ?? 0,
+      ),
   );
-  await getCache().set(CACHE_KEY, templates);
-  return templates;
+  const clouds = new Set<string>();
+  for (const template of templates) {
+    sanitizeTemplate(template);
+    clouds.add(template.cloud);
+  }
+  const data = {
+    images: await getImages(),
+    hyperstackPriceData: clouds.has("hyperstack")
+      ? await getHyperstackPricingData()
+      : undefined,
+    googleCloudPriceData: clouds.has("google-cloud")
+      ? await getGoogleCloudPricingData()
+      : undefined,
+  };
+  const x = { templates, data };
+  await getCache().set(CACHE_KEY, x);
+  return x;
+}
+
+function sanitizeTemplate(template) {
+  delete template["configuration"]?.authToken;
 }

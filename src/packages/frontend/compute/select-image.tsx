@@ -14,6 +14,7 @@ import { field_cmp } from "@cocalc/util/misc";
 import { useImages } from "./images-hook";
 import SelectVersion from "./select-version";
 import Advanced from "./advanced";
+import { RenderImage } from "./images";
 
 interface Props {
   setConfig;
@@ -299,22 +300,11 @@ export function DisplayImage({
   style?;
 }) {
   const [IMAGES, ImagesError] = useImages();
-  if (IMAGES == null) {
-    return <Spin />;
-  }
   if (ImagesError != null) {
     return ImagesError;
   }
-  const { image } = configuration ?? {};
-  if (image == null) return null;
-  const data = IMAGES[image];
-  if (data == null) {
-    return <span style={style}>{image}</span>;
-  }
   return (
-    <span style={style}>
-      <Icon name={data.icon} style={{ marginRight: "5px" }} /> {data.label}
-    </span>
+    <RenderImage configuration={configuration} style={style} IMAGES={IMAGES} />
   );
 }
 

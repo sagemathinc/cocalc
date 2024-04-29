@@ -390,7 +390,7 @@ export interface HyperstackConfiguration extends BaseConfiguration {
   // NOTE: users install packages "systemwide" inside of
   // a docker container and we configure docker to store
   // its data in the zpool, so that's in here too.
-  diskSizeGb?: number;
+  diskSizeGb: number;
 }
 
 const COREWEAVE_CPU_TYPES = [
