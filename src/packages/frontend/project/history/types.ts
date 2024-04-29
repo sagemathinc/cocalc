@@ -135,13 +135,29 @@ export type AssistantEvent = {
   path: string;
 };
 
-export type LLMEvent = {
+interface LLMEventBase {
   event: "llm";
-  usage: "jupyter-cell-buttons" | "jupyter-cell-generate";
   model?: string;
   path: string;
+}
+
+interface LLMEventJupyterCellButton extends LLMEventBase {
+  usage: "jupyter-cell-button";
   mode?: JupyterCellLLMMode | null; // "jupyter-cell-buttons"
-};
+}
+
+interface LLMEventJupyterCellGenerate extends LLMEventBase {
+  usage: "jupyter-generate-cell";
+}
+
+interface LLMEventJupyterGenerateNotebook extends LLMEventBase {
+  usage: "jupyter-generate-notebook";
+}
+
+export type LLMEvent =
+  | LLMEventJupyterCellButton
+  | LLMEventJupyterCellGenerate
+  | LLMEventJupyterGenerateNotebook;
 
 export type MiniTermEvent = {
   event: "miniterm" | "termInSearch";

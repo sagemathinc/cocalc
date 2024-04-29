@@ -283,7 +283,7 @@ export function LLMCellTool({
     // we also log this
     const event: LLMEvent = {
       event: "llm",
-      usage: "jupyter-cell-buttons",
+      usage: "jupyter-cell-button",
       model: llmTools?.model,
       mode,
       path,
@@ -438,9 +438,8 @@ export function LLMCellTool({
         return (
           <Paragraph type="secondary">
             The selected language model will analyze the code and suggest
-            improvements. Optionally, please explain what should be improved!
-            Beware, that the results are not guaranteed to be correct, nor could
-            cause subtle problmes – review them carefully.
+            improvements. Beware, that the results are not guaranteed to be
+            correct, nor could cause subtle problmes – review them carefully.
           </Paragraph>
         );
       case "bugfix":
@@ -583,7 +582,7 @@ export function LLMCellTool({
               </Flex>
               <Flex flex={1}>
                 <Text type="secondary">
-                  How to explain code? Either a high-level summary or
+                  How to explain the code? Either a high-level summary or
                   step-by-step explanations.
                 </Text>
               </Flex>

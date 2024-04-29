@@ -87,7 +87,7 @@ export function AIGenerateCodeCell({
     // we also log this
     const event: LLMEvent = {
       event: "llm",
-      usage: "jupyter-cell-generate",
+      usage: "jupyter-generate-cell",
       model,
       path,
     };

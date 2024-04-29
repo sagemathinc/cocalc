@@ -35,6 +35,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { Tooltip } from "antd";
 import React from "react";
 import { Col, Grid, Row } from "react-bootstrap";
+import AIAvatar from "../../components/ai-avatar";
 import { modelToName } from "../../frame-editors/llm/llm-selector";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
@@ -57,7 +58,6 @@ import type {
   X11Event,
 } from "./types";
 import { isUnknownEvent } from "./types";
-import AIAvatar from "../../components/ai-avatar";
 
 const TRUNC = 90;
 
@@ -495,7 +495,8 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_llm(event: LLMEvent): Rendered {
-      const { usage, model, path, mode } = event;
+      const { usage, model, path } = event;
+
       const name = (
         <>
           <AIAvatar size={14} style={{ top: "-4px" }} />
@@ -503,37 +504,47 @@ export const LogEntry: React.FC<Props> = React.memo(
         </>
       );
 
+      const pathLink = (
+        <PathLink
+          path={path}
+          full={true}
+          style={cursor ? selected_item : undefined}
+          trunc={TRUNC}
+          project_id={project_id}
+        />
+      );
+
       switch (usage) {
-        case "jupyter-cell-buttons":
+        case "jupyter-cell-button":
+          const mode = event.mode;
           return (
             <span>
-              queried a {name} to {mode || "modify"} a cell in{" "}
-              <PathLink
-                path={path}
-                full={true}
-                style={cursor ? selected_item : undefined}
-                trunc={TRUNC}
-                project_id={project_id}
-              />
+              queried an {name} to {mode || "modify"} a cell in {pathLink}
             </span>
           );
 
-        case "jupyter-cell-generate":
+        case "jupyter-generate-cell":
           return (
             <span>
-              used a {name} to generate cells in{" "}
-              <PathLink
-                path={path}
-                full={true}
-                style={cursor ? selected_item : undefined}
-                trunc={TRUNC}
-                project_id={project_id}
-              />
+              used an {name} to generate cells in {pathLink}
+            </span>
+          );
+
+        case "jupyter-generate-notebook":
+          return (
+            <span>
+              used an {name} to generate the Jupyter Notebook {pathLink}
             </span>
           );
 
         default:
           misc.unreachable(usage);
+          // This is only for forward compatibility reasons.
+          return (
+            <span>
+              used an {name} in {pathLink}
+            </span>
+          );
       }
     }
 
