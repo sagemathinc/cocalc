@@ -4,12 +4,18 @@
  */
 
 import { Alert, Breadcrumb, Col, Layout, Radio, Row } from "antd";
+import { GetServerSidePropsContext } from "next";
 import { useRouter } from "next/router";
+import NextHead from "next/head";
+import dayjs from "dayjs";
 
 import { getNewsItemUserPrevNext } from "@cocalc/database/postgres/news";
+import getCustomize from "@cocalc/database/settings/customize";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { markdown_to_cheerio } from "@cocalc/frontend/markdown";
 import { slugURL } from "@cocalc/util/news";
 import { NewsPrevNext } from "@cocalc/util/types/news";
+
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
@@ -23,17 +29,28 @@ import { Customize, CustomizeType } from "lib/customize";
 import useProfile from "lib/hooks/profile";
 import { extractID } from "lib/news";
 import withCustomize from "lib/with-customize";
-import { GetServerSidePropsContext } from "next";
 
 interface Props {
   customize: CustomizeType;
   news: NewsWithFuture;
   prev?: NewsPrevNext;
   next?: NewsPrevNext;
+  metadata: {
+    title: string;
+    author: string;
+    url: string;
+    image: string;
+    published: string;
+    modified: string;
+  }
 }
 
+const formatNewsTime = (newsDate: NewsWithFuture['date']) => (
+  typeof newsDate === "number" ? dayjs.unix(newsDate) : dayjs(newsDate)
+).toISOString();
+
 export default function NewsPage(props: Props) {
-  const { customize, news, prev, next } = props;
+  const { customize, news, prev, next, metadata } = props;
   const { siteName } = customize;
   const router = useRouter();
   const profile = useProfile({ noCache: true });
@@ -128,8 +145,18 @@ export default function NewsPage(props: Props) {
   return (
     <Customize value={customize}>
       <Head title={title} />
+      <NextHead>
+        <meta property="og:type" content="article"/>
+
+        <meta property="og:title" content={metadata.title}/>
+        <meta property="og:url" content={metadata.url}/>
+        <meta property="og:image" content={metadata.image}/>
+
+        <meta property="article:published_time" content={metadata.published}/>
+        <meta property="article:modified_time" content={metadata.modified}/>
+      </NextHead>
       <Layout>
-        <Header />
+        <Header/>
         <Layout.Content
           style={{
             backgroundColor: "white",
@@ -161,13 +188,54 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
   try {
     const { news, prev, next } = await getNewsItemUserPrevNext(id);
+    const { siteName, siteURL } = await getCustomize();
 
     if (news == null) {
       throw new Error(`not found`);
     }
+
+    // Extract image URL from parsed Markdown. By converting to HTML first, we
+    // automatically add support for HTML that's been embedded into Markdown.
+    //
+    const $markdown = markdown_to_cheerio(news.text)
+    const imgSrc = $markdown('img')
+      .first()
+      .attr('src');
+
+    // Format published time
+    //
+    const publishedTime = formatNewsTime(news.date);
+
+    // Get the last-modified time by sorting the post history by timestamp,
+    // reversing it, and parsing the first element in that array.
+    //
+    const newsModificationTimestamps = Object.keys(news.history || {})
+      .map(Number)
+      .filter((ts) => !Number.isNaN(ts))
+      .sort()
+      .reverse();
+
+    const modifiedTime = newsModificationTimestamps.length
+      ? formatNewsTime(newsModificationTimestamps[0])
+      : publishedTime;
+
+    const metadata: Props['metadata'] = {
+      title: news.title,
+      url: `${siteURL}${slugURL(news)}`,
+      image: imgSrc || '',
+      published: publishedTime,
+      modified: modifiedTime,
+      author: `${siteName}`,
+    };
+
     return await withCustomize({
       context,
-      props: { news, prev, next },
+      props: {
+        news,
+        prev,
+        next,
+        metadata,
+      },
     });
   } catch (err) {
     console.warn(`Error getting news with id=${id}`, err);
