@@ -73,8 +73,9 @@ export function LLMCostEstimation({
           for each interaction, as it depends on the specific number tokens.
         </Paragraph>
         <Paragraph>
-          The given range is based on a typical interaction. In rare situations,
-          the total cost could be a bit higher.
+          The estimated price range is based on an estimate for the number of
+          input tokens and typical amounts of output tokens. In rare situations,
+          the total cost could be slightly higher.
         </Paragraph>
       </HelpIcon>
     </Text>

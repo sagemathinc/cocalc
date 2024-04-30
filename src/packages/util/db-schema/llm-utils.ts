@@ -1,5 +1,7 @@
 // this contains bits and pieces from the wrongly named openai.ts file
 
+import LRU from "lru-cache";
+
 import { unreachable } from "@cocalc/util/misc";
 
 // "Client LLMs" are defined in the user's account settings
@@ -783,6 +785,38 @@ export function getLLMCost(
     prompt_tokens: prompt_tokens * f,
     completion_tokens: completion_tokens * f,
   };
+}
+
+const priceRangeCache = new LRU<string, ReturnType<typeof getLLMPriceRange>>({
+  max: 10,
+});
+
+export function getLLMPriceRange(
+  prompt: number,
+  output: number,
+  markup_percentage: number,
+): { min: number; max: number } {
+  const cacheKey = `${prompt}::${output}::${markup_percentage}`;
+  const cached = priceRangeCache.get(cacheKey);
+  if (cached) return cached;
+
+  let min = Infinity;
+  let max = 0;
+  for (const key in LLM_COST) {
+    const model = LLM_COST[key];
+    if (!model || isFreeModel(key, true)) continue;
+    const { prompt_tokens, completion_tokens } = getLLMCost(
+      key as LanguageModel,
+      markup_percentage,
+    );
+    const p = prompt * prompt_tokens + output * completion_tokens;
+
+    min = Math.min(min, p);
+    max = Math.max(max, p);
+  }
+  const ret = { min, max };
+  priceRangeCache.set(cacheKey, ret);
+  return ret;
 }
 
 // The maximum cost for one single call using the given model.
