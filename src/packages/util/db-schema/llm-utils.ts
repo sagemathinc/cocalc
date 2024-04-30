@@ -17,7 +17,7 @@ export function isClientModel(model: string): boolean {
   return model.startsWith(CLIENT_PREFIX);
 }
 
-const OPENAI_PREFIX = "openai-";
+export const OPENAI_PREFIX = "openai-";
 
 // NOTE: all arrays of model names should order them by the "simples and fastest" to the "complex, slowest, most expensive"
 // that way, the ordering the UI isn't looking arbitrary, but has a clear logic
@@ -61,7 +61,8 @@ export function isMistralModel(model: unknown): model is MistralModel {
 export const GOOGLE_MODELS = [
   "gemini-pro",
   "gemini-1.0-ultra", // hangs
-  "gemini-1.5-pro", // hangs with langchain, maybe works with GenAI
+  "gemini-1.5-pro-8k", // works now with langchaing
+  "gemini-1.5-pro", // works now with langchaing
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
@@ -69,6 +70,7 @@ export function isGoogleModel(model: unknown): model is GoogleModel {
 }
 export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
   "gemini-1.5-pro": "gemini-1.5-pro-latest",
+  "gemini-1.5-pro-8k": "gemini-1.5-pro-latest",
 } as const;
 
 // https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
@@ -136,7 +138,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   google: GOOGLE_MODELS.filter(
     (m) =>
       // not all work right now
-      m === "gemini-pro" || m === "gemini-1.5-pro",
+      m === "gemini-pro" || m === "gemini-1.5-pro-8k" || m === "gemini-1.5-pro",
   ),
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
@@ -289,7 +291,7 @@ export function isMistralService(service: string): service is MistralService {
   return service.startsWith(MISTRAL_PREFIX);
 }
 
-const GOOGLE_PREFIX = "google-";
+export const GOOGLE_PREFIX = "google-";
 
 // we encode the in the frontend and elsewhere with the service name as a prefix
 // ATTN: don't change the encoding pattern of [vendor]-[model]
@@ -470,7 +472,8 @@ export const LLM_USERNAMES: LLM2String = {
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini 1.0 Pro",
   "gemini-1.0-ultra": "Gemini 1.0 Ultra",
-  "gemini-1.5-pro": "Gemini 1.5 Pro",
+  "gemini-1.5-pro": "Gemini 1.5 Pro 1m",
+  "gemini-1.5-pro-8k": "Gemini 1.5 Pro 8k",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -509,7 +512,9 @@ export const LLM_DESCR: LLM2String = {
   "gemini-1.0-ultra":
     "Google's Gemini 1.0 Ultra Generative AI model (30k token context)",
   "gemini-1.5-pro":
-    "Google's Gemini 1.5 Pro Generative AI model (100k token context)",
+    "Google's Gemini 1.5 Pro Generative AI model (1m token context)",
+  "gemini-1.5-pro-8k":
+    "Google's Gemini 1.5 Pro Generative AI model (8k token context)",
   "mistral-small-latest":
     "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -671,21 +676,27 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
   // curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY"
   // Pricing, at least Gemini Pro: https://cloud.google.com/vertex-ai/generative-ai/pricing#google_foundational_models
   "gemini-pro": {
-    prompt_tokens: usd1Mtokens(1_000 * 0.000125),
-    completion_tokens: usd1Mtokens(1_000 * 0.000375),
+    prompt_tokens: usd1Mtokens(0.5), // https://ai.google.dev/pricing
+    completion_tokens: usd1Mtokens(1.5),
     max_tokens: 30720,
     free: true,
+  },
+  "gemini-1.5-pro-8k": {
+    prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
+    completion_tokens: usd1Mtokens(21),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "gemini-1.5-pro": {
+    prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
+    completion_tokens: usd1Mtokens(21),
+    max_tokens: 1048576,
+    free: false,
   },
   "gemini-1.0-ultra": {
     prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
     completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
-    free: true,
-  },
-  "gemini-1.5-pro": {
-    prompt_tokens: usd1Mtokens(7), // TODO: price not yet known!
-    completion_tokens: usd1Mtokens(21),
-    max_tokens: 1048576,
     free: true,
   },
   "mistral-small-latest": {

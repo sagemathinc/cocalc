@@ -95,8 +95,12 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "Google Gemini 1.0 Ultra",
     color: "#4285f4",
   },
+  "google-gemini-1.5-pro-8k": {
+    display: LLM_USERNAMES["gemini-1.5-pro-8k"],
+    color: "#4285f4",
+  },
   "google-gemini-1.5-pro": {
-    display: "Google Gemini 1.5 Pro",
+    display: LLM_USERNAMES["gemini-1.5-pro"],
     color: "#4285f4",
   },
   "anthropic-claude-3-opus": {

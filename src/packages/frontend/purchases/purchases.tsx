@@ -30,6 +30,7 @@ import { SiteLicensePublicInfo as License } from "@cocalc/frontend/site-licenses
 import getSupportURL from "@cocalc/frontend/support/url";
 import {
   ANTHROPIC_PREFIX,
+  GOOGLE_PREFIX,
   LLM_USERNAMES,
   MISTRAL_PREFIX,
   service2model,
@@ -602,10 +603,12 @@ function Description({ description, period_end, service }) {
   if (description == null) {
     return null;
   }
+
   if (typeof service !== "string") {
     // service should be DescriptionType["type"]
     return null;
   }
+
   if (
     service === "openai-gpt-4" ||
     service === "openai-gpt-4-turbo-preview" ||
@@ -633,7 +636,11 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service.startsWith(MISTRAL_PREFIX)) {
+  if (
+    service.startsWith(MISTRAL_PREFIX) ||
+    service.startsWith(ANTHROPIC_PREFIX) ||
+    service.startsWith(GOOGLE_PREFIX)
+  ) {
     return (
       <Tooltip
         title={() => (
@@ -649,23 +656,7 @@ function Description({ description, period_end, service }) {
     );
   }
 
-  if (service.startsWith(ANTHROPIC_PREFIX)) {
-    return (
-      <Tooltip
-        title={() => (
-          <div>
-            Prompt tokens: {description.prompt_tokens}
-            <br />
-            Completion tokens: {description.completion_tokens}
-          </div>
-        )}
-      >
-        {LLM_USERNAMES[service2model(service)] ?? service}
-      </Tooltip>
-    );
-  }
-
-  //             <pre>{JSON.stringify(description, undefined, 2)}</pre>
+  // <pre>{JSON.stringify(description, undefined, 2)}</pre>
   if (service === "license") {
     const { license_id } = description;
     return (
