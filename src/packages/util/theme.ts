@@ -115,6 +115,13 @@ const MAIN_COLORS = {
   COCALC_ORANGE: "#fcc861", // orange used for the logo
 
   ORANGE_WARN: "#FFA500", // e.g. connecting… indicator. use $ANTD_RED_WARN for more severe warnings
+
+  AI_ASSISTANT_BG: "#f6bf61", // e.g. the orange background of the button bar AI button
+  AI_ASSISTANT_TXT: "#303030", // the text color for the above
+  // a darker variant of AI_ASSISNTANT_BG for text
+  AI_ASSISTANT_FONT: "#f0a11d",
+
+  RUN: "#389e0d", // the green color of the run button
 } as const;
 
 export const COLORS = {

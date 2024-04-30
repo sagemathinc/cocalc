@@ -22,7 +22,6 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { LanguageModelVendorAvatar } from "../../components/language-model-icon";
 import { Actions } from "../code-editor/actions";
 import Context from "./context";
 import { Options } from "./create-chat";
@@ -271,8 +270,8 @@ export default function LanguageModelTitleBarButton({
             />
           </div>
           <Title level={4}>
-            <LanguageModelVendorAvatar model={model} /> What would you like to
-            do using {modelToName(model)}?
+            <AIAvatar size={22} /> What would you like to do using{" "}
+            {modelToName(model)}?
           </Title>
           Switch model:{" "}
           <LLMSelector

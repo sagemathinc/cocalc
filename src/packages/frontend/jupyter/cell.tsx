@@ -57,6 +57,7 @@ interface Props {
   is_visible?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
+  dragHandle?: JSX.Element;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -83,11 +84,12 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.computeServerId !== props.computeServerId ||
     (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
-      (nextProps.is_current || props.is_current))
+      (nextProps.is_current || props.is_current)) ||
+    nextProps.dragHandle !== props.dragHandle
   );
 }
 
-export const Cell: React.FC<Props> = React.memo((props) => {
+export const Cell: React.FC<Props> = React.memo((props: Props) => {
   const [showAICellGen, setShowAICellGen] = useState<Position>(null);
   const id: string = props.id ?? props.cell.get("id");
   const frameActions = useNotebookFrameActions();
@@ -132,6 +134,7 @@ export const Cell: React.FC<Props> = React.memo((props) => {
         llmTools={props.llmTools}
         computeServerId={props.computeServerId}
         setShowAICellGen={setShowAICellGen}
+        dragHandle={props.dragHandle}
       />
     );
   }
@@ -310,17 +313,25 @@ export const Cell: React.FC<Props> = React.memo((props) => {
     style.background = "#e3f2fd";
   }
 
+  if (props.isFirst) {
+    // make room for InsertCell(above)
+    style.marginTop = "30px";
+  }
+
   function render_insert_cell(
     position: "above" | "below" = "above",
   ): JSX.Element | null {
     if (props.actions == null || IS_TOUCH) {
       return null;
     }
+    if (position === "above" && !props.isFirst) {
+      return null;
+    }
     return (
       <InsertCell
+        id={id}
         project_id={props.project_id}
         hide={!props.is_visible}
-        id={id}
         llmTools={props.llmTools}
         key={id + "insert" + position}
         position={position}
@@ -339,18 +350,20 @@ export const Cell: React.FC<Props> = React.memo((props) => {
 
   // Note that the cell id is used for scroll functionality, so *is* important.
   return (
-    <div
-      style={style}
-      onMouseUp={props.is_current ? undefined : click_on_cell}
-      onDoubleClick={double_click}
-      id={id}
-      cocalc-test={"jupyter-cell"}
-    >
-      {props.isFirst ? render_insert_cell("above") : undefined}
-      {render_metadata_state()}
-      {render_cell_input(props.cell)}
-      {render_cell_output(props.cell)}
+    <>
+      {render_insert_cell("above")}
+      <div
+        style={style}
+        onMouseUp={props.is_current ? undefined : click_on_cell}
+        onDoubleClick={double_click}
+        id={id}
+        cocalc-test={"jupyter-cell"}
+      >
+        {render_metadata_state()}
+        {render_cell_input(props.cell)}
+        {render_cell_output(props.cell)}
+      </div>
       {render_insert_cell("below")}
-    </div>
+    </>
   );
 }, areEqual);

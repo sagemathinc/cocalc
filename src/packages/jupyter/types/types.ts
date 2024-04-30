@@ -81,7 +81,7 @@ export interface LLMTools {
   model: LanguageModel;
   setModel: (llm: LanguageModel) => void;
   toolComponents: {
-    LLMExplainCell;
+    LLMCellTool;
     LLMError;
   };
 }

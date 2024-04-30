@@ -43,6 +43,7 @@ import {
   CheckCircleOutlined,
   CheckOutlined,
   CheckSquareOutlined,
+  ClearOutlined,
   ClockCircleOutlined,
   CloseCircleFilled,
   CloseCircleOutlined,
@@ -161,6 +162,7 @@ import {
   RightCircleOutlined,
   RightOutlined,
   RightSquareFilled,
+  RiseOutlined,
   RobotOutlined,
   RocketOutlined,
   SaveOutlined,
@@ -175,6 +177,7 @@ import {
   SlidersOutlined,
   SmileOutlined,
   SolutionOutlined,
+  SoundOutlined,
   StarFilled,
   StarOutlined,
   StepBackwardOutlined,
@@ -193,6 +196,7 @@ import {
   TeamOutlined,
   ThunderboltOutlined,
   ToolOutlined,
+  TranslationOutlined,
   TwitterCircleFilled,
   TwitterOutlined,
   UnderlineOutlined,
@@ -603,6 +607,10 @@ const IconSpec: { [name: string]: any } = {
   "left-circle-o": LeftCircleOutlined,
   "right-circle-o": RightCircleOutlined,
   "down-circle-o": DownCircleOutlined,
+  "translation-outlined": TranslationOutlined,
+  "clean-outlined": ClearOutlined,
+  "sound-outlined": SoundOutlined,
+  "rise-outlined": RiseOutlined,
 };
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us

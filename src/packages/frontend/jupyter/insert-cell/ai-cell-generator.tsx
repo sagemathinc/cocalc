@@ -13,6 +13,8 @@ import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
@@ -44,6 +46,7 @@ export function AIGenerateCodeCell({
   setShowAICellGen,
   showAICellGen,
 }: AIGenerateCodeCellProps) {
+  const { actions: project_actions } = useProjectContext();
   const { project_id, path } = useFrameContext();
 
   const [querying, setQuerying] = useState<boolean>(false);
@@ -80,6 +83,15 @@ export function AIGenerateCodeCell({
       prevCodeContents,
       includePreviousCells,
     });
+
+    // we also log this
+    const event: LLMEvent = {
+      event: "llm",
+      usage: "jupyter-generate-cell",
+      model,
+      path,
+    };
+    project_actions?.log(event);
   }
 
   // called, when actually displayed

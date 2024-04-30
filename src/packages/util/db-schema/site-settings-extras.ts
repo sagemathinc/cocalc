@@ -672,8 +672,8 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Pay as you Go"],
   },
   pay_as_you_go_openai_markup_percentage: {
-    name: "Pay As You Go - OpenAI Markup Percentage",
-    desc: "The markup percentage that we add to the OpenAI API call rate.  This accounts for maintenance, dev, servers, and bandwidth. For example, '30' would mean we add 30% to the price that OpenAI charges us.",
+    name: "Pay As You Go - LLM Markup Percentage",
+    desc: "The markup percentage that we add to the LLM's call rate.  This accounts for maintenance, dev, servers, and bandwidth. For example, '30' would mean we add 30% to the price that OpenAI charges us.",
     default: "30",
     show: only_commercial,
     to_val: toFloat,

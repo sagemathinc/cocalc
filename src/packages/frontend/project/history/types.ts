@@ -8,8 +8,10 @@ import { Map } from "immutable";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import type { ComputeServerEvent } from "@cocalc/util/compute/log";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+
+import type { Mode as JupyterCellLLMMode } from "@cocalc/frontend/jupyter/llm/cell-tool";
 
 export type EventRecord = {
   id: string;
@@ -34,6 +36,7 @@ export type ProjectEvent =
   | ProjectControlEvent
   | FileActionEvent
   | LibraryEvent
+  | LLMEvent
   | UpgradeEvent
   | PayAsYouGoUpgradeEvent
   | LicenseEvent
@@ -131,6 +134,30 @@ export type AssistantEvent = {
   entry: string[];
   path: string;
 };
+
+interface LLMEventBase {
+  event: "llm";
+  model?: string;
+  path: string;
+}
+
+interface LLMEventJupyterCellButton extends LLMEventBase {
+  usage: "jupyter-cell-button";
+  mode?: JupyterCellLLMMode | null; // "jupyter-cell-buttons"
+}
+
+interface LLMEventJupyterCellGenerate extends LLMEventBase {
+  usage: "jupyter-generate-cell";
+}
+
+interface LLMEventJupyterGenerateNotebook extends LLMEventBase {
+  usage: "jupyter-generate-notebook";
+}
+
+export type LLMEvent =
+  | LLMEventJupyterCellButton
+  | LLMEventJupyterCellGenerate
+  | LLMEventJupyterGenerateNotebook;
 
 export type MiniTermEvent = {
   event: "miniterm" | "termInSearch";
