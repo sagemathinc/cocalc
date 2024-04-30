@@ -52,7 +52,7 @@ interface Props {
 
 const CONTENT_WIDTH = 600;
 
-const TRACKING_KEY = "jupyter-cell-llm";
+const TRACKING_KEY = "jupyter_cell_llm";
 
 const OTHER_LANG = "Other";
 const TARGET_LANGS = [
@@ -395,12 +395,6 @@ export function LLMCellTool({
                 ),
                 onClick: () => {
                   setMode(mode as Mode);
-                  track(TRACKING_KEY, {
-                    action: "selected",
-                    mode,
-                    path,
-                    project_id,
-                  });
                 },
               };
             },
@@ -714,6 +708,7 @@ export function LLMCellTool({
         action: "submitted",
         mode,
         path,
+        model: llmTools?.model,
         project_id,
         ...(mode === "improve" || mode === "bugfix" || mode === "modify"
           ? { extra }
