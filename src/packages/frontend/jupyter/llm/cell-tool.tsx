@@ -105,6 +105,7 @@ const IMPROVEMENTS = [
   "execution speed",
   "memory usage",
   "readability",
+  "easier to understand",
   "documentation",
   "style",
 ] as const;
@@ -521,17 +522,22 @@ export function LLMCellTool({
               extraImprove,
               setExtraImprove,
             )}
-            <Paragraph>
-              {IMPROVEMENTS.map((a) => (
-                <Tag
-                  key={a}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setExtraImprove(a)}
-                  color={getRandomColor(a)}
-                >
-                  {a}
-                </Tag>
-              ))}
+            <Paragraph
+              style={{ display: "flex", alignItems: "center", gap: "10px" }}
+            >
+              <div style={{ flex: "1 0 auto" }}>Examples:</div>
+              <div style={{ flex: "1 1 auto" }}>
+                {IMPROVEMENTS.map((a) => (
+                  <Tag
+                    key={a}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setExtraImprove(a)}
+                    color={getRandomColor(a)}
+                  >
+                    {a}
+                  </Tag>
+                ))}
+              </div>
             </Paragraph>
           </>
         );
