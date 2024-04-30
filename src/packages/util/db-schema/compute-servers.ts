@@ -78,6 +78,10 @@ export interface Image {
   // jupyterKernels: if false, no jupyter kernels included. If true or a list of
   // names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
   jupyterKernels?: false | true | string[];
+  // If set to true, do not allow creating this compute server with a DNS subdomain.
+  // Some images only make sense to use over the web, and the web server just won't
+  // work without DNS setup properly (e.g., VS Code with LEAN).  Ignored for on prem.
+  requireDns?: boolean;
   // system: if true, this is a system container that is not for user compute
   system?: boolean;
   // disabled: if true, this image is completely disabled, so will not be used in any way.
@@ -607,6 +611,7 @@ Table({
         fields: {
           id: null,
           account_id: null,
+          created: null,
           title: null,
           color: null,
           cost_per_hour: null,
@@ -627,16 +632,20 @@ Table({
           position: null,
           detailed_state: null,
           template: null,
+          notes: null,
         },
       },
       set: {
         // ATTN: It's assumed that users can't set the data field.  Doing so would be very bad and could allow
         // them to maybe abuse the system and not pay for something.
+        // Most fields, e.g., configuration, get set via api calls, which ensures consistency in terms of valid
+        // data and what is actively deployed.
         fields: {
           project_id: "project_write",
           id: true,
           position: true,
           error: true, // easily clear the error
+          notes: true,
         },
       },
     },
@@ -647,6 +656,10 @@ Table({
       type: "uuid",
       desc: "User that owns this compute server.",
       render: { type: "account" },
+    },
+    created: {
+      type: "timestamp",
+      desc: "When the compute server was created.",
     },
     title: {
       type: "string",

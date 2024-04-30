@@ -73,7 +73,9 @@ export default async function createServer(opts: Options): Promise<number> {
     }
   }
   push("state", "deprovisioned");
-  push("last_edited", new Date());
+  const now = new Date();
+  push("last_edited", now);
+  push("created", now);
 
   const query = `INSERT INTO compute_servers(${fields.join(
     ",",
