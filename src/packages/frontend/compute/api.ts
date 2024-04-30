@@ -23,6 +23,7 @@ export async function createServer(opts: {
   autorestart?: boolean;
   cloud?: Cloud;
   configuration?: Configuration;
+  notes?: string;
 }): Promise<number> {
   return await api("compute/create-server", opts);
 }

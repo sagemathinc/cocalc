@@ -28,6 +28,7 @@ async function get(req) {
     autorestart,
     cloud,
     configuration,
+    notes,
   } = getParams(req);
   return await createServer({
     account_id,
@@ -38,5 +39,6 @@ async function get(req) {
     autorestart,
     cloud,
     configuration,
+    notes,
   });
 }

@@ -27,10 +27,11 @@ interface Options {
   idle_timeout?: number;
   autorestart?: boolean;
   position?: number;
+  notes?: string;
 }
 
 const FIELDS =
-  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position".split(
+  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position,notes".split(
     ",",
   );
 

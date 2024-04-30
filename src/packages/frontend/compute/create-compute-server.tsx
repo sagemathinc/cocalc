@@ -102,9 +102,11 @@ export default function CreateComputeServer({ project_id, onCreate }) {
     }
   };
 
+  const [notes, setNotes] = useState<string>("");
   const [loadingTemplate, setLoadingTemplate] = useState<boolean>(false);
   const setConfigToTemplate = async (id) => {
     setTemplateId(id);
+    setNotes(`Starting with template ${id}.\n`);
     let template;
     try {
       setLoadingTemplate(true);
@@ -147,6 +149,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           title,
           color,
           configuration,
+          notes,
         });
         await updateFastDataDirectoryId(id, configuration);
         setEditing(false);
