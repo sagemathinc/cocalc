@@ -58,9 +58,6 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   const [templateId, setTemplateId] = useState<number | undefined>(
     create_compute_server_template_id,
   );
-  const [templates, setTemplates] = useState<boolean>(
-    !!create_compute_server_template_id,
-  );
 
   useEffect(() => {
     if (create_compute_server_template_id) {
@@ -73,6 +70,14 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           .setState({ create_compute_server: false });
       }
     };
+  }, []);
+
+  // we have to do this stupid hack because of the animation when showing
+  // a modal and how select works.  It's just working around limitations
+  // of antd, I think.
+  const [showTemplates, setShowTemplates] = useState<boolean>(false);
+  useEffect(() => {
+    setTimeout(() => setShowTemplates(true), 1000);
   }, []);
 
   const [creating, setCreating] = useState<boolean>(false);
@@ -98,9 +103,6 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   };
 
   const [loadingTemplate, setLoadingTemplate] = useState<boolean>(false);
-  const [currentTemplateId, setCurrentTemplateId] = useState<
-    number | undefined
-  >(create_compute_server_template_id);
   const setConfigToTemplate = async (id) => {
     setTemplateId(id);
     let template;
@@ -251,43 +253,28 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         width={"900px"}
         onCancel={() => {
           setEditing(false);
+          setTemplateId(undefined);
           resetConfig();
         }}
         open={editing}
         destroyOnClose
         title={
           <div>
-            <div style={{ display: "flex" }}>
-              Create Compute Server
-              {!templates && (
-                <Button
-                  onClick={() => {
-                    setTemplates(true);
-                  }}
-                  style={{ marginLeft: "30px", marginTop: "-5px" }}
-                >
-                  Templates...
-                </Button>
-              )}
-            </div>
-            {templates && (
-              <div style={{ textAlign: "center", color: "#666" }}>
-                <div>Templates</div>
+            <div style={{ display: "flex" }}>Create Compute Server</div>
+            <div style={{ textAlign: "center", color: "#666" }}>
+              <div>{loadingTemplate ? "Loading " : ""} Templates</div>
+              {showTemplates && (
                 <PublicTemplates
                   disabled={loadingTemplate}
                   defaultId={templateId}
-                  setId={setCurrentTemplateId}
-                />
-                <Button
-                  disabled={!currentTemplateId}
-                  onClick={async () => {
-                    await setConfigToTemplate(currentTemplateId);
+                  setId={async (id) => {
+                    setTemplateId(id);
+                    await setConfigToTemplate(id);
                   }}
-                >
-                  Use This Template
-                </Button>
-              </div>
-            )}
+                  defaultOpen
+                />
+              )}
+            </div>
           </div>
         }
         footer={

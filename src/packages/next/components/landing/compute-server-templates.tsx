@@ -22,23 +22,18 @@ export default function ComputeServerTemplates({ style }: { style? }) {
   //const [account_id, setAccountId] = useState<string | null>(null);
   return (
     <div>
-      <PublicTemplates style={style} setId={setId} />
-      {id != null && (
-        <Button
-          disabled={state != "browse"}
-          size="large"
-          type="primary"
-          onClick={() => {
-            if (profile?.account_id) {
-              setState("select-project");
-            } else {
-              setState("sign-in");
-            }
-          }}
-        >
-          <Icon name="server" /> Build Compute Server...
-        </Button>
-      )}
+      <PublicTemplates
+        defaultOpen
+        style={style}
+        setId={(id) => {
+          setId(id);
+          if (profile?.account_id) {
+            setState("select-project");
+          } else {
+            setState("sign-in");
+          }
+        }}
+      />
       {state == "sign-in" && (
         <InPlaceSignInOrUp
           title="Create Account"
