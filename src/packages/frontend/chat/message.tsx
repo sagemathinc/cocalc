@@ -45,6 +45,7 @@ import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
+import { LLMCostEstimation } from "./llm-cost-estimation";
 import { Name } from "./name";
 import { Time } from "./time";
 import { ChatMessageTyped, Mode } from "./types";
@@ -130,10 +131,12 @@ interface Props {
   is_thread?: boolean; // if true, there is a thread starting in a reply_to message
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
+
+  llm_cost?: [number, number] | null;
 }
 
 export default function Message(props: Props) {
-  const { is_thread, is_folded, is_thread_body, mode } = props;
+  const { is_thread, is_folded, is_thread_body, mode, llm_cost } = props;
 
   const hideTooltip =
     useTypedRedux("account", "other_settings").get("hide_file_popovers") ??
@@ -186,6 +189,7 @@ export default function Message(props: Props) {
   const submitMentionsRef = useRef<Function>();
 
   const [replying, setReplying] = useState<boolean>(false);
+
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<Function>();
 
@@ -645,6 +649,7 @@ export default function Message(props: Props) {
           date={-date}
           onChange={(value) => {
             replyMessageRef.current = value;
+            props.actions?.llm_estimate_cost(value, props.message.toJS());
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -663,6 +668,11 @@ export default function Message(props: Props) {
           >
             Cancel
           </Button>
+          <LLMCostEstimation
+            llm_cost={llm_cost}
+            compact={false}
+            style={{ display: "inline-block", marginLeft: "10px" }}
+          />
         </div>
       </div>
     );

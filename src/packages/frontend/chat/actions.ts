@@ -12,6 +12,7 @@ import type {
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -19,6 +20,7 @@ import { SyncDB } from "@cocalc/sync/editor/db";
 import {
   LANGUAGE_MODEL_PREFIXES,
   getLLMServiceStatusCheckMD,
+  isFreeModel,
   isLanguageModelService,
   model2service,
   model2vendor,
@@ -27,6 +29,7 @@ import {
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Optional } from "utility-types";
 import { getSortedDates } from "./chat-log";
 import { message_to_markdown } from "./message";
@@ -376,17 +379,19 @@ export class ChatActions extends Actions<ChatState> {
     reply,
     from,
     noNotification,
+    reply_to,
   }: {
     message: ChatMessage;
     reply: string;
     from?: string;
     noNotification?: boolean;
+    reply_to?: Date;
   }): string {
     // the reply_to field of the message is *always* the root.
     // the order of the replies is by timestamp.  This is meant
     // to make sure chat is just 1 layer deep, rather than a
     // full tree structure, which is powerful but too confusing.
-    const reply_to = getReplyToRoot(
+    reply_to ??= getReplyToRoot(
       message,
       this.store?.get("messages") ?? (fromJS({}) as ChatMessages),
     );
@@ -429,7 +434,59 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   public set_input(input: string): void {
+    this.llm_estimate_cost(input);
     this.setState({ input });
+  }
+
+  public llm_estimate_cost: typeof this._llm_estimate_cost = reuseInFlight(
+    this._llm_estimate_cost.bind(this),
+  );
+
+  private async _llm_estimate_cost(
+    input: string,
+    message?: ChatMessage,
+  ): Promise<void> {
+    if (!this.store) return;
+
+    const is_cocalc_com = this.redux.getStore("customize").get("is_cocalc_com");
+    if (!is_cocalc_com) return;
+
+    // this is either a new message or in a reply, but mentions an LLM
+    let model: LanguageModel | null | false = getLanguageModel(input);
+
+    input = stripMentions(input);
+    let history: string[] = [];
+    const messages = this.store.get("messages");
+    // message != null means this is a reply and we have to get the whole chat thread
+    if (!model && message != null && messages != null) {
+      const root = getReplyToRoot(message, messages);
+      model = this.isLanguageModelThread(root);
+      if (!isFreeModel(model, is_cocalc_com) && root != null) {
+        for (const msg of this.getLLMHistory(root)) {
+          history.push(msg.content);
+        }
+      }
+    }
+
+    if (model) {
+      if (isFreeModel(model, is_cocalc_com)) {
+        this.setState({ llm_cost: [0, 0] });
+      } else {
+        const llm_markup = this.redux.getStore("customize").get("llm_markup");
+        // do not import until needed -- it is HUGE!
+        const { truncateMessage, getMaxTokens, numTokensUpperBound } =
+          await import("@cocalc/frontend/misc/llm");
+        const maxTokens = getMaxTokens(model);
+        const tokens = numTokensUpperBound(
+          truncateMessage([input, ...history].join("\n"), maxTokens),
+          maxTokens,
+        );
+        const { min, max } = calcMinMaxEstimation(tokens, model, llm_markup);
+        this.setState({ llm_cost: [min, max] });
+      }
+    } else {
+      this.setState({ llm_cost: null });
+    }
   }
 
   public set_is_preview(is_preview): void {
@@ -683,6 +740,7 @@ export class ChatActions extends Actions<ChatState> {
               reply: thinking,
               from: sender_id,
               noNotification: true,
+              reply_to,
             }),
           };
 

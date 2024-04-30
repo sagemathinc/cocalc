@@ -35,8 +35,10 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
 import { history_path } from "@cocalc/util/misc";
+import { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
+import { LLMCostEstimation } from "./llm-cost-estimation";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 
@@ -72,7 +74,7 @@ interface Props {
 }
 
 export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
-  const actions = useActions(project_id, path);
+  const actions: ChatActions = useActions(project_id, path);
 
   const is_uploading = useRedux(["is_uploading"], project_id, path);
   const is_saving = useRedux(["is_saving"], project_id, path);
@@ -92,7 +94,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   const search = useRedux(["search"], project_id, path);
   const messages = useRedux(["messages"], project_id, path);
-  const today = useRedux(["today"], project_id, path);
+  const today: boolean = useRedux(["today"], project_id, path);
+  const llm_cost: [number, number] = useRedux(["llm_cost"], project_id, path);
 
   const submitMentionsRef = useRef<Function>();
   const scrollToBottomRef = useRef<any>(null);
@@ -124,7 +127,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function render_preview_message(): JSX.Element | undefined {
-    if (input.length == 0 || preview.length == 0) return;
+    if (!is_preview) return;
+    if (input.length === 0 || preview.length === 0) return;
     const value = sanitize_html_safe(preview);
 
     return (
@@ -373,7 +377,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             scrollToBottomRef={scrollToBottomRef}
             mode={"standalone"}
           />
-          {is_preview && render_preview_message()}
+          {render_preview_message()}
         </div>
         <div style={{ display: "flex", marginBottom: "5px", overflow: "auto" }}>
           <div
@@ -405,6 +409,11 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               marginBottom: "0",
             }}
           >
+            <LLMCostEstimation
+              llm_cost={llm_cost}
+              compact
+              style={{ fontSize: "85%", textAlign: "center" }}
+            />
             <div style={{ flex: 1 }} />
             <Button
               onClick={on_send_button_click}
