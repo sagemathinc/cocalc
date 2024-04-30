@@ -1,7 +1,5 @@
 import PublicTemplates from "@cocalc/frontend/compute/public-templates";
-import { Button } from "antd";
 import { useState } from "react";
-import { Icon } from "@cocalc/frontend/components/icon";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import useProfile from "lib/hooks/profile";
 import SelectProject from "components/project/select";
