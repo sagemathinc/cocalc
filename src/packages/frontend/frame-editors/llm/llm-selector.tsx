@@ -250,7 +250,7 @@ export function LLMModelPrice({
       free
     </Tag>
   ) : (
-    <Tag color="error" {...props}>
+    <Tag color="warning" {...props}>
       paid
     </Tag>
   );

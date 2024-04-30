@@ -74,7 +74,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     const [formatting, setFormatting] = useState<boolean>(false);
 
     function trackButton(button: string) {
-      track("jupyter-cell-buttonbar", { button, project_id, path });
+      track("jupyter_cell_buttonbar", { button, project_id, path });
     }
 
     function renderCodeBarRunStop() {
@@ -92,7 +92,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
                 type="text"
                 onClick={() => {
                   actions?.signal("SIGINT");
-                  trackButton("stop");
+                  // trackButton("stop");  // too much data
                 }}
                 style={CODE_BAR_BTN_STYLE}
               >
@@ -108,7 +108,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
                 type="text"
                 onClick={() => {
                   actions?.run_cell(id);
-                  trackButton("run");
+                  // trackButton("run");   // too much data
                 }}
                 style={CODE_BAR_BTN_STYLE}
               >
