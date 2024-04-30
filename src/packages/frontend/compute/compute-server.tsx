@@ -441,12 +441,12 @@ export default function ComputeServer({
                 style={{
                   textOverflow: "ellipsis",
                   overflow: "hidden",
-                  flex: 1,
+                  textAlign: "right",
                 }}
               >
                 <Cloud cloud={cloud} state={state} editable={false} id={id} />
               </div>
-              <div style={{ flex: 1 }}>
+              <div>
                 <Menu
                   style={{ float: "right" }}
                   id={id}
