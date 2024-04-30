@@ -25,17 +25,20 @@ function getServer({ id, project_id }) {
     ?.toJS();
 }
 
-function getApps(image) {
+export function getApps(image) {
   const IMAGES = redux.getStore("customize").get("compute_servers_images");
   if (IMAGES == null || typeof IMAGES == "string") {
     // string when error
     return {};
   }
-  return (
+  let apps =
     IMAGES.getIn([image, "apps"])?.toJS() ??
     IMAGES.getIn(["defaults", "apps"])?.toJS() ??
-    {}
-  );
+    {};
+  if (IMAGES.getIn([image, "jupyterKernels"]) === false) {
+    apps = { ...apps, jupyterlab: undefined };
+  }
+  return apps;
 }
 
 function getItems({
