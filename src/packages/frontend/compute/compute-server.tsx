@@ -352,7 +352,7 @@ export default function ComputeServer({
     >
       <Card.Meta
         avatar={
-          <div style={{ width: "64px", height: 0 }}>
+          <div style={{ width: "64px", marginBottom: "-20px" }}>
             <Icon
               name={cloud == "onprem" ? "global" : "server"}
               style={{ fontSize: "30px", color: color ?? "#666" }}
