@@ -46,9 +46,8 @@ async function get(req) {
 import { z } from "zod";
 import { apiRoute, apiRouteOperation } from "next-rest-framework";
 
-// @txs-expect-error
 export default apiRoute({
-  createServer: apiRouteOperation({
+  computeCreateServer: apiRouteOperation({
     method: "POST",
   })
     .input({

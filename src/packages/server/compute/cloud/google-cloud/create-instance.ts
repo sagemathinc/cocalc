@@ -37,7 +37,7 @@ export default async function createInstance({
     sourceImage = configuration.sourceImage;
   }
 
-  if (configuration.acceleratorType == "nvidia-tesla-k80") {
+  if (configuration.acceleratorType as string == "nvidia-tesla-k80") {
     // it will be deprecated from google cloud soon, and nvidia's recent drivers don't work either.
     throw Error("the nvidia-tesla-k80 GPU is deprecated");
   }

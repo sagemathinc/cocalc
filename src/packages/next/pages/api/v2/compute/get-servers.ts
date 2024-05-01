@@ -46,7 +46,7 @@ const serversSchema = z.object({
 });
 
 export default apiRoute({
-  getServers: apiRouteOperation({
+  computeGetServers: apiRouteOperation({
     method: "GET",
   })
     .input({
