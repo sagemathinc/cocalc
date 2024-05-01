@@ -5,7 +5,6 @@
 
 import { Col, Row } from "antd";
 import { CSSProperties, ReactNode } from "react";
-
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
 import { TitleProps } from "antd/es/typography/Title";
@@ -39,6 +38,7 @@ interface Props {
   title: ReactNode;
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
+  innerRef?;
 }
 
 export default function Info(props: Readonly<Props>): JSX.Element {
@@ -61,6 +61,7 @@ export default function Info(props: Readonly<Props>): JSX.Element {
     title,
     video,
     wide,
+    innerRef,
   } = props;
 
   function renderBelow() {
@@ -221,6 +222,7 @@ export default function Info(props: Readonly<Props>): JSX.Element {
 
   return (
     <div
+      ref={innerRef}
       style={{
         ...padding,
         background: "white",

@@ -9,7 +9,13 @@ import apiPost from "lib/api/post";
 
 type State = "browse" | "sign-in" | "select-project";
 
-export default function ComputeServerTemplates({ style }: { style? }) {
+export default function ComputeServerTemplates({
+  style,
+  getPopupContainer,
+}: {
+  style?;
+  getPopupContainer?;
+}) {
   const [id, setId0] = useState<number | null>(null);
   const setId = (id) => {
     setId0(id);
@@ -22,6 +28,7 @@ export default function ComputeServerTemplates({ style }: { style? }) {
     <div>
       <PublicTemplates
         defaultOpen
+        getPopupContainer={getPopupContainer}
         style={style}
         setId={(id) => {
           setId(id);
@@ -44,6 +51,7 @@ export default function ComputeServerTemplates({ style }: { style? }) {
       {state == "select-project" && (
         <div style={{ maxWidth: "600px", margin: "auto" }}>
           <SelectProject
+            label={"Select or Create Project for your Compute Server"}
             defaultOpen
             allowCreate
             onChange={async ({ project_id, title }) => {

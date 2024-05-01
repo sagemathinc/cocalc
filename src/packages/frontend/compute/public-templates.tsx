@@ -16,12 +16,16 @@ export default function PublicTemplates({
   defaultId,
   disabled,
   defaultOpen,
+  placement,
+  getPopupContainer,
 }: {
   style?;
   setId: (number) => void;
   defaultId?: number;
   disabled?: boolean;
   defaultOpen?: boolean;
+  placement?;
+  getPopupContainer?;
 }) {
   const [templates, setTemplates] = useState<ConfigurationTemplate[] | null>(
     null,
@@ -62,6 +66,8 @@ export default function PublicTemplates({
     <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
       <Select
         defaultOpen={defaultOpen}
+        placement={placement}
+        getPopupContainer={getPopupContainer}
         disabled={disabled}
         value={value}
         onChange={setValue}

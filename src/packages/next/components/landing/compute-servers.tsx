@@ -14,9 +14,11 @@ import { useCustomize } from "lib/customize";
 import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
 import { LANDING_HEADER_LEVEL } from "./constants";
 import ComputeServerTemplates from "./compute-server-templates";
+import { useRef } from "react";
 
 export default function ComputeServers() {
   const { computeServersEnabled, siteName } = useCustomize();
+  const ref = useRef<any>();
   if (!computeServersEnabled) {
     // note frontend also makes the constraint that at least one cloud is enabled.
     // see: packages/frontend/compute/config.ts
@@ -24,6 +26,7 @@ export default function ComputeServers() {
   }
   return (
     <Info
+      innerRef={ref}
       level={LANDING_HEADER_LEVEL}
       title={
         <>
@@ -31,7 +34,7 @@ export default function ComputeServers() {
           <sup>
             <Tag color={COLORS.ANTD_GREEN}>new</Tag>
           </sup>
-          <ComputeServerTemplates />
+          <ComputeServerTemplates getPopupContainer={() => ref.current} />
         </>
       }
       icon="servers"
@@ -39,7 +42,13 @@ export default function ComputeServers() {
       narrow={true}
       anchor="a-compute"
       alt={"Compute server templates"}
-      style={{ backgroundColor: COLORS.YELL_LLL }}
+      style={{
+        backgroundColor: COLORS.YELL_LLL,
+        // ref hook and this below is so compute server template stays in here:
+        // https://github.com/sagemathinc/cocalc/issues/7511
+        position: "relative",
+        overflow: "hidden",
+      }}
     >
       <Paragraph>
         Extend your {siteName} projects with powerful{" "}
