@@ -399,7 +399,7 @@ function getItems({
         },
         {
           key: "videos",
-          icon: <Icon name="youtube" />,
+          icon: <Icon name="youtube" style={{ color: "red" }} />,
           label: (
             <A href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ">
               Videos

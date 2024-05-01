@@ -241,7 +241,13 @@ function Videos() {
           {YOUTUBE_IDS.map(({ id, title }) => {
             n += 1;
             return (
-              <VideoItem key={id} id={id} number={n} current={current} title={title} />
+              <VideoItem
+                key={id}
+                id={id}
+                number={n}
+                current={current}
+                title={title}
+              />
             );
           })}
         </Carousel>
@@ -271,7 +277,7 @@ function VideoItem({
         }}
       >
         <A style={{ color: "white" }} href={`https://youtu.be/${id}`}>
-          <Icon name="youtube" /> {title}
+          <Icon name="youtube" style={{ color: "red" }} /> {title}
         </A>
         <iframe
           style={{ marginTop: "30px", maxWidth: "100%" }}

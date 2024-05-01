@@ -11,6 +11,7 @@ import { availableClouds } from "./config";
 import {
   CLOUDS_BY_NAME,
   Cloud as CloudType,
+  Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { replace_all } from "@cocalc/util/misc";
 import { randomPetName } from "@cocalc/frontend/project/utils";
@@ -23,6 +24,7 @@ import costPerHour from "./cost";
 import { Docs } from "./compute-servers";
 import PublicTemplates from "@cocalc/frontend/compute/public-templates";
 import { delay } from "awaiting";
+import { cloneDeep } from "lodash";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -86,7 +88,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   const [title, setTitle] = useState<string>(defaultTitle());
   const [color, setColor] = useState<string>(randomColor());
   const [cloud, setCloud] = useState<CloudType>(defaultCloud());
-  const [configuration, setConfiguration] = useState<any>(
+  const [configuration, setConfiguration] = useState<Configuration>(
     defaultConfiguration(),
   );
   const resetConfig = async () => {
@@ -107,6 +109,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   const setConfigToTemplate = async (id) => {
     setTemplateId(id);
     setNotes(`Starting with template ${id}.\n`);
+    const currentConfiguration = cloneDeep(configuration);
     let template;
     try {
       setLoadingTemplate(true);
@@ -115,11 +118,15 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       setColor(template.color);
       setCloud(template.cloud);
       const { configuration } = template;
-      if (configuration.dns) {
+      if (currentConfiguration.dns) {
+        // keep current config
+        configuration.dns = currentConfiguration.dns;
+      } else if (configuration.dns) {
         // TODO: should automatically ensure this randomly isn't taken.  Can implement
         // that later.
         configuration.dns += `-${randomPetName().toLowerCase()}`;
       }
+      configuration.excludeFromSync = currentConfiguration.excludeFromSync;
       setConfiguration(configuration);
     } catch (err) {
       setError(`${err}`);

@@ -99,7 +99,8 @@ export default function OnPremCloudConfiguration({
           <li>
             Watch the{" "}
             <A href="https://youtu.be/NkNx6tx3nu0">
-              <Icon name="youtube" /> compute server tutorial
+              <Icon name="youtube" style={{ color: "red" }} /> compute server
+              tutorial
             </A>
             .
           </li>
