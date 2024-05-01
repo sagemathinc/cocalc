@@ -1116,6 +1116,9 @@ importers:
       next-remove-imports:
         specifier: ^1.0.11
         version: 1.0.11(webpack@5.91.0)
+      next-rest-framework:
+        specifier: 6.0.0-beta.4
+        version: 6.0.0-beta.4(zod@3.23.5)
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -1158,6 +1161,9 @@ importers:
       xmlbuilder2:
         specifier: ^3.0.2
         version: 3.0.2
+      zod:
+        specifier: ^3.23.5
+        version: 3.23.5
     devDependencies:
       '@babel/preset-typescript':
         specifier: ^7.23.3
@@ -4689,10 +4695,6 @@ packages:
     resolution: {integrity: sha512-kpqOvwXnjjN44D89K5ccQC+RUrsy7jB/XLlRrx0D7/2HNcTPqzsb6XgYoErwko6QsV184CA2YgS1fxDiiDZMWA==}
     engines: {node: '>=8'}
 
-  call-bind@1.0.6:
-    resolution: {integrity: sha512-Mj50FLHtlsoVfRfnHaZvyrooHcrlceNZdL/QBvJJVd9Ta55qCQK0gs4ss2oZDeV9zFCs6ewzYgVE5yfVmfFpVg==}
-    engines: {node: '>= 0.4'}
-
   call-bind@1.0.7:
     resolution: {integrity: sha512-GHTSNSYICQ7scH7sZ+M2rFopRoLh8t2bLSW6BbgrtLsahOIB5iyAVJf9GjWK3cYTDaMj4XdBpM1cA6pIS0Kv2w==}
     engines: {node: '>= 0.4'}
@@ -6388,15 +6390,8 @@ packages:
   has-passive-events@1.0.0:
     resolution: {integrity: sha512-2vSj6IeIsgvsRMyeQ0JaCX5Q3lX4zMn5HpoVc7MEhQ6pv8Iq9rsXjsp+E5ZwaT7T0xhMT0KmU8gtt1EFVdbJiw==}
 
-  has-property-descriptors@1.0.1:
-    resolution: {integrity: sha512-VsX8eaIewvas0xnvinAe9bw4WfIeODpGYikiWYLH+dma0Jw6KHYqWiWfhQlgOVK8D6PvjubK5Uc4P0iIhIcNVg==}
-
   has-property-descriptors@1.0.2:
     resolution: {integrity: sha512-55JNKuIW+vq4Ke1BjOTjM2YctQIvCT7GFzHwmfZPGo5wnrgkid0YQtnAleFSqumZm4az3n2BS+erby5ipJdgrg==}
-
-  has-proto@1.0.1:
-    resolution: {integrity: sha512-7qE+iP+O+bgF9clE5+UoBFzE65mlBiVj3tKCrlNQ0Ogwm0BjpT/gK4SlLYDMybDh5I3TCTKnPPa0oMG7JDYrhg==}
-    engines: {node: '>= 0.4'}
 
   has-proto@1.0.3:
     resolution: {integrity: sha512-SJ1amZAJUiZS+PhsVLf5tGydlaVB8EdFpaSO4gmiUKUOxk8qzn5AIy4ZeJUmh22znIdk/uMAUT2pl3FxzVUH+Q==}
@@ -8051,6 +8046,10 @@ packages:
 
   next-remove-imports@1.0.11:
     resolution: {integrity: sha512-i+L8kcP1hM3nOCNv8NWhtJGWwkEDtej0BaRlCzcZDQeXCT3cwaJo4VyD9x4449sbJwj9xt/wmqlH8fg5g8RaYg==}
+
+  next-rest-framework@6.0.0-beta.4:
+    resolution: {integrity: sha512-cwgkM6QH/wF9V78dPs0w4Sxh1XQ3d9U/UIV7Kk6sfAIz5NNiCBs5cpaWEC29CkgYGokPkGFLK7l39Kj0FfycRg==}
+    hasBin: true
 
   next-tick@0.2.2:
     resolution: {integrity: sha512-f7h4svPtl+QidoBv4taKXUjJ70G2asaZ8G28nS0OkqaalX8dwwrtWtyxEDPK62AC00ur/+/E0pUwBwY5EPn15Q==}
@@ -11006,6 +11005,11 @@ packages:
   zlibjs@0.3.1:
     resolution: {integrity: sha512-+J9RrgTKOmlxFSDHo0pI1xM6BLVUv+o0ZT9ANtCxGkjIVCCUdx9alUF8Gm+dGLKbkkkidWIHFDZHDMpfITt4+w==}
 
+  zod-to-json-schema@3.21.4:
+    resolution: {integrity: sha512-fjUZh4nQ1s6HMccgIeE0VP4QG/YRGPmyjO9sAh890aQKPEk3nqbfUXhMFaC+Dr5KvYBm8BCyvfpZf2jY9aGSsw==}
+    peerDependencies:
+      zod: ^3.21.4
+
   zod-to-json-schema@3.22.4:
     resolution: {integrity: sha512-2Ed5dJ+n/O3cU383xSY28cuVi0BCQhF8nYqWU5paEpl7fVdqdAmiLdqLyfblbNdfOFwFfi/mqU4O1pwc60iBhQ==}
     peerDependencies:
@@ -11018,6 +11022,9 @@ packages:
 
   zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
+
+  zod@3.23.5:
+    resolution: {integrity: sha512-fkwiq0VIQTksNNA131rDOsVJcns0pfVUjHzLrNBiF/O/Xxb5lQyEXkhZWcJ7npWsYlvs+h0jFWXXy4X46Em1JA==}
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -11174,7 +11181,7 @@ snapshots:
       '@babel/traverse': 7.23.2
       '@babel/types': 7.23.0
       convert-source-map: 1.9.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -11585,7 +11592,7 @@ snapshots:
       '@babel/helper-split-export-declaration': 7.22.6
       '@babel/parser': 7.23.4
       '@babel/types': 7.23.4
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -14123,13 +14130,6 @@ snapshots:
       package-hash: 4.0.0
       write-file-atomic: 3.0.3
 
-  call-bind@1.0.6:
-    dependencies:
-      es-errors: 1.3.0
-      function-bind: 1.1.2
-      get-intrinsic: 1.2.4
-      set-function-length: 1.2.2
-
   call-bind@1.0.7:
     dependencies:
       es-define-property: 1.0.0
@@ -14781,6 +14781,10 @@ snapshots:
     dependencies:
       ms: 2.1.2
 
+  debug@4.3.4:
+    dependencies:
+      ms: 2.1.2
+
   debug@4.3.4(supports-color@8.1.1):
     dependencies:
       ms: 2.1.2
@@ -14850,7 +14854,7 @@ snapshots:
   define-properties@1.2.1:
     dependencies:
       define-data-property: 1.1.4
-      has-property-descriptors: 1.0.1
+      has-property-descriptors: 1.0.2
       object-keys: 1.1.1
 
   defined@1.0.1: {}
@@ -15195,8 +15199,8 @@ snapshots:
       get-symbol-description: 1.0.0
       globalthis: 1.0.3
       gopd: 1.0.1
-      has-property-descriptors: 1.0.1
-      has-proto: 1.0.1
+      has-property-descriptors: 1.0.2
+      has-proto: 1.0.3
       has-symbols: 1.0.3
       hasown: 2.0.2
       internal-slot: 1.0.7
@@ -15243,8 +15247,8 @@ snapshots:
       function-bind: 1.1.2
       get-intrinsic: 1.2.4
       globalthis: 1.0.3
-      has-property-descriptors: 1.0.1
-      has-proto: 1.0.1
+      has-property-descriptors: 1.0.2
+      has-proto: 1.0.3
       has-symbols: 1.0.3
       internal-slot: 1.0.7
       iterator.prototype: 1.1.2
@@ -16212,15 +16216,9 @@ snapshots:
     dependencies:
       is-browser: 2.1.0
 
-  has-property-descriptors@1.0.1:
-    dependencies:
-      get-intrinsic: 1.2.4
-
   has-property-descriptors@1.0.2:
     dependencies:
       es-define-property: 1.0.0
-
-  has-proto@1.0.1: {}
 
   has-proto@1.0.3: {}
 
@@ -16683,7 +16681,7 @@ snapshots:
 
   is-nan@1.3.2:
     dependencies:
-      call-bind: 1.0.6
+      call-bind: 1.0.7
       define-properties: 1.1.4
 
   is-negative-zero@2.0.2: {}
@@ -17271,7 +17269,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 18.19.21
+      '@types/node': 18.19.31
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -18200,6 +18198,18 @@ snapshots:
       - supports-color
       - webpack
 
+  next-rest-framework@6.0.0-beta.4(zod@3.23.5):
+    dependencies:
+      chalk: 4.1.2
+      commander: 10.0.1
+      formidable: 3.5.1
+      lodash: 4.17.21
+      prettier: 3.0.2
+      qs: 6.11.2
+      zod-to-json-schema: 3.21.4(zod@3.23.5)
+    transitivePeerDependencies:
+      - zod
+
   next-tick@0.2.2: {}
 
   next-tick@1.1.0: {}
@@ -18467,7 +18477,7 @@ snapshots:
 
   object-is@1.1.5:
     dependencies:
-      call-bind: 1.0.6
+      call-bind: 1.0.7
       define-properties: 1.1.4
 
   object-keys@1.1.1: {}
@@ -19164,7 +19174,7 @@ snapshots:
 
   qs@6.11.2:
     dependencies:
-      side-channel: 1.0.4
+      side-channel: 1.0.6
 
   qs@6.12.0:
     dependencies:
@@ -20269,7 +20279,7 @@ snapshots:
     dependencies:
       define-data-property: 1.1.4
       functions-have-names: 1.2.3
-      has-property-descriptors: 1.0.1
+      has-property-descriptors: 1.0.2
 
   setheader@1.0.2:
     dependencies:
@@ -21015,7 +21025,7 @@ snapshots:
     dependencies:
       call-bind: 1.0.7
       for-each: 0.3.3
-      has-proto: 1.0.1
+      has-proto: 1.0.3
       is-typed-array: 1.1.13
 
   typed-array-byte-offset@1.0.0:
@@ -21023,7 +21033,7 @@ snapshots:
       available-typed-arrays: 1.0.5
       call-bind: 1.0.7
       for-each: 0.3.3
-      has-proto: 1.0.1
+      has-proto: 1.0.3
       is-typed-array: 1.1.13
 
   typed-array-length@1.0.4:
@@ -21767,6 +21777,10 @@ snapshots:
 
   zlibjs@0.3.1: {}
 
+  zod-to-json-schema@3.21.4(zod@3.23.5):
+    dependencies:
+      zod: 3.23.5
+
   zod-to-json-schema@3.22.4(zod@3.22.4):
     dependencies:
       zod: 3.22.4
@@ -21776,5 +21790,7 @@ snapshots:
       zod: 3.22.4
 
   zod@3.22.4: {}
+
+  zod@3.23.5: {}
 
   zwitch@2.0.4: {}

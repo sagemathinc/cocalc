@@ -35,7 +35,9 @@
     "start": "unset PGHOST; pnpm exec next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; pnpm start",
     "test": "pnpm exec tsc --build tsconfig-dist.json && pnpm exec jest ./dist",
-    "prepublishOnly": "pnpm test"
+    "prepublishOnly": "pnpm test",
+    "generate-openapi": "cd dist && rm -f public && ln -sf ../public public && npx next-rest-framework generate",
+    "validate-openapi": "cd dist && rm -f public && ln -sf ../public public && npx next-rest-framework validate"
   },
   "repository": {
     "type": "git",
@@ -76,6 +78,7 @@
     "ms": "2.1.2",
     "next": "14.1.0",
     "next-remove-imports": "^1.0.11",
+    "next-rest-framework": "6.0.0-beta.4",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
     "react": "^18.2.0",
@@ -89,7 +92,8 @@
     "tslib": "^2.3.1",
     "use-async-effect": "^2.2.7",
     "uuid": "^8.3.2",
-    "xmlbuilder2": "^3.0.2"
+    "xmlbuilder2": "^3.0.2",
+    "zod": "^3.23.5"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.23.3",

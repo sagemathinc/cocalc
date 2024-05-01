@@ -143,6 +143,7 @@ tsconfig.tsbuildinfo
 src/packages/next/cache
 src/packages/next/software-inventory/*.json
 src/packages/next/lib/software-inventory/*.json
+src/packages/next/public/openapi.json
 
 src/compute/compute/dev/conf*
 src/g
