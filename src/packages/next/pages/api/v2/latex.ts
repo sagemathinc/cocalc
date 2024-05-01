@@ -159,6 +159,7 @@ export default apiRoute({
             ),
           project_id: z
             .string()
+            .uuid()
             .optional()
             .describe(
               "The v4 uuid of a project you have access to.  If not given, your most recent project is used, or if you have no projects, one is created.  The project is started if it isn't already running.  WARNING: if the project isn't running you may get an error while it is starting; if you retry in a few seconds then it works.",
@@ -171,12 +172,14 @@ export default apiRoute({
             ),
           timeout: z
             .number()
+            .gte(5)
             .default(30)
             .describe(
               "If given, this is a timeout in seconds for how long the LaTeX build command can run before it is killed. You should increase this from the default if you're building large documents.  See also the only_read_pdf option.",
             ),
           ttl: z
             .number()
+            .gte(60)
             .describe("How long in seconds the generated PDF url is valid")
             .default(3600),
           only_read_pdf: z
