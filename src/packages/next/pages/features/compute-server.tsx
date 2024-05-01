@@ -21,6 +21,21 @@ import ComputeServerGPU from "public/features/cocalc-compute_server-gpu-20231127
 import ComputeServerSelector from "public/features/cocalc-compute_server-select-20231127.png";
 import A from "components/misc/A";
 import ComputeServerTemplates from "components/landing/compute-server-templates";
+import Videos from "components/videos";
+
+const VIDEOS = [
+  {
+    id: "7fzLd6HD-Qs",
+    title: "Using Anaconda and Python with a GPU on a compute server on CoCalc",
+  },
+  { id: "OMN1af0LUcA", title: "Using OpenWebUI and Ollama On CoCalc" },
+  { id: "JG6jm6yv_KE", title: "PyTorch with a GPU on CoCalc" },
+  { id: "NkNx6tx3nu0", title: "Running On-Prem Compute Servers on CoCalc" },
+  {
+    id: "Uwn3ngzXD0Y",
+    title: "JAX Quickstart on CoCalc using a GPU (or on CPU)",
+  },
+];
 
 export const component = "Compute Servers";
 export const title = `Enhance your projects with ${component}`;
@@ -143,16 +158,7 @@ export default function ComputeServer({ customize }) {
                       anywhere in the world.
                     </li>
                   </ul>
-                  {/* Not an ideal choice of video -- will change later. */}
-                  <iframe
-                    width="560"
-                    height="315"
-                    src="https://www.youtube.com/embed/kcxyShH3wYE?si=1utaPIniNOXgSJ2N"
-                    title="YouTube video player"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  ></iframe>
+                  <Videos videos={VIDEOS} />
                 </Paragraph>
               </>
             }

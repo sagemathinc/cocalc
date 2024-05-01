@@ -72,7 +72,7 @@ export default function PublicTemplates({
         }}
         placeholder={
           <div style={{ fontSize: "13pt" }}>
-            Select a server configuration and modify it to fit your needs...
+            Select a compute server, then modify it to fit your needs...
           </div>
         }
       />
