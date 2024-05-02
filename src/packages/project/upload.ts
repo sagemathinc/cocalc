@@ -13,6 +13,7 @@ const MAX_FILE_SIZE_MB = 10000;
 
 import { Router } from "express";
 import formidable from "formidable";
+import { promises as fs, constants as fs_constants } from "node:fs";
 import {
   appendFile,
   copyFile,
@@ -22,6 +23,8 @@ import {
   unlink,
 } from "node:fs/promises";
 import { join } from "node:path";
+
+const { F_OK, W_OK, R_OK } = fs_constants;
 
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { getLogger } from "./logger";
@@ -63,6 +66,14 @@ export default function init(): Router {
       // ensure target path existsJS
       dbg("ensure target path exists... ", uploadDir);
       await mkdir(uploadDir, { recursive: true });
+
+      // we check explicitly, otherwise: https://github.com/sagemathinc/cocalc/issues/7513
+      dbg("check if uploadDir has read/writewrite permissions... ", uploadDir);
+      try {
+        await fs.access(uploadDir, F_OK | R_OK | W_OK);
+      } catch {
+        throw new Error("upload directory does not have write permissions");
+      }
 
       const form = formidable({
         uploadDir,
