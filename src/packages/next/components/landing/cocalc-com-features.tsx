@@ -26,6 +26,7 @@ import assignments from "public/features/cocalc-course-assignments-2019.png";
 import RTC from "public/features/cocalc-real-time-jupyter.png";
 import ComputeServers from "./compute-servers";
 import { LANDING_HEADER_LEVEL } from "./constants";
+import { DOC_AI } from "@cocalc/util/consts/ui";
 
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
 export function CoCalcComFeatures() {
@@ -526,14 +527,10 @@ export function CoCalcComFeatures() {
       >
         <Paragraph>
           A wide range of{" "}
-          <A href={"https://doc.cocalc.com/chatgpt.html"}>
-            Generative AI Large Language Models
-          </A>{" "}
-          are highly integrated into {siteName}. This helps you{" "}
-          <A href={"https://doc.cocalc.com/chatgpt.html#jupyter-notebooks"}>
-            fix errors
-          </A>
-          , generate code or LaTeX snippets, summarize documents, and much more.
+          <A href={DOC_AI}>Generative AI Large Language Models</A> are highly
+          integrated into {siteName}. This helps you{" "}
+          <A href={`${DOC_AI}#jupyter-notebooks`}>fix errors</A>, generate code
+          or LaTeX snippets, summarize documents, and much more.
         </Paragraph>
       </Info>
     );

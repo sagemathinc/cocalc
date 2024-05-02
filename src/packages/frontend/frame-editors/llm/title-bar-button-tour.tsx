@@ -1,12 +1,15 @@
 import { Button, Checkbox, Tour } from "antd";
 import type { TourProps } from "antd";
+import { useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
-import { useState } from "react";
 import { A } from "@cocalc/frontend/components/A";
 import track from "@cocalc/frontend/user-tracking";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { DOC_AI } from "@cocalc/util/consts/ui";
 
+// ATTN: don't change this string!
 const NAME = "chatgpt-title-bar-button";
 
 export default function TitleBarButtonTour({
@@ -20,10 +23,7 @@ export default function TitleBarButtonTour({
   const [open, setOpen] = useState<boolean>(false);
   if (IS_MOBILE || tours?.includes("all") || tours?.includes(NAME)) {
     return (
-      <A
-        href="https://doc.cocalc.com/chatgpt.html"
-        style={{ fontSize: "10pt" }}
-      >
+      <A href={DOC_AI} style={{ fontSize: "10pt" }}>
         <Icon name="external-link" /> Docs
       </A>
     );
@@ -32,15 +32,15 @@ export default function TitleBarButtonTour({
     {
       title: (
         <>
-          ChatGPT <A href="https://doc.cocalc.com/chatgpt.html">(docs)</A>
+          AI Assistant <A href={DOC_AI}>(docs)</A>
         </>
       ),
       description: (
         <div>
-          This tour shows you how ChatGPT helps you become more productive with
-          Jupyter notebooks, Python, LaTeX, and more. This feature will save you
-          time and improve your results in all your projects, homework, and
-          learning experiences.
+          This tour shows you how the AI Assistant helps you become more
+          productive with Jupyter notebooks, Python, LaTeX, and more. This
+          feature will save you time and improve your results in all your
+          projects, homework, and learning experiences.
         </div>
       ),
     },
@@ -77,11 +77,11 @@ export default function TitleBarButtonTour({
       title: <>Choose Your Context</>,
       description: (
         <div>
-          Select a part of your document and to send it in your request to
-          ChatGPT. You can also copy as much as possible from your document to
-          the message by clicking "All." If you just want to ask a general
-          question, click "None." This provides the most flexible, user-friendly
-          options for sharing parts of your document with ChatGPT.
+          Select a part of your document and to send it in your request to a
+          language model of your choice. You can also copy as much as possible
+          from your document to the message by clicking "All." If you just want
+          to ask a general question, click "None." This provides the most
+          flexible options for processing parts of your document.
         </div>
       ),
       target: scopeRef.current,
@@ -91,8 +91,9 @@ export default function TitleBarButtonTour({
       description: (
         <div>
           This shows you what will be sent along with your question. This
-          guarantees that you're asking the question that you want and gives
-          ChatGPT the context it needs to provide the best response it can.
+          guarantees that you're asking the question that you want and gives the
+          selected language model the context it needs to provide the best
+          response it can.
         </div>
       ),
       target: contextRef.current,
@@ -105,12 +106,12 @@ export default function TitleBarButtonTour({
       ),
       description: (
         <div>
-          Finish your process by submitting your question to ChatGPT. In a few
-          seconds, the AI will answer in a chatroom that appears off to the
-          right. If the result is useful, you can then copy and paste it back
-          into your document, or ask follow-up questions to refine your results.
-          This will help you get unstuck, complete your projects and homework
-          with ease, and increase your productivity.
+          Finish your process by submitting your question to the selected
+          language model. In a few seconds, the AI will answer in a chatroom
+          that appears off to the right. If the result is useful, you can then
+          copy and paste it back into your document, or ask follow-up questions
+          to refine your results. This will help you get unstuck, complete your
+          projects and homework with ease, and increase your productivity.
           <hr />
           <Checkbox
             onChange={(e) => {
