@@ -1,17 +1,18 @@
+import { Button, Flex, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { CSSProperties, useCallback, useEffect, useRef } from "react";
 import { redux, useActions, useRedux, useTypedRedux } from "../app-framework";
-import { IS_MOBILE } from "../feature";
-import { user_activity } from "../tracker";
-import { A, Icon, Loading, SearchInput } from "../components";
-import { Button, Tooltip } from "antd";
-import { ProjectUsers } from "../projects/project-users";
 import { AddCollaborators } from "../collaborators";
-import { markChatAsReadIfUnseen, INPUT_HEIGHT } from "./utils";
+import { A, Icon, Loading, SearchInput } from "../components";
+import { IS_MOBILE } from "../feature";
+import { ProjectUsers } from "../projects/project-users";
+import { user_activity } from "../tracker";
+import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
+import { LLMCostEstimation } from "./llm-cost-estimation";
+import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
-import type { ChatActions } from "./actions";
 
 interface Props {
   project_id: string;
@@ -27,6 +28,11 @@ export default function SideChat({ project_id, path, style }: Props) {
   const addCollab: boolean = useRedux(["add_collab"], project_id, path);
   const is_uploading = useRedux(["is_uploading"], project_id, path);
   const project_map = useTypedRedux("projects", "project_map");
+  const llm_cost_room: [number, number] = useRedux(
+    ["llm_cost_room"],
+    project_id,
+    path,
+  );
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
   const submitMentionsRef = useRef<Function>();
@@ -132,8 +138,8 @@ export default function SideChat({ project_id, path, style }: Props) {
       </div>
 
       <div>
-        {input.trim() && (
-          <div>
+        {input.trim() ? (
+          <Flex vertical={false} align="center" justify="space-between">
             <Tooltip title="Send message (shift+enter)">
               <Button
                 style={{ margin: "5px 0 5px 5px" }}
@@ -160,8 +166,13 @@ export default function SideChat({ project_id, path, style }: Props) {
             >
               Cancel
             </Button> */}
-          </div>
-        )}
+            <LLMCostEstimation
+              compact
+              llm_cost={llm_cost_room}
+              style={{ margin: "5px" }}
+            />
+          </Flex>
+        ) : undefined}
         <ChatInput
           autoFocus
           cacheId={`${path}${project_id}-new`}
@@ -172,7 +183,12 @@ export default function SideChat({ project_id, path, style }: Props) {
           }}
           style={{ height: INPUT_HEIGHT }}
           height={INPUT_HEIGHT}
-          onChange={(value) => actions.set_input(value)}
+          onChange={(value) => {
+            actions.set_input(value);
+            const reply =
+              submitMentionsRef.current?.({ chatgpt: true }) ?? value;
+            actions?.llm_estimate_cost(reply, "room");
+          }}
           submitMentionsRef={submitMentionsRef}
           syncdb={actions.syncdb}
           date={0}

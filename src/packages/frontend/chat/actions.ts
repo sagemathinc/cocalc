@@ -41,6 +41,7 @@ import {
   MessageHistory,
 } from "./types";
 import { getSelectedHashtagsSearch } from "./utils";
+import { debounce } from "lodash";
 
 const MAX_CHATSTREAM = 10;
 
@@ -434,16 +435,18 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   public set_input(input: string): void {
-    this.llm_estimate_cost(input);
     this.setState({ input });
   }
 
-  public llm_estimate_cost: typeof this._llm_estimate_cost = reuseInFlight(
-    this._llm_estimate_cost.bind(this),
+  public llm_estimate_cost: typeof this._llm_estimate_cost = debounce(
+    reuseInFlight(this._llm_estimate_cost).bind(this),
+    1000,
+    { leading: true, trailing: true },
   );
 
   private async _llm_estimate_cost(
     input: string,
+    type: "room" | "reply",
     message?: ChatMessage,
   ): Promise<void> {
     if (!this.store) return;
@@ -453,6 +456,8 @@ export class ChatActions extends Actions<ChatState> {
 
     // this is either a new message or in a reply, but mentions an LLM
     let model: LanguageModel | null | false = getLanguageModel(input);
+    const key: keyof ChatState =
+      type === "room" ? "llm_cost_room" : "llm_cost_reply";
 
     input = stripMentions(input);
     let history: string[] = [];
@@ -470,7 +475,7 @@ export class ChatActions extends Actions<ChatState> {
 
     if (model) {
       if (isFreeModel(model, is_cocalc_com)) {
-        this.setState({ llm_cost: [0, 0] });
+        this.setState({ [key]: [0, 0] });
       } else {
         const llm_markup = this.redux.getStore("customize").get("llm_markup");
         // do not import until needed -- it is HUGE!
@@ -482,10 +487,10 @@ export class ChatActions extends Actions<ChatState> {
           maxTokens,
         );
         const { min, max } = calcMinMaxEstimation(tokens, model, llm_markup);
-        this.setState({ llm_cost: [min, max] });
+        this.setState({ [key]: [min, max] });
       }
     } else {
-      this.setState({ llm_cost: null });
+      this.setState({ [key]: null });
     }
   }
 

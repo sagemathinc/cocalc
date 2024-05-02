@@ -132,11 +132,11 @@ interface Props {
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
 
-  llm_cost?: [number, number] | null;
+  llm_cost_reply?: [number, number] | null;
 }
 
 export default function Message(props: Props) {
-  const { is_thread, is_folded, is_thread_body, mode, llm_cost } = props;
+  const { is_thread, is_folded, is_thread_body, mode, llm_cost_reply } = props;
 
   const hideTooltip =
     useTypedRedux("account", "other_settings").get("hide_file_popovers") ??
@@ -649,7 +649,12 @@ export default function Message(props: Props) {
           date={-date}
           onChange={(value) => {
             replyMessageRef.current = value;
-            props.actions?.llm_estimate_cost(value, props.message.toJS());
+            const reply = replyMentionsRef.current?.() ?? value;
+            props.actions?.llm_estimate_cost(
+              reply,
+              "reply",
+              props.message.toJS(),
+            );
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -669,7 +674,7 @@ export default function Message(props: Props) {
             Cancel
           </Button>
           <LLMCostEstimation
-            llm_cost={llm_cost}
+            llm_cost={llm_cost_reply}
             compact={false}
             style={{ display: "inline-block", marginLeft: "10px" }}
           />
@@ -923,7 +928,7 @@ function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
     <Dropdown.Button
       menu={{ items: entries, style: { overflow: "auto", maxHeight: "50vh" } }}
       size="small"
-      style={{ display: "inline" }}
+      style={{ display: "inline", whiteSpace: "nowrap" }}
       icon={<Icon name="angle-down" />}
       trigger={["click"]}
       onClick={() => {

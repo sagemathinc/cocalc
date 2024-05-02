@@ -36,7 +36,8 @@ export interface ChatState {
   //  scrollToBottom = ms since epoch -- scroll to the bottom of that thread
   scrollToBottom?: number;
   today: boolean;
-  llm_cost?: [number, number] | null;
+  llm_cost_room?: [number, number] | null;
+  llm_cost_reply?: [number, number] | null;
 }
 
 export class ChatStore extends Store<ChatState> {

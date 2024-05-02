@@ -941,9 +941,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     <ChangeContext.Provider value={{ change, editor }}>
       <div
         ref={divRef}
-        className={noVfill || height == "auto" ? undefined : "smc-vfill"}
+        className={noVfill || height === "auto" ? undefined : "smc-vfill"}
         style={{
-          overflow: noVfill || height == "auto" ? undefined : "auto",
+          overflow: noVfill || height === "auto" ? undefined : "auto",
           backgroundColor: "white",
           ...style,
           height,

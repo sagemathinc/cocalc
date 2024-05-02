@@ -95,7 +95,11 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   const search = useRedux(["search"], project_id, path);
   const messages = useRedux(["messages"], project_id, path);
   const today: boolean = useRedux(["today"], project_id, path);
-  const llm_cost: [number, number] = useRedux(["llm_cost"], project_id, path);
+  const llm_cost_room: [number, number] = useRedux(
+    ["llm_cost_room"],
+    project_id,
+    path,
+  );
 
   const submitMentionsRef = useRef<Function>();
   const scrollToBottomRef = useRef<any>(null);
@@ -394,6 +398,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               height={INPUT_HEIGHT}
               onChange={(value) => {
                 actions.set_input(value);
+                const reply =
+                  submitMentionsRef.current?.({ chatgpt: true }) ?? value;
+                actions?.llm_estimate_cost(reply, "room");
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
@@ -409,12 +416,17 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               marginBottom: "0",
             }}
           >
-            <LLMCostEstimation
-              llm_cost={llm_cost}
-              compact
-              style={{ fontSize: "85%", textAlign: "center" }}
-            />
             <div style={{ flex: 1 }} />
+            <LLMCostEstimation
+              llm_cost={llm_cost_room}
+              compact
+              style={{
+                flex: 0,
+                fontSize: "85%",
+                textAlign: "center",
+                margin: "0 0 5px 0",
+              }}
+            />
             <Button
               onClick={on_send_button_click}
               disabled={input.trim() === "" || is_uploading}

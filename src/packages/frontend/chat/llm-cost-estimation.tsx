@@ -27,7 +27,9 @@ export function LLMCostEstimation({
   const cost = isFree ? (
     <>Free</>
   ) : compact ? (
-    <Tooltip title={range}>${(sum / 2).toFixed(2)}</Tooltip>
+    <Tooltip title={<>Estimated cost of calling the LLM: {range}</>}>
+      ~${(sum / 2).toFixed(2)}
+    </Tooltip>
   ) : (
     <>{range}</>
   );

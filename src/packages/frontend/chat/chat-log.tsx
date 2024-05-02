@@ -48,7 +48,11 @@ export function ChatLog(props: Readonly<Props>) {
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const fontSize = useRedux(["font_size"], project_id, path);
   const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
-  const llm_cost: [number, number] = useRedux(["llm_cost"], project_id, path);
+  const llm_cost_reply: [number, number] = useRedux(
+    ["llm_cost_reply"],
+    project_id,
+    path,
+  );
 
   // see similar code in task list:
   const selectedHashtags0 = useRedux(["selectedHashtags"], project_id, path);
@@ -206,7 +210,7 @@ export function ChatLog(props: Readonly<Props>) {
                 allowReply={
                   messages.getIn([sortedDates[index + 1], "reply_to"]) == null
                 }
-                llm_cost={llm_cost}
+                llm_cost_reply={llm_cost_reply}
               />
             </div>
           );
