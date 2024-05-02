@@ -18,3 +18,7 @@ export const SHARE_FLAGS = {
   DISABLED: { unlisted: false, disabled: true, authenticated: false }, // aka PRIVATE
   AUTHENTICATED: { unlisted: false, disabled: false, authenticated: true },
 } as const;
+
+// documentation pages
+
+export const DOC_AI = "https://doc.cocalc.com/ai.html";
