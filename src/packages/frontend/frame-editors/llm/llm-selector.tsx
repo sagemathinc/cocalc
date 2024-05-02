@@ -7,7 +7,6 @@ import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
   ANTHROPIC_MODELS,
-  DEFAULT_MODEL,
   GOOGLE_MODELS,
   LLMServiceName,
   LLM_DESCR,
@@ -26,9 +25,6 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import type { OllamaPublic } from "@cocalc/util/types/llm";
 import { round2up } from "@cocalc/util/misc";
-
-export { DEFAULT_MODEL };
-export type { LanguageModel };
 
 type SizeType = ConfigProviderProps["componentSize"];
 

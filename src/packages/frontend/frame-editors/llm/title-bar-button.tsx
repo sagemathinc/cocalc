@@ -23,13 +23,13 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
-import { getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
+import { LanguageModel, getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
 import Context from "./context";
 import { Options } from "./create-chat";
-import LLMSelector, { LanguageModel, modelToName } from "./llm-selector";
+import LLMSelector, { modelToName } from "./llm-selector";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import type { Scope } from "./types";
 
