@@ -135,6 +135,8 @@ function rmGlob(path: string): string {
   return path.slice(0, path.length - 4) + ".*";
 }
 
+// ** OpenAPI below **
+
 import { z } from "zod";
 import { apiRoute, apiRouteOperation } from "next-rest-framework";
 
@@ -197,25 +199,29 @@ export default apiRoute({
       {
         status: 200,
         contentType: "application/json",
-        body: z.object({
-          error: z
-            .string()
-            .optional()
-            .describe("Error message is something goes badly wrong."),
-          compile: z.object({
-            stdout: z.string(),
-            stderr: z.string(),
-            exit_code: z.number(),
+        body: z.union([
+          z.object({
+            error: z
+              .string()
+              .optional()
+              .describe("Error message is something goes badly wrong."),
           }),
-          url: z
-            .string()
-            .describe("URL where you can view the generated PDF file"),
-          pdf: z
-            .string()
-            .describe(
-              "information about reading the PDF from disk, e.g., an error if the PDF does not exist.",
-            ),
-        }),
+          z.object({
+            compile: z.object({
+              stdout: z.string(),
+              stderr: z.string(),
+              exit_code: z.number(),
+            }),
+            url: z
+              .string()
+              .describe("URL where you can view the generated PDF file"),
+            pdf: z
+              .string()
+              .describe(
+                "information about reading the PDF from disk, e.g., an error if the PDF does not exist.",
+              ),
+          }),
+        ]),
       },
     ])
     .handler(handle),
