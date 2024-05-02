@@ -56,17 +56,23 @@ export function LLMCostEstimation({
   tokens, // Note: use the "await imported" numTokensUpperBound function to get the number of tokens
   type,
   maxOutputTokens,
+  paragraph = false,
 }: {
   model: LanguageModel;
   tokens: number;
   type?: BaseType;
   maxOutputTokens?: number;
+  paragraph?: boolean;
 }) {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
 
   if (isFreeModel(model, isCoCalcCom)) {
-    return <Wrapper type={type}>This model is free to use.</Wrapper>;
+    return (
+      <Wrapper type={type} paragraph={paragraph}>
+        This model is free to use.
+      </Wrapper>
+    );
   }
 
   const { min, max } = calcMinMaxEstimation(
@@ -79,7 +85,7 @@ export function LLMCostEstimation({
   const minTxt = round2down(min).toFixed(2);
   const maxTxt = round2up(max).toFixed(2);
   return (
-    <Wrapper type={type}>
+    <Wrapper type={type} paragraph={paragraph}>
       Estimated cost: ${minTxt} to ${maxTxt}{" "}
       <HelpIcon title="LLM Cost Estimation" placement={"topLeft"}>
         {ESTIMATION_HELP_TEXT}
@@ -93,11 +99,12 @@ export function LLMCostEstimation({
   );
 }
 
-function Wrapper({ children, type }) {
+function Wrapper({ children, type, paragraph }) {
+  const C = paragraph ? Paragraph : Text;
   return (
-    <Text style={{ textAlign: "right" }} type={type}>
+    <C style={{ textAlign: "right" }} type={type}>
       {children}
-    </Text>
+    </C>
   );
 }
 

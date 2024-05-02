@@ -17,6 +17,8 @@ import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 import LLMSelector, { modelToMention, modelToName } from "./llm-selector";
 import shortenError from "./shorten-error";
+import { LLMCostEstimation } from "../../misc/llm-cost-estimation";
+import useAsyncEffect from "use-async-effect";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -52,6 +54,7 @@ export default function HelpMeFix({
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
   const projectsStore: ProjectsStore = redux.getStore("projects");
   const [model, setModel] = useLanguageModelSetting(project_id);
+  const [tokens, setTokens] = useState<number>(0);
 
   if (
     redux == null ||
@@ -59,6 +62,28 @@ export default function HelpMeFix({
   ) {
     return null;
   }
+
+  const inputText = createMessage({
+    error: get(error),
+    task,
+    input: get(input),
+    language,
+    extraFileInfo,
+    prioritizeLastInput,
+    model,
+    open: true,
+    full: false,
+  });
+
+  useAsyncEffect(async () => {
+    // compute the number of tokens (this MUST be a lazy import):
+    const { getMaxTokens, numTokensUpperBound } = await import(
+      "@cocalc/frontend/misc/llm"
+    );
+
+    setTokens(numTokensUpperBound(inputText, getMaxTokens(model)));
+  }, [model, inputText]);
+
   return (
     <div>
       <PopconfirmKeyboard
@@ -83,18 +108,12 @@ export default function HelpMeFix({
             }}
           >
             The following will be sent to {modelToName(model)}:
-            <RawPrompt
-              input={createMessage({
-                error: get(error),
-                task,
-                input: get(input),
-                language,
-                extraFileInfo,
-                prioritizeLastInput,
-                model,
-                open: true,
-                full: false,
-              })}
+            <RawPrompt input={inputText} />
+            <LLMCostEstimation
+              model={model}
+              tokens={tokens}
+              type="secondary"
+              paragraph
             />
           </div>
         )}
