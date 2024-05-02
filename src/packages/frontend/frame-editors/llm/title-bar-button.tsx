@@ -28,7 +28,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
 import Context from "./context";
-import { Options } from "./create-chat";
+import { Options, createChatMessage } from "./create-chat";
 import LLMSelector, { modelToName } from "./llm-selector";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import type { Scope } from "./types";
@@ -196,6 +196,7 @@ export default function LanguageModelTitleBarButton({
       id,
       scope,
       model,
+      getQueryLLMOptions(),
     );
     setTokens(tokens);
     setInput(input);
@@ -217,12 +218,12 @@ export default function LanguageModelTitleBarButton({
 
   useEffect(() => {
     doUpdateInput();
-  }, [id, scope, visible, path, showDialog, model]);
+  }, [id, scope, visible, path, showDialog, model, tag, input, custom]);
 
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType),
   );
-
+  doUpdateInput
   const queryLLM = async (options: Options) => {
     setError("");
     try {
@@ -236,27 +237,33 @@ export default function LanguageModelTitleBarButton({
     }
   };
 
-  const doIt = () => {
+  const doIt = async () => {
+    const options = getQueryLLMOptions();
+    if (options == null) return;
+    await queryLLM(options);
+    setShowDialog(false);
+    setError("");
+    actions.focus();
+  };
+
+  function getQueryLLMOptions(): Options | null {
     if (custom.trim()) {
-      queryLLM({
+      return {
         command: custom.trim(),
         codegen: false,
         allowEmpty: true,
         model,
         tag: "custom",
-      });
-      return;
-    }
-    for (const preset of PRESETS) {
-      if (preset.tag == tag) {
-        queryLLM({ ...preset, model });
-        break;
+      };
+    } else {
+      for (const preset of PRESETS) {
+        if (preset.tag === tag) {
+          return { ...preset, model };
+        }
       }
     }
-    setShowDialog(false);
-    setError("");
-    actions.focus();
-  };
+    return null;
+  }
 
   function renderTitle() {
     return (
@@ -390,7 +397,7 @@ export default function LanguageModelTitleBarButton({
             allowClear
             autoFocus
             style={{ flex: 1 }}
-            placeholder={"What you want to do..."}
+            placeholder={"What do you want to do..."}
             value={custom}
             onChange={(e) => {
               setCustom(e.target.value);
@@ -468,22 +475,24 @@ async function updateInput(
   id,
   scope,
   model: LanguageModel,
+  options: Options | null,
 ): Promise<{ input: string; inputOrig: string; tokens: number }> {
-  if (scope === "none") {
+  if (options == null || scope === "none") {
     return { input: "", inputOrig: "", tokens: 0 };
   }
   let input = actions.languageModelGetContext(id, scope);
   const inputOrig = input;
-  // Truncate input (also this MUST be a lazy import):
-  const { truncateMessage, getMaxTokens, numTokensUpperBound } = await import(
+
+  // construct the message (message.input is the maybe truncated input)
+  const message = await createChatMessage(actions, id, options, input);
+
+  // compute the number of tokens (this MUST be a lazy import):
+  const { getMaxTokens, numTokensUpperBound } = await import(
     "@cocalc/frontend/misc/llm"
   );
-  if (input.length > 2000) {
-    const maxTokens = getMaxTokens(model) - 1000; // 1000 tokens reserved for output and the prompt below.
-    input = truncateMessage(input, maxTokens);
-  }
-  const tokens = numTokensUpperBound(input, getMaxTokens(model));
-  return { input, inputOrig, tokens };
+
+  const tokens = numTokensUpperBound(message.message, getMaxTokens(model));
+  return { input: message.input, inputOrig, tokens };
 }
 
 function getScope(id, actions: Actions): Scope {
