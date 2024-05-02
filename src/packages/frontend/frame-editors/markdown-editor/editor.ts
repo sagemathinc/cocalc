@@ -86,6 +86,7 @@ const EDITOR_SPEC = {
       "increase_font_size",
       "sync",
       "show_table_of_contents",
+      "format-ai_formula",
       "format-header",
       "format-text",
       "format-font",

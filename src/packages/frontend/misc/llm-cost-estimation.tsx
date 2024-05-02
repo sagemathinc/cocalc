@@ -31,46 +31,57 @@ The maximum (just use the "MAX" function, easier than the median) is at almost t
 That's the basis for the number 100 and 1000 below!
 */
 
-
-export const ESTIMATION_HELP_TEXT = (<><Paragraph>
-  The cost of calling a large language model is based on the number of
-  tokens. A token can be thought of as a piece of a word. For example,
-  the word "cat" is one token, while "unbelievable" breaks down into
-  three tokens: "un", "believe", "able".
-</Paragraph>
-<Paragraph>
-  The total cost of your interaction depends on the number of tokens in
-  your message and the LLM's reply. Please note that the exact cost is
-  variable for each query. We're unable to predict the precise charge
-  for each interaction, as it depends on the specific number tokens.
-</Paragraph></>)
+export const ESTIMATION_HELP_TEXT = (
+  <>
+    <Paragraph>
+      The cost of calling a large language model is based on the number of
+      tokens. A token can be thought of as a piece of a word. For example, the
+      word "cat" is one token, while "unbelievable" breaks down into three
+      tokens: "un", "believe", "able".
+    </Paragraph>
+    <Paragraph>
+      The total cost of your interaction depends on the number of tokens in your
+      message and the LLM's reply. Please note that the exact cost is variable
+      for each query. We're unable to predict the precise charge for each
+      interaction, as it depends on the specific number tokens.
+    </Paragraph>
+    <Paragraph>
+      You can see your recent language model charges in Account → Purchases.
+    </Paragraph>
+  </>
+);
 
 export function LLMCostEstimation({
   model,
   tokens, // Note: use the "await imported" numTokensUpperBound function to get the number of tokens
   type,
+  maxOutputTokens,
 }: {
   model: LanguageModel;
   tokens: number;
   type?: BaseType;
+  maxOutputTokens?: number;
 }) {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
 
   if (isFreeModel(model, isCoCalcCom)) {
-    return (
-      <Text style={{ textAlign: "right" }}>This model is free to use.</Text>
-    );
+    return <Wrapper type={type}>This model is free to use.</Wrapper>;
   }
 
-  const { min, max } = calcMinMaxEstimation(tokens, model, llm_markup);
+  const { min, max } = calcMinMaxEstimation(
+    tokens,
+    model,
+    llm_markup,
+    maxOutputTokens,
+  );
 
   const minTxt = round2down(min).toFixed(2);
   const maxTxt = round2up(max).toFixed(2);
   return (
-    <Text style={{ textAlign: "right" }} type={type}>
+    <Wrapper type={type}>
       Estimated cost: ${minTxt} to ${maxTxt}{" "}
-      <HelpIcon title="LLM Cost Estimation">
+      <HelpIcon title="LLM Cost Estimation" placement={"topLeft"}>
         {ESTIMATION_HELP_TEXT}
         <Paragraph>
           The estimated price range is based on an estimate for the number of
@@ -78,6 +89,14 @@ export function LLMCostEstimation({
           the total cost could be slightly higher.
         </Paragraph>
       </HelpIcon>
+    </Wrapper>
+  );
+}
+
+function Wrapper({ children, type }) {
+  return (
+    <Text style={{ textAlign: "right" }} type={type}>
+      {children}
     </Text>
   );
 }
@@ -86,12 +105,16 @@ export function calcMinMaxEstimation(
   tokens: number,
   model,
   llm_markup,
+  maxTokens: number = 1000,
 ): { min: number; max: number } {
-  const { prompt_tokens, completion_tokens } = getLLMCost(model, llm_markup);
+  const { prompt_tokens: tokIn, completion_tokens: tokOut } = getLLMCost(
+    model,
+    llm_markup,
+  );
   // NOTE: see explanation about for lower/upper number.
   // It could go up to the model's output token limit (i.e. even 2000)
-  const min = tokens * prompt_tokens + 100 * completion_tokens;
-  const max = tokens * prompt_tokens + 1000 * completion_tokens;
+  const min = tokens * tokIn + (maxTokens / 10) * tokOut;
+  const max = tokens * tokIn + maxTokens * tokOut;
 
   return { min, max };
 }

@@ -43,7 +43,7 @@ export function LLMCostEstimation({
       }}
     >
       {cost}{" "}
-      <HelpIcon title={"LLM Cost Estimation"}>
+      <HelpIcon title={"LLM Cost Estimation"} placement={"topLeft"}>
         <Paragraph>
           This chat message mentions a language model or replies in a thread.
           This means, right after sending the message, the message and the

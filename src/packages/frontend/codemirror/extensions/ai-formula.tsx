@@ -3,6 +3,7 @@ import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   redux,
+  useAsyncEffect,
   useEffect,
   useState,
   useTypedRedux,
@@ -23,6 +24,8 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
+import { LLMCostEstimation } from "../../misc/llm-cost-estimation";
+import { debounce } from "lodash";
 
 type Mode = "tex" | "md";
 
@@ -56,6 +59,25 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
   const [fullReply, setFullReply] = useState<string>("");
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
+  const [tokens, setTokens] = useState<number>(0);
+
+  useAsyncEffect(
+    debounce(
+      async () => {
+        const prompt = getPrompt() ?? "";
+        // compute the number of tokens (this MUST be a lazy import):
+        const { getMaxTokens, numTokensUpperBound } = await import(
+          "@cocalc/frontend/misc/llm"
+        );
+
+        setTokens(numTokensUpperBound(prompt, getMaxTokens(model)));
+      },
+      1000,
+      { leading: true, trailing: true },
+    ),
+
+    [model, input],
+  );
 
   const enabled = redux
     .getStore("projects")
@@ -240,6 +262,15 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
           The <LLMModelName model={model} size={18} /> language model will
           generate a LaTeX formula based on your description. {help}
         </Paragraph>
+        <div style={{ textAlign: "right" }}>
+          <LLMCostEstimation
+            // limited to 200, since we only get a formula – which is not a lengthy text!
+            maxOutputTokens={200}
+            model={model}
+            tokens={tokens}
+            type="secondary"
+          />
+        </div>
         <Space.Compact style={{ width: "100%" }}>
           <Input
             allowClear
@@ -253,6 +284,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
             addonBefore={<Icon name="fx" />}
           />
           <Button
+            disabled={!input.trim() || generating}
             loading={generating}
             onClick={doGenerate}
             type={formula ? "default" : "primary"}
