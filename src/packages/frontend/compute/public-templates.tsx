@@ -15,11 +15,17 @@ export default function PublicTemplates({
   setId,
   defaultId,
   disabled,
+  defaultOpen,
+  placement,
+  getPopupContainer,
 }: {
   style?;
   setId: (number) => void;
   defaultId?: number;
   disabled?: boolean;
+  defaultOpen?: boolean;
+  placement?;
+  getPopupContainer?;
 }) {
   const [templates, setTemplates] = useState<ConfigurationTemplate[] | null>(
     null,
@@ -48,9 +54,6 @@ export default function PublicTemplates({
           };
         }),
       );
-      if (templates.length > 0 && value == null) {
-        setValue(templates[0].id);
-      }
     })();
   }, []);
 
@@ -62,6 +65,9 @@ export default function PublicTemplates({
   return (
     <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
       <Select
+        defaultOpen={defaultOpen}
+        placement={placement}
+        getPopupContainer={getPopupContainer}
         disabled={disabled}
         value={value}
         onChange={setValue}
@@ -70,6 +76,11 @@ export default function PublicTemplates({
           width: "100%",
           height: "86px",
         }}
+        placeholder={
+          <div style={{ fontSize: "13pt" }}>
+            Select a compute server, then modify it to fit your needs...
+          </div>
+        }
       />
     </div>
   );

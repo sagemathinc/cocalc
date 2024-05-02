@@ -25,17 +25,20 @@ function getServer({ id, project_id }) {
     ?.toJS();
 }
 
-function getApps(image) {
+export function getApps(image) {
   const IMAGES = redux.getStore("customize").get("compute_servers_images");
   if (IMAGES == null || typeof IMAGES == "string") {
     // string when error
     return {};
   }
-  return (
+  let apps =
     IMAGES.getIn([image, "apps"])?.toJS() ??
     IMAGES.getIn(["defaults", "apps"])?.toJS() ??
-    {}
-  );
+    {};
+  if (IMAGES.getIn([image, "jupyterKernels"]) === false) {
+    apps = { ...apps, jupyterlab: undefined };
+  }
+  return apps;
 }
 
 function getItems({
@@ -396,7 +399,7 @@ function getItems({
         },
         {
           key: "videos",
-          icon: <Icon name="youtube" />,
+          icon: <Icon name="youtube" style={{ color: "red" }} />,
           label: (
             <A href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ">
               Videos

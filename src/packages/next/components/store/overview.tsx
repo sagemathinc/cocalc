@@ -41,7 +41,7 @@ export default function Overview() {
           and memory.
         </Product>
         <Product
-          href={"https://doc.cocalc.com/compute_server.html"}
+          href={"/features/compute-server"}
           icon={PAYASYOUGO_ICON}
           title="Compute Servers"
         >

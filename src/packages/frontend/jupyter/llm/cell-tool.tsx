@@ -52,7 +52,7 @@ interface Props {
 
 const CONTENT_WIDTH = 600;
 
-const TRACKING_KEY = "jupyter-cell-llm";
+const TRACKING_KEY = "jupyter_cell_llm";
 
 const OTHER_LANG = "Other";
 const TARGET_LANGS = [
@@ -109,6 +109,7 @@ const IMPROVEMENTS = [
   "execution speed",
   "memory usage",
   "readability",
+  "easier to understand",
   "documentation",
   "style",
 ] as const;
@@ -408,12 +409,6 @@ export function LLMCellTool({
                 ),
                 onClick: () => {
                   setMode(mode as Mode);
-                  track(TRACKING_KEY, {
-                    action: "selected",
-                    mode,
-                    path,
-                    project_id,
-                  });
                 },
               };
             },
@@ -540,17 +535,22 @@ export function LLMCellTool({
               extraImprove,
               setExtraImprove,
             )}
-            <Paragraph>
-              {IMPROVEMENTS.map((a) => (
-                <Tag
-                  key={a}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => setExtraImprove(a)}
-                  color={getRandomColor(a)}
-                >
-                  {a}
-                </Tag>
-              ))}
+            <Paragraph
+              style={{ display: "flex", alignItems: "center", gap: "10px" }}
+            >
+              <div style={{ flex: "1 0 auto" }}>Examples:</div>
+              <div style={{ flex: "1 1 auto" }}>
+                {IMPROVEMENTS.map((a) => (
+                  <Tag
+                    key={a}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => setExtraImprove(a)}
+                    color={getRandomColor(a)}
+                  >
+                    {a}
+                  </Tag>
+                ))}
+              </div>
             </Paragraph>
           </>
         );
@@ -729,6 +729,7 @@ export function LLMCellTool({
         action: "submitted",
         mode,
         path,
+        model: llmTools?.model,
         project_id,
         ...(mode === "improve" || mode === "bugfix" || mode === "modify"
           ? { extra }

@@ -3,8 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useState } from "react";
-import { Carousel, Layout } from "antd";
+import { Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
@@ -22,13 +21,13 @@ import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import { Icon } from "@cocalc/frontend/components/icon";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
+import Videos from "components/videos";
 
 const TOP_LINK_STYLE: CSS = { marginRight: "20px" } as const;
 
@@ -189,7 +188,9 @@ export default function Home(props: Props) {
             description={contentDescription()}
             image={splashImage ? splashImage : screenshot}
             alt={"Screenshot showing CoCalc in action!"}
-            imageAlternative={onCoCalcCom ? <Videos /> : indexInfo}
+            imageAlternative={
+              onCoCalcCom ? <Videos videos={YOUTUBE_IDS} /> : indexInfo
+            }
           />
           <Hero />
           {renderCoCalcComFeatures()}
@@ -230,66 +231,3 @@ const YOUTUBE_IDS = [
   },
   { id: "NkNx6tx3nu0", title: "Running On-Prem Compute Servers on CoCalc" },
 ];
-
-function Videos() {
-  const [current, setCurrent] = useState<number>(0);
-  let n = -1;
-  return (
-    <div style={{ margin: "0 auto", textAlign: "center" }}>
-      <Paragraph>
-        <Carousel afterChange={setCurrent}>
-          {YOUTUBE_IDS.map(({ id, title }) => {
-            n += 1;
-            return (
-              <VideoItem key={id} id={id} number={n} current={current} title={title} />
-            );
-          })}
-        </Carousel>
-      </Paragraph>
-    </div>
-  );
-}
-
-function VideoItem({
-  id,
-  title,
-  number,
-  current,
-}: {
-  id: string;
-  title: string;
-  number: number;
-  current: number;
-}) {
-  return (
-    <div>
-      <div
-        style={{
-          background: "black",
-          paddingBottom: "30px",
-          paddingTop: "5px",
-        }}
-      >
-        <A style={{ color: "white" }} href={`https://youtu.be/${id}`}>
-          <Icon name="youtube" /> {title}
-        </A>
-        <iframe
-          style={{ marginTop: "30px", maxWidth: "100%" }}
-          width="672"
-          height="378"
-          src={`https://www.youtube.com/embed/${current == number ? id : ""}`}
-          title="YouTube video player"
-          frameBorder={0}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
-        <A
-          style={{ color: "white", float: "right", marginRight: "10px" }}
-          href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ"
-        >
-          <Icon name="external-link" /> more...
-        </A>
-      </div>
-    </div>
-  );
-}

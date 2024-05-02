@@ -311,8 +311,8 @@ export function LLMModelPrice({
       {FREE}
     </Tag>
   ) : (
-    <Tag color="error" {...props}>
-      {PAID}
+    <Tag color="warning" {...props}>
+      paid
     </Tag>
   );
 }

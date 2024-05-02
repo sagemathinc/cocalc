@@ -11,6 +11,7 @@ import { availableClouds } from "./config";
 import {
   CLOUDS_BY_NAME,
   Cloud as CloudType,
+  Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { replace_all } from "@cocalc/util/misc";
 import { randomPetName } from "@cocalc/frontend/project/utils";
@@ -23,6 +24,7 @@ import costPerHour from "./cost";
 import { Docs } from "./compute-servers";
 import PublicTemplates from "@cocalc/frontend/compute/public-templates";
 import { delay } from "awaiting";
+import { cloneDeep } from "lodash";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -58,9 +60,6 @@ export default function CreateComputeServer({ project_id, onCreate }) {
   const [templateId, setTemplateId] = useState<number | undefined>(
     create_compute_server_template_id,
   );
-  const [templates, setTemplates] = useState<boolean>(
-    !!create_compute_server_template_id,
-  );
 
   useEffect(() => {
     if (create_compute_server_template_id) {
@@ -75,13 +74,21 @@ export default function CreateComputeServer({ project_id, onCreate }) {
     };
   }, []);
 
+  // we have to do this stupid hack because of the animation when showing
+  // a modal and how select works.  It's just working around limitations
+  // of antd, I think.
+  const [showTemplates, setShowTemplates] = useState<boolean>(false);
+  useEffect(() => {
+    setTimeout(() => setShowTemplates(true), 1000);
+  }, []);
+
   const [creating, setCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const [title, setTitle] = useState<string>(defaultTitle());
   const [color, setColor] = useState<string>(randomColor());
   const [cloud, setCloud] = useState<CloudType>(defaultCloud());
-  const [configuration, setConfiguration] = useState<any>(
+  const [configuration, setConfiguration] = useState<Configuration>(
     defaultConfiguration(),
   );
   const resetConfig = async () => {
@@ -97,12 +104,12 @@ export default function CreateComputeServer({ project_id, onCreate }) {
     }
   };
 
+  const [notes, setNotes] = useState<string>("");
   const [loadingTemplate, setLoadingTemplate] = useState<boolean>(false);
-  const [currentTemplateId, setCurrentTemplateId] = useState<
-    number | undefined
-  >(create_compute_server_template_id);
   const setConfigToTemplate = async (id) => {
     setTemplateId(id);
+    setNotes(`Starting with template ${id}.\n`);
+    const currentConfiguration = cloneDeep(configuration);
     let template;
     try {
       setLoadingTemplate(true);
@@ -111,11 +118,15 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       setColor(template.color);
       setCloud(template.cloud);
       const { configuration } = template;
-      if (configuration.dns) {
+      if (currentConfiguration.dns) {
+        // keep current config
+        configuration.dns = currentConfiguration.dns;
+      } else if (configuration.dns) {
         // TODO: should automatically ensure this randomly isn't taken.  Can implement
         // that later.
         configuration.dns += `-${randomPetName().toLowerCase()}`;
       }
+      configuration.excludeFromSync = currentConfiguration.excludeFromSync;
       setConfiguration(configuration);
     } catch (err) {
       setError(`${err}`);
@@ -145,6 +156,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           title,
           color,
           configuration,
+          notes,
         });
         await updateFastDataDirectoryId(id, configuration);
         setEditing(false);
@@ -251,43 +263,28 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         width={"900px"}
         onCancel={() => {
           setEditing(false);
+          setTemplateId(undefined);
           resetConfig();
         }}
         open={editing}
         destroyOnClose
         title={
           <div>
-            <div style={{ display: "flex" }}>
-              Create Compute Server
-              {!templates && (
-                <Button
-                  onClick={() => {
-                    setTemplates(true);
-                  }}
-                  style={{ marginLeft: "30px", marginTop: "-5px" }}
-                >
-                  Templates...
-                </Button>
-              )}
-            </div>
-            {templates && (
-              <div style={{ textAlign: "center", color: "#666" }}>
-                <div>Templates</div>
+            <div style={{ display: "flex" }}>Create Compute Server</div>
+            <div style={{ textAlign: "center", color: "#666" }}>
+              <div>{loadingTemplate ? "Loading " : ""} Templates</div>
+              {showTemplates && (
                 <PublicTemplates
                   disabled={loadingTemplate}
                   defaultId={templateId}
-                  setId={setCurrentTemplateId}
-                />
-                <Button
-                  disabled={!currentTemplateId}
-                  onClick={async () => {
-                    await setConfigToTemplate(currentTemplateId);
+                  setId={async (id) => {
+                    setTemplateId(id);
+                    await setConfigToTemplate(id);
                   }}
-                >
-                  Use This Template
-                </Button>
-              </div>
-            )}
+                  defaultOpen
+                />
+              )}
+            </div>
           </div>
         }
         footer={
