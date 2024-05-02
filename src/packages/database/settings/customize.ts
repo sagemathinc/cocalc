@@ -29,6 +29,8 @@ export interface Customize {
   logoRectangularURL?: string;
   splashImage?: string;
   indexInfo?: string;
+  imprint?: string;
+  policies?: string;
   shareServer?: boolean;
   landingPages?: boolean;
   dns?: string;
@@ -48,6 +50,15 @@ export interface Customize {
   sandboxProjectId?: string;
   verifyEmailAddresses?: boolean;
   strategies: Strategy[];
+  openaiEnabled?: boolean;
+  googleVertexaiEnabled?: boolean;
+  mistralEnabled?: boolean;
+  anthropicEnabled?: boolean;
+  ollamaEnabled?: boolean;
+  neuralSearchEnabled?: boolean;
+  jupyterApiEnabled?: boolean;
+  computeServersEnabled?: boolean;
+  githubProjectId?: string;
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -141,8 +152,12 @@ export default async function getCustomize(): Promise<Customize> {
     // true if openai integration is enabled -- this impacts the UI only, and can be
     // turned on and off independently of whether there is an api key set.
     openaiEnabled: settings.openai_enabled,
-    // same for google vertex (exposed as gemini)
+    // same for google vertex (exposed as gemini), and others
     googleVertexaiEnabled: settings.google_vertexai_enabled,
+    mistralEnabled: settings.mistral_enabled,
+    anthropicEnabled: settings.anthropic_enabled,
+    ollamaEnabled: settings.ollama_enabled,
+
     neuralSearchEnabled: settings.neural_search_enabled,
 
     // if extra Jupyter API functionality for sandboxed ephemeral code execution is available.
@@ -157,7 +172,7 @@ export default async function getCustomize(): Promise<Customize> {
     strategies,
 
     verifyEmailAddresses: settings.verify_emails && settings.email_enabled,
-  } as Customize;
+  };
 
   return cachedCustomize;
 }
