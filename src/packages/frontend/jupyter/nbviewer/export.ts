@@ -16,6 +16,7 @@ import NBViewer from "./nbviewer";
 import { renderToString } from "react-dom/server";
 import { createElement, CSSProperties } from "react";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+import cheerio from "cheerio";
 
 export default function exportToHTML({
   content,
@@ -41,7 +42,10 @@ export default function exportToHTML({
     },
     [notebook],
   );
-  const body = renderToString(element);
+  let body = renderToString(element);
+  const $ = cheerio.load(body);
+  $(".katex-html").remove();
+  body = $.html();
 
   const { codemirror, antd, katex } = getVersions();
 
