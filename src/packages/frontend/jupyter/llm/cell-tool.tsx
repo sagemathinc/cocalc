@@ -388,8 +388,7 @@ export function LLMCellTool({
     const txtStyle: CSS = is_current
       ? {
           color: COLORS.AI_ASSISTANT_FONT,
-          // this makes it bold without "moving around"
-          textShadow: `1px 0 0 ${COLORS.AI_ASSISTANT_FONT}`,
+          fontWeight: "bold",
         }
       : {};
 
