@@ -1023,9 +1023,7 @@ export class ChatActions extends Actions<ChatState> {
 
     const txtFull = [
       "<details><summary>Chat history</summary>",
-      ...history.map(
-        ({ author, content }) => `${author}:\n${stripMentions(content)}`,
-      ),
+      ...history.map(({ author, content }) => `${author}:\n${content}`),
       "</details>",
     ].join("\n\n");
 
@@ -1043,7 +1041,6 @@ export class ChatActions extends Actions<ChatState> {
 
     if (returnInfo) {
       const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
-      console.log(prompt);
       return { prompt, tokens, truncated: txtFull != txt };
     } else {
       this.send_chat({
