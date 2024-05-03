@@ -5,6 +5,7 @@ If chatgpt is disabled or not available it renders as null.
 
 import { Alert, Button } from "antd";
 import { CSSProperties, useState } from "react";
+import useAsyncEffect from "use-async-effect";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
@@ -13,12 +14,11 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { RawPrompt } from "@cocalc/frontend/jupyter/llm/raw-prompt";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 import LLMSelector, { modelToMention, modelToName } from "./llm-selector";
 import shortenError from "./shorten-error";
-import { LLMCostEstimation } from "../../misc/llm-cost-estimation";
-import useAsyncEffect from "use-async-effect";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -213,7 +213,7 @@ export async function getHelp({
   setTimeout(() => actions.scrollToBottom(), 100);
   await actions.send_chat({
     input: message,
-    tag: `help-me-fix${tag ? ":" + tag : ""}`,
+    tag: `help-me-fix${tag ? `:${tag}` : ""}`,
     noNotification: true,
   });
 }
