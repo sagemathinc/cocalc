@@ -19,7 +19,7 @@ export default function PricingItem({ icon, children, title }: Props) {
   return (
     <List.Item style={{ padding: 0 }}>
       <Card
-        headStyle={{ backgroundColor: "#d9edf7" }}
+        styles={{ header: { backgroundColor: "#d9edf7" } }}
         style={{ color: COLORS.GRAY }}
         type="inner"
         title={
