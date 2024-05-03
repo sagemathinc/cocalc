@@ -5,6 +5,7 @@ If chatgpt is disabled or not available it renders as null.
 
 import { Alert, Button } from "antd";
 import { CSSProperties, useState } from "react";
+import useAsyncEffect from "use-async-effect";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
@@ -13,6 +14,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { RawPrompt } from "@cocalc/frontend/jupyter/llm/raw-prompt";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 import LLMSelector, { modelToMention, modelToName } from "./llm-selector";
@@ -52,6 +54,7 @@ export default function HelpMeFix({
   const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
   const projectsStore: ProjectsStore = redux.getStore("projects");
   const [model, setModel] = useLanguageModelSetting(project_id);
+  const [tokens, setTokens] = useState<number>(0);
 
   if (
     redux == null ||
@@ -59,6 +62,28 @@ export default function HelpMeFix({
   ) {
     return null;
   }
+
+  const inputText = createMessage({
+    error: get(error),
+    task,
+    input: get(input),
+    language,
+    extraFileInfo,
+    prioritizeLastInput,
+    model,
+    open: true,
+    full: false,
+  });
+
+  useAsyncEffect(async () => {
+    // compute the number of tokens (this MUST be a lazy import):
+    const { getMaxTokens, numTokensUpperBound } = await import(
+      "@cocalc/frontend/misc/llm"
+    );
+
+    setTokens(numTokensUpperBound(inputText, getMaxTokens(model)));
+  }, [model, inputText]);
+
   return (
     <div>
       <PopconfirmKeyboard
@@ -83,18 +108,12 @@ export default function HelpMeFix({
             }}
           >
             The following will be sent to {modelToName(model)}:
-            <RawPrompt
-              input={createMessage({
-                error: get(error),
-                task,
-                input: get(input),
-                language,
-                extraFileInfo,
-                prioritizeLastInput,
-                model,
-                open: true,
-                full: false,
-              })}
+            <RawPrompt input={inputText} />
+            <LLMCostEstimation
+              model={model}
+              tokens={tokens}
+              type="secondary"
+              paragraph
             />
           </div>
         )}
@@ -194,7 +213,7 @@ export async function getHelp({
   setTimeout(() => actions.scrollToBottom(), 100);
   await actions.send_chat({
     input: message,
-    tag: `help-me-fix${tag ? ":" + tag : ""}`,
+    tag: `help-me-fix${tag ? `:${tag}` : ""}`,
     noNotification: true,
   });
 }

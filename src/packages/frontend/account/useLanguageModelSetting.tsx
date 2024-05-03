@@ -39,19 +39,23 @@ export function useLanguageModelSetting(
   }, [other_settings]);
 
   function setLLM(llm: LanguageService) {
-    if (selectableLLMs.includes(llm as any)) {
-      redux
-        .getActions("account")
-        .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
-    }
-
-    // check if LLM is a key in the Ollama TypedMap
-    if (isOllamaLLM(llm) && ollama?.get(fromOllamaModel(llm))) {
-      redux
-        .getActions("account")
-        .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
-    }
+    setDefaultLLM(llm, selectableLLMs, ollama);
   }
 
   return [llm, setLLM];
+}
+
+export function setDefaultLLM(llm: LanguageService, selectableLLMs, ollama) {
+  if (selectableLLMs.includes(llm as any)) {
+    redux
+      .getActions("account")
+      .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
+  }
+
+  // check if LLM is a key in the Ollama TypedMap
+  if (isOllamaLLM(llm) && ollama?.get(fromOllamaModel(llm))) {
+    redux
+      .getActions("account")
+      .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
+  }
 }

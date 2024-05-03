@@ -4,14 +4,26 @@
  */
 
 import type { MenuProps } from "antd";
-import { Button, Col, Dropdown, Popconfirm, Row, Tooltip } from "antd";
+import {
+  Button,
+  Col,
+  Collapse,
+  Dropdown,
+  Popconfirm,
+  Row,
+  Space,
+  Switch,
+  Tooltip,
+} from "antd";
 import { Map } from "immutable";
 import { CSSProperties, useLayoutEffect } from "react";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   CSS,
   redux,
+  useAsyncEffect,
   useMemo,
   useRef,
   useState,
@@ -25,26 +37,32 @@ import {
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
+import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import {
+import LLMSelector, {
   LLMModelPrice,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   CoreLanguageModel,
   USER_SELECTABLE_LLMS_BY_VENDOR,
+  isLanguageModelService,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { OllamaPublic } from "@cocalc/util/types/llm";
-import { useProjectContext } from "../project/context";
+import { RawPrompt } from "../jupyter/llm/raw-prompt";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
+import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { Name } from "./name";
 import { Time } from "./time";
 import { ChatMessageTyped, Mode } from "./types";
@@ -57,7 +75,7 @@ import {
 
 const DELETE_BUTTON = false;
 
-const BLANK_COLUMN = <Col key={"blankcolumn"} xs={2}></Col>;
+const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
 const MARKDOWN_STYLE = undefined;
 // const MARKDOWN_STYLE = { maxHeight: "300px", overflowY: "auto" };
@@ -130,10 +148,12 @@ interface Props {
   is_thread?: boolean; // if true, there is a thread starting in a reply_to message
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
+
+  llm_cost_reply?: [number, number] | null;
 }
 
 export default function Message(props: Props) {
-  const { is_thread, is_folded, is_thread_body, mode } = props;
+  const { is_thread, is_folded, is_thread_body, mode, llm_cost_reply } = props;
 
   const hideTooltip =
     useTypedRedux("account", "other_settings").get("hide_file_popovers") ??
@@ -186,6 +206,7 @@ export default function Message(props: Props) {
   const submitMentionsRef = useRef<Function>();
 
   const [replying, setReplying] = useState<boolean>(false);
+
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<Function>();
 
@@ -196,6 +217,11 @@ export default function Message(props: Props) {
     () => props.actions?.isLanguageModelThread(props.message.get("date")),
     [props.message, props.actions != null],
   );
+
+  const msgWrittenByLLM = useMemo(() => {
+    const author_id = props.message.get("history")?.first()?.get("author_id");
+    return typeof author_id === "string" && isLanguageModelService(author_id);
+  }, [props.message]);
 
   useLayoutEffect(() => {
     if (replying) {
@@ -269,12 +295,12 @@ export default function Message(props: Props) {
             fontSize: "14px" /* matches Reply button */,
           }}
         >
-          {edit}
+          {edit}{" "}
           {msg_date != null ? (
             <TimeAgo date={new Date(msg_date)} />
           ) : (
             "unknown time"
-          )}
+          )}{" "}
           {name}
         </div>
       );
@@ -379,7 +405,7 @@ export default function Message(props: Props) {
       ...(mode === "sidechat" ? { marginLeft: "5px", marginRight: "5px" } : {}),
     } as const;
 
-    const mainXS = 20;
+    const mainXS = mode === "standalone" ? 20 : 22;
 
     return (
       <Col key={1} xs={mainXS}>
@@ -431,14 +457,8 @@ export default function Message(props: Props) {
           )}
           {isEditing && renderEditMessage()}
           {!isEditing && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <div>
+            <div style={{ width: "100%", textAlign: "center" }}>
+              <Space direction="horizontal" size="small" wrap>
                 {Date.now() - date < SHOW_EDIT_BUTTON_MS && (
                   <Tooltip
                     title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
@@ -502,31 +522,35 @@ export default function Message(props: Props) {
                     <Icon name="reply" /> Reply
                   </Button>
                 ) : undefined} */}
-              </div>
-              {(props.message.get("history").size > 1 ||
-                props.message.get("editing").size > 0) &&
-                editing_status(isEditing)}
-              {props.message.get("history").size > 1 && (
-                <Button
-                  style={{
-                    marginLeft: "5px",
-                    color: is_viewers_message ? "white" : "#555",
-                  }}
-                  type="text"
-                  size="small"
-                  onClick={() => {
-                    set_show_history(!show_history);
-                    props.set_scroll?.();
-                  }}
-                >
-                  <Tip
-                    title="Message History"
-                    tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                {props.message.get("history").size > 1 ||
+                props.message.get("editing").size > 0
+                  ? editing_status(isEditing)
+                  : undefined}
+                {props.message.get("history").size > 1 ? (
+                  <Button
+                    style={{
+                      marginLeft: "5px",
+                      color: is_viewers_message ? "white" : "#555",
+                    }}
+                    type="text"
+                    size="small"
+                    onClick={() => {
+                      set_show_history(!show_history);
+                      props.set_scroll?.();
+                    }}
                   >
-                    <Icon name="history" /> {verb} History
-                  </Tip>
-                </Button>
-              )}
+                    <Tip
+                      title="Message History"
+                      tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                    >
+                      <Icon name="history" /> {verb} History
+                    </Tip>
+                  </Button>
+                ) : undefined}
+                {isLLMThread && msgWrittenByLLM ? (
+                  <RegenerateLLM actions={props.actions} date={date} />
+                ) : undefined}
+              </Space>
             </div>
           )}
         </div>
@@ -645,6 +669,12 @@ export default function Message(props: Props) {
           date={-date}
           onChange={(value) => {
             replyMessageRef.current = value;
+            const reply = replyMentionsRef.current?.() ?? value;
+            props.actions?.llm_estimate_cost(
+              reply,
+              "reply",
+              props.message.toJS(),
+            );
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -663,6 +693,11 @@ export default function Message(props: Props) {
           >
             Cancel
           </Button>
+          <LLMCostEstimationChat
+            llm_cost={llm_cost_reply}
+            compact={false}
+            style={{ display: "inline-block", marginLeft: "10px" }}
+          />
         </div>
       </div>
     );
@@ -703,66 +738,6 @@ export default function Message(props: Props) {
     }
   }
 
-  function getThreadfoldOrBlank() {
-    if (is_thread_body || (!is_thread_body && !is_thread)) {
-      return BLANK_COLUMN;
-    } else {
-      const style: CSS =
-        mode === "standalone"
-          ? {
-              marginTop:
-                props.show_avatar ||
-                (!props.is_prev_sender && is_viewers_message)
-                  ? MARGIN_TOP_VIEWER
-                  : "5px",
-              marginLeft: "5px",
-              marginRight: "5px",
-            }
-          : { marginTop: "10px" };
-      const iconname = isFolded
-        ? reverseRowOrdering
-          ? "right-circle-o"
-          : "left-circle-o"
-        : "down-circle-o";
-      const button = (
-        <Button
-          type="text"
-          style={style}
-          onClick={() =>
-            props.actions?.foldThread(props.message.get("date"), props.index)
-          }
-          icon={
-            <Icon
-              name={iconname}
-              style={{ fontSize: mode === "standalone" ? "22px" : "16px" }}
-            />
-          }
-        />
-      );
-      return (
-        <Col
-          xs={mode === "standalone" ? 2 : 4}
-          key={"blankcolumn"}
-          style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
-        >
-          {hideTooltip ? (
-            button
-          ) : (
-            <Tooltip
-              title={
-                isFolded
-                  ? "Unfold this thread"
-                  : "Fold this thread to hide replies"
-              }
-            >
-              {button}
-            </Tooltip>
-          )}
-        </Col>
-      );
-    }
-  }
-
   function renderReplyRow() {
     if (replying || generating || !props.allowReply || is_folded) return;
 
@@ -793,8 +768,8 @@ export default function Message(props: Props) {
             ) : undefined}
           </Button>
         </Tooltip>
-        {isLLMThread ? (
-          <RegenerateLLM actions={props.actions} date={date} />
+        {props.message.get("reply_to") != null ? (
+          <SummarizeThread message={props.message} actions={props.actions} />
         ) : undefined}
       </div>
     );
@@ -821,20 +796,92 @@ export default function Message(props: Props) {
     );
   }
 
+  function getThreadfoldOrBlank() {
+    const xs = 2;
+    if (is_thread_body || (!is_thread_body && !is_thread)) {
+      return BLANK_COLUMN(xs);
+    } else {
+      const style: CSS =
+        mode === "standalone"
+          ? {
+              marginTop:
+                props.show_avatar ||
+                (!props.is_prev_sender && is_viewers_message)
+                  ? MARGIN_TOP_VIEWER
+                  : "5px",
+              marginLeft: "5px",
+              marginRight: "5px",
+            }
+          : { marginTop: "5px", width: "100%", textAlign: "center" };
+      const iconname = isFolded
+        ? mode === "standalone"
+          ? reverseRowOrdering
+            ? "right-circle-o"
+            : "left-circle-o"
+          : "right-circle-o"
+        : "down-circle-o";
+      const button = (
+        <Button
+          type="text"
+          style={style}
+          onClick={() =>
+            props.actions?.foldThread(props.message.get("date"), props.index)
+          }
+          icon={
+            <Icon
+              name={iconname}
+              style={{ fontSize: mode === "standalone" ? "22px" : "18px" }}
+            />
+          }
+        />
+      );
+      return (
+        <Col
+          xs={xs}
+          key={"blankcolumn"}
+          style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
+        >
+          {true || hideTooltip ? (
+            button
+          ) : (
+            <Tooltip
+              title={
+                isFolded
+                  ? "Unfold this thread"
+                  : "Fold this thread to hide replies"
+              }
+            >
+              {button}
+            </Tooltip>
+          )}
+        </Col>
+      );
+    }
+  }
+
   function renderCols(): JSX.Element[] | JSX.Element {
-    // these columsn should be filtered in the first place, this here is just an extra check
+    // these columns should be filtered in the first place, this here is just an extra check
     if (is_thread && is_folded && is_thread_body) return <></>;
 
-    const cols = [content_column(), getThreadfoldOrBlank()];
-    // in standalone, add the avatar column
-    if (mode === "standalone") {
-      cols.unshift(avatar_column());
+    switch (mode) {
+      case "standalone":
+        const cols = [
+          avatar_column(),
+          content_column(),
+          getThreadfoldOrBlank(),
+        ];
+        if (reverseRowOrdering) {
+          cols.reverse();
+        }
+        return cols;
+
+      case "sidechat":
+        return [getThreadfoldOrBlank(), content_column()];
+
+      default:
+        unreachable(mode);
+        return content_column();
     }
-    // … and mirror right-left for sender's view
-    if (reverseRowOrdering) {
-      cols.reverse();
-    }
-    return cols;
   }
 
   return (
@@ -858,9 +905,10 @@ export function message_to_markdown(message): string {
 interface RegenerateLLMProps {
   actions?: ChatActions;
   date: number; // ms since epoch
+  style?: CSS;
 }
 
-function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
+function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
   const { enabledLLMs } = useProjectContext();
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
@@ -910,17 +958,123 @@ function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
   }
 
   return (
-    <Dropdown.Button
-      menu={{ items: entries, style: { overflow: "auto", maxHeight: "50vh" } }}
-      size="small"
-      style={{ display: "inline" }}
-      icon={<Icon name="angle-down" />}
-      trigger={["click"]}
-      onClick={() => {
-        actions.regenerateLLMResponse(new Date(date));
-      }}
+    <Tooltip title="Regenerating the response will send the thread to the language model again and replace this answer. Select a different language model to see, if it has a better response. Previous answers are kept in the history of that message.">
+      <Dropdown
+        menu={{
+          items: entries,
+          style: { overflow: "auto", maxHeight: "50vh" },
+        }}
+        trigger={["click"]}
+      >
+        <Button
+          size="small"
+          style={{ display: "inline", whiteSpace: "nowrap", ...style }}
+        >
+          <Space>
+            <Icon name="refresh" /> Regenerate
+            <Icon name="chevron-down" />
+          </Space>
+        </Button>
+      </Dropdown>
+    </Tooltip>
+  );
+}
+
+function SummarizeThread({
+  message,
+  actions,
+}: {
+  message: ChatMessageTyped;
+  actions?: ChatActions;
+}) {
+  const reply_to = message.get("reply_to");
+  const { project_id } = useProjectContext();
+  const [model, setModel] = useLanguageModelSetting(project_id);
+  const [visible, setVisible] = useState(false);
+  const [tokens, setTokens] = useState(0);
+  const [truncated, setTruncated] = useState(false);
+  const [short, setShort] = useState(true);
+  const [prompt, setPrompt] = useState<string>("");
+
+  useAsyncEffect(async () => {
+    // we do no do all the processing if the popconfirm is not visible
+    if (!visible) return;
+
+    const info = await actions?.summarizeThread({
+      model,
+      reply_to,
+      returnInfo: true,
+      short,
+    });
+
+    if (!info) return;
+    const { tokens, truncated, prompt } = info;
+    setTokens(tokens);
+    setTruncated(truncated);
+    setPrompt(prompt);
+  }, [visible, model, message, short]);
+
+  return (
+    <PopconfirmKeyboard
+      onVisibilityChange={setVisible}
+      icon={<AIAvatar size={16} />}
+      title={<>Summarize this thread</>}
+      description={() => (
+        <div style={{ maxWidth: "500px" }}>
+          <Paragraph>
+            <LLMSelector model={model} setModel={setModel} />
+          </Paragraph>
+          <Paragraph>
+            The conversation in this thread will be sent to the language model{" "}
+            {modelToName(model)}. It will then start a new thread and reply with
+            a {short ? "short" : "detailed"} summary of the conversation.
+          </Paragraph>
+          <Paragraph>
+            Summary lenght:{" "}
+            <Switch
+              checked={!short}
+              onChange={(v) => setShort(!v)}
+              unCheckedChildren={"short"}
+              checkedChildren={"detailed"}
+            />
+          </Paragraph>
+          {truncated ? (
+            <Paragraph type="warning">
+              The conversion will be truncated. Consider selecting another
+              language model with a larger context window.
+            </Paragraph>
+          ) : null}
+          <Collapse
+            items={[
+              {
+                key: "1",
+                label: (
+                  <>Click to see what will be sent to {modelToName(model)}.</>
+                ),
+                children: (
+                  <RawPrompt
+                    input={prompt}
+                    style={{ border: "none", padding: "0", margin: "0" }}
+                  />
+                ),
+              },
+            ]}
+          />
+          <LLMCostEstimation
+            model={model}
+            tokens={tokens}
+            paragraph={true}
+            type="secondary"
+            maxOutputTokens={short ? 200 : undefined}
+          />
+        </div>
+      )}
+      onConfirm={() => actions?.summarizeThread({ model, reply_to, short })}
+      okText="Summarize"
     >
-      <Icon name="refresh" /> Regenerate
-    </Dropdown.Button>
+      <Button type="text" style={{ color: COLORS.GRAY_M }}>
+        <Icon name="vertical-align-middle" /> Summarize…
+      </Button>
+    </PopconfirmKeyboard>
   );
 }

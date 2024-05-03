@@ -4,14 +4,22 @@
  */
 
 import { List, Seq, fromJS, Map as immutableMap } from "immutable";
+import { debounce } from "lodash";
+import { Optional } from "utility-types";
 
+import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
+import {
+  modelToMention,
+  modelToName,
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -19,6 +27,7 @@ import { SyncDB } from "@cocalc/sync/editor/db";
 import {
   LANGUAGE_MODEL_PREFIXES,
   getLLMServiceStatusCheckMD,
+  isFreeModel,
   isLanguageModelService,
   model2service,
   model2vendor,
@@ -27,8 +36,8 @@ import {
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
-import { Optional } from "utility-types";
-import { getSortedDates } from "./chat-log";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
 import {
@@ -376,17 +385,19 @@ export class ChatActions extends Actions<ChatState> {
     reply,
     from,
     noNotification,
+    reply_to,
   }: {
     message: ChatMessage;
     reply: string;
     from?: string;
     noNotification?: boolean;
+    reply_to?: Date;
   }): string {
     // the reply_to field of the message is *always* the root.
     // the order of the replies is by timestamp.  This is meant
     // to make sure chat is just 1 layer deep, rather than a
     // full tree structure, which is powerful but too confusing.
-    const reply_to = getReplyToRoot(
+    reply_to ??= getReplyToRoot(
       message,
       this.store?.get("messages") ?? (fromJS({}) as ChatMessages),
     );
@@ -432,6 +443,62 @@ export class ChatActions extends Actions<ChatState> {
     this.setState({ input });
   }
 
+  public llm_estimate_cost: typeof this._llm_estimate_cost = debounce(
+    reuseInFlight(this._llm_estimate_cost).bind(this),
+    1000,
+    { leading: true, trailing: true },
+  );
+
+  private async _llm_estimate_cost(
+    input: string,
+    type: "room" | "reply",
+    message?: ChatMessage,
+  ): Promise<void> {
+    if (!this.store) return;
+
+    const is_cocalc_com = this.redux.getStore("customize").get("is_cocalc_com");
+    if (!is_cocalc_com) return;
+
+    // this is either a new message or in a reply, but mentions an LLM
+    let model: LanguageModel | null | false = getLanguageModel(input);
+    const key: keyof ChatState =
+      type === "room" ? "llm_cost_room" : "llm_cost_reply";
+
+    input = stripMentions(input);
+    let history: string[] = [];
+    const messages = this.store.get("messages");
+    // message != null means this is a reply and we have to get the whole chat thread
+    if (!model && message != null && messages != null) {
+      const root = getReplyToRoot(message, messages);
+      model = this.isLanguageModelThread(root);
+      if (!isFreeModel(model, is_cocalc_com) && root != null) {
+        for (const msg of this.getLLMHistory(root)) {
+          history.push(msg.content);
+        }
+      }
+    }
+
+    if (model) {
+      if (isFreeModel(model, is_cocalc_com)) {
+        this.setState({ [key]: [0, 0] });
+      } else {
+        const llm_markup = this.redux.getStore("customize").get("llm_markup");
+        // do not import until needed -- it is HUGE!
+        const { truncateMessage, getMaxTokens, numTokensUpperBound } =
+          await import("@cocalc/frontend/misc/llm");
+        const maxTokens = getMaxTokens(model);
+        const tokens = numTokensUpperBound(
+          truncateMessage([input, ...history].join("\n"), maxTokens),
+          maxTokens,
+        );
+        const { min, max } = calcMinMaxEstimation(tokens, model, llm_markup);
+        this.setState({ [key]: [min, max] });
+      }
+    } else {
+      this.setState({ [key]: null });
+    }
+  }
+
   public set_is_preview(is_preview): void {
     this.setState({ is_preview });
   }
@@ -455,6 +522,7 @@ export class ChatActions extends Actions<ChatState> {
   public scrollToBottom(index: number = -1) {
     if (this.syncdb == null) return;
     // this triggers scroll behavior in the chat-log component.
+    this.setState({ scrollToBottom: null }); // noop, but necessary to trigger a change
     this.setState({ scrollToBottom: index });
   }
 
@@ -592,11 +660,13 @@ export class ChatActions extends Actions<ChatState> {
     reply_to,
     tag,
     llm,
+    dateLimit,
   }: {
     message: ChatMessage;
     reply_to?: Date;
     tag?: string;
     llm?: LanguageModel;
+    dateLimit?: Date; // only for regenerate, filter history
   }) {
     const store = this.store;
     if (this.syncdb == null || !store) {
@@ -683,6 +753,7 @@ export class ChatActions extends Actions<ChatState> {
               reply: thinking,
               from: sender_id,
               noNotification: true,
+              reply_to,
             }),
           };
 
@@ -735,9 +806,22 @@ export class ChatActions extends Actions<ChatState> {
 
     // construct the LLM history for the given thread
     const history = reply_to ? this.getLLMHistory(reply_to) : undefined;
+
     if (tag === "regenerate") {
       if (history && history.length >= 2) {
         history.pop(); // remove the last LLM message, which is the one we're regenerating
+
+        // if dateLimit is earlier than the last message's date, remove the last two
+        while (dateLimit != null && history.length >= 2) {
+          const last = history[history.length - 1];
+          if (last.date != null && last.date > dateLimit) {
+            history.pop();
+            history.pop();
+          } else {
+            break;
+          }
+        }
+
         input = stripMentions(history.pop()?.content ?? ""); // the last user message is the input
       } else {
         console.warn(
@@ -894,7 +978,8 @@ export class ChatActions extends Actions<ChatState> {
       // otherwise the forth-and-back between AI and human would be broken.
       const sender_id = message.get("sender_id");
       const role = isLanguageModelService(sender_id) ? "assistant" : "user";
-      history.push({ content, role });
+      const date = message.get("date");
+      history.push({ content, role, date });
     }
     return history;
   }
@@ -909,7 +994,65 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.commit();
   }
 
-  public regenerateLLMResponse(date0: Date, llm?: LanguageModel) {
+  public async summarizeThread({
+    model,
+    reply_to,
+    returnInfo,
+    short,
+  }: {
+    model: LanguageModel;
+    reply_to?: string;
+    returnInfo?: boolean; // do not send, but return prompt + info}
+    short: boolean;
+  }) {
+    if (!reply_to) return;
+    const user_map = redux.getStore("users").get("user_map");
+    if (!user_map) return;
+    const threadMessages = this.getMessagesInThread(reply_to);
+    if (!threadMessages) return;
+
+    const history: { author: string; content: string }[] = [];
+    for (const message of threadMessages) {
+      const mostRecent = message.get("history")?.first();
+      if (!mostRecent) continue;
+      const sender_id: string | undefined = message.get("sender_id");
+      const author = getUserName(user_map, sender_id);
+      const content = stripMentions(mostRecent.get("content"));
+      history.push({ author, content });
+    }
+
+    const txtFull = [
+      "<details><summary>Chat history</summary>",
+      ...history.map(({ author, content }) => `${author}:\n${content}`),
+      "</details>",
+    ].join("\n\n");
+
+    // do not import until needed -- it is HUGE!
+    const { truncateMessage, getMaxTokens, numTokensUpperBound } = await import(
+      "@cocalc/frontend/misc/llm"
+    );
+    const maxTokens = getMaxTokens(model);
+    const txt = truncateMessage(txtFull, maxTokens);
+    const m = returnInfo ? `@${modelToName(model)}` : modelToMention(model);
+    const instruction = short
+      ? `Briefly summarize the provided chat conversation in one paragraph`
+      : `Summarize the provided chat conversation. Make a list of all topics, the main conclusions, assigned tasks, and a sentiment score.`;
+    const prompt = `${m} ${instruction}:\n\n${txt}`;
+
+    if (returnInfo) {
+      const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
+      return { prompt, tokens, truncated: txtFull != txt };
+    } else {
+      this.send_chat({
+        input: prompt,
+        tag: `chat:summarize`,
+        noNotification: true,
+      });
+      this.scrollToBottom();
+    }
+  }
+
+  public async regenerateLLMResponse(date0: Date, llm?: LanguageModel) {
     if (this.syncdb == null) return;
     const date = date0.toISOString();
     const obj = this.syncdb.get_one({ event: "chat", date });
@@ -917,12 +1060,20 @@ export class ChatActions extends Actions<ChatState> {
     if (message == null) return;
     const reply_to = message.reply_to;
     if (!reply_to) return;
-    this.processLLM({
+    await this.processLLM({
       message,
       reply_to: new Date(reply_to),
       tag: "regenerate",
       llm,
+      dateLimit: date0,
     });
+
+    if (llm != null) {
+      const customizeStore = redux.getStore("customize");
+      const selectableLLMs = customizeStore.get("selectable_llms");
+      const ollama = customizeStore.get("ollama");
+      setDefaultLLM(llm, selectableLLMs, ollama);
+    }
   }
 }
 

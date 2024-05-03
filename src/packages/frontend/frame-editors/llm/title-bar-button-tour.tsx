@@ -1,12 +1,12 @@
-import { Button, Checkbox, Tour } from "antd";
 import type { TourProps } from "antd";
+import { Button, Checkbox, Tour } from "antd";
 import { useState } from "react";
 
-import { Icon } from "@cocalc/frontend/components/icon";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
-import track from "@cocalc/frontend/user-tracking";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import track from "@cocalc/frontend/user-tracking";
 import { DOC_AI } from "@cocalc/util/consts/ui";
 
 // ATTN: don't change this string!

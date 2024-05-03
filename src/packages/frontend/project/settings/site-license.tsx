@@ -64,7 +64,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
 
   const haveLicenses = useMemo(
     () => (site_license?.size ?? 0) > 0,
-    [site_license]
+    [site_license],
   );
 
   // all licenses known to the client, not just for the project
@@ -110,7 +110,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
       const license = managed_licenses?.get(license_id)?.toJS();
       if (license != null && license.quota != null && isBoostLicense(license)) {
         const boostGroup = licenseToGroupKey(
-          license as SiteLicenseQuotaSetting // we check that license.quota is not null above
+          license as SiteLicenseQuotaSetting, // we check that license.quota is not null above
         );
         // this ignores any other licenses (e.g. disks), which do not have the boost field
         // for those which are regular licenses, we check if they're compatible with the boost license
@@ -123,7 +123,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           return regularGroup === boostGroup;
         });
         setBoostWarning(
-          haveCompatible ? "none" : haveRegular ? "incompatible" : "no_other"
+          haveCompatible ? "none" : haveRegular ? "incompatible" : "no_other",
         );
       } else {
         setBoostWarning("none");
@@ -253,7 +253,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
         extra={render_extra()}
         type="inner"
         style={{ marginTop: "15px" }}
-        bodyStyle={{ padding: "0px" }}
+        styles={{ body: { padding: "0px" } }}
       >
         {renderBody()}
       </Card>

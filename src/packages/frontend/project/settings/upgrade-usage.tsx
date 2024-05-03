@@ -146,7 +146,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           title="Your upgrade contributions"
           extra={adjust}
           type="inner"
-          bodyStyle={style}
+          styles={{ body: style }}
         >
           {showAdjustor ? render_upgrade_adjustor() : list_user_contributions()}
         </Card>
@@ -270,7 +270,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
             // NOTE: there is usually symlink disks/x → /local/... but we can't rely on it,
             // because the project only creates that symlink if there isn't a file/dir already with that name
             project_actions?.open_directory(
-              join(".smc/root/", ROOT, `/${disk.name}/`)
+              join(".smc/root/", ROOT, `/${disk.name}/`),
             );
           }}
         >
@@ -303,7 +303,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           }
           type="inner"
           style={{ marginTop: "15px" }}
-          bodyStyle={{ padding: "10px 0 0 0" }}
+          styles={{ body: { padding: "10px 0 0 0" } }}
         >
           <ul>{render_dedicated_disks_list(disks)}</ul>
         </Card>
@@ -379,5 +379,5 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         {render_support()}
       </div>
     );
-  }
+  },
 );

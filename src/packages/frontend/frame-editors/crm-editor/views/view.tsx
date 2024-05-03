@@ -63,7 +63,7 @@ export default function View({
 
   const fields = useMemo(
     () => allColumns.map(({ dataIndex }) => dataIndex),
-    [allColumns]
+    [allColumns],
   );
   const [orderFields, setOrderFields] = useOrderFields({ id, fields });
 
@@ -296,10 +296,7 @@ export default function View({
       break;
     case "retention":
       body = (
-        <RetentionView
-          retention={retention}
-          setRetention={setRetention}
-        />
+        <RetentionView retention={retention} setRetention={setRetention} />
       );
       break;
     default:
@@ -363,7 +360,7 @@ export default function View({
               height: "100%",
             }}
             title={header}
-            bodyStyle={{ flex: 1 }}
+            styles={{ body: { flex: 1 } }}
           >
             {body}
           </Card>

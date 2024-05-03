@@ -21,7 +21,7 @@ import type { SyncDB } from "@cocalc/sync/editor/db";
 interface Props {
   on_send: (value: string) => void;
   onChange: (string) => void;
-  syncdb: SyncDB;
+  syncdb: SyncDB | undefined;
   date: number; // ms since epoch of when this message was first sent; set to 0 for editing new message. set to -time (negative time) to respond to message at time!
   input?: string;
   on_paste?: (e) => void;
@@ -67,7 +67,7 @@ export default function ChatInput({
   );
   const [input, setInput] = useState<string>(() => {
     const dbInput = syncdb
-      .get_one({
+      ?.get_one({
         event: "draft",
         sender_id,
         date,
@@ -119,6 +119,7 @@ export default function ChatInput({
     SAVE_DEBOUNCE_MS,
     { leading: true },
   );
+
   useEffect(() => {
     if (syncdb == null) return;
     const onSyncdbChange = () => {

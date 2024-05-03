@@ -260,7 +260,9 @@ export default function SelectServer({
       title={
         title ??
         `This is open ${
-          !value ? "on the default shared resources" : `on compute server ${value}`
+          !value
+            ? "on the default shared resources"
+            : `on compute server ${value}`
         }.`
       }
     >
@@ -268,7 +270,7 @@ export default function SelectServer({
         disabled={disabled}
         allowClear
         size={size}
-        bordered={false}
+        variant={"borderless"}
         placeholder={
           <span style={{ color: avatar_fontcolor(background) }}>
             <Icon name="server" style={{ fontSize: "13pt" }} />{" "}

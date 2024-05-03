@@ -3,7 +3,7 @@ Edit with either plain text input **or** WYSIWYG slate-based input.
 */
 
 import { Popover, Radio } from "antd";
-import { fromJS, Map as ImmutableMap } from "immutable";
+import { Map as ImmutableMap, fromJS } from "immutable";
 import LRU from "lru-cache";
 import {
   CSSProperties,
@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 
+import { Icon } from "@cocalc/frontend/components";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -25,7 +26,6 @@ import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { BLURED_STYLE, FOCUSED_STYLE, MarkdownInput } from "./component";
-import { Icon } from "@cocalc/frontend/components";
 
 // NOTE: on mobile there is very little suppport for "editor" = "slate", but
 // very good support for "markdown", hence the default below.
@@ -373,7 +373,7 @@ export default function MultiMarkdownInput(props: Props) {
           </div>
         )}
       </div>
-      {mode == "markdown" && (
+      {mode === "markdown" ? (
         <MarkdownInput
           divRef={editorDivRef}
           selectionRef={selectionRef}
@@ -418,8 +418,8 @@ export default function MultiMarkdownInput(props: Props) {
           compact={compact}
           dirtyRef={dirtyRef}
         />
-      )}
-      {mode == "editor" && (
+      ) : undefined}
+      {mode === "editor" ? (
         <div
           style={{
             height: height ?? "100%",
@@ -501,7 +501,7 @@ export default function MultiMarkdownInput(props: Props) {
             dirtyRef={dirtyRef}
           />
         </div>
-      )}
+      ) : undefined}
     </div>
   );
 }
