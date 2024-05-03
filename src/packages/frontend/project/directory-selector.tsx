@@ -209,11 +209,13 @@ export default function DirectorySelector({
         backgroundColor: "white",
         ...style,
       }}
-      bodyStyle={{
-        maxHeight: "50vh",
-        overflow: "scroll",
-        whiteSpace: "nowrap",
-        ...bodyStyle,
+      styles={{
+        body: {
+          maxHeight: "50vh",
+          overflow: "scroll",
+          whiteSpace: "nowrap",
+          ...bodyStyle,
+        },
       }}
     >
       {body}
