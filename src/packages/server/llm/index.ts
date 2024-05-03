@@ -28,6 +28,7 @@ import {
   OpenAIMessages,
   getLLMCost,
   isAnthropicModel,
+  isCoreLanguageModel,
   isFreeModel,
   isGoogleModel,
   isMistralModel,
@@ -205,7 +206,7 @@ async function evaluateImpl({
   if (account_id) {
     const is_cocalc_com =
       (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
-    if (isFreeModel(model, is_cocalc_com)) {
+    if (isFreeModel(model, is_cocalc_com) || !isCoreLanguageModel(model)) {
       // no charge for now...
     } else {
       // charge for ALL other models.

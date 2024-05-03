@@ -18,6 +18,7 @@ import {
   fromOllamaModel,
   getLLMCost,
   getLLMPriceRange,
+  isCoreLanguageModel,
   isFreeModel,
   isOllamaLLM,
   model2service,
@@ -205,14 +206,18 @@ export default function LLMSelector({
 
     const [input, output] = [500, 300];
     const { min, max } = getLLMPriceRange(input, output, llm_markup);
-    const { prompt_tokens: model_input, completion_tokens: model_output } =
-      getLLMCost(model, llm_markup);
 
-    const selected = isFreeModel(model, is_cocalc_com)
-      ? "free"
-      : `about $${round2up(input * model_input + output * model_output).toFixed(
-          2,
-        )}`;
+    function calcSelected() {
+      if (isFreeModel(model, is_cocalc_com) || !isCoreLanguageModel(model)) {
+        return "free";
+      } else {
+        const { prompt_tokens: model_input, completion_tokens: model_output } =
+          getLLMCost(model, llm_markup);
+        return `about $${round2up(
+          input * model_input + output * model_output,
+        ).toFixed(2)}`;
+      }
+    }
 
     return (
       <>
@@ -226,8 +231,8 @@ export default function LLMSelector({
         <Paragraph>
           Assuming a typical usage involves {input} input tokens and {output}{" "}
           output tokens, the price across all models ranges from $
-          {min.toFixed(2)} to ${max.toFixed(2)} per usage, and is {selected} for
-          the selected model {modelToName(model)}.
+          {min.toFixed(2)} to ${max.toFixed(2)} per usage, and is{" "}
+          {calcSelected()} for the selected model {modelToName(model)}.
         </Paragraph>
       </>
     );
