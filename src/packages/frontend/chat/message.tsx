@@ -57,6 +57,7 @@ import {
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { OllamaPublic } from "@cocalc/util/types/llm";
+import { RawPrompt } from "../jupyter/llm/raw-prompt";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
@@ -71,11 +72,10 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
-import { RawPrompt } from "../jupyter/llm/raw-prompt";
 
 const DELETE_BUTTON = false;
 
-const BLANK_COLUMN = <Col key={"blankcolumn"} xs={2}></Col>;
+const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
 const MARKDOWN_STYLE = undefined;
 // const MARKDOWN_STYLE = { maxHeight: "300px", overflowY: "auto" };
@@ -405,7 +405,7 @@ export default function Message(props: Props) {
       ...(mode === "sidechat" ? { marginLeft: "5px", marginRight: "5px" } : {}),
     } as const;
 
-    const mainXS = 20;
+    const mainXS = mode === "standalone" ? 20 : 22;
 
     return (
       <Col key={1} xs={mainXS}>
@@ -738,66 +738,6 @@ export default function Message(props: Props) {
     }
   }
 
-  function getThreadfoldOrBlank() {
-    if (is_thread_body || (!is_thread_body && !is_thread)) {
-      return BLANK_COLUMN;
-    } else {
-      const style: CSS =
-        mode === "standalone"
-          ? {
-              marginTop:
-                props.show_avatar ||
-                (!props.is_prev_sender && is_viewers_message)
-                  ? MARGIN_TOP_VIEWER
-                  : "5px",
-              marginLeft: "5px",
-              marginRight: "5px",
-            }
-          : { marginTop: "10px" };
-      const iconname = isFolded
-        ? reverseRowOrdering
-          ? "right-circle-o"
-          : "left-circle-o"
-        : "down-circle-o";
-      const button = (
-        <Button
-          type="text"
-          style={style}
-          onClick={() =>
-            props.actions?.foldThread(props.message.get("date"), props.index)
-          }
-          icon={
-            <Icon
-              name={iconname}
-              style={{ fontSize: mode === "standalone" ? "22px" : "16px" }}
-            />
-          }
-        />
-      );
-      return (
-        <Col
-          xs={mode === "standalone" ? 2 : 4}
-          key={"blankcolumn"}
-          style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
-        >
-          {hideTooltip ? (
-            button
-          ) : (
-            <Tooltip
-              title={
-                isFolded
-                  ? "Unfold this thread"
-                  : "Fold this thread to hide replies"
-              }
-            >
-              {button}
-            </Tooltip>
-          )}
-        </Col>
-      );
-    }
-  }
-
   function renderReplyRow() {
     if (replying || generating || !props.allowReply || is_folded) return;
 
@@ -856,20 +796,92 @@ export default function Message(props: Props) {
     );
   }
 
+  function getThreadfoldOrBlank() {
+    const xs = 2;
+    if (is_thread_body || (!is_thread_body && !is_thread)) {
+      return BLANK_COLUMN(xs);
+    } else {
+      const style: CSS =
+        mode === "standalone"
+          ? {
+              marginTop:
+                props.show_avatar ||
+                (!props.is_prev_sender && is_viewers_message)
+                  ? MARGIN_TOP_VIEWER
+                  : "5px",
+              marginLeft: "5px",
+              marginRight: "5px",
+            }
+          : { marginTop: "5px", width: "100%", textAlign: "center" };
+      const iconname = isFolded
+        ? mode === "standalone"
+          ? reverseRowOrdering
+            ? "right-circle-o"
+            : "left-circle-o"
+          : "right-circle-o"
+        : "down-circle-o";
+      const button = (
+        <Button
+          type="text"
+          style={style}
+          onClick={() =>
+            props.actions?.foldThread(props.message.get("date"), props.index)
+          }
+          icon={
+            <Icon
+              name={iconname}
+              style={{ fontSize: mode === "standalone" ? "22px" : "18px" }}
+            />
+          }
+        />
+      );
+      return (
+        <Col
+          xs={xs}
+          key={"blankcolumn"}
+          style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
+        >
+          {hideTooltip ? (
+            button
+          ) : (
+            <Tooltip
+              title={
+                isFolded
+                  ? "Unfold this thread"
+                  : "Fold this thread to hide replies"
+              }
+            >
+              {button}
+            </Tooltip>
+          )}
+        </Col>
+      );
+    }
+  }
+
   function renderCols(): JSX.Element[] | JSX.Element {
-    // these columsn should be filtered in the first place, this here is just an extra check
+    // these columns should be filtered in the first place, this here is just an extra check
     if (is_thread && is_folded && is_thread_body) return <></>;
 
-    const cols = [content_column(), getThreadfoldOrBlank()];
-    // in standalone, add the avatar column
-    if (mode === "standalone") {
-      cols.unshift(avatar_column());
+    switch (mode) {
+      case "standalone":
+        const cols = [
+          avatar_column(),
+          content_column(),
+          getThreadfoldOrBlank(),
+        ];
+        if (reverseRowOrdering) {
+          cols.reverse();
+        }
+        return cols;
+
+      case "sidechat":
+        return [getThreadfoldOrBlank(), content_column()];
+
+      default:
+        unreachable(mode);
+        return content_column();
     }
-    // … and mirror right-left for sender's view
-    if (reverseRowOrdering) {
-      cols.reverse();
-    }
-    return cols;
   }
 
   return (
