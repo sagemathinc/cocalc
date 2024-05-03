@@ -4,6 +4,8 @@
  */
 
 import { List, Seq, fromJS, Map as immutableMap } from "immutable";
+import { debounce } from "lodash";
+import { Optional } from "utility-types";
 
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -11,6 +13,10 @@ import type {
   HashtagState,
   SelectedHashtags,
 } from "@cocalc/frontend/editors/task-editor/types";
+import {
+  modelToMention,
+  modelToName,
+} from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
@@ -30,8 +36,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { Optional } from "utility-types";
-import { getSortedDates } from "./chat-log";
+import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
 import {
@@ -41,7 +46,6 @@ import {
   MessageHistory,
 } from "./types";
 import { getSelectedHashtagsSearch } from "./utils";
-import { debounce } from "lodash";
 
 const MAX_CHATSTREAM = 10;
 
@@ -517,6 +521,7 @@ export class ChatActions extends Actions<ChatState> {
   public scrollToBottom(index: number = -1) {
     if (this.syncdb == null) return;
     // this triggers scroll behavior in the chat-log component.
+    this.setState({ scrollToBottom: null }); // noop, but necessary to trigger a change
     this.setState({ scrollToBottom: index });
   }
 
@@ -986,6 +991,67 @@ export class ChatActions extends Actions<ChatState> {
       generating: false,
     });
     this.syncdb.commit();
+  }
+
+  public async summarizeThread({
+    model,
+    reply_to,
+    returnInfo,
+    short,
+  }: {
+    model: LanguageModel;
+    reply_to?: string;
+    returnInfo?: boolean; // do not send, but return prompt + info}
+    short: boolean;
+  }) {
+    if (!reply_to) return;
+    const user_map = redux.getStore("users").get("user_map");
+    if (!user_map) return;
+    const threadMessages = this.getMessagesInThread(reply_to);
+    if (!threadMessages) return;
+
+    const history: { author: string; content: string }[] = [];
+    for (const message of threadMessages) {
+      const mostRecent = message.get("history")?.first();
+      if (!mostRecent) continue;
+      const sender_id: string | undefined = message.get("sender_id");
+      const author = getUserName(user_map, sender_id);
+      const content = stripMentions(mostRecent.get("content"));
+      history.push({ author, content });
+    }
+
+    const txtFull = [
+      "<details><summary>Chat history</summary>",
+      ...history.map(
+        ({ author, content }) => `${author}:\n${stripMentions(content)}`,
+      ),
+      "</details>",
+    ].join("\n\n");
+
+    // do not import until needed -- it is HUGE!
+    const { truncateMessage, getMaxTokens, numTokensUpperBound } = await import(
+      "@cocalc/frontend/misc/llm"
+    );
+    const maxTokens = getMaxTokens(model);
+    const txt = truncateMessage(txtFull, maxTokens);
+    const m = returnInfo ? `@${modelToName(model)}` : modelToMention(model);
+    const instruction = short
+      ? `Briefly summarize the provided chat conversation in one paragraph`
+      : `Summarize the provided chat conversation. Make a list of all topics, the main conclusions, assigned tasks, and a sentiment score.`;
+    const prompt = `${m} ${instruction}:\n\n${txt}`;
+
+    if (returnInfo) {
+      const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
+      console.log(prompt);
+      return { prompt, tokens, truncated: txtFull != txt };
+    } else {
+      this.send_chat({
+        input: prompt,
+        tag: `chat:summarize`,
+        noNotification: true,
+      });
+      this.scrollToBottom();
+    }
   }
 
   public async regenerateLLMResponse(date0: Date, llm?: LanguageModel) {

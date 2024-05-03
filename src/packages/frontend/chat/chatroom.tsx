@@ -38,7 +38,7 @@ import { history_path } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
-import { LLMCostEstimation } from "./llm-cost-estimation";
+import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 
@@ -417,7 +417,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             }}
           >
             <div style={{ flex: 1 }} />
-            <LLMCostEstimation
+            <LLMCostEstimationChat
               llm_cost={llm_cost_room}
               compact
               style={{

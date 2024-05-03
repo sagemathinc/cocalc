@@ -4,14 +4,26 @@
  */
 
 import type { MenuProps } from "antd";
-import { Button, Col, Dropdown, Popconfirm, Row, Space, Tooltip } from "antd";
+import {
+  Button,
+  Col,
+  Collapse,
+  Dropdown,
+  Popconfirm,
+  Row,
+  Space,
+  Switch,
+  Tooltip,
+} from "antd";
 import { Map } from "immutable";
 import { CSSProperties, useLayoutEffect } from "react";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   CSS,
   redux,
+  useAsyncEffect,
   useMemo,
   useRef,
   useState,
@@ -25,13 +37,17 @@ import {
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
+import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import {
+import LLMSelector, {
   LLMModelPrice,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   CoreLanguageModel,
   USER_SELECTABLE_LLMS_BY_VENDOR,
@@ -41,12 +57,11 @@ import {
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { OllamaPublic } from "@cocalc/util/types/llm";
-import { useProjectContext } from "../project/context";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
-import { LLMCostEstimation } from "./llm-cost-estimation";
+import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { Name } from "./name";
 import { Time } from "./time";
 import { ChatMessageTyped, Mode } from "./types";
@@ -56,6 +71,7 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
+import { RawPrompt } from "../jupyter/llm/raw-prompt";
 
 const DELETE_BUTTON = false;
 
@@ -677,7 +693,7 @@ export default function Message(props: Props) {
           >
             Cancel
           </Button>
-          <LLMCostEstimation
+          <LLMCostEstimationChat
             llm_cost={llm_cost_reply}
             compact={false}
             style={{ display: "inline-block", marginLeft: "10px" }}
@@ -812,6 +828,9 @@ export default function Message(props: Props) {
             ) : undefined}
           </Button>
         </Tooltip>
+        {props.message.get("reply_to") != null ? (
+          <SummarizeThread message={props.message} actions={props.actions} />
+        ) : undefined}
       </div>
     );
   }
@@ -927,17 +946,120 @@ function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
   }
 
   return (
-    <Dropdown.Button
-      menu={{ items: entries, style: { overflow: "auto", maxHeight: "50vh" } }}
-      size="small"
-      style={{ display: "inline", whiteSpace: "nowrap", ...style }}
-      icon={<Icon name="angle-down" />}
-      trigger={["click"]}
-      onClick={() => {
-        actions.regenerateLLMResponse(new Date(date));
-      }}
+    <Tooltip title="Regenerating the response will send the thread to the language model again and replace this answer. Select a different language model to see, if it has a better response. Previous answers are kept in the history of that message.">
+      <Dropdown.Button
+        menu={{
+          items: entries,
+          style: { overflow: "auto", maxHeight: "50vh" },
+        }}
+        size="small"
+        style={{ display: "inline", whiteSpace: "nowrap", ...style }}
+        icon={<Icon name="angle-down" />}
+        trigger={["click"]}
+        onClick={() => {
+          actions.regenerateLLMResponse(new Date(date));
+        }}
+      >
+        <Icon name="refresh" /> Regenerate
+      </Dropdown.Button>
+    </Tooltip>
+  );
+}
+
+function SummarizeThread({
+  message,
+  actions,
+}: {
+  message: ChatMessageTyped;
+  actions?: ChatActions;
+}) {
+  const reply_to = message.get("reply_to");
+  const { project_id } = useProjectContext();
+  const [model, setModel] = useLanguageModelSetting(project_id);
+  const [visible, setVisible] = useState(false);
+  const [tokens, setTokens] = useState(0);
+  const [truncated, setTruncated] = useState(false);
+  const [short, setShort] = useState(true);
+  const [prompt, setPrompt] = useState<string>("");
+
+  useAsyncEffect(async () => {
+    // we do no do all the processing if the popconfirm is not visible
+    if (!visible) return;
+
+    const info = await actions?.summarizeThread({
+      model,
+      reply_to,
+      returnInfo: true,
+      short,
+    });
+
+    if (!info) return;
+    const { tokens, truncated, prompt } = info;
+    setTokens(tokens);
+    setTruncated(truncated);
+    setPrompt(prompt);
+  }, [visible, model, message, short]);
+
+  return (
+    <PopconfirmKeyboard
+      onVisibilityChange={setVisible}
+      icon={<AIAvatar size={16} />}
+      title={<>Summarize this thread</>}
+      description={() => (
+        <div style={{ maxWidth: "500px" }}>
+          <Paragraph>
+            <LLMSelector model={model} setModel={setModel} />
+          </Paragraph>
+          <Paragraph>
+            The conversation in this thread will be sent to the language model{" "}
+            {modelToName(model)}. It will then start a new thread and reply with
+            a {short ? "short" : "detailed"} summary of the conversation.
+          </Paragraph>
+          <Paragraph>
+            Summary lenght:{" "}
+            <Switch
+              checked={!short}
+              onChange={(v) => setShort(!v)}
+              unCheckedChildren={"short"}
+              checkedChildren={"detailed"}
+            />
+          </Paragraph>
+          {truncated ? (
+            <Paragraph type="warning">
+              The conversion will be truncated. Consider selecting another
+              language model with a larger context window.
+            </Paragraph>
+          ) : null}
+          <Collapse
+            items={[
+              {
+                key: "1",
+                label: (
+                  <>Click to see what will be sent to {modelToName(model)}.</>
+                ),
+                children: (
+                  <RawPrompt
+                    input={prompt}
+                    style={{ border: "none", padding: "0", margin: "0" }}
+                  />
+                ),
+              },
+            ]}
+          />
+          <LLMCostEstimation
+            model={model}
+            tokens={tokens}
+            paragraph={true}
+            type="secondary"
+          />
+        </div>
+      )}
+      onConfirm={() => actions?.summarizeThread({ model, reply_to, short })}
+      okText="Summarize"
     >
-      <Icon name="refresh" /> Regenerate
-    </Dropdown.Button>
+      <Button type="text" style={{ color: COLORS.GRAY_M }}>
+        <Icon name="vertical-align-middle" /> Summarize…
+      </Button>
+    </PopconfirmKeyboard>
   );
 }

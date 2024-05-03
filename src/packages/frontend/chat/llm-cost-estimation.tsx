@@ -4,7 +4,7 @@ import { CSS } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Paragraph } from "@cocalc/frontend/components";
 import { ESTIMATION_HELP_TEXT } from "@cocalc/frontend/misc/llm-cost-estimation";
 
-export function LLMCostEstimation({
+export function LLMCostEstimationChat({
   llm_cost,
   compact,
   style,

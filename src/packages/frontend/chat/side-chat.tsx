@@ -10,7 +10,7 @@ import { user_activity } from "../tracker";
 import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
-import { LLMCostEstimation } from "./llm-cost-estimation";
+import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 
@@ -166,7 +166,7 @@ export default function SideChat({ project_id, path, style }: Props) {
             >
               Cancel
             </Button> */}
-            <LLMCostEstimation
+            <LLMCostEstimationChat
               compact
               llm_cost={llm_cost_room}
               style={{ margin: "5px" }}
