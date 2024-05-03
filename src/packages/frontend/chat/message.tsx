@@ -841,7 +841,7 @@ export default function Message(props: Props) {
           key={"blankcolumn"}
           style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
         >
-          {hideTooltip ? (
+          {true || hideTooltip ? (
             button
           ) : (
             <Tooltip
