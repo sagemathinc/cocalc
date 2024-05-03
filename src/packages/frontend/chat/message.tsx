@@ -4,7 +4,7 @@
  */
 
 import type { MenuProps } from "antd";
-import { Button, Col, Dropdown, Popconfirm, Row, Tooltip } from "antd";
+import { Button, Col, Dropdown, Popconfirm, Row, Space, Tooltip } from "antd";
 import { Map } from "immutable";
 import { CSSProperties, useLayoutEffect } from "react";
 
@@ -35,6 +35,7 @@ import {
 import {
   CoreLanguageModel,
   USER_SELECTABLE_LLMS_BY_VENDOR,
+  isLanguageModelService,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
@@ -201,6 +202,11 @@ export default function Message(props: Props) {
     [props.message, props.actions != null],
   );
 
+  const msgWrittenByLLM = useMemo(() => {
+    const author_id = props.message.get("history")?.first()?.get("author_id");
+    return typeof author_id === "string" && isLanguageModelService(author_id);
+  }, [props.message]);
+
   useLayoutEffect(() => {
     if (replying) {
       props.scroll_into_view();
@@ -273,12 +279,12 @@ export default function Message(props: Props) {
             fontSize: "14px" /* matches Reply button */,
           }}
         >
-          {edit}
+          {edit}{" "}
           {msg_date != null ? (
             <TimeAgo date={new Date(msg_date)} />
           ) : (
             "unknown time"
-          )}
+          )}{" "}
           {name}
         </div>
       );
@@ -435,14 +441,8 @@ export default function Message(props: Props) {
           )}
           {isEditing && renderEditMessage()}
           {!isEditing && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-            >
-              <div>
+            <div style={{ width: "100%", textAlign: "center" }}>
+              <Space direction="horizontal" size="small" wrap>
                 {Date.now() - date < SHOW_EDIT_BUTTON_MS && (
                   <Tooltip
                     title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
@@ -506,31 +506,35 @@ export default function Message(props: Props) {
                     <Icon name="reply" /> Reply
                   </Button>
                 ) : undefined} */}
-              </div>
-              {(props.message.get("history").size > 1 ||
-                props.message.get("editing").size > 0) &&
-                editing_status(isEditing)}
-              {props.message.get("history").size > 1 && (
-                <Button
-                  style={{
-                    marginLeft: "5px",
-                    color: is_viewers_message ? "white" : "#555",
-                  }}
-                  type="text"
-                  size="small"
-                  onClick={() => {
-                    set_show_history(!show_history);
-                    props.set_scroll?.();
-                  }}
-                >
-                  <Tip
-                    title="Message History"
-                    tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                {props.message.get("history").size > 1 ||
+                props.message.get("editing").size > 0
+                  ? editing_status(isEditing)
+                  : undefined}
+                {props.message.get("history").size > 1 ? (
+                  <Button
+                    style={{
+                      marginLeft: "5px",
+                      color: is_viewers_message ? "white" : "#555",
+                    }}
+                    type="text"
+                    size="small"
+                    onClick={() => {
+                      set_show_history(!show_history);
+                      props.set_scroll?.();
+                    }}
                   >
-                    <Icon name="history" /> {verb} History
-                  </Tip>
-                </Button>
-              )}
+                    <Tip
+                      title="Message History"
+                      tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                    >
+                      <Icon name="history" /> {verb} History
+                    </Tip>
+                  </Button>
+                ) : undefined}
+                {isLLMThread && msgWrittenByLLM ? (
+                  <RegenerateLLM actions={props.actions} date={date} />
+                ) : undefined}
+              </Space>
             </div>
           )}
         </div>
@@ -808,9 +812,6 @@ export default function Message(props: Props) {
             ) : undefined}
           </Button>
         </Tooltip>
-        {isLLMThread ? (
-          <RegenerateLLM actions={props.actions} date={date} />
-        ) : undefined}
       </div>
     );
   }
@@ -873,9 +874,10 @@ export function message_to_markdown(message): string {
 interface RegenerateLLMProps {
   actions?: ChatActions;
   date: number; // ms since epoch
+  style?: CSS;
 }
 
-function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
+function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
   const { enabledLLMs } = useProjectContext();
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
@@ -928,7 +930,7 @@ function RegenerateLLM({ actions, date }: RegenerateLLMProps) {
     <Dropdown.Button
       menu={{ items: entries, style: { overflow: "auto", maxHeight: "50vh" } }}
       size="small"
-      style={{ display: "inline", whiteSpace: "nowrap" }}
+      style={{ display: "inline", whiteSpace: "nowrap", ...style }}
       icon={<Icon name="angle-down" />}
       trigger={["click"]}
       onClick={() => {

@@ -654,11 +654,13 @@ export class ChatActions extends Actions<ChatState> {
     reply_to,
     tag,
     llm,
+    dateLimit,
   }: {
     message: ChatMessage;
     reply_to?: Date;
     tag?: string;
     llm?: LanguageModel;
+    dateLimit?: Date; // only for regenerate, filter history
   }) {
     const store = this.store;
     if (this.syncdb == null || !store) {
@@ -798,9 +800,22 @@ export class ChatActions extends Actions<ChatState> {
 
     // construct the LLM history for the given thread
     const history = reply_to ? this.getLLMHistory(reply_to) : undefined;
+
     if (tag === "regenerate") {
       if (history && history.length >= 2) {
         history.pop(); // remove the last LLM message, which is the one we're regenerating
+
+        // if dateLimit is earlier than the last message's date, remove the last two
+        while (dateLimit != null && history.length >= 2) {
+          const last = history[history.length - 1];
+          if (last.date != null && last.date > dateLimit) {
+            history.pop();
+            history.pop();
+          } else {
+            break;
+          }
+        }
+
         input = stripMentions(history.pop()?.content ?? ""); // the last user message is the input
       } else {
         console.warn(
@@ -957,7 +972,8 @@ export class ChatActions extends Actions<ChatState> {
       // otherwise the forth-and-back between AI and human would be broken.
       const sender_id = message.get("sender_id");
       const role = isLanguageModelService(sender_id) ? "assistant" : "user";
-      history.push({ content, role });
+      const date = message.get("date");
+      history.push({ content, role, date });
     }
     return history;
   }
@@ -972,7 +988,7 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.commit();
   }
 
-  public regenerateLLMResponse(date0: Date, llm?: LanguageModel) {
+  public async regenerateLLMResponse(date0: Date, llm?: LanguageModel) {
     if (this.syncdb == null) return;
     const date = date0.toISOString();
     const obj = this.syncdb.get_one({ event: "chat", date });
@@ -980,11 +996,12 @@ export class ChatActions extends Actions<ChatState> {
     if (message == null) return;
     const reply_to = message.reply_to;
     if (!reply_to) return;
-    this.processLLM({
+    await this.processLLM({
       message,
       reply_to: new Date(reply_to),
       tag: "regenerate",
       llm,
+      dateLimit: date0,
     });
   }
 }
