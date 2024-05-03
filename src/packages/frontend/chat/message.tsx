@@ -959,21 +959,23 @@ function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
 
   return (
     <Tooltip title="Regenerating the response will send the thread to the language model again and replace this answer. Select a different language model to see, if it has a better response. Previous answers are kept in the history of that message.">
-      <Dropdown.Button
+      <Dropdown
         menu={{
           items: entries,
           style: { overflow: "auto", maxHeight: "50vh" },
         }}
-        size="small"
-        style={{ display: "inline", whiteSpace: "nowrap", ...style }}
-        icon={<Icon name="angle-down" />}
         trigger={["click"]}
-        onClick={() => {
-          actions.regenerateLLMResponse(new Date(date));
-        }}
       >
-        <Icon name="refresh" /> Regenerate
-      </Dropdown.Button>
+        <Button
+          size="small"
+          style={{ display: "inline", whiteSpace: "nowrap", ...style }}
+        >
+          <Space>
+            <Icon name="refresh" /> Regenerate
+            <Icon name="chevron-down" />
+          </Space>
+        </Button>
+      </Dropdown>
     </Tooltip>
   );
 }

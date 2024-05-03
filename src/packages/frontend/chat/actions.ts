@@ -7,6 +7,7 @@ import { List, Seq, fromJS, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
 
+import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
 import type {
@@ -1069,6 +1070,13 @@ export class ChatActions extends Actions<ChatState> {
       llm,
       dateLimit: date0,
     });
+
+    if (llm != null) {
+      const customizeStore = redux.getStore("customize");
+      const selectableLLMs = customizeStore.get("selectable_llms");
+      const ollama = customizeStore.get("ollama");
+      setDefaultLLM(llm, selectableLLMs, ollama);
+    }
   }
 }
 
