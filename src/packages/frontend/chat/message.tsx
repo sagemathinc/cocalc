@@ -1065,6 +1065,7 @@ function SummarizeThread({
             tokens={tokens}
             paragraph={true}
             type="secondary"
+            maxOutputTokens={short ? 200 : undefined}
           />
         </div>
       )}
