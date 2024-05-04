@@ -874,7 +874,7 @@ export function getSystemPrompt(
   }
 
   if (model2vendor(model) === "ollama" || model.startsWith(OLLAMA_PREFIX)) {
-    return `${math}\n${common}`;
+    return `${common}`;
   }
 
   if (
