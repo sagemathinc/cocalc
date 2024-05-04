@@ -152,15 +152,27 @@ interface Props {
   llm_cost_reply?: [number, number] | null;
 }
 
-export default function Message(props: Props) {
-  const { is_thread, is_folded, is_thread_body, mode, llm_cost_reply } = props;
+export default function Message(props: Readonly<Props>) {
+  const {
+    is_folded,
+    is_thread_body,
+    is_thread,
+    llm_cost_reply,
+    message,
+    mode,
+    project_id,
+  } = props;
+
+  const showAISummarize = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id, "chat-summarize");
 
   const hideTooltip =
     useTypedRedux("account", "other_settings").get("hide_file_popovers") ??
     false;
 
   const [edited_message, set_edited_message] = useState<string>(
-    newest_content(props.message),
+    newest_content(message),
   );
   // We have to use a ref because of trickiness involving
   // stale closures when submitting the message.
@@ -169,39 +181,36 @@ export default function Message(props: Props) {
   const [show_history, set_show_history] = useState(false);
 
   const new_changes = useMemo(
-    () => edited_message !== newest_content(props.message),
-    [props.message] /* note -- edited_message is a function of props.message */,
+    () => edited_message !== newest_content(message),
+    [message] /* note -- edited_message is a function of message */,
   );
 
   // date as ms since epoch or 0
   const date: number = useMemo(() => {
-    return props.message?.get("date")?.valueOf() ?? 0;
-  }, [props.message.get("date")]);
+    return message?.get("date")?.valueOf() ?? 0;
+  }, [message.get("date")]);
 
-  const generating = props.message.get("generating");
+  const generating = message.get("generating");
 
-  const history_size = useMemo(
-    () => props.message.get("history").size,
-    [props.message],
-  );
+  const history_size = useMemo(() => message.get("history").size, [message]);
 
   const isEditing = useMemo(
-    () => is_editing(props.message, props.account_id),
-    [props.message, props.account_id],
+    () => is_editing(message, props.account_id),
+    [message, props.account_id],
   );
 
   const editor_name = useMemo(() => {
     return props.get_user_name(
-      props.message.get("history")?.first()?.get("author_id"),
+      message.get("history")?.first()?.get("author_id"),
     );
-  }, [props.message]);
+  }, [message]);
 
   const isFolded: boolean = useMemo(() => {
-    return props.message.get("folding")?.includes(props.account_id) ?? false;
-  }, [props.message]);
+    return message.get("folding")?.includes(props.account_id) ?? false;
+  }, [message]);
 
   const reverseRowOrdering =
-    !is_thread_body && sender_is_viewer(props.account_id, props.message);
+    !is_thread_body && sender_is_viewer(props.account_id, message);
 
   const submitMentionsRef = useRef<Function>();
 
@@ -210,18 +219,18 @@ export default function Message(props: Props) {
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<Function>();
 
-  const is_viewers_message = sender_is_viewer(props.account_id, props.message);
+  const is_viewers_message = sender_is_viewer(props.account_id, message);
   const verb = show_history ? "Hide" : "Show";
 
   const isLLMThread = useMemo(
-    () => props.actions?.isLanguageModelThread(props.message.get("date")),
-    [props.message, props.actions != null],
+    () => props.actions?.isLanguageModelThread(message.get("date")),
+    [message, props.actions != null],
   );
 
   const msgWrittenByLLM = useMemo(() => {
-    const author_id = props.message.get("history")?.first()?.get("author_id");
+    const author_id = message.get("history")?.first()?.get("author_id");
     return typeof author_id === "string" && isLanguageModelService(author_id);
-  }, [props.message]);
+  }, [message]);
 
   useLayoutEffect(() => {
     if (replying) {
@@ -231,7 +240,7 @@ export default function Message(props: Props) {
 
   function editing_status(is_editing: boolean) {
     let text;
-    const other_editors = props.message
+    const other_editors = message
       .get("editing")
       .remove(props.account_id)
       // @ts-ignore – not sure why this error shows up
@@ -250,10 +259,7 @@ export default function Message(props: Props) {
       } else if (other_editors.size > 1) {
         // Multiple other editors
         text = `${other_editors.size} other users are also editing this!`;
-      } else if (
-        history_size !== props.message.get("history").size &&
-        new_changes
-      ) {
+      } else if (history_size !== message.get("history").size && new_changes) {
         text = `${editor_name} has updated this message. Esc to discard your changes and see theirs`;
       } else {
         if (IS_TOUCH) {
@@ -271,7 +277,7 @@ export default function Message(props: Props) {
       } else if (other_editors.size > 1) {
         // Multiple editors
         text = `${other_editors.size} people are editing this message`;
-      } else if (newest_content(props.message).trim() === "") {
+      } else if (newest_content(message).trim() === "") {
         text = `Deleted by ${editor_name}`;
       }
     }
@@ -283,11 +289,11 @@ export default function Message(props: Props) {
     if (
       !is_editing &&
       other_editors.size === 0 &&
-      newest_content(props.message).trim() !== ""
+      newest_content(message).trim() !== ""
     ) {
       const edit = "Last edit ";
       const name = ` by ${editor_name}`;
-      const msg_date = props.message.get("history").first()?.get("date");
+      const msg_date = message.get("history").first()?.get("date");
       return (
         <div
           style={{
@@ -330,12 +336,12 @@ export default function Message(props: Props) {
       // no editing functionality or not in a project with a path.
       return;
     }
-    props.actions.set_editing(props.message, true);
+    props.actions.set_editing(message, true);
     props.scroll_into_view();
   }
 
   function avatar_column() {
-    const sender_id = props.message.get("sender_id");
+    const sender_id = message.get("sender_id");
     let style: CSSProperties = {};
     if (!props.is_prev_sender) {
       style.marginTop = "22px";
@@ -344,7 +350,7 @@ export default function Message(props: Props) {
     }
 
     if (!is_thread_body) {
-      if (sender_is_viewer(props.account_id, props.message)) {
+      if (sender_is_viewer(props.account_id, message)) {
         style.marginLeft = AVATAR_MARGIN_LEFTRIGHT;
       } else {
         style.marginRight = AVATAR_MARGIN_LEFTRIGHT;
@@ -364,11 +370,11 @@ export default function Message(props: Props) {
 
   function content_column() {
     let borderRadius, marginBottom, marginTop: any;
-    let value = newest_content(props.message);
+    let value = newest_content(message);
 
     const { background, color, lighten, message_class } = message_colors(
       props.account_id,
-      props.message,
+      message,
     );
 
     const font_size = `${props.font_size}px`;
@@ -412,10 +418,8 @@ export default function Message(props: Props) {
         <div style={{ display: "flex" }}>
           {!props.is_prev_sender &&
           !is_viewers_message &&
-          props.message.get("sender_id") ? (
-            <Name
-              sender_name={props.get_user_name(props.message.get("sender_id"))}
-            />
+          message.get("sender_id") ? (
+            <Name sender_name={props.get_user_name(message.get("sender_id"))} />
           ) : undefined}
           {generating === true && props.actions ? (
             <Button
@@ -435,7 +439,7 @@ export default function Message(props: Props) {
         >
           {!isEditing && (
             <span style={lighten}>
-              <Time message={props.message} edit={edit_message} />
+              <Time message={message} edit={edit_message} />
             </span>
           )}
           {!isEditing && (
@@ -471,16 +475,13 @@ export default function Message(props: Props) {
                       }}
                       type="text"
                       size="small"
-                      onClick={() =>
-                        props.actions?.set_editing(props.message, true)
-                      }
+                      onClick={() => props.actions?.set_editing(message, true)}
                     >
                       <Icon name="pencil" /> Edit
                     </Button>
                   </Tooltip>
                 )}
-                {DELETE_BUTTON &&
-                newest_content(props.message).trim().length > 0 ? (
+                {DELETE_BUTTON && newest_content(message).trim().length > 0 ? (
                   <Tooltip
                     title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
                     placement="left"
@@ -489,9 +490,9 @@ export default function Message(props: Props) {
                       title="Delete this message"
                       description="Are you sure you want to delete this message?"
                       onConfirm={() => {
-                        props.actions?.set_editing(props.message, true);
+                        props.actions?.set_editing(message, true);
                         setTimeout(
-                          () => props.actions?.send_edit(props.message, ""),
+                          () => props.actions?.send_edit(message, ""),
                           1,
                         );
                       }}
@@ -522,11 +523,11 @@ export default function Message(props: Props) {
                     <Icon name="reply" /> Reply
                   </Button>
                 ) : undefined} */}
-                {props.message.get("history").size > 1 ||
-                props.message.get("editing").size > 0
+                {message.get("history").size > 1 ||
+                message.get("editing").size > 0
                   ? editing_status(isEditing)
                   : undefined}
-                {props.message.get("history").size > 1 ? (
+                {message.get("history").size > 1 ? (
                   <Button
                     style={{
                       marginLeft: "5px",
@@ -558,7 +559,7 @@ export default function Message(props: Props) {
           <div>
             <HistoryTitle />
             <History
-              history={props.message.get("history")}
+              history={message.get("history")}
               user_map={props.user_map}
             />
             <HistoryFooter />
@@ -572,19 +573,19 @@ export default function Message(props: Props) {
   function saveEditedMessage(): void {
     if (props.actions == null) return;
     const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
-    const value = newest_content(props.message);
+    const value = newest_content(message);
     if (mesg !== value) {
       set_edited_message(mesg);
-      props.actions.send_edit(props.message, mesg);
+      props.actions.send_edit(message, mesg);
     } else {
-      props.actions.set_editing(props.message, false);
+      props.actions.set_editing(message, false);
     }
   }
 
   function on_cancel(): void {
-    set_edited_message(newest_content(props.message));
+    set_edited_message(newest_content(message));
     if (props.actions == null) return;
-    props.actions.set_editing(props.message, false);
+    props.actions.set_editing(message, false);
     props.actions.delete_draft(date);
   }
 
@@ -603,7 +604,7 @@ export default function Message(props: Props) {
         <ChatInput
           autoFocus
           cacheId={`${props.path}${props.project_id}${date}`}
-          input={newest_content(props.message)}
+          input={newest_content(message)}
           submitMentionsRef={submitMentionsRef}
           on_send={saveEditedMessage}
           height={"auto"}
@@ -623,7 +624,7 @@ export default function Message(props: Props) {
           </Button>
           <Button
             onClick={() => {
-              props.actions?.set_editing(props.message, false);
+              props.actions?.set_editing(message, false);
               props.actions?.delete_draft(date);
             }}
           >
@@ -637,7 +638,7 @@ export default function Message(props: Props) {
   function sendReply() {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
-    props.actions.send_reply({ message: props.message.toJS(), reply });
+    props.actions.send_reply({ message: message.toJS(), reply });
     props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
@@ -670,11 +671,7 @@ export default function Message(props: Props) {
           onChange={(value) => {
             replyMessageRef.current = value;
             const reply = replyMentionsRef.current?.() ?? value;
-            props.actions?.llm_estimate_cost(
-              reply,
-              "reply",
-              props.message.toJS(),
-            );
+            props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -768,8 +765,8 @@ export default function Message(props: Props) {
             ) : undefined}
           </Button>
         </Tooltip>
-        {props.message.get("reply_to") != null ? (
-          <SummarizeThread message={props.message} actions={props.actions} />
+        {showAISummarize && is_thread ? (
+          <SummarizeThread message={message} actions={props.actions} />
         ) : undefined}
       </div>
     );
@@ -786,7 +783,7 @@ export default function Message(props: Props) {
             type="text"
             icon={<Icon name="down-circle-o" />}
             onClick={() =>
-              props.actions?.foldThread(props.message.get("date"), props.index)
+              props.actions?.foldThread(message.get("date"), props.index)
             }
           >
             <Text type="secondary">Unfold</Text>
@@ -825,7 +822,7 @@ export default function Message(props: Props) {
           type="text"
           style={style}
           onClick={() =>
-            props.actions?.foldThread(props.message.get("date"), props.index)
+            props.actions?.foldThread(message.get("date"), props.index)
           }
           icon={
             <Icon
@@ -909,11 +906,15 @@ interface RegenerateLLMProps {
 }
 
 function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
-  const { enabledLLMs } = useProjectContext();
+  const { enabledLLMs, project_id } = useProjectContext();
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
 
-  if (!actions) return null;
+  const haveChatRegenerate = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id, "chat-regenerate");
+
+  if (!actions || !haveChatRegenerate) return null;
 
   const entries: MenuProps["items"] = [];
 
@@ -938,7 +939,7 @@ function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
     }
   }
 
-  if (ollama) {
+  if (ollama && enabledLLMs["ollama"]) {
     for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
       const { display } = config;
       const ollamaModel = toOllamaModel(key);
@@ -957,6 +958,13 @@ function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
     }
   }
 
+  if (entries.length === 0) {
+    entries.push({
+      key: "none",
+      label: "No language models available",
+    });
+  }
+
   return (
     <Tooltip title="Regenerating the response will send the thread to the language model again and replace this answer. Select a different language model to see, if it has a better response. Previous answers are kept in the history of that message.">
       <Dropdown
@@ -968,6 +976,7 @@ function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
       >
         <Button
           size="small"
+          type="text"
           style={{ display: "inline", whiteSpace: "nowrap", ...style }}
         >
           <Space>
