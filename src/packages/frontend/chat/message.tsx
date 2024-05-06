@@ -138,7 +138,6 @@ interface Props {
   mode: Mode;
   selectedHashtags?: Set<string>;
 
-  set_scroll?: Function;
   scroll_into_view: () => void; // call to scroll this message into view
 
   // if true, include a reply button - this should only be for messages
@@ -297,6 +296,7 @@ export default function Message(props: Readonly<Props>) {
       return (
         <div
           style={{
+            color: COLORS.GRAY_M,
             marginBottom: "2px",
             fontSize: "14px" /* matches Reply button */,
           }}
@@ -312,7 +312,7 @@ export default function Message(props: Readonly<Props>) {
       );
     }
     return (
-      <div>
+      <div style={{ color: COLORS.GRAY_M }}>
         {text}
         {is_editing ? (
           <span style={{ margin: "10px 10px 0 10px", display: "inline-block" }}>
@@ -535,16 +535,17 @@ export default function Message(props: Readonly<Props>) {
                     }}
                     type="text"
                     size="small"
+                    icon={<Icon name="history" />}
                     onClick={() => {
                       set_show_history(!show_history);
-                      props.set_scroll?.();
+                      props.scroll_into_view?.();
                     }}
                   >
                     <Tip
                       title="Message History"
                       tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
                     >
-                      <Icon name="history" /> {verb} History
+                      {verb} History
                     </Tip>
                   </Button>
                 ) : undefined}
@@ -977,10 +978,16 @@ function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
         <Button
           size="small"
           type="text"
-          style={{ display: "inline", whiteSpace: "nowrap", ...style }}
+          icon={<Icon name="refresh" />}
+          style={{
+            display: "inline",
+            whiteSpace: "nowrap",
+            color: COLORS.GRAY_M,
+            ...style,
+          }}
         >
           <Space>
-            <Icon name="refresh" /> Regenerate
+            Regenerate
             <Icon name="chevron-down" />
           </Space>
         </Button>
