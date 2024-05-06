@@ -670,8 +670,9 @@ export default function Message(props: Readonly<Props>) {
           date={-date}
           onChange={(value) => {
             replyMessageRef.current = value;
-            const reply = replyMentionsRef.current?.() ?? value;
-            props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
+            // TODO: disabled, the replyMentionsRef shouldn't send mentions, just tell us who is mentioned
+            // const reply = replyMentionsRef.current?.() ?? value;
+            // props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
           }}
           placeholder={"Reply to the above message..."}
         />
