@@ -61,6 +61,10 @@ const TARGET_LANGS = [
   "SageMath",
   "Julia",
   "Octave",
+  // LaTeX: the package is parsed from between the brackets, keep them!
+  "LaTeX (algorithm2e)",
+  "LaTeX (algpseudocodex)",
+  "LaTeX (algorithmicx)",
   "JavaScript",
   "C/C++",
   "Java",
@@ -187,10 +191,19 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   translate: {
     icon: "translation-outlined",
     descr: "Translate the code in that cell to another language using AI.",
-    prompt: ({ language, target = "R" }) =>
-      `Your task is to translate the provided ${capitalize(
+    prompt: ({ language, target = "R" }) => {
+      let detail = "";
+      if (target.startsWith("LaTeX")) {
+        const pkgRe = /\\((.*?)\\)/g;
+        const pkg = target.match(pkgRe)?.[1] ?? "algorithm2e";
+        detail = ` using package "${pkg}". Wrap the LaTeX code in a codeblock and briefly explain how to insert it`;
+        target = "LaTeX";
+      }
+
+      return `Your task is to translate the provided ${capitalize(
         language,
-      )} code to ${target}.`,
+      )} code to ${target}${detail}.`;
+    },
   },
 } as const;
 
@@ -201,7 +214,7 @@ export function LLMCellTool({
   llmTools,
   is_current,
 }: Props) {
-  const { actions: project_actions } = useProjectContext();
+  const { actions: project_actions, onCoCalcCom } = useProjectContext();
   const { project_id, path } = useFrameContext();
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -375,8 +388,7 @@ export function LLMCellTool({
     const txtStyle: CSS = is_current
       ? {
           color: COLORS.AI_ASSISTANT_FONT,
-          // this makes it bold without "moving around"
-          textShadow: `1px 0 0 ${COLORS.AI_ASSISTANT_FONT}`,
+          fontWeight: "bold",
         }
       : {};
 
@@ -699,9 +711,11 @@ export function LLMCellTool({
           . The language model replies and you can continue the conversation in
           the same thread.
         </Paragraph>
-        <Paragraph style={{ textAlign: "right" }}>
-          <LLMCostEstimation model={model} tokens={tokens} />
-        </Paragraph>
+        {onCoCalcCom ? (
+          <Paragraph>
+            <LLMCostEstimation model={model} tokens={tokens} />
+          </Paragraph>
+        ) : undefined}
       </>
     );
   }

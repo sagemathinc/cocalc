@@ -8,6 +8,7 @@ Display a ? "help" icon, which -- when clicked -- shows a help tip
 */
 
 import { Button, Popover } from "antd";
+import type { TooltipPlacement } from "antd/es/tooltip";
 import { CSSProperties } from "react";
 
 import { CSS, React, useState } from "@cocalc/frontend/app-framework";
@@ -20,6 +21,7 @@ interface Props {
   maxWidth?: string; // default is 50vw
   style?: CSSProperties;
   extra?: string;
+  placement?: TooltipPlacement;
 }
 
 export const HelpIcon: React.FC<Props> = ({
@@ -28,6 +30,7 @@ export const HelpIcon: React.FC<Props> = ({
   children,
   maxWidth = "50vw",
   extra = "",
+  placement,
 }: Props) => {
   const [open, setOpen] = useState<boolean>(false);
 
@@ -39,6 +42,7 @@ export const HelpIcon: React.FC<Props> = ({
 
   return (
     <Popover
+      placement={placement}
       content={
         <div onClick={(e) => e.stopPropagation()} style={{ maxWidth }}>
           {children}

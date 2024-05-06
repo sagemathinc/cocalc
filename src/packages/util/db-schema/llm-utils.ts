@@ -1,5 +1,7 @@
 // this contains bits and pieces from the wrongly named openai.ts file
 
+import LRU from "lru-cache";
+
 import { unreachable } from "@cocalc/util/misc";
 
 // "Client LLMs" are defined in the user's account settings
@@ -778,7 +780,7 @@ export interface LLMCost {
 }
 
 export function getLLMCost(
-  model: LanguageModel,
+  model: CoreLanguageModel,
   markup_percentage: number, // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
 ): LLMCost {
   const x = LLM_COST[model];
@@ -796,11 +798,43 @@ export function getLLMCost(
   };
 }
 
+const priceRangeCache = new LRU<string, ReturnType<typeof getLLMPriceRange>>({
+  max: 10,
+});
+
+export function getLLMPriceRange(
+  prompt: number,
+  output: number,
+  markup_percentage: number,
+): { min: number; max: number } {
+  const cacheKey = `${prompt}::${output}::${markup_percentage}`;
+  const cached = priceRangeCache.get(cacheKey);
+  if (cached) return cached;
+
+  let min = Infinity;
+  let max = 0;
+  for (const key in LLM_COST) {
+    const model = LLM_COST[key];
+    if (!model || isFreeModel(key, true)) continue;
+    const { prompt_tokens, completion_tokens } = getLLMCost(
+      key as CoreLanguageModel,
+      markup_percentage,
+    );
+    const p = prompt * prompt_tokens + output * completion_tokens;
+
+    min = Math.min(min, p);
+    max = Math.max(max, p);
+  }
+  const ret = { min, max };
+  priceRangeCache.set(cacheKey, ret);
+  return ret;
+}
+
 // The maximum cost for one single call using the given model.
 // We can't know the cost until after it happens, so this bound is useful for
 // ensuring user can afford to make a call.
 export function getMaxCost(
-  model: LanguageModel,
+  model: CoreLanguageModel,
   markup_percentage: number,
 ): number {
   const { prompt_tokens, completion_tokens } = getLLMCost(
@@ -840,7 +874,7 @@ export function getSystemPrompt(
   }
 
   if (model2vendor(model) === "ollama" || model.startsWith(OLLAMA_PREFIX)) {
-    return `${math}\n${common}`;
+    return `${common}`;
   }
 
   if (

@@ -3,9 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { redux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { original_path } from "@cocalc/util/misc";
-import { redux } from "../../app-framework";
-import { webapp_client } from "../../webapp-client";
 
 interface Mention {
   account_id: string;
@@ -16,7 +16,7 @@ interface Mention {
 export async function submit_mentions(
   project_id: string,
   path: string,
-  mentions: Mention[]
+  mentions: Mention[],
 ): Promise<void> {
   const source = redux.getStore("account")?.get("account_id");
   if (source == null) {

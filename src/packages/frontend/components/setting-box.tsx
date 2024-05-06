@@ -53,7 +53,7 @@ export function SettingBox(props: Props) {
       extra={close != null ? <CloseX2 close={close} /> : undefined}
       type="inner"
       style={{ ...STYLE, ...style }}
-      bodyStyle={bodyStyle}
+      styles={{ body: bodyStyle }}
     >
       {children}
     </Card>

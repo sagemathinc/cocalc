@@ -59,7 +59,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
 
   function render_info_for_file(
     filename: string,
-    scores: NotebookScores | string
+    scores: NotebookScores | string,
   ): Rendered {
     return (
       <div key={filename} style={{ marginBottom: "5px" }}>
@@ -73,7 +73,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
     actions.assignments.open_file_in_collected_assignment(
       assignment_id,
       student_id,
-      filename
+      filename,
     );
   }
 
@@ -100,7 +100,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
 
   function render_scores_for_file(
     filename: string,
-    scores: NotebookScores | string
+    scores: NotebookScores | string,
   ): Rendered {
     if (typeof scores == "string") {
       return (
@@ -157,14 +157,14 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
       filename,
       id,
       score,
-      true
+      true,
     );
   }
 
   function render_assigned_score(
     filename: string,
     id: string,
-    score: Score
+    score: Score,
   ): Rendered {
     if (!score.manual) {
       return <>{score.score ?? "?"}</>;
@@ -266,7 +266,7 @@ export const NbgraderScores: React.FC<Props> = (props: Props) => {
       style={{ marginTop: "5px", backgroundColor }}
       extra={render_more_toggle(action_required)}
       title={render_title(score, points, error)}
-      bodyStyle={show_all ? {} : { padding: 0 }}
+      styles={{ body: show_all ? {} : { padding: 0 } }}
     >
       {render_show_all()}
     </Card>

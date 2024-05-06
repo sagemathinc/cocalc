@@ -34,7 +34,10 @@ export interface ChatState {
   // whenever this changes and is defined, do a scroll.
   //  scrollToBottom = 0 -- scroll to the bottom
   //  scrollToBottom = ms since epoch -- scroll to the bottom of that thread
-  scrollToBottom?: number;
+  scrollToBottom?: number | null;
+  today: boolean;
+  llm_cost_room?: [number, number] | null;
+  llm_cost_reply?: [number, number] | null;
 }
 
 export class ChatStore extends Store<ChatState> {
@@ -59,6 +62,7 @@ export class ChatStore extends Store<ChatState> {
       unsent_user_mentions: List() as any,
       is_uploading: false,
       font_size: redux.getStore("account").get("font_size"),
+      today: false,
     };
   };
 }

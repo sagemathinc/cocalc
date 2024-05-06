@@ -5,7 +5,7 @@
 
 // Maybe should go in app-framework ... ?
 
-import { redux } from "../app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 
 export function actions(name: string): any {
   const a = redux.getActions(name);

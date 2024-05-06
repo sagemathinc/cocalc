@@ -83,6 +83,13 @@ export class LLMClient {
   }): Promise<string> {
     system ??= getSystemPrompt(model, path);
 
+    // remove all date entries from all history objects
+    if (history != null) {
+      for (const h of history) {
+        delete h.date;
+      }
+    }
+
     if (!redux.getStore("projects").hasLanguageModelEnabled(project_id, tag)) {
       throw new Error(
         `Language model support is not currently enabled ${

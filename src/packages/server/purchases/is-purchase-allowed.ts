@@ -3,6 +3,7 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import {
   getMaxCost,
+  isCoreLanguageModel,
   isLanguageModelService,
   service2model,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -190,7 +191,11 @@ async function getCostEstimate(service: Service): Promise<number | undefined> {
     const { pay_as_you_go_openai_markup_percentage } =
       await getServerSettings();
     const model = service2model(service);
-    return getMaxCost(model, pay_as_you_go_openai_markup_percentage);
+    if (isCoreLanguageModel(model)) {
+      return getMaxCost(model, pay_as_you_go_openai_markup_percentage);
+    } else {
+      return undefined;
+    }
   }
 
   switch (service) {
