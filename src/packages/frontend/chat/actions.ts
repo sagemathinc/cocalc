@@ -208,6 +208,25 @@ export class ChatActions extends Actions<ChatState> {
     }
   }
 
+  public feedback(
+    message: ChatMessageTyped,
+    sentiment: "positive" | "negative",
+  ) {
+    if (this.syncdb == null) return;
+    const date = message.get("date");
+    if (!(date instanceof Date)) return;
+    const account_id = this.redux.getStore("account").get_account_id();
+    const cur = this.syncdb.get_one({ event: "chat", date });
+    // remove any previous sentiments by that user
+    const sentiments = (cur?.get("sentiment") ?? List([])).filter(
+      (key) => !key.startsWith(account_id),
+    );
+    const val = `${account_id}::${sentiment}`;
+    sentiments.push(val);
+    this.syncdb.set({ sentiments, date: date.toISOString() });
+    this.syncdb.commit();
+  }
+
   // The second parameter is used for sending a message by
   // chatgpt, which is currently managed by the frontend
   // (not the project).  Also the async doesn't finish until

@@ -42,6 +42,7 @@ export type ChatMessageTyped = TypedMap<{
     [author_id: string]: "FUTURE" | null;
   }>;
   folding?: List<string>;
+  sentiments?: List<string>; // encoded as list of "$account_id::$sentiment"
 }>;
 
 export type ChatMessages = TypedMap<{

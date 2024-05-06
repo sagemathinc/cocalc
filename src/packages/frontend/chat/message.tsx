@@ -3,27 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import type { MenuProps } from "antd";
-import {
-  Button,
-  Col,
-  Collapse,
-  Dropdown,
-  Popconfirm,
-  Row,
-  Space,
-  Switch,
-  Tooltip,
-} from "antd";
+import { Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { Map } from "immutable";
 import { CSSProperties, useLayoutEffect } from "react";
 
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
   CSS,
   redux,
-  useAsyncEffect,
   useMemo,
   useRef,
   useState,
@@ -37,32 +24,20 @@ import {
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
-import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
-import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
-import LLMSelector, {
-  LLMModelPrice,
-  modelToName,
-} from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
-import { useProjectContext } from "@cocalc/frontend/project/context";
-import {
-  CoreLanguageModel,
-  USER_SELECTABLE_LLMS_BY_VENDOR,
-  isLanguageModelService,
-  toOllamaModel,
-} from "@cocalc/util/db-schema/llm-utils";
+import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { OllamaPublic } from "@cocalc/util/types/llm";
-import { RawPrompt } from "../jupyter/llm/raw-prompt";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
+import { FeedbackLLM } from "./llm-msg-feedback";
+import { RegenerateLLM } from "./llm-msg-regenerate";
+import { SummarizeThread } from "./llm-msg-summarize";
 import { Name } from "./name";
 import { Time } from "./time";
 import { ChatMessageTyped, Mode } from "./types";
@@ -412,6 +387,7 @@ export default function Message(props: Readonly<Props>) {
     } as const;
 
     const mainXS = mode === "standalone" ? 20 : 22;
+    const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
 
     return (
       <Col key={1} xs={mainXS}>
@@ -463,7 +439,7 @@ export default function Message(props: Readonly<Props>) {
           {!isEditing && (
             <div style={{ width: "100%", textAlign: "center" }}>
               <Space direction="horizontal" size="small" wrap>
-                {Date.now() - date < SHOW_EDIT_BUTTON_MS && (
+                {showEditButton ? (
                   <Tooltip
                     title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
                     placement="left"
@@ -480,7 +456,7 @@ export default function Message(props: Readonly<Props>) {
                       <Icon name="pencil" /> Edit
                     </Button>
                   </Tooltip>
-                )}
+                ) : undefined}
                 {DELETE_BUTTON && newest_content(message).trim().length > 0 ? (
                   <Tooltip
                     title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
@@ -550,7 +526,10 @@ export default function Message(props: Readonly<Props>) {
                   </Button>
                 ) : undefined}
                 {isLLMThread && msgWrittenByLLM ? (
-                  <RegenerateLLM actions={props.actions} date={date} />
+                  <>
+                    <RegenerateLLM actions={props.actions} date={date} />
+                    <FeedbackLLM actions={props.actions} message={message} />
+                  </>
                 ) : undefined}
               </Space>
             </div>
@@ -898,199 +877,4 @@ export function message_to_markdown(message): string {
   const sender = getUserName(user_map, message.get("sender_id"));
   const date = message.get("date").toString();
   return `*From:* ${sender}  \n*Date:* ${date}  \n\n${value}`;
-}
-
-interface RegenerateLLMProps {
-  actions?: ChatActions;
-  date: number; // ms since epoch
-  style?: CSS;
-}
-
-function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
-  const { enabledLLMs, project_id } = useProjectContext();
-  const selectableLLMs = useTypedRedux("customize", "selectable_llms");
-  const ollama = useTypedRedux("customize", "ollama");
-
-  const haveChatRegenerate = redux
-    .getStore("projects")
-    .hasLanguageModelEnabled(project_id, "chat-regenerate");
-
-  if (!actions || !haveChatRegenerate) return null;
-
-  const entries: MenuProps["items"] = [];
-
-  // iterate over all key,values in USER_SELECTABLE_LLMS_BY_VENDOR
-  for (const vendor in USER_SELECTABLE_LLMS_BY_VENDOR) {
-    if (!enabledLLMs[vendor]) continue;
-    const llms: CoreLanguageModel[] = USER_SELECTABLE_LLMS_BY_VENDOR[vendor];
-    for (const llm of llms) {
-      if (!selectableLLMs.includes(llm)) continue;
-      entries.push({
-        key: llm,
-        label: (
-          <>
-            <LanguageModelVendorAvatar model={llm} /> {modelToName(llm)}{" "}
-            <LLMModelPrice model={llm} floatRight />
-          </>
-        ),
-        onClick: () => {
-          actions.regenerateLLMResponse(new Date(date), llm);
-        },
-      });
-    }
-  }
-
-  if (ollama && enabledLLMs["ollama"]) {
-    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
-      const { display } = config;
-      const ollamaModel = toOllamaModel(key);
-      entries.push({
-        key: ollamaModel,
-        label: (
-          <>
-            <LanguageModelVendorAvatar model={ollamaModel} /> {display}{" "}
-            <LLMModelPrice model={ollamaModel} floatRight />
-          </>
-        ),
-        onClick: () => {
-          actions.regenerateLLMResponse(new Date(date), ollamaModel);
-        },
-      });
-    }
-  }
-
-  if (entries.length === 0) {
-    entries.push({
-      key: "none",
-      label: "No language models available",
-    });
-  }
-
-  return (
-    <Tooltip title="Regenerating the response will send the thread to the language model again and replace this answer. Select a different language model to see, if it has a better response. Previous answers are kept in the history of that message.">
-      <Dropdown
-        menu={{
-          items: entries,
-          style: { overflow: "auto", maxHeight: "50vh" },
-        }}
-        trigger={["click"]}
-      >
-        <Button
-          size="small"
-          type="text"
-          icon={<Icon name="refresh" />}
-          style={{
-            display: "inline",
-            whiteSpace: "nowrap",
-            color: COLORS.GRAY_M,
-            ...style,
-          }}
-        >
-          <Space>
-            Regenerate
-            <Icon name="chevron-down" />
-          </Space>
-        </Button>
-      </Dropdown>
-    </Tooltip>
-  );
-}
-
-function SummarizeThread({
-  message,
-  actions,
-}: {
-  message: ChatMessageTyped;
-  actions?: ChatActions;
-}) {
-  const reply_to = message.get("reply_to");
-  const { project_id } = useProjectContext();
-  const [model, setModel] = useLanguageModelSetting(project_id);
-  const [visible, setVisible] = useState(false);
-  const [tokens, setTokens] = useState(0);
-  const [truncated, setTruncated] = useState(false);
-  const [short, setShort] = useState(true);
-  const [prompt, setPrompt] = useState<string>("");
-
-  useAsyncEffect(async () => {
-    // we do no do all the processing if the popconfirm is not visible
-    if (!visible) return;
-
-    const info = await actions?.summarizeThread({
-      model,
-      reply_to,
-      returnInfo: true,
-      short,
-    });
-
-    if (!info) return;
-    const { tokens, truncated, prompt } = info;
-    setTokens(tokens);
-    setTruncated(truncated);
-    setPrompt(prompt);
-  }, [visible, model, message, short]);
-
-  return (
-    <PopconfirmKeyboard
-      onVisibilityChange={setVisible}
-      icon={<AIAvatar size={16} />}
-      title={<>Summarize this thread</>}
-      description={() => (
-        <div style={{ maxWidth: "500px" }}>
-          <Paragraph>
-            <LLMSelector model={model} setModel={setModel} />
-          </Paragraph>
-          <Paragraph>
-            The conversation in this thread will be sent to the language model{" "}
-            {modelToName(model)}. It will then start a new thread and reply with
-            a {short ? "short" : "detailed"} summary of the conversation.
-          </Paragraph>
-          <Paragraph>
-            Summary lenght:{" "}
-            <Switch
-              checked={!short}
-              onChange={(v) => setShort(!v)}
-              unCheckedChildren={"short"}
-              checkedChildren={"detailed"}
-            />
-          </Paragraph>
-          {truncated ? (
-            <Paragraph type="warning">
-              The conversion will be truncated. Consider selecting another
-              language model with a larger context window.
-            </Paragraph>
-          ) : null}
-          <Collapse
-            items={[
-              {
-                key: "1",
-                label: (
-                  <>Click to see what will be sent to {modelToName(model)}.</>
-                ),
-                children: (
-                  <RawPrompt
-                    input={prompt}
-                    style={{ border: "none", padding: "0", margin: "0" }}
-                  />
-                ),
-              },
-            ]}
-          />
-          <LLMCostEstimation
-            model={model}
-            tokens={tokens}
-            paragraph={true}
-            type="secondary"
-            maxOutputTokens={short ? 200 : undefined}
-          />
-        </div>
-      )}
-      onConfirm={() => actions?.summarizeThread({ model, reply_to, short })}
-      okText="Summarize"
-    >
-      <Button type="text" style={{ color: COLORS.GRAY_M }}>
-        <Icon name="vertical-align-middle" /> Summarize…
-      </Button>
-    </PopconfirmKeyboard>
-  );
 }
