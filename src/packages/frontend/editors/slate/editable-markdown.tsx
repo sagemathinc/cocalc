@@ -23,6 +23,7 @@ import {
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
+import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { useMentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
 import { EditorFunctions } from "@cocalc/frontend/editors/markdown-input/multimode";
@@ -118,7 +119,7 @@ interface Props {
   registerEditor?: (editor: EditorFunctions) => void;
   unregisterEditor?: () => void;
   getValueRef?: MutableRefObject<() => string>; // see comment in src/packages/frontend/editors/markdown-input/multimode.tsx
-  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
+  submitMentionsRef?: SubmitMentionsRef; // when called this will submit all mentions in the document, and also returns current value of the document (for compat with markdown editor).  If not set, mentions are submitted when you create them.  This prop is used mainly for implementing chat, which has a clear "time of submission".
   editBar2?: MutableRefObject<JSX.Element | undefined>;
   dirtyRef?: MutableRefObject<boolean>;
   minimal?: boolean;
@@ -127,39 +128,39 @@ interface Props {
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const {
     actions: actions0,
-    id: id0,
-    read_only,
-    value,
-    placeholder,
+    autoFocus,
+    cursors,
+    dirtyRef,
+    disableWindowing = !USE_WINDOWING,
+    divRef,
+    editBar2,
+    editBarStyle,
+    editor_state,
     font_size: font_size0,
+    getValueRef,
+    height,
+    hidePath,
+    hideSearch,
+    id: id0,
     is_current,
     is_fullscreen,
-    editor_state,
-    cursors,
-    hidePath,
-    disableWindowing = !USE_WINDOWING,
-    style,
-    pageStyle,
-    editBarStyle,
-    onFocus,
-    onBlur,
-    autoFocus,
-    hideSearch,
-    saveDebounceMs,
-    noVfill,
-    divRef,
-    selectionRef,
-    height,
-    onCursorTop,
-    onCursorBottom,
     isFocused,
-    registerEditor,
-    unregisterEditor,
-    getValueRef,
-    submitMentionsRef,
-    editBar2,
-    dirtyRef,
     minimal,
+    noVfill,
+    onBlur,
+    onCursorBottom,
+    onCursorTop,
+    onFocus,
+    pageStyle,
+    placeholder,
+    read_only,
+    registerEditor,
+    saveDebounceMs,
+    selectionRef,
+    style,
+    submitMentionsRef,
+    unregisterEditor,
+    value,
   } = props;
   const { project_id, path, desc } = useFrameContext();
   const isMountedRef = useIsMountedRef();
@@ -361,33 +362,40 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   useEffect(() => {
     if (submitMentionsRef != null) {
-      submitMentionsRef.current = (fragmentId?: FragmentId) => {
+      submitMentionsRef.current = (
+        fragmentId?: FragmentId,
+        onlyValue = false,
+      ) => {
         if (project_id == null || path == null) {
           throw Error(
             "project_id and path must be set in order to use mentions.",
           );
         }
-        const fragment_id = Fragment.encode(fragmentId);
 
-        // No mentions in the document were already sent, so we send them now.
-        // We have to find all mentions in the document tree, and submit them.
-        const mentions: {
-          account_id: string;
-          description: string;
-          fragment_id: string;
-        }[] = [];
-        for (const [node, path] of Editor.nodes(editor, {
-          at: { path: [], offset: 0 },
-          match: (node) => node["type"] == "mention",
-        })) {
-          const [parent] = Editor.parent(editor, path);
-          mentions.push({
-            account_id: (node as Mention).account_id,
-            description: slate_to_markdown([parent]),
-            fragment_id,
-          });
+        if (!onlyValue) {
+          const fragment_id = Fragment.encode(fragmentId);
+
+          // No mentions in the document were already sent, so we send them now.
+          // We have to find all mentions in the document tree, and submit them.
+          const mentions: {
+            account_id: string;
+            description: string;
+            fragment_id: string;
+          }[] = [];
+          for (const [node, path] of Editor.nodes(editor, {
+            at: { path: [], offset: 0 },
+            match: (node) => node["type"] == "mention",
+          })) {
+            const [parent] = Editor.parent(editor, path);
+            mentions.push({
+              account_id: (node as Mention).account_id,
+              description: slate_to_markdown([parent]),
+              fragment_id,
+            });
+          }
+
+          submit_mentions(project_id, path, mentions);
         }
-        submit_mentions(project_id, path, mentions);
         const value = editor.getMarkdownValue();
         return value;
       };
