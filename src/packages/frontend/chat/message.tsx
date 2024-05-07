@@ -65,7 +65,7 @@ import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { Name } from "./name";
 import { Time } from "./time";
-import { ChatMessageTyped, Mode } from "./types";
+import { ChatMessageTyped, Mode, SubmitMentionsFn } from "./types";
 import {
   is_editing,
   message_colors,
@@ -212,12 +212,12 @@ export default function Message(props: Readonly<Props>) {
   const reverseRowOrdering =
     !is_thread_body && sender_is_viewer(props.account_id, message);
 
-  const submitMentionsRef = useRef<Function>();
+  const submitMentionsRef = useRef<SubmitMentionsFn>();
 
   const [replying, setReplying] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
-  const replyMentionsRef = useRef<Function>();
+  const replyMentionsRef = useRef<SubmitMentionsFn>();
 
   const is_viewers_message = sender_is_viewer(props.account_id, message);
   const verb = show_history ? "Hide" : "Show";
@@ -670,9 +670,9 @@ export default function Message(props: Readonly<Props>) {
           date={-date}
           onChange={(value) => {
             replyMessageRef.current = value;
-            // TODO: disabled, the replyMentionsRef shouldn't send mentions, just tell us who is mentioned
-            // const reply = replyMentionsRef.current?.() ?? value;
-            // props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
+            // replyMentionsRef does not submit mentions, only gives us the value
+           const reply = replyMentionsRef.current?.(undefined, true) ?? value;
+           props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
           }}
           placeholder={"Reply to the above message..."}
         />
