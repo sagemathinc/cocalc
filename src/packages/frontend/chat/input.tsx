@@ -17,6 +17,7 @@ import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { SyncDB } from "@cocalc/sync/editor/db";
+import { SubmitMentionsRef } from "./types";
 
 interface Props {
   on_send: (value: string) => void;
@@ -26,7 +27,7 @@ interface Props {
   input?: string;
   on_paste?: (e) => void;
   height?: string;
-  submitMentionsRef?: any;
+  submitMentionsRef?: SubmitMentionsRef;
   font_size?: number;
   hideHelp?: boolean;
   style?: CSSProperties;
@@ -39,22 +40,22 @@ interface Props {
 }
 
 export default function ChatInput({
-  on_send,
-  input: propsInput,
-  onChange,
-  height,
-  submitMentionsRef,
-  font_size,
-  hideHelp,
-  style,
+  autoFocus,
   cacheId,
-  onFocus,
-  onBlur,
-  syncdb,
   date,
   editBarStyle,
+  font_size,
+  height,
+  hideHelp,
+  input: propsInput,
+  on_send,
+  onBlur,
+  onChange,
+  onFocus,
   placeholder,
-  autoFocus,
+  style,
+  submitMentionsRef,
+  syncdb,
 }: Props) {
   const { project_id, path, actions } = useFrameContext();
   const fontSize = useRedux(["font_size"], project_id, path);
@@ -189,7 +190,7 @@ export default function ChatInput({
 function getPlaceholder(project_id, placeholder?: string): string {
   if (placeholder != null) return placeholder;
   if (redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
-    return "Type a new message (mention a LLM via @chatgpt, @gemini, …)...";
+    return "Type a new message (mention a collaborator or LLM via @chatgpt, @gemini, etc.)...";
   }
   return "Type a new message...";
 }
