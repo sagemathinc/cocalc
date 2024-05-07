@@ -1,6 +1,6 @@
 import { BaseType } from "antd/es/typography/Base";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
 import {
   LanguageModel,
@@ -101,8 +101,9 @@ export function LLMCostEstimation({
 
 function Wrapper({ children, type, paragraph }) {
   const C = paragraph ? Paragraph : Text;
+  const style: CSS = paragraph ? { textAlign: "right", marginBottom: 0 } : {};
   return (
-    <C style={{ textAlign: "right" }} type={type}>
+    <C style={style} type={type}>
       {children}
     </C>
   );

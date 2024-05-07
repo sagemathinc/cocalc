@@ -37,6 +37,8 @@ interface Props {
   project_id?: string;
 }
 
+
+// ATTN: if you change this LLMSelector, you also have to change useLLMMenuOptions
 export default function LLMSelector({
   style,
   model,
