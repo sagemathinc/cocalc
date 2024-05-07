@@ -281,7 +281,6 @@ export default function CreateComputeServer({ project_id, onCreate }) {
                     setTemplateId(id);
                     await setConfigToTemplate(id);
                   }}
-                  defaultOpen
                 />
               )}
             </div>
@@ -295,7 +294,11 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }
       >
         <div style={{ marginTop: "15px" }}>
-          <ShowError error={error} setError={setError} />
+          <ShowError
+            error={error}
+            setError={setError}
+            style={{ margin: "15px 0" }}
+          />
           {cloud != "onprem" && (
             <div
               style={{

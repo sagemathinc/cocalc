@@ -1,6 +1,6 @@
 import { Select } from "antd";
 import { useEffect, useState } from "react";
-import { getTemplates } from "./api";
+import { getTemplates } from "@cocalc/frontend/compute/api";
 import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
 import type { HyperstackConfiguration } from "@cocalc/util/db-schema/compute-servers";
 import { CLOUDS_BY_NAME } from "@cocalc/util/compute/cloud/clouds";
@@ -8,7 +8,8 @@ import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { currency } from "@cocalc/util/misc";
 import HyperstackSpecs from "@cocalc/frontend/compute/cloud/hyperstack/specs";
 import GoogleCloudSpecs from "@cocalc/frontend/compute/cloud/google-cloud/specs";
-import { RenderImage } from "./images";
+import { RenderImage } from "@cocalc/frontend/compute/images";
+import { filterOption } from "@cocalc/frontend/compute/util";
 
 export default function PublicTemplates({
   style,
@@ -27,14 +28,16 @@ export default function PublicTemplates({
   placement?;
   getPopupContainer?;
 }) {
-  const [templates, setTemplates] = useState<ConfigurationTemplate[] | null>(
-    null,
-  );
+  const [templates, setTemplates] = useState<
+    (ConfigurationTemplate | { search: string })[] | null
+  >(null);
   const [options, setOptions] = useState<any[]>([]);
   const [value, setValue0] = useState<number | undefined>(defaultId);
   const setValue = (n: number) => {
     setValue0(n);
-    setId(n);
+    if (n) {
+      setId(n);
+    }
   };
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export default function PublicTemplates({
           return {
             value: template.id,
             label: <TemplateLabel template={template} data={data} />,
+            search: JSON.stringify(template),
           };
         }),
       );
@@ -65,6 +69,7 @@ export default function PublicTemplates({
   return (
     <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
       <Select
+        allowClear
         defaultOpen={defaultOpen}
         placement={placement}
         getPopupContainer={getPopupContainer}
@@ -74,13 +79,14 @@ export default function PublicTemplates({
         options={options}
         style={{
           width: "100%",
-          height: "86px",
+          height: "auto",
         }}
         placeholder={
-          <div style={{ fontSize: "13pt" }}>
-            Select a compute server, then modify it to fit your needs...
-          </div>
+          <div>Select a compute server template, then modify it...</div>
         }
+        showSearch
+        optionFilterProp="children"
+        filterOption={filterOption}
       />
     </div>
   );
@@ -120,8 +126,9 @@ function TemplateLabel({ template, data }) {
         borderStyle: "solid",
         borderColor: color,
         borderRadius: "5px",
-        padding: "10px 0",
+        padding: "10px",
         overflow: "auto",
+        margin: "5px 10px",
       }}
     >
       <div style={{ display: "flex", margin: "0 15px" }}>
@@ -153,12 +160,14 @@ function TemplateLabel({ template, data }) {
       </div>
       <div
         style={{
-          whiteSpace: "pre-wrap",
+          whiteSpace: "nowrap",
           lineHeight: "normal",
           marginTop: "5px",
           textAlign: "center",
           overflow: "auto",
-          maxHeight: "2.4em",
+          maxHeight: "1.2em",
+          textOverflow: "ellipsis",
+          color: "#666",
         }}
       >
         {specs}

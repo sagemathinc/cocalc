@@ -52,9 +52,13 @@ export default function Crash() {
           color: "white",
           background: "crimson",
           padding: "15px",
+          borderRadius: "5px",
         }}
       >
         &nbsp; CoCalc Crashed
+        <a onClick={dismiss} style={{ float: "right" }}>
+          ×
+        </a>
       </h1>
 
       <div style={{ fontWeight: "bold", textAlign: "center" }}>

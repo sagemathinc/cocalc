@@ -24,7 +24,7 @@ import {
 const { CheckableTag } = Tag;
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { getModelLinks, toGPU } from "./util";
-import { filterOption } from "@cocalc/frontend/compute/google-cloud-config";
+import { filterOption } from "@cocalc/frontend/compute/util";
 import { DEFAULT_REGION } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { humanFlavor } from "@cocalc/util/compute/cloud/hyperstack/flavor";
 import { r_join } from "@cocalc/frontend/components/r_join";

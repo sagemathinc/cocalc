@@ -3,7 +3,7 @@ import generateVouchers from "@cocalc/util/vouchers";
 import { Button, Input, Popconfirm, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { PROXY_AUTH_TOKEN_FILE } from "@cocalc/util/compute/constants";
-import { writeTextFileToComputeServer } from "./util";
+import { writeTextFileToComputeServer } from "./project";
 import ShowError from "@cocalc/frontend/components/error";
 
 function createToken() {

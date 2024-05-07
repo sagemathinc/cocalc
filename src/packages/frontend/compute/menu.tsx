@@ -225,7 +225,7 @@ function getItems({
     });
   }
   if (isAdmin) {
-    if (optionItems[optionItems.length - 1]?.['type'] != "divider") {
+    if (optionItems[optionItems.length - 1]?.["type"] != "divider") {
       optionItems.push({
         type: "divider",
       });
