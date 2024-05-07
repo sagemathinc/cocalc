@@ -197,8 +197,6 @@ import {
   ThunderboltOutlined,
   ToolOutlined,
   TranslationOutlined,
-  TwitterCircleFilled,
-  TwitterOutlined,
   UnderlineOutlined,
   UndoOutlined,
   UnlockFilled,
@@ -218,6 +216,7 @@ import {
   WifiOutlined,
   YoutubeFilled,
   YoutubeOutlined,
+  XOutlined,
 } from "@ant-design/icons";
 
 // Unfortunately -- "error TS7056: The inferred type of this node exceeds the maximum length the
@@ -573,8 +572,8 @@ const IconSpec: { [name: string]: any } = {
   "toggle-on": { IconFont: "toggle-on" },
   tool: ToolOutlined,
   trash: DeleteOutlined,
-  "twitter-filled": TwitterCircleFilled,
-  twitter: TwitterOutlined,
+  "twitter-filled": XOutlined,
+  twitter: XOutlined,
   ubuntu: { IconFont: "ubuntu" },
   underline: UnderlineOutlined,
   undo: UndoOutlined,
