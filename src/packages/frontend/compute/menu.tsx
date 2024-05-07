@@ -17,6 +17,7 @@ import { TitleColorModal } from "./title-color";
 import { setServerConfiguration } from "@cocalc/frontend/compute/api";
 import ShowError from "@cocalc/frontend/components/error";
 import openSupportTab from "@cocalc/frontend/support/open";
+import { setTemplate } from "@cocalc/frontend/compute/api";
 
 function getServer({ id, project_id }) {
   return redux
@@ -47,12 +48,14 @@ function getItems({
   account_id,
   title,
   color,
+  isAdmin,
 }: {
   id: number;
   project_id: string;
   account_id: string;
   title?: string;
   color?: string;
+  isAdmin?: boolean;
 }): MenuProps["items"] {
   if (!id) {
     return [];
@@ -77,38 +80,250 @@ function getItems({
   // will be used for start/stop/etc.
   // const is_collab = is_owner || server.configuration?.allowCollaboratorControl;
 
-  return [
-    {
-      key: "title-color",
-      icon: <Icon name="server" />,
-      disabled: !is_owner,
-      label: (
+  const titleAndColor = {
+    key: "title-color",
+    icon: <Icon name="server" />,
+    disabled: !is_owner,
+    label: (
+      <div
+        style={{
+          fontWeight: "bold",
+          fontSize: "11pt",
+          display: "flex",
+          color: avatar_fontcolor(color),
+          background: color,
+          padding: "0 5px",
+          borderRadius: "3px",
+        }}
+      >
         <div
           style={{
-            fontWeight: "bold",
-            fontSize: "11pt",
-            display: "flex",
-            color: avatar_fontcolor(color),
-            background: color,
-            padding: "0 5px",
-            borderRadius: "3px",
+            maxWidth: "20ex",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            marginRight: "5px",
           }}
         >
-          <div
-            style={{
-              maxWidth: "20ex",
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              marginRight: "5px",
-            }}
-          >
-            {title}
-          </div>
-          (Id: {id})
+          {title}
         </div>
+        (Id: {id})
+      </div>
+    ),
+  };
+  const jupyterlab = {
+    key: "top-jupyterlab",
+    label: "JupyterLab",
+    icon: <Icon name="jupyter" />,
+    disabled:
+      apps["jupyterlab"] == null ||
+      server.state != "running" ||
+      !server.data?.externalIp,
+  };
+  const vscode = {
+    key: "top-vscode",
+    label: "VS Code",
+    icon: <Icon name="vscode" />,
+    disabled:
+      apps["vscode"] == null ||
+      server.state != "running" ||
+      !server.data?.externalIp,
+  };
+  const xpra = {
+    key: "xpra",
+    label: "X11 Desktop",
+    icon: <Icon name="desktop" />,
+    disabled: apps["xpra"] == null,
+  };
+
+  const logs = {
+    key: "logs",
+    label: "Logs",
+    icon: <Icon name="history" />,
+    children: [
+      {
+        key: "control-log",
+        icon: <Icon name="history" />,
+        label: "Control and Configuration Log",
+      },
+      {
+        key: "serial-console-log",
+        disabled:
+          server.cloud != "google-cloud" ||
+          server.state == "off" ||
+          server.state == "deprovisioned",
+        icon: <Icon name="laptop" />,
+        label: "Serial Console Log",
+      },
+    ],
+  };
+
+  const optionItems: (
+    | { key: string; label; icon; disabled?: boolean }
+    | { type: "divider" }
+  )[] = [
+    //             {
+    //               key: "dns",
+    //               label: "DNS...",
+    //               icon: <Icon name="network" />,
+    //             },
+    {
+      key: "ephemeral",
+      label: "Ephemeral",
+      icon: (
+        <Icon
+          style={{ fontSize: "12pt" }}
+          name={server.configuration?.ephemeral ? "check-square" : "square"}
+        />
       ),
     },
+    {
+      key: "allowCollaboratorControl",
+      label: "Collaborator Control",
+      icon: (
+        <Icon
+          style={{ fontSize: "12pt" }}
+          name={
+            server.configuration?.allowCollaboratorControl
+              ? "check-square"
+              : "square"
+          }
+        />
+      ),
+    },
+    {
+      type: "divider",
+    },
+  ];
+  if (server.cloud == "google-cloud") {
+    optionItems.push({
+      key: "autoRestart",
+      label: "Automatically Restart",
+      disabled: server.cloud != "google-cloud",
+      icon: (
+        <Icon
+          style={{ fontSize: "12pt" }}
+          name={server.configuration?.autoRestart ? "check-square" : "square"}
+        />
+      ),
+    });
+    optionItems.push({
+      key: "enableNestedVirtualization",
+      label: "Nested Virtualization",
+      disabled:
+        server.cloud != "google-cloud" || server.state != "deprovisioned",
+      icon: (
+        <Icon
+          style={{ fontSize: "12pt" }}
+          name={
+            server.configuration?.enableNestedVirtualization
+              ? "check-square"
+              : "square"
+          }
+        />
+      ),
+    });
+  }
+  if (isAdmin) {
+    if (optionItems[optionItems.length - 1]?.['type'] != "divider") {
+      optionItems.push({
+        type: "divider",
+      });
+    }
+    optionItems.push({
+      key: "template",
+      label: "Use as Template",
+      icon: (
+        <Icon
+          style={{ fontSize: "12pt" }}
+          name={server.template?.enabled ? "check-square" : "square"}
+        />
+      ),
+    });
+  }
+
+  const options = {
+    key: "options",
+    label: "Options",
+    disabled: !is_owner,
+    icon: <Icon name="gears" />,
+    children: [
+      {
+        key: "run-app-on",
+        type: "group",
+        label: "Configure Server",
+        children: optionItems,
+      },
+    ],
+  };
+
+  const launch = {
+    key: "launch",
+    label: "Applications",
+    icon: <Icon name="global" />,
+    disabled: server.state != "running",
+    children: [
+      {
+        key: "run-app-on",
+        type: "group",
+        label: "Run On Compute Server",
+        children: [
+          { ...jupyterlab, key: "jupyterlab-sub" },
+          { ...vscode, key: "vscode-sub" },
+          { ...xpra, key: "xpra-sub" },
+          //         {
+          //           key: "pluto",
+          //           label: "Pluto (Julia)",
+          //           icon: <Icon name="julia" />,
+          //         },
+          //         {
+          //           key: "rstudio",
+          // value:"rstudio",
+          //           label: "R Studio",
+          //           icon: <Icon name="r" />,
+          //         },
+        ],
+      },
+    ],
+  };
+
+  const help = {
+    key: "help",
+    icon: <Icon name="question-circle" />,
+    label: "Help",
+    children: [
+      {
+        key: "documentation",
+        icon: <Icon name="question-circle" />,
+        label: (
+          <A href="https://doc.cocalc.com/compute_server.html">Documentation</A>
+        ),
+      },
+      {
+        key: "support",
+        icon: <Icon name="medkit" />,
+        label: "Support",
+      },
+      {
+        key: "videos",
+        icon: <Icon name="youtube" style={{ color: "red" }} />,
+        label: (
+          <A href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ">
+            Videos
+          </A>
+        ),
+      },
+    ],
+  };
+
+  const settings = {
+    key: "settings",
+    icon: <Icon name="settings" />,
+    label: is_owner ? "Settings" : "Details...",
+  };
+
+  return [
+    titleAndColor,
     //     {
     //       type: "divider",
     //     },
@@ -127,27 +342,19 @@ function getItems({
     {
       type: "divider",
     },
-    {
-      key: "top-jupyterlab",
-      label: "JupyterLab",
-      icon: <Icon name="jupyter" />,
-      disabled:
-        apps["jupyterlab"] == null ||
-        server.state != "running" ||
-        !server.data?.externalIp,
-    },
-    {
-      key: "top-vscode",
-      label: "VS Code",
-      icon: <Icon name="vscode" />,
-      disabled:
-        apps["vscode"] == null ||
-        server.state != "running" ||
-        !server.data?.externalIp,
-    },
+    jupyterlab,
+    vscode,
     {
       type: "divider",
     },
+    launch,
+    logs,
+    options,
+    {
+      type: "divider",
+    },
+    help,
+    settings,
     //     {
     //       key: "control",
     //       icon: <Icon name="wrench" />,
@@ -188,50 +395,6 @@ function getItems({
     //         },
     //       ],
     //     },
-    {
-      key: "launch",
-      label: "Applications",
-      icon: <Icon name="global" />,
-      disabled: server.state != "running",
-      children: [
-        {
-          key: "run-app-on",
-          type: "group",
-          label: "Run On Compute Server",
-          children: [
-            {
-              key: "jupyterlab",
-              label: "JupyterLab",
-              icon: <Icon name="jupyter" />,
-              disabled: apps["jupyterlab"] == null,
-            },
-            {
-              key: "vscode",
-              label: "VS Code",
-              icon: <Icon name="vscode" />,
-              disabled: apps["vscode"] == null,
-            },
-            {
-              key: "xpra",
-              label: "X11 Desktop",
-              icon: <Icon name="desktop" />,
-              disabled: apps["xpra"] == null,
-            },
-            //         {
-            //           key: "pluto",
-            //           label: "Pluto (Julia)",
-            //           icon: <Icon name="julia" />,
-            //         },
-            //         {
-            //           key: "rstudio",
-            // value:"rstudio",
-            //           label: "R Studio",
-            //           icon: <Icon name="r" />,
-            //         },
-          ],
-        },
-      ],
-    },
     //     {
     //       key: "files",
     //       label: "Files",
@@ -272,147 +435,6 @@ function getItems({
     //         },
     //       ],
     //     },
-
-    {
-      key: "logs",
-      label: "Logs",
-      icon: <Icon name="history" />,
-      children: [
-        {
-          key: "control-log",
-          icon: <Icon name="history" />,
-          label: "Control and Configuration Log",
-        },
-        {
-          key: "serial-console-log",
-          disabled:
-            server.cloud != "google-cloud" ||
-            server.state == "off" ||
-            server.state == "deprovisioned",
-          icon: <Icon name="laptop" />,
-          label: "Serial Console Log",
-        },
-      ],
-    },
-    {
-      key: "options",
-      label: "Options",
-      disabled: !is_owner,
-      icon: <Icon name="gears" />,
-      children: [
-        {
-          key: "run-app-on",
-          type: "group",
-          label: "Configure Server",
-          children: [
-            //             {
-            //               key: "dns",
-            //               label: "DNS...",
-            //               icon: <Icon name="network" />,
-            //             },
-            {
-              key: "ephemeral",
-              label: "Ephemeral",
-              icon: (
-                <Icon
-                  style={{ fontSize: "12pt" }}
-                  name={
-                    server.configuration?.ephemeral ? "check-square" : "square"
-                  }
-                />
-              ),
-            },
-            {
-              key: "allowCollaboratorControl",
-              label: "Collaborator Control",
-              icon: (
-                <Icon
-                  style={{ fontSize: "12pt" }}
-                  name={
-                    server.configuration?.allowCollaboratorControl
-                      ? "check-square"
-                      : "square"
-                  }
-                />
-              ),
-            },
-            {
-              type: "divider",
-            },
-            {
-              key: "autoRestart",
-              label: "Automatically Restart",
-              disabled: server.cloud != "google-cloud",
-              icon: (
-                <Icon
-                  style={{ fontSize: "12pt" }}
-                  name={
-                    server.configuration?.autoRestart
-                      ? "check-square"
-                      : "square"
-                  }
-                />
-              ),
-            },
-            {
-              key: "enableNestedVirtualization",
-              label: "Nested Virtualization",
-              disabled:
-                server.cloud != "google-cloud" ||
-                server.state != "deprovisioned",
-              icon: (
-                <Icon
-                  style={{ fontSize: "12pt" }}
-                  name={
-                    server.configuration?.enableNestedVirtualization
-                      ? "check-square"
-                      : "square"
-                  }
-                />
-              ),
-            },
-          ],
-        },
-      ],
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "help",
-      icon: <Icon name="question-circle" />,
-      label: "Help",
-      children: [
-        {
-          key: "documentation",
-          icon: <Icon name="question-circle" />,
-          label: (
-            <A href="https://doc.cocalc.com/compute_server.html">
-              Documentation
-            </A>
-          ),
-        },
-        {
-          key: "support",
-          icon: <Icon name="medkit" />,
-          label: "Support",
-        },
-        {
-          key: "videos",
-          icon: <Icon name="youtube" style={{ color: "red" }} />,
-          label: (
-            <A href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ">
-              Videos
-            </A>
-          ),
-        },
-      ],
-    },
-    {
-      key: "settings",
-      icon: <Icon name="settings" />,
-      label: is_owner ? "Settings" : "Details...",
-    },
   ];
 }
 
@@ -437,6 +459,7 @@ export default function Menu({
   const [title, setTitle] = useState<{ title: string; color: string } | null>(
     null,
   );
+  const isAdmin = useTypedRedux("account", "is_admin");
   const { items, onClick } = useMemo(() => {
     if (!open) {
       return { onClick: () => {}, items: [] };
@@ -447,7 +470,7 @@ export default function Menu({
     })();
 
     return {
-      items: getItems({ ...title, id, project_id, account_id }),
+      items: getItems({ ...title, id, project_id, account_id, isAdmin }),
       onClick: async (obj) => {
         setOpen(false);
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
@@ -495,15 +518,23 @@ export default function Menu({
           case "allowCollaboratorControl":
           case "autoRestart":
           case "enableNestedVirtualization":
+          case "template":
             const server = getServer({ id, project_id });
             if (server != null) {
               try {
-                await setServerConfiguration({
-                  id,
-                  configuration: {
-                    [cmd]: !server.configuration?.[cmd],
-                  },
-                });
+                if (obj.key == "template") {
+                  await setTemplate({
+                    id,
+                    template: { enabled: !server.template?.enabled },
+                  });
+                } else {
+                  await setServerConfiguration({
+                    id,
+                    configuration: {
+                      [cmd]: !server.configuration?.[cmd],
+                    },
+                  });
+                }
               } catch (err) {
                 setError(`${err}`);
               }
