@@ -32,13 +32,13 @@ async function callApi(endpoint: string, args?: object) {
     },
     ...(args != null ? { body: JSON.stringify(args) } : undefined),
   });
-  const respClone = resp.clone();
+  // const respClone = resp.clone();
   let json: any = null;
   try {
     json = await resp.json();
   } catch (e) {
-    const e2 = `Error -- invalid JSON: ${await respClone.text()}`;
-    throw Error(e2);
+    // console.log(await respClone.text());
+    throw Error("invalid JSON: API server is down");
   }
   if (json == null) {
     throw Error("timeout -- please try again");
