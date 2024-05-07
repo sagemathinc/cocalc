@@ -99,6 +99,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       setColor(randomColor());
       setCloud(defaultCloud());
       setConfiguration(defaultConfiguration());
+      setTemplateId(undefined);
     } finally {
       setLoadingTemplate(false);
     }

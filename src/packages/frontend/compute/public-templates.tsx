@@ -1,4 +1,4 @@
-import { Select } from "antd";
+import { Select, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { getTemplates } from "@cocalc/frontend/compute/api";
 import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
@@ -28,6 +28,7 @@ export default function PublicTemplates({
   placement?;
   getPopupContainer?;
 }) {
+  const [loading, setLoading] = useState<boolean>(false);
   const [templates, setTemplates] = useState<
     (ConfigurationTemplate | { search: string })[] | null
   >(null);
@@ -42,24 +43,37 @@ export default function PublicTemplates({
 
   useEffect(() => {
     (async () => {
-      const { templates, data } = await getTemplates();
-      if (templates == null) {
-        setTemplates(null);
-        setOptions([]);
-        return;
+      try {
+        setLoading(true);
+        const { templates, data } = await getTemplates();
+        if (templates == null) {
+          setTemplates(null);
+          setOptions([]);
+          return;
+        }
+        setTemplates(templates);
+        setOptions(
+          templates.map((template) => {
+            return {
+              value: template.id,
+              label: <TemplateLabel template={template} data={data} />,
+              search: JSON.stringify(template),
+            };
+          }),
+        );
+      } finally {
+        setLoading(false);
       }
-      setTemplates(templates);
-      setOptions(
-        templates.map((template) => {
-          return {
-            value: template.id,
-            label: <TemplateLabel template={template} data={data} />,
-            search: JSON.stringify(template),
-          };
-        }),
-      );
     })();
   }, []);
+
+  if (loading) {
+    return (
+      <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
+        Loading Templates... <Spin />
+      </div>
+    );
+  }
 
   if (templates == null || options.length == 0) {
     // not loaded or no configured templates right now.

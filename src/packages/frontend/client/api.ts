@@ -38,10 +38,10 @@ async function callApi(endpoint: string, args?: object) {
     json = await resp.json();
   } catch (e) {
     // console.log(await respClone.text());
-    throw Error("invalid JSON: API server is down");
+    throw Error("API server is down -- try again later");
   }
   if (json == null) {
-    throw Error("timeout -- please try again");
+    throw Error("timeout -- try again later");
   }
   if (typeof json == "object" && json.error) {
     throw Error(json.error);

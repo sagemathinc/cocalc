@@ -168,7 +168,7 @@ export function ProjectServers(props: Props) {
         <>
           <h2>
             <ComputeServerDocs style={{ float: "right" }} />
-            <Icon name="servers" /> Compute Servers
+            Compute Servers
           </h2>
           <ComputeServers project_id={project_id} />
         </>
