@@ -53,7 +53,7 @@
   "private": false,
   "dependencies-comment": "IMPORTANT: we install typescript as a normal dependency (not devDependencies) since it may be needed at runtime due to server settings changing!!",
   "dependencies": {
-    "@ant-design/icons": "^4.8.0",
+    "@ant-design/icons": "^4.8.3",
     "@cocalc/assets": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/cdn": "workspace:*",

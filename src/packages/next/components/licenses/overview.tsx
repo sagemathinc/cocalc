@@ -34,7 +34,7 @@ export default function Overview() {
           collaborate on
         </Product>
 
-        <Product icon="rocket" href="/licenses/how-used" title="How used">
+        <Product icon="rocket" href="/licenses/how-used" title="License Usage">
           See how a specific license is being used
         </Product>
 

@@ -39,6 +39,7 @@ import { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
+import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 
@@ -101,7 +102,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     path,
   );
 
-  const submitMentionsRef = useRef<Function>();
+  const submitMentionsRef = useRef<SubmitMentionsFn>();
   const scrollToBottomRef = useRef<any>(null);
 
   // The act of opening/displaying the chat marks it as seen...
@@ -365,7 +366,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function on_send(): void {
-    const input = submitMentionsRef.current?.({ chatgpt: true });
+    const input = submitMentionsRef.current?.();
     scrollToBottomRef.current?.(true);
     actions.send_chat({ input });
   }
@@ -398,9 +399,10 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               height={INPUT_HEIGHT}
               onChange={(value) => {
                 actions.set_input(value);
-                // TODO: disabled, the replyMentionsRef shouldn't send mentions, just tell us who is mentioned
-                // const reply = submitMentionsRef.current?.({ chatgpt: true }) ?? value;
-                // actions?.llm_estimate_cost(reply, "room");
+                // submitMentionsRef will not acutally submit mentions, we're only interested in the reply value
+                const reply =
+                  submitMentionsRef.current?.(undefined, true) ?? value;
+                actions?.llm_estimate_cost(reply, "room");
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}

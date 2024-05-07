@@ -1,6 +1,8 @@
 import { List } from "immutable";
+import { MutableRefObject } from "react";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
+import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 export type Mode = "standalone" | "sidechat";
 
@@ -49,3 +51,10 @@ export type ChatMessages = TypedMap<{
   // both point to the same message
   [date: number | string]: ChatMessageTyped;
 }>;
+
+export type SubmitMentionsFn = (
+  fragmentId?: FragmentId,
+  onlyValue?: boolean,
+) => string;
+
+export type SubmitMentionsRef = MutableRefObject<SubmitMentionsFn | undefined>;

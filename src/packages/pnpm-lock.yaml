@@ -146,8 +146,8 @@ importers:
         specifier: ^2.7.9
         version: 2.7.9
       pdfjs-dist:
-        specifier: ^4.1.392
-        version: 4.1.392(encoding@0.1.13)
+        specifier: ^4.2.67
+        version: 4.2.67(encoding@0.1.13)
 
   comm:
     dependencies:
@@ -202,7 +202,7 @@ importers:
         version: 8.3.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       immutable:
         specifier: ^4.3.0
         version: 4.3.0
@@ -253,8 +253,8 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(antd@5.15.3(date-fns@2.30.0)(moment@2.30.1)(react-dom@18.2.0(react@18.2.0))(react@18.2.0))(prop-types@15.8.1)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@ant-design/icons':
-        specifier: ^4.8.0
-        version: 4.8.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        specifier: ^4.8.3
+        version: 4.8.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@cocalc/ansi-to-react':
         specifier: ^7.0.0
         version: 7.0.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -398,7 +398,7 @@ importers:
         version: 1.11.10
       debug:
         specifier: ^4.3.4
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       direction:
         specifier: ^1.0.4
         version: 1.0.4
@@ -526,8 +526,8 @@ importers:
         specifier: ^3.1.0
         version: 3.1.0
       pdfjs-dist:
-        specifier: ^4.1.392
-        version: 4.1.392(encoding@0.1.13)
+        specifier: ^4.2.67
+        version: 4.2.67(encoding@0.1.13)
       pegjs:
         specifier: ^0.10.0
         version: 0.10.0
@@ -810,7 +810,7 @@ importers:
         version: 2.8.5
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       escape-html:
         specifier: ^1.0.3
         version: 1.0.3
@@ -979,7 +979,7 @@ importers:
         version: 8.3.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       enchannel-zmq-backend:
         specifier: ^9.1.23
         version: 9.1.23(rxjs@7.8.1)
@@ -1039,8 +1039,8 @@ importers:
   next:
     dependencies:
       '@ant-design/icons':
-        specifier: ^4.8.0
-        version: 4.8.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        specifier: ^4.8.3
+        version: 4.8.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@cocalc/assets':
         specifier: workspace:*
         version: link:../assets
@@ -1248,7 +1248,7 @@ importers:
         version: 3.0.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       diskusage:
         specifier: ^1.1.3
         version: 1.1.3
@@ -1378,7 +1378,7 @@ importers:
         version: 0.1.16(encoding@0.1.13)
       '@langchain/community':
         specifier: ^0.0.49
-        version: 0.0.49(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.4.5))(better-sqlite3@8.3.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.8.0)(ws@8.13.0)
+        version: 0.0.49(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.2.2))(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)
       '@langchain/core':
         specifier: ^0.1.58
         version: 0.1.59
@@ -1507,7 +1507,7 @@ importers:
         version: 1.0.1
       langchain:
         specifier: ^0.1.33
-        version: 0.1.35(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.3.6)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.7)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.8.0)(ws@8.13.0)
+        version: 0.1.35(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.2.2))(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.3.6)(google-auth-library@9.4.1(encoding@0.1.13))(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1821,7 +1821,7 @@ importers:
         version: 3.0.0
       debug:
         specifier: ^4.3.4
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       events:
         specifier: 3.3.0
         version: 3.3.0
@@ -1873,7 +1873,7 @@ importers:
         version: 0.5.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       primus:
         specifier: ^8.0.7
         version: 8.0.7
@@ -1950,7 +1950,7 @@ importers:
         version: 3.0.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1993,7 +1993,7 @@ importers:
         version: 1.11.10
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@8.1.1)
+        version: 4.3.4(supports-color@9.3.1)
       events:
         specifier: 3.3.0
         version: 3.3.0
@@ -2122,14 +2122,11 @@ packages:
       react: '>=16.0.0'
       react-dom: '>=16.0.0'
 
-  '@ant-design/icons-svg@4.2.1':
-    resolution: {integrity: sha512-EB0iwlKDGpG93hW8f85CTJTs4SvMX7tt5ceupvhALp1IF44SeUFOMhKUOYqpsoYWQKAOuTRDMqn75rEaKDp0Xw==}
-
   '@ant-design/icons-svg@4.4.2':
     resolution: {integrity: sha512-vHbT+zJEVzllwP+CM+ul7reTEfBR0vgxFe7+lREAsAA7YGsYpboiq2sQNeQeRvh09GfQgs/GyFEvZpJ9cLXpXA==}
 
-  '@ant-design/icons@4.8.0':
-    resolution: {integrity: sha512-T89P2jG2vM7OJ0IfGx2+9FC5sQjtTzRSz+mCHTXkFn/ELZc2YpfStmYHmqzq2Jx55J0F7+O6i5/ZKFSVNWCKNg==}
+  '@ant-design/icons@4.8.3':
+    resolution: {integrity: sha512-HGlIQZzrEbAhpJR6+IGdzfbPym94Owr6JZkJ2QCCnOkPVIWMO2xgIVcOKnl8YcpijIo39V7l2qQL5fmtw56cMw==}
     engines: {node: '>=8'}
     peerDependencies:
       react: '>=16.0.0'
@@ -8663,8 +8660,8 @@ packages:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
 
-  path2d@0.1.2:
-    resolution: {integrity: sha512-LW++2uxgHNL/FANhgGTPo/yDDQcgsVbKotwIVbpTgTBgRlKUpjOpjp3s3+KjG4OWCQ/r6z+WLDljH1/fC03PWw==}
+  path2d@0.2.0:
+    resolution: {integrity: sha512-KdPAykQX6kmLSOO6Jpu2KNcCED7CKjmaBNGGNuctOsG0hgYO1OdYQaan6cYXJiG0WmXOwZZPILPBimu5QAIw3A==}
     engines: {node: '>=6'}
 
   pause@0.0.1:
@@ -8674,8 +8671,8 @@ packages:
     resolution: {integrity: sha512-ClrV7pNOn7rtmoQVF4TS1vyU0WhYRnP92fzbfF75jAIwpnzdJXf8iTd4CMEqO4yUenH6NDqLiwjqlh6QgZzgLQ==}
     hasBin: true
 
-  pdfjs-dist@4.1.392:
-    resolution: {integrity: sha512-fUV14+CG81uDLjgZ2Nmy35GvJsLIekotJb2VhXAoUfMCrWHhQtPJbqryUuevAdSHyEiAdr675ULikoD087+lMg==}
+  pdfjs-dist@4.2.67:
+    resolution: {integrity: sha512-rJmuBDFpD7cqC8WIkQUEClyB4UAH05K4AsyewToMTp2gSy3Rrx8c1ydAVqlJlGv3yZSOrhEERQU/4ScQQFlLHA==}
     engines: {node: '>=18'}
 
   pegjs@0.10.0:
@@ -11263,17 +11260,16 @@ snapshots:
       react-dom: 18.2.0(react@18.2.0)
       stylis: 4.3.0
 
-  '@ant-design/icons-svg@4.2.1': {}
-
   '@ant-design/icons-svg@4.4.2': {}
 
-  '@ant-design/icons@4.8.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
+  '@ant-design/icons@4.8.3(react-dom@18.2.0(react@18.2.0))(react@18.2.0)':
     dependencies:
       '@ant-design/colors': 6.0.0
-      '@ant-design/icons-svg': 4.2.1
-      '@babel/runtime': 7.20.7
-      classnames: 2.3.2
-      rc-util: 5.27.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+      '@ant-design/icons-svg': 4.4.2
+      '@babel/runtime': 7.24.4
+      classnames: 2.5.1
+      lodash: 4.17.21
+      rc-util: 5.39.1(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
@@ -11358,13 +11354,13 @@ snapshots:
       '@babel/generator': 7.23.0
       '@babel/helper-compilation-targets': 7.22.15
       '@babel/helper-module-transforms': 7.23.3(@babel/core@7.21.4)
-      '@babel/helpers': 7.23.2
+      '@babel/helpers': 7.23.2(supports-color@9.3.1)
       '@babel/parser': 7.23.0
       '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.2
+      '@babel/traverse': 7.23.2(supports-color@9.3.1)
       '@babel/types': 7.23.0
       convert-source-map: 1.9.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -11378,13 +11374,13 @@ snapshots:
       '@babel/generator': 7.23.0
       '@babel/helper-compilation-targets': 7.22.15
       '@babel/helper-module-transforms': 7.23.3(@babel/core@7.21.8)
-      '@babel/helpers': 7.23.2
+      '@babel/helpers': 7.23.2(supports-color@9.3.1)
       '@babel/parser': 7.23.4
       '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.2
+      '@babel/traverse': 7.23.2(supports-color@9.3.1)
       '@babel/types': 7.23.4
       convert-source-map: 1.9.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -11424,7 +11420,7 @@ snapshots:
       '@babel/traverse': 7.24.1
       '@babel/types': 7.24.0
       convert-source-map: 2.0.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -11567,14 +11563,6 @@ snapshots:
   '@babel/helper-validator-option@7.22.15': {}
 
   '@babel/helper-validator-option@7.23.5': {}
-
-  '@babel/helpers@7.23.2':
-    dependencies:
-      '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.2
-      '@babel/types': 7.23.4
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/helpers@7.23.2(supports-color@9.3.1)':
     dependencies:
@@ -11765,21 +11753,6 @@ snapshots:
       '@babel/parser': 7.24.4
       '@babel/types': 7.24.0
 
-  '@babel/traverse@7.23.2':
-    dependencies:
-      '@babel/code-frame': 7.23.4
-      '@babel/generator': 7.23.0
-      '@babel/helper-environment-visitor': 7.22.20
-      '@babel/helper-function-name': 7.23.0
-      '@babel/helper-hoist-variables': 7.22.5
-      '@babel/helper-split-export-declaration': 7.22.6
-      '@babel/parser': 7.23.4
-      '@babel/types': 7.23.4
-      debug: 4.3.4(supports-color@8.1.1)
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/traverse@7.23.2(supports-color@9.3.1)':
     dependencies:
       '@babel/code-frame': 7.23.4
@@ -11805,7 +11778,7 @@ snapshots:
       '@babel/helper-split-export-declaration': 7.22.6
       '@babel/parser': 7.24.4
       '@babel/types': 7.24.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -11852,7 +11825,7 @@ snapshots:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
       csv-parse: 5.5.5
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -11872,7 +11845,7 @@ snapshots:
 
   '@cocalc/primus-responder@1.0.5':
     dependencies:
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       node-uuid: 1.4.8
     transitivePeerDependencies:
       - supports-color
@@ -11931,7 +11904,7 @@ snapshots:
   '@eslint/eslintrc@2.1.4':
     dependencies:
       ajv: 6.12.6
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       espree: 9.6.1
       globals: 13.19.0
       ignore: 5.2.0
@@ -11986,7 +11959,7 @@ snapshots:
   '@humanwhocodes/config-array@0.11.14':
     dependencies:
       '@humanwhocodes/object-schema': 2.0.2
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -12117,7 +12090,7 @@ snapshots:
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-instrument: 6.0.2
       istanbul-lib-report: 3.0.1
-      istanbul-lib-source-maps: 4.0.1
+      istanbul-lib-source-maps: 4.0.1(supports-color@9.3.1)
       istanbul-reports: 3.1.7
       jest-message-util: 29.7.0
       jest-util: 29.7.0
@@ -12366,7 +12339,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@langchain/community@0.0.49(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.4.5))(better-sqlite3@8.3.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.8.0)(ws@8.13.0)':
+  '@langchain/community@0.0.49(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.2.2))(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)':
     dependencies:
       '@langchain/core': 0.1.59
       '@langchain/openai': 0.0.28(encoding@0.1.13)
@@ -12378,13 +12351,10 @@ snapshots:
       zod-to-json-schema: 3.23.0(zod@3.23.5)
     optionalDependencies:
       '@google-ai/generativelanguage': 1.1.0(encoding@0.1.13)
-      '@qdrant/js-client-rest': 1.6.0(typescript@5.4.5)
-      better-sqlite3: 8.3.0
+      '@qdrant/js-client-rest': 1.6.0(typescript@5.2.2)
       google-auth-library: 9.4.1(encoding@0.1.13)
       jsonwebtoken: 9.0.2
       lodash: 4.17.21
-      pg: 8.8.0
-      ws: 8.13.0
     transitivePeerDependencies:
       - encoding
 
@@ -12624,7 +12594,7 @@ snapshots:
       '@types/xml-encryption': 1.2.2
       '@types/xml2js': 0.4.12
       '@xmldom/xmldom': 0.8.10
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       xml-crypto: 3.2.0
       xml-encryption: 3.0.2
       xml2js: 0.5.0
@@ -12860,6 +12830,14 @@ snapshots:
   '@protobufjs/pool@1.1.0': {}
 
   '@protobufjs/utf8@1.1.0': {}
+
+  '@qdrant/js-client-rest@1.6.0(typescript@5.2.2)':
+    dependencies:
+      '@qdrant/openapi-typescript-fetch': 1.2.1
+      '@sevinf/maybe': 0.5.0
+      typescript: 5.2.2
+      undici: 5.28.4
+    optional: true
 
   '@qdrant/js-client-rest@1.6.0(typescript@5.4.5)':
     dependencies:
@@ -13500,7 +13478,7 @@ snapshots:
       '@typescript-eslint/type-utils': 6.21.0(eslint@8.56.0)(typescript@5.4.5)
       '@typescript-eslint/utils': 6.21.0(eslint@8.56.0)(typescript@5.4.5)
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       eslint: 8.56.0
       graphemer: 1.4.0
       ignore: 5.3.1
@@ -13518,7 +13496,7 @@ snapshots:
       '@typescript-eslint/types': 6.21.0
       '@typescript-eslint/typescript-estree': 6.21.0(typescript@5.4.5)
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       eslint: 8.56.0
     optionalDependencies:
       typescript: 5.4.5
@@ -13534,7 +13512,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/typescript-estree': 6.21.0(typescript@5.4.5)
       '@typescript-eslint/utils': 6.21.0(eslint@8.56.0)(typescript@5.4.5)
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       eslint: 8.56.0
       ts-api-utils: 1.2.1(typescript@5.4.5)
     optionalDependencies:
@@ -13548,7 +13526,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 6.21.0
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
@@ -13824,13 +13802,13 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -15735,7 +15713,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.3
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       doctrine: 3.0.0
       escape-string-regexp: 4.0.0
       eslint-scope: 7.2.2
@@ -16063,7 +16041,7 @@ snapshots:
 
   follow-redirects@1.15.6(debug@4.3.4):
     optionalDependencies:
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
 
   font-atlas@2.1.0:
     dependencies:
@@ -16777,7 +16755,7 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -16792,14 +16770,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -17214,14 +17192,6 @@ snapshots:
       istanbul-lib-coverage: 3.2.2
       make-dir: 4.0.0
       supports-color: 7.2.0
-
-  istanbul-lib-source-maps@4.0.1:
-    dependencies:
-      debug: 4.3.4(supports-color@8.1.1)
-      istanbul-lib-coverage: 3.2.2
-      source-map: 0.6.1
-    transitivePeerDependencies:
-      - supports-color
 
   istanbul-lib-source-maps@4.0.1(supports-color@9.3.1):
     dependencies:
@@ -17888,10 +17858,10 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.1.35(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.3.6)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.7)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.8.0)(ws@8.13.0):
+  langchain@0.1.35(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.2.2))(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.3.6)(google-auth-library@9.4.1(encoding@0.1.13))(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21):
     dependencies:
       '@anthropic-ai/sdk': 0.9.1(encoding@0.1.13)
-      '@langchain/community': 0.0.49(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.4.5))(better-sqlite3@8.3.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.8.0)(ws@8.13.0)
+      '@langchain/community': 0.0.49(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.6.0(typescript@5.2.2))(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)
       '@langchain/core': 0.1.59
       '@langchain/openai': 0.0.28(encoding@0.1.13)
       binary-extensions: 2.2.0
@@ -17913,9 +17883,7 @@ snapshots:
       cheerio: 1.0.0-rc.12
       fast-xml-parser: 4.3.6
       google-auth-library: 9.4.1(encoding@0.1.13)
-      handlebars: 4.7.7
       ignore: 5.3.1
-      ws: 8.13.0
     transitivePeerDependencies:
       - '@aws-crypto/sha256-js'
       - '@aws-sdk/client-bedrock-agent-runtime'
@@ -18793,7 +18761,7 @@ snapshots:
       istanbul-lib-instrument: 4.0.3
       istanbul-lib-processinfo: 2.0.3
       istanbul-lib-report: 3.0.0
-      istanbul-lib-source-maps: 4.0.1
+      istanbul-lib-source-maps: 4.0.1(supports-color@9.3.1)
       istanbul-reports: 3.1.5
       make-dir: 3.1.0
       node-preload: 0.2.1
@@ -19185,7 +19153,7 @@ snapshots:
 
   path-type@4.0.0: {}
 
-  path2d@0.1.2:
+  path2d@0.2.0:
     optional: true
 
   pause@0.0.1: {}
@@ -19195,10 +19163,10 @@ snapshots:
       ieee754: 1.2.1
       resolve-protobuf-schema: 2.1.0
 
-  pdfjs-dist@4.1.392(encoding@0.1.13):
+  pdfjs-dist@4.2.67(encoding@0.1.13):
     optionalDependencies:
       canvas: 2.11.2(encoding@0.1.13)
-      path2d: 0.1.2
+      path2d: 0.2.0
     transitivePeerDependencies:
       - encoding
       - supports-color
@@ -21943,7 +21911,7 @@ snapshots:
     dependencies:
       '@wwa/statvfs': 1.1.18
       awaiting: 3.0.0
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.4(supports-color@9.3.1)
       port-get: 1.0.0
       ws: 8.13.0
     transitivePeerDependencies:

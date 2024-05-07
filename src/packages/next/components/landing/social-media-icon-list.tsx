@@ -50,11 +50,10 @@ const SocialMediaIconList = (props: SocialMediaIconListProps) => {
             href={links[mediaType]}
             target="_blank"
             style={{
-              width: `${iconFontSize + 16}px`,
               color: COLORS.GRAY,
             }}
           >
-            <Icon name={ICON_MAP[mediaType]}/>
+            <Icon name={ICON_MAP[mediaType]} style={{ margin: `0 ${iconFontSize/2}px` }}/>
           </a>
         ))
       }
