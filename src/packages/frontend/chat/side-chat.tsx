@@ -1,16 +1,23 @@
 import { Button, Flex, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { CSSProperties, useCallback, useEffect, useRef } from "react";
-import { redux, useActions, useRedux, useTypedRedux } from "../app-framework";
-import { AddCollaborators } from "../collaborators";
-import { A, Icon, Loading, SearchInput } from "../components";
-import { IS_MOBILE } from "../feature";
-import { ProjectUsers } from "../projects/project-users";
-import { user_activity } from "../tracker";
+
+import {
+  redux,
+  useActions,
+  useRedux,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { AddCollaborators } from "@cocalc/frontend/collaborators";
+import { A, Icon, Loading, SearchInput } from "@cocalc/frontend/components";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { ProjectUsers } from "@cocalc/frontend/projects/project-users";
+import { user_activity } from "@cocalc/frontend/tracker";
 import type { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
+import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 
@@ -21,7 +28,7 @@ interface Props {
 }
 
 export default function SideChat({ project_id, path, style }: Props) {
-  const actions = useActions(project_id, path);
+  const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path);
   const input: string = useRedux(["input"], project_id, path);
   const search: string = useRedux(["search"], project_id, path);
@@ -35,7 +42,7 @@ export default function SideChat({ project_id, path, style }: Props) {
   );
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
-  const submitMentionsRef = useRef<Function>();
+  const submitMentionsRef = useRef<SubmitMentionsFn>();
 
   const markAsRead = useCallback(() => {
     markChatAsReadIfUnseen(project_id, path);
@@ -185,8 +192,7 @@ export default function SideChat({ project_id, path, style }: Props) {
           height={INPUT_HEIGHT}
           onChange={(value) => {
             actions.set_input(value);
-            const reply =
-              submitMentionsRef.current?.({ chatgpt: true }) ?? value;
+            const reply = submitMentionsRef.current?.() ?? value;
             actions?.llm_estimate_cost(reply, "room");
           }}
           submitMentionsRef={submitMentionsRef}

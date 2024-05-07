@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 
+import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { Icon } from "@cocalc/frontend/components";
 import { EditableMarkdown } from "@cocalc/frontend/editors/slate/editable-markdown";
 import "@cocalc/frontend/editors/slate/elements/math/math-widget";
@@ -23,7 +24,6 @@ import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { get_local_storage, set_local_storage } from "@cocalc/frontend/misc";
-import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { BLURED_STYLE, FOCUSED_STYLE, MarkdownInput } from "./component";
 
@@ -82,7 +82,7 @@ interface Props {
   enableUpload?: boolean; // whether to enable upload of files via drag-n-drop or paste.  This is on by default! (Note: not possible to disable for slate editor mode anyways.)
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
-  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
+  submitMentionsRef?: SubmitMentionsRef;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
   saveDebounceMs?: number; // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
@@ -136,49 +136,49 @@ interface Props {
 
 export default function MultiMarkdownInput(props: Props) {
   const {
-    cacheId,
-    value,
-    defaultMode,
-    fixedMode,
-    onChange,
-    getValueRef,
-    onModeChange,
-    onShiftEnter,
-    placeholder,
-    fontSize,
-    height = "auto",
-    style,
     autoFocus,
+    cacheId,
+    cmOptions,
+    compact,
+    cursors,
+    defaultMode,
+    dirtyRef,
+    editBarStyle,
+    editorDivRef,
     enableMentions,
     enableUpload = true,
-    onUploadStart,
-    onUploadEnd,
-    submitMentionsRef,
     extraHelp,
-    saveDebounceMs = SAVE_DEBOUNCE_MS,
+    fixedMode,
+    fontSize,
+    getValueRef,
+    height = "auto",
     hideHelp,
-    onBlur,
-    onFocus,
+    isFocused,
     minimal,
-    editBarStyle,
-    onCursors,
-    cursors,
+    modeSwitchStyle,
     noVfill,
-    editorDivRef,
-    cmOptions,
-    onUndo,
+    onBlur,
+    onChange,
+    onCursorBottom,
+    onCursors,
+    onCursorTop,
+    onFocus,
+    onModeChange,
     onRedo,
     onSave,
-    onCursorTop,
-    onCursorBottom,
-    compact,
-    isFocused,
-    registerEditor,
-    unregisterEditor,
-    modeSwitchStyle,
-    refresh,
+    onShiftEnter,
+    onUndo,
+    onUploadEnd,
+    onUploadStart,
     overflowEllipsis = false,
-    dirtyRef,
+    placeholder,
+    refresh,
+    registerEditor,
+    saveDebounceMs = SAVE_DEBOUNCE_MS,
+    style,
+    submitMentionsRef,
+    unregisterEditor,
+    value,
   } = props;
   const {
     isFocused: isFocusedFrame,

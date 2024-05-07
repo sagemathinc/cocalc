@@ -33,6 +33,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { A } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
@@ -82,7 +83,7 @@ interface Props {
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   enableMentions?: boolean;
-  submitMentionsRef?: MutableRefObject<(fragmentId?: FragmentId) => string>;
+  submitMentionsRef?: SubmitMentionsRef;
   style?: CSSProperties;
   onShiftEnter?: (value: string) => void; // also ctrl/alt/cmd-enter call this; see https://github.com/sagemathinc/cocalc/issues/1914
   onEscape?: () => void;
@@ -121,45 +122,45 @@ interface Props {
 
 export function MarkdownInput(props: Props) {
   const {
-    project_id,
-    path,
-    value,
-    enableUpload,
-    onUploadStart,
-    onUploadEnd,
-    enableMentions,
-    submitMentionsRef,
-    style,
-    onChange,
-    saveDebounceMs,
-    getValueRef,
-    onShiftEnter,
-    onEscape,
-    onBlur,
-    onFocus,
-    placeholder,
-    height,
-    instructionsStyle,
-    extraHelp,
-    hideHelp,
-    fontSize,
     autoFocus,
     cmOptions,
-    selectionRef,
-    onUndo,
+    compact,
+    cursors,
+    dirtyRef,
+    divRef,
+    enableMentions,
+    enableUpload,
+    extraHelp,
+    fontSize,
+    getValueRef,
+    height,
+    hideHelp,
+    instructionsStyle,
+    isFocused,
+    onBlur,
+    onChange,
+    onCursorBottom,
+    onCursors,
+    onCursorTop,
+    onEscape,
+    onFocus,
     onRedo,
     onSave,
-    onCursors,
-    cursors,
-    divRef,
-    onCursorTop,
-    onCursorBottom,
-    isFocused,
-    registerEditor,
-    unregisterEditor,
+    onShiftEnter,
+    onUndo,
+    onUploadEnd,
+    onUploadStart,
+    path,
+    placeholder,
+    project_id,
     refresh,
-    compact,
-    dirtyRef,
+    registerEditor,
+    saveDebounceMs,
+    selectionRef,
+    style,
+    submitMentionsRef,
+    unregisterEditor,
+    value,
   } = props;
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
