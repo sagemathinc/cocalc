@@ -40,8 +40,8 @@ const TAGS = {
   "RTX-A6000": { search: ["rtx-a6000"], desc: "an RTX-A6000 GPU", group: 0 },
   "RTX-A5000": { search: ["rtx-a5000"], desc: "an RTX-A5000 GPU", group: 0 },
   "RTX-A4000": { search: ["rtx-a4000"], desc: "an RTX-A4000 GPU", group: 0 },
-  "1 × GPU": { search: ["quantity:1"], desc: "only one GPU", group: 1 },
-  "CPU Only": { search: ["cpu only"], desc: "no GPUs", group: 1 },
+  //"1 × GPU": { search: ["quantity:1"], desc: "only one GPU", group: 1 },
+  "CPU Only": { search: ["cpu only"], desc: "no GPUs", group: 0 },
   Canada: {
     search: ["canada"],
     desc: "in Canada",
@@ -159,9 +159,10 @@ export default function MachineType({
 }) {
   const [selectOpen, setSelectOpen] = useState<boolean>(false);
   const [showUnavailable, setShowUnavailable] = useState<boolean>(false);
-  const [showCpuOnly, setShowCpuOnly] = useState<boolean>(
-    humanFlavor(configuration.flavor_name).includes("cpu"),
-  );
+  //   const [showCpuOnly, setShowCpuOnly] = useState<boolean>(
+  //     humanFlavor(configuration.flavor_name).includes("cpu"),
+  //   );
+  const showCpuOnly = true;
   const [filterTags, setFilterTags] = useState<Set<string>>(new Set());
 
   // Links is cosmetic to give an overview for users of what range of GPU models
@@ -257,20 +258,23 @@ export default function MachineType({
             <Checkbox
               style={{ float: "right" }}
               checked={showUnavailable}
-              onChange={() => setShowUnavailable(!showUnavailable)}
+              onChange={() => {
+                setShowUnavailable(!showUnavailable);
+                setSelectOpen(true);
+              }}
             >
               Include Unavailable
             </Checkbox>
           </Tooltip>
-          <Tooltip title="Include CPU only machine types.">
+          {/*  <Tooltip title="Include CPU only machine types.">
             <Checkbox
               style={{ float: "right" }}
               checked={showCpuOnly}
-              onChange={() => setShowCpuOnly(!showCpuOnly)}
+              onChange={() => {setShowCpuOnly(!showCpuOnly); setSelectOpen(true);}}
             >
               Include CPU Only
             </Checkbox>
-          </Tooltip>
+          </Tooltip> */}
         </div>
       )}
       {state == "running"
@@ -278,6 +282,9 @@ export default function MachineType({
         : "The machine type determines the GPU, RAM, and ephemeral disk size."}
       <div>
         <div style={{ textAlign: "center", marginTop: "5px" }}>
+          <Tooltip title="Click a filter to show only matching machines">
+            <b style={{ marginRight: "10px" }}>Filters</b>
+          </Tooltip>
           {Object.keys(TAGS)
             .filter((name) => {
               if (name == "CPU Only") {
