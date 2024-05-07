@@ -383,7 +383,10 @@ export function MarkdownInput(props: Props) {
     }
 
     if (submitMentionsRef != null) {
-      submitMentionsRef.current = (fragmentId?: FragmentId) => {
+      submitMentionsRef.current = (
+        fragmentId?: FragmentId,
+        onlyValue = false,
+      ) => {
         if (project_id == null || path == null) {
           throw Error(
             "project_id and path must be set if enableMentions is set.",
@@ -425,7 +428,9 @@ export function MarkdownInput(props: Props) {
           mentions.push({ account_id, description, fragment_id });
         }
         const value = doc.getValue();
-        submit_mentions(project_id, path, mentions);
+        if (!onlyValue) {
+          submit_mentions(project_id, path, mentions);
+        }
         return value;
       };
     }

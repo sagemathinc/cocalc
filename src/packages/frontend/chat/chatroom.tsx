@@ -399,9 +399,10 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               height={INPUT_HEIGHT}
               onChange={(value) => {
                 actions.set_input(value);
-                // TODO: disabled, the replyMentionsRef shouldn't send mentions, just tell us who is mentioned
-                // const reply = submitMentionsRef.current?.() ?? value;
-                // actions?.llm_estimate_cost(reply, "room");
+                // submitMentionsRef will not acutally submit mentions, we're only interested in the reply value
+                const reply =
+                  submitMentionsRef.current?.(undefined, true) ?? value;
+                actions?.llm_estimate_cost(reply, "room");
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}

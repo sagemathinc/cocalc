@@ -192,7 +192,8 @@ export default function SideChat({ project_id, path, style }: Props) {
           height={INPUT_HEIGHT}
           onChange={(value) => {
             actions.set_input(value);
-            const reply = submitMentionsRef.current?.() ?? value;
+            // submitMentionsRef processes the reply, but does not actually send the mentions
+            const reply = submitMentionsRef.current?.(undefined, true) ?? value;
             actions?.llm_estimate_cost(reply, "room");
           }}
           submitMentionsRef={submitMentionsRef}

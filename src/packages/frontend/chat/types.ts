@@ -52,5 +52,9 @@ export type ChatMessages = TypedMap<{
   [date: number | string]: ChatMessageTyped;
 }>;
 
-export type SubmitMentionsFn = (fragmentId?: FragmentId) => string;
+export type SubmitMentionsFn = (
+  fragmentId?: FragmentId,
+  onlyValue?: boolean,
+) => string;
+
 export type SubmitMentionsRef = MutableRefObject<SubmitMentionsFn | undefined>;

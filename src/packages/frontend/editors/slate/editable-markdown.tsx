@@ -362,33 +362,40 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
   useEffect(() => {
     if (submitMentionsRef != null) {
-      submitMentionsRef.current = (fragmentId?: FragmentId) => {
+      submitMentionsRef.current = (
+        fragmentId?: FragmentId,
+        onlyValue = false,
+      ) => {
         if (project_id == null || path == null) {
           throw Error(
             "project_id and path must be set in order to use mentions.",
           );
         }
-        const fragment_id = Fragment.encode(fragmentId);
 
-        // No mentions in the document were already sent, so we send them now.
-        // We have to find all mentions in the document tree, and submit them.
-        const mentions: {
-          account_id: string;
-          description: string;
-          fragment_id: string;
-        }[] = [];
-        for (const [node, path] of Editor.nodes(editor, {
-          at: { path: [], offset: 0 },
-          match: (node) => node["type"] == "mention",
-        })) {
-          const [parent] = Editor.parent(editor, path);
-          mentions.push({
-            account_id: (node as Mention).account_id,
-            description: slate_to_markdown([parent]),
-            fragment_id,
-          });
+        if (!onlyValue) {
+          const fragment_id = Fragment.encode(fragmentId);
+
+          // No mentions in the document were already sent, so we send them now.
+          // We have to find all mentions in the document tree, and submit them.
+          const mentions: {
+            account_id: string;
+            description: string;
+            fragment_id: string;
+          }[] = [];
+          for (const [node, path] of Editor.nodes(editor, {
+            at: { path: [], offset: 0 },
+            match: (node) => node["type"] == "mention",
+          })) {
+            const [parent] = Editor.parent(editor, path);
+            mentions.push({
+              account_id: (node as Mention).account_id,
+              description: slate_to_markdown([parent]),
+              fragment_id,
+            });
+          }
+
+          submit_mentions(project_id, path, mentions);
         }
-        submit_mentions(project_id, path, mentions);
         const value = editor.getMarkdownValue();
         return value;
       };

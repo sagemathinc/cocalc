@@ -5,7 +5,7 @@
 
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { original_path } from "@cocalc/util/misc";
+import { isValidUUID, original_path } from "@cocalc/util/misc";
 
 interface Mention {
   account_id: string;
@@ -23,6 +23,10 @@ export async function submit_mentions(
     return;
   }
   for (const { account_id, description, fragment_id } of mentions) {
+    if (!isValidUUID(account_id)) {
+      // Ignore all language model mentions, they are processed by the chat actions in the frontend
+      continue;
+    }
     try {
       await webapp_client.query_client.query({
         query: {
