@@ -71,20 +71,22 @@ export default function Footer() {
     {
       header: "Product",
       links: [
-        { text: "CoCalc OnPrem", url: "/pricing/onprem", hide: !onCoCalcCom },
-        { text: "Features", url: "/features" },
         { text: "Store", url: "/store", hide: !isCommercial },
-        { text: "System Monitor", url: "/info/status" },
+        { text: "Features", url: "/features" },
+        { text: "Licenses", url: "/licenses" },
+        { text: "Pricing", url: "/pricing", hide: !isCommercial },
+        { text: "On Premises", url: "/pricing/onprem", hide: !onCoCalcCom },
         { text: "System Status", url: "https://status.cocalc.com/", hide: !onCoCalcCom },
       ]
     },
     {
       header: "Resources",
       links: [
-        { text: "Documentation", url: "/docs" },
-        { text: "Products and Pricing", url: "/pricing", hide: !isCommercial },
+        { text: "Documentation", url: "/info/doc" },
+        { text: "Compute Servers", url: "https://doc.cocalc.com/compute_server.html", hide: !isCommercial },
+        { text: "Public Share", url: "/share/public_paths/page/1", hide: !shareServer },
         { text: "Software", url: "/software", hide: !landingPages },
-        { text: "Share", url: "/share", hide: !shareServer },
+        { text: "System Monitor", url: "/info/status" },
         { text: "Support", url: "/support" },
       ]
     },
@@ -94,6 +96,7 @@ export default function Footer() {
         { text: "About", url: "/about", hide: !landingPages },
         { text: "Contact", url: contactEmail || "", hide: !contactEmail },
         { text: "Events", url: "/about/events" },
+        { text: "Team", url: "/about/team", hide: !landingPages },
         { text: "Imprint", url: "/policies/imprint", hide: !imprint },
         { text: "News", url: "/news" },
         { text: "Policies", url: "/policies", hide: !(landingPages || imprintOrPolicies) },
@@ -116,7 +119,10 @@ export default function Footer() {
           column.links
             .filter(footerLink => !footerLink.hide)
             .map((footerLink) => (
-              <A href={footerLink.url} style={{ color: COLORS.GRAY_D }}>
+              <A external
+                 href={footerLink.url}
+                 style={{ color: COLORS.GRAY_D }}
+              >
                 {footerLink.text}
               </A>
             ))
