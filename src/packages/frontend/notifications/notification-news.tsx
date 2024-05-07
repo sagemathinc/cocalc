@@ -71,7 +71,8 @@ export function NewsPanel(props: NewsPanelProps) {
       .sort((a: any, b: any) => -cmp_Date(a.date, b.date)) as any;
     // if any entry in data is unread, then anyUnread is true
     const anyUnread = data.some(
-      (n: any) => news_read_until == null || n?.date.getTime() > news_read_until
+      (n: any) =>
+        news_read_until == null || n?.date.getTime() > news_read_until,
     );
     return [data, anyUnread];
   }, [news, filter, news_read_until]);
@@ -170,8 +171,10 @@ export function NewsPanel(props: NewsPanelProps) {
     <Card
       title={<Title level={4}>News</Title>}
       extra={renderNewsPanelExtra()}
-      headStyle={{ backgroundColor: COLORS.GRAY_LLL }}
-      bodyStyle={{ padding: "0px" }}
+      styles={{
+        header: { backgroundColor: COLORS.GRAY_LLL },
+        body: { padding: "0px" },
+      }}
     >
       <List
         itemLayout="horizontal"

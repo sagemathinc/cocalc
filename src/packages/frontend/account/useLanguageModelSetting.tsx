@@ -22,11 +22,12 @@ export function useLanguageModelSetting(
   const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
   const haveOllama = useTypedRedux("customize", "ollama_enabled");
   const haveMistral = useTypedRedux("customize", "mistral_enabled");
+  const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
 
   const enabledLLMs: LLMServicesAvailable = useMemo(() => {
     const projectsStore = redux.getStore("projects");
     return projectsStore.whichLLMareEnabled(project_id);
-  }, [haveOpenAI, haveGoogle, haveOllama, haveMistral]);
+  }, [haveOpenAI, haveGoogle, haveOllama, haveMistral, haveAnthropic]);
 
   const llm: LanguageService = useMemo(() => {
     return getValidLanguageModelName(
@@ -38,19 +39,23 @@ export function useLanguageModelSetting(
   }, [other_settings]);
 
   function setLLM(llm: LanguageService) {
-    if (selectableLLMs.includes(llm as any)) {
-      redux
-        .getActions("account")
-        .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
-    }
-
-    // check if llm is a key in the ollama typedmap
-    if (isOllamaLLM(llm) && ollama?.get(fromOllamaModel(llm))) {
-      redux
-        .getActions("account")
-        .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
-    }
+    setDefaultLLM(llm, selectableLLMs, ollama);
   }
 
   return [llm, setLLM];
+}
+
+export function setDefaultLLM(llm: LanguageService, selectableLLMs, ollama) {
+  if (selectableLLMs.includes(llm as any)) {
+    redux
+      .getActions("account")
+      .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
+  }
+
+  // check if LLM is a key in the Ollama TypedMap
+  if (isOllamaLLM(llm) && ollama?.get(fromOllamaModel(llm))) {
+    redux
+      .getActions("account")
+      .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
+  }
 }

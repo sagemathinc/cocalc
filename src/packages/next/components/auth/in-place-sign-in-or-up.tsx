@@ -44,9 +44,9 @@ export default function InPlaceSignInOrUp({
       <Divider>
         <Icon name="sign-in" style={{ marginRight: "10px" }} /> {title}
       </Divider>
-      <div style={{ fontSize: "13px", marginTop: "8px", padding: "8px" }}>
-        <a onClick={() => setShow("sign-in")}>Sign in</a> {" or "}
-        <a onClick={() => setShow("sign-up")}>sign up</a>
+      <div style={{ fontSize: "11pt", marginTop: "8px", padding: "8px" }}>
+        <a onClick={() => setShow("sign-in")}>Sign In</a> {" or "}
+        <a onClick={() => setShow("sign-up")}>Sign Up</a>
         {why ? ` ${why}` : ""}.
       </div>
       {show === "sign-up" && (

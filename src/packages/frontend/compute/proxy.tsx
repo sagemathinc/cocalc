@@ -317,12 +317,23 @@ function getApps({
 
 export function getRoute({ app, configuration, IMAGES }) {
   const proxy = getProxy({ configuration, IMAGES });
+  if (app.name) {
+    // It's best and most explicit to use the name.
+    for (const route of proxy) {
+      if (route.name == app.name) {
+        return route;
+      }
+    }
+  }
+  // Name is not specified or not matching, so we try to match the
+  // route path:
   for (const route of proxy) {
     if (route.path == app.path) {
       return route;
     }
   }
-  throw Error(`no route found for app '${app.name}'`);
+  // nothing matches.
+  throw Error(`No route found for app '${app.label}'`);
 }
 
 const START_DELAY_MS = 1500;

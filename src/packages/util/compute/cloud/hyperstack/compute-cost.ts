@@ -46,15 +46,15 @@ export function computeDiskCost({ configuration, priceData }): number {
   return (configuration?.diskSizeGb ?? 10) * priceData.ssd_cost_per_hour;
 }
 
-export function computeBootVolumeCost({ configuration, priceData }): number {
-  if (priceData == null) {
-    throwCostNotKnownError(configuration);
-  }
-  return BOOT_DISK_SIZE_GB * priceData.ssd_cost_per_hour;
-}
+// export function computeBootVolumeCost({ configuration, priceData }): number {
+//   if (priceData == null) {
+//     throwCostNotKnownError(configuration);
+//   }
+//   return BOOT_DISK_SIZE_GB * priceData.ssd_cost_per_hour;
+// }
 
 export function computeVolumeCost(opts) {
-  return computeDiskCost(opts) + computeBootVolumeCost(opts);
+  return computeDiskCost(opts);
 }
 
 // For the cocalc integration "off" means that we 100% delete the VM

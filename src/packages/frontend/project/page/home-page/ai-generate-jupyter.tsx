@@ -41,6 +41,7 @@ import LLMSelector, {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
+import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -185,6 +186,15 @@ export default function AIGenerateJupyterNotebook({
     };
 
     track("chatgpt", { project_id, path, tag: TAG, type: "generate" });
+
+    // log this in the project as well
+    const event: LLMEvent = {
+      event: "llm",
+      usage: "jupyter-generate-notebook",
+      model,
+      path,
+    };
+    projectActions?.log(event);
 
     if (
       !(await ensure_project_running(

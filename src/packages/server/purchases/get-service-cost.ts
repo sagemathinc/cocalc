@@ -5,8 +5,8 @@ Returns an object that describes the cost of a given service.
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { DATA_TRANSFER_OUT_COST_PER_GiB } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import {
-  LanguageModel,
   getLLMCost,
+  isCoreLanguageModel,
   isLanguageModelService,
   service2model,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -15,13 +15,17 @@ import { unreachable } from "@cocalc/util/misc";
 
 export default async function getServiceCost(service: Service) {
   if (isLanguageModelService(service)) {
-    const { pay_as_you_go_openai_markup_percentage } =
-      await getServerSettings();
     const model = service2model(service);
-    return getLLMCost(
-      model as LanguageModel,
-      pay_as_you_go_openai_markup_percentage,
-    ) as any;
+    if (isCoreLanguageModel(model)) {
+      const { pay_as_you_go_openai_markup_percentage } =
+        await getServerSettings();
+      return getLLMCost(model, pay_as_you_go_openai_markup_percentage) as any;
+    } else {
+      return {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+      };
+    }
   }
 
   switch (service) {

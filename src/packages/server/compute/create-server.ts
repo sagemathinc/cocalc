@@ -27,10 +27,11 @@ interface Options {
   idle_timeout?: number;
   autorestart?: boolean;
   position?: number;
+  notes?: string;
 }
 
 const FIELDS =
-  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position".split(
+  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position,notes".split(
     ",",
   );
 
@@ -73,7 +74,9 @@ export default async function createServer(opts: Options): Promise<number> {
     }
   }
   push("state", "deprovisioned");
-  push("last_edited", new Date());
+  const now = new Date();
+  push("last_edited", now);
+  push("created", now);
 
   const query = `INSERT INTO compute_servers(${fields.join(
     ",",

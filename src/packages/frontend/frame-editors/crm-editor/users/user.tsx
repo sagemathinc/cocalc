@@ -19,7 +19,7 @@ export default function User({
   return (
     <Card
       style={{ margin: "5px" }}
-      headStyle={{ backgroundColor: "#eee" }}
+      styles={{ header: { backgroundColor: "#eee" } }}
       title={
         <>
           {banned && (

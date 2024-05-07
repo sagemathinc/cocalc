@@ -157,6 +157,8 @@ export interface CustomizeState {
   compute_servers_images?: TypedMap<Images> | string | null;
   compute_servers_images_google?: TypedMap<GoogleCloudImages> | string | null;
 
+  llm_markup: number;
+
   ollama?: TypedMap<{ [key: string]: TypedMap<OllamaPublic> }>;
   selectable_llms: List<string>;
 }
@@ -292,6 +294,8 @@ function process_customize(obj) {
     obj[k] =
       obj[k] != null ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
   }
+  // the llm markup special case
+  obj.llm_markup = obj_orig._llm_markup ?? 30;
   // always set time, so other code can know for sure that customize was loaded.
   // it also might be helpful to know when
   obj["time"] = Date.now();

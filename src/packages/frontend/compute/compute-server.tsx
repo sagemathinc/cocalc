@@ -213,6 +213,8 @@ export default function ComputeServer({
         configuration={configuration}
         data={data}
         onChange={onConfigurationChange}
+        setCloud={onCloudChange}
+        template={server.template}
       />
     </div>
   );
@@ -350,7 +352,7 @@ export default function ComputeServer({
     >
       <Card.Meta
         avatar={
-          <div style={{ width: "64px", height: 0 }}>
+          <div style={{ width: "64px", marginBottom: "-20px" }}>
             <Icon
               name={cloud == "onprem" ? "global" : "server"}
               style={{ fontSize: "30px", color: color ?? "#666" }}
@@ -439,12 +441,12 @@ export default function ComputeServer({
                 style={{
                   textOverflow: "ellipsis",
                   overflow: "hidden",
-                  flex: 1,
+                  textAlign: "right",
                 }}
               >
                 <Cloud cloud={cloud} state={state} editable={false} id={id} />
               </div>
-              <div style={{ flex: 1 }}>
+              <div>
                 <Menu
                   style={{ float: "right" }}
                   id={id}

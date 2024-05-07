@@ -102,18 +102,19 @@ const dataSource = [
   },
   {
     link: "/features/ai",
-    title: <>AI Assistance</>,
+    title: <>AI Assistant</>,
     logoBackground: "white",
     logo: <AIAvatar size={64} />,
     image: ChatGptInChatroom,
     description: (
       <>
-        CoCalc extensively integrates with AI language models like{" "}
-        <A href="https://openai.com/">OpenAI's ChatGPT</A> and{" "}
+        CoCalc extensively integrates with AI language models, including{" "}
+        <A href="https://openai.com/">OpenAI's ChatGPT</A>,{" "}
         <A href="https://deepmind.google/technologies/gemini/">
           Google's Gemini
         </A>
-        . It participates in a{" "}
+        ,<A href="https://www.anthropic.com/claude">Anthropic's Claude</A>, and{" "}
+        <A href="https://mistral.ai/">Mistral</A>. It participates in a{" "}
         <A href={"https://doc.cocalc.com/chat.html"}>Chatroom</A> as a bot,
         helps you understand your code, deciphers error messages in{" "}
         <A href={"/features/jupyter-notebook"}>Jupyter notebooks</A> or

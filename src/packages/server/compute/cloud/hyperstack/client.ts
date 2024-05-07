@@ -92,11 +92,18 @@ async function call({
   cache?: boolean; // if explicitly true use cache; if explicitly false, clear cache
 }) {
   const key = { method, url, params };
+  log.debug("call ", { cache, globalCache });
   if (cache != null && globalCache != null) {
     if (!cache) {
+      log.debug("call: explicitly remove from cache");
       await globalCache.delete(key);
-    } else if (await globalCache.has(key)) {
-      return await globalCache.get(key);
+    } else {
+      if (await globalCache.has(key)) {
+        log.debug("call: get value from cache");
+        return await globalCache.get(key);
+      } else {
+        log.debug("call: value not in cache");
+      }
     }
   }
   log.debug("call", { method, url, params });
@@ -238,6 +245,7 @@ export async function importKeyPair(params: {
 
 export async function getImages(
   cache = true,
+  // NOTE: specify the region parameter doesn't work
   params: { region?: Region } = {},
 ): Promise<Image[]> {
   // the api docs incorrectly say this is "data" not "images"

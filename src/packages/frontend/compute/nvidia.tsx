@@ -1,7 +1,8 @@
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { commas, plural } from "@cocalc/util/misc";
 import { Popover, Table } from "antd";
-import { A, Icon } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
 
 export default function NVIDIA({
   gpu,
@@ -37,9 +38,6 @@ export default function NVIDIA({
       <span
         style={{
           cursor: "pointer",
-          border: "1px solid #76b900",
-          padding: "2.5px",
-          borderRadius: "2.5px 5px",
         }}
       >
         {count} × NVIDIA {gpu} {plural(count, "GPU")}
@@ -47,7 +45,6 @@ export default function NVIDIA({
     </Popover>
   );
 }
-
 
 export function GPUSpecs({ gpu, count }) {
   const spec = GPU_SPECS[gpu];

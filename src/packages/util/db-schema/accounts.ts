@@ -682,7 +682,7 @@ export const TAGS_USERS: Readonly<Tag[]> = [
     label: "Professional",
     tag: professional,
     icon: "coffee",
-    description: "You're using CoCalc as an emploee or freelancer.",
+    description: "You are using CoCalc as an employee or freelancer.",
   },
   {
     label: "Instructor",
@@ -694,7 +694,7 @@ export const TAGS_USERS: Readonly<Tag[]> = [
     label: "Student",
     tag: "student",
     icon: "smile",
-    description: "You're a student in a course.",
+    description: "You are a student in a course.",
   },
 ] as const;
 

@@ -7,12 +7,17 @@ trickiery that I didn't think would be possible:
    https://www.phind.com/search?cache=d621f94c-5428-4a34-961c-d8a75c987a3c
 */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Popconfirm } from "antd";
+
 import { copy_without } from "@cocalc/util/misc";
 
 export default function PopconfirmKeyboard(props) {
   const [visible, setVisible] = useState<boolean>(false);
+
+  useEffect(() => {
+    props.onVisibilityChange?.(visible);
+  }, [visible]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {

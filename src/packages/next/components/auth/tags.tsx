@@ -16,7 +16,7 @@ interface Props {
   tags: Set<string>;
   setTags: (tags: Set<string>) => void;
   signupReason: string;
-  setSingupReason: (reason: string) => void;
+  setSignupReason: (reason: string) => void;
   minTags: number;
   what: string;
   style?: CSS;
@@ -28,7 +28,7 @@ export default function Tags({
   tags,
   setTags,
   signupReason,
-  setSingupReason,
+  setSignupReason,
   minTags,
   style,
   what,
@@ -42,6 +42,9 @@ export default function Tags({
       tags.delete(tag);
     }
     setTags(new Set(tags));
+    try {
+      localStorage.sign_up_tags = JSON.stringify(Array.from(tags));
+    } catch (_) {}
   };
 
   function onContact(e: CheckboxChangeEvent) {
@@ -76,7 +79,10 @@ export default function Tags({
             value={signupReason}
             // status={!signupReason.trim() ? "error" : undefined} // for now, this is optional
             onChange={(e) => {
-              setSingupReason(e.target.value);
+              setSignupReason(e.target.value);
+              try {
+                localStorage.sign_up_usage_intent = e.target.value;
+              } catch (_) {}
             }}
           />
         ) : undefined}
@@ -136,9 +142,9 @@ export default function Tags({
     });
   }
 
-  const warningStyle: CSS = warning
-    ? { border: `1px solid ${COLORS.ANTD_RED_WARN}` }
-    : {};
+  const warningStyle = {
+    border: `1px solid ${warning ? COLORS.ANTD_RED_WARN : "transparent"}`,
+  } as const;
 
   return (
     <div style={style}>

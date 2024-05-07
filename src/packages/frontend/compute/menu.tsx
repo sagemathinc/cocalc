@@ -25,17 +25,20 @@ function getServer({ id, project_id }) {
     ?.toJS();
 }
 
-function getApps(image) {
+export function getApps(image) {
   const IMAGES = redux.getStore("customize").get("compute_servers_images");
   if (IMAGES == null || typeof IMAGES == "string") {
     // string when error
     return {};
   }
-  return (
+  let apps =
     IMAGES.getIn([image, "apps"])?.toJS() ??
     IMAGES.getIn(["defaults", "apps"])?.toJS() ??
-    {}
-  );
+    {};
+  if (IMAGES.getIn([image, "jupyterKernels"]) === false) {
+    apps = { ...apps, jupyterlab: undefined };
+  }
+  return apps;
 }
 
 function getItems({
@@ -128,13 +131,19 @@ function getItems({
       key: "top-jupyterlab",
       label: "JupyterLab",
       icon: <Icon name="jupyter" />,
-      disabled: apps["jupyterlab"] == null || server.state != "running",
+      disabled:
+        apps["jupyterlab"] == null ||
+        server.state != "running" ||
+        !server.data?.externalIp,
     },
     {
       key: "top-vscode",
       label: "VS Code",
       icon: <Icon name="vscode" />,
-      disabled: apps["vscode"] == null || server.state != "running",
+      disabled:
+        apps["vscode"] == null ||
+        server.state != "running" ||
+        !server.data?.externalIp,
     },
     {
       type: "divider",
@@ -388,6 +397,15 @@ function getItems({
           icon: <Icon name="medkit" />,
           label: "Support",
         },
+        {
+          key: "videos",
+          icon: <Icon name="youtube" style={{ color: "red" }} />,
+          label: (
+            <A href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ">
+              Videos
+            </A>
+          ),
+        },
       ],
     },
     {
@@ -493,6 +511,7 @@ export default function Menu({
             break;
 
           case "documentation":
+          case "videos":
             // click opens new tab anyways
             break;
 

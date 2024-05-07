@@ -3,6 +3,7 @@ import { Icon } from "@cocalc/frontend/components";
 import {
   createServer,
   computeServerAction,
+  getTemplate,
   setServerConfiguration,
 } from "./api";
 import { useEffect, useState } from "react";
@@ -10,8 +11,10 @@ import { availableClouds } from "./config";
 import {
   CLOUDS_BY_NAME,
   Cloud as CloudType,
+  Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
 import { replace_all } from "@cocalc/util/misc";
+import { randomPetName } from "@cocalc/frontend/project/utils";
 import ShowError from "@cocalc/frontend/components/error";
 import ComputeServer from "./compute-server";
 import { useTypedRedux, useRedux, redux } from "@cocalc/frontend/app-framework";
@@ -19,6 +22,9 @@ import { randomColor } from "./color";
 import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
 import costPerHour from "./cost";
 import { Docs } from "./compute-servers";
+import PublicTemplates from "@cocalc/frontend/compute/public-templates";
+import { delay } from "awaiting";
+import { cloneDeep } from "lodash";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -46,29 +52,88 @@ function genericDefaults(conf) {
 export default function CreateComputeServer({ project_id, onCreate }) {
   const account_id = useTypedRedux("account", "account_id");
   const create_compute_server = useRedux(["create_compute_server"], project_id);
+  const create_compute_server_template_id = useRedux(
+    ["create_compute_server_template_id"],
+    project_id,
+  );
   const [editing, setEditing] = useState<boolean>(create_compute_server);
+  const [templateId, setTemplateId] = useState<number | undefined>(
+    create_compute_server_template_id,
+  );
+
   useEffect(() => {
-    if (create_compute_server) {
-      redux
-        .getProjectActions(project_id)
-        .setState({ create_compute_server: false });
+    if (create_compute_server_template_id) {
+      setConfigToTemplate(create_compute_server_template_id);
     }
-  }, [create_compute_server]);
+    return () => {
+      if (create_compute_server) {
+        redux
+          .getProjectActions(project_id)
+          .setState({ create_compute_server: false });
+      }
+    };
+  }, []);
+
+  // we have to do this stupid hack because of the animation when showing
+  // a modal and how select works.  It's just working around limitations
+  // of antd, I think.
+  const [showTemplates, setShowTemplates] = useState<boolean>(false);
+  useEffect(() => {
+    setTimeout(() => setShowTemplates(true), 1000);
+  }, []);
+
   const [creating, setCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
   const [title, setTitle] = useState<string>(defaultTitle());
   const [color, setColor] = useState<string>(randomColor());
   const [cloud, setCloud] = useState<CloudType>(defaultCloud());
-  const [configuration, setConfiguration] = useState<any>(
+  const [configuration, setConfiguration] = useState<Configuration>(
     defaultConfiguration(),
   );
+  const resetConfig = async () => {
+    try {
+      setLoadingTemplate(true);
+      await delay(1);
+      setTitle(defaultTitle());
+      setColor(randomColor());
+      setCloud(defaultCloud());
+      setConfiguration(defaultConfiguration());
+    } finally {
+      setLoadingTemplate(false);
+    }
+  };
 
-  const resetConfig = () => {
-    setTitle(defaultTitle());
-    setColor(randomColor());
-    setCloud(defaultCloud());
-    setConfiguration(defaultConfiguration());
+  const [notes, setNotes] = useState<string>("");
+  const [loadingTemplate, setLoadingTemplate] = useState<boolean>(false);
+  const setConfigToTemplate = async (id) => {
+    setTemplateId(id);
+    setNotes(`Starting with template ${id}.\n`);
+    const currentConfiguration = cloneDeep(configuration);
+    let template;
+    try {
+      setLoadingTemplate(true);
+      template = await getTemplate(id);
+      setTitle(template.title);
+      setColor(template.color);
+      setCloud(template.cloud);
+      const { configuration } = template;
+      if (currentConfiguration.dns) {
+        // keep current config
+        configuration.dns = currentConfiguration.dns;
+      } else if (configuration.dns) {
+        // TODO: should automatically ensure this randomly isn't taken.  Can implement
+        // that later.
+        configuration.dns += `-${randomPetName().toLowerCase()}`;
+      }
+      configuration.excludeFromSync = currentConfiguration.excludeFromSync;
+      setConfiguration(configuration);
+    } catch (err) {
+      setError(`${err}`);
+      return;
+    } finally {
+      setLoadingTemplate(false);
+    }
   };
 
   useEffect(() => {
@@ -91,6 +156,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           title,
           color,
           configuration,
+          notes,
         });
         await updateFastDataDirectoryId(id, configuration);
         setEditing(false);
@@ -197,11 +263,30 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         width={"900px"}
         onCancel={() => {
           setEditing(false);
+          setTemplateId(undefined);
           resetConfig();
         }}
         open={editing}
         destroyOnClose
-        title={"Create Compute Server"}
+        title={
+          <div>
+            <div style={{ display: "flex" }}>Create Compute Server</div>
+            <div style={{ textAlign: "center", color: "#666" }}>
+              <div>{loadingTemplate ? "Loading " : ""} Templates</div>
+              {showTemplates && (
+                <PublicTemplates
+                  disabled={loadingTemplate}
+                  defaultId={templateId}
+                  setId={async (id) => {
+                    setTemplateId(id);
+                    await setConfigToTemplate(id);
+                  }}
+                  defaultOpen
+                />
+              )}
+            </div>
+          </div>
+        }
         footer={
           <div style={{ display: "flex" }}>
             {footer}
@@ -247,23 +332,26 @@ export default function CreateComputeServer({ project_id, onCreate }) {
               </Button>
             </div>
           )}
-          <ComputeServer
-            server={{
-              project_id,
-              account_id,
-              title,
-              color,
-              cloud,
-              configuration,
-            }}
-            editable={!creating}
-            controls={{
-              onColorChange: setColor,
-              onTitleChange: setTitle,
-              onCloudChange: setCloud,
-              onConfigurationChange: setConfiguration,
-            }}
-          />
+          {loadingTemplate && <Spin />}
+          {!loadingTemplate && (
+            <ComputeServer
+              server={{
+                project_id,
+                account_id,
+                title,
+                color,
+                cloud,
+                configuration,
+              }}
+              editable={!creating}
+              controls={{
+                onColorChange: setColor,
+                onTitleChange: setTitle,
+                onCloudChange: setCloud,
+                onConfigurationChange: setConfiguration,
+              }}
+            />
+          )}
         </div>
       </Modal>
     </div>

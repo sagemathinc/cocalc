@@ -23,6 +23,7 @@ interface Props {
   maxSizeGb: number;
   computeDiskCost;
   extraHelp?;
+  beforeBody?;
   rate?;
 }
 
@@ -38,6 +39,7 @@ export default function Disk(props: Props) {
     maxSizeGb,
     computeDiskCost,
     extraHelp,
+    beforeBody,
     rate,
   } = props;
   const [help, setHelp] = useState<boolean>(false);
@@ -123,6 +125,7 @@ export default function Disk(props: Props) {
           }
         />
       )}{" "}
+      {beforeBody}
       <p>
         Configure the size of the persistent disk
         {noType

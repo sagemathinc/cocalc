@@ -1,5 +1,7 @@
 // this contains bits and pieces from the wrongly named openai.ts file
 
+import LRU from "lru-cache";
+
 import { unreachable } from "@cocalc/util/misc";
 
 // "Client LLMs" are defined in the user's account settings
@@ -17,7 +19,7 @@ export function isClientModel(model: string): boolean {
   return model.startsWith(CLIENT_PREFIX);
 }
 
-const OPENAI_PREFIX = "openai-";
+export const OPENAI_PREFIX = "openai-";
 
 // NOTE: all arrays of model names should order them by the "simples and fastest" to the "complex, slowest, most expensive"
 // that way, the ordering the UI isn't looking arbitrary, but has a clear logic
@@ -45,7 +47,7 @@ export function isOpenAIModel(model: unknown): model is OpenAIModel {
 export const MISTRAL_MODELS = [
   // yes, all 3 of them have an extra mistral-prefix, on top of the vendor prefix
   "mistral-small-latest",
-  "mistral-medium-latest",
+  "mistral-medium-latest", // Deprecated!
   "mistral-large-latest",
 ] as const;
 
@@ -60,13 +62,18 @@ export function isMistralModel(model: unknown): model is MistralModel {
 // $ curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_GENAI" | jq
 export const GOOGLE_MODELS = [
   "gemini-pro",
-  "gemini-1.0-ultra-latest", // only works with langchain, not their GenAI JS lib
-  "gemini-1.5-pro-latest", // neither works with langchain (yet) nor GenAI JS
+  "gemini-1.0-ultra", // hangs
+  "gemini-1.5-pro-8k", // works now with langchaing
+  "gemini-1.5-pro", // works now with langchaing
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
   return GOOGLE_MODELS.includes(model as any);
 }
+export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
+  "gemini-1.5-pro": "gemini-1.5-pro-latest",
+  "gemini-1.5-pro-8k": "gemini-1.5-pro-latest",
+} as const;
 
 // https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
 export const ANTHROPIC_MODELS = [
@@ -131,9 +138,11 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m !== "gpt-4-turbo-preview-8k",
   ),
   google: GOOGLE_MODELS.filter(
-    (m) => m === "gemini-pro", // for now, that's the only one working robustly
+    (m) =>
+      // not all work right now
+      m === "gemini-pro" || m === "gemini-1.5-pro-8k" || m === "gemini-1.5-pro",
   ),
-  mistralai: MISTRAL_MODELS,
+  mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
@@ -161,6 +170,12 @@ export type OllamaLLM = string;
 // use the one without Ollama to get stronger typing. Ollama could be any string starting with the OLLAMA_PREFIX.
 export type CoreLanguageModel = (typeof LANGUAGE_MODELS)[number];
 export type LanguageModel = CoreLanguageModel | OllamaLLM;
+export function isCoreLanguageModel(
+  model: unknown,
+): model is CoreLanguageModel {
+  if (typeof model !== "string") return false;
+  return LANGUAGE_MODELS.includes(model as any);
+}
 
 // we check if the given object is any known language model
 export function isLanguageModel(model?: unknown): model is LanguageModel {
@@ -278,7 +293,7 @@ export function isMistralService(service: string): service is MistralService {
   return service.startsWith(MISTRAL_PREFIX);
 }
 
-const GOOGLE_PREFIX = "google-";
+export const GOOGLE_PREFIX = "google-";
 
 // we encode the in the frontend and elsewhere with the service name as a prefix
 // ATTN: don't change the encoding pattern of [vendor]-[model]
@@ -458,8 +473,9 @@ export const LLM_USERNAMES: LLM2String = {
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini 1.0 Pro",
-  "gemini-1.0-ultra-latest": "Gemini 1.0 Ultra",
-  "gemini-1.5-pro-latest": "Gemini 1.5 Pro",
+  "gemini-1.0-ultra": "Gemini 1.0 Ultra",
+  "gemini-1.5-pro": "Gemini 1.5 Pro 1m",
+  "gemini-1.5-pro-8k": "Gemini 1.5 Pro 8k",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -495,10 +511,12 @@ export const LLM_DESCR: LLM2String = {
   "chat-bison-001": "",
   "gemini-pro":
     "Google's Gemini 1.0 Pro Generative AI model (30k token context)",
-  "gemini-1.0-ultra-latest":
+  "gemini-1.0-ultra":
     "Google's Gemini 1.0 Ultra Generative AI model (30k token context)",
-  "gemini-1.5-pro-latest":
-    "Google's Gemini 1.5 Pro Generative AI model (100k token context)",
+  "gemini-1.5-pro":
+    "Google's Gemini 1.5 Pro Generative AI model (1m token context)",
+  "gemini-1.5-pro-8k":
+    "Google's Gemini 1.5 Pro Generative AI model (8k token context)",
   "mistral-small-latest":
     "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -660,21 +678,27 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
   // curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY"
   // Pricing, at least Gemini Pro: https://cloud.google.com/vertex-ai/generative-ai/pricing#google_foundational_models
   "gemini-pro": {
-    prompt_tokens: usd1Mtokens(1_000 * 0.000125),
-    completion_tokens: usd1Mtokens(1_000 * 0.000375),
+    prompt_tokens: usd1Mtokens(0.5), // https://ai.google.dev/pricing
+    completion_tokens: usd1Mtokens(1.5),
     max_tokens: 30720,
     free: true,
   },
-  "gemini-1.0-ultra-latest": {
-    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
-    completion_tokens: usd1Mtokens(1),
-    max_tokens: 30720,
-    free: true,
+  "gemini-1.5-pro-8k": {
+    prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
+    completion_tokens: usd1Mtokens(21),
+    max_tokens: 8_000,
+    free: false,
   },
-  "gemini-1.5-pro-latest": {
-    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
-    completion_tokens: usd1Mtokens(1),
+  "gemini-1.5-pro": {
+    prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
+    completion_tokens: usd1Mtokens(21),
     max_tokens: 1048576,
+    free: false,
+  },
+  "gemini-1.0-ultra": {
+    prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
+    completion_tokens: usd1Mtokens(1),
+    max_tokens: 30720,
     free: true,
   },
   "mistral-small-latest": {
@@ -756,7 +780,7 @@ export interface LLMCost {
 }
 
 export function getLLMCost(
-  model: LanguageModel,
+  model: CoreLanguageModel,
   markup_percentage: number, // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
 ): LLMCost {
   const x = LLM_COST[model];
@@ -774,11 +798,43 @@ export function getLLMCost(
   };
 }
 
+const priceRangeCache = new LRU<string, ReturnType<typeof getLLMPriceRange>>({
+  max: 10,
+});
+
+export function getLLMPriceRange(
+  prompt: number,
+  output: number,
+  markup_percentage: number,
+): { min: number; max: number } {
+  const cacheKey = `${prompt}::${output}::${markup_percentage}`;
+  const cached = priceRangeCache.get(cacheKey);
+  if (cached) return cached;
+
+  let min = Infinity;
+  let max = 0;
+  for (const key in LLM_COST) {
+    const model = LLM_COST[key];
+    if (!model || isFreeModel(key, true)) continue;
+    const { prompt_tokens, completion_tokens } = getLLMCost(
+      key as CoreLanguageModel,
+      markup_percentage,
+    );
+    const p = prompt * prompt_tokens + output * completion_tokens;
+
+    min = Math.min(min, p);
+    max = Math.max(max, p);
+  }
+  const ret = { min, max };
+  priceRangeCache.set(cacheKey, ret);
+  return ret;
+}
+
 // The maximum cost for one single call using the given model.
 // We can't know the cost until after it happens, so this bound is useful for
 // ensuring user can afford to make a call.
 export function getMaxCost(
-  model: LanguageModel,
+  model: CoreLanguageModel,
   markup_percentage: number,
 ): number {
   const { prompt_tokens, completion_tokens } = getLLMCost(
@@ -818,7 +874,7 @@ export function getSystemPrompt(
   }
 
   if (model2vendor(model) === "ollama" || model.startsWith(OLLAMA_PREFIX)) {
-    return `${math}\n${common}`;
+    return `${common}`;
   }
 
   if (

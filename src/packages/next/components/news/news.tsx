@@ -57,9 +57,9 @@ export function News(props: Props) {
   const { id, url, tags, title, date, channel, text, future, hide } = news;
   const dateStr = useDateStr(news, historyMode);
   const permalink = slugURL(news);
-  const { kucalc, dns } = useCustomize();
+  const { kucalc, siteURL } = useCustomize();
   const isCoCalcCom = kucalc === KUCALC_COCALC_COM;
-  const showShareLinks = typeof dns === "string" && isCoCalcCom;
+  const showShareLinks = typeof siteURL === "string" && isCoCalcCom;
 
   const bottomLinkStyle: CSS = {
     color: COLORS.ANTD_LINK_BLUE,
@@ -113,7 +113,7 @@ export function News(props: Props) {
     }
   }
 
-  function reanderOpenLink() {
+  function renderOpenLink() {
     return (
       <A
         key="permalink"
@@ -129,15 +129,14 @@ export function News(props: Props) {
   }
 
   function shareLinks(text = false) {
+    const newsLink = encodeURIComponent(`${siteURL}${permalink}`);
     return (
       <Space size="middle" direction="horizontal">
         <A
           key="tweet"
           href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
             title,
-          )}&url=${encodeURIComponent(
-            `https://${dns}${permalink}`,
-          )}&via=cocalc_com`}
+          )}&url=${newsLink}&via=cocalc_com`}
           style={{ color: COLORS.ANTD_LINK_BLUE, ...bottomLinkStyle }}
         >
           <Icon name="twitter" />
@@ -145,9 +144,7 @@ export function News(props: Props) {
         </A>
         <A
           key="facebook"
-          href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-            `https://${dns}${permalink}`,
-          )}`}
+          href={`https://www.facebook.com/sharer/sharer.php?u=${newsLink}`}
           style={{ ...bottomLinkStyle }}
         >
           <Icon name="facebook-filled" />
@@ -155,9 +152,7 @@ export function News(props: Props) {
         </A>
         <A
           key="linkedin"
-          href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(
-            `https://${dns}${permalink}`,
-          )}`}
+          href={`https://www.linkedin.com/sharing/share-offsite/?url=${newsLink}`}
           style={{ ...bottomLinkStyle }}
         >
           <Icon name="linkedin-filled" />
@@ -168,7 +163,7 @@ export function News(props: Props) {
   }
 
   function actions() {
-    const actions = [reanderOpenLink()];
+    const actions = [renderOpenLink()];
     if (url) actions.push(readMoreLink());
     if (showEdit) actions.push(editLink());
     if (showShareLinks) actions.push(shareLinks());

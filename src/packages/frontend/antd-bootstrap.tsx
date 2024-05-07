@@ -450,7 +450,9 @@ export function Panel(props: {
     <AntdCard
       style={style}
       title={props.header}
-      headStyle={{ color: "#333", backgroundColor: "#f5f5f5" }}
+      styles={{
+        header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
+      }}
     >
       {props.children}
     </AntdCard>

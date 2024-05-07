@@ -22,6 +22,7 @@ register({
         error: null,
         cloud: null,
         configuration: null,
+        created: null,
         last_edited: null,
         purchase_id: null,
         detailed_state: null,

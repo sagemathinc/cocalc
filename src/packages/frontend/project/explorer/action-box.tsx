@@ -574,6 +574,12 @@ export const ActionBox = rclass<ReactProps>(
       }
     }
 
+    getDestinationComputeServerId = () => {
+      return this.state.copy_from_compute_server_to == "compute-server"
+        ? this.props.compute_server_id
+        : 0;
+    };
+
     copy_click = (): void => {
       const destination_directory = this.state.copy_destination_directory;
       const destination_project_id = this.state.copy_destination_project_id;
@@ -599,10 +605,7 @@ export const ActionBox = rclass<ReactProps>(
             src: paths,
             dest: destination_directory,
             src_compute_server_id: this.props.compute_server_id,
-            dest_compute_server_id:
-              this.state.copy_from_compute_server_to == "compute-server"
-                ? this.props.compute_server_id
-                : 0,
+            dest_compute_server_id: this.getDestinationComputeServerId(),
           });
         } else {
           this.props.actions.copy_paths({
@@ -620,9 +623,14 @@ export const ActionBox = rclass<ReactProps>(
     valid_copy_input(): boolean {
       const src_path = misc.path_split(this.props.checked_files.first()).head;
       const input = this.state.copy_destination_directory;
+
+      const src_compute_server_id = this.props.compute_server_id ?? 0;
+      const dest_compute_server_id = this.getDestinationComputeServerId();
+
       if (
         input === src_path &&
-        this.props.project_id === this.state.copy_destination_project_id
+        this.props.project_id === this.state.copy_destination_project_id &&
+        src_compute_server_id == dest_compute_server_id
       ) {
         return false;
       }
@@ -631,7 +639,8 @@ export const ActionBox = rclass<ReactProps>(
       }
       if (
         input === this.props.current_path &&
-        this.props.project_id === this.state.copy_destination_project_id
+        this.props.project_id === this.state.copy_destination_project_id &&
+        src_compute_server_id == dest_compute_server_id
       ) {
         return false;
       }

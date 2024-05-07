@@ -197,7 +197,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const llmEnabled = redux
     .getStore("projects")
     .hasLanguageModelEnabled(project_id);
-  // This only checks if we can use the LLM tools at all – details checks like "for this project in a course" are by component
+  // This only checks if we can use the LLM tools at all – detailed checks like "for this project in a course" are by component
   const llmTools: LLMTools | undefined = llmEnabled
     ? {
         model,

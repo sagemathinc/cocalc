@@ -91,7 +91,7 @@ export default function WilliamStein({ customize }) {
       {
         position: "Tenured Associate Professor of Mathematics",
         institution: "University of California San Diego",
-        timeframe: "2006-2019"
+        timeframe: "2005-2006"
       },
       {
         position: "Author",
@@ -106,7 +106,7 @@ export default function WilliamStein({ customize }) {
       {
         position: "Ph.D. in Mathematics",
         institution: "University of California Berkeley",
-        timeframe: "2000"
+        timeframe: "1995-2000"
       }
     ]}
   />;

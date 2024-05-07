@@ -2,14 +2,17 @@ import type {
   Images,
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
+  ComputeServerTemplate,
 } from "@cocalc/util/db-schema/compute-servers";
 import { reloadImages, useImages, useGoogleImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
 import { getMinDiskSizeGb } from "@cocalc/util/db-schema/compute-servers";
 import {
+  Alert,
   Button,
   Checkbox,
   Divider,
+  Popconfirm,
   Radio,
   Select,
   Spin,
@@ -50,10 +53,16 @@ import Disk from "@cocalc/frontend/compute/cloud/common/disk";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { search_match, search_split } from "@cocalc/util/misc";
+import { availableClouds } from "./config";
+import Template from "@cocalc/frontend/compute/cloud/common/template";
+import Specs, {
+  RamAndCpu,
+} from "@cocalc/frontend/compute/cloud/google-cloud/specs";
+import { displayAcceleratorType } from "@cocalc/frontend/compute/cloud/google-cloud/accelerator";
 
 export const SELECTOR_WIDTH = "350px";
 
-const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu2;
+export const DEFAULT_GPU_CONFIG = GOOGLE_CLOUD_DEFAULTS.gpu2;
 
 //     {
 //   acceleratorType: "nvidia-l4",
@@ -84,6 +93,8 @@ interface Props {
   disabled?: boolean;
   state?: State;
   data?;
+  setCloud?;
+  template?: ComputeServerTemplate;
 }
 
 export default function GoogleCloudConfiguration({
@@ -95,6 +106,8 @@ export default function GoogleCloudConfiguration({
   disabled,
   state,
   data,
+  setCloud,
+  template,
 }: Props) {
   const [IMAGES, ImagesError] = useImages();
   const [googleImages, ImagesErrorGoogle] = useGoogleImages();
@@ -156,43 +169,12 @@ export default function GoogleCloudConfiguration({
     return <Spin />;
   }
 
-  const gpu = configuration.acceleratorType
-    ? `${configuration.acceleratorCount ?? 1} ${displayAcceleratorType(
-        configuration.acceleratorType,
-      )} ${plural(configuration.acceleratorCount ?? 1, "GPU")}, `
-    : "";
-
   const summary = (
-    <div>
-      {configuration.spot ? "Spot " : "Standard "} {configuration.machineType}{" "}
-      with {gpu}
-      {priceData ? (
-        <span>
-          <RamAndCpu
-            machineType={configuration.machineType}
-            priceData={priceData}
-            inline
-          />
-        </span>
-      ) : (
-        ""
-      )}
-      , and a{" "}
-      {configuration.diskSizeGb ??
-        `at least ${getMinDiskSizeGb({ configuration, IMAGES })}`}{" "}
-      GB{" "}
-      {configuration.diskType?.includes("hyper") ? (
-        "hyperdisk"
-      ) : (
-        <>
-          {(configuration.diskType ?? "pd-standard") != "pd-standard"
-            ? " SSD "
-            : " HDD "}{" "}
-          disk
-        </>
-      )}{" "}
-      in {configuration.zone}.
-    </div>
+    <Specs
+      configuration={configuration}
+      priceData={priceData}
+      IMAGES={IMAGES}
+    />
   );
 
   if (!editable || !project_id) {
@@ -299,6 +281,7 @@ export default function GoogleCloudConfiguration({
           setConfig={setConfig}
           configuration={configuration}
           IMAGES={IMAGES}
+          setCloud={setCloud}
         />
       ),
     },
@@ -490,7 +473,14 @@ export default function GoogleCloudConfiguration({
     {
       key: "admin",
       label: <></>,
-      value: <Admin id={id} configuration={configuration} loading={loading} />,
+      value: (
+        <Admin
+          id={id}
+          configuration={configuration}
+          loading={loading}
+          template={template}
+        />
+      ),
     },
   ];
 
@@ -815,12 +805,71 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
         </Radio.Button>
       </Radio.Group>
       <div style={{ color: "#666", marginTop: "5px" }}>
-        Standard VM's stay running until you stop them, whereas spot VM's are up
-        to 91% off, but{" "}
-        <b>will automatically stop when there is a surge in demand.</b> They
-        might also not be available in a given region, so you may have to try
-        different regions.{" "}
-        {configuration.acceleratorType && <> Spot GPU's are in high demand.</>}
+        Standard VM's run until you stop them, whereas spot VM's are up to 91%
+        off, but will automatically stop when there is a surge in demand. Spot
+        instances might also not be available in a given region, so you may have
+        to try different regions.{" "}
+        {configuration.acceleratorType && (
+          <> GPU's are always in high demand.</>
+        )}
+        {newSpot && (
+          <Alert
+            style={{ margin: "5px 0" }}
+            type="warning"
+            showIcon
+            description={
+              <div style={{ maxWidth: "100%" }}>
+                This is a heavily discounted spot instance. It will
+                automatically{" "}
+                {configuration.autoRestart ? " reboot if possible " : " stop "}{" "}
+                when there is a surge in demand.
+                {!disabled && (
+                  <Popconfirm
+                    title="Switch to Standard?"
+                    description={
+                      <div style={{ maxWidth: "450px" }}>
+                        This will switch to a non-discounted standard instance,
+                        which stays running even if there is high demand. You
+                        can switch back to a spot instance using the blue toggle
+                        above.
+                      </div>
+                    }
+                    onConfirm={() => {
+                      setNewSpot(false);
+                      setConfig({ spot: false });
+                    }}
+                    okText="Switch to Standard"
+                    cancelText="Cancel"
+                  >
+                    <Button type="link">Switch to Standard</Button>
+                  </Popconfirm>
+                )}
+                {!configuration.autoRestart && (
+                  <Popconfirm
+                    title="Enable Automatic Restart?"
+                    description={
+                      <div style={{ maxWidth: "450px" }}>
+                        CoCalc will automatically restart your compute server if
+                        it is killed due to high demand. Note that there might
+                        not be any compute resources available, in which case
+                        you will have to wait for your server to start. You can
+                        disable this in the "Automatically Restart" section
+                        below.
+                      </div>
+                    }
+                    onConfirm={() => {
+                      setConfig({ autoRestart: true });
+                    }}
+                    okText="Enable Automatic Restart"
+                    cancelText="Cancel"
+                  >
+                    <Button type="link">Enable Automatic Restart</Button>
+                  </Popconfirm>
+                )}
+              </div>
+            }
+          />
+        )}
       </div>
     </div>
   );
@@ -1071,49 +1120,6 @@ function MachineType({ priceData, setConfig, configuration, disabled, state }) {
   );
 }
 
-function RamAndCpu({
-  machineType,
-  priceData,
-  style,
-  inline,
-}: {
-  machineType: string;
-  priceData;
-  style?;
-  inline?: boolean;
-}) {
-  const data = priceData.machineTypes[machineType];
-  if (data == null) return null;
-  const { memory } = data;
-  let { vcpu } = data;
-  if (!vcpu || !memory) return null;
-  if (machineType == "e2-micro") {
-    vcpu = "0.25-2";
-  } else if (machineType == "e2-small") {
-    vcpu = "0.5-2";
-  } else if (machineType == "e2-medium") {
-    vcpu = "1-2";
-  }
-  if (inline) {
-    return (
-      <span style={style}>
-        {vcpu} {plural(vcpu, "vCPU")}, {memory} GB RAM
-      </span>
-    );
-  }
-  return (
-    <div style={{ color: "#666", ...style }}>
-      <b>{plural(vcpu, "vCPU")}: </b>
-      <div
-        style={{ width: "65px", textAlign: "left", display: "inline-block" }}
-      >
-        {vcpu}
-      </div>
-      <b>Memory:</b> {memory} GB
-    </div>
-  );
-}
-
 function BootDisk(props) {
   return (
     <Disk
@@ -1176,7 +1182,15 @@ const ACCELERATOR_TYPES = [
         </A>
 */
 
-function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
+function GPU({
+  priceData,
+  setConfig,
+  configuration,
+  disabled,
+  state,
+  IMAGES,
+  setCloud,
+}) {
   const { acceleratorType, acceleratorCount } = configuration;
   const head = (
     <div style={{ color: "#666", marginBottom: "5px" }}>
@@ -1312,6 +1326,40 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
                 </div>
               ) /* this is mostly a google limitation, not cocalc, though we will eventually do somthing involving recreating the machine.  BUT note that e.g., changing the count for L4's actually breaks booting up! */
             }
+            {setCloud != null &&
+              availableClouds().includes("hyperstack") &&
+              (state ?? "deprovisioned") == "deprovisioned" && (
+                <Alert
+                  showIcon
+                  style={{ margin: "5px 0" }}
+                  type="info"
+                  description={
+                    <div>
+                      Hyperstack cloud offers non-spot NVIDIA H100, A100, L40,
+                      and RTX-A4/5/6000 GPUs at about half the price of Google
+                      cloud.{" "}
+                      <Popconfirm
+                        title="Switch to Hyperstack"
+                        description={
+                          <div style={{ maxWidth: "450px" }}>
+                            This will change the cloud for this compute server
+                            to Hyperstack, and reset its configuration. Your
+                            compute server is not storing any data so this is
+                            safe.
+                          </div>
+                        }
+                        onConfirm={() => {
+                          setCloud("hyperstack");
+                        }}
+                        okText="Switch to Hyperstack"
+                        cancelText="Cancel"
+                      >
+                        <Button type="link">Switch...</Button>
+                      </Popconfirm>
+                    </div>
+                  }
+                />
+              )}
           </div>
         )}
       </div>
@@ -1326,18 +1374,6 @@ function GPU({ priceData, setConfig, configuration, disabled, state, IMAGES }) {
         </div>
       ) : undefined}
 */
-
-function displayAcceleratorType(acceleratorType, memory?) {
-  let x = acceleratorType
-    .replace("tesla-", "")
-    .replace("nvidia-", "NVIDIA ")
-    .replace("-", " - ")
-    .toUpperCase();
-  if (x.includes("GB") || !memory) {
-    return x;
-  }
-  return `${x} - ${memory} GB`;
-}
 
 function ensureConsistentConfiguration(
   priceData,
@@ -1771,7 +1807,7 @@ function CostPerHour({
   );
 }
 
-function Admin({ id, configuration, loading }) {
+function Admin({ id, configuration, loading, template }) {
   const isAdmin = useTypedRedux("account", "is_admin");
   const [error, setError] = useState<string>("");
   const [calling, setCalling] = useState<boolean>(false);
@@ -1811,6 +1847,7 @@ function Admin({ id, configuration, loading }) {
         <pre>
           id={id}, configuration={JSON.stringify(configuration, undefined, 2)}
         </pre>
+        <Template id={id} template={template} />
       </div>
     </div>
   );

@@ -7,17 +7,13 @@
 React component that describes the input of a cell
 */
 
-import { Button, Tooltip } from "antd";
-import { delay } from "awaiting";
+import { Button } from "antd";
 import { Map } from "immutable";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import CopyButton from "@cocalc/frontend/components/copy-button";
 import { HiddenXS } from "@cocalc/frontend/components/hidden-visible";
-import PasteButton from "@cocalc/frontend/components/paste-button";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
@@ -25,16 +21,19 @@ import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-edit
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { LLMTools } from "@cocalc/jupyter/types";
 import { filename_extension, startswith } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
+import { CellButtonBar } from "./cell-buttonbar";
 import { CellHiddenPart } from "./cell-hidden-part";
-import CellTiming from "./cell-output-time";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
-import { LLMExplainCell } from "./llm";
+import {
+  CODE_BAR_BTN_STYLE,
+  MINI_BUTTONS_STYLE,
+  MINI_BUTTONS_STYLE_INNER,
+} from "./consts";
+import { Position } from "./insert-cell/types";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
-import { Position } from "./insert-cell/types";
 
 function attachmentTransform(
   project_id: string | undefined,
@@ -84,18 +83,24 @@ export interface CellInputProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   setShowAICellGen?: (show: Position) => void;
+  dragHandle?: JSX.Element;
 }
 
 export const CellInput: React.FC<CellInputProps> = React.memo(
   (props) => {
-    const [formatting, setFormatting] = useState<boolean>(false);
     const frameActions = useNotebookFrameActions();
 
-    const haveAIGenerateCell =
-      props.llmTools &&
-      redux
-        .getStore("projects")
-        .hasLanguageModelEnabled(props.project_id, "generate-cell");
+    // NOTE: These two flags are primarily used to enable/disable tools in course projects
+    const projectsStore = redux.getStore("projects");
+    const haveAIGenerateCell: boolean =
+      props.llmTools != null &&
+      projectsStore.hasLanguageModelEnabled(props.project_id, "generate-cell");
+    const haveLLMCellTools: boolean =
+      props.llmTools != null &&
+      projectsStore.hasLanguageModelEnabled(
+        props.project_id,
+        "jupyter-cell-llm",
+      );
 
     function render_input_prompt(type: string): Rendered {
       return (
@@ -109,6 +114,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             end={props.cell.get("end")}
             actions={props.actions}
             id={props.id}
+            dragHandle={props.dragHandle}
           />
         </HiddenXS>
       );
@@ -196,30 +202,29 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         return;
       }
       return (
-        <Button.Group
-          style={{
-            position: "absolute",
-            right: 0,
-            top: "-20px",
-          }}
+        <div
+          style={{ ...MINI_BUTTONS_STYLE, top: "-25px" }}
+          className="hidden-xs"
         >
-          <Button
-            style={{ color: "#666", fontSize: "11px" }}
-            size="small"
-            type="text"
-            onClick={handle_md_double_click}
-          >
-            <Icon name="edit" /> Edit
-          </Button>
-          <Button
-            style={{ color: "#666", fontSize: "11px" }}
-            size="small"
-            type="text"
-            onClick={handle_upload_click}
-          >
-            <Icon name="image" />
-          </Button>
-        </Button.Group>
+          <div style={MINI_BUTTONS_STYLE_INNER}>
+            <Button
+              style={CODE_BAR_BTN_STYLE}
+              size="small"
+              type="text"
+              onClick={handle_md_double_click}
+            >
+              <Icon name="edit" /> Edit
+            </Button>
+            <Button
+              style={CODE_BAR_BTN_STYLE}
+              size="small"
+              type="text"
+              onClick={handle_upload_click}
+            >
+              <Icon name="image" />
+            </Button>
+          </div>
+        </div>
       );
     }
 
@@ -408,102 +413,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       }
     }
 
-    function renderCodeBar() {
-      if (fileContext.disableExtraButtons) return null;
-      const input = props.cell.get("input")?.trim();
-      return (
-        <div
-          style={{
-            position: "absolute",
-            right: "2px",
-            top: "-20px",
-          }}
-          className="hidden-xs"
-        >
-          <div
-            style={{
-              display: "flex",
-              color: COLORS.GRAY_M,
-              fontSize: "11px",
-            }}
-          >
-            {props.is_current && props.computeServerId ? (
-              <ComputeServerPrompt id={props.computeServerId} />
-            ) : null}
-            {props.cell.get("start") != null && (
-              <div style={{ marginTop: "5px" }}>
-                <CellTiming
-                  start={props.cell.get("start")}
-                  end={props.cell.get("end")}
-                />
-              </div>
-            )}
-            {props.llmTools ? (
-              <LLMExplainCell
-                id={props.id}
-                actions={props.actions}
-                llmTools={props.llmTools}
-              />
-            ) : undefined}
-            {/* Should only show formatter button if there is a way to format this code. */}
-            {!props.is_readonly && props.actions != null && (
-              <Tooltip title="Format this code to look nice" placement="top">
-                <Button
-                  disabled={formatting}
-                  type="text"
-                  size="small"
-                  style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-                  onClick={async () => {
-                    // kind of a hack: clicking on this button makes this cell
-                    // the selected one
-                    try {
-                      setFormatting(true);
-                      await delay(1);
-                      await frameActions.current?.format_selected_cells();
-                    } finally {
-                      setFormatting(false);
-                    }
-                  }}
-                >
-                  <Icon
-                    name={formatting ? "spinner" : "sitemap"}
-                    spin={formatting}
-                  />{" "}
-                  Format
-                </Button>
-              </Tooltip>
-            )}
-            {input ? (
-              <CopyButton
-                size="small"
-                value={props.cell.get("input") ?? ""}
-                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-              />
-            ) : (
-              <PasteButton
-                style={{ fontSize: "11px", color: COLORS.GRAY_M }}
-                paste={(text) =>
-                  frameActions.current?.set_cell_input(props.id, text)
-                }
-              />
-            )}
-            {input && (
-              <div
-                style={{
-                  marginLeft: "3px",
-                  padding: "4px",
-                  borderLeft: "1px solid #ccc",
-                  borderTop: "1px solid #ccc",
-                }}
-              >
-                {props.index + 1}
-              </div>
-            )}
-          </div>
-        </div>
-      );
-    }
-
     function render_hidden(): JSX.Element {
       return (
         <CellHiddenPart
@@ -538,7 +447,19 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           >
             {render_input_prompt(type)}
             {render_input_value(type)}
-            {type == "code" && renderCodeBar()}
+            {type === "code" && !fileContext.disableExtraButtons ? (
+              <CellButtonBar
+                id={props.id}
+                index={props.index}
+                actions={props.actions}
+                cell={props.cell}
+                is_current={props.is_current}
+                is_readonly={props.is_readonly}
+                computeServerId={props.computeServerId}
+                llmTools={props.llmTools}
+                haveLLMCellTools={haveLLMCellTools}
+              />
+            ) : undefined}
           </div>
         </div>
       </FileContext.Provider>
@@ -573,38 +494,8 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       (next.llmTools?.model ?? "") !== (cur.llmTools?.model ?? "") ||
       next.index !== cur.index ||
       next.computeServerId != cur.computeServerId ||
+      next.dragHandle !== cur.dragHandle ||
       (next.cell_toolbar === "slideshow" &&
         next.cell.get("slide") !== cur.cell.get("slide"))
     ),
 );
-
-function ComputeServerPrompt({ id }) {
-  return (
-    <Tooltip
-      title={
-        <>
-          This cell will run on <ComputeServer id={id} />.
-        </>
-      }
-    >
-      <div
-        style={{
-          fontSize: "11px",
-          margin: "5px 15px 0 0",
-        }}
-      >
-        <ComputeServer
-          id={id}
-          titleOnly
-          style={{
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
-            display: "inline-block",
-            maxWidth: "125px",
-          }}
-        />
-      </div>
-    </Tooltip>
-  );
-}

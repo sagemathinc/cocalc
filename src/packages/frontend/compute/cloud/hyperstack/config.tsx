@@ -1,6 +1,7 @@
 import type {
   State,
   HyperstackConfiguration,
+  ComputeServerTemplate,
 } from "@cocalc/util/db-schema/compute-servers";
 import { Divider, Spin, Table } from "antd";
 import {
@@ -26,6 +27,7 @@ import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 import AllowCollaboratorControl from "@cocalc/frontend/compute/allow-collaborator-control";
+import Template from "@cocalc/frontend/compute/cloud/common/template";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -38,6 +40,8 @@ interface Props {
   disabled?: boolean;
   state?: State;
   data?;
+  setCloud?;
+  template?: ComputeServerTemplate;
 }
 
 export default function HyperstackConfig({
@@ -49,6 +53,8 @@ export default function HyperstackConfig({
   disabled,
   state,
   data,
+  setCloud,
+  template,
 }: Props) {
   const [priceData, setPriceData] = useState<HyperstackPriceData | null>(null);
   const [IMAGES, ImagesError] = useImages();
@@ -159,6 +165,7 @@ export default function HyperstackConfig({
           </div>
           <MachineType
             setConfig={setConfig}
+            setCloud={setCloud}
             configuration={configuration}
             state={state}
             disabled={
@@ -266,7 +273,9 @@ export default function HyperstackConfig({
     {
       key: "admin",
       label: <></>,
-      value: <Admin id={id} configuration={configuration} />,
+      value: (
+        <Admin id={id} configuration={configuration} template={template} />
+      ),
     },
   ];
 
@@ -331,31 +340,7 @@ export default function HyperstackConfig({
   );
 }
 
-// function Provisioning({}) {
-//   return (
-//     <div>
-//       <div style={{ color: "#666", marginBottom: "5px" }}>
-//         <b>
-//           <Icon name="sliders" /> Provisioning: Standard
-//         </b>
-//       </div>
-//       <div style={{ color: "#666", marginTop: "5px" }}>
-//         <p>
-//           Hyperstack servers are dedicated to you and{" "}
-//           <b>
-//             <i>will NOT automatically stop</i>
-//           </b>{" "}
-//           even if there is a surge in demand.
-//         </p>
-//         <p>
-//           Expect your server to take <b>about 5 minutes</b> to fully start up.
-//         </p>
-//       </div>
-//     </div>
-//   );
-// }
-
-function Admin({ id, configuration }) {
+function Admin({ id, configuration, template }) {
   const isAdmin = useTypedRedux("account", "is_admin");
   if (!isAdmin) {
     return null;
@@ -372,6 +357,7 @@ function Admin({ id, configuration }) {
         <pre>
           id={id}, configuration={JSON.stringify(configuration, undefined, 2)}
         </pre>
+        <Template id={id} template={template} />
       </div>
     </div>
   );

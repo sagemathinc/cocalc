@@ -17,6 +17,7 @@ import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import {
+  GOOGLE_MODEL_TO_ID,
   GoogleModel,
   LanguageModel,
   isGoogleModel,
@@ -103,10 +104,12 @@ export class GoogleGenAIClient {
     maxTokens?: number;
     stream?: (output?: string) => void;
   }) {
+    // we might have to translate the model name (stable!) to the particular ID on google's side (which could change)
+    const modelName = GOOGLE_MODEL_TO_ID[model] ?? model;
     // This is a LangChain instance, we use it for chatting like we do with all the others
     // https://js.langchain.com/docs/integrations/chat/google_generativeai (also for safetey settings)
     const chat = new ChatGoogleGenerativeAI({
-      modelName: model,
+      modelName,
       apiKey: this.apiKey,
       maxOutputTokens: maxTokens,
       streaming: true,

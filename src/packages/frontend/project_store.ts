@@ -59,6 +59,7 @@ import {
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
 import { get_local_storage } from "@cocalc/frontend/misc";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
 
 export { FILE_ACTIONS as file_actions, ProjectActions };
 
@@ -170,6 +171,7 @@ export interface ProjectStoreState {
 
   compute_servers?;
   create_compute_server?: boolean;
+  create_compute_server_template_id?: number;
 
   // Default compute server id to use when browsing and
   // working with files.
@@ -258,6 +260,17 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 
   getInitialState = (): ProjectStoreState => {
+    let create_compute_server_template_id: number | undefined = undefined;
+    let create_compute_server: boolean | undefined = undefined;
+    const template = QueryParams.get("compute-server-template");
+    if (template) {
+      const [id, project_id] = template.split(".");
+      if (id && project_id == this.project_id) {
+        create_compute_server_template_id = parseInt(id);
+        create_compute_server = true;
+        QueryParams.remove("compute-server-template");
+      }
+    }
     const other_settings = redux.getStore("account")?.get("other_settings");
     let compute_server_id;
     try {
@@ -324,6 +337,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       other_settings: undefined,
 
       compute_server_id,
+      create_compute_server,
+      create_compute_server_template_id,
     };
   };
 

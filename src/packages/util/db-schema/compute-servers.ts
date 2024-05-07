@@ -3,19 +3,19 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Table } from "./types";
-import { ID } from "./crm";
-import { NOTES } from "./crm";
-import { SCHEMA as schema } from "./index";
 import type {
   Region as HyperstackRegion,
   VirtualMachine as HyperstackVirtualMachine,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
-import {
-  DEFAULT_REGION as DEFAULT_HYPERSTACK_REGION,
-  DEFAULT_FLAVOR as DEFAULT_HYPERSTACK_FLAVOR,
-  DEFAULT_DISK as DEFAULT_HYPERSTACK_DISK,
-} from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import { COLORS } from "@cocalc/util/theme";
+import { ID, NOTES } from "./crm";
+import { SCHEMA as schema } from "./index";
+import { Table } from "./types";
+export {
+  CLOUDS_BY_NAME,
+  GOOGLE_CLOUD_DEFAULTS,
+  ON_PREM_DEFAULTS,
+} from "@cocalc/util/compute/cloud/clouds";
 
 // These are just fallbacks in case something is wrong with the image configuration.
 export const STANDARD_DISK_SIZE = 20;
@@ -63,6 +63,8 @@ export interface Image {
   icon: string;
   // Link to a URL with the source for building this image.
   source: string;
+  // optional list of links to videos about this image, ordered from lowest to highest priority.
+  videos?: string[];
   // The versions of this image that we claim to have built.
   // The ones with role='prod' (or not specified) are shown
   // to users as options.
@@ -76,6 +78,10 @@ export interface Image {
   // jupyterKernels: if false, no jupyter kernels included. If true or a list of
   // names, there are kernels available – used in frontend/jupyter/select-kernel.tsx
   jupyterKernels?: false | true | string[];
+  // If set to true, do not allow creating this compute server with a DNS subdomain.
+  // Some images only make sense to use over the web, and the web server just won't
+  // work without DNS setup properly (e.g., VS Code with LEAN).  Ignored for on prem.
+  requireDns?: boolean;
   // system: if true, this is a system container that is not for user compute
   system?: boolean;
   // disabled: if true, this image is completely disabled, so will not be used in any way.
@@ -246,7 +252,7 @@ export const STATE_INFO: {
   },
   running: {
     label: "Running",
-    color: "#389e0d",
+    color: COLORS.RUN,
     actions: ["stop", "deprovision", "reboot", "suspend"],
     icon: "run",
     stable: true,
@@ -329,138 +335,6 @@ export function getMinDiskSizeGb({
   }
 }
 
-// I think it could be very confusing to have anything
-// here by default, since most people won't even know
-// about excludes, and will just think sync is broken
-// if a random default folder is excluded!
-const DEFAULT_EXCLUDE_FROM_SYNC = [] as const;
-
-const GCLOUD_SPOT_DEFAULT = true;
-
-export const GOOGLE_CLOUD_DEFAULTS = {
-  cpu: {
-    image: "python",
-    cloud: "google-cloud",
-    region: "us-east5",
-    zone: "us-east5-a",
-    machineType: "n2d-highmem-2",
-    spot: GCLOUD_SPOT_DEFAULT,
-    diskSizeGb: 10,
-    diskType: "pd-balanced",
-    externalIp: true,
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-  gpu: {
-    image: "pytorch",
-    spot: GCLOUD_SPOT_DEFAULT,
-    region: "asia-northeast1",
-    cloud: "google-cloud",
-    zone: "asia-northeast1-a",
-    diskType: "pd-balanced",
-    diskSizeGb: 60,
-    externalIp: true,
-    machineType: "n1-highmem-2",
-    acceleratorType: "nvidia-tesla-t4",
-    acceleratorCount: 1,
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-  gpu2: {
-    image: "pytorch",
-    spot: GCLOUD_SPOT_DEFAULT,
-    zone: "us-central1-b",
-    cloud: "google-cloud",
-    region: "us-central1",
-    diskType: "pd-balanced",
-    diskSizeGb: 60,
-    externalIp: true,
-    machineType: "g2-standard-4",
-    acceleratorType: "nvidia-l4",
-    acceleratorCount: 1,
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-} as const;
-
-export const ON_PREM_DEFAULTS = {
-  cpu: {
-    image: "python",
-    gpu: false,
-    cloud: "onprem",
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-  gpu: {
-    image: "pytorch",
-    gpu: true,
-    cloud: "onprem",
-    excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-  },
-};
-
-// The ones that are at all potentially worth exposing to users.
-const CLOUDS: {
-  [short: string]: {
-    name: Cloud;
-    label: string;
-    image?: string;
-    defaultConfiguration: Configuration;
-  };
-} = {
-  google: {
-    name: "google-cloud",
-    label: "Google Cloud Platform",
-    image:
-      "https://www.gstatic.com/devrel-devsite/prod/v0e0f589edd85502a40d78d7d0825db8ea5ef3b99ab4070381ee86977c9168730/cloud/images/cloud-logo.svg",
-    defaultConfiguration: GOOGLE_CLOUD_DEFAULTS.cpu,
-  },
-  lambda: {
-    name: "lambda-cloud",
-    label: "Lambda Cloud",
-    image: "https://cloud.lambdalabs.com/static/images/lambda-logo.svg",
-    defaultConfiguration: {
-      cloud: "lambda-cloud",
-      image: "python",
-      instance_type_name: "gpu_1x_a10",
-      region_name: "us-west-1",
-      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-    },
-  },
-  hyperstack: {
-    name: "hyperstack",
-    label: "Hyperstack GPU Cloud",
-    image: "https://console.hyperstack.cloud/hyperstack-wordmark.svg",
-    defaultConfiguration: {
-      cloud: "hyperstack",
-      image: "anaconda-gpu",
-      region_name: DEFAULT_HYPERSTACK_REGION,
-      flavor_name: DEFAULT_HYPERSTACK_FLAVOR,
-      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-      diskSizeGb: DEFAULT_HYPERSTACK_DISK,
-    },
-  },
-  onprem: {
-    name: "onprem",
-    label: "On Prem",
-    defaultConfiguration: {
-      cloud: "onprem",
-      image: "python",
-      arch: "x86_64",
-      gpu: false,
-      excludeFromSync: DEFAULT_EXCLUDE_FROM_SYNC,
-    },
-  },
-};
-
-export const CLOUDS_BY_NAME: {
-  [name: string]: {
-    name: Cloud;
-    label: string;
-    image?: string;
-    defaultConfiguration: Configuration;
-  };
-} = {};
-for (const short in CLOUDS) {
-  CLOUDS_BY_NAME[CLOUDS[short].name] = CLOUDS[short];
-}
-
 interface BaseConfiguration {
   // image: name of the image to use, e.g. 'python' or 'pytorch'.
   // images are managed in src/packages/server/compute/images.ts
@@ -520,7 +394,7 @@ export interface HyperstackConfiguration extends BaseConfiguration {
   // NOTE: users install packages "systemwide" inside of
   // a docker container and we configure docker to store
   // its data in the zpool, so that's in here too.
-  diskSizeGb?: number;
+  diskSizeGb: number;
 }
 
 const COREWEAVE_CPU_TYPES = [
@@ -687,6 +561,11 @@ export interface ComponentState {
   expire?: number;
 }
 
+export interface ComputeServerTemplate {
+  enabled?: boolean;
+  priority?: number;
+}
+
 export interface ComputeServerUserInfo {
   id: number;
   account_id: string;
@@ -713,6 +592,7 @@ export interface ComputeServerUserInfo {
   detailed_state?: { [name: string]: ComponentState };
   update_purchase?: boolean;
   last_purchase_update?: Date;
+  template?: ComputeServerTemplate;
 }
 
 export interface ComputeServer extends ComputeServerUserInfo {
@@ -731,6 +611,7 @@ Table({
         fields: {
           id: null,
           account_id: null,
+          created: null,
           title: null,
           color: null,
           cost_per_hour: null,
@@ -750,16 +631,21 @@ Table({
           purchase_id: null,
           position: null,
           detailed_state: null,
+          template: null,
+          notes: null,
         },
       },
       set: {
         // ATTN: It's assumed that users can't set the data field.  Doing so would be very bad and could allow
         // them to maybe abuse the system and not pay for something.
+        // Most fields, e.g., configuration, get set via api calls, which ensures consistency in terms of valid
+        // data and what is actively deployed.
         fields: {
           project_id: "project_write",
           id: true,
           position: true,
           error: true, // easily clear the error
+          notes: true,
         },
       },
     },
@@ -770,6 +656,10 @@ Table({
       type: "uuid",
       desc: "User that owns this compute server.",
       render: { type: "account" },
+    },
+    created: {
+      type: "timestamp",
+      desc: "When the compute server was created.",
     },
     title: {
       type: "string",
@@ -886,6 +776,11 @@ Table({
       desc: "Map from component name to something like {state:'running',time:Date.now()}, e.g., {vm: {state:'running', time:393939938484}}, filesystem: {state:'updating', time:939398484892}, uptime:{state:'22:56:33 up 3 days,  9:28,  0 users,  load average: 0.93, 0.73, 0.56', time:?}}.  This is used to provide users with insight into what's currently happening on their compute server.",
     },
     notes: NOTES,
+    template: {
+      type: "map",
+      pg_type: "jsonb",
+      desc: "Use this compute server configuration as a public template.  Only admins can set this field for now. The exact structure of this jsonb is yet to be determined.",
+    },
   },
 });
 
@@ -903,6 +798,7 @@ Table({
         fields: {
           ...schema.compute_servers.user_query?.get?.fields,
           notes: null,
+          template: null,
         },
       },
       set: {
@@ -913,6 +809,7 @@ Table({
           color: true,
           deleted: true,
           notes: true,
+          template: true,
         },
       },
     },

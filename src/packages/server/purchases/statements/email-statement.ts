@@ -67,7 +67,8 @@ export default async function emailStatement(opts: {
   }
   let pay;
   if (statement.balance >= 0) {
-    pay = "Statement balance is not negative, so no payment is required.";
+    pay =
+      "<b>Statement balance is not negative, so NO PAYMENT IS REQUIRED.</b>";
   } else {
     const usageSub = await getUsageSubscription(account_id);
     const toPay = currency(-statement.balance);

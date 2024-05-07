@@ -12,7 +12,15 @@ import {
   PurchaseOption,
   optionKey,
 } from "@cocalc/util/compute/cloud/hyperstack/pricing";
-import { Alert, Checkbox, Tag, Select, Tooltip } from "antd";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  Tag,
+  Popconfirm,
+  Select,
+  Tooltip,
+} from "antd";
 const { CheckableTag } = Tag;
 import { GPU_SPECS } from "@cocalc/util/compute/gpu-specs";
 import { getModelLinks, toGPU } from "./util";
@@ -22,6 +30,9 @@ import { humanFlavor } from "@cocalc/util/compute/cloud/hyperstack/flavor";
 import { r_join } from "@cocalc/frontend/components/r_join";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
+import { availableClouds } from "@cocalc/frontend/compute/config";
+import { DEFAULT_GPU_CONFIG as DEFAULT_GOOGLE_GPU_CONFIG } from "@cocalc/frontend/compute/google-cloud-config";
+
 const TAGS = {
   H100: { search: ["h100"], desc: "an H100 GPU", group: 0 },
   A100: { search: ["a100"], desc: "an A100 GPU", group: 0 },
@@ -41,7 +52,7 @@ const TAGS = {
     search: ["norway"],
     desc: "in Norway",
     group: 2,
-    tip: "🇳🇴 Only show servers in Norway. (WARNING: creating servers in Norway takes an extra 5 minutes.)",
+    tip: "🇳🇴 Only show servers in Norway.",
   },
 };
 
@@ -144,6 +155,7 @@ export default function MachineType({
   configuration,
   priceData,
   state,
+  setCloud,
 }) {
   const [selectOpen, setSelectOpen] = useState<boolean>(false);
   const [showUnavailable, setShowUnavailable] = useState<boolean>(false);
@@ -337,27 +349,39 @@ export default function MachineType({
           )}
         </div>
       )}
-      {region_name?.toLowerCase()?.includes("norway") && (
-        <Alert
-          style={{ margin: "10px 0" }}
-          showIcon
-          type="warning"
-          message={
-            <>
-              <b>🇳🇴 WARNING:</b> Creating a new Hyperstack compute server in
-              Norway takes <b>an extra 5 minutes.</b>
-            </>
-          }
-          description={
-            <>
-              Initial creation of servers in Norway takes an extra{" "}
-              <b>5 minutes</b>. Starting and stopping your server after you
-              create it is fast. Create your servers in Canada if possible; it's
-              faster and the GPU selection is better.
-            </>
-          }
-        />
-      )}
+      {setCloud != null &&
+        availableClouds().includes("google-cloud") &&
+        (state ?? "deprovisioned") == "deprovisioned" && (
+          <Alert
+            showIcon
+            style={{ margin: "5px 0" }}
+            type="info"
+            description={
+              <div>
+                Google Cloud offers highly discounted spot NVIDIA A100, L4, and
+                T4 GPUs.{" "}
+                <Popconfirm
+                  title="Switch to Google Cloud"
+                  description={
+                    <div style={{ maxWidth: "450px" }}>
+                      This will change the cloud for this compute server to
+                      Google Cloud, and reset its configuration. Your compute
+                      server is not storing any data so this is safe.
+                    </div>
+                  }
+                  onConfirm={() => {
+                    setCloud("google-cloud");
+                    setConfig(DEFAULT_GOOGLE_GPU_CONFIG);
+                  }}
+                  okText="Switch to Google Cloud"
+                  cancelText="Cancel"
+                >
+                  <Button type="link">Switch...</Button>
+                </Popconfirm>
+              </div>
+            }
+          />
+        )}
     </div>
   );
 }

@@ -13,9 +13,11 @@ High level summary:
 const DEBUG_THROW_LLM_ERROR = process.env.DEBUG_THROW_LLM_ERROR === "true";
 
 import { delay } from "awaiting";
+import { throttle } from "lodash";
 import OpenAI from "openai";
 
 import getLogger from "@cocalc/backend/logger";
+import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import {
@@ -26,6 +28,7 @@ import {
   OpenAIMessages,
   getLLMCost,
   isAnthropicModel,
+  isCoreLanguageModel,
   isFreeModel,
   isGoogleModel,
   isMistralModel,
@@ -45,6 +48,8 @@ import { GoogleGenAIClient } from "./google-genai-client";
 import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
 import { saveResponse } from "./save-response";
+
+const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
 
 const log = getLogger("llm");
 
@@ -69,6 +74,38 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
       }`,
     );
   }
+}
+
+// We wrap the stream callback in such a way, that the data stream is throttled.
+function wrapStream(stream?: ChatOptions["stream"]) {
+  if (stream == null) return undefined;
+
+  const end = { token: "end" };
+  const buffer: (string | typeof end)[] = [];
+  let closed = false;
+
+  const throttled = throttle(
+    () => {
+      if (buffer.length === 0) return;
+      if (closed) throw new Error("stream closed");
+      // if the last object in buffer is the end object, remove it
+      closed = buffer[buffer.length - 1] === end;
+      if (closed) buffer.pop();
+      const str = buffer.join("");
+      buffer.length = 0;
+      stream(str);
+      if (closed) stream();
+    },
+    THROTTLE_STREAM_MS,
+    { leading: true, trailing: true },
+  );
+
+  const wrapped = (output?: string | undefined): void => {
+    buffer.push(output == null ? end : output);
+    throttled();
+  };
+
+  return wrapped;
 }
 
 async function evaluateImpl({
@@ -100,6 +137,8 @@ async function evaluateImpl({
 
   const start = Date.now();
   await checkForAbuse({ account_id, analytics_cookie, model });
+
+  stream = wrapStream(stream);
 
   const { output, total_tokens, prompt_tokens, completion_tokens } =
     await (async () => {
@@ -167,7 +206,7 @@ async function evaluateImpl({
   if (account_id) {
     const is_cocalc_com =
       (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
-    if (isFreeModel(model, is_cocalc_com)) {
+    if (isFreeModel(model, is_cocalc_com) || !isCoreLanguageModel(model)) {
       // no charge for now...
     } else {
       // charge for ALL other models.
@@ -234,7 +273,7 @@ interface EvalVertexAIProps {
   maxTokens?: number; // only gemini-pro
 }
 
-async function evaluateGoogleGenAI({
+export async function evaluateGoogleGenAI({
   client,
   system,
   history,
@@ -282,7 +321,7 @@ async function evaluateGoogleGenAI({
   throw Error("Google Vertex AI API called failed"); // this should never get reached.
 }
 
-async function evaluateOpenAI({
+export async function evaluateOpenAI({
   system,
   history,
   input,

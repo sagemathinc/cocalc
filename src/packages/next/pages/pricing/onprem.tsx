@@ -145,10 +145,20 @@ function Body() {
         </Paragraph>
         <Title level={3}>Purchasing CoCalc Cloud</Title>
         <Paragraph>
-          In contrast to the Docker variant, CoCalc Cloud is a scalable
-          solution. Therefore, the price is proportional to the expected number
-          of users. Additionally, various levels of support can be negotiated
-          for an additional cost. Please contact us for a quote.
+          CoCalc Cloud is a scalable solution and the license price depends on
+          the use case and expected number of users. Additionally, various
+          levels of support and custom development can be negotiated for an
+          additional cost.
+          <Button
+            type="link"
+            onClick={() =>
+              router.push(
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Quote&body=${body}&title=Purchase%20CoCalc-Cloud`,
+              )
+            }
+          >
+            Contact us for a quote.
+          </Button>
         </Paragraph>
         <Paragraph>
           The price starts at{" "}
@@ -163,7 +173,7 @@ function Body() {
           >
             {K8S_PRICE}/year
           </Button>{" "}
-          or if an academic discount applies, starting at{" "}
+          or, if an academic discount applies, starting at{" "}
           <Button
             type="primary"
             size="large"

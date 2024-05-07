@@ -10,10 +10,11 @@ import { Alert, Select, Spin } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Icon, Markdown } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
-import { field_cmp } from "@cocalc/util/misc";
+import { field_cmp, trunc } from "@cocalc/util/misc";
 import { useImages } from "./images-hook";
 import SelectVersion from "./select-version";
 import Advanced from "./advanced";
+import { RenderImage } from "./images";
 
 interface Props {
   setConfig;
@@ -261,14 +262,19 @@ export function ImageLinks({ image, style }: { image; style? }) {
         ...style,
       }}
     >
-      <A style={{ flex: 1 }} href={data.url}>
-        <Icon name="external-link" /> {data.label}
-      </A>
+      {data.videos != null && data.videos.length > 0 && (
+        <A style={{ flex: 1 }} href={data.videos[0]}>
+          <Icon name="youtube" style={{ color: "red" }} /> YouTube
+        </A>
+      )}
       <A style={{ flex: 1 }} href={data.source}>
-        <Icon name="github" /> Source
+        <Icon name="github" /> GitHub
+      </A>
+      <A style={{ flex: 1 }} href={data.url}>
+        <Icon name="external-link" /> {trunc(data.label, 10)}
       </A>
       <A style={{ flex: 1 }} href={packageNameToUrl(data.package)}>
-        <Icon name="docker" /> dockerhub
+        <Icon name="docker" /> DockerHub
       </A>
     </div>
   );
@@ -294,22 +300,11 @@ export function DisplayImage({
   style?;
 }) {
   const [IMAGES, ImagesError] = useImages();
-  if (IMAGES == null) {
-    return <Spin />;
-  }
   if (ImagesError != null) {
     return ImagesError;
   }
-  const { image } = configuration ?? {};
-  if (image == null) return null;
-  const data = IMAGES[image];
-  if (data == null) {
-    return <span style={style}>{image}</span>;
-  }
   return (
-    <span style={style}>
-      <Icon name={data.icon} style={{ marginRight: "5px" }} /> {data.label}
-    </span>
+    <RenderImage configuration={configuration} style={style} IMAGES={IMAGES} />
   );
 }
 

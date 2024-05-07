@@ -1777,8 +1777,9 @@ export function to_money(n: number, d = 2): string {
 }
 
 // numbers with commas -- https://stackoverflow.com/questions/2901102/how-to-format-a-number-with-commas-as-thousands-separators
-export function commas(n: number) : string {
-  if (n == null) { // in case of bugs, at least fail with empty in prod
+export function commas(n: number): string {
+  if (n == null) {
+    // in case of bugs, at least fail with empty in prod
     return "";
   }
   return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -2521,6 +2522,7 @@ export function hexColorToRGBA(col: string, opacity?: number): string {
   }
 }
 
+// returns an always positive integer, not negative ones. useful for "scrolling backwards", etc.
 export function strictMod(a: number, b: number): number {
   return ((a % b) + b) % b;
 }
@@ -2579,4 +2581,24 @@ export function smallIntegerToEnglishWord(val: number): string | number {
       return "twenty";
   }
   return val;
+}
+
+export function numToOrdinal(val: number): string {
+  // 1 → 1st, 2 → 2nd, 3 → 3rd, 4 → 4th, ... 21 → 21st, ... 101 → 101st, ...
+  if (!Number.isInteger(val)) return `${val}th`;
+  const mod100 = val % 100;
+  if (mod100 >= 11 && mod100 <= 13) {
+    return `${val}th`;
+  }
+  const mod10 = val % 10;
+  switch (mod10) {
+    case 1:
+      return `${val}st`;
+    case 2:
+      return `${val}nd`;
+    case 3:
+      return `${val}rd`;
+    default:
+      return `${val}th`;
+  }
 }

@@ -672,8 +672,8 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Pay as you Go"],
   },
   pay_as_you_go_openai_markup_percentage: {
-    name: "Pay As You Go - OpenAI Markup Percentage",
-    desc: "The markup percentage that we add to the OpenAI API call rate.  This accounts for maintenance, dev, servers, and bandwidth. For example, '30' would mean we add 30% to the price that OpenAI charges us.",
+    name: "Pay As You Go - LLM Markup Percentage",
+    desc: "The markup percentage that we add to the LLM's call rate.  This accounts for maintenance, dev, servers, and bandwidth. For example, '30' would mean we add 30% to the price that OpenAI charges us.",
     default: "30",
     show: only_commercial,
     to_val: toFloat,
@@ -838,7 +838,7 @@ export const EXTRAS: SettingsExtras = {
   },
   compute_servers_images_spec_url: {
     name: "Compute Servers: Images Spec URL",
-    desc: `The URL of the compute server "images.json" spec file.  By default this is [${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}](here), which is managed by SageMath, Inc.  However, you may replace this with your own json spec file, if you want to manage your own compute server images.  [Click here to update the database cache of the spec file and see the latest version.](api/v2/compute/get-images?ttl=0)`,
+    desc: `The URL of the compute server "images.json" spec file.  By default this is [${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}](here), which is managed by SageMath, Inc.  However, you may replace this with your own json spec file, if you want to manage your own compute server images. Note that [${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}](here) is cached for a long time for better control, use a raw URL to a specific commit.  To clear the internal cache of images.json, open any compute server config, click the Advanced checkbox next to Images, then click "Refresh Images".  Live version: [image.json](api/v2/compute/get-images).`,
     default: DEFAULT_COMPUTE_SERVER_IMAGES_JSON,
     show: compute_servers_enabled,
     tags: ["Compute Servers"],
