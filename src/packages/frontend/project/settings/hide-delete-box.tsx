@@ -177,8 +177,9 @@ export function HideDeleteBox(props: Readonly<Props>) {
         <hr />
         <Row style={{ color: COLORS.GRAY_M }}>
           <Col sm={12}>
-            If you do need to permanently delete some sensitive information that
-            you accidentally copied into a project, contact <HelpEmailLink />.
+            Projects are not immediately deleted. If you need to permanently and
+            immediately delete some sensitive information in this project,
+            contact <HelpEmailLink />.
           </Col>
         </Row>
       </>

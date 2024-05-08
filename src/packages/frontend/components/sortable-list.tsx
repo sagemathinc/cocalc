@@ -19,7 +19,10 @@ import {
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import {
+  restrictToVerticalAxis,
+  restrictToFirstScrollableAncestor,
+} from "@dnd-kit/modifiers";
 
 interface Props {
   items: (string | number)[];
@@ -72,7 +75,7 @@ export function SortableList({
       }}
       onDragEnd={onDragEnd}
       onDragMove={onDragMove}
-      modifiers={[restrictToVerticalAxis]}
+      modifiers={[restrictToVerticalAxis, restrictToFirstScrollableAncestor]}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
         <DragOverlay>

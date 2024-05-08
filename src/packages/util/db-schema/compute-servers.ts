@@ -128,6 +128,24 @@ export type State =
   | "suspended"
   | "unknown";
 
+// used for sorting by state -- ordered from my alive to least alive.
+export const ORDERED_STATES: State[] = [
+  "running",
+  "starting",
+  "stopping",
+  "suspending",
+  "suspended",
+  "off",
+  "deprovisioned",
+  "unknown",
+];
+export const STATE_TO_NUMBER: { [state: string]: number } = {};
+let n = 0;
+for (const state of ORDERED_STATES) {
+  STATE_TO_NUMBER[state] = n;
+  n += 1;
+}
+
 export type Action =
   | "start"
   | "resume"

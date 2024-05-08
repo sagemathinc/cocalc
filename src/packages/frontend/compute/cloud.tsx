@@ -7,6 +7,7 @@ import { Select, Space, Spin, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { setServerCloud } from "./api";
 import { useStore } from "@cocalc/frontend/app-framework";
+import DisplayCloud from "./display-cloud";
 
 interface Props {
   cloud: CloudType;
@@ -37,17 +38,12 @@ export default function Cloud({
     setNewCloud(cloud);
   }, [cloud]);
 
-  const x = CLOUDS_BY_NAME[cloud];
   const label = (
-    <span>
-      {x?.image ? (
-        <Tooltip title={x.label}>
-          <img src={x.image} height={height ?? 18} alt={x.label} />
-        </Tooltip>
-      ) : (
-        x?.label ?? "No Cloud Configured"
-      )}
-    </span>
+    <DisplayCloud
+      cloud={cloud}
+      height={height}
+      style={!editable ? style : undefined}
+    />
   );
   if (!editable) {
     return label;

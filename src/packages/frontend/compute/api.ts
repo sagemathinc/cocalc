@@ -14,6 +14,7 @@ import type {
   ConfigurationTemplates,
 } from "@cocalc/util/compute/templates";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import TTL from "@isaacs/ttlcache";
 
 export async function createServer(opts: {
   project_id: string;
@@ -76,12 +77,27 @@ export async function setTemplate(opts: {
   return await api("compute/set-template", opts);
 }
 
+// 5-minute client side ttl cache of all and specific template, since
+// templates change rarely.
+
+const templatesCache = new TTL({ ttl: 60 * 1000 * 5 });
+
 export async function getTemplate(id: number): Promise<ConfigurationTemplate> {
-  return await api("compute/get-template", { id });
+  if (templatesCache.has(id)) {
+    return templatesCache.get(id)!;
+  }
+  const x = await api("compute/get-template", { id });
+  templatesCache.set(id, x);
+  return x;
 }
 
 export async function getTemplates(): Promise<ConfigurationTemplates> {
-  return await api("compute/get-templates");
+  if (templatesCache.has("templates")) {
+    return templatesCache.get("templates")!;
+  }
+  const x = await api("compute/get-templates");
+  templatesCache.set("templates", x);
+  return x;
 }
 
 export async function setServerCloud(opts: { id: number; cloud: string }) {

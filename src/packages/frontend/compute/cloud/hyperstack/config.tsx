@@ -28,6 +28,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 import AllowCollaboratorControl from "@cocalc/frontend/compute/allow-collaborator-control";
 import Template from "@cocalc/frontend/compute/cloud/common/template";
+import { A } from "@cocalc/frontend/components/A";
 
 interface Props {
   configuration: HyperstackConfiguration;
@@ -311,7 +312,15 @@ export default function HyperstackConfig({
                 </b>{" "}
                 for storage when the server is off, and there is no cost when
                 the server is deprovisioned. All network data transfer{" "}
-                <b>is free</b>.
+                <b>is free</b>, and{" "}
+                <A href="https://www.hyperstack.cloud/why-hyperstack">
+                  Hyperstack's data centers are 100% Renewably Powered
+                </A>{" "}
+                via hydro-energy, housed within{" "}
+                <A href="https://www.hyperstack.cloud/blog/company-news/nexgen-cloud-and-aq-compute-advance-towards-net-zero-ai-supercloud">
+                  sustainable data centers
+                </A>
+                .
               </>
             }
           />
