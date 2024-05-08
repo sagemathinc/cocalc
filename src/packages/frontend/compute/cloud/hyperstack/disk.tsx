@@ -41,7 +41,7 @@ export default function Disk(props) {
             {(data?.ephemeral ?? 0) > 0 && (
               <p>
                 Moreover, some of your{" "}
-                {data.ephemeral ? `${data.ephemeral}GB` : ""} local SSD will be
+                {data.ephemeral ? `${data.ephemeral} GB` : ""} local SSD will be
                 used for ZFS caching to make the persistent disk much faster.
                 This dramatically increases iops and makes reading data
                 repeatedly much more efficient.
@@ -82,7 +82,7 @@ export default function Disk(props) {
       )}
       {(data?.ephemeral ?? 0) > 0 && (
         <div>
-          <b>Caching:</b> Some of your {data?.ephemeral}GB local SSD is used for
+          <b>Caching:</b> Some of your {data?.ephemeral} GB local SSD is used for
           caching to make the data disk much faster.
         </div>
       )}

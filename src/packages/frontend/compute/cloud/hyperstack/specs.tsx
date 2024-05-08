@@ -31,14 +31,14 @@ export default function Specs({
       ) : (
         ""
       )}
-      {data.cpu} {plural(data.cpu, "vCPU")}, {commas(data.ram)}GB RAM,{" "}
-      {commas(diskSizeGb ?? DEFAULT_DISK)}GB persistent SSD disk
+      {data.cpu} {plural(data.cpu, "vCPU")}, {commas(data.ram)} GB RAM,{" "}
+      {commas(diskSizeGb ?? DEFAULT_DISK)} GB persistent SSD disk
       {data.ephemeral ? (
         <Tooltip
           title={`The ephemeral disk is mounted at /ephemeral, and is deleted when the compute server is shutdown or rebooted.  Part of this disk is also used for caching.`}
         >
           {" "}
-          and {commas(data.ephemeral)}GB ephemeral disk
+          and {commas(data.ephemeral)} GB ephemeral disk
         </Tooltip>
       ) : undefined}{" "}
       in {capitalize(region_name.toLowerCase().split("-")[0])}.

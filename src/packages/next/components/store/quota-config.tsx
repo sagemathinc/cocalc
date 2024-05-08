@@ -118,8 +118,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           message="Consider using a compute server?"
           description={
             <>
-              You selected a RAM quota of {ramVal}G. If your use-case involves
-              a lot of RAM, consider using a{" "}
+              You selected a RAM quota of {ramVal}G. If your use-case involves a
+              lot of RAM, consider using a{" "}
               <A href="https://doc.cocalc.com/compute_server.html">
                 compute server
               </A>{" "}
@@ -168,7 +168,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             presetWasAdjusted();
             onChange();
           }}
-          units={"G RAM"}
+          units={"GB RAM"}
           presets={boost ? [0, 2, 4, 8, 10] : [1, 2, 4, 8, 16]}
         />
       </Form.Item>
@@ -184,7 +184,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           message="Consider using a compute server?"
           description={
             <>
-              You selected a CPU quota of {cpuVal} CPU cores is high. If your
+              You selected a CPU quota of {cpuVal} vCPU cores is high. If your
               use-case involves harnessing a lot of CPU power, consider using a{" "}
               <A href="https://doc.cocalc.com/compute_server.html">
                 compute server
@@ -348,10 +348,10 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
           <>
             provides up to{" "}
             <Text strong>
-              {cpu} CPU {plural(cpu, "core")}
+              {cpu} {plural(cpu, "vCPU")}
             </Text>
-            , <Text strong>{ram}G memory</Text>, and{" "}
-            <Text strong>{disk}G disk space</Text> for each project.
+            , <Text strong>{ram} GB memory</Text>, and{" "}
+            <Text strong>{disk} GB disk space</Text> for each project.
           </>
         );
 

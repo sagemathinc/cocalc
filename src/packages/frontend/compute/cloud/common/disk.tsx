@@ -170,7 +170,7 @@ export default function Disk(props: Props) {
               }}
             >
               Enlarge by{" "}
-              {newDiskSizeGb - (configuration.diskSizeGb ?? minSizeGb)}
+              {newDiskSizeGb - (configuration.diskSizeGb ?? minSizeGb)}{" "}
               GB (additional cost{" "}
               {rate ? <>&nbsp;at {rate}&nbsp;</> : undefined} &nbsp;is&nbsp;
               {currency(
@@ -312,7 +312,7 @@ export default function Disk(props: Props) {
             ></Select>
             {configuration.diskType != "hyperdisk-balanced" && (
               <div style={{ marginLeft: "15px" }}>
-                <b>Total Cost for {commas(configuration.diskSizeGb)}GB:</b>{" "}
+                <b>Total Cost for {commas(configuration.diskSizeGb)} GB:</b>{" "}
                 {currency(
                   markup({
                     cost:
@@ -425,7 +425,7 @@ function HyperdiskInfo({ priceData, style, region, diskSizeGb }) {
           provisioning cost, plus a cost per GB of data:
           <div style={{ textAlign: "center", marginTop: "10px" }}>
             {currency(costProvisioned * 730)}... &nbsp;&nbsp;+ &nbsp;&nbsp;
-            {diskSizeGb}GB ×{" "}
+            {diskSizeGb} GB ×{" "}
             {currency(
               markup({
                 cost: capacity * 730,

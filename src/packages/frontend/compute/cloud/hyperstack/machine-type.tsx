@@ -80,7 +80,12 @@ function getLabel(x: PurchaseOption, priceData) {
             `CPU Only`
           ) : (
             <>
-              {x.gpu_count} × {gpu.replace("-PCIe", "").replace("-", " - ")} GPU
+              {x.gpu_count} ×{" "}
+              {gpu
+                .replace("-PCIe", "")
+                .replace("-", " - ")
+                .replace("GB", " GB")}{" "}
+              GPU
             </>
           )}
         </div>
@@ -104,13 +109,13 @@ function getLabel(x: PurchaseOption, priceData) {
           {gpuSpec != null && (
             <>
               {gpuSpec?.memory != null && (
-                <>{x.gpu_count * gpuSpec.memory}GB GPU RAM</>
+                <>{x.gpu_count * gpuSpec.memory} GB GPU RAM</>
               )}
             </>
           )}
         </div>
         <div style={{ flex: 1 }}>
-          {x.cpu} {plural(x.cpu, "vCPU")}, {commas(x.ram)}GB RAM
+          {x.cpu} {plural(x.cpu, "vCPU")}, {commas(x.ram)} GB RAM
         </div>
       </div>
       <div
@@ -140,7 +145,7 @@ function getLabel(x: PurchaseOption, priceData) {
             <Tooltip
               title={`The ephemeral disk is mounted at /ephemeral, and is deleted when the compute server is shutdown or rebooted.  Part of this disk is also used for caching.`}
             >
-              {commas(x.ephemeral)}GB Ephemeral Disk
+              {commas(x.ephemeral)} GB Ephemeral Disk
             </Tooltip>
           )}
         </div>

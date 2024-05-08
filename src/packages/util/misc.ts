@@ -651,14 +651,14 @@ export function human_readable_size(
   }
   if (bytes < 1000000) {
     const b = Math.floor(bytes / 100);
-    return `${b / 10} ${short ? "K" : "KB"}`;
+    return `${b / 10} KB`;
   }
   if (bytes < 1000000000) {
     const b = Math.floor(bytes / 100000);
-    return `${b / 10} ${short ? "M" : "MB"}`;
+    return `${b / 10} MB`;
   }
   const b = Math.floor(bytes / 100000000);
-  return `${b / 10} ${short ? "G" : "GB"}`;
+  return `${b / 10} GB`;
 }
 
 // Regexp used to test for URLs in a string.

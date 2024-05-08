@@ -3,6 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+
+/*
+To avoid inconsistency, we are going to follow the style guide/table from
+the "Microsoft Writing Style Guide" for things like "3 GB":
+
+https://learn.microsoft.com/en-us/style-guide/a-z-word-list-term-collections/term-collections/bits-bytes-terms
+
+We were just making stuff up all over in CoCalc based on what other sites
+do, and the net result was things got inconsistent.
+*/
+
 import {
   LicenseIdleTimeouts,
   untangleUptime,
@@ -112,20 +123,20 @@ export function describe_quota(
   hideNetwork ||= onPremQuota;
 
   if (onPremQuota ? (quota.ram ?? 1) > 2 : quota.ram) {
-    v.push(`${quota.ram}G RAM`);
+    v.push(`${quota.ram} GB RAM`);
   }
   if (onPremQuota ? (quota.cpu ?? 1) > 1 : quota.cpu) {
-    v.push(`${quota.cpu} shared ${plural(quota.cpu, "CPU")}`);
+    v.push(`${quota.cpu} shared ${plural(quota.cpu, "vCPU")}`);
   }
   if (quota.disk) {
-    v.push(`${quota.disk}G disk`);
+    v.push(`${quota.disk} GB disk`);
   }
   if (quota.dedicated_ram) {
-    v.push(`${quota.dedicated_ram}G dedicated RAM`);
+    v.push(`${quota.dedicated_ram} GB dedicated RAM`);
   }
   if (quota.dedicated_cpu) {
     v.push(
-      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`,
+      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "vCPU")}`,
     );
   }
 
@@ -187,20 +198,20 @@ export function describeQuotaOnLine(
   const v: string[] = [];
 
   if (quota.ram) {
-    v.push(`${quota.ram}G RAM`);
+    v.push(`${quota.ram} GB RAM`);
   }
   if (quota.cpu) {
-    v.push(`${quota.cpu} ${plural(quota.cpu, "CPU")}`);
+    v.push(`${quota.cpu} ${plural(quota.cpu, "vCPU")}`);
   }
   if (quota.disk) {
-    v.push(`${quota.disk}G disk`);
+    v.push(`${quota.disk} GB disk`);
   }
   if (quota.dedicated_ram) {
-    v.push(`${quota.dedicated_ram}G dedicated RAM`);
+    v.push(`${quota.dedicated_ram} GB dedicated RAM`);
   }
   if (quota.dedicated_cpu) {
     v.push(
-      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "CPU")}`,
+      `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "vCPU")}`,
     );
   }
 

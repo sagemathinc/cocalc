@@ -658,7 +658,7 @@ function CreateDedicatedResource({ showInfoBar = false, noAccount = false }) {
       <p>
         Restarting your project while this license is active, will move your
         project on a virtual machine in <SiteName />
-        's cluster. This machine will allow you to use up to {spec.cpu} CPU
+        's cluster. This machine will allow you to use up to {spec.cpu} vCPU
         cores and {spec.mem} G memory.
       </p>
     );
