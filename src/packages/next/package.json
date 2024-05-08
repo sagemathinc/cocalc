@@ -37,8 +37,8 @@
     "test": "pnpm exec tsc --build tsconfig-dist.json && NODE_ENV='dev' pnpm exec jest ./dist && NODE_ENV='production' pnpm exec jest ./dist/lib/api/framework.test.js",
     "prepublishOnly": "pnpm test",
     "patch-openapi": "sed -i '/^interface NrfOasData {/s/^interface/export interface/' node_modules/next-rest-framework/dist/index.d.ts",
-    "generate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_PATH=`pwd` npx next-rest-framework generate",
-    "validate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_PATH=`pwd` npx next-rest-framework validate"
+    "generate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework generate",
+    "validate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework validate"
   },
   "repository": {
     "type": "git",
