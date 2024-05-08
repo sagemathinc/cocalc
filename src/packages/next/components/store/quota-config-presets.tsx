@@ -47,7 +47,8 @@ type PresetEntries = {
 
 // some constants to keep text and preset in sync
 const STANDARD_CPU = 1;
-const STANDARD_RAM = 2;
+const STANDARD_RAM = 3;
+const LARGE_RAM = 8;
 const STANDARD_DISK = 3;
 
 const WARN_SELECT_NUMBER_PROJECTS = (
@@ -126,7 +127,7 @@ export const PRESETS: PresetEntries = {
       </>
     ),
     cpu: 1,
-    ram: 2 * STANDARD_RAM,
+    ram: STANDARD_RAM + 1,
     disk: 2 * STANDARD_DISK,
     uptime: "medium",
     member: true,
@@ -161,7 +162,7 @@ export const PRESETS: PresetEntries = {
       </>
     ),
     cpu: 1,
-    ram: 6,
+    ram: 2 * STANDARD_RAM,
     disk: 15,
     uptime: "medium",
     member: true,
@@ -189,7 +190,7 @@ export const PRESETS: PresetEntries = {
       </>
     ),
     cpu: 1,
-    ram: 6,
+    ram: LARGE_RAM,
     disk: 10,
     uptime: "day",
     member: true,
@@ -208,7 +209,7 @@ export const PRESETS: PresetEntries = {
       </>
     ),
     cpu: 2,
-    ram: 8,
+    ram: LARGE_RAM,
     disk: 10,
     uptime: "medium",
     member: true,
