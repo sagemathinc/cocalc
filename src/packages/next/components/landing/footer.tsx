@@ -10,7 +10,7 @@ import { COLORS } from "@cocalc/util/theme";
 import A from "components/misc/A";
 import Logo from "components/logo";
 import { CSS } from "components/misc";
-
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
 
@@ -76,19 +76,31 @@ export default function Footer() {
         { text: "Licenses", url: "/licenses" },
         { text: "Pricing", url: "/pricing", hide: !isCommercial },
         { text: "On Premises", url: "/pricing/onprem", hide: !onCoCalcCom },
-        { text: "System Status", url: "https://status.cocalc.com/", hide: !onCoCalcCom },
-      ]
+        {
+          text: "System Status",
+          url: "https://status.cocalc.com/",
+          hide: !onCoCalcCom,
+        },
+      ],
     },
     {
       header: "Resources",
       links: [
         { text: "Documentation", url: "/info/doc" },
-        { text: "Compute Servers", url: "https://doc.cocalc.com/compute_server.html", hide: !isCommercial },
-        { text: "Public Share", url: "/share/public_paths/page/1", hide: !shareServer },
+        {
+          text: "Compute Servers",
+          url: "https://doc.cocalc.com/compute_server.html",
+          hide: !isCommercial,
+        },
+        {
+          text: "Public Share",
+          url: "/share/public_paths/page/1",
+          hide: !shareServer,
+        },
         { text: "Software", url: "/software", hide: !landingPages },
         { text: "System Monitor", url: "/info/status" },
         { text: "Support", url: "/support" },
-      ]
+      ],
     },
     {
       header: "Company",
@@ -99,10 +111,22 @@ export default function Footer() {
         { text: "Team", url: "/about/team", hide: !landingPages },
         { text: "Imprint", url: "/policies/imprint", hide: !imprint },
         { text: "News", url: "/news" },
-        { text: "Policies", url: "/policies", hide: !(landingPages || imprintOrPolicies) },
-        { text: "Terms of Service", url: termsOfServiceURL || "", hide: landingPages || !termsOfServiceURL},
-        { text: organizationName || "Company", url: organizationURL || "", hide: !organizationURL}
-      ]
+        {
+          text: "Policies",
+          url: "/policies",
+          hide: !(landingPages || imprintOrPolicies),
+        },
+        {
+          text: "Terms of Service",
+          url: termsOfServiceURL || "",
+          hide: landingPages || !termsOfServiceURL,
+        },
+        {
+          text: organizationName || "Company",
+          url: organizationURL || "",
+          hide: !organizationURL,
+        },
+      ],
     },
   ];
 
@@ -115,29 +139,29 @@ export default function Footer() {
         style={FOOTER_COLUMN_STYLE}
       >
         <Typography.Title level={5}>{column.header}</Typography.Title>
-        {
-          column.links
-            .filter(footerLink => !footerLink.hide)
-            .map((footerLink) => (
-              <A external
-                 href={footerLink.url}
-                 style={{ color: COLORS.GRAY_D }}
-              >
-                {footerLink.text}
-              </A>
-            ))
-        }
+        {column.links
+          .filter((footerLink) => !footerLink.hide)
+          .map((footerLink) => (
+            <A
+              key={footerLink.url}
+              href={
+                isValidEmailAddress(footerLink.url)
+                  ? `mailto:${footerLink.url}`
+                  : footerLink.url
+              }
+              style={{ color: COLORS.GRAY_D }}
+            >
+              {footerLink.text}
+            </A>
+          ))}
       </Space>
-    ))
+    ));
   }
 
   return (
     <Layout.Footer style={FOOTER_STYLE}>
       <Flex justify="center">
-        <Row
-          justify="space-between"
-          style={FOOTER_TABLE_STYLE}
-        >
+        <Row justify="space-between" style={FOOTER_TABLE_STYLE}>
           <Col xs={24} md={8}>
             <Flex
               justify="space-between"
@@ -145,25 +169,27 @@ export default function Footer() {
               wrap="wrap"
               style={LOGO_COLUMN_STYLE}
             >
-              <Logo type="rectangular" width={150}/>
-              {
-                isCommercial && (
-                  <SocialMediaIconList
-                    links={{
-                      facebook: "https://www.facebook.com/CoCalcOnline",
-                      github: "https://github.com/sagemathinc/cocalc",
-                      linkedin: "https://www.linkedin.com/company/sagemath-inc./",
-                      twitter: "https://twitter.com/cocalc_com",
-                      youtube: "https://www.youtube.com/c/SagemathCloud",
-                    }}
-                    iconFontSize={20}
-                  />
-                )
-              }
+              <Logo type="rectangular" width={150} />
+              {isCommercial && (
+                <SocialMediaIconList
+                  links={{
+                    facebook: "https://www.facebook.com/CoCalcOnline",
+                    github: "https://github.com/sagemathinc/cocalc",
+                    linkedin: "https://www.linkedin.com/company/sagemath-inc./",
+                    twitter: "https://twitter.com/cocalc_com",
+                    youtube: "https://www.youtube.com/c/SagemathCloud",
+                  }}
+                  iconFontSize={20}
+                />
+              )}
             </Flex>
           </Col>
           <Col xs={24} md={16}>
-            <Flex justify="space-between" style={FOOTER_COLUMNS_STYLE} wrap="wrap">
+            <Flex
+              justify="space-between"
+              style={FOOTER_COLUMNS_STYLE}
+              wrap="wrap"
+            >
               {renderFooterColumns()}
             </Flex>
           </Col>

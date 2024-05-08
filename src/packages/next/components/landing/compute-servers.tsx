@@ -34,7 +34,10 @@ export default function ComputeServers() {
           <sup>
             <Tag color={COLORS.ANTD_GREEN}>new</Tag>
           </sup>
-          <ComputeServerTemplates getPopupContainer={() => ref.current} />
+          <ComputeServerTemplates
+            getPopupContainer={() => ref.current}
+            style={{ maxWidth: "900px" }}
+          />
         </>
       }
       icon="servers"

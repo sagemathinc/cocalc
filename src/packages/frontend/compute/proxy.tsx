@@ -8,7 +8,7 @@ import { A, Icon } from "@cocalc/frontend/components";
 import AuthToken from "./auth-token";
 import ShowError from "@cocalc/frontend/components/error";
 import { PROXY_CONFIG } from "@cocalc/util/compute/constants";
-import { writeTextFileToComputeServer } from "./util";
+import { writeTextFileToComputeServer } from "./project";
 import jsonic from "jsonic";
 import { defaultProxyConfig } from "@cocalc/util/compute/images";
 import { webapp_client } from "@cocalc/frontend/webapp-client";

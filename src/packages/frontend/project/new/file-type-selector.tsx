@@ -215,7 +215,7 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <NewFileButton
                 size={btnSize}
-                name={`Jupyter, VS Code, Pluto...`}
+                name={`Jupyter, VS Code, Pluto, RStudio, etc....`}
                 ext="server"
                 on_click={() => {
                   projectActions.set_active_tab("servers", {

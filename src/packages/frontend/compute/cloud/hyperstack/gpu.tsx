@@ -10,7 +10,7 @@ import { useMemo } from "react";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { r_join } from "@cocalc/frontend/components/r_join";
-import { filterOption } from "@cocalc/frontend/compute/google-cloud-config";
+import { filterOption } from "@cocalc/frontend/compute/util";
 import { markup } from "@cocalc/util/compute/cloud/hyperstack/pricing";
 import {
   DEFAULT_FLAVOR,

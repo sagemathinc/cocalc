@@ -27,12 +27,13 @@ export default function ComputeServerTemplates({
   return (
     <div>
       <PublicTemplates
-        defaultOpen
         getPopupContainer={getPopupContainer}
         style={style}
         setId={(id) => {
           setId(id);
-          if (profile?.account_id) {
+          if (!id) {
+            setState("browse");
+          } else if (profile?.account_id) {
             setState("select-project");
           } else {
             setState("sign-in");

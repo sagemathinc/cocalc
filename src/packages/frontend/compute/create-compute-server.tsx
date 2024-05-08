@@ -99,6 +99,7 @@ export default function CreateComputeServer({ project_id, onCreate }) {
       setColor(randomColor());
       setCloud(defaultCloud());
       setConfiguration(defaultConfiguration());
+      setTemplateId(undefined);
     } finally {
       setLoadingTemplate(false);
     }
@@ -279,9 +280,10 @@ export default function CreateComputeServer({ project_id, onCreate }) {
                   defaultId={templateId}
                   setId={async (id) => {
                     setTemplateId(id);
-                    await setConfigToTemplate(id);
+                    if (id) {
+                      await setConfigToTemplate(id);
+                    }
                   }}
-                  defaultOpen
                 />
               )}
             </div>
@@ -295,7 +297,11 @@ export default function CreateComputeServer({ project_id, onCreate }) {
         }
       >
         <div style={{ marginTop: "15px" }}>
-          <ShowError error={error} setError={setError} />
+          <ShowError
+            error={error}
+            setError={setError}
+            style={{ margin: "15px 0" }}
+          />
           {cloud != "onprem" && (
             <div
               style={{

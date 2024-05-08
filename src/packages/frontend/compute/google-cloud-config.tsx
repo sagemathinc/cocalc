@@ -52,13 +52,13 @@ import CostOverview from "./cost-overview";
 import Disk from "@cocalc/frontend/compute/cloud/common/disk";
 import DNS from "@cocalc/frontend/compute/cloud/common/dns";
 import ExcludeFromSync from "@cocalc/frontend/compute/exclude-from-sync";
-import { search_match, search_split } from "@cocalc/util/misc";
 import { availableClouds } from "./config";
 import Template from "@cocalc/frontend/compute/cloud/common/template";
 import Specs, {
   RamAndCpu,
 } from "@cocalc/frontend/compute/cloud/google-cloud/specs";
 import { displayAcceleratorType } from "@cocalc/frontend/compute/cloud/google-cloud/accelerator";
+import { filterOption } from "@cocalc/frontend/compute/util";
 
 export const SELECTOR_WIDTH = "350px";
 
@@ -552,15 +552,6 @@ export default function GoogleCloudConfiguration({
   );
 }
 
-// Filter `option.label` match the user type `input`
-export const filterOption = (
-  input: string,
-  option: { label: string; value: string; search: string },
-) => {
-  const terms = search_split(input.toLowerCase());
-  return search_match((option?.search ?? "").toLowerCase(), terms);
-};
-
 function Region({ priceData, setConfig, configuration, disabled }) {
   const [sortByPrice, setSortByPrice] = useState<boolean>(true);
   const [newRegion, setNewRegion] = useState<string>(configuration.region);
@@ -818,7 +809,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
             type="warning"
             showIcon
             description={
-              <div style={{ maxWidth: "100%" }}>
+              <div style={{ maxWidth: "100%", lineHeight: 1 }}>
                 This is a heavily discounted spot instance. It will
                 automatically{" "}
                 {configuration.autoRestart ? " reboot if possible " : " stop "}{" "}
