@@ -3,29 +3,43 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import {
+  Alert,
+  Col,
+  Divider,
+  Form,
+  Radio,
+  Row,
+  Space,
+  Tabs,
+  Typography,
+} from "antd";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
 import { plural } from "@cocalc/util/misc";
-import {
-  BOOST,
-  DISK_DEFAULT_GB,
-  MAX_RAM_GB,
-  REGULAR,
-} from "@cocalc/util/upgrades/consts";
-import { Col, Divider, Form, Radio, Row, Space, Tabs, Typography } from "antd";
+import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
+import { CSS } from "components/misc";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import {
   PRESETS,
+  PRESET_MATCH_FIELDS,
   Preset,
   Presets,
-  PRESET_MATCH_FIELDS,
 } from "./quota-config-presets";
 
 const { Text } = Typography;
 
 const EXPERT_CONFIG = "Expert configuration";
 const listFormat = new Intl.ListFormat("en");
+
+const RAM_HIGH_WARN_THRESHOLD = 10;
+const RAM_LOW_WARN_THRESHOLD = 1;
+const MEM_MIN_RECOMMEND = 2;
+const CPU_HIGH_WARN_THRESHOLD = 3;
+
+const WARNING_BOX: CSS = { marginTop: "10px", marginBottom: "10px" };
 
 interface Props {
   showExplanations: boolean;
@@ -57,6 +71,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     setPresetAdjusted,
   } = props;
 
+  const ramVal = Form.useWatch("ram", form);
+  const cpuVal = Form.useWatch("cpu", form);
+
   function title() {
     if (boost) {
       return "Booster";
@@ -68,16 +85,17 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
   const PARAMS = boost ? BOOST : REGULAR;
 
   function explainRam() {
-    if (!showExplanations) return;
     return (
       <>
-        This quota limits the total amount of memory a project can use. Note
-        that RAM may be limited, if many other users are using the same host –
-        though member hosting significantly reduces competition for RAM. We
-        recommend at least 2G! Beyond the overall maximum of {MAX_RAM_GB}G, we
-        also offer{" "}
-        <A href={"/store/dedicated?type=vm"}>dedicated virtual machines</A> with
-        larger memory options.
+        {renderRamInfo()}
+        {showExplanations ? (
+          <>
+            This quota limits the total amount of memory a project can use. Note
+            that RAM may be limited, if many other users are using the same host
+            – though member hosting significantly reduces competition for RAM.
+            We recommend at least {MEM_MIN_RECOMMEND}G!
+          </>
+        ) : undefined}
       </>
     );
   }
@@ -89,6 +107,48 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
    */
   function presetWasAdjusted() {
     setPresetAdjusted?.(true);
+  }
+
+  function renderRamInfo() {
+    if (ramVal >= RAM_HIGH_WARN_THRESHOLD) {
+      return (
+        <Alert
+          style={WARNING_BOX}
+          type="warning"
+          message="Consider using a compute server?"
+          description={
+            <>
+              You selected a RAM quota of {ramVal}G. If your use-case involves
+              a lot of RAM, consider using a{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server
+              </A>{" "}
+              or{" "}
+              <A href={"/store/dedicated?type=vm"}>
+                dedicated virtual machines
+              </A>
+              . This will not only give you much more RAM, but also a far
+              superior experience!
+            </>
+          }
+        />
+      );
+    } else if (!boost && ramVal <= RAM_LOW_WARN_THRESHOLD) {
+      return (
+        <Alert
+          style={WARNING_BOX}
+          type="warning"
+          message="Low memory"
+          description={
+            <>
+              Your choice of {ramVal}G of RAM is beyond our recommendation of at
+              least {MEM_MIN_RECOMMEND}G. You will not be able to run several
+              notebooks at once, use SageMath or Julia effectively, etc.
+            </>
+          }
+        />
+      );
+    }
   }
 
   function ram() {
@@ -115,28 +175,58 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function renderCpuInfo() {
+    if (cpuVal >= CPU_HIGH_WARN_THRESHOLD) {
+      return (
+        <Alert
+          style={WARNING_BOX}
+          type="warning"
+          message="Consider using a compute server?"
+          description={
+            <>
+              You selected a CPU quota of {cpuVal} CPU cores is high. If your
+              use-case involves harnessing a lot of CPU power, consider using a{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                compute server
+              </A>{" "}
+              or{" "}
+              <A href={"/store/dedicated?type=vm"}>
+                dedicated virtual machines
+              </A>
+              . This will not only give you many more CPU cores, but also a far
+              superior experience!
+            </>
+          }
+        />
+      );
+    }
+  }
+
+  function renderCpuExtra() {
+    return (
+      <>
+        {renderCpuInfo()}
+        {showExplanations ? (
+          <>
+            <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
+              Google Cloud vCPUs.
+            </A>{" "}
+            To keep prices low, these vCPUs may be shared with other projects,
+            though member hosting very significantly reduces competition for
+            CPUs.
+          </>
+        ) : undefined}
+      </>
+    );
+  }
+
   function cpu() {
     return (
       <Form.Item
         label="Shared CPUs"
         name="cpu"
         initialValue={PARAMS.cpu.dflt}
-        extra={
-          showExplanations ? (
-            <>
-              <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
-                Google Cloud vCPUs.
-              </A>{" "}
-              To keep prices low, these vCPUs may be shared with other projects,
-              though member hosting very significantly reduces competition for
-              CPUs. We also offer{" "}
-              <A href={"/store/dedicated?type=vm"}>
-                dedicated virtual machines
-              </A>{" "}
-              with more CPU options.
-            </>
-          ) : undefined
-        }
+        extra={renderCpuExtra()}
       >
         <IntegerSlider
           disabled={disabled}
@@ -205,8 +295,12 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       );
     }
 
-    const quotaConfig: Record<string, string> = form.getFieldsValue(Object.keys(PRESET_MATCH_FIELDS));
-    const invalidConfigValues = Object.keys(quotaConfig).filter((field) => quotaConfig[field] == null);
+    const quotaConfig: Record<string, string> = form.getFieldsValue(
+      Object.keys(PRESET_MATCH_FIELDS),
+    );
+    const invalidConfigValues = Object.keys(quotaConfig).filter(
+      (field) => quotaConfig[field] == null,
+    );
     if (invalidConfigValues.length) {
       return;
     }
@@ -293,10 +387,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         <Typography style={{ marginBottom: "10px" }}>
           <Text type="warning">
             The currently configured license differs from the selected preset in
-            <b> {listFormat.format(presetDiff)}</b>.
-
-            By clicking any of the above buttons, you can ensure your license
-            configuration matches the original preset configuration.
+            <b> {listFormat.format(presetDiff)}</b>. By clicking any of the
+            above buttons, you can ensure your license configuration matches the
+            original preset configuration.
           </Text>
         </Typography>
       );
