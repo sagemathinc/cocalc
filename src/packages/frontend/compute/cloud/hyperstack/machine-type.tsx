@@ -280,49 +280,45 @@ export default function MachineType({
       {state == "running"
         ? "You can only change the machine type when the compute server is off or deprovisioned."
         : "The machine type determines the GPU, RAM, and ephemeral disk size."}
-      <div>
-        <div style={{ textAlign: "center", marginTop: "5px" }}>
-          <Tooltip title="Click a filter to show only matching machines">
-            <b style={{ marginRight: "10px" }}>Filters</b>
-          </Tooltip>
-          {Object.keys(TAGS)
-            .filter((name) => {
-              if (name == "CPU Only") {
-                return showCpuOnly;
-              } else return true;
-            })
-            .map((name) => (
-              <Tooltip
+      <div style={{ textAlign: "center", marginTop: "5px" }}>
+        <Tooltip title="Click a filter to show only matching machines">
+          <b style={{ marginRight: "10px" }}>Filters</b>
+        </Tooltip>
+        {Object.keys(TAGS)
+          .filter((name) => {
+            if (name == "CPU Only") {
+              return showCpuOnly;
+            } else return true;
+          })
+          .map((name) => (
+            <Tooltip
+              key={name}
+              title={
+                TAGS[name].tip ?? <>Only show servers with {TAGS[name].desc}.</>
+              }
+            >
+              <CheckableTag
                 key={name}
-                title={
-                  TAGS[name].tip ?? (
-                    <>Only show servers with {TAGS[name].desc}.</>
-                  )
-                }
+                style={{ cursor: "pointer" }}
+                checked={filterTags.has(name)}
+                onChange={(checked) => {
+                  let v = Array.from(filterTags);
+                  if (checked) {
+                    v.push(name);
+                    v = v.filter(
+                      (x) => x == name || TAGS[x].group != TAGS[name].group,
+                    );
+                  } else {
+                    v = v.filter((x) => x != name);
+                  }
+                  setFilterTags(new Set(v));
+                  setSelectOpen(true);
+                }}
               >
-                <CheckableTag
-                  key={name}
-                  style={{ cursor: "pointer" }}
-                  checked={filterTags.has(name)}
-                  onChange={(checked) => {
-                    let v = Array.from(filterTags);
-                    if (checked) {
-                      v.push(name);
-                      v = v.filter(
-                        (x) => x == name || TAGS[x].group != TAGS[name].group,
-                      );
-                    } else {
-                      v = v.filter((x) => x != name);
-                    }
-                    setFilterTags(new Set(v));
-                    setSelectOpen(true);
-                  }}
-                >
-                  {name}
-                </CheckableTag>
-              </Tooltip>
-            ))}
-        </div>
+                {name}
+              </CheckableTag>
+            </Tooltip>
+          ))}
       </div>
       <Select
         disabled={disabled}

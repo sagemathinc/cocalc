@@ -31,7 +31,9 @@ export default function ComputeServerTemplates({
         style={style}
         setId={(id) => {
           setId(id);
-          if (profile?.account_id) {
+          if (!id) {
+            setState("browse");
+          } else if (profile?.account_id) {
             setState("select-project");
           } else {
             setState("sign-in");

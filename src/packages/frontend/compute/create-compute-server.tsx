@@ -280,7 +280,9 @@ export default function CreateComputeServer({ project_id, onCreate }) {
                   defaultId={templateId}
                   setId={async (id) => {
                     setTemplateId(id);
-                    await setConfigToTemplate(id);
+                    if (id) {
+                      await setConfigToTemplate(id);
+                    }
                   }}
                 />
               )}

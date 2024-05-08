@@ -1,15 +1,50 @@
-import { Select, Spin } from "antd";
+import { Select, Spin, Tag, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import { getTemplates } from "@cocalc/frontend/compute/api";
 import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
 import type { HyperstackConfiguration } from "@cocalc/util/db-schema/compute-servers";
 import { CLOUDS_BY_NAME } from "@cocalc/util/compute/cloud/clouds";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
-import { currency } from "@cocalc/util/misc";
+import { currency, search_match } from "@cocalc/util/misc";
 import HyperstackSpecs from "@cocalc/frontend/compute/cloud/hyperstack/specs";
 import GoogleCloudSpecs from "@cocalc/frontend/compute/cloud/google-cloud/specs";
 import { RenderImage } from "@cocalc/frontend/compute/images";
 import { filterOption } from "@cocalc/frontend/compute/util";
+import DisplayCloud from "./display-cloud";
+
+const { CheckableTag } = Tag;
+
+const TAGS = {
+  Python: {
+    search: ({ configuration }) =>
+      configuration.image.toLowerCase().includes("python"),
+    desc: "with a Python oriented image",
+  },
+  Julia: {
+    search: ({ configuration }) =>
+      configuration.image.toLowerCase().includes("julia"),
+    desc: "with a Julia oriented image",
+  },
+  R: {
+    search: ({ configuration }) =>
+      configuration.image.toLowerCase().includes("rstat"),
+    desc: "with an R Statistics oriented image",
+  },
+  GPU: { search: ["gpu"], desc: "that have a GPU", group: 0 },
+  "CPU Only": { search: ["cpu only"], desc: "that have no GPU", group: 0 },
+  Google: {
+    label: <DisplayCloud cloud="google-cloud" height={14} />,
+    search: ["google"],
+    group: 1,
+    desc: "in Google Cloud",
+  },
+  Hyperstack: {
+    label: <DisplayCloud cloud="hyperstack" height={14} />,
+    search: ["hyperstack"],
+    group: 1,
+    desc: "in Hyperstack Cloud",
+  },
+} as const;
 
 export default function PublicTemplates({
   style,
@@ -33,12 +68,12 @@ export default function PublicTemplates({
     (ConfigurationTemplate | { search: string })[] | null
   >(null);
   const [options, setOptions] = useState<any[]>([]);
+  const [filterTags, setFilterTags] = useState<Set<string>>(new Set());
+  const [selectOpen, setSelectOpen] = useState<boolean>(!!defaultOpen);
   const [value, setValue0] = useState<number | undefined>(defaultId);
   const setValue = (n: number) => {
     setValue0(n);
-    if (n) {
-      setId(n);
-    }
+    setId(n);
   };
 
   useEffect(() => {
@@ -46,26 +81,36 @@ export default function PublicTemplates({
       try {
         setLoading(true);
         const { templates, data } = await getTemplates();
-        if (templates == null) {
+        if (templates == null || templates.length == 0) {
           setTemplates(null);
           setOptions([]);
           return;
         }
         setTemplates(templates);
-        setOptions(
-          templates.map((template) => {
-            return {
-              value: template.id,
-              label: <TemplateLabel template={template} data={data} />,
-              search: JSON.stringify(template),
-            };
-          }),
-        );
+        let x = templates.map((template) => {
+          return {
+            template,
+            value: template.id,
+            label: <TemplateLabel template={template} data={data} />,
+            search: JSON.stringify(template),
+          };
+        });
+        if (filterTags.size > 0) {
+          for (const tag of filterTags) {
+            const f = TAGS[tag].search;
+            if (typeof f == "function") {
+              x = x.filter(({ template }) => f(template));
+            } else {
+              x = x.filter(({ search }) => search_match(search, f));
+            }
+          }
+        }
+        setOptions(x);
       } finally {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [filterTags]);
 
   if (loading) {
     return (
@@ -75,15 +120,64 @@ export default function PublicTemplates({
     );
   }
 
-  if (templates == null || options.length == 0) {
+  if (templates == null || templates?.length == 0) {
     // not loaded or no configured templates right now.
     return null;
   }
 
   return (
     <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
+      <div
+        style={{
+          textAlign: "center",
+          marginBottom: "5px",
+          fontWeight: "normal",
+        }}
+      >
+        <Tooltip title="Click a filter to show only matching templates">
+          <b
+            style={{
+              marginRight: "10px",
+              fontWeight: "bold",
+              fontSize: "12px",
+            }}
+          >
+            Filters
+          </b>
+        </Tooltip>
+        {Object.keys(TAGS).map((name) => (
+          <Tooltip
+            key={name}
+            title={
+              TAGS[name].tip ?? <>Only show templates {TAGS[name].desc}.</>
+            }
+          >
+            <CheckableTag
+              key={name}
+              style={{ cursor: "pointer" }}
+              checked={filterTags.has(name)}
+              onChange={(checked) => {
+                let v = Array.from(filterTags);
+                if (checked) {
+                  v.push(name);
+                  v = v.filter(
+                    (x) => x == name || TAGS[x].group != TAGS[name].group,
+                  );
+                } else {
+                  v = v.filter((x) => x != name);
+                }
+                setFilterTags(new Set(v));
+                setSelectOpen(checked);
+              }}
+            >
+              {TAGS[name].label ?? name}
+            </CheckableTag>
+          </Tooltip>
+        ))}
+      </div>
       <Select
         allowClear
+        open={selectOpen}
         defaultOpen={defaultOpen}
         placement={placement}
         getPopupContainer={getPopupContainer}
@@ -101,6 +195,7 @@ export default function PublicTemplates({
         showSearch
         optionFilterProp="children"
         filterOption={filterOption}
+        onDropdownVisibleChange={setSelectOpen}
       />
     </div>
   );
