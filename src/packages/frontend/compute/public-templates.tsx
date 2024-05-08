@@ -5,43 +5,231 @@ import type { ConfigurationTemplate } from "@cocalc/util/compute/templates";
 import type { HyperstackConfiguration } from "@cocalc/util/db-schema/compute-servers";
 import { CLOUDS_BY_NAME } from "@cocalc/util/compute/cloud/clouds";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
-import { currency, search_match } from "@cocalc/util/misc";
+import { cmp, currency, search_match } from "@cocalc/util/misc";
 import HyperstackSpecs from "@cocalc/frontend/compute/cloud/hyperstack/specs";
 import GoogleCloudSpecs from "@cocalc/frontend/compute/cloud/google-cloud/specs";
 import { RenderImage } from "@cocalc/frontend/compute/images";
 import { filterOption } from "@cocalc/frontend/compute/util";
 import DisplayCloud from "./display-cloud";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const { CheckableTag } = Tag;
 
 const TAGS = {
+  GPU: {
+    label: (
+      <>
+        <Icon name="gpu" /> GPU
+      </>
+    ),
+    search: hasGPU,
+    desc: "that have a GPU",
+    group: 0,
+  },
+  H100: {
+    label: (
+      <>
+        <Icon name="nvidia" /> H100
+      </>
+    ),
+    search: (template) =>
+      template.configuration.flavor_name?.toLowerCase().includes("h100"),
+    desc: "that have a high end NVIDIA H100 GPU",
+    group: 0,
+  },
+  A100: {
+    label: (
+      <>
+        <Icon name="nvidia" /> A100
+      </>
+    ),
+    search: (template) =>
+      template.configuration.flavor_name?.toLowerCase().includes("a100") ||
+      template.configuration.acceleratorType?.toLowerCase().includes("a100"),
+    desc: "that have a high end NVIDIA A100 GPU",
+    group: 0,
+  },
+  L40: {
+    label: (
+      <>
+        <Icon name="nvidia" /> L40
+      </>
+    ),
+    search: (template) =>
+      template.configuration.flavor_name?.toLowerCase().includes("l40"),
+    desc: "that have a midrange NVIDIA L40 GPU",
+    group: 0,
+  },
+  RTX: {
+    label: (
+      <>
+        <Icon name="nvidia" /> RTX
+      </>
+    ),
+    search: (template) =>
+      template.configuration.flavor_name?.toLowerCase().includes("rtx"),
+    desc: "that have a midrange NVIDIA RTX-4000/5000/6000 GPU",
+    group: 0,
+  },
+
+  L4: {
+    label: (
+      <>
+        <Icon name="nvidia" /> L4
+      </>
+    ),
+    search: (template) =>
+      template.configuration.acceleratorType
+        ?.toLowerCase()
+        .includes("nvidia-l4"),
+    desc: "that have a midrange NVIDIA L4 GPU",
+    group: 0,
+  },
+  T4: {
+    label: (
+      <>
+        <Icon name="nvidia" /> T4
+      </>
+    ),
+    search: (template) =>
+      template.configuration.acceleratorType
+        ?.toLowerCase()
+        .includes("tesla-t4"),
+    desc: "that have a budget NVIDIA T4 GPU",
+    group: 0,
+  },
+  CPU: {
+    label: (
+      <>
+        <Icon name="microchip" /> CPU
+      </>
+    ),
+    search: (template) => !hasGPU(template),
+    desc: "that have no GPU's",
+    group: 0,
+  },
   Python: {
-    search: ({ configuration }) =>
-      configuration.image.toLowerCase().includes("python"),
+    label: (
+      <>
+        <Icon name="python" /> Python
+      </>
+    ),
+    search: ({ configuration }) => {
+      const im = configuration.image.toLowerCase();
+      return (
+        im.includes("python") || im.includes("anaconda") || im.includes("colab")
+      );
+    },
     desc: "with a Python oriented image",
+    group: 1,
+  },
+  SageMath: {
+    label: (
+      <>
+        <Icon name="sagemath" /> Sage
+      </>
+    ),
+    search: ({ configuration }) => {
+      const im = configuration.image.toLowerCase();
+      return im.includes("sage") || im.includes("anaconda");
+    },
+    desc: "with a Julia oriented image",
+    group: 1,
   },
   Julia: {
-    search: ({ configuration }) =>
-      configuration.image.toLowerCase().includes("julia"),
+    label: (
+      <>
+        <Icon name="julia" /> Julia
+      </>
+    ),
+    search: ({ configuration }) => {
+      const im = configuration.image.toLowerCase();
+      return im.includes("julia") || im.includes("anaconda");
+    },
     desc: "with a Julia oriented image",
+    group: 1,
   },
   R: {
-    search: ({ configuration }) =>
-      configuration.image.toLowerCase().includes("rstat"),
+    label: (
+      <>
+        <Icon name="r" /> R
+      </>
+    ),
+    search: ({ configuration }) => {
+      const im = configuration.image.toLowerCase();
+      return im.includes("rstat") || im.includes("colab");
+    },
     desc: "with an R Statistics oriented image",
-  },
-  GPU: { search: ["gpu"], desc: "that have a GPU", group: 0 },
-  "CPU Only": { search: ["cpu only"], desc: "that have no GPU", group: 0 },
-  Google: {
-    label: <DisplayCloud cloud="google-cloud" height={14} />,
-    search: ["google"],
     group: 1,
+  },
+  PyTorch: {
+    label: (
+      <>
+        <Icon name="pytorch" /> PyTorch
+      </>
+    ),
+    search: ({ configuration }) => {
+      const im = configuration.image.toLowerCase();
+      return (
+        im.includes("torch") || im.includes("colab") || im.includes("conda")
+      );
+    },
+    desc: "with a PyTorch capable image",
+    group: 1,
+  },
+  Tensorflow: {
+    label: (
+      <>
+        <Icon name="tensorflow" /> Tensorflow
+      </>
+    ),
+    search: ({ configuration }) => {
+      const im = configuration.image.toLowerCase();
+      return (
+        im.includes("tensorflow") ||
+        im.includes("colab") ||
+        im.includes("conda")
+      );
+    },
+    desc: "with a Tensorflow oriented image",
+    group: 1,
+  },
+  HPC: {
+    label: (
+      <>
+        <Icon name="cube" /> HPC/Fortran
+      </>
+    ),
+    search: ({ configuration }) => {
+      const im = configuration.image.toLowerCase();
+      return im == "hpc";
+    },
+    desc: "with an HPC/Fortran oriented image",
+    group: 1,
+  },
+  Ollama: {
+    label: (
+      <>
+        <Icon name="magic" /> Ollama
+      </>
+    ),
+    search: ({ configuration }) => {
+      const im = configuration.image.toLowerCase();
+      return im.includes("openwebui");
+    },
+    desc: "with an Open WebUI / Ollama AI oriented image",
+    group: 1,
+  },
+  Google: {
+    label: <DisplayCloud cloud="google-cloud" height={18} />,
+    search: ({ configuration }) => configuration.cloud == "google-cloud",
+    group: 2,
     desc: "in Google Cloud",
   },
   Hyperstack: {
-    label: <DisplayCloud cloud="hyperstack" height={14} />,
-    search: ["hyperstack"],
-    group: 1,
+    label: <DisplayCloud cloud="hyperstack" height={18} />,
+    search: ({ configuration }) => configuration.cloud == "hyperstack",
+    group: 2,
     desc: "in Hyperstack Cloud",
   },
 } as const;
@@ -67,7 +255,9 @@ export default function PublicTemplates({
   const [templates, setTemplates] = useState<
     (ConfigurationTemplate | { search: string })[] | null
   >(null);
+  const [data, setData] = useState<any>(null);
   const [options, setOptions] = useState<any[]>([]);
+  const [visibleTags, setVisibleTags] = useState<Set<string>>(new Set());
   const [filterTags, setFilterTags] = useState<Set<string>>(new Set());
   const [selectOpen, setSelectOpen] = useState<boolean>(!!defaultOpen);
   const [value, setValue0] = useState<number | undefined>(defaultId);
@@ -83,34 +273,42 @@ export default function PublicTemplates({
         const { templates, data } = await getTemplates();
         if (templates == null || templates.length == 0) {
           setTemplates(null);
+          setData(null);
           setOptions([]);
           return;
         }
         setTemplates(templates);
-        let x = templates.map((template) => {
-          return {
-            template,
-            value: template.id,
-            label: <TemplateLabel template={template} data={data} />,
-            search: JSON.stringify(template),
-          };
-        });
-        if (filterTags.size > 0) {
-          for (const tag of filterTags) {
-            const f = TAGS[tag].search;
-            if (typeof f == "function") {
-              x = x.filter(({ template }) => f(template));
-            } else {
-              x = x.filter(({ search }) => search_match(search, f));
-            }
+        setData(data);
+        const options = getOptions(templates, data);
+        const tags = new Set<string>();
+        for (const tag in TAGS) {
+          if (matchingOptions(options, tag).length > 0) {
+            tags.add(tag);
           }
         }
-        setOptions(x);
+        setVisibleTags(tags);
       } finally {
         setLoading(false);
       }
     })();
-  }, [filterTags]);
+  }, []);
+
+  useEffect(() => {
+    if (templates == null) {
+      return;
+    }
+    let options = getOptions(templates, data);
+    if (filterTags.size > 0) {
+      for (const tag of filterTags) {
+        options = matchingOptions(options, tag);
+      }
+      // we also sort by price when there is a filter (otherwise not)
+      options.sort((a, b) =>
+        cmp(a.template.cost_per_hour.running, b.template.cost_per_hour.running),
+      );
+    }
+    setOptions(options);
+  }, [filterTags, templates, data]);
 
   if (loading) {
     return (
@@ -125,6 +323,8 @@ export default function PublicTemplates({
     return null;
   }
 
+  let group = 0;
+
   return (
     <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
       <div
@@ -134,46 +334,43 @@ export default function PublicTemplates({
           fontWeight: "normal",
         }}
       >
-        <Tooltip title="Click a filter to show only matching templates">
-          <b
-            style={{
-              marginRight: "10px",
-              fontWeight: "bold",
-              fontSize: "12px",
-            }}
-          >
-            Filters
-          </b>
-        </Tooltip>
-        {Object.keys(TAGS).map((name) => (
-          <Tooltip
-            key={name}
-            title={
-              TAGS[name].tip ?? <>Only show templates {TAGS[name].desc}.</>
-            }
-          >
-            <CheckableTag
-              key={name}
-              style={{ cursor: "pointer" }}
-              checked={filterTags.has(name)}
-              onChange={(checked) => {
-                let v = Array.from(filterTags);
-                if (checked) {
-                  v.push(name);
-                  v = v.filter(
-                    (x) => x == name || TAGS[x].group != TAGS[name].group,
-                  );
-                } else {
-                  v = v.filter((x) => x != name);
+        {Object.keys(TAGS)
+          .filter((tag) => visibleTags.has(tag))
+          .map((name) => {
+            const t = (
+              <Tooltip
+                mouseEnterDelay={1}
+                key={name}
+                title={
+                  TAGS[name].tip ?? <>Only show templates {TAGS[name].desc}.</>
                 }
-                setFilterTags(new Set(v));
-                setSelectOpen(checked);
-              }}
-            >
-              {TAGS[name].label ?? name}
-            </CheckableTag>
-          </Tooltip>
-        ))}
+              >
+                {TAGS[name].group != group && <br />}
+                <CheckableTag
+                  key={name}
+                  style={{ cursor: "pointer", fontSize: "12pt" }}
+                  checked={filterTags.has(name)}
+                  onChange={(checked) => {
+                    let v = Array.from(filterTags);
+                    if (checked) {
+                      v.push(name);
+                      v = v.filter(
+                        (x) => x == name || TAGS[x].group != TAGS[name].group,
+                      );
+                    } else {
+                      v = v.filter((x) => x != name);
+                    }
+                    setFilterTags(new Set(v));
+                    setSelectOpen(v.length > 0);
+                  }}
+                >
+                  {TAGS[name].label ?? name}
+                </CheckableTag>
+              </Tooltip>
+            );
+            group = TAGS[name].group;
+            return t;
+          })}
       </div>
       <Select
         allowClear
@@ -283,4 +480,37 @@ function TemplateLabel({ template, data }) {
       </div>
     </div>
   );
+}
+
+function hasGPU(template) {
+  if (template.configuration.cloud == "hyperstack") {
+    return !template.configuration.flavor_name.includes("cpu");
+  } else if (template.configuration.cloud == "google-cloud") {
+    return !!template.configuration.acceleratorCount;
+  } else {
+    return JSON.stringify(template).includes("gpu");
+  }
+}
+
+function getOptions(templates, data) {
+  return templates.map((template) => {
+    return {
+      template,
+      value: template.id,
+      label: <TemplateLabel template={template} data={data} />,
+      search: JSON.stringify(template).toLowerCase(),
+    };
+  });
+}
+
+function matchingOptions(options, tag) {
+  const f = TAGS[tag]?.search;
+  if (!f) {
+    return options;
+  }
+  if (typeof f == "function") {
+    return options.filter(({ template }) => f(template));
+  } else {
+    return options.filter(({ search }) => search_match(search, f));
+  }
 }

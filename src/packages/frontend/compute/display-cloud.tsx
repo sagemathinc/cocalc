@@ -1,6 +1,5 @@
 import type { Cloud as CloudType } from "@cocalc/util/db-schema/compute-servers";
 import { CLOUDS_BY_NAME } from "@cocalc/util/compute/cloud/clouds";
-import { Tooltip } from "antd";
 
 interface Props {
   cloud: CloudType;
@@ -13,9 +12,7 @@ export default function DisplayCloud({ cloud, height, style }: Props) {
   return (
     <span style={style}>
       {x?.image ? (
-        <Tooltip title={x.label}>
-          <img src={x.image} height={height ?? 18} alt={x.label} />
-        </Tooltip>
+        <img src={x.image} height={height ?? 18} alt={x.label} />
       ) : (
         x?.label ?? cloud ?? "No Cloud Configured"
       )}

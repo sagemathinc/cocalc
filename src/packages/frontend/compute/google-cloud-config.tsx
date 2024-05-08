@@ -809,7 +809,7 @@ function Provisioning({ priceData, setConfig, configuration, disabled }) {
             type="warning"
             showIcon
             description={
-              <div style={{ maxWidth: "100%" }}>
+              <div style={{ maxWidth: "100%", lineHeight: 1 }}>
                 This is a heavily discounted spot instance. It will
                 automatically{" "}
                 {configuration.autoRestart ? " reboot if possible " : " stop "}{" "}
