@@ -43,8 +43,7 @@ async function get(req) {
   });
 }
 
-import { z } from "zod";
-import { apiRoute, apiRouteOperation } from "next-rest-framework";
+import { apiRoute, apiRouteOperation, z } from "lib/api";
 
 export default apiRoute({
   computeCreateServer: apiRouteOperation({

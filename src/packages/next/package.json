@@ -34,7 +34,7 @@
     "clean": "rm -rf node_modules .next dist",
     "start": "unset PGHOST; pnpm exec next start",
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; pnpm start",
-    "test": "pnpm exec tsc --build tsconfig-dist.json && pnpm exec jest ./dist",
+    "test": "pnpm exec tsc --build tsconfig-dist.json && NODE_ENV='dev' pnpm exec jest ./dist && NODE_ENV='production' pnpm exec jest ./dist/lib/api/framework.test.js",
     "prepublishOnly": "pnpm test",
     "patch-openapi": "sed -i '/^interface NrfOasData {/s/^interface/export interface/' node_modules/next-rest-framework/dist/index.d.ts",
     "generate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_PATH=`pwd` npx next-rest-framework generate",

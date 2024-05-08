@@ -37,8 +37,7 @@ async function get(req) {
   return servers;
 }
 
-import { z } from "zod";
-import { apiRoute, apiRouteOperation } from "next-rest-framework";
+import { apiRoute, apiRouteOperation, z } from "lib/api";
 
 const serversSchema = z.object({
   id: z.number(),

@@ -137,8 +137,7 @@ function rmGlob(path: string): string {
 
 // ** OpenAPI below **
 
-import { z } from "zod";
-import { apiRoute, apiRouteOperation } from "next-rest-framework";
+import { apiRoute, apiRouteOperation, z } from "lib/api";
 
 export default apiRoute({
   latex: apiRouteOperation({

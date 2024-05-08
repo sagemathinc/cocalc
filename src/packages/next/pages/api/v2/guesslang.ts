@@ -17,8 +17,7 @@ async function handle(req, res) {
 
 //** OpenAPI below **
 
-import { z } from "zod";
-import { apiRoute, apiRouteOperation } from "next-rest-framework";
+import { z, apiRoute, apiRouteOperation } from "lib/api";
 
 const querySchema = z
   .object({
