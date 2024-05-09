@@ -21,7 +21,7 @@ export default function Stats({ customize, stats }) {
 
   return (
     <Customize value={customize}>
-      <Head title="System Activity Status" />
+      <Head title="System Activity Monitor" />
       <Layout>
         <Header page="info" subPage="status" />
         <Layout.Content
@@ -40,7 +40,7 @@ export default function Stats({ customize, stats }) {
             <div style={{ textAlign: "center" }}>
               <Title level={1}>
                 <Icon name="dashboard" style={{ marginRight: "30px" }} />
-                {siteName} - System Activity Status
+                {siteName} - System Activity Monitor
               </Title>
               <Paragraph>See how much {siteName} is being used right now.</Paragraph>
             </div>

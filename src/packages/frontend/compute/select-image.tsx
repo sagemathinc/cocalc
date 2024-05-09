@@ -218,7 +218,7 @@ function getOptions({
       }
     }
     if (advanced && dockerSizeGb) {
-      extra += ` - ${dockerSizeGb}GB`;
+      extra += ` - ${dockerSizeGb} GB`;
     }
 
     options.push({

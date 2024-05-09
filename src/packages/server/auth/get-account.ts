@@ -34,7 +34,10 @@ export default async function getAccountId(
   // get expire field as well (since it is usually there) so that the result isn't empty
   // (hence not cached) when a cookie has expired.
   const hash = getRememberMeHash(req);
-  logger.debug("hash = ", hash);
+  logger.debug("hash = ", hash, {
+    auth: req.header("Authorization"),
+    headers: JSON.stringify(req.headers),
+  });
   if (!hash) {
     // not signed in via a cookie.
     // What about an api key?

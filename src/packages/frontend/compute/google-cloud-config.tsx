@@ -3,6 +3,7 @@ import type {
   State,
   GoogleCloudConfiguration as GoogleCloudConfigurationType,
   ComputeServerTemplate,
+  GoogleCloudAcceleratorType,
 } from "@cocalc/util/db-schema/compute-servers";
 import { reloadImages, useImages, useGoogleImages } from "./images-hook";
 import { GOOGLE_CLOUD_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
@@ -1221,42 +1222,44 @@ function GPU({
     );
   }
 
-  const options = ACCELERATOR_TYPES.map((acceleratorType) => {
-    let cost;
-    const config1 = { ...configuration, acceleratorType, acceleratorCount };
-    const changes = { acceleratorType, acceleratorCount };
-    try {
-      cost = computeAcceleratorCost({ priceData, configuration: config1 });
-    } catch (_) {
-      const newChanges = ensureConsistentConfiguration(
-        priceData,
-        config1,
-        changes,
-        IMAGES,
-      );
-      cost = computeAcceleratorCost({
-        priceData,
-        configuration: { ...config1, ...newChanges },
-      });
-    }
-    const memory = priceData.accelerators[acceleratorType].memory;
-    return {
-      value: acceleratorType,
-      search: acceleratorType,
-      cost,
-      memory,
-      label: (
-        <div key={acceleratorType} style={{ display: "flex" }}>
-          <div style={{ flex: 1 }}>
-            {displayAcceleratorType(acceleratorType, memory)}
+  const options = ACCELERATOR_TYPES.map(
+    (acceleratorType: GoogleCloudAcceleratorType) => {
+      let cost;
+      const config1 = { ...configuration, acceleratorType, acceleratorCount };
+      const changes = { acceleratorType, acceleratorCount };
+      try {
+        cost = computeAcceleratorCost({ priceData, configuration: config1 });
+      } catch (_) {
+        const newChanges = ensureConsistentConfiguration(
+          priceData,
+          config1,
+          changes,
+          IMAGES,
+        );
+        cost = computeAcceleratorCost({
+          priceData,
+          configuration: { ...config1, ...newChanges },
+        });
+      }
+      const memory = priceData.accelerators[acceleratorType].memory;
+      return {
+        value: acceleratorType,
+        search: acceleratorType,
+        cost,
+        memory,
+        label: (
+          <div key={acceleratorType} style={{ display: "flex" }}>
+            <div style={{ flex: 1 }}>
+              {displayAcceleratorType(acceleratorType, memory)}
+            </div>
+            <div style={{ flex: 1 }}>
+              <CostPerHour cost={cost} />
+            </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <CostPerHour cost={cost} />
-          </div>
-        </div>
-      ),
-    };
-  });
+        ),
+      };
+    },
+  );
 
   const countOptions: any[] = [];
   const min = priceData.accelerators[acceleratorType]?.count ?? 1;

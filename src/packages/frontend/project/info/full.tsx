@@ -401,7 +401,7 @@ export function Full(props: Readonly<Props>): JSX.Element {
               dataIndex="mem"
               width="10%"
               align={"right"}
-              render={onCellProps("cpu_pct", (val) => `${val.toFixed(0)}MiB`)}
+              render={onCellProps("cpu_pct", (val) => `${val.toFixed(0)} MiB`)}
               onCell={onCellProps("mem")}
               sorter={field_cmp("mem")}
             />

@@ -97,7 +97,7 @@ const LANGUAGES = [
 for (const [name] of LANGUAGES) {
   if (file_associations[name] == null) {
     console.warn(
-      `WARNING: In misc/detect-languages, invalid mode name='${name}'`
+      `WARNING: In misc/detect-languages, invalid mode name='${name}'`,
     );
   }
 }
@@ -124,8 +124,7 @@ export default function detectLanguage(code: string): string {
 // It returns up to cutoff guesses, with the first one the most likely.
 export async function guesslang(
   code: string,
-  cutoff: number = 1
+  cutoff: number = 1,
 ): Promise<string[]> {
   return (await api("guesslang", { code, cutoff })).result;
 }
-

@@ -6,7 +6,7 @@ import getAccountId from "lib/account/get-account";
 import createServer from "@cocalc/server/compute/create-server";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -42,3 +42,34 @@ async function get(req) {
     notes,
   });
 }
+
+import { apiRoute, apiRouteOperation, z } from "lib/api";
+
+export default apiRoute({
+  computeCreateServer: apiRouteOperation({
+    method: "POST",
+  })
+    .input({
+      contentType: "application/json",
+      body: z
+        .object({
+          project_id: z.string(),
+          title: z.string(),
+          color: z.string(),
+          idle_timeout: z.number().optional(),
+          autorestart: z.boolean().optional(),
+          cloud: z.string(),
+          configuration: z.record(z.unknown()),
+          notes: z.string().optional(),
+        })
+        .describe("Parameters that define a compute server."),
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: z.number().describe("The id of the compute server."),
+      },
+    ])
+    .handler(handle),
+});

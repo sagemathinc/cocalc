@@ -1136,7 +1136,7 @@ describe("shopping-cart-checkout", () => {
 
       // Assert
       //
-      expect(testDescription).toEqual("Dedicated VM 2 CPU cores, 6G RAM");
+      expect(testDescription).toEqual("Dedicated VM 2 vCPU cores, 6 GB RAM");
     });
 
     it("constructs quota description", async () => {
@@ -1164,7 +1164,7 @@ describe("shopping-cart-checkout", () => {
       // Assert
       //
       expect(testDescription).toEqual(
-        "Business license providing 2G RAM, 1 shared CPU, 3G disk, member hosting, 30 minutes timeout, network, up to 1 simultaneous running project",
+        "Business license providing 2 GB RAM, 1 shared vCPU, 3 GB disk, member hosting, 30 minutes timeout, network, up to 1 simultaneous running project",
       );
     });
 

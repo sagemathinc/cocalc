@@ -93,7 +93,7 @@ function getSpecAndQuota({
   const data = deriveVMSpecs(spec);
   const quotas = deriveQuotas(data);
   return {
-    title: `${quotas.cpu} CPU cores, ${quotas.mem}G RAM`,
+    title: `${quotas.cpu} vCPU cores, ${quotas.mem} GB RAM`,
     price_day: getDedicatedVMPrice(data),
     spec: quotas, // the spec for actually setting up the container and communicated publicly
     quota: { dedicated_vm: spec },

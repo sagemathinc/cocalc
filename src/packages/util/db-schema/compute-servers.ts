@@ -415,7 +415,7 @@ export interface HyperstackConfiguration extends BaseConfiguration {
   diskSizeGb: number;
 }
 
-const COREWEAVE_CPU_TYPES = [
+export const COREWEAVE_CPU_TYPES = [
   "amd-epyc-rome",
   "amd-epyc-milan",
   "intel-xeon-v1",
@@ -425,7 +425,7 @@ const COREWEAVE_CPU_TYPES = [
   "intel-xeon-scalable",
 ] as const;
 
-const COREWEAVE_GPU_TYPES = [
+export const COREWEAVE_GPU_TYPES = [
   "Quadro_RTX_4000",
   "Quadro_RTX_5000",
   "RTX_A4000",
@@ -443,12 +443,31 @@ const COREWEAVE_GPU_TYPES = [
 interface CoreWeaveConfiguration extends BaseConfiguration {
   cloud: "core-weave";
   gpu: {
-    type: (typeof COREWEAVE_GPU_TYPES)[number];
+    type:
+      | "Quadro_RTX_4000"
+      | "Quadro_RTX_5000"
+      | "RTX_A4000"
+      | "RTX_A5000"
+      | "RTX_A6000"
+      | "A40"
+      | "Tesla_V100_PCIE"
+      | "Tesla_V100_NVLINK"
+      | "A100_PCIE_40GB"
+      | "A100_PCIE_80GB"
+      | "A100_NVLINK_40GB"
+      | "A100_NVLINK_80GB"; //(typeof COREWEAVE_GPU_TYPES)[number];
     count: number;
   };
   cpu: {
     count: number;
-    type?: (typeof COREWEAVE_CPU_TYPES)[number];
+    type?:
+      | "amd-epyc-rome"
+      | "amd-epyc-milan"
+      | "intel-xeon-v1"
+      | "intel-xeon-v2"
+      | "intel-xeon-v3"
+      | "intel-xeon-v4"
+      | "intel-xeon-scalable"; //(typeof COREWEAVE_CPU_TYPES)[number];
   };
   memory: string; // e.g., "12Gi"
   storage?: {
@@ -464,8 +483,16 @@ interface FluidStackConfiguration extends BaseConfiguration {
   region: string;
   os: string;
 }
+export type GoogleCloudAcceleratorType =
+  | "nvidia-a100-80gb"
+  | "nvidia-tesla-a100"
+  | "nvidia-l4"
+  | "nvidia-tesla-t4"
+  | "nvidia-tesla-v100"
+  | "nvidia-tesla-p4"
+  | "nvidia-tesla-p100";
 
-const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
+export const GOOGLE_CLOUD_ACCELERATOR_TYPES: GoogleCloudAcceleratorType[] = [
   "nvidia-a100-80gb",
   "nvidia-tesla-a100",
   "nvidia-l4",
@@ -475,7 +502,13 @@ const GOOGLE_CLOUD_ACCELERATOR_TYPES = [
   "nvidia-tesla-p100",
 ];
 
-const GOOGLE_CLOUD_DISK_TYPES = [
+export type GoogleCloudDiskType =
+  | "pd-standard"
+  | "pd-balanced"
+  | "pd-ssd"
+  | "hyperdisk-balanced";
+
+export const GOOGLE_CLOUD_DISK_TYPES: GoogleCloudDiskType[] = [
   "pd-standard",
   "pd-balanced",
   "pd-ssd",
@@ -499,8 +532,8 @@ export interface GoogleCloudConfiguration extends BaseConfiguration {
   diskSizeGb?: number;
   hyperdiskBalancedIops?: number;
   hyperdiskBalancedThroughput?: number;
-  diskType?: (typeof GOOGLE_CLOUD_DISK_TYPES)[number];
-  acceleratorType?: (typeof GOOGLE_CLOUD_ACCELERATOR_TYPES)[number];
+  diskType?: GoogleCloudDiskType;
+  acceleratorType?: GoogleCloudAcceleratorType;
   // the allowed number depends on the accelerator; it defaults to 1.
   acceleratorCount?: number;
   // minCpuPlatform

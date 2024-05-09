@@ -234,8 +234,8 @@ const CGroupTip: React.FC<CGroupTipProps> = React.memo(
           return (
             <span>
               Current memory usage of the project's container:{" "}
-              <code>{cg_info.mem_rss.toFixed(0)}MiB</code> of a maximum of{" "}
-              <code>{cg_info.mem_tot.toFixed(0)}MiB</code>. This might diverge
+              <code>{cg_info.mem_rss.toFixed(0)} MiB</code> of a maximum of{" "}
+              <code>{cg_info.mem_tot.toFixed(0)} MiB</code>. This might diverge
               from the processes individual usages and this value also includes
               the in-memory <code>/tmp</code> directory. The remaining free
               memory is usually shared with other projects on the underlying
@@ -246,8 +246,8 @@ const CGroupTip: React.FC<CGroupTipProps> = React.memo(
           return (
             <span>
               Currently, the files stored in this project use{" "}
-              <code>{disk_usage.usage.toFixed(0)}MiB</code> of a maximum of{" "}
-              <code>{disk_usage.total.toFixed(0)}MiB</code>. Please be aware
+              <code>{disk_usage.usage.toFixed(0)} MiB</code> of a maximum of{" "}
+              <code>{disk_usage.total.toFixed(0)} MiB</code>. Please be aware
               that a project might not work properly if that limit is reached.
             </span>
           );

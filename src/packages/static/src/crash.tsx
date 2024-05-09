@@ -56,7 +56,7 @@ export default function Crash() {
         }}
       >
         &nbsp; CoCalc Crashed
-        <a onClick={dismiss} style={{ float: "right" }}>
+        <a onClick={dismiss} style={{ float: "right", color: "white" }}>
           ×
         </a>
       </h1>

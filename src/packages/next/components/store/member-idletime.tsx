@@ -75,7 +75,7 @@ const ManagedLicenses: React.FC<MLProps> = (props: MLProps) => {
         ? displaySiteLicense(idle_timeout)
         : "idle-timeout unknown";
     const mh = member ? "member hosting" : "no member hosting";
-    const res = `${cpu} CPU, ${ram}G RAM, ${disk}G disk`;
+    const res = `${cpu} vCPU, ${ram} GB RAM, ${disk} GB disk`;
     return `${run_limit}x ${res}, ${up}, ${mh}`;
   }
 

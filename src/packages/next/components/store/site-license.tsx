@@ -7,26 +7,28 @@
 Create a new site license.
 */
 import { Form, Input } from "antd";
+import { isEmpty } from "lodash";
 import { useEffect, useRef, useState } from "react";
-import PaygInfo from "./payg-info";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { useScrollY } from "lib/use-scroll-y";
-import { isEmpty } from "lodash";
 import { useRouter } from "next/router";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
+import PaygInfo from "./payg-info";
 import { QuotaConfig } from "./quota-config";
-import { PRESET_MATCH_FIELDS, PRESETS, Presets } from "./quota-config-presets";
+import { PRESETS, PRESET_MATCH_FIELDS, Presets } from "./quota-config-presets";
 import { decodeFormValues, encodeFormValues } from "./quota-query-params";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
@@ -34,7 +36,6 @@ import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
-import { Paragraph, Title } from "components/misc";
 
 const DEFAULT_PRESET: Presets = "standard";
 

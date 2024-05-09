@@ -219,7 +219,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             }}
           />
           <Gap />
-          <span style={UNIT_STYLE}>shared G RAM</span>
+          <span style={UNIT_STYLE}>shared GB RAM</span>
         </Col>
         <Col md={col.max}>
           <Button
@@ -232,12 +232,12 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         {!hideExtra && (
           <Col md={col.desc}>
             <b>
-              G RAM (
+              GB RAM (
               {`${money(
                 COSTS.user_discount[user()] *
                   COSTS.custom_cost.ram *
                   hosting_multiplier
-              )}/G RAM per month per project`}
+              )}/GB RAM per month per project`}
               )
             </b>
             {render_explanation("RAM may be shared with other users")}
@@ -319,7 +319,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             }}
           />
           <Gap />
-          <span style={UNIT_STYLE}>dedicated G RAM</span>
+          <span style={UNIT_STYLE}>dedicated GB RAM</span>
         </Col>
         <Col md={col.max}>
           <Button
@@ -334,7 +334,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         {!hideExtra && (
           <Col md={col.desc}>
             <b>
-              dedicated G RAM (
+              dedicated GB RAM (
               {`${money(
                 COSTS.user_discount[user()] *
                   COSTS.custom_cost.dedicated_ram *
