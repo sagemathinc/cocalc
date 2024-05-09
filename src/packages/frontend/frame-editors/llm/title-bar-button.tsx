@@ -223,7 +223,7 @@ export default function LanguageModelTitleBarButton({
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType),
   );
-  doUpdateInput
+
   const queryLLM = async (options: Options) => {
     setError("");
     try {
