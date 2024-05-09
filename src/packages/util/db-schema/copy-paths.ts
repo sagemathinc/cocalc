@@ -88,7 +88,7 @@ Table({
     },
     expire: {
       type: "timestamp",
-      desc: "expire after 1 month",
+      desc: "delete this row after this date, if not null",
     },
   },
   rules: {
