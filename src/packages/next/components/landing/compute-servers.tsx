@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Tag } from "antd";
+import { Button } from "antd";
 import { join } from "path";
 import basePath from "@cocalc/backend/base-path";
 import { COLORS } from "@cocalc/util/theme";
@@ -30,10 +30,7 @@ export default function ComputeServers() {
       level={LANDING_HEADER_LEVEL}
       title={
         <>
-          Dedicated Compute Servers with Powerful CPU and Optional GPU Support{" "}
-          <sup>
-            <Tag color={COLORS.ANTD_GREEN}>new</Tag>
-          </sup>
+          Powerful Compute Servers with Optional GPU Support
           <ComputeServerTemplates
             getPopupContainer={() => ref.current}
             style={{ maxWidth: "900px" }}
