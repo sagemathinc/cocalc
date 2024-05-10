@@ -23,6 +23,8 @@ import SubNav, { Page, SubPage } from "./sub-nav";
 
 const GAP = "4%";
 
+const SHOW_AI_CHAT: Readonly<string[]> = ["ai"] as const;
+
 export const LinkStyle: React.CSSProperties = {
   color: "white",
   marginRight: GAP,
@@ -250,7 +252,10 @@ export default function Header(props: Props) {
         )}{" "}
       </Layout.Header>
       <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
-      {openaiEnabled && page == "features" && subPage != "compute-server" && (
+      {openaiEnabled &&
+      page === "features" &&
+      typeof subPage === "string" &&
+      SHOW_AI_CHAT.includes(subPage) ? (
         <div style={{ width: "700px", maxWidth: "100%", margin: "15px auto" }}>
           <ChatGPTHelp
             size="large"
@@ -258,7 +263,7 @@ export default function Header(props: Props) {
             tag={`features-${subPage}`}
           />
         </div>
-      )}
+      ) : undefined}
       {jupyterApiEnabled && onCoCalcCom && runnableTag && (
         <DemoCell tag={runnableTag} />
       )}
