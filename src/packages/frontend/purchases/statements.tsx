@@ -115,6 +115,7 @@ export default function Statements({
   if (loading) {
     return <Spin />;
   }
+  const adjective = interval == "day" ? "daily" : "monthly";
   return (
     <div style={{ minHeight: "50px" }}>
       {!noRefresh && (
@@ -136,9 +137,7 @@ export default function Statements({
             expandedRowRender: (record) => {
               return (
                 <PurchasesTable
-                  filename={`${
-                    interval == "day" ? "daily" : "monthly"
-                  }-statement-${
+                  filename={`${adjective}-statement-${
                     new Date(record.time).toISOString().split("T")[0]
                   }`}
                   day_statement_id={interval == "day" ? record.id : undefined}
@@ -155,7 +154,7 @@ export default function Statements({
         <Alert
           style={{ maxWidth: "500px", margin: "auto", padding: "30px" }}
           type="info"
-          message={`You do not have any ${interval}ly statements yet.`}
+          message={`You do not have any ${adjective} statements yet.`}
           showIcon
         />
       )}
