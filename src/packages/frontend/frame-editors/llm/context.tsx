@@ -23,7 +23,7 @@ export default function Context({ value, info }) {
       </b>
     );
   }
-  if (info == "md" || info == "markdown") {
+  if (info === "md" || info === "markdown") {
     return (
       <StaticMarkdown
         value={trunc_middle(value, MAX_SIZE, MISSING)}
