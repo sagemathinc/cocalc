@@ -53,12 +53,6 @@ import getLogger from "@cocalc/backend/logger";
 import { getImages } from "@cocalc/server/compute/images";
 import { defaultProxyConfig } from "@cocalc/util/compute/images";
 
-// We always explicitly exclude these two paths from sync,
-// since it just doesn't make sense to do otherwise (due to arch specific code).  Also,
-// making this explicit ensures they are optimally fast, and
-// no unionfs is involved.
-const ALWAYS_EXCLUDE_FROM_SYNC = [".local", ".cache"];
-
 const logger = getLogger("server:compute:control");
 
 //const MIN_STATE_UPDATE_INTERVAL_MS = 10 * 1000;
@@ -803,19 +797,12 @@ export async function getStartupParams(id: number): Promise<{
 }> {
   const server = await getServerNoCheck(id);
   const { configuration } = server;
-  const excludeFromSync = (server.configuration?.excludeFromSync ??
-    []) as string[];
+  const excludeFromSync = server.configuration?.excludeFromSync ?? [];
   const auth_token = server.configuration?.authToken ?? "";
   const image = configuration.image ?? "python";
   const proxy =
     server.configuration?.proxy ??
     defaultProxyConfig({ IMAGES: await getImages(), image });
-
-  for (const path of ALWAYS_EXCLUDE_FROM_SYNC) {
-    if (!excludeFromSync.includes(path)) {
-      excludeFromSync.push(path);
-    }
-  }
   const exclude_from_sync = excludeFromSync.join("|");
 
   let x;
