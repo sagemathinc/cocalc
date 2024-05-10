@@ -113,7 +113,7 @@ export default async function startupScript({
   project_id: string;
   gpu?: boolean;
   hostname: string;
-  exclude_from_sync: string;
+  exclude_from_sync: string; // paths separated by |
   auth_token: string;
   proxy;
   installUser?: boolean;
