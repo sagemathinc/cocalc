@@ -126,6 +126,9 @@ async function doStart(server: ComputeServer) {
       return await hyperstackCloud.start(server);
     case "lambda-cloud":
       return await lambdaCloud.start(server);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
     default:
       throw Error(
         `cloud '${server.cloud}' not currently supported for 'start'`,
@@ -183,6 +186,9 @@ async function doStop(server: ComputeServer) {
       return await hyperstackCloud.stop(server);
     case "lambda-cloud":
       return await lambdaCloud.stop(server);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
     default:
       throw Error(`cloud '${server.cloud}' not currently supported for 'stop'`);
   }
@@ -219,11 +225,18 @@ async function doDeprovision(server: ComputeServer) {
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.deprovision(server);
+
     case "hyperstack":
       return await hyperstackCloud.deprovision(server);
+
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
+
     case "test":
       // just a no-op
       return;
+
     default:
       throw Error(
         `cloud '${server.cloud}' not currently supported for 'deprovision'`,
@@ -475,6 +488,9 @@ export async function computeCost({
       return await hyperstackCloud.cost(server, state);
     case "lambda-cloud":
       return await lambdaCloud.cost(server, state);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return 0;
     default:
       throw Error(
         `cost for cloud '${server.cloud}' and state '${state}' not currently supported for 'cost'`,
