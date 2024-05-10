@@ -51,10 +51,17 @@ export type ButtonStyle =
   | "info"
   | "warning"
   | "danger"
-  | "link";
+  | "link"
+  | "ghost";
 
 const BS_STYLE_TO_TYPE: {
-  [name in ButtonStyle]: "primary" | "default" | "dashed" | "danger" | "link";
+  [name in ButtonStyle]:
+    | "primary"
+    | "default"
+    | "dashed"
+    | "danger"
+    | "link"
+    | "text";
 } = {
   primary: "primary",
   success: "default", // antd doesn't have this so we do it via style below.
@@ -63,6 +70,7 @@ const BS_STYLE_TO_TYPE: {
   warning: "default", // antd doesn't have this so we do it via style below.
   danger: "danger",
   link: "link",
+  ghost: "text",
 };
 
 export type ButtonSize = "large" | "small" | "xsmall";
@@ -72,7 +80,7 @@ function parse_bsStyle(props: {
   style?: React.CSSProperties;
   disabled?: boolean;
 }): {
-  type: "primary" | "default" | "dashed" | "link";
+  type: "primary" | "default" | "dashed" | "link" | "text";
   style: React.CSSProperties;
   danger?: boolean;
   ghost?: boolean;

@@ -1,10 +1,17 @@
-import { List } from "immutable";
+import { List, Map } from "immutable";
 import { MutableRefObject } from "react";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 export type Mode = "standalone" | "sidechat";
+
+const FEEDBACKS = ["positive", "negative"] as const;
+export type Feedback = (typeof FEEDBACKS)[number];
+export function isFeedback(feedback: unknown): feedback is Feedback {
+  if (typeof feedback !== "string") return false;
+  return FEEDBACKS.includes(feedback as Feedback);
+}
 
 type Mention = TypedMap<{
   id: string;
@@ -44,7 +51,7 @@ export type ChatMessageTyped = TypedMap<{
     [author_id: string]: "FUTURE" | null;
   }>;
   folding?: List<string>;
-  sentiments?: List<string>; // encoded as list of "$account_id::$sentiment"
+  feedback?: Map<string, Feedback>; // encoded as map of {[account_id]:Feedback}
 }>;
 
 export type ChatMessages = TypedMap<{

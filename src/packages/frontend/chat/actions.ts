@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List, Seq, fromJS, Map as immutableMap } from "immutable";
+import { List, Map, Seq, fromJS, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
 
@@ -28,6 +28,7 @@ import {
   LANGUAGE_MODEL_PREFIXES,
   getLLMServiceStatusCheckMD,
   isFreeModel,
+  isLanguageModel,
   isLanguageModelService,
   model2service,
   model2vendor,
@@ -44,6 +45,7 @@ import {
   ChatMessage,
   ChatMessageTyped,
   ChatMessages,
+  Feedback,
   MessageHistory,
 } from "./types";
 import { getSelectedHashtagsSearch } from "./utils";
@@ -126,6 +128,7 @@ export class ChatActions extends Actions<ChatState> {
       x.editing = {};
     }
     x.folding ??= [];
+    x.feedback ??= {};
     return x;
   }
 
@@ -208,23 +211,27 @@ export class ChatActions extends Actions<ChatState> {
     }
   }
 
-  public feedback(
-    message: ChatMessageTyped,
-    sentiment: "positive" | "negative",
-  ) {
+  public feedback(message: ChatMessageTyped, feedback: Feedback | null) {
     if (this.syncdb == null) return;
     const date = message.get("date");
     if (!(date instanceof Date)) return;
     const account_id = this.redux.getStore("account").get_account_id();
     const cur = this.syncdb.get_one({ event: "chat", date });
-    // remove any previous sentiments by that user
-    const sentiments = (cur?.get("sentiment") ?? List([])).filter(
-      (key) => !key.startsWith(account_id),
-    );
-    const val = `${account_id}::${sentiment}`;
-    sentiments.push(val);
-    this.syncdb.set({ sentiments, date: date.toISOString() });
+    const feedbacks = cur?.get("feedback") ?? Map({});
+    const next = feedbacks.set(account_id, feedback);
+    this.syncdb.set({ feedback: next, date: date.toISOString() });
     this.syncdb.commit();
+    const model = this.isLanguageModelThread(date);
+    if (isLanguageModel(model)) {
+      track("llm_feedback", {
+        project_id: this.store?.get("project_id"),
+        path: this.store?.get("path"),
+        msg_date: date.toISOString(),
+        type: "chat",
+        model: model2service(model),
+        feedback,
+      });
+    }
   }
 
   // The second parameter is used for sending a message by
