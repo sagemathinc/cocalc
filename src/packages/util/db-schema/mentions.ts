@@ -50,6 +50,10 @@ Table({
       type: "map",
       desc: "{account_id1: {read: boolean, saved: boolean}, account_id2: {...}}",
     },
+    expire: {
+      type: "timestamp",
+      desc: "delete this row after this date, if not null",
+    },
   },
   rules: {
     primary_key: ["time", "project_id", "path", "target"],

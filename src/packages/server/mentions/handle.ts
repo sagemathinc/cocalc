@@ -5,10 +5,13 @@ Handle all mentions that haven't yet been handled.
 import { delay } from "awaiting";
 
 import { getLogger } from "@cocalc/backend/logger";
+import { db } from "@cocalc/database";
 import getPool from "@cocalc/database/pool";
+import { pii_expire } from "@cocalc/database/postgres/pii";
+import { expire_time } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
 import notify from "./notify";
 import type { Action, Key } from "./types";
-import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("mentions - handle");
 
@@ -104,8 +107,8 @@ async function determineAction(key: Key): Promise<Action> {
 async function setAction(key: Key, action: Action): Promise<void> {
   const pool = getPool();
   await pool.query(
-    "UPDATE mentions SET action=$1 WHERE project_id=$2 AND path=$3 AND time=$4 AND target=$5",
-    [action, key.project_id, key.path, key.time, key.target],
+    "UPDATE mentions SET action=$1, expire=$2 WHERE project_id=$3 AND path=$4 AND time=$5 AND target=$6",
+    [action, await getExpire(), key.project_id, key.path, key.time, key.target],
   );
 }
 
@@ -116,7 +119,20 @@ async function setError(
 ): Promise<void> {
   const pool = getPool();
   await pool.query(
-    "UPDATE mentions SET action=$1, error=$2 WHERE project_id=$3 AND path=$4 AND time=$5 AND target=$6",
-    [action, error, key.project_id, key.path, key.time, key.target],
+    "UPDATE mentions SET action=$1, error=$2, expire=$3 WHERE project_id=$4 AND path=$5 AND time=$6 AND target=$7",
+    [
+      action,
+      error,
+      await getExpire(),
+      key.project_id,
+      key.path,
+      key.time,
+      key.target,
+    ],
   );
+}
+
+// expire either after the PII setting or 1 year.
+async function getExpire(): Promise<Date> {
+  return (await pii_expire(db())) ?? expire_time(365 * 24 * 60 * 60);
 }

@@ -132,21 +132,20 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
 } = {
   openai: MODELS_OPENAI.filter(
     (m) =>
-      m !== "gpt-4-32k" && // this one is deliberately not selectable by users!
-      m !== "text-embedding-ada-002" && // shouldn't be in the list in the first place
-      m !== "gpt-4-turbo-preview" && // the "preview" is over
-      m !== "gpt-4-turbo-preview-8k",
+      m === "gpt-3.5-turbo" ||
+      m === "gpt-3.5-turbo-16k" ||
+      m === "gpt-4" ||
+      m === "gpt-4-turbo-preview-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
-      // not all work right now
-      m === "gemini-pro" || m === "gemini-1.5-pro-8k" || m === "gemini-1.5-pro",
+      // we only enable the 1.0 pro and 1.5 pro with a limited context window
+      m === "gemini-pro" || m === "gemini-1.5-pro-8k",
   ),
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
     // we show opus and the context restricted models (to avoid high costs)
     return (
-      m === "claude-3-opus" ||
       m === "claude-3-opus-8k" ||
       m === "claude-3-sonnet-4k" ||
       m === "claude-3-haiku-8k"

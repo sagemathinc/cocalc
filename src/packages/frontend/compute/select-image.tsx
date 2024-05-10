@@ -267,6 +267,11 @@ export function ImageLinks({ image, style }: { image; style? }) {
           <Icon name="youtube" style={{ color: "red" }} /> YouTube
         </A>
       )}
+      {data.tutorials != null && data.tutorials.length > 0 && (
+        <A style={{ flex: 1 }} href={data.tutorials[0]}>
+          <Icon name="graduation-cap" /> Tutorial
+        </A>
+      )}
       <A style={{ flex: 1 }} href={data.source}>
         <Icon name="github" /> GitHub
       </A>
