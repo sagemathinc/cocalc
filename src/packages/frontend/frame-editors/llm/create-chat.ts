@@ -50,7 +50,7 @@ export async function createChatMessage(
   frameId: string,
   options: Options,
   input: string | undefined,
-) {
+): Promise<{ input: string; message: string }> {
   let { codegen } = options;
   const { command, model } = options;
 
