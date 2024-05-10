@@ -17,7 +17,7 @@ await a.start({account_id:'fd9d855b-9245-473d-91a0-cdd1e69410e4', id:8})
 */
 
 import { getServer, getServerNoCheck } from "./get-servers";
-import { setState, setError } from "./util";
+import { clearData, setState, setError } from "./util";
 import * as testCloud from "./cloud/testcloud";
 import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
@@ -105,6 +105,14 @@ export const start: (opts: {
 });
 
 async function doStart(server: ComputeServer) {
+  if (server.data?.cloud != server.cloud) {
+    // If you deprovision a server, then change the cloud, a stale data field
+    // can result, which breaks things.  Thus we must clear it.  Also, this
+    // data is something that is meaningless once a server is deprovisioned as
+    // data is about provisioned state (e.g., ip address).
+    delete server.data;
+    await clearData({ id: server.id });
+  }
   switch (server.cloud) {
     case "test":
       return await testCloud.start(server);
