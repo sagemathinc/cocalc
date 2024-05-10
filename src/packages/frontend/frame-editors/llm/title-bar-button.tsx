@@ -13,7 +13,7 @@ import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useAsyncEffect, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -153,10 +153,13 @@ export default function LanguageModelTitleBarButton({
   const [input, setInput] = useState<string>("");
   const [truncated, setTruncated] = useState<number>(0);
   const [truncatedReason, setTruncatedReason] = useState<string>("");
-  const [scope, setScope] = useState<Scope | "all">(() =>
+  const [scope, setScope] = useState<Scope>(() =>
     showDialog ? getScope(id, actions) : "all",
   );
   const [tokens, setTokens] = useState<number>(0);
+  const [description, setDescription] = useState<string>(
+    showOptions ? "" : getCustomDescription(frameType),
+  );
 
   const describeRef = useRef<any>(null);
   const buttonsRef = useRef<any>(null);
@@ -166,8 +169,15 @@ export default function LanguageModelTitleBarButton({
 
   const [model, setModel] = useLanguageModelSetting(project_id);
 
+  function setPreset(preset: Preset) {
+    setTag(preset.tag);
+    setDescription(preset.description);
+    setCustom(preset.command);
+  }
+
   useEffect(() => {
     if (showDialog) {
+      setPreset(PRESETS[0]);
       setScope(getScope(id, actions));
     }
   }, [showDialog]);
@@ -186,43 +196,40 @@ export default function LanguageModelTitleBarButton({
     return options;
   }, [actions]);
 
-  const doUpdateInput = async () => {
+  async function doUpdateInput() {
     if (!(visible && showDialog)) {
       // don't waste time on update if it is not visible.
       return;
     }
-    const { input, inputOrig, tokens } = await updateInput(
-      actions,
-      id,
-      scope,
-      model,
-      getQueryLLMOptions(),
-    );
+    const {
+      input: inputNext,
+      inputOrig,
+      tokens,
+    } = await updateInput(actions, id, scope, model, getQueryLLMOptions());
     setTokens(tokens);
-    setInput(input);
+    setInput(inputNext);
     setTruncated(
       Math.round(
         100 *
           (1 -
-            (inputOrig.length - input.length) / Math.max(1, inputOrig.length)),
+            (inputOrig.length - inputNext.length) /
+              Math.max(1, inputOrig.length)),
       ),
     );
     setTruncatedReason(
-      `Input truncated from ${inputOrig.length} to ${input.length} characters.${
+      `Input truncated from ${inputOrig.length} to ${
+        inputNext.length
+      } characters.${
         getMaxTokens(model) < 5000 // cutoff between GPT 3.5 and GPT 4
           ? "  Try using a different model with a bigger context size."
           : ""
       }`,
     );
-  };
+  }
 
-  useEffect(() => {
-    doUpdateInput();
+  useAsyncEffect(async () => {
+    await doUpdateInput();
   }, [id, scope, visible, path, showDialog, model, tag, input, custom]);
-
-  const [description, setDescription] = useState<string>(
-    showOptions ? "" : getCustomDescription(frameType),
-  );
 
   const queryLLM = async (options: Options) => {
     setError("");
@@ -317,9 +324,7 @@ export default function LanguageModelTitleBarButton({
                 type={preset.tag == tag ? "primary" : undefined}
                 key={preset.tag}
                 onClick={() => {
-                  setTag(preset.tag);
-                  setDescription(preset.description);
-                  setCustom(preset.command);
+                  setPreset(preset);
                 }}
                 disabled={querying}
               >
@@ -374,7 +379,9 @@ export default function LanguageModelTitleBarButton({
           </Button>
         </div>
         <div ref={contextRef} style={{ overflowY: "auto" }}>
-          <Context value={input} info={actions.languageModelGetLanguage()} />
+          {custom != "" ? (
+            <Context value={input} info={actions.languageModelGetLanguage()} />
+          ) : undefined}
         </div>
       </div>
     );
@@ -418,7 +425,7 @@ export default function LanguageModelTitleBarButton({
         </Paragraph>
         {renderOptions()}
         {renderShowOptions()}
-        {description}
+        <Paragraph>{description}</Paragraph>
         {renderCostEstimation()}
         <Paragraph style={{ textAlign: "center" }} ref={submitRef}>
           <Button
@@ -472,8 +479,8 @@ export default function LanguageModelTitleBarButton({
 
 async function updateInput(
   actions: Actions,
-  id,
-  scope,
+  id: string,
+  scope: Scope,
   model: LanguageModel,
   options: Options | null,
 ): Promise<{ input: string; inputOrig: string; tokens: number }> {
