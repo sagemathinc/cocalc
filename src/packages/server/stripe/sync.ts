@@ -39,7 +39,7 @@ export async function stripe_sync({
   const users = (
     await database.async_query({
       query:
-        "SELECT account_id, stripe_customer_id FROM accounts WHERE stripe_customer_id IS NOT NULL AND banned IS NOT TRUE AND deleted IS NOT TRUE AND last_active >= NOW() - INTERVAL '1 MONTH' AND (created IS NULL OR created <= NOW() - INTERVAL '2 year')",
+        "SELECT account_id, stripe_customer_id FROM accounts WHERE stripe_customer_id IS NOT NULL AND banned IS NOT TRUE AND deleted IS NOT TRUE AND last_active >= NOW() - INTERVAL '1 MONTH' AND (created IS NULL OR created <= NOW() - INTERVAL '4 year')",
     })
   ).rows;
 
