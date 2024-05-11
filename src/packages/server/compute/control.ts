@@ -17,7 +17,7 @@ await a.start({account_id:'fd9d855b-9245-473d-91a0-cdd1e69410e4', id:8})
 */
 
 import { getServer, getServerNoCheck } from "./get-servers";
-import { setState, setError } from "./util";
+import { clearData, setState, setError } from "./util";
 import * as testCloud from "./cloud/testcloud";
 import * as fluidStack from "./cloud/fluid-stack";
 import * as coreWeave from "./cloud/core-weave";
@@ -105,6 +105,14 @@ export const start: (opts: {
 });
 
 async function doStart(server: ComputeServer) {
+  if (server.data?.cloud != server.cloud) {
+    // If you deprovision a server, then change the cloud, a stale data field
+    // can result, which breaks things.  Thus we must clear it.  Also, this
+    // data is something that is meaningless once a server is deprovisioned as
+    // data is about provisioned state (e.g., ip address).
+    delete server.data;
+    await clearData({ id: server.id });
+  }
   switch (server.cloud) {
     case "test":
       return await testCloud.start(server);
@@ -118,6 +126,9 @@ async function doStart(server: ComputeServer) {
       return await hyperstackCloud.start(server);
     case "lambda-cloud":
       return await lambdaCloud.start(server);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
     default:
       throw Error(
         `cloud '${server.cloud}' not currently supported for 'start'`,
@@ -175,6 +186,9 @@ async function doStop(server: ComputeServer) {
       return await hyperstackCloud.stop(server);
     case "lambda-cloud":
       return await lambdaCloud.stop(server);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
     default:
       throw Error(`cloud '${server.cloud}' not currently supported for 'stop'`);
   }
@@ -211,11 +225,18 @@ async function doDeprovision(server: ComputeServer) {
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.deprovision(server);
+
     case "hyperstack":
       return await hyperstackCloud.deprovision(server);
+
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return;
+
     case "test":
       // just a no-op
       return;
+
     default:
       throw Error(
         `cloud '${server.cloud}' not currently supported for 'deprovision'`,
@@ -467,6 +488,9 @@ export async function computeCost({
       return await hyperstackCloud.cost(server, state);
     case "lambda-cloud":
       return await lambdaCloud.cost(server, state);
+    case "onprem":
+      // no-op: user pastes a script provided on the frontend for on-prem.
+      return 0;
     default:
       throw Error(
         `cost for cloud '${server.cloud}' and state '${state}' not currently supported for 'cost'`,

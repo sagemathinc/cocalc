@@ -30,6 +30,8 @@ import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
+const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
+
 const log = getLogger("sync-fs:index").debug;
 const REGISTER_INTERVAL_MS = 30000;
 
@@ -403,6 +405,19 @@ class SyncFS {
       } else {
         log("bindMountExcludes -- skipping", { path });
       }
+    }
+    // The following are (1) not mounted above due to shouldMountExclude,
+    // and (2) always get exclued, and (3) start with . so could conflict
+    // with the unionfs upper layer, so we change them:
+    for (const path of EXPLICIT_HIDDEN_EXCLUDES) {
+      log("bindMountExcludes -- explicit hidden path ", { path });
+      const source = join(this.data, `.explicit${path}`);
+      const target = join(this.mount, path);
+      const upper = join(this.upper, path);
+      log("bindMountExcludes -- explicit hidden path", { source, target });
+      await mkdirp(source);
+      await mkdirp(upper);
+      await execa("sudo", ["mount", "--bind", source, target]);
     }
   };
 

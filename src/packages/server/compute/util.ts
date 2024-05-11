@@ -103,6 +103,14 @@ export async function getData({
   return rows[0].data;
 }
 
+export async function clearData({ id }: { id: number }) {
+  const pool = getPool();
+  await pool.query(
+    `UPDATE compute_servers SET data = NULL, last_edited=NOW()  WHERE id=$1`,
+    [id],
+  );
+}
+
 // merges in configuration
 export async function setConfiguration(id: number, newConfiguration0: object) {
   const newConfiguration = { ...newConfiguration0 }; // avoid mutating arg
