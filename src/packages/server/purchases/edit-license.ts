@@ -61,6 +61,14 @@ export default async function editLicense(
   opts: Options,
 ): Promise<{ purchase_id?: number; cost: number }> {
   let { changes } = opts;
+
+  // dates json to strings, of course -- this caused https://github.com/sagemathinc/cocalc/issues/7258
+  if (changes.start) {
+    changes.start = new Date(changes.start);
+  }
+  if (changes.end) {
+    changes.end = new Date(changes.end);
+  }
   const {
     account_id,
     license_id,
@@ -332,6 +340,8 @@ async function changeLicense(
   info: PurchaseInfo,
   client: PoolClient,
 ) {
+  // logger.debug("changeLicense -- ", { license_id, info });
+
   if (info.type == "vouchers") {
     throw Error("BUG -- info.type must not be vouchers");
   }
