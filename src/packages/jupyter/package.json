@@ -21,7 +21,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "test": "pnpm exec jest dist",
+    "test": "pnpm exec jest",
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput"
   },
   "files": [
