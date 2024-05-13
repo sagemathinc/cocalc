@@ -527,7 +527,7 @@ export default function Message(props: Readonly<Props>) {
                 ) : undefined}
                 {isLLMThread && msgWrittenByLLM ? (
                   <>
-                    <RegenerateLLM actions={props.actions} date={date} />
+                    <RegenerateLLM actions={props.actions} date={date} model={isLLMThread} />
                     <FeedbackLLM actions={props.actions} message={message} />
                   </>
                 ) : undefined}

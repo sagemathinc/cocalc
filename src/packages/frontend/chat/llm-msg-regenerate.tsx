@@ -7,7 +7,7 @@ import type { MenuProps } from "antd";
 import { Button, Dropdown, Space, Tooltip } from "antd";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Text } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import {
   LLMModelPrice,
@@ -16,7 +16,10 @@ import {
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   CoreLanguageModel,
+  LanguageModel,
   USER_SELECTABLE_LLMS_BY_VENDOR,
+  isLanguageModel,
+  isOllamaLLM,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { COLORS } from "@cocalc/util/theme";
@@ -27,9 +30,15 @@ interface RegenerateLLMProps {
   actions?: ChatActions;
   date: number; // ms since epoch
   style?: CSS;
+  model: LanguageModel | false;
 }
 
-export function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
+export function RegenerateLLM({
+  actions,
+  date,
+  style,
+  model,
+}: RegenerateLLMProps) {
   const { enabledLLMs, project_id } = useProjectContext();
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
@@ -65,7 +74,7 @@ export function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
 
   if (ollama && enabledLLMs["ollama"]) {
     for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
-      const { display } = config;
+      const { display = key } = config;
       const ollamaModel = toOllamaModel(key);
       entries.push({
         key: ollamaModel,
@@ -86,6 +95,29 @@ export function RegenerateLLM({ actions, date, style }: RegenerateLLMProps) {
     entries.push({
       key: "none",
       label: "No language models available",
+    });
+  }
+
+  // list the model that made the response first, to make it easier to regenerate the same response
+  // https://github.com/sagemathinc/cocalc/issues/7534
+  if (entries.length > 0 && isLanguageModel(model)) {
+    entries.unshift({ key: "divider", type: "divider" });
+    const display =
+      isOllamaLLM(model) && ollama?.get(model) != null
+        ? ollama?.getIn([model, "display"]) ?? model
+        : modelToName(model);
+    entries.unshift({
+      key: "same",
+      label: (
+        <>
+          <LanguageModelVendorAvatar model={model} />{" "}
+          <Text strong>{display}</Text> (the same){" "}
+          <LLMModelPrice model={model} floatRight />
+        </>
+      ),
+      onClick: () => {
+        actions.regenerateLLMResponse(new Date(date), model);
+      },
     });
   }
 
