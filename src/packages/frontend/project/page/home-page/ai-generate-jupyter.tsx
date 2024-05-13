@@ -9,7 +9,7 @@ TODO:
 
 import { Alert, Button, Input, Modal } from "antd";
 import { delay } from "awaiting";
-import { throttle } from "lodash";
+import { debounce, throttle } from "lodash";
 import { useEffect, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -17,20 +17,18 @@ import {
   CSS,
   redux,
   useActions,
+  useAsyncEffect,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ChatStream } from "@cocalc/frontend/client/llm";
 import {
   A,
-  HelpIcon,
   Icon,
   Loading,
   Markdown,
   Paragraph,
-  Title,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -54,8 +52,8 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { field_cmp, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { LLMCostEstimation } from "../../../misc/llm-cost-estimation";
 import { ensure_project_running } from "../../project-start-warning";
-import { Block } from "./block";
 
 const TAG = "generate-jupyter";
 
@@ -67,6 +65,7 @@ const EXAMPLES: { [language: string]: string } = {
   r: "Fit a statistical model to these monthly values: 72, 42, 63, 44, 46, 51, 47, 39, 21, 31, 19, 22. Then plot it.",
   sagemath:
     "Generate a random 5x5 matrix over GF_2 and calculate its determinant.",
+  octave: "Generate a 10x10 multiplication table.",
 } as const;
 
 const DEFAULT_LANG_EXTRA = "Prefer using the standard library.";
@@ -88,6 +87,8 @@ export default function AIGenerateJupyterNotebook({
   project_id,
 }: Props) {
   const [model, setModel] = useLanguageModelSetting(project_id);
+  const [tokens, setTokens] = useState<number>(0);
+
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null,
   );
@@ -149,7 +150,7 @@ export default function AIGenerateJupyterNotebook({
       setExample("");
       return;
     }
-    setExample(EXAMPLES[spec.language] ?? "");
+    setExample(EXAMPLES[spec.language?.toLowerCase()] ?? "");
   }, [spec]);
 
   async function generate() {
@@ -423,53 +424,58 @@ export default function AIGenerateJupyterNotebook({
     return null;
   }
 
-  function info() {
-    return (
-      <HelpIcon title="OpenAI GPT" style={{ float: "right" }}>
-        <Paragraph style={{ minWidth: "300px", maxWidth: "500px" }}>
-          This sends your requst to{" "}
-          <A href={"https://chat.openai.com/"}>{modelToName(model)}</A>, and we
-          turn the response into a Jupyter Notebook. Check the result then
-          evaluate the cells. Some things might now work on the first try, but
-          this should give you some good ideas to help you accomplish your goal.
-          If it does not work, try again with a better prompt, ask in chat, and
-          ask for suggested fixes.
-        </Paragraph>
-      </HelpIcon>
-    );
-  }
-
   const input = createInput({ spec, prompt });
 
+  useEffect(() => {
+    if (tokens > 0 && input == "") setTokens(0);
+  }, [input]);
+
+  useAsyncEffect(
+    debounce(
+      async () => {
+        if (input == "") return;
+
+        // do not import until needed -- it is HUGE!
+        const { getMaxTokens, numTokensUpperBound } = await import(
+          "@cocalc/frontend/misc/llm"
+        );
+
+        const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
+
+        setTokens(tokens);
+      },
+      3000,
+      { leading: false, trailing: true },
+    ),
+    [input],
+  );
+
   return (
-    <Block style={{ padding: "0 15px" }}>
-      <Title level={4}>
-        <LanguageModelVendorAvatar model={model} /> Create Notebook Using{" "}
+    <div style={{ padding: "0 15px" }}>
+      <Paragraph strong>
+        Select language model:{" "}
         <LLMSelector
           project_id={project_id}
           model={model}
           setModel={setModel}
           style={{ marginTop: "-7.5px" }}
         />
-        {info()}
-      </Title>
-      {typeof kernelSpecs == "string" && (
+      </Paragraph>
+      {typeof kernelSpecs === "string" ? (
         <Alert
           description={kernelSpecs == "start" ? <StartButton /> : kernelSpecs}
           type="info"
           showIcon
         />
-      )}
+      ) : undefined}
       {kernelSpecs == null && <Loading />}
-      {typeof kernelSpecs == "object" && kernelSpecs != null && (
+      {typeof kernelSpecs == "object" && kernelSpecs != null ? (
         <>
-          <Paragraph>
-            Generate a Jupyter Notebook using the following Jupyter kernel:
-          </Paragraph>
-          <Paragraph>
+          <Paragraph strong>
+            Select a Jupyter kernel:{" "}
             <SelectKernel
               placeholder="Select a kernel..."
-              size="large"
+              size="middle"
               disabled={querying}
               project_id={project_id}
               kernelSpecs={kernelSpecs}
@@ -509,14 +515,42 @@ export default function AIGenerateJupyterNotebook({
                   }}
                 />
                 <br />
-                {!error && example && (
+                {!error && example ? (
                   <div style={{ color: COLORS.GRAY_D, marginTop: "15px" }}>
                     Example: <i>"{example}"</i>
                   </div>
-                )}
+                ) : undefined}
               </Paragraph>
-              {!error && (
-                <Paragraph style={{ textAlign: "center" }}>
+              {input ? (
+                <div>
+                  <Paragraph type="secondary">
+                    The following will be submitted to the{" "}
+                    <A href={"https://chat.openai.com/"}>
+                      {modelToName(model)}
+                    </A>{" "}
+                    language model. Its response will be converted into a
+                    Jupyter Notebook on the fly. Not everything might now work
+                    on the first try, but overall the newly created notebook
+                    should help you accomplishing your goal.
+                  </Paragraph>
+                  <StaticMarkdown
+                    value={input}
+                    style={{
+                      border: `1px solid ${COLORS.GRAY}`,
+                      maxHeight: "10em",
+                      overflow: "auto",
+                      fontSize: "12px",
+                      fontFamily: "monospace",
+                      borderRadius: "5px",
+                      margin: "5px 0",
+                      padding: "5px",
+                      color: COLORS.GRAY,
+                    }}
+                  />
+                </div>
+              ) : undefined}
+              {!error ? (
+                <Paragraph style={{ textAlign: "center", marginTop: "15px" }}>
                   <Button
                     type="primary"
                     size="large"
@@ -526,9 +560,20 @@ export default function AIGenerateJupyterNotebook({
                     <Icon name="paper-plane" /> Create Notebook using{" "}
                     {modelToName(model)} (shift+enter)
                   </Button>
+                  {input && tokens > 0 ? (
+                    <LLMCostEstimation
+                      tokens={tokens}
+                      model={model}
+                      paragraph
+                      textAlign="center"
+                      type="secondary"
+                    />
+                  ) : undefined}
                 </Paragraph>
-              )}
-              {!error && querying && <ProgressEstimate seconds={30} />}
+              ) : undefined}
+              {!error && querying ? (
+                <ProgressEstimate seconds={30} />
+              ) : undefined}
               {error && (
                 <Alert
                   closable
@@ -541,26 +586,11 @@ export default function AIGenerateJupyterNotebook({
                   description={<Markdown value={error} />}
                 />
               )}
-              {input && (
-                <div>
-                  The following will be sent to {modelToName(model)}:
-                  <StaticMarkdown
-                    value={input}
-                    style={{
-                      border: "1px solid lightgrey",
-                      borderRadius: "5px",
-                      margin: "5px 0",
-                      padding: "5px",
-                    }}
-                  />
-                </div>
-              )}
-              {!error && querying && <ProgressEstimate seconds={30} />}
             </>
           )}
         </>
-      )}
-    </Block>
+      ) : undefined}
+    </div>
   );
 }
 
@@ -588,11 +618,15 @@ export function AIGenerateNotebookButton({
     <>
       <Button onClick={() => setShow(true)} style={btnStyle}>
         <AIAvatar size={14} style={{ position: "unset", marginRight: "5px" }} />{" "}
-        Assistant
+        Notebook Generator
       </Button>
       <Modal
-        title="Create Jupyter Notebook using AI"
-        width={600}
+        title={
+          <>
+            <AIAvatar size={18} /> Generate a Jupyter Notebook using AI
+          </>
+        }
+        width={650}
         open={show}
         onCancel={() => setShow(false)}
         footer={null}

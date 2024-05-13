@@ -57,19 +57,21 @@ export function LLMCostEstimation({
   type,
   maxOutputTokens,
   paragraph = false,
+  textAlign,
 }: {
   model: LanguageModel;
   tokens: number;
   type?: BaseType;
   maxOutputTokens?: number;
   paragraph?: boolean;
+  textAlign?: CSS["textAlign"];
 }) {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
 
   if (isFreeModel(model, isCoCalcCom)) {
     return (
-      <Wrapper type={type} paragraph={paragraph}>
+      <Wrapper type={type} paragraph={paragraph} textAlign={textAlign}>
         This model is free to use.
       </Wrapper>
     );
@@ -85,7 +87,7 @@ export function LLMCostEstimation({
   const minTxt = round2down(min).toFixed(2);
   const maxTxt = round2up(max).toFixed(2);
   return (
-    <Wrapper type={type} paragraph={paragraph}>
+    <Wrapper type={type} paragraph={paragraph} textAlign={textAlign}>
       Estimated cost: ${minTxt} to ${maxTxt}{" "}
       <HelpIcon title="LLM Cost Estimation" placement={"topLeft"}>
         {ESTIMATION_HELP_TEXT}
@@ -99,9 +101,19 @@ export function LLMCostEstimation({
   );
 }
 
-function Wrapper({ children, type, paragraph }) {
+function Wrapper({
+  children,
+  type,
+  paragraph,
+  textAlign = "right",
+}: {
+  children: React.ReactNode;
+  type?: BaseType;
+  paragraph?: boolean;
+  textAlign?: CSS["textAlign"];
+}) {
   const C = paragraph ? Paragraph : Text;
-  const style: CSS = paragraph ? { textAlign: "right", marginBottom: 0 } : {};
+  const style: CSS = paragraph ? { textAlign, marginBottom: 0 } : {};
   return (
     <C style={style} type={type}>
       {children}
