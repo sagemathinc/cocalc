@@ -18,7 +18,7 @@
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true pnpm webpack-prod",
     "build": "pnpm run build-dev && ./production-build.py",
     "build-dev": "pnpm run copy-css && cd src && ../../node_modules/.bin/tsc --build ",
-    "test": "../node_modules/.bin/jest dist-ts",
+    "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
   },
   "repository": {
@@ -40,11 +40,6 @@
   "license": "SEE LICENSE.md",
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
-  },
-  "jest": {
-    "moduleNameMapper": {
-      ".+\\.(svg|css)$": "identity-obj-proxy"
-    }
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/static",
   "dependencies": {

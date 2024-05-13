@@ -10,7 +10,7 @@ module.exports = {
     "@cocalc/util/dmp": "<rootDir>/../util/dist/dmp",
     "@cocalc/util/misc": "<rootDir>/../util/dist/misc",
   },
-  testMatch: ["**/__tests__/**/*.[tj]s?(x)", "**/?(*.)+(spec|test).[tj]s?(x)"],
+  testMatch: ["**/__tests__/**/*.[t]s?(x)", "**/?(*.)+(spec|test).[t]s?(x)"],
   testPathIgnorePatterns: ["/node_modules/"],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
 };
