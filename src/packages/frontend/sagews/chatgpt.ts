@@ -29,6 +29,8 @@ export function helpMeFix({
   const projectsStore = redux.getStore("projects");
   const enabled = projectsStore.whichLLMareEnabled();
   const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
+  const customOpenAI =
+    redux.getStore("customize").get("custom_openai")?.toJS() ?? {};
   const selectableLLMs =
     redux.getStore("customize").get("selectable_llms")?.toJS() ?? [];
 
@@ -36,6 +38,7 @@ export function helpMeFix({
     other_settings?.get(SETTINGS_LANGUAGE_MODEL_KEY),
     enabled,
     Object.keys(ollama),
+    Object.keys(customOpenAI),
     selectableLLMs,
   );
   getHelp({

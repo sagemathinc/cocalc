@@ -31,7 +31,8 @@ export interface ChatOptions {
   maxTokens?: number;
 }
 
-export interface OllamaPublic {
+// This could be Ollama or CustomOpenAI
+export interface CustomLLMPublic {
   model: string;
   display: string; // name of the model
   desc?: string; // additional description

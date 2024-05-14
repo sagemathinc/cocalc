@@ -29,6 +29,7 @@ import {
   getLLMCost,
   isAnthropicModel,
   isCoreLanguageModel,
+  isCustomOpenAI,
   isFreeModel,
   isGoogleModel,
   isMistralModel,
@@ -47,6 +48,7 @@ import { getClient } from "./client";
 import { GoogleGenAIClient } from "./google-genai-client";
 import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
+import { evaluateCustomOpenAI } from "./custom-openai";
 import { saveResponse } from "./save-response";
 
 const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
@@ -144,6 +146,15 @@ async function evaluateImpl({
     await (async () => {
       if (isOllamaLLM(model)) {
         return await evaluateOllama({
+          system,
+          history,
+          input,
+          model,
+          maxTokens,
+          stream,
+        });
+      } else if (isCustomOpenAI(model)) {
+        return await evaluateCustomOpenAI({
           system,
           history,
           input,

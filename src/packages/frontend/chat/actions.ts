@@ -25,7 +25,9 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import {
+  CUSTOM_OPENAI_PREFIX,
   LANGUAGE_MODEL_PREFIXES,
+  OLLAMA_PREFIX,
   getLLMServiceStatusCheckMD,
   isFreeModel,
   isLanguageModel,
@@ -33,6 +35,7 @@ import {
   model2service,
   model2vendor,
   service2model,
+  toCustomOpenAIModel,
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -729,7 +732,10 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
     let input = message.history?.[0]?.content as string | undefined;
-    if (!input) return;
+    // if there is no input in the last message, something is really wrong
+    if (input == null) return;
+    // there are cases, where there is nothing in the last message – but we want to regenerate it
+    if (!input && tag !== "regenerate") return;
 
     let model: LanguageModel | false = false;
     if (llm != null) {
@@ -1095,10 +1101,7 @@ export class ChatActions extends Actions<ChatState> {
     });
 
     if (llm != null) {
-      const customizeStore = redux.getStore("customize");
-      const selectableLLMs = customizeStore.get("selectable_llms");
-      const ollama = customizeStore.get("ollama");
-      setDefaultLLM(llm, selectableLLMs, ollama);
+      setDefaultLLM(llm);
     }
   }
 }
@@ -1182,9 +1185,12 @@ function getLanguageModel(input?: string): false | LanguageModel {
     if (i != -1) {
       const j = x.indexOf(">", i);
       const model = x.slice(i + prefix.length, j).trim() as LanguageModel;
-      // for now, ollama must be prefixed – in the future, all model names will have a vendor prefix!
-      if (vendorprefix.startsWith("ollama")) {
+      // for now, ollama must be prefixed – in the future, all model names should have a vendor prefix!
+      if (vendorprefix.startsWith(OLLAMA_PREFIX.slice(0, -1))) {
         return toOllamaModel(model);
+      }
+      if (vendorprefix.startsWith(CUSTOM_OPENAI_PREFIX.slice(0, -1))) {
+        return toCustomOpenAIModel(model);
       }
       return model;
     }

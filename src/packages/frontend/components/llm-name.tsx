@@ -2,7 +2,9 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import {
   LanguageModel,
+  fromCustomOpenAIModel,
   fromOllamaModel,
+  isCustomOpenAI,
   isLanguageModel,
   isOllamaLLM,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -14,6 +16,7 @@ export function LLMModelName(
   const { model, size } = props;
 
   const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
 
   function renderTitle() {
     if (isLanguageModel(model)) {
@@ -26,6 +29,14 @@ export function LLMModelName(
         return om.get("display") ?? `Ollama ${model}`;
       }
     }
+
+    if (isCustomOpenAI(model)) {
+      const coi = custom_openai?.get(fromCustomOpenAIModel(model));
+      if (coi) {
+        return coi.get("display") ?? `OpenAI (custom) ${model}`;
+      }
+    }
+
     return model;
   }
 

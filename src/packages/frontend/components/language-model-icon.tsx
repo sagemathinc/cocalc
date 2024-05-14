@@ -1,6 +1,7 @@
 import { CSS } from "@cocalc/frontend/app-framework";
 import {
   LanguageModel,
+  isCustomOpenAI,
   isGoogleModel,
   isLanguageModel,
   isOllamaLLM,
@@ -41,6 +42,7 @@ export function LanguageModelVendorAvatar(
     const vendor = model2vendor(model);
     switch (vendor) {
       case "openai":
+      case "custom_openai":
         return <OpenAIAvatar size={size} style={style} />;
 
       case "google": {
@@ -71,6 +73,10 @@ export function LanguageModelVendorAvatar(
 
   if (isOllamaLLM(model)) {
     return <OllamaAvatar size={size} style={style} />;
+  }
+
+  if (isCustomOpenAI(model)) {
+    return <OpenAIAvatar size={size} style={style} />;
   }
 
   return fallback();

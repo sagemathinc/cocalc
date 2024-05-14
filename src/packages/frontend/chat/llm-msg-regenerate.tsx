@@ -21,9 +21,11 @@ import {
   isLanguageModel,
   isOllamaLLM,
   toOllamaModel,
+  isCustomOpenAI,
+  toCustomOpenAIModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { COLORS } from "@cocalc/util/theme";
-import { OllamaPublic } from "@cocalc/util/types/llm";
+import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { ChatActions } from "./actions";
 
 interface RegenerateLLMProps {
@@ -42,6 +44,7 @@ export function RegenerateLLM({
   const { enabledLLMs, project_id } = useProjectContext();
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
 
   const haveChatRegenerate = redux
     .getStore("projects")
@@ -72,8 +75,10 @@ export function RegenerateLLM({
     }
   }
 
-  if (ollama && enabledLLMs["ollama"]) {
-    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
+  if (ollama && enabledLLMs.ollama) {
+    for (const [key, config] of Object.entries<CustomLLMPublic>(
+      ollama.toJS(),
+    )) {
       const { display = key } = config;
       const ollamaModel = toOllamaModel(key);
       entries.push({
@@ -86,6 +91,27 @@ export function RegenerateLLM({
         ),
         onClick: () => {
           actions.regenerateLLMResponse(new Date(date), ollamaModel);
+        },
+      });
+    }
+  }
+
+  if (custom_openai && enabledLLMs.custom_openai) {
+    for (const [key, config] of Object.entries<CustomLLMPublic>(
+      custom_openai.toJS(),
+    )) {
+      const { display = key } = config;
+      const customOpenAIModel = toCustomOpenAIModel(key);
+      entries.push({
+        key: customOpenAIModel,
+        label: (
+          <>
+            <LanguageModelVendorAvatar model={customOpenAIModel} /> {display}{" "}
+            <LLMModelPrice model={customOpenAIModel} floatRight />
+          </>
+        ),
+        onClick: () => {
+          actions.regenerateLLMResponse(new Date(date), customOpenAIModel);
         },
       });
     }
@@ -105,6 +131,8 @@ export function RegenerateLLM({
     const display =
       isOllamaLLM(model) && ollama?.get(model) != null
         ? ollama?.getIn([model, "display"]) ?? model
+        : isCustomOpenAI(model) && custom_openai?.get(model) != null
+        ? custom_openai?.getIn([model, "display"]) ?? model
         : modelToName(model);
     entries.unshift({
       key: "same",

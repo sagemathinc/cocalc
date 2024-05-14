@@ -13,7 +13,7 @@ import {
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { LLMModelPrice, modelToName } from "./llm-selector";
-import { OllamaPublic } from "@cocalc/util/types/llm";
+import { CustomLLMPublic } from "@cocalc/util/types/llm";
 
 interface Model {
   name: LanguageModel;
@@ -83,7 +83,7 @@ export function useAvailableLLMs(project_id: string) {
   if (haveAnthropic) add("anthropic", ANTHROPIC_MODELS);
   if (haveOllama && ollama) {
     const models: Model[] = [];
-    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
+    for (const [key, config] of Object.entries<CustomLLMPublic>(ollama.toJS())) {
       const { display, desc = "" } = config;
       const ollamaModel = toOllamaModel(key);
       models.push({

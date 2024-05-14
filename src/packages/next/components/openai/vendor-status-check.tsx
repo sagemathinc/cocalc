@@ -36,6 +36,15 @@ export function LLMServiceStatusCheck({
         </>
       );
 
+    case "custom_openai":
+      return (
+        <>
+          This Custom OpenAI API endpoint does not have a status page. If you
+          are experiencing issues you have to check with the API service
+          directly or try again later.
+        </>
+      );
+
     case "mistralai":
       return (
         <>

@@ -29,7 +29,7 @@ export const MODELS_OPENAI = [
   "gpt-4o-8k", // context limited, similar to gpt-4-turbo-8k
   "gpt-4o", // Released 2024-05-13
   // the "preview" variants are disabled, because the preview is over
-  "gpt-4-turbo-preview-8k", // like above, but artificially limited to 8k tokens
+  "gpt-4-turbo-preview-8k", // like below, but artificially limited to 8k tokens
   "gpt-4-turbo-preview",
   "gpt-4-turbo-8k", // Released 2024-04-11
   "gpt-4-turbo",
@@ -155,6 +155,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
     );
   }),
   ollama: [], // this is empty, because these models are not hardcoded
+  custom_openai: [], // this is empty, because these models are not hardcoded]
 } as const;
 
 // This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
@@ -168,6 +169,7 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
 ] as const;
 
 export type OllamaLLM = string;
+export type CustomOpenAI = string;
 
 // use the one without Ollama to get stronger typing. Ollama could be any string starting with the OLLAMA_PREFIX.
 export type LanguageModelCore = (typeof LANGUAGE_MODELS)[number];
@@ -184,6 +186,7 @@ export function isLanguageModel(model?: unknown): model is LanguageModel {
   if (model == null) return false;
   if (typeof model !== "string") return false;
   if (isOllamaLLM(model)) return true;
+  if (isCustomOpenAI(model)) return true;
   return LANGUAGE_MODELS.includes(model as any);
 }
 
@@ -193,6 +196,7 @@ export const LANGUAGE_MODEL_SERVICES = [
   "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
   "anthropic",
   "ollama",
+  "custom_openai",
 ] as const;
 export type LLMServiceName = (typeof LANGUAGE_MODEL_SERVICES)[number];
 
@@ -229,6 +233,11 @@ export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
     short: "Open-source software",
     desc: "Ollama helps you to get up and running with large language models, locally.",
   },
+  custom_openai: {
+    name: "OpenAI (custom)",
+    short: "OpenAI (custom)",
+    desc: "A custom OpenAI endoint.",
+  },
 };
 
 // this is used in initialization functions. e.g. to get a default model depending on the overall availability
@@ -242,8 +251,10 @@ export function getValidLanguageModelName(
     ollama: false,
     mistralai: false,
     anthropic: false,
+    custom_openai: false,
   },
   ollama: string[] = [], // keys of ollama models
+  custom_openai: string[] = [], // keys of custom openai models
   selectable_llms: string[],
 ): LanguageModel {
   const dftl: string =
@@ -257,8 +268,10 @@ export function getValidLanguageModelName(
             return false;
           })
           .pop() ??
-        (filter.ollama && ollama?.length > 0)
+        (filter.ollama && ollama.length > 0)
       ? toOllamaModel(ollama[0])
+      : filter.custom_openai && custom_openai.length > 0
+      ? toCustomOpenAIModel(custom_openai[0])
       : DEFAULT_MODEL;
 
   if (model == null) {
@@ -289,6 +302,14 @@ export function isOllamaService(service: string): service is OllamaService {
   return isOllamaLLM(service);
 }
 
+export const CUSTOM_OPENAI_PREFIX = "custom_openai-";
+export type CustomOpenAIService = string;
+export function isCustomOpenAIService(
+  service: string,
+): service is CustomOpenAIService {
+  return isCustomOpenAI(service);
+}
+
 export const MISTRAL_PREFIX = "mistralai-";
 export type MistralService = `${typeof MISTRAL_PREFIX}${MistralModel}`;
 export function isMistralService(service: string): service is MistralService {
@@ -310,7 +331,10 @@ export type LanguageServiceCore =
   | AnthropicService
   | MistralService;
 
-export type LanguageService = LanguageServiceCore | OllamaService;
+export type LanguageService =
+  | LanguageServiceCore
+  | OllamaService
+  | CustomOpenAIService;
 
 // used e.g. for checking "account-id={string}" and other things like that
 export const LANGUAGE_MODEL_PREFIXES = [
@@ -323,8 +347,8 @@ export function model2service(model: LanguageModel): LanguageService {
   if (model === "text-embedding-ada-002") {
     return `${OPENAI_PREFIX}${model}`;
   }
-  if (isOllamaLLM(model)) {
-    return model; // already has the ollama prefix
+  if (isOllamaLLM(model) || isCustomOpenAI(model)) {
+    return model; // already has the ollama or custom_openai prefix
   }
   if (isMistralModel(model)) {
     return toMistralService(model);
@@ -374,8 +398,14 @@ export function service2model_core(
   const hasPrefix = LANGUAGE_MODEL_SERVICES.some((v) => s === v);
 
   const m = hasPrefix ? service.split("-").slice(1).join("-") : service;
-  if (hasPrefix && s === "ollama") {
-    return toOllamaModel(m);
+  if (hasPrefix) {
+    // we add the trailing "-" to match with these prefixes, which include the "-"
+    switch (`${s}-`) {
+      case OLLAMA_PREFIX:
+        return toOllamaModel(m);
+      case CUSTOM_OPENAI_PREFIX:
+        return toCustomOpenAIModel(m);
+    }
   }
 
   if (LANGUAGE_MODELS.includes(m as any)) {
@@ -390,6 +420,8 @@ export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
 export function model2vendor(model): LLMServiceName {
   if (isOllamaLLM(model)) {
     return "ollama";
+  } else if (isCustomOpenAI(model)) {
+    return "custom_openai";
   } else if (isMistralModel(model)) {
     return "mistralai";
   } else if (isOpenAIModel(model)) {
@@ -426,6 +458,28 @@ export function isOllamaLLM(model: unknown): model is OllamaLLM {
     model.startsWith(OLLAMA_PREFIX) &&
     model.length > OLLAMA_PREFIX.length
   );
+}
+
+export function toCustomOpenAIModel(model: string): CustomOpenAI {
+  if (isCustomOpenAI(model)) {
+    throw new Error(`already a custom openai model: ${model}`);
+  }
+  return `${CUSTOM_OPENAI_PREFIX}${model}`;
+}
+
+export function isCustomOpenAI(model: unknown): model is CustomOpenAI {
+  return (
+    typeof model === "string" &&
+    model.startsWith(CUSTOM_OPENAI_PREFIX) &&
+    model.length > CUSTOM_OPENAI_PREFIX.length
+  );
+}
+
+export function fromCustomOpenAIModel(model: CustomOpenAI) {
+  if (!isCustomOpenAI(model)) {
+    throw new Error(`not a custom openai model: ${model}`);
+  }
+  return model.slice(CUSTOM_OPENAI_PREFIX.length);
 }
 
 export function toMistralService(model: string): MistralService {
@@ -547,6 +601,7 @@ export const LLM_DESCR: LLM2String = {
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
   if (!isCoCalcCom) return true;
   if (isOllamaLLM(model)) return true;
+  if (isCustomOpenAI(model)) return true;
   if (typeof model === "string" && LANGUAGE_MODELS.includes(model as any)) {
     // i.e. model is now of type CoreLanguageModel and
     const costInfo = LLM_COST[model];
@@ -578,7 +633,9 @@ export function getLLMServiceStatusCheckMD(service: LLMServiceName): string {
     case "google":
       return `Google [status](https://status.cloud.google.com) and [downdetector](https://downdetector.com/status/google-cloud).`;
     case "ollama":
-      return `No status information for Ollama available – you have to check with the particular backend for the model.`;
+      return `No status information for Ollama available.`;
+    case "custom_openai":
+      return `No status information for Custom OpenAI available.`;
     case "mistralai":
       return `No status information for Mistral AI available.`;
     case "anthropic":
@@ -781,6 +838,7 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
 export function isValidModel(model?: string): boolean {
   if (model == null) return false;
   if (isOllamaLLM(model)) return true;
+  if (isCustomOpenAI(model)) return true;
   if (isMistralModel(model)) return true;
   if (isGoogleModel(model)) return true;
   return LLM_COST[model ?? ""] != null;

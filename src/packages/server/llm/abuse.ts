@@ -30,7 +30,9 @@ import { assertPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allo
 import {
   LanguageModel,
   LanguageServiceCore,
+  fromCustomOpenAIModel,
   fromOllamaModel,
+  isCustomOpenAI,
   isFreeModel,
   isLanguageModel,
   isOllamaLLM,
@@ -196,13 +198,24 @@ async function recentUsage({
 async function isUserSelectableLanguageModel(
   model: LanguageModel,
 ): Promise<boolean> {
-  const { selectable_llms, ollama_configuration, ollama_enabled } =
-    await getServerSettings();
+  const {
+    selectable_llms,
+    ollama_configuration,
+    ollama_enabled,
+    custom_openai_enabled,
+    custom_openai_configuration,
+  } = await getServerSettings();
 
   if (isOllamaLLM(model)) {
     if (ollama_enabled && isObject(ollama_configuration)) {
       const om = fromOllamaModel(model);
       const oc = ollama_configuration[om];
+      return oc?.enabled ?? true;
+    }
+  } else if (isCustomOpenAI(model)) {
+    if (custom_openai_enabled && isObject(custom_openai_configuration)) {
+      const om = fromCustomOpenAIModel(model);
+      const oc = custom_openai_configuration[om];
       return oc?.enabled ?? true;
     }
   } else if (selectable_llms.includes(model)) {

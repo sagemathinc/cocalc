@@ -15,16 +15,18 @@ import {
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  fromCustomOpenAIModel,
   fromOllamaModel,
   getLLMCost,
   getLLMPriceRange,
   isCoreLanguageModel,
+  isCustomOpenAI,
   isFreeModel,
   isOllamaLLM,
   model2service,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import type { OllamaPublic } from "@cocalc/util/types/llm";
+import type { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { round2up } from "@cocalc/util/misc";
 
 type SizeType = ConfigProviderProps["componentSize"];
@@ -36,7 +38,6 @@ interface Props {
   style?: CSS;
   project_id?: string;
 }
-
 
 // ATTN: if you change this LLMSelector, you also have to change useLLMMenuOptions
 export default function LLMSelector({
@@ -165,7 +166,9 @@ export default function LLMSelector({
     if (!showOllama || !ollama) return;
 
     const options: NonNullable<SelectProps["options"]> = [];
-    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
+    for (const [key, config] of Object.entries<CustomLLMPublic>(
+      ollama.toJS(),
+    )) {
       const { display, desc } = config;
       const ollamaModel = toOllamaModel(key);
       const text = (
@@ -279,6 +282,12 @@ export function modelToName(model: LanguageModel): string {
     const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
     const om = ollama[fromOllamaModel(model)];
     return om ? om.display : `Ollama ${model}`;
+  }
+  if (isCustomOpenAI(model)) {
+    const custom_openai =
+      redux.getStore("customize").get("custom_openai")?.toJS() ?? {};
+    const om = custom_openai[fromCustomOpenAIModel(model)];
+    return om ? om.display : `OpenAI (custom) ${model}`;
   }
   return LLM_USERNAMES[model] ?? model;
 }

@@ -51,6 +51,7 @@ export type SiteSettingsKeys =
   | "mistral_enabled"
   | "anthropic_enabled"
   | "ollama_enabled"
+  | "custom_openai_enabled"
   | "selectable_llms"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
@@ -684,6 +685,14 @@ export const site_settings_conf: SiteSettings = {
   ollama_enabled: {
     name: "Ollama LLM UI",
     desc: "Controls visibility of UI elements related to Ollama integration.  To make this actually work, configure the list of API/model endpoints in the Ollama configuration.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  custom_openai_enabled: {
+    name: "Custom OpenAI LLM UI",
+    desc: "Controls visibility of UI elements related to Custom OpenAI integration.  To make this actually work, configure the list of API/model endpoints in the Custom OpenAI configuration.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
