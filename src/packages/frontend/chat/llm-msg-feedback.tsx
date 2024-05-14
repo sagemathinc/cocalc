@@ -7,6 +7,8 @@ import { Space } from "antd";
 
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { redux } from "@cocalc/frontend/app-framework";
+import { HelpIcon, Text } from "@cocalc/frontend/components";
+import { useProjectContext } from "../project/context";
 import { ChatActions } from "./actions";
 import { ChatMessageTyped, Feedback } from "./types";
 
@@ -16,6 +18,8 @@ interface FeedackLLMProps {
 }
 
 export function FeedbackLLM({ actions, message }: FeedackLLMProps) {
+  const { onCoCalcCom } = useProjectContext();
+
   if (actions == null) return null;
   const account_id = redux.getStore("account").get_account_id();
 
@@ -29,30 +33,59 @@ export function FeedbackLLM({ actions, message }: FeedackLLMProps) {
   const isNegative = val === "negative";
   const isPositive = val === "positive";
 
+  function renderUnhappy() {
+    if (!isNegative) return null;
+
+    return (
+      <>
+        <Text type="secondary">
+          Try another model!{" "}
+          <HelpIcon title={"Different Language Models"}>
+            Try a different language models by selecting it in the "Regenerate"
+            dropdown or pick another one the next time you query it. No language
+            model is like another one and answers vary from one another.{" "}
+            {onCoCalcCom ? (
+              <>
+                In particular, there is a significant difference between free
+                and paid models. Paid models are more expensive, because they
+                process the information with a larger model, using more
+                computational resources. They usually have a deeper
+                understanding and are more accurate than free models.
+              </>
+            ) : undefined}
+          </HelpIcon>
+        </Text>
+      </>
+    );
+  }
+
   return (
-    <Space.Compact>
-      <Button
-        bsSize="xsmall"
-        bsStyle="ghost"
-        active={isPositive}
-        onClick={() =>
-          actions?.feedback(message, isPositive ? null : "positive")
-        }
-        title={feedback("positive")}
-      >
-        👍
-      </Button>
-      <Button
-        bsSize="xsmall"
-        bsStyle="ghost"
-        active={isNegative}
-        onClick={() =>
-          actions?.feedback(message, isNegative ? null : "negative")
-        }
-        title={feedback("negative")}
-      >
-        👎
-      </Button>
-    </Space.Compact>
+    <Space size="small" wrap>
+      <Space.Compact>
+        <Button
+          bsSize="xsmall"
+          bsStyle="ghost"
+          active={isPositive}
+          onClick={() =>
+            actions?.feedback(message, isPositive ? null : "positive")
+          }
+          title={feedback("positive")}
+        >
+          👍
+        </Button>
+        <Button
+          bsSize="xsmall"
+          bsStyle="ghost"
+          active={isNegative}
+          onClick={() =>
+            actions?.feedback(message, isNegative ? null : "negative")
+          }
+          title={feedback("negative")}
+        >
+          👎
+        </Button>
+      </Space.Compact>
+      {renderUnhappy()}
+    </Space>
   );
 }
