@@ -48,16 +48,13 @@ interface Props {
 export default function Header(props: Props) {
   const { page, subPage, softwareEnv, runnableTag } = props;
   const {
-    isCommercial,
-    anonymousSignup,
     siteName,
     termsOfServiceURL,
-    shareServer,
-    landingPages,
     account,
     onCoCalcCom,
     openaiEnabled,
     jupyterApiEnabled,
+    enabledPages,
   } = useCustomize();
 
   if (basePath == null) return null;
@@ -144,32 +141,31 @@ export default function Header(props: Props) {
             Your Projects
           </a>
         )}
-        {landingPages && (
-          <>
-            {isCommercial && (
-              <A
-                href="/store"
-                style={page == "store" ? SelectedStyle : LinkStyle}
-              >
-                Store
-              </A>
-            )}
-            <A
-              href="/features/"
-              style={page == "features" ? SelectedStyle : LinkStyle}
-            >
-              Features
-            </A>
-            {/* <A
-              href="/software"
-              style={page == "software" ? SelectedStyle : LinkStyle}
-            >
-              Software
-            </A>
-            */}
-          </>
+        {enabledPages?.store && (
+          <A
+            href="/store"
+            style={page == "store" ? SelectedStyle : LinkStyle}
+          >
+            Store
+          </A>
         )}
-        {!landingPages && termsOfServiceURL && (
+        {enabledPages?.features && (
+          <A
+            href="/features/"
+            style={page == "features" ? SelectedStyle : LinkStyle}
+          >
+            Features
+          </A>
+        )}
+        {/* supportedRoutes?.software && (
+          <A
+            href="/software"
+            style={page == "software" ? SelectedStyle : LinkStyle}
+          >
+            Software
+          </A>
+        )*/}
+        {enabledPages?.legal && (
           <A
             style={LinkStyle}
             href={termsOfServiceURL}
@@ -178,14 +174,16 @@ export default function Header(props: Props) {
             Legal
           </A>
         )}
-        <A
-          style={page == "info" ? SelectedStyle : LinkStyle}
-          href="/info"
-          title="Documentation and links to resources for learning more about CoCalc"
-        >
-          Docs
-        </A>
-        {shareServer && (
+        {enabledPages?.info && (
+          <A
+            style={page == "info" ? SelectedStyle : LinkStyle}
+            href="/info"
+            title="Documentation and links to resources for learning more about CoCalc"
+          >
+            Docs
+          </A>
+        )}
+        {enabledPages?.share && (
           <Link
             href={"/share/public_paths/page/1"}
             style={page == "share" ? SelectedStyle : LinkStyle}
@@ -194,21 +192,25 @@ export default function Header(props: Props) {
             Share
           </Link>
         )}
-        <A
-          style={page == "support" ? SelectedStyle : LinkStyle}
-          href="/support"
-          title="Create and view support tickets"
-        >
-          Support
-        </A>{" "}
-        <A
-          style={page == "news" ? SelectedStyle : LinkStyle}
-          href="/news"
-          title={`News about ${siteName}`}
-        >
-          News
-        </A>{" "}
-        {landingPages && (
+        {enabledPages?.support && (
+          <A
+            style={page == "support" ? SelectedStyle : LinkStyle}
+            href="/support"
+            title="Create and view support tickets"
+          >
+            Support
+          </A>
+        )}
+        {enabledPages?.news && (
+          <A
+            style={page == "news" ? SelectedStyle : LinkStyle}
+            href="/news"
+            title={`News about ${siteName}`}
+          >
+            News
+          </A>
+        )}
+        {enabledPages?.about.index && (
           <A
             style={page == "about" ? SelectedStyle : LinkStyle}
             href="/about"
@@ -239,7 +241,7 @@ export default function Header(props: Props) {
             </A>
           </>
         )}
-        {!account && anonymousSignup && (
+        {enabledPages?.auth.try && (
           <A
             style={page == "try" ? SelectedStyle : LinkStyle}
             href={"/auth/try"}

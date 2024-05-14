@@ -11,6 +11,8 @@ import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 
+import { CustomizeType } from "./customize";
+
 const revalidate = 30;
 
 interface Options {
@@ -27,14 +29,14 @@ export default async function withCustomize(
   },
   options: Options = {}
 ) {
-  let customize;
+  let customize: CustomizeType;
   try {
     // NOTE: important to make a (shallow) copy, since customize gets mutated below.
     customize = { ...(await getCustomize()) };
   } catch (_err) {
     // fallback to be empty; during static build
     // this happens.
-    customize = {};
+    customize = {} as CustomizeType;
   }
 
   if (obj.context?.req != null) {
@@ -72,6 +74,38 @@ export default async function withCustomize(
   const softwareEnvs = await getSoftwareEnvironments("server");
   customize.defaultComputeImage =
     softwareEnvs?.default ?? DEFAULT_COMPUTE_IMAGE;
+
+  customize.enabledPages = {
+    auth: {
+      try: !customize.account && customize.anonymousSignup,
+    },
+    about: {
+      index: customize.landingPages,
+      events: customize.isCommercial,
+      team: customize.landingPages,
+    },
+    compute: customize.computeServersEnabled,
+    contact: !!customize.contactEmail,
+    features: customize.landingPages,
+    info: true,
+    legal: !customize.landingPages && !!customize.termsOfServiceURL,
+    licenses: customize.isCommercial,
+    news: true,
+    onPrem: customize.onCoCalcCom,
+    organization: !!customize.organizationURL,
+    policies: {
+      index: customize.landingPages || customize.imprintOrPolicies,
+      imprint: !!customize.imprint,
+    },
+    pricing: customize.isCommercial,
+    share: customize.shareServer,
+    software: customize.landingPages,
+    store: customize.landingPages && customize.isCommercial,
+    support: true,
+    systemActivity: true,
+    status: customize.onCoCalcCom,
+    termsOfService: !customize.landingPages && !!customize.termsOfServiceURL,
+  };
 
   if (obj == null) {
     return { props: { customize } };
