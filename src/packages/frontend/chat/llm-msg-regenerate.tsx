@@ -15,7 +15,7 @@ import {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
-  CoreLanguageModel,
+  LanguageModelCore,
   LanguageModel,
   USER_SELECTABLE_LLMS_BY_VENDOR,
   isLanguageModel,
@@ -54,7 +54,7 @@ export function RegenerateLLM({
   // iterate over all key,values in USER_SELECTABLE_LLMS_BY_VENDOR
   for (const vendor in USER_SELECTABLE_LLMS_BY_VENDOR) {
     if (!enabledLLMs[vendor]) continue;
-    const llms: CoreLanguageModel[] = USER_SELECTABLE_LLMS_BY_VENDOR[vendor];
+    const llms: LanguageModelCore[] = USER_SELECTABLE_LLMS_BY_VENDOR[vendor];
     for (const llm of llms) {
       if (!selectableLLMs.includes(llm)) continue;
       entries.push({

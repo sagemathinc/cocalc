@@ -24,6 +24,11 @@ const GPT_TURBO_8K: Spec = {
   color: "#10a37f",
 };
 
+const GPT_OMNI_8K: Spec = {
+  display: "OpenAI GPT-4 Omni 8k",
+  color: "#10a37f",
+};
+
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
 export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true, color: "green" },
@@ -72,6 +77,8 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-4-turbo-preview-8k": GPT_TURBO_8K, // the "preview" is over
   "openai-gpt-4-turbo": GPT_TURBO,
   "openai-gpt-4-turbo-8k": GPT_TURBO_8K,
+  "openai-gpt-4o": GPT_OMNI_8K,
+  "openai-gpt-4o-8k": GPT_TURBO_8K,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: "#4285f4",

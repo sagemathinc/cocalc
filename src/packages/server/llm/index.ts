@@ -346,6 +346,8 @@ export async function evaluateOpenAI({
   // convert *-preview and all *-8k to "gpt-4-turbo"
   if (model.startsWith("gpt-4-turbo")) {
     model = "gpt-4-turbo";
+  } else if (model.startsWith("gpt-4o")) {
+    model = "gpt-4o";
   }
 
   const messages: OpenAIMessages = [];

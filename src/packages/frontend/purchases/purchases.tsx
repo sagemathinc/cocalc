@@ -609,18 +609,12 @@ function Description({ description, period_end, service }) {
     return null;
   }
 
-  if (
-    service === "openai-gpt-4" ||
-    service === "openai-gpt-4-turbo-preview" ||
-    service === "openai-gpt-4-turbo-preview-8k" ||
-    service === "openai-gpt-4-turbo" ||
-    service === "openai-gpt-4-turbo-8k"
-  ) {
-    const extra = service.includes("turbo")
-      ? service.includes("128k")
-        ? "Turbo 128k"
-        : "Turbo 8k"
-      : "";
+  if (service.startsWith("openai-gpt-")) {
+    let extra = "";
+    if (service.includes("turbo")) extra += "Turbo";
+    if (service.includes("4o")) extra += "Omni";
+    if (service.includes("128k")) extra += " 128k";
+    if (service.includes("8k")) extra += " 8k";
     return (
       <Tooltip
         title={() => (

@@ -26,14 +26,16 @@ export const OPENAI_PREFIX = "openai-";
 
 export const MODELS_OPENAI = [
   "gpt-3.5-turbo",
-  "gpt-3.5-turbo-16k",
-  "gpt-4",
-  "gpt-4-32k",
+  "gpt-4o-8k", // context limited, similar to gpt-4-turbo-8k
+  "gpt-4o", // Released 2024-05-13
   // the "preview" variants are disabled, because the preview is over
   "gpt-4-turbo-preview-8k", // like above, but artificially limited to 8k tokens
   "gpt-4-turbo-preview",
   "gpt-4-turbo-8k", // Released 2024-04-11
   "gpt-4-turbo",
+  "gpt-4",
+  "gpt-4-32k",
+  "gpt-3.5-turbo-16k",
   "text-embedding-ada-002", // TODO: this is for embeddings, should be moved to a different place
 ] as const;
 
@@ -128,14 +130,15 @@ export const LANGUAGE_MODELS = [
 ] as const;
 
 export const USER_SELECTABLE_LLMS_BY_VENDOR: {
-  [vendor in LLMServiceName]: Readonly<CoreLanguageModel[]>;
+  [vendor in LLMServiceName]: Readonly<LanguageModelCore[]>;
 } = {
   openai: MODELS_OPENAI.filter(
     (m) =>
       m === "gpt-3.5-turbo" ||
       m === "gpt-3.5-turbo-16k" ||
       m === "gpt-4" ||
-      m === "gpt-4-turbo-preview-8k",
+      m === "gpt-4-turbo-preview-8k" ||
+      m === "gpt-4o-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
@@ -167,11 +170,11 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
 export type OllamaLLM = string;
 
 // use the one without Ollama to get stronger typing. Ollama could be any string starting with the OLLAMA_PREFIX.
-export type CoreLanguageModel = (typeof LANGUAGE_MODELS)[number];
-export type LanguageModel = CoreLanguageModel | OllamaLLM;
+export type LanguageModelCore = (typeof LANGUAGE_MODELS)[number];
+export type LanguageModel = LanguageModelCore | OllamaLLM;
 export function isCoreLanguageModel(
   model: unknown,
-): model is CoreLanguageModel {
+): model is LanguageModelCore {
   if (typeof model !== "string") return false;
   return LANGUAGE_MODELS.includes(model as any);
 }
@@ -468,6 +471,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-4-turbo-preview-8k": "GPT-4 Turbo 8k",
   "gpt-4-turbo": "GPT-4 Turbo 128k",
   "gpt-4-turbo-8k": "GPT-4 Turbo 8k",
+  "gpt-4o": "GPT-4 Omni 128k",
+  "gpt-4o-8k": "GPT-4 Omni 8k",
   "text-embedding-ada-002": "Text Embedding Ada 002", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
@@ -505,6 +510,9 @@ export const LLM_DESCR: LLM2String = {
   "gpt-4-turbo-8k":
     "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
   "gpt-4-turbo": "Like GPT-4 Turob 8k, but with up to 128k token context",
+  "gpt-4o-8k":
+    "Most powerful, fastest, and cheapest (OpenAI, 8k token context)",
+  "gpt-4o": "Most powerful fastest, and cheapest (OpenAI, 128k token context)",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "",
   "chat-bison-001": "",
@@ -598,7 +606,7 @@ function usd1Mtokens(usd: number): number {
 // Our cost is a configurable multiple of this.
 // https://openai.com/pricing#language-models
 // There appears to be no api that provides the prices, unfortunately.
-export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
+export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gpt-4": {
     prompt_tokens: 0.03 / 1000,
     completion_tokens: 0.06 / 1000,
@@ -645,6 +653,18 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
   "gpt-4-turbo": {
     prompt_tokens: usd1Mtokens(10), // 	$10.00 / 1M tokens
     completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
+    max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
+    free: false,
+  },
+  "gpt-4o-8k": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 8192, // like gpt-4-turbo-8k
+    free: false,
+  },
+  "gpt-4o": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(15),
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
     free: false,
   },
@@ -779,7 +799,7 @@ export interface LLMCost {
 }
 
 export function getLLMCost(
-  model: CoreLanguageModel,
+  model: LanguageModelCore,
   markup_percentage: number, // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
 ): LLMCost {
   const x = LLM_COST[model];
@@ -816,7 +836,7 @@ export function getLLMPriceRange(
     const model = LLM_COST[key];
     if (!model || isFreeModel(key, true)) continue;
     const { prompt_tokens, completion_tokens } = getLLMCost(
-      key as CoreLanguageModel,
+      key as LanguageModelCore,
       markup_percentage,
     );
     const p = prompt * prompt_tokens + output * completion_tokens;
@@ -833,7 +853,7 @@ export function getLLMPriceRange(
 // We can't know the cost until after it happens, so this bound is useful for
 // ensuring user can afford to make a call.
 export function getMaxCost(
-  model: CoreLanguageModel,
+  model: LanguageModelCore,
   markup_percentage: number,
 ): number {
   const { prompt_tokens, completion_tokens } = getLLMCost(

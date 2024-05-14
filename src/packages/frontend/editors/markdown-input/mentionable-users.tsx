@@ -144,7 +144,9 @@ function mentionableUsers({
       const show_llm_main_menu = moai === model;
       const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
       const v = "openai";
-      const search_term = `${v}chat${moai.replace(/-/g, "").toLowerCase()}`;
+      const m = moai.replace(/-/g, "");
+      const n = LLM_USERNAMES[moai].replace(/ /g, "");
+      const search_term = `${v}chat${m}${n}`.toLowerCase();
       if (!search || search_term.includes(search)) {
         mentions.push({
           value: model2service(moai),
