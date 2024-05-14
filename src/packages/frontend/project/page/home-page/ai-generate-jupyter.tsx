@@ -40,6 +40,7 @@ import LLMSelector, {
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
+import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -597,9 +598,11 @@ export default function AIGenerateJupyterNotebook({
 export function AIGenerateNotebookButton({
   project_id,
   style,
+  mode = "full",
 }: {
   project_id: string;
   style?: CSS;
+  mode?: "full" | "flyout";
 }) {
   const [show, setShow] = useState<boolean>(false);
 
@@ -610,15 +613,28 @@ export function AIGenerateNotebookButton({
   const btnStyle: CSS = {
     width: "100%",
     overflowX: "hidden",
+    overflow: "hidden",
     whiteSpace: "nowrap",
+    ...(mode === "flyout" ? NEW_FILE_STYLE : {}),
     ...style,
   } as const;
 
   return (
     <>
-      <Button onClick={() => setShow(true)} style={btnStyle}>
-        <AIAvatar size={14} style={{ position: "unset", marginRight: "5px" }} />{" "}
-        Notebook Generator
+      <Button
+        onClick={() => setShow(true)}
+        style={btnStyle}
+        size={mode === "flyout" ? "large" : undefined}
+      >
+        <AIAvatar
+          size={mode === "flyout" ? 18 : 14}
+          style={{
+            ...(mode === "flyout"
+              ? {}
+              : { position: "unset", marginRight: "5px" }),
+          }}
+        />
+        {mode === "full" ? " Notebook Generator" : ""}
       </Button>
       <Modal
         title={

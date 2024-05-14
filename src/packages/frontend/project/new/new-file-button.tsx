@@ -10,7 +10,7 @@ import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { NEW_FILETYPE_ICONS, isNewFiletypeIconName } from "./consts";
 
-const STYLE = {
+export const STYLE = {
   marginRight: "5px",
   marginBottom: "5px",
   whiteSpace: "normal",
