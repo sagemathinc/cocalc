@@ -286,7 +286,7 @@ export function JupyterNotebookButtons({
       return (
         <Col sm={sm} md={md}>
           {btn}
-          <AIGenerateNotebookButton project_id={project_id} />
+          <AIGenerateNotebookButton project_id={project_id} mode="full" />
         </Col>
       );
     }

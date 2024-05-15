@@ -1,7 +1,7 @@
 export type Example = [display: string, prompt: string, tags: string[]];
 type Language = "python" | "r" | "sagemath" | "octave" | "julia";
 
-export const EXAMPLES: { [key in Language]: Example[] } = {
+export const JUPYTER: { [key in Language]: Example[] } = {
   python: [
     [
       "Linear Regression Analysis",
@@ -162,4 +162,97 @@ export const EXAMPLES: { [key in Language]: Example[] } = {
       ["mathematics", "simulation", "statistics"],
     ],
   ],
-};
+} as const;
+
+export const LATEX: Example[] = [
+  [
+    "Article",
+    "A template for writing a research article, including sections for abstract, introduction, methodology, results, discussion, and conclusion.",
+    ["research", "academic", "journal"],
+  ],
+  [
+    "Article IEEE",
+    "A template for writing a research article submitted to IEEE.",
+    ["research", "academic", "journal"],
+  ],
+  [
+    "Resume",
+    "A template for creating a professional resume, with sections for personal information, education, work experience, skills, and references.",
+    ["job", "career", "application"],
+  ],
+  [
+    "Letter",
+    "A template for writing a formal letter, including sections for the sender's address, date, recipient's address, salutation, body, and closing.",
+    ["correspondence", "official", "business"],
+  ],
+  [
+    "Presentation",
+    "A template for creating a slide presentation, with a title slide, section slides, and a slide for references or additional information.",
+    ["slides", "presentation", "conference"],
+  ],
+  [
+    "Book",
+    "A template for writing a book, including sections for the cover page, table of contents, chapters, and back matter (appendices, glossary, etc.).",
+    ["novel", "story", "literature"],
+  ],
+  [
+    "Report",
+    "A template for generating a comprehensive report, with sections for an executive summary, introduction, detailed analysis, recommendations, and appendices.",
+    ["analysis", "business", "technical"],
+  ],
+  [
+    "Scientific Poster",
+    "Template for a academic conference poster. The document must be a single page and position graphic and text objects onto it. The topic should be something fun to get started - for example 'newly discovered rhytmic beats of rotating black holes'.",
+    ["poster", "academic", "conference"],
+  ],
+  [
+    "Lab Report",
+    "Template for recording scientific experiments and findings.",
+    ["lab", "report", "science"],
+  ],
+  [
+    "Homework Assignment",
+    "Clean layout for homework submissions.",
+    ["homework", "assignment", "school"],
+  ],
+  [
+    "Exam",
+    "Template for creating structured exams or quizzes.",
+    ["exam", "quiz", "test"],
+  ],
+  [
+    "Newsletter",
+    "Template for designing and distributing newsletters.",
+    ["newsletter", "communication"],
+  ],
+  [
+    "Recipe",
+    "Beautifully formatted template for sharing culinary creations.",
+    ["recipe", "cooking", "food"],
+  ],
+  [
+    "Invoice",
+    "Professional template for billing clients or customers.",
+    ["invoice", "billing", "payment"],
+  ],
+  [
+    "Calendar",
+    "Template for yearly, monthly, or weekly calendars.",
+    ["calendar", "planner", "schedule"],
+  ],
+  [
+    "Poetry/Prose",
+    "Elegant layout for showcasing creative writing.",
+    ["poetry", "prose", "writing"],
+  ],
+  [
+    "Photo Album",
+    "Visually appealing template for displaying photographs.",
+    ["photo", "album", "gallery"],
+  ],
+  [
+    "Scrapbook",
+    "Creative template for personal mementos and memories.",
+    ["scrapbook", "journal", "memory"],
+  ],
+] as const;

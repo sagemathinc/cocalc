@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Row, Tag } from "antd";
+import { Col, Flex, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
 
@@ -12,7 +12,9 @@ import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { AIGenerateLaTeXButton } from "../page/home-page/ai-generate-latex";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { JupyterNotebookButtons } from "./jupyter-buttons";
 import { NewFileButton } from "./new-file-button";
@@ -53,6 +55,8 @@ export function FileTypeSelector({
   filename,
   makeNewFilename,
 }: Props) {
+  const { project_id } = useProjectContext();
+
   if (!create_file) {
     return null;
   }
@@ -367,26 +371,45 @@ export function FileTypeSelector({
   }
 
   function renderLaTeX() {
-    if (!availableFeatures.latex) return;
+    if (!availableFeatures.latex) return null;
 
-    return (
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={DELAY_SHOW_MS}
-          title="LaTeX Document"
-          icon={NEW_FILETYPE_ICONS.tex}
-          tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
-        >
-          <NewFileButton
-            name="LaTeX Document"
-            on_click={create_file}
-            ext="tex"
-            size={btnSize}
-            active={btnActive("tex")}
-          />
-        </Tip>
-      </Col>
+    const btn = (
+      <Tip
+        delayShow={DELAY_SHOW_MS}
+        title="LaTeX Document"
+        icon={NEW_FILETYPE_ICONS.tex}
+        tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name="LaTeX Document"
+          on_click={create_file}
+          ext="tex"
+          size={btnSize}
+          active={btnActive("tex")}
+        />
+      </Tip>
     );
+
+    if (isFlyout) {
+      return (
+        <Col sm={sm} md={md}>
+          <Flex align="flex-start" vertical={false} gap={"5px"}>
+            <Flex flex={"1 1 auto"}>{btn}</Flex>
+            <Flex flex={"0 0 auto"}>
+              <AIGenerateLaTeXButton project_id={project_id} mode="flyout" />
+            </Flex>
+          </Flex>
+        </Col>
+      );
+    } else {
+      return (
+        <Col sm={sm} md={md}>
+          {btn}
+          <AIGenerateLaTeXButton project_id={project_id} mode="full" />
+        </Col>
+      );
+    }
   }
 
   function renderMarkdown() {

@@ -202,7 +202,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  private not_ready(): boolean {
+  public not_ready(): boolean {
     return this._syncstring == null || this._syncstring.get_state() != "ready";
   }
 

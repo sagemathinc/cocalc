@@ -41,8 +41,10 @@ import LLMSelector, {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -55,9 +57,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { field_cmp, getRandomColor, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { LLMCostEstimation } from "../../../misc/llm-cost-estimation";
-import { ensure_project_running } from "../../project-start-warning";
-import { EXAMPLES, Example } from "./ai-generate-examples";
+import { Example, JUPYTER } from "./ai-generate-examples";
 
 const TAG = "generate-jupyter";
 
@@ -146,7 +146,7 @@ export default function AIGenerateJupyterNotebook({
       setExamples([]);
       return;
     }
-    setExamples(EXAMPLES[spec.language?.toLowerCase()] ?? "");
+    setExamples(JUPYTER[spec.language?.toLowerCase()] ?? "");
   }, [spec]);
 
   async function generate() {
@@ -452,7 +452,9 @@ export default function AIGenerateJupyterNotebook({
           <Flex>{ex[0]} </Flex>
           <Flex>
             {ex[2].map((tag) => (
-              <Tag color={getRandomColor(tag)}>{tag}</Tag>
+              <Tag key={tag} color={getRandomColor(tag)}>
+                {tag}
+              </Tag>
             ))}
           </Flex>
         </Flex>

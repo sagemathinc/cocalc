@@ -537,6 +537,13 @@ export const LogEntry: React.FC<Props> = React.memo(
             </span>
           );
 
+        case "generate-latex":
+          return (
+            <span>
+              used an {name} to generate the LaTeX Document {pathLink}
+            </span>
+          );
+
         default:
           misc.unreachable(usage);
           // This is only for forward compatibility reasons.

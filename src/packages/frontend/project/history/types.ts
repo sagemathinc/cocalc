@@ -154,10 +154,15 @@ interface LLMEventJupyterGenerateNotebook extends LLMEventBase {
   usage: "jupyter-generate-notebook";
 }
 
+interface LLMEvenGenerateLaTeX extends LLMEventBase {
+  usage: "generate-latex";
+}
+
 export type LLMEvent =
   | LLMEventJupyterCellButton
   | LLMEventJupyterCellGenerate
-  | LLMEventJupyterGenerateNotebook;
+  | LLMEventJupyterGenerateNotebook
+  | LLMEvenGenerateLaTeX;
 
 export type MiniTermEvent = {
   event: "miniterm" | "termInSearch";
