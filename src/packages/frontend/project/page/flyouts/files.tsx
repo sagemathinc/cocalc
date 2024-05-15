@@ -5,7 +5,7 @@
 
 import { Alert, InputRef } from "antd";
 import { delay } from "awaiting";
-import { List } from "immutable";
+import { List, Map } from "immutable";
 import { debounce, fromPairs } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
@@ -109,10 +109,12 @@ export function FilesFlyout({
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
-  const directoryListings = useTypedRedux(
-    { project_id },
-    "directory_listings",
-  )?.get(compute_server_id);
+  const directoryListings: Map<
+    string,
+    TypedMap<DirectoryListing> | null
+  > | null = useTypedRedux({ project_id }, "directory_listings")?.get(
+    compute_server_id,
+  );
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   const activeFileSort: ActiveFileSort = useTypedRedux(
     { project_id },
@@ -184,7 +186,8 @@ export function FilesFlyout({
     // TODO this is an error, process it
     if (typeof filesStore === "string") return EMPTY_LISTING;
 
-    const files: DirectoryListing = filesStore.toJS();
+    const files: DirectoryListing | null = filesStore.toJS?.();
+    if (files == null) return EMPTY_LISTING;
     let activeFile: DirectoryListingEntry | null = null;
     compute_file_masks(files);
     const searchWords = search_split(file_search.trim().toLowerCase());
