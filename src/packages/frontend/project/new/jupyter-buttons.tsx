@@ -274,7 +274,7 @@ export function JupyterNotebookButtons({
     if (isFlyout) {
       return (
         <Col sm={sm} md={md}>
-          <Flex align="center" vertical={false} gap={"5px"}>
+          <Flex align="flex-start" vertical={false} gap={"5px"}>
             <Flex flex={"1 1 auto"}>{btn}</Flex>
             <Flex flex={"0 0 auto"}>
               <AIGenerateNotebookButton project_id={project_id} mode="flyout" />

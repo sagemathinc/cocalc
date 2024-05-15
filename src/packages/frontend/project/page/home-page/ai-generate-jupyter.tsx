@@ -7,9 +7,11 @@ TODO:
 - input description box could be Markdown wysiwyg editor
 */
 
-import { Alert, Button, Input, Modal } from "antd";
+import type { MenuProps } from "antd";
+import { Alert, Button, Dropdown, Flex, Input, Modal, Space, Tag } from "antd";
+
 import { delay } from "awaiting";
-import { debounce, throttle } from "lodash";
+import { debounce, isEmpty, throttle } from "lodash";
 import { useEffect, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -51,31 +53,24 @@ import {
   getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
-import { field_cmp, to_iso_path } from "@cocalc/util/misc";
+import { field_cmp, getRandomColor, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { LLMCostEstimation } from "../../../misc/llm-cost-estimation";
 import { ensure_project_running } from "../../project-start-warning";
+import { EXAMPLES, Example } from "./ai-generate-examples";
 
 const TAG = "generate-jupyter";
 
 const PLACEHOLDER = "Describe your notebook...";
-
-const EXAMPLES: { [language: string]: string } = {
-  python:
-    "Fit a statistical model to this time series of monthly values: 72, 42, 63, 44, 46, 51, 47, 39, 21, 31, 19, 22. Then plot it with extrapolation.",
-  r: "Fit a statistical model to these monthly values: 72, 42, 63, 44, 46, 51, 47, 39, 21, 31, 19, 22. Then plot it.",
-  sagemath:
-    "Generate a random 5x5 matrix over GF_2 and calculate its determinant.",
-  octave: "Generate a 10x10 multiplication table.",
-} as const;
 
 const DEFAULT_LANG_EXTRA = "Prefer using the standard library.";
 
 const LANG_EXTRA: { [language: string]: string } = {
   python:
     "Prefer using the standard library or the following packages: numpy, matplotlib, pandas, scikit-learn, sympy, scipy, sklearn, seaborn, statsmodels, nltk, tensorflow, pytorch, pymc3, dask, numba, bokeh.",
-  r: "Prefer using the standard library or the following: tidyverse, tidyr, stringr, dplyr, data.table, ggplot2, car, mgcv, lme4, nlme, randomForest, survival, glmnet.",
+  r: "Prefer using the standard library or the following packages: tidyverse, tidyr, stringr, dplyr, data.table, ggplot2, car, mgcv, lme4, nlme, randomForest, survival, glmnet.",
   sagemath: "Use all functions in SageMath.",
+  julia: "Use function from the standard library only.",
 } as const;
 
 interface Props {
@@ -144,14 +139,14 @@ export default function AIGenerateJupyterNotebook({
   const [error, setError] = useState<string>("");
 
   // A helpful example, in some cases
-  const [example, setExample] = useState<string>("");
+  const [examples, setExamples] = useState<Example[]>([]);
 
   useEffect(() => {
     if (spec == null) {
-      setExample("");
+      setExamples([]);
       return;
     }
-    setExample(EXAMPLES[spec.language?.toLowerCase()] ?? "");
+    setExamples(EXAMPLES[spec.language?.toLowerCase()] ?? "");
   }, [spec]);
 
   async function generate() {
@@ -327,16 +322,15 @@ export default function AIGenerateJupyterNotebook({
       }
     }
 
-    // NOTE: as of writing this, PaLM returns everything at once. Hence this must be robust for
+    // NOTE: as of writing this, quick models return everything at once. Hence this must be robust for
     // the case of one token callback with everything and then "null" to indicate it is done.
-    // OTOH, ChatGPT will stream a lot of tokens at a high frequency.
     const processTokens = throttle(
       async function (answer: string, finalize: boolean) {
         const fn = getFilename(answer, prompt);
         if (!init && fn != null) {
           init = true;
           // this kicks off creating the notebook and opening it
-          initNotebook(fn);
+          await initNotebook(fn);
         }
 
         // This finalize step is important for PaLM (which isn't streamining), because
@@ -451,6 +445,40 @@ export default function AIGenerateJupyterNotebook({
     [input],
   );
 
+  function renderExamples() {
+    const items: MenuProps["items"] = examples.map((ex, idx) => {
+      const label = (
+        <Flex gap={"5px"} justify="space-between">
+          <Flex>{ex[0]} </Flex>
+          <Flex>
+            {ex[2].map((tag) => (
+              <Tag color={getRandomColor(tag)}>{tag}</Tag>
+            ))}
+          </Flex>
+        </Flex>
+      );
+
+      return {
+        key: `${idx}`,
+        label,
+        onClick: () => setPrompt(ex[1]),
+      };
+    });
+    return (
+      <Paragraph>
+        <Dropdown menu={{ items }} trigger={["click"]}>
+          <Button style={{ width: "100%" }}>
+            <Space>
+              <Icon name="magic" />
+              Pick an example
+              <Icon name="caret-down" />
+            </Space>
+          </Button>
+        </Dropdown>
+      </Paragraph>
+    );
+  }
+
   return (
     <div style={{ padding: "0 15px" }}>
       <Paragraph strong>
@@ -515,13 +543,8 @@ export default function AIGenerateJupyterNotebook({
                     }
                   }}
                 />
-                <br />
-                {!error && example ? (
-                  <div style={{ color: COLORS.GRAY_D, marginTop: "15px" }}>
-                    Example: <i>"{example}"</i>
-                  </div>
-                ) : undefined}
               </Paragraph>
+              {!error && !isEmpty(examples) ? renderExamples() : undefined}
               {input ? (
                 <div>
                   <Paragraph type="secondary">
@@ -615,7 +638,9 @@ export function AIGenerateNotebookButton({
     overflowX: "hidden",
     overflow: "hidden",
     whiteSpace: "nowrap",
-    ...(mode === "flyout" ? NEW_FILE_STYLE : {}),
+    ...(mode === "flyout"
+      ? { ...NEW_FILE_STYLE, marginRight: "0", marginBottom: "0" }
+      : {}),
     ...style,
   } as const;
 
@@ -624,7 +649,7 @@ export function AIGenerateNotebookButton({
       <Button
         onClick={() => setShow(true)}
         style={btnStyle}
-        size={mode === "flyout" ? "large" : undefined}
+        size={mode === "flyout" ? "small" : undefined}
       >
         <AIAvatar
           size={mode === "flyout" ? 18 : 14}
@@ -696,5 +721,5 @@ function createInput({ spec, prompt }): string {
   if (spec == null || !prompt?.trim()) return "";
   const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
 
-  return `Explain directly and to the point, how to do the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
+  return `Explain directly and to the point, how to do the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter Notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
 }
