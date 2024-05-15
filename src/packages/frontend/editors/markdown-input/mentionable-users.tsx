@@ -26,6 +26,10 @@ import {
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  fromCustomOpenAIModel,
+  fromOllamaModel,
+  isCustomOpenAI,
+  isOllamaLLM,
   model2service,
   model2vendor,
   toCustomOpenAIModel,
@@ -245,7 +249,8 @@ function mentionableUsers({
 
   if (enabledLLMs.ollama && !isEmpty(ollama)) {
     for (const [m, conf] of Object.entries(ollama)) {
-      const show_llm_main_menu = m === model;
+      const show_llm_main_menu =
+        isOllamaLLM(model) && m === fromOllamaModel(model);
       const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
       const value = toOllamaModel(m);
       const search_term = `${m}${value}${conf.display}`.toLowerCase();
@@ -268,7 +273,8 @@ function mentionableUsers({
 
   if (enabledLLMs.custom_openai && !isEmpty(custom_openai)) {
     for (const [m, conf] of Object.entries(custom_openai)) {
-      const show_llm_main_menu = m === model;
+      const show_llm_main_menu =
+        isCustomOpenAI(model) && m === fromCustomOpenAIModel(model);
       const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
       const value = toCustomOpenAIModel(m);
       const search_term = `${m}${value}${conf.display}`.toLowerCase();
