@@ -41,7 +41,7 @@ and you'll always get back undefined.
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { redux, ProjectActions, ProjectStore } from "../app-framework";
 import { ProjectStoreState } from "../project_store";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import * as types from "./actions-and-stores";
 import useDeepCompareEffect from "use-deep-compare-effect";
 
@@ -142,12 +142,11 @@ function useReduxEditorStore(
   project_id: string,
   filename: string,
 ) {
-  const [value, set_value] = React.useState(
-    () =>
-      // the editor itself might not be defined hence the ?. below:
-      redux
-        .getEditorStore(project_id, filename)
-        ?.getIn(path as [string, string, string, string, string]),
+  const [value, set_value] = React.useState(() =>
+    // the editor itself might not be defined hence the ?. below:
+    redux
+      .getEditorStore(project_id, filename)
+      ?.getIn(path as [string, string, string, string, string]),
   );
 
   useDeepCompareEffect(() => {
@@ -389,6 +388,7 @@ export function useActions(x, path?: string) {
 // the types just became any or didn't match.  Don't
 // move this unless you also fully test it!!
 import { Store } from "@cocalc/util/redux/Store";
+import { isEqual } from "lodash";
 export interface Stores {
   account: types.AccountStore;
   "admin-site-licenses": types.SiteLicensesStore;
@@ -428,4 +428,21 @@ export function useStore(x): any {
     }
     return store;
   }, [x]) as Store<any>;
+}
+
+// Debug which props changed in a component
+export function useTraceUpdate(props) {
+  const prev = useRef(props);
+  useEffect(() => {
+    const changedProps = Object.entries(props).reduce((ps, [k, v]) => {
+      if (!isEqual(prev.current[k], v)) {
+        ps[k] = [prev.current[k], v];
+      }
+      return ps;
+    }, {});
+    if (Object.keys(changedProps).length > 0) {
+      console.log("Changed props:", changedProps);
+    }
+    prev.current = props;
+  });
 }

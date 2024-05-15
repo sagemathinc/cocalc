@@ -7,9 +7,11 @@ TODO:
 - input description box could be Markdown wysiwyg editor
 */
 
-import { Alert, Button, Input, Modal } from "antd";
+import type { MenuProps } from "antd";
+import { Alert, Button, Dropdown, Flex, Input, Modal, Space, Tag } from "antd";
+
 import { delay } from "awaiting";
-import { throttle } from "lodash";
+import { debounce, isEmpty, throttle } from "lodash";
 import { useEffect, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -17,20 +19,18 @@ import {
   CSS,
   redux,
   useActions,
+  useAsyncEffect,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ChatStream } from "@cocalc/frontend/client/llm";
 import {
   A,
-  HelpIcon,
   Icon,
   Loading,
   Markdown,
   Paragraph,
-  Title,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -42,6 +42,7 @@ import LLMSelector, {
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
+import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
 import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -52,30 +53,24 @@ import {
   getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
-import { field_cmp, to_iso_path } from "@cocalc/util/misc";
+import { field_cmp, getRandomColor, to_iso_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { LLMCostEstimation } from "../../../misc/llm-cost-estimation";
 import { ensure_project_running } from "../../project-start-warning";
-import { Block } from "./block";
+import { EXAMPLES, Example } from "./ai-generate-examples";
 
 const TAG = "generate-jupyter";
 
 const PLACEHOLDER = "Describe your notebook...";
-
-const EXAMPLES: { [language: string]: string } = {
-  python:
-    "Fit a statistical model to this time series of monthly values: 72, 42, 63, 44, 46, 51, 47, 39, 21, 31, 19, 22. Then plot it with extrapolation.",
-  r: "Fit a statistical model to these monthly values: 72, 42, 63, 44, 46, 51, 47, 39, 21, 31, 19, 22. Then plot it.",
-  sagemath:
-    "Generate a random 5x5 matrix over GF_2 and calculate its determinant.",
-} as const;
 
 const DEFAULT_LANG_EXTRA = "Prefer using the standard library.";
 
 const LANG_EXTRA: { [language: string]: string } = {
   python:
     "Prefer using the standard library or the following packages: numpy, matplotlib, pandas, scikit-learn, sympy, scipy, sklearn, seaborn, statsmodels, nltk, tensorflow, pytorch, pymc3, dask, numba, bokeh.",
-  r: "Prefer using the standard library or the following: tidyverse, tidyr, stringr, dplyr, data.table, ggplot2, car, mgcv, lme4, nlme, randomForest, survival, glmnet.",
+  r: "Prefer using the standard library or the following packages: tidyverse, tidyr, stringr, dplyr, data.table, ggplot2, car, mgcv, lme4, nlme, randomForest, survival, glmnet.",
   sagemath: "Use all functions in SageMath.",
+  julia: "Use function from the standard library only.",
 } as const;
 
 interface Props {
@@ -88,6 +83,8 @@ export default function AIGenerateJupyterNotebook({
   project_id,
 }: Props) {
   const [model, setModel] = useLanguageModelSetting(project_id);
+  const [tokens, setTokens] = useState<number>(0);
+
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null,
   );
@@ -142,14 +139,14 @@ export default function AIGenerateJupyterNotebook({
   const [error, setError] = useState<string>("");
 
   // A helpful example, in some cases
-  const [example, setExample] = useState<string>("");
+  const [examples, setExamples] = useState<Example[]>([]);
 
   useEffect(() => {
     if (spec == null) {
-      setExample("");
+      setExamples([]);
       return;
     }
-    setExample(EXAMPLES[spec.language] ?? "");
+    setExamples(EXAMPLES[spec.language?.toLowerCase()] ?? "");
   }, [spec]);
 
   async function generate() {
@@ -325,16 +322,15 @@ export default function AIGenerateJupyterNotebook({
       }
     }
 
-    // NOTE: as of writing this, PaLM returns everything at once. Hence this must be robust for
+    // NOTE: as of writing this, quick models return everything at once. Hence this must be robust for
     // the case of one token callback with everything and then "null" to indicate it is done.
-    // OTOH, ChatGPT will stream a lot of tokens at a high frequency.
     const processTokens = throttle(
       async function (answer: string, finalize: boolean) {
         const fn = getFilename(answer, prompt);
         if (!init && fn != null) {
           init = true;
           // this kicks off creating the notebook and opening it
-          initNotebook(fn);
+          await initNotebook(fn);
         }
 
         // This finalize step is important for PaLM (which isn't streamining), because
@@ -423,53 +419,92 @@ export default function AIGenerateJupyterNotebook({
     return null;
   }
 
-  function info() {
+  const input = createInput({ spec, prompt });
+
+  useEffect(() => {
+    if (tokens > 0 && input == "") setTokens(0);
+  }, [input]);
+
+  useAsyncEffect(
+    debounce(
+      async () => {
+        if (input == "") return;
+
+        // do not import until needed -- it is HUGE!
+        const { getMaxTokens, numTokensUpperBound } = await import(
+          "@cocalc/frontend/misc/llm"
+        );
+
+        const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
+
+        setTokens(tokens);
+      },
+      3000,
+      { leading: false, trailing: true },
+    ),
+    [input],
+  );
+
+  function renderExamples() {
+    const items: MenuProps["items"] = examples.map((ex, idx) => {
+      const label = (
+        <Flex gap={"5px"} justify="space-between">
+          <Flex>{ex[0]} </Flex>
+          <Flex>
+            {ex[2].map((tag) => (
+              <Tag color={getRandomColor(tag)}>{tag}</Tag>
+            ))}
+          </Flex>
+        </Flex>
+      );
+
+      return {
+        key: `${idx}`,
+        label,
+        onClick: () => setPrompt(ex[1]),
+      };
+    });
     return (
-      <HelpIcon title="OpenAI GPT" style={{ float: "right" }}>
-        <Paragraph style={{ minWidth: "300px", maxWidth: "500px" }}>
-          This sends your requst to{" "}
-          <A href={"https://chat.openai.com/"}>{modelToName(model)}</A>, and we
-          turn the response into a Jupyter Notebook. Check the result then
-          evaluate the cells. Some things might now work on the first try, but
-          this should give you some good ideas to help you accomplish your goal.
-          If it does not work, try again with a better prompt, ask in chat, and
-          ask for suggested fixes.
-        </Paragraph>
-      </HelpIcon>
+      <Paragraph>
+        <Dropdown menu={{ items }} trigger={["click"]}>
+          <Button style={{ width: "100%" }}>
+            <Space>
+              <Icon name="magic" />
+              Pick an example
+              <Icon name="caret-down" />
+            </Space>
+          </Button>
+        </Dropdown>
+      </Paragraph>
     );
   }
 
-  const input = createInput({ spec, prompt });
-
   return (
-    <Block style={{ padding: "0 15px" }}>
-      <Title level={4}>
-        <LanguageModelVendorAvatar model={model} /> Create Notebook Using{" "}
+    <div style={{ padding: "0 15px" }}>
+      <Paragraph strong>
+        Select language model:{" "}
         <LLMSelector
           project_id={project_id}
           model={model}
           setModel={setModel}
           style={{ marginTop: "-7.5px" }}
         />
-        {info()}
-      </Title>
-      {typeof kernelSpecs == "string" && (
+      </Paragraph>
+      {typeof kernelSpecs === "string" ? (
         <Alert
           description={kernelSpecs == "start" ? <StartButton /> : kernelSpecs}
           type="info"
           showIcon
         />
-      )}
+      ) : undefined}
       {kernelSpecs == null && <Loading />}
-      {typeof kernelSpecs == "object" && kernelSpecs != null && (
+      {typeof kernelSpecs == "object" && kernelSpecs != null ? (
         <>
-          <Paragraph>
-            Generate a Jupyter Notebook using the following Jupyter kernel:
-          </Paragraph>
-          <Paragraph>
+          <Paragraph strong>
+            Select a Jupyter kernel:{" "}
             <SelectKernel
               placeholder="Select a kernel..."
-              size="large"
+              size="middle"
               disabled={querying}
               project_id={project_id}
               kernelSpecs={kernelSpecs}
@@ -508,15 +543,38 @@ export default function AIGenerateJupyterNotebook({
                     }
                   }}
                 />
-                <br />
-                {!error && example && (
-                  <div style={{ color: COLORS.GRAY_D, marginTop: "15px" }}>
-                    Example: <i>"{example}"</i>
-                  </div>
-                )}
               </Paragraph>
-              {!error && (
-                <Paragraph style={{ textAlign: "center" }}>
+              {!error && !isEmpty(examples) ? renderExamples() : undefined}
+              {input ? (
+                <div>
+                  <Paragraph type="secondary">
+                    The following will be submitted to the{" "}
+                    <A href={"https://chat.openai.com/"}>
+                      {modelToName(model)}
+                    </A>{" "}
+                    language model. Its response will be converted into a
+                    Jupyter Notebook on the fly. Not everything might now work
+                    on the first try, but overall the newly created notebook
+                    should help you accomplishing your goal.
+                  </Paragraph>
+                  <StaticMarkdown
+                    value={input}
+                    style={{
+                      border: `1px solid ${COLORS.GRAY}`,
+                      maxHeight: "10em",
+                      overflow: "auto",
+                      fontSize: "12px",
+                      fontFamily: "monospace",
+                      borderRadius: "5px",
+                      margin: "5px 0",
+                      padding: "5px",
+                      color: COLORS.GRAY,
+                    }}
+                  />
+                </div>
+              ) : undefined}
+              {!error ? (
+                <Paragraph style={{ textAlign: "center", marginTop: "15px" }}>
                   <Button
                     type="primary"
                     size="large"
@@ -526,9 +584,20 @@ export default function AIGenerateJupyterNotebook({
                     <Icon name="paper-plane" /> Create Notebook using{" "}
                     {modelToName(model)} (shift+enter)
                   </Button>
+                  {input && tokens > 0 ? (
+                    <LLMCostEstimation
+                      tokens={tokens}
+                      model={model}
+                      paragraph
+                      textAlign="center"
+                      type="secondary"
+                    />
+                  ) : undefined}
                 </Paragraph>
-              )}
-              {!error && querying && <ProgressEstimate seconds={30} />}
+              ) : undefined}
+              {!error && querying ? (
+                <ProgressEstimate seconds={30} />
+              ) : undefined}
               {error && (
                 <Alert
                   closable
@@ -541,35 +610,22 @@ export default function AIGenerateJupyterNotebook({
                   description={<Markdown value={error} />}
                 />
               )}
-              {input && (
-                <div>
-                  The following will be sent to {modelToName(model)}:
-                  <StaticMarkdown
-                    value={input}
-                    style={{
-                      border: "1px solid lightgrey",
-                      borderRadius: "5px",
-                      margin: "5px 0",
-                      padding: "5px",
-                    }}
-                  />
-                </div>
-              )}
-              {!error && querying && <ProgressEstimate seconds={30} />}
             </>
           )}
         </>
-      )}
-    </Block>
+      ) : undefined}
+    </div>
   );
 }
 
 export function AIGenerateNotebookButton({
   project_id,
   style,
+  mode = "full",
 }: {
   project_id: string;
   style?: CSS;
+  mode?: "full" | "flyout";
 }) {
   const [show, setShow] = useState<boolean>(false);
 
@@ -580,19 +636,38 @@ export function AIGenerateNotebookButton({
   const btnStyle: CSS = {
     width: "100%",
     overflowX: "hidden",
+    overflow: "hidden",
     whiteSpace: "nowrap",
+    ...(mode === "flyout"
+      ? { ...NEW_FILE_STYLE, marginRight: "0", marginBottom: "0" }
+      : {}),
     ...style,
   } as const;
 
   return (
     <>
-      <Button onClick={() => setShow(true)} style={btnStyle}>
-        <AIAvatar size={14} style={{ position: "unset", marginRight: "5px" }} />{" "}
-        Assistant
+      <Button
+        onClick={() => setShow(true)}
+        style={btnStyle}
+        size={mode === "flyout" ? "small" : undefined}
+      >
+        <AIAvatar
+          size={mode === "flyout" ? 18 : 14}
+          style={{
+            ...(mode === "flyout"
+              ? {}
+              : { position: "unset", marginRight: "5px" }),
+          }}
+        />
+        {mode === "full" ? " Notebook Generator" : ""}
       </Button>
       <Modal
-        title="Create Jupyter Notebook using AI"
-        width={600}
+        title={
+          <>
+            <AIAvatar size={18} /> Generate a Jupyter Notebook using AI
+          </>
+        }
+        width={650}
         open={show}
         onCancel={() => setShow(false)}
         footer={null}
@@ -646,5 +721,5 @@ function createInput({ spec, prompt }): string {
   if (spec == null || !prompt?.trim()) return "";
   const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
 
-  return `Explain directly and to the point, how to do the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
+  return `Explain directly and to the point, how to do the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter Notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
 }

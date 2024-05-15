@@ -2,8 +2,10 @@ import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   LLMServicesAvailable,
   LanguageService,
+  fromCustomOpenAIModel,
   fromOllamaModel,
   getValidLanguageModelName,
+  isCustomOpenAI,
   isOllamaLLM,
 } from "@cocalc/util/db-schema/llm-utils";
 
@@ -16,46 +18,69 @@ export function useLanguageModelSetting(
 ): [LanguageService, (llm: LanguageService) => void] {
   const other_settings = useTypedRedux("account", "other_settings");
   const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   const haveOpenAI = useTypedRedux("customize", "openai_enabled");
   const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
   const haveOllama = useTypedRedux("customize", "ollama_enabled");
+  const haveCustomOpenAI = useTypedRedux("customize", "custom_openai_enabled");
   const haveMistral = useTypedRedux("customize", "mistral_enabled");
   const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
 
   const enabledLLMs: LLMServicesAvailable = useMemo(() => {
     const projectsStore = redux.getStore("projects");
     return projectsStore.whichLLMareEnabled(project_id);
-  }, [haveOpenAI, haveGoogle, haveOllama, haveMistral, haveAnthropic]);
+  }, [
+    haveOpenAI,
+    haveGoogle,
+    haveOllama,
+    haveCustomOpenAI,
+    haveMistral,
+    haveAnthropic,
+  ]);
 
   const llm: LanguageService = useMemo(() => {
-    return getValidLanguageModelName(
-      other_settings?.get("language_model"),
-      enabledLLMs,
-      Object.keys(ollama?.toJS() ?? {}),
-      selectableLLMs?.toJS() ?? [],
-    );
-  }, [other_settings]);
+    return getValidLanguageModelName({
+      model: other_settings?.get("language_model"),
+      filter: enabledLLMs,
+      ollama: Object.keys(ollama?.toJS() ?? {}),
+      custom_openai: Object.keys(custom_openai?.toJS() ?? {}),
+      selectable_llms: selectableLLMs?.toJS() ?? [],
+    });
+  }, [other_settings, custom_openai, ollama, selectableLLMs, enabledLLMs]);
 
   function setLLM(llm: LanguageService) {
-    setDefaultLLM(llm, selectableLLMs, ollama);
+    setDefaultLLM(llm);
   }
 
   return [llm, setLLM];
 }
 
-export function setDefaultLLM(llm: LanguageService, selectableLLMs, ollama) {
+export function setDefaultLLM(llm: LanguageService) {
+  const customizeStore = redux.getStore("customize");
+  const selectableLLMs = customizeStore.get("selectable_llms");
+  const ollama = customizeStore.get("ollama");
+  const custom_openai = customizeStore.get("custom_openai");
+
   if (selectableLLMs.includes(llm as any)) {
     redux
       .getActions("account")
       .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
-  }
-
-  // check if LLM is a key in the Ollama TypedMap
-  if (isOllamaLLM(llm) && ollama?.get(fromOllamaModel(llm))) {
+  } else if (isOllamaLLM(llm) && ollama?.get(fromOllamaModel(llm))) {
+    // check if LLM is a key in the Ollama TypedMap
     redux
       .getActions("account")
       .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
+  } else if (
+    isCustomOpenAI(llm) &&
+    custom_openai?.get(fromCustomOpenAIModel(llm))
+  ) {
+    // ... or a custom_openai llm
+    redux
+      .getActions("account")
+      .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
+  } else {
+    console.warn(`setDefaultLLM: LLM "${llm}" is unknown.`);
   }
 }

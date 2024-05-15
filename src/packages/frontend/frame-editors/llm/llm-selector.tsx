@@ -15,16 +15,19 @@ import {
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  fromCustomOpenAIModel,
   fromOllamaModel,
   getLLMCost,
   getLLMPriceRange,
   isCoreLanguageModel,
+  isCustomOpenAI,
   isFreeModel,
   isOllamaLLM,
   model2service,
+  toCustomOpenAIModel,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import type { OllamaPublic } from "@cocalc/util/types/llm";
+import type { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { round2up } from "@cocalc/util/misc";
 
 type SizeType = ConfigProviderProps["componentSize"];
@@ -37,6 +40,7 @@ interface Props {
   project_id?: string;
 }
 
+// ATTN: if you change this LLMSelector, you also have to change useLLMMenuOptions
 export default function LLMSelector({
   style,
   model,
@@ -75,7 +79,13 @@ export default function LLMSelector({
     undefined,
     "ollama",
   );
+  const showCustomOpenAI = projectsStore.hasLanguageModelEnabled(
+    project_id,
+    undefined,
+    "custom_openai",
+  );
   const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   function makeLLMOption(btnModel: LanguageModel, title: string) {
@@ -163,7 +173,9 @@ export default function LLMSelector({
     if (!showOllama || !ollama) return;
 
     const options: NonNullable<SelectProps["options"]> = [];
-    for (const [key, config] of Object.entries<OllamaPublic>(ollama.toJS())) {
+    for (const [key, config] of Object.entries<CustomLLMPublic>(
+      ollama.toJS(),
+    )) {
       const { display, desc } = config;
       const ollamaModel = toOllamaModel(key);
       const text = (
@@ -191,6 +203,40 @@ export default function LLMSelector({
     makeLLMGroup(ret, "ollama", options);
   }
 
+  function appendCustomOpenAI(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showCustomOpenAI || !custom_openai) return;
+
+    const options: NonNullable<SelectProps["options"]> = [];
+    for (const [key, config] of Object.entries<CustomLLMPublic>(
+      custom_openai.toJS(),
+    )) {
+      const { display, desc } = config;
+      const customOpenAIModel = toCustomOpenAIModel(key);
+      const text = (
+        <>
+          <strong>{display}</strong> <LLMModelPrice model={customOpenAIModel} />{" "}
+          – {desc ?? "OpenAI (custom)"}
+        </>
+      );
+      options.push({
+        value: customOpenAIModel,
+        display: (
+          <>
+            <LanguageModelVendorAvatar model={customOpenAIModel} />{" "}
+            <strong>{modelToName(customOpenAIModel)}</strong>{" "}
+            <LLMModelPrice model={customOpenAIModel} />
+          </>
+        ),
+        label: (
+          <Tooltip title={text}>
+            <LanguageModelVendorAvatar model={customOpenAIModel} /> {text}
+          </Tooltip>
+        ),
+      });
+    }
+    makeLLMGroup(ret, "custom_openai", options);
+  }
+
   function getOptions(): SelectProps["options"] {
     const ret: NonNullable<SelectProps["options"]> = [];
     appendOpenAI(ret);
@@ -198,6 +244,7 @@ export default function LLMSelector({
     appendMistral(ret);
     appendAnthropic(ret);
     appendOllama(ret);
+    appendCustomOpenAI(ret);
     return ret;
   }
 
@@ -224,9 +271,9 @@ export default function LLMSelector({
         <Paragraph>
           The models marked as "{FREE}" do not incur any charges. However, they
           are rate limited to avoid abuse. The more capable models are marked "
-          {PAID}" and charged by the number of read and geenerated tokens – i.e.
-          "pay-as-you-go" – and do not have rate limitations. Usually, these
-          charges are very small!
+          {PREMIUM}" and charged by the number of read and geenerated tokens –
+          i.e. "pay-as-you-go" – and do not have rate limitations. Usually,
+          these charges are very small!
         </Paragraph>
         <Paragraph>
           Assuming a typical usage involves {input} input tokens and {output}{" "}
@@ -278,6 +325,12 @@ export function modelToName(model: LanguageModel): string {
     const om = ollama[fromOllamaModel(model)];
     return om ? om.display : `Ollama ${model}`;
   }
+  if (isCustomOpenAI(model)) {
+    const custom_openai =
+      redux.getStore("customize").get("custom_openai")?.toJS() ?? {};
+    const om = custom_openai[fromCustomOpenAIModel(model)];
+    return om ? om.display : `OpenAI (custom) ${model}`;
+  }
   return LLM_USERNAMES[model] ?? model;
 }
 
@@ -288,7 +341,7 @@ export function modelToMention(model: LanguageModel): string {
 }
 
 const FREE = "free";
-const PAID = "paid";
+const PREMIUM = "premium";
 
 export function LLMModelPrice({
   model,
@@ -313,7 +366,7 @@ export function LLMModelPrice({
     </Tag>
   ) : (
     <Tag color="warning" {...props}>
-      paid
+      {PREMIUM}
     </Tag>
   );
 }

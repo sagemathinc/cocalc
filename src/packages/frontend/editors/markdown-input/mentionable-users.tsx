@@ -26,12 +26,17 @@ import {
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  fromCustomOpenAIModel,
+  fromOllamaModel,
+  isCustomOpenAI,
+  isOllamaLLM,
   model2service,
   model2vendor,
+  toCustomOpenAIModel,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
-import { OllamaPublic } from "@cocalc/util/types/llm";
+import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { Item as CompleteItem } from "./complete";
 
 // we make the show_llm_main_menu field required, to avoid forgetting to set it ;-)
@@ -50,6 +55,7 @@ export function useMentionableUsers(): (
 
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
 
   // the current default model. This is always a valid LLM, even if none has ever been selected.
   const [model] = useLanguageModelSetting();
@@ -62,18 +68,20 @@ export function useMentionableUsers(): (
         enabledLLMs,
         model,
         ollama: ollama?.toJS() ?? {},
+        custom_openai: custom_openai?.toJS() ?? {},
         selectableLLMs,
         opts,
       });
     };
-  }, [project_id, JSON.stringify(enabledLLMs), ollama, model]);
+  }, [project_id, JSON.stringify(enabledLLMs), ollama, custom_openai, model]);
 }
 
 interface Props {
   search: string | undefined;
   project_id: string;
   model: LanguageModel;
-  ollama: { [key: string]: OllamaPublic };
+  ollama: { [key: string]: CustomLLMPublic };
+  custom_openai: { [key: string]: CustomLLMPublic };
   enabledLLMs: LLMServicesAvailable;
   selectableLLMs: List<string>;
   opts?: Opts;
@@ -85,6 +93,7 @@ function mentionableUsers({
   enabledLLMs,
   model,
   ollama,
+  custom_openai,
   selectableLLMs,
   opts,
 }: Props): Item[] {
@@ -144,7 +153,9 @@ function mentionableUsers({
       const show_llm_main_menu = moai === model;
       const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
       const v = "openai";
-      const search_term = `${v}chat${moai.replace(/-/g, "").toLowerCase()}`;
+      const m = moai.replace(/-/g, "");
+      const n = LLM_USERNAMES[moai].replace(/ /g, "");
+      const search_term = `${v}chat${m}${n}`.toLowerCase();
       if (!search || search_term.includes(search)) {
         mentions.push({
           value: model2service(moai),
@@ -238,7 +249,8 @@ function mentionableUsers({
 
   if (enabledLLMs.ollama && !isEmpty(ollama)) {
     for (const [m, conf] of Object.entries(ollama)) {
-      const show_llm_main_menu = m === model;
+      const show_llm_main_menu =
+        isOllamaLLM(model) && m === fromOllamaModel(model);
       const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
       const value = toOllamaModel(m);
       const search_term = `${m}${value}${conf.display}`.toLowerCase();
@@ -248,6 +260,30 @@ function mentionableUsers({
           label: (
             <span>
               <OllamaAvatar size={size} /> {conf.display}{" "}
+              <LLMModelPrice model={m} floatRight />
+            </span>
+          ),
+          search: search_term,
+          is_llm: true,
+          show_llm_main_menu,
+        });
+      }
+    }
+  }
+
+  if (enabledLLMs.custom_openai && !isEmpty(custom_openai)) {
+    for (const [m, conf] of Object.entries(custom_openai)) {
+      const show_llm_main_menu =
+        isCustomOpenAI(model) && m === fromCustomOpenAIModel(model);
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+      const value = toCustomOpenAIModel(m);
+      const search_term = `${m}${value}${conf.display}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
+        mentions.push({
+          value,
+          label: (
+            <span>
+              <OpenAIAvatar size={size} /> {conf.display}{" "}
               <LLMModelPrice model={m} floatRight />
             </span>
           ),

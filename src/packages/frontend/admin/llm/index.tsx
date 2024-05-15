@@ -9,7 +9,7 @@ import {
 import { Paragraph, Title } from "@cocalc/frontend/components";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
 import {
-  CoreLanguageModel,
+  LanguageModelCore,
   LLMServiceName,
   LLM_PROVIDER,
   USER_SELECTABLE_LLMS_BY_VENDOR,
@@ -43,7 +43,7 @@ export function TestLLMAdmin() {
     };
   }
 
-  function renderStatus(llm: CoreLanguageModel, vendor: LLMServiceName) {
+  function renderStatus(llm: LanguageModelCore, vendor: LLMServiceName) {
     const enabled = all || selectableLLMs.includes(llm);
 
     return (

@@ -17,12 +17,22 @@ export type QuotaSpec = Record<Service, Spec>;
 const GPT_TURBO: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
   color: "#10a37f",
-};
+} as const;
 
 const GPT_TURBO_8K: Spec = {
-  display: "OpenAI GPT-4 Turbo 8k",
+  ...GPT_TURBO,
+  display: `${GPT_TURBO.display} 8k`,
+} as const;
+
+const GPT_OMNI: Spec = {
+  display: "OpenAI GPT-4 Omni",
   color: "#10a37f",
-};
+} as const;
+
+const GPT_OMNI_8K: Spec = {
+  ...GPT_OMNI,
+  display: `${GPT_OMNI.display} 8k`,
+} as const;
 
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
 export const QUOTA_SPEC: QuotaSpec = {
@@ -72,6 +82,8 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-4-turbo-preview-8k": GPT_TURBO_8K, // the "preview" is over
   "openai-gpt-4-turbo": GPT_TURBO,
   "openai-gpt-4-turbo-8k": GPT_TURBO_8K,
+  "openai-gpt-4o": GPT_OMNI,
+  "openai-gpt-4o-8k": GPT_OMNI_8K,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: "#4285f4",
@@ -86,6 +98,10 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: "Google Gecko (Embedding)",
     color: "#4285f4",
     noSet: true, // deprecated, will be removed
+  },
+  "google-gemini-1.5-flash-8k": {
+    display: "Google Gemini 1.5 Flash",
+    color: "#4285f4",
   },
   "google-gemini-pro": {
     display: "Google Gemini 1.0 Pro",

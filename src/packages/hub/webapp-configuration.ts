@@ -21,7 +21,7 @@ import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { SoftwareEnvConfig } from "@cocalc/util/sanitize-software-envs";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
-import { OllamaPublic } from "@cocalc/util/types/llm";
+import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { parseDomain, ParseResultType } from "parse-domain";
 import getServerSettings, {
   ServerSettingsDynamic,
@@ -44,7 +44,8 @@ interface Config {
   registration: any;
   strategies: object;
   software: SoftwareEnvConfig | null;
-  ollama: { [key: string]: OllamaPublic };
+  ollama: { [key: string]: CustomLLMPublic };
+  custom_openai: { [key: string]: CustomLLMPublic };
 }
 
 async function get_passport_manager_async(): Promise<PassportManager> {
@@ -174,27 +175,20 @@ export class WebappConfiguration {
   }
 
   // derives the public ollama model configuration from the private one
-  private get_ollama_public(): { [key: string]: OllamaPublic } {
+  private get_ollama_public(): { [key: string]: CustomLLMPublic } {
     if (this.data == null) {
       throw new Error("server settings not yet initialized");
     }
     const ollama = this.data.all.ollama_configuration;
-    if (isEmpty(ollama)) return {};
+    return processCustomLLM(ollama, "Ollama");
+  }
 
-    const public_ollama: { [key: string]: OllamaPublic } = {};
-    for (const key in ollama) {
-      const conf = ollama[key];
-      const cocalc = conf.cocalc ?? {};
-      if (cocalc.disabled) continue;
-      const model = conf.model ?? key;
-      public_ollama[key] = {
-        model,
-        display: cocalc.display ?? `Ollama ${model}`,
-        icon: cocalc.icon, // fallback is the Ollama icon, frontend does that
-        desc: cocalc.desc ?? "",
-      };
+  private get_custom_openai_public(): { [key: string]: CustomLLMPublic } {
+    if (this.data == null) {
+      throw new Error("server settings not yet initialized");
     }
-    return public_ollama;
+    const custom_openai = this.data.all.custom_openai_configuration;
+    return processCustomLLM(custom_openai, "OpenAI (custom)");
   }
 
   private async get_config({ country, host }): Promise<Config> {
@@ -203,14 +197,23 @@ export class WebappConfiguration {
       await delay(100);
     }
 
-    const [configuration, registration, software, ollama] = await Promise.all([
-      this.get_configuration({ host, country }),
-      have_active_registration_tokens(this.db),
-      getSoftwareEnvironments("webapp"),
-      this.get_ollama_public(),
-    ]);
+    const [configuration, registration, software, ollama, custom_openai] =
+      await Promise.all([
+        this.get_configuration({ host, country }),
+        have_active_registration_tokens(this.db),
+        getSoftwareEnvironments("webapp"),
+        this.get_ollama_public(),
+        this.get_custom_openai_public(),
+      ]);
     const strategies = await this.get_strategies();
-    return { configuration, registration, strategies, software, ollama };
+    return {
+      configuration,
+      registration,
+      strategies,
+      software,
+      ollama,
+      custom_openai,
+    };
   }
 
   // it returns a shallow copy, hence you can modify/add keys in the returned map!
@@ -225,4 +228,27 @@ export class WebappConfiguration {
     }
     return config as Config;
   }
+}
+
+// for Ollama or Custom OpenAI
+function processCustomLLM(
+  data: any,
+  displayFallback,
+): { [key: string]: CustomLLMPublic } {
+  if (isEmpty(data)) return {};
+
+  const ret: { [key: string]: CustomLLMPublic } = {};
+  for (const key in data) {
+    const conf = data[key];
+    const cocalc = conf.cocalc ?? {};
+    if (cocalc.disabled) continue;
+    const model = conf.model ?? key;
+    ret[key] = {
+      model,
+      display: cocalc.display ?? `${displayFallback} ${model}`,
+      icon: cocalc.icon, // fallback is the Ollama or OpenAI icon, frontend does that
+      desc: cocalc.desc ?? "",
+    };
+  }
+  return ret;
 }

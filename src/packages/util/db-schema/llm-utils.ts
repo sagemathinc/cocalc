@@ -26,14 +26,16 @@ export const OPENAI_PREFIX = "openai-";
 
 export const MODELS_OPENAI = [
   "gpt-3.5-turbo",
-  "gpt-3.5-turbo-16k",
-  "gpt-4",
-  "gpt-4-32k",
+  "gpt-4o-8k", // context limited, similar to gpt-4-turbo-8k
+  "gpt-4o", // Released 2024-05-13
   // the "preview" variants are disabled, because the preview is over
-  "gpt-4-turbo-preview-8k", // like above, but artificially limited to 8k tokens
+  "gpt-4-turbo-preview-8k", // like below, but artificially limited to 8k tokens
   "gpt-4-turbo-preview",
   "gpt-4-turbo-8k", // Released 2024-04-11
   "gpt-4-turbo",
+  "gpt-4",
+  "gpt-4-32k",
+  "gpt-3.5-turbo-16k",
   "text-embedding-ada-002", // TODO: this is for embeddings, should be moved to a different place
 ] as const;
 
@@ -61,6 +63,7 @@ export function isMistralModel(model: unknown): model is MistralModel {
 // https://developers.generativeai.google/models/language
 // $ curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_GENAI" | jq
 export const GOOGLE_MODELS = [
+  "gemini-1.5-flash-8k", // introduced 2024-05-15
   "gemini-pro",
   "gemini-1.0-ultra", // hangs
   "gemini-1.5-pro-8k", // works now with langchaing
@@ -73,6 +76,7 @@ export function isGoogleModel(model: unknown): model is GoogleModel {
 export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
   "gemini-1.5-pro": "gemini-1.5-pro-latest",
   "gemini-1.5-pro-8k": "gemini-1.5-pro-latest",
+  "gemini-1.5-flash-8k": "gemini-1.5-flash-latest",
 } as const;
 
 // https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
@@ -128,19 +132,22 @@ export const LANGUAGE_MODELS = [
 ] as const;
 
 export const USER_SELECTABLE_LLMS_BY_VENDOR: {
-  [vendor in LLMServiceName]: Readonly<CoreLanguageModel[]>;
+  [vendor in LLMServiceName]: Readonly<LanguageModelCore[]>;
 } = {
   openai: MODELS_OPENAI.filter(
     (m) =>
       m === "gpt-3.5-turbo" ||
       m === "gpt-3.5-turbo-16k" ||
       m === "gpt-4" ||
-      m === "gpt-4-turbo-preview-8k",
+      m === "gpt-4-turbo-preview-8k" ||
+      m === "gpt-4o-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
       // we only enable the 1.0 pro and 1.5 pro with a limited context window
-      m === "gemini-pro" || m === "gemini-1.5-pro-8k",
+      m === "gemini-pro" ||
+      m === "gemini-1.5-pro-8k" ||
+      m === "gemini-1.5-flash-8k",
   ),
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
@@ -152,6 +159,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
     );
   }),
   ollama: [], // this is empty, because these models are not hardcoded
+  custom_openai: [], // this is empty, because these models are not hardcoded]
 } as const;
 
 // This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
@@ -165,13 +173,14 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
 ] as const;
 
 export type OllamaLLM = string;
+export type CustomOpenAI = string;
 
 // use the one without Ollama to get stronger typing. Ollama could be any string starting with the OLLAMA_PREFIX.
-export type CoreLanguageModel = (typeof LANGUAGE_MODELS)[number];
-export type LanguageModel = CoreLanguageModel | OllamaLLM;
+export type LanguageModelCore = (typeof LANGUAGE_MODELS)[number];
+export type LanguageModel = LanguageModelCore | OllamaLLM;
 export function isCoreLanguageModel(
   model: unknown,
-): model is CoreLanguageModel {
+): model is LanguageModelCore {
   if (typeof model !== "string") return false;
   return LANGUAGE_MODELS.includes(model as any);
 }
@@ -181,6 +190,7 @@ export function isLanguageModel(model?: unknown): model is LanguageModel {
   if (model == null) return false;
   if (typeof model !== "string") return false;
   if (isOllamaLLM(model)) return true;
+  if (isCustomOpenAI(model)) return true;
   return LANGUAGE_MODELS.includes(model as any);
 }
 
@@ -190,6 +200,7 @@ export const LANGUAGE_MODEL_SERVICES = [
   "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
   "anthropic",
   "ollama",
+  "custom_openai",
 ] as const;
 export type LLMServiceName = (typeof LANGUAGE_MODEL_SERVICES)[number];
 
@@ -226,23 +237,38 @@ export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
     short: "Open-source software",
     desc: "Ollama helps you to get up and running with large language models, locally.",
   },
+  custom_openai: {
+    name: "OpenAI (custom)",
+    short: "OpenAI (custom)",
+    desc: "A custom OpenAI endoint.",
+  },
 };
+
+interface ValidLanguageModelNameProps {
+  model: string | undefined;
+  filter: LLMServicesAvailable;
+  ollama: string[]; // keys of ollama models
+  custom_openai: string[]; // keys of custom openai models
+  selectable_llms: string[]; // either empty, or an array stored in the server settings
+}
 
 // this is used in initialization functions. e.g. to get a default model depending on the overall availability
 // usually, this should just return the chatgpt3 model, but e.g. if neither google or openai is available,
 // then it might even falls back to an available ollama model. It needs to return a string, though, for the frontend, etc.
-export function getValidLanguageModelName(
-  model: string | undefined,
-  filter: LLMServicesAvailable = {
+export function getValidLanguageModelName({
+  model,
+  filter = {
     openai: true,
     google: true,
     ollama: false,
     mistralai: false,
     anthropic: false,
+    custom_openai: false,
   },
-  ollama: string[] = [], // keys of ollama models
-  selectable_llms: string[],
-): LanguageModel {
+  ollama,
+  custom_openai,
+  selectable_llms,
+}: ValidLanguageModelNameProps): LanguageModel {
   const dftl: string =
     filter.openai === true && selectable_llms.includes(DEFAULT_MODEL)
       ? DEFAULT_MODEL
@@ -254,14 +280,22 @@ export function getValidLanguageModelName(
             return false;
           })
           .pop() ??
-        (filter.ollama && ollama?.length > 0)
+        (filter.ollama && ollama.length > 0)
       ? toOllamaModel(ollama[0])
+      : filter.custom_openai && custom_openai.length > 0
+      ? toCustomOpenAIModel(custom_openai[0])
       : DEFAULT_MODEL;
 
   if (model == null) {
     return dftl;
   }
   if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
+    return model;
+  }
+  if (
+    isCustomOpenAI(model) &&
+    custom_openai.includes(fromCustomOpenAIModel(model))
+  ) {
     return model;
   }
   if (
@@ -286,6 +320,14 @@ export function isOllamaService(service: string): service is OllamaService {
   return isOllamaLLM(service);
 }
 
+export const CUSTOM_OPENAI_PREFIX = "custom_openai-";
+export type CustomOpenAIService = string;
+export function isCustomOpenAIService(
+  service: string,
+): service is CustomOpenAIService {
+  return isCustomOpenAI(service);
+}
+
 export const MISTRAL_PREFIX = "mistralai-";
 export type MistralService = `${typeof MISTRAL_PREFIX}${MistralModel}`;
 export function isMistralService(service: string): service is MistralService {
@@ -307,7 +349,10 @@ export type LanguageServiceCore =
   | AnthropicService
   | MistralService;
 
-export type LanguageService = LanguageServiceCore | OllamaService;
+export type LanguageService =
+  | LanguageServiceCore
+  | OllamaService
+  | CustomOpenAIService;
 
 // used e.g. for checking "account-id={string}" and other things like that
 export const LANGUAGE_MODEL_PREFIXES = [
@@ -320,8 +365,8 @@ export function model2service(model: LanguageModel): LanguageService {
   if (model === "text-embedding-ada-002") {
     return `${OPENAI_PREFIX}${model}`;
   }
-  if (isOllamaLLM(model)) {
-    return model; // already has the ollama prefix
+  if (isOllamaLLM(model) || isCustomOpenAI(model)) {
+    return model; // already has the ollama or custom_openai prefix
   }
   if (isMistralModel(model)) {
     return toMistralService(model);
@@ -371,8 +416,14 @@ export function service2model_core(
   const hasPrefix = LANGUAGE_MODEL_SERVICES.some((v) => s === v);
 
   const m = hasPrefix ? service.split("-").slice(1).join("-") : service;
-  if (hasPrefix && s === "ollama") {
-    return toOllamaModel(m);
+  if (hasPrefix) {
+    // we add the trailing "-" to match with these prefixes, which include the "-"
+    switch (`${s}-`) {
+      case OLLAMA_PREFIX:
+        return toOllamaModel(m);
+      case CUSTOM_OPENAI_PREFIX:
+        return toCustomOpenAIModel(m);
+    }
   }
 
   if (LANGUAGE_MODELS.includes(m as any)) {
@@ -387,6 +438,8 @@ export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
 export function model2vendor(model): LLMServiceName {
   if (isOllamaLLM(model)) {
     return "ollama";
+  } else if (isCustomOpenAI(model)) {
+    return "custom_openai";
   } else if (isMistralModel(model)) {
     return "mistralai";
   } else if (isOpenAIModel(model)) {
@@ -423,6 +476,28 @@ export function isOllamaLLM(model: unknown): model is OllamaLLM {
     model.startsWith(OLLAMA_PREFIX) &&
     model.length > OLLAMA_PREFIX.length
   );
+}
+
+export function toCustomOpenAIModel(model: string): CustomOpenAI {
+  if (isCustomOpenAI(model)) {
+    throw new Error(`already a custom openai model: ${model}`);
+  }
+  return `${CUSTOM_OPENAI_PREFIX}${model}`;
+}
+
+export function isCustomOpenAI(model: unknown): model is CustomOpenAI {
+  return (
+    typeof model === "string" &&
+    model.startsWith(CUSTOM_OPENAI_PREFIX) &&
+    model.length > CUSTOM_OPENAI_PREFIX.length
+  );
+}
+
+export function fromCustomOpenAIModel(model: CustomOpenAI) {
+  if (!isCustomOpenAI(model)) {
+    throw new Error(`not a custom openai model: ${model}`);
+  }
+  return model.slice(CUSTOM_OPENAI_PREFIX.length);
 }
 
 export function toMistralService(model: string): MistralService {
@@ -468,6 +543,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-4-turbo-preview-8k": "GPT-4 Turbo 8k",
   "gpt-4-turbo": "GPT-4 Turbo 128k",
   "gpt-4-turbo-8k": "GPT-4 Turbo 8k",
+  "gpt-4o": "GPT-4 Omni 128k",
+  "gpt-4o-8k": "GPT-4 Omni 8k",
   "text-embedding-ada-002": "Text Embedding Ada 002", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
@@ -475,6 +552,7 @@ export const LLM_USERNAMES: LLM2String = {
   "gemini-1.0-ultra": "Gemini 1.0 Ultra",
   "gemini-1.5-pro": "Gemini 1.5 Pro 1m",
   "gemini-1.5-pro-8k": "Gemini 1.5 Pro 8k",
+  "gemini-1.5-flash-8k": "Gemini 1.5 Flash 8k",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -505,6 +583,9 @@ export const LLM_DESCR: LLM2String = {
   "gpt-4-turbo-8k":
     "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
   "gpt-4-turbo": "Like GPT-4 Turob 8k, but with up to 128k token context",
+  "gpt-4o-8k":
+    "Most powerful, fastest, and cheapest (OpenAI, 8k token context)",
+  "gpt-4o": "Most powerful fastest, and cheapest (OpenAI, 128k token context)",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "",
   "chat-bison-001": "",
@@ -516,6 +597,8 @@ export const LLM_DESCR: LLM2String = {
     "Google's Gemini 1.5 Pro Generative AI model (1m token context)",
   "gemini-1.5-pro-8k":
     "Google's Gemini 1.5 Pro Generative AI model (8k token context)",
+  "gemini-1.5-flash-8k":
+    "Google's Gemini 1.5 Flash Generative AI model (8k token context)",
   "mistral-small-latest":
     "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -539,6 +622,7 @@ export const LLM_DESCR: LLM2String = {
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
   if (!isCoCalcCom) return true;
   if (isOllamaLLM(model)) return true;
+  if (isCustomOpenAI(model)) return true;
   if (typeof model === "string" && LANGUAGE_MODELS.includes(model as any)) {
     // i.e. model is now of type CoreLanguageModel and
     const costInfo = LLM_COST[model];
@@ -570,7 +654,9 @@ export function getLLMServiceStatusCheckMD(service: LLMServiceName): string {
     case "google":
       return `Google [status](https://status.cloud.google.com) and [downdetector](https://downdetector.com/status/google-cloud).`;
     case "ollama":
-      return `No status information for Ollama available – you have to check with the particular backend for the model.`;
+      return `No status information for Ollama available.`;
+    case "custom_openai":
+      return `No status information for Custom OpenAI available.`;
     case "mistralai":
       return `No status information for Mistral AI available.`;
     case "anthropic":
@@ -598,16 +684,16 @@ function usd1Mtokens(usd: number): number {
 // Our cost is a configurable multiple of this.
 // https://openai.com/pricing#language-models
 // There appears to be no api that provides the prices, unfortunately.
-export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
+export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gpt-4": {
-    prompt_tokens: 0.03 / 1000,
-    completion_tokens: 0.06 / 1000,
+    prompt_tokens: usd1Mtokens(30),
+    completion_tokens: usd1Mtokens(60),
     max_tokens: 8192,
     free: false,
   },
   "gpt-4-32k": {
-    prompt_tokens: 0.06 / 1000,
-    completion_tokens: 0.12 / 1000,
+    prompt_tokens: usd1Mtokens(60),
+    completion_tokens: usd1Mtokens(120),
     max_tokens: 32768,
     free: false,
   },
@@ -618,8 +704,8 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     free: true,
   },
   "gpt-3.5-turbo-16k": {
-    prompt_tokens: usd1Mtokens(3),
-    completion_tokens: usd1Mtokens(4),
+    prompt_tokens: usd1Mtokens(0.5),
+    completion_tokens: usd1Mtokens(1.5),
     max_tokens: 16384,
     free: false,
   },
@@ -645,6 +731,18 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
   "gpt-4-turbo": {
     prompt_tokens: usd1Mtokens(10), // 	$10.00 / 1M tokens
     completion_tokens: usd1Mtokens(30), // $30.00 / 1M tokens
+    max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
+    free: false,
+  },
+  "gpt-4o-8k": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 8192, // like gpt-4-turbo-8k
+    free: false,
+  },
+  "gpt-4o": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(15),
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
     free: false,
   },
@@ -686,11 +784,12 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
     completion_tokens: usd1Mtokens(21),
     max_tokens: 8_000,
-    free: false,
+    // will change 2024-05-30
+    free: new Date("2024-05-30") > new Date(),
   },
   "gemini-1.5-pro": {
-    prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
-    completion_tokens: usd1Mtokens(21),
+    prompt_tokens: usd1Mtokens(3.5), // https://ai.google.dev/pricing (cheaper, because we're below the 128k context)
+    completion_tokens: usd1Mtokens(10.5),
     max_tokens: 1048576,
     free: false,
   },
@@ -698,6 +797,12 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
     prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
     completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
+    free: true,
+  },
+  "gemini-1.5-flash-8k": {
+    prompt_tokens: usd1Mtokens(0.35),
+    completion_tokens: usd1Mtokens(0.53),
+    max_tokens: 8_000,
     free: true,
   },
   "mistral-small-latest": {
@@ -761,6 +866,7 @@ export const LLM_COST: { [name in CoreLanguageModel]: Cost } = {
 export function isValidModel(model?: string): boolean {
   if (model == null) return false;
   if (isOllamaLLM(model)) return true;
+  if (isCustomOpenAI(model)) return true;
   if (isMistralModel(model)) return true;
   if (isGoogleModel(model)) return true;
   return LLM_COST[model ?? ""] != null;
@@ -779,7 +885,7 @@ export interface LLMCost {
 }
 
 export function getLLMCost(
-  model: CoreLanguageModel,
+  model: LanguageModelCore,
   markup_percentage: number, // a number like "30" would mean that we increase the wholesale price by multiplying by 1.3
 ): LLMCost {
   const x = LLM_COST[model];
@@ -816,7 +922,7 @@ export function getLLMPriceRange(
     const model = LLM_COST[key];
     if (!model || isFreeModel(key, true)) continue;
     const { prompt_tokens, completion_tokens } = getLLMCost(
-      key as CoreLanguageModel,
+      key as LanguageModelCore,
       markup_percentage,
     );
     const p = prompt * prompt_tokens + output * completion_tokens;
@@ -833,7 +939,7 @@ export function getLLMPriceRange(
 // We can't know the cost until after it happens, so this bound is useful for
 // ensuring user can afford to make a call.
 export function getMaxCost(
-  model: CoreLanguageModel,
+  model: LanguageModelCore,
   markup_percentage: number,
 ): number {
   const { prompt_tokens, completion_tokens } = getLLMCost(
