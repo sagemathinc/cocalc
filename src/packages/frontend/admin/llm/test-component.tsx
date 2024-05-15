@@ -9,12 +9,12 @@ import {
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { Markdown } from "@cocalc/frontend/markdown";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { CoreLanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { LanguageModelCore } from "@cocalc/util/db-schema/llm-utils";
 import { PROMPTS } from "./tests";
 import { Value } from "./value";
 
 interface TestLLMProps {
-  model: CoreLanguageModel | string;
+  model: LanguageModelCore | string;
   test: number | null;
   queryState: [boolean | undefined, (val: boolean) => void];
 }

@@ -54,7 +54,7 @@ import { deep_copy, dict, YEAR } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
-import { OllamaPublic } from "@cocalc/util/types/llm";
+import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
@@ -101,6 +101,7 @@ export interface CustomizeState {
   mistral_enabled: boolean;
   anthropic_enabled: boolean;
   ollama_enabled: boolean;
+  custom_openai_enabled: boolean;
   neural_search_enabled: boolean;
   datastore: boolean;
   ssh_gateway: boolean;
@@ -159,7 +160,8 @@ export interface CustomizeState {
 
   llm_markup: number;
 
-  ollama?: TypedMap<{ [key: string]: TypedMap<OllamaPublic> }>;
+  ollama?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
+  custom_openai?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
   selectable_llms: List<string>;
 }
 
@@ -185,6 +187,7 @@ export class CustomizeStore extends Store<CustomizeState> {
       openai: this.get("openai_enabled"),
       google: this.get("google_vertexai_enabled"),
       ollama: this.get("ollama_enabled"),
+      custom_openai: this.get("custom_openai_enabled"),
       mistralai: this.get("mistral_enabled"),
       anthropic: this.get("anthropic_enabled"),
     };
@@ -262,11 +265,13 @@ async function init_customize() {
     strategies,
     software = null,
     ollama = null, // the derived public information
+    custom_openai = null,
   } = customize;
   process_kucalc(configuration);
   process_software(software, configuration.is_cocalc_com);
   process_customize(configuration); // this sets _is_configured to true
   process_ollama(ollama);
+  process_custom_openai(custom_openai);
   const actions = redux.getActions("account");
   // Which account creation strategies we support.
   actions.setState({ strategies });
@@ -279,6 +284,11 @@ init_customize();
 function process_ollama(ollama?) {
   if (!ollama) return;
   actions.setState({ ollama: fromJS(ollama) });
+}
+
+function process_custom_openai(custom_openai?) {
+  if (!custom_openai) return;
+  actions.setState({ custom_openai: fromJS(custom_openai) });
 }
 
 function process_kucalc(obj) {

@@ -749,6 +749,11 @@ export class ProjectsStore extends Store<ProjectsState> {
     const haveOpenAI = this.hasLanguageModelEnabled(project_id, tag, "openai");
     const haveGoogle = this.hasLanguageModelEnabled(project_id, tag, "google");
     const haveOllama = this.hasLanguageModelEnabled(project_id, tag, "ollama");
+    const haveCustomOpenAI = this.hasLanguageModelEnabled(
+      project_id,
+      tag,
+      "custom_openai",
+    );
     const haveMistral = this.hasLanguageModelEnabled(
       project_id,
       tag,
@@ -766,6 +771,7 @@ export class ProjectsStore extends Store<ProjectsState> {
       ollama: haveOllama,
       mistralai: haveMistral,
       anthropic: haveAnthropic,
+      custom_openai: haveCustomOpenAI,
     };
   }
 

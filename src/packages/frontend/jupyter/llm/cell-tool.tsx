@@ -25,6 +25,7 @@ import { A, Paragraph, Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { AskLLMDropdownButton } from "@cocalc/frontend/frame-editors/llm/ask-llm-dropdown";
 import LLMSelector, {
   modelToMention,
   modelToName,
@@ -712,9 +713,12 @@ export function LLMCellTool({
           the same thread.
         </Paragraph>
         {onCoCalcCom ? (
-          <Paragraph>
-            <LLMCostEstimation model={model} tokens={tokens} />
-          </Paragraph>
+          <LLMCostEstimation
+            type="secondary"
+            paragraph
+            model={model}
+            tokens={tokens}
+          />
         ) : undefined}
       </>
     );
@@ -774,15 +778,6 @@ export function LLMCellTool({
     );
   }
 
-  function renderOkText() {
-    if (llmTools == null) return <></>;
-    return (
-      <>
-        <Icon name={"paper-plane"} /> Ask {modelToName(llmTools.model)}
-      </>
-    );
-  }
-
   function handleKeyDown(e) {
     switch (e.key) {
       case "Enter":
@@ -803,7 +798,12 @@ export function LLMCellTool({
         open={mode != null}
         onOk={onConfirm}
         onCancel={onCancel}
-        okText={renderOkText()}
+        footer={(_, { CancelBtn }) => (
+          <Space>
+            <CancelBtn />
+            <AskLLMDropdownButton onClick={onConfirm} llmTools={llmTools} />
+          </Space>
+        )}
       >
         {renderContent()}
       </Modal>

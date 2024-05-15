@@ -13,9 +13,11 @@ import {
   LANGUAGE_MODEL_PREFIXES,
   LLM_USERNAMES,
   fromAnthropicService,
+  fromCustomOpenAIModel,
   fromMistralService,
   fromOllamaModel,
   isAnthropicService,
+  isCustomOpenAI,
   isMistralService,
   isOllamaLLM,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -27,7 +29,8 @@ export function isChatBot(account_id?: string): boolean {
   return (
     LANGUAGE_MODEL_PREFIXES.some((prefix) => account_id?.startsWith(prefix)) ||
     LANGUAGE_MODELS.some((model) => account_id === model) ||
-    isOllamaLLM(account_id)
+    isOllamaLLM(account_id) ||
+    isCustomOpenAI(account_id)
   );
 }
 
@@ -52,6 +55,12 @@ export function chatBotName(account_id?: string): string {
     const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
     const key = fromOllamaModel(account_id);
     return ollama[key]?.display ?? "Ollama";
+  }
+  if (isCustomOpenAI(account_id)) {
+    const custom_openai =
+      redux.getStore("customize").get("custom_openai")?.toJS() ?? {};
+    const key = fromCustomOpenAIModel(account_id);
+    return custom_openai[key]?.display ?? "OpenAI (custom)";
   }
   return "ChatBot";
 }

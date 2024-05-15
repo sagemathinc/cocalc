@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List, Seq, fromJS, Map as immutableMap } from "immutable";
+import { List, Map, Seq, fromJS, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
 
@@ -25,13 +25,17 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import {
+  CUSTOM_OPENAI_PREFIX,
   LANGUAGE_MODEL_PREFIXES,
+  OLLAMA_PREFIX,
   getLLMServiceStatusCheckMD,
   isFreeModel,
+  isLanguageModel,
   isLanguageModelService,
   model2service,
   model2vendor,
   service2model,
+  toCustomOpenAIModel,
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
@@ -44,6 +48,7 @@ import {
   ChatMessage,
   ChatMessageTyped,
   ChatMessages,
+  Feedback,
   MessageHistory,
 } from "./types";
 import { getSelectedHashtagsSearch } from "./utils";
@@ -126,6 +131,7 @@ export class ChatActions extends Actions<ChatState> {
       x.editing = {};
     }
     x.folding ??= [];
+    x.feedback ??= {};
     return x;
   }
 
@@ -205,6 +211,29 @@ export class ChatActions extends Actions<ChatState> {
 
     if (folded && msgIndex != null) {
       this.scrollToBottom(msgIndex);
+    }
+  }
+
+  public feedback(message: ChatMessageTyped, feedback: Feedback | null) {
+    if (this.syncdb == null) return;
+    const date = message.get("date");
+    if (!(date instanceof Date)) return;
+    const account_id = this.redux.getStore("account").get_account_id();
+    const cur = this.syncdb.get_one({ event: "chat", date });
+    const feedbacks = cur?.get("feedback") ?? Map({});
+    const next = feedbacks.set(account_id, feedback);
+    this.syncdb.set({ feedback: next, date: date.toISOString() });
+    this.syncdb.commit();
+    const model = this.isLanguageModelThread(date);
+    if (isLanguageModel(model)) {
+      track("llm_feedback", {
+        project_id: this.store?.get("project_id"),
+        path: this.store?.get("path"),
+        msg_date: date.toISOString(),
+        type: "chat",
+        model: model2service(model),
+        feedback,
+      });
     }
   }
 
@@ -703,7 +732,10 @@ export class ChatActions extends Actions<ChatState> {
       return;
     }
     let input = message.history?.[0]?.content as string | undefined;
-    if (!input) return;
+    // if there is no input in the last message, something is really wrong
+    if (input == null) return;
+    // there are cases, where there is nothing in the last message – but we want to regenerate it
+    if (!input && tag !== "regenerate") return;
 
     let model: LanguageModel | false = false;
     if (llm != null) {
@@ -1069,10 +1101,7 @@ export class ChatActions extends Actions<ChatState> {
     });
 
     if (llm != null) {
-      const customizeStore = redux.getStore("customize");
-      const selectableLLMs = customizeStore.get("selectable_llms");
-      const ollama = customizeStore.get("ollama");
-      setDefaultLLM(llm, selectableLLMs, ollama);
+      setDefaultLLM(llm);
     }
   }
 }
@@ -1156,9 +1185,12 @@ function getLanguageModel(input?: string): false | LanguageModel {
     if (i != -1) {
       const j = x.indexOf(">", i);
       const model = x.slice(i + prefix.length, j).trim() as LanguageModel;
-      // for now, ollama must be prefixed – in the future, all model names will have a vendor prefix!
-      if (vendorprefix.startsWith("ollama")) {
+      // for now, ollama must be prefixed – in the future, all model names should have a vendor prefix!
+      if (vendorprefix.startsWith(OLLAMA_PREFIX.slice(0, -1))) {
         return toOllamaModel(model);
+      }
+      if (vendorprefix.startsWith(CUSTOM_OPENAI_PREFIX.slice(0, -1))) {
+        return toCustomOpenAIModel(model);
       }
       return model;
     }

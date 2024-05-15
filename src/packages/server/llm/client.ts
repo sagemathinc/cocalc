@@ -4,6 +4,7 @@ Get the client for the given LanguageModel.
 You do not have to worry too much about throwing an exception, because they're caught in ./index::evaluate
 */
 
+import { OpenAI as LCOpenAI } from "@langchain/openai";
 import { Ollama } from "@langchain/community/llms/ollama";
 import { omit } from "lodash";
 import OpenAI from "openai";
@@ -12,6 +13,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import {
   LanguageModel,
+  isCustomOpenAI,
   isGoogleModel,
   isOllamaLLM,
   model2vendor,
@@ -64,6 +66,9 @@ export async function getClient(
 
     case "ollama":
       throw new Error("Use the getOllama function instead");
+
+    case "custom_openai":
+      throw new Error("Use the getCustomOpenAI function instead");
 
     case "mistralai":
       throw new Error("Use the evaluateMistral function instead");
@@ -128,5 +133,50 @@ export async function getOllama(model: string) {
   log.debug("Instantiating Ollama client with config", ollamaConfig);
 
   const client = new Ollama(ollamaConfig);
+  return client;
+}
+
+export async function getCustomOpenAI(model: string) {
+  if (isCustomOpenAI(model)) {
+    throw new Error(
+      `At this point, the model name should be one of the custom openai models, but it was ${model}`,
+    );
+  }
+
+  const settings = await getServerSettings();
+  const config = settings.custom_openai_configuration?.[model];
+  if (!config) {
+    throw new Error(
+      `Custom OpenAI model ${model} not configured – you have to create an entry {${model}: {baseUrl: "https://...", ...}} in the "Custom OpenAI Configuration" entry of the server settings!`,
+    );
+  }
+
+  if (config.cocalc?.disabled) {
+    throw new Error(`Custom OpenAI model ${model} is disabled`);
+  }
+
+  const baseURL = config.baseUrl;
+
+  if (!baseURL) {
+    throw new Error(
+      `The "baseUrl" field of the Custom OpenAI model ${model} is not configured`,
+    );
+  }
+
+  // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
+  const other = omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
+  const customOpenAIConfig = {
+    configuration: { baseURL }, // https://js.langchain.com/v0.1/docs/integrations/llms/openai/
+    model: config.model ?? model,
+    ...other,
+  };
+
+  log.debug(
+    "Instantiating Custom OpenAI client with config (omitting api keys)",
+    omit(customOpenAIConfig, ["apiKey", "openAIApiKey", "azureOpenAIApiKey"]),
+  );
+
+  // https://js.langchain.com/v0.1/docs/integrations/llms/openai/
+  const client = new LCOpenAI(customOpenAIConfig);
   return client;
 }

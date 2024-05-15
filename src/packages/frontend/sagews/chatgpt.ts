@@ -29,15 +29,18 @@ export function helpMeFix({
   const projectsStore = redux.getStore("projects");
   const enabled = projectsStore.whichLLMareEnabled();
   const ollama = redux.getStore("customize").get("ollama")?.toJS() ?? {};
+  const customOpenAI =
+    redux.getStore("customize").get("custom_openai")?.toJS() ?? {};
   const selectableLLMs =
     redux.getStore("customize").get("selectable_llms")?.toJS() ?? [];
 
-  const model = getValidLanguageModelName(
-    other_settings?.get(SETTINGS_LANGUAGE_MODEL_KEY),
-    enabled,
-    Object.keys(ollama),
-    selectableLLMs,
-  );
+  const model = getValidLanguageModelName({
+    model: other_settings?.get(SETTINGS_LANGUAGE_MODEL_KEY),
+    filter: enabled,
+    ollama: Object.keys(ollama),
+    custom_openai: Object.keys(customOpenAI),
+    selectable_llms: selectableLLMs,
+  });
   getHelp({
     project_id,
     path,

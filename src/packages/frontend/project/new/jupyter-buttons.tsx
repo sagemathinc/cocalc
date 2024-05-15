@@ -252,29 +252,44 @@ export function JupyterNotebookButtons({
     }
   }
 
-  function renderMainJupyterButton() {
-    return (
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={DELAY_SHOW_MS}
-          icon={NEW_FILETYPE_ICONS["ipynb"]}
-          title="Jupyter Notebook"
-          tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
-        >
-          <NewFileButton
-            name="Jupyter Notebook"
-            on_click={create_file}
-            ext={"ipynb"}
-            size={btnSize}
-            active={btnActive("ipynb")}
-          />
-        </Tip>
+  const btn = (
+    <Tip
+      delayShow={DELAY_SHOW_MS}
+      icon={NEW_FILETYPE_ICONS["ipynb"]}
+      title="Jupyter Notebook"
+      tip="Create an interactive notebook for using Python, Sage, R, Octave and more."
+      style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+    >
+      <NewFileButton
+        name="Jupyter Notebook"
+        on_click={create_file}
+        ext={"ipynb"}
+        size={btnSize}
+        active={btnActive("ipynb")}
+      />
+    </Tip>
+  );
 
-        {!isFlyout ? (
+  function renderMainJupyterButton() {
+    if (isFlyout) {
+      return (
+        <Col sm={sm} md={md}>
+          <Flex align="flex-start" vertical={false} gap={"5px"}>
+            <Flex flex={"1 1 auto"}>{btn}</Flex>
+            <Flex flex={"0 0 auto"}>
+              <AIGenerateNotebookButton project_id={project_id} mode="flyout" />
+            </Flex>
+          </Flex>
+        </Col>
+      );
+    } else {
+      return (
+        <Col sm={sm} md={md}>
+          {btn}
           <AIGenerateNotebookButton project_id={project_id} />
-        ) : undefined}
-      </Col>
-    );
+        </Col>
+      );
+    }
   }
 
   return (

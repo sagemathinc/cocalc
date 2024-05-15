@@ -63,6 +63,7 @@ export const ProjectContext: Context<ProjectContextState> =
       ollama: false,
       mistralai: false,
       anthropic: false,
+      custom_openai: false,
     },
   });
 
@@ -103,13 +104,21 @@ export function useProjectContextProvider(
   const haveOpenAI = useTypedRedux("customize", "openai_enabled");
   const haveGoogle = useTypedRedux("customize", "google_vertexai_enabled");
   const haveOllama = useTypedRedux("customize", "ollama_enabled");
+  const haveCustomOpenAI = useTypedRedux("customize", "custom_openai_enabled");
   const haveMistral = useTypedRedux("customize", "mistral_enabled");
   const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
 
   const enabledLLMs = useMemo(() => {
     const projectsStore = redux.getStore("projects");
     return projectsStore.whichLLMareEnabled(project_id);
-  }, [haveOpenAI, haveGoogle, haveOllama, haveMistral, haveAnthropic]);
+  }, [
+    haveOpenAI,
+    haveGoogle,
+    haveOllama,
+    haveCustomOpenAI,
+    haveMistral,
+    haveAnthropic,
+  ]);
 
   return {
     actions,
