@@ -13,7 +13,11 @@ import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { useAsyncEffect, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  CSS,
+  useAsyncEffect,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -119,10 +123,9 @@ interface Props {
   id: string;
   actions: Actions;
   buttonSize;
-  buttonStyle;
+  buttonStyle: CSS;
   labels?: boolean;
   visible?: boolean;
-  path: string;
   buttonRef;
   project_id: string;
   showDialog: boolean;
@@ -136,7 +139,6 @@ export default function LanguageModelTitleBarButton({
   buttonSize,
   buttonStyle,
   visible,
-  path,
   buttonRef,
   project_id,
   showDialog,
@@ -177,7 +179,9 @@ export default function LanguageModelTitleBarButton({
 
   useEffect(() => {
     if (showDialog) {
-      setPreset(PRESETS[0]);
+      if (showOptions && !description) {
+        setPreset(PRESETS[0]);
+      }
       setScope(getScope(id, actions));
     }
   }, [showDialog]);
@@ -229,7 +233,7 @@ export default function LanguageModelTitleBarButton({
 
   useAsyncEffect(async () => {
     await doUpdateInput();
-  }, [id, scope, visible, path, showDialog, model, tag, input, custom]);
+  }, [id, scope, model, visible, showDialog, tag, custom]);
 
   const queryLLM = async (options: Options) => {
     setError("");
