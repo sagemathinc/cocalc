@@ -35,9 +35,10 @@ import {
   MISTRAL_PREFIX,
   service2model,
 } from "@cocalc/util/db-schema/llm-utils";
-import type {
-  ProjectQuota,
-  Service,
+import {
+  QUOTA_SPEC,
+  type ProjectQuota,
+  type Service,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
@@ -610,11 +611,6 @@ function Description({ description, period_end, service }) {
   }
 
   if (service.startsWith("openai-gpt-")) {
-    let extra = "";
-    if (service.includes("turbo")) extra += "Turbo";
-    if (service.includes("4o")) extra += "Omni";
-    if (service.includes("128k")) extra += " 128k";
-    if (service.includes("8k")) extra += " 8k";
     return (
       <Tooltip
         title={() => (
@@ -625,7 +621,7 @@ function Description({ description, period_end, service }) {
           </div>
         )}
       >
-        GPT-4 {extra}
+        {QUOTA_SPEC[service].display ?? service}
       </Tooltip>
     );
   }

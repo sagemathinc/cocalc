@@ -63,6 +63,7 @@ export function isMistralModel(model: unknown): model is MistralModel {
 // https://developers.generativeai.google/models/language
 // $ curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$GOOGLE_GENAI" | jq
 export const GOOGLE_MODELS = [
+  "gemini-1.5-flash-8k", // introduced 2024-05-15
   "gemini-pro",
   "gemini-1.0-ultra", // hangs
   "gemini-1.5-pro-8k", // works now with langchaing
@@ -75,6 +76,7 @@ export function isGoogleModel(model: unknown): model is GoogleModel {
 export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
   "gemini-1.5-pro": "gemini-1.5-pro-latest",
   "gemini-1.5-pro-8k": "gemini-1.5-pro-latest",
+  "gemini-1.5-flash-8k": "gemini-1.5-flash-latest",
 } as const;
 
 // https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
@@ -143,7 +145,9 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   google: GOOGLE_MODELS.filter(
     (m) =>
       // we only enable the 1.0 pro and 1.5 pro with a limited context window
-      m === "gemini-pro" || m === "gemini-1.5-pro-8k",
+      m === "gemini-pro" ||
+      m === "gemini-1.5-pro-8k" ||
+      m === "gemini-1.5-flash-8k",
   ),
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-medium-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
@@ -534,6 +538,7 @@ export const LLM_USERNAMES: LLM2String = {
   "gemini-1.0-ultra": "Gemini 1.0 Ultra",
   "gemini-1.5-pro": "Gemini 1.5 Pro 1m",
   "gemini-1.5-pro-8k": "Gemini 1.5 Pro 8k",
+  "gemini-1.5-flash-8k": "Gemini 1.5 Flash 8k",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -578,6 +583,8 @@ export const LLM_DESCR: LLM2String = {
     "Google's Gemini 1.5 Pro Generative AI model (1m token context)",
   "gemini-1.5-pro-8k":
     "Google's Gemini 1.5 Pro Generative AI model (8k token context)",
+  "gemini-1.5-flash-8k":
+    "Google's Gemini 1.5 Flash Generative AI model (8k token context)",
   "mistral-small-latest":
     "Fast, simple queries, short answers, less capabilities. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -665,14 +672,14 @@ function usd1Mtokens(usd: number): number {
 // There appears to be no api that provides the prices, unfortunately.
 export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gpt-4": {
-    prompt_tokens: 0.03 / 1000,
-    completion_tokens: 0.06 / 1000,
+    prompt_tokens: usd1Mtokens(30),
+    completion_tokens: usd1Mtokens(60),
     max_tokens: 8192,
     free: false,
   },
   "gpt-4-32k": {
-    prompt_tokens: 0.06 / 1000,
-    completion_tokens: 0.12 / 1000,
+    prompt_tokens: usd1Mtokens(60),
+    completion_tokens: usd1Mtokens(120),
     max_tokens: 32768,
     free: false,
   },
@@ -683,8 +690,8 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: true,
   },
   "gpt-3.5-turbo-16k": {
-    prompt_tokens: usd1Mtokens(3),
-    completion_tokens: usd1Mtokens(4),
+    prompt_tokens: usd1Mtokens(0.5),
+    completion_tokens: usd1Mtokens(1.5),
     max_tokens: 16384,
     free: false,
   },
@@ -763,11 +770,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
     completion_tokens: usd1Mtokens(21),
     max_tokens: 8_000,
-    free: false,
+    // will change 2024-05-30
+    free: new Date("2024-05-30") > new Date(),
   },
   "gemini-1.5-pro": {
-    prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
-    completion_tokens: usd1Mtokens(21),
+    prompt_tokens: usd1Mtokens(3.5), // https://ai.google.dev/pricing (cheaper, because we're below the 128k context)
+    completion_tokens: usd1Mtokens(10.5),
     max_tokens: 1048576,
     free: false,
   },
@@ -775,6 +783,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(1), // TODO: price not yet known!
     completion_tokens: usd1Mtokens(1),
     max_tokens: 30720,
+    free: true,
+  },
+  "gemini-1.5-flash-8k": {
+    prompt_tokens: usd1Mtokens(0.35),
+    completion_tokens: usd1Mtokens(0.53),
+    max_tokens: 8_000,
     free: true,
   },
   "mistral-small-latest": {
