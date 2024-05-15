@@ -12,6 +12,7 @@ overrides:
   retry-request@<7.0.1: ^7.0.2
   '@langchain/core': ^0.1.63
   katex@<0.16.9: ^0.16.10
+  '@mistralai/mistralai': ^0.2.0
 
 importers:
 
@@ -3179,9 +3180,6 @@ packages:
     peerDependencies:
       react: '>= 15'
       react-dom: '>= 15'
-
-  '@mistralai/mistralai@0.1.3':
-    resolution: {integrity: sha512-WUHxC2xdeqX9PTXJEqdiNY54vT2ir72WSJrZTTBKRnkfhX6zIfCYA24faRlWjUB5WTpn+wfdGsTMl3ArijlXFA==}
 
   '@mistralai/mistralai@0.2.0':
     resolution: {integrity: sha512-mYjE9NovwWdhSXd6KvOgjWUyka2qlxhuohsqhRN4rFtH2MdTDJhAeH3Aqvu3P9q71Xz9oBX2pNWrPVVzkgwZTg==}
@@ -12406,7 +12404,7 @@ snapshots:
   '@langchain/mistralai@0.0.19(encoding@0.1.13)':
     dependencies:
       '@langchain/core': 0.1.63
-      '@mistralai/mistralai': 0.1.3(encoding@0.1.13)
+      '@mistralai/mistralai': 0.2.0(encoding@0.1.13)
       uuid: 9.0.1
       zod: 3.23.5
       zod-to-json-schema: 3.22.4(zod@3.23.5)
@@ -12559,12 +12557,6 @@ snapshots:
       react-textarea-autosize: 8.3.4(@types/react@18.0.26)(react@18.2.0)
     transitivePeerDependencies:
       - '@types/react'
-      - encoding
-
-  '@mistralai/mistralai@0.1.3(encoding@0.1.13)':
-    dependencies:
-      node-fetch: 2.7.0(encoding@0.1.13)
-    transitivePeerDependencies:
       - encoding
 
   '@mistralai/mistralai@0.2.0(encoding@0.1.13)':
