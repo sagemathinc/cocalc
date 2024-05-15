@@ -41,14 +41,14 @@ export function useLanguageModelSetting(
   ]);
 
   const llm: LanguageService = useMemo(() => {
-    return getValidLanguageModelName(
-      other_settings?.get("language_model"),
-      enabledLLMs,
-      Object.keys(ollama?.toJS() ?? {}),
-      Object.keys(custom_openai?.toJS() ?? {}),
-      selectableLLMs?.toJS() ?? [],
-    );
-  }, [other_settings]);
+    return getValidLanguageModelName({
+      model: other_settings?.get("language_model"),
+      filter: enabledLLMs,
+      ollama: Object.keys(ollama?.toJS() ?? {}),
+      custom_openai: Object.keys(custom_openai?.toJS() ?? {}),
+      selectable_llms: selectableLLMs?.toJS() ?? [],
+    });
+  }, [other_settings, custom_openai, ollama, selectableLLMs, enabledLLMs]);
 
   function setLLM(llm: LanguageService) {
     setDefaultLLM(llm);

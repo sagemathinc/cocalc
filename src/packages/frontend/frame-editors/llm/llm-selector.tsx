@@ -24,6 +24,7 @@ import {
   isFreeModel,
   isOllamaLLM,
   model2service,
+  toCustomOpenAIModel,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import type { CustomLLMPublic } from "@cocalc/util/types/llm";
@@ -78,7 +79,13 @@ export default function LLMSelector({
     undefined,
     "ollama",
   );
+  const showCustomOpenAI = projectsStore.hasLanguageModelEnabled(
+    project_id,
+    undefined,
+    "custom_openai",
+  );
   const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   function makeLLMOption(btnModel: LanguageModel, title: string) {
@@ -196,6 +203,40 @@ export default function LLMSelector({
     makeLLMGroup(ret, "ollama", options);
   }
 
+  function appendCustomOpenAI(ret: NonNullable<SelectProps["options"]>): void {
+    if (!showCustomOpenAI || !custom_openai) return;
+
+    const options: NonNullable<SelectProps["options"]> = [];
+    for (const [key, config] of Object.entries<CustomLLMPublic>(
+      custom_openai.toJS(),
+    )) {
+      const { display, desc } = config;
+      const customOpenAIModel = toCustomOpenAIModel(key);
+      const text = (
+        <>
+          <strong>{display}</strong> <LLMModelPrice model={customOpenAIModel} />{" "}
+          – {desc ?? "OpenAI (custom)"}
+        </>
+      );
+      options.push({
+        value: customOpenAIModel,
+        display: (
+          <>
+            <LanguageModelVendorAvatar model={customOpenAIModel} />{" "}
+            <strong>{modelToName(customOpenAIModel)}</strong>{" "}
+            <LLMModelPrice model={customOpenAIModel} />
+          </>
+        ),
+        label: (
+          <Tooltip title={text}>
+            <LanguageModelVendorAvatar model={customOpenAIModel} /> {text}
+          </Tooltip>
+        ),
+      });
+    }
+    makeLLMGroup(ret, "custom_openai", options);
+  }
+
   function getOptions(): SelectProps["options"] {
     const ret: NonNullable<SelectProps["options"]> = [];
     appendOpenAI(ret);
@@ -203,6 +244,7 @@ export default function LLMSelector({
     appendMistral(ret);
     appendAnthropic(ret);
     appendOllama(ret);
+    appendCustomOpenAI(ret);
     return ret;
   }
 

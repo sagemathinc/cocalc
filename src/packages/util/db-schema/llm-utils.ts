@@ -244,12 +244,20 @@ export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
   },
 };
 
+interface ValidLanguageModelNameProps {
+  model: string | undefined;
+  filter: LLMServicesAvailable;
+  ollama: string[]; // keys of ollama models
+  custom_openai: string[]; // keys of custom openai models
+  selectable_llms: string[]; // either empty, or an array stored in the server settings
+}
+
 // this is used in initialization functions. e.g. to get a default model depending on the overall availability
 // usually, this should just return the chatgpt3 model, but e.g. if neither google or openai is available,
 // then it might even falls back to an available ollama model. It needs to return a string, though, for the frontend, etc.
-export function getValidLanguageModelName(
-  model: string | undefined,
-  filter: LLMServicesAvailable = {
+export function getValidLanguageModelName({
+  model,
+  filter = {
     openai: true,
     google: true,
     ollama: false,
@@ -257,10 +265,10 @@ export function getValidLanguageModelName(
     anthropic: false,
     custom_openai: false,
   },
-  ollama: string[] = [], // keys of ollama models
-  custom_openai: string[] = [], // keys of custom openai models
-  selectable_llms: string[],
-): LanguageModel {
+  ollama,
+  custom_openai,
+  selectable_llms,
+}: ValidLanguageModelNameProps): LanguageModel {
   const dftl: string =
     filter.openai === true && selectable_llms.includes(DEFAULT_MODEL)
       ? DEFAULT_MODEL
@@ -282,6 +290,12 @@ export function getValidLanguageModelName(
     return dftl;
   }
   if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
+    return model;
+  }
+  if (
+    isCustomOpenAI(model) &&
+    custom_openai.includes(fromCustomOpenAIModel(model))
+  ) {
     return model;
   }
   if (
