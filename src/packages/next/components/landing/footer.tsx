@@ -55,76 +55,131 @@ interface FooterColumn {
 
 export default function Footer() {
   const {
+    contactEmail,
+    onCoCalcCom,
     organizationName,
     organizationURL,
+    enabledPages,
     termsOfServiceURL,
-    contactEmail,
-    landingPages,
-    imprint,
-    onCoCalcCom,
-    isCommercial,
-    imprintOrPolicies,
-    shareServer,
   } = useCustomize();
 
   const footerColumns: Array<FooterColumn> = [
     {
       header: "Product",
       links: [
-        { text: "Store", url: "/store", hide: !isCommercial },
-        { text: "Features", url: "/features" },
-        { text: "Licenses", url: "/licenses" },
-        { text: "Pricing", url: "/pricing", hide: !isCommercial },
-        { text: "On Premises", url: "/pricing/onprem", hide: !onCoCalcCom },
         {
-          text: "System Status",
+          text: "Store", url: "/store",
+          hide: !enabledPages?.store,
+        },
+        {
+          text: "Features",
+          url: "/features",
+          hide: !enabledPages?.features,
+        },
+        {
+          text: "Licenses",
+          url: "/licenses",
+          hide: !enabledPages?.licenses,
+        },
+        {
+          text: "Pricing",
+          url: "/pricing",
+          hide: !enabledPages?.pricing,
+        },
+        {
+          text: "On Premises",
+          url: "/pricing/onprem",
+          hide: !enabledPages?.onPrem,
+        },
+        {
+          text: "System Activity",
+          url: "/info/status",
+          hide: !enabledPages?.systemActivity,
+        },
+        {
+          text: "Status",
           url: "https://status.cocalc.com/",
-          hide: !onCoCalcCom,
+          hide: !enabledPages?.status,
         },
       ],
     },
     {
       header: "Resources",
       links: [
-        { text: "Documentation", url: "/info/doc" },
+        {
+          text: "Documentation",
+          url: "/info/doc",
+          hide: !enabledPages?.info,
+        },
         {
           text: "Compute Servers",
           url: "https://doc.cocalc.com/compute_server.html",
-          hide: !isCommercial,
+          hide: !enabledPages?.compute,
         },
         {
           text: "Public Share",
           url: "/share/public_paths/page/1",
-          hide: !shareServer,
+          hide: !enabledPages?.share,
         },
-        { text: "Software", url: "/software", hide: !landingPages },
-        { text: "System Monitor", url: "/info/status" },
-        { text: "Support", url: "/support" },
+        {
+          text: "Software",
+          url: "/software",
+          hide: !enabledPages?.software,
+        },
+        {
+          text: "Support",
+          url: "/support",
+          hide: !enabledPages?.support,
+        },
       ],
     },
     {
       header: "Company",
       links: [
-        { text: "About", url: "/about", hide: !landingPages },
-        { text: "Contact", url: contactEmail || "", hide: !contactEmail },
-        { text: "Events", url: "/about/events" },
-        { text: "Team", url: "/about/team", hide: !landingPages },
-        { text: "Imprint", url: "/policies/imprint", hide: !imprint },
-        { text: "News", url: "/news" },
+        {
+          text: "About",
+          url: "/about",
+          hide: !enabledPages?.about.index,
+        },
+        {
+          text: "Contact",
+          url: contactEmail || "",
+          hide: !enabledPages?.contact,
+        },
+        {
+          text: "Events",
+          url: "/about/events",
+          hide: !enabledPages?.about.events,
+        },
+        {
+          text: "Team",
+          url: "/about/team",
+          hide: !enabledPages?.about.team,
+        },
+        {
+          text: "Imprint",
+          url: "/policies/imprint",
+          hide: !enabledPages?.policies.imprint,
+        },
+        {
+          text: "News",
+          url: "/news",
+          hide: !enabledPages?.news,
+        },
         {
           text: "Policies",
           url: "/policies",
-          hide: !(landingPages || imprintOrPolicies),
+          hide: !enabledPages?.policies.index,
         },
         {
           text: "Terms of Service",
           url: termsOfServiceURL || "",
-          hide: landingPages || !termsOfServiceURL,
+          hide: !enabledPages?.termsOfService,
         },
         {
           text: organizationName || "Company",
           url: organizationURL || "",
-          hide: !organizationURL,
+          hide: !enabledPages?.organization,
         },
       ],
     },
@@ -170,7 +225,7 @@ export default function Footer() {
               style={LOGO_COLUMN_STYLE}
             >
               <Logo type="rectangular" width={150} />
-              {isCommercial && (
+              {onCoCalcCom && (
                 <SocialMediaIconList
                   links={{
                     facebook: "https://www.facebook.com/CoCalcOnline",
