@@ -271,9 +271,9 @@ export default function LLMSelector({
         <Paragraph>
           The models marked as "{FREE}" do not incur any charges. However, they
           are rate limited to avoid abuse. The more capable models are marked "
-          {PAID}" and charged by the number of read and geenerated tokens – i.e.
-          "pay-as-you-go" – and do not have rate limitations. Usually, these
-          charges are very small!
+          {PREMIUM}" and charged by the number of read and geenerated tokens –
+          i.e. "pay-as-you-go" – and do not have rate limitations. Usually,
+          these charges are very small!
         </Paragraph>
         <Paragraph>
           Assuming a typical usage involves {input} input tokens and {output}{" "}
@@ -341,7 +341,7 @@ export function modelToMention(model: LanguageModel): string {
 }
 
 const FREE = "free";
-const PAID = "paid";
+const PREMIUM = "premium";
 
 export function LLMModelPrice({
   model,
@@ -366,7 +366,7 @@ export function LLMModelPrice({
     </Tag>
   ) : (
     <Tag color="warning" {...props}>
-      paid
+      {PREMIUM}
     </Tag>
   );
 }
