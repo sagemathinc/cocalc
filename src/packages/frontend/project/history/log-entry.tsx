@@ -537,10 +537,10 @@ export const LogEntry: React.FC<Props> = React.memo(
             </span>
           );
 
-        case "generate-latex":
+        case "generate-document":
           return (
             <span>
-              used an {name} to generate the LaTeX Document {pathLink}
+              used an {name} to generate the Document {pathLink}
             </span>
           );
 

@@ -1,7 +1,11 @@
-export type Example = [display: string, prompt: string, tags: string[]];
+export type Example = readonly [
+  display: string,
+  prompt: string,
+  tags: readonly string[],
+];
 type Language = "python" | "r" | "sagemath" | "octave" | "julia";
 
-export const JUPYTER: { [key in Language]: Example[] } = {
+export const JUPYTER: { [key in Language]: readonly Example[] } = {
   python: [
     [
       "Linear Regression Analysis",
@@ -164,95 +168,136 @@ export const JUPYTER: { [key in Language]: Example[] } = {
   ],
 } as const;
 
-export const LATEX: Example[] = [
-  [
-    "Article",
-    "A template for writing a research article, including sections for abstract, introduction, methodology, results, discussion, and conclusion.",
-    ["research", "academic", "journal"],
+// supported extensions
+const EXTS = ["tex", "rmd"] as const;
+export type Ext = (typeof EXTS)[number];
+export const PAPERSIZE: { [ext in Ext]?: string[] } = {
+  tex: ["Letter (US)", "Legal (US)", "A4 (Europe)", "A5 (Europe)"],
+};
+
+export const DOCUMENT: { [ext in Ext]: readonly Example[] } = {
+  tex: [
+    [
+      "Article",
+      "A template for writing a research article, including sections for abstract, introduction, methodology, results, discussion, and conclusion.",
+      ["research", "academic"],
+    ],
+    [
+      "Article IEEE",
+      "A template for writing a research article submitted to IEEE.",
+      ["research", "academic", "ieee"],
+    ],
+    [
+      "Article SIAM",
+      "A template for writing a research article submitted to SIAM.",
+      ["research", "academic", "siam"],
+    ],
+    [
+      "Resume",
+      "A template for creating a professional resume, with sections for personal information, education, work experience, skills, and references.",
+      ["resume"],
+    ],
+    [
+      "Letter",
+      "A template for writing a formal letter, including sections for the sender's address, date, recipient's address, salutation, body, and closing.",
+      ["official", "business"],
+    ],
+    [
+      "Presentation",
+      "A template for creating a slide presentation, with a title slide, section slides, and a slide for references or additional information.",
+      ["slides", "presentation"],
+    ],
+    [
+      "Book",
+      "A template for writing a book, including sections for the cover page, table of contents, chapters, and back matter (appendices, glossary, etc.).",
+      ["novel", "story", "literature"],
+    ],
+    [
+      "Report",
+      "A template for generating a comprehensive report, with sections for an executive summary, introduction, detailed analysis, recommendations, and appendices.",
+      ["analysis", "business", "technical"],
+    ],
+    [
+      "Koma-Script/Article",
+      "Generate a template using the Koma-Script 'scrartcl' document class. Use a modern font and small padding.",
+      ["koma-script", "article"],
+    ],
+    [
+      "Koma-Script/Book",
+      "Generate a template using the Koma-Script 'scrbook' document class. Use a modern font and small padding.",
+      ["koma-script", "book"],
+    ],
+    [
+      "Koma-Script/Letter",
+      "Generate a template using the Koma-Script 'scrletter' document class. Use a modern font and small padding.",
+      ["koma-script", "letter"],
+    ],
+    [
+      "Koma-Script/Report",
+      "Generate a template using the Koma-Script 'scrreprt' document class. Use a modern font and small padding.",
+      ["koma-script", "report"],
+    ],
+    [
+      "Scientific Poster",
+      "Template for a academic conference poster. The document must be a single page and position graphic and text objects onto it. The topic should be something fun to get started - for example 'newly discovered rhytmic beats of rotating black holes'.",
+      ["poster", "academic", "conference"],
+    ],
+    [
+      "Lab Report",
+      "Template for recording scientific experiments and findings. Use tables to record date/time, observation, notes, etc.",
+      ["science"],
+    ],
+    [
+      "Homework Assignment",
+      "Clean layout for homework submissions. Header should start with the student name, class, id number, etc..",
+      ["homework"],
+    ],
+    [
+      "Exam/Quiz",
+      "Template for creating structured exams or quizzes.",
+      ["exam", "quiz", "test"],
+    ],
+    [
+      "Newsletter",
+      "Template for designing and distributing newsletters.",
+      ["newsletter", "communication"],
+    ],
+    [
+      "Recipe",
+      "Beautifully formatted template for sharing culinary creations.",
+      ["recipe", "cooking"],
+    ],
+    [
+      "Invoice",
+      "Professional template for billing clients or customers. All required aspects of a valid invoice must be included. Generate a random company name.",
+      ["invoice"],
+    ],
+    [
+      "Calendar",
+      "Template for yearly, monthly, or weekly calendars.",
+      ["calendar", "schedule"],
+    ],
+    [
+      "Poetry/Writing",
+      "Elegant layout for showcasing creative writing.",
+      ["poetry", "writing"],
+    ],
+    [
+      "Scrapbook",
+      "Creative template for personal mementos and memories.",
+      ["scrapbook", "journal"],
+    ],
   ],
-  [
-    "Article IEEE",
-    "A template for writing a research article submitted to IEEE.",
-    ["research", "academic", "journal"],
+  rmd: [
+    [
+      "Statistical Analysis",
+      "A showcase of statistical tests on a random data.frame using R. Also plot the data using ggplot.",
+      ["statistics"],
+    ],
+    [
+      "Report",
+      "Write a technical report, which can be used as a template.",
+      ["report"],
+    ],
   ],
-  [
-    "Resume",
-    "A template for creating a professional resume, with sections for personal information, education, work experience, skills, and references.",
-    ["job", "career", "application"],
-  ],
-  [
-    "Letter",
-    "A template for writing a formal letter, including sections for the sender's address, date, recipient's address, salutation, body, and closing.",
-    ["correspondence", "official", "business"],
-  ],
-  [
-    "Presentation",
-    "A template for creating a slide presentation, with a title slide, section slides, and a slide for references or additional information.",
-    ["slides", "presentation", "conference"],
-  ],
-  [
-    "Book",
-    "A template for writing a book, including sections for the cover page, table of contents, chapters, and back matter (appendices, glossary, etc.).",
-    ["novel", "story", "literature"],
-  ],
-  [
-    "Report",
-    "A template for generating a comprehensive report, with sections for an executive summary, introduction, detailed analysis, recommendations, and appendices.",
-    ["analysis", "business", "technical"],
-  ],
-  [
-    "Scientific Poster",
-    "Template for a academic conference poster. The document must be a single page and position graphic and text objects onto it. The topic should be something fun to get started - for example 'newly discovered rhytmic beats of rotating black holes'.",
-    ["poster", "academic", "conference"],
-  ],
-  [
-    "Lab Report",
-    "Template for recording scientific experiments and findings.",
-    ["lab", "report", "science"],
-  ],
-  [
-    "Homework Assignment",
-    "Clean layout for homework submissions.",
-    ["homework", "assignment", "school"],
-  ],
-  [
-    "Exam",
-    "Template for creating structured exams or quizzes.",
-    ["exam", "quiz", "test"],
-  ],
-  [
-    "Newsletter",
-    "Template for designing and distributing newsletters.",
-    ["newsletter", "communication"],
-  ],
-  [
-    "Recipe",
-    "Beautifully formatted template for sharing culinary creations.",
-    ["recipe", "cooking", "food"],
-  ],
-  [
-    "Invoice",
-    "Professional template for billing clients or customers.",
-    ["invoice", "billing", "payment"],
-  ],
-  [
-    "Calendar",
-    "Template for yearly, monthly, or weekly calendars.",
-    ["calendar", "planner", "schedule"],
-  ],
-  [
-    "Poetry/Prose",
-    "Elegant layout for showcasing creative writing.",
-    ["poetry", "prose", "writing"],
-  ],
-  [
-    "Photo Album",
-    "Visually appealing template for displaying photographs.",
-    ["photo", "album", "gallery"],
-  ],
-  [
-    "Scrapbook",
-    "Creative template for personal mementos and memories.",
-    ["scrapbook", "journal", "memory"],
-  ],
-] as const;
+} as const;

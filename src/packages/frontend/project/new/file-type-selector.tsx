@@ -14,7 +14,7 @@ import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { AIGenerateLaTeXButton } from "../page/home-page/ai-generate-latex";
+import { AIGenerateDocumentButton } from "../page/home-page/ai-generate-document";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { JupyterNotebookButtons } from "./jupyter-buttons";
 import { NewFileButton } from "./new-file-button";
@@ -347,27 +347,58 @@ export function FileTypeSelector({
     );
   }
 
+  function addAiDocGenerate(btn, ext) {
+    if (isFlyout) {
+      return (
+        <Col sm={sm} md={md}>
+          <Flex align="flex-start" vertical={false} gap={"5px"}>
+            <Flex flex={"1 1 auto"}>{btn}</Flex>
+            <Flex flex={"0 0 auto"}>
+              <AIGenerateDocumentButton
+                project_id={project_id}
+                mode="flyout"
+                ext={ext}
+              />
+            </Flex>
+          </Flex>
+        </Col>
+      );
+    } else {
+      return (
+        <Col sm={sm} md={md}>
+          {btn}
+          <AIGenerateDocumentButton
+            project_id={project_id}
+            mode="full"
+            ext={ext}
+          />
+        </Col>
+      );
+    }
+  }
+
   function renderRMD() {
     if (!availableFeatures.rmd) return;
 
-    return (
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={DELAY_SHOW_MS}
-          title="RMarkdown File"
-          icon={NEW_FILETYPE_ICONS.rmd}
-          tip="RMarkdown document with real-time preview."
-        >
-          <NewFileButton
-            name="RMarkdown"
-            on_click={create_file}
-            ext="rmd"
-            size={btnSize}
-            active={btnActive("rmd")}
-          />
-        </Tip>
-      </Col>
+    const btn = (
+      <Tip
+        delayShow={DELAY_SHOW_MS}
+        title="RMarkdown File"
+        icon={NEW_FILETYPE_ICONS.rmd}
+        tip="RMarkdown document with real-time preview."
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name="RMarkdown"
+          on_click={create_file}
+          ext="rmd"
+          size={btnSize}
+          active={btnActive("rmd")}
+        />
+      </Tip>
     );
+
+    return addAiDocGenerate(btn, "rmd");
   }
 
   function renderLaTeX() {
@@ -390,26 +421,7 @@ export function FileTypeSelector({
         />
       </Tip>
     );
-
-    if (isFlyout) {
-      return (
-        <Col sm={sm} md={md}>
-          <Flex align="flex-start" vertical={false} gap={"5px"}>
-            <Flex flex={"1 1 auto"}>{btn}</Flex>
-            <Flex flex={"0 0 auto"}>
-              <AIGenerateLaTeXButton project_id={project_id} mode="flyout" />
-            </Flex>
-          </Flex>
-        </Col>
-      );
-    } else {
-      return (
-        <Col sm={sm} md={md}>
-          {btn}
-          <AIGenerateLaTeXButton project_id={project_id} mode="full" />
-        </Col>
-      );
-    }
+    return addAiDocGenerate(btn, "tex");
   }
 
   function renderMarkdown() {

@@ -55,9 +55,14 @@ import {
   getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
-import { field_cmp, getRandomColor, to_iso_path } from "@cocalc/util/misc";
+import { field_cmp, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Example, JUPYTER } from "./ai-generate-examples";
+import {
+  getFilename,
+  getTimestamp,
+  sanitizeFilename,
+} from "./ai-generate-utils";
 
 const TAG = "generate-jupyter";
 
@@ -171,8 +176,8 @@ export default function AIGenerateJupyterNotebook({
     }
   }
 
-  async function createNotebook(filenameGPT: string): Promise<string> {
-    const filename = sanitizeFilename(filenameGPT);
+  async function createNotebook(filenameLLM: string): Promise<string> {
+    const filename = sanitizeFilename(filenameLLM, "ipynb");
     // constructs a proto jupyter notebook with the given kernel
     const prefix = current_path ? `${current_path}/` : "";
     const timestamp = getTimestamp();
@@ -326,19 +331,21 @@ export default function AIGenerateJupyterNotebook({
     // the case of one token callback with everything and then "null" to indicate it is done.
     const processTokens = throttle(
       async function (answer: string, finalize: boolean) {
-        const fn = getFilename(answer, prompt);
+        const fn = getFilename(answer, prompt, 'ipynb');
         if (!init && fn != null) {
           init = true;
           // this kicks off creating the notebook and opening it
           await initNotebook(fn);
         }
 
-        // This finalize step is important for PaLM (which isn't streamining), because
-        // only here the entire text of the notbeook is processed once at the very end.
+        // This finalize step is important, especially in case we have not gotten a filename yet
         if (finalize) {
           if (!init) {
             // we never got a filename, so we create one based on the prompt and create the notebook
-            const fn: string = sanitizeFilename(prompt.split("\n").join("_"));
+            const fn: string = sanitizeFilename(
+              prompt.split("\n").join("_"),
+              "ipynb",
+            );
             await initNotebook(fn);
           }
 
@@ -683,45 +690,9 @@ export function AIGenerateNotebookButton({
   );
 }
 
-function sanitizeFilename(text: string): string {
-  text = text.trim().split("\n").shift() ?? "";
-  text = text.replace(/["']/g, "");
-  // remove ending, we'll add it back later
-  text = text.replace(/\.ipynb/, "");
-
-  // if there is a "filename:" in the text, remove everything until after it
-  const i = text.indexOf("filename:");
-  if (i >= 0) {
-    text = text.slice(i + "filename:".length);
-  }
-
-  text = text
-    .replace(/\s+/g, "_")
-    .replace(/[^a-zA-Z0-9-_]/g, "")
-    .trim()
-    .slice(0, 64);
-
-  return text;
-}
-
-function getTimestamp(): string {
-  return to_iso_path(new Date());
-}
-
-function getFilename(text: string | null, prompt: string): string | null {
-  // we give up if there are more than 5 lines
-  if (text == null || text.split("\n").length > 3) {
-    return sanitizeFilename(prompt.split("\n").join("_"));
-  }
-  // use regex to search for '"filename: [filename]"'
-  const match = text.match(/"filename: (.*)"/);
-  if (match == null) return null;
-  return sanitizeFilename(match[1]);
-}
-
 function createInput({ spec, prompt }): string {
   if (spec == null || !prompt?.trim()) return "";
   const langExtra = LANG_EXTRA[spec.language] ?? DEFAULT_LANG_EXTRA;
 
-  return `Explain directly and to the point, how to do the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter Notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename]".\n\n${prompt}`;
+  return `Explain directly and to the point, how to do the following task in the programming language "${spec.display_name}", which I will be using in a Jupyter Notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Do not open any files, since you cannot assume they exist. Instead, generate random data suitable for the example code. Make sure the entire notebook can run. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [name.ipynb]".\n\n${prompt}`;
 }

@@ -25,10 +25,17 @@ import {
 import { open_new_tab } from "@cocalc/frontend/misc";
 const HELP_URL = "https://doc.cocalc.com/frame-editor.html#edit-rmd";
 
-const MINIMAL = `# Title
+const MINIMAL = `---
+title: "Title"
+output:
+  html_document:
+    toc: true
+---
+
+## Title
 
 \`\`\`{r}
-summary(c(1,2,3))
+summary(rnorm(100))
 \`\`\`
 `;
 
@@ -57,10 +64,11 @@ output: html_document
 export class Actions extends MarkdownActions {
   private _last_rmd_hash: string | null = null;
   private is_building: boolean = false;
-  private run_rmd_converter: Function;
+  public run_rmd_converter: Function;
 
   _init2(): void {
     super._init2(); // that's the one in markdown-editor/actions.ts
+    this.build = this.build.bind(this);
     // one extra thing after markdown.
     this._syncstring.once("ready", () => {
       this._init_rmd_converter();
@@ -84,7 +92,7 @@ export class Actions extends MarkdownActions {
   _init_rmd_converter(): void {
     // one build takes min. a few seconds up to a minute or more
     this.run_rmd_converter = debounce(
-      async (hash?) => await this._run_rmd_converter(hash),
+      async (hash?: number) => await this._run_rmd_converter(hash),
       5 * 1000,
       { leading: true, trailing: false },
     );

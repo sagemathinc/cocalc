@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { useFrameContext } from "@cocalc/frontend/app-framework";
-import { Paragraph } from "@cocalc/frontend/components";
+import { Paragraph, RawPrompt } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
@@ -25,7 +25,6 @@ import {
 import { plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
-import { RawPrompt } from "../llm/raw-prompt";
 import { Position } from "./types";
 import { insertCell } from "./util";
 

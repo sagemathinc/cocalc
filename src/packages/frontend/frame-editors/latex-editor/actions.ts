@@ -202,9 +202,6 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  public not_ready(): boolean {
-    return this._syncstring == null || this._syncstring.get_state() != "ready";
-  }
 
   private is_likely_master(): boolean {
     if (this.not_ready()) return false;
