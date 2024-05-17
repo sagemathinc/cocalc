@@ -7,22 +7,23 @@
 R Markdown Editor Actions
 */
 
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { debounce } from "lodash";
 import { Set } from "immutable";
-import { Actions as MarkdownActions } from "../markdown-editor/actions";
-import { convert } from "./rmd-converter";
-import { markdown_to_html_frontmatter } from "../../markdown";
-import { FrameTree } from "../frame-tree/types";
-import { redux } from "../../app-framework";
-import { ExecOutput } from "../generic/client";
+import { debounce } from "lodash";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { markdown_to_html_frontmatter } from "@cocalc/frontend/markdown";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { path_split } from "@cocalc/util/misc";
-import { derive_rmd_output_filename } from "./utils";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { open_new_tab } from "@cocalc/frontend/misc";
+import { FrameTree } from "../frame-tree/types";
+import { ExecOutput } from "../generic/client";
+import { Actions as MarkdownActions } from "../markdown-editor/actions";
+import { convert } from "./rmd-converter";
+import { derive_rmd_output_filename } from "./utils";
 const HELP_URL = "https://doc.cocalc.com/frame-editor.html#edit-rmd";
 
 const MINIMAL = `---

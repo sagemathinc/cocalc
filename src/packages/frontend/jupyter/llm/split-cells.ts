@@ -8,15 +8,20 @@
  */
 export function splitCells(
   text: string,
-  ignoreLine?: (line: string) => boolean
+  ignoreLine?: (line: string) => boolean, // first such line is ignored
 ): { cell_type: "markdown" | "code"; source: string[] }[] {
   const ret: { cell_type: "markdown" | "code"; source: string[] }[] = [];
 
   let lines = text.split("\n");
   let cell_type: "markdown" | "code" = "markdown";
   let source: string[] = [];
+  let ignored = false;
+
   for (const line of lines) {
-    if (ignoreLine?.(line)) continue;
+    if (!ignored && ignoreLine?.(line)) {
+      ignored = true;
+      continue;
+    }
     if (line.startsWith("```")) {
       stripTrailingWhitespace(source);
       if (source.length > 0) {

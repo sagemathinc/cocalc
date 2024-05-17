@@ -43,6 +43,31 @@ plot(x)
 
 `;
 
+const IPYNB_TEMPLATE = `# Title
+
+\`\`\`
+x = 1
+\`\`\`
+
+## Subtitle
+
+Markdown Text
+
+\`\`\`
+print(x)
+\`\`\`
+`;
+
+export const LANG_EXTRA: { [language: string]: string } = {
+  python:
+    "Prefer using the standard library or the following packages: numpy, matplotlib, pandas, scikit-learn, sympy, scipy, sklearn, seaborn, statsmodels, nltk, tensorflow, pytorch, pymc3, dask, numba, bokeh.",
+  r: "Prefer using the standard library or the following packages: tidyverse, tidyr, stringr, dplyr, data.table, ggplot2, car, mgcv, lme4, nlme, randomForest, survival, glmnet.",
+  sagemath: "Use all functions in SageMath.",
+  julia: "Use function from the standard library only.",
+} as const;
+
+export const DEFAULT_LANG_EXTRA = "Prefer using the standard library.";
+
 export const PROMPT: { [ext in Ext]: { extra: string; template: string } } = {
   tex: {
     extra:
@@ -54,5 +79,8 @@ export const PROMPT: { [ext in Ext]: { extra: string; template: string } } = {
       "This document will be processed using RMarkdown and generate HTML output. Modify the template to fit the document description.",
     template: RMD_TEMPLATE,
   },
+  ipynb: {
+    extra: DEFAULT_LANG_EXTRA,
+    template: IPYNB_TEMPLATE,
+  },
 };
-

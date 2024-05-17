@@ -321,10 +321,12 @@ class ChatStream extends EventEmitter {
   constructor() {
     super();
   }
+
   process(text?: string) {
     // emits undefined text when done (or err below)
     this.emit("token", text);
   }
+
   error(err) {
     this.emit("error", err);
   }

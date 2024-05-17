@@ -5,6 +5,14 @@ export type Example = readonly [
 ];
 type Language = "python" | "r" | "sagemath" | "octave" | "julia";
 
+export const EXAMPLES_COMMON: readonly Example[] = [
+  [
+    "Help me Studying ...",
+    "I am a student. I want to learn more about a topic. Explain it to me using code, formulas and plots!\n\nTopic: DESCRIBE_TOPIC_HERE",
+    ["student", "learning"],
+  ],
+] as const;
+
 export const JUPYTER: { [key in Language]: readonly Example[] } = {
   python: [
     [
@@ -19,7 +27,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
     ],
     [
       "Plotting a Sine Wave",
-      "Generate a plot of a sine wave with varying frequencies and amplitudes.",
+      "Generate a plot of a sine wave with varying frequencies and amplitudes. Use the IPywidgets.interact wrapper to make the plots interactive.",
       ["visualization", "mathematics", "trigonometry"],
     ],
     [
@@ -29,7 +37,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
     ],
     [
       "Machine Learning with Scikit-Learn",
-      "Use `sklearn.datasets.load_wine` to load the wine dataset. Train a linear regression model on this dataset. Evaluate the model's performance using R-squared. Make predictions on new data.",
+      "Load the wine dataset from sklearn.datasets. Preprocess the data if necessary (e.g., standardize features). Fit a linear regression model to the wine data.  Evaluate the model's performance using R-squared and mean squared error (MSE). Then, visualize the relationship between actual and predicted values using a scatter plot.",
       ["machine learning", "scikit-learn", "regression"],
     ],
     [
@@ -39,7 +47,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
     ],
     [
       "DNA Sequence Analysis",
-      "Create a program to generate a random DNA sequence and calculate the GC content (percentage of guanine and cytosine bases).",
+      "Generate DNA sequence data of length 10000. It should contain random coding regions with realistic codon usage bias, promoter regions with over-represented transcription factor binding sites, repetitive elements like transposons and tandem repeats, and regions with different GC content to simulate genomic islands. Then, create a function that analyzes the k-mer distributions in that sequence, highlighting over-represented motifs. Then plot this!",
       ["bioinformatics", "genetics"],
     ],
   ],
@@ -169,13 +177,14 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
 } as const;
 
 // supported extensions
-const EXTS = ["tex", "rmd"] as const;
+const EXTS = ["tex", "rmd", "ipynb"] as const;
 export type Ext = (typeof EXTS)[number];
 export const PAPERSIZE: { [ext in Ext]?: string[] } = {
   tex: ["Letter (US)", "Legal (US)", "A4 (Europe)", "A5 (Europe)"],
 };
 
 export const DOCUMENT: { [ext in Ext]: readonly Example[] } = {
+  ipynb: [["Test", "Random numbers", ["testing"]]],
   tex: [
     [
       "Article",

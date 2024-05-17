@@ -21,7 +21,7 @@ import {
 } from "antd";
 import { delay } from "awaiting";
 import { debounce, isEmpty, throttle } from "lodash";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
@@ -31,37 +31,53 @@ import {
   useAsyncEffect,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Actions as RmdActions } from "@cocalc/frontend/frame-editors/rmd-editor/actions";
-import { Actions as LatexActions } from "@cocalc/frontend/frame-editors/latex-editor/actions";
 import { ChatStream } from "@cocalc/frontend/client/llm";
 import {
   A,
   Icon,
+  Loading,
   Markdown,
   Paragraph,
   RawPrompt,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
+import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
+import { Actions as LatexActions } from "@cocalc/frontend/frame-editors/latex-editor/actions";
 import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { Actions as RmdActions } from "@cocalc/frontend/frame-editors/rmd-editor/actions";
+import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
+import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
+import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
+import { StartButton } from "@cocalc/frontend/project/start-button";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { JupyterActions } from "@cocalc/jupyter/redux/actions";
+import type { KernelSpec } from "@cocalc/jupyter/types";
 import {
   getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
-import { capitalize, getRandomColor } from "@cocalc/util/misc";
+import { capitalize, field_cmp, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { DOCUMENT, Ext, PAPERSIZE } from "./ai-generate-examples";
-import { PROMPT } from "./ai-generate-prompts";
+import {
+  DOCUMENT,
+  EXAMPLES_COMMON,
+  Example,
+  Ext,
+  JUPYTER,
+  PAPERSIZE,
+} from "./ai-generate-examples";
+import { DEFAULT_LANG_EXTRA, LANG_EXTRA, PROMPT } from "./ai-generate-prompts";
 import {
   commentBlock,
   getFilename,
@@ -71,6 +87,22 @@ import {
 
 const TAG = "generate-document";
 const PLACEHOLDER = "Describe the content...";
+
+const PREVIEW_BOX: CSS = {
+  border: `1px solid ${COLORS.GRAY}`,
+  maxHeight: "60vh",
+  overflowX: "hidden",
+  overflowY: "auto",
+  fontSize: "12px",
+  borderRadius: "5px",
+  margin: "5px 0",
+  padding: "5px",
+} as const;
+
+type Ipynb = {
+  cells: { cell_type: "markdown" | "code"; source: string[] }[];
+  metadata: { kernelspec: KernelSpec };
+};
 
 interface Props {
   project_id: string;
@@ -93,16 +125,81 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [filename, setFilename] = useState<string>("");
 
+  const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
+    null,
+  );
+
+  // The name of the selected kernel.  This determines the language, display name and
+  // everything else.
+  const [spec, setSpec] = useState<KernelSpec | null>(null);
+
+  const projectState = useTypedRedux("projects", "project_map")?.getIn([
+    project_id,
+    "state",
+    "state",
+  ]);
+  useEffect(() => {
+    if (projectState != "running") {
+      setKernelSpecs("start");
+      return;
+    }
+    (async () => {
+      try {
+        setKernelSpecs(null);
+        const X = await getKernelSpec(project_id);
+        X.sort(field_cmp("display_name"));
+        setKernelSpecs(X);
+        if (spec == null) {
+          const name = redux
+            .getStore("account")
+            .getIn(["editor_settings", "jupyter", "kernel"]);
+          if (name != null) {
+            for (const a of X) {
+              if (a.name == name) {
+                setSpec(a);
+                break;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        setKernelSpecs(
+          "Unable to load Jupyter kernels.  Make sure the project is running and Jupyter is installed.",
+        );
+      }
+    })();
+  }, [project_id, projectState]);
+
+  const cancel = useRef<boolean>(false);
+  // only used for ipynb
+  const [ipynb, setIpynb] = useState<null | Ipynb>(null);
+
+  useEffect(() => {
+    const sizes = PAPERSIZE[ext];
+    if (paperSize == null && sizes != null) {
+      setPaperSize(sizes[0]);
+    }
+  }, [ext]);
+
   function fullTemplate({ extra, template, paperSizeStr }): string {
-    // ATTN: make sure to avoid introducing whitespace at the beginning of lines and keep two newlines between blocks
-    return [
-      `Your task is to create a ${docName} document based on the provided description below. It will be used as a template to get started writing the document. ${paperSizeStr}Your output must start with a suggested filename "filename: [filename.${ext}]". Enclose the entire ${docName} document in tripe backticks. ${extra}Do not add any further instructions.`,
+    const example = [
       `Example:`,
       `<OUTPUT>\nfilename: [filename.${ext}]`,
-      `\`\`\`\n${template}\`\`\`\n</OUTPUT>`,
+      ext === "ipynb"
+        ? `${template}`
+        : `\`\`\`\n${template}\`\`\`` + `\n</OUTPUT>`,
       `Description of the document:`,
       `${prompt}`,
-    ].join("\n\n");
+    ];
+    const langExtra = LANG_EXTRA[spec?.language ?? ""] ?? DEFAULT_LANG_EXTRA;
+    const intro =
+      ext === "ipynb"
+        ? `Explain directly and to the point, how to do the following task in the programming language "${
+            spec?.display_name ?? "Python"
+          }", which I will be using in a Jupyter Notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Do not open any files, since you cannot assume they exist. Instead, generate random data suitable for the example code. Make sure the entire notebook can run. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename.${ext}]"`
+        : `Your task is to create a ${docName} document based on the provided description below. It will be used as a template to get started writing the document. ${paperSizeStr}Your output must start with a suggested filename "filename: [filename.${ext}]". Enclose the entire ${docName} document in tripe backticks. ${extra}Do not add any further instructions.`;
+    // ATTN: make sure to avoid introducing whitespace at the beginning of lines and keep two newlines between blocks
+    return [intro, ...example].join("\n\n");
   }
 
   function createPrompt(): string {
@@ -121,6 +218,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     const input = createPrompt();
 
     try {
+      cancel.current = false;
       setQuerying(true);
 
       const llmStream = webapp_client.openai_client.queryStream({
@@ -167,7 +265,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     await webapp_client.project_client.write_text_file({
       project_id,
       path,
-      content: preview,
+      content: ext === "ipynb" ? JSON.stringify(ipynb, null, 2) : preview,
     });
     return path;
   }
@@ -193,6 +291,14 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     return null;
   }
 
+  function processAnswerIpynb(answer: string): Ipynb {
+    if (spec == null) {
+      throw new Error("processAnswerIpynb: spec is null");
+    }
+    const cells = splitCells(answer, (line) => line.startsWith("filename:"));
+    return { cells, metadata: { kernelspec: spec } };
+  }
+
   function processAnswer(answer: string): string {
     const ts = new Date().toISOString().split(".")[0].replace("T", " ");
     const intro =
@@ -201,10 +307,9 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
             [
               `${docName} document was generated by ${modelToName(model)}`,
               `Created ${ts}`,
-              "\n",
             ].join("\n"),
             ext,
-          )
+          ) + "\n\n"
         : "";
 
     const content = (function () {
@@ -233,16 +338,23 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
       } else {
         const path = await createDocument(preview);
         // this will also open it in the foreground
-        const la = await getEditorActions(path);
+        const ea = await getEditorActions(path);
         // TODO: figure out why we have to wait (initial auto build?)
         await new Promise((resolve, _) => setTimeout(resolve, 2000));
-        if (la != null) {
+        if (ea != null) {
           switch (ext) {
             case "rmd":
-              (la as RmdActions).build();
+              (ea as RmdActions).build();
               break;
             case "tex":
-              (la as LatexActions).build();
+              (ea as LatexActions).build();
+              break;
+            case "ipynb":
+              const jea = ea as JupyterEditorActions;
+              const ja: JupyterActions = jea.jupyter_actions;
+              // and after we're done, cleanup and run all cells
+              ja.delete_all_blank_code_cells();
+              ja.run_all_cells();
               break;
           }
         }
@@ -269,7 +381,13 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     // every update interval, we extract all the answer text into cells
     // ATTN: do not call this concurrently, see throttle below
     function updateContent(answer) {
-      setPreview(processAnswer(answer));
+      if (cancel.current) return;
+      if (ext === "ipynb") {
+        setPreview("Jupyter Notebook");
+        setIpynb(processAnswerIpynb(answer));
+      } else {
+        setPreview(processAnswer(answer));
+      }
     }
 
     // NOTE: as of writing this, quick models return everything at once. Hence this must be robust for
@@ -309,6 +427,12 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     );
 
     llmStream.on("token", async (token: string | null) => {
+      if (cancel.current) {
+        // we abort this
+        llmStream.removeAllListeners();
+        // singal "finalization"
+        processTokens(answer, true);
+      }
       // important: processTokens must not be called in parallel and also once at the very end
       if (token != null) {
         answer += token;
@@ -361,7 +485,20 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
   function renderExamples() {
     if (isEmpty(DOCUMENT[ext])) return;
 
-    const items: MenuProps["items"] = DOCUMENT[ext].map((ex, idx) => {
+    const ex = (function (): readonly Example[] {
+      switch (ext) {
+        case "ipynb":
+          return spec != null
+            ? JUPYTER[spec.language?.toLowerCase()] ?? []
+            : [];
+        default:
+          return DOCUMENT[ext];
+      }
+    })();
+    if (!ex || isEmpty(ex)) return;
+    const all = [...EXAMPLES_COMMON, ...ex];
+
+    const items: MenuProps["items"] = all.map((ex, idx) => {
       const label = (
         <Flex gap={"5px"} justify="space-between">
           <Flex>{ex[0]} </Flex>
@@ -409,16 +546,52 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
           onChange={(e) => setPaperSize(e.target.value)}
         >
           {sizes.map((size) => (
-            <Radio.Button
-              key={size}
-              value={size}
-              type={size === paperSize ? "primary" : undefined}
-            >
+            <Radio.Button key={size} value={size}>
               {size}
             </Radio.Button>
           ))}
         </Radio.Group>
       </Paragraph>
+    );
+  }
+
+  function renderJupyterKernelSelector() {
+    if (ext !== "ipynb") return;
+    return (
+      <>
+        {typeof kernelSpecs === "string" ? (
+          <Alert
+            description={kernelSpecs == "start" ? <StartButton /> : kernelSpecs}
+            type="info"
+            showIcon
+          />
+        ) : undefined}
+        {kernelSpecs == null && <Loading />}
+        {typeof kernelSpecs == "object" && kernelSpecs != null ? (
+          <Paragraph strong>
+            Select a Jupyter kernel:{" "}
+            <SelectKernel
+              placeholder="Select a kernel..."
+              size="middle"
+              disabled={querying}
+              project_id={project_id}
+              kernelSpecs={kernelSpecs}
+              style={{ width: "100%", maxWidth: "350px" }}
+              onSelect={(value) => {
+                if (kernelSpecs == null || typeof kernelSpecs != "object")
+                  return;
+                for (const spec of kernelSpecs) {
+                  if (spec.name == value) {
+                    setSpec(spec);
+                    break;
+                  }
+                }
+              }}
+              kernel={spec?.name}
+            />
+          </Paragraph>
+        ) : undefined}
+      </>
     );
   }
 
@@ -434,6 +607,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
             style={{ marginTop: "-7.5px" }}
           />
         </Paragraph>
+        {renderJupyterKernelSelector()}
         <Paragraph>
           Provide a detailed description of the {docName} document you want to
           create:
@@ -507,13 +681,49 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     );
   }
 
+  function renderPreviewContent({ preview, ipynb }) {
+    switch (ext) {
+      case "ipynb":
+        if (ipynb == null || spec == null) return <Loading />;
+        // TODO: figure out how to replace this by the "CellList" component (which requires a bunch of special objects)
+        return (
+          <NBViewer
+            content={JSON.stringify(ipynb, null, 2)}
+            fontSize={undefined}
+            style={PREVIEW_BOX}
+            cellListStyle={{
+              transform: "scale(0.9)",
+              transformOrigin: "top left",
+              width: "110%",
+            }}
+            scrollBottom={true}
+          />
+        );
+      default:
+        return (
+          <RawPrompt
+            input={preview}
+            scrollBottom={true}
+            style={{
+              ...PREVIEW_BOX,
+              fontFamily: "monospace",
+              color: COLORS.GRAY,
+            }}
+          />
+        );
+    }
+  }
+
   function renderPreview() {
     if (preview == null) return;
     return (
       <>
         <div>
           <Paragraph type="secondary">
-            This is the preview of the generated content.
+            This is a preview of the generated content.{" "}
+            {querying
+              ? "Please wait, it is currently being generated..."
+              : "It has finished generating the content and you can now save the file with the given filename."}
           </Paragraph>
           <Paragraph>
             <Flex vertical={false} gap={"10px"} align="center">
@@ -528,32 +738,19 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
               </Flex>
             </Flex>
           </Paragraph>
-          <RawPrompt
-            input={preview}
-            scrollBottom={true}
-            style={{
-              border: `1px solid ${COLORS.GRAY}`,
-              maxHeight: "20em",
-              overflow: "auto",
-              fontSize: "12px",
-              fontFamily: "monospace",
-              borderRadius: "5px",
-              margin: "5px 0",
-              padding: "5px",
-              color: COLORS.GRAY,
-            }}
-          />
+          {renderPreviewContent({ preview, ipynb })}
         </div>
         <Paragraph style={{ textAlign: "center", marginTop: "15px" }}>
           <Space size="middle">
             <Button
               size="large"
               onClick={() => {
+                cancel.current = true;
                 setQuerying(false);
                 setPreview(null);
               }}
             >
-              <Icon name="arrow-left" /> Back
+              <Icon name="arrow-left" /> Discard
             </Button>
             <Button
               type="primary"
@@ -650,7 +847,7 @@ export function AIGenerateDocumentButton({
             <AIAvatar size={18} /> Generate a {docName} Document using AI
           </>
         }
-        width={650}
+        width={750}
         open={show}
         onCancel={() => setShow(false)}
         footer={null}
