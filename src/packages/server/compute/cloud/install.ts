@@ -64,6 +64,32 @@ service docker start
 `;
 }
 
+export function installDockerGroup() {
+  return `
+# We use group 999 for docker inside the compute container,
+# so that has to also be the case outside or docker without
+# sudo won't work. We want to be very careful that only
+# things in the docker group have access, obviously, so
+# random system daemons can't become root.
+docker_gid=$(getent group docker | cut -d: -f3)
+# docker_gid is *something* since we just install docker above
+if [ $docker_gid != '999' ]; then
+    group999=$(getent group 999 | cut -d: -f1)
+    if [ ! -z $group999 ]; then
+        # some random thing has group 999, e.g., systemd-journal has it in ubuntu 24.04.
+        for i in $(seq 998 -1 100); do
+            if ! getent group $i > /dev/null; then
+                echo "Available GID: $i"
+                groupmod -g $i $group999
+                break
+            fi
+        done
+    fi
+    groupmod -g 999 docker
+    service docker restart
+fi`;
+}
+
 // Extra support needed on some platforms to run Docker.
 export function installNvidiaDocker({ gpu }: { gpu?: boolean }) {
   if (!gpu) {
