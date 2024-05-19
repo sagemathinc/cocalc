@@ -15,6 +15,18 @@ import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
 // for consistency with cocalc.com
 export const UID = 2001;
 
+// Very bad things happen with many things if the clock is NOT set
+// correctly, or within at least a few seconds.  On VM's it is quite
+// common for clocks to get screwed up.   Thus we ensure
+// automatic timesync is configured.
+export function installTime() {
+  return `
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y systemd-timesyncd
+`;
+}
+
 // Install lightweight version of nodejs that we can depend on.
 // Note that the exact version is VERY important, e.g., the most
 // recent 18.x and 20.x versions totally broke node-pty in horrible

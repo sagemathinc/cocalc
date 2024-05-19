@@ -1,6 +1,7 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getImages, Images } from "@cocalc/server/compute/images";
 import {
+  installTime,
   installNode,
   installCoCalc,
   installZpool,
@@ -144,6 +145,8 @@ export COCALC_LOCAL_SSD=${local_ssd ?? ""}
 ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
+
+${installTime()}
 
 setState install configure '' 60 10
 ${await installConf({
