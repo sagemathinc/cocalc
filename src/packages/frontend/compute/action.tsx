@@ -456,6 +456,24 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
           )}
         </div>
       )}
+      <div style={{ marginTop: "15px" }}>
+        {apiKey && (
+          <div>
+            <div style={{ marginBottom: "10px" }}>
+              Copy and paste the following into a terminal shell on your{" "}
+              <b>Ubuntu Virtual Machine</b>:
+            </div>
+            <CopyToClipBoard
+              inputWidth={"700px"}
+              value={`curl -fsS https://${window.location.host}${
+                appBasePath.length > 1 ? appBasePath : ""
+              }/compute/${id}/onprem/${action}/${apiKey} | sudo bash`}
+            />
+          </div>
+        )}
+        {!apiKey && !error && <Spin />}
+        {error && <ShowError error={error} setError={setError} />}
+      </div>
       {action == "stop" && (
         <div>
           This will disconnect your VM from CoCalc and stop it from syncing
@@ -510,24 +528,6 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
           />
         </div>
       )}
-      <div style={{ marginTop: "15px" }}>
-        {apiKey && (
-          <div>
-            <div style={{ marginBottom: "10px" }}>
-              Copy and paste the following into a terminal shell on your{" "}
-              <b>Ubuntu Virtual Machine</b>:
-            </div>
-            <CopyToClipBoard
-              inputWidth={"700px"}
-              value={`curl -fsS https://${window.location.host}${
-                appBasePath.length > 1 ? appBasePath : ""
-              }/compute/${id}/onprem/${action}/${apiKey} | sudo bash`}
-            />
-          </div>
-        )}
-        {!apiKey && !error && <Spin />}
-        {error && <ShowError error={error} setError={setError} />}
-      </div>
       {action == "deprovision" && (
         <div style={{ marginTop: "15px" }}>
           NOTE: This does not delete Docker or any Docker images. Run this to
