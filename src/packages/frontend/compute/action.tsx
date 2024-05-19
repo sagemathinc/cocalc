@@ -407,44 +407,45 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
     >
       {action == "start" && (
         <div>
-          You can connect any <b>Ubuntu 22.04 Linux Virtual Machine (VM)</b>{" "}
-          with root access to this project. This VM can be anywhere (your laptop
-          or a cloud hosting providing). Your VM needs to be able to create
-          outgoing network connections, but does NOT need to have a public ip
-          address.
+          You can connect any{" "}
+          <b>Ubuntu 22.04 or 24.04 Linux Virtual Machine (VM)</b> with root
+          access to this project. This VM can be anywhere (your laptop or a
+          cloud hosting providing). Your VM needs to be able to create outgoing
+          network connections, but does NOT need to have a public ip address.
           <Alert
             style={{ margin: "15px 0" }}
             type="warning"
             showIcon
-            message={<b>USE AN UBUNTU 22.04 VIRTUAL MACHINE</b>}
+            message={<b>USE AN UBUNTU 22.04 or 24.04 VIRTUAL MACHINE</b>}
             description={
-              <ul>
-                <li>
-                  You can use any{" "}
-                  <u>
-                    <b>
-                      <A href="https://multipass.run/">
-                        UBUNTU VIRTUAL MACHINE
-                      </A>
-                    </b>
-                  </u>{" "}
-                  that you have a root acount on.
-                </li>
-                <li>
-                  <A href="https://multipass.run/">
-                    Multipass is the easiest way to get a free Ubuntu VM on your
-                    computer.
-                  </A>{" "}
-                  After you install Multipass, create a VM:
-                  <CopyToClipBoard value="multipass launch --name cocalc --cpus 2 --memory 8G --disk 20G" />
-                  <br />
-                  Get a shell and start your compute server:
-                  <CopyToClipBoard value="multipass shell cocalc" />
-                  <br />
-                  If you need to enlarge the disk:
-                  <CopyToClipBoard value="multipass stop cocalc && multipass set local.cocalc.disk=30G" />
-                </li>
-              </ul>
+              <div>
+                You can use any{" "}
+                <u>
+                  <b>
+                    <A href="https://multipass.run/">UBUNTU VIRTUAL MACHINE</A>
+                  </b>
+                </u>{" "}
+                that you have a root acount on.{" "}
+                <A href="https://multipass.run/">
+                  Multipass is a very easy and free way to install one or more
+                  minimal Ubuntu VM's on Windows, Mac, and Linux.
+                </A>{" "}
+                After you install Multipass, create a VM by pasting this in a
+                terminal on your computer (you can increase the cpu, memory and
+                disk):
+                <CopyToClipBoard
+                  inputWidth="600px"
+                  style={{ marginTop: "10px" }}
+                  value={`multipass launch --name compute-server-${id} --cpus 1 --memory 4G --disk 25G`}
+                />
+                <br />
+                Then launch a terminal shell running in the VM:
+                <CopyToClipBoard
+                  inputWidth="600px"
+                  style={{ marginTop: "10px" }}
+                  value={`multipass shell compute-server-${id}`}
+                />
+              </div>
             }
           />
           {configuration.gpu && (
@@ -461,19 +462,59 @@ function OnPremGuide({ setShow, configuration, id, title, action }) {
           files, running terminals and Jupyter notebooks. Files and software you
           installed will not be deleted and you can start the compute server
           later.
+          <Alert
+            style={{ margin: "15px 0" }}
+            type="warning"
+            showIcon
+            message={
+              <b>
+                If you're using{" "}
+                <A href="https://multipass.run/">Multipass...</A>
+              </b>
+            }
+            description={
+              <div>
+                <CopyToClipBoard
+                  value={`multipass stop compute-server-${id}`}
+                />
+                <br />
+                HINT: If you ever need to enlarge the disk, do this:
+                <CopyToClipBoard
+                  inputWidth="600px"
+                  value={`multipass stop compute-server-${id} && multipass set local.compute-server-${id}.disk=30G`}
+                />
+              </div>
+            }
+          />
         </div>
       )}
       {action == "deprovision" && (
         <div>
           This will disconnect your VM from CoCalc, and permanently delete any
           local files and software you installed into your compute server.
+          <Alert
+            style={{ margin: "15px 0" }}
+            type="warning"
+            showIcon
+            message={
+              <b>
+                If you're using{" "}
+                <A href="https://multipass.run/">Multipass...</A>
+              </b>
+            }
+            description={
+              <CopyToClipBoard
+                value={`multipass delete compute-server-${id}`}
+              />
+            }
+          />
         </div>
       )}
       <div style={{ marginTop: "15px" }}>
         {apiKey && (
           <div>
             <div style={{ marginBottom: "10px" }}>
-              Copy and paste the following into a shell on your{" "}
+              Copy and paste the following into a terminal shell on your{" "}
               <b>Ubuntu Virtual Machine</b>:
             </div>
             <CopyToClipBoard

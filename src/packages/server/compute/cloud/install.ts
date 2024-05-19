@@ -24,6 +24,13 @@ export function installTime() {
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y systemd-timesyncd
+
+# Make time sync a little more aggressive:
+
+echo 'RootDistanceMaxSec=1' >> /etc/systemd/timesyncd.conf
+echo 'PollIntervalMinSec=16' >> /etc/systemd/timesyncd.conf
+echo 'PollIntervalMaxSec=512' >> /etc/systemd/timesyncd.conf
+systemctl restart systemd-timesyncd
 `;
 }
 
