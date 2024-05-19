@@ -87,6 +87,7 @@ if [ $docker_gid != '999' ]; then
     fi
     groupmod -g 999 docker
     service docker restart
+    chgrp docker /var/run/docker.sock
 fi`;
 }
 
