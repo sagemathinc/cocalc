@@ -1,10 +1,12 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getImages, Images } from "@cocalc/server/compute/images";
 import {
+  installTime,
   installNode,
   installCoCalc,
   installZpool,
   installDocker,
+  installDockerGroup,
   installNvidiaDocker,
   installConf,
   installMicroK8s,
@@ -144,6 +146,8 @@ ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
 
+${installTime()}
+
 setState install configure '' 60 10
 ${await installConf({
   api_key,
@@ -175,6 +179,7 @@ if [ $? -ne 0 ]; then
    fi
 fi
 
+${installDockerGroup()}
 
 setState install install-nodejs '' 60 40
 ${installNode()}
@@ -196,13 +201,6 @@ if [ $? -ne 0 ]; then
    setState install error "problem configuring zpool"
    exit 1
 fi
-
-# We use group 999 for docker inside the compute container,
-# so that has to also be the case outside or docker without
-# sudo won't work.
-groupmod -g 999 docker
-chgrp docker /var/run/docker.sock
-
 
 setState install install-user '' 60 70
 ${doInstallUser ? installUser() : ""}

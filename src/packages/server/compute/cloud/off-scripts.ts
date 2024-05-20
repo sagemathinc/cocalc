@@ -33,6 +33,8 @@ setState compute stop '' 30 50
 docker stop compute
 setState compute off '' 30 0
 
+${extraUnmount()}
+
 setState state off
 
 `;
@@ -72,8 +74,18 @@ setState compute off '' 30 50
 docker rm compute
 setState compute deleted '' 0 0
 
+${extraUnmount()}
 
 setState state deprovisioned
 
+`;
+}
+
+function extraUnmount() {
+  return `
+# weird that this is needed, since stopping filesystem container should do it.
+# but it does seem to be needed and work.
+umount -l /home/user || true
+fusermount -u /data/.websocketfs || true
 `;
 }
