@@ -11,6 +11,8 @@ import type { MenuProps } from "antd";
 import {
   Alert,
   Button,
+  Collapse,
+  Divider,
   Dropdown,
   Flex,
   Input,
@@ -33,8 +35,8 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { ChatStream } from "@cocalc/frontend/client/llm";
 import {
-  A,
   Icon,
+  LLMNameLink,
   Loading,
   Markdown,
   Paragraph,
@@ -92,7 +94,7 @@ const TAG = "generate-document";
 const TAG_TMPL = `${TAG}-template`;
 const PLACEHOLDER = "Describe the content...";
 
-const PREVIEW_BOX: CSS = {
+export const PREVIEW_BOX: CSS = {
   border: `1px solid ${COLORS.GRAY}`,
   maxHeight: "60vh",
   overflowX: "hidden",
@@ -113,9 +115,16 @@ interface Props {
   onSuccess: () => void;
   ext: Ext;
   docName: string;
+  show: boolean;
 }
 
-function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
+function AIGenerateDocument({
+  onSuccess,
+  show,
+  project_id,
+  ext,
+  docName,
+}: Props) {
   const projectActions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
 
@@ -129,6 +138,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
   const [error, setError] = useState<string>("");
   const [preview, setPreview] = useState<string | null>(null);
   const [filename, setFilename] = useState<string>("");
+  const promptRef = useRef<HTMLElement>(null);
 
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
     null,
@@ -142,6 +152,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     "state",
     "state",
   ]);
+
   useEffect(() => {
     if (projectState != "running") {
       setKernelSpecs("start");
@@ -184,6 +195,12 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
       setPaperSize(sizes[0]);
     }
   }, [ext]);
+
+  useEffect(() => {
+    if (!preview && show) {
+      promptRef.current?.focus();
+    }
+  }, [show, preview]);
 
   function fullTemplate({ extra, template, paperSizeStr }): string {
     const example = [
@@ -235,7 +252,9 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
 
       await updateDocument(llmStream);
     } catch (err) {
-      setError(`${err}\n\n${getLLMServiceStatusCheckMD(model2vendor(model))}.`);
+      setError(
+        `${err}\n\n${getLLMServiceStatusCheckMD(model2vendor(model).name)}.`,
+      );
       setQuerying(false);
     }
   }
@@ -436,6 +455,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
         llmStream.removeAllListeners();
         // singal "finalization"
         processTokens(answer, true);
+        return;
       }
       // important: processTokens must not be called in parallel and also once at the very end
       if (token != null) {
@@ -603,6 +623,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
   }
 
   function renderDialog() {
+    const empty = prompt.trim() == "";
     return (
       <>
         <Paragraph strong>
@@ -615,18 +636,20 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
           />
         </Paragraph>
         {renderJupyterKernelSelector()}
-        <Paragraph>
+        <Paragraph type={empty ? "danger" : undefined}>
           Provide a detailed description of the {docName} document you want to
           create:
         </Paragraph>
         <Paragraph>
           <Input.TextArea
+            ref={promptRef}
             allowClear
             autoSize={{ minRows: 3, maxRows: 6 }}
             maxLength={3000}
             placeholder={PLACEHOLDER}
             value={prompt}
             disabled={querying}
+            status={empty ? "error" : undefined}
             onChange={({ target: { value } }) => setPrompt(value)}
             onPressEnter={(e) => {
               if (e.shiftKey) {
@@ -639,26 +662,39 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
         {!error ? renderPaperSize() : undefined}
         {input ? (
           <div>
+            <Divider />
             <Paragraph type="secondary">
-              The following will be submitted to the{" "}
-              <A href={"https://chat.openai.com/"}>{modelToName(model)}</A>{" "}
-              language model. Its response will be inserted into a new {docName}
-              document the fly. Overall, the newly created document should help
-              you getting started accomplishing your goal.
+              A prompt to generate the document will be sent to the{" "}
+              <LLMNameLink model={model} /> language model. You'll see a preview
+              of the new content, which you'll then be able to save in a new
+              file and start working on it. Overall, the newly created document
+              should help you getting started accomplishing your goal.
             </Paragraph>
-            <RawPrompt
-              input={input}
-              style={{
-                border: `1px solid ${COLORS.GRAY}`,
-                maxHeight: "10em",
-                overflow: "auto",
-                fontSize: "12px",
-                fontFamily: "monospace",
-                borderRadius: "5px",
-                margin: "5px 0",
-                padding: "5px",
-                color: COLORS.GRAY,
-              }}
+            <Collapse
+              items={[
+                {
+                  key: "1",
+                  label: (
+                    <>Click to see what will be sent to {modelToName(model)}.</>
+                  ),
+                  children: (
+                    <RawPrompt
+                      input={input}
+                      style={{
+                        border: "none",
+                        padding: "0",
+                        margin: "0",
+                        maxHeight: "10em",
+                        overflow: "auto",
+                        fontSize: "12px",
+                        fontFamily: "monospace",
+                        borderRadius: "5px",
+                        color: COLORS.GRAY,
+                      }}
+                    />
+                  ),
+                },
+              ]}
             />
           </div>
         ) : undefined}
@@ -735,7 +771,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
               <Text strong>The file is saving...</Text>
             ) : (
               <>
-                It finished generating the content. You can now{" "}
+                finished generating the content. You can now{" "}
                 <Button
                   type="primary"
                   size="small"
@@ -902,6 +938,7 @@ export function AIGenerateDocumentButton({
       >
         <AIGenerateDocument
           project_id={project_id}
+          show={show}
           onSuccess={() => setShow(false)}
           ext={ext}
           docName={docName}

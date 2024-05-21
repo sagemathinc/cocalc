@@ -9,6 +9,8 @@ import AIAvatar from "./ai-avatar";
 import CopyToClipBoard from "./copy-to-clipboard";
 import Delay from "./delay";
 
+export type { MenuItems } from "./dropdown-menu";
+
 export { MarkdownInput } from "../markdown/markdown-input/main";
 export { A } from "./A";
 export { ActivityDisplay } from "./activity-display";
@@ -17,7 +19,6 @@ export { CloseX2 } from "./close-x2";
 export { UNIT, build_date, smc_git_rev, smc_version } from "./constants";
 export { DateTimePicker } from "./date-time-picker";
 export { DropdownMenu, MenuDivider, MenuItem } from "./dropdown-menu";
-export type { MenuItems } from "./dropdown-menu";
 export { ErrorDisplay } from "./error-display";
 export { Gap } from "./gap";
 export { HelpIcon } from "./help-icon";
@@ -25,6 +26,7 @@ export * from "./hidden-visible";
 export { HTML } from "./html";
 export { Icon, IconName, isIconName } from "./icon";
 export { LabeledRow } from "./labeled-row";
+export { LLMNameLink } from "./llm-plain-link";
 export { Loading, Estimate as LoadingEstimate } from "./loading";
 export { LoginLink } from "./login-link";
 export { MarkAll } from "./mark-all";

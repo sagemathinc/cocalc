@@ -8,8 +8,23 @@ import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useAvailableLLMs } from "@cocalc/frontend/frame-editors/llm/use-llm-menu-options";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLM_PROVIDER } from "@cocalc/util/db-schema/llm-utils";
+import { LLMTools } from "@cocalc/jupyter/types";
 
-export function AskLLMDropdownButton({ onClick, llmTools }) {
+interface Props {
+  llmTools?: LLMTools;
+  task?: string;
+  onClick: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+}
+
+export function LLMQueryDropdownButton({
+  onClick,
+  llmTools,
+  task = "Ask",
+  loading = false,
+  disabled = false,
+}: Props) {
   const { project_id } = useProjectContext();
   const models = useAvailableLLMs(project_id);
 
@@ -17,7 +32,7 @@ export function AskLLMDropdownButton({ onClick, llmTools }) {
     if (llmTools == null) return <></>;
     return (
       <>
-        <Icon name={"paper-plane"} /> Ask {modelToName(llmTools.model)}
+        <Icon name={"paper-plane"} /> {task} {modelToName(llmTools.model)}
       </>
     );
   }
@@ -73,6 +88,8 @@ export function AskLLMDropdownButton({ onClick, llmTools }) {
       icon={<Icon name="caret-down" />}
       onClick={onClick}
       menu={{ items: getItems() }}
+      loading={loading}
+      disabled={disabled}
     >
       {renderOkText()}
     </Dropdown.Button>

@@ -19,6 +19,7 @@ import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 import LLMSelector, { modelToMention, modelToName } from "./llm-selector";
 import shortenError from "./shorten-error";
+import { CUTOFF } from "./consts";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -184,8 +185,6 @@ interface GetHelpOpts {
   prioritize?: "start" | "start-end" | "end";
   model: string;
 }
-
-const CUTOFF = 3000;
 
 export async function getHelp({
   project_id,

@@ -25,7 +25,7 @@ import { A, Paragraph, RawPrompt, Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { AskLLMDropdownButton } from "@cocalc/frontend/frame-editors/llm/ask-llm-dropdown";
+import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
   modelToMention,
   modelToName,
@@ -800,7 +800,7 @@ export function LLMCellTool({
         footer={(_, { CancelBtn }) => (
           <Space>
             <CancelBtn />
-            <AskLLMDropdownButton onClick={onConfirm} llmTools={llmTools} />
+            <LLMQueryDropdownButton onClick={onConfirm} llmTools={llmTools} />
           </Space>
         )}
       >

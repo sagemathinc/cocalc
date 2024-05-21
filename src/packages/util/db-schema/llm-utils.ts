@@ -435,19 +435,27 @@ export function service2model_core(
 // Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
 export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
 
-export function model2vendor(model): LLMServiceName {
+interface LLMVendor {
+  name: LLMServiceName;
+  url: string;
+}
+
+export function model2vendor(model): LLMVendor {
   if (isOllamaLLM(model)) {
-    return "ollama";
+    return { name: "ollama", url: "https://ollama.com/" };
   } else if (isCustomOpenAI(model)) {
-    return "custom_openai";
+    return {
+      name: "custom_openai",
+      url: "https://js.langchain.com/v0.1/docs/integrations/llms/openai/",
+    };
   } else if (isMistralModel(model)) {
-    return "mistralai";
+    return { name: "mistralai", url: "https://mistral.ai/" };
   } else if (isOpenAIModel(model)) {
-    return "openai";
+    return { name: "openai", url: "https://openai.com/" };
   } else if (isGoogleModel(model)) {
-    return "google";
+    return { name: "google", url: "https://gemini.google.com/" };
   } else if (isAnthropicModel(model)) {
-    return "anthropic";
+    return { name: "anthropic", url: "https://www.anthropic.com/" };
   }
   throw new Error(`model2vendor: unknown model: "${model}"`);
 }
@@ -963,27 +971,39 @@ export function getSystemPrompt(
   const common = "Be brief.";
   const math = "Enclose any math formulas in $.";
 
-  if (model2vendor(model) === "openai" || model.startsWith(OPENAI_PREFIX)) {
+  if (
+    model2vendor(model).name === "openai" ||
+    model.startsWith(OPENAI_PREFIX)
+  ) {
     const mdCode =
       "Include the language directly after the triple backticks in all markdown code blocks.";
     return `Assume full access to CoCalc and using CoCalc right now.\n${mdCode}\n${math}\n${common}`;
   }
 
   // mistral stupidly inserts anything mentioned in the prompt as examples, always.
-  if (model2vendor(model) === "mistralai" || model.startsWith(MISTRAL_PREFIX)) {
+  if (
+    model2vendor(model).name === "mistralai" ||
+    model.startsWith(MISTRAL_PREFIX)
+  ) {
     return common;
   }
 
-  if (model2vendor(model) === "google" || model.startsWith(GOOGLE_PREFIX)) {
+  if (
+    model2vendor(model).name === "google" ||
+    model.startsWith(GOOGLE_PREFIX)
+  ) {
     return `${math}\n${common}`;
   }
 
-  if (model2vendor(model) === "ollama" || model.startsWith(OLLAMA_PREFIX)) {
+  if (
+    model2vendor(model).name === "ollama" ||
+    model.startsWith(OLLAMA_PREFIX)
+  ) {
     return `${common}`;
   }
 
   if (
-    model2vendor(model) === "anthropic" ||
+    model2vendor(model).name === "anthropic" ||
     model.startsWith(ANTHROPIC_PREFIX)
   ) {
     return `${math}\n${common}`;

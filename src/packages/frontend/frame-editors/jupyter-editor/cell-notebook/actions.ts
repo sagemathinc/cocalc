@@ -43,7 +43,7 @@ declare let DEBUG: boolean;
 export class NotebookFrameActions {
   private _is_closed: boolean = false;
   private frame_tree_actions: JupyterEditorActions;
-  private jupyter_actions: JupyterActions;
+  public jupyter_actions: JupyterActions;
   private key_handler?: (e: any) => void;
   private input_editors: { [id: string]: EditorFunctions } = {};
   private scroll_before_change?: number;
@@ -473,20 +473,6 @@ export class NotebookFrameActions {
     const cells = this.jupyter_actions.store.get("cells");
     if (cells == null) return;
     return cells.get(id);
-  }
-
-  getPreviousCodeCellID(id: string, delta = -1): string | undefined {
-    while (true) {
-      const prevID = this.jupyter_actions.store.get_cell_id(delta, id);
-      if (prevID == null) return;
-      const prevCell = this.get_cell_by_id(prevID);
-      if (prevCell == null) return;
-      if (prevCell.get("cell_type", "code") === "code") {
-        return prevID;
-      } else {
-        delta = delta - 1;
-      }
-    }
   }
 
   public switch_md_cell_to_edit(id: string): void {

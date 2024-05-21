@@ -949,7 +949,7 @@ export class ChatActions extends Actions<ChatState> {
       }
 
       const vendor = model2vendor(model);
-      const statusCheck = getLLMServiceStatusCheckMD(vendor);
+      const statusCheck = getLLMServiceStatusCheckMD(vendor.name);
       content += `\n\n<span style='color:#b71c1c'>${err}</span>\n\n---\n\n${statusCheck}`;
       const msg: ChatMessage = {
         event: "chat",

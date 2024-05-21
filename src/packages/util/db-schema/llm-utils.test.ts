@@ -47,7 +47,7 @@ describe("llm", () => {
     `check that model2vendor('%s') knows the model`,
     (model) => {
       const vendor = model2vendor(model);
-      expect(LANGUAGE_MODEL_SERVICES.includes(vendor)).toBe(true);
+      expect(LANGUAGE_MODEL_SERVICES.includes(vendor.name)).toBe(true);
     },
   );
 
@@ -55,7 +55,9 @@ describe("llm", () => {
     for (const vendor in USER_SELECTABLE_LLMS_BY_VENDOR) {
       const models = USER_SELECTABLE_LLMS_BY_VENDOR[vendor];
       for (const model of models) {
-        expect(model2vendor(model)).toBe(vendor);
+        const v = model2vendor(model);
+        expect(v.name).toBe(vendor);
+        expect(v.url).toContain("https://");
       }
     }
   });

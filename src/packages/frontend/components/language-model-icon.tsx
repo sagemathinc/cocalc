@@ -39,8 +39,8 @@ export function LanguageModelVendorAvatar(
   }
 
   if (isLanguageModel(model)) {
-    const vendor = model2vendor(model);
-    switch (vendor) {
+    const vendorName = model2vendor(model).name;
+    switch (vendorName) {
       case "openai":
       case "custom_openai":
         return <OpenAIAvatar size={size} style={style} />;
@@ -66,7 +66,7 @@ export function LanguageModelVendorAvatar(
         return <AnthropicAvatar size={size} style={style} />;
 
       default:
-        unreachable(vendor);
+        unreachable(vendorName);
         return fallback();
     }
   }

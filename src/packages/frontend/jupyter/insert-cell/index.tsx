@@ -111,6 +111,7 @@ export function InsertCell({
         actions={actions}
         frameActions={frameActions}
         id={id}
+        llmTools={llmTools}
       >
         <div
           className="cocalc-jupyter-insert-cell-controls"
