@@ -3,18 +3,21 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import Anser from "anser";
 import React from "react";
+
 import Ansi from "@cocalc/ansi-to-react";
-import { Loading } from "@cocalc/frontend/components";
-import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
+import HelpMeFix from "../llm/help-me-fix";
 import {
-  STYLE_LOADING,
-  STYLE_HEADER,
-  STYLE_OUTER,
-  STYLE_LOG,
-  STYLE_PRE,
   STYLE_ERR,
+  STYLE_HEADER,
+  STYLE_LOADING,
+  STYLE_LOG,
+  STYLE_OUTER,
+  STYLE_PRE,
 } from "./styles";
 
 interface BuildLogProps {
@@ -44,12 +47,39 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
     const header = show_stdout ? (
       <h4 style={STYLE_HEADER}>Error output</h4>
     ) : undefined;
+    const errorStr = Anser.ansiToText(build_err.trim());
     return (
       <div style={style("err")}>
         {header}
         <pre style={STYLE_PRE}>
           <Ansi>{build_err}</Ansi>
         </pre>
+        <HelpMeFix
+          style={{ margin: "5px" }}
+          outerStyle={{ textAlign: "center" }}
+          task={"compiled RMarkdown in R using rmarkdown::render()"}
+          error={errorStr}
+          input={() => {
+            const lineNo = extractLineNumbers(errorStr);
+            if (lineNo) {
+              const [_from, to] = lineNo;
+              const s = actions._syncstring.to_str();
+              const lineNoStr = `  # this is line ${to}`;
+              // line numbers are 1-based
+              return (
+                s
+                  .split("\n")
+                  .slice(0, to - 1)
+                  .join("\n") + lineNoStr
+              );
+            }
+            return "";
+          }}
+          language={"rmd"}
+          extraFileInfo={actions.languageModelExtraFileInfo(false)}
+          tag={"help-me-fix:rmd"}
+          prioritize="start-end"
+        />
       </div>
     );
   }
@@ -67,7 +97,7 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
       );
     } else {
       return (
-        <Button bsSize={"small"} onClick={() => set_show_stdout(true)}>
+        <Button bsSize={"small"} block onClick={() => set_show_stdout(true)}>
           Show full output
         </Button>
       );
@@ -101,3 +131,19 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo((props) => {
     return <div style={STYLE_OUTER}>{body()}</div>;
   }
 });
+
+function extractLineNumbers(input: string): [number, number] | null {
+  // Regex to match the pattern "lines 58-79"
+  const regex = /lines\s+(\d+)-(\d+)/;
+  const match = input.match(regex);
+
+  if (match) {
+    // Extract the line numbers from the capturing groups
+    const fromLine = parseInt(match[1], 10);
+    const toLine = parseInt(match[2], 10);
+    return [fromLine, toLine];
+  }
+
+  // Return null if the pattern is not found
+  return null;
+}

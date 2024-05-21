@@ -27,7 +27,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
     ],
     [
       "Plotting a Sine Wave",
-      "Generate a plot of a sine wave with varying frequencies and amplitudes. Use the IPywidgets.interact wrapper to make the plots interactive.",
+      "Generate a plot of x*a*sin(b*x) with varying frequencies (b) and amplitudes (a). Use the IPywidgets.interact wrapper to make the plots interactive.",
       ["visualization", "mathematics", "trigonometry"],
     ],
     [
@@ -177,11 +177,94 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
 } as const;
 
 // supported extensions
-const EXTS = ["tex", "rmd", "ipynb"] as const;
+const EXTS = ["tex", "rmd", "ipynb", "qmd", "md"] as const;
 export type Ext = (typeof EXTS)[number];
 export const PAPERSIZE: { [ext in Ext]?: string[] } = {
   tex: ["Letter (US)", "Legal (US)", "A4 (Europe)", "A5 (Europe)"],
 };
+
+const RMD_QMD: readonly Example[] = [
+  [
+    "Markdown Tutorial",
+    "Provide a step-by-step tutorial on how to use Markdown for creating documents.",
+    ["tutorial", "markdown"],
+  ],
+  [
+    "Data Exploration",
+    "An RMarkdown document to explore a dataset using summary statistics, distributions, and relationships between variables.",
+    ["data exploration", "eda", "visualization"],
+  ],
+  [
+    "Data Visualization",
+    "Generate a comprehensive visualization of the dataset using various ggplot2 plots.",
+    ["visualization", "ggplot2"],
+  ],
+  [
+    "Regression Analysis",
+    "A template to perform regression analysis on a dataset using R, including model selection, diagnostics, and interpretation.",
+    ["regression", "statistics", "modeling"],
+  ],
+  [
+    "Machine Learning Model",
+    "An RMarkdown to build and evaluate a machine learning model using popular R libraries like caret or tidymodels.",
+    ["machine learning", "prediction", "modeling"],
+  ],
+  [
+    "Time Series Analysis",
+    "A template to analyze time series data using R packages like forecast or tsfeatures.",
+    ["time series", "forecasting", "trend analysis"],
+  ],
+  [
+    "Publication-Ready Manuscript",
+    "An RMarkdown document formatted for submission to a scientific journal, including figures, tables, and references.",
+    ["manuscript", "publication", "scientific writing"],
+  ],
+  [
+    "Presentation Slides",
+    "A template for creating presentation slides using RMarkdown and packages like xaringan or remark.js.",
+    ["presentation", "slides", "xaringan", "remark.js"],
+  ],
+  [
+    "Tutorial or Workshop",
+    "A structured document for teaching R concepts, with explanations, code examples, and exercises.",
+    ["tutorial", "workshop", "education"],
+  ],
+  [
+    "EDA",
+    "Conduct an exploratory data analysis (EDA) on the dataset and summarize the findings.",
+    ["EDA", "exploration"],
+  ],
+  [
+    "Financial Report",
+    "Generate a financial report including tables, plots, and a summary analysis.",
+    ["financial", "report"],
+  ],
+  [
+    "Bioinformatics Report",
+    "Analyze biological data and present the findings in a detailed report.",
+    ["bioinformatics", "report"],
+  ],
+  [
+    "Survey Analysis",
+    "Analyze survey data, including descriptive statistics and visualizations.",
+    ["survey", "analysis"],
+  ],
+  [
+    "Geospatial Analysis",
+    "Perform geospatial analysis and visualize the results using maps.",
+    ["geospatial", "maps"],
+  ],
+  [
+    "Climate Data Analysis",
+    "Analyze climate data and present trends and patterns.",
+    ["climate", "data analysis"],
+  ],
+  [
+    "Sales Report",
+    "Generate a sales report with data visualizations and summary statistics.",
+    ["sales", "report"],
+  ],
+] as const;
 
 export const DOCUMENT: { [ext in Ext]: readonly Example[] } = {
   ipynb: [["Test", "Random numbers", ["testing"]]],
@@ -297,16 +380,24 @@ export const DOCUMENT: { [ext in Ext]: readonly Example[] } = {
       ["scrapbook", "journal"],
     ],
   ],
-  rmd: [
+  rmd: RMD_QMD,
+  qmd: RMD_QMD,
+  md: [
     [
-      "Statistical Analysis",
-      "A showcase of statistical tests on a random data.frame using R. Also plot the data using ggplot.",
-      ["statistics"],
+      "Markdown Tutorial",
+      "Provide a step-by-step tutorial on how to use Markdown for creating documents.",
+      ["tutorial", "markdown"],
     ],
     [
-      "Report",
-      "Write a technical report, which can be used as a template.",
-      ["report"],
+      "Embedded Python Code",
+      "Show and explain how to plot x * sin(x) using matplotlib in a \n\n```python\n...\n```\n code block.",
+      ["tutorial", "python"],
     ],
+    [
+      "Lab Report",
+      "Template for recording scientific experiments and findings. Use tables to record date/time, observation, notes, etc.",
+      ["science"],
+    ],
+    ["Notes", "Template for making notes, etc.", ["notes"]],
   ],
 } as const;

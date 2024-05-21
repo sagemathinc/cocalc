@@ -53,6 +53,7 @@ const EDITOR_SPEC = {
       "format-ai_formula",
       "decrease_font_size",
       "increase_font_size",
+      "build",
     ]),
   } as EditorDescription,
 
@@ -72,8 +73,14 @@ const EDITOR_SPEC = {
       "reload",
       "decrease_font_size",
       "increase_font_size",
+      "build",
     ]),
-    buttons: set(["reload", "decrease_font_size", "increase_font_size"]),
+    buttons: set([
+      "reload",
+      "decrease_font_size",
+      "increase_font_size",
+      "build",
+    ]),
   } as EditorDescription,
 
   // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
@@ -91,6 +98,7 @@ const EDITOR_SPEC = {
       "zoom_page_width",
       "zoom_page_height",
       "set_zoom",
+      "build",
     ]),
     renderer: "canvas",
     path(path) {
@@ -109,8 +117,14 @@ const EDITOR_SPEC = {
       "decrease_font_size",
       "increase_font_size",
       "reload",
+      "build",
     ]),
-    buttons: set(["decrease_font_size", "increase_font_size", "reload"]),
+    buttons: set([
+      "decrease_font_size",
+      "increase_font_size",
+      "reload",
+      "build",
+    ]),
   } as EditorDescription,
 
   build: {

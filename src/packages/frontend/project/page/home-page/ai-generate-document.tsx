@@ -39,10 +39,12 @@ import {
   Markdown,
   Paragraph,
   RawPrompt,
+  Text,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
+import { Tip } from "@cocalc/frontend/components/tip";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
@@ -69,6 +71,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize, field_cmp, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { DELAY_SHOW_MS } from "../../new/consts";
 import {
   DOCUMENT,
   EXAMPLES_COMMON,
@@ -86,6 +89,7 @@ import {
 } from "./ai-generate-utils";
 
 const TAG = "generate-document";
+const TAG_TMPL = `${TAG}-template`;
 const PLACEHOLDER = "Describe the content...";
 
 const PREVIEW_BOX: CSS = {
@@ -121,6 +125,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
   // User's description of document they want to generate.
   const [prompt, setPrompt] = useState<string>("");
   const [querying, setQuerying] = useState<boolean>(false);
+  const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [preview, setPreview] = useState<string | null>(null);
   const [filename, setFilename] = useState<string>("");
@@ -129,8 +134,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     null,
   );
 
-  // The name of the selected kernel.  This determines the language, display name and
-  // everything else.
+  // The name of the selected kernel. This determines the language, display name and everything else.
   const [spec, setSpec] = useState<KernelSpec | null>(null);
 
   const projectState = useTypedRedux("projects", "project_map")?.getIn([
@@ -164,7 +168,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
         }
       } catch (err) {
         setKernelSpecs(
-          "Unable to load Jupyter kernels.  Make sure the project is running and Jupyter is installed.",
+          "Unable to load Jupyter kernels. Make sure the project is running and Jupyter is installed.",
         );
       }
     })();
@@ -194,10 +198,10 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
     const langExtra = LANG_EXTRA[spec?.language ?? ""] ?? DEFAULT_LANG_EXTRA;
     const intro =
       ext === "ipynb"
-        ? `Explain directly and to the point, how to do the following task in the programming language "${
+        ? `Explain, how to do the following task in the programming language "${
             spec?.display_name ?? "Python"
-          }", which I will be using in a Jupyter Notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Do not open any files, since you cannot assume they exist. Instead, generate random data suitable for the example code. Make sure the entire notebook can run. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename.${ext}]"`
-        : `Your task is to create a ${docName} document based on the provided description below. It will be used as a template to get started writing the document. ${paperSizeStr}Your output must start with a suggested filename "filename: [filename.${ext}]". Enclose the entire ${docName} document in tripe backticks. ${extra}Do not add any further instructions.`;
+          }". Your reply will be transformed into a Jupyter Notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Do not open and read any files, since you cannot assume they exist. Instead, generate random data suitable for the example code. Make sure the entire notebook can run top to bottom. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename.${ext}]"`
+        : `Your task is to create a ${docName} document based on the provided description below. It will be used as a template to get started writing the document. ${paperSizeStr}Enclose the entire ${docName} document in tripe backticks. ${extra}Do not open and read any files, since you cannot assume they exist. Instead, generate random data suitable for the example code. Do not add any further instructions. Skip formalities. Do not add a summary. Your output must start with a suggested filename "filename: [filename.${ext}]".`;
     // ATTN: make sure to avoid introducing whitespace at the beginning of lines and keep two newlines between blocks
     return [intro, ...example].join("\n\n");
   }
@@ -331,7 +335,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
   }
 
   async function save() {
-    setQuerying(true);
+    setSaving(true);
     try {
       if (preview == null) {
         console.error("ai doc generator: no preview - should never happen");
@@ -360,7 +364,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
         }
       }
       setPreview(null);
-      setQuerying(false);
+      setSaving(false);
       onSuccess();
     } catch (err) {
       setError(`${err}`);
@@ -515,7 +519,10 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
       return {
         key: `${idx}`,
         label,
-        onClick: () => setPrompt(ex[1]),
+        onClick: () => {
+          setPrompt(ex[1]);
+          track(TAG_TMPL, { project_id, ext, template: ex[0] });
+        },
       };
     });
     return (
@@ -716,14 +723,30 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
 
   function renderPreview() {
     if (preview == null) return;
+    const disabled = querying || saving || !preview?.trim();
     return (
       <>
         <div>
-          <Paragraph type="secondary">
+          <Paragraph>
             This is a preview of the generated content.{" "}
-            {querying
-              ? "Please wait, it is currently being generated..."
-              : "It has finished generating the content and you can now save the file with the given filename."}
+            {querying ? (
+              <Text strong>Please wait until it is fully generated...</Text>
+            ) : saving ? (
+              <Text strong>The file is saving...</Text>
+            ) : (
+              <>
+                It finished generating the content. You can now{" "}
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={save}
+                  disabled={disabled}
+                >
+                  save the file
+                </Button>{" "}
+                with the given filename.
+              </>
+            )}
           </Paragraph>
           <Paragraph>
             <Flex vertical={false} gap={"10px"} align="center">
@@ -733,7 +756,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
                   style={{ width: "100%" }}
                   value={filename}
                   onChange={(e) => setFilename(e.target.value)}
-                  disabled={querying}
+                  disabled={querying || saving}
                 />
               </Flex>
             </Flex>
@@ -747,6 +770,7 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
               onClick={() => {
                 cancel.current = true;
                 setQuerying(false);
+                setSaving(false);
                 setPreview(null);
               }}
             >
@@ -756,12 +780,20 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
               type="primary"
               size="large"
               onClick={save}
-              disabled={querying || !preview?.trim()}
+              disabled={disabled || saving}
             >
               <Icon name="paper-plane" /> Save {docName}
             </Button>
           </Space>
         </Paragraph>
+        {!disabled ? (
+          <Paragraph type="secondary">
+            Click save to store the preview of the content in a new file with
+            the given filename. You can then edit and run the computational
+            document as usual. Click "discard" to ignore the result and go back
+            to the previous step.
+          </Paragraph>
+        ) : undefined}
       </>
     );
   }
@@ -777,7 +809,9 @@ function AIGenerateDocument({ onSuccess, project_id, ext, docName }: Props) {
   return (
     <div style={{ padding: "0 15px" }}>
       {renderContent()}
-      {!error && querying ? <ProgressEstimate seconds={30} /> : undefined}
+      {!error && (querying || saving) ? (
+        <ProgressEstimate seconds={saving ? 5 : 30} />
+      ) : undefined}
       {error ? (
         <Alert
           closable
@@ -809,7 +843,11 @@ export function AIGenerateDocumentButton({
 
   const docName = file_options(`x.${ext}`).name ?? `${capitalize(ext)}`;
 
-  if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
+  if (
+    !redux
+      .getStore("projects")
+      .hasLanguageModelEnabled(project_id, `generate-document`)
+  ) {
     return null;
   }
 
@@ -826,21 +864,31 @@ export function AIGenerateDocumentButton({
 
   return (
     <>
-      <Button
-        onClick={() => setShow(true)}
-        style={btnStyle}
-        size={mode === "flyout" ? "small" : undefined}
+      <Tip
+        delayShow={DELAY_SHOW_MS}
+        title={
+          <>
+            <AIAvatar size={16} /> Generator
+          </>
+        }
+        tip="Open the AI Generator to automatically create a document."
       >
-        <AIAvatar
-          size={mode === "flyout" ? 18 : 14}
-          style={{
-            ...(mode === "flyout"
-              ? {}
-              : { position: "unset", marginRight: "5px" }),
-          }}
-        />
-        {mode === "full" ? ` Generator` : ""}
-      </Button>
+        <Button
+          onClick={() => setShow(true)}
+          style={btnStyle}
+          size={mode === "flyout" ? "small" : undefined}
+        >
+          <AIAvatar
+            size={mode === "flyout" ? 18 : 14}
+            style={{
+              ...(mode === "flyout"
+                ? {}
+                : { position: "unset", marginRight: "5px" }),
+            }}
+          />
+          {mode === "full" ? ` Generator...` : ""}
+        </Button>
+      </Tip>
       <Modal
         title={
           <>

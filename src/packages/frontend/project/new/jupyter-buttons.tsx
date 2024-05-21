@@ -3,11 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { Col, Flex } from "antd";
+import Immutable from "immutable";
+
 import { Available } from "@cocalc/comm/project-configuration";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Tip } from "@cocalc/frontend/components/tip";
-import { Col, Flex } from "antd";
-import Immutable from "immutable";
 //import { useJupyterKernelsInfo } from "@cocalc/frontend/jupyter/use-kernels-info";
 import { useProjectContext } from "@cocalc/frontend/project//context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";

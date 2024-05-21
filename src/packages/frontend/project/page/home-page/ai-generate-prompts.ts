@@ -51,11 +51,19 @@ x = 1
 
 ## Subtitle
 
-Markdown Text
+Markdown content
 
 \`\`\`
 print(x)
 \`\`\`
+`;
+
+const MD_TEMPLATE = `# Title
+
+## Subtitle
+
+Markdown content
+
 `;
 
 export const LANG_EXTRA: { [language: string]: string } = {
@@ -78,6 +86,16 @@ export const PROMPT: { [ext in Ext]: { extra: string; template: string } } = {
     extra:
       "This document will be processed using RMarkdown and generate HTML output. Modify the template to fit the document description.",
     template: RMD_TEMPLATE,
+  },
+  qmd: {
+    extra:
+      "This document will be processed using Quarto and generate HTML output. Modify the template to fit the document description.",
+    template: RMD_TEMPLATE,
+  },
+  md: {
+    extra:
+      "This document will be rendered by the browser client. Modify the template to fit the document description.",
+    template: MD_TEMPLATE,
   },
   ipynb: {
     extra: DEFAULT_LANG_EXTRA,

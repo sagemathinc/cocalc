@@ -51,7 +51,7 @@ export function helpMeFix({
     language: "sage",
     extraFileInfo: "SageMath Worksheet",
     redux,
-    prioritizeLastInput: true,
+    prioritize: "end",
     model,
   });
 }
