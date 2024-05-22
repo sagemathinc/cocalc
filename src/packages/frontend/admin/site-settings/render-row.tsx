@@ -74,6 +74,7 @@ export function RenderRow({
   if (typeof conf.show == "function" && !conf.show(data)) {
     return null;
   }
+
   const rawValue = data[name] ?? conf.default;
   const rowType: RowType = conf.type ?? "setting";
 
@@ -92,7 +93,7 @@ export function RenderRow({
     <div style={{ paddingRight: "15px" }}>
       <strong>{conf.name}</strong> <RowHelp help={conf.help} />
       <br />
-      <StaticMarkdown style={{ color: "#666" }} value={conf.desc} />
+      <StaticMarkdown style={{ color: COLORS.GRAY_M }} value={conf.desc} />
     </div>
   );
 

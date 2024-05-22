@@ -45,20 +45,25 @@ import { checkForAbuse } from "./abuse";
 import { evaluateAnthropic } from "./anthropic";
 import { callChatGPTAPI } from "./call-llm";
 import { getClient } from "./client";
+import { evaluateCustomOpenAI } from "./custom-openai";
 import { GoogleGenAIClient } from "./google-genai-client";
 import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
-import { evaluateCustomOpenAI } from "./custom-openai";
 import { saveResponse } from "./save-response";
 
 const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
 
 const log = getLogger("llm");
 
+async function getDefaultModel(): Promise<LanguageModel> {
+  return ((await getServerSettings()).default_llm ??
+    DEFAULT_MODEL) as LanguageModel;
+}
+
 // ATTN: do not move/rename this function, because it is used in hub/client.coffee!
 export async function evaluate(opts: ChatOptions): Promise<string> {
   // We mainly wrap the high level call to keep all error messages hidden
-  const { model = DEFAULT_MODEL } = opts;
+  const model = opts.model ?? (await getDefaultModel());
   if (!isValidModel(model)) {
     throw Error(`unsupported model "${model}"`);
   }

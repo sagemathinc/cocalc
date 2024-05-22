@@ -45,6 +45,7 @@ import type {
 } from "@cocalc/util/db-schema/compute-servers";
 import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 import {
+  Config,
   KUCALC_COCALC_COM,
   KUCALC_DISABLED,
   KUCALC_ON_PREMISES,
@@ -73,7 +74,7 @@ function validate_kucalc(k?): string {
 // populate all default key/values in the "customize" store
 const defaultKeyVals: [string, string | string[]][] = [];
 for (const k in site_settings_conf) {
-  const v = site_settings_conf[k];
+  const v: Config = site_settings_conf[k];
   const value: any =
     typeof v.to_val === "function" ? v.to_val(v.default) : v.default;
   defaultKeyVals.push([k, value]);
@@ -163,6 +164,7 @@ export interface CustomizeState {
   ollama?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
   custom_openai?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
   selectable_llms: List<string>;
+  default_llm?: string;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

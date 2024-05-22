@@ -8,7 +8,13 @@
 import jsonic from "jsonic";
 
 import { is_valid_email_address } from "@cocalc/util/misc";
-import { USER_SELECTABLE_LANGUAGE_MODELS } from "./llm-utils";
+import {
+  DEFAULT_MODEL,
+  LLMServicesAvailable,
+  USER_SELECTABLE_LANGUAGE_MODELS,
+  getDefaultLLM,
+  isValidModel,
+} from "./llm-utils";
 import { isEqual } from "lodash";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
@@ -53,6 +59,7 @@ export type SiteSettingsKeys =
   | "ollama_enabled"
   | "custom_openai_enabled"
   | "selectable_llms"
+  | "default_llm"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
@@ -190,6 +197,29 @@ export const is_list_of_llms = (val: string) =>
     .map((s) => s.trim())
     .every((s) => USER_SELECTABLE_LANGUAGE_MODELS.includes(s as any));
 
+export const to_default_llm: ToValFunc<ToVal> = (val: string, conf) => {
+  if (isValidModel(val)) return val;
+
+  if (conf == null) {
+    return DEFAULT_MODEL;
+  }
+
+  // FYI, conf are the raw values
+  const selectable_llms = to_list_of_llms(conf.selectable_llms);
+  const filter: LLMServicesAvailable = {
+    openai: to_bool(conf.openai_enabled),
+    google: to_bool(conf.google_vertexai_enabled),
+    ollama: to_bool(conf.ollama_enabled),
+    mistralai: to_bool(conf.mistral_enabled),
+    anthropic: to_bool(conf.anthropic_enabled),
+    custom_openai: to_bool(conf.custom_openai_enabled),
+  } as const;
+  const ollama = from_json((conf as any)?.ollama);
+  const custom_openai = from_json((conf as any)?.custom_openai);
+
+  return getDefaultLLM(selectable_llms, filter, ollama, custom_openai);
+};
+
 export const from_json = (conf): Mapping => {
   try {
     if (conf !== null) {
@@ -198,6 +228,7 @@ export const from_json = (conf): Mapping => {
   } catch (_) {}
   return {};
 };
+
 export const parsableJson = (conf): boolean => {
   try {
     jsonic(conf ?? "{}");
@@ -710,6 +741,14 @@ export const site_settings_conf: SiteSettings = {
         ? "All LLMs of enabled services will be selectable"
         : list.join(", ");
     },
+    tags: ["AI LLM"],
+  },
+  default_llm: {
+    name: "Default LLM",
+    desc: "If user has never selected an LLM, this one will be the fallback choice. If it is not available or not in the list of selectable LLMs, a heuristic will pick a fallback.",
+    default: "",
+    to_val: to_default_llm,
+    valid: USER_SELECTABLE_LANGUAGE_MODELS, // ATTN: This is not true. It's actually the list selectable_llms (which has this list as a constant) + all ollama + custom_llm. This is a special case in the Admin UI.
     tags: ["AI LLM"],
   },
   neural_search_enabled: {

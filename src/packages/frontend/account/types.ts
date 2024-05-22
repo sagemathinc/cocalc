@@ -5,13 +5,15 @@
 
 import { List, Map } from "immutable";
 
-import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { MessageInfo } from "@cocalc/frontend/client/hub";
 import {
-  NewFilenameTypes,
   NEW_FILENAMES,
+  NewFilenameTypes,
 } from "@cocalc/util/db-schema/defaults";
+import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
+import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
 // this is incomplete...
 
@@ -88,4 +90,5 @@ export interface AccountState {
   stripe_checkout_session?: TypedMap<{ id: string; url: string }>;
   purchase_closing_day?: number;
   email_daily_statements?: boolean;
+  [SETTINGS_LANGUAGE_MODEL_KEY]?: LanguageModel;
 }

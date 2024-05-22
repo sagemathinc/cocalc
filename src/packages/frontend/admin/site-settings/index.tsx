@@ -28,6 +28,10 @@ import { deep_copy, keys, unreachable } from "@cocalc/util/misc";
 import { site_settings_conf } from "@cocalc/util/schema";
 import { RenderRow } from "./render-row";
 import { Data, IsReadonly, State } from "./types";
+import {
+  toCustomOpenAIModel,
+  toOllamaModel,
+} from "@cocalc/util/db-schema/llm-utils";
 
 const { CheckableTag } = AntdTag;
 
@@ -388,23 +392,45 @@ export default function SiteSettings({ close }) {
     return (
       <>
         {[site_settings_conf, EXTRAS].map((configData) =>
-          keys(configData).map((name) => (
-            <RenderRow
-              filterStr={filterStr}
-              filterTag={filterTag}
-              key={name}
-              name={name}
-              conf={configData[name]}
-              data={data}
-              update={update}
-              isReadonly={isReadonly}
-              onChangeEntry={onChangeEntry}
-              onJsonEntryChange={onJsonEntryChange}
-              isModified={isModified}
-              isHeader={isHeader(name)}
-              saveSingleSetting={saveSingleSetting}
-            />
-          )),
+          keys(configData).map((name) => {
+            const conf = configData[name];
+
+            // This is a weird special case, where the valid value depends on other values
+            if (name === "default_llm") {
+              const c = site_settings_conf.selectable_llms;
+              const llms = c.to_val?.(data?.selectable_llms ?? c.default) ?? [];
+              const o = EXTRAS.ollama_configuration;
+              const oll = Object.keys(
+                o.to_val?.(data?.ollama_configuration) ?? {},
+              ).map(toOllamaModel);
+              const a = EXTRAS.ollama_configuration;
+              const oaic = data?.custom_openai_configuration;
+              const oai = (
+                oaic != null ? Object.keys(a.to_val?.(oaic) ?? {}) : []
+              ).map(toCustomOpenAIModel);
+              if (Array.isArray(llms)) {
+                conf.valid = [...llms, ...oll, ...oai];
+              }
+            }
+
+            return (
+              <RenderRow
+                filterStr={filterStr}
+                filterTag={filterTag}
+                key={name}
+                name={name}
+                conf={conf}
+                data={data}
+                update={update}
+                isReadonly={isReadonly}
+                onChangeEntry={onChangeEntry}
+                onJsonEntryChange={onJsonEntryChange}
+                isModified={isModified}
+                isHeader={isHeader(name)}
+                saveSingleSetting={saveSingleSetting}
+              />
+            );
+          }),
         )}
       </>
     );

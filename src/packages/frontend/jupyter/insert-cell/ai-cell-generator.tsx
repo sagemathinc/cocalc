@@ -38,8 +38,10 @@ import LLMSelector, {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
+import { PREVIEW_BOX } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LLMTools } from "@cocalc/jupyter/types";
@@ -55,8 +57,6 @@ import {
   smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { LLMCostEstimation } from "../../misc/llm-cost-estimation";
-import { PREVIEW_BOX } from "../../project/page/home-page/ai-generate-document";
 import NBViewer from "../nbviewer/nbviewer";
 import { Position } from "./types";
 import { insertCell } from "./util";
@@ -66,7 +66,7 @@ type PrevCells = "none" | number | "all above";
 type Cell = { cell_type: "markdown" | "code"; source: string[] };
 type Cells = Cell[];
 
-const EXAMPLES: readonly [string, readonly string[]][] = [
+const EXAMPLES: readonly (readonly [string, readonly string[]])[] = [
   ["Visualize the data.", ["visualize"]],
   ["Run the last function to see it in action.", ["run"]],
   [

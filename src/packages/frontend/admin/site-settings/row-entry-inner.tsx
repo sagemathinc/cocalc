@@ -80,8 +80,9 @@ export function RowEntryInner({
           update();
         }}
         style={{ width: "100%" }}
-        options={valid.map((e) => {
-          return { value: e, label: e };
+        options={valid.map((value) => {
+          const label = name === "default_llm" ? modelToName(value) : value;
+          return { value, label };
         })}
       />
     );
