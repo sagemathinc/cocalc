@@ -17,7 +17,8 @@ CoCalc is web-based software that enables collaboration in research, teaching, a
 
 ## Install CoCalc on your server or computer
 
-You can easily use CoCalc on your own computer for free by [**running a Docker image**](https://github.com/sagemathinc/cocalc-docker).
+You can obtain a packaged version of CoCalc for your own on-premises infrastructure: [**CoCalc Cloud**](https://doc-cloud.cocalc.com/).
+It runs on Kubernetes and inherits the security and scalability of the SaaS platform.
 
 ## History
 
