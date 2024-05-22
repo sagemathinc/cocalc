@@ -13,12 +13,15 @@ import {
   Switch,
   Tag,
 } from "antd";
-import { throttle } from "lodash";
+import { debounce, throttle } from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { useFrameContext } from "@cocalc/frontend/app-framework";
+import {
+  useAsyncEffect,
+  useFrameContext,
+} from "@cocalc/frontend/app-framework";
 import {
   LLMNameLink,
   Paragraph,
@@ -52,6 +55,7 @@ import {
   smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { LLMCostEstimation } from "../../misc/llm-cost-estimation";
 import { PREVIEW_BOX } from "../../project/page/home-page/ai-generate-document";
 import NBViewer from "../nbviewer/nbviewer";
 import { Position } from "./types";
@@ -62,12 +66,12 @@ type PrevCells = "none" | number | "all above";
 type Cell = { cell_type: "markdown" | "code"; source: string[] };
 type Cells = Cell[];
 
-const EXAMPLES: [string, string[]][] = [
+const EXAMPLES: readonly [string, readonly string[]][] = [
   ["Visualize the data.", ["visualize"]],
   ["Run the last function to see it in action.", ["run"]],
   [
     "Combine the code in one large cell and wrap it into a function.",
-    ["function"],
+    ["merge"],
   ],
   [
     "Write a summary in a markdown cell explaining the purpose of the code.",
@@ -91,7 +95,7 @@ const EXAMPLES: [string, string[]][] = [
     "Expand this analysis to include additional statistical tests or visualizations.",
     ["statistics"],
   ],
-];
+] as const;
 
 interface AIGenerateCodeCellProps {
   actions: JupyterActions;
@@ -121,16 +125,53 @@ export function AIGenerateCodeCell({
   const [cellTypes, setCellTypes] = useState<"code" | "all">("code");
   const [includePreviousCells, setIncludePreviousCells] =
     useState<PrevCells>(2);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<string>();
   const [preview, setPreview] = useState<Cells | null>(null);
   const [attribute, setAttribute] = useState<boolean>(false);
   const promptRef = useRef<HTMLElement>(null);
+  const [tokens, setTokens] = useState<number>(0);
 
   const kernel_info = actions.store.get("kernel_info");
   const lang = kernel_info?.get("language") ?? "python";
   const kernel_name = kernel_info?.get("display_name") ?? "Python 3";
 
   const open = showAICellGen != null;
+
+  const prevCodeContents = getPrevCodeContents();
+
+  const { input } = getInput({
+    frameActions,
+    prompt,
+    lang,
+    kernel_name,
+    position: showAICellGen,
+    model,
+    prevCodeContents,
+  });
+
+  useEffect(() => {
+    if (tokens > 0 && input == "") setTokens(0);
+  }, [input]);
+
+  useAsyncEffect(
+    debounce(
+      async () => {
+        if (input == "") return;
+
+        // do not import until needed -- it is HUGE!
+        const { getMaxTokens, numTokensUpperBound } = await import(
+          "@cocalc/frontend/misc/llm"
+        );
+
+        const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
+
+        setTokens(tokens);
+      },
+      2000,
+      { leading: false, trailing: true },
+    ),
+    [input],
+  );
 
   useEffect(() => {
     if (!preview && open) {
@@ -232,6 +273,7 @@ export function AIGenerateCodeCell({
       prompt,
       prevCodeContents,
     });
+
     if (!input) {
       return;
     }
@@ -310,7 +352,9 @@ export function AIGenerateCodeCell({
   function doQuery(prevCodeContents: string) {
     cancel.current = false;
     setQuerying(true);
+
     if (showAICellGen == null) return;
+
     queryLanguageModel({
       prevCodeContents,
       includePreviousCells,
@@ -516,23 +560,12 @@ export function AIGenerateCodeCell({
             </Button>
           </Space>
         </Paragraph>
+        {error ? <Alert type="error" message={error} /> : undefined}
       </>
     );
   }
 
   function renderContentDialog() {
-    const prevCodeContents = getPrevCodeContents();
-
-    const { input } = getInput({
-      frameActions,
-      prompt,
-      lang,
-      kernel_name,
-      position: showAICellGen,
-      model,
-      prevCodeContents,
-    });
-
     const empty = prompt.trim() == "";
     return (
       <>
@@ -597,6 +630,15 @@ export function AIGenerateCodeCell({
             />
           </Space>
         </Paragraph>
+        {input && tokens > 0 ? (
+          <LLMCostEstimation
+            tokens={tokens}
+            model={model}
+            paragraph
+            textAlign="center"
+            type="secondary"
+          />
+        ) : undefined}
         {error ? <Alert type="error" message={error} /> : undefined}
       </>
     );

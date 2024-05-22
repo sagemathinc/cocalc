@@ -322,6 +322,21 @@ function AIGenerateDocument({
     return { cells, metadata: { kernelspec: spec } };
   }
 
+  function extractContent(answer): string {
+    const i = answer.indexOf("```");
+    const j = answer.lastIndexOf("```");
+
+    if (i !== -1 && j !== -1 && i !== j) {
+      // extract the document
+      return answer.substring(i + 3, j).trim();
+    } else if (i >= 0) {
+      // extract everything after i+3
+      return answer.substring(i + 3).trim();
+    } else {
+      return answer;
+    }
+  }
+
   function processAnswer(answer: string): string {
     const ts = new Date().toISOString().split(".")[0].replace("T", " ");
     const intro =
@@ -335,20 +350,7 @@ function AIGenerateDocument({
           ) + "\n\n"
         : "";
 
-    const content = (function () {
-      const i = answer.indexOf("```");
-      const j = answer.lastIndexOf("```");
-
-      if (i !== -1 && j !== -1 && i !== j) {
-        // extract the document
-        return answer.substring(i + 3, j).trim();
-      } else if (i >= 0) {
-        // extract everything after i+3
-        return answer.substring(i + 3).trim();
-      } else {
-        return answer;
-      }
-    })();
+    const content = extractContent(answer);
 
     return `${intro}${content}`;
   }
@@ -500,7 +502,7 @@ function AIGenerateDocument({
 
         setTokens(tokens);
       },
-      3000,
+      2000,
       { leading: false, trailing: true },
     ),
     [input],
@@ -707,7 +709,7 @@ function AIGenerateDocument({
               disabled={!input || !!error || querying || !prompt?.trim()}
             >
               <Icon name="paper-plane" /> Create {docName} content using{" "}
-              {modelToName(model)} (shift+enter)
+              {modelToName(model)}
             </Button>
           </Paragraph>
         }
