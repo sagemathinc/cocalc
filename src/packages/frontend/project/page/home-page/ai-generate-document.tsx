@@ -546,6 +546,7 @@ function AIGenerateDocument({
         },
       };
     });
+
     return (
       <Paragraph>
         <Dropdown menu={{ items }} trigger={["click"]}>
