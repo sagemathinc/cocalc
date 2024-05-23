@@ -41,7 +41,6 @@ import {
   Markdown,
   Paragraph,
   RawPrompt,
-  Text,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
@@ -765,15 +764,22 @@ function AIGenerateDocument({
     return (
       <>
         <div>
+          <Paragraph>This is a preview of the generated content.</Paragraph>
           <Paragraph>
-            This is a preview of the generated content.{" "}
-            {querying ? (
-              <Text strong>Please wait until it is fully generated...</Text>
-            ) : saving ? (
-              <Text strong>The file is saving...</Text>
+            {querying || saving ? (
+              <Alert
+                banner
+                type={saving ? "info" : "warning"}
+                style={{ fontWeight: "bold" }}
+                message={
+                  saving
+                    ? "The file is saving..."
+                    : "Please wait until fully generated..."
+                }
+              />
             ) : (
               <>
-                finished generating the content. You can now{" "}
+                It finished generating the content. You can either{" "}
                 <Button
                   type="primary"
                   size="small"
@@ -782,7 +788,8 @@ function AIGenerateDocument({
                 >
                   save the file
                 </Button>{" "}
-                with the given filename.
+                with the given filename or discard the preview and go back to
+                the previous step.
               </>
             )}
           </Paragraph>
@@ -826,7 +833,7 @@ function AIGenerateDocument({
         </Paragraph>
         {!disabled ? (
           <Paragraph type="secondary">
-            Click save to store the preview of the content in a new file with
+            Click "save" to store the preview of the content in a new file with
             the given filename. You can then edit and run the computational
             document as usual. Click "discard" to ignore the result and go back
             to the previous step.
@@ -853,6 +860,7 @@ function AIGenerateDocument({
       {error ? (
         <Alert
           closable
+          banner
           onClose={() => {
             setError("");
           }}
