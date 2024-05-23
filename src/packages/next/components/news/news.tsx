@@ -28,6 +28,7 @@ import TimeAgo from "timeago-react";
 import { useDateStr } from "./useDateStr";
 import { useCustomize } from "lib/customize";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { SocialMediaShareLinks } from "../landing/social-media-share-links";
 
 const STYLE: CSS = {
   borderColor: COLORS.GRAY_M,
@@ -129,36 +130,13 @@ export function News(props: Props) {
   }
 
   function shareLinks(text = false) {
-    const newsLink = encodeURIComponent(`${siteURL}${permalink}`);
     return (
-      <Space size="middle" direction="horizontal">
-        <A
-          key="tweet"
-          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-            title,
-          )}&url=${newsLink}&via=cocalc_com`}
-          style={{ color: COLORS.ANTD_LINK_BLUE, ...bottomLinkStyle }}
-        >
-          <Icon name="twitter" />
-          {text ? " Tweet" : ""}
-        </A>
-        <A
-          key="facebook"
-          href={`https://www.facebook.com/sharer/sharer.php?u=${newsLink}`}
-          style={{ ...bottomLinkStyle }}
-        >
-          <Icon name="facebook-filled" />
-          {text ? " Share" : ""}
-        </A>
-        <A
-          key="linkedin"
-          href={`https://www.linkedin.com/sharing/share-offsite/?url=${newsLink}`}
-          style={{ ...bottomLinkStyle }}
-        >
-          <Icon name="linkedin-filled" />
-          {text ? " Share" : ""}
-        </A>
-      </Space>
+      <SocialMediaShareLinks
+        title={title}
+        url={encodeURIComponent(`${siteURL}${permalink}`)}
+        showText={text}
+        standalone={standalone}
+      />
     );
   }
 
