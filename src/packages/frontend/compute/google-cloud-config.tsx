@@ -1222,44 +1222,44 @@ function GPU({
     );
   }
 
-  const options = ACCELERATOR_TYPES.map(
-    (acceleratorType: GoogleCloudAcceleratorType) => {
-      let cost;
-      const config1 = { ...configuration, acceleratorType, acceleratorCount };
-      const changes = { acceleratorType, acceleratorCount };
-      try {
-        cost = computeAcceleratorCost({ priceData, configuration: config1 });
-      } catch (_) {
-        const newChanges = ensureConsistentConfiguration(
-          priceData,
-          config1,
-          changes,
-          IMAGES,
-        );
-        cost = computeAcceleratorCost({
-          priceData,
-          configuration: { ...config1, ...newChanges },
-        });
-      }
-      const memory = priceData.accelerators[acceleratorType].memory;
-      return {
-        value: acceleratorType,
-        search: acceleratorType,
-        cost,
-        memory,
-        label: (
-          <div key={acceleratorType} style={{ display: "flex" }}>
-            <div style={{ flex: 1 }}>
-              {displayAcceleratorType(acceleratorType, memory)}
-            </div>
-            <div style={{ flex: 1 }}>
-              <CostPerHour cost={cost} />
-            </div>
+  const options = ACCELERATOR_TYPES.filter(
+    (acceleratorType) => priceData.accelerators[acceleratorType] != null,
+  ).map((acceleratorType: GoogleCloudAcceleratorType) => {
+    let cost;
+    const config1 = { ...configuration, acceleratorType, acceleratorCount };
+    const changes = { acceleratorType, acceleratorCount };
+    try {
+      cost = computeAcceleratorCost({ priceData, configuration: config1 });
+    } catch (_) {
+      const newChanges = ensureConsistentConfiguration(
+        priceData,
+        config1,
+        changes,
+        IMAGES,
+      );
+      cost = computeAcceleratorCost({
+        priceData,
+        configuration: { ...config1, ...newChanges },
+      });
+    }
+    const memory = priceData.accelerators[acceleratorType].memory;
+    return {
+      value: acceleratorType,
+      search: acceleratorType,
+      cost,
+      memory,
+      label: (
+        <div key={acceleratorType} style={{ display: "flex" }}>
+          <div style={{ flex: 1 }}>
+            {displayAcceleratorType(acceleratorType, memory)}
           </div>
-        ),
-      };
-    },
-  );
+          <div style={{ flex: 1 }}>
+            <CostPerHour cost={cost} />
+          </div>
+        </div>
+      ),
+    };
+  });
 
   const countOptions: any[] = [];
   const min = priceData.accelerators[acceleratorType]?.count ?? 1;
@@ -1462,7 +1462,7 @@ function ensureConsistentZoneWithRegion(priceData, configuration, changes) {
 }
 
 function ensureConsistentAccelerator(priceData, configuration, changes) {
-  const { acceleratorType } = configuration;
+  let { acceleratorType } = configuration;
   if (!acceleratorType) {
     return;
   }
@@ -1476,10 +1476,20 @@ function ensureConsistentAccelerator(priceData, configuration, changes) {
   }
 
   // have a GPU
-  const data = priceData.accelerators[acceleratorType];
+  let data = priceData.accelerators[acceleratorType];
   if (!data) {
-    // invalid acceleratorType.
-    return;
+    // accelerator type no longer exists; replace it by one that does.
+    for (const type in priceData.accelerators) {
+      acceleratorType =
+        configuration["acceleratorType"] =
+        changes["acceleratorType"] =
+          type;
+      data = priceData.accelerators[acceleratorType];
+      break;
+    }
+  }
+  if (data == null) {
+    throw Error("bug");
   }
   // Ensure the machine type is consistent
   if (!configuration.machineType.startsWith(data.machineType)) {
@@ -1666,6 +1676,14 @@ function ensureConsistentRegionAndZoneWithMachineType(
   }
 
   if (configuration.acceleratorType && configuration.acceleratorCount) {
+    if (priceData.accelerators[configuration.acceleratorType] == null) {
+      // The accelerator type no longer exists in the pricing data (e.g., maybe it was deprecated),
+      // so replace it by one that exists.
+      for (const type in priceData.accelerators) {
+        configuration.acceleratorType = changes.acceleratorType = type;
+        break;
+      }
+    }
     // have a GPU -- make sure zone works
     if (
       !priceData.accelerators[configuration.acceleratorType].prices[
@@ -1676,7 +1694,7 @@ function ensureConsistentRegionAndZoneWithMachineType(
       let fixed = false;
       const region = zoneToRegion(configuration["zone"]);
       for (const zone in priceData.accelerators[configuration.acceleratorType]
-        .prices) {
+        ?.prices) {
         if (zone.startsWith(region)) {
           fixed = true;
           configuration.zone = changes.zone = zone;
