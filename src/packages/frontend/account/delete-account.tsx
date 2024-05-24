@@ -3,9 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Component, React, Rendered, rtypes } from "../app-framework";
-import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
-import { ErrorDisplay, Icon, A } from "../components";
+import { Button, ButtonToolbar, Well } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Component,
+  React,
+  Rendered,
+  rtypes,
+} from "@cocalc/frontend/app-framework";
+import { A, ErrorDisplay, Icon } from "@cocalc/frontend/components";
 
 interface Props {
   initial_click: () => void;

@@ -16,6 +16,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
 import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+import { R_IDE } from "@cocalc/util/consts/ui";
 export type { StudentProjectFunctionality };
 
 interface Option {
@@ -71,9 +72,8 @@ const OPTIONS: Option[] = [
   },
   {
     name: "disableRServer",
-    title: "RStudio Server",
-    description:
-      "Disable the user interface for running an RStudio server in student projects.  RStudio is an IDE for R.",
+    title: R_IDE,
+    description: `Disable the user interface for running the ${R_IDE} server in student projects.  This is an IDE for coding in R.`,
   },
   {
     name: "disableTerminals",

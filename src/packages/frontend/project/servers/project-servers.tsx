@@ -14,6 +14,7 @@ import {
   computeServersEnabled,
 } from "@cocalc/frontend/compute";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
+import { R_IDE } from "@cocalc/util/consts/ui";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { NamedServerPanel } from "../named-server-panel";
 import { NewFileButton } from "../new/new-file-button";
@@ -99,7 +100,7 @@ export function ProjectServers(props: Props) {
           {available.rserver ? (
             <Col sm={sm} md={md}>
               <NewFileButton
-                name={"RStudio..."}
+                name={`${R_IDE}...`}
                 icon={"r"}
                 active={showNamedServer === "rserver"}
                 on_click={() => toggleShowNamedServer("rserver")}

@@ -3,12 +3,17 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { useTypedRedux } from "../app-framework";
-import { Icon, LabeledRow, Loading, SelectorInput } from "../components";
-import { Panel } from "../antd-bootstrap";
-import { set_account_table } from "./util";
-import { IS_MACOS } from "../feature";
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  LabeledRow,
+  Loading,
+  SelectorInput,
+} from "@cocalc/frontend/components";
+import { IS_MACOS } from "@cocalc/frontend/feature";
 import keyboardShortcuts from "./keyboard-shortcuts";
+import { set_account_table } from "./util";
 
 const KEYBOARD_SHORTCUTS = keyboardShortcuts(IS_MACOS);
 
@@ -29,7 +34,7 @@ export const KeyboardSettings: React.FC = () => {
       v.push(
         <LabeledRow key={desc} label={desc} label_cols={LABEL_COLS}>
           {shortcut}
-        </LabeledRow>
+        </LabeledRow>,
       );
     }
     return v;

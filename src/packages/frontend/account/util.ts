@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { redux } from "../app-framework";
-import { alert_message } from "../alerts";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { redux } from "@cocalc/frontend/app-framework";
 
 export function set_account_table(obj: object): void {
   redux.getTable("account").set(obj);

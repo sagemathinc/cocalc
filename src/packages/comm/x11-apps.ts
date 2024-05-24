@@ -102,8 +102,8 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   rstudio: {
     icon: "r",
-    desc: "An integrated development environment (IDE) for R.  RStudio, Inc. is in no way affiliated with CoCalc",
-    label: "RStudio",
+    desc: "An integrated development environment (IDE) for R.  Posit, Inc. is in no way affiliated with CoCalc",
+    label: "R IDE",
   },
   /* See https://github.com/sagemathinc/cocalc/issues/5427
   Sometimes, Octave GUI works, sometimes not.
