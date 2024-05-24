@@ -4,7 +4,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { trunc_middle } from "@cocalc/util/misc";
 
-const FONT_SIZE: CSS["fontSize"] = 10;
+const FONT_SIZE = 10;
 
 const CONTEXT_STYLE: CSS = {
   fontSize: `${FONT_SIZE}pt`,
@@ -42,7 +42,7 @@ export default function Context({ value, info }) {
     return (
       <CodeMirrorStatic
         style={CONTEXT_STYLE}
-        font_size={10}
+        font_size={FONT_SIZE}
         options={{
           mode: infoToMode(info),
         }}

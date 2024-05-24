@@ -49,12 +49,12 @@ import { LanguageModel, getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
+import { AI_ASSIST_TAG } from "./consts";
 import Context from "./context";
 import { Options, createChatMessage } from "./create-chat";
 import LLMSelector, { modelToName } from "./llm-selector";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import type { Scope } from "./types";
-import { AI_ASSIST_TAG } from "./consts";
 
 const TAG_TMPL = `${AI_ASSIST_TAG}-template`;
 
@@ -252,14 +252,14 @@ export default function LanguageModelTitleBarButton({
     return options;
   }, [actions]);
 
-  const doUpdateContext = useDebouncedCallback(
+  const doUpdateMessage = useDebouncedCallback(
     async () => {
       // don't waste time on update if it is not visible.
       if (!(visible && showDialog)) {
         return;
       }
       const { message, tokens, inputOriginalLen, inputTruncatedLen } =
-        await updateInput({
+        await updateMessage({
           actions,
           id,
           context,
@@ -296,7 +296,7 @@ export default function LanguageModelTitleBarButton({
     { leading: false, trailing: true },
   );
 
-  useAsyncEffect(doUpdateContext, [
+  useAsyncEffect(doUpdateMessage, [
     id,
     scope,
     model,
@@ -473,7 +473,7 @@ export default function LanguageModelTitleBarButton({
             optionType="button"
             buttonStyle="solid"
           />
-          <Button size="small" type="text" onClick={doUpdateContext}>
+          <Button size="small" type="text" onClick={doUpdateMessage}>
             <Icon name="refresh" /> Update
           </Button>
         </div>
@@ -499,6 +499,7 @@ export default function LanguageModelTitleBarButton({
       <Paragraph style={{ textAlign: "center" }} ref={submitRef}>
         <Space size="middle">
           <Popover
+            trigger={["click"]}
             title={
               <div style={{ maxWidth: "50vw" }}>
                 <Button
@@ -514,6 +515,11 @@ export default function LanguageModelTitleBarButton({
               </div>
             }
             open={showPreview && visible && showDialog}
+            onOpenChange={(visible) => {
+              if (!visible) {
+                setShowPreview(visible);
+              }
+            }}
             content={() => (
               <Space direction="vertical" style={{ maxWidth: "50vw" }}>
                 <RawPrompt
@@ -523,7 +529,7 @@ export default function LanguageModelTitleBarButton({
                     overflow: "auto",
                     fontSize: "12px",
                     fontFamily: "monospace",
-                    color: COLORS.GRAY_D,
+                    color: COLORS.GRAY,
                   }}
                 />
               </Space>
@@ -613,6 +619,7 @@ export default function LanguageModelTitleBarButton({
           // otherwise, clicking outside the dialog to close it, does not close it
           // this is particularly bad if the dialog is larger than the viewport
           setShowDialog(visible);
+          setShowPreview(visible);
         }
       }}
     >
@@ -644,7 +651,7 @@ export default function LanguageModelTitleBarButton({
   );
 }
 
-async function updateInput({
+async function updateMessage({
   actions,
   id,
   context,

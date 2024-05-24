@@ -38,6 +38,7 @@ import LLMSelector, {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
@@ -749,9 +750,10 @@ function getPreviousNonemptyCellContents(
       // we found a cell of given type
       length += code.length;
       if (length > CUTOFF) break;
+      const delim = backtickSequence(code);
       cells.unshift(
         cellTypes === "all" && cellType === "code"
-          ? `\`\`\`${lang}\n${code}\n\`\`\``
+          ? `${delim}${lang}\n${code}\n${delim}`
           : code,
       );
       if (typeof prevCells === "number") {

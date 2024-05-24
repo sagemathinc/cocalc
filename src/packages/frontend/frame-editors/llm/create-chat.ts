@@ -3,8 +3,8 @@ import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import type { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
-import { modelToMention } from "./llm-selector";
 import { AI_ASSIST_TAG } from "./consts";
+import { modelToMention } from "./llm-selector";
 
 export interface Options {
   codegen?: boolean;
@@ -85,7 +85,7 @@ export async function createChatMessage(
     if (input.trim()) {
       message += ` The file includes the following ${
         codegen ? "code" : "content"
-      }:`;
+      }:\n`;
       message += `
 ${delim}${actions.languageModelGetLanguage()}
 ${input.trim()}
