@@ -4,6 +4,7 @@ import type { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { modelToMention } from "./llm-selector";
+import { AI_ASSIST_TAG } from "./consts";
 
 export interface Options {
   codegen?: boolean;
@@ -36,7 +37,7 @@ export default async function createChat({
 
   await chatActions.send_chat({
     input: message,
-    tag: `code-editor-${tag ?? command}`,
+    tag: `${AI_ASSIST_TAG}-${tag ?? command}`,
     noNotification: true,
   });
 

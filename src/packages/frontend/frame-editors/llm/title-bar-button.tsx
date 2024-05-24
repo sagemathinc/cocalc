@@ -24,8 +24,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
+  redux,
   useAsyncEffect,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -41,6 +43,7 @@ import {
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import track from "@cocalc/frontend/user-tracking";
 import { LanguageModel, getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
@@ -51,10 +54,9 @@ import { Options, createChatMessage } from "./create-chat";
 import LLMSelector, { modelToName } from "./llm-selector";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import type { Scope } from "./types";
-import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
+import { AI_ASSIST_TAG } from "./consts";
 
-const TAG = "ai-assistant";
-const TAG_TMPL = `${TAG}-template`;
+const TAG_TMPL = `${AI_ASSIST_TAG}-template`;
 
 interface Preset {
   command: string;
@@ -140,6 +142,8 @@ function getCustomDescription(frameType) {
 
 interface Props {
   id: string;
+  path: string;
+  type: string; // type of editor spec (the key)
   actions: Actions;
   buttonSize;
   buttonStyle: CSS;
@@ -154,6 +158,8 @@ interface Props {
 
 export default function LanguageModelTitleBarButton({
   id,
+  path,
+  type,
   actions,
   buttonSize,
   buttonStyle,
@@ -166,7 +172,7 @@ export default function LanguageModelTitleBarButton({
 }: Props) {
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [error, setError] = useState<string>("");
-  const [custom, setCustom] = useState<string>("");
+  const [command, setCommandVal] = useState<string>("");
   const frameType = actions._get_frame_type(id);
   const [querying, setQuerying] = useState<boolean>(false);
   const [tag, setTag] = useState<string>("");
@@ -196,12 +202,31 @@ export default function LanguageModelTitleBarButton({
   function setPreset(preset: Preset) {
     setTag(preset.tag);
     setDescription(preset.description);
-    setCustom(preset.command);
+    setCommand(preset.command);
+  }
+
+  // we keep the command in local storage, such that it does not vanish if the bar changes, we switch frame, etc.
+  // This is specific to the project, file and frame editor type
+  const lsKey = `AI:${project_id}:${path}:${type}`;
+
+  function restoreCommand() {
+    setCommand(LS.get(lsKey) ?? "");
+  }
+
+  function setCommand(command: string) {
+    setCommandVal(command);
+    if (command) {
+      LS.set(lsKey, command);
+    } else {
+      // empty string
+      LS.del(lsKey);
+    }
   }
 
   useEffect(() => {
     if (showDialog) {
       setScope(getScope(id, actions));
+      restoreCommand();
       inputRef.current?.focus();
     }
   }, [showDialog]);
@@ -278,8 +303,18 @@ export default function LanguageModelTitleBarButton({
     visible,
     showDialog,
     tag,
-    custom,
+    command,
   ]);
+
+  // END OF HOOKS
+
+  if (
+    !redux
+      .getStore("projects")
+      .hasLanguageModelEnabled(project_id, AI_ASSIST_TAG)
+  ) {
+    return null;
+  }
 
   const queryLLM = async (options: Options) => {
     setError("");
@@ -287,7 +322,7 @@ export default function LanguageModelTitleBarButton({
       setQuerying(true);
       // this runs context through the truncation + message creation, and then sends it to chat
       await actions.languageModel(id, options, context);
-      setCustom("");
+      setCommand("");
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -306,9 +341,9 @@ export default function LanguageModelTitleBarButton({
   };
 
   function getQueryLLMOptions(): Options | null {
-    if (custom.trim()) {
+    if (command.trim()) {
       return {
-        command: custom.trim(),
+        command: command.trim(),
         codegen: false,
         allowEmpty: true,
         model,
@@ -407,7 +442,7 @@ export default function LanguageModelTitleBarButton({
       <Paragraph
         style={{
           color: COLORS.GRAY_D,
-          maxHeight: "40vh",
+          maxHeight: "max(20rem, 30vh)",
           display: "flex",
           flexDirection: "column",
         }}
@@ -458,14 +493,72 @@ export default function LanguageModelTitleBarButton({
     );
   }
 
-  function renderContent() {
+  function renderSubmit() {
     const btnTxt = `Ask ${modelToName(model)}`;
-    const empty = custom.trim() == "";
+    return (
+      <Paragraph style={{ textAlign: "center" }} ref={submitRef}>
+        <Space size="middle">
+          <Popover
+            title={
+              <div style={{ maxWidth: "50vw" }}>
+                <Button
+                  onClick={() => {
+                    setShowPreview(false);
+                  }}
+                  type="text"
+                  style={{ float: "right", color: COLORS.GRAY_M }}
+                >
+                  <Icon name="times" />
+                </Button>
+                Exactly this will be sent to the language model.
+              </div>
+            }
+            open={showPreview && visible && showDialog}
+            content={() => (
+              <Space direction="vertical" style={{ maxWidth: "50vw" }}>
+                <RawPrompt
+                  input={message}
+                  style={{
+                    maxHeight: "30vh",
+                    overflow: "auto",
+                    fontSize: "12px",
+                    fontFamily: "monospace",
+                    color: COLORS.GRAY_D,
+                  }}
+                />
+              </Space>
+            )}
+          >
+            <BSButton
+              disabled={message.length === 0 || querying || !command.trim()}
+              bsSize="large"
+              onClick={() => setShowPreview(!showPreview)}
+              active={showPreview}
+            >
+              Preview
+            </BSButton>
+          </Popover>
+          <Button
+            disabled={querying || (!tag && !command.trim()) || !message}
+            type="primary"
+            size="large"
+            onClick={doIt}
+          >
+            <Icon name={querying ? "spinner" : "paper-plane"} spin={querying} />{" "}
+            {btnTxt} (shift+enter)
+          </Button>
+        </Space>
+      </Paragraph>
+    );
+  }
+
+  function renderContent() {
+    const empty = command.trim() == "";
     return (
       <Space direction="vertical" style={{ width: "800px", maxWidth: "90vw" }}>
         <Paragraph type={empty ? "danger" : undefined}>
           Describe, what the language model <LLMNameLink model={model} /> should
-          do:
+          do. Be speicifc!
         </Paragraph>
         <Paragraph ref={describeRef}>
           <Input.TextArea
@@ -474,10 +567,10 @@ export default function LanguageModelTitleBarButton({
             autoFocus
             style={{ flex: 1 }}
             placeholder={"What should the language model do..."}
-            value={custom}
+            value={command}
             status={empty ? "error" : undefined}
             onChange={(e) => {
-              setCustom(e.target.value);
+              setCommand(e.target.value);
               setTag("");
               if (e.target.value) {
                 setDescription(getCustomDescription(frameType));
@@ -499,64 +592,12 @@ export default function LanguageModelTitleBarButton({
           {description} The output will appear in side-chat, so your file isn't
           directly modified.
         </Paragraph>
-        {renderCostEstimation()}
-        <Paragraph style={{ textAlign: "center" }} ref={submitRef}>
-          <Space size="middle">
-            <Popover
-              title={
-                <div style={{ maxWidth: "50vw" }}>
-                  <Button
-                    onClick={() => {
-                      setShowPreview(false);
-                    }}
-                    type="text"
-                    style={{ float: "right", color: COLORS.GRAY_M }}
-                  >
-                    <Icon name="times" />
-                  </Button>
-                  Exactly this will be sent to the language model.
-                </div>
-              }
-              open={showPreview && visible && showDialog}
-              content={() => (
-                <Space direction="vertical" style={{ maxWidth: "50vw" }}>
-                  <RawPrompt
-                    input={message}
-                    style={{
-                      maxHeight: "30vh",
-                      overflow: "auto",
-                      fontSize: "12px",
-                      fontFamily: "monospace",
-                      color: COLORS.GRAY_D,
-                    }}
-                  />
-                </Space>
-              )}
-            >
-              <BSButton
-                disabled={message.length === 0 || querying || !custom.trim()}
-                bsSize="large"
-                onClick={() => setShowPreview(!showPreview)}
-                active={showPreview}
-              >
-                Preview
-              </BSButton>
-            </Popover>
-            <Button
-              disabled={querying || (!tag && !custom.trim()) || !message}
-              type="primary"
-              size="large"
-              onClick={doIt}
-            >
-              <Icon
-                name={querying ? "spinner" : "paper-plane"}
-                spin={querying}
-              />{" "}
-              {btnTxt} (shift+enter)
-            </Button>
-          </Space>
-        </Paragraph>
-        {error ? <Alert type="error" message={error} /> : undefined}
+        {renderSubmit()}
+        {error ? (
+          <Alert type="error" message={error} />
+        ) : (
+          renderCostEstimation()
+        )}
       </Space>
     );
   }
@@ -566,6 +607,14 @@ export default function LanguageModelTitleBarButton({
       title={renderTitle()}
       open={visible && showDialog}
       content={renderContent}
+      trigger={["click"]}
+      onOpenChange={(visible) => {
+        if (!visible) {
+          // otherwise, clicking outside the dialog to close it, does not close it
+          // this is particularly bad if the dialog is larger than the viewport
+          setShowDialog(visible);
+        }
+      }}
     >
       <Button
         style={buttonStyle}

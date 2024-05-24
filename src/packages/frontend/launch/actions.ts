@@ -20,11 +20,11 @@ specific "share" on the share server.   This is for implementing
 the "Open in CoCalc" link on the share server, with minimal friction.
 */
 
-import { redux, Actions, Store } from "../app-framework";
-import * as LS from "../misc/local-storage-typed";
-import { QueryParams } from "../misc/query-params";
-import { ShareLauncher } from "./share";
+import { Actions, Store, redux } from "@cocalc/frontend/app-framework";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { CSILauncher } from "./custom-image";
+import { ShareLauncher } from "./share";
 
 export const NAME = "launch-actions";
 const LS_KEY = NAME;
@@ -39,7 +39,7 @@ export function is_csi_launchvalue(launch: string) {
 }
 
 export function launch_action_description(
-  type: NonNullable<LaunchTypes>
+  type: NonNullable<LaunchTypes>,
 ): string | undefined {
   switch (type) {
     case "csi":
@@ -125,7 +125,7 @@ export async function launch() {
     }
   } catch (err) {
     console.warn(
-      `WARNING: launch action "${launch}" of type "${type}" failed -- ${err}`
+      `WARNING: launch action "${launch}" of type "${type}" failed -- ${err}`,
     );
   }
 }
