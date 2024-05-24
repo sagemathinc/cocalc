@@ -147,7 +147,7 @@ interface Props {
   is_only?: boolean; // is the only frame
   is_public?: boolean; // public view of a file
   is_paused?: boolean;
-  type: string;
+  type: string; // type of editor
   spec: EditorDescription;
   editor_spec: EditorSpec;
   status: string;
@@ -520,6 +520,8 @@ export function FrameTitleBar(props: Props) {
     }
     return (
       <LanguageModelTitleBarButton
+        path={props.path}
+        type={props.type}
         showDialog={showAI}
         setShowDialog={setShowAI}
         project_id={props.project_id}

@@ -30,6 +30,7 @@ import LLMSelector, {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
@@ -360,7 +361,9 @@ export function LLMCellTool({
     chunks.push(prompt);
 
     if (!preview) chunks.push(`<details${preview ? " open" : ""}>`);
-    chunks.push(`\`\`\`${language}\n${cell.get("input")}\n\`\`\``);
+    const input = cell.get("input");
+    const delimI = backtickSequence(input);
+    chunks.push(`${delimI}${language}\n${input}\n${delimI}`);
     if (includeOutput) {
       chunks.push("Output:");
       const fullOutput = cellOutputToText(cell);
@@ -368,8 +371,8 @@ export function LLMCellTool({
       // The output could be huge – we truncate to half of what we can send
       const maxTokens = getMaxTokens(model) / 2;
       const output = truncateMessage(fullOutput, maxTokens);
-
-      chunks.push(`\`\`\`text\n${output}\n\`\`\``);
+      const delimO = backtickSequence(output);
+      chunks.push(`${delimO}text\n${output}\n${delimO}`);
     }
     if (!preview) chunks.push(`</details>`);
 

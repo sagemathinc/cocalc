@@ -9,33 +9,54 @@ for several text and code related function.  This calls the language model actio
 to do the work.
 */
 
-import { Alert, Button, Input, Popover, Radio, Space, Tooltip } from "antd";
+import type { MenuProps } from "antd";
+import {
+  Alert,
+  Button,
+  Dropdown,
+  Input,
+  Popover,
+  Radio,
+  Space,
+  Tooltip,
+} from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDebouncedCallback } from "use-debounce";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
+import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
+  redux,
   useAsyncEffect,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
+  LLMNameLink,
   Paragraph,
+  RawPrompt,
+  Text,
   Title,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import track from "@cocalc/frontend/user-tracking";
 import { LanguageModel, getMaxTokens } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
+import { AI_ASSIST_TAG } from "./consts";
 import Context from "./context";
 import { Options, createChatMessage } from "./create-chat";
 import LLMSelector, { modelToName } from "./llm-selector";
 import TitleBarButtonTour from "./title-bar-button-tour";
 import type { Scope } from "./types";
+
+const TAG_TMPL = `${AI_ASSIST_TAG}-template`;
 
 interface Preset {
   command: string;
@@ -62,7 +83,7 @@ const PRESETS: Readonly<Readonly<Preset>[]> = [
     icon: "pen",
     label: "Autocomplete",
     description:
-      "Finish writing this. Language models can automatically write code, finish a poem, and much more.  The output is in chat so your file isn't directly modified.",
+      "Finish writing this. Language models can automatically write code, finish a poem, and much more.",
   },
   {
     command: "Explain in detail how this code works",
@@ -71,7 +92,7 @@ const PRESETS: Readonly<Readonly<Preset>[]> = [
     icon: "bullhorn",
     label: "Explain",
     description:
-      "Explains this in detail. For example, you can select some code and will try to explain line by line how it works.",
+      "For example, you can select some code and will try to explain line by line how it works.",
   },
   {
     command: "Review for quality and correctness and suggest improvements",
@@ -121,6 +142,8 @@ function getCustomDescription(frameType) {
 
 interface Props {
   id: string;
+  path: string;
+  type: string; // type of editor spec (the key)
   actions: Actions;
   buttonSize;
   buttonStyle: CSS;
@@ -135,6 +158,8 @@ interface Props {
 
 export default function LanguageModelTitleBarButton({
   id,
+  path,
+  type,
   actions,
   buttonSize,
   buttonStyle,
@@ -147,13 +172,13 @@ export default function LanguageModelTitleBarButton({
 }: Props) {
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [error, setError] = useState<string>("");
-  const [custom, setCustom] = useState<string>("");
+  const [command, setCommandVal] = useState<string>("");
   const frameType = actions._get_frame_type(id);
   const [querying, setQuerying] = useState<boolean>(false);
   const [tag, setTag] = useState<string>("");
   const showOptions = frameType != "terminal";
-  const [input, setInput] = useState<string>("");
-  const [truncated, setTruncated] = useState<number>(0);
+  const [context, setContext] = useState<string>("");
+  const [truncated, setTruncated] = useState<number | null>(null);
   const [truncatedReason, setTruncatedReason] = useState<string>("");
   const [scope, setScope] = useState<Scope>(() =>
     showDialog ? getScope(id, actions) : "all",
@@ -162,29 +187,56 @@ export default function LanguageModelTitleBarButton({
   const [description, setDescription] = useState<string>(
     showOptions ? "" : getCustomDescription(frameType),
   );
+  const [message, setMessage] = useState<string>("");
+  const [showPreview, setShowPreview] = useState<boolean>(false);
 
   const describeRef = useRef<any>(null);
-  const buttonsRef = useRef<any>(null);
+  const examplesRef = useRef<HTMLElement>(null);
   const scopeRef = useRef<any>(null);
   const contextRef = useRef<any>(null);
   const submitRef = useRef<any>(null);
+  const inputRef = useRef<HTMLElement>(null);
 
   const [model, setModel] = useLanguageModelSetting(project_id);
 
   function setPreset(preset: Preset) {
     setTag(preset.tag);
     setDescription(preset.description);
-    setCustom(preset.command);
+    setCommand(preset.command);
+  }
+
+  // we keep the command in local storage, such that it does not vanish if the bar changes, we switch frame, etc.
+  // This is specific to the project, file and frame editor type
+  const lsKey = `AI:${project_id}:${path}:${type}`;
+
+  function restoreCommand() {
+    setCommand(LS.get(lsKey) ?? "");
+  }
+
+  function setCommand(command: string) {
+    setCommandVal(command);
+    if (command) {
+      LS.set(lsKey, command);
+    } else {
+      // empty string
+      LS.del(lsKey);
+    }
   }
 
   useEffect(() => {
     if (showDialog) {
-      if (showOptions && !description) {
-        setPreset(PRESETS[0]);
-      }
       setScope(getScope(id, actions));
+      restoreCommand();
+      inputRef.current?.focus();
     }
   }, [showDialog]);
+
+  useEffect(() => {
+    if (showDialog && scope && actions != null) {
+      const c = actions.languageModelGetContext(id, scope);
+      setContext(c);
+    }
+  }, [showDialog, actions, scope]);
 
   const scopeOptions = useMemo(() => {
     const options: { label: string; value: Scope }[] = [];
@@ -200,47 +252,77 @@ export default function LanguageModelTitleBarButton({
     return options;
   }, [actions]);
 
-  async function doUpdateInput() {
-    if (!(visible && showDialog)) {
+  const doUpdateMessage = useDebouncedCallback(
+    async () => {
       // don't waste time on update if it is not visible.
-      return;
-    }
-    const {
-      input: inputNext,
-      inputOrig,
-      tokens,
-    } = await updateInput(actions, id, scope, model, getQueryLLMOptions());
-    setTokens(tokens);
-    setInput(inputNext);
-    setTruncated(
-      Math.round(
-        100 *
-          (1 -
-            (inputOrig.length - inputNext.length) /
-              Math.max(1, inputOrig.length)),
-      ),
-    );
-    setTruncatedReason(
-      `Input truncated from ${inputOrig.length} to ${
-        inputNext.length
-      } characters.${
-        getMaxTokens(model) < 5000 // cutoff between GPT 3.5 and GPT 4
-          ? "  Try using a different model with a bigger context size."
-          : ""
-      }`,
-    );
-  }
+      if (!(visible && showDialog)) {
+        return;
+      }
+      const { message, tokens, inputOriginalLen, inputTruncatedLen } =
+        await updateMessage({
+          actions,
+          id,
+          context,
+          model,
+          options: getQueryLLMOptions(),
+        });
 
-  useAsyncEffect(async () => {
-    await doUpdateInput();
-  }, [id, scope, model, visible, showDialog, tag, custom]);
+      setMessage(message);
+      setTokens(tokens);
+
+      if (tokens == 0 && message == "") {
+        setTruncated(null);
+        setTruncatedReason("");
+        return;
+      }
+
+      setTruncated(
+        Math.round(
+          100 *
+            (1 -
+              (inputOriginalLen - inputTruncatedLen) /
+                Math.max(1, inputOriginalLen)),
+        ),
+      );
+      setTruncatedReason(
+        `Input truncated from ${inputOriginalLen} to ${inputTruncatedLen} characters.${
+          getMaxTokens(model) < 5000 // cutoff between GPT 3.5 and GPT 4
+            ? "  Try using a different model with a bigger context size."
+            : ""
+        }`,
+      );
+    },
+    1000,
+    { leading: false, trailing: true },
+  );
+
+  useAsyncEffect(doUpdateMessage, [
+    id,
+    scope,
+    model,
+    visible,
+    showDialog,
+    tag,
+    command,
+  ]);
+
+  // END OF HOOKS
+
+  if (
+    !redux
+      .getStore("projects")
+      .hasLanguageModelEnabled(project_id, AI_ASSIST_TAG)
+  ) {
+    return null;
+  }
 
   const queryLLM = async (options: Options) => {
     setError("");
     try {
       setQuerying(true);
-      await actions.languageModel(id, options, input);
-      setCustom("");
+      // this runs context through the truncation + message creation, and then sends it to chat
+      await actions.languageModel(id, options, context);
+      setCommand("");
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -249,6 +331,7 @@ export default function LanguageModelTitleBarButton({
   };
 
   const doIt = async () => {
+    setShowPreview(false);
     const options = getQueryLLMOptions();
     if (options == null) return;
     await queryLLM(options);
@@ -258,9 +341,9 @@ export default function LanguageModelTitleBarButton({
   };
 
   function getQueryLLMOptions(): Options | null {
-    if (custom.trim()) {
+    if (command.trim()) {
       return {
-        command: custom.trim(),
+        command: command.trim(),
         codegen: false,
         allowEmpty: true,
         model,
@@ -278,7 +361,7 @@ export default function LanguageModelTitleBarButton({
 
   function renderTitle() {
     return (
-      <div style={{ fontSize: "18px" }}>
+      <div>
         <Button
           onClick={() => {
             setShowDialog(false);
@@ -293,15 +376,14 @@ export default function LanguageModelTitleBarButton({
         <div style={{ float: "right" }}>
           <TitleBarButtonTour
             describeRef={describeRef}
-            buttonsRef={buttonsRef}
+            buttonsRef={examplesRef}
             scopeRef={scopeRef}
             contextRef={contextRef}
             submitRef={submitRef}
           />
         </div>
         <Title level={4}>
-          <AIAvatar size={22} /> What would you like to do using{" "}
-          {modelToName(model)}?
+          <AIAvatar size={22} /> Assistant
         </Title>
         Select model:{" "}
         <LLMSelector
@@ -315,29 +397,40 @@ export default function LanguageModelTitleBarButton({
 
   function renderOptions() {
     if (!showOptions) return;
+
+    const items: MenuProps["items"] = PRESETS.map((preset, idx) => {
+      const { label, icon, description } = preset;
+
+      return {
+        key: `${idx}`,
+        icon: <Icon name={icon} />,
+        label: (
+          <>
+            <Text strong>{label}:</Text>{" "}
+            <Text type="secondary">{description}</Text>
+          </>
+        ),
+        type: preset.tag == tag ? "primary" : undefined,
+        onClick: () => {
+          setPreset(preset);
+          track(TAG_TMPL, { project_id, template: label });
+        },
+      };
+    });
+
     return (
       <>
-        <div
-          ref={buttonsRef}
-          style={{ overflowX: "auto", textAlign: "center" }}
-        >
-          or{" "}
-          <Button.Group style={{ marginLeft: "5px" }}>
-            {PRESETS.map((preset) => (
-              <Button
-                type={preset.tag == tag ? "primary" : undefined}
-                key={preset.tag}
-                onClick={() => {
-                  setPreset(preset);
-                }}
-                disabled={querying}
-              >
-                <Icon name={preset.icon} />
-                {preset.label}
-              </Button>
-            ))}
-          </Button.Group>
-        </div>
+        <Paragraph ref={examplesRef}>
+          <Dropdown menu={{ items }} trigger={["click"]}>
+            <Button style={{ width: "100%" }}>
+              <Space>
+                <Icon name="magic" />
+                Pick an example
+                <Icon name="caret-down" />
+              </Space>
+            </Button>
+          </Dropdown>
+        </Paragraph>
       </>
     );
   }
@@ -346,48 +439,48 @@ export default function LanguageModelTitleBarButton({
     if (!showOptions) return;
 
     return (
-      <div
+      <Paragraph
         style={{
-          marginTop: "5px",
           color: COLORS.GRAY_D,
-          maxHeight: "40vh",
+          maxHeight: "max(20rem, 30vh)",
           display: "flex",
           flexDirection: "column",
         }}
       >
         <div style={{ marginBottom: "5px" }} ref={scopeRef}>
-          {truncated < 100 ? (
-            <Tooltip title={truncatedReason}>
+          {truncated != null ? (
+            truncated < 100 ? (
+              <Tooltip title={truncatedReason}>
+                <div style={{ float: "right" }}>
+                  Truncated ({truncated}% remains)
+                </div>
+              </Tooltip>
+            ) : (
               <div style={{ float: "right" }}>
-                Truncated ({truncated}% remains)
+                NOT Truncated (100% included)
               </div>
-            </Tooltip>
-          ) : (
-            <div style={{ float: "right" }}>NOT Truncated (100% included)</div>
-          )}
+            )
+          ) : undefined}
           {modelToName(model)} will see:
           <Radio.Group
             size="small"
             style={{ margin: "0 10px" }}
             value={scope}
             onChange={(e) => {
-              const scope = e.target.value;
-              setScope(scope);
+              setScope(e.target.value);
             }}
             options={scopeOptions}
             optionType="button"
             buttonStyle="solid"
           />
-          <Button size="small" type="text" onClick={doUpdateInput}>
+          <Button size="small" type="text" onClick={doUpdateMessage}>
             <Icon name="refresh" /> Update
           </Button>
         </div>
         <div ref={contextRef} style={{ overflowY: "auto" }}>
-          {custom != "" ? (
-            <Context value={input} info={actions.languageModelGetLanguage()} />
-          ) : undefined}
+          <Context value={context} info={actions.languageModelGetLanguage()} />
         </div>
-      </div>
+      </Paragraph>
     );
   }
 
@@ -400,18 +493,90 @@ export default function LanguageModelTitleBarButton({
     );
   }
 
+  function renderSubmit() {
+    const btnTxt = `Ask ${modelToName(model)}`;
+    return (
+      <Paragraph style={{ textAlign: "center" }} ref={submitRef}>
+        <Space size="middle">
+          <Popover
+            trigger={["click"]}
+            title={
+              <div style={{ maxWidth: "50vw" }}>
+                <Button
+                  onClick={() => {
+                    setShowPreview(false);
+                  }}
+                  type="text"
+                  style={{ float: "right", color: COLORS.GRAY_M }}
+                >
+                  <Icon name="times" />
+                </Button>
+                Exactly this will be sent to the language model.
+              </div>
+            }
+            open={showPreview && visible && showDialog}
+            onOpenChange={(visible) => {
+              if (!visible) {
+                setShowPreview(visible);
+              }
+            }}
+            content={() => (
+              <Space direction="vertical" style={{ maxWidth: "50vw" }}>
+                <RawPrompt
+                  input={message}
+                  style={{
+                    maxHeight: "30vh",
+                    overflow: "auto",
+                    fontSize: "12px",
+                    fontFamily: "monospace",
+                    color: COLORS.GRAY,
+                  }}
+                />
+              </Space>
+            )}
+          >
+            <BSButton
+              disabled={message.length === 0 || querying || !command.trim()}
+              bsSize="large"
+              onClick={() => setShowPreview(!showPreview)}
+              active={showPreview}
+            >
+              Preview
+            </BSButton>
+          </Popover>
+          <Button
+            disabled={querying || (!tag && !command.trim()) || !message}
+            type="primary"
+            size="large"
+            onClick={doIt}
+          >
+            <Icon name={querying ? "spinner" : "paper-plane"} spin={querying} />{" "}
+            {btnTxt} (shift+enter)
+          </Button>
+        </Space>
+      </Paragraph>
+    );
+  }
+
   function renderContent() {
+    const empty = command.trim() == "";
     return (
       <Space direction="vertical" style={{ width: "800px", maxWidth: "90vw" }}>
+        <Paragraph type={empty ? "danger" : undefined}>
+          Describe, what the language model <LLMNameLink model={model} /> should
+          do. Be speicifc!
+        </Paragraph>
         <Paragraph ref={describeRef}>
           <Input.TextArea
+            ref={inputRef}
             allowClear
             autoFocus
             style={{ flex: 1 }}
-            placeholder={"What do you want to do..."}
-            value={custom}
+            placeholder={"What should the language model do..."}
+            value={command}
+            status={empty ? "error" : undefined}
             onChange={(e) => {
-              setCustom(e.target.value);
+              setCommand(e.target.value);
               setTag("");
               if (e.target.value) {
                 setDescription(getCustomDescription(frameType));
@@ -429,20 +594,16 @@ export default function LanguageModelTitleBarButton({
         </Paragraph>
         {renderOptions()}
         {renderShowOptions()}
-        <Paragraph>{description}</Paragraph>
-        {renderCostEstimation()}
-        <Paragraph style={{ textAlign: "center" }} ref={submitRef}>
-          <Button
-            disabled={querying || (!tag && !custom.trim())}
-            type="primary"
-            size="large"
-            onClick={doIt}
-          >
-            <Icon name={querying ? "spinner" : "paper-plane"} spin={querying} />{" "}
-            Ask {modelToName(model)} (shift+enter)
-          </Button>
+        <Paragraph type="secondary">
+          {description} The output will appear in side-chat, so your file isn't
+          directly modified.
         </Paragraph>
-        {error ? <Alert type="error" message={error} /> : undefined}
+        {renderSubmit()}
+        {error ? (
+          <Alert type="error" message={error} />
+        ) : (
+          renderCostEstimation()
+        )}
       </Space>
     );
   }
@@ -452,6 +613,15 @@ export default function LanguageModelTitleBarButton({
       title={renderTitle()}
       open={visible && showDialog}
       content={renderContent}
+      trigger={["click"]}
+      onOpenChange={(visible) => {
+        if (!visible) {
+          // otherwise, clicking outside the dialog to close it, does not close it
+          // this is particularly bad if the dialog is larger than the viewport
+          setShowDialog(visible);
+          setShowPreview(visible);
+        }
+      }}
     >
       <Button
         style={buttonStyle}
@@ -481,29 +651,44 @@ export default function LanguageModelTitleBarButton({
   );
 }
 
-async function updateInput(
-  actions: Actions,
-  id: string,
-  scope: Scope,
-  model: LanguageModel,
-  options: Options | null,
-): Promise<{ input: string; inputOrig: string; tokens: number }> {
-  if (options == null || scope === "none") {
-    return { input: "", inputOrig: "", tokens: 0 };
+async function updateMessage({
+  actions,
+  id,
+  context,
+  model,
+  options,
+}: {
+  actions: Actions;
+  id: string;
+  context: string;
+  model: LanguageModel;
+  options: Options | null;
+}): Promise<{
+  message: string;
+  tokens: number;
+  inputOriginalLen: number;
+  inputTruncatedLen: number;
+}> {
+  if (options == null) {
+    return {
+      message: "",
+      tokens: 0,
+      inputOriginalLen: 0,
+      inputTruncatedLen: 0,
+    };
   }
-  let input = actions.languageModelGetContext(id, scope);
-  const inputOrig = input;
 
   // construct the message (message.input is the maybe truncated input)
-  const message = await createChatMessage(actions, id, options, input);
+  const { message, inputOriginalLen, inputTruncatedLen } =
+    await createChatMessage(actions, id, options, context);
 
   // compute the number of tokens (this MUST be a lazy import):
   const { getMaxTokens, numTokensUpperBound } = await import(
     "@cocalc/frontend/misc/llm"
   );
 
-  const tokens = numTokensUpperBound(message.message, getMaxTokens(model));
-  return { input: message.input, inputOrig, tokens };
+  const tokens = numTokensUpperBound(message, getMaxTokens(model));
+  return { message, tokens, inputOriginalLen, inputTruncatedLen };
 }
 
 function getScope(id, actions: Actions): Scope {

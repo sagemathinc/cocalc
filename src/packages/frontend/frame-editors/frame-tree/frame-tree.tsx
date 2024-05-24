@@ -235,7 +235,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     function render_titlebar(
       desc: NodeDesc,
       spec: EditorDescription,
-      editor_actions: Actions
+      editor_actions: Actions,
     ): Rendered {
       const id = desc.get("id");
       return (
@@ -269,7 +269,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       desc: NodeDesc,
       component: any,
       spec: EditorDescription,
-      editor_actions: Actions
+      editor_actions: Actions,
     ) {
       const type = desc.get("type");
       const project_id_leaf = desc.get("project_id", project_id);
@@ -389,8 +389,8 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         <FrameContext.Provider
           value={{
             id: desc.get("id"),
-            project_id: project_id,
-            path: path,
+            project_id,
+            path,
             actions: editor_actions,
             desc,
             font_size: desc.get("font_size") ?? font_size,
@@ -534,5 +534,5 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       </div>
     );
   },
-  shouldMemoize
+  shouldMemoize,
 );

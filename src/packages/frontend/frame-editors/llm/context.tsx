@@ -1,9 +1,13 @@
-import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { CSS } from "@cocalc/frontend/app-framework";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { trunc_middle } from "@cocalc/util/misc";
 
-const contextStyle = {
+const FONT_SIZE = 10;
+
+const CONTEXT_STYLE: CSS = {
+  fontSize: `${FONT_SIZE}pt`,
   overflowY: "auto",
   margin: "5px",
   padding: "5px",
@@ -18,7 +22,7 @@ const MISSING =
 export default function Context({ value, info }) {
   if (!value?.trim()) {
     return (
-      <b style={{ fontSize: "12pt" }}>
+      <b style={{ fontSize: FONT_SIZE }}>
         No context from your file will be included.
       </b>
     );
@@ -28,7 +32,7 @@ export default function Context({ value, info }) {
       <StaticMarkdown
         value={trunc_middle(value, MAX_SIZE, MISSING)}
         style={{
-          ...contextStyle,
+          ...CONTEXT_STYLE,
           border: "1px solid #ddd",
           borderRadius: "5px",
         }}
@@ -37,7 +41,8 @@ export default function Context({ value, info }) {
   } else {
     return (
       <CodeMirrorStatic
-        style={contextStyle}
+        style={CONTEXT_STYLE}
+        font_size={FONT_SIZE}
         options={{
           mode: infoToMode(info),
         }}

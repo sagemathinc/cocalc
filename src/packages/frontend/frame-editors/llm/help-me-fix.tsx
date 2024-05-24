@@ -14,12 +14,13 @@ import { AIAvatar, RawPrompt } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
+import { CUTOFF } from "./consts";
 import LLMSelector, { modelToMention, modelToName } from "./llm-selector";
 import shortenError from "./shorten-error";
-import { CUTOFF } from "./consts";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -252,7 +253,8 @@ function createMessage({
   }
 
   message.push(`I received the following error:`);
-  message.push(`\`\`\`${language}\n${error}\n\`\`\``);
+  const delimE = backtickSequence(error);
+  message.push(`${delimE}${language}\n${error}\n${delimE}`);
 
   // We put the input last, since it could be huge and get truncated.
   // It's much more important to show the error, obviously.
@@ -279,7 +281,8 @@ function createMessage({
         } code ${describe} as follows, but is too long to fully include here:`,
       );
     }
-    message.push(`\`\`\`${language}\n${input}\n\`\`\``);
+    const delimI = backtickSequence(input);
+    message.push(`${delimI}${language}\n${input}\n${delimI}`);
   }
 
   if (full) message.push("</details>");

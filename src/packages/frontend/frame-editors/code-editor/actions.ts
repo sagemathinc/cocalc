@@ -21,11 +21,11 @@ const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
 import type { TourProps } from "antd";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
 import { List, Map, fromJS, Set as iSet } from "immutable";
 import { debounce } from "lodash";
+
 import {
   Actions as BaseActions,
   Rendered,
@@ -34,6 +34,7 @@ import {
   createTypedMap,
 } from "@cocalc/frontend/app-framework";
 import type { PageActions } from "@cocalc/frontend/app/actions";
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
 import { open_new_tab } from "@cocalc/frontend/misc";
@@ -45,12 +46,12 @@ import {
 } from "@cocalc/frontend/misc/local-storage";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
 import { SyncString } from "@cocalc/sync/editor/string";
 import { once } from "@cocalc/util/async-utils";
 import {
+  Config as FormatterConfig,
   Exts as FormatterExts,
   Syntax as FormatterSyntax,
   Tool as FormatterTool,
@@ -64,8 +65,7 @@ import {
   len,
   uuid,
 } from "@cocalc/util/misc";
-import languageModelCreateChat, { Options } from "../llm/create-chat";
-import type { Scope as LanguageModelScope } from "../llm/types";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
@@ -86,6 +86,8 @@ import {
   syncstring2,
 } from "../generic/client";
 import "../generic/codemirror-plugins";
+import languageModelCreateChat, { Options } from "../llm/create-chat";
+import type { Scope as LanguageModelScope } from "../llm/types";
 import { SettingsObject } from "../settings/types";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
@@ -96,7 +98,6 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 
 interface gutterMarkerParams {
   line: number;
@@ -279,7 +280,7 @@ export class Actions<
 
   protected _init_syncstring(): void {
     if (this.doctype == "none") {
-      this._syncstring = <SyncString>syncstring({
+      this._syncstring = <typeof SyncString>syncstring({
         project_id: this.project_id,
         path: this.path,
         cursors: !this.disable_cursors,
@@ -2937,6 +2938,8 @@ export class Actions<
     scope: LanguageModelScope = "all",
   ): string {
     switch (scope) {
+      case "none":
+        return "";
       case "selection":
         return this._get_cm(frameId)?.getSelection() ?? "";
       default:

@@ -57,6 +57,7 @@ import { Actions as RmdActions } from "@cocalc/frontend/frame-editors/rmd-editor
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
@@ -202,12 +203,14 @@ function AIGenerateDocument({
   }, [show, preview]);
 
   function fullTemplate({ extra, template, paperSizeStr }): string {
+    if (ext === "ipynb") {
+      const delim = backtickSequence(template);
+      template = `${delim}\n${template}\n${delim}`;
+    }
     const example = [
       `Example:`,
       `<OUTPUT>\nfilename: [filename.${ext}]`,
-      ext === "ipynb"
-        ? `${template}`
-        : `\`\`\`\n${template}\`\`\`` + `\n</OUTPUT>`,
+      `${template}\n</OUTPUT>`,
       `Description of the document:`,
       `${prompt}`,
     ];
@@ -546,6 +549,7 @@ function AIGenerateDocument({
         },
       };
     });
+
     return (
       <Paragraph>
         <Dropdown menu={{ items }} trigger={["click"]}>
