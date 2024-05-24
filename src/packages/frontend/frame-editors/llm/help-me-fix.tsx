@@ -4,21 +4,22 @@ If chatgpt is disabled or not available it renders as null.
 */
 
 import { Alert, Button } from "antd";
+import type { BaseButtonProps } from "antd/lib/button/button";
 import { CSSProperties, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { AIAvatar, RawPrompt } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { RawPrompt } from "@cocalc/frontend/jupyter/llm/raw-prompt";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 import LLMSelector, { modelToMention, modelToName } from "./llm-selector";
 import shortenError from "./shorten-error";
+import { CUTOFF } from "./consts";
 
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
@@ -28,8 +29,9 @@ interface Props {
   language?: string;
   extraFileInfo?: string;
   style?: CSSProperties;
-  size?;
-  prioritizeLastInput?: boolean; // if true, when truncating input we keep the end rather than truncating the end.
+  outerStyle?: CSSProperties;
+  size?: BaseButtonProps["size"];
+  prioritize?: "start" | "start-end" | "end"; // start: truncate right, start-end: truncate middle, end: truncate left.
 }
 
 function get(f: undefined | string | (() => string)): string {
@@ -46,8 +48,9 @@ export default function HelpMeFix({
   language,
   extraFileInfo,
   style,
+  outerStyle,
   size,
-  prioritizeLastInput,
+  prioritize,
 }: Props) {
   const { redux, project_id, path } = useFrameContext();
   const [gettingHelp, setGettingHelp] = useState<boolean>(false);
@@ -69,7 +72,7 @@ export default function HelpMeFix({
     input: get(input),
     language,
     extraFileInfo,
-    prioritizeLastInput,
+    prioritize,
     model,
     open: true,
     full: false,
@@ -85,7 +88,7 @@ export default function HelpMeFix({
   }, [model, inputText]);
 
   return (
-    <div>
+    <div style={outerStyle}>
       <PopconfirmKeyboard
         icon={<AIAvatar size={20} />}
         title={
@@ -136,7 +139,7 @@ export default function HelpMeFix({
               language,
               extraFileInfo,
               redux,
-              prioritizeLastInput,
+              prioritize,
               model,
             });
           } catch (err) {
@@ -179,11 +182,9 @@ interface GetHelpOpts {
   language?: string;
   extraFileInfo?: string;
   redux;
-  prioritizeLastInput?: boolean;
+  prioritize?: "start" | "start-end" | "end";
   model: string;
 }
-
-const CUTOFF = 3000;
 
 export async function getHelp({
   project_id,
@@ -195,7 +196,7 @@ export async function getHelp({
   language = "",
   extraFileInfo = "",
   redux,
-  prioritizeLastInput,
+  prioritize = "start",
   model,
 }: GetHelpOpts) {
   const message = createMessage({
@@ -205,7 +206,7 @@ export async function getHelp({
     model,
     task,
     extraFileInfo,
-    prioritizeLastInput,
+    prioritize,
     open: false,
   });
   // scroll to bottom *after* the message gets sent.
@@ -225,7 +226,7 @@ function createMessage({
   model,
   task,
   extraFileInfo,
-  prioritizeLastInput,
+  prioritize,
   open,
   full = true,
 }): string {
@@ -259,15 +260,23 @@ function createMessage({
     if (input.length < CUTOFF) {
       message.push(`My ${extraFileInfo ?? ""} contains:`);
     } else {
-      if (prioritizeLastInput) {
+      if (prioritize === "start-end") {
+        input = trunc_middle(input, CUTOFF, "\n\n[...]\n\n");
+      } else if ((prioritize = "end")) {
         input = trunc_left(input, CUTOFF);
       } else {
         input = trunc(input, CUTOFF);
       }
+      const describe =
+        prioritize === "start"
+          ? "starts"
+          : prioritize === "end"
+          ? "ends"
+          : "starts and ends";
       message.push(
         `My ${
           extraFileInfo ?? ""
-        } code starts as follows, but is too long to fully include here:`,
+        } code ${describe} as follows, but is too long to fully include here:`,
       );
     }
     message.push(`\`\`\`${language}\n${input}\n\`\`\``);

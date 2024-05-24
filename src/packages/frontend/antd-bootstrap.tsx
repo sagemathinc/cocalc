@@ -151,6 +151,7 @@ export const Button = (props: {
   id?: string;
   autoFocus?: boolean;
   placement?;
+  block?: boolean;
 }) => {
   // The span is needed inside below, otherwise icons and labels get squashed together
   // due to button having word-spacing 0.
@@ -183,6 +184,7 @@ export const Button = (props: {
       tabIndex={props.tabIndex}
       id={props.id}
       autoFocus={props.autoFocus}
+      block={props.block}
     >
       <>{props.children}</>
     </AntdButton>

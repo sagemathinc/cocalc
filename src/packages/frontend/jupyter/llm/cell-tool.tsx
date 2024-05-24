@@ -21,11 +21,11 @@ import { Entries } from "type-fest";
 
 import { CSS, useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
-import { A, Paragraph, Text } from "@cocalc/frontend/components";
+import { A, Paragraph, RawPrompt, Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { AskLLMDropdownButton } from "@cocalc/frontend/frame-editors/llm/ask-llm-dropdown";
+import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
   modelToMention,
   modelToName,
@@ -41,7 +41,6 @@ import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { CODE_BAR_BTN_STYLE } from "../consts";
 import { cellOutputToText } from "../output-messages/ansi";
-import { RawPrompt } from "./raw-prompt";
 
 interface Props {
   actions?: JupyterActions;
@@ -801,7 +800,7 @@ export function LLMCellTool({
         footer={(_, { CancelBtn }) => (
           <Space>
             <CancelBtn />
-            <AskLLMDropdownButton onClick={onConfirm} llmTools={llmTools} />
+            <LLMQueryDropdownButton onClick={onConfirm} llmTools={llmTools} />
           </Space>
         )}
       >

@@ -47,7 +47,7 @@ export default function parse(content: string): Parsed {
   return { cells, cellList, cmOptions, kernelspec };
 }
 
-function getMode(ipynb): string {
+export function getMode(ipynb): string {
   return (
     ipynb.metadata?.language_info?.codemirror_mode ??
     ipynb.metadata?.language_info?.name ??
@@ -56,7 +56,7 @@ function getMode(ipynb): string {
   );
 }
 
-function getCMOptions(mode: string | { name: string } | undefined | null) {
+export function getCMOptions(mode: string | { name: string } | undefined | null) {
   if (mode == null) {
     mode = { name: "python" };
   }

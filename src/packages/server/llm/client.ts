@@ -4,8 +4,8 @@ Get the client for the given LanguageModel.
 You do not have to worry too much about throwing an exception, because they're caught in ./index::evaluate
 */
 
-import { OpenAI as LCOpenAI } from "@langchain/openai";
 import { Ollama } from "@langchain/community/llms/ollama";
+import { OpenAI as LCOpenAI } from "@langchain/openai";
 import { omit } from "lodash";
 import OpenAI from "openai";
 
@@ -32,9 +32,9 @@ export async function getClient(
     throw new Error("llm: model not specified");
   }
 
-  const vendor = model2vendor(model);
+  const vendorName = model2vendor(model).name;
 
-  switch (vendor) {
+  switch (vendorName) {
     case "openai":
       const { openai_api_key: apiKey } = await getServerSettings();
       if (clientCache[apiKey]) {
@@ -77,8 +77,8 @@ export async function getClient(
       throw new Error("Use the evaluateAnthropic function instead");
 
     default:
-      unreachable(vendor);
-      throw new Error(`unknown vendor: ${vendor}`);
+      unreachable(vendorName);
+      throw new Error(`unknown vendor: ${vendorName}`);
   }
 }
 

@@ -88,7 +88,7 @@ function component(
                 language={"latex"}
                 extraFileInfo={actions.languageModelExtraFileInfo(false)}
                 tag={"latex-error-popover"}
-                prioritizeLastInput
+                prioritize="end"
               />
             </>
           )}

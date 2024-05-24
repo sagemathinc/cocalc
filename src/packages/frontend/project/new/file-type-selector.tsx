@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Row, Tag } from "antd";
+import { Col, Flex, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
 
@@ -12,10 +12,13 @@ import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { AIGenerateDocumentButton } from "../page/home-page/ai-generate-document";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { JupyterNotebookButtons } from "./jupyter-buttons";
 import { NewFileButton } from "./new-file-button";
+import { Ext } from "../page/home-page/ai-generate-examples";
 
 interface DisabledFeatures {
   linux?: boolean;
@@ -53,6 +56,8 @@ export function FileTypeSelector({
   filename,
   makeNewFilename,
 }: Props) {
+  const { project_id } = useProjectContext();
+
   if (!create_file) {
     return null;
   }
@@ -100,6 +105,7 @@ export function FileTypeSelector({
           {renderSageWS()}
           {renderLaTeX()}
           {renderRMD()}
+          {renderQuarto()}
         </Row>
       </>
     );
@@ -343,50 +349,128 @@ export function FileTypeSelector({
     );
   }
 
+  function addAiDocGenerate(btn: JSX.Element, ext: Ext) {
+    if (isFlyout) {
+      return (
+        <Col sm={sm} md={md}>
+          <Flex align="flex-start" vertical={false} gap={"5px"}>
+            <Flex flex={"1 1 auto"}>{btn}</Flex>
+            <Flex flex={"0 0 auto"}>
+              <AIGenerateDocumentButton
+                project_id={project_id}
+                mode="flyout"
+                ext={ext}
+              />
+            </Flex>
+          </Flex>
+        </Col>
+      );
+    } else {
+      return (
+        <Col sm={sm} md={md}>
+          {btn}
+          <AIGenerateDocumentButton
+            project_id={project_id}
+            mode="full"
+            ext={ext}
+          />
+        </Col>
+      );
+    }
+  }
+
+  function renderQuarto() {
+    if (mode !== "flyout") return;
+    if (!availableFeatures.qmd) return;
+
+    const btn = (
+      <Tip
+        delayShow={DELAY_SHOW_MS}
+        title="Quarto File"
+        icon={NEW_FILETYPE_ICONS.qmd}
+        tip="Quarto document with real-time preview."
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name="Quarto"
+          on_click={create_file}
+          ext="rmd"
+          size={btnSize}
+          active={btnActive("qmd")}
+        />
+      </Tip>
+    );
+
+    return addAiDocGenerate(btn, "qmd");
+  }
+
   function renderRMD() {
     if (!availableFeatures.rmd) return;
 
-    return (
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={DELAY_SHOW_MS}
-          title="RMarkdown File"
-          icon={NEW_FILETYPE_ICONS.rmd}
-          tip="RMarkdown document with real-time preview."
-        >
-          <NewFileButton
-            name="RMarkdown"
-            on_click={create_file}
-            ext="rmd"
-            size={btnSize}
-            active={btnActive("rmd")}
-          />
-        </Tip>
-      </Col>
+    const btn = (
+      <Tip
+        delayShow={DELAY_SHOW_MS}
+        title="RMarkdown File"
+        icon={NEW_FILETYPE_ICONS.rmd}
+        tip="RMarkdown document with real-time preview."
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name="RMarkdown"
+          on_click={create_file}
+          ext="rmd"
+          size={btnSize}
+          active={btnActive("rmd")}
+        />
+      </Tip>
     );
+
+    return addAiDocGenerate(btn, "rmd");
   }
 
   function renderLaTeX() {
-    if (!availableFeatures.latex) return;
+    if (!availableFeatures.latex) return null;
 
-    return (
-      <Col sm={sm} md={md}>
-        <Tip
-          delayShow={DELAY_SHOW_MS}
-          title="LaTeX Document"
-          icon={NEW_FILETYPE_ICONS.tex}
-          tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
-        >
-          <NewFileButton
-            name="LaTeX Document"
-            on_click={create_file}
-            ext="tex"
-            size={btnSize}
-            active={btnActive("tex")}
-          />
-        </Tip>
-      </Col>
+    const btn = (
+      <Tip
+        delayShow={DELAY_SHOW_MS}
+        title="LaTeX Document"
+        icon={NEW_FILETYPE_ICONS.tex}
+        tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name="LaTeX Document"
+          on_click={create_file}
+          ext="tex"
+          size={btnSize}
+          active={btnActive("tex")}
+        />
+      </Tip>
     );
+    return addAiDocGenerate(btn, "tex");
+  }
+
+  function renderMD() {
+    const btn = (
+      <Tip
+        delayShow={DELAY_SHOW_MS}
+        title="Computational Markdown Document"
+        icon={NEW_FILETYPE_ICONS.md}
+        tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
+        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+      >
+        <NewFileButton
+          name="Markdown"
+          on_click={create_file}
+          ext="md"
+          size={btnSize}
+          active={btnActive("md")}
+        />
+      </Tip>
+    );
+
+    return addAiDocGenerate(btn, "md");
   }
 
   function renderMarkdown() {
@@ -398,22 +482,7 @@ export function FileTypeSelector({
           Markdown
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
-          <Col sm={sm} md={md}>
-            <Tip
-              delayShow={DELAY_SHOW_MS}
-              title="Computational Markdown Document"
-              icon={NEW_FILETYPE_ICONS.md}
-              tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
-            >
-              <NewFileButton
-                name="Markdown"
-                on_click={create_file}
-                ext="md"
-                size={btnSize}
-                active={btnActive("md")}
-              />
-            </Tip>
-          </Col>
+          {renderMD()}
           <Col sm={sm} md={md}>
             <Tip
               icon={NEW_FILETYPE_ICONS.board}

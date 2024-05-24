@@ -7,14 +7,16 @@
 Viewer for public ipynb files.
 */
 
-import { CSSProperties, useMemo } from "react";
 import { Alert } from "antd";
-import CellList from "./cell-list";
-import { path_split } from "@cocalc/util/misc";
+import { CSSProperties, useMemo } from "react";
+
+import { useBottomScroller } from "@cocalc/frontend/app-framework/use-bottom-scroller";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 import parse from "@cocalc/jupyter/ipynb/parse";
-import { CodeMirrorStatic } from "../codemirror-static";
-import "../output-messages/mime-types/init-nbviewer";
+import { path_split } from "@cocalc/util/misc";
 import { JupyterContext } from "../jupyter-context";
+import CellList from "./cell-list";
 
 interface Props {
   content: string;
@@ -22,6 +24,8 @@ interface Props {
   path?: string;
   fontSize?: number;
   style?: CSSProperties;
+  cellListStyle?: CSSProperties;
+  scrollBottom?: boolean;
 }
 
 export default function NBViewer({
@@ -30,7 +34,11 @@ export default function NBViewer({
   path,
   fontSize,
   style,
+  cellListStyle,
+  scrollBottom,
 }: Props) {
+  const ref = useBottomScroller<HTMLDivElement>(scrollBottom, content);
+
   const x = useMemo(() => {
     try {
       return parse(content);
@@ -54,7 +62,7 @@ export default function NBViewer({
 
   return (
     <JupyterContext.Provider value={{ kernelspec }}>
-      <div style={style}>
+      <div ref={ref} style={style}>
         <div style={{ marginBottom: "15px" }}>
           <b>Kernel:</b> {kernelspec.display_name}
         </div>
@@ -66,6 +74,7 @@ export default function NBViewer({
           project_id={project_id}
           directory={path ? path_split(path).head : undefined}
           kernel={kernelspec.name}
+          style={cellListStyle}
         />
       </div>
     </JupyterContext.Provider>

@@ -7,7 +7,7 @@ import { Button, Collapse, Switch } from "antd";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { useAsyncEffect, useState } from "@cocalc/frontend/app-framework";
-import { Icon, Paragraph } from "@cocalc/frontend/components";
+import { Icon, Paragraph, RawPrompt } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import PopconfirmKeyboard from "@cocalc/frontend/components/popconfirm-keyboard";
 import LLMSelector, {
@@ -16,7 +16,6 @@ import LLMSelector, {
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { COLORS } from "@cocalc/util/theme";
-import { RawPrompt } from "../jupyter/llm/raw-prompt";
 import { ChatActions } from "./actions";
 import { ChatMessageTyped } from "./types";
 

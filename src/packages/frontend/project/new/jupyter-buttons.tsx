@@ -5,14 +5,15 @@
 
 import { Col, Flex } from "antd";
 import Immutable from "immutable";
+
 import { Available } from "@cocalc/comm/project-configuration";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Tip } from "@cocalc/frontend/components/tip";
 //import { useJupyterKernelsInfo } from "@cocalc/frontend/jupyter/use-kernels-info";
 import { useProjectContext } from "@cocalc/frontend/project//context";
-import { AIGenerateNotebookButton } from "@cocalc/frontend/project/page/home-page/ai-generate-jupyter";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { capitalize, cmp, unreachable } from "@cocalc/util/misc";
+import { AIGenerateDocumentButton } from "../page/home-page/ai-generate-document";
 import { ensure_project_running } from "../project-start-warning";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { NewFileButton } from "./new-file-button";
@@ -239,7 +240,11 @@ export function JupyterNotebookButtons({
             </Flex>
           </Col>
           <Col sm={sm} md={md}>
-            <AIGenerateNotebookButton project_id={project_id} />
+            <AIGenerateDocumentButton
+              project_id={project_id}
+              mode="flyout"
+              ext="ipynb"
+            />
           </Col>
         </>
       );
@@ -277,7 +282,11 @@ export function JupyterNotebookButtons({
           <Flex align="flex-start" vertical={false} gap={"5px"}>
             <Flex flex={"1 1 auto"}>{btn}</Flex>
             <Flex flex={"0 0 auto"}>
-              <AIGenerateNotebookButton project_id={project_id} mode="flyout" />
+              <AIGenerateDocumentButton
+                project_id={project_id}
+                mode="flyout"
+                ext="ipynb"
+              />
             </Flex>
           </Flex>
         </Col>
@@ -286,7 +295,11 @@ export function JupyterNotebookButtons({
       return (
         <Col sm={sm} md={md}>
           {btn}
-          <AIGenerateNotebookButton project_id={project_id} />
+          <AIGenerateDocumentButton
+            project_id={project_id}
+            mode="full"
+            ext="ipynb"
+          />
         </Col>
       );
     }

@@ -12,6 +12,7 @@ import type { ComputeServerEvent } from "@cocalc/util/compute/log";
 import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 
 import type { Mode as JupyterCellLLMMode } from "@cocalc/frontend/jupyter/llm/cell-tool";
+import { Ext } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 
 export type EventRecord = {
   id: string;
@@ -154,10 +155,16 @@ interface LLMEventJupyterGenerateNotebook extends LLMEventBase {
   usage: "jupyter-generate-notebook";
 }
 
+interface LLMEvenGenerateDocument extends LLMEventBase {
+  usage: "generate-document";
+  ext: Ext;
+}
+
 export type LLMEvent =
   | LLMEventJupyterCellButton
   | LLMEventJupyterCellGenerate
-  | LLMEventJupyterGenerateNotebook;
+  | LLMEventJupyterGenerateNotebook
+  | LLMEvenGenerateDocument;
 
 export type MiniTermEvent = {
   event: "miniterm" | "termInSearch";

@@ -5,22 +5,17 @@
 
 import { Card, Col, Row } from "antd";
 
-import {
-  redux,
-  useActions,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Title } from "@cocalc/frontend/components";
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { useProjectContext } from "../../context";
-import AIGenerateJupyterNotebook from "./ai-generate-jupyter";
-import { HomeRecentFiles } from "./recent-files";
 import {
-  computeServersEnabled,
-  ComputeServers,
   ComputeServerDocs,
+  ComputeServers,
+  computeServersEnabled,
 } from "@cocalc/frontend/compute";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import AccountStatus from "@cocalc/frontend/purchases/account-status";
+import { useProjectContext } from "../../context";
+import { HomeRecentFiles } from "./recent-files";
 
 const SPAN = { md: 12, sm: 24, xs: 24 } as const;
 
@@ -28,19 +23,6 @@ export default function HomePage() {
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const commercial = useTypedRedux("customize", "commercial");
-
-  function renderGPTGenerator() {
-    // if not available, the entire block should be gone
-    // making room for the toher blocks to move into its place
-    if (!redux.getStore("projects").hasLanguageModelEnabled(project_id))
-      return null;
-
-    return (
-      <Col {...SPAN}>
-        <AIGenerateJupyterNotebook project_id={project_id} />
-      </Col>
-    );
-  }
 
   return (
     <div style={{ margin: "15px", maxWidth: "1300px" }}>
@@ -69,7 +51,6 @@ export default function HomePage() {
             style={{ height: "200px" }}
           />
         </Col>
-        {renderGPTGenerator()}
         {computeServersEnabled() && (
           <Col {...SPAN}>
             <Card

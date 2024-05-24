@@ -1,7 +1,19 @@
-export type Example = [display: string, prompt: string, tags: string[]];
+export type Example = readonly [
+  display: string,
+  prompt: string,
+  tags: readonly string[],
+];
 type Language = "python" | "r" | "sagemath" | "octave" | "julia";
 
-export const EXAMPLES: { [key in Language]: Example[] } = {
+export const EXAMPLES_COMMON: readonly Example[] = [
+  [
+    "Help me Studying ...",
+    "I am a student. I want to learn more about a topic. Explain it to me using code, formulas and plots!\n\nTopic: DESCRIBE_TOPIC_HERE",
+    ["student", "learning"],
+  ],
+] as const;
+
+export const JUPYTER: { [key in Language]: readonly Example[] } = {
   python: [
     [
       "Linear Regression Analysis",
@@ -15,7 +27,7 @@ export const EXAMPLES: { [key in Language]: Example[] } = {
     ],
     [
       "Plotting a Sine Wave",
-      "Generate a plot of a sine wave with varying frequencies and amplitudes.",
+      "Generate a plot of x*a*sin(b*x) with varying frequencies (b) and amplitudes (a). Use the IPywidgets.interact wrapper to make the plots interactive.",
       ["visualization", "mathematics", "trigonometry"],
     ],
     [
@@ -25,7 +37,7 @@ export const EXAMPLES: { [key in Language]: Example[] } = {
     ],
     [
       "Machine Learning with Scikit-Learn",
-      "Use `sklearn.datasets.load_wine` to load the wine dataset. Train a linear regression model on this dataset. Evaluate the model's performance using R-squared. Make predictions on new data.",
+      "Load the wine dataset from sklearn.datasets. Preprocess the data if necessary (e.g., standardize features). Fit a linear regression model to the wine data.  Evaluate the model's performance using R-squared and mean squared error (MSE). Then, visualize the relationship between actual and predicted values using a scatter plot.",
       ["machine learning", "scikit-learn", "regression"],
     ],
     [
@@ -35,7 +47,7 @@ export const EXAMPLES: { [key in Language]: Example[] } = {
     ],
     [
       "DNA Sequence Analysis",
-      "Create a program to generate a random DNA sequence and calculate the GC content (percentage of guanine and cytosine bases).",
+      "Generate DNA sequence data of length 10000. It should contain random coding regions with realistic codon usage bias, promoter regions with over-represented transcription factor binding sites, repetitive elements like transposons and tandem repeats, and regions with different GC content to simulate genomic islands. Then, create a function that analyzes the k-mer distributions in that sequence, highlighting over-represented motifs. Then plot this!",
       ["bioinformatics", "genetics"],
     ],
   ],
@@ -162,4 +174,230 @@ export const EXAMPLES: { [key in Language]: Example[] } = {
       ["mathematics", "simulation", "statistics"],
     ],
   ],
+} as const;
+
+// supported extensions
+const EXTS = ["tex", "rmd", "ipynb", "qmd", "md"] as const;
+export type Ext = (typeof EXTS)[number];
+export const PAPERSIZE: { [ext in Ext]?: string[] } = {
+  tex: ["Letter (US)", "Legal (US)", "A4 (Europe)", "A5 (Europe)"],
 };
+
+const RMD_QMD: readonly Example[] = [
+  [
+    "Markdown Tutorial",
+    "Provide a step-by-step tutorial on how to use Markdown for creating documents.",
+    ["tutorial", "markdown"],
+  ],
+  [
+    "Data Exploration",
+    "An RMarkdown document to explore a dataset using summary statistics, distributions, and relationships between variables.",
+    ["data exploration", "eda", "visualization"],
+  ],
+  [
+    "Data Visualization",
+    "Generate a comprehensive visualization of the dataset using various ggplot2 plots.",
+    ["visualization", "ggplot2"],
+  ],
+  [
+    "Regression Analysis",
+    "A template to perform regression analysis on a dataset using R, including model selection, diagnostics, and interpretation.",
+    ["regression", "statistics", "modeling"],
+  ],
+  [
+    "Machine Learning Model",
+    "An RMarkdown to build and evaluate a machine learning model using popular R libraries like caret or tidymodels.",
+    ["machine learning", "prediction", "modeling"],
+  ],
+  [
+    "Time Series Analysis",
+    "A template to analyze time series data using R packages like forecast or tsfeatures.",
+    ["time series", "forecasting", "trend analysis"],
+  ],
+  [
+    "Publication-Ready Manuscript",
+    "An RMarkdown document formatted for submission to a scientific journal, including figures, tables, and references.",
+    ["manuscript", "publication", "scientific writing"],
+  ],
+  [
+    "Presentation Slides",
+    "A template for creating presentation slides using RMarkdown and packages like xaringan or remark.js.",
+    ["presentation", "slides", "xaringan", "remark.js"],
+  ],
+  [
+    "Tutorial or Workshop",
+    "A structured document for teaching R concepts, with explanations, code examples, and exercises.",
+    ["tutorial", "workshop", "education"],
+  ],
+  [
+    "EDA",
+    "Conduct an exploratory data analysis (EDA) on the dataset and summarize the findings.",
+    ["EDA", "exploration"],
+  ],
+  [
+    "Financial Report",
+    "Generate a financial report including tables, plots, and a summary analysis.",
+    ["financial", "report"],
+  ],
+  [
+    "Bioinformatics Report",
+    "Analyze biological data and present the findings in a detailed report.",
+    ["bioinformatics", "report"],
+  ],
+  [
+    "Survey Analysis",
+    "Analyze survey data, including descriptive statistics and visualizations.",
+    ["survey", "analysis"],
+  ],
+  [
+    "Geospatial Analysis",
+    "Perform geospatial analysis and visualize the results using maps.",
+    ["geospatial", "maps"],
+  ],
+  [
+    "Climate Data Analysis",
+    "Analyze climate data and present trends and patterns.",
+    ["climate", "data analysis"],
+  ],
+  [
+    "Sales Report",
+    "Generate a sales report with data visualizations and summary statistics.",
+    ["sales", "report"],
+  ],
+] as const;
+
+export const DOCUMENT: { [ext in Ext]: readonly Example[] } = {
+  ipynb: [["Test", "Random numbers", ["testing"]]],
+  tex: [
+    [
+      "Article",
+      "A template for writing a research article, including sections for abstract, introduction, methodology, results, discussion, and conclusion.",
+      ["research", "academic"],
+    ],
+    [
+      "Article IEEE",
+      "A template for writing a research article submitted to IEEE.",
+      ["research", "academic", "ieee"],
+    ],
+    [
+      "Article SIAM",
+      "A template for writing a research article submitted to SIAM.",
+      ["research", "academic", "siam"],
+    ],
+    [
+      "Resume",
+      "A template for creating a professional resume, with sections for personal information, education, work experience, skills, and references.",
+      ["resume"],
+    ],
+    [
+      "Letter",
+      "A template for writing a formal letter, including sections for the sender's address, date, recipient's address, salutation, body, and closing.",
+      ["official", "business"],
+    ],
+    [
+      "Presentation",
+      "A template for creating a slide presentation, with a title slide, section slides, and a slide for references or additional information.",
+      ["slides", "presentation"],
+    ],
+    [
+      "Book",
+      "A template for writing a book, including sections for the cover page, table of contents, chapters, and back matter (appendices, glossary, etc.).",
+      ["novel", "story", "literature"],
+    ],
+    [
+      "Report",
+      "A template for generating a comprehensive report, with sections for an executive summary, introduction, detailed analysis, recommendations, and appendices.",
+      ["analysis", "business", "technical"],
+    ],
+    [
+      "Koma-Script/Article",
+      "Generate a template using the Koma-Script 'scrartcl' document class. Use a modern font and small padding.",
+      ["koma-script", "article"],
+    ],
+    [
+      "Koma-Script/Book",
+      "Generate a template using the Koma-Script 'scrbook' document class. Use a modern font and small padding.",
+      ["koma-script", "book"],
+    ],
+    [
+      "Koma-Script/Letter",
+      "Generate a template using the Koma-Script 'scrletter' document class. Use a modern font and small padding.",
+      ["koma-script", "letter"],
+    ],
+    [
+      "Koma-Script/Report",
+      "Generate a template using the Koma-Script 'scrreprt' document class. Use a modern font and small padding.",
+      ["koma-script", "report"],
+    ],
+    [
+      "Scientific Poster",
+      "Template for a academic conference poster. The document must be a single page and position graphic and text objects onto it. The topic should be something fun to get started - for example 'newly discovered rhytmic beats of rotating black holes'.",
+      ["poster", "academic", "conference"],
+    ],
+    [
+      "Lab Report",
+      "Template for recording scientific experiments and findings. Use tables to record date/time, observation, notes, etc.",
+      ["science"],
+    ],
+    [
+      "Homework Assignment",
+      "Clean layout for homework submissions. Header should start with the student name, class, id number, etc..",
+      ["homework"],
+    ],
+    [
+      "Exam/Quiz",
+      "Template for creating structured exams or quizzes.",
+      ["exam", "quiz", "test"],
+    ],
+    [
+      "Newsletter",
+      "Template for designing and distributing newsletters.",
+      ["newsletter", "communication"],
+    ],
+    [
+      "Recipe",
+      "Beautifully formatted template for sharing culinary creations.",
+      ["recipe", "cooking"],
+    ],
+    [
+      "Invoice",
+      "Professional template for billing clients or customers. All required aspects of a valid invoice must be included. Generate a random company name.",
+      ["invoice"],
+    ],
+    [
+      "Calendar",
+      "Template for yearly, monthly, or weekly calendars.",
+      ["calendar", "schedule"],
+    ],
+    [
+      "Poetry/Writing",
+      "Elegant layout for showcasing creative writing.",
+      ["poetry", "writing"],
+    ],
+    [
+      "Scrapbook",
+      "Creative template for personal mementos and memories.",
+      ["scrapbook", "journal"],
+    ],
+  ],
+  rmd: RMD_QMD,
+  qmd: RMD_QMD,
+  md: [
+    [
+      "Markdown Tutorial",
+      "Provide a step-by-step tutorial on how to use Markdown for creating documents.",
+      ["tutorial", "markdown"],
+    ],
+    [
+      "Embedded Python Code",
+      "Show and explain how to plot x * sin(x) using matplotlib in a \n\n```python\n...\n```\n code block.",
+      ["tutorial", "python"],
+    ],
+    [
+      "Lab Report",
+      "Template for recording scientific experiments and findings. Use tables to record date/time, observation, notes, etc.",
+      ["science"],
+    ],
+    ["Notes", "Template for making notes, etc.", ["notes"]],
+  ],
+} as const;

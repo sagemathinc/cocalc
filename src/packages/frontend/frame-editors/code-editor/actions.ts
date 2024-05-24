@@ -469,6 +469,10 @@ export class Actions<
     this._syncdb.on("change", this.activity);
   }
 
+  public not_ready(): boolean {
+    return this._syncstring == null || this._syncstring.get_state() != "ready";
+  }
+
   // could be overloaded...
   async _init_value(): Promise<void> {}
 

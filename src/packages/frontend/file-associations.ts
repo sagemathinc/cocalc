@@ -281,7 +281,7 @@ file_associations["md"] = file_associations["markdown"] = {
     mode: codemirror_associations["md"],
     spellcheck: true,
   },
-  name: "markdown",
+  name: "Markdown",
 };
 
 file_associations["rmd"] = {
