@@ -20,7 +20,7 @@ export interface ChatOptions {
   path?: string;
   analytics_cookie?: string;
   history?: History;
-  model?: LanguageModel; // default is gpt-3.5-turbo (i.e. $DEFAULT_MODEL)
+  model?: LanguageModel; // default is defined by server setting default_llm
   tag?: string;
   // If stream is set, then everything works as normal with two exceptions:
   // - The stream function is called with bits of the output as they are produced,

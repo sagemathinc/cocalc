@@ -17,6 +17,7 @@ export function useLanguageModelSetting(
   project_id?: string,
 ): [LanguageService, (llm: LanguageService) => void] {
   const other_settings = useTypedRedux("account", "other_settings");
+  const default_llm = useTypedRedux("customize", "default_llm");
   const ollama = useTypedRedux("customize", "ollama");
   const custom_openai = useTypedRedux("customize", "custom_openai");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
@@ -42,7 +43,7 @@ export function useLanguageModelSetting(
 
   const llm: LanguageService = useMemo(() => {
     return getValidLanguageModelName({
-      model: other_settings?.get("language_model"),
+      model: other_settings?.get("language_model") ?? default_llm,
       filter: enabledLLMs,
       ollama: Object.keys(ollama?.toJS() ?? {}),
       custom_openai: Object.keys(custom_openai?.toJS() ?? {}),
@@ -57,6 +58,7 @@ export function useLanguageModelSetting(
   return [llm, setLLM];
 }
 
+// This changes the account's default LLM
 export function setDefaultLLM(llm: LanguageService) {
   const customizeStore = redux.getStore("customize");
   const selectableLLMs = customizeStore.get("selectable_llms");

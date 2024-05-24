@@ -3,6 +3,7 @@
 import LRU from "lru-cache";
 
 import { unreachable } from "@cocalc/util/misc";
+import { isEmpty } from "lodash";
 
 // "Client LLMs" are defined in the user's account settings
 // They directly query an external LLM service.
@@ -252,60 +253,93 @@ interface ValidLanguageModelNameProps {
   selectable_llms: string[]; // either empty, or an array stored in the server settings
 }
 
+const DEFAULT_FILTER: Readonly<LLMServicesAvailable> = {
+  openai: true,
+  google: true,
+  ollama: false,
+  mistralai: false,
+  anthropic: false,
+  custom_openai: false,
+} as const;
+
 // this is used in initialization functions. e.g. to get a default model depending on the overall availability
 // usually, this should just return the chatgpt3 model, but e.g. if neither google or openai is available,
 // then it might even falls back to an available ollama model. It needs to return a string, though, for the frontend, etc.
 export function getValidLanguageModelName({
   model,
-  filter = {
-    openai: true,
-    google: true,
-    ollama: false,
-    mistralai: false,
-    anthropic: false,
-    custom_openai: false,
-  },
+  filter = DEFAULT_FILTER,
   ollama,
   custom_openai,
   selectable_llms,
 }: ValidLanguageModelNameProps): LanguageModel {
-  const dftl: string =
-    filter.openai === true && selectable_llms.includes(DEFAULT_MODEL)
-      ? DEFAULT_MODEL
-      : selectable_llms
-          .filter((m) => {
-            if (filter.openai && isOpenAIModel(m)) return true;
-            if (filter.mistralai && isMistralModel(m)) return true;
-            if (filter.google && isGoogleModel(m)) return true;
-            return false;
-          })
-          .pop() ??
-        (filter.ollama && ollama.length > 0)
-      ? toOllamaModel(ollama[0])
-      : filter.custom_openai && custom_openai.length > 0
-      ? toCustomOpenAIModel(custom_openai[0])
-      : DEFAULT_MODEL;
+  if (typeof model === "string" && isValidModel(model)) {
+    try {
+      const v = model2vendor(model).name;
+      if (filter[v]) {
+        return model;
+      }
+    } catch {}
+    if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
+      return model;
+    }
+    if (
+      isCustomOpenAI(model) &&
+      custom_openai.includes(fromCustomOpenAIModel(model))
+    ) {
+      return model;
+    }
+  }
 
-  if (model == null) {
-    return dftl;
+  for (const free of [true, false]) {
+    const dflt = getDefaultLLM(
+      selectable_llms,
+      filter,
+      ollama,
+      custom_openai,
+      free,
+    );
+    if (dflt != null) {
+      return dflt;
+    }
   }
-  if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
-    return model;
+  return DEFAULT_MODEL;
+}
+
+export const DEFAULT_LLM_PRIORITY: Readonly<LLMServiceName[]> = [
+  "google",
+  "openai",
+  "anthropic",
+  "mistralai",
+  "ollama",
+  "custom_openai",
+] as const;
+
+export function getDefaultLLM(
+  selectable_llms: string[],
+  filter: LLMServicesAvailable,
+  ollama?: { [key: string]: any },
+  custom_openai?: { [key: string]: any },
+  only_free = true,
+): LanguageModel {
+  for (const v of DEFAULT_LLM_PRIORITY) {
+    if (!filter[v]) continue;
+    for (const m of USER_SELECTABLE_LLMS_BY_VENDOR[v]) {
+      if (selectable_llms.includes(m)) {
+        const isFree = LLM_COST[m].free ?? true;
+        if ((only_free && isFree) || !only_free) {
+          return m;
+        }
+      }
+    }
   }
-  if (
-    isCustomOpenAI(model) &&
-    custom_openai.includes(fromCustomOpenAIModel(model))
-  ) {
-    return model;
+  // none of the standard models, pick the first ollama or custom_openai
+  if (ollama != null && !isEmpty(ollama)) {
+    return toOllamaModel(Object.keys(ollama)[0]);
   }
-  if (
-    typeof model === "string" &&
-    isLanguageModel(model) &&
-    selectable_llms.includes(model)
-  ) {
-    return model;
+  if (custom_openai != null && !isEmpty(custom_openai)) {
+    return toCustomOpenAIModel(Object.keys(custom_openai)[0]);
   }
-  return dftl;
+  return DEFAULT_MODEL;
 }
 
 export interface OpenAIMessage {
@@ -432,8 +466,8 @@ export function service2model_core(
   return null;
 }
 
-// Note: this must be an OpenAI model – otherwise change the getValidLanguageModelName function
-export const DEFAULT_MODEL: LanguageModel = "gpt-3.5-turbo";
+// NOTE: do not use this – instead use server_settings.default_llm
+export const DEFAULT_MODEL: LanguageModel = "gemini-1.5-flash-8k";
 
 interface LLMVendor {
   name: LLMServiceName;

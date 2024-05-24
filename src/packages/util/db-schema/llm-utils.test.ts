@@ -1,4 +1,5 @@
 import {
+  DEFAULT_LLM_PRIORITY,
   isFreeModel,
   LANGUAGE_MODEL_SERVICES,
   LANGUAGE_MODELS,
@@ -69,5 +70,15 @@ describe("llm", () => {
     expect(1_000_000 * LLM_COST["claude-3-opus"].completion_tokens).toBeCloseTo(
       75,
     );
+  });
+
+  test("priority list is a shuffle of all llm vendors", () => {
+    const prio = DEFAULT_LLM_PRIORITY;
+    const vend = LANGUAGE_MODEL_SERVICES;
+    // test, that those lists have the same elements
+    expect(prio.length).toBe(vend.length);
+    for (const v of vend) {
+      expect(prio.includes(v)).toBe(true);
+    }
   });
 });
