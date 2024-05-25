@@ -11,6 +11,7 @@ import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
+import { isDnsAvailable } from "./dns";
 
 import type {
   Cloud,
@@ -51,6 +52,19 @@ export default async function createServer(opts: Options): Promise<number> {
       throw Error("configuration must be for the same cloud");
     }
   }
+
+  if (opts.configuration?.dns) {
+    // dns is NOT case sensitive, so just in case, we make sure.
+    opts.configuration.dns = opts.configuration.dns.toLowerCase();
+    if (!(await isDnsAvailable(opts.configuration.dns))) {
+      throw Error(
+        `Subdomain '${opts.configuration.dns}' is not available.  Please change 'DNS: Custom Subdomain' and select a different subdomain.`,
+      );
+    }
+  }
+  // TODO: We should probably do a lot more consistency when creating and sanity checks than just dns;
+  // see set-server-configuration.ts.
+
   if (opts.position == null) {
     opts.position = await getPositionAtTop(opts.project_id);
   }
