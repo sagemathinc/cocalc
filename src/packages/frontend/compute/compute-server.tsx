@@ -137,7 +137,12 @@ export default function ComputeServer({
           key="undelete"
           type="text"
           onClick={async () => {
-            await undeleteServer(id);
+            try {
+              await undeleteServer(id);
+            } catch (err) {
+              setError(`${err}`);
+              return;
+            }
             setShowDeleted?.(false);
           }}
         >
@@ -244,8 +249,13 @@ export default function ComputeServer({
             <Button
               key="undelete"
               onClick={async () => {
+                try {
+                  await undeleteServer(id);
+                } catch (err) {
+                  setError(`${err}`);
+                  return;
+                }
                 setShowDeleted?.(false);
-                await undeleteServer(id);
               }}
             >
               <Icon name="trash" /> Undelete
