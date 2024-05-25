@@ -273,7 +273,6 @@ export default function CreateComputeServer({ project_id, onCreate }) {
           <div>
             <div style={{ display: "flex" }}>Create Compute Server</div>
             <div style={{ textAlign: "center", color: "#666" }}>
-              <div>{loadingTemplate ? "Loading " : ""} Templates</div>
               {showTemplates && (
                 <PublicTemplates
                   disabled={loadingTemplate}
