@@ -153,7 +153,13 @@ export async function getSerialPortOutput({
   return response.contents ?? "";
 }
 
-export async function waitUntilOperationComplete({ response, zone }) {
+export async function waitUntilOperationComplete({
+  response,
+  zone,
+}: {
+  response;
+  zone?;
+}) {
   let operation = response.latestResponse;
   const credentials = await getCredentials();
   const operationsClient = new ZoneOperationsClient(credentials);
