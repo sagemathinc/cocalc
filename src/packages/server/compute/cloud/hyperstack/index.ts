@@ -4,7 +4,10 @@ import type {
   HyperstackData,
   Data,
 } from "@cocalc/util/db-schema/compute-servers";
-import type { Region } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import type {
+  Protocol,
+  Region,
+} from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { DEFAULT_DISK } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import getLogger from "@cocalc/backend/logger";
 import getPricingData from "./pricing-data";
@@ -59,18 +62,24 @@ export async function getImageName(region_name: string): Promise<string> {
   return cuda.name;
 }
 
-// by default we open up tcp for ports 22, 80 and 443 (ssh and webserver)
+// by default we open up tcp for ports 22, 80 and 443 (ssh and webserver),
+// and udp port 51820 for wireguard vpn.
 const SECURITY_RULES = [
-  { port_range_min: 22, port_range_max: 22 },
-  { port_range_min: 80, port_range_max: 80 },
-  { port_range_min: 443, port_range_max: 443 },
+  { port_range_min: 22, port_range_max: 22, protocol: "tcp" as Protocol }, // ssh
+  { port_range_min: 80, port_range_max: 80, protocol: "tcp" as Protocol }, // http
+  { port_range_min: 443, port_range_max: 443, protocol: "tcp" as Protocol }, // https
+  { port_range_min: 51820, port_range_max: 51820, protocol: "udp" as Protocol }, // wireguard
 ];
 
 export async function setData({ id, data }) {
   if (data.vm != null) {
-    data = { ...data, externalIp: data.vm.floating_ip };
+    data = {
+      ...data,
+      externalIp: data.vm.floating_ip,
+      internalIp: data.vm.fixed_ip,
+    };
   } else if (data.vm === null) {
-    data = { ...data, externalIp: "" };
+    data = { ...data, externalIp: "", internalIp: "" };
   }
   await setData0({
     cloud: "hyperstack",
