@@ -190,6 +190,14 @@ export default function Checkout() {
   }
 
   const columns = getColumns();
+  let mode;
+  if (completingPurchase) {
+    mode = "completing";
+  } else if (params == null || paymentAmount == 0) {
+    mode = "complete";
+  } else {
+    mode = "add";
+  }
 
   return (
     <>
@@ -314,18 +322,18 @@ export default function Checkout() {
                   }
                 >
                   <Icon name="credit-card" />{" "}
-                  {completingPurchase ? (
+                  {mode == "completing" && (
                     <>
                       Completing Purchase
                       <Spin style={{ marginLeft: "10px" }} />
                     </>
-                  ) : params == null || paymentAmount == 0 ? (
+                  )}
+                  {mode == "complete" &&
                     `Complete Purchase${
                       session != null ? " (finish payment first)" : ""
-                    }`
-                  ) : (
-                    `Add ${currency(paymentAmount)} credit to your account`
-                  )}
+                    }`}
+                  {mode == "add" &&
+                    `Add ${currency(paymentAmount)} credit to your account`}
                 </Button>
               </div>
               {completingPurchase ||
@@ -334,6 +342,21 @@ export default function Checkout() {
                 <div style={{ color: "#666", marginTop: "15px" }}>
                   NOTE: There is a minimum transaction amount of{" "}
                   {currency(params.minPayment)}.
+                </div>
+              )}
+              {mode == "add" && (
+                <div>
+                  <b>DO NOT ADD MONEY TO COMPLETE YOUR PURCHASE TWICE:</b>{" "}
+                  <div style={{ color: "#666" }}>
+                    If you pay us, and the money doesn't immediately show up,
+                    wait a minute and refresh your browser rather than going
+                    through the entire process of paying us again. If you pay
+                    us, we will definitely receive the money, but money transfer
+                    is not always instant. Instead of just trying to pay us
+                    again, wait a little and refresh your browser or{" "}
+                    <A href="/support/new">contact us</A>. Your shopping cart
+                    contents won't be lost.
+                  </div>
                 </div>
               )}
             </Card>
