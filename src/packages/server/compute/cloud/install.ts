@@ -316,6 +316,10 @@ export async function installConf({
   return `
 # Setup Current CoCalc Connection Configuration --
 mkdir -p /cocalc/conf
+# Lock /cocalc/conf down via permissions since it contains api keys and other secrets:
+chown user:user -R /cocalc/conf
+chmod o-rwx /cocalc/conf
+chmod ug+rwx /cocalc/conf
 echo "${api_key}" > /cocalc/conf/api_key
 echo "${api_server}" > /cocalc/conf/api_server
 echo "${project_id}" > /cocalc/conf/project_id
