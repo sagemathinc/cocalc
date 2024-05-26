@@ -69,7 +69,7 @@ export async function ensureComputeServerHasVpnIp(id: number) {
   }
 }
 
-interface VpnItem {
+export interface VpnItem {
   compute_server_id: number;
   cloud: Cloud;
   dns?: string;
@@ -80,7 +80,9 @@ interface VpnItem {
   external_ip?: string;
 }
 
-export async function getNetworkMap(project_id: string): Promise<VpnItem[]> {
+export type VpnConf = VpnItem[];
+
+export async function getVpnConf(project_id: string): Promise<VpnConf> {
   const pool = getPool();
   const { rows } = await pool.query(
     `SELECT cloud, id AS compute_server_id, configuration->>'dns' AS dns,
@@ -91,7 +93,7 @@ export async function getNetworkMap(project_id: string): Promise<VpnItem[]> {
     [project_id],
   );
   // fill in any missing vpn info
-  const items: VpnItem[] = [];
+  const items: VpnConf = [];
   for (let row of rows) {
     if (!row.private_key || !row.public_key) {
       const { privateKey, publicKey } = await generateWireGuardKeyPair();
@@ -118,7 +120,7 @@ export async function getNetworkMap(project_id: string): Promise<VpnItem[]> {
   return items;
 }
 
-export async function generateWireGuardKeyPair(): Promise<{
+async function generateWireGuardKeyPair(): Promise<{
   privateKey: string;
   publicKey: string;
 }> {

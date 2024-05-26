@@ -23,18 +23,11 @@ async function get(req) {
   const { project_id, id } = getParams(req, {
     allowGet: true,
   });
-  let servers = await getServers({
+  return await getServers({
     account_id,
     project_id,
     id,
   });
-  // strip data, which is not meant to be visible to the user (?).
-  // [ ] TODO: better to not do it this way but make getServers not use SELECT *
-  for (const server of servers) {
-    delete server.data;
-    delete server.api_key;
-  }
-  return servers;
 }
 
 import { apiRoute, apiRouteOperation, z } from "lib/api";

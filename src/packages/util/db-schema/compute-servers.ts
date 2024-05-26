@@ -865,7 +865,6 @@ Table({
         pg_where: [],
         fields: {
           ...schema.compute_servers.user_query?.get?.fields,
-          notes: null,
           template: null,
         },
       },

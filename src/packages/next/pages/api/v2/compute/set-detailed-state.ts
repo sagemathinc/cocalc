@@ -25,6 +25,8 @@ async function get(req) {
   // This is a bit complicated because it can be used by a project api key,
   // in which case project_id must not be passed in, or it can be auth'd
   // by a normal api key or account, in which case project_id must be passed in.
+  // TODO: I don't think this is ever in practice used by anything but a project -- maybe by
+  // account just for testing?
   const project_or_account_id = await getProjectOrAccountId(req);
   if (!project_or_account_id) {
     throw Error("invalid auth");
