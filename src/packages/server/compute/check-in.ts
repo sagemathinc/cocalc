@@ -6,6 +6,10 @@ about the vpn or storage configuration.
 It's used by the /api/v2/compute/check-in api endpoint.
 
      /api/v2/compute/check-in?vpn_sha1=xxx&storage_sha1=xxx
+
+TODO:
+ - [ ] finish storage
+ - [ ] add ssh keys, so they get dynamically updated
 */
 import setDetailedState from "@cocalc/server/compute/set-detailed-state";
 import { getVpnConf, VpnConf } from "./vpn";
@@ -24,9 +28,15 @@ export async function checkIn(opts: {
   id: number;
   vpn_sha1?: string;
   storage_sha1?: string;
-}): Promise<{ vpn?: VpnConf; storage?: StorageConf }> {
+}): Promise<{
+  vpn?: VpnConf;
+  vpn_sha1?: string;
+  storage?: StorageConf;
+  storage_sha1?: string;
+}> {
   logger.debug("checkIn -- ", opts);
-  const { project_id, id, vpn_sha1, storage_sha1 } = opts;
+  const { project_id, id } = opts;
+  let { vpn_sha1, storage_sha1 } = opts;
 
   await setDetailedState({
     project_id,
@@ -41,13 +51,21 @@ export async function checkIn(opts: {
   let vpn: VpnConf | undefined = undefined,
     storage: StorageConf | undefined = undefined;
   const new_vpn = await getVpnConf(project_id);
-  if (!vpn_sha1 || sha1(JSON.stringify(new_vpn)) != vpn_sha1) {
+  const new_vpn_sha1 = sha1(JSON.stringify(new_vpn));
+  if (new_vpn_sha1 != vpn_sha1) {
     vpn = new_vpn;
+    vpn_sha1 = new_vpn_sha1;
+  } else {
+    vpn_sha1 = undefined;
   }
   const new_storage = await getStorageConf(project_id);
-  if (!storage_sha1 || sha1(JSON.stringify(new_storage)) != storage_sha1) {
+  const new_storage_sha1 = sha1(JSON.stringify(new_storage));
+  if (new_storage_sha1 != storage_sha1) {
     storage = new_storage;
+    storage_sha1 = new_storage_sha1;
+  } else {
+    storage_sha1 = undefined;
   }
 
-  return { vpn, storage };
+  return { vpn, vpn_sha1, storage, storage_sha1 };
 }

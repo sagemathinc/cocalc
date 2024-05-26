@@ -3,7 +3,7 @@ Compute server periodically checking in with cocalc using a project api key.
 
 Example use, where 'sk-eTUKbl2lkP9TgvFJ00001n' is a project api key.
 
-curl -sk -u sk-eTUKbl2lkP9TgvFJ00001n: -d '{"id":"13"}' -H 'Content-Type: application/json' https://cocalc.com/api/v2/compute/check-in
+curl -sk -u sk-eTUKbl2lkP9TgvFJ00001n: -d '{"id":"13","vpn_sha1":"fbdad59e0793e11ffa464834c647db93d1f9ec99","storage_sha1":"97d170e1550eee4afc0af065b78cda302a97674c"}' -H 'Content-Type: application/json' https://cocalc.com/api/v2/compute/check-in
 
 Calling this endpoint:
 
