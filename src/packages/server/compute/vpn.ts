@@ -26,6 +26,7 @@ we would perhaps add some configuration to the project itself.
 
 import getPool from "@cocalc/database/pool";
 import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
+import { ed25519 } from "@noble/curves/ed25519";
 
 const PREFIX = "10.11.";
 
@@ -96,7 +97,7 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
   const items: VpnConf = [];
   for (let row of rows) {
     if (!row.private_key || !row.public_key) {
-      const { privateKey, publicKey } = await generateWireGuardKeyPair();
+      const { privateKey, publicKey } = generateWireGuardKeyPair();
       await pool.query(
         "UPDATE compute_servers SET vpn_private_key=$1, vpn_public_key=$2 WHERE id=$3",
         [privateKey, publicKey, row.compute_server_id],
@@ -120,17 +121,12 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
   return items;
 }
 
-async function generateWireGuardKeyPair(): Promise<{
+export function generateWireGuardKeyPair(): {
   privateKey: string;
   publicKey: string;
-}> {
-  const {
-    utils: { randomPrivateKey },
-    getPublicKeyAsync,
-  } = require("fix-esm").require("@noble/ed25519");
-
-  const privateKeyArray = randomPrivateKey();
-  const publicKeyArray = await getPublicKeyAsync(privateKeyArray);
+} {
+  const privateKeyArray = ed25519.utils.randomPrivateKey();
+  const publicKeyArray = ed25519.getPublicKey(privateKeyArray);
 
   // Convert keys to base64 format
   const privateKey = Buffer.from(privateKeyArray).toString("base64");

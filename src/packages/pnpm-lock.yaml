@@ -1385,9 +1385,9 @@ importers:
       '@mistralai/mistralai':
         specifier: ^0.2.0
         version: 0.2.0(encoding@0.1.13)
-      '@noble/ed25519':
-        specifier: ^2.1.0
-        version: 2.1.0
+      '@noble/curves':
+        specifier: ^1.4.0
+        version: 1.4.0
       '@node-saml/passport-saml':
         specifier: ^4.0.4
         version: 4.0.4
@@ -1484,9 +1484,6 @@ importers:
       express-session:
         specifier: ^1.17.3
         version: 1.17.3
-      fix-esm:
-        specifier: ^1.0.1
-        version: 1.0.1
       google-auth-library:
         specifier: ^9.4.1
         version: 9.4.1(encoding@0.1.13)
@@ -2356,13 +2353,6 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  '@babel/plugin-proposal-export-namespace-from@7.18.9':
-    resolution: {integrity: sha512-k1NtHyOMvlDDFeb9G5PhUXuGj8m/wiwojgQVEhJ/fsVsMCpLyOP4h0uGEjYJKrRI+EVPlb5Jk+Gt9P97lOGwtA==}
-    engines: {node: '>=6.9.0'}
-    deprecated: This proposal has been merged to the ECMAScript standard and thus this plugin is no longer maintained. Please use @babel/plugin-transform-export-namespace-from instead.
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-
   '@babel/plugin-syntax-async-generators@7.8.4':
     resolution: {integrity: sha512-tycmZxkGfZaxhMRbXlPXuVFpdWlXpir2W4AMhSJgRKzk/eDlIXOhb2LHWoLpDF7TEHylV5zNhykX6KAgHJmTNw==}
     peerDependencies:
@@ -2375,11 +2365,6 @@ packages:
 
   '@babel/plugin-syntax-class-properties@7.12.13':
     resolution: {integrity: sha512-fm4idjKla0YahUNgFNLCB0qySdsoPiZP3iQE3rky0mBUtMZ23yDJ9SJdg6dXTSDnulOVqiF3Hgr9nbXvXTQZYA==}
-    peerDependencies:
-      '@babel/core': ^7.0.0-0
-
-  '@babel/plugin-syntax-export-namespace-from@7.8.3':
-    resolution: {integrity: sha512-MXf5laXo6c1IbEbegDmzGPwGNTsHZmEy6QGznu5Sh2UCWvueywb2ee+CCE4zQiZstxU9BMoQO9i6zUFSY0Kj0Q==}
     peerDependencies:
       '@babel/core': ^7.0.0-0
 
@@ -3348,8 +3333,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@noble/ed25519@2.1.0':
-    resolution: {integrity: sha512-KM4qTyXPinyCgMzeYJH/UudpdL+paJXtY3CHtHYZQtBkS8MZoPr4rOikZllIutJe0d06QDQKisyn02gxZ8TcQA==}
+  '@noble/curves@1.4.0':
+    resolution: {integrity: sha512-p+4cb332SFCrReJkCYe8Xzm0OWi4Jji5jVdIZRL/PmacmDkFNw6MrrV+gGpiPxLHbV+zKFRywUWbaseT+tZRXg==}
+
+  '@noble/hashes@1.4.0':
+    resolution: {integrity: sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==}
+    engines: {node: '>= 16'}
 
   '@node-saml/node-saml@4.0.5':
     resolution: {integrity: sha512-J5DglElbY1tjOuaR1NPtjOXkXY5bpUhDoKVoeucYN98A3w4fwgjIOPqIGcb6cQsqFq2zZ6vTCeKn5C/hvefSaw==}
@@ -6250,9 +6239,6 @@ packages:
   find-up@5.0.0:
     resolution: {integrity: sha512-78/PXT1wlLLDgTzDs7sjq9hzz0vXD+zn+7wypEe4fXQxCmdmqfGsEPQxmiCSQI3ajFV91bVSsvNtrJRiW6nGng==}
     engines: {node: '>=10'}
-
-  fix-esm@1.0.1:
-    resolution: {integrity: sha512-EZtb7wPXZS54GaGxaWxMlhd1DUDCnAg5srlYdu/1ZVeW+7wwR3Tp59nu52dXByFs3MBRq+SByx1wDOJpRvLEXw==}
 
   flat-cache@3.0.4:
     resolution: {integrity: sha512-dm9s5Pw7Jc0GvMYbshN6zchCA9RgQlzzEZX3vylR9IqFfS8XciblUXOKfW6SiuJ0e13eDYZoZV5wdrev7P3Nwg==}
@@ -11833,12 +11819,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.24.5
 
-  '@babel/plugin-proposal-export-namespace-from@7.18.9(@babel/core@7.24.5)':
-    dependencies:
-      '@babel/core': 7.24.5
-      '@babel/helper-plugin-utils': 7.24.0
-      '@babel/plugin-syntax-export-namespace-from': 7.8.3(@babel/core@7.24.5)
-
   '@babel/plugin-syntax-async-generators@7.8.4(@babel/core@7.24.5)':
     dependencies:
       '@babel/core': 7.24.5
@@ -11850,11 +11830,6 @@ snapshots:
       '@babel/helper-plugin-utils': 7.24.0
 
   '@babel/plugin-syntax-class-properties@7.12.13(@babel/core@7.24.5)':
-    dependencies:
-      '@babel/core': 7.24.5
-      '@babel/helper-plugin-utils': 7.24.0
-
-  '@babel/plugin-syntax-export-namespace-from@7.8.3(@babel/core@7.24.5)':
     dependencies:
       '@babel/core': 7.24.5
       '@babel/helper-plugin-utils': 7.24.0
@@ -11930,13 +11905,6 @@ snapshots:
       '@babel/helper-module-transforms': 7.23.3(@babel/core@7.21.4)
       '@babel/helper-plugin-utils': 7.22.5
       '@babel/helper-simple-access': 7.22.5
-
-  '@babel/plugin-transform-modules-commonjs@7.23.3(@babel/core@7.24.5)':
-    dependencies:
-      '@babel/core': 7.24.5
-      '@babel/helper-module-transforms': 7.24.5(@babel/core@7.24.5)
-      '@babel/helper-plugin-utils': 7.24.0
-      '@babel/helper-simple-access': 7.24.5
 
   '@babel/plugin-transform-typescript@7.23.4(@babel/core@7.21.4)':
     dependencies:
@@ -12884,7 +12852,11 @@ snapshots:
   '@next/swc-win32-x64-msvc@14.1.1':
     optional: true
 
-  '@noble/ed25519@2.1.0': {}
+  '@noble/curves@1.4.0':
+    dependencies:
+      '@noble/hashes': 1.4.0
+
+  '@noble/hashes@1.4.0': {}
 
   '@node-saml/node-saml@4.0.5':
     dependencies:
@@ -16351,14 +16323,6 @@ snapshots:
     dependencies:
       locate-path: 6.0.0
       path-exists: 4.0.0
-
-  fix-esm@1.0.1:
-    dependencies:
-      '@babel/core': 7.24.5
-      '@babel/plugin-proposal-export-namespace-from': 7.18.9(@babel/core@7.24.5)
-      '@babel/plugin-transform-modules-commonjs': 7.23.3(@babel/core@7.24.5)
-    transitivePeerDependencies:
-      - supports-color
 
   flat-cache@3.0.4:
     dependencies:
