@@ -71,7 +71,7 @@ export async function ensureComputeServerHasVpnIp(id: number) {
 }
 
 export interface VpnItem {
-  compute_server_id: number;
+  id: number;
   cloud: Cloud;
   dns?: string;
   vpn_ip: string;
@@ -86,7 +86,7 @@ export type VpnConf = VpnItem[];
 export async function getVpnConf(project_id: string): Promise<VpnConf> {
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT cloud, id AS compute_server_id, configuration->>'dns' AS dns,
+    `SELECT cloud, id, configuration->>'dns' AS dns,
   vpn_ip, vpn_private_key AS private_key, vpn_public_key AS public_key,
   data->>'externalIp' AS external_ip, data->>'internalIp' AS internal_ip
   FROM compute_servers
@@ -100,7 +100,7 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
       const { privateKey, publicKey } = generateWireGuardKeyPair();
       await pool.query(
         "UPDATE compute_servers SET vpn_private_key=$1, vpn_public_key=$2 WHERE id=$3",
-        [privateKey, publicKey, row.compute_server_id],
+        [privateKey, publicKey, row.id],
       );
       row = { ...row, private_key: privateKey, public_key: publicKey };
     }
@@ -111,7 +111,7 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
       const vpn_ip = await getAvailableVpnIp(project_id);
       await pool.query("UPDATE compute_servers SET vpn_ip=$1 WHERE id=$2", [
         vpn_ip,
-        row.compute_server_id,
+        row.id,
       ]);
       row = { ...row, vpn_ip };
     }
