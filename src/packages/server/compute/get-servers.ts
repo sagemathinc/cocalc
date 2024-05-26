@@ -1,4 +1,5 @@
-import type { ComputeServer } from "@cocalc/util/db-schema/compute-servers";
+import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
+import { SCHEMA } from "@cocalc/util/db-schema";
 import { getPool, stripNullFields } from "@cocalc/database";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
@@ -9,16 +10,20 @@ interface Options {
   project_id?: string;
 }
 
+const FIELDS = Object.keys(
+  SCHEMA.compute_servers.user_query?.get?.fields ?? {},
+);
+
 // Get all compute servers associated to a given project or account
 export default async function getServers({
   account_id,
   id,
   project_id,
-}: Options): Promise<ComputeServer[]> {
+}: Options): Promise<ComputeServerUserInfo[]> {
   if (!(await isValidUUID(account_id))) {
     throw Error("account_id is not a valid uuid");
   }
-  let query = "SELECT * FROM compute_servers";
+  let query = `SELECT ${FIELDS.join(",")} FROM compute_servers`;
   const params: (string | number)[] = [];
   const where: string[] = [];
   let n = 1;
@@ -48,7 +53,10 @@ export default async function getServers({
   return stripNullFields(rows);
 }
 
-export async function getServer({ account_id, id }): Promise<ComputeServer> {
+export async function getServer({
+  account_id,
+  id,
+}): Promise<ComputeServerUserInfo> {
   const x = await getServers({ account_id, id });
   if (x.length != 1) {
     const server = await getServerNoCheck(id);
@@ -65,9 +73,11 @@ export async function getServer({ account_id, id }): Promise<ComputeServer> {
   return x[0];
 }
 
-export async function getServerNoCheck(id: number): Promise<ComputeServer> {
+export async function getServerNoCheck(
+  id: number,
+): Promise<ComputeServerUserInfo> {
   const { rows } = await getPool().query(
-    "SELECT * FROM compute_servers WHERE id=$1",
+    `SELECT ${FIELDS.join(",")} FROM compute_servers WHERE id=$1`,
     [id],
   );
   if (rows.length == 0) {

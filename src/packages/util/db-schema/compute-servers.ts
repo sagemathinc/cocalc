@@ -657,6 +657,8 @@ Table({
   name: "compute_servers",
   rules: {
     primary_key: "id",
+    // unique vpn ip address *within* a given project only:
+    pg_unique_indexes: ["(project_id, vpn_ip)"],
     user_query: {
       get: {
         pg_where: [{ "project_id = $::UUID": "project_id" }],
@@ -686,6 +688,7 @@ Table({
           detailed_state: null,
           template: null,
           notes: null,
+          vpn_ip: null,
         },
       },
       set: {
@@ -833,6 +836,18 @@ Table({
       type: "map",
       pg_type: "jsonb",
       desc: "Use this compute server configuration as a public template.  Only admins can set this field for now. The exact structure of this jsonb is yet to be determined.",
+    },
+    vpn_ip: {
+      type: "string",
+      desc: "IP address of the compute server on the private encrypted project-wide VPN.",
+    },
+    vpn_public_key: {
+      type: "string",
+      desc: "Wireguard public key for this compute server.",
+    },
+    vpn_private_key: {
+      type: "string",
+      desc: "Wireguard private key for this compute server.",
     },
   },
 });

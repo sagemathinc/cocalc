@@ -12,6 +12,7 @@ import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
 import { isDnsAvailable } from "./dns";
+import { getAvailableVpnIp } from "./vpn";
 
 import type {
   Cloud,
@@ -91,6 +92,7 @@ export default async function createServer(opts: Options): Promise<number> {
   const now = new Date();
   push("last_edited", now);
   push("created", now);
+  push("vpn_ip", await getAvailableVpnIp(opts.project_id));
 
   const query = `INSERT INTO compute_servers(${fields.join(
     ",",

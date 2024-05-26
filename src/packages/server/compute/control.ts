@@ -52,6 +52,7 @@ import isBanned from "@cocalc/server/accounts/is-banned";
 import getLogger from "@cocalc/backend/logger";
 import { getImages } from "@cocalc/server/compute/images";
 import { defaultProxyConfig } from "@cocalc/util/compute/images";
+import { ensureComputeServerHasVpnIp } from "./vpn";
 
 const logger = getLogger("server:compute:control");
 
@@ -81,6 +82,7 @@ export const start: (opts: {
       // they should never get this far, but just in case.
       throw Error("user is banned");
     }
+    await ensureComputeServerHasVpnIp(id);
     await setError(id, "");
     await setProjectApiKey({ account_id, server });
   } catch (err) {
