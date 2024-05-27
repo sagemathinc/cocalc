@@ -27,6 +27,8 @@ we would perhaps add some configuration to the project itself.
 import getPool from "@cocalc/database/pool";
 import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
 import { ed25519 } from "@noble/curves/ed25519";
+import { getTag } from "@cocalc/server/compute/cloud/startup-script";
+import { getImages } from "@cocalc/server/compute/images";
 
 const PREFIX = "10.11.";
 
@@ -70,7 +72,7 @@ export async function ensureComputeServerHasVpnIp(id: number) {
   }
 }
 
-export interface VpnItem {
+interface Node {
   id: number;
   cloud: Cloud;
   dns?: string;
@@ -81,9 +83,12 @@ export interface VpnItem {
   external_ip?: string;
 }
 
-export type VpnConf = VpnItem[];
+export type VpnConf = {
+  image: string; // docker image to run to setup vpn, e.g., 'sagemathinc/vpn:1.4'
+  nodes: Node[];
+};
 
-export async function getVpnConf(project_id: string): Promise<VpnConf> {
+async function getVpnNodes(project_id: string): Promise<Node[]> {
   const pool = getPool();
   const { rows } = await pool.query(
     `SELECT cloud, id, configuration->>'dns' AS dns,
@@ -94,7 +99,7 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
     [project_id],
   );
   // fill in any missing vpn info
-  const items: VpnConf = [];
+  const nodes: Node[] = [];
   for (let row of rows) {
     if (!row.private_key || !row.public_key) {
       const { privateKey, publicKey } = generateWireGuardKeyPair();
@@ -115,10 +120,23 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
       ]);
       row = { ...row, vpn_ip };
     }
-    items.push(row);
+    nodes.push(row);
   }
 
-  return items;
+  return nodes;
+}
+
+async function getVpnImage(): Promise<string> {
+  const IMAGES = await getImages();
+  const tag = getTag({ image: "vpn", IMAGES });
+  const pkg = IMAGES["vpn"]?.package ?? "sagemathinc/vpn";
+  return `${pkg}:${tag}`;
+}
+
+export async function getVpnConf(project_id: string): Promise<VpnConf> {
+  const image = await getVpnImage();
+  const nodes = await getVpnNodes(project_id);
+  return { image, nodes };
 }
 
 export function generateWireGuardKeyPair(): {

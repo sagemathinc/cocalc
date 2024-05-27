@@ -491,7 +491,7 @@ function setState {
 
 /*
 If tag is given and available just returns that tag.
-If tag is given but not available or not tag is given,
+If tag is given but not available or no tag is given,
 returns the newest tested tag, unless no tags are tested,
 in which case we just return the newest tag.
 Returns 'latest' in case nothing is available.
