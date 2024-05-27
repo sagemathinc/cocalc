@@ -231,9 +231,9 @@ ${runCoCalcCompute({
   IMAGES,
 })}
 
-exec /cocalc/disk_enlarger.py 2> /var/log/disk-enlarger.log >/var/log/disk-enlarger.log &
+exec /usr/bin/python3 -u /cocalc/disk_enlarger.py 2> /var/log/cocalc-disk-enlarger.err >/var/log/cocalc-disk-enlarger.log &
 
-python3 /cocalc/check_in.py ${CHECK_IN_PERIOD_S}
+/usr/bin/python3 -u /cocalc/check_in.py ${CHECK_IN_PERIOD_S}
 `;
 }
 
