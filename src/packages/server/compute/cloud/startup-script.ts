@@ -14,6 +14,7 @@ import {
   UID,
 } from "./install";
 import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
+import { CHECK_IN_PERIOD_S } from "@cocalc/server/compute/check-in";
 
 // A one line startup script that grabs the latest version of the
 // real startup script via the API.  This is important, e.g., if
@@ -232,10 +233,7 @@ ${runCoCalcCompute({
 
 exec /cocalc/disk_enlarger.py 2> /var/log/disk-enlarger.log >/var/log/disk-enlarger.log &
 
-while true; do
-  setState vm ready '' 35 100
-  sleep 30
-done
+python3 /cocalc/check_in.py ${CHECK_IN_PERIOD_S}
 `;
 }
 
