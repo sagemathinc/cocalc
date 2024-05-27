@@ -35,7 +35,7 @@ export default async function getPublicPathInfo({
   // Get the database entry that describes the public path
   const { rows } = await pool.query(
     `SELECT project_id, path, description, compute_image, license, disabled, unlisted,
-    authenticated, url, jupyter_api, redirect,
+    authenticated, url, jupyter_api, redirect, created, last_edited,
     counter::INT,
     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars,
     CASE WHEN site_license_id <> '' THEN TRUE ELSE FALSE END AS has_site_license
@@ -113,6 +113,8 @@ export default async function getPublicPathInfo({
       basePath,
       isStarred,
       ...details,
+      created: rows[0].created.toISOString(),
+      last_edited: rows[0].last_edited.toISOString(),
     };
   } catch (error) {
     return { id, ...rows[0], relativePath, isStarred, error: error.toString() };
