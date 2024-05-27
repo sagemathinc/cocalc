@@ -187,7 +187,7 @@ export async function get({ name }: { name: string }) {
 export async function isDnsAvailable(dns: string) {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT COUNT(*) AS count FROM compute_servers WHERE configuration->>'dns' = $1",
+    "SELECT COUNT(*) AS count FROM compute_servers WHERE configuration->>'dns' = $1 AND (deleted = false OR deleted is NULL)",
     [dns],
   );
   return rows[0].count == 0;

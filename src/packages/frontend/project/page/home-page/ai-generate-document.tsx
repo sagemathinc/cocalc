@@ -324,19 +324,40 @@ function AIGenerateDocument({
     return { cells, metadata: { kernelspec: spec } };
   }
 
-  function extractContent(answer): string {
-    const i = answer.indexOf("```");
-    const j = answer.lastIndexOf("```");
-
-    if (i !== -1 && j !== -1 && i !== j) {
-      // extract the document
-      return answer.substring(i + 3, j).trim();
-    } else if (i >= 0) {
-      // extract everything after i+3
-      return answer.substring(i + 3).trim();
-    } else {
-      return answer;
+  function extractBackticks(full: string): string {
+    full = full.trim();
+    const lb1 = full.indexOf("\n");
+    const lb2 = full.lastIndexOf("\n");
+    if (lb1 != -1 && lb2 != -1) {
+      // do first and last line have backticks?
+      const line1 = full.substring(0, lb1);
+      const line2 = full.substring(lb2);
+      const i = line1.indexOf("```");
+      const j = line2.lastIndexOf("```");
+      if (i !== -1 && j !== -1 && i !== j) {
+        const j2 = full.lastIndexOf("```");
+        return full.substring(i + 3, j2).trim();
+      }
     }
+
+    return full;
+  }
+
+  function extractContent(answer): string {
+    const lb1 = answer.indexOf("\n");
+    if (lb1 !== -1) {
+      const firstLine = answer.substring(0, lb1);
+      const i = firstLine.indexOf("filename:");
+      if (i !== -1) {
+        const content = answer.substring(lb1 + 1).trim();
+        if (ext === "tex") {
+          return extractBackticks(content);
+        } else {
+          return content;
+        }
+      }
+    }
+    return answer;
   }
 
   function processAnswer(answer: string): string {
@@ -552,7 +573,10 @@ function AIGenerateDocument({
 
     return (
       <Paragraph>
-        <Dropdown menu={{ items }} trigger={["click"]}>
+        <Dropdown
+          menu={{ items, style: { maxHeight: "50vh", overflow: "auto" } }}
+          trigger={["click"]}
+        >
           <Button style={{ width: "100%" }}>
             <Space>
               <Icon name="magic" />

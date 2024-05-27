@@ -327,50 +327,71 @@ export default function PublicTemplates({
 
   return (
     <div style={{ maxWidth: "1200px", margin: "15px auto", ...style }}>
-      <div
-        style={{
-          textAlign: "center",
-          marginBottom: "5px",
-          fontWeight: "normal",
-        }}
-      >
-        {Object.keys(TAGS)
-          .filter((tag) => visibleTags.has(tag))
-          .map((name) => {
-            const t = (
-              <Tooltip
-                mouseEnterDelay={1}
-                key={name}
-                title={
-                  TAGS[name].tip ?? <>Only show templates {TAGS[name].desc}.</>
-                }
-              >
-                {TAGS[name].group != group && <br />}
-                <CheckableTag
+      <div style={{ display: "flex" }}>
+        <div
+          style={{
+            fontWeight: "bold",
+            fontSize: "13pt",
+            flex: 0.1,
+            color: "#666",
+            display: "flex",
+            justifyContent: "center",
+            flexDirection: "column",
+            whiteSpace: "nowrap",
+            paddingLeft: "15px",
+          }}
+        >
+          Templates:
+        </div>
+        <div
+          style={{
+            flex: 1,
+            textAlign: "center",
+            marginBottom: "5px",
+            fontWeight: "normal",
+          }}
+        >
+          {Object.keys(TAGS)
+            .filter((tag) => visibleTags.has(tag))
+            .map((name) => {
+              const t = (
+                <Tooltip
+                  mouseEnterDelay={1}
                   key={name}
-                  style={{ cursor: "pointer", fontSize: "12pt" }}
-                  checked={filterTags.has(name)}
-                  onChange={(checked) => {
-                    let v = Array.from(filterTags);
-                    if (checked) {
-                      v.push(name);
-                      v = v.filter(
-                        (x) => x == name || TAGS[x].group != TAGS[name].group,
-                      );
-                    } else {
-                      v = v.filter((x) => x != name);
-                    }
-                    setFilterTags(new Set(v));
-                    setSelectOpen(v.length > 0);
-                  }}
+                  title={
+                    TAGS[name].tip ?? (
+                      <>Only show templates {TAGS[name].desc}.</>
+                    )
+                  }
                 >
-                  {TAGS[name].label ?? name}
-                </CheckableTag>
-              </Tooltip>
-            );
-            group = TAGS[name].group;
-            return t;
-          })}
+                  {TAGS[name].group != group && <br />}
+                  <CheckableTag
+                    key={name}
+                    style={{ cursor: "pointer", fontSize: "12pt" }}
+                    checked={filterTags.has(name)}
+                    onChange={(checked) => {
+                      let v = Array.from(filterTags);
+                      if (checked) {
+                        v.push(name);
+                        v = v.filter(
+                          (x) => x == name || TAGS[x].group != TAGS[name].group,
+                        );
+                      } else {
+                        v = v.filter((x) => x != name);
+                      }
+                      setFilterTags(new Set(v));
+                      setSelectOpen(v.length > 0);
+                    }}
+                  >
+                    {TAGS[name].label ?? name}
+                  </CheckableTag>
+                </Tooltip>
+              );
+              group = TAGS[name].group;
+              return t;
+            })}
+        </div>
+        <div style={{ flex: 0.1 }}></div>
       </div>
       <Select
         allowClear
@@ -387,7 +408,9 @@ export default function PublicTemplates({
           height: "auto",
         }}
         placeholder={
-          <div>Select a compute server template, then modify it...</div>
+          <div style={{ color: "#666" }}>
+            Use filters above or type here to find a template, then modify it...
+          </div>
         }
         showSearch
         optionFilterProp="children"

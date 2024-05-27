@@ -53,7 +53,9 @@ export default async function setServerConfiguration({
     // changing dns to be nontrivial, so need to check it doesn't equal any *other* dns
     // We just do linear scan through db for now.
     if (!(await isDnsAvailable(configuration.dns))) {
-      throw Error(`Subdomain '${configuration.dns}' is not available.`);
+      throw Error(
+        `Subdomain '${configuration.dns}' is not available.    Please change 'DNS: Custom Subdomain' and select a different subdomain.`,
+      );
     }
   }
 

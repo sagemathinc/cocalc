@@ -421,7 +421,10 @@ export default function LanguageModelTitleBarButton({
     return (
       <>
         <Paragraph ref={examplesRef}>
-          <Dropdown menu={{ items }} trigger={["click"]}>
+          <Dropdown
+            menu={{ items, style: { maxHeight: "50vh", overflow: "auto" } }}
+            trigger={["click"]}
+          >
             <Button style={{ width: "100%" }}>
               <Space>
                 <Icon name="magic" />
@@ -564,7 +567,7 @@ export default function LanguageModelTitleBarButton({
       <Space direction="vertical" style={{ width: "800px", maxWidth: "90vw" }}>
         <Paragraph type={empty ? "danger" : undefined}>
           Describe, what the language model <LLMNameLink model={model} /> should
-          do. Be speicifc!
+          do. Be specific!
         </Paragraph>
         <Paragraph ref={describeRef}>
           <Input.TextArea

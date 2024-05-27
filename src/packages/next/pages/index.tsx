@@ -93,11 +93,8 @@ export default function Home(props: Props) {
         <Paragraph style={{ fontSize: "11pt", margin: "15px 0" }}>
           {isCommercial && account && !account.is_anonymous && (
             <>
-              <a
-                href={join(basePath, "settings/licenses")}
-                style={TOP_LINK_STYLE}
-              >
-                Licenses
+              <a href={join(basePath, "store")} style={TOP_LINK_STYLE}>
+                Store
               </a>{" "}
               <a
                 href={join(basePath, "settings/purchases")}
@@ -130,24 +127,6 @@ export default function Home(props: Props) {
               )}
             </>
           )}
-          <A href={"/config"} style={TOP_LINK_STYLE}>
-            Config
-          </A>{" "}
-          {customize.shareServer && (
-            <>
-              <A style={TOP_LINK_STYLE} href={"/share/public_paths/page/1"}>
-                Share
-              </A>{" "}
-            </>
-          )}
-          <>
-            <A style={TOP_LINK_STYLE} href="/support">
-              Support
-            </A>{" "}
-            <A style={TOP_LINK_STYLE} href="/info">
-              Docs
-            </A>
-          </>
         </Paragraph>
       </div>
     );

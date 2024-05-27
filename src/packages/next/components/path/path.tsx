@@ -39,7 +39,11 @@ import Avatar from "components/share/proxy/avatar";
 import A from "components/misc/A";
 import { join } from "path";
 
-interface Props {
+import {
+  SocialMediaShareLinks
+} from "components/landing/social-media-share-links";
+
+export interface PublicPathProps {
   id: string;
   path: string;
   url: string;
@@ -67,6 +71,9 @@ interface Props {
   // doesn't use the names. See https://github.com/sagemathinc/cocalc/issues/6115
   redirect?: string;
   jupyter_api: boolean;
+  created?: string; // ISO 8601 string
+  last_edited?: string; // ISO 8601 string
+  ogUrl?: string; // Open Graph URL for social media sharing
 }
 
 export default function PublicPath({
@@ -94,7 +101,8 @@ export default function PublicPath({
   projectAvatarImage,
   redirect,
   jupyter_api,
-}: Props) {
+  ogUrl,
+}: PublicPathProps) {
   useCounter(id);
   const [numStars, setNumStars] = useState<number>(stars);
 
@@ -335,8 +343,13 @@ export default function PublicPath({
             <AntdAvatar
               shape="square"
               size={160}
-              icon={<img src={projectAvatarImage} />}
-              style={{ float: "left", margin: "10px" }}
+              icon={(
+                <img
+                  src={projectAvatarImage}
+                  alt={`Avatar for ${projectTitle}.`}
+                />
+              )}
+              style={{ float: "left", margin: "20px" }}
             />
           ) : undefined
         }
@@ -439,6 +452,13 @@ export default function PublicPath({
             </>
           )}
         </div>
+        {ogUrl && (
+          <SocialMediaShareLinks
+            title={getTitle({ path, relativePath })}
+            url={ogUrl}
+            showText
+          />
+        )}
         <Divider />
         {error != null && (
           <Alert
