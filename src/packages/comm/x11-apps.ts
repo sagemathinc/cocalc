@@ -4,6 +4,7 @@
  */
 
 //import { IconName } from "@cocalc/frontend/components/icon";
+import { R_IDE } from "@cocalc/util/consts/ui";
 
 interface APPS_Interface {
   [k: string]: {
@@ -102,8 +103,8 @@ export const APPS: Readonly<APPS_Interface> = Object.freeze({
   },
   rstudio: {
     icon: "r",
-    desc: "An integrated development environment (IDE) for R.  Posit, Inc. is in no way affiliated with CoCalc",
-    label: "R IDE",
+    desc: "An integrated development environment (IDE) for R. Posit Software, PBC (formerly RStudio, PBC) is in no way affiliated with CoCalc",
+    label: R_IDE,
   },
   /* See https://github.com/sagemathinc/cocalc/issues/5427
   Sometimes, Octave GUI works, sometimes not.
