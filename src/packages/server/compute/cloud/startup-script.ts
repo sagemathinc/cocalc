@@ -151,8 +151,8 @@ setState state running
 # Basically, unattended upgrades can randomly run and just totally break
 # the startup script, which is really painful.
 pkill -9 apt-get || true
-apt remove -y unattended-upgrades || true
 pkill -f -9 unattended-upgrade || true
+apt-get remove -y unattended-upgrades || true
 
 ${installTime()}
 
