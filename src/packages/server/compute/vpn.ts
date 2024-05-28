@@ -28,6 +28,7 @@ import getPool from "@cocalc/database/pool";
 import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
+import _sodium from "libsodium-wrappers";
 
 const PREFIX = "10.11.";
 
@@ -138,19 +139,20 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
   return { image, nodes };
 }
 
-import _sodium from "libsodium-wrappers";
-export const generateWireGuardKeyPair = async (): Promise<{
+export async function generateWireGuardKeyPair(): Promise<{
   privateKey: string;
   publicKey: string;
-}> => {
+}> {
   await _sodium.ready;
   const sodium = _sodium;
 
-  const keypair = sodium.crypto_box_keypair();
+  // Generate a new key pair
+  const privateKey = sodium.crypto_box_seed_keypair(
+    sodium.randombytes_buf(sodium.crypto_secretbox_KEYBYTES),
+  );
+  const publicKey = sodium.crypto_scalarmult_base(privateKey.privateKey);
+  const privateKeyStr = fromByteArray(privateKey.privateKey);
+  const publicKeyStr = fromByteArray(publicKey);
 
-  // Convert keys to base64 format
-  const privateKey = sodium.to_base64(keypair.privateKey);
-  const publicKey = sodium.to_base64(keypair.publicKey);
-
-  return { privateKey, publicKey };
-};
+  return { privateKey: privateKeyStr, publicKey: publicKeyStr };
+}
