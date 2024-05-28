@@ -116,7 +116,19 @@ const LinkRetry: React.FC<Props> = ({
   }
 
   switch (mode) {
+    case "button":
+      const btn = (
+        <Button onClick={click} size={size}>
+          {children}
+          {loading ? <Icon name="cocalc-ring" spin /> : renderError()}
+        </Button>
+      );
+      if (tooltip) {
+        return <Tooltip title={tooltip}>{btn}</Tooltip>;
+      }
     case "link":
+    default:
+      console.warn(`LinkRetry: invalid mode "${mode}"`);
       const aLink = (
         <a onClick={click} style={{ cursor: "pointer" }}>
           {children}
@@ -134,18 +146,6 @@ const LinkRetry: React.FC<Props> = ({
           {renderError()}
         </span>
       );
-    case "button":
-      const btn = (
-        <Button onClick={click} size={size}>
-          {children}
-          {loading ? <Icon name="cocalc-ring" spin /> : renderError()}
-        </Button>
-      );
-      if (tooltip) {
-        return <Tooltip title={tooltip}>{btn}</Tooltip>;
-      }
-    default:
-      throw Error("invalid mode");
   }
 };
 
