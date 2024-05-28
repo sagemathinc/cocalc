@@ -147,6 +147,9 @@ ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 
 setState state running
 
+# make sure nothing involving apt-get is running (e.g., auto updates)
+pkill -9 apt-get || true
+
 ${installTime()}
 
 setState install configure '' 60 10
@@ -354,7 +357,7 @@ fi
 # keys and move data.
 
 mkdir -p /data
-chown user:user /data
+chown 2001:2001 /data
 
 docker stop filesystem >/dev/null 2>&1
 docker rm filesystem >/dev/null 2>&1
@@ -364,7 +367,7 @@ setState filesystem run '' 45 25
 export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
 
 mkdir -p /ephemeral
-chown user:user /ephemeral
+chown 2001:2001 /ephemeral
 docker run \
  -d \
  --name=filesystem \
@@ -445,7 +448,7 @@ if [ $? -ne 0 ]; then
   setState compute run '' 20 25
   export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
   mkdir -p /ephemeral
-  chown user:user /ephemeral
+  chown 2001:2001 /ephemeral
   docker run -d ${gpu ? GPU_FLAGS : ""} \
    --name=compute \
    --network host \

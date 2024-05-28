@@ -328,8 +328,10 @@ echo '${auth}' > /cocalc/conf/authorized_keys
 echo '${auth_token}' > ${PROXY_AUTH_TOKEN_FILE}
 echo '${base64ProxyConfig}' | base64 --decode > ${PROXY_CONFIG}
 echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
-chown user:user -R /cocalc/conf
+chown ${UID}:${UID} -R /cocalc/conf
 `;
+
+  // have to use UID instead of "user" since user possibly isn't created yet.
 }
 
 /*
