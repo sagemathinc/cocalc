@@ -26,7 +26,6 @@ we would perhaps add some configuration to the project itself.
 
 import getPool from "@cocalc/database/pool";
 import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
-import { default as sodium } from 'sodium-native';
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
 
@@ -102,7 +101,7 @@ async function getVpnNodes(project_id: string): Promise<Node[]> {
   const nodes: Node[] = [];
   for (let row of rows) {
     if (!row.private_key || !row.public_key) {
-      const { privateKey, publicKey } = generateWireGuardKeyPair();
+      const { privateKey, publicKey } = await generateWireGuardKeyPair();
       await pool.query(
         "UPDATE compute_servers SET vpn_private_key=$1, vpn_public_key=$2 WHERE id=$3",
         [privateKey, publicKey, row.id],
@@ -139,19 +138,19 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
   return { image, nodes };
 }
 
-export function generateWireGuardKeyPair(): {
+import _sodium from "libsodium-wrappers";
+export const generateWireGuardKeyPair = async (): Promise<{
   privateKey: string;
   publicKey: string;
-} {
-  const publicKeyArray = Buffer.alloc(sodium.crypto_box_PUBLICKEYBYTES);
-  const privateKeyArray = Buffer.alloc(sodium.crypto_box_SECRETKEYBYTES);
+}> => {
+  await _sodium.ready;
+  const sodium = _sodium;
 
-  // Generate keypair
-  sodium.crypto_box_keypair(publicKeyArray, privateKeyArray);
+  const keypair = sodium.crypto_box_keypair();
 
   // Convert keys to base64 format
-  const privateKey = privateKeyArray.toString("base64");
-  const publicKey = publicKeyArray.toString("base64");
+  const privateKey = sodium.to_base64(keypair.privateKey);
+  const publicKey = sodium.to_base64(keypair.publicKey);
 
   return { privateKey, publicKey };
-}
+};

@@ -91,6 +91,7 @@
     "jwt-decode": "^3.1.2",
     "lambda-cloud-node-api": "^1.0.1",
     "langchain": "^0.1.37",
+    "libsodium-wrappers": "^0.7.13",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",
     "ms": "2.1.2",
@@ -113,7 +114,6 @@
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.12.1",
-    "sodium-native": "^4.1.1",
     "stripe": "^12.17.0",
     "uuid": "^8.3.2"
   },

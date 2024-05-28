@@ -1499,6 +1499,9 @@ importers:
       langchain:
         specifier: ^0.1.37
         version: 0.1.37(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)
+      libsodium-wrappers:
+        specifier: ^0.7.13
+        version: 0.7.13
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1565,9 +1568,6 @@ importers:
       sanitize-html:
         specifier: ^2.12.1
         version: 2.12.1
-      sodium-native:
-        specifier: ^4.1.1
-        version: 4.1.1
       stripe:
         specifier: ^12.17.0
         version: 12.17.0
@@ -7827,6 +7827,12 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
+  libsodium-wrappers@0.7.13:
+    resolution: {integrity: sha512-kasvDsEi/r1fMzKouIDv7B8I6vNmknXwGiYodErGuESoFTohGSKZplFtVxZqHaoQ217AynyIFgnOVRitpHs0Qw==}
+
+  libsodium@0.7.13:
+    resolution: {integrity: sha512-mK8ju0fnrKXXfleL53vtp9xiPq5hKM0zbDQtcxQIsSmxNgSxqCj6R7Hl9PkrNe2j29T4yoDaF7DJLK9/i5iWUw==}
+
   lil-gui@0.16.1:
     resolution: {integrity: sha512-6wnnfBvQxJYRhdLyIA+w5b8utwbuVxNmtpTXElm36OSgHa8lyKp00Xz/4AEx3kvodT0AJYgbfadCFWAM0Q8DgQ==}
 
@@ -8370,10 +8376,6 @@ packages:
 
   node-gyp-build@4.5.0:
     resolution: {integrity: sha512-2iGbaQBV+ITgCz76ZEjmhUKAKVf7xfY1sRl4UiKQspfZMH2h06SyhNsnSVy50cwkFQDGLyif6m/6uFXHkOZ6rg==}
-    hasBin: true
-
-  node-gyp-build@4.8.1:
-    resolution: {integrity: sha512-OSs33Z9yWr148JZcbZd5WiAXhh/n9z8TxQcdMhIOlpN9AhWpLfvVFO73+m77bBABQMaY9XSvIa+qk0jlI7Gcaw==}
     hasBin: true
 
   node-int64@0.4.0:
@@ -10105,9 +10107,6 @@ packages:
 
   slate@0.101.1:
     resolution: {integrity: sha512-k/rVkVb0TEMmaTbkRVJeJzE8lxnyGDc0VC67D91Zrf5hcdHfVaWypBGD25QHCJsndn9Xa0jSJ/xfM2new5E2Zg==}
-
-  sodium-native@4.1.1:
-    resolution: {integrity: sha512-LXkAfRd4FHtkQS4X6g+nRcVaN7mWVNepV06phIsC6+IZFvGh1voW5TNQiQp2twVaMf05gZqQjuS+uWLM6gHhNQ==}
 
   source-map-js@1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
@@ -18357,6 +18356,12 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
+  libsodium-wrappers@0.7.13:
+    dependencies:
+      libsodium: 0.7.13
+
+  libsodium@0.7.13: {}
+
   lil-gui@0.16.1: {}
 
   lines-and-columns@1.2.4: {}
@@ -18977,8 +18982,6 @@ snapshots:
   node-forge@1.3.1: {}
 
   node-gyp-build@4.5.0: {}
-
-  node-gyp-build@4.8.1: {}
 
   node-int64@0.4.0: {}
 
@@ -21155,10 +21158,6 @@ snapshots:
       immer: 10.0.3
       is-plain-object: 5.0.0
       tiny-warning: 1.0.3
-
-  sodium-native@4.1.1:
-    dependencies:
-      node-gyp-build: 4.8.1
 
   source-map-js@1.0.2: {}
 
