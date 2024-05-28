@@ -716,6 +716,10 @@ export async function makeConfigurationChange({
     // same comment as for authToken
     changed.delete("proxy");
   }
+  if (changed.has("ephemeral")) {
+    // always safe to change this -- no heck required and no impact on actual deployment
+    changed.delete("ephemeral");
+  }
   if (changed.size == 0) {
     // nothing else to change
     return;
