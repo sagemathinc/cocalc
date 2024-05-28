@@ -125,6 +125,8 @@ const LinkRetry: React.FC<Props> = ({
       );
       if (tooltip) {
         return <Tooltip title={tooltip}>{btn}</Tooltip>;
+      } else {
+        return btn;
       }
     case "link":
     default:
