@@ -960,7 +960,7 @@ export function AIGenerateDocumentButton({
                 : { position: "unset", marginRight: "5px" }),
             }}
           />
-          {mode === "full" ? ` Generator...` : ""}
+          {mode === "full" ? ` Help me start...` : ""}
         </Button>
       </Tip>
       <Modal
