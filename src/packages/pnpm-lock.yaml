@@ -1385,9 +1385,6 @@ importers:
       '@mistralai/mistralai':
         specifier: ^0.2.0
         version: 0.2.0(encoding@0.1.13)
-      '@noble/curves':
-        specifier: ^1.4.0
-        version: 1.4.0
       '@node-saml/passport-saml':
         specifier: ^4.0.4
         version: 4.0.4
@@ -1568,6 +1565,9 @@ importers:
       sanitize-html:
         specifier: ^2.12.1
         version: 2.12.1
+      sodium-native:
+        specifier: ^4.1.1
+        version: 4.1.1
       stripe:
         specifier: ^12.17.0
         version: 12.17.0
@@ -3332,13 +3332,6 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
-
-  '@noble/curves@1.4.0':
-    resolution: {integrity: sha512-p+4cb332SFCrReJkCYe8Xzm0OWi4Jji5jVdIZRL/PmacmDkFNw6MrrV+gGpiPxLHbV+zKFRywUWbaseT+tZRXg==}
-
-  '@noble/hashes@1.4.0':
-    resolution: {integrity: sha512-V1JJ1WTRUqHHrOSh597hURcMqVKVGL/ea3kv0gSnEdsEZ0/+VyPghM1lMNGc00z7CIQorSvbKpuJkxvuHbvdbg==}
-    engines: {node: '>= 16'}
 
   '@node-saml/node-saml@4.0.5':
     resolution: {integrity: sha512-J5DglElbY1tjOuaR1NPtjOXkXY5bpUhDoKVoeucYN98A3w4fwgjIOPqIGcb6cQsqFq2zZ6vTCeKn5C/hvefSaw==}
@@ -8379,6 +8372,10 @@ packages:
     resolution: {integrity: sha512-2iGbaQBV+ITgCz76ZEjmhUKAKVf7xfY1sRl4UiKQspfZMH2h06SyhNsnSVy50cwkFQDGLyif6m/6uFXHkOZ6rg==}
     hasBin: true
 
+  node-gyp-build@4.8.1:
+    resolution: {integrity: sha512-OSs33Z9yWr148JZcbZd5WiAXhh/n9z8TxQcdMhIOlpN9AhWpLfvVFO73+m77bBABQMaY9XSvIa+qk0jlI7Gcaw==}
+    hasBin: true
+
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
@@ -10108,6 +10105,9 @@ packages:
 
   slate@0.101.1:
     resolution: {integrity: sha512-k/rVkVb0TEMmaTbkRVJeJzE8lxnyGDc0VC67D91Zrf5hcdHfVaWypBGD25QHCJsndn9Xa0jSJ/xfM2new5E2Zg==}
+
+  sodium-native@4.1.1:
+    resolution: {integrity: sha512-LXkAfRd4FHtkQS4X6g+nRcVaN7mWVNepV06phIsC6+IZFvGh1voW5TNQiQp2twVaMf05gZqQjuS+uWLM6gHhNQ==}
 
   source-map-js@1.0.2:
     resolution: {integrity: sha512-R0XvVJ9WusLiqTCEiGCmICCMplcCkIwwR11mOSD9CR5u+IXYdiseeEuXCVAjS54zqwkLcPNnmU4OeJ6tUrWhDw==}
@@ -12851,12 +12851,6 @@ snapshots:
 
   '@next/swc-win32-x64-msvc@14.1.1':
     optional: true
-
-  '@noble/curves@1.4.0':
-    dependencies:
-      '@noble/hashes': 1.4.0
-
-  '@noble/hashes@1.4.0': {}
 
   '@node-saml/node-saml@4.0.5':
     dependencies:
@@ -18984,6 +18978,8 @@ snapshots:
 
   node-gyp-build@4.5.0: {}
 
+  node-gyp-build@4.8.1: {}
+
   node-int64@0.4.0: {}
 
   node-jose@2.2.0:
@@ -21159,6 +21155,10 @@ snapshots:
       immer: 10.0.3
       is-plain-object: 5.0.0
       tiny-warning: 1.0.3
+
+  sodium-native@4.1.1:
+    dependencies:
+      node-gyp-build: 4.8.1
 
   source-map-js@1.0.2: {}
 

@@ -53,7 +53,6 @@
     "@langchain/mistralai": "^0.0.19",
     "@langchain/openai": "^0.0.29",
     "@mistralai/mistralai": "^0.2.0",
-    "@noble/curves": "^1.4.0",
     "@node-saml/passport-saml": "^4.0.4",
     "@passport-js/passport-twitter": "^1.0.8",
     "@passport-next/passport-google-oauth2": "^1.0.0",
@@ -114,6 +113,7 @@
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.12.1",
+    "sodium-native": "^4.1.1",
     "stripe": "^12.17.0",
     "uuid": "^8.3.2"
   },

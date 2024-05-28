@@ -26,7 +26,7 @@ we would perhaps add some configuration to the project itself.
 
 import getPool from "@cocalc/database/pool";
 import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
-import { ed25519 } from "@noble/curves/ed25519";
+import { default as sodium } from 'sodium-native';
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
 
@@ -143,11 +143,15 @@ export function generateWireGuardKeyPair(): {
   privateKey: string;
   publicKey: string;
 } {
-  const privateKeyArray = ed25519.utils.randomPrivateKey();
-  const publicKeyArray = ed25519.getPublicKey(privateKeyArray);
+  const publicKeyArray = Buffer.alloc(sodium.crypto_box_PUBLICKEYBYTES);
+  const privateKeyArray = Buffer.alloc(sodium.crypto_box_SECRETKEYBYTES);
+
+  // Generate keypair
+  sodium.crypto_box_keypair(publicKeyArray, privateKeyArray);
 
   // Convert keys to base64 format
-  const privateKey = Buffer.from(privateKeyArray).toString("base64");
-  const publicKey = Buffer.from(publicKeyArray).toString("base64");
+  const privateKey = privateKeyArray.toString("base64");
+  const publicKey = publicKeyArray.toString("base64");
+
   return { privateKey, publicKey };
 }
