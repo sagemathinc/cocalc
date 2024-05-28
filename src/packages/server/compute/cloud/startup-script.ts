@@ -58,14 +58,23 @@ ${ephemeral}
     content: |
         #!/bin/bash
         ${await startupScriptViaApi({ compute_server_id, api_key })}
+        if [ $? -eq 0 ]; then
+            exit 0
+        fi
         # If the script fails (e.g., due to timing weirdness), we
         # try restarting docker and running it again.
         sleep 1
         service docker restart
         ${await startupScriptViaApi({ compute_server_id, api_key })}
+        if [ $? -eq 0 ]; then
+            exit 0
+        fi
         sleep 3
         service docker restart
         ${await startupScriptViaApi({ compute_server_id, api_key })}
+        if [ $? -eq 0 ]; then
+            exit 0
+        fi
 
 runcmd:
   - |
@@ -243,6 +252,9 @@ echo "Launching background daemons: disk_enlarger.py and check_in.py"
 exec /usr/bin/python3 -u /cocalc/disk_enlarger.py 2> /var/log/cocalc-disk-enlarger.err >/var/log/cocalc-disk-enlarger.log &
 
 exec /usr/bin/python3 -u /cocalc/check_in.py ${CHECK_IN_PERIOD_S} 2> /var/log/cocalc-check-in.err >/var/log/cocalc-check-in.log &
+
+# Put back unattended upgrades, since they are good to have for security reasons.
+apt-get install -y unattended-upgrades || true
 
 echo "Startup complete!"
 `;
