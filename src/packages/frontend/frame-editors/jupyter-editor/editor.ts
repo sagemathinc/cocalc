@@ -8,26 +8,29 @@ Spec for editing Jupyter notebooks via a frame tree.
 */
 
 import { createElement } from "react";
+
+import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
+import { AllActions, commands } from "@cocalc/frontend/jupyter/commands";
+import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
 import { capitalize, field_cmp, set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { CellNotebook } from "./cell-notebook/cell-notebook";
-import { RawIPynb } from "./raw-ipynb";
-import JSONIPynb from "./json-ipynb";
-import { Slideshow } from "./slideshow-revealjs/slideshow";
-import { TableOfContents } from "./table-of-contents";
 import { Introspect } from "./introspect/introspect";
-const SNIPPET_ICON_NAME =
-  require("@cocalc/frontend/assistant/common").ICON_NAME;
-import { JupyterSnippets } from "./snippets";
-import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
-import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
-import { commands, AllActions } from "@cocalc/frontend/jupyter/commands";
-import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
+import JSONIPynb from "./json-ipynb";
 import KernelMenuItem from "./kernel-menu-item";
-import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
+import { RawIPynb } from "./raw-ipynb";
+import { Slideshow } from "./slideshow-revealjs/slideshow";
+import { JupyterSnippets } from "./snippets";
+import { TableOfContents } from "./table-of-contents";
+
+const {
+  ICON_NAME: SNIPPET_ICON_NAME,
+} = require("@cocalc/frontend/assistant/common");
 
 const jupyterCommands = set([
   "about",

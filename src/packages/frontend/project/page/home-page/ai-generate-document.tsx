@@ -48,6 +48,7 @@ import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { AI_GEN_TEXT } from "@cocalc/frontend/frame-editors/frame-tree/commands/const";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { Actions as LatexActions } from "@cocalc/frontend/frame-editors/latex-editor/actions";
 import LLMSelector, {
@@ -60,6 +61,7 @@ import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
+import { DELAY_SHOW_MS } from "@cocalc/frontend/project/new/consts";
 import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
 import { StartButton } from "@cocalc/frontend/project/start-button";
@@ -73,7 +75,6 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize, field_cmp, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { DELAY_SHOW_MS } from "../../new/consts";
 import {
   DOCUMENT,
   EXAMPLES_COMMON,
@@ -84,13 +85,14 @@ import {
 } from "./ai-generate-examples";
 import { DEFAULT_LANG_EXTRA, LANG_EXTRA, PROMPT } from "./ai-generate-prompts";
 import {
+  AI_GENERATE_DOC_TAG,
   commentBlock,
   getFilename,
   getTimestamp,
   sanitizeFilename,
 } from "./ai-generate-utils";
 
-const TAG = "generate-document";
+const TAG = AI_GENERATE_DOC_TAG;
 const TAG_TMPL = `${TAG}-template`;
 const PLACEHOLDER = "Describe the content...";
 
@@ -902,6 +904,43 @@ function AIGenerateDocument({
   );
 }
 
+export function AIGenerateDocumentModal({
+  show,
+  setShow,
+  project_id,
+  ext,
+}: {
+  show: boolean;
+  setShow: (val: boolean) => void;
+  project_id: string;
+  style?: CSS;
+  ext: Props["ext"];
+}) {
+  const docName = file_options(`x.${ext}`).name ?? `${capitalize(ext)}`;
+
+  return (
+    <Modal
+      title={
+        <>
+          <AIAvatar size={18} /> Generate a {docName} Document using AI
+        </>
+      }
+      width={750}
+      open={show}
+      onCancel={() => setShow(false)}
+      footer={null}
+    >
+      <AIGenerateDocument
+        project_id={project_id}
+        show={show}
+        onSuccess={() => setShow(false)}
+        ext={ext}
+        docName={docName}
+      />
+    </Modal>
+  );
+}
+
 export function AIGenerateDocumentButton({
   project_id,
   style,
@@ -915,13 +954,7 @@ export function AIGenerateDocumentButton({
 }) {
   const [show, setShow] = useState<boolean>(false);
 
-  const docName = file_options(`x.${ext}`).name ?? `${capitalize(ext)}`;
-
-  if (
-    !redux
-      .getStore("projects")
-      .hasLanguageModelEnabled(project_id, `generate-document`)
-  ) {
+  if (!redux.getStore("projects").hasLanguageModelEnabled(project_id, TAG)) {
     return null;
   }
 
@@ -960,28 +993,15 @@ export function AIGenerateDocumentButton({
                 : { position: "unset", marginRight: "5px" }),
             }}
           />
-          {mode === "full" ? ` Generator...` : ""}
+          {mode === "full" ? ` ${AI_GEN_TEXT}` : ""}
         </Button>
       </Tip>
-      <Modal
-        title={
-          <>
-            <AIAvatar size={18} /> Generate a {docName} Document using AI
-          </>
-        }
-        width={750}
-        open={show}
-        onCancel={() => setShow(false)}
-        footer={null}
-      >
-        <AIGenerateDocument
-          project_id={project_id}
-          show={show}
-          onSuccess={() => setShow(false)}
-          ext={ext}
-          docName={docName}
-        />
-      </Modal>
+      <AIGenerateDocumentModal
+        ext={ext}
+        show={show}
+        setShow={setShow}
+        project_id={project_id}
+      />
     </>
   );
 }

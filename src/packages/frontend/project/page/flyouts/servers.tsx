@@ -19,7 +19,7 @@ import { FLYOUT_PADDING } from "./consts";
 
 export function ServersFlyout({ project_id, wrap }) {
   const servers = NAMED_SERVER_NAMES.map((name) => (
-    <ServerLink key={name} name={name} project_id={project_id} />
+    <ServerLink key={name} name={name} project_id={project_id} mode={"flyout"} />
   )).filter((s) => s != null);
 
   function renderEmbeddedServers() {

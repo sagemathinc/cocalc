@@ -4,14 +4,24 @@
  */
 
 import { Map as ImmutableMap } from "immutable";
-import { Button, ButtonToolbar, FormControl, Well } from "../antd-bootstrap";
-import { Component, Rendered } from "../app-framework";
-import { ErrorDisplay, Loading, ProfileIcon } from "../components";
 import Pica from "pica";
-import gravatarUrl from "./gravatar-url";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ReactCropComponent from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+import gravatarUrl from "./gravatar-url";
+
+import {
+  Button,
+  ButtonToolbar,
+  FormControl,
+  Well,
+} from "@cocalc/frontend/antd-bootstrap";
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
+import {
+  ErrorDisplay,
+  Loading,
+  ProfileIcon,
+} from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 // This is what facebook uses, and it makes
 // 40x40 look very good.  It takes about 20KB

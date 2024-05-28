@@ -12,6 +12,7 @@ import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, Loading, SettingBox } from "@cocalc/frontend/components";
 import { CUSTOM_SOFTWARE_HELP_URL } from "@cocalc/frontend/custom-software/util";
 import { tool2display } from "@cocalc/util/code-formatter";
+import { R_IDE } from "@cocalc/util/consts/ui";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Project } from "./types";
@@ -53,7 +54,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         ["pandoc", "File format conversions via pandoc"],
         ["vscode", "VSCode editor"],
         ["julia", "Julia programming language"],
-        ["rserver", "RStudio Server"],
+        ["rserver", R_IDE],
       ];
       const features: JSX.Element[] = [];
       let any_nonavail = false;

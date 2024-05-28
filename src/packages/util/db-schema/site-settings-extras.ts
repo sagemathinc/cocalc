@@ -313,7 +313,7 @@ export const EXTRAS: SettingsExtras = {
   ollama_configuration: {
     name: "Ollama Configuration",
     desc: 'Configure Ollama endpoints. e.g. Ollama has "gemma" installed and is available at localhost:11434: `{"gemma" : {"baseUrl": "http://localhost:11434/" , cocalc: {display: "Gemma", desc: "Google\'s Gemma Model"}}`',
-    default: "",
+    default: "{}",
     multiline: 5,
     show: ollama_enabled,
     to_val: from_json,
@@ -325,7 +325,7 @@ export const EXTRAS: SettingsExtras = {
   custom_openai_configuration: {
     name: "Custom OpenAI Endpoints",
     desc: 'Configure OpenAI endpoints, queried via [@langchain/openai (Node.js)](https://js.langchain.com/v0.1/docs/integrations/llms/openai/). e.g. `{"myllm" : {"baseUrl": "http://1.2.3.4:5678/" , apiKey: "key...", cocalc: {display: "My LLM", desc: "My custom LLM"}}, "gpt-4o-high": {baseUrl: "https://api.openai.com/v1", temperature: 1, "openAIApiKey": "sk-...", "model": "gpt-4o", cocalc: {display: "High GPT-4 Omni", desc: "GPT 4 Omni with a high temperature"}}}`',
-    default: "",
+    default: "{}",
     multiline: 5,
     show: custom_openai_enabled,
     to_val: from_json,
