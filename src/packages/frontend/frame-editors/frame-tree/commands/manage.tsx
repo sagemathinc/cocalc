@@ -1,15 +1,16 @@
-import { COMMANDS } from "./commands";
-import { GROUPS, MENUS } from "./menus";
-import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
-import type { Command } from "./types";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
 import { Button, Tooltip } from "antd";
-import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
-import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
+
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
+import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
+import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
+import { COMMANDS } from "./commands";
+import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
+import { GROUPS, MENUS } from "./menus";
+import type { Command } from "./types";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
@@ -18,7 +19,8 @@ const ICON_WIDTH = "24px";
 export class ManageCommands {
   readonly props;
   readonly studentProjectFunctionality;
-  readonly setShowAI;
+  readonly setShowAI: (val: boolean) => void;
+  readonly setShowNewAI: (val: boolean) => void;
   readonly helpSearch: string;
   readonly setHelpSearch;
   readonly readOnly: boolean;
@@ -30,6 +32,7 @@ export class ManageCommands {
     props,
     studentProjectFunctionality,
     setShowAI,
+    setShowNewAI,
     helpSearch,
     setHelpSearch,
     readOnly,
@@ -38,6 +41,7 @@ export class ManageCommands {
     this.props = props;
     this.studentProjectFunctionality = studentProjectFunctionality;
     this.setShowAI = setShowAI;
+    this.setShowNewAI = setShowNewAI;
     this.helpSearch = helpSearch;
     this.setHelpSearch = setHelpSearch;
     this.readOnly = readOnly;

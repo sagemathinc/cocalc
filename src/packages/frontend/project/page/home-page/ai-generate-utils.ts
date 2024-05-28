@@ -66,4 +66,7 @@ const commentChars = {
   pl: "#",
   go: "//",
   m: "%",
-};
+} as const
+
+// Tag for tracking/activating this LLM feature
+export const AI_GENERATE_DOC_TAG = "generate-document"

@@ -11,6 +11,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -20,37 +21,46 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import {
+  Gap,
   Icon,
   MenuItem,
   MenuItems,
   r_join,
-  Gap,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { DropdownMenu } from "@cocalc/frontend/components/dropdown-menu";
+import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
+import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/standalone-doc-status";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { copy, path_split, trunc_middle, field_cmp } from "@cocalc/util/misc";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+import { AIGenerateDocumentModal } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
+import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
+import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import userTracking from "@cocalc/frontend/user-tracking";
+import {
+  copy,
+  field_cmp,
+  filename_extension,
+  path_split,
+  trunc_middle,
+} from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
-import { SaveButton } from "./save-button";
-import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 import LanguageModelTitleBarButton from "../llm/title-bar-button";
-import userTracking from "@cocalc/frontend/user-tracking";
-import TitleBarTour from "./title-bar-tour";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 import {
   APPLICATION_MENU,
   COMMANDS,
-  MENUS,
   GROUPS,
-  SEARCH_COMMANDS,
   ManageCommands,
+  MENUS,
+  SEARCH_COMMANDS,
 } from "./commands";
-const MAX_SEARCH_RESULTS = 10;
-import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/standalone-doc-status";
+import { SaveButton } from "./save-button";
+import TitleBarTour from "./title-bar-tour";
+import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -75,8 +85,7 @@ interface EditorActions extends Actions {
   halt_jupyter?: () => void;
 }
 
-import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
-import { COLORS } from "@cocalc/util/theme";
+const MAX_SEARCH_RESULTS = 10;
 
 const COL_BAR_BACKGROUND = "#f8f8f8";
 const COL_BAR_BACKGROUND_DARK = COL_BAR_BACKGROUND;
@@ -183,6 +192,7 @@ export function FrameTitleBar(props: Props) {
     useState<boolean>(false);
 
   const [showAI, setShowAI] = useState<boolean>(false);
+  const [showNewAI, setShowNewAI] = useState<boolean>(false);
 
   const [helpSearch, setHelpSearch] = useState<string>("");
 
@@ -212,6 +222,7 @@ export function FrameTitleBar(props: Props) {
         props,
         studentProjectFunctionality: student_project_functionality,
         setShowAI,
+        setShowNewAI,
         helpSearch,
         setHelpSearch,
         readOnly: read_only,
@@ -223,11 +234,11 @@ export function FrameTitleBar(props: Props) {
       helpSearch,
       setHelpSearch,
       setShowAI,
+      setShowNewAI,
       read_only,
       editorSettings,
     ],
   );
-  // window.x = { manageCommands };
 
   const has_unsaved_changes: boolean = useRedux([
     props.editor_actions.name,
@@ -511,6 +522,22 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
+  function renderNewAI() {
+    const { path, project_id } = props;
+    const ext = filename_extension(path);
+    if (!isSupportedExtension(ext)) return;
+
+    return (
+      <AIGenerateDocumentModal
+        key={"new-ai"}
+        ext={ext}
+        show={showNewAI}
+        setShow={setShowNewAI}
+        project_id={project_id}
+      />
+    );
+  }
+
   function renderAssistant(noLabel): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
@@ -716,6 +743,7 @@ export function FrameTitleBar(props: Props) {
         v.push(renderTitle());
       }
       v.push(renderPage());
+      v.push(renderNewAI());
       v.push(renderMenus());
       v.push(renderSwitchToFile());
 

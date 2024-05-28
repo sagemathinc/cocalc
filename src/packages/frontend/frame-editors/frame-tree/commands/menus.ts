@@ -28,7 +28,6 @@ export function addMenus(menus: Menus) {
     }
   }
 }
-// window.x = { MENUS };
 
 export function addCommandsToMenus(commands: { [command: string]: Command }) {
   for (const name in commands) {

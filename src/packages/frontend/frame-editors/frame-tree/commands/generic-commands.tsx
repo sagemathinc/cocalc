@@ -1,22 +1,26 @@
-import { get_default_font_size } from "@cocalc/frontend/frame-editors/generic/client";
-import {
-  undo as chatUndo,
-  redo as chatRedo,
-} from "@cocalc/frontend/frame-editors/generic/chat";
-import { Icon } from "@cocalc/frontend/components";
-import { redux } from "@cocalc/frontend/app-framework";
+import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
-import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
-import { IS_MACOS } from "@cocalc/frontend/feature";
-import userTracking from "@cocalc/frontend/user-tracking";
-import openSupportTab from "@cocalc/frontend/support/open";
-import { Input } from "antd";
-import { SEARCH_COMMANDS } from "./const";
-import { addCommands } from "./commands";
+
 import { set_account_table } from "@cocalc/frontend/account/util";
+import { redux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { IS_MACOS } from "@cocalc/frontend/feature";
+import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
+import {
+  redo as chatRedo,
+  undo as chatUndo,
+} from "@cocalc/frontend/frame-editors/generic/chat";
+import { get_default_font_size } from "@cocalc/frontend/frame-editors/generic/client";
 import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
+import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
+import { AI_GENERATE_DOC_TAG } from "@cocalc/frontend/project/page/home-page/ai-generate-utils";
+import openSupportTab from "@cocalc/frontend/support/open";
+import userTracking from "@cocalc/frontend/user-tracking";
+import { filename_extension } from "@cocalc/util/misc";
+import { addCommands } from "./commands";
+import { AI_GEN_TEXT, SEARCH_COMMANDS } from "./const";
 
 addCommands({
   "split-row": {
@@ -627,6 +631,22 @@ addCommands({
     title: "Create a new file",
     label: "New File",
     ...fileAction("new"),
+  },
+  new_ai: {
+    pos: 0.5,
+    group: "new-open",
+    icon: <AIAvatar size={16} />,
+    title: "Create a new file with the help of AI",
+    label: AI_GEN_TEXT,
+    onClick: ({ setShowNewAI }) => setShowNewAI?.(true),
+    isVisible: ({ props }) => {
+      const { path, project_id } = props;
+      const ext = filename_extension(path);
+      if (!isSupportedExtension(ext)) return false;
+      return redux
+        .getStore("projects")
+        .hasLanguageModelEnabled(project_id, AI_GENERATE_DOC_TAG);
+    },
   },
   open: {
     pos: 1,

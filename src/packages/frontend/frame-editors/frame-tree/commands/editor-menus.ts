@@ -6,10 +6,10 @@ This is basically a more user friendly and compact interface to the addMenus
 and addCommands functions.
 */
 
+import { capitalize } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
 import { addMenus } from "./menus";
 import type { Command, Menus } from "./types";
-import { capitalize } from "@cocalc/util/misc";
 
 type Command0 = {
   icon?: string;
