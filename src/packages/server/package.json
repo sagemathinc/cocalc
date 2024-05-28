@@ -79,6 +79,7 @@
     "awaiting": "^3.0.0",
     "axios": "^1.6.8",
     "base62": "^2.0.1",
+    "base64-js": "^1.5.1",
     "bottleneck": "^2.19.5",
     "cloudflare": "^2.9.1",
     "cookies": "^0.8.0",

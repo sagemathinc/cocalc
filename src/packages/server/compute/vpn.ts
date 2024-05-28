@@ -28,7 +28,6 @@ import getPool from "@cocalc/database/pool";
 import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
-import _sodium from "libsodium-wrappers";
 
 const PREFIX = "10.11.";
 
@@ -139,6 +138,8 @@ export async function getVpnConf(project_id: string): Promise<VpnConf> {
   return { image, nodes };
 }
 
+import _sodium from "libsodium-wrappers";
+import { fromByteArray } from "base64-js";
 export async function generateWireGuardKeyPair(): Promise<{
   privateKey: string;
   publicKey: string;
