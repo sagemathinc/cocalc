@@ -20,5 +20,7 @@ export const SHARE_FLAGS = {
 } as const;
 
 // documentation pages
-
 export const DOC_AI = "https://doc.cocalc.com/ai.html";
+
+// How we call Posit's RStudio (rserver) IDE
+export const R_IDE = "R IDE";

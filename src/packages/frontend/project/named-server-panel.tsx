@@ -21,6 +21,7 @@ import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import track from "@cocalc/frontend/user-tracking";
+import { R_IDE } from "@cocalc/util/consts/ui";
 import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
@@ -71,8 +72,8 @@ code completion, snippets, code refactoring, and embedded Git.`,
     icon: "julia",
   },
   rserver: {
-    longName: "RStudio",
-    description: `RStudio by Posit Software, PBC is an integrated development environment (IDE) for R. It is provided without any modifications.  DISCLAIMER: RSTUDIO/POSIT PBC IS IN NO WAY ASSOCIATED WITH COCALC.`,
+    longName: R_IDE,
+    description: `This is an integrated development environment (IDE) for R. It is provided without any modifications. DISCLAIMER: Posit Software, PBC (formerly RStudio, PBC) IS IN NO WAY ASSOCIATED WITH COCALC.`,
     usesBasePath: false,
     icon: "r",
   },
@@ -185,14 +186,15 @@ export function serverURL(project_id: string, name: NamedServerName): string {
 export function ServerLink({
   project_id,
   name,
+  mode = "full",
 }: {
   project_id: string;
   name: NamedServerName;
+  mode: "flyout" | "full";
 }) {
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const available = useAvailableFeatures(project_id);
-  const { icon, longName } = getServerInfo(name);
   if (
     name === "jupyterlab" &&
     (!available.jupyter_lab ||
@@ -221,10 +223,12 @@ export function ServerLink({
   ) {
     return null;
   } else {
+    const { icon, longName, description } = getServerInfo(name);
     return (
       <LinkRetry
         href={serverURL(project_id, name)}
         loadingText="Launching server..."
+        tooltip={mode === "flyout" ? description : undefined}
         onClick={() => {
           track("launch-server", { name, project_id });
         }}

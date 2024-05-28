@@ -8,7 +8,7 @@ Frame for working with a Jupyter notebook as a single markdown
 document, like in RStudio or our RMarkdown editor.
 */
 
-import { Rendered, Component } from "../../app-framework";
+import { Rendered, Component } from "@cocalc/frontend/app-framework";
 
 interface Props {
   project_id: string;

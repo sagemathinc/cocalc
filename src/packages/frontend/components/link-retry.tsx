@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 
 import {
   useEffect,
   useIsMountedRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Gap } from "@cocalc/frontend/components";
+import { Gap, Icon, Loading } from "@cocalc/frontend/components";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
 import { COLORS } from "@cocalc/util/theme";
@@ -24,6 +24,7 @@ interface Props {
   onClick?: () => void;
   autoStart?: boolean;
   maxTime?: number;
+  tooltip?: string;
 }
 
 const LinkRetry: React.FC<Props> = ({
@@ -35,6 +36,7 @@ const LinkRetry: React.FC<Props> = ({
   autoStart,
   maxTime = 30000,
   loadingText,
+  tooltip,
 }: Props) => {
   const isMountedRef = useIsMountedRef();
   const [working, setWorking] = useState<boolean>(false);
@@ -104,42 +106,44 @@ const LinkRetry: React.FC<Props> = ({
     }
   }, []);
 
+  function renderError() {
+    if (!error) return;
+    return (
+      <span style={{ color: COLORS.ANTD_RED_WARN }}>
+        <Gap /> (failed to load)
+      </span>
+    );
+  }
+
   switch (mode) {
     case "link":
+      const aLink = (
+        <a onClick={click} style={{ cursor: "pointer" }}>
+          {children}
+        </a>
+      );
+      const a = tooltip ? <Tooltip title={tooltip}>{aLink}</Tooltip> : aLink;
       return (
         <span>
-          <a onClick={click} style={{ cursor: "pointer" }}>
-            {children}
-          </a>
+          {a}
           {mode === "link" && loading && (
             <span>
               <Gap /> <Loading text={loadingText} />
             </span>
           )}
-          {error && (
-            <>
-              <span style={{ color: COLORS.ANTD_RED_WARN }}>
-                <Gap /> (failed to load)
-              </span>
-            </>
-          )}
+          {renderError()}
         </span>
       );
     case "button":
-      return (
+      const btn = (
         <Button onClick={click} size={size}>
           {children}
-          {loading ? (
-            <Icon name="cocalc-ring" spin />
-          ) : (
-            error && (
-              <span style={{ color: COLORS.ANTD_RED_WARN }}>
-                (failed to load)
-              </span>
-            )
-          )}
+          {loading ? <Icon name="cocalc-ring" spin /> : renderError()}
         </Button>
       );
+      if (tooltip) {
+        return <Tooltip title={tooltip}>{btn}</Tooltip>;
+      }
     default:
       throw Error("invalid mode");
   }

@@ -4,12 +4,18 @@
  */
 
 import { Map } from "immutable";
-import { rclass, rtypes, Component, Rendered } from "../app-framework";
-import { Panel } from "../antd-bootstrap";
-import { LabeledRow, Loading, Gap } from "../components";
-import { ColorPicker } from "../colorpicker";
-import { ProfileImageSelector, setProfile } from "./profile-image";
+
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Component,
+  Rendered,
+  rclass,
+  rtypes,
+} from "@cocalc/frontend/app-framework";
+import { ColorPicker } from "@cocalc/frontend/colorpicker";
+import { Gap, LabeledRow, Loading } from "@cocalc/frontend/components";
 import { Avatar } from "./avatar/avatar";
+import { ProfileImageSelector, setProfile } from "./profile-image";
 
 interface Props {
   email_address?: string;
