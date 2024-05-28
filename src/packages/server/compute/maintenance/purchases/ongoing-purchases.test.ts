@@ -29,6 +29,15 @@ afterAll(async () => {
   await getPool().end();
 });
 
+async function getUpdatePurchase(id: number) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT update_purchase FROM compute_servers WHERE id=$1",
+    [id],
+  );
+  return rows[0].update_purchase;
+}
+
 describe("creates account, project, test compute server, and purchase", () => {
   const account_id = uuid();
   let project_id;
@@ -64,8 +73,8 @@ describe("creates account, project, test compute server, and purchase", () => {
 
   it("runs ongoingPurchases and confirms that our new server did NOT get flagged", async () => {
     await ongoingPurchases();
-    const server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(false);
+    const update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(false);
   });
 
   it("set state of our server to 'off' (off costs but doesn't trigger network), then check that server does get flagged because it was never flagged before and state is not active. This tests that things work properly when last_purchase_update is null.", async () => {
@@ -76,8 +85,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       [id],
     );
     await ongoingPurchases();
-    const server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(true);
+    const update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(true);
   });
 
   it("clear flag and mark last_purchase_update as right now and verify that server does NOT get flagged", async () => {
@@ -87,8 +96,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       [id],
     );
     await ongoingPurchases();
-    const server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(false);
+    const update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(false);
   });
 
   it("clear flag and mark last_purchase_update as first more recent than PERIODIC_SHORT_UPDATE_INTERVAL_MS then less recent, verify that server DOES NOT, then DOES get flagged for update", async () => {
@@ -100,8 +109,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       [id],
     );
     await ongoingPurchases();
-    let server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(false);
+    let update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(false);
     await pool.query(
       `UPDATE compute_servers SET update_purchase=FALSE, state='running',  last_purchase_update=NOW()-interval '${
         PERIODIC_SHORT_UPDATE_INTERVAL_MS / 1000 + 30
@@ -109,8 +118,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       [id],
     );
     await ongoingPurchases();
-    server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(true);
+    update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(true);
   });
 
   it("same test as above, but with last state change in the distant past", async () => {
@@ -122,8 +131,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       [id],
     );
     await ongoingPurchases();
-    let server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(false);
+    let update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(false);
     await pool.query(
       `UPDATE compute_servers SET update_purchase=FALSE, state='running',  last_purchase_update=NOW()-interval '${
         PERIODIC_SHORT_UPDATE_INTERVAL_MS / 1000 + 30
@@ -131,8 +140,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       [id],
     );
     await ongoingPurchases();
-    server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(true);
+    update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(true);
   });
 
   let purchase_id;
@@ -142,7 +151,7 @@ describe("creates account, project, test compute server, and purchase", () => {
       "UPDATE compute_servers SET update_purchase=FALSE, last_purchase_update=NOW()-interval '1 minute' WHERE id=$1",
       [id],
     );
-    let server = await getServer({ account_id, id });
+    const server = await getServer({ account_id, id });
     purchase_id = await createPurchase({
       client: null,
       account_id,
@@ -158,8 +167,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       },
     });
     await ongoingPurchases();
-    server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(false);
+    const update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(false);
   });
 
   it("change that purchase to have started a longer time ago, then check that server DOES get flagged", async () => {
@@ -171,8 +180,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       [purchase_id],
     );
     await ongoingPurchases();
-    const server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(true);
+    const update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(true);
   });
 
   it("clear flag, make purchase closed, then check that server does NOT get flagged", async () => {
@@ -186,8 +195,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       [purchase_id],
     );
     await ongoingPurchases();
-    const server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(false);
+    const update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(false);
   });
 
   it("make recent network purchase, then check that server does NOT get flagged for update", async () => {
@@ -211,8 +220,8 @@ describe("creates account, project, test compute server, and purchase", () => {
       },
     });
     await ongoingPurchases();
-    const server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(false);
+    const update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(false);
     await pool.query("DELETE FROM purchases WHERE id=$1", [purchase_id]);
   });
 
@@ -225,7 +234,7 @@ describe("creates account, project, test compute server, and purchase", () => {
       [id],
     );
     await ongoingPurchases();
-    const server = await getServer({ account_id, id });
-    expect(!!server.update_purchase).toBe(true);
+    const update_purchase = await getUpdatePurchase(id);
+    expect(!!update_purchase).toBe(true);
   });
 });
