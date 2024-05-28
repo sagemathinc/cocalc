@@ -148,7 +148,11 @@ ${defineSetStateFunction({ api_key, apiServer, compute_server_id })}
 setState state running
 
 # make sure nothing involving apt-get is running (e.g., auto updates)
+# Basically, unattended upgrades can randomly run and just totally break
+# the startup script, which is really painful.
 pkill -9 apt-get || true
+apt remove -y unattended-upgrades || true
+pkill -f -9 unattended-upgrade || true
 
 ${installTime()}
 
@@ -239,6 +243,9 @@ echo "Launching background daemons: disk_enlarger.py and check_in.py"
 exec /usr/bin/python3 -u /cocalc/disk_enlarger.py 2> /var/log/cocalc-disk-enlarger.err >/var/log/cocalc-disk-enlarger.log &
 
 exec /usr/bin/python3 -u /cocalc/check_in.py ${CHECK_IN_PERIOD_S} 2> /var/log/cocalc-check-in.err >/var/log/cocalc-check-in.log &
+
+# Put back unattended upgrades, since they are good to have for security reasons.
+apt install -y unattended-upgrades || true
 
 echo "Startup complete!"
 `;
