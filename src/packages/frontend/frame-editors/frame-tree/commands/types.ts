@@ -1,6 +1,7 @@
-import { MENUS } from "./menus";
 import type { ReactNode } from "react";
+
 import type { ManageCommands } from "./manage";
+import { MENUS } from "./menus";
 
 interface MenuSpec {
   label: string;

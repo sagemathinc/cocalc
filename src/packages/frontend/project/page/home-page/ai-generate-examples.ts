@@ -179,6 +179,10 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
 // supported extensions
 const EXTS = ["tex", "rmd", "ipynb", "qmd", "md"] as const;
 export type Ext = (typeof EXTS)[number];
+export function isSupportedExtension(ext?: string): ext is Ext {
+  return typeof ext === "string" && EXTS.includes(ext as any);
+}
+
 export const PAPERSIZE: { [ext in Ext]?: string[] } = {
   tex: ["Letter (US)", "Legal (US)", "A4 (Europe)", "A5 (Europe)"],
 };
