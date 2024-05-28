@@ -342,7 +342,9 @@ setState filesystem init '' 60 15
 # Note the filesystem mount is with the option nonempty, so
 # we don't have to worry anymore about deleting /home/user/*,
 # which is scary.
-fusermount -u /home/user 2>/dev/null; mkdir -p /home/user && chown ${UID}:${UID} /home/user
+fusermount -u /home/user || true
+umount -l /home/user || true
+mkdir -p /home/user && chown ${UID}:${UID} /home/user
 if [ $? -ne 0 ]; then
    setState filesystem error "problem making /home/user directory"
    exit 1
