@@ -317,7 +317,6 @@ export async function installConf({
 # Setup Current CoCalc Connection Configuration --
 mkdir -p /cocalc/conf
 # Lock /cocalc/conf down via permissions since it contains api keys and other secrets:
-chown user:user -R /cocalc/conf
 chmod o-rwx /cocalc/conf
 chmod ug+rwx /cocalc/conf
 echo "${api_key}" > /cocalc/conf/api_key
@@ -329,6 +328,7 @@ echo '${auth}' > /cocalc/conf/authorized_keys
 echo '${auth_token}' > ${PROXY_AUTH_TOKEN_FILE}
 echo '${base64ProxyConfig}' | base64 --decode > ${PROXY_CONFIG}
 echo '${exclude_from_sync}' > /cocalc/conf/exclude_from_sync
+chown user:user -R /cocalc/conf
 `;
 }
 

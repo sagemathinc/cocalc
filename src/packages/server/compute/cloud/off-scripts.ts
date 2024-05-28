@@ -6,6 +6,14 @@ interface Options {
   api_key: string;
 }
 
+// We should run these in a much better way... but that's for another day.
+function killDaemons() {
+  return `
+pkill -f check_in.py || true
+pkill -f disk_enlarger.py || true
+`;
+}
+
 export async function stopScript({ compute_server_id, api_key }: Options) {
   if (!api_key) {
     throw Error("api_key must be specified");
@@ -34,6 +42,8 @@ docker stop compute
 setState compute off '' 30 0
 
 ${extraUnmount()}
+
+${killDaemons()}
 
 setState state off
 
@@ -75,6 +85,8 @@ docker rm compute
 setState compute deleted '' 0 0
 
 ${extraUnmount()}
+
+${killDaemons()}
 
 setState state deprovisioned
 

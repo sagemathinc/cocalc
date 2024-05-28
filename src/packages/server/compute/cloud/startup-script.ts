@@ -231,9 +231,13 @@ ${runCoCalcCompute({
   IMAGES,
 })}
 
+echo "Launching background daemons: disk_enlarger.py and check_in.py"
+
 exec /usr/bin/python3 -u /cocalc/disk_enlarger.py 2> /var/log/cocalc-disk-enlarger.err >/var/log/cocalc-disk-enlarger.log &
 
-exec /usr/bin/python3 -u /cocalc/check_in.py ${CHECK_IN_PERIOD_S} 2> /var/log/cocalc-check-in.err >/var/log/cocalc-check-in.log & 
+exec /usr/bin/python3 -u /cocalc/check_in.py ${CHECK_IN_PERIOD_S} 2> /var/log/cocalc-check-in.err >/var/log/cocalc-check-in.log &
+
+echo "Startup complete!"
 `;
 }
 
