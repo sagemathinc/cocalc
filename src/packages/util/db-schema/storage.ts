@@ -12,7 +12,6 @@ This is 100% built on juicefs/keydb instead of gcs/s3, etc., since:
   anyways (since they are root)
 */
 
-
 import { Table } from "./types";
 import { ID, NOTES } from "./crm";
 
@@ -30,6 +29,16 @@ interface GoogleCloudServiceAccountKey {
   universe_domain: "googleapis.com";
 }
 
+// We will add a lot of optional configuration options
+// for mounting juices and running keydb.
+interface JuiceConfiguration {
+  "attr-cache"?: number;
+  "entry-cache"?: number;
+  "dir-entry-cach"?: number;
+}
+
+interface KeyDbConfiguration {}
+
 export interface Storage {
   id: number;
   project_id: string;
@@ -40,6 +49,7 @@ export interface Storage {
   secret_key: GoogleCloudServiceAccountKey;
   port: number;
   compression: "lz4" | "zstd" | "none";
+  configuration?: { juice?: JuiceConfiguration; keydb?: KeyDbConfiguration };
   title?: string;
   color?: string;
   deleted?: boolean;
@@ -70,6 +80,7 @@ Table({
           mountpoint: null,
           port: null,
           compression: null,
+          configuration: null,
           title: null,
           color: null,
           error: null,
@@ -137,6 +148,11 @@ Table({
       pg_type: "VARCHAR(64)",
       desc: "Compression for the filesystem: lz4, zstd or none.  Cannot be changed.",
       render: { type: "text", maxLength: 64, editable: false },
+    },
+    configuration: {
+      type: "map",
+      pg_type: "jsonb",
+      desc: "Optional juice and KeyDB runtime configuration.",
     },
     title: {
       type: "string",
