@@ -71,8 +71,8 @@ export interface PublicPathProps {
   // doesn't use the names. See https://github.com/sagemathinc/cocalc/issues/6115
   redirect?: string;
   jupyter_api: boolean;
-  created?: string; // ISO 8601 string
-  last_edited?: string; // ISO 8601 string
+  created: string|null; // ISO 8601 string
+  last_edited: string|null; // ISO 8601 string
   ogUrl?: string; // Open Graph URL for social media sharing
 }
 

@@ -113,10 +113,18 @@ export default async function getPublicPathInfo({
       basePath,
       isStarred,
       ...details,
-      created: rows[0].created.toISOString(),
-      last_edited: rows[0].last_edited.toISOString(),
+      created: rows[0].created?.toISOString() ?? null,
+      last_edited: rows[0].last_edited?.toISOString() ?? null,
     };
   } catch (error) {
-    return { id, ...rows[0], relativePath, isStarred, error: error.toString() };
+    return {
+      id,
+      ...rows[0],
+      relativePath,
+      isStarred,
+      created: rows[0].created?.toISOString() ?? null,
+      last_edited: rows[0].last_edited?.toISOString() ?? null,
+      error: error.toString(),
+    };
   }
 }
