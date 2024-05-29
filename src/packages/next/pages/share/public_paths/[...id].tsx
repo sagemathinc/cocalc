@@ -70,12 +70,14 @@ export async function getServerSideProps(context) {
 
     const customize = await withCustomize({ context, props });
 
-    // Add full URL for social media sharing
-    //
-    customize.props.ogUrl = `${customize.props.customize.siteURL}${shareURL(
-      id,
-      relativePath,
-    )}`;
+    if (customize != null) {
+      // Add full URL for social media sharing
+      //
+      customize.props.ogUrl = `${customize.props.customize.siteURL}${shareURL(
+        id,
+        relativePath,
+      )}`;
+    }
 
     return customize;
   } catch (_err) {
