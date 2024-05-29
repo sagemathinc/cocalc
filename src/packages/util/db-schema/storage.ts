@@ -1,19 +1,20 @@
 /*
-Configuration of network mounted shared storage associated to projects.
+Configuration of network mounted shared POSIX filesystem storage associated
+to projects for use initially by the compute servers.
 
 Initially these will get mounted by all compute servers uniformly (mostly),
-and later the project will also mount these via a sidecar.  This may replace
-or complement the current "Cloud Storage & Remote Filesystems" in project
-settings.
+and later the project will also mount these via a sidecar.
 
-Also initially only the posix filesystem type built on keydb and juicefs
-will be implemented.
+This is 100% built on juicefs/keydb instead of gcs/s3, etc., since:
+
+- there are so many gotchas with directly using fuse mounted gcs/s3,
+- people can just use those directly or mount them directly easily
+  anyways (since they are root)
 */
+
 
 import { Table } from "./types";
 import { ID, NOTES } from "./crm";
-
-type StorageType = "juice" | "gcs" | "s3";
 
 interface GoogleCloudServiceAccountKey {
   type: "service_account";
@@ -29,44 +30,16 @@ interface GoogleCloudServiceAccountKey {
   universe_domain: "googleapis.com";
 }
 
-interface S3Key {
-  type: "s3";
-  secret: string;
-}
-
-interface StorageConfigurationGCS {
-  type: "gcs";
-  bucket: string;
-}
-
-interface StorageConfigurationS3 {
-  type: "s3";
-  bucket: string;
-}
-
-interface StorageConfigurationJuice {
-  type: "juice";
-  compression?: "lz4" | "zstd" | "none";
-  bucket: string;
-}
-
-type SecretKey = GoogleCloudServiceAccountKey | S3Key;
-
-type StorageConfiguration =
-  | StorageConfigurationGCS
-  | StorageConfigurationS3
-  | StorageConfigurationJuice;
-
 export interface Storage {
   id: number;
-  type: StorageType;
   project_id: string;
   account_id: string;
   created: Date;
-  configuration: StorageConfiguration;
+  bucket: string;
   mountpoint: string;
-  secret_key: SecretKey;
-  port?: number;
+  secret_key: GoogleCloudServiceAccountKey;
+  port: number;
+  compression: "lz4" | "zstd" | "none";
   title?: string;
   color?: string;
   deleted?: boolean;
@@ -80,23 +53,27 @@ Table({
     primary_key: "id",
     // unique mountpoint *within* a given project; also unique port in case the
     // storage service requires a port to sync (e.g., keydb).
-    pg_unique_indexes: ["(project_id, mountpoint)", "(project_id, port)"],
+    pg_unique_indexes: [
+      "(project_id, mountpoint)",
+      "(project_id, port)",
+      "bucket",
+    ],
     user_query: {
       get: {
         pg_where: [{ "project_id = $::UUID": "project_id" }],
         throttle_changes: 0,
         fields: {
           id: null,
-          type: null,
           project_id: null,
           account_id: null,
+          bucket: null,
           mountpoint: null,
           port: null,
-          configuration: null,
-          error: null,
-          notes: null,
+          compression: null,
           title: null,
           color: null,
+          error: null,
+          notes: null,
         },
       },
       set: {
@@ -113,11 +90,6 @@ Table({
   },
   fields: {
     id: ID,
-    type: {
-      not_null: true,
-      type: "string",
-      desc: "Type of storage - juice, gcs, s3",
-    },
     project_id: {
       not_null: true,
       type: "uuid",
@@ -135,18 +107,19 @@ Table({
       type: "timestamp",
       desc: "When the compute server was created.",
     },
+    bucket: {
+      not_null: true,
+      type: "string",
+      pg_type: "VARCHAR(256)",
+      desc: "Google cloud storage bucket backing this filesystem",
+      render: { type: "text", maxLength: 256, editable: false },
+    },
     mountpoint: {
       not_null: true,
       type: "string",
       pg_type: "VARCHAR(1024)",
       desc: "Where compute server is mounted in the filesystem.  If a relative path, then relative to home directory.  Target path does not have to be empty.",
       render: { type: "text", maxLength: 1024, editable: true },
-    },
-    configuration: {
-      not_null: true,
-      type: "map",
-      pg_type: "jsonb",
-      desc: "Configuration of this storage.",
     },
     secret_key: {
       not_null: true,
@@ -157,6 +130,13 @@ Table({
     port: {
       type: "integer",
       desc: "Numerical port where local service runs on each client for the filesystem.  E.g., this is keydb for juicefs.",
+    },
+    compression: {
+      not_null: true,
+      type: "string",
+      pg_type: "VARCHAR(64)",
+      desc: "Compression for the filesystem: lz4, zstd or none.  Cannot be changed.",
+      render: { type: "text", maxLength: 64, editable: false },
     },
     title: {
       type: "string",
