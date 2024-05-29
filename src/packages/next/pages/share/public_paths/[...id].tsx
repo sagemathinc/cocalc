@@ -19,21 +19,30 @@ export default (props: PublicPathProps) => (
   <>
     <PublicPath {...props} />
     <NextHead>
-      <meta property="og:type" content="article"/>
+      <meta property="og:type" content="article" />
 
-      <meta property="og:title" content={props.path}/>
-      <meta property="og:description" content={props.description}/>
-      <meta property="og:url" content={props.ogUrl}/>
-      <meta property="og:image" content={
-        props.customize.logoSquareURL ||
-        `${props.customize.siteURL}${ogShareLogo.src}`
-      }/>
+      <meta property="og:title" content={props.path} />
+      <meta property="og:description" content={props.description} />
+      <meta property="og:url" content={props.ogUrl} />
+      {props.customize && (
+        <meta
+          property="og:image"
+          content={
+            props.customize.logoSquareURL ||
+            `${props.customize.siteURL}${ogShareLogo.src}`
+          }
+        />
+      )}
 
-      <meta property="article:published_time" content={props.created}/>
-      <meta property="article:modified_time" content={props.last_edited}/>
+      {props.created && (
+        <meta property="article:published_time" content={props.created}/>
+      )}
+      {props.last_edited && (
+        <meta property="article:modified_time" content={props.last_edited}/>
+      )}
     </NextHead>
   </>
-)
+);
 
 export async function getServerSideProps(context) {
   const id = context.params.id[0];
@@ -65,9 +74,14 @@ export async function getServerSideProps(context) {
 
     const customize = await withCustomize({ context, props });
 
-    // Add full URL for social media sharing
-    //
-    customize.props.ogUrl = `${customize.props.customize.siteURL}${shareURL(id, relativePath)}`;
+    if (customize != null) {
+      // Add full URL for social media sharing
+      //
+      customize.props.ogUrl = `${customize.props.customize.siteURL}${shareURL(
+        id,
+        relativePath,
+      )}`;
+    }
 
     return customize;
   } catch (_err) {
