@@ -61,7 +61,6 @@ import "./site-settings";
 import "./site-whitelabeling";
 import "./statements";
 import "./stats";
-import "./storage-servers";
 import "./subscriptions";
 import "./syncstring-schema";
 import "./system-notifications"; // deprecated: use "news" with channel="system"
