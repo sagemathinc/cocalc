@@ -58,7 +58,7 @@ export async function checkIn(opts: {
   } else {
     vpn_sha1 = undefined;
   }
-  const new_storage = await getStorageConf(project_id);
+  const new_storage = await getStorageConf(project_id, id);
   const new_storage_sha1 = sha1(JSON.stringify(new_storage));
   if (new_storage_sha1 != storage_sha1) {
     storage = new_storage;
