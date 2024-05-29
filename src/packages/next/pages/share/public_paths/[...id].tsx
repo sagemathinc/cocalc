@@ -34,8 +34,12 @@ export default (props: PublicPathProps) => (
         />
       )}
 
-      <meta property="article:published_time" content={props.created} />
-      <meta property="article:modified_time" content={props.last_edited} />
+      {props.created && (
+        <meta property="article:published_time" content={props.created}/>
+      )}
+      {props.last_edited && (
+        <meta property="article:modified_time" content={props.last_edited}/>
+      )}
     </NextHead>
   </>
 );
