@@ -308,6 +308,21 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     );
   }
 
+  function renderFilterRecent() {
+    return (
+      <div style={{}}>
+        <Checkbox
+          checked={today}
+          onChange={() => {
+            actions.setState({ today: !today });
+          }}
+        >
+          Today
+        </Checkbox>
+      </div>
+    );
+  }
+
   function render_button_row() {
     return (
       <Row style={{ marginLeft: 0, marginRight: 0 }}>
@@ -348,17 +363,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             </Button>
           )}
         </Col>
-        <Col xs={3} md={3} style={{ padding: "2px", display: "flex" }}>
-          <div style={{ marginTop: "5px" }}>
-            <Checkbox
-              checked={today}
-              onChange={() => {
-                actions.setState({ today: !today });
-              }}
-            >
-              Today
-            </Checkbox>
-          </div>
+        <Col xs={3} md={3} style={{ padding: "2px", display: "flex", verticalAlign: "center" }}>
+          {renderFilterRecent()}
           {render_search()}
         </Col>
       </Row>

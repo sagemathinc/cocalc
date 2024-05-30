@@ -20,6 +20,7 @@ import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   project_id: string;
@@ -221,7 +222,7 @@ function AddChatCollab({ addCollab, project_id }) {
       </A>
       , and add more collaborators to this project below.
       <AddCollaborators project_id={project_id} autoFocus where="side-chat" />
-      <div style={{ color: "#666" }}>
+      <div style={{ color: COLORS.GRAY_M }}>
         (Collaborators have access to all files in this project.)
       </div>
     </div>
@@ -258,7 +259,7 @@ function CollabList({ project, addCollab, actions }) {
       <div style={{ width: "16px", display: "inline-block" }}>
         <Icon name={addCollab ? "caret-down" : "caret-right"} />
       </div>
-      <span style={{ color: "#777", fontSize: "10pt" }}>
+      <span style={{ color: COLORS.GRAY_M, fontSize: "10pt" }}>
         {hasOpenAI && <>@ChatGPT, </>}
         {hasGoogleLLM && <>@Gemini, </>}
         <ProjectUsers

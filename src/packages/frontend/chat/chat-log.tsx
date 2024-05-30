@@ -22,13 +22,13 @@ import {
 import { VisibleMDLG } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   cmp,
   parse_hashtags,
   search_match,
   search_split,
 } from "@cocalc/util/misc";
-import { webapp_client } from "../webapp-client";
 import { ChatActions, getRootMessage } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
