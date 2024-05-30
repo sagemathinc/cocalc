@@ -74,6 +74,7 @@ export interface PublicPathProps {
   created: string|null; // ISO 8601 string
   last_edited: string|null; // ISO 8601 string
   ogUrl?: string; // Open Graph URL for social media sharing
+  ogImage?: string; // Open Graph image for social media sharing
 }
 
 export default function PublicPath({

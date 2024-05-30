@@ -22,6 +22,7 @@ import {
   useAsyncEffect,
   useFrameContext,
 } from "@cocalc/frontend/app-framework";
+import type { Message } from "@cocalc/frontend/client/types";
 import {
   LLMNameLink,
   Paragraph,
@@ -88,7 +89,7 @@ const EXAMPLES: readonly (readonly [string, readonly string[]])[] = [
   ],
   ["Perform a principal component analysis (PCA) on the dataset.", ["PCA"]],
   [
-    "Conduct a time series analysis on the dataset and extapolate.",
+    "Conduct a time series analysis on the dataset and extrapolate.",
     ["time series"],
   ],
   ["Create an interactive slider for the function.", ["interactive"]],
@@ -140,7 +141,7 @@ export function AIGenerateCodeCell({
 
   const prevCodeContents = getPrevCodeContents();
 
-  const { input } = getInput({
+  const inputPrompt = getInput({
     frameActions,
     prompt,
     lang,
@@ -150,8 +151,10 @@ export function AIGenerateCodeCell({
     prevCodeContents,
   });
 
+  const { input } = inputPrompt;
+
   useEffect(() => {
-    if (tokens > 0 && input == "") setTokens(0);
+    if (tokens > 0 && inputPrompt.input == "") setTokens(0);
   }, [input]);
 
   useAsyncEffect(
@@ -164,7 +167,15 @@ export function AIGenerateCodeCell({
           "@cocalc/frontend/misc/llm"
         );
 
-        const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
+        const { history, system } = inputPrompt;
+
+        const all = [
+          input,
+          history.map(({ content }) => content).join(" "),
+          system,
+        ].join(" ");
+
+        const tokens = numTokensUpperBound(all, getMaxTokens(model));
 
         setTokens(tokens);
       },
@@ -265,7 +276,7 @@ export function AIGenerateCodeCell({
   }) {
     if (!prompt.trim()) return;
 
-    const { input, system } = getInput({
+    const { input, history, system } = getInput({
       lang,
       kernel_name,
       frameActions,
@@ -292,9 +303,10 @@ export function AIGenerateCodeCell({
 
       const stream = await webapp_client.openai_client.queryStream({
         input,
+        history,
+        system,
         project_id,
         path,
-        system,
         tag,
         model,
       });
@@ -395,7 +407,10 @@ export function AIGenerateCodeCell({
     });
     return (
       <Paragraph>
-        <Dropdown menu={{ items }} trigger={["click"]}>
+        <Dropdown
+          menu={{ items, style: { maxHeight: "50vh", overflow: "auto" } }}
+          trigger={["click"]}
+        >
           <Button style={{ width: "100%" }}>
             <Space>
               <Icon name="magic" />
@@ -566,6 +581,41 @@ export function AIGenerateCodeCell({
     );
   }
 
+  function renderPromptPreview() {
+    if (!input?.trim()) return;
+
+    const { history, system } = inputPrompt;
+    const ex = history.map(({ content }) => content).join("\n\n");
+    const raw = [input, "Example:", ex, "System:", system].join("\n\n");
+
+    return (
+      <>
+        <Divider />
+        <Paragraph type="secondary">
+          A prompt to generate one or more cells based on your description and
+          context will be sent to the <LLMNameLink model={model} /> language
+          model.
+        </Paragraph>
+        <Collapse
+          items={[
+            {
+              key: "1",
+              label: (
+                <>Click to see what will be sent to {modelToName(model)}.</>
+              ),
+              children: (
+                <RawPrompt
+                  input={raw}
+                  style={{ border: "none", padding: "0", margin: "0" }}
+                />
+              ),
+            },
+          ]}
+        />
+      </>
+    );
+  }
+
   function renderContentDialog() {
     const empty = prompt.trim() == "";
     return (
@@ -593,32 +643,7 @@ export function AIGenerateCodeCell({
         </Paragraph>
         {renderExamples()}
         {empty ? undefined : renderContext()}
-        {input?.trim() ? (
-          <>
-            <Divider />
-            <Paragraph type="secondary">
-              A prompt to generate one or more cells based on your description
-              and context will be sent to the <LLMNameLink model={model} />{" "}
-              language model.
-            </Paragraph>
-            <Collapse
-              items={[
-                {
-                  key: "1",
-                  label: (
-                    <>Click to see what will be sent to {modelToName(model)}.</>
-                  ),
-                  children: (
-                    <RawPrompt
-                      input={input}
-                      style={{ border: "none", padding: "0", margin: "0" }}
-                    />
-                  ),
-                },
-              ]}
-            />
-          </>
-        ) : undefined}
+        {renderPromptPreview()}
         <Paragraph style={{ textAlign: "center", marginTop: "30px" }}>
           <Space size="large">
             <Button onClick={() => setShowAICellGen(null)}>Cancel</Button>
@@ -694,6 +719,10 @@ interface GetInputProps {
   kernel_name: string;
 }
 
+function getInputPrompt(prompt: string): string {
+  return `The new cell should do the following:\n\n${prompt}`;
+}
+
 function getInput({
   frameActions,
   prompt,
@@ -703,23 +732,33 @@ function getInput({
 }: GetInputProps): {
   input: string;
   system: string;
+  history: Message[];
 } {
   if (!prompt?.trim()) {
-    return { input: "", system: "" };
+    return { input: "", system: "", history: [] };
   }
   if (frameActions.current == null) {
     console.warn(
       "Unable to create cell due to frameActions not being defined.",
     );
-    return { input: "", system: "" };
+    return { input: "", system: "", history: [] };
   }
   const prevCode = prevCodeContents
-    ? `\n\nThe context after which to insert the cells is:\n\n<context>\n${prevCodeContents}\n\</context>`
+    ? `The context after which to insert the cells is:\n\n<context>\n${prevCodeContents}\n\</context>\n\n`
     : "";
 
+  const history: Message[] = [
+    { role: "user", content: getInputPrompt("Show the value of foo.") },
+    {
+      role: "assistant",
+      content: `This is the value of foo:\n\n\`\`\`${lang}\nprint(foo)\n\`\`\``,
+    },
+  ];
+
   return {
-    input: `Create a new code cell for a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\The entire code cell must be in a single code block. Enclose this block in triple backticks. Do not say what the output will be. Add comments as code comments. ${prevCode}\n\nThe new cell should do the following:\n\n${prompt}`,
-    system: `Return a single code block in the language "${lang}". Be brief.`,
+    input: `${prevCode}${getInputPrompt(prompt)}`,
+    history,
+    system: `Create one or more code cells in a Jupyter Notebook.\n\nKernel: "${kernel_name}".\n\nProgramming language: "${lang}".\n\nEach code cell must be wrapped in triple backticks. Do not say what the output will be. Be brief.`,
   };
 }
 

@@ -19,21 +19,18 @@ export default (props: PublicPathProps) => (
   <>
     <PublicPath {...props} />
     <NextHead>
-      <meta property="og:type" content="article" />
+      <meta property="og:type" content="article"/>
+      <meta property="og:title" content={props.path}/>
 
-      <meta property="og:title" content={props.path} />
-      <meta property="og:description" content={props.description} />
-      <meta property="og:url" content={props.ogUrl} />
-      {props.customize && (
-        <meta
-          property="og:image"
-          content={
-            props.customize.logoSquareURL ||
-            `${props.customize.siteURL}${ogShareLogo.src}`
-          }
-        />
+      {props.description && (
+        <meta property="og:description" content={props.description}/>
       )}
-
+      {props.ogUrl && (
+        <meta property="og:url" content={props.ogUrl}/>
+      )}
+      {props.ogImage && (
+        <meta property="og:image" content={props.ogImage}/>
+      )}
       {props.created && (
         <meta property="article:published_time" content={props.created}/>
       )}
@@ -74,13 +71,18 @@ export async function getServerSideProps(context) {
 
     const customize = await withCustomize({ context, props });
 
-    if (customize != null) {
+    if (customize?.props?.customize != null) {
       // Add full URL for social media sharing
       //
       customize.props.ogUrl = `${customize.props.customize.siteURL}${shareURL(
         id,
         relativePath,
       )}`;
+
+      // Add image path for social media sharing
+      //
+      customize.props.ogImage = customize.props.customize.logoSquareURL ||
+        `${customize.props.customize.siteURL}${ogShareLogo.src}`;
     }
 
     return customize;
