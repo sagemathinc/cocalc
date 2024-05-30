@@ -31,7 +31,7 @@ async function getStorageFilesystems(project_id: string): Promise<Storage[]> {
 async function getStorageImage(): Promise<string> {
   const IMAGES = await getImages();
   const tag = getTag({ image: "storage", IMAGES });
-  const pkg = IMAGES["vpn"]?.package ?? "sagemathinc/storage";
+  const pkg = IMAGES["storage"]?.package ?? "sagemathinc/storage";
   return `${pkg}:${tag}`;
 }
 
