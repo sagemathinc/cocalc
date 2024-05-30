@@ -1,5 +1,11 @@
 import { Ext } from "./ai-generate-examples";
 
+export interface HistoryExample {
+  prompt: string;
+  content: string;
+  filename: string;
+}
+
 const TEX_TEMPLATE = `\\documentclass{article}
 % set font encoding for PDFLaTeX, XeLaTeX, or LuaTeX
 \\usepackage{ifxetex,ifluatex}
@@ -18,10 +24,15 @@ const TEX_TEMPLATE = `\\documentclass{article}
 \\author{Name of Author}
 
 \\begin{document}
+
+Hello World!
+
 \\end{document}`;
 
+const RMD_PROMPT = "Plot 100 random numbers using R";
+const RMD_FILENAME = "100_random_numbers";
 const RMD_TEMPLATE = `---
-title: "Title"
+title: "Random numbers"
 output:
   html_document:
     toc: true
@@ -29,13 +40,15 @@ output:
     number_sections: true
 ---
 
-# Header 1
+## Generate
 
 \`\`\`{r}
 x <- rnorm(100)
 \`\`\`
 
-## Header 1.2
+## Plot
+
+Visualizing $x$.
 
 \`\`\`{r}
 plot(x)
@@ -43,15 +56,17 @@ plot(x)
 
 `;
 
-const IPYNB_TEMPLATE = `# Title
+const IPYNB_TEMPLATE = `## Assigning a variable
+
+Assign $x$:
 
 \`\`\`
 x = 1
 \`\`\`
 
-## Subtitle
+## Printing a variable
 
-Markdown content
+Print $x$:
 
 \`\`\`
 print(x)
@@ -60,9 +75,13 @@ print(x)
 
 const MD_TEMPLATE = `# Title
 
-## Subtitle
+## Markdown text
 
-Markdown content
+This is **bold** markdown *text*.
+
+## Formula
+
+This is a typeset formula: $e^{i pi} = -1$.
 
 `;
 
@@ -76,29 +95,55 @@ export const LANG_EXTRA: { [language: string]: string } = {
 
 export const DEFAULT_LANG_EXTRA = "Prefer using the standard library.";
 
-export const PROMPT: { [ext in Ext]: { extra: string; template: string } } = {
+export const PROMPT: {
+  [ext in Ext]: {
+    extra: string;
+    template: HistoryExample;
+  };
+} = {
   tex: {
     extra:
-      "Feel free to change the documentclass or add more packages as needed. Make sure the generated document can be compiled with PDFLaTeX, XeLaTeX, and LuaTeX.",
-    template: TEX_TEMPLATE,
+      "Change the documentclass or add more packages as needed. Make sure the generated document can be compiled with PDFLaTeX, XeLaTeX, and LuaTeX.",
+    template: {
+      prompt: "Plain 'article' with the content 'Hello World!'",
+      content: TEX_TEMPLATE,
+      filename: "plain_article",
+    },
   },
   rmd: {
     extra:
-      "This document will be processed using RMarkdown and generate HTML output. Modify the template to fit the document description.",
-    template: RMD_TEMPLATE,
+      "This document will be processed using RMarkdown to generate HTML output. Wrap formulas in $ or $$ characters.",
+    template: {
+      prompt: RMD_PROMPT,
+      content: RMD_TEMPLATE,
+      filename: RMD_FILENAME,
+    },
   },
   qmd: {
     extra:
-      "This document will be processed using Quarto and generate HTML output. Modify the template to fit the document description.",
-    template: RMD_TEMPLATE,
+      "This document will be processed using Quarto to generate HTML output. Wrap formulas in $ or $$ characters.",
+    template: {
+      prompt: RMD_PROMPT,
+      content: RMD_TEMPLATE,
+      filename: RMD_FILENAME,
+    },
   },
   md: {
     extra:
-      "This document will be rendered by the browser client. Modify the template to fit the document description.",
-    template: MD_TEMPLATE,
+      "This document will be rendered by the browser client. Wrap formulas in $ or $$ characters.",
+    template: {
+      prompt:
+        "A simple document with some headers, text formatting and a formula.",
+      content: MD_TEMPLATE,
+      filename: "simple",
+    },
   },
   ipynb: {
     extra: DEFAULT_LANG_EXTRA,
-    template: IPYNB_TEMPLATE,
+    template: {
+      prompt: "Assign 1 to x and print x",
+      content: IPYNB_TEMPLATE,
+      filename: "print_x",
+    },
   },
-};
+} as const;

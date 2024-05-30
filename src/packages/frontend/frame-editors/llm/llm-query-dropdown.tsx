@@ -11,7 +11,7 @@ import { LLM_PROVIDER } from "@cocalc/util/db-schema/llm-utils";
 import { LLMTools } from "@cocalc/jupyter/types";
 
 interface Props {
-  llmTools?: LLMTools;
+  llmTools?: Pick<LLMTools, "model" | "setModel">;
   task?: string;
   onClick: () => void;
   loading?: boolean;
@@ -87,7 +87,10 @@ export function LLMQueryDropdownButton({
       trigger={["click"]}
       icon={<Icon name="caret-down" />}
       onClick={onClick}
-      menu={{ items: getItems() }}
+      menu={{
+        items: getItems(),
+        style: { maxHeight: "50vh", overflow: "auto" },
+      }}
       loading={loading}
       disabled={disabled}
     >

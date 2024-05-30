@@ -25,6 +25,18 @@ import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
 import type { History } from "./types";
 
+interface QueryLLMProps {
+  input: string;
+  model: LanguageModel;
+  system?: string;
+  history?: History;
+  project_id?: string;
+  path?: string;
+  chatStream?: ChatStream; // if given, uses chat stream
+  tag?: string;
+  startStreamExplicitly?: boolean;
+}
+
 interface EmbeddingsQuery {
   scope: string | string[];
   limit: number; // client automatically deals with large limit by making multiple requests (i.e., there is no limit on the limit)
@@ -41,7 +53,7 @@ export class LLMClient {
     this.client = client;
   }
 
-  public async query(opts): Promise<string> {
+  public async query(opts: QueryLLMProps): Promise<string> {
     return await this.queryLanguageModel(opts);
   }
 
@@ -70,17 +82,7 @@ export class LLMClient {
     path,
     chatStream,
     tag = "",
-  }: {
-    input: string;
-    model: LanguageModel;
-    system?: string;
-    history?: History;
-    project_id?: string;
-    path?: string;
-    chatStream?: ChatStream; // if given, uses chat stream
-    tag?: string;
-    startStreamExplicitly?: boolean;
-  }): Promise<string> {
+  }: QueryLLMProps): Promise<string> {
     system ??= getSystemPrompt(model, path);
 
     // remove all date entries from all history objects

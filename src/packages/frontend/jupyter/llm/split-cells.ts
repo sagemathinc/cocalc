@@ -28,7 +28,7 @@ export function splitCells(
         ret.push({ cell_type, source });
         source = [];
       }
-      cell_type = cell_type == "markdown" ? "code" : "markdown";
+      cell_type = cell_type === "markdown" ? "code" : "markdown";
     } else {
       source.push(`${line}\n`);
     }
