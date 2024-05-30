@@ -34,6 +34,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ChatStream } from "@cocalc/frontend/client/llm";
+import type { Message } from "@cocalc/frontend/client/types";
 import {
   Icon,
   LLMNameLink,
@@ -58,7 +59,6 @@ import { Actions as RmdActions } from "@cocalc/frontend/frame-editors/rmd-editor
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
-import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project/new/consts";
@@ -83,7 +83,12 @@ import {
   JUPYTER,
   PAPERSIZE,
 } from "./ai-generate-examples";
-import { DEFAULT_LANG_EXTRA, LANG_EXTRA, PROMPT } from "./ai-generate-prompts";
+import {
+  DEFAULT_LANG_EXTRA,
+  HistoryExample,
+  LANG_EXTRA,
+  PROMPT,
+} from "./ai-generate-prompts";
 import {
   AI_GENERATE_DOC_TAG,
   commentBlock,
@@ -204,43 +209,68 @@ function AIGenerateDocument({
     }
   }, [show, preview]);
 
-  function fullTemplate({ extra, template, paperSizeStr }): string {
-    if (ext === "ipynb") {
-      const delim = backtickSequence(template);
-      template = `${delim}\n${template}\n${delim}`;
-    }
-    const example = [
-      `Example:`,
-      `<OUTPUT>\nfilename: [filename.${ext}]`,
-      `${template}\n</OUTPUT>`,
-      `Description of the document:`,
-      `${prompt}`,
-    ];
-    const langExtra = LANG_EXTRA[spec?.language ?? ""] ?? DEFAULT_LANG_EXTRA;
-    const intro =
-      ext === "ipynb"
-        ? `Explain, how to do the following task in the programming language "${
-            spec?.display_name ?? "Python"
-          }". Your reply will be transformed into a Jupyter Notebook. ${langExtra} Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Do not open and read any files, since you cannot assume they exist. Instead, generate random data suitable for the example code. Make sure the entire notebook can run top to bottom. Skip formalities. Do not add a summary. Do not put it all together. Suggest a filename by starting with "filename: [filename.${ext}]"`
-        : `Your task is to create a ${docName} document based on the provided description below. It will be used as a template to get started writing the document. ${paperSizeStr}Enclose the entire ${docName} document in tripe backticks. ${extra}Do not open and read any files, since you cannot assume they exist. Instead, generate random data suitable for the example code. Do not add any further instructions. Skip formalities. Do not add a summary. Your output must start with a suggested filename "filename: [filename.${ext}]".`;
-    // ATTN: make sure to avoid introducing whitespace at the beginning of lines and keep two newlines between blocks
-    return [intro, ...example].join("\n\n");
+  function getInputPrompt(prompt: string) {
+    const what = ext === "ipynb" ? "task" : "document";
+    return `Description of the ${what}: ${prompt}`;
   }
 
-  function createPrompt(): string {
-    if (!prompt?.trim()) return "";
+  function fullTemplate({
+    extra,
+    template,
+    paperSizeStr,
+  }: {
+    extra: string;
+    template: Readonly<HistoryExample>;
+    paperSizeStr: string;
+  }): {
+    input: string;
+    history: Message[];
+    system: string;
+  } {
+    // ATTN: make sure to avoid introducing whitespace at the beginning of lines and keep two newlines between blocks
+    const history: Message[] = [
+      { role: "user", content: getInputPrompt(template.prompt) },
+      {
+        role: "assistant",
+        content: `filename: [${template.filename}.${ext}]\n\n${template.content}\n`,
+      },
+    ];
+    // lang extra is only for ipynb
+    const langExtra = LANG_EXTRA[spec?.language ?? ""] ?? DEFAULT_LANG_EXTRA;
+    const filename = `Your output must start with a suggested filename: "filename: [filename.${ext}]".`;
+    const nonTex =
+      ext !== "tex"
+        ? "Instead, generate random data suitable for the example code. "
+        : "";
+    const common = `Do not add any further instructions. Skip formalities. Do not open and read any files, since you cannot assume they exist. ${nonTex}Do not add a summary. Do not put it all together. ${filename}`;
+    const system =
+      ext === "ipynb"
+        ? `Explain, how to do a task in the programming language "${
+            spec?.display_name ?? "Python"
+          }". The task is described below. Your reply will be transformed into a Jupyter Notebook. ${langExtra} Wrap formulas written in Markdown in $ or $$ characters. Break down all blocks of code into small snippets and wrap each one in triple backticks. Explain each snippet with a concise description, but do not tell me what the output will be. Make sure the entire notebook can run top to bottom. ${common}`
+        : `Your task is to create a ${docName} document based on the provided description. It will be used as a template to get started writing the document. ${paperSizeStr}${extra} ${common}`;
+
+    return { input: getInputPrompt(prompt), history, system };
+  }
+
+  function createPrompt(): {
+    input: string;
+    history: Message[];
+    system: string;
+  } | null {
+    if (!prompt?.trim()) return null;
     const paperSizeStr = paperSize
       ? `The size of each page should be ${paperSize}. `
       : "";
-    const { extra, template } = PROMPT[ext] ?? {
-      extra: "",
-      template: "Content of the template.",
-    };
+    const { extra, template } = PROMPT[ext];
     return fullTemplate({ extra, template, paperSizeStr });
   }
 
   async function generate() {
-    const input = createPrompt();
+    const fullPrompt = createPrompt();
+    if (fullPrompt == null) return;
+
+    const { input, history, system } = fullPrompt;
 
     try {
       cancel.current = false;
@@ -248,6 +278,8 @@ function AIGenerateDocument({
 
       const llmStream = webapp_client.openai_client.queryStream({
         input,
+        history,
+        system,
         project_id,
         path: current_path, // mainly for analytics / metadata -- can't put the actual document path since the model outputs that.
         tag: TAG,
@@ -326,11 +358,12 @@ function AIGenerateDocument({
     return { cells, metadata: { kernelspec: spec } };
   }
 
+  // Although it shouldn't happen, tex output is still sometimes wrapped in ```...```
   function extractBackticks(full: string): string {
     full = full.trim();
     const lb1 = full.indexOf("\n");
     const lb2 = full.lastIndexOf("\n");
-    if (lb1 != -1 && lb2 != -1) {
+    if (lb1 != -1 && lb2 != -1 && lb1 !== lb2) {
       // do first and last line have backticks?
       const line1 = full.substring(0, lb1);
       const line2 = full.substring(lb2);
@@ -345,7 +378,7 @@ function AIGenerateDocument({
     return full;
   }
 
-  function extractContent(answer): string {
+  function extractContent(answer: string): string {
     const lb1 = answer.indexOf("\n");
     if (lb1 !== -1) {
       const firstLine = answer.substring(0, lb1);
@@ -507,30 +540,36 @@ function AIGenerateDocument({
     return null;
   }
 
-  const input = createPrompt();
+  const fullPrompt = createPrompt();
 
   useEffect(() => {
-    if (tokens > 0 && input == "") setTokens(0);
-  }, [input]);
+    if (tokens > 0 && fullPrompt == null) setTokens(0);
+  }, [fullPrompt]);
 
   useAsyncEffect(
     debounce(
       async () => {
-        if (input == "") return;
+        if (fullPrompt == null) return;
+        const { input, history, system } = fullPrompt;
 
         // do not import until needed -- it is HUGE!
         const { getMaxTokens, numTokensUpperBound } = await import(
           "@cocalc/frontend/misc/llm"
         );
 
-        const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
+        const all = [
+          input,
+          history.map(({ content }) => content).join(" "),
+          system,
+        ].join(" ");
+        const tokens = numTokensUpperBound(all, getMaxTokens(model));
 
         setTokens(tokens);
       },
       2000,
       { leading: false, trailing: true },
     ),
-    [input],
+    [fullPrompt],
   );
 
   function renderExamples() {
@@ -653,6 +692,53 @@ function AIGenerateDocument({
     );
   }
 
+  function renderPromptPreview() {
+    if (!fullPrompt) return;
+
+    const { input, history, system } = fullPrompt;
+    const ex = history.map(({ content }) => content).join("\n\n");
+    const raw = [input, "Example:", ex, "System:", system].join("\n\n");
+
+    return (
+      <div>
+        <Divider />
+        <Paragraph type="secondary">
+          A prompt to generate the document will be sent to the{" "}
+          <LLMNameLink model={model} /> language model. You'll see a preview of
+          the new content, which you'll then be able to save in a new file and
+          start working on it. Overall, the newly created document should help
+          you getting started accomplishing your goal.
+        </Paragraph>
+        <Collapse
+          items={[
+            {
+              key: "1",
+              label: (
+                <>Click to see what will be sent to {modelToName(model)}.</>
+              ),
+              children: (
+                <RawPrompt
+                  input={raw}
+                  style={{
+                    border: "none",
+                    padding: "0",
+                    margin: "0",
+                    maxHeight: "10em",
+                    overflow: "auto",
+                    fontSize: "12px",
+                    fontFamily: "monospace",
+                    borderRadius: "5px",
+                    color: COLORS.GRAY,
+                  }}
+                />
+              ),
+            },
+          ]}
+        />
+      </div>
+    );
+  }
+
   function renderDialog() {
     const empty = prompt.trim() == "";
     return (
@@ -691,58 +777,21 @@ function AIGenerateDocument({
         </Paragraph>
         {!error ? renderExamples() : undefined}
         {!error ? renderPaperSize() : undefined}
-        {input ? (
-          <div>
-            <Divider />
-            <Paragraph type="secondary">
-              A prompt to generate the document will be sent to the{" "}
-              <LLMNameLink model={model} /> language model. You'll see a preview
-              of the new content, which you'll then be able to save in a new
-              file and start working on it. Overall, the newly created document
-              should help you getting started accomplishing your goal.
-            </Paragraph>
-            <Collapse
-              items={[
-                {
-                  key: "1",
-                  label: (
-                    <>Click to see what will be sent to {modelToName(model)}.</>
-                  ),
-                  children: (
-                    <RawPrompt
-                      input={input}
-                      style={{
-                        border: "none",
-                        padding: "0",
-                        margin: "0",
-                        maxHeight: "10em",
-                        overflow: "auto",
-                        fontSize: "12px",
-                        fontFamily: "monospace",
-                        borderRadius: "5px",
-                        color: COLORS.GRAY,
-                      }}
-                    />
-                  ),
-                },
-              ]}
-            />
-          </div>
-        ) : undefined}
+        {renderPromptPreview()}
         {
           <Paragraph style={{ textAlign: "center", marginTop: "15px" }}>
             <Button
               type="primary"
               size="large"
               onClick={generate}
-              disabled={!input || !!error || querying || !prompt?.trim()}
+              disabled={!fullPrompt || !!error || querying || !prompt?.trim()}
             >
               <Icon name="paper-plane" /> Create {docName} content using{" "}
               {modelToName(model)}
             </Button>
           </Paragraph>
         }
-        {input && tokens > 0 ? (
+        {fullPrompt && tokens > 0 ? (
           <LLMCostEstimation
             tokens={tokens}
             model={model}
