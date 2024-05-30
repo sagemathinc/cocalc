@@ -52,6 +52,7 @@ import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/cod
 import { AI_GEN_TEXT } from "@cocalc/frontend/frame-editors/frame-tree/commands/const";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { Actions as LatexActions } from "@cocalc/frontend/frame-editors/latex-editor/actions";
+import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
@@ -780,15 +781,15 @@ function AIGenerateDocument({
         {renderPromptPreview()}
         {
           <Paragraph style={{ textAlign: "center", marginTop: "15px" }}>
-            <Button
-              type="primary"
-              size="large"
-              onClick={generate}
-              disabled={!fullPrompt || !!error || querying || !prompt?.trim()}
-            >
-              <Icon name="paper-plane" /> Create {docName} content using{" "}
-              {modelToName(model)}
-            </Button>
+            <Space>
+              <LLMQueryDropdownButton
+                disabled={!fullPrompt || !!error || querying || !prompt?.trim()}
+                loading={querying}
+                onClick={generate}
+                llmTools={{ model, setModel }}
+                task={`Create ${docName} using`}
+              />
+            </Space>
           </Paragraph>
         }
         {fullPrompt && tokens > 0 ? (
