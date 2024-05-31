@@ -284,3 +284,19 @@ describe("numToOrdinal", () => {
     expect(numToOrdinal(-1)).toBe("-1th");
   });
 });
+
+describe("hoursToTimeIntervalHuman", () => {
+  const { hoursToTimeIntervalHuman } = misc;
+  it("converts nicely", () => {
+    expect(hoursToTimeIntervalHuman(1)).toBe("1 hour");
+    expect(hoursToTimeIntervalHuman(13.333)).toBe("13.3 hours");
+    expect(hoursToTimeIntervalHuman(13.888)).toBe("13.9 hours");
+    expect(hoursToTimeIntervalHuman(24)).toBe("1 day");
+    expect(hoursToTimeIntervalHuman(24 * 7)).toBe("1 week");
+    expect(hoursToTimeIntervalHuman(2)).toBe("2 hours");
+    expect(hoursToTimeIntervalHuman(2 * 24)).toBe("2 days");
+    expect(hoursToTimeIntervalHuman(5 * 7 * 24)).toBe("5 weeks");
+    expect(hoursToTimeIntervalHuman(2.5111 * 24)).toBe("2.5 days");
+    expect(hoursToTimeIntervalHuman(2.5111 * 24 * 7)).toBe("2.5 weeks");
+  });
+});
