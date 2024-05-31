@@ -116,13 +116,15 @@ export function ChatLog(props: Readonly<Props>) {
     scrollToBottomRef.current = (force?: boolean) => {
       if (manualScrollRef.current && !force) return;
       manualScrollRef.current = false;
-      virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 });
+      virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
       // sometimes scrolling to bottom is requested before last entry added,
       // so we do it again in the next render loop.  This seems needed mainly
       // for side chat when there is little vertical space.
       setTimeout(
         () =>
-          virtuosoRef.current?.scrollToIndex({ index: 99999999999999999999 }),
+          virtuosoRef.current?.scrollToIndex({
+            index: Number.MAX_SAFE_INTEGER,
+          }),
         0,
       );
     };
