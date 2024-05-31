@@ -4,7 +4,6 @@ import {
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
-import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -14,7 +13,7 @@ import {
   isAnthropicModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 
 const log = getLogger("llm:anthropic");
@@ -93,22 +92,12 @@ export async function evaluateAnthropic(
     config: { configurable: { sessionId: "ignored" } },
     inputMessagesKey: "input",
     historyMessagesKey: "history",
-    getMessageHistory: async (_) => {
-      const chatHistory = new ChatMessageHistory();
-      if (history) {
-        let nextRole: "model" | "user" = "user";
-        for (const { content } of history) {
-          historyTokens += numTokens(content);
-          if (nextRole === "user") {
-            await chatHistory.addMessage(new HumanMessage(content));
-          } else {
-            await chatHistory.addMessage(new AIMessage(content));
-          }
-          nextRole = nextRole === "user" ? "model" : "user";
-        }
-      }
-
-      return chatHistory;
+    getMessageHistory: async () => {
+      const { messageHistory, tokens } = await transformHistoryToMessages(
+        history,
+      );
+      historyTokens = tokens;
+      return messageHistory;
     },
   });
 
