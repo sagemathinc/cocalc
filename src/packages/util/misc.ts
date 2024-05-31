@@ -2602,3 +2602,16 @@ export function numToOrdinal(val: number): string {
       return `${val}th`;
   }
 }
+
+export function hoursToTimeIntervalHuman(num: number): string {
+  if (num < 24) {
+    const n = round1(num);
+    return `${n} ${plural(n, "hour")}`;
+  } else if (num < 24 * 7) {
+    const n = round1(num / 24);
+    return `${n} ${plural(n, "day")}`;
+  } else {
+    const n = round1(num / (24 * 7));
+    return `${n} ${plural(n, "week")}`;
+  }
+}

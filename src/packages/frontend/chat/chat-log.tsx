@@ -25,6 +25,7 @@ import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   cmp,
+  hoursToTimeIntervalHuman,
   parse_hashtags,
   search_match,
   search_split,
@@ -78,7 +79,7 @@ export function ChatLog(props: Readonly<Props>) {
     actions.setState({ scrollToBottom: undefined });
   }, [scrollToBottom]);
 
-  const today = useRedux(["today"], project_id, path);
+  const filterRecentH = useRedux(["filterRecentH"], project_id, path);
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
   const { dates: sortedDates, numFolded } = useMemo<{
@@ -89,10 +90,10 @@ export function ChatLog(props: Readonly<Props>) {
       messages,
       search,
       account_id,
-      today,
+      filterRecentH,
     );
     return { dates, numFolded };
-  }, [messages, search, project_id, path, today]);
+  }, [messages, search, project_id, path, filterRecentH]);
 
   const visibleHashtags = useMemo(() => {
     let X = immutableSet<string>([]);
@@ -151,7 +152,7 @@ export function ChatLog(props: Readonly<Props>) {
         <NotShowing
           num={messages.size - numFolded - sortedDates.length}
           search={search}
-          today={today}
+          filterRecentH={filterRecentH}
         />
       )}
       <Virtuoso
@@ -304,7 +305,7 @@ export function getSortedDates(
   messages: ChatMessages,
   search?: string,
   account_id?: string,
-  today?: boolean,
+  filterRecentH?: number,
 ): { dates: string[]; numFolded: number } {
   let numFolded = 0;
   let m = messages;
@@ -315,8 +316,9 @@ export function getSortedDates(
     m = m.filter((message) => searchMatches(message, searchTerms));
   }
 
-  if (today) {
-    const cutoff = webapp_client.server_time().getTime() - 1000 * 24 * 60 * 60;
+  if (typeof filterRecentH === "number" && filterRecentH > 0) {
+    const now = webapp_client.server_time().getTime();
+    const cutoff = now - filterRecentH * 1000 * 60 * 60;
     m = m.filter((msg) => {
       const date = msg.get("date").getTime();
       return date >= cutoff;
@@ -384,8 +386,18 @@ export function getUserName(userMap, accountId: string): string {
   return account.get("first_name", "") + " " + account.get("last_name", "");
 }
 
-function NotShowing({ num, search, today }) {
+interface NotShowingProps {
+  num: number;
+  search: string;
+  filterRecentH: number;
+}
+
+function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
   if (num <= 0) return null;
+
+  const timespan =
+    filterRecentH > 0 ? hoursToTimeIntervalHuman(filterRecentH) : null;
+
   return (
     <Alert
       style={{ margin: "0" }}
@@ -399,8 +411,10 @@ function NotShowing({ num, search, today }) {
           {search.trim()
             ? ` that do not match search for '${search.trim()}'`
             : ""}
-          {today
-            ? ` ${search.trim() ? "and" : "that"} were not sent today`
+          {timespan
+            ? ` ${
+                search.trim() ? "and" : "that"
+              } were not sent in the past ${timespan}`
             : ""}
           .
         </b>

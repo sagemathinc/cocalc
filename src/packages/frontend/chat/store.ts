@@ -35,7 +35,7 @@ export interface ChatState {
   //  scrollToBottom = 0 -- scroll to the bottom
   //  scrollToBottom = ms since epoch -- scroll to the bottom of that thread
   scrollToBottom?: number | null;
-  filterRecentH?: number;
+  filterRecentH: number;
   llm_cost_room?: [number, number] | null;
   llm_cost_reply?: [number, number] | null;
 }

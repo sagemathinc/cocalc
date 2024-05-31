@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Checkbox } from "antd";
+import { Button, Divider, Input, Select, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
 
@@ -21,6 +21,7 @@ import {
   useEffect,
   useRedux,
   useRef,
+  useState,
 } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -34,7 +35,7 @@ import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-f
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
-import { history_path } from "@cocalc/util/misc";
+import { history_path, hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
@@ -42,6 +43,8 @@ import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
+
+const FILTER_RECENT_NONE = { value: 0, label: "All" } as const;
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",
@@ -95,7 +98,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
 
   const search = useRedux(["search"], project_id, path);
   const messages = useRedux(["messages"], project_id, path);
-  const today: boolean = useRedux(["today"], project_id, path);
+  const filterRecentH: number = useRedux(["filterRecentH"], project_id, path);
+  const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
+  const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const llm_cost_room: [number, number] = useRedux(
     ["llm_cost_room"],
     project_id,
@@ -308,18 +313,84 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     );
   }
 
+  function isValidFilterRecentCustom(): boolean {
+    const v = parseFloat(filterRecentHCustom);
+    return isFinite(v) && v >= 0;
+  }
+
   function renderFilterRecent() {
     return (
-      <div style={{}}>
-        <Checkbox
-          checked={today}
-          onChange={() => {
-            actions.setState({ today: !today });
-          }}
-        >
-          Today
-        </Checkbox>
-      </div>
+      <Select
+        open={filterRecentOpen}
+        onDropdownVisibleChange={(v) => setFilterRecentOpen(v)}
+        value={filterRecentH}
+        status={filterRecentH > 0 ? "warning" : undefined}
+        allowClear
+        onClear={() => {
+          actions.setState({ filterRecentH: 0 });
+          setFilterRecentHCustom("");
+        }}
+        style={{ width: 120 }}
+        popupMatchSelectWidth={false}
+        onSelect={(val: number) => actions.setState({ filterRecentH: val })}
+        options={[
+          FILTER_RECENT_NONE,
+          ...[1, 6, 12, 24, 48, 24 * 7, 14 * 24, 28 * 24].map((value) => {
+            const label = hoursToTimeIntervalHuman(value);
+            return { value, label };
+          }),
+        ]}
+        labelRender={({ label, value }) => {
+          if (!label) {
+            if (isValidFilterRecentCustom()) {
+              value = parseFloat(filterRecentHCustom);
+              label = hoursToTimeIntervalHuman(value);
+            } else {
+              ({ label, value } = FILTER_RECENT_NONE);
+            }
+          }
+          return (
+            <Tooltip
+              title={
+                value === 0
+                  ? `All messages.`
+                  : `Only messages sent in the past ${label}.`
+              }
+            >
+              {label}
+            </Tooltip>
+          );
+        }}
+        dropdownRender={(menu) => (
+          <>
+            {menu}
+            <Divider style={{ margin: "8px 0" }} />
+            <Input
+              placeholder="Number of hours"
+              allowClear
+              value={filterRecentHCustom}
+              status={
+                filterRecentHCustom == "" || isValidFilterRecentCustom()
+                  ? undefined
+                  : "error"
+              }
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                const v = e.target.value;
+                setFilterRecentHCustom(v);
+                const val = parseFloat(v);
+                if (isFinite(val) && val >= 0) {
+                  actions.setState({ filterRecentH: val });
+                } else if (v == "") {
+                  actions.setState({ filterRecentH: FILTER_RECENT_NONE.value });
+                }
+              }}
+              onKeyDown={(e) => e.stopPropagation()}
+              onPressEnter={() => setFilterRecentOpen(false)}
+              addonAfter={<span style={{ paddingLeft: "5px" }}>hours</span>}
+            />
+          </>
+        )}
+      />
     );
   }
 
@@ -363,7 +434,16 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
             </Button>
           )}
         </Col>
-        <Col xs={3} md={3} style={{ padding: "2px", display: "flex", verticalAlign: "center" }}>
+        <Col
+          xs={3}
+          md={3}
+          style={{
+            padding: "2px",
+            display: "flex",
+            verticalAlign: "center",
+            gap: "5px",
+          }}
+        >
           {renderFilterRecent()}
           {render_search()}
         </Col>
