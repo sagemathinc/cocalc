@@ -145,7 +145,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
-      // we only enable the 1.0 pro and 1.5 pro with a limited context window
+      // we only enable the 1.0, 1.5 pro and 1.5 flash with a limited context window
       m === "gemini-pro" ||
       m === "gemini-1.5-pro-8k" ||
       m === "gemini-1.5-flash-8k",
@@ -795,43 +795,22 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 8191,
     free: false,
   },
-  // https://developers.generativeai.google/models/language
-  // "text-bison-001": {
-  //   // we assume 5 characters is 1 token on average
-  //   prompt_tokens: (5 * 0.0005) / 1000,
-  //   completion_tokens: (5 * 0.0005) / 1000,
-  //   max_tokens: 8196,
-  // },
-  // "chat-bison-001": {
-  //   // we assume 5 characters is 1 token on average
-  //   prompt_tokens: (5 * 0.0005) / 1000,
-  //   completion_tokens: (5 * 0.0005) / 1000,
-  //   max_tokens: 8196,
-  // },
-  // "embedding-gecko-001": {
-  //   prompt_tokens: (5 * 0.0001) / 1000,
-  //   completion_tokens: 0,
-  //   max_tokens: 8196, // ???
-  // },
-  // you can learn details about the google models via
-  // curl -s "https://generativelanguage.googleapis.com/v1beta/models?key=$KEY"
-  // Pricing, at least Gemini Pro: https://cloud.google.com/vertex-ai/generative-ai/pricing#google_foundational_models
+  // https://ai.google.dev/pricing
   "gemini-pro": {
-    prompt_tokens: usd1Mtokens(0.5), // https://ai.google.dev/pricing
+    prompt_tokens: usd1Mtokens(0.5),
     completion_tokens: usd1Mtokens(1.5),
     max_tokens: 30720,
     free: true,
   },
   "gemini-1.5-pro-8k": {
-    prompt_tokens: usd1Mtokens(7), // https://ai.google.dev/pricing
-    completion_tokens: usd1Mtokens(21),
+    prompt_tokens: usd1Mtokens(3.5), // (we're below the 128k context)
+    completion_tokens: usd1Mtokens(10.5),
     max_tokens: 8_000,
-    // will change 2024-05-30
-    free: new Date("2024-05-30") > new Date(),
+    free: false,
   },
   "gemini-1.5-pro": {
-    prompt_tokens: usd1Mtokens(3.5), // https://ai.google.dev/pricing (cheaper, because we're below the 128k context)
-    completion_tokens: usd1Mtokens(10.5),
+    prompt_tokens: usd1Mtokens(7),
+    completion_tokens: usd1Mtokens(21),
     max_tokens: 1048576,
     free: false,
   },
@@ -843,35 +822,36 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   },
   "gemini-1.5-flash-8k": {
     prompt_tokens: usd1Mtokens(0.35),
-    completion_tokens: usd1Mtokens(0.53),
+    completion_tokens: usd1Mtokens(1.05),
     max_tokens: 8_000,
     free: true,
   },
+  // https://mistral.ai/technology/
   "mistral-small-latest": {
-    prompt_tokens: usd1Mtokens(2), // 2$ / 1M tokens
-    completion_tokens: usd1Mtokens(6), // 6$ / 1M tokens
+    prompt_tokens: usd1Mtokens(1),
+    completion_tokens: usd1Mtokens(3),
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
     free: true,
   },
   "mistral-medium-latest": {
-    prompt_tokens: usd1Mtokens(2.7), // 2.7$ / 1M tokens
-    completion_tokens: usd1Mtokens(8.1), // 8.1$ / 1M tokens
+    prompt_tokens: usd1Mtokens(2.7),
+    completion_tokens: usd1Mtokens(8.1),
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
     free: true,
   },
   "mistral-large-latest": {
-    prompt_tokens: usd1Mtokens(8), // 8$ / 1M tokens
-    completion_tokens: usd1Mtokens(24), // 24$ / 1M tokens
+    prompt_tokens: usd1Mtokens(4),
+    completion_tokens: usd1Mtokens(12),
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
     free: false,
   },
+  // Anthropic: pricing somewhere on that page: https://www.anthropic.com/api
   "claude-3-opus-8k": {
     prompt_tokens: usd1Mtokens(15),
     completion_tokens: usd1Mtokens(75),
     max_tokens: 8_000, // limited to 8k tokens, to reduce the necessary spend limit to commit to
     free: false,
   },
-  // Anthropic: pricing somewhere on that page: https://www.anthropic.com/api
   "claude-3-opus": {
     prompt_tokens: usd1Mtokens(15),
     completion_tokens: usd1Mtokens(75),

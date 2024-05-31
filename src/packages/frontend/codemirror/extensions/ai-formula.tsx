@@ -1,4 +1,5 @@
 import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
+import { debounce } from "lodash";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
@@ -8,6 +9,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import type { Message } from "@cocalc/frontend/client/types";
 import {
   HelpIcon,
   Icon,
@@ -20,12 +22,11 @@ import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { show_react_modal } from "@cocalc/frontend/misc";
+import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
-import { LLMCostEstimation } from "../../misc/llm-cost-estimation";
-import { debounce } from "lodash";
 
 type Mode = "tex" | "md";
 
@@ -64,13 +65,18 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
   useAsyncEffect(
     debounce(
       async () => {
-        const prompt = getPrompt() ?? "";
+        const { input, history, system } = getPrompt() ?? "";
         // compute the number of tokens (this MUST be a lazy import):
         const { getMaxTokens, numTokensUpperBound } = await import(
           "@cocalc/frontend/misc/llm"
         );
 
-        setTokens(numTokensUpperBound(prompt, getMaxTokens(model)));
+        const all = [
+          input,
+          history.map(({ content }) => content).join(" "),
+          system,
+        ].join(" ");
+        setTokens(numTokensUpperBound(all, getMaxTokens(model)));
       },
       1000,
       { leading: true, trailing: true },
@@ -83,18 +89,45 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     .getStore("projects")
     .hasLanguageModelEnabled(project_id, LLM_USAGE_TAG);
 
-  function getPrompt() {
-    const description = input || text;
-    const p1 = `Convert the following plain-text description of a formula to a LaTeX formula`;
-    const p2 = `Return the LaTeX formula, and only the formula. Enclose the formula in a single snippet delimited by $. Do not add any explanations.`;
+  function getSystemPrompt(): string {
+    const p1 = `Typset the plain-text description of a mathematical formula as a LaTeX formula. The formula will be`;
+    const p2 = `Return only the LaTeX formula, ready to be inserted into the document. Do not add any explanations.`;
     switch (mode) {
       case "tex":
-        return `${p1} in a *.tex file. Assume the package "amsmath" is available. ${p2}:\n\n${description}`;
+        return `${p1} in a *.tex file. Assume the package "amsmath" is available. ${p2}`;
       case "md":
-        return `${p1} in a markdown file. ${p2}\n\n${description}`;
+        return `${p1} in a markdown file. Formulas are inside of $ or $$. ${p2}`;
       default:
         unreachable(mode);
+        return p1;
     }
+  }
+
+  function getPrompt(): { input: string; history: Message[]; system: string } {
+    const system = getSystemPrompt();
+    // 3-shot examples
+    const history: Message[] = [
+      { role: "user", content: "equation e^(i pi) = -1" },
+      { role: "assistant", content: "$$e^{i \\pi} = -1$$" },
+      {
+        role: "user",
+        content: "integral 0 to 2 pi sin(x)^2",
+      },
+      {
+        role: "assistant",
+        content: "$\\int_{0}^{2\\pi} \\sin(x)^2 \\, \\mathrm{d}x$",
+      },
+      {
+        role: "user",
+        content: "equation system: [ 1 + x^2 = a, 1 - y^2 = ln(a) ]",
+      },
+      {
+        role: "assistant",
+        content:
+          "\\begin{cases}\n1 + x^2 = a \\\n1 - y^2 = \\ln(a)\n\\end{cases}",
+      },
+    ];
+    return { input: input || text, system, history };
   }
 
   function wrapFormula(tex: string = "") {
@@ -170,12 +203,14 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
         type: "generate",
         model,
       });
+      const { system, input, history } = getPrompt();
       const reply = await webapp_client.openai_client.query({
-        input: getPrompt(),
+        input,
+        history,
+        system,
+        model,
         project_id,
         tag: LLM_USAGE_TAG,
-        model,
-        system: "",
       });
       const tex = processFormula(reply);
       // significant differece? Also show the full reply

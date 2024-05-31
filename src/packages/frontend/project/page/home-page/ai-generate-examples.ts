@@ -335,7 +335,7 @@ export const DOCUMENT: { [ext in Ext]: readonly Example[] } = {
     ],
     [
       "Scientific Poster",
-      "Template for a academic conference poster. The document must be a single page and position graphic and text objects onto it. The topic should be something fun to get started - for example 'newly discovered rhytmic beats of rotating black holes'.",
+      "Template for a academic conference poster. The document must be a single page and position graphic and text objects onto it. The topic should be something fun to get started - for example 'newly discovered rhythmic beats of rotating black holes'.",
       ["poster", "academic", "conference"],
     ],
     [
