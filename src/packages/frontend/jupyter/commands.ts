@@ -15,6 +15,7 @@ import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-edi
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { JupyterActions } from "./browser-actions";
 import { NotebookMode } from "@cocalc/jupyter/types";
+import { RUN_ALL_CELLS_ABOVE_ICON, RUN_ALL_CELLS_BELOW_ICON } from "./consts";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -35,6 +36,7 @@ export interface CommandDescription {
   f: Function; // function that implements command.
   b?: string; // very short label; use for a button
   i?: IconName;
+  ir?: "90"; // rotate icon
   k?: KeyboardCommand[]; // keyboard commands
   t?: string; // t=title = much longer description for tooltip
   menu?: string; // alternative to m just for dropdown menu
@@ -721,13 +723,14 @@ export function commands(actions: AllActions): {
     },
 
     "run all cells above": {
-      i: "caret-up",
+      i: RUN_ALL_CELLS_ABOVE_ICON,
       m: "Run All Above Selected Cell",
       f: () => actions.frame_actions?.run_all_above(),
     },
 
     "run all cells below": {
-      i: "caret-down",
+      i: RUN_ALL_CELLS_BELOW_ICON,
+      ir: "90",
       m: "Run Selected Cell and All Below",
       f: () => actions.frame_actions?.run_all_below(),
     },
