@@ -37,6 +37,7 @@ interface Props {
   autoSelect?: boolean;
   placeholder?: string;
   focus?: number; // if this changes, focus the search box.
+  status?: "warning" | "error";
 }
 
 export const SearchInput: React.FC<Props> = React.memo((props) => {
@@ -147,6 +148,7 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       onKeyUp={key_up}
       disabled={props.disabled}
       enterButton={props.buttonAfter}
+      status={props.status}
     />
   );
 });

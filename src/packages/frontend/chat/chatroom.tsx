@@ -299,8 +299,10 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
         default_value={search}
         on_change={debounce(
           (value) => actions.setState({ search: value }),
-          250,
+          150,
+          { leading: false, trailing: true },
         )}
+        status={!search ? undefined : "warning"}
         style={{
           margin: 0,
           width: "100%",
@@ -374,16 +376,22 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
                   ? undefined
                   : "error"
               }
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                const v = e.target.value;
-                setFilterRecentHCustom(v);
-                const val = parseFloat(v);
-                if (isFinite(val) && val >= 0) {
-                  actions.setState({ filterRecentH: val });
-                } else if (v == "") {
-                  actions.setState({ filterRecentH: FILTER_RECENT_NONE.value });
-                }
-              }}
+              onChange={debounce(
+                (e: React.ChangeEvent<HTMLInputElement>) => {
+                  const v = e.target.value;
+                  setFilterRecentHCustom(v);
+                  const val = parseFloat(v);
+                  if (isFinite(val) && val >= 0) {
+                    actions.setState({ filterRecentH: val });
+                  } else if (v == "") {
+                    actions.setState({
+                      filterRecentH: FILTER_RECENT_NONE.value,
+                    });
+                  }
+                },
+                150,
+                { leading: true, trailing: true },
+              )}
               onKeyDown={(e) => e.stopPropagation()}
               onPressEnter={() => setFilterRecentOpen(false)}
               addonAfter={<span style={{ paddingLeft: "5px" }}>hours</span>}

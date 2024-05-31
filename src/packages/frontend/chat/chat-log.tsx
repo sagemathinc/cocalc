@@ -170,7 +170,10 @@ export function ChatLog(props: Readonly<Props>) {
           }
 
           const is_thread = isThread(messages, message);
-          const is_folded = isFolded(messages, message, account_id);
+          // if we search for a message, we treat all threads as unfolded
+          const force_unfold = !!search;
+          const is_folded =
+            !force_unfold && isFolded(messages, message, account_id);
           const is_thread_body = message.get("reply_to") != null;
 
           return (
@@ -188,6 +191,7 @@ export function ChatLog(props: Readonly<Props>) {
                 actions={actions}
                 is_thread={is_thread}
                 is_folded={is_folded}
+                force_unfold={force_unfold}
                 is_thread_body={is_thread_body}
                 is_prev_sender={isPrevMessageSender(
                   index,
@@ -331,13 +335,16 @@ export function getSortedDates(
   for (const [date, message] of m) {
     if (message == null) continue;
 
-    const is_thread = isThread(messages, message);
-    const is_folded = isFolded(messages, message, account_id);
-    const is_thread_body = message.get("reply_to") != null;
-    const folded = is_thread && is_folded && is_thread_body;
-    if (folded) {
-      numFolded++;
-      continue;
+    // If we search for a message, we treat all threads as unfolded
+    if (!search) {
+      const is_thread = isThread(messages, message);
+      const is_folded = isFolded(messages, message, account_id);
+      const is_thread_body = message.get("reply_to") != null;
+      const folded = is_thread && is_folded && is_thread_body;
+      if (folded) {
+        numFolded++;
+        continue;
+      }
     }
 
     const reply_to = message.get("reply_to");
