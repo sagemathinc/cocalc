@@ -122,6 +122,7 @@ interface Props {
   is_thread?: boolean; // if true, there is a thread starting in a reply_to message
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
+  force_unfold?: boolean; // if true, all threads are temporarily forced to be unfolded
 
   llm_cost_reply?: [number, number] | null;
 }
@@ -129,6 +130,7 @@ interface Props {
 export default function Message(props: Readonly<Props>) {
   const {
     is_folded,
+    force_unfold,
     is_thread_body,
     is_thread,
     llm_cost_reply,
@@ -177,10 +179,6 @@ export default function Message(props: Readonly<Props>) {
     return props.get_user_name(
       message.get("history")?.first()?.get("author_id"),
     );
-  }, [message]);
-
-  const isFolded: boolean = useMemo(() => {
-    return message.get("folding")?.includes(props.account_id) ?? false;
   }, [message]);
 
   const reverseRowOrdering =
@@ -527,7 +525,11 @@ export default function Message(props: Readonly<Props>) {
                 ) : undefined}
                 {isLLMThread && msgWrittenByLLM ? (
                   <>
-                    <RegenerateLLM actions={props.actions} date={date} model={isLLMThread} />
+                    <RegenerateLLM
+                      actions={props.actions}
+                      date={date}
+                      model={isLLMThread}
+                    />
                     <FeedbackLLM actions={props.actions} message={message} />
                   </>
                 ) : undefined}
@@ -651,8 +653,8 @@ export default function Message(props: Readonly<Props>) {
           onChange={(value) => {
             replyMessageRef.current = value;
             // replyMentionsRef does not submit mentions, only gives us the value
-           const reply = replyMentionsRef.current?.(undefined, true) ?? value;
-           props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
+            const reply = replyMentionsRef.current?.(undefined, true) ?? value;
+            props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -684,7 +686,7 @@ export default function Message(props: Readonly<Props>) {
   function getStyleBase(): CSS {
     if (!is_thread_body) {
       if (is_thread) {
-        if (isFolded) {
+        if (is_folded) {
           return THREAD_STYLE_FOLDED;
         } else {
           return THREAD_STYLE_TOP;
@@ -791,7 +793,7 @@ export default function Message(props: Readonly<Props>) {
               marginRight: "5px",
             }
           : { marginTop: "5px", width: "100%", textAlign: "center" };
-      const iconname = isFolded
+      const iconname = is_folded
         ? mode === "standalone"
           ? reverseRowOrdering
             ? "right-circle-o"
@@ -802,6 +804,7 @@ export default function Message(props: Readonly<Props>) {
         <Button
           type="text"
           style={style}
+          disabled={force_unfold}
           onClick={() =>
             props.actions?.foldThread(message.get("date"), props.index)
           }
@@ -824,7 +827,7 @@ export default function Message(props: Readonly<Props>) {
           ) : (
             <Tooltip
               title={
-                isFolded
+                is_folded
                   ? "Unfold this thread"
                   : "Fold this thread to hide replies"
               }
