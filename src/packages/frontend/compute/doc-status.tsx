@@ -329,6 +329,14 @@ function getProgress(
       status: "exception",
     };
   }
+  if (server.state == "suspended") {
+    return {
+      progress: 15,
+      message:
+        "Please resume the compute server by clicking the Resume button below.",
+      status: "exception",
+    };
+  }
 
   if (server.state != "starting" && server.state != "running") {
     return {
