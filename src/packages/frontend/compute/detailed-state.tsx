@@ -144,7 +144,6 @@ function State({
           progress <
             80 /* 80 because the last per for read cache is not sync and sometimes gets stuck */
         }
-        style={{ marginTop: "3px" }}
       />
     );
   } else if (name == "compute") {
@@ -156,7 +155,7 @@ function State({
   }
 
   return (
-    <div style={{ borderBottom: "1px solid #ddd" }}>
+    <div style={{ borderBottom: "1px solid #ddd", height: "24px" }}>
       <div style={{ display: "flex" }}>
         <Tooltip title={SPEC[name]?.tip}>
           <div
