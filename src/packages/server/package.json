@@ -44,6 +44,7 @@
     "@google-ai/generativelanguage": "^1.1.0",
     "@google-cloud/compute": "^4.0.1",
     "@google-cloud/monitoring": "^4.0.0",
+    "@google-cloud/storage": "^7.11.1",
     "@google/generative-ai": "^0.3.1",
     "@isaacs/ttlcache": "^1.2.1",
     "@langchain/anthropic": "^0.1.17",

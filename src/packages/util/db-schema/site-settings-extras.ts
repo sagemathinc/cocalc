@@ -830,8 +830,8 @@ export const EXTRAS: SettingsExtras = {
   },
   google_cloud_compute_servers_prefix: {
     name: "Compute Servers: Google Cloud - Resource Prefix",
-    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server. If the prefix is 'cocalc-compute-server', then the compute server with id 17 will be called 'cocalc-compute-server-17'.  You very likely want to change this, especially if you have several servers in the same Google cloud project; it must be different between different servers.",
-    default: "cocalc-compute-server",
+    desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server.  KEEP THIS SHORT!  If the prefix is 'comput', then the compute server with id 17 will be called 'compute-17'.  You very likely want to change this, especially if you have several servers in the same Google cloud project; it must be different between different servers.",
+    default: "compute",
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
     tags: ["Compute Servers"],

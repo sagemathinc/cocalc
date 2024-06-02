@@ -128,9 +128,9 @@ Table({
     bucket: {
       not_null: true,
       type: "string",
-      pg_type: "VARCHAR(256)",
+      pg_type: "VARCHAR(63)",
       desc: "Google cloud storage bucket backing this filesystem",
-      render: { type: "text", maxLength: 256, editable: false },
+      render: { type: "text", maxLength: 63, editable: false },
     },
     mountpoint: {
       not_null: true,
@@ -139,11 +139,15 @@ Table({
       desc: "Where compute server is mounted in the filesystem.  If a relative path, then relative to home directory.  Target path does not have to be empty.",
       render: { type: "text", maxLength: 1024, editable: true },
     },
+    mount: {
+      type: "boolean",
+      desc: "If true, then this storage filesystem will get mounted on all compute servers associated to the project.",
+    },
     secret_key: {
       not_null: true,
       type: "map",
       pg_type: "jsonb",
-      desc: "Secret key needed to use this storage. It's a structured jsonb object.",
+      desc: "Secret key needed to use this storage. It's a structured jsonb object.  For google cloud storage, it's exactly the service account.",
     },
     port: {
       type: "integer",

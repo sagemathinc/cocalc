@@ -20,7 +20,7 @@ async function getStorageFilesystems(project_id: string): Promise<Storage[]> {
   logger.debug("getStorageFilesystems: ", { project_id });
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT * FROM storage WHERE project_id=$1 AND (deleted IS null or deleted=false)`,
+    `SELECT * FROM storage WHERE project_id=$1 AND (deleted IS null or deleted=false) AND mounted=true`,
     [project_id],
   );
   // TODO: we may have to address issues here with service account keys expiring, and
