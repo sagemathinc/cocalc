@@ -15,6 +15,8 @@ This is 100% built on juicefs/keydb instead of gcs/s3, etc., since:
 import { Table } from "./types";
 import { ID, NOTES } from "./crm";
 
+export const CREATE_STORAGE_COST = 0.05;
+
 interface GoogleCloudServiceAccountKey {
   type: "service_account";
   project_id: string;
@@ -56,6 +58,11 @@ export interface Storage {
   error?: string;
   notes?: string;
 }
+
+export type CreateStorage = Pick<
+  Storage,
+  "project_id" | "compression" | "configuration" | "title" | "color" | "notes"
+>;
 
 Table({
   name: "storage",
