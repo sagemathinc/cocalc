@@ -88,6 +88,7 @@
     "dot-object": "^2.1.4",
     "express-session": "^1.17.3",
     "google-auth-library": "^9.4.1",
+    "googleapis": "^137.1.0",
     "gpt3-tokenizer": "^1.1.5",
     "json-stable-stringify": "^1.0.1",
     "jwt-decode": "^3.1.2",

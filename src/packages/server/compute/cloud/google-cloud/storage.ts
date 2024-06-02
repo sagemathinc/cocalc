@@ -1,12 +1,13 @@
 /*
 Google API docs
  - storage -- https://googleapis.dev/nodejs/storage/latest/
- - iam -- https://cloud.google.com/nodejs/docs/reference/iam/latest
 */
 
 import { getCredentials } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { CreateBucketRequest, Storage } from "@google-cloud/storage";
+import { iam_v1 } from "googleapis";
+import { JWT } from "google-auth-library";
 
 const logger = getLogger("server:compute:cloud:google-cloud:storage");
 
@@ -37,19 +38,4 @@ export async function deleteBucket(bucketName: string): Promise<void> {
   // actually fully deleting of course takes a long time, depending
   // on what is in the bucket -- this just launches the process.
   await bucket.delete();
-}
-
-// create a google cloud service account that can only do one thing, which is use this specific bucket.
-export async function createServiceAccount(
-  bucketName: string,
-): Promise<GoogleCloudServiceAccountKey> {
-  // todo: make sure deleting already deleted service account fully works.
-  logger.debug("createServiceAccount", bucketName);
-  return {} as GoogleCloudServiceAccountKey;
-}
-
-export async function deleteServiceAccount(
-  serviceAccount: GoogleCloudServiceAccountKey,
-): Promise<void> {
-  logger.debug("deleteServiceAccount", serviceAccount.client_email);
 }

@@ -584,7 +584,7 @@ importers:
         version: 1.8.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-redux:
         specifier: ^8.0.5
-        version: 8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@5.0.1)
+        version: 8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@4.2.1)
       react-timeago:
         specifier: ^7.2.0
         version: 7.2.0(react@18.2.0)
@@ -1372,7 +1372,7 @@ importers:
         version: 0.1.17(encoding@0.1.13)
       '@langchain/community':
         specifier: ^0.0.57
-        version: 0.0.57(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(better-sqlite3@11.0.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)
+        version: 0.0.57(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(better-sqlite3@8.3.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)
       '@langchain/core':
         specifier: ^0.1.63
         version: 0.1.63
@@ -1490,6 +1490,9 @@ importers:
       google-auth-library:
         specifier: ^9.4.1
         version: 9.4.1(encoding@0.1.13)
+      googleapis:
+        specifier: ^137.1.0
+        version: 137.1.0(encoding@0.1.13)
       gpt3-tokenizer:
         specifier: ^1.1.5
         version: 1.1.5
@@ -1504,7 +1507,7 @@ importers:
         version: 1.0.1
       langchain:
         specifier: ^0.1.37
-        version: 0.1.37(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@11.0.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)
+        version: 0.1.37(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)
       libsodium-wrappers:
         specifier: ^0.7.13
         version: 0.7.13
@@ -1608,7 +1611,7 @@ importers:
     devDependencies:
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.5.10
-        version: 0.5.10(react-refresh@0.14.0)(type-fest@4.18.3)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))
+        version: 0.5.10(react-refresh@0.14.0)(type-fest@3.5.0)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))
       '@swc/core':
         specifier: 1.3.3
         version: 1.3.3
@@ -4812,9 +4815,6 @@ packages:
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
-  better-sqlite3@11.0.0:
-    resolution: {integrity: sha512-1NnNhmT3EZTsKtofJlMox1jkMxdedILury74PwUbQBjWgo4tL4kf7uTAjU55mgQwjdzqakSTjkf+E1imrFwjnA==}
-
   better-sqlite3@8.3.0:
     resolution: {integrity: sha512-JTmvBZL/JLTc+3Msbvq6gK6elbU9/wVMqiudplHrVJpr7sVMR9KJrNhZAbW+RhXKlpMcuEhYkdcHa3TXKNXQ1w==}
 
@@ -6692,6 +6692,14 @@ packages:
     resolution: {integrity: sha512-zXRSGgHp33ottCQMdYlKEFX/MhWkzKVX5P3Vpmx+DW6rtseLILzp3V0YV5Rh4oQzzkM0BH9+nJIyX01EUgmd3g==}
     engines: {node: '>=14'}
 
+  googleapis-common@7.2.0:
+    resolution: {integrity: sha512-/fhDZEJZvOV3X5jmD+fKxMqma5q2Q9nZNSF3kn1F18tpxmA86BcTxAGBQdM0N89Z3bEaIs+HVznSmFJEAmMTjA==}
+    engines: {node: '>=14.0.0'}
+
+  googleapis@137.1.0:
+    resolution: {integrity: sha512-2L7SzN0FLHyQtFmyIxrcXhgust77067pkkduqkbIpDuj9JzVnByxsRrcRfUMFQam3rQkWW2B0f1i40IwKDWIVQ==}
+    engines: {node: '>=14.0.0'}
+
   googlediff@0.1.0:
     resolution: {integrity: sha512-71ZD3jCKckWRnh1DTPJABge1uZwwqMTUD1qyiao2VkAKvsO1keNf7/PGKXaDNGrq7EHOm1Z8TVT5jvG3SQuZAg==}
     engines: {node: '>=0.8.0'}
@@ -8499,10 +8507,6 @@ packages:
     resolution: {integrity: sha512-2s6B2CWZM//kPgwnuI0KrYwNjfdByE25zvAaEpq9IH4zcNsarH8Ihu/UuX6XMPEogDAxkuUFeZn60pXNHAqn3A==}
     engines: {node: '>=10'}
 
-  node-abi@3.63.0:
-    resolution: {integrity: sha512-vAszCsOUrUxjGAmdnM/pq7gUgie0IRteCQMX6d4A534fQCR93EJU5qgzBvU6EkFfK27s0T3HEV3BOyJIr7OMYw==}
-    engines: {node: '>=10'}
-
   node-addon-api@6.1.0:
     resolution: {integrity: sha512-+eawOlIgy680F0kBzPUNFhMZGtJ1YmqM6l4+Crf4IkImjYrO/mqPwRMh352g23uIaQKFItcQ64I7KMaJxHgAVA==}
 
@@ -9144,11 +9148,6 @@ packages:
 
   prebuild-install@7.1.1:
     resolution: {integrity: sha512-jAXscXWMcCK8GgCoHOfIr0ODh5ai8mj63L2nWrjuAgXE6tDyYGnx4/8o/rCgU+B4JSyZBKbeZqzhtwtC3ovxjw==}
-    engines: {node: '>=10'}
-    hasBin: true
-
-  prebuild-install@7.1.2:
-    resolution: {integrity: sha512-UnNke3IQb6sgarcZIDU3gbMeTp/9SSU1DAIkil7PrqG1vZlBtY5msYccSKSHDqa3hNg436IXK+SNImReuA1wEQ==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -9850,9 +9849,6 @@ packages:
   redux@4.2.1:
     resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
 
-  redux@5.0.1:
-    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
-
   reflect-metadata@0.1.13:
     resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
 
@@ -10149,11 +10145,6 @@ packages:
 
   semver@7.6.0:
     resolution: {integrity: sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==}
-    engines: {node: '>=10'}
-    hasBin: true
-
-  semver@7.6.2:
-    resolution: {integrity: sha512-FNAIBWCx9qcRhoHcgcJ0gvU7SN1lYU2ZXuSfl04bSC5OpvDHFyJCjdNHomPXxjQlCBU67YW64PzY7/VIEH7F2w==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -10892,10 +10883,6 @@ packages:
     resolution: {integrity: sha512-bI3zRmZC8K0tUz1HjbIOAGQwR2CoPQG68N5IF7gm0LBl8QSNXzkmaWnkWccCUL5uG9mCsp4sBwC8SBrNSISWew==}
     engines: {node: '>=14.16'}
 
-  type-fest@4.18.3:
-    resolution: {integrity: sha512-Q08/0IrpvM+NMY9PA2rti9Jb+JejTddwmwmVQGskAlhtcrw1wsRzoR6ode6mR+OAabNa75w/dxedSUY2mlphaQ==}
-    engines: {node: '>=16'}
-
   type-is@1.6.18:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
     engines: {node: '>= 0.6'}
@@ -11076,6 +11063,9 @@ packages:
   url-pattern@1.0.3:
     resolution: {integrity: sha512-uQcEj/2puA4aq1R3A2+VNVBgaWYR24FdWjl7VNW83rnWftlhyzOZ/tBjezRiC2UkIzuxC8Top3IekN3vUf1WxA==}
     engines: {node: '>=0.12.0'}
+
+  url-template@2.0.8:
+    resolution: {integrity: sha512-XdVKMF4SJ0nP/O7XIPB0JwAEuT9lDIYnNsK8yGVe43y0AWoKeJNdv3ZNWh7ksJ6KqQFjOO6ox/VEitLnaVNufw==}
 
   url@0.11.3:
     resolution: {integrity: sha512-6hxOLGfZASQK/cijlZnZJTq8OXAkt/3YGfQX45vvMYXpZoo8NdWZcY73K108Jf759lS1Bv/8wXnHDTSz17dSRw==}
@@ -13037,7 +13027,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@langchain/community@0.0.57(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(better-sqlite3@11.0.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)':
+  '@langchain/community@0.0.57(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(better-sqlite3@8.3.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)':
     dependencies:
       '@langchain/core': 0.1.63
       '@langchain/openai': 0.0.29(encoding@0.1.13)
@@ -13050,8 +13040,9 @@ snapshots:
     optionalDependencies:
       '@google-ai/generativelanguage': 1.1.0(encoding@0.1.13)
       '@qdrant/js-client-rest': 1.9.0(typescript@5.4.5)
-      better-sqlite3: 11.0.0
+      better-sqlite3: 8.3.0
       google-auth-library: 9.4.1(encoding@0.1.13)
+      googleapis: 137.1.0(encoding@0.1.13)
       jsonwebtoken: 9.0.2
       lodash: 4.17.21
       pg: 8.11.5
@@ -13509,7 +13500,7 @@ snapshots:
 
   '@plotly/regl@2.1.2': {}
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(type-fest@4.18.3)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))':
+  '@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(type-fest@3.5.0)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))':
     dependencies:
       ansi-html-community: 0.0.8
       common-path-prefix: 3.0.0
@@ -13523,7 +13514,7 @@ snapshots:
       source-map: 0.7.4
       webpack: 5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4)
     optionalDependencies:
-      type-fest: 4.18.3
+      type-fest: 3.5.0
       webpack-hot-middleware: 2.25.4
 
   '@polka/url@1.0.0-next.21': {}
@@ -14972,12 +14963,6 @@ snapshots:
   batch@0.6.1: {}
 
   bcryptjs@2.4.3: {}
-
-  better-sqlite3@11.0.0:
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.2
-    optional: true
 
   better-sqlite3@8.3.0:
     dependencies:
@@ -17293,6 +17278,26 @@ snapshots:
       - encoding
       - supports-color
 
+  googleapis-common@7.2.0(encoding@0.1.13):
+    dependencies:
+      extend: 3.0.2
+      gaxios: 6.1.1(encoding@0.1.13)
+      google-auth-library: 9.10.0(encoding@0.1.13)
+      qs: 6.12.0
+      url-template: 2.0.8
+      uuid: 9.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
+  googleapis@137.1.0(encoding@0.1.13):
+    dependencies:
+      google-auth-library: 9.10.0(encoding@0.1.13)
+      googleapis-common: 7.2.0(encoding@0.1.13)
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+
   googlediff@0.1.0: {}
 
   gopd@1.0.1:
@@ -18736,10 +18741,10 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.1.37(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@11.0.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0):
+  langchain@0.1.37(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0):
     dependencies:
       '@anthropic-ai/sdk': 0.9.1(encoding@0.1.13)
-      '@langchain/community': 0.0.57(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(better-sqlite3@11.0.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)
+      '@langchain/community': 0.0.57(@google-ai/generativelanguage@1.1.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(better-sqlite3@8.3.0)(encoding@0.1.13)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(jsonwebtoken@9.0.2)(lodash@4.17.21)(pg@8.11.5)(ws@8.17.0)
       '@langchain/core': 0.1.63
       '@langchain/openai': 0.0.29(encoding@0.1.13)
       '@langchain/textsplitters': 0.0.0
@@ -19505,11 +19510,6 @@ snapshots:
   node-abi@3.47.0:
     dependencies:
       semver: 7.6.0
-
-  node-abi@3.63.0:
-    dependencies:
-      semver: 7.6.2
-    optional: true
 
   node-addon-api@6.1.0: {}
 
@@ -20308,22 +20308,6 @@ snapshots:
       tar-fs: 2.1.1
       tunnel-agent: 0.6.0
 
-  prebuild-install@7.1.2:
-    dependencies:
-      detect-libc: 2.0.3
-      expand-template: 2.0.3
-      github-from-package: 0.0.0
-      minimist: 1.2.8
-      mkdirp-classic: 0.5.3
-      napi-build-utils: 1.0.2
-      node-abi: 3.63.0
-      pump: 3.0.0
-      rc: 1.2.8
-      simple-get: 4.0.1
-      tar-fs: 2.1.1
-      tunnel-agent: 0.6.0
-    optional: true
-
   precond@0.2.3: {}
 
   predefine@0.1.3:
@@ -21083,7 +21067,7 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  react-redux@8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@5.0.1):
+  react-redux@8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@4.2.1):
     dependencies:
       '@babel/runtime': 7.20.7
       '@types/hoist-non-react-statics': 3.3.1
@@ -21096,7 +21080,7 @@ snapshots:
       '@types/react': 18.0.26
       '@types/react-dom': 18.0.10
       react-dom: 18.2.0(react@18.2.0)
-      redux: 5.0.1
+      redux: 4.2.1
 
   react-refresh@0.14.0: {}
 
@@ -21206,9 +21190,6 @@ snapshots:
   redux@4.2.1:
     dependencies:
       '@babel/runtime': 7.21.5
-
-  redux@5.0.1:
-    optional: true
 
   reflect-metadata@0.1.13: {}
 
@@ -21558,9 +21539,6 @@ snapshots:
   semver@7.6.0:
     dependencies:
       lru-cache: 6.0.0
-
-  semver@7.6.2:
-    optional: true
 
   send@0.18.0:
     dependencies:
@@ -22374,9 +22352,6 @@ snapshots:
 
   type-fest@3.5.0: {}
 
-  type-fest@4.18.3:
-    optional: true
-
   type-is@1.6.18:
     dependencies:
       media-typer: 0.3.0
@@ -22571,6 +22546,8 @@ snapshots:
       requires-port: 1.0.0
 
   url-pattern@1.0.3: {}
+
+  url-template@2.0.8: {}
 
   url@0.11.3:
     dependencies:
