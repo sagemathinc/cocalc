@@ -27,8 +27,10 @@ import isBanned from "@cocalc/server/accounts/is-banned";
 
 const log = getLogger("server:api:manage");
 
-// Global per user limit to avoid stupid abuse/bugs:
-const MAX_API_KEYS = 100;
+// Global per user limit to avoid abuse/bugs.  Nobody should ever hit this.
+// Since we use a separate key per compute server, and definitely want some users
+// to create 5K compute servers at once, don't make this too small.
+const MAX_API_KEYS = 100000;
 
 // regenerate is only for the legacy api keys
 type Action = "get" | "delete" | "regenerate" | "create" | "edit";
