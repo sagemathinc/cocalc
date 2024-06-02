@@ -17,7 +17,7 @@ import { ID, NOTES } from "./crm";
 
 export const CREATE_STORAGE_COST = 0.05;
 
-interface GoogleCloudServiceAccountKey {
+export interface GoogleCloudServiceAccountKey {
   type: "service_account";
   project_id: string;
   private_key_id: string;

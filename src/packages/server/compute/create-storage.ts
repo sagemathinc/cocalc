@@ -32,5 +32,9 @@ export async function createStorage(opts: Options): Promise<number> {
     throw Error(reason);
   }
 
+  // create storage bucket and service account -- for now only support google cloud storage
+
   return 0;
 }
+
+
