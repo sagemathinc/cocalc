@@ -48,12 +48,18 @@ interface Options extends CreateStorage {
 }
 
 const FIELDS =
-  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,deleted,notes".split(
+  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,deleted,notes,lock".split(
     ",",
   );
 
-export async function createStorage(opts: Options): Promise<number> {
+export default async function createStorage(opts: Options): Promise<number> {
   logger.debug("createStorage", opts);
+
+  // sanity checks
+  if (!["lz4", "zstd", "none"].includes(opts.compression)) {
+    throw Error("compression must be 'lz4', 'zstd', or 'none'");
+  }
+
   // check that user has enough credit on account to make a MINIMAL purchase, to prevent abuse
   const { allowed, reason } = await isPurchaseAllowed({
     account_id: opts.account_id,
@@ -65,26 +71,6 @@ export async function createStorage(opts: Options): Promise<number> {
     throw Error(reason);
   }
   logger.debug("createStorage -- allowed");
-
-  // random bucket name -- all GCS buckets are in a single global
-  // namespace, but by using a uuid it's extremely unlikely that
-  // a bucket name would ever not be avialable; also nobody will
-  // ever guess a bucket name, which is an extra level of security.
-  // If there is a conflict, it would be an error and the user
-  // would just retry creating their bucket (it's much more likely
-  // to hit a random networking error).
-  const bucket = `${(await getGoogleCloudPrefix()).slice(
-    0,
-    63 - 37,
-  )}-${uuid()}`;
-  logger.debug("createStorage", { bucket });
-
-  // create storage bucket -- for now only support google
-  // cloud storage, as mentioned above.
-  await createBucket({ bucket });
-
-  // create service account that has access to storage bucket
-  const secret_key = await createServiceAccount(bucket);
 
   // create storage record in the database
   const push = (field, param) => {
@@ -100,8 +86,6 @@ export async function createStorage(opts: Options): Promise<number> {
       push(field, opts[field]);
     }
   }
-  push("bucket", bucket);
-  push("secret_key", secret_key);
   push("created", new Date());
   // start assuming storage should get mounted
   push("mount", true);
@@ -114,6 +98,40 @@ export async function createStorage(opts: Options): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(query, params);
   const { id } = rows[0];
+
+  try {
+    // randomized bucket name -- all GCS buckets are in a single global
+    // namespace, but by using a uuid it's extremely unlikely that
+    // a bucket name would ever not be avialable; also nobody will
+    // ever guess a bucket name, which is an extra level of security.
+    // If there is a conflict, it would be an error and the user
+    // would just retry creating their bucket (it's much more likely
+    // to hit a random networking error).
+    const s = `-${id}-${uuid()}`;
+    const bucket = `${(await getGoogleCloudPrefix()).slice(
+      0,
+      63 - s.length - 1,
+    )}${s}`;
+    logger.debug("createStorage", { bucket });
+
+    // create storage bucket -- for now only support google
+    // cloud storage, as mentioned above.
+    await createBucket(bucket);
+    await pool.query("UPDATE storage SET bucket=$1 WHERE id=$2", [bucket, id]);
+
+    // create service account that has access to storage bucket
+    const secret_key = await createServiceAccount(bucket);
+    await pool.query("UPDATE storage SET secret_key=$1 WHERE id=$2", [
+      secret_key,
+      id,
+    ]);
+  } catch (err) {
+    await pool.query("UPDATE storage SET error=$1 WHERE id=$2", [`${err}`, id]);
+    throw err;
+  }
+
+  // TODO: make the purchase (?); if it fails, delete everything.
+
   return id;
 }
 

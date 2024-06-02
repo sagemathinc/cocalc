@@ -3,6 +3,10 @@ IMPORTANT NOTE: Basically the only way to figure out how to use any of
 this @google-cloud/compute package is via VS Code and typescript, and
 following the typescript definitions.  There's no other docs really.
 But that works!
+
+UPDATE: VS Code is very helpful, but there are now good public API docs at
+
+https://googleapis.dev/nodejs/compute/latest/index.html
 */
 
 import { getServerSettings } from "@cocalc/database/settings/server-settings";

@@ -46,9 +46,9 @@ export interface Storage {
   project_id: string;
   account_id: string;
   created: Date;
-  bucket: string;
+  bucket?: string;
   mountpoint: string;
-  secret_key: GoogleCloudServiceAccountKey;
+  secret_key?: GoogleCloudServiceAccountKey;
   port: number;
   compression: "lz4" | "zstd" | "none";
   configuration?: { juice?: JuiceConfiguration; keydb?: KeyDbConfiguration };
@@ -57,6 +57,7 @@ export interface Storage {
   deleted?: boolean;
   error?: string;
   notes?: string;
+  lock?: string;
 }
 
 export type CreateStorage = Pick<
@@ -92,6 +93,7 @@ Table({
           color: null,
           error: null,
           notes: null,
+          lock: null,
         },
       },
       set: {
@@ -102,6 +104,7 @@ Table({
           notes: true,
           title: true,
           color: true,
+          lock: true,
         },
       },
     },
@@ -126,7 +129,6 @@ Table({
       desc: "When the compute server was created.",
     },
     bucket: {
-      not_null: true,
       type: "string",
       pg_type: "VARCHAR(63)",
       desc: "Google cloud storage bucket backing this filesystem",
@@ -144,10 +146,9 @@ Table({
       desc: "If true, then this storage filesystem will get mounted on all compute servers associated to the project.",
     },
     secret_key: {
-      not_null: true,
       type: "map",
       pg_type: "jsonb",
-      desc: "Secret key needed to use this storage. It's a structured jsonb object.  For google cloud storage, it's exactly the service account.",
+      desc: "Secret key needed to use this storage. It's a structured jsonb object.  For google cloud storage, it's exactly the service account.  This will only be not set if something went wrong initializing this storage.",
     },
     port: {
       type: "integer",
@@ -186,5 +187,11 @@ Table({
       desc: "In case something went wrong, e.g., in starting this compute server, this field will get set with a string error message to show the user. It's also cleared right when we try to start server.",
     },
     notes: NOTES,
+    lock: {
+      type: "string",
+      pg_type: "VARCHAR(128)",
+      desc: "String that you must provide as part of any API call to delete this object.  Use this as a personal reminder of conditions under which it is OK to delete this.",
+      render: { type: "text", maxLength: 128, editable: true },
+    },
   },
 });

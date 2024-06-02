@@ -33,7 +33,7 @@ interface Options {
 }
 
 const FIELDS =
-  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position,notes".split(
+  "project_id,title,account_id,color,idle_timeout,autorestart,cloud,configuration,position,notes,lock".split(
     ",",
   );
 

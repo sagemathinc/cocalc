@@ -16,11 +16,22 @@ export type StorageConf = {
   network: { interface: string; peers: string[] };
 };
 
-async function getStorageFilesystems(project_id: string): Promise<Storage[]> {
+export async function getStorage(id: number): Promise<Storage> {
+  const pool = getPool();
+  const { rows } = await pool.query(`SELECT * FROM storage WHERE id=$1`, [id]);
+  if (rows.length == 0) {
+    throw Error(`no storage with id ${id}`);
+  }
+  return rows[0];
+}
+
+async function getMountedStorageFilesystems(
+  project_id: string,
+): Promise<Storage[]> {
   logger.debug("getStorageFilesystems: ", { project_id });
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT * FROM storage WHERE project_id=$1 AND (deleted IS null or deleted=false) AND mounted=true`,
+    `SELECT * FROM storage WHERE project_id=$1 AND (deleted IS null or deleted=false) AND mounted=true AND secret_key IS NOT NULL`,
     [project_id],
   );
   // TODO: we may have to address issues here with service account keys expiring, and
@@ -65,7 +76,7 @@ export async function getStorageConf(
 ): Promise<StorageConf> {
   logger.debug("getStorageConf: ", { project_id });
   const image = await getStorageImage();
-  const filesystems = await getStorageFilesystems(project_id);
+  const filesystems = await getMountedStorageFilesystems(project_id);
   const network = await getNetwork(project_id, id);
   return { image, filesystems, network };
 }
