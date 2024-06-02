@@ -1,5 +1,7 @@
 /*
-Google API docs: https://googleapis.dev/nodejs/storage/latest/
+Google API docs
+ - storage -- https://googleapis.dev/nodejs/storage/latest/
+ - iam -- https://cloud.google.com/nodejs/docs/reference/iam/latest
 */
 
 import { getCredentials } from "./client";
