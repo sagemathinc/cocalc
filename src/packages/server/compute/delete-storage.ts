@@ -5,10 +5,8 @@ so like deprovisioning.
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { getStorage } from "./storage";
-import {
-  deleteBucket,
-  deleteServiceAccount,
-} from "./cloud/google-cloud/storage";
+import { deleteBucket } from "./cloud/google-cloud/storage";
+import { deleteServiceAccount } from "./cloud/google-cloud/service-account";
 
 const logger = getLogger("server:compute:delete-storage");
 
@@ -39,7 +37,7 @@ export default async function deleteStorage(id: number, lock?: string) {
 
   if (storage.secret_key) {
     logger.debug("deleteStorage: delete the service account");
-    await deleteServiceAccount(storage.secret_key);
+    await deleteServiceAccount("TODO");
     await pool.query("UPDATE storage SET secret_key=NULL WHERE id=$1", [id]);
   }
 

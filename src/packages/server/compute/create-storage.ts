@@ -25,10 +25,8 @@ likely have their own SAN or NFS they want to use instead.
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import getLogger from "@cocalc/backend/logger";
 import { getGoogleCloudPrefix } from "./cloud/google-cloud";
-import {
-  createBucket,
-  createServiceAccount,
-} from "./cloud/google-cloud/storage";
+import { createBucket } from "./cloud/google-cloud/storage";
+import { createServiceAccount } from "./cloud/google-cloud/service-account";
 import { uuid } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 

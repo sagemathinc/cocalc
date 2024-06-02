@@ -6,12 +6,8 @@ Google API docs
 import { getCredentials } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { CreateBucketRequest, Storage } from "@google-cloud/storage";
-import { iam_v1 } from "googleapis";
-import { JWT } from "google-auth-library";
 
 const logger = getLogger("server:compute:cloud:google-cloud:storage");
-
-import type { GoogleCloudServiceAccountKey } from "@cocalc/util/db-schema/storage";
 
 // create a google cloud storage bucket
 export async function createBucket(
@@ -39,3 +35,10 @@ export async function deleteBucket(bucketName: string): Promise<void> {
   // on what is in the bucket -- this just launches the process.
   await bucket.delete();
 }
+
+// export async function getBucket(bucketName: string) {
+//   logger.debug("deleteBucket", bucketName);
+//   const credentials = await getCredentials();
+//   const storage = new Storage(credentials);
+//   return storage.bucket(bucketName);
+// }
