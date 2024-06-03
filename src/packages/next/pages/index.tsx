@@ -6,6 +6,7 @@
 import { Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
+
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
@@ -21,13 +22,13 @@ import { NewsBanner } from "components/landing/news-banner";
 import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
+import Videos, { Video } from "components/videos";
 import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
-import Videos from "components/videos";
 
 const TOP_LINK_STYLE: CSS = { marginRight: "20px" } as const;
 
@@ -60,12 +61,12 @@ export default function Home(props: Props) {
         ) : (
           <>
             An instance of <A href="https://cocalc.com">CoCalc</A>
-            {organizationName && organizationURL && (
+            {organizationName && organizationURL ? (
               <>
                 {" "}
                 hosted by <A href={organizationURL}>{organizationName}</A>
               </>
-            )}
+            ) : undefined}
             .
           </>
         )}
@@ -197,7 +198,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
   );
 }
 
-const YOUTUBE_IDS = [
+const YOUTUBE_IDS: Readonly<Video[]> = [
   { id: "oDdfmkQ0Hvw", title: "CoCalc Overview" },
   { id: "UfmjYxalyh0", title: "Using AI in CoCalc" },
   { id: "LLtLFtD8qfo", title: "Using JupyterLab in CoCalc" },
@@ -209,4 +210,4 @@ const YOUTUBE_IDS = [
     title: "JAX Quickstart on CoCalc using a GPU (or on CPU)",
   },
   { id: "NkNx6tx3nu0", title: "Running On-Prem Compute Servers on CoCalc" },
-];
+] as const;

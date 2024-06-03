@@ -4,7 +4,7 @@
  */
 
 import getPool from "@cocalc/database/pool";
-import { Strategy } from "@cocalc/util/types/sso";
+import type { Strategy } from "@cocalc/util/types/sso";
 import { ssoDispayedName } from "@cocalc/util/auth";
 
 /** Returns an array of public info about strategies.
