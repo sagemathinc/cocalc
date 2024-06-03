@@ -126,27 +126,13 @@ export const CellButtonBar: React.FC<Props> = React.memo(
               {
                 key: "all-above",
                 icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
-                label: (
-                  <Tooltip
-                    title={"Run all cells above this one, excluding this cell"}
-                    placement={"left"}
-                  >
-                    Run All Above
-                  </Tooltip>
-                ),
+                label: "Run All Above Selected Cell",
                 onClick: () => actions?.run_all_above_cell(id),
               },
               {
                 key: "all-below",
                 icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
-                label: (
-                  <Tooltip
-                    title={"Run all cells below this one, including this cell"}
-                    placement={"left"}
-                  >
-                    Run All Below
-                  </Tooltip>
-                ),
+                label: "Run Selected Cell and All Below",
                 onClick: () => actions?.run_all_below_cell(id),
               },
             ],
