@@ -27,7 +27,7 @@ export default async function withCustomize(
     revalidate?: number;
     context: any;
   },
-  options: Options = {}
+  options: Options = {},
 ) {
   let customize: CustomizeType;
   try {

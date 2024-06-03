@@ -49,7 +49,7 @@ export interface Customize {
   sandboxProjectsEnabled?: boolean;
   sandboxProjectId?: string;
   verifyEmailAddresses?: boolean;
-  strategies: Strategy[];
+  strategies?: Strategy[];
   openaiEnabled?: boolean;
   googleVertexaiEnabled?: boolean;
   mistralEnabled?: boolean;
