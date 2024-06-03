@@ -9,11 +9,12 @@ import {
 import { Paragraph, Title } from "@cocalc/frontend/components";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
 import {
-  LanguageModelCore,
   LLMServiceName,
   LLM_PROVIDER,
+  LanguageModelCore,
   USER_SELECTABLE_LLMS_BY_VENDOR,
   isCoreLanguageModel,
+  toCustomOpenAIModel,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { getRandomColor, trunc_middle } from "@cocalc/util/misc";
@@ -26,6 +27,7 @@ export function TestLLMAdmin() {
   const globallyEnabledLLMs = customize.getEnabledLLMs();
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
   const [test, setTest] = useState<number | null>(0);
   // TODO: this is used to trigger sending queries – makes no sense that all of them disable it. fix this.
   const [querying, setQuerying] = useState<boolean>();
@@ -63,6 +65,70 @@ export function TestLLMAdmin() {
           ) : undefined}
         </Col>
       </Row>
+    );
+  }
+
+  function renderCustomOpenAI() {
+    return (
+      <Col key={"custom_openai"} md={12} xs={24}>
+        <Title level={5}>Custom OpenAI</Title>
+        {Object.entries(custom_openai?.toJS() ?? {}).map(([key, _val]) => {
+          const model = toCustomOpenAIModel(key);
+
+          return (
+            <Row
+              gutter={[10, 20]}
+              style={llmStyle(model)}
+              key={`custom_openai-${key}`}
+            >
+              <Col md={24}>
+                <Space>
+                  <Value val={true} /> <LLMModelName model={model} />
+                </Space>
+              </Col>
+              <Col md={24}>
+                <TestLLM
+                  test={test}
+                  model={model}
+                  queryState={[querying, setQuerying]}
+                />
+              </Col>
+            </Row>
+          );
+        })}
+      </Col>
+    );
+  }
+
+  function renderOllama() {
+    return (
+      <Col key={"ollama"} md={12} xs={24}>
+        <Title level={5}>Ollama</Title>
+        {Object.entries(ollama?.toJS() ?? {}).map(([key, _val]) => {
+          const model = toOllamaModel(key);
+
+          return (
+            <Row
+              gutter={[10, 20]}
+              style={llmStyle(model)}
+              key={`ollama-${key}`}
+            >
+              <Col md={24}>
+                <Space>
+                  <Value val={true} /> <LLMModelName model={model} />
+                </Space>
+              </Col>
+              <Col md={24}>
+                <TestLLM
+                  test={test}
+                  model={model}
+                  queryState={[querying, setQuerying]}
+                />
+              </Col>
+            </Row>
+          );
+        })}
+      </Col>
     );
   }
 
@@ -108,7 +174,7 @@ export function TestLLMAdmin() {
         <Row gutter={[10, 10]}>
           {Object.entries(USER_SELECTABLE_LLMS_BY_VENDOR).map(
             ([vendor, llms]) =>
-              vendor !== "ollama" ? (
+              vendor !== "ollama" && vendor !== "custom_openai" ? (
                 <Col key={vendor} md={12} xs={24}>
                   <Title level={5}>{LLM_PROVIDER[vendor].name}</Title>
                   {llms
@@ -117,38 +183,15 @@ export function TestLLMAdmin() {
                 </Col>
               ) : undefined,
           )}
-          <Col key={"ollama"} md={12} xs={24}>
-            <Title level={5}>Ollama</Title>
-            {Object.entries(ollama?.toJS() ?? {}).map(([key, val]) => {
-              const model = toOllamaModel(val.model);
-
-              return (
-                <Row
-                  gutter={[10, 20]}
-                  style={llmStyle(model)}
-                  key={`ollama-${key}`}
-                >
-                  <Col md={24}>
-                    <Space>
-                      <Value val={true} /> <LLMModelName model={model} />
-                    </Space>
-                  </Col>
-                  <Col md={24}>
-                    <TestLLM
-                      test={test}
-                      model={model}
-                      queryState={[querying, setQuerying]}
-                    />
-                  </Col>
-                </Row>
-              );
-            })}
-          </Col>
+          {renderOllama()}
+          {renderCustomOpenAI()}
         </Row>
       </Paragraph>
 
       <Title level={5}>Ollama configuration</Title>
       <Value val={ollama} />
+      <Title level={5}>Custom OpenAI API</Title>
+      <Value val={custom_openai} />
     </div>
   );
 }
