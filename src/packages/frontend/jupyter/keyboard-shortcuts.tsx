@@ -18,9 +18,10 @@ import {
   A,
   Icon,
   IconName,
-  r_join,
   SearchInput,
+  r_join,
 } from "@cocalc/frontend/components";
+import { IconRotation } from "@cocalc/frontend/components/icon";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { ShowSupportLink } from "@cocalc/frontend/support";
@@ -28,8 +29,8 @@ import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import {
   CommandDescription,
-  commands as create_commands,
   KeyboardCommand,
+  commands as create_commands,
 } from "./commands";
 import { evt_to_obj, keyCode_to_chr } from "./keyboard";
 
@@ -298,17 +299,20 @@ interface CommandProps {
   name: string;
   desc: string;
   icon?: IconName;
+  iconRotate?: IconRotation;
   shortcuts: KeyboardCommand[];
   taken: string;
 }
 
 const Command: React.FC<CommandProps> = React.memo((props: CommandProps) => {
-  const { actions, name, desc, icon, shortcuts, taken } = props;
+  const { actions, name, desc, icon, iconRotate, shortcuts, taken } = props;
   const frameActions = useNotebookFrameActions();
   const [highlight, set_highlight] = useState<boolean>(false);
 
   function render_icon(): Rendered {
-    return <span>{icon ? <Icon name={icon} /> : undefined}</span>;
+    return (
+      <span>{icon ? <Icon name={icon} rotate={iconRotate} /> : undefined}</span>
+    );
   }
 
   function run_command() {
@@ -423,6 +427,7 @@ const CommandList: React.FC<CommandListProps> = React.memo(
             actions={actions}
             desc={desc}
             icon={icon}
+            iconRotate={x.val.ir}
             shortcuts={shortcuts}
             taken={taken[x.name]}
           />,

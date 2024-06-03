@@ -208,15 +208,16 @@ import {
   UserDeleteOutlined,
   UserOutlined,
   UsergroupAddOutlined,
+  VerticalAlignBottomOutlined,
   VerticalAlignMiddleOutlined,
   VerticalRightOutlined,
   VideoCameraOutlined,
   WalletOutlined,
   WarningOutlined,
   WifiOutlined,
+  XOutlined,
   YoutubeFilled,
   YoutubeOutlined,
-  XOutlined,
 } from "@ant-design/icons";
 
 // Unfortunately -- "error TS7056: The inferred type of this node exceeds the maximum length the
@@ -593,6 +594,7 @@ const IconSpec: { [name: string]: any } = {
   "vertical-right-outlined": VerticalRightOutlined,
   "video-camera": VideoCameraOutlined,
   "vertical-align-middle": VerticalAlignMiddleOutlined,
+  "vertical-align-bottom": VerticalAlignBottomOutlined,
   vim: { IconFont: "vim" },
   vscode: { IconFont: "vscode" },
   wallet: WalletOutlined,
@@ -675,12 +677,14 @@ export function isIconName(name?: string): name is IconName {
 
 export const iconNames: IconName[] = Object.keys(IconSpec) as any;
 
+export type IconRotation = "45" | "90" | "135" | "180" | "225" | "270" | "315";
+
 interface Props {
   name?: IconName;
   unicode?: number; // (optional) set a hex 16 bit charcode to render a unicode char, e.g. 0x2620
   className?: string;
   size?: "lg" | "2x" | "3x" | "4x" | "5x";
-  rotate?: "45" | "90" | "135" | "180" | "225" | "270" | "315";
+  rotate?: IconRotation;
   flip?: "horizontal" | "vertical";
   spin?: boolean;
   pulse?: boolean;

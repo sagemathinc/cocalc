@@ -19,10 +19,6 @@ export function LLMModelName(
   const custom_openai = useTypedRedux("customize", "custom_openai");
 
   function renderTitle() {
-    if (isLanguageModel(model)) {
-      return modelToName(model);
-    }
-
     if (isOllamaLLM(model)) {
       const om = ollama?.get(fromOllamaModel(model));
       if (om) {
@@ -35,6 +31,10 @@ export function LLMModelName(
       if (coi) {
         return coi.get("display") ?? `OpenAI (custom) ${model}`;
       }
+    }
+
+    if (isLanguageModel(model)) {
+      return modelToName(model);
     }
 
     return model;

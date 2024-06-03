@@ -6,7 +6,9 @@
 import { Button, Col, Grid, Row } from "antd";
 import { join } from "path";
 import { useEffect, useState } from "react";
+
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
+import { DOC_AI } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
 import DemoCell from "components/demo-cell";
@@ -26,7 +28,6 @@ import assignments from "public/features/cocalc-course-assignments-2019.png";
 import RTC from "public/features/cocalc-real-time-jupyter.png";
 import ComputeServers from "./compute-servers";
 import { LANDING_HEADER_LEVEL } from "./constants";
-import { DOC_AI } from "@cocalc/util/consts/ui";
 
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
 export function CoCalcComFeatures() {

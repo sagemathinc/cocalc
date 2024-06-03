@@ -4,13 +4,12 @@ import {
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { ChatMistralAI } from "@langchain/mistralai";
-import { ChatMessageHistory } from "langchain/stores/message/in_memory";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
 import { isMistralModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
+import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 
 const log = getLogger("llm:mistral");
@@ -72,22 +71,12 @@ export async function evaluateMistral(
     config: { configurable: { sessionId: "ignored" } },
     inputMessagesKey: "input",
     historyMessagesKey: "history",
-    getMessageHistory: async (_) => {
-      const chatHistory = new ChatMessageHistory();
-      if (history) {
-        let nextRole: "model" | "user" = "user";
-        for (const { content } of history) {
-          historyTokens += numTokens(content);
-          if (nextRole === "user") {
-            await chatHistory.addMessage(new HumanMessage(content));
-          } else {
-            await chatHistory.addMessage(new AIMessage(content));
-          }
-          nextRole = nextRole === "user" ? "model" : "user";
-        }
-      }
-
-      return chatHistory;
+    getMessageHistory: async () => {
+      const { messageHistory, tokens } = await transformHistoryToMessages(
+        history,
+      );
+      historyTokens = tokens;
+      return messageHistory;
     },
   });
 

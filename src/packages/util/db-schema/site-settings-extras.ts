@@ -324,7 +324,7 @@ export const EXTRAS: SettingsExtras = {
   // This is very similar to the ollama config, but there are small differences in the details.
   custom_openai_configuration: {
     name: "Custom OpenAI Endpoints",
-    desc: 'Configure OpenAI endpoints, queried via [@langchain/openai (Node.js)](https://js.langchain.com/v0.1/docs/integrations/llms/openai/). e.g. `{"myllm" : {"baseUrl": "http://1.2.3.4:5678/" , apiKey: "key...", cocalc: {display: "My LLM", desc: "My custom LLM"}}, "gpt-4o-high": {baseUrl: "https://api.openai.com/v1", temperature: 1, "openAIApiKey": "sk-...", "model": "gpt-4o", cocalc: {display: "High GPT-4 Omni", desc: "GPT 4 Omni with a high temperature"}}}`',
+    desc: 'Configure OpenAI endpoints, queried via [@langchain/openai (Node.js)](https://js.langchain.com/v0.1/docs/integrations/llms/openai/). e.g. `{"myllm" : {"baseUrl": "http://1.2.3.4:5678/" , apiKey: "key...", cocalc: {display: "My LLM", desc: "My custom LLM"}}, "gpt-4o-high": {baseUrl: "https://api.openai.com/v1", temperature: 2, "openAIApiKey": "sk-...", "model": "gpt-4o", cocalc: {display: "High GPT-4 Omni", desc: "GPT 4 Omni High Temp"}}}`',
     default: "{}",
     multiline: 5,
     show: custom_openai_enabled,

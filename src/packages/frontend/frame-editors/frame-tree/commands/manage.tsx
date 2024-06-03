@@ -256,6 +256,7 @@ export class ManageCommands {
   };
 
   private getCommandIcon = (cmd: Partial<Command>) => {
+    const rotate = cmd.iconRotate;
     let icon = cmd.icon;
     if (!icon) {
       return undefined;
@@ -271,7 +272,7 @@ export class ManageCommands {
           display: "inline-block",
         }}
       >
-        {typeof icon == "string" ? <Icon name={icon} /> : icon}
+        {typeof icon === "string" ? <Icon name={icon} rotate={rotate} /> : icon}
       </span>
     );
   };

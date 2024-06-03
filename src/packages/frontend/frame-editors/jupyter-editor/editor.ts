@@ -516,6 +516,7 @@ function initMenus() {
         title: cmd.t,
         label: cmd.m,
         icon: cmd.i,
+        iconRotate: cmd.ir,
         keyboard: cmd.k ? cmd.k.map(shortcut_to_string).join(", ") : undefined,
         onClick: ({ props }) => {
           allActions.frame_actions = props.actions.frame_actions?.[props.id];

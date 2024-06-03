@@ -3,6 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { useRouter } from "next/router";
+import { ReactNode, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { len } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -16,8 +19,6 @@ import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useEditTable from "lib/hooks/edit-table";
-import { useRouter } from "next/router";
-import { ReactNode, useState } from "react";
 import register from "../register";
 
 interface Data {
@@ -36,7 +37,7 @@ register({
       {
         accounts: { passports: null },
       },
-      { noSave: true }
+      { noSave: true },
     );
 
     const hasPassword = useAPI("auth/has-password");
@@ -75,7 +76,7 @@ register({
 
     const passports = edited.passports ?? {};
     const linkedNames = Object.keys(passports).map(
-      (name) => name.split("-")[0]
+      (name) => name.split("-")[0],
     );
 
     return (
@@ -106,7 +107,7 @@ register({
                         or{" "}
                         <A href="/config/account/delete">delete your account</A>
                         .
-                      </>
+                      </>,
                     );
                     return;
                   }
@@ -169,7 +170,7 @@ function Unlink({
             key={name}
             strategy={strategy}
             onUnlink={() => onUnlink(name, strategy)}
-          />
+          />,
         );
         break;
       }

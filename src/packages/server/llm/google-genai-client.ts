@@ -5,14 +5,12 @@
  */
 
 import { GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { ChatMessageHistory } from "langchain/stores/message/in_memory";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -23,6 +21,7 @@ import {
   isGoogleModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
+import { transformHistoryToMessages } from "./chat-history";
 
 const log = getLogger("llm:google-genai");
 
@@ -133,21 +132,9 @@ export class GoogleGenAIClient {
       config: { configurable: { sessionId: "ignored" } },
       inputMessagesKey: "input",
       historyMessagesKey: "history",
-      getMessageHistory: async (_) => {
-        const chatHistory = new ChatMessageHistory();
-        if (history) {
-          let nextRole: "model" | "user" = "user";
-          for (const { content } of history) {
-            if (nextRole === "user") {
-              await chatHistory.addMessage(new HumanMessage(content));
-            } else {
-              await chatHistory.addMessage(new AIMessage(content));
-            }
-            nextRole = nextRole === "user" ? "model" : "user";
-          }
-        }
-
-        return chatHistory;
+      getMessageHistory: async () => {
+        const { messageHistory } = await transformHistoryToMessages(history);
+        return messageHistory;
       },
     });
 

@@ -1,15 +1,16 @@
 import { Carousel } from "antd";
-import { Paragraph } from "components/misc";
 import { useState } from "react";
-import A from "components/misc/A";
-import { Icon } from "@cocalc/frontend/components/icon";
 
-interface Video {
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Paragraph } from "components/misc";
+import A from "components/misc/A";
+
+export interface Video {
   id: string;
   title: string;
 }
 
-export default function Videos({ videos }: { videos: Video[] }) {
+export default function Videos({ videos }: { videos: Readonly<Video[]> }) {
   const [current, setCurrent] = useState<number>(0);
   let n = -1;
   return (

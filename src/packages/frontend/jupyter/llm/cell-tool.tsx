@@ -409,9 +409,7 @@ export function LLMCellTool({
                     <Icon name={action.icon} /> {capitalize(mode)}
                   </Tooltip>
                 ),
-                onClick: () => {
-                  setMode(mode as Mode);
-                },
+                onClick: () => setMode(mode as Mode),
               };
             },
           ),

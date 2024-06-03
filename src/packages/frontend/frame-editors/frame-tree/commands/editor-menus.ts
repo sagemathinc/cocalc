@@ -6,6 +6,7 @@ This is basically a more user friendly and compact interface to the addMenus
 and addCommands functions.
 */
 
+import { IconRotation } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
 import { addMenus } from "./menus";
@@ -13,6 +14,7 @@ import type { Command, Menus } from "./types";
 
 type Command0 = {
   icon?: string;
+  iconRotate?: IconRotation;
   label?: string | (({ props }: any) => any);
   name?: string;
   children?;
@@ -46,6 +48,7 @@ export function addEditorMenus({
       children?;
       label?;
       icon?;
+      iconRotate?;
       onClick?;
       disabled?;
     };
