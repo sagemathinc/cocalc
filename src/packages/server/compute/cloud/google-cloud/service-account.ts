@@ -145,7 +145,9 @@ export async function addRoleToServiceAccount() {
   // the code below sends all the existing bindings back.
   // if anything goes even slightly wrong then it could delete
   // all the policies entirely and break everything. use with caution.
-  throw Error("TERRIFYING!");
+
+  console.log("WOULD SET THESE POLICIES", policyBindings);
+  return;
 
   await cloudresourcemanager.projects.setIamPolicy({
     resource: projectId,

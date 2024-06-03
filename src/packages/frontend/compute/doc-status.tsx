@@ -367,10 +367,7 @@ function getProgress(
   // below it is running
 
   const computeIsLive = server.detailed_state?.compute?.state == "ready";
-  const filesystemIsLive =
-    server.detailed_state?.["filesystem-sync"]?.state == "ready";
-
-  if (computeIsLive && filesystemIsLive) {
+  if (computeIsLive) {
     if (id == requestedId) {
       return {
         progress: 100,
@@ -386,18 +383,18 @@ function getProgress(
       };
     }
   }
+  const filesystemIsLive =
+    server.detailed_state?.["filesystem-sync"]?.state == "ready";
   const computeIsRecent = isRecent(server.detailed_state?.compute?.time);
   const filesystemIsRecent = isRecent(
     server.detailed_state?.["filesystem-sync"]?.time,
   );
-  if (computeIsLive) {
-    if (filesystemIsRecent) {
-      return {
-        progress: 70,
-        message: "Waiting for filesystem to connect.",
-        status: "normal",
-      };
-    }
+  if (filesystemIsRecent) {
+    return {
+      progress: 70,
+      message: "Waiting for filesystem to connect.",
+      status: "normal",
+    };
   }
   if (filesystemIsLive) {
     if (computeIsRecent) {

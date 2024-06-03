@@ -155,7 +155,14 @@ function State({
   }
 
   return (
-    <div style={{ borderBottom: "1px solid #ddd", height: "24px" }}>
+    <div
+      style={{
+        borderBottom: "1px solid #ddd",
+        height: "24px",
+        overflow: "hidden",
+        whiteSpace: "nowrap",
+      }}
+    >
       <div style={{ display: "flex" }}>
         <Tooltip title={SPEC[name]?.tip}>
           <div
@@ -213,7 +220,11 @@ function State({
           <div style={{ flex: 0.9 }}>
             {state == "error" ? (
               <ShowError
-                style={{ marginBottom: "10px" }}
+                style={{
+                  marginBottom: "10px",
+                  position: "absolute",
+                  zIndex: 1,
+                }}
                 error={extra}
                 setError={() => {
                   setDetailedState({
