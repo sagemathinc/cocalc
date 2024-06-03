@@ -22,3 +22,6 @@ export const MINI_BUTTONS_STYLE_INNER: CSS = {
   borderRight: `1px solid ${COLORS.GRAY_L}`,
   borderRadius: "3px 3px 3px 0",
 } as const;
+
+export const RUN_ALL_CELLS_ABOVE_ICON = "vertical-align-bottom";
+export const RUN_ALL_CELLS_BELOW_ICON = "angle-double-right"; // and 90°

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { IconRotation } from "@cocalc/frontend/components/icon";
 import type { ManageCommands } from "./manage";
 import { MENUS } from "./menus";
 
@@ -25,6 +26,7 @@ export interface Command {
   pos?: number;
   title?: ReactNode;
   icon?: ReactNode | ((opts: ManageCommands) => ReactNode);
+  iconRotate?: IconRotation;
   button?: ReactNode | ((opts: ManageCommands) => ReactNode);
   //color?: string | ((opts: ManageCommands) => string);
   label?: ReactNode | ((opts: ManageCommands) => ReactNode);
