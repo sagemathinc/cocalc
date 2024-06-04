@@ -720,6 +720,9 @@ export async function makeConfigurationChange({
     // always safe to change this -- no heck required and no impact on actual deployment
     changed.delete("ephemeral");
   }
+  if (changed.has("excludeFromSync") && state == "off") {
+    changed.delete("excludeFromSync");
+  }
   if (changed.size == 0) {
     // nothing else to change
     return;
@@ -747,7 +750,7 @@ export async function makeConfigurationChange({
     default:
       throw Error(
         `makeConfigurationChange not implemented for cloud '${cloud}' changing value of ${JSON.stringify(
-          changed,
+          Array.from(changed),
         )}`,
       );
   }
