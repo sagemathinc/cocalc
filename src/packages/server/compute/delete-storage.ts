@@ -29,6 +29,10 @@ export default async function deleteStorage({
     );
   }
   const pool = getPool();
+  if (storage.mount) {
+    // unmount it if it is mounted
+    await pool.query("UPDATE storage SET mount=FALSE WHERE id=$1", [id]);
+  }
 
   // WORRY -- if a database query fails below due to an outage we get in an inconsistent
   // situation where we can't properly finish the delete, and manual intervention may
@@ -72,7 +76,10 @@ export default async function deleteStorage({
 
   if (bucket) {
     logger.debug("deleteStorage: delete the Google cloud bucket");
-    await deleteBucket(bucket);
+    await deleteBucket({
+      bucketName: bucket,
+      useTransferService: true,
+    });
     await pool.query("UPDATE storage SET bucket=NULL WHERE id=$1", [id]);
   }
   logger.debug("deleteStorage: delete the database record");

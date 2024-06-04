@@ -155,3 +155,42 @@ export async function removeBucketPolicyBinding({
     },
   });
 }
+
+export async function addStorageTransferPolicy(accountEmail: string) {
+  logger.debug("addStorageTransferPolicy", { accountEmail });
+  const { cloudresourcemanager, projectId } = await getCloudResourceManager();
+
+  const { data: policy } = await cloudresourcemanager.projects.getIamPolicy({
+    resource: projectId,
+    requestBody: {
+      options: {
+        requestedPolicyVersion: 3,
+      },
+    },
+  });
+
+  if (!policy.bindings || policy.bindings.length < 1) {
+    throw Error(
+      "BUG -- there have to be at least one binding, so something is weird and wrong",
+    );
+  }
+  const member = `serviceAccount:${accountEmail}`;
+  for (const { role, members } of policy.bindings) {
+    if (role == "roles/storage.admin" && members?.[0] == member) {
+      logger.debug("addStorageTransferPolicy -- already there");
+      return;
+    }
+  }
+  logger.debug("addStorageTransferPolicy -- have to add it");
+  policy.bindings.push({
+    role: "roles/storage.admin",
+    members: [member],
+  });
+  policy.version = 3;
+  await cloudresourcemanager.projects.setIamPolicy({
+    resource: projectId,
+    requestBody: {
+      policy,
+    },
+  });
+}

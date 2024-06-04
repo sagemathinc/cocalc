@@ -48,6 +48,7 @@ export interface Storage {
   created: Date;
   bucket?: string;
   mountpoint: string;
+  mount?: boolean; // whether it should get mounted right now
   secret_key?: GoogleCloudServiceAccountKey;
   port: number;
   compression: "lz4" | "zstd" | "none";
@@ -64,6 +65,7 @@ export type CreateStorage = Pick<
   Storage,
   | "project_id"
   | "mountpoint"
+  | "mount"
   | "compression"
   | "configuration"
   | "title"
@@ -92,6 +94,7 @@ Table({
           account_id: null,
           bucket: null,
           mountpoint: null,
+          mount: null,
           port: null,
           compression: null,
           configuration: null,
@@ -106,6 +109,7 @@ Table({
         fields: {
           project_id: "project_write",
           id: true,
+          mount: true,
           error: true,
           notes: true,
           title: true,
@@ -149,7 +153,7 @@ Table({
     },
     mount: {
       type: "boolean",
-      desc: "If true, then this storage filesystem will get mounted on all compute servers associated to the project.",
+      desc: "If true, then this storage filesystem will be mounted on all compute servers associated to the project.",
     },
     secret_key: {
       type: "map",

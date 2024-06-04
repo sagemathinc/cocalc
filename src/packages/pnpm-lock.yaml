@@ -839,7 +839,7 @@ importers:
         version: 2.1.2
       next:
         specifier: 14.1.1
-        version: 14.1.1(@babel/core@7.24.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.77.2)
+        version: 14.1.1(@babel/core@7.21.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.77.4)
       nyc:
         specifier: ^15.1.0
         version: 15.1.0
@@ -1360,6 +1360,9 @@ importers:
       '@google-cloud/storage':
         specifier: ^7.11.1
         version: 7.11.1(encoding@0.1.13)
+      '@google-cloud/storage-transfer':
+        specifier: ^3.3.0
+        version: 3.3.0(encoding@0.1.13)
       '@google/generative-ai':
         specifier: ^0.12.0
         version: 0.12.0
@@ -2734,6 +2737,10 @@ packages:
   '@google-cloud/promisify@4.0.0':
     resolution: {integrity: sha512-Orxzlfb9c67A15cq2JQEyVc7wEsmFBmHjZWZYQMUyJ1qivXyMwdyNOs9odi79hze+2zqdTtu1E19IM/FtqZ10g==}
     engines: {node: '>=14'}
+
+  '@google-cloud/storage-transfer@3.3.0':
+    resolution: {integrity: sha512-maLAMcD+dAb71XQl4tfsEpCThj/Qjobkc9aNLn0HpEbsw8wTIwJx9kPZy5meJwiTN3x/SUb2E5PKQIQwrkHEdg==}
+    engines: {node: '>=14.0.0'}
 
   '@google-cloud/storage@7.11.1':
     resolution: {integrity: sha512-tibLSvgw7nDohMyIelt26kBpJ59YGWA2Rzep++DFNzEzKaSuCSp56Se9iM13ZlM3j5nLzR21IBkpRN58CmvCIw==}
@@ -12505,7 +12512,7 @@ snapshots:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
       csv-parse: 5.5.6
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -12622,6 +12629,13 @@ snapshots:
   '@google-cloud/projectify@4.0.0': {}
 
   '@google-cloud/promisify@4.0.0': {}
+
+  '@google-cloud/storage-transfer@3.3.0(encoding@0.1.13)':
+    dependencies:
+      google-gax: 4.3.5(encoding@0.1.13)
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
 
   '@google-cloud/storage@7.11.1(encoding@0.1.13)':
     dependencies:
@@ -13375,7 +13389,7 @@ snapshots:
       '@types/xml-encryption': 1.2.2
       '@types/xml2js': 0.4.12
       '@xmldom/xmldom': 0.8.10
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       xml-crypto: 3.2.0
       xml-encryption: 3.0.2
       xml2js: 0.5.0
@@ -14582,13 +14596,13 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -14882,7 +14896,7 @@ snapshots:
 
   axios@1.6.8:
     dependencies:
-      follow-redirects: 1.15.6
+      follow-redirects: 1.15.6(debug@4.3.4)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -15911,10 +15925,6 @@ snapshots:
     dependencies:
       ms: 2.1.2
 
-  debug@4.3.4:
-    dependencies:
-      ms: 2.1.2
-
   debug@4.3.4(supports-color@8.1.1):
     dependencies:
       ms: 2.1.2
@@ -16902,8 +16912,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  follow-redirects@1.15.6: {}
-
   follow-redirects@1.15.6(debug@4.3.4):
     optionalDependencies:
       debug: 4.3.4(supports-color@8.1.1)
@@ -17682,7 +17690,7 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -17697,14 +17705,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -19461,7 +19469,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@14.1.1(@babel/core@7.24.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.77.2):
+  next@14.1.1(@babel/core@7.21.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.77.4):
     dependencies:
       '@next/env': 14.1.1
       '@swc/helpers': 0.5.2
@@ -19471,7 +19479,7 @@ snapshots:
       postcss: 8.4.31
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      styled-jsx: 5.1.1(@babel/core@7.24.5)(react@18.2.0)
+      styled-jsx: 5.1.1(@babel/core@7.21.8)(react@18.2.0)
     optionalDependencies:
       '@next/swc-darwin-arm64': 14.1.1
       '@next/swc-darwin-x64': 14.1.1
@@ -21980,12 +21988,12 @@ snapshots:
     optionalDependencies:
       '@babel/core': 7.21.4
 
-  styled-jsx@5.1.1(@babel/core@7.24.5)(react@18.2.0):
+  styled-jsx@5.1.1(@babel/core@7.21.8)(react@18.2.0):
     dependencies:
       client-only: 0.0.1
       react: 18.2.0
     optionalDependencies:
-      '@babel/core': 7.24.5
+      '@babel/core': 7.21.8
 
   stylis@4.3.0: {}
 

@@ -51,7 +51,7 @@ interface Options extends CreateStorage {
 }
 
 const FIELDS =
-  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,deleted,notes,lock".split(
+  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,deleted,notes,lock,mount".split(
     ",",
   );
 
