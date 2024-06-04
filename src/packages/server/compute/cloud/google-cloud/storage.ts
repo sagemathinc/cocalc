@@ -38,6 +38,9 @@ https://stackoverflow.com/questions/29840033/fast-way-of-deleting-non-empty-goog
 mentions using the new "Storage Transfer Service", and this really
 is significantly faster than other approaches, probably due to
 everything just being kept close, etc.
+
+This takes about 25 seconds of overhead, but then deletes objects
+at a rate o about 1.5K/second.
 */
 
 export async function deleteFilesUsingTransferService(
@@ -120,9 +123,24 @@ export async function deleteFilesUsingTransferService(
     logger.debug(
       "deleteFolderUsingTransferService: waiting for the operation to complete",
     );
-    await operation;
+    await operation.promise();
 
     logger.debug("deleteFolderUsingTransferService: operation completed!");
+
+    // Delete the job after completion
+    logger.debug(
+      "deleteFolderUsingTransferService: deleting transfer job",
+      job.name,
+    );
+    await transferClient.updateTransferJob({
+      jobName: job.name,
+      projectId,
+      transferJob: {
+        status: "DELETED", // Setting status to "DELETED"
+      },
+      updateTransferJobFieldMask: { paths: ["status"] },
+    });
+    logger.debug("deleteFolderUsingTransferService: transfer job deleted");
   } catch (err) {
     if (!_addTransferPolicy) {
       logger.debug(
