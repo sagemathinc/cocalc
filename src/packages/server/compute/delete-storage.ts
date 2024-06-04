@@ -1,6 +1,6 @@
 /*
-Delete storage filesystem.  Deletes the actual data, but leaves the configuration around,
-so like deprovisioning.
+Fully permanently deletes a storage filesystem.  Deletes the actual data, configuration, database record,
+etc.  This is not just deprovisioning.
 */
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
@@ -21,11 +21,8 @@ export default async function deleteStorage({
   lock?: string;
 }) {
   logger.debug("deleteStorage", { id });
+
   const storage = await getStorage(id);
-  if (storage.deleted) {
-    // it is already deleted
-    return;
-  }
   if (storage.lock && storage.lock != lock) {
     throw Error(
       `deleteStorage: you must provide the lock string '${storage.lock}'`,
@@ -78,9 +75,6 @@ export default async function deleteStorage({
     await deleteBucket(bucket);
     await pool.query("UPDATE storage SET bucket=NULL WHERE id=$1", [id]);
   }
-
-  logger.debug(
-    "deleteStorage: set the database record as deleted (like a deprovisioned server).",
-  );
-  await pool.query("UPDATE storage SET deleted=TRUE WHERE id=$1", [id]);
+  logger.debug("deleteStorage: delete the database record");
+  await pool.query("DELETE FROM storage WHERE id=$1", [id]);
 }
