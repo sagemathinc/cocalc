@@ -12,6 +12,7 @@ const logger = getLogger("server:compute:cloud:google-cloud:policy");
 // at once.
 // It is OK to call this multiple times with the same input; the
 // new binding only gets added once.
+
 export async function addBucketPolicyBinding(
   serviceAccountId: string,
   bucketName: string,
@@ -21,19 +22,7 @@ export async function addBucketPolicyBinding(
     bucketName,
   });
   assertValidServiceAccountId(serviceAccountId);
-  const { credentials, projectId } = await getCredentials();
-  const jwtClient = new JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
-  });
-  await jwtClient.authorize();
-
-  const cloudresourcemanager = new cloudresourcemanager_v1.Cloudresourcemanager(
-    {
-      auth: jwtClient as any,
-    },
-  );
+  const { cloudresourcemanager, projectId } = await getCloudResourceManager();
 
   const { data: policy } = await cloudresourcemanager.projects.getIamPolicy({
     resource: projectId,
@@ -48,43 +37,15 @@ export async function addBucketPolicyBinding(
     throw Error(
       "BUG -- there have to be at least one binding, so something is weird and wrong",
     );
-
-    /* Here's what it might look like, at minimum:
-    [
-    {
-      role: 'roles/compute.serviceAgent',
-      members: [
-        'serviceAccount:service-316993131926@compute-system.iam.gserviceaccount.com'
-      ]
-    },
-    {
-      role: 'roles/editor',
-      members: [
-        'serviceAccount:316993131926-compute@developer.gserviceaccount.com',
-        'serviceAccount:316993131926@cloudservices.gserviceaccount.com',
-        'serviceAccount:dev-acount@cocalc-compute-dev.iam.gserviceaccount.com'
-      ]
-    },
-    { role: 'roles/owner', members: [ 'user:wstein@sagemath.com' ] },
-    {
-      role: 'roles/resourcemanager.projectIamAdmin',
-      members: [
-        'serviceAccount:dev-acount@cocalc-compute-dev.iam.gserviceaccount.com'
-      ]
-    }
-  ]
-  */
   }
-  const newPolicyBinding = {
-    role: "roles/storage.objectAdmin",
-    members: [
-      `serviceAccount:${serviceAccountId}@${projectId}.iam.gserviceaccount.com`,
-    ],
-    condition: {
-      title: `Admin the bucket ${bucketName}`,
-      expression: `resource.name.startsWith('projects/_/buckets/${bucketName}')`,
-    },
-  };
+  const newPolicyBinding = getBucketPolicyBinding({
+    serviceAccountId,
+    bucketName,
+    projectId,
+  });
+  if (policy.bindings == null) {
+    throw Error("bug");
+  }
   for (const binding of policy.bindings) {
     if (isEqual(binding, newPolicyBinding)) {
       logger.debug("addBucketPolicyBinding -- policy already in place");
@@ -108,6 +69,36 @@ export async function addBucketPolicyBinding(
   });
 }
 
+async function getCloudResourceManager() {
+  const { credentials, projectId } = await getCredentials();
+  const jwtClient = new JWT({
+    email: credentials.client_email,
+    key: credentials.private_key,
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
+  });
+  await jwtClient.authorize();
+
+  const cloudresourcemanager = new cloudresourcemanager_v1.Cloudresourcemanager(
+    {
+      auth: jwtClient as any,
+    },
+  );
+  return { cloudresourcemanager, projectId };
+}
+
+function getBucketPolicyBinding({ serviceAccountId, bucketName, projectId }) {
+  return {
+    role: "roles/storage.objectAdmin",
+    members: [
+      `serviceAccount:${serviceAccountId}@${projectId}.iam.gserviceaccount.com`,
+    ],
+    condition: {
+      title: `Admin the bucket ${bucketName}`,
+      expression: `resource.name.startsWith('projects/_/buckets/${bucketName}')`,
+    },
+  };
+}
+
 export async function removeBucketPolicyBinding(
   serviceAccountId: string,
   bucketName: string,
@@ -117,5 +108,44 @@ export async function removeBucketPolicyBinding(
     bucketName,
   });
   assertValidServiceAccountId(serviceAccountId);
-  throw Error("todo");
+  const { cloudresourcemanager, projectId } = await getCloudResourceManager();
+  const bucketBinding = getBucketPolicyBinding({
+    serviceAccountId,
+    bucketName,
+    projectId,
+  });
+
+  const { data: policy } = await cloudresourcemanager.projects.getIamPolicy({
+    resource: projectId,
+    requestBody: {
+      options: {
+        requestedPolicyVersion: 3,
+      },
+    },
+  });
+
+  if (policy.bindings == null) {
+    throw Error("bug");
+  }
+  const newBindings = policy.bindings.filter(
+    (binding) => !isEqual(binding, bucketBinding),
+  );
+  if (newBindings.length == policy.bindings.length) {
+    logger.debug("removeBucketPolicyBinding -- policy already removed");
+  }
+
+  if (newBindings.length < 1) {
+    throw Error(
+      "BUG -- there have to be at least one binding, so something is weird and wrong",
+    );
+  }
+
+  policy.version = 3;
+  policy.bindings = newBindings;
+  await cloudresourcemanager.projects.setIamPolicy({
+    resource: projectId,
+    requestBody: {
+      policy,
+    },
+  });
 }
