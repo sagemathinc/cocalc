@@ -1354,9 +1354,6 @@ importers:
       '@google-cloud/compute':
         specifier: ^4.7.0
         version: 4.7.0(encoding@0.1.13)
-      '@google-cloud/iam':
-        specifier: ^1.3.0
-        version: 1.3.0(encoding@0.1.13)
       '@google-cloud/monitoring':
         specifier: ^4.1.0
         version: 4.1.0(encoding@0.1.13)
@@ -1374,7 +1371,7 @@ importers:
         version: 0.1.21(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
       '@langchain/community':
         specifier: ^0.2.4
-        version: 0.2.4(@google-ai/generativelanguage@2.5.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0)(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.47.2(encoding@0.1.13))(pg@8.11.5)(ws@8.17.0)
+        version: 0.2.4(@google-ai/generativelanguage@2.5.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.47.2(encoding@0.1.13))(pg@8.11.5)(ws@8.17.0)
       '@langchain/core':
         specifier: ^0.2.5
         version: 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
@@ -2720,10 +2717,6 @@ packages:
 
   '@google-cloud/compute@4.7.0':
     resolution: {integrity: sha512-1UExR08o2XXKdOV8FIK6kcrNb65KVAnv045huJQV6OBiJ+uxubBWm4XxbPaWcT3TvvKGyYSMHG1Qx9/IiwpI1w==}
-    engines: {node: '>=14.0.0'}
-
-  '@google-cloud/iam@1.3.0':
-    resolution: {integrity: sha512-7K+6fQvcQMAcw6+1052SKw/ID7PEd0V62KLH/JlCRnAZTtyDkuf5PhfrFC6a5/6AtdKvpNANb7YWB3QVZOqvLQ==}
     engines: {node: '>=14.0.0'}
 
   '@google-cloud/monitoring@4.1.0':
@@ -12440,20 +12433,6 @@ snapshots:
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
-  '@babel/traverse@7.24.5(supports-color@9.3.1)':
-    dependencies:
-      '@babel/code-frame': 7.24.2
-      '@babel/generator': 7.24.5
-      '@babel/helper-environment-visitor': 7.22.20
-      '@babel/helper-function-name': 7.23.0
-      '@babel/helper-hoist-variables': 7.22.5
-      '@babel/helper-split-export-declaration': 7.24.5
-      '@babel/parser': 7.24.5
-      '@babel/types': 7.24.5
-      debug: 4.3.4(supports-color@9.3.1)
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/traverse@7.24.6':
     dependencies:
@@ -12470,6 +12449,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
     optional: true
+
   '@babel/types@7.23.0':
     dependencies:
       '@babel/helper-string-parser': 7.23.4
@@ -12621,13 +12601,6 @@ snapshots:
       - supports-color
 
   '@google-cloud/compute@4.7.0(encoding@0.1.13)':
-    dependencies:
-      google-gax: 4.3.5(encoding@0.1.13)
-    transitivePeerDependencies:
-      - encoding
-      - supports-color
-
-  '@google-cloud/iam@1.3.0(encoding@0.1.13)':
     dependencies:
       google-gax: 4.3.5(encoding@0.1.13)
     transitivePeerDependencies:
@@ -13086,7 +13059,7 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/community@0.2.4(@google-ai/generativelanguage@2.5.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0)(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.47.2(encoding@0.1.13))(pg@8.11.5)(ws@8.17.0)':
+  '@langchain/community@0.2.4(@google-ai/generativelanguage@2.5.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.4.5))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.47.2(encoding@0.1.13))(pg@8.11.5)(ws@8.17.0)':
     dependencies:
       '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
       '@langchain/openai': 0.0.29(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))
@@ -13101,7 +13074,9 @@ snapshots:
       zod-to-json-schema: 3.23.0(zod@3.23.5)
     optionalDependencies:
       '@google-ai/generativelanguage': 2.5.0(encoding@0.1.13)
-      '@qdrant/js-client-rest': 1.9.0
+      '@google-cloud/storage': 7.11.1(encoding@0.1.13)
+      '@qdrant/js-client-rest': 1.9.0(typescript@5.4.5)
+      better-sqlite3: 8.3.0
       cheerio: 1.0.0-rc.12
       google-auth-library: 9.4.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
@@ -13644,10 +13619,11 @@ snapshots:
       typescript: 5.4.5
       undici: 5.28.4
 
-  '@qdrant/js-client-rest@1.9.0':
+  '@qdrant/js-client-rest@1.9.0(typescript@5.4.5)':
     dependencies:
       '@qdrant/openapi-typescript-fetch': 1.2.6
       '@sevinf/maybe': 0.5.0
+      typescript: 5.4.5
       undici: 5.28.4
     optional: true
 
@@ -18844,6 +18820,7 @@ snapshots:
       yaml: 2.4.2
       zod: 3.23.5
       zod-to-json-schema: 3.23.0(zod@3.23.5)
+    optionalDependencies:
       axios: 1.6.8
       cheerio: 1.0.0-rc.12
       fast-xml-parser: 4.4.0
