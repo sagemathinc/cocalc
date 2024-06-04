@@ -7,8 +7,8 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useAvailableLLMs } from "@cocalc/frontend/frame-editors/llm/use-llm-menu-options";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { LLM_PROVIDER } from "@cocalc/util/db-schema/llm-utils";
 import { LLMTools } from "@cocalc/jupyter/types";
+import { LLM_PROVIDER } from "@cocalc/util/db-schema/llm-utils";
 
 interface Props {
   llmTools?: Pick<LLMTools, "model" | "setModel">;
@@ -26,7 +26,7 @@ export function LLMQueryDropdownButton({
   disabled = false,
 }: Props) {
   const { project_id } = useProjectContext();
-  const models = useAvailableLLMs(project_id);
+  const modelsByService = useAvailableLLMs(project_id);
 
   function renderOkText() {
     if (llmTools == null) return <></>;
@@ -40,14 +40,17 @@ export function LLMQueryDropdownButton({
   function getItems(): MenuProps["items"] {
     const ret: MenuProps["items"] = [];
     let first = true;
-    for (const [service, entry] of Object.entries(models)) {
+    for (const [service, entry] of Object.entries(modelsByService)) {
       const { models } = entry;
       if (models.length === 0) continue;
 
       if (!first) ret.push({ type: "divider" });
       first = false;
 
-      const { name, short } = LLM_PROVIDER[service];
+      const { name, short } =
+        service === "custom"
+          ? { name: entry.name, short: entry.desc }
+          : LLM_PROVIDER[service];
       ret.push({
         type: "group",
         label: (
@@ -57,6 +60,7 @@ export function LLMQueryDropdownButton({
           </>
         ),
       });
+
       for (const model of models) {
         const { name, title, desc, price } = model;
         ret.push({

@@ -203,6 +203,7 @@ export const LANGUAGE_MODEL_SERVICES = [
   "ollama",
   "custom_openai",
 ] as const;
+
 export type LLMServiceName = (typeof LANGUAGE_MODEL_SERVICES)[number];
 
 export type LLMServicesAvailable = Record<LLMServiceName, boolean>;
@@ -212,6 +213,7 @@ interface LLMService {
   short: string; // additional short text next to the company name
   desc: string; // more detailed description
 }
+
 export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
   openai: {
     name: "OpenAI",
@@ -239,11 +241,11 @@ export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
     desc: "Ollama helps you to get up and running with large language models, locally.",
   },
   custom_openai: {
-    name: "OpenAI (custom)",
-    short: "OpenAI (custom)",
-    desc: "A custom OpenAI endoint.",
+    name: "OpenAI API",
+    short: "Custom endpoint",
+    desc: "Calls a custom OpenAI API endoint.",
   },
-};
+} as const;
 
 interface ValidLanguageModelNameProps {
   model: string | undefined;

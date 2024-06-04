@@ -14,6 +14,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   LLMServicesAvailable,
   LLMServiceName,
+  LANGUAGE_MODEL_SERVICES,
 } from "@cocalc/util/db-schema/llm-utils";
 import {
   cmp,
@@ -746,33 +747,10 @@ export class ProjectsStore extends Store<ProjectsState> {
     project_id: string = "global",
     tag?: string,
   ): LLMServicesAvailable {
-    const haveOpenAI = this.hasLanguageModelEnabled(project_id, tag, "openai");
-    const haveGoogle = this.hasLanguageModelEnabled(project_id, tag, "google");
-    const haveOllama = this.hasLanguageModelEnabled(project_id, tag, "ollama");
-    const haveCustomOpenAI = this.hasLanguageModelEnabled(
-      project_id,
-      tag,
-      "custom_openai",
-    );
-    const haveMistral = this.hasLanguageModelEnabled(
-      project_id,
-      tag,
-      "mistralai",
-    );
-    const haveAnthropic = this.hasLanguageModelEnabled(
-      project_id,
-      tag,
-      "anthropic",
-    );
-
-    return {
-      openai: haveOpenAI,
-      google: haveGoogle,
-      ollama: haveOllama,
-      mistralai: haveMistral,
-      anthropic: haveAnthropic,
-      custom_openai: haveCustomOpenAI,
-    };
+    return LANGUAGE_MODEL_SERVICES.reduce((cur, svc) => {
+      cur[svc] = this.hasLanguageModelEnabled(project_id, tag, svc);
+      return cur;
+    }, {}) as LLMServicesAvailable;
   }
 
   /**
@@ -820,18 +798,18 @@ export class ProjectsStore extends Store<ProjectsState> {
   ): boolean {
     // First, check which ones are actually available
     const customize = redux.getStore("customize");
-    const { openai, google, ollama, mistralai, anthropic } =
-      customize.getEnabledLLMs();
+    const enabledLLMs = customize.getEnabledLLMs();
 
     // if none are available, we can't enable any – that's the "any" case
-    if (!openai && !google && !ollama && !mistralai && !anthropic) return false;
+    const anyEnabled = LANGUAGE_MODEL_SERVICES.some((svc) => enabledLLMs[svc]);
+    if (!anyEnabled) return false;
 
     // check by specific vendor
-    if (vendor === "openai" && !openai) return false;
-    if (vendor === "google" && !google) return false;
-    if (vendor === "ollama" && !ollama) return false;
-    if (vendor === "mistralai" && !mistralai) return false;
-    if (vendor === "anthropic" && !anthropic) return false;
+    for (const svc of LANGUAGE_MODEL_SERVICES) {
+      if (vendor === svc && !enabledLLMs[svc]) {
+        return false;
+      }
+    }
 
     // the "openai_disabled" account setting disabled **any** language model vendor!
     const openai_disabled = redux
