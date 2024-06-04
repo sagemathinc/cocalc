@@ -26,9 +26,14 @@ import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed"
 import getLogger from "@cocalc/backend/logger";
 import { getGoogleCloudPrefix } from "./cloud/google-cloud";
 import { createBucket } from "./cloud/google-cloud/storage";
-import { createServiceAccount } from "./cloud/google-cloud/service-account";
+import {
+  createServiceAccount,
+  createServiceAccountKey,
+} from "./cloud/google-cloud/service-account";
+import { addBucketPolicyBinding } from "./cloud/google-cloud/policy";
 import { uuid } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
+import { delay } from "awaiting";
 
 const logger = getLogger("server:compute:create-storage");
 
@@ -118,7 +123,19 @@ export default async function createStorage(opts: Options): Promise<number> {
     await pool.query("UPDATE storage SET bucket=$1 WHERE id=$2", [bucket, id]);
 
     // create service account that has access to storage bucket
-    const secret_key = await createServiceAccount(bucket);
+    const serviceAccountId = await getServiceAccountId(id);
+    await createServiceAccount(serviceAccountId);
+    for (let i = 0; i < 10; i++) {
+      // potentially try multiple times, since addBucketPolicy may fail due to race condition (by design)
+      try {
+        await addBucketPolicyBinding({ serviceAccountId, bucketName: bucket });
+        break;
+      } catch (err) {
+        logger.debug("error adding bucket policy binding", err);
+        await delay(Math.random() * 5);
+      }
+    }
+    const secret_key = await createServiceAccountKey(serviceAccountId);
     await pool.query("UPDATE storage SET secret_key=$1 WHERE id=$2", [
       secret_key,
       id,
@@ -151,4 +168,9 @@ async function getPort(project_id: string): Promise<number> {
   throw Error(
     `bug -- unable to allocate port for storage in project ${project_id}`,
   );
+}
+
+async function getServiceAccountId(id: number) {
+  const t = `-storage-${id}`;
+  return `${(await getGoogleCloudPrefix()).slice(0, 30 - t.length - 1)}${t}`;
 }

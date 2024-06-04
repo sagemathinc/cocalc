@@ -13,10 +13,13 @@ const logger = getLogger("server:compute:cloud:google-cloud:policy");
 // It is OK to call this multiple times with the same input; the
 // new binding only gets added once.
 
-export async function addBucketPolicyBinding(
-  serviceAccountId: string,
-  bucketName: string,
-) {
+export async function addBucketPolicyBinding({
+  serviceAccountId,
+  bucketName,
+}: {
+  serviceAccountId: string;
+  bucketName: string;
+}) {
   logger.debug("addBucketPolicyBinding", {
     serviceAccountId,
     bucketName,
@@ -99,10 +102,13 @@ function getBucketPolicyBinding({ serviceAccountId, bucketName, projectId }) {
   };
 }
 
-export async function removeBucketPolicyBinding(
-  serviceAccountId: string,
-  bucketName: string,
-) {
+export async function removeBucketPolicyBinding({
+  serviceAccountId,
+  bucketName,
+}: {
+  serviceAccountId: string;
+  bucketName: string;
+}) {
   logger.debug("removeBucketPolicyBinding", {
     serviceAccountId,
     bucketName,

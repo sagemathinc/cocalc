@@ -62,7 +62,13 @@ export interface Storage {
 
 export type CreateStorage = Pick<
   Storage,
-  "project_id" | "compression" | "configuration" | "title" | "color" | "notes"
+  | "project_id"
+  | "mountpoint"
+  | "compression"
+  | "configuration"
+  | "title"
+  | "color"
+  | "notes"
 >;
 
 Table({
