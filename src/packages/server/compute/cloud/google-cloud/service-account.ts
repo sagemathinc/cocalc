@@ -32,7 +32,7 @@ import { getCredentials } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { iam_v1 } from "googleapis";
 import { JWT } from "google-auth-library";
-//import type { GoogleCloudServiceAccountKey } from "@cocalc/util/db-schema/storage";
+import type { GoogleCloudServiceAccountKey } from "@cocalc/util/db-schema/storage";
 
 const logger = getLogger("server:compute:cloud:google-cloud:service-account");
 
@@ -86,4 +86,22 @@ export async function deleteServiceAccount(
   await iam.projects.serviceAccounts.delete({
     name: await getServiceAccountName(serviceAccountId),
   });
+}
+
+// given a serviceAccountId, create a JSON key for that service account, which
+// we can store on disk and use to access Google Cloud.
+export async function createServiceAccountKey(
+  serviceAccountId: string,
+): Promise<GoogleCloudServiceAccountKey> {
+  const { iam } = await getIamClient();
+  const name = await getServiceAccountName(serviceAccountId);
+  const res = await iam.projects.serviceAccounts.keys.create({ name });
+  // res.data is the created key, it has a "privateKeyData" field that is a base64-encoded JSON key
+  const privateKeyData = Buffer.from(
+    res.data.privateKeyData!,
+    "base64",
+  ).toString("utf8");
+  const key = JSON.parse(privateKeyData);
+
+  return key;
 }
