@@ -27,18 +27,8 @@ export async function deleteBucket(bucketName: string): Promise<void> {
   const credentials = await getCredentials();
   const storage = new Storage(credentials);
   const bucket = storage.bucket(bucketName);
-  if (!(await bucket.exists())) {
-    // deleting already deleted bucket gracefully works.
-    return;
-  }
-  // actually fully deleting of course takes a long time, depending
-  // on what is in the bucket -- this just launches the process.
-  await bucket.delete();
+  // first must delete all the files, which could take a very long time.
+  await bucket.deleteFiles({ force: true });
+  // now delete actual bucket.
+  await bucket.delete({ ignoreNotFound: true });
 }
-
-// export async function getBucket(bucketName: string) {
-//   logger.debug("deleteBucket", bucketName);
-//   const credentials = await getCredentials();
-//   const storage = new Storage(credentials);
-//   return storage.bucket(bucketName);
-// }
