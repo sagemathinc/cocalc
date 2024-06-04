@@ -43,7 +43,7 @@ export default function ExcludeFromSync({
             checked={help}
             onChange={(val) => setHelp(val)}
           />
-          <Icon name="bolt" /> Fast Data Directories
+          <Icon name="bolt" /> Scratch: Fast Local Directories
         </b>
       </div>
       {help && (
@@ -51,7 +51,7 @@ export default function ExcludeFromSync({
           showIcon
           style={{ margin: "15px 0" }}
           type="info"
-          message={"Fast Data Directories"}
+          message={"Fast Local Scratch Directories"}
           description={
             <div>
               <p>
@@ -62,15 +62,18 @@ export default function ExcludeFromSync({
                   <i>VERY fast</i>
                 </b>
                 , and you can use all available compute server disk space (up to
-                many terabytes). NOTE: Top level hidden folders are always
-                excluded from sync.
+                many terabytes).
               </p>
               <p>
                 The HOME directory of the project is mounted over the network
-                and can be <b>very slow</b>. List top level subdirectories of
-                HOME that you do not want to <b>be mounted over the network</b>.
-                Files in these directories are stored in <code>/data</code> on
-                the compute server's disk only, which is <b>very fast</b>.
+                and can be very slow. List top level subdirectories of HOME that
+                you do not want to be syned over the network. Files in these
+                directories are stored in <code>/data</code> on the compute
+                server's disk only, which is extremely fast.
+                <b>
+                  Fast local scratch directories are NOT backed up, but do
+                  persist until the compute server is deleted or deprovisioned.
+                </b>
               </p>
               <p>
                 If you include <code>~</code> or <code>.</code> in the list
@@ -78,23 +81,26 @@ export default function ExcludeFromSync({
                 your HOME directory is still mounted over the network.
                 {id == null && (
                   <>
-                    {" "}
-                    The directory <code>compute-server-[id]</code> is included
-                    by default, and <code>[id]</code> in any path is replaced by
+                    The directory <code>scratch</code> is a fast local directory
+                    by default. You can also use
+                    <code>[id]</code> in the path, and it will be replaced by
                     the numerical id of the compute server.
                   </>
                 )}
               </p>
               <p>
                 You can efficiently copy files and directories back and forth
-                between your project and a compute server using the Explorer.
+                between your shared HOME directory and a compute server using
+                the File Explorer.
               </p>
             </div>
           }
         />
       )}
       <div style={{ color: "#666" }}>
-        Subdirectories of HOME to exclude from sync.
+        Fast local scratch directories exist only on the compute server and{" "}
+        <b>are NOT backed up in any way</b>. They persist until the compute
+        server is deleted or deprovisioned.
       </div>
       <Select
         value={value}
@@ -113,10 +119,6 @@ export default function ExcludeFromSync({
           setConfig({ excludeFromSync: value ?? [] });
         }}
       />
-      <div style={{ marginTop: "10px", color: "#666" }}>
-        <b>WARNING:</b> Files that are only on compute servers are not backed up
-        in any way by CoCalc.
-      </div>
     </div>
   );
 }

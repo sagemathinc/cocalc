@@ -46,7 +46,7 @@ function defaultConfiguration() {
 }
 
 function genericDefaults(conf) {
-  return { ...conf, excludeFromSync: ["compute-server-[id]"] };
+  return { ...conf, excludeFromSync: ["scratch"] };
 }
 
 export default function CreateComputeServer({ project_id, onCreate }) {
