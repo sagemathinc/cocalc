@@ -125,15 +125,24 @@ export default async function createStorage(opts: Options): Promise<number> {
     // create service account that has access to storage bucket
     const serviceAccountId = await getServiceAccountId(id);
     await createServiceAccount(serviceAccountId);
+    let error: any = null;
     for (let i = 0; i < 10; i++) {
       // potentially try multiple times, since addBucketPolicy may fail due to race condition (by design)
       try {
         await addBucketPolicyBinding({ serviceAccountId, bucketName: bucket });
+        error = null;
         break;
       } catch (err) {
-        logger.debug("error adding bucket policy binding", err);
+        error = err;
+        logger.debug(
+          "error adding bucket policy binding -- may try again",
+          err,
+        );
         await delay(Math.random() * 5);
       }
+    }
+    if (error != null) {
+      throw Error(`failed to create bucket policy -- ${error}`);
     }
     const secret_key = await createServiceAccountKey(serviceAccountId);
     await pool.query("UPDATE storage SET secret_key=$1 WHERE id=$2", [
@@ -170,7 +179,7 @@ async function getPort(project_id: string): Promise<number> {
   );
 }
 
-async function getServiceAccountId(id: number) {
+export async function getServiceAccountId(id: number) {
   const t = `-storage-${id}`;
   return `${(await getGoogleCloudPrefix()).slice(0, 30 - t.length - 1)}${t}`;
 }
