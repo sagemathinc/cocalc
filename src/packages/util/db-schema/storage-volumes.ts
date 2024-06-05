@@ -1,5 +1,5 @@
 /*
-Configuration of network mounted shared POSIX filesystem storage associated
+Configuration of network mounted shared POSIX filesystem storage volumes associated
 to projects for use initially by the compute servers.
 
 Initially these will get mounted by all compute servers uniformly (mostly),
@@ -14,6 +14,7 @@ This is 100% built on juicefs/keydb instead of gcs/s3, etc., since:
 
 import { Table } from "./types";
 import { ID, NOTES } from "./crm";
+import { SCHEMA as schema } from "./index";
 
 export const CREATE_STORAGE_COST = 0.05;
 export const DEFAULT_LOCK = "DELETE";
@@ -32,8 +33,8 @@ export interface GoogleCloudServiceAccountKey {
   universe_domain: "googleapis.com";
 }
 
-// We will add a lot of optional configuration options
-// for mounting juices and running keydb.
+// We will add a lot of configuration options
+// for mounting juices and running keydb, eventually.
 interface JuiceConfiguration {
   "attr-cache"?: number;
   "entry-cache"?: number;
@@ -42,7 +43,7 @@ interface JuiceConfiguration {
 
 interface KeyDbConfiguration {}
 
-export interface Storage {
+export interface StorageVolume {
   id: number;
   project_id: string;
   account_id: string;
@@ -63,8 +64,8 @@ export interface Storage {
   last_edited?: Date;
 }
 
-export type CreateStorage = Pick<
-  Storage,
+export type CreateStorageVolume = Pick<
+  StorageVolume,
   | "project_id"
   | "mountpoint"
   | "mount"
@@ -76,7 +77,7 @@ export type CreateStorage = Pick<
 >;
 
 Table({
-  name: "storage",
+  name: "storage_volumes",
   rules: {
     primary_key: "id",
     // unique mountpoint *within* a given project; also unique port in case the
@@ -209,6 +210,34 @@ Table({
     last_edited: {
       type: "timestamp",
       desc: "Last time the configuration, state, etc., changed.  Also, this gets updated when the volume is actively mounted by some compute server, since the files are likely edited.",
+    },
+  },
+});
+
+Table({
+  name: "crm_storage_volumes",
+  fields: schema.storage_volumes.fields,
+  rules: {
+    primary_key: schema.storage_volumes.primary_key,
+    virtual: "storage_volumes",
+    user_query: {
+      get: {
+        admin: true,
+        pg_where: [],
+        fields: {
+          ...schema.storage_volumes.user_query?.get?.fields,
+          template: null,
+        },
+      },
+      set: {
+        admin: true,
+        fields: {
+          id: true,
+          title: true,
+          color: true,
+          notes: true,
+        },
+      },
     },
   },
 });

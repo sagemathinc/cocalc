@@ -32,7 +32,7 @@ import { getCredentials } from "./client";
 import getLogger from "@cocalc/backend/logger";
 import { iam_v1 } from "googleapis";
 import { JWT } from "google-auth-library";
-import type { GoogleCloudServiceAccountKey } from "@cocalc/util/db-schema/storage";
+import type { GoogleCloudServiceAccountKey } from "@cocalc/util/db-schema/storage-volumes";
 
 const logger = getLogger("server:compute:cloud:google-cloud:service-account");
 

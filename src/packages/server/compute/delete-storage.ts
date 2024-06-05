@@ -7,14 +7,14 @@ way to contend with that.
 */
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { getStorage } from "./storage";
+import { getStorageVolume } from "./storage";
 import { deleteBucket } from "./cloud/google-cloud/storage";
 import { deleteServiceAccount } from "./cloud/google-cloud/service-account";
 import { getServiceAccountId } from "./create-storage";
 import { removeBucketPolicyBinding } from "./cloud/google-cloud/policy";
 import { delay } from "awaiting";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { DEFAULT_LOCK } from "@cocalc/util/db-schema/storage";
+import { DEFAULT_LOCK } from "@cocalc/util/db-schema/storage-volumes";
 
 const logger = getLogger("server:compute:delete-storage");
 
@@ -27,7 +27,7 @@ export async function userDeleteStorage({
   account_id: string;
   lock?: string;
 }) {
-  const storage = await getStorage(id);
+  const storage = await getStorageVolume(id);
   if (storage.account_id != account_id) {
     const { name, email_address } = await getUser(account_id);
     throw Error(
@@ -65,7 +65,7 @@ async function launchDelete(id: number) {
   const pool = getPool();
   try {
     await pool.query(
-      "UPDATE storage SET deleted=TRUE, last_edited=NOW() WHERE id=$1",
+      "UPDATE storage_volumes SET deleted=TRUE, last_edited=NOW() WHERE id=$1",
       [id],
     );
     await deleteStorage(id);
@@ -73,7 +73,7 @@ async function launchDelete(id: number) {
     // makes it so the error is saved somewhere; user might see it in UI
     // Also, deleteMaintenance will run this function again somewhere an hour
     // from when we started above...
-    await pool.query("UPDATE storage SET error=$1 WHERE id=$2", [`${err}`, id]);
+    await pool.query("UPDATE storage_volumes SET error=$1 WHERE id=$2", [`${err}`, id]);
   }
 }
 
@@ -84,7 +84,7 @@ export async function deleteMaintenance() {
   // In any case, I don't think it would be the end of the world.
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id FROM storage WHERE deleted=TRUE AND last_edited >= NOW() - interval '1 hour'",
+    "SELECT id FROM storage_volumes WHERE deleted=TRUE AND last_edited >= NOW() - interval '1 hour'",
   );
   for (const { id } of rows) {
     launchDelete(id);
@@ -94,11 +94,11 @@ export async function deleteMaintenance() {
 export async function deleteStorage(id) {
   logger.debug("deleteStorage", { id });
 
-  const storage = await getStorage(id);
+  const storage = await getStorageVolume(id);
   const pool = getPool();
   if (storage.mount) {
     // unmount it if it is mounted
-    await pool.query("UPDATE storage SET mount=FALSE WHERE id=$1", [id]);
+    await pool.query("UPDATE storage_volumes SET mount=FALSE WHERE id=$1", [id]);
   }
 
   // WORRY -- if a database query fails below due to an outage we get in an inconsistent
@@ -138,7 +138,7 @@ export async function deleteStorage(id) {
     }
 
     await deleteServiceAccount(serviceAccountId);
-    await pool.query("UPDATE storage SET secret_key=NULL WHERE id=$1", [id]);
+    await pool.query("UPDATE storage_volumes SET secret_key=NULL WHERE id=$1", [id]);
   }
 
   if (bucket) {
@@ -147,8 +147,8 @@ export async function deleteStorage(id) {
       bucketName: bucket,
       useTransferService: true,
     });
-    await pool.query("UPDATE storage SET bucket=NULL WHERE id=$1", [id]);
+    await pool.query("UPDATE storage_volumes SET bucket=NULL WHERE id=$1", [id]);
   }
   logger.debug("deleteStorage: delete the database record");
-  await pool.query("DELETE FROM storage WHERE id=$1", [id]);
+  await pool.query("DELETE FROM storage_volumes WHERE id=$1", [id]);
 }

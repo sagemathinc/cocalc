@@ -48,10 +48,10 @@ const MAX_STORAGE_VOLUMES_PER_PROJECT = 25;
 
 import {
   CREATE_STORAGE_COST,
-  CreateStorage,
-} from "@cocalc/util/db-schema/storage";
+  CreateStorageVolume,
+} from "@cocalc/util/db-schema/storage-volumes";
 
-interface Options extends CreateStorage {
+interface Options extends CreateStorageVolume {
   account_id: string;
 }
 
@@ -134,7 +134,7 @@ export default async function createStorage(opts: Options): Promise<number> {
     // create storage bucket -- for now only support google
     // cloud storage, as mentioned above.
     await createBucket(bucket);
-    await pool.query("UPDATE storage SET bucket=$1 WHERE id=$2", [bucket, id]);
+    await pool.query("UPDATE storage_volumes SET bucket=$1 WHERE id=$2", [bucket, id]);
 
     // create service account that has access to storage bucket
     const serviceAccountId = await getServiceAccountId(id);
@@ -159,12 +159,12 @@ export default async function createStorage(opts: Options): Promise<number> {
       throw Error(`failed to create bucket policy -- ${error}`);
     }
     const secret_key = await createServiceAccountKey(serviceAccountId);
-    await pool.query("UPDATE storage SET secret_key=$1 WHERE id=$2", [
+    await pool.query("UPDATE storage_volumes SET secret_key=$1 WHERE id=$2", [
       secret_key,
       id,
     ]);
   } catch (err) {
-    await pool.query("UPDATE storage SET error=$1 WHERE id=$2", [`${err}`, id]);
+    await pool.query("UPDATE storage_volumes SET error=$1 WHERE id=$2", [`${err}`, id]);
     throw err;
   }
 
@@ -176,7 +176,7 @@ export default async function createStorage(opts: Options): Promise<number> {
 async function numberOfStorageVolumes(project_id: string): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT COUNT(*) AS count FROM storage WHERE project_id=$1",
+    "SELECT COUNT(*) AS count FROM storage_volumes WHERE project_id=$1",
     [project_id],
   );
   return rows[0].count;
@@ -189,7 +189,7 @@ async function getPort(project_id: string): Promise<number> {
       Math.random() * (MAX_PORT + 1 - MIN_PORT) + MIN_PORT,
     );
     const { rows } = await pool.query(
-      "SELECT COUNT(*) AS count FROM storage WHERE project_id=$1 AND port=$2",
+      "SELECT COUNT(*) AS count FROM storage_volumes WHERE project_id=$1 AND port=$2",
       [project_id, port],
     );
     if (rows[0].count == 0) {

@@ -6,32 +6,32 @@ import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
-import type { Storage } from "@cocalc/util/db-schema/storage";
+import type { StorageVolume } from "@cocalc/util/db-schema/storage-volumes";
 
 const logger = getLogger("server:compute:storage");
 
 export type StorageConf = {
   image: string; // docker image to run to setup vpn, e.g., 'sagemathinc/vpn:1.4'
-  filesystems: Storage[];
+  filesystems: StorageVolume[];
   network: { interface: string; peers: string[] };
 };
 
-export async function getStorage(id: number): Promise<Storage> {
+export async function getStorageVolume(id: number): Promise<StorageVolume> {
   const pool = getPool();
-  const { rows } = await pool.query(`SELECT * FROM storage WHERE id=$1`, [id]);
+  const { rows } = await pool.query(`SELECT * FROM storage_volumes WHERE id=$1`, [id]);
   if (rows.length == 0) {
     throw Error(`no storage with id ${id}`);
   }
   return rows[0];
 }
 
-async function getMountedStorageFilesystems(
+async function getMountedStorageVolumes(
   project_id: string,
-): Promise<Storage[]> {
-  logger.debug("getStorageFilesystems: ", { project_id });
+): Promise<StorageVolume[]> {
+  logger.debug("getMountedStorageVolumes: ", { project_id });
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT * FROM storage WHERE project_id=$1 AND (deleted IS null or deleted=false) AND mount=true AND secret_key IS NOT NULL`,
+    `SELECT * FROM storage_volumes WHERE project_id=$1 AND (deleted IS null or deleted=false) AND mount=true AND secret_key IS NOT NULL`,
     [project_id],
   );
   // TODO: we may have to address issues here with service account keys expiring, and
@@ -76,7 +76,7 @@ export async function getStorageConf(
 ): Promise<StorageConf> {
   logger.debug("getStorageConf: ", { project_id });
   const image = await getStorageImage();
-  const filesystems = await getMountedStorageFilesystems(project_id);
+  const filesystems = await getMountedStorageVolumes(project_id);
   const network = await getNetwork(project_id, id);
   return { image, filesystems, network };
 }

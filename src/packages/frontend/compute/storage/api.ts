@@ -1,9 +1,9 @@
 import api from "@cocalc/frontend/client/api";
 
 /* Storage Volumes */
-import type { CreateStorage } from "@cocalc/util/db-schema/storage";
+import type { CreateStorageVolume } from "@cocalc/util/db-schema/storage-volumes";
 
-export async function createStorage(opts: CreateStorage): Promise<number> {
+export async function createStorage(opts: CreateStorageVolume): Promise<number> {
   return await api("compute/storage/create-storage", opts);
 }
 
