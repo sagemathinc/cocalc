@@ -65,7 +65,7 @@ export async function evaluate(opts: ChatOptions): Promise<string> {
   // We mainly wrap the high level call to keep all error messages hidden
   const model = opts.model ?? (await getDefaultModel());
   if (!isValidModel(model)) {
-    throw Error(`unsupported model "${model}"`);
+    throw new Error(`unsupported model "${model}"`);
   }
   try {
     return await evaluateImpl(opts);

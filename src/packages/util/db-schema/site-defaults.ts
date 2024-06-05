@@ -6,6 +6,7 @@
 // Default settings to customize a given site, typically a private install of CoCalc.
 
 import jsonic from "jsonic";
+import { isEqual } from "lodash";
 
 import { is_valid_email_address } from "@cocalc/util/misc";
 import {
@@ -15,7 +16,6 @@ import {
   getDefaultLLM,
   isValidModel,
 } from "./llm-utils";
-import { isEqual } from "lodash";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -38,6 +38,7 @@ export const TAGS = [
   "Theme",
   "On-Prem",
 ] as const;
+
 export type Tag = (typeof TAGS)[number];
 
 export type SiteSettingsKeys =
@@ -683,7 +684,7 @@ export const site_settings_conf: SiteSettings = {
   },
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
-    desc: "Controls visibility of UI elements related to ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    desc: "Controls visibility of UI elements related to OpenAI ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

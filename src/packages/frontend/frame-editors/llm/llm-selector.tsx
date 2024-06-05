@@ -8,7 +8,9 @@ import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-
 import {
   ANTHROPIC_MODELS,
   GOOGLE_MODELS,
+  LANGUAGE_MODEL_SERVICES,
   LLMServiceName,
+  LLMServicesAvailable,
   LLM_DESCR,
   LLM_PROVIDER,
   LLM_USERNAMES,
@@ -27,8 +29,9 @@ import {
   toCustomOpenAIModel,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import type { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { round2up } from "@cocalc/util/misc";
+import type { CustomLLMPublic } from "@cocalc/util/types/llm";
+import { getCustomLLMGroup } from "./components";
 
 type SizeType = ConfigProviderProps["componentSize"];
 
@@ -54,36 +57,16 @@ export default function LLMSelector({
   // ATTN: you cannot use useProjectContext because this component is used outside a project context
   // when it is opened via an error in the gutter of a latex document. (I don't know why, maybe fixable)
   const projectsStore = redux.getStore("projects");
-  const showOpenAI = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "openai",
-  );
-  const showGoogle = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "google",
-  );
-  const showMistral = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "mistralai",
-  );
-  const showAnthropic = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "anthropic",
-  );
-  const showOllama = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "ollama",
-  );
-  const showCustomOpenAI = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "custom_openai",
-  );
+
+  const show = LANGUAGE_MODEL_SERVICES.reduce((cur, svc) => {
+    cur[svc] = projectsStore.hasLanguageModelEnabled(
+      project_id,
+      undefined,
+      svc,
+    );
+    return cur;
+  }, {}) as LLMServicesAvailable;
+
   const ollama = useTypedRedux("customize", "ollama");
   const custom_openai = useTypedRedux("customize", "custom_openai");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
@@ -117,24 +100,37 @@ export default function LLMSelector({
 
   function makeLLMGroup(
     ret: NonNullable<SelectProps["options"]>,
-    service: LLMServiceName,
+    service: LLMServiceName | "custom",
     options,
   ) {
     // there could be "undefined" in the list of options
     options = options?.filter((o) => !!o) as SelectProps["options"];
     if (options?.length === 0) return;
-    const info = LLM_PROVIDER[service];
-    const label = (
-      <>
-        <Text strong>{info.name}</Text> – {info.short}
-      </>
-    );
-    const title = info.desc;
-    ret.push({ label, title, options });
+
+    if (service === "custom") {
+      const { title, label } = getCustomLLMGroup();
+      ret.push({
+        label: (
+          <>
+            {label} – {title}
+          </>
+        ),
+        title: "These language models are configured by the administrators.",
+        options,
+      });
+    } else {
+      const { name, desc, short } = LLM_PROVIDER[service];
+      const label = (
+        <>
+          <Text strong>{name}</Text> – {short}
+        </>
+      );
+      ret.push({ label, title: desc, options });
+    }
   }
 
   function appendOpenAI(ret: NonNullable<SelectProps["options"]>): void {
-    if (!showOpenAI) return;
+    if (!show.openai) return;
     makeLLMGroup(
       ret,
       "openai",
@@ -143,7 +139,7 @@ export default function LLMSelector({
   }
 
   function appendGoogle(ret: NonNullable<SelectProps["options"]>): void {
-    if (!showGoogle) return;
+    if (!show.google) return;
     makeLLMGroup(
       ret,
       "google",
@@ -152,7 +148,7 @@ export default function LLMSelector({
   }
 
   function appendMistral(ret: NonNullable<SelectProps["options"]>): void {
-    if (!showMistral) return;
+    if (!show.mistralai) return;
     makeLLMGroup(
       ret,
       "mistralai",
@@ -161,7 +157,7 @@ export default function LLMSelector({
   }
 
   function appendAnthropic(ret: NonNullable<SelectProps["options"]>): void {
-    if (!showAnthropic) return;
+    if (!show.anthropic) return;
     makeLLMGroup(
       ret,
       "anthropic",
@@ -169,10 +165,9 @@ export default function LLMSelector({
     );
   }
 
-  function appendOllama(ret: NonNullable<SelectProps["options"]>): void {
-    if (!showOllama || !ollama) return;
+  function appendOllama(options: NonNullable<SelectProps["options"]>): void {
+    if (!show.ollama || !ollama) return;
 
-    const options: NonNullable<SelectProps["options"]> = [];
     for (const [key, config] of Object.entries<CustomLLMPublic>(
       ollama.toJS(),
     )) {
@@ -200,13 +195,13 @@ export default function LLMSelector({
         ),
       });
     }
-    makeLLMGroup(ret, "ollama", options);
   }
 
-  function appendCustomOpenAI(ret: NonNullable<SelectProps["options"]>): void {
-    if (!showCustomOpenAI || !custom_openai) return;
+  function appendCustomOpenAI(
+    options: NonNullable<SelectProps["options"]>,
+  ): void {
+    if (!show.custom_openai || !custom_openai) return;
 
-    const options: NonNullable<SelectProps["options"]> = [];
     for (const [key, config] of Object.entries<CustomLLMPublic>(
       custom_openai.toJS(),
     )) {
@@ -234,7 +229,6 @@ export default function LLMSelector({
         ),
       });
     }
-    makeLLMGroup(ret, "custom_openai", options);
   }
 
   function getOptions(): SelectProps["options"] {
@@ -243,8 +237,12 @@ export default function LLMSelector({
     appendGoogle(ret);
     appendMistral(ret);
     appendAnthropic(ret);
-    appendOllama(ret);
-    appendCustomOpenAI(ret);
+    const custom: NonNullable<SelectProps["options"]> = [];
+    appendOllama(custom);
+    appendCustomOpenAI(custom);
+    if (custom.length > 0) {
+      makeLLMGroup(ret, "custom", custom);
+    }
     return ret;
   }
 

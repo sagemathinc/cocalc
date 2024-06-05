@@ -13,7 +13,6 @@ import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import AnthropicAvatar from "@cocalc/frontend/components/anthropic-avatar";
 import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
 import MistralAvatar from "@cocalc/frontend/components/mistral-avatar";
-import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { LLMModelPrice } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -37,6 +36,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
+import { LanguageModelVendorAvatar } from "../../components/language-model-icon";
 import { Item as CompleteItem } from "./complete";
 
 // we make the show_llm_main_menu field required, to avoid forgetting to set it ;-)
@@ -259,8 +259,8 @@ function mentionableUsers({
           value,
           label: (
             <span>
-              <OllamaAvatar size={size} /> {conf.display}{" "}
-              <LLMModelPrice model={m} floatRight />
+              <LanguageModelVendorAvatar model={value} size={size} />{" "}
+              {conf.display} <LLMModelPrice model={m} floatRight />
             </span>
           ),
           search: search_term,
@@ -283,8 +283,8 @@ function mentionableUsers({
           value,
           label: (
             <span>
-              <OpenAIAvatar size={size} /> {conf.display}{" "}
-              <LLMModelPrice model={m} floatRight />
+              <LanguageModelVendorAvatar model={value} size={size} />{" "}
+              {conf.display} <LLMModelPrice model={m} floatRight />
             </span>
           ),
           search: search_term,
