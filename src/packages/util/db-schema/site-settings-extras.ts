@@ -140,7 +140,7 @@ function custom_llm_valid(value: string): boolean {
 // Ollama and Custom OpenAI have the same schema
 function custom_llm_display(value: string): string {
   const structure =
-    "Must be {[key : string] : {model: string, baseUrl: string, cocalc?: {display?: string, desc?: string, ...}, ...}";
+    "Must be {[key : string] : {model: string, baseUrl: string, cocalc?: {display?: string, desc?: string, icon?: string, ...}, ...}";
   if (isEmpty(value)) {
     return `Empty. ${structure}`;
   }
@@ -312,7 +312,7 @@ export const EXTRAS: SettingsExtras = {
   },
   ollama_configuration: {
     name: "Ollama Configuration",
-    desc: 'Configure Ollama endpoints. e.g. Ollama has "gemma" installed and is available at localhost:11434: `{"gemma" : {"baseUrl": "http://localhost:11434/" , cocalc: {display: "Gemma", desc: "Google\'s Gemma Model"}}`',
+    desc: 'Configure Ollama endpoints. e.g. Ollama has "gemma" installed and is available at localhost:11434: `{"gemma" : {"baseUrl": "http://localhost:11434/" , cocalc: {display: "Gemma", desc: "Google\'s Gemma Model", icon: "https://.../...png"}}`',
     default: "{}",
     multiline: 5,
     show: ollama_enabled,
@@ -324,7 +324,7 @@ export const EXTRAS: SettingsExtras = {
   // This is very similar to the ollama config, but there are small differences in the details.
   custom_openai_configuration: {
     name: "Custom OpenAI Endpoints",
-    desc: 'Configure OpenAI endpoints, queried via [@langchain/openai (Node.js)](https://js.langchain.com/v0.1/docs/integrations/llms/openai/). e.g. `{"myllm" : {"baseUrl": "http://1.2.3.4:5678/" , apiKey: "key...", cocalc: {display: "My LLM", desc: "My custom LLM"}}, "gpt-4o-high": {baseUrl: "https://api.openai.com/v1", temperature: 2, "openAIApiKey": "sk-...", "model": "gpt-4o", cocalc: {display: "High GPT-4 Omni", desc: "GPT 4 Omni High Temp"}}}`',
+    desc: 'Configure OpenAI endpoints, queried via [@langchain/openai (Node.js)](https://js.langchain.com/v0.1/docs/integrations/llms/openai/). e.g. `{"myllm" : {"baseUrl": "http://1.2.3.4:5678/" , apiKey: "key...", cocalc: {display: "My LLM", desc: "My custom LLM", icon: "https://.../...png"}}, "gpt-4o-high": {baseUrl: "https://api.openai.com/v1", temperature: 1.5, "openAIApiKey": "sk-...", "model": "gpt-4o", cocalc: {display: "High GPT-4 Omni", desc: "GPT 4 Omni High Temp"}}}`',
     default: "{}",
     multiline: 5,
     show: custom_openai_enabled,

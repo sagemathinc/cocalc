@@ -4,16 +4,20 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   ANTHROPIC_MODELS,
   GOOGLE_MODELS,
+  LANGUAGE_MODEL_SERVICES,
   LLMServiceName,
+  LLMServicesAvailable,
   LLM_DESCR,
   LLM_PROVIDER,
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  toCustomOpenAIModel,
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { LLMModelPrice, modelToName } from "./llm-selector";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
+import { getCustomLLMGroup } from "./components";
+import { LLMModelPrice, modelToName } from "./llm-selector";
 
 interface Model {
   name: LanguageModel;
@@ -27,36 +31,24 @@ export function useAvailableLLMs(project_id: string) {
   // ATTN: you cannot use useProjectContext because this component is used outside a project context
   // when it is opened via an error in the gutter of a latex document. (I don't know why, maybe fixable)
   const projectsStore = redux.getStore("projects");
-  const haveOpenAI = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "openai",
-  );
-  const haveGoogle = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "google",
-  );
-  const haveMistral = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "mistralai",
-  );
-  const haveAnthropic = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "anthropic",
-  );
-  const haveOllama = projectsStore.hasLanguageModelEnabled(
-    project_id,
-    undefined,
-    "ollama",
-  );
+  const have = LANGUAGE_MODEL_SERVICES.reduce((cur, svc) => {
+    cur[svc] = projectsStore.hasLanguageModelEnabled(
+      project_id,
+      undefined,
+      svc,
+    );
+    return cur;
+  }, {}) as LLMServicesAvailable;
   const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
 
   const providers: {
-    [key in LLMServiceName]?: { name: string; desc: string; models: Model[] };
+    [key in LLMServiceName | "custom"]?: {
+      name: string | JSX.Element;
+      desc: string;
+      models: Model[];
+    };
   } = {};
 
   function add(service: LLMServiceName, models) {
@@ -77,27 +69,48 @@ export function useAvailableLLMs(project_id: string) {
     };
   }
 
-  if (haveOpenAI) add("openai", MODELS_OPENAI);
-  if (haveGoogle) add("google", GOOGLE_MODELS);
-  if (haveMistral) add("mistralai", MISTRAL_MODELS);
-  if (haveAnthropic) add("anthropic", ANTHROPIC_MODELS);
-  if (haveOllama && ollama) {
-    const models: Model[] = [];
-    for (const [key, config] of Object.entries<CustomLLMPublic>(ollama.toJS())) {
+  if (have.openai) add("openai", MODELS_OPENAI);
+  if (have.google) add("google", GOOGLE_MODELS);
+  if (have.mistralai) add("mistralai", MISTRAL_MODELS);
+  if (have.anthropic) add("anthropic", ANTHROPIC_MODELS);
+
+  const custom: Model[] = [];
+  if (have.ollama && ollama) {
+    for (const [key, config] of Object.entries<CustomLLMPublic>(
+      ollama.toJS(),
+    )) {
       const { display, desc = "" } = config;
       const ollamaModel = toOllamaModel(key);
-      models.push({
+      custom.push({
         name: ollamaModel,
         title: display,
         desc,
         price: <LLMModelPrice model={ollamaModel} />,
       });
     }
+  }
 
-    providers["ollama"] = {
-      models,
-      name: "ollama",
-      desc: "Ollama",
+  if (have.custom_openai && custom_openai) {
+    for (const [key, config] of Object.entries<CustomLLMPublic>(
+      custom_openai.toJS(),
+    )) {
+      const { display, desc = "" } = config;
+      const customOpenAIModel = toCustomOpenAIModel(key);
+      custom.push({
+        name: customOpenAIModel,
+        title: display,
+        desc,
+        price: <LLMModelPrice model={customOpenAIModel} />,
+      });
+    }
+  }
+
+  if (custom.length > 0) {
+    const { title, label } = getCustomLLMGroup();
+    providers["custom"] = {
+      models: custom,
+      name: label,
+      desc: title,
     };
   }
 

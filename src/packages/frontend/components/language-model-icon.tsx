@@ -1,20 +1,20 @@
-import { CSS } from "@cocalc/frontend/app-framework";
+import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   LanguageModel,
-  isCustomOpenAI,
+  fromCustomOpenAIModel,
+  fromOllamaModel,
   isGoogleModel,
   isLanguageModel,
-  isOllamaLLM,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import AIAvatar from "./ai-avatar";
+import AnthropicAvatar from "./anthropic-avatar";
 import GoogleGeminiLogo from "./google-gemini-avatar";
 import GooglePalmLogo from "./google-palm-avatar";
 import MistralAvatar from "./mistral-avatar";
 import OllamaAvatar from "./ollama-avatar";
 import OpenAIAvatar from "./openai-avatar";
-import AnthropicAvatar from "./anthropic-avatar";
 
 export function LanguageModelVendorAvatar(
   props: Readonly<{
@@ -24,6 +24,9 @@ export function LanguageModelVendorAvatar(
   }>,
 ) {
   const { model, size = 20 } = props;
+
+  const ollama = useTypedRedux("customize", "ollama");
+  const custom_openai = useTypedRedux("customize", "custom_openai");
 
   const style: CSS = {
     marginRight: "5px",
@@ -38,12 +41,34 @@ export function LanguageModelVendorAvatar(
     return fallback();
   }
 
+  function renderImgIcon(icon: string) {
+    return (
+      <img
+        width={size}
+        height={size}
+        src={icon}
+        style={{ display: "inline-block", ...style }}
+      />
+    );
+  }
+
   if (isLanguageModel(model)) {
     const vendorName = model2vendor(model).name;
     switch (vendorName) {
       case "openai":
-      case "custom_openai":
         return <OpenAIAvatar size={size} style={style} />;
+
+      case "custom_openai": {
+        const icon = custom_openai?.getIn([
+          fromCustomOpenAIModel(model),
+          "icon",
+        ]);
+        if (typeof icon === "string") {
+          return renderImgIcon(icon);
+        } else {
+          return <OpenAIAvatar size={size} style={style} />;
+        }
+      }
 
       case "google": {
         if (model === "chat-bison-001") {
@@ -59,8 +84,14 @@ export function LanguageModelVendorAvatar(
       case "mistralai":
         return <MistralAvatar size={size} style={style} />;
 
-      case "ollama":
-        return <OllamaAvatar size={size} style={style} />;
+      case "ollama": {
+        const icon = ollama?.getIn([fromOllamaModel(model), "icon"]);
+        if (typeof icon === "string") {
+          return renderImgIcon(icon);
+        } else {
+          return <OllamaAvatar size={size} style={style} />;
+        }
+      }
 
       case "anthropic":
         return <AnthropicAvatar size={size} style={style} />;
@@ -69,14 +100,6 @@ export function LanguageModelVendorAvatar(
         unreachable(vendorName);
         return fallback();
     }
-  }
-
-  if (isOllamaLLM(model)) {
-    return <OllamaAvatar size={size} style={style} />;
-  }
-
-  if (isCustomOpenAI(model)) {
-    return <OpenAIAvatar size={size} style={style} />;
   }
 
   return fallback();
