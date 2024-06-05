@@ -1,9 +1,9 @@
 // this contains bits and pieces from the wrongly named openai.ts file
 
+import { isEmpty } from "lodash";
 import LRU from "lru-cache";
 
 import { unreachable } from "@cocalc/util/misc";
-import { isEmpty } from "lodash";
 
 // "Client LLMs" are defined in the user's account settings
 // They directly query an external LLM service.

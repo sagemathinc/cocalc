@@ -6,11 +6,10 @@ export function getCustomLLMGroup() {
   const site_name = customize.get("site_name");
   const organization_name = customize.get("organization_name") ?? "";
   return {
-    title: `These language models on ${site_name} are managed by ${organization_name}`,
+    title: `Managed by ${organization_name || site_name}`,
     label: (
       <>
-        <Text strong>{site_name} language models</Text> – managed by{" "}
-        {organization_name}
+        <Text strong>{site_name} language models</Text>
       </>
     ),
   };

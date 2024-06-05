@@ -109,7 +109,15 @@ export default function LLMSelector({
 
     if (service === "custom") {
       const { title, label } = getCustomLLMGroup();
-      ret.push({ label, title, options });
+      ret.push({
+        label: (
+          <>
+            {label} – {title}
+          </>
+        ),
+        title: "These language models are configured by the administrators.",
+        options,
+      });
     } else {
       const { name, desc, short } = LLM_PROVIDER[service];
       const label = (
