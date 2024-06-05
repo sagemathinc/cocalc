@@ -5,7 +5,8 @@
 
 import { Tooltip } from "antd";
 
-import { TimeAgo } from "@cocalc/frontend/components";
+import { TimeAgo, Icon } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 
 interface CellTimingProps {
   start?: number;
@@ -33,11 +34,24 @@ export default function CellTiming({ start, end }: CellTimingProps) {
         <span>{secondsDisp}</span>
       </Tooltip>
     );
+  } else {
+    return (
+      <Tooltip
+        title={
+          <>
+            This cell was evaluted <TimeAgo date={new Date(start)} /> and has
+            not finished yet.
+          </>
+        }
+      >
+        <Icon
+          name="plus-circle-filled"
+          style={{
+            color: COLORS.GRAY_M,
+            animation: "loadingCircle 3s infinite linear",
+          }}
+        />
+      </Tooltip>
+    );
   }
-
-  return (
-    <Tooltip title={"When code started running"}>
-      <TimeAgo date={new Date(start)} />
-    </Tooltip>
-  );
 }
