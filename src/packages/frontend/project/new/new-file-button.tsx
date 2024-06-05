@@ -21,7 +21,6 @@ export const STYLE = {
 const ICON_STYLE = {
   color: COLORS.FILE_ICON,
   fontSize: "125%",
-  marginRight: "15px",
 } as const;
 
 const ICON_STYLE_LARGE = {

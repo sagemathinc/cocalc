@@ -91,6 +91,9 @@ export function FileTypeSelector({
 
     return (
       <>
+        <Section color="blue" icon="jupyter" isFlyout={isFlyout}>
+          Jupyter and LaTeX
+        </Section>
         <Row gutter={gutter} style={newRowStyle}>
           <JupyterNotebookButtons
             mode={mode}
@@ -102,10 +105,9 @@ export function FileTypeSelector({
             filename={filename}
             makeNewFilename={() => makeNewFilename?.("ipynb")}
           />
-          {renderSageWS()}
           {renderLaTeX()}
-          {renderRMD()}
           {renderQuarto()}
+          {renderSageWS()}
         </Row>
       </>
     );
@@ -199,7 +201,7 @@ export function FileTypeSelector({
                 delayShow={DELAY_SHOW_MS}
                 title={"Create a Compute Server"}
                 placement="left"
-                icon={"servers"}
+                icon={"cloud-server"}
                 tip={"Affordable GPUs and high-end dedicated virtual machines."}
               >
                 <NewFileButton
@@ -243,7 +245,7 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="purple" icon="graduation-cap" isFlyout={isFlyout}>
-          Teaching and Social
+          Teaching and Chat
         </Section>
 
         <Row gutter={gutter} style={newRowStyle}>
@@ -407,24 +409,6 @@ export function FileTypeSelector({
   function renderRMD() {
     if (!availableFeatures.rmd) return;
 
-    const btn = (
-      <Tip
-        delayShow={DELAY_SHOW_MS}
-        title="RMarkdown File"
-        icon={NEW_FILETYPE_ICONS.rmd}
-        tip="RMarkdown document with real-time preview."
-        style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
-      >
-        <NewFileButton
-          name="RMarkdown"
-          on_click={create_file}
-          ext="rmd"
-          size={btnSize}
-          active={btnActive("rmd")}
-        />
-      </Tip>
-    );
-
     return addAiDocGenerate(btn, "rmd");
   }
 
@@ -479,7 +463,7 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="green" icon="markdown" isFlyout={isFlyout}>
-          Markdown
+          Markdown Document Suite
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
           {renderMD()}
@@ -515,7 +499,37 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
+          {availableFeatures.rmd &&
+            addAiDocGenerate(
+              <Tip
+                delayShow={DELAY_SHOW_MS}
+                title="RMarkdown File"
+                icon={NEW_FILETYPE_ICONS.rmd}
+                tip="RMarkdown document with real-time preview."
+                style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+              >
+                <NewFileButton
+                  name="RMarkdown"
+                  on_click={create_file}
+                  ext="rmd"
+                  size={btnSize}
+                  active={btnActive("rmd")}
+                />
+              </Tip>,
+              "rmd",
+            )}
+        </Row>
+      </>
+    );
+  }
 
+  function renderUtilities() {
+    return (
+      <>
+        <Section color="yellow" icon="wrench" isFlyout={isFlyout}>
+          Utilities
+        </Section>
+        <Row gutter={gutter} style={newRowStyle}>
           <Col sm={sm} md={md}>
             <Tip
               delayShow={DELAY_SHOW_MS}
@@ -532,6 +546,24 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
+          {!disabledFeatures?.timers && (
+            <Col sm={sm} md={md}>
+              <Tip
+                delayShow={DELAY_SHOW_MS}
+                title="Stopwatches and Timer"
+                icon={NEW_FILETYPE_ICONS.time}
+                tip="Create collaborative stopwatches and timers to keep track of how long it takes to do something."
+              >
+                <NewFileButton
+                  name="Stopwatch and Timer"
+                  on_click={create_file}
+                  ext="time"
+                  size={btnSize}
+                  active={btnActive("time")}
+                />
+              </Tip>
+            </Col>
+          )}
         </Row>
       </>
     );
@@ -541,9 +573,10 @@ export function FileTypeSelector({
     <div>
       {renderJupyterNotebook()}
       {renderLinux()}
-      {renderServers()}
-      {renderTeachingSocial()}
       {renderMarkdown()}
+      {renderTeachingSocial()}
+      {renderServers()}
+      {renderUtilities()}
     </div>
   );
 }
