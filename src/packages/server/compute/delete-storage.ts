@@ -13,24 +13,88 @@ import { deleteServiceAccount } from "./cloud/google-cloud/service-account";
 import { getServiceAccountId } from "./create-storage";
 import { removeBucketPolicyBinding } from "./cloud/google-cloud/policy";
 import { delay } from "awaiting";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+import { DEFAULT_LOCK } from "@cocalc/util/db-schema/storage";
 
 const logger = getLogger("server:compute:delete-storage");
 
-export default async function deleteStorage({
+export async function userDeleteStorage({
   id,
+  account_id,
   lock,
 }: {
   id: number;
+  account_id: string;
   lock?: string;
 }) {
+  const storage = await getStorage(id);
+  if (storage.account_id != account_id) {
+    const { name, email_address } = await getUser(account_id);
+    throw Error(
+      `only the owner of the storage volume can delete it -- this volume is owned by ${name} - ${email_address}`,
+    );
+  }
+  if ((storage.lock ?? DEFAULT_LOCK) != lock) {
+    throw Error(
+      `userDeleteStorage: you must provide the lock string '${
+        storage.lock ?? DEFAULT_LOCK
+      }'`,
+    );
+  }
+  if (storage.mount) {
+    throw Error("userDeleteStorage: unmount the storage first");
+  }
+  if (storage.deleted) {
+    throw Error(
+      "userDeleteStorage: storage is already being deleted; please wait",
+    );
+  }
+  // launch the delete without blocking api call response
+  launchDelete(id);
+}
+
+// this won't throw
+async function launchDelete(id: number) {
+  // this tries to fully delete all bucket content and everything else, however
+  // long that may take.  It could fail due to server restart, network issues, etc.,
+  // but the actual delete of storage content is likely to work (since it is done
+  // via a remote service on google cloud).
+  // There is another service that checks for storage volumes that haven't been
+  // deleted from the database but have deleted=TRUE and last_edited sufficiently long
+  // ago, and tries those again, so eventually everything gets properly deleted.
+  const pool = getPool();
+  try {
+    await pool.query(
+      "UPDATE storage SET deleted=TRUE, last_edited=NOW() WHERE id=$1",
+      [id],
+    );
+    await deleteStorage(id);
+  } catch (err) {
+    // makes it so the error is saved somewhere; user might see it in UI
+    // Also, deleteMaintenance will run this function again somewhere an hour
+    // from when we started above...
+    await pool.query("UPDATE storage SET error=$1 WHERE id=$2", [`${err}`, id]);
+  }
+}
+
+export async function deleteMaintenance() {
+  // NOTE: if a single delete takes longer than 1 hour, then we'll end up running
+  // two deletes at once.  This could happen maybe, if a bucket has over a million
+  // objects in it, maybe.  Estimate are between 300/s and 1500/s, so maybe 5 million.
+  // In any case, I don't think it would be the end of the world.
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT id FROM storage WHERE deleted=TRUE AND last_edited >= NOW() - interval '1 hour'",
+  );
+  for (const { id } of rows) {
+    launchDelete(id);
+  }
+}
+
+export async function deleteStorage(id) {
   logger.debug("deleteStorage", { id });
 
   const storage = await getStorage(id);
-  if (storage.lock && storage.lock != lock) {
-    throw Error(
-      `deleteStorage: you must provide the lock string '${storage.lock}'`,
-    );
-  }
   const pool = getPool();
   if (storage.mount) {
     // unmount it if it is mounted

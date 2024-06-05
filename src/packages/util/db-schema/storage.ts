@@ -16,6 +16,7 @@ import { Table } from "./types";
 import { ID, NOTES } from "./crm";
 
 export const CREATE_STORAGE_COST = 0.05;
+export const DEFAULT_LOCK = "DELETE";
 
 export interface GoogleCloudServiceAccountKey {
   type: "service_account";
@@ -59,6 +60,7 @@ export interface Storage {
   error?: string;
   notes?: string;
   lock?: string;
+  last_edited?: Date;
 }
 
 export type CreateStorage = Pick<
@@ -103,6 +105,7 @@ Table({
           error: null,
           notes: null,
           lock: null,
+          last_edited: null,
         },
       },
       set: {
@@ -202,6 +205,10 @@ Table({
       pg_type: "VARCHAR(128)",
       desc: "String that you must provide as part of any API call to delete this object.  Use this as a personal reminder of conditions under which it is OK to delete this.",
       render: { type: "text", maxLength: 128, editable: true },
+    },
+    last_edited: {
+      type: "timestamp",
+      desc: "Last time the configuration, state, etc., changed.  Also, this gets updated when the volume is actively mounted by some compute server, since the files are likely edited.",
     },
   },
 });

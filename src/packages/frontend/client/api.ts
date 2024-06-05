@@ -32,12 +32,13 @@ async function callApi(endpoint: string, args?: object) {
     },
     ...(args != null ? { body: JSON.stringify(args) } : undefined),
   });
-  // const respClone = resp.clone();
+  const respClone = resp.clone();
   let json: any = null;
   try {
     json = await resp.json();
   } catch (e) {
-    // console.log(await respClone.text());
+    console.log(e);
+    console.log(await respClone.text());
     throw Error("API server is down -- try again later");
   }
   if (json == null) {

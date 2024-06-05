@@ -103,7 +103,9 @@ export default async function createStorage(opts: Options): Promise<number> {
       push(field, opts[field]);
     }
   }
-  push("created", new Date());
+  const now = new Date();
+  push("created", now);
+  push("last_edited", now);
   const port = await getPort(opts.project_id);
   push("port", port);
 
