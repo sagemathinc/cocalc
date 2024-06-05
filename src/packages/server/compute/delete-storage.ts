@@ -15,6 +15,7 @@ import { removeBucketPolicyBinding } from "./cloud/google-cloud/policy";
 import { delay } from "awaiting";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { DEFAULT_LOCK } from "@cocalc/util/db-schema/storage-volumes";
+import { uuid } from "@cocalc/util/misc";
 
 const logger = getLogger("server:compute:delete-storage");
 
@@ -44,9 +45,9 @@ export async function userDeleteStorage({
   if (storage.mount) {
     throw Error("userDeleteStorage: unmount the storage first");
   }
-  if (storage.deleted) {
+  if (storage.deleting) {
     throw Error(
-      "userDeleteStorage: storage is already being deleted; please wait",
+      "userDeleteStorage: storage is currently being deleted; please wait",
     );
   }
   // launch the delete without blocking api call response
@@ -60,20 +61,23 @@ async function launchDelete(id: number) {
   // but the actual delete of storage content is likely to work (since it is done
   // via a remote service on google cloud).
   // There is another service that checks for storage volumes that haven't been
-  // deleted from the database but have deleted=TRUE and last_edited sufficiently long
+  // deleted from the database but have deleting=TRUE and last_edited sufficiently long
   // ago, and tries those again, so eventually everything gets properly deleted.
   const pool = getPool();
   try {
     await pool.query(
-      "UPDATE storage_volumes SET deleted=TRUE, last_edited=NOW() WHERE id=$1",
-      [id],
+      "UPDATE storage_volumes SET deleting=TRUE, last_edited=NOW(), port=0, mount=FALSE, mountpoint=$2 WHERE id=$1",
+      [id, uuid()],
     );
     await deleteStorage(id);
   } catch (err) {
     // makes it so the error is saved somewhere; user might see it in UI
     // Also, deleteMaintenance will run this function again somewhere an hour
     // from when we started above...
-    await pool.query("UPDATE storage_volumes SET error=$1 WHERE id=$2", [`${err}`, id]);
+    await pool.query("UPDATE storage_volumes SET error=$1 WHERE id=$2", [
+      `${err}`,
+      id,
+    ]);
   }
 }
 
@@ -84,7 +88,7 @@ export async function deleteMaintenance() {
   // In any case, I don't think it would be the end of the world.
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id FROM storage_volumes WHERE deleted=TRUE AND last_edited >= NOW() - interval '1 hour'",
+    "SELECT id FROM storage_volumes WHERE deleting=TRUE AND last_edited >= NOW() - interval '1 hour'",
   );
   for (const { id } of rows) {
     launchDelete(id);
@@ -98,7 +102,9 @@ export async function deleteStorage(id) {
   const pool = getPool();
   if (storage.mount) {
     // unmount it if it is mounted
-    await pool.query("UPDATE storage_volumes SET mount=FALSE WHERE id=$1", [id]);
+    await pool.query("UPDATE storage_volumes SET mount=FALSE WHERE id=$1", [
+      id,
+    ]);
   }
 
   // WORRY -- if a database query fails below due to an outage we get in an inconsistent
@@ -138,7 +144,9 @@ export async function deleteStorage(id) {
     }
 
     await deleteServiceAccount(serviceAccountId);
-    await pool.query("UPDATE storage_volumes SET secret_key=NULL WHERE id=$1", [id]);
+    await pool.query("UPDATE storage_volumes SET secret_key=NULL WHERE id=$1", [
+      id,
+    ]);
   }
 
   if (bucket) {
@@ -147,7 +155,9 @@ export async function deleteStorage(id) {
       bucketName: bucket,
       useTransferService: true,
     });
-    await pool.query("UPDATE storage_volumes SET bucket=NULL WHERE id=$1", [id]);
+    await pool.query("UPDATE storage_volumes SET bucket=NULL WHERE id=$1", [
+      id,
+    ]);
   }
   logger.debug("deleteStorage: delete the database record");
   await pool.query("DELETE FROM storage_volumes WHERE id=$1", [id]);

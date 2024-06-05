@@ -57,7 +57,7 @@ export interface StorageVolume {
   configuration?: { juice?: JuiceConfiguration; keydb?: KeyDbConfiguration };
   title?: string;
   color?: string;
-  deleted?: boolean;
+  deleting?: boolean;
   error?: string;
   notes?: string;
   lock?: string;
@@ -192,9 +192,9 @@ Table({
       pg_type: "VARCHAR(30)",
       render: { type: "color", editable: true },
     },
-    deleted: {
+    deleting: {
       type: "boolean",
-      desc: "True if this storage has been deleted.",
+      desc: "True if this storage is in the process of being deleted.",
     },
     error: {
       type: "string",

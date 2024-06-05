@@ -31,7 +31,7 @@ async function getMountedStorageVolumes(
   logger.debug("getMountedStorageVolumes: ", { project_id });
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT * FROM storage_volumes WHERE project_id=$1 AND (deleted IS null or deleted=false) AND mount=true AND secret_key IS NOT NULL`,
+    `SELECT * FROM storage_volumes WHERE project_id=$1 AND (deleting IS null or deleting=false) AND mount=true AND secret_key IS NOT NULL`,
     [project_id],
   );
   // TODO: we may have to address issues here with service account keys expiring, and

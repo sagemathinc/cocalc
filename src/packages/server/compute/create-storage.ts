@@ -56,13 +56,12 @@ interface Options extends CreateStorageVolume {
 }
 
 const FIELDS =
-  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,deleted,notes,lock,mount".split(
+  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,notes,lock,mount".split(
     ",",
   );
 
 export default async function createStorage(opts: Options): Promise<number> {
   logger.debug("createStorage", opts);
-
   // sanity checks
   if (!["lz4", "zstd", "none"].includes(opts.compression)) {
     throw Error("compression must be 'lz4', 'zstd', or 'none'");
@@ -109,9 +108,9 @@ export default async function createStorage(opts: Options): Promise<number> {
   const port = await getPort(opts.project_id);
   push("port", port);
 
-  const query = `INSERT INTO storage(${fields.join(",")}) VALUES(${dollars.join(
+  const query = `INSERT INTO storage_volumes(${fields.join(
     ",",
-  )}) RETURNING id`;
+  )}) VALUES(${dollars.join(",")}) RETURNING id`;
   const pool = getPool();
   const { rows } = await pool.query(query, params);
   const { id } = rows[0];
@@ -134,7 +133,10 @@ export default async function createStorage(opts: Options): Promise<number> {
     // create storage bucket -- for now only support google
     // cloud storage, as mentioned above.
     await createBucket(bucket);
-    await pool.query("UPDATE storage_volumes SET bucket=$1 WHERE id=$2", [bucket, id]);
+    await pool.query("UPDATE storage_volumes SET bucket=$1 WHERE id=$2", [
+      bucket,
+      id,
+    ]);
 
     // create service account that has access to storage bucket
     const serviceAccountId = await getServiceAccountId(id);
@@ -164,7 +166,10 @@ export default async function createStorage(opts: Options): Promise<number> {
       id,
     ]);
   } catch (err) {
-    await pool.query("UPDATE storage_volumes SET error=$1 WHERE id=$2", [`${err}`, id]);
+    await pool.query("UPDATE storage_volumes SET error=$1 WHERE id=$2", [
+      `${err}`,
+      id,
+    ]);
     throw err;
   }
 
