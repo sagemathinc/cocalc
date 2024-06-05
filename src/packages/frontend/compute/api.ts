@@ -269,3 +269,4 @@ export async function setImageTested(opts: {
 }) {
   return await api("compute/set-image-tested", opts);
 }
+

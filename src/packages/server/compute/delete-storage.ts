@@ -1,6 +1,9 @@
 /*
 Fully permanently deletes a storage filesystem.  Deletes the actual data, configuration, database record,
-etc.  This is not just deprovisioning.
+etc.  This is NOT just deprovisioning.
+
+The actual call to delete the bucket can take arbitrarily long, and we need to come up with a
+way to contend with that.
 */
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";

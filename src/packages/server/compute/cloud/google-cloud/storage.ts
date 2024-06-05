@@ -40,7 +40,9 @@ is significantly faster than other approaches, probably due to
 everything just being kept close, etc.
 
 This takes about 25 seconds of overhead, but then deletes objects
-at a rate o about 1.5K/second.
+at a rate of about 300/second in my test.  That stackoverlow has numbers that
+are much larger, but maybe their situation is different.
+I got only 30-40/second with the same parameters using juicefs format, etc.
 */
 
 export async function deleteFilesUsingTransferService(

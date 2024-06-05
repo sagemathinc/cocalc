@@ -41,6 +41,11 @@ const logger = getLogger("server:compute:create-storage");
 const MIN_PORT = 40000;
 const MAX_PORT = 48000;
 
+// Since all storage gets mounted on all compute servers, and basically
+// you only need one shared storage volume in most cases, we do put a global
+// limit to avoid abuse and efficiency issues for now.
+const MAX_STORAGE_VOLUMES_PER_PROJECT = 25;
+
 import {
   CREATE_STORAGE_COST,
   CreateStorage,
@@ -73,6 +78,15 @@ export default async function createStorage(opts: Options): Promise<number> {
     logger.debug("createStorage -- not allowed", reason);
     throw Error(reason);
   }
+  if (
+    (await numberOfStorageVolumes(opts.project_id)) >=
+    MAX_STORAGE_VOLUMES_PER_PROJECT
+  ) {
+    throw Error(
+      `there is a limit of ${MAX_STORAGE_VOLUMES_PER_PROJECT} for project`,
+    );
+  }
+
   logger.debug("createStorage -- allowed");
 
   // create storage record in the database
@@ -90,8 +104,6 @@ export default async function createStorage(opts: Options): Promise<number> {
     }
   }
   push("created", new Date());
-  // start assuming storage should get mounted
-  push("mount", true);
   const port = await getPort(opts.project_id);
   push("port", port);
 
@@ -157,6 +169,15 @@ export default async function createStorage(opts: Options): Promise<number> {
   // TODO: make the purchase (?); if it fails, delete everything.
 
   return id;
+}
+
+async function numberOfStorageVolumes(project_id: string): Promise<number> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT COUNT(*) AS count FROM storage WHERE project_id=$1",
+    [project_id],
+  );
+  return rows[0].count;
 }
 
 async function getPort(project_id: string): Promise<number> {
