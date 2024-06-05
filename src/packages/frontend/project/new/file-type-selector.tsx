@@ -406,12 +406,6 @@ export function FileTypeSelector({
     return addAiDocGenerate(btn, "qmd");
   }
 
-  function renderRMD() {
-    if (!availableFeatures.rmd) return;
-
-    return addAiDocGenerate(btn, "rmd");
-  }
-
   function renderLaTeX() {
     if (!availableFeatures.latex) return null;
 
