@@ -44,6 +44,8 @@ export default function EditorTime() {
   const timers: List<any> | undefined = useRedux(["timers"], project_id, path);
   const error: string | undefined = useRedux(["error"], project_id, path);
 
+  if (timers == null || actions == null) return <Loading />;
+
   function renderStopwatches(): ReactNode[] {
     if (timers == null) {
       return [];
@@ -100,7 +102,6 @@ export default function EditorTime() {
     return <ButtonBar actions={actions} />;
   }
 
-  if (timers == null) return <Loading />;
   return (
     <div className="smc-vfill">
       {error && <Alert type="error" message={`Error: ${error}`} />}
