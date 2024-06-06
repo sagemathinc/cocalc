@@ -10,11 +10,14 @@ import {
 } from "antd";
 import { useRouter } from "next/router";
 import { ReactNode, useRef, useState } from "react";
-import CodeMirror from "components/share/codemirror";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
+import CodeMirror from "components/share/codemirror";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
@@ -24,8 +27,6 @@ import getBrowserInfo from "./browser-info";
 import RecentFiles from "./recent-files";
 import { Type } from "./tickets";
 import { NoZendesk } from "./util";
-import { Paragraph, Title } from "components/misc";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 
 const CHATGPT_DISABLED = true;
 const MIN_BODY_LENGTH = 16;
@@ -47,8 +48,14 @@ function stringToType(s?: any): Type {
 }
 
 export default function Create() {
-  const { contactEmail, zendesk, account, openaiEnabled, siteName } =
-    useCustomize();
+  const {
+    contactEmail,
+    zendesk,
+    account,
+    openaiEnabled,
+    onCoCalcCom,
+    siteName,
+  } = useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
@@ -147,9 +154,9 @@ export default function Create() {
                 </>
               )}
             </p>
-            {openaiEnabled && !CHATGPT_DISABLED && (
+            {openaiEnabled && onCoCalcCom && !CHATGPT_DISABLED ? (
               <ChatGPT siteName={siteName} />
-            )}
+            ) : undefined}
             <FAQ />
             <Title level={2}>Create Your Ticket</Title>
             <Instructions />

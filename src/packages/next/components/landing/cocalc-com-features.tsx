@@ -37,6 +37,7 @@ export function CoCalcComFeatures() {
     sandboxProjectId,
     jupyterApiEnabled,
     shareServer = false,
+    onCoCalcCom,
   } = useCustomize();
   const width = Grid.useBreakpoint();
 
@@ -515,7 +516,7 @@ export function CoCalcComFeatures() {
   }
 
   function renderChatGPT() {
-    if (!openaiEnabled) return;
+    if (!openaiEnabled || !onCoCalcCom) return;
     return (
       <Info
         level={LANDING_HEADER_LEVEL}
@@ -574,30 +575,5 @@ export function CoCalcComFeatures() {
       {renderTestimonials()}
       {renderAvailableProducts()}
     </>
-  );
-}
-
-export function Hero() {
-  return (
-    <Info.Heading
-      level={2}
-      textStyle={{ color: "white" }}
-      style={{
-        backgroundColor: COLORS.BLUE_D,
-        paddingBottom: "30px",
-        marginTop: "30px",
-        paddingTop: "30px",
-      }}
-    >
-      Realtime collaborative{" "}
-      <A href="/features/jupyter-notebook" style={{ color: "white" }}>
-        Jupyter notebooks
-      </A>
-      ,{" "}
-      <A href="/features/latex-editor" style={{ color: "white" }}>
-        LaTeX
-      </A>
-      , Markdown, and Linux with GPUs
-    </Info.Heading>
   );
 }
