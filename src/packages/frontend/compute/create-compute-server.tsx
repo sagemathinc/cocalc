@@ -46,7 +46,7 @@ function defaultConfiguration() {
 }
 
 function genericDefaults(conf) {
-  return { ...conf, excludeFromSync: ["scratch"] };
+  return { ...conf, excludeFromSync: ["fast-local"] };
 }
 
 export default function CreateComputeServer({ project_id, onCreate }) {

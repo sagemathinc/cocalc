@@ -43,7 +43,7 @@ export default function ExcludeFromSync({
             checked={help}
             onChange={(val) => setHelp(val)}
           />
-          <Icon name="bolt" /> Scratch: Fast Local Directories
+          <Icon name="bolt" /> Fast Local Directories
         </b>
       </div>
       {help && (
@@ -51,7 +51,7 @@ export default function ExcludeFromSync({
           showIcon
           style={{ margin: "15px 0" }}
           type="info"
-          message={"Fast Local Scratch Directories"}
+          message={"Fast Local Directories"}
           description={
             <div>
               <p>
@@ -71,8 +71,8 @@ export default function ExcludeFromSync({
                 directories are stored in <code>/data</code> on the compute
                 server's disk only, which is extremely fast.
                 <b>
-                  Fast local scratch directories are NOT backed up, but do
-                  persist until the compute server is deleted or deprovisioned.
+                  Fast local directories are NOT backed up, but do persist until
+                  the compute server is deleted or deprovisioned.
                 </b>
               </p>
               <p>
@@ -81,10 +81,11 @@ export default function ExcludeFromSync({
                 your HOME directory is still mounted over the network.
                 {id == null && (
                   <>
-                    The directory <code>scratch</code> is a fast local directory
-                    by default. You can also use
+                    The directory <code>fast-local</code> is a fast local
+                    directory by default. You can also use
                     <code>[id]</code> in the path, and it will be replaced by
-                    the numerical id of the compute server.
+                    the numerical id of the compute server. You can add and
+                    remove any other fast local directories.
                   </>
                 )}
               </p>
@@ -98,7 +99,7 @@ export default function ExcludeFromSync({
         />
       )}
       <div style={{ color: "#666" }}>
-        Fast local scratch directories exist only on the compute server and{" "}
+        Fast local directories exist only on the compute server and{" "}
         <b>are NOT backed up in any way</b>. They persist until the compute
         server is deleted or deprovisioned.
       </div>
