@@ -68,6 +68,7 @@ interface Customize extends ServerCustomize {
   jupyterApiEnabled?: boolean; // backend configured to use a pool of projects for sandboxed ephemeral jupyter code execution
   computeServersEnabled?: boolean; // backend configured to run on external compute servers
   enabledPages?: EnabledPageTree; // tree structure which specifies supported routes for this install
+  support?: string; // HTML/MD to replace the generic support pages
 }
 
 const CustomizeContext = createContext<Partial<Customize>>({});

@@ -12,7 +12,6 @@ import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
 import {
   CoCalcComFeatures,
-  Hero,
 } from "components/landing/cocalc-com-features";
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -29,6 +28,7 @@ import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
 import withCustomize from "lib/with-customize";
 import screenshot from "public/cocalc-screenshot-20200128-nq8.png";
+import { Tagline } from "components/landing/tagline";
 
 const TOP_LINK_STYLE: CSS = { marginRight: "20px" } as const;
 
@@ -51,6 +51,7 @@ export default function Home(props: Props) {
     onCoCalcCom,
     account,
     isCommercial,
+    indexTagline,
   } = customize;
 
   function contentDescription() {
@@ -172,7 +173,7 @@ export default function Home(props: Props) {
               onCoCalcCom ? <Videos videos={YOUTUBE_IDS} /> : indexInfo
             }
           />
-          <Hero />
+          <Tagline value={indexTagline} />
           {renderCoCalcComFeatures()}
           <Footer />
         </Layout.Content>

@@ -3,13 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import {
-  KucalcValues,
   KUCALC_COCALC_COM,
+  KucalcValues,
 } from "@cocalc/util/db-schema/site-defaults";
 import { Strategy } from "@cocalc/util/types/sso";
-import getStrategies from "@cocalc/database/settings/get-sso-strategies";
-import { getServerSettings, ServerSettings } from "./server-settings";
+import { ServerSettings, getServerSettings } from "./server-settings";
 import siteURL from "./site-url";
 
 export interface Customize {
@@ -29,6 +29,7 @@ export interface Customize {
   logoRectangularURL?: string;
   splashImage?: string;
   indexInfo?: string;
+  indexTagline?: string;
   imprint?: string;
   policies?: string;
   shareServer?: boolean;
@@ -42,7 +43,6 @@ export interface Customize {
   accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.
   stripePublishableKey?: string;
-  index_info_html?: string;
   imprint_html?: string;
   policies_html?: string;
   reCaptchaKey?: string;
@@ -59,6 +59,7 @@ export interface Customize {
   jupyterApiEnabled?: boolean;
   computeServersEnabled?: boolean;
   githubProjectId?: string;
+  support?: string;
 }
 
 const fallback = (a?: string, b?: string): string =>
@@ -122,8 +123,10 @@ export default async function getCustomize(): Promise<Customize> {
     googleAnalytics: settings.google_analytics,
 
     indexInfo: settings.index_info_html,
+    indexTagline: settings.index_tagline,
     imprint: settings.imprint,
     policies: settings.policies,
+    support: settings.support,
 
     // Is important for invite emails, password reset, etc. (e.g., so we can construct a url to our site).
     // This *can* start with http:// to explicitly use http instead of https, and can end

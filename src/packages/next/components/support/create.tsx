@@ -10,11 +10,14 @@ import {
 } from "antd";
 import { useRouter } from "next/router";
 import { ReactNode, useRef, useState } from "react";
-import CodeMirror from "components/share/codemirror";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
+import ChatGPTHelp from "components/openai/chatgpt-help";
+import CodeMirror from "components/share/codemirror";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
@@ -24,8 +27,6 @@ import getBrowserInfo from "./browser-info";
 import RecentFiles from "./recent-files";
 import { Type } from "./tickets";
 import { NoZendesk } from "./util";
-import { Paragraph, Title } from "components/misc";
-import ChatGPTHelp from "components/openai/chatgpt-help";
 
 const CHATGPT_DISABLED = true;
 const MIN_BODY_LENGTH = 16;
@@ -47,7 +48,7 @@ function stringToType(s?: any): Type {
 }
 
 export default function Create() {
-  const { contactEmail, zendesk, account, openaiEnabled, siteName } =
+  const { account, onCoCalcCom, helpEmail, openaiEnabled, siteName, zendesk } =
     useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
@@ -140,16 +141,16 @@ export default function Create() {
                 check the status of your support tickets
               </A>
               .{" "}
-              {contactEmail && (
+              {helpEmail ? (
                 <>
                   You can also email us directly at{" "}
-                  <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
+                  <A href={`mailto:${helpEmail}`}>{helpEmail}</A>.
                 </>
-              )}
+              ) : undefined}
             </p>
-            {openaiEnabled && !CHATGPT_DISABLED && (
+            {openaiEnabled && onCoCalcCom && !CHATGPT_DISABLED ? (
               <ChatGPT siteName={siteName} />
-            )}
+            ) : undefined}
             <FAQ />
             <Title level={2}>Create Your Ticket</Title>
             <Instructions />
@@ -283,12 +284,12 @@ export default function Create() {
                   style={{ margin: "15px auto", maxWidth: "500px" }}
                 />
                 <br />
-                {contactEmail && (
+                {helpEmail ? (
                   <>
                     If you continue to have problems, email us directly at{" "}
-                    <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
+                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A>.
                   </>
-                )}
+                ) : undefined}
               </div>
             )}
             {success && (
