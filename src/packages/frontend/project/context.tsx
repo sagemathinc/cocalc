@@ -64,6 +64,7 @@ export const ProjectContext: Context<ProjectContextState> =
       mistralai: false,
       anthropic: false,
       custom_openai: false,
+      user: false,
     },
   });
 

@@ -1,4 +1,5 @@
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { getUserDefinedLLM } from "@cocalc/frontend/frame-editors/llm/use-userdefined-llm";
 import {
   LLMServicesAvailable,
   LanguageService,
@@ -7,6 +8,8 @@ import {
   getValidLanguageModelName,
   isCustomOpenAI,
   isOllamaLLM,
+  isUserDefinedModel,
+  unpackUserDefinedLLMModel,
 } from "@cocalc/util/db-schema/llm-utils";
 
 export const SETTINGS_LANGUAGE_MODEL_KEY = "language_model";
@@ -78,11 +81,21 @@ export function setDefaultLLM(llm: LanguageService) {
     isCustomOpenAI(llm) &&
     custom_openai?.get(fromCustomOpenAIModel(llm))
   ) {
-    // ... or a custom_openai llm
+    redux
+      .getActions("account")
+      .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
+  } else if (isUserDefinedModel(llm) && userDefinedLLMExists(llm)) {
     redux
       .getActions("account")
       .set_other_settings(SETTINGS_LANGUAGE_MODEL_KEY, llm);
   } else {
     console.warn(`setDefaultLLM: LLM "${llm}" is unknown.`);
   }
+}
+
+function userDefinedLLMExists(model: string): boolean {
+  const user_llm = getUserDefinedLLM();
+  const um = unpackUserDefinedLLMModel(model);
+  if (um == null) return false;
+  return user_llm.some((m) => m.service === um.service && m.model === um.model);
 }

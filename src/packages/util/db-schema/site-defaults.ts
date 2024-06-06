@@ -63,6 +63,7 @@ export type SiteSettingsKeys =
   | "custom_openai_enabled"
   | "selectable_llms"
   | "default_llm"
+  | "user_defined_llm"
   | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
@@ -216,6 +217,7 @@ export const to_default_llm: ToValFunc<ToVal> = (val: string, conf) => {
     mistralai: to_bool(conf.mistral_enabled),
     anthropic: to_bool(conf.anthropic_enabled),
     custom_openai: to_bool(conf.custom_openai_enabled),
+    user: conf.kucalc !== KUCALC_COCALC_COM,
   } as const;
   const ollama = from_json((conf as any)?.ollama);
   const custom_openai = from_json((conf as any)?.custom_openai);
@@ -769,6 +771,14 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     to_val: to_default_llm,
     valid: USER_SELECTABLE_LANGUAGE_MODELS, // ATTN: This is not true. It's actually the list selectable_llms (which has this list as a constant) + all ollama + custom_llm. This is a special case in the Admin UI.
+    tags: ["AI LLM"],
+  },
+  user_defined_llm: {
+    name: "User Defined LLM",
+    desc: "If enabled, users are allowed to configure and run their own LLMs (their API keys, etc.)",
+    default: "yes",
+    to_val: to_bool,
+    valid: only_booleans,
     tags: ["AI LLM"],
   },
   neural_search_enabled: {

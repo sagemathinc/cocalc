@@ -1,4 +1,7 @@
-import { LLMServiceName } from "@cocalc/util/db-schema/llm-utils";
+import {
+  LLMServiceName,
+  getLLMServiceStatusCheckMD,
+} from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
 import A from "components/misc/A";
 
@@ -59,6 +62,9 @@ export function LLMServiceStatusCheck({
           Anthropic <A href="https://status.anthropic.com/">status</A>.
         </>
       );
+
+    case "user":
+      return <>{getLLMServiceStatusCheckMD("user")}</>;
 
     default:
       unreachable(service);

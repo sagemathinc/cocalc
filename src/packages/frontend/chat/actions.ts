@@ -28,6 +28,7 @@ import {
   CUSTOM_OPENAI_PREFIX,
   LANGUAGE_MODEL_PREFIXES,
   OLLAMA_PREFIX,
+  USER_LLM_PREFIX,
   getLLMServiceStatusCheckMD,
   isFreeModel,
   isLanguageModel,
@@ -1161,9 +1162,10 @@ function mentionsLanguageModel(input?: string): boolean {
   const x = input?.toLowerCase() ?? "";
 
   // if any of these prefixes are in the input as "account-id=[prefix]", then return true
-  return LANGUAGE_MODEL_PREFIXES.some((prefix) =>
+  const sys = LANGUAGE_MODEL_PREFIXES.some((prefix) =>
     x.includes(`account-id=${prefix}`),
   );
+  return sys || x.includes(`account-id=${USER_LLM_PREFIX}`);
 }
 
 /**
@@ -1186,11 +1188,14 @@ function getLanguageModel(input?: string): false | LanguageModel {
       const j = x.indexOf(">", i);
       const model = x.slice(i + prefix.length, j).trim() as LanguageModel;
       // for now, ollama must be prefixed – in the future, all model names should have a vendor prefix!
-      if (vendorprefix.startsWith(OLLAMA_PREFIX.slice(0, -1))) {
+      if (vendorprefix === OLLAMA_PREFIX) {
         return toOllamaModel(model);
       }
-      if (vendorprefix.startsWith(CUSTOM_OPENAI_PREFIX.slice(0, -1))) {
+      if (vendorprefix === CUSTOM_OPENAI_PREFIX) {
         return toCustomOpenAIModel(model);
+      }
+      if (vendorprefix === USER_LLM_PREFIX) {
+        return `${USER_LLM_PREFIX}${model}`;
       }
       return model;
     }

@@ -36,6 +36,7 @@ import {
   isFreeModel,
   isLanguageModel,
   isOllamaLLM,
+  isUserDefinedModel,
   model2service,
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
@@ -205,6 +206,11 @@ async function isUserSelectableLanguageModel(
     custom_openai_enabled,
     custom_openai_configuration,
   } = await getServerSettings();
+
+  if (isUserDefinedModel(model)) {
+    // no need to check based on the account/other_settings info
+    return true;
+  }
 
   if (isOllamaLLM(model)) {
     if (ollama_enabled && isObject(ollama_configuration)) {

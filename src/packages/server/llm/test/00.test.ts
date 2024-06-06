@@ -111,7 +111,7 @@ test_llm("mistralai")("Mistral AI", () => {
   });
 
   // segaults – no clue why. happens with version 0.2.0
-  test.skip("basics", async () => {
+  test("basics", async () => {
     const answer = await evaluateMistral({ model, ...QUERY });
     checkAnswer(answer);
   });
