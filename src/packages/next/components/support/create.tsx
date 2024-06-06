@@ -48,14 +48,8 @@ function stringToType(s?: any): Type {
 }
 
 export default function Create() {
-  const {
-    contactEmail,
-    zendesk,
-    account,
-    openaiEnabled,
-    onCoCalcCom,
-    siteName,
-  } = useCustomize();
+  const { account, onCoCalcCom, helpEmail, openaiEnabled, siteName, zendesk } =
+    useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
   // This could easily be blank, but if it is set it can be useful.
@@ -147,12 +141,12 @@ export default function Create() {
                 check the status of your support tickets
               </A>
               .{" "}
-              {contactEmail && (
+              {helpEmail ? (
                 <>
                   You can also email us directly at{" "}
-                  <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
+                  <A href={`mailto:${helpEmail}`}>{helpEmail}</A>.
                 </>
-              )}
+              ) : undefined}
             </p>
             {openaiEnabled && onCoCalcCom && !CHATGPT_DISABLED ? (
               <ChatGPT siteName={siteName} />
@@ -290,12 +284,12 @@ export default function Create() {
                   style={{ margin: "15px auto", maxWidth: "500px" }}
                 />
                 <br />
-                {contactEmail && (
+                {helpEmail ? (
                   <>
                     If you continue to have problems, email us directly at{" "}
-                    <A href={`mailto:${contactEmail}`}>{contactEmail}</A>.
+                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A>.
                   </>
-                )}
+                ) : undefined}
               </div>
             )}
             {success && (
