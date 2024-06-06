@@ -1,5 +1,5 @@
 import { Button, Modal, Spin } from "antd";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
 import {
   createServer,
   computeServerAction,

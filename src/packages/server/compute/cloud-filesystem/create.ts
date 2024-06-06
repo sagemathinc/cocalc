@@ -42,13 +42,14 @@ import { delay } from "awaiting";
 
 const logger = getLogger("server:compute:cloud-filesystem:create");
 
-// We use a random port on the VPN between MIN_PORT and MAX_PORT.
-const MIN_PORT = 40000;
-const MAX_PORT = 48000;
-
 import {
   CREATE_CLOUD_FILESYSTEM_COST,
+  DEFAULT_CONFIGURATION,
   MAX_CLOUD_FILESYSTEMS_PER_PROJECT,
+  MIN_PORT,
+  MAX_PORT,
+  MIN_BLOCK_SIZE,
+  MAX_BLOCK_SIZE,
   CreateCloudFilesystem,
   assertValidPath,
   assertValidCompression,
@@ -59,16 +60,34 @@ interface Options extends CreateCloudFilesystem {
 }
 
 const FIELDS =
-  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,notes,lock,mount,position".split(
+  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,block_size,title,color,notes,lock,mount,position,mount_options,keydb_options".split(
     ",",
   );
 
 export async function createCloudFilesystem(opts: Options): Promise<number> {
   logger.debug("createCloudFilesystem", opts);
+  // copy to avoid mutating
+  opts = { ...opts };
+
+  // fill in default values
+  for (const field in DEFAULT_CONFIGURATION) {
+    if (opts[field] == null) {
+      opts[field] = DEFAULT_CONFIGURATION[field];
+    }
+  }
   // sanity checks
   assertValidCompression(opts.compression);
   if (opts.mountpoint) {
     assertValidPath(opts.mountpoint);
+  }
+
+  if (
+    opts["block_size"] < MIN_BLOCK_SIZE ||
+    opts["block_size"] > MAX_BLOCK_SIZE
+  ) {
+    throw Error(
+      `block_size must be between ${MIN_BLOCK_SIZE} and ${MAX_BLOCK_SIZE}, inclusive`,
+    );
   }
 
   // check that user has enough credit on account to make a MINIMAL purchase, to prevent abuse

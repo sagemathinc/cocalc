@@ -165,7 +165,7 @@ export function ProjectServers(props: Props) {
     items.push({
       key: "compute-servers",
       label: (
-        <span style={{ fontSize: "12pt" }}>
+        <span style={{ fontSize: "14pt" }}>
           <Icon name="server" /> Compute Servers
         </span>
       ),
@@ -182,7 +182,7 @@ export function ProjectServers(props: Props) {
     items.push({
       key: "cloud-filesystems",
       label: (
-        <span style={{ fontSize: "12pt" }}>
+        <span style={{ fontSize: "14pt" }}>
           <Icon name="disk-round" /> Cloud Filesystems
         </span>
       ),
@@ -192,7 +192,7 @@ export function ProjectServers(props: Props) {
   items.push({
     key: "notebooks",
     label: (
-      <span style={{ fontSize: "12pt" }}>
+      <span style={{ fontSize: "14pt" }}>
         <Icon name="jupyter" /> Notebook Servers
       </span>
     ),

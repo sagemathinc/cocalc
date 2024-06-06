@@ -22,6 +22,11 @@ export const DEFAULT_LOCK = "DELETE";
 // you only need one shared storage volume in most cases, we do put a global
 // limit to avoid abuse and efficiency issues for now.
 export const MAX_CLOUD_FILESYSTEMS_PER_PROJECT = 100;
+// We use a random port on the VPN between MIN_PORT and MAX_PORT.
+export const MIN_PORT = 40000;
+export const MAX_PORT = 48000;
+export const MIN_BLOCK_SIZE = 1;
+export const MAX_BLOCK_SIZE = 64;
 
 export interface GoogleCloudServiceAccountKey {
   type: "service_account";
@@ -37,17 +42,8 @@ export interface GoogleCloudServiceAccountKey {
   universe_domain: "googleapis.com";
 }
 
-// We will add a lot of configuration options
-// for mounting juices and running keydb, eventually.
-interface JuiceConfiguration {
-  "attr-cache"?: number;
-  "entry-cache"?: number;
-  "dir-entry-cach"?: number;
-}
-
-interface KeyDbConfiguration {}
-
 export type Compression = "lz4" | "zstd" | "none";
+
 export interface CloudFilesystem {
   id: number;
   project_id: string;
@@ -59,7 +55,9 @@ export interface CloudFilesystem {
   secret_key?: GoogleCloudServiceAccountKey;
   port: number;
   compression: Compression;
-  configuration?: { juice?: JuiceConfiguration; keydb?: KeyDbConfiguration };
+  block_size: number;
+  mount_options?: string;
+  keydb_options?: string;
   title?: string;
   color?: string;
   deleting?: boolean;
@@ -69,6 +67,9 @@ export interface CloudFilesystem {
   position?: number;
   last_edited?: Date;
 }
+// See https://juicefs.com/docs/community/command_reference#mount
+
+//
 
 export type CreateCloudFilesystem = Pick<
   CloudFilesystem,
@@ -76,17 +77,36 @@ export type CreateCloudFilesystem = Pick<
   | "mountpoint"
   | "mount"
   | "compression"
-  | "configuration"
+  | "block_size"
   | "title"
   | "color"
   | "notes"
   | "position"
+  | "mount_options"
+  | "keydb_options"
 >;
+
+export const DEFAULT_CONFIGURATION = {
+  mountpoint: "cloud-filesystem",
+  mount: false,
+  compression: "lz4",
+  block_size: 64,
+  title: "Cloud Filesystem",
+  lock: "DELETE ALL MY DATA",
+  mount_options: "--writeback",
+} as const;
 
 export interface EditCloudFilesystem
   extends Pick<
     CloudFilesystem,
-    "id" | "mount" | "configuration" | "title" | "color" | "notes" | "position"
+    | "id"
+    | "mount"
+    | "title"
+    | "color"
+    | "notes"
+    | "position"
+    | "mount_options"
+    | "keydb_options"
   > {
   // making these optional
   project_id?: string;
@@ -104,7 +124,8 @@ export const CHANGE_MOUNTED = new Set([
 export const CHANGE_UNMOUNTED = new Set([
   "project_id",
   "mountpoint",
-  "configuration",
+  "mount_options",
+  "keydb_options",
 ]);
 
 Table({
@@ -131,7 +152,7 @@ Table({
           mount: null,
           port: null,
           compression: null,
-          configuration: null,
+          block_size: null,
           title: null,
           color: null,
           error: null,
@@ -140,6 +161,8 @@ Table({
           position: null,
           last_edited: null,
           deleting: null,
+          mount_options: null,
+          keydb_options: null,
         },
       },
       set: {
@@ -209,10 +232,22 @@ Table({
       desc: "Compression for the filesystem: lz4, zstd or none.  Cannot be changed.",
       render: { type: "text", maxLength: 64, editable: false },
     },
-    configuration: {
-      type: "map",
-      pg_type: "jsonb",
-      desc: "Optional juice and KeyDB runtime configuration.",
+    block_size: {
+      type: "integer",
+      not_null: true,
+      desc: "Block size of filesystem in MB: between 1 and 64, inclusive.  Cannot be changed.",
+    },
+    mount_options: {
+      type: "string",
+      pg_type: "VARCHAR(4096)",
+      desc: "Options passed to the command line when running juicefs mount.  See https://juicefs.com/docs/community/command_reference#mount    This exact string is literally put on the command line after 'juicefs mount', and obviously getting it mangled can break mounting the filesystem.",
+      render: { type: "text", maxLength: 4096, editable: true },
+    },
+    keydb_options: {
+      type: "string",
+      pg_type: "VARCHAR(16384)",
+      desc: "Keydb (/Redis) configuration. This is placed at the end of keydb.conf and can be used to override or add to the keydb configuration used on each client.",
+      render: { type: "text", maxLength: 16384, editable: true },
     },
     title: {
       type: "string",
@@ -247,7 +282,7 @@ Table({
     },
     last_edited: {
       type: "timestamp",
-      desc: "Last time the configuration, state, etc., changed.  Also, this gets updated when the volume is actively mounted by some compute server, since the files are likely edited.",
+      desc: "Last time some field was changed.  Also, this gets updated when the volume is actively mounted by some compute server, since the files are likely edited.",
     },
   },
 });
