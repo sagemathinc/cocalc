@@ -1,5 +1,5 @@
 /*
-Fully permanently deletes a storage filesystem.  Deletes the actual data, configuration, database record,
+Fully permanently deletes a cloud filesystem.  Deletes the actual data, configuration, database record,
 etc.  This is NOT just deprovisioning.
 
 The actual call to delete the bucket can take arbitrarily long, and we need to come up with a
@@ -7,19 +7,19 @@ way to contend with that.
 */
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { getStorageVolume } from "./storage";
-import { deleteBucket } from "./cloud/google-cloud/storage";
-import { deleteServiceAccount } from "./cloud/google-cloud/service-account";
-import { getServiceAccountId } from "./create-storage";
-import { removeBucketPolicyBinding } from "./cloud/google-cloud/policy";
+import { getCloudFilesystem } from "./index";
+import { deleteBucket } from "@cocalc/server/compute/cloud/google-cloud/storage";
+import { deleteServiceAccount } from "@cocalc/server/compute/cloud/google-cloud/service-account";
+import { getServiceAccountId } from "./create";
+import { removeBucketPolicyBinding } from "@cocalc/server/compute/cloud/google-cloud/policy";
 import { delay } from "awaiting";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { DEFAULT_LOCK } from "@cocalc/util/db-schema/storage-volumes";
+import { DEFAULT_LOCK } from "@cocalc/util/db-schema/cloud-filesystems";
 import { uuid } from "@cocalc/util/misc";
 
-const logger = getLogger("server:compute:delete-storage");
+const logger = getLogger("server:compute:cloud-filesystem:delete");
 
-export async function userDeleteStorage({
+export async function userDeleteCloudFilesystem({
   id,
   account_id,
   lock,
@@ -28,27 +28,25 @@ export async function userDeleteStorage({
   account_id: string;
   lock?: string;
 }) {
-  const storage = await getStorageVolume(id);
-  if (storage.account_id != account_id) {
+  const cloudFilesystem = await getCloudFilesystem(id);
+  if (cloudFilesystem.account_id != account_id) {
     const { name, email_address } = await getUser(account_id);
     throw Error(
-      `only the owner of the storage volume can delete it -- this volume is owned by ${name} - ${email_address}`,
+      `only the owner of the cloud filesystem volume can delete it -- this volume is owned by ${name} - ${email_address}`,
     );
   }
-  if ((storage.lock ?? DEFAULT_LOCK) != lock) {
+  if ((cloudFilesystem.lock ?? DEFAULT_LOCK) != lock) {
     throw Error(
-      `userDeleteStorage: you must provide the lock string '${
-        storage.lock ?? DEFAULT_LOCK
+      `you must provide the lock string '${
+        cloudFilesystem.lock ?? DEFAULT_LOCK
       }'`,
     );
   }
-  if (storage.mount) {
-    throw Error("userDeleteStorage: unmount the storage first");
+  if (cloudFilesystem.mount) {
+    throw Error("unmount the cloud filesystem first");
   }
-  if (storage.deleting) {
-    throw Error(
-      "userDeleteStorage: storage is currently being deleted; please wait",
-    );
+  if (cloudFilesystem.deleting) {
+    throw Error("cloud filesystem ${id} is currently being deleted; please wait");
   }
   // launch the delete without blocking api call response
   launchDelete(id);
@@ -60,21 +58,21 @@ async function launchDelete(id: number) {
   // long that may take.  It could fail due to server restart, network issues, etc.,
   // but the actual delete of storage content is likely to work (since it is done
   // via a remote service on google cloud).
-  // There is another service that checks for storage volumes that haven't been
+  // There is another service that checks for cloud filesystems that haven't been
   // deleted from the database but have deleting=TRUE and last_edited sufficiently long
   // ago, and tries those again, so eventually everything gets properly deleted.
   const pool = getPool();
   try {
     await pool.query(
-      "UPDATE storage_volumes SET deleting=TRUE, last_edited=NOW(), port=0, mount=FALSE, mountpoint=$2 WHERE id=$1",
+      "UPDATE cloud_filesystems SET deleting=TRUE, last_edited=NOW(), port=0, mount=FALSE, mountpoint=$2 WHERE id=$1",
       [id, uuid()],
     );
-    await deleteStorage(id);
+    await deleteCloudFilesystem(id);
   } catch (err) {
     // makes it so the error is saved somewhere; user might see it in UI
     // Also, deleteMaintenance will run this function again somewhere an hour
     // from when we started above...
-    await pool.query("UPDATE storage_volumes SET error=$1 WHERE id=$2", [
+    await pool.query("UPDATE cloud_filesystems SET error=$1 WHERE id=$2", [
       `${err}`,
       id,
     ]);
@@ -88,21 +86,21 @@ export async function deleteMaintenance() {
   // In any case, I don't think it would be the end of the world.
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id FROM storage_volumes WHERE deleting=TRUE AND last_edited >= NOW() - interval '1 hour'",
+    "SELECT id FROM cloud_filesystems WHERE deleting=TRUE AND last_edited >= NOW() - interval '1 hour'",
   );
   for (const { id } of rows) {
     launchDelete(id);
   }
 }
 
-export async function deleteStorage(id) {
-  logger.debug("deleteStorage", { id });
+export async function deleteCloudFilesystem(id) {
+  logger.debug("deleteCloudFilesystem", { id });
 
-  const storage = await getStorageVolume(id);
+  const cloudFilesystem = await getCloudFilesystem(id);
   const pool = getPool();
-  if (storage.mount) {
+  if (cloudFilesystem.mount) {
     // unmount it if it is mounted
-    await pool.query("UPDATE storage_volumes SET mount=FALSE WHERE id=$1", [
+    await pool.query("UPDATE cloud_filesystems SET mount=FALSE WHERE id=$1", [
       id,
     ]);
   }
@@ -112,11 +110,11 @@ export async function deleteStorage(id) {
   // be required. Actually, this is fine, because deleting a deleted bucket and
   // deleting a deleted secret key works fine (by design!) so the next attempt will work.
 
-  const bucket = storage.bucket;
-  if (storage.secret_key) {
+  const bucket = cloudFilesystem.bucket;
+  if (cloudFilesystem.secret_key) {
     // delete service account first before bucket, since if things break
     // we want the bucket name to still be in the database.
-    logger.debug("deleteStorage: delete the service account");
+    logger.debug("deleteCloudFilesystem: delete the service account");
     const serviceAccountId = await getServiceAccountId(id);
     let error: any = null;
     if (bucket) {
@@ -144,21 +142,22 @@ export async function deleteStorage(id) {
     }
 
     await deleteServiceAccount(serviceAccountId);
-    await pool.query("UPDATE storage_volumes SET secret_key=NULL WHERE id=$1", [
-      id,
-    ]);
+    await pool.query(
+      "UPDATE cloud_filesystems SET secret_key=NULL WHERE id=$1",
+      [id],
+    );
   }
 
   if (bucket) {
-    logger.debug("deleteStorage: delete the Google cloud bucket");
+    logger.debug("deleteCloudFilesystem: delete the Google cloud bucket");
     await deleteBucket({
       bucketName: bucket,
       useTransferService: true,
     });
-    await pool.query("UPDATE storage_volumes SET bucket=NULL WHERE id=$1", [
+    await pool.query("UPDATE cloud_filesystems SET bucket=NULL WHERE id=$1", [
       id,
     ]);
   }
-  logger.debug("deleteStorage: delete the database record");
-  await pool.query("DELETE FROM storage_volumes WHERE id=$1", [id]);
+  logger.debug("deleteCloudFilesystem: delete the database record");
+  await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);
 }

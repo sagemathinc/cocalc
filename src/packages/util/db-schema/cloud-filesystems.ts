@@ -1,5 +1,5 @@
 /*
-Configuration of network mounted shared POSIX filesystem storage volumes associated
+Configuration of network mounted shared POSIX filesystems associated
 to projects for use initially by the compute servers.
 
 Initially these will get mounted by all compute servers uniformly (mostly),
@@ -16,8 +16,12 @@ import { Table } from "./types";
 import { ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
 
-export const CREATE_STORAGE_COST = 0.05;
+export const CREATE_CLOUD_FILESYSTEM_COST = 0.05;
 export const DEFAULT_LOCK = "DELETE";
+// Since all storage gets mounted on all compute servers, and basically
+// you only need one shared storage volume in most cases, we do put a global
+// limit to avoid abuse and efficiency issues for now.
+export const MAX_CLOUD_FILESYSTEMS_PER_PROJECT = 100;
 
 export interface GoogleCloudServiceAccountKey {
   type: "service_account";
@@ -43,7 +47,7 @@ interface JuiceConfiguration {
 
 interface KeyDbConfiguration {}
 
-export interface StorageVolume {
+export interface CloudFilesystem {
   id: number;
   project_id: string;
   account_id: string;
@@ -64,8 +68,8 @@ export interface StorageVolume {
   last_edited?: Date;
 }
 
-export type CreateStorageVolume = Pick<
-  StorageVolume,
+export type CreateCloudFilesystem = Pick<
+  CloudFilesystem,
   | "project_id"
   | "mountpoint"
   | "mount"
@@ -76,8 +80,13 @@ export type CreateStorageVolume = Pick<
   | "notes"
 >;
 
+export type EditCloudFilesystem = Pick<
+  CloudFilesystem,
+  "id" | "mountpoint" | "mount" | "configuration" | "title" | "color" | "notes"
+>;
+
 Table({
-  name: "storage_volumes",
+  name: "cloud_filesystems",
   rules: {
     primary_key: "id",
     // unique mountpoint *within* a given project; also unique port in case the
@@ -107,6 +116,7 @@ Table({
           notes: null,
           lock: null,
           last_edited: null,
+          deleting: null,
         },
       },
       set: {
@@ -134,7 +144,7 @@ Table({
     account_id: {
       not_null: true,
       type: "uuid",
-      desc: "User that owns this storage (they pay)",
+      desc: "User that owns this cloud filesystem (they pay)",
       render: { type: "account" },
     },
     created: {
@@ -157,12 +167,12 @@ Table({
     },
     mount: {
       type: "boolean",
-      desc: "If true, then this storage filesystem will be mounted on all compute servers associated to the project.",
+      desc: "If true, then this cloud filesystem will be mounted on all compute servers associated to the project.",
     },
     secret_key: {
       type: "map",
       pg_type: "jsonb",
-      desc: "Secret key needed to use this storage. It's a structured jsonb object.  For google cloud storage, it's exactly the service account.  This will only be not set if something went wrong initializing this storage.",
+      desc: "Secret key needed to use the bucket. It's a structured jsonb object.  For google cloud storage, it's exactly the service account.  This will only be not set if something went wrong initializing this storage.",
     },
     port: {
       type: "integer",
@@ -194,7 +204,7 @@ Table({
     },
     deleting: {
       type: "boolean",
-      desc: "True if this storage is in the process of being deleted.",
+      desc: "True if this filesystem is in the process of being deleted.",
     },
     error: {
       type: "string",
@@ -215,17 +225,17 @@ Table({
 });
 
 Table({
-  name: "crm_storage_volumes",
-  fields: schema.storage_volumes.fields,
+  name: "crm_cloud_filesystems",
+  fields: schema.cloud_filesystems.fields,
   rules: {
-    primary_key: schema.storage_volumes.primary_key,
-    virtual: "storage_volumes",
+    primary_key: schema.cloud_filesystems.primary_key,
+    virtual: "cloud_filesystems",
     user_query: {
       get: {
         admin: true,
         pg_where: [],
         fields: {
-          ...schema.storage_volumes.user_query?.get?.fields,
+          ...schema.cloud_filesystems.user_query?.get?.fields,
           template: null,
         },
       },

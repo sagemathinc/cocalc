@@ -3,4 +3,4 @@ export { ComputeServers };
 export { Docs as ComputeServerDocs };
 export { computeServersEnabled } from "./config";
 
-import "./storage/api";
+import "./cloud-filesystem/api";

@@ -1,9 +1,9 @@
 /*
-Create a shared storage volume
+Delete a cloud filesystem
 */
 
 import getAccountId from "lib/account/get-account";
-import { userDeleteStorage } from "@cocalc/server/compute/delete-storage";
+import { userDeleteCloudFilesystem } from "@cocalc/server/compute/cloud-filesystem/delete";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -22,7 +22,7 @@ async function get(req) {
   }
   const { id, lock } = getParams(req);
 
-  await userDeleteStorage({
+  await userDeleteCloudFilesystem({
     account_id,
     lock,
     id,

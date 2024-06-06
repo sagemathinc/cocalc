@@ -1,9 +1,9 @@
 /*
-Create a shared storage volume
+Edit properties of cloud filesystem
 */
 
 import getAccountId from "lib/account/get-account";
-import createStorage from "@cocalc/server/compute/create-storage";
+import { userEditCloudFilesystem } from "@cocalc/server/compute/cloud-filesystem/edit";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -20,21 +20,14 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const {
-    project_id,
-    mountpoint,
-    compression,
-    configuration,
-    title,
-    color,
-    notes,
-  } = getParams(req);
+  const { id, mountpoint, mount, configuration, title, color, notes } =
+    getParams(req);
 
-  return await createStorage({
+  return await userEditCloudFilesystem({
+    id,
     account_id,
-    project_id,
     mountpoint,
-    compression,
+    mount,
     configuration,
     title,
     color,

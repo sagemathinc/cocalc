@@ -1,14 +1,14 @@
 import { register } from "./tables";
 
 register({
-  name: "storage_volumes",
+  name: "cloud_filesystems",
 
-  title: "Storage Volumes",
+  title: "Cloud Filesystems",
 
   icon: "disk-round",
 
   query: {
-    crm_storage_volumes: [
+    crm_cloud_filesystems: [
       {
         id: null,
         project_id: null,
@@ -25,6 +25,7 @@ register({
         notes: null,
         lock: null,
         last_edited: null,
+        deleting: null,
       },
     ],
   },

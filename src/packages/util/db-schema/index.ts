@@ -23,6 +23,7 @@ import "./auth";
 import "./blobs";
 import "./central-log";
 import "./client-error-log";
+import "./cloud-filesystems";
 import "./collaborators";
 import "./compute-images";
 import "./compute-servers";
@@ -61,7 +62,6 @@ import "./site-settings";
 import "./site-whitelabeling";
 import "./statements";
 import "./stats";
-import "./storage-volumes";
 import "./subscriptions";
 import "./syncstring-schema";
 import "./system-notifications"; // deprecated: use "news" with channel="system"

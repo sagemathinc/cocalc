@@ -1,8 +1,11 @@
 /*
-Create a scalable storage filesystem and returns the numerical id of that storage.
+Create a scalable cloud filesystem and returns the numerical id of it.
 
-This DOES create an actual GCP bucket and service account, and we charge
-a small token charge for doing so to prevent abuse.
+This DOES create an actual GCP bucket and service account that has
+access ONLY to that one bucket.
+
+To prevent abuse we ensure it is possible to charge a small token charge.
+**We do not actually make the charge.**
 
 CRITICAL: Google Cloud Storage has EXCELLENT "Quotas and limits" by default related
 to buckets as explained here: https://cloud.google.com/storage/quotas#buckets
@@ -13,8 +16,10 @@ See https://docs.aws.amazon.com/AmazonS3/latest/userguide/BucketRestrictions.htm
 These restrictions would make the architecture we're using for storage completely
 impossible except on GCP.
 
-For onprem we will have to support using Ceph Object Storage or something
+For fully onprem we will have to support using Ceph Object Storage or something
 like https://garagehq.deuxfleurs.fr/ or https://min.io/ that is possible to self host.
+Of course, using Google cloud storage with your own google resources
+is also fully supported for "on prem".
 This will come later, and for the first release, on-prem storage for on-prem
 compute servers just won't be supported, but of google cloud based storage will be.
 This is fine because right now we don't even know if this
@@ -24,34 +29,30 @@ likely have their own SAN or NFS they want to use instead.
 
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import getLogger from "@cocalc/backend/logger";
-import { getGoogleCloudPrefix } from "./cloud/google-cloud";
-import { createBucket } from "./cloud/google-cloud/storage";
+import { getGoogleCloudPrefix } from "@cocalc/server/compute/cloud/google-cloud/index";
+import { createBucket } from "@cocalc/server/compute/cloud/google-cloud/storage";
 import {
   createServiceAccount,
   createServiceAccountKey,
-} from "./cloud/google-cloud/service-account";
-import { addBucketPolicyBinding } from "./cloud/google-cloud/policy";
+} from "@cocalc/server/compute/cloud/google-cloud/service-account";
+import { addBucketPolicyBinding } from "@cocalc/server/compute/cloud/google-cloud/policy";
 import { uuid } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { delay } from "awaiting";
 
-const logger = getLogger("server:compute:create-storage");
+const logger = getLogger("server:compute:cloud-filesystem:create");
 
 // We use a random port on the VPN between MIN_PORT and MAX_PORT.
 const MIN_PORT = 40000;
 const MAX_PORT = 48000;
 
-// Since all storage gets mounted on all compute servers, and basically
-// you only need one shared storage volume in most cases, we do put a global
-// limit to avoid abuse and efficiency issues for now.
-const MAX_STORAGE_VOLUMES_PER_PROJECT = 25;
-
 import {
-  CREATE_STORAGE_COST,
-  CreateStorageVolume,
-} from "@cocalc/util/db-schema/storage-volumes";
+  CREATE_CLOUD_FILESYSTEM_COST,
+  MAX_CLOUD_FILESYSTEMS_PER_PROJECT,
+  CreateCloudFilesystem,
+} from "@cocalc/util/db-schema/cloud-filesystems";
 
-interface Options extends CreateStorageVolume {
+interface Options extends CreateCloudFilesystem {
   account_id: string;
 }
 
@@ -60,8 +61,8 @@ const FIELDS =
     ",",
   );
 
-export default async function createStorage(opts: Options): Promise<number> {
-  logger.debug("createStorage", opts);
+export async function createCloudFilesystem(opts: Options): Promise<number> {
+  logger.debug("createCloudFilesystem", opts);
   // sanity checks
   if (!["lz4", "zstd", "none"].includes(opts.compression)) {
     throw Error("compression must be 'lz4', 'zstd', or 'none'");
@@ -71,22 +72,22 @@ export default async function createStorage(opts: Options): Promise<number> {
   const { allowed, reason } = await isPurchaseAllowed({
     account_id: opts.account_id,
     service: "compute-server",
-    cost: CREATE_STORAGE_COST,
+    cost: CREATE_CLOUD_FILESYSTEM_COST,
   });
   if (!allowed) {
-    logger.debug("createStorage -- not allowed", reason);
+    logger.debug("createCloudFilesystem -- not allowed", reason);
     throw Error(reason);
   }
   if (
-    (await numberOfStorageVolumes(opts.project_id)) >=
-    MAX_STORAGE_VOLUMES_PER_PROJECT
+    (await numberOfCloudFilesystems(opts.project_id)) >=
+    MAX_CLOUD_FILESYSTEMS_PER_PROJECT
   ) {
     throw Error(
-      `there is a limit of ${MAX_STORAGE_VOLUMES_PER_PROJECT} for project`,
+      `there is a limit of ${MAX_CLOUD_FILESYSTEMS_PER_PROJECT} for project`,
     );
   }
 
-  logger.debug("createStorage -- allowed");
+  logger.debug("createCloudFilesystem -- allowed");
 
   // create storage record in the database
   const push = (field, param) => {
@@ -108,7 +109,7 @@ export default async function createStorage(opts: Options): Promise<number> {
   const port = await getPort(opts.project_id);
   push("port", port);
 
-  const query = `INSERT INTO storage_volumes(${fields.join(
+  const query = `INSERT INTO cloud_filesystems(${fields.join(
     ",",
   )}) VALUES(${dollars.join(",")}) RETURNING id`;
   const pool = getPool();
@@ -128,12 +129,12 @@ export default async function createStorage(opts: Options): Promise<number> {
       0,
       63 - s.length - 1,
     )}${s}`;
-    logger.debug("createStorage", { bucket });
+    logger.debug("createCloudFilesystem", { bucket });
 
     // create storage bucket -- for now only support google
     // cloud storage, as mentioned above.
     await createBucket(bucket);
-    await pool.query("UPDATE storage_volumes SET bucket=$1 WHERE id=$2", [
+    await pool.query("UPDATE cloud_filesystems SET bucket=$1 WHERE id=$2", [
       bucket,
       id,
     ]);
@@ -161,12 +162,12 @@ export default async function createStorage(opts: Options): Promise<number> {
       throw Error(`failed to create bucket policy -- ${error}`);
     }
     const secret_key = await createServiceAccountKey(serviceAccountId);
-    await pool.query("UPDATE storage_volumes SET secret_key=$1 WHERE id=$2", [
+    await pool.query("UPDATE cloud_filesystems SET secret_key=$1 WHERE id=$2", [
       secret_key,
       id,
     ]);
   } catch (err) {
-    await pool.query("UPDATE storage_volumes SET error=$1 WHERE id=$2", [
+    await pool.query("UPDATE cloud_filesystems SET error=$1 WHERE id=$2", [
       `${err}`,
       id,
     ]);
@@ -178,10 +179,10 @@ export default async function createStorage(opts: Options): Promise<number> {
   return id;
 }
 
-async function numberOfStorageVolumes(project_id: string): Promise<number> {
+async function numberOfCloudFilesystems(project_id: string): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT COUNT(*) AS count FROM storage_volumes WHERE project_id=$1",
+    "SELECT COUNT(*) AS count FROM cloud_filesystems WHERE project_id=$1",
     [project_id],
   );
   return rows[0].count;
@@ -194,7 +195,7 @@ async function getPort(project_id: string): Promise<number> {
       Math.random() * (MAX_PORT + 1 - MIN_PORT) + MIN_PORT,
     );
     const { rows } = await pool.query(
-      "SELECT COUNT(*) AS count FROM storage_volumes WHERE project_id=$1 AND port=$2",
+      "SELECT COUNT(*) AS count FROM cloud_filesystems WHERE project_id=$1 AND port=$2",
       [project_id, port],
     );
     if (rows[0].count == 0) {
@@ -208,6 +209,6 @@ async function getPort(project_id: string): Promise<number> {
 }
 
 export async function getServiceAccountId(id: number) {
-  const t = `-storage-${id}`;
+  const t = `-cloudfs-${id}`;
   return `${(await getGoogleCloudPrefix()).slice(0, 30 - t.length - 1)}${t}`;
 }
