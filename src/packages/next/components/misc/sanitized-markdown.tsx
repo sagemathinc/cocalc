@@ -4,20 +4,24 @@
  */
 
 import { CSSProperties } from "react";
-import { FileContext } from "@cocalc/frontend/lib/file-context";
+
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { FileContext, IFileContext } from "@cocalc/frontend/lib/file-context";
 import A from "components/misc/A";
 
 export default function SanitizedMarkdown({
   style,
   value,
+  anchorStyle,
 }: {
   style?: CSSProperties;
+  anchorStyle?: CSSProperties;
   value: string;
 }) {
-  const ctx = {
+  const ctx: IFileContext = {
     AnchorTagComponent: A,
     noSanitize: false,
+    anchorStyle,
   };
   return (
     <FileContext.Provider value={ctx}>

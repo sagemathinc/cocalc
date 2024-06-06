@@ -48,7 +48,7 @@ function stringToType(s?: any): Type {
 }
 
 export default function Create() {
-  const { helpEmail, zendesk, account, openaiEnabled, siteName } =
+  const { account, onCoCalcCom, helpEmail, openaiEnabled, siteName, zendesk } =
     useCustomize();
   const router = useRouter();
   // The URL the user was viewing when they requested support.
@@ -148,9 +148,9 @@ export default function Create() {
                 </>
               ) : undefined}
             </p>
-            {openaiEnabled && !CHATGPT_DISABLED && (
+            {openaiEnabled && onCoCalcCom && !CHATGPT_DISABLED ? (
               <ChatGPT siteName={siteName} />
-            )}
+            ) : undefined}
             <FAQ />
             <Title level={2}>Create Your Ticket</Title>
             <Instructions />
