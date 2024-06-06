@@ -10,10 +10,11 @@ application.
 */
 
 import { CSSProperties, useEffect, useState } from "react";
+
 import "./elements/init-ssr";
 import { getStaticRender } from "./elements/register";
-import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 import Leaf from "./leaf";
+import { markdown_to_slate as markdownToSlate } from "./markdown-to-slate";
 import { ChangeContext } from "./use-change";
 
 interface Props {

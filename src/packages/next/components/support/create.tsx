@@ -1,6 +1,3 @@
-import { Icon } from "@cocalc/frontend/components/icon";
-import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import {
   Alert,
   Button,
@@ -11,6 +8,12 @@ import {
   Radio,
   Space,
 } from "antd";
+import { useRouter } from "next/router";
+import { ReactNode, useRef, useState } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
@@ -20,8 +23,6 @@ import SiteName from "components/share/site-name";
 import apiPost from "lib/api/post";
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
-import { useRouter } from "next/router";
-import { ReactNode, useRef, useState } from "react";
 import getBrowserInfo from "./browser-info";
 import RecentFiles from "./recent-files";
 import { Type } from "./tickets";

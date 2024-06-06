@@ -51,6 +51,7 @@ export type SiteSettingsKeys =
   | "logo_rectangular"
   | "splash_image"
   | "index_info_html"
+  | "index_tagline"
   | "imprint"
   | "policies"
   | "support"
@@ -454,6 +455,14 @@ export const site_settings_conf: SiteSettings = {
     clearable: true,
     show: show_theming_vars,
     multiline: 5,
+    tags: ["Theme"],
+  },
+  index_tagline: {
+    name: "Index page tagline",
+    desc: "If set, this replaces the large tagline in blue on the index page. (HTML/MD)",
+    default: "",
+    clearable: true,
+    show: show_theming_vars,
     tags: ["Theme"],
   },
   imprint: {

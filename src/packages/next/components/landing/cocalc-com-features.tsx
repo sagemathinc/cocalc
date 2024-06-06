@@ -577,28 +577,3 @@ export function CoCalcComFeatures() {
     </>
   );
 }
-
-export function Hero() {
-  return (
-    <Info.Heading
-      level={2}
-      textStyle={{ color: "white" }}
-      style={{
-        backgroundColor: COLORS.BLUE_D,
-        paddingBottom: "30px",
-        marginTop: "30px",
-        paddingTop: "30px",
-      }}
-    >
-      Realtime collaborative{" "}
-      <A href="/features/jupyter-notebook" style={{ color: "white" }}>
-        Jupyter notebooks
-      </A>
-      ,{" "}
-      <A href="/features/latex-editor" style={{ color: "white" }}>
-        LaTeX
-      </A>
-      , Markdown, and Linux with GPUs
-    </Info.Heading>
-  );
-}

@@ -29,6 +29,7 @@ export interface Customize {
   logoRectangularURL?: string;
   splashImage?: string;
   indexInfo?: string;
+  indexTagline?: string;
   imprint?: string;
   policies?: string;
   shareServer?: boolean;
@@ -42,7 +43,6 @@ export interface Customize {
   accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.
   stripePublishableKey?: string;
-  index_info_html?: string;
   imprint_html?: string;
   policies_html?: string;
   reCaptchaKey?: string;
@@ -123,6 +123,7 @@ export default async function getCustomize(): Promise<Customize> {
     googleAnalytics: settings.google_analytics,
 
     indexInfo: settings.index_info_html,
+    indexTagline: settings.index_tagline,
     imprint: settings.imprint,
     policies: settings.policies,
     support: settings.support,
