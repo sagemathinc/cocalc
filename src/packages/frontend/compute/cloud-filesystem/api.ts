@@ -39,11 +39,3 @@ export async function getCloudFilesystems(
 ): Promise<CloudFilesystem[]> {
   return await api("compute/cloud-filesystem/get", opts);
 }
-
-// DEV
-window.x = {
-  createCloudFilesystem,
-  deleteCloudFilesystem,
-  editCloudFilesystem,
-  getCloudFilesystems,
-};

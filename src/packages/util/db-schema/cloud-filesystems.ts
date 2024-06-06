@@ -66,6 +66,7 @@ export interface CloudFilesystem {
   error?: string;
   notes?: string;
   lock?: string;
+  position?: number;
   last_edited?: Date;
 }
 
@@ -79,12 +80,13 @@ export type CreateCloudFilesystem = Pick<
   | "title"
   | "color"
   | "notes"
+  | "position"
 >;
 
 export interface EditCloudFilesystem
   extends Pick<
     CloudFilesystem,
-    "id" | "mount" | "configuration" | "title" | "color" | "notes"
+    "id" | "mount" | "configuration" | "title" | "color" | "notes" | "position"
   > {
   // making these optional
   project_id?: string;
@@ -97,6 +99,7 @@ export const CHANGE_MOUNTED = new Set([
   "notes",
   "lock",
   "mount",
+  "position",
 ]);
 export const CHANGE_UNMOUNTED = new Set([
   "project_id",
@@ -134,6 +137,7 @@ Table({
           error: null,
           notes: null,
           lock: null,
+          position: null,
           last_edited: null,
           deleting: null,
         },
@@ -147,6 +151,7 @@ Table({
           notes: true,
           title: true,
           color: true,
+          position: true,
           lock: true,
         },
       },
@@ -235,6 +240,10 @@ Table({
       pg_type: "VARCHAR(128)",
       desc: "String that you must provide as part of any API call to delete this object.  Use this as a personal reminder of conditions under which it is OK to delete this.",
       render: { type: "text", maxLength: 128, editable: true },
+    },
+    position: {
+      type: "number",
+      desc: "Used for sorting a list of cloud filesystems in the UI.",
     },
     last_edited: {
       type: "timestamp",

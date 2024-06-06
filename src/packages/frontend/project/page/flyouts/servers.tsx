@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Divider, Space } from "antd";
+import { Divider, Space, Tabs, TabsProps } from "antd";
 
 import { Icon, Paragraph, Title } from "@cocalc/frontend/components";
 import {
-  ComputeServerDocs,
   ComputeServers,
   computeServersEnabled,
 } from "@cocalc/frontend/compute";
+import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
 import { FIX_BORDER } from "@cocalc/frontend/project/page/common";
 import { SagewsControl } from "@cocalc/frontend/project/settings/sagews-control";
@@ -19,7 +19,12 @@ import { FLYOUT_PADDING } from "./consts";
 
 export function ServersFlyout({ project_id, wrap }) {
   const servers = NAMED_SERVER_NAMES.map((name) => (
-    <ServerLink key={name} name={name} project_id={project_id} mode={"flyout"} />
+    <ServerLink
+      key={name}
+      name={name}
+      project_id={project_id}
+      mode={"flyout"}
+    />
   )).filter((s) => s != null);
 
   function renderEmbeddedServers() {
@@ -62,15 +67,10 @@ export function ServersFlyout({ project_id, wrap }) {
   }
 
   function renderComputeServers() {
-    if (!computeServersEnabled()) return;
-
     return (
       <>
         <div style={{ padding: FLYOUT_PADDING }}>
-          <Title level={5}>
-            <ComputeServerDocs style={{ float: "right" }} />
-            Compute Servers
-          </Title>
+          <Title level={5}>Compute Servers</Title>
           <ComputeServers project_id={project_id} />
         </div>
         <Divider />
@@ -78,11 +78,34 @@ export function ServersFlyout({ project_id, wrap }) {
     );
   }
 
-  return wrap(
-    <>
-      {renderComputeServers()}
-      {renderEmbeddedServers()}
-      {renderSageServerControl()}
-    </>,
-  );
+  const items: TabsProps["items"] = [];
+  if (computeServersEnabled()) {
+    items.push({
+      key: "compute-servers",
+      label: "Compute",
+      children: renderComputeServers(),
+    });
+    items.push({
+      key: "cloud-filesystems",
+      label: "Filesystems",
+      children: (
+        <>
+          <h2>Cloud Filesystems</h2>
+          <CloudFilesystems project_id={project_id} />
+        </>
+      ),
+    });
+  }
+  items.push({
+    key: "notebooks",
+    label: "Notebooks",
+    children: (
+      <>
+        {renderEmbeddedServers()}
+        {renderSageServerControl()}
+      </>
+    ),
+  });
+
+  return wrap(<Tabs items={items} />);
 }

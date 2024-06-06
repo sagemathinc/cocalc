@@ -3,9 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Col, Divider, Modal, Row } from "antd";
+import { Col, Divider, Modal, Row, Tabs, TabsProps } from "antd";
 import { Gutter } from "antd/es/grid/row";
-
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import {
@@ -21,6 +20,7 @@ import { NewFileButton } from "../new/new-file-button";
 import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
+import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 
 // Antd's 24 grid system
 const md = 6;
@@ -160,12 +160,12 @@ export function ProjectServers(props: Props) {
     );
   }
 
-  return (
-    <div style={ROOT_STYLE}>
-      <Title level={2}>
-        <Icon name={ICON_NAME} /> {TITLE}
-      </Title>
-      {computeServersEnabled() && (
+  const items: TabsProps["items"] = [];
+  if (computeServersEnabled()) {
+    items.push({
+      key: "compute-servers",
+      label: "Compute Servers",
+      children: (
         <>
           <h2>
             <ComputeServerDocs style={{ float: "right" }} />
@@ -173,21 +173,46 @@ export function ProjectServers(props: Props) {
           </h2>
           <ComputeServers project_id={project_id} />
         </>
-      )}
-      <Divider plain />
-      <h2>Notebook and Code Editing Servers</h2>
-      <Paragraph>
-        You can run various servers inside this project. They run in the same
-        environment, have access to the same files, and stop when the project
-        stops. You can also{" "}
-        <A href={"https://doc.cocalc.com/howto/webserver.html"}>
-          run your own servers
-        </A>
-        .
-      </Paragraph>
-      {renderNamedServers()}
-      <Divider plain />
-      {renderSageServerControl()}
+      ),
+    });
+    items.push({
+      key: "cloud-filesystems",
+      label: "Cloud Filesystems",
+      children: (
+        <>
+          <h2>Cloud Filesystems</h2>
+          <CloudFilesystems project_id={project_id} />
+        </>
+      ),
+    });
+  }
+  items.push({
+    key: "notebooks",
+    label: "Notebook Servers",
+    children: (
+      <>
+        <Paragraph>
+          You can run various servers inside this project. They run in the same
+          environment, have access to the same files, and stop when the project
+          stops. You can also{" "}
+          <A href={"https://doc.cocalc.com/howto/webserver.html"}>
+            run your own servers
+          </A>
+          .
+        </Paragraph>
+        {renderNamedServers()}
+        <Divider plain />
+        {renderSageServerControl()}
+      </>
+    ),
+  });
+
+  return (
+    <div style={{ ...ROOT_STYLE, margin: "0 auto" }}>
+      <Title level={2}>
+        <Icon name={ICON_NAME} /> {TITLE}
+      </Title>
+      <Tabs items={items} />
     </div>
   );
 }

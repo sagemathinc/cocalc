@@ -21,6 +21,7 @@ import "./accounts";
 import "./agents";
 import "./patches";
 import "./projects";
+import "./cloud-filesystems";
 import "./compute-servers";
 import "./project-log";
 import "./public-paths";

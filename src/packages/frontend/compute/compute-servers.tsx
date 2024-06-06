@@ -48,13 +48,11 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
           />
           {help && (
             <div style={{ fontSize: "12pt" }}>
-              Compute Servers provide{" "}
-              <strong>
-                <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/ollama.md">
-                  affordable GPUs
-                </A>
-              </strong>
-              , <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                Compute Servers
+              </A>{" "}
+              provide <strong>affordable GPUs</strong>,{" "}
+              <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
               <strong>Docker</strong> and <strong>Kubernetes</strong> on CoCalc.
               Compute servers are virtual machines where you and your
               collaborators can run Jupyter notebooks, terminals and web servers
@@ -349,7 +347,9 @@ function ComputeServerTable({
             </Checkbox>
           )}
         </div>
-        <div style={{ maxHeight: "60vh", overflow: "auto", width: "100%" }}>
+        <div
+          style={{ /* maxHeight: "60vh", overflow: "auto", */ width: "100%" }}
+        >
           <SortableList
             disabled={sortBy != "custom"}
             items={ids}

@@ -59,7 +59,7 @@ interface Options extends CreateCloudFilesystem {
 }
 
 const FIELDS =
-  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,notes,lock,mount".split(
+  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,configuration,title,color,notes,lock,mount,position".split(
     ",",
   );
 
