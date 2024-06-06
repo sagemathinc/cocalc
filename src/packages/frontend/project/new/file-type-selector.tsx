@@ -461,6 +461,25 @@ export function FileTypeSelector({
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
           {renderMD()}
+          {availableFeatures.rmd &&
+            addAiDocGenerate(
+              <Tip
+                delayShow={DELAY_SHOW_MS}
+                title="RMarkdown File"
+                icon={NEW_FILETYPE_ICONS.rmd}
+                tip="RMarkdown document with real-time preview."
+                style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
+              >
+                <NewFileButton
+                  name="RMarkdown"
+                  on_click={create_file}
+                  ext="rmd"
+                  size={btnSize}
+                  active={btnActive("rmd")}
+                />
+              </Tip>,
+              "rmd",
+            )}
           <Col sm={sm} md={md}>
             <Tip
               icon={NEW_FILETYPE_ICONS.board}
@@ -493,25 +512,6 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
-          {availableFeatures.rmd &&
-            addAiDocGenerate(
-              <Tip
-                delayShow={DELAY_SHOW_MS}
-                title="RMarkdown File"
-                icon={NEW_FILETYPE_ICONS.rmd}
-                tip="RMarkdown document with real-time preview."
-                style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
-              >
-                <NewFileButton
-                  name="RMarkdown"
-                  on_click={create_file}
-                  ext="rmd"
-                  size={btnSize}
-                  active={btnActive("rmd")}
-                />
-              </Tip>,
-              "rmd",
-            )}
         </Row>
       </>
     );
@@ -524,7 +524,7 @@ export function FileTypeSelector({
           Utilities
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
-          <Col sm={sm} md={md}>
+          <Col sm={doubleSm} md={doubleMd}>
             <Tip
               delayShow={DELAY_SHOW_MS}
               title="Task List"
@@ -541,7 +541,7 @@ export function FileTypeSelector({
             </Tip>
           </Col>
           {!disabledFeatures?.timers && (
-            <Col sm={sm} md={md}>
+            <Col sm={doubleSm} md={doubleMd}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
                 title="Stopwatches and Timer"
