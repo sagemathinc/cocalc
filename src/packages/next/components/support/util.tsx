@@ -1,4 +1,5 @@
 import { Alert } from "antd";
+
 import Contact from "components/landing/contact";
 import { useCustomize } from "lib/customize";
 
@@ -8,12 +9,12 @@ export function NoZendesk() {
   return (
     <Alert
       type="error"
-      message="Zendesk Support is not configured."
+      message="Support system is not configured."
       style={{ margin: "30px auto", maxWidth: "400px", fontSize: "13pt" }}
       description={
         contactEmail && (
           <>
-            You can still <Contact lower />.
+            You can still <Contact lower useHelpEmail />.
           </>
         )
       }

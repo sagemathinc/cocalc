@@ -4,8 +4,9 @@
  */
 
 import Link from "next/link";
-import basePath from "lib/base-path";
 import { join } from "path";
+
+import basePath from "lib/base-path";
 
 export default function A(props: any) {
   const { href } = props;

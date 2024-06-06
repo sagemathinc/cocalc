@@ -144,10 +144,7 @@ export default function Header(props: Props) {
           </a>
         )}
         {enabledPages?.store && (
-          <A
-            href="/store"
-            style={page == "store" ? SelectedStyle : LinkStyle}
-          >
+          <A href="/store" style={page == "store" ? SelectedStyle : LinkStyle}>
             Store
           </A>
         )}
@@ -255,6 +252,7 @@ export default function Header(props: Props) {
       </Layout.Header>
       <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
       {openaiEnabled &&
+      onCoCalcCom &&
       page === "features" &&
       typeof subPage === "string" &&
       SHOW_AI_CHAT.includes(subPage) ? (
@@ -266,9 +264,9 @@ export default function Header(props: Props) {
           />
         </div>
       ) : undefined}
-      {jupyterApiEnabled && onCoCalcCom && runnableTag && (
+      {jupyterApiEnabled && onCoCalcCom && runnableTag ? (
         <DemoCell tag={runnableTag} />
-      )}
+      ) : undefined}
     </>
   );
 }

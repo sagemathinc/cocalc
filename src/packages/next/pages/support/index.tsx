@@ -1,13 +1,16 @@
-import { Layout } from "antd";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
+import { Col, Layout } from "antd";
+
 import Footer from "components/landing/footer";
-import { Customize } from "lib/customize";
-import withCustomize from "lib/with-customize";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 import IndexList, { DataSource } from "components/landing/index-list";
+import { Title } from "components/misc";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
 
 const dataSource = [
   {
@@ -45,7 +48,7 @@ const dataSource = [
     link: "/support/chatgpt",
     title: "ChatGPT Suppport",
     logo: "robot",
-    hide: (customize) => !customize.openaiEnabled,
+    hide: (customize) => !customize.openaiEnabled || !customize.onCoCalcCom,
     description: (
       <>
         Our <A href="/support/chatgpt">integrated ChatGPT support</A> is free
@@ -99,11 +102,24 @@ const dataSource = [
 ] as DataSource;
 
 export default function Preferences({ customize }) {
-  return (
-    <Customize value={customize}>
-      <Head title="Support" />
-      <Layout>
-        <Header page="support" />
+  const { support, onCoCalcCom } = customize;
+
+  function renderContent() {
+    if (!onCoCalcCom && support) {
+      return (
+        <Col
+          xs={{ span: 12, offset: 6 }}
+          style={{
+            marginTop: "30px",
+            marginBottom: "30px",
+          }}
+        >
+          <Title level={2}>Support</Title>
+          <SanitizedMarkdown value={support} />
+        </Col>
+      );
+    } else {
+      return (
         <IndexList
           title="Support"
           description={
@@ -117,6 +133,16 @@ export default function Preferences({ customize }) {
           }
           dataSource={dataSource}
         />
+      );
+    }
+  }
+
+  return (
+    <Customize value={customize}>
+      <Head title="Support" />
+      <Layout>
+        <Header page="support" />
+        {renderContent()}
         <Footer />
       </Layout>
     </Customize>

@@ -12,7 +12,7 @@ import Image, { StaticImageData } from "components/landing/image";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
-import useCustomize from "lib/use-customize";
+import useCustomize, { CustomizeType } from "lib/use-customize";
 
 export interface Item {
   link: string;
@@ -25,7 +25,7 @@ export interface Item {
   description: ReactNode;
   shareServer?: boolean; // only show if the share server is enabled
   landingPages?: boolean; // only show if landing pages are enabled.
-  hide?: (CustomizeType) => boolean; // if returns true, then this item will be hidden.
+  hide?: (customize: CustomizeType) => boolean; // if returns true, then this item will be hidden.
 }
 
 export type DataSource = Item[];

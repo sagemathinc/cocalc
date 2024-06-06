@@ -3,14 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Row, Col } from "antd";
-import withCustomize from "lib/with-customize";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
+import { Col, Layout, Row } from "antd";
+
 import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { Customize } from "lib/customize";
-import { Layout } from "antd";
+import withCustomize from "lib/with-customize";
 
 export default function Policies({ customize }) {
   const { policies } = customize;
@@ -27,7 +27,7 @@ export default function Policies({ customize }) {
             {policies && <SanitizedMarkdown value={policies} />}
           </Col>
         </Row>
-        <Footer />{" "}
+        <Footer />
       </Layout>
     </Customize>
   );
