@@ -30,7 +30,7 @@ import {
   VBAR_OPTIONS,
   getValidVBAROption,
 } from "../project/page/vbar";
-import { CustomLLM } from "./custom-llm";
+import { CustomLLMComponent } from "./custom-llm";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
@@ -391,10 +391,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
   }
 
   function render_custom_llm(): Rendered {
-    // This is disabled for now, will be enabled in a future PR
-    return;
-    // @ts-ignore
-    return <CustomLLM on_change={on_change} />;
+    return <CustomLLMComponent on_change={on_change} />;
   }
 
   if (props.other_settings == null) {

@@ -1,11 +1,12 @@
 import {
   Alert,
   Button,
-  Input,
   Form,
+  Input,
   List,
   Modal,
   Popconfirm,
+  Select,
   Skeleton,
   Tooltip,
 } from "antd";
@@ -15,21 +16,25 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Icon, Title } from "@cocalc/frontend/components";
-import OllamaAvatar from "@cocalc/frontend/components/ollama-avatar";
+import { HelpIcon, Icon, Text, Title } from "@cocalc/frontend/components";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import { OTHER_SETTINGS_CUSTOM_LLM as KEY } from "@cocalc/util/db-schema/defaults";
-import { ClientLLM } from "@cocalc/util/db-schema/llm-utils";
+import {
+  CUSTOM_LLM_BACKENDS,
+  CustomLLM,
+  LLM_PROVIDER,
+} from "@cocalc/util/db-schema/llm-utils";
 
 interface Props {
   on_change: (name: string, value: any) => void;
 }
 
-export function CustomLLM({ on_change }: Props) {
+export function CustomLLMComponent({ on_change }: Props) {
   const other_settings = useTypedRedux("account", "other_settings");
   const [form] = Form.useForm();
-  const [editLLM, setEditLLM] = useState<ClientLLM | null>(null);
+  const [editLLM, setEditLLM] = useState<CustomLLM | null>(null);
   const [loading, setLoading] = useState(false);
-  const [llms, setLLMs] = useState<ClientLLM[]>([]);
+  const [llms, setLLMs] = useState<CustomLLM[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,13 +57,13 @@ export function CustomLLM({ on_change }: Props) {
     }
   }, [editLLM]);
 
-  function save(next: ClientLLM, oldModel: string) {
+  function save(next: CustomLLM, oldModel: string) {
     const { type, display, model, endpoint } = next;
     if (!display || !model || !endpoint) {
       setError("Please fill all fields");
       return;
     }
-    if (type !== "ollama") {
+    if (!CUSTOM_LLM_BACKENDS.includes(type as any)) {
       setError(`Invalid type: ${type}`);
       return;
     }
@@ -91,10 +96,11 @@ export function CustomLLM({ on_change }: Props) {
         icon={<Icon name="plus-circle-o" />}
         onClick={() => {
           setEditLLM({
-            type: "ollama",
+            type: "custom_openai",
             display: "",
             endpoint: "",
             model: "",
+            apiKey: "",
           });
         }}
       >
@@ -103,7 +109,7 @@ export function CustomLLM({ on_change }: Props) {
     );
   }
 
-  async function test(llm: ClientLLM) {
+  async function test(llm: CustomLLM) {
     setLoading(true);
     try {
       Modal.confirm({
@@ -127,7 +133,7 @@ export function CustomLLM({ on_change }: Props) {
         loading={loading}
         itemLayout="horizontal"
         dataSource={llms}
-        renderItem={(item: ClientLLM) => {
+        renderItem={(item: CustomLLM) => {
           const { display, model, endpoint, type } = item;
 
           return (
@@ -169,12 +175,14 @@ export function CustomLLM({ on_change }: Props) {
                       <br />
                       Endpoint: {endpoint}
                       <br />
-                      Type: {type === "ollama" ? "Ollama" : "Unknown"}
+                      Type: {type}
                     </>
                   }
                 >
                   <List.Item.Meta
-                    avatar={<OllamaAvatar size={22} />}
+                    avatar={
+                      <LanguageModelVendorAvatar model={`${type}-${model}`} />
+                    }
                     title={display}
                   />
                 </Tooltip>
@@ -210,13 +218,32 @@ export function CustomLLM({ on_change }: Props) {
             label="Display Name"
             name="display"
             rules={[{ required: true }]}
+            help="e.g. 'Llama3'"
           >
             <Input />
+          </Form.Item>
+          <Form.Item
+            label="Type"
+            name="type"
+            rules={[{ required: true }]}
+            help="Select the kind of server to talk to."
+          >
+            <Select popupMatchSelectWidth={false}>
+              {CUSTOM_LLM_BACKENDS.map((option) => {
+                const { name, desc } = LLM_PROVIDER[option];
+                return (
+                  <Select.Option key={option} value={option}>
+                    <Text strong>{name}</Text>: {desc}
+                  </Select.Option>
+                );
+              })}
+            </Select>
           </Form.Item>
           <Form.Item
             label="Model Name"
             name="model"
             rules={[{ required: true }]}
+            help="This depends on the available models. e.g. 'llama3:latest'."
           >
             <Input />
           </Form.Item>
@@ -224,6 +251,15 @@ export function CustomLLM({ on_change }: Props) {
             label="Endpoint URL"
             name="endpoint"
             rules={[{ required: true }]}
+            help="e.g. 'https://your.ollama.server:11434/'"
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="API Key"
+            name="apiKey"
+            help="Optional"
+            rules={[{ required: false }]}
           >
             <Input />
           </Form.Item>

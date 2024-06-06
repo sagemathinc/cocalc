@@ -5,13 +5,20 @@ import LRU from "lru-cache";
 
 import { unreachable } from "@cocalc/util/misc";
 
-// "Client LLMs" are defined in the user's account settings
-// They directly query an external LLM service.
-export interface ClientLLM {
-  type: "ollama"; // only one type for now
+// limited for now, theoretically all are possible
+export const CUSTOM_LLM_BACKENDS: readonly LLMServiceName[] = [
+  "ollama",
+  "custom_openai",
+] as const;
+
+// "Custom LLMs" are defined in the user's account settings.
+// They query an external LLM service of given type, endpoint, and API key.
+export interface CustomLLM {
+  type: (typeof CUSTOM_LLM_BACKENDS)[number];
   model: string; // non-empty string
   display: string; // short user-visible string
   endpoint: string; // URL to the LLM service
+  apiKey: string;
 }
 
 const CLIENT_PREFIX = "client-";
@@ -238,7 +245,7 @@ export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
   ollama: {
     name: "Ollama",
     short: "Open-source software",
-    desc: "Ollama helps you to get up and running with large language models, locally.",
+    desc: "Ollama language model server at a custom API endpoint.",
   },
   custom_openai: {
     name: "OpenAI API",
