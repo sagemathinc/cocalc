@@ -28,9 +28,8 @@ export async function editCloudFilesystem(
 }
 
 // DEV
-// const api = {
+// window.x = {
 //   createCloudFilesystem,
 //   deleteCloudFilesystem,
 //   editCloudFilesystem,
 // };
-// window.x = { api };

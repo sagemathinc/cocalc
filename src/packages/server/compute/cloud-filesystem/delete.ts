@@ -46,7 +46,7 @@ export async function userDeleteCloudFilesystem({
     throw Error("unmount the cloud filesystem first");
   }
   if (cloudFilesystem.deleting) {
-    throw Error("cloud filesystem ${id} is currently being deleted; please wait");
+    throw Error(`cloud filesystem ${id} is currently being deleted; please wait`);
   }
   // launch the delete without blocking api call response
   launchDelete(id);

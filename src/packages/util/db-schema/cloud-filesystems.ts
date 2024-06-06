@@ -47,6 +47,7 @@ interface JuiceConfiguration {
 
 interface KeyDbConfiguration {}
 
+export type Compression = "lz4" | "zstd" | "none";
 export interface CloudFilesystem {
   id: number;
   project_id: string;
@@ -57,7 +58,7 @@ export interface CloudFilesystem {
   mount?: boolean; // whether it should get mounted right now
   secret_key?: GoogleCloudServiceAccountKey;
   port: number;
-  compression: "lz4" | "zstd" | "none";
+  compression: Compression;
   configuration?: { juice?: JuiceConfiguration; keydb?: KeyDbConfiguration };
   title?: string;
   color?: string;
@@ -80,10 +81,28 @@ export type CreateCloudFilesystem = Pick<
   | "notes"
 >;
 
-export type EditCloudFilesystem = Pick<
-  CloudFilesystem,
-  "id" | "mountpoint" | "mount" | "configuration" | "title" | "color" | "notes"
->;
+export interface EditCloudFilesystem
+  extends Pick<
+    CloudFilesystem,
+    "id" | "mount" | "configuration" | "title" | "color" | "notes"
+  > {
+  // making these optional
+  project_id?: string;
+  mountpoint?: string;
+}
+
+export const CHANGE_MOUNTED = new Set([
+  "title",
+  "color",
+  "notes",
+  "lock",
+  "mount",
+]);
+export const CHANGE_UNMOUNTED = new Set([
+  "project_id",
+  "mountpoint",
+  "configuration",
+]);
 
 Table({
   name: "cloud_filesystems",
@@ -161,9 +180,9 @@ Table({
     mountpoint: {
       not_null: true,
       type: "string",
-      pg_type: "VARCHAR(1024)",
-      desc: "Where compute server is mounted in the filesystem.  If a relative path, then relative to home directory.  Target path does not have to be empty.",
-      render: { type: "text", maxLength: 1024, editable: true },
+      pg_type: "VARCHAR(4096)",
+      desc: "Where compute server is mounted in the filesystem.  If a relative path, then relative to home directory.  Target path does not have to be empty.  For sanity we restrict this string more than an arbitrary linux path.",
+      render: { type: "text", maxLength: 4096, editable: true },
     },
     mount: {
       type: "boolean",
@@ -251,3 +270,34 @@ Table({
     },
   },
 });
+
+// some sanity checks
+export function assertValidCompression(compression: Compression) {
+  if (
+    typeof compression == "string" &&
+    ["lz4", "zstd", "none"].includes(compression)
+  ) {
+    return;
+  }
+  throw Error(`compression must be 'lz4', 'zstd', or 'none'`);
+}
+
+export function assertValidPath(path: string) {
+  if (typeof path != "string") {
+    throw Error("path must be a string");
+  }
+  if (path.includes("\0") || path.includes("\n")) {
+    throw Error(
+      `invalid path '${path}'  -- must not include newlines or null characters`,
+    );
+  }
+  if (path.length > 4096) {
+    throw Error(`invalid path '${path}'  -- must be at most 4096 characters`);
+  }
+  for (let i = 0; i < path.length; i++) {
+    const charCode = path.charCodeAt(i);
+    if ((charCode >= 0x00 && charCode <= 0x1f) || charCode === 0x7f) {
+      throw Error(`invalid path '${path}'  -- must not include control codes`);
+    }
+  }
+}

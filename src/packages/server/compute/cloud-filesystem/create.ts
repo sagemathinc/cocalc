@@ -50,6 +50,8 @@ import {
   CREATE_CLOUD_FILESYSTEM_COST,
   MAX_CLOUD_FILESYSTEMS_PER_PROJECT,
   CreateCloudFilesystem,
+  assertValidPath,
+  assertValidCompression,
 } from "@cocalc/util/db-schema/cloud-filesystems";
 
 interface Options extends CreateCloudFilesystem {
@@ -64,8 +66,9 @@ const FIELDS =
 export async function createCloudFilesystem(opts: Options): Promise<number> {
   logger.debug("createCloudFilesystem", opts);
   // sanity checks
-  if (!["lz4", "zstd", "none"].includes(opts.compression)) {
-    throw Error("compression must be 'lz4', 'zstd', or 'none'");
+  assertValidCompression(opts.compression);
+  if (opts.mountpoint) {
+    assertValidPath(opts.mountpoint);
   }
 
   // check that user has enough credit on account to make a MINIMAL purchase, to prevent abuse

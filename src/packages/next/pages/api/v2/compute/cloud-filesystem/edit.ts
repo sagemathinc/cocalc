@@ -20,7 +20,7 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const { id, mountpoint, mount, configuration, title, color, notes } =
+  const { id, project_id, mountpoint, mount, configuration, title, color, notes } =
     getParams(req);
 
   return await userEditCloudFilesystem({
