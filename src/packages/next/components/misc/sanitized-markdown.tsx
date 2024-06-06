@@ -4,8 +4,9 @@
  */
 
 import { CSSProperties } from "react";
-import { FileContext } from "@cocalc/frontend/lib/file-context";
+
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
 import A from "components/misc/A";
 
 export default function SanitizedMarkdown({

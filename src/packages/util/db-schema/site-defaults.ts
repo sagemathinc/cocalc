@@ -53,6 +53,7 @@ export type SiteSettingsKeys =
   | "index_info_html"
   | "imprint"
   | "policies"
+  | "support"
   | "openai_enabled"
   | "google_vertexai_enabled"
   | "mistral_enabled"
@@ -470,6 +471,15 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     clearable: true,
     show: show_theming_vars,
+    multiline: 5,
+    tags: ["Theme"],
+  },
+  support: {
+    name: "Support page (on-prem only)",
+    desc: "If set, shown instead of the generic support pages – HTML/Markdown.",
+    default: "",
+    clearable: true,
+    show: (conf) => show_theming_vars(conf) && not_cocalc_com(conf),
     multiline: 5,
     tags: ["Theme"],
   },

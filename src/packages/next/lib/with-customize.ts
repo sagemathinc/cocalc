@@ -101,7 +101,7 @@ export default async function withCustomize(
     share: customize.shareServer,
     software: customize.landingPages,
     store: customize.landingPages && customize.isCommercial,
-    support: true,
+    support: true, // always enabled, but for on-prem && settings.support, we render a different page
     systemActivity: true,
     status: customize.onCoCalcCom,
     termsOfService: !customize.landingPages && !!customize.termsOfServiceURL,

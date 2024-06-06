@@ -19,7 +19,7 @@ import Logo from "components/logo";
 import { CSS } from "components/misc";
 import A from "components/misc/A";
 import { MAX_WIDTH_LANDING } from "lib/config";
-import { useCustomize } from "lib/customize";
+import { CustomizeType, useCustomize } from "lib/customize";
 
 const BASE_STYLE: CSS = {
   backgroundColor: "white",
@@ -130,7 +130,28 @@ const support = {
   },
 } as const;
 
-const PAGES = {
+type PageKey =
+  | "about"
+  | "features"
+  | "software"
+  | "pricing"
+  | "policies"
+  | "share"
+  | "info"
+  | "sign-up"
+  | "sign-in"
+  | "try"
+  | "support"
+  | "news"
+  | "store";
+
+const PAGES: {
+  [top in PageKey]:
+    | {
+        [page: string]: { label: string; hide?: (c: CustomizeType) => boolean };
+      }
+    | { index: {} };
+} = {
   about,
   features,
   software,
@@ -146,7 +167,7 @@ const PAGES = {
   store: {},
 } as const;
 
-export type Page = keyof typeof PAGES | "account";
+export type Page = PageKey | "account";
 export type SubPage =
   | keyof typeof software
   | keyof typeof features
@@ -184,6 +205,10 @@ export default function SubNav(props: Props) {
   }, [subnavRef]);
 
   if (page == null) return null;
+
+  // if we define a custom support page, render it instead – and hide the sub menu
+  if (customize.support && !customize.onCoCalcCom) return null;
+
   const tabs: JSX.Element[] = [];
   const p = PAGES[page];
   if (p == null || isEmpty(p)) return null;
