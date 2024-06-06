@@ -37,6 +37,7 @@ export function CoCalcComFeatures() {
     sandboxProjectId,
     jupyterApiEnabled,
     shareServer = false,
+    onCoCalcCom,
   } = useCustomize();
   const width = Grid.useBreakpoint();
 
@@ -515,7 +516,7 @@ export function CoCalcComFeatures() {
   }
 
   function renderChatGPT() {
-    if (!openaiEnabled) return;
+    if (!openaiEnabled || !onCoCalcCom) return;
     return (
       <Info
         level={LANDING_HEADER_LEVEL}

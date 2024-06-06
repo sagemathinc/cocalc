@@ -124,7 +124,10 @@ const support = {
   community: { label: "Community" },
   new: { label: "New Ticket", hide: (customize) => !customize.zendesk },
   tickets: { label: "Tickets", hide: (customize) => !customize.zendesk },
-  chatgpt: { label: "ChatGPT", hide: (customize) => !customize.openaiEnabled },
+  chatgpt: {
+    label: "ChatGPT",
+    hide: (customize) => !customize.openaiEnabled || !customize.onCoCalcCom,
+  },
 } as const;
 
 const PAGES = {

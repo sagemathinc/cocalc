@@ -1,11 +1,12 @@
 import { Layout } from "antd";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
+
 import Footer from "components/landing/footer";
-import { Customize } from "lib/customize";
-import withCustomize from "lib/with-customize";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
 import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 import IndexList, { DataSource } from "components/landing/index-list";
 
@@ -45,7 +46,7 @@ const dataSource = [
     link: "/support/chatgpt",
     title: "ChatGPT Suppport",
     logo: "robot",
-    hide: (customize) => !customize.openaiEnabled,
+    hide: (customize) => !customize.openaiEnabled || !customize.onCoCalcCom,
     description: (
       <>
         Our <A href="/support/chatgpt">integrated ChatGPT support</A> is free
