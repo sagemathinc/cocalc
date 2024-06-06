@@ -82,23 +82,30 @@ export function ServersFlyout({ project_id, wrap }) {
   if (computeServersEnabled()) {
     items.push({
       key: "compute-servers",
-      label: "Compute",
+      label: (
+        <>
+          <Icon name="server" /> Compute
+        </>
+      ),
       children: renderComputeServers(),
     });
     items.push({
       key: "cloud-filesystems",
-      label: "Filesystems",
-      children: (
+      label: (
         <>
-          <h2>Cloud Filesystems</h2>
-          <CloudFilesystems project_id={project_id} />
+          <Icon name="disk-round" /> Filesystems
         </>
       ),
+      children: <CloudFilesystems project_id={project_id} />,
     });
   }
   items.push({
     key: "notebooks",
-    label: "Notebooks",
+    label: (
+      <>
+        <Icon name="jupyter" /> Notebooks
+      </>
+    ),
     children: (
       <>
         {renderEmbeddedServers()}

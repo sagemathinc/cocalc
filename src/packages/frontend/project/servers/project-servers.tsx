@@ -164,7 +164,11 @@ export function ProjectServers(props: Props) {
   if (computeServersEnabled()) {
     items.push({
       key: "compute-servers",
-      label: "Compute Servers",
+      label: (
+        <span style={{ fontSize: "12pt" }}>
+          <Icon name="server" /> Compute Servers
+        </span>
+      ),
       children: (
         <>
           <h2>
@@ -177,18 +181,21 @@ export function ProjectServers(props: Props) {
     });
     items.push({
       key: "cloud-filesystems",
-      label: "Cloud Filesystems",
-      children: (
-        <>
-          <h2>Cloud Filesystems</h2>
-          <CloudFilesystems project_id={project_id} />
-        </>
+      label: (
+        <span style={{ fontSize: "12pt" }}>
+          <Icon name="disk-round" /> Cloud Filesystems
+        </span>
       ),
+      children: <CloudFilesystems project_id={project_id} />,
     });
   }
   items.push({
     key: "notebooks",
-    label: "Notebook Servers",
+    label: (
+      <span style={{ fontSize: "12pt" }}>
+        <Icon name="jupyter" /> Notebook Servers
+      </span>
+    ),
     children: (
       <>
         <Paragraph>

@@ -37,7 +37,11 @@ export default function CloudFilesystems({ project_id }: Props) {
 
   return (
     <div>
-      <Button onClick={refresh}>Refresh</Button>
+      <Button style={{ float: "right" }} onClick={refresh}>
+        Refresh
+      </Button>
+      <h2>Cloud Filesystems</h2>
+      {project_id ? "" : "All Cloud Filesystems you own across your projects."}
       <ShowError error={error} setError={setError} />
       <pre>{JSON.stringify(cloudFilesystems ?? "loading", undefined, 2)}</pre>
     </div>
