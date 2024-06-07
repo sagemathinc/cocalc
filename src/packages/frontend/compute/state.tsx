@@ -158,7 +158,7 @@ function NetworkUsage({ id, state, data }) {
   return <DisplayNetworkUsage amount={usage.amount} cost={usage.cost} />;
 }
 
-function ProgressBarTimer({
+export function ProgressBarTimer({
   startTime,
   style,
   width = "150px",

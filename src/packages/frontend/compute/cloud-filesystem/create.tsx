@@ -1,4 +1,13 @@
-import { Button, Divider, Input, InputNumber, Modal, Radio, Spin } from "antd";
+import {
+  Button,
+  Card,
+  Divider,
+  Input,
+  InputNumber,
+  Modal,
+  Radio,
+  Spin,
+} from "antd";
 import { useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { A, Icon } from "@cocalc/frontend/components";
@@ -14,6 +23,7 @@ import {
 } from "@cocalc/util/db-schema/cloud-filesystems";
 import { DEFAULT_CONFIGURATION } from "@cocalc/util/db-schema/cloud-filesystems";
 import { createCloudFilesystem } from "./api";
+import { ProgressBarTimer } from "../state";
 
 export default function CreateCloudFilesystem({
   project_id,
@@ -21,6 +31,7 @@ export default function CreateCloudFilesystem({
   refresh,
 }) {
   const [creating, setCreating] = useState<boolean>(false);
+  const [createStarted, setCreateStarted] = useState<Date>(new Date());
   const [editing, setEditing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [advanced, setAdvanced] = useState<boolean>(false);
@@ -35,7 +46,11 @@ export default function CreateCloudFilesystem({
   });
 
   const create = async () => {
+    if (creating) {
+      return;
+    }
     try {
+      setCreateStarted(new Date());
       setCreating(true);
       const id = await createCloudFilesystem(configuration);
       console.log("created", id);
@@ -104,7 +119,7 @@ export default function CreateCloudFilesystem({
           });
         }}
         open={editing}
-        okText="Create Cloud Filesystem"
+        okText={<>Create Cloud Filesystem {creating ? <Spin /> : undefined}</>}
         onOk={() => {
           create();
         }}
@@ -142,7 +157,15 @@ export default function CreateCloudFilesystem({
           of different cloud filesystems, and easily move a cloud filesystem
           between projects.
         </p>
-        <div style={{ margin: "15px 0" }}>
+        <Card
+          style={{
+            margin: "15px 0",
+            border: `0.5px solid ${configuration.color ?? "#f0f0f0"}`,
+            borderRight: `10px solid ${configuration.color ?? "#aaa"}`,
+            borderLeft: `10px solid ${configuration.color ?? "#aaa"}`,
+            ...(creating ? { opacity: 0.4 } : undefined),
+          }}
+        >
           <Divider>
             <Icon
               name="cloud-dev"
@@ -169,7 +192,7 @@ export default function CreateCloudFilesystem({
               name="folder-open"
               style={{ fontSize: "16pt", marginRight: "15px" }}
             />{" "}
-            Where to Mount Cloud Filesystem
+            Where to Mount Filesystem
           </Divider>
           <Mountpoint
             configuration={configuration}
@@ -236,12 +259,21 @@ export default function CreateCloudFilesystem({
               />
             </>
           )}
+          {creating && (
+            <div style={{ textAlign: "center", fontSize: "14pt" }}>
+              Creating Cloud Filesystem...{" "}
+              <ProgressBarTimer
+                startTime={createStarted}
+                style={{ marginLeft: "10px" }}
+              />
+            </div>
+          )}
           <ShowError
             error={error}
             setError={setError}
             style={{ margin: "15px 0" }}
           />
-        </div>
+        </Card>
       </Modal>
     </div>
   );
@@ -270,8 +302,8 @@ function SelectColor({ configuration, setConfiguration }) {
 function Mountpoint({ configuration, setConfiguration }) {
   return (
     <div>
-      Mount at <code>/home/user/{configuration.mountpoint}</code> in all of
-      compute servers in this project.
+      Mount at <code>/home/user/{configuration.mountpoint}</code> on all compute
+      servers.
       <br />
       <Input
         style={{ marginTop: "5px" }}
