@@ -34,7 +34,7 @@ export default function MountButton({
     <Popconfirm
       title={`Are you sure you want to ${
         cloudFilesystem.mount ? "unmount" : "mount"
-      } this filesystem?  Expect this to take about 30 seconds.`}
+      } this filesystem?  Expect this to take about 30 seconds to appear on any running compute server.`}
       onConfirm={toggleMount}
       okText="Yes"
       cancelText="No"

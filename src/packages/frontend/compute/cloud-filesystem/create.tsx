@@ -245,15 +245,15 @@ export default function CreateCloudFilesystem({
             <>
               You can set any possible JuiceFS or KeyDB configuration below,
               which will be used when mounting your filesystem. Be careful since
-              the slightest mistake here could make it so the filesystem will
-              not mount.
+              a mistake here could make it so the filesystem will not mount,
+              though you can easily edit this and try again.
               <br />
               <MountOptions
                 configuration={configuration}
                 setConfiguration={setConfiguration}
               />
               <br />
-              <KeydbOptions
+              <KeyDBOptions
                 configuration={configuration}
                 setConfiguration={setConfiguration}
               />
@@ -302,8 +302,7 @@ function SelectColor({ configuration, setConfiguration }) {
 function Mountpoint({ configuration, setConfiguration }) {
   return (
     <div>
-      Mount at <code>~/{configuration.mountpoint}</code> on all compute
-      servers.
+      Mount at <code>~/{configuration.mountpoint}</code> on all compute servers.
       <br />
       <Input
         style={{ marginTop: "5px" }}
@@ -361,7 +360,7 @@ function Lock({ configuration, setConfiguration }) {
       phrase. Use this to avoid mistakes.
       <br />
       <Input
-        style={{ marginTop: "5px" }}
+        style={{ marginTop: "5px", color: "red" }}
         value={configuration.lock}
         onChange={(e) => {
           setConfiguration({ ...configuration, lock: e.target.value });
@@ -387,7 +386,7 @@ function MountOptions({ configuration, setConfiguration }) {
         Reset
       </Button>
       <A href="https://juicefs.com/docs/community/command_reference#mount">
-        Mount Options
+        JuiceFS Mount Options
       </A>
       <br />
       <Input
@@ -400,7 +399,7 @@ function MountOptions({ configuration, setConfiguration }) {
   );
 }
 
-function KeydbOptions({ configuration, setConfiguration }) {
+function KeyDBOptions({ configuration, setConfiguration }) {
   return (
     <div>
       <Button
@@ -415,8 +414,15 @@ function KeydbOptions({ configuration, setConfiguration }) {
       >
         Reset
       </Button>
-      <A href="https://docs.keydb.dev/docs/config-file/">Keydb Options</A>
-      <Input
+      <A href="https://docs.keydb.dev/docs/config-file/">
+        KeyDB Config File Options
+      </A>
+      <br />
+      The text below is placed at the end of keydb.conf and can be used to
+      override or add to the keydb configuration used on each client.
+      <Input.TextArea
+        style={{ marginTop: "5px" }}
+        rows={4}
         value={configuration.keydb_options}
         onChange={(e) => {
           setConfiguration({ ...configuration, keydb_options: e.target.value });
