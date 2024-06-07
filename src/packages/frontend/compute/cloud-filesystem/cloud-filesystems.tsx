@@ -59,7 +59,10 @@ export default function CloudFilesystems({ project_id }: Props) {
         />
       )}
       {cloudFilesystems.map((cloudFilesystem) => (
-        <CloudFilesystem key={cloudFilesystem.id} {...cloudFilesystem} />
+        <CloudFilesystem
+          key={cloudFilesystem.id}
+          cloudFilesystem={cloudFilesystem}
+        />
       ))}
     </div>
   );
