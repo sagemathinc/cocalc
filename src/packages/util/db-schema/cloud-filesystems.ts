@@ -43,6 +43,85 @@ export interface GoogleCloudServiceAccountKey {
 }
 
 export type Compression = "lz4" | "zstd" | "none";
+export const GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES = [
+  "autoclass-nearline",
+  "autoclass-archive",
+  "standard",
+  "nearline",
+  "coldline",
+  "archive",
+];
+export const GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC = {
+  "autoclass-nearline":
+    "Autoclass - unpredictable usage: transitions objects between Standard or Nearline based on activity",
+  "autoclass-archive":
+    "Autoclass - unpredictable usage: transitions objects between Standard, Nearline, Coldline, and Archive based on activity",
+  standard: "Standard - short-term storage and frequently accessed data",
+  nearline: "Nearline - backups and data accessed less than once a month",
+  coldline:
+    "Coldline - disaster recovery and data accessed less than once a quarter",
+  archive:
+    "Archive - long-term digital preservation of data accessed less than once a year",
+};
+export type GoogleCloudBucketStorageClass =
+  (typeof GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES)[number];
+
+// We implement the three multiregions: asia, eu, and us.
+// We also support *all* single regions.  Dual regions are
+// complicated to specify and have subtle restrictions and
+// probably aren't that critical for our users, so we don't
+// support them.
+export const GOOGLE_CLOUD_MULTIREGIONS = ["asia", "eu", "us"];
+// We will have to update the zone list when google adds more zones, since I didn't
+// want to have a dependency on my package @cocalc/gcloud-pricing-calculator.
+// However it's easy using that package:
+//    a =require('@cocalc/gcloud-pricing-calculator')
+//    z = new Set(Object.keys((await a.getData()).zones).map((x)=>{i=x.lastIndexOf('-');return x.slice(0,i)}))
+export const GOOGLE_CLOUD_REGIONS = [
+  "africa-south1",
+  "asia-east1",
+  "asia-east2",
+  "asia-northeast1",
+  "asia-northeast2",
+  "asia-northeast3",
+  "asia-south1",
+  "asia-south2",
+  "asia-southeast1",
+  "asia-southeast2",
+  "australia-southeast1",
+  "australia-southeast2",
+  "europe-north1",
+  "europe-central2",
+  "europe-southwest1",
+  "europe-west1",
+  "europe-west2",
+  "europe-west3",
+  "europe-west4",
+  "europe-west6",
+  "europe-west8",
+  "europe-west9",
+  "europe-west10",
+  "europe-west12",
+  "northamerica-northeast1",
+  "northamerica-northeast2",
+  "southamerica-east1",
+  "southamerica-west1",
+  "us-central1",
+  "us-east1",
+  "us-east4",
+  "us-east5",
+  "us-west1",
+  "us-west2",
+  "us-west3",
+  "us-west4",
+  "us-south1",
+  "me-central1",
+  "me-central2",
+  "me-west1",
+];
+export type GoogleCloudBucketLocation =
+  | (typeof GOOGLE_CLOUD_MULTIREGIONS)[number]
+  | (typeof GOOGLE_CLOUD_REGIONS)[number];
 
 export interface CloudFilesystem {
   id: number;
@@ -56,6 +135,9 @@ export interface CloudFilesystem {
   port: number;
   compression: Compression;
   block_size: number;
+  trash_days: number;
+  bucket_location: GoogleCloudBucketLocation;
+  bucket_storage_class: GoogleCloudBucketStorageClass;
   mount_options?: string;
   keydb_options?: string;
   title?: string;
@@ -78,6 +160,7 @@ export type CreateCloudFilesystem = Pick<
   | "mount"
   | "compression"
   | "block_size"
+  | "trash_days"
   | "title"
   | "color"
   | "notes"
@@ -91,10 +174,13 @@ export const DEFAULT_CONFIGURATION = {
   mount: false,
   compression: "lz4",
   block_size: 64,
+  trash_days: 0,
   title: "Cloud Filesystem",
   lock: "DELETE",
   mount_options: "--writeback",
   keydb_options: "",
+  bucket_location: "us-east1",
+  bucket_storage_class: "standard",
 } as const;
 
 export interface EditCloudFilesystem
@@ -112,6 +198,7 @@ export interface EditCloudFilesystem
   // making these optional
   project_id?: string;
   mountpoint?: string;
+  trash_days?: number;
 }
 
 export const CHANGE_MOUNTED = new Set([
@@ -127,6 +214,7 @@ export const CHANGE_UNMOUNTED = new Set([
   "mountpoint",
   "mount_options",
   "keydb_options",
+  "trash_days",
 ]);
 
 Table({
@@ -154,6 +242,9 @@ Table({
           port: null,
           compression: null,
           block_size: null,
+          trash_days: null,
+          bucket_location: null,
+          bucket_storage_class: null,
           title: null,
           color: null,
           error: null,
@@ -206,6 +297,20 @@ Table({
       desc: "Google cloud storage bucket backing this filesystem",
       render: { type: "text", maxLength: 63, editable: false },
     },
+    bucket_storage_class: {
+      not_null: true,
+      type: "string",
+      pg_type: "VARCHAR(64)",
+      desc: "How the google cloud storage bucket is stored.",
+      render: { type: "text", maxLength: 64, editable: false },
+    },
+    bucket_location: {
+      not_null: true,
+      type: "string",
+      pg_type: "VARCHAR(64)",
+      desc: "Where the google cloud storage bucket is stored.",
+      render: { type: "text", maxLength: 64, editable: false },
+    },
     mountpoint: {
       not_null: true,
       type: "string",
@@ -237,6 +342,11 @@ Table({
       type: "integer",
       not_null: true,
       desc: "Block size of filesystem in MB: between 1 and 64, inclusive.  Cannot be changed.",
+    },
+    trash_days: {
+      type: "integer",
+      not_null: true,
+      desc: "Number of days to store deleted files.  Use 0 to disable.",
     },
     mount_options: {
       type: "string",
