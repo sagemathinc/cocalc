@@ -1,6 +1,7 @@
 import MountButton from "./mount-button";
 import Title from "../title";
 import Menu from "./menu";
+import { trunc_middle } from "@cocalc/util/misc";
 
 interface Props {
   cloudFilesystem;
@@ -29,6 +30,17 @@ export default function CloudFilesystemTitle({
           refresh={refresh}
         />
       </div>
+      <div
+        style={{
+          flex: 1,
+          textOverflow: "ellipsis",
+          overflow: "hidden",
+          padding: "5px 5px 0 5px",
+          fontWeight: 400,
+        }}
+      >
+        <code>{trunc_middle(`~/${cloudFilesystem.mountpoint}`, 40)}</code>
+      </div>
       <Title
         title={cloudFilesystem.title}
         editable={false}
@@ -36,6 +48,7 @@ export default function CloudFilesystemTitle({
           textOverflow: "ellipsis",
           overflow: "hidden",
           flex: 1,
+          padding: "5px 5px 0 5px",
         }}
       />
       <Menu

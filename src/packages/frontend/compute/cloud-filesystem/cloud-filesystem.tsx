@@ -45,7 +45,7 @@ export default function CloudFilesystem({
         description={
           <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
-            Mountpoint: <code>/home/user/{cloudFilesystem.mountpoint}</code> on
+            Mountpoint: <code>~/{cloudFilesystem.mountpoint}</code> on
             all compute servers in{" "}
             {showProject ? (
               <ProjectTitle project_id={cloudFilesystem.project_id} />

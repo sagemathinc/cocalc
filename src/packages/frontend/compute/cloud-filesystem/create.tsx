@@ -302,7 +302,7 @@ function SelectColor({ configuration, setConfiguration }) {
 function Mountpoint({ configuration, setConfiguration }) {
   return (
     <div>
-      Mount at <code>/home/user/{configuration.mountpoint}</code> on all compute
+      Mount at <code>~/{configuration.mountpoint}</code> on all compute
       servers.
       <br />
       <Input
