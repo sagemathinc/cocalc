@@ -60,7 +60,7 @@ interface Options extends CreateCloudFilesystem {
 }
 
 const FIELDS =
-  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,block_size,title,color,notes,lock,mount,position,mount_options,keydb_options".split(
+  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,block_size,title,color,notes,lock,mount,position,mount_options,keydb_options,bucket_location,bucket_storage_class,trash_days".split(
     ",",
   );
 

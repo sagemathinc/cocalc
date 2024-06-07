@@ -166,7 +166,7 @@ export type CreateCloudFilesystem = Pick<
   | "notes"
   | "position"
   | "mount_options"
-  | "keydb_options"
+  | "keydb_options" | "bucket_location" | "bucket_storage_class"
 >;
 
 export const DEFAULT_CONFIGURATION = {
@@ -199,6 +199,7 @@ export interface EditCloudFilesystem
   project_id?: string;
   mountpoint?: string;
   trash_days?: number;
+  bucket_storage_class?: GoogleCloudBucketStorageClass;
 }
 
 export const CHANGE_MOUNTED = new Set([

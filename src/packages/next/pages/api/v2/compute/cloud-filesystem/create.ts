@@ -30,6 +30,9 @@ async function get(req) {
     title,
     color,
     notes,
+    trash_days,
+    bucket_location,
+    bucket_storage_class,
   } = getParams(req);
 
   return await createCloudFilesystem({
@@ -43,5 +46,8 @@ async function get(req) {
     title,
     color,
     notes,
+    trash_days,
+    bucket_location,
+    bucket_storage_class,
   });
 }

@@ -30,6 +30,8 @@ async function get(req) {
     title,
     color,
     notes,
+    trash_days,
+    bucket_storage_class,
   } = getParams(req);
 
   return await userEditCloudFilesystem({
@@ -43,5 +45,7 @@ async function get(req) {
     title,
     color,
     notes,
+    trash_days,
+    bucket_storage_class,
   });
 }
