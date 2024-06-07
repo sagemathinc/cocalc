@@ -4,13 +4,21 @@ import type { CloudFilesystem as CloudFilesystemType } from "@cocalc/util/db-sch
 import CloudFilesystemAvatar from "./avatar";
 import CloudFilesystemTitle from "./title";
 import ShowError from "@cocalc/frontend/components/error";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
   style?;
+  refresh?;
+  showProject?: boolean;
 }
 
-export default function CloudFilesystem({ style, cloudFilesystem }: Props) {
+export default function CloudFilesystem({
+  style,
+  refresh,
+  cloudFilesystem,
+  showProject,
+}: Props) {
   const [error, setError] = useState<string>("");
   const { color, deleting } = cloudFilesystem;
   return (
@@ -31,13 +39,20 @@ export default function CloudFilesystem({ style, cloudFilesystem }: Props) {
           <CloudFilesystemTitle
             cloudFilesystem={cloudFilesystem}
             setError={setError}
+            refresh={refresh}
           />
         }
         description={
-          <>
+          <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
-            {JSON.stringify(cloudFilesystem, undefined, 2)}
-          </>
+            Mountpoint: <code>/home/user/{cloudFilesystem.mountpoint}</code> on
+            all compute servers in{" "}
+            {showProject ? (
+              <ProjectTitle project_id={cloudFilesystem.project_id} />
+            ) : (
+              "this project"
+            )}
+          </div>
         }
       />
     </Card>

@@ -1,6 +1,18 @@
 import MountButton from "./mount-button";
+import Title from "../title";
+import Menu from "./menu";
 
-export default function CloudFilesystemTitle({ cloudFilesystem, setError }) {
+interface Props {
+  cloudFilesystem;
+  setError;
+  refresh?;
+}
+
+export default function CloudFilesystemTitle({
+  cloudFilesystem,
+  setError,
+  refresh,
+}: Props) {
   return (
     <div
       style={{
@@ -10,7 +22,27 @@ export default function CloudFilesystemTitle({ cloudFilesystem, setError }) {
         paddingBottom: "5px",
       }}
     >
-      <MountButton cloudFilesystem={cloudFilesystem} setError={setError} />
+      <div style={{ flex: 1 }}>
+        <MountButton
+          cloudFilesystem={cloudFilesystem}
+          setError={setError}
+          refresh={refresh}
+        />
+      </div>
+      <Title
+        title={cloudFilesystem.title}
+        editable={false}
+        style={{
+          textOverflow: "ellipsis",
+          overflow: "hidden",
+          flex: 1,
+        }}
+      />
+      <Menu
+        cloudFilesystem={cloudFilesystem}
+        setError={setError}
+        refresh={refresh}
+      />
     </div>
   );
 }

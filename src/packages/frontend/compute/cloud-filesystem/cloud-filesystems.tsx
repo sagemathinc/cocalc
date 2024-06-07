@@ -14,6 +14,7 @@ import { Button, Spin } from "antd";
 import CreateCloudFilesystem from "./create";
 import CloudFilesystem from "./cloud-filesystem";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { cmp } from "@cocalc/util/misc";
 
 interface Props {
   // if not given, shows global list across all projects you collab on
@@ -31,6 +32,11 @@ export default function CloudFilesystems({ project_id }: Props) {
     (async () => {
       try {
         const c = await getCloudFilesystems({ project_id });
+        c.sort((x, y) => {
+          const d = cmp(x.position ?? 0, y.position ?? 0);
+          if (d) return d;
+          return -cmp(x.id ?? 0, y.id ?? 0);
+        });
         setCloudFilesystems(c);
       } catch (err) {
         setError(`${err}`);
@@ -49,7 +55,11 @@ export default function CloudFilesystems({ project_id }: Props) {
         Refresh
       </Button>
       <h2>Cloud Filesystems</h2>
-      {project_id ? "" : "All Cloud Filesystems you own across your projects."}
+      <div style={{ margin: "5px 0" }}>
+        {project_id
+          ? ""
+          : "All Cloud Filesystems you own across your projects."}
+      </div>
       <ShowError error={error} setError={setError} />
       {project_id != null && cloudFilesystems != null && (
         <CreateCloudFilesystem
@@ -60,8 +70,11 @@ export default function CloudFilesystems({ project_id }: Props) {
       )}
       {cloudFilesystems.map((cloudFilesystem) => (
         <CloudFilesystem
+          style={{ margin: "10px 0" }}
           key={cloudFilesystem.id}
           cloudFilesystem={cloudFilesystem}
+          refresh={refresh}
+          showProject={project_id == null}
         />
       ))}
     </div>
