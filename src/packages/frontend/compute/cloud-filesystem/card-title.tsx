@@ -9,7 +9,7 @@ interface Props {
   refresh?;
 }
 
-export default function CloudFilesystemTitle({
+export default function CloudFilesystemCardTitle({
   cloudFilesystem,
   setError,
   refresh,
