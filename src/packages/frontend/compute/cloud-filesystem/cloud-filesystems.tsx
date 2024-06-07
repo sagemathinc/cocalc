@@ -9,9 +9,11 @@ import { useEffect, useState } from "react";
 import { getCloudFilesystems } from "./api";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import ShowError from "@cocalc/frontend/components/error";
-import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
+import type { CloudFilesystem as CloudFilesystemType } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Button, Spin } from "antd";
 import CreateCloudFilesystem from "./create";
+import CloudFilesystem from "./cloud-filesystem";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   // if not given, shows global list across all projects you collab on
@@ -22,7 +24,7 @@ export default function CloudFilesystems({ project_id }: Props) {
   const { val: counter, inc: refresh } = useCounter();
   const [error, setError] = useState<string>("");
   const [cloudFilesystems, setCloudFilesystems] = useState<
-    CloudFilesystem[] | null
+    CloudFilesystemType[] | null
   >(null);
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function CloudFilesystems({ project_id }: Props) {
   return (
     <div>
       <Button style={{ float: "right" }} onClick={refresh}>
+        <Icon name="refresh" />
         Refresh
       </Button>
       <h2>Cloud Filesystems</h2>
@@ -55,7 +58,9 @@ export default function CloudFilesystems({ project_id }: Props) {
           refresh={refresh}
         />
       )}
-      <pre>{JSON.stringify(cloudFilesystems ?? "loading", undefined, 2)}</pre>
+      {cloudFilesystems.map((cloudFilesystem) => (
+        <CloudFilesystem key={cloudFilesystem.id} {...cloudFilesystem} />
+      ))}
     </div>
   );
 }

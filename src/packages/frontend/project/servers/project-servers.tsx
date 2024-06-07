@@ -21,6 +21,7 @@ import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
+import { getServerTab, setServerTab } from "@cocalc/frontend/compute/tab";
 
 // Antd's 24 grid system
 const md = 6;
@@ -219,7 +220,11 @@ export function ProjectServers(props: Props) {
       <Title level={2}>
         <Icon name={ICON_NAME} /> {TITLE}
       </Title>
-      <Tabs items={items} />
+      <Tabs
+        items={items}
+        defaultActiveKey={getServerTab(project_id)}
+        onChange={(tab) => setServerTab(project_id, tab)}
+      />
     </div>
   );
 }

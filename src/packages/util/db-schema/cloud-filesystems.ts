@@ -92,8 +92,9 @@ export const DEFAULT_CONFIGURATION = {
   compression: "lz4",
   block_size: 64,
   title: "Cloud Filesystem",
-  lock: "DELETE ALL MY DATA",
+  lock: "DELETE",
   mount_options: "--writeback",
+  keydb_options: "",
 } as const;
 
 export interface EditCloudFilesystem

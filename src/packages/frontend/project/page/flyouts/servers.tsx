@@ -16,6 +16,7 @@ import { FIX_BORDER } from "@cocalc/frontend/project/page/common";
 import { SagewsControl } from "@cocalc/frontend/project/settings/sagews-control";
 import { NAMED_SERVER_NAMES } from "@cocalc/util/types/servers";
 import { FLYOUT_PADDING } from "./consts";
+import { getServerTab, setServerTab } from "@cocalc/frontend/compute/tab";
 
 export function ServersFlyout({ project_id, wrap }) {
   const servers = NAMED_SERVER_NAMES.map((name) => (
@@ -114,5 +115,11 @@ export function ServersFlyout({ project_id, wrap }) {
     ),
   });
 
-  return wrap(<Tabs items={items} />);
+  return wrap(
+    <Tabs
+      items={items}
+      defaultActiveKey={getServerTab(project_id)}
+      onChange={(tab) => setServerTab(project_id, tab)}
+    />,
+  );
 }

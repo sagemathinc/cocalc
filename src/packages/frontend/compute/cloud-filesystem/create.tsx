@@ -1,7 +1,7 @@
-import { Button, Input, InputNumber, Modal, Radio, Spin } from "antd";
+import { Button, Divider, Input, InputNumber, Modal, Radio, Spin } from "antd";
 import { useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { A, Icon } from "@cocalc/frontend/components";
 import Color, { randomColor } from "../color";
 import Title from "../title";
 import type {
@@ -23,6 +23,7 @@ export default function CreateCloudFilesystem({
   const [creating, setCreating] = useState<boolean>(false);
   const [editing, setEditing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [advanced, setAdvanced] = useState<boolean>(false);
   const [configuration, setConfiguration] = useState<CreateCloudFilesystem>({
     project_id,
     ...DEFAULT_CONFIGURATION,
@@ -39,6 +40,15 @@ export default function CreateCloudFilesystem({
       const id = await createCloudFilesystem(configuration);
       console.log("created", id);
       setEditing(false);
+      setConfiguration({
+        project_id,
+        ...DEFAULT_CONFIGURATION,
+        mountpoint: generateMountpoint(
+          cloudFilesystems,
+          DEFAULT_CONFIGURATION.mountpoint,
+        ),
+        color: randomColor(),
+      });
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -48,7 +58,7 @@ export default function CreateCloudFilesystem({
   };
 
   return (
-    <div>
+    <div style={{ textAlign: "center", margin: "15px 0" }}>
       <Button
         size="large"
         disabled={creating || editing}
@@ -83,6 +93,15 @@ export default function CreateCloudFilesystem({
         width={"900px"}
         onCancel={() => {
           setEditing(false);
+          setConfiguration({
+            project_id,
+            ...DEFAULT_CONFIGURATION,
+            mountpoint: generateMountpoint(
+              cloudFilesystems,
+              DEFAULT_CONFIGURATION.mountpoint,
+            ),
+            color: randomColor(),
+          });
         }}
         open={editing}
         okText="Create Cloud Filesystem"
@@ -90,43 +109,133 @@ export default function CreateCloudFilesystem({
           create();
         }}
         destroyOnClose
-        title={<div style={{ display: "flex" }}>Create Cloud Filesystem</div>}
+        title={
+          <div style={{ display: "flex", fontSize: "15pt" }}>
+            <Icon name="disk-round" style={{ marginRight: "15px" }} /> Create a
+            CoCalc Cloud Filesystem
+          </div>
+        }
       >
-        <div style={{ marginTop: "15px" }}>
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ margin: "15px 0" }}
+        />{" "}
+        <p>
+          CoCalc Cloud Filesystem is an infinitely scalable fully POSIX
+          compliant distributed filesystem with efficient local caching. You can
+          simultaneously use this distributed filesystem in all compute servers
+          in your project, and there are no limits on how much you can store.
+          You pay only for the data you store and for operations on it. Prices
+          are highly competitive, and can be as low as $0.002/GB per month for
+          archival data.
+        </p>
+        <p>
+          CoCalc Cloud Filesystem is built using{" "}
+          <A href="https://juicefs.com/">JuiceFS</A>,{" "}
+          <A href="https://docs.keydb.dev/">KeyDB</A> and{" "}
+          <A href="https://cloud.google.com/storage">Google Cloud Storage</A>.
+        </p>
+        <p>
+          Create your filesystem below. You can change any setting later except
+          the compression and block size parameters. You can make a large number
+          of different cloud filesystems, and easily move a cloud filesystem
+          between projects.
+        </p>
+        <div style={{ margin: "15px 0" }}>
+          <Divider>
+            <Icon
+              name="cloud-dev"
+              style={{ fontSize: "16pt", marginRight: "15px" }}
+            />{" "}
+            Title and Color
+          </Divider>
           <div style={{ display: "flex" }}>
+            <div style={{ flex: 1 }} />
             <EditTitle
               configuration={configuration}
               setConfiguration={setConfiguration}
             />
+            <div style={{ flex: 1 }} />
+
             <SelectColor
               configuration={configuration}
               setConfiguration={setConfiguration}
             />
+            <div style={{ flex: 1 }} />
           </div>
+          <Divider>
+            <Icon
+              name="folder-open"
+              style={{ fontSize: "16pt", marginRight: "15px" }}
+            />{" "}
+            Where to Mount Cloud Filesystem
+          </Divider>
           <Mountpoint
             configuration={configuration}
             setConfiguration={setConfiguration}
           />
-          <Compression
-            configuration={configuration}
-            setConfiguration={setConfiguration}
-          />
-          <BlockSize
-            configuration={configuration}
-            setConfiguration={setConfiguration}
-          />
+          <Divider>
+            <Icon
+              name="file-zip"
+              style={{ fontSize: "16pt", marginRight: "15px" }}
+            />{" "}
+            Filesystem Parameters <b>(cannot be changed later!)</b>
+          </Divider>
+          <div style={{ textAlign: "center" }}>
+            <Compression
+              configuration={configuration}
+              setConfiguration={setConfiguration}
+            />
+            <br />
+            <BlockSize
+              configuration={configuration}
+              setConfiguration={setConfiguration}
+            />
+          </div>
+          <Divider>
+            <Icon
+              name="lock"
+              style={{ fontSize: "16pt", marginRight: "15px" }}
+            />{" "}
+            Safety
+          </Divider>
           <Lock
             configuration={configuration}
             setConfiguration={setConfiguration}
           />
-          <MountOptions
-            configuration={configuration}
-            setConfiguration={setConfiguration}
-          />
-          <KeydbOptions
-            configuration={configuration}
-            setConfiguration={setConfiguration}
-          />
+          <Divider>
+            <Icon
+              name="gears"
+              style={{ fontSize: "16pt", marginRight: "15px" }}
+            />{" "}
+            Advanced Settings{" "}
+            {advanced ? (
+              ""
+            ) : (
+              <Button onClick={() => setAdvanced(true)} type="link">
+                (show)
+              </Button>
+            )}
+          </Divider>
+          {advanced && (
+            <>
+              You can set any possible JuiceFS or KeyDB configuration below,
+              which will be used when mounting your filesystem. Be careful since
+              the slightest mistake here could make it so the filesystem will
+              not mount.
+              <br />
+              <MountOptions
+                configuration={configuration}
+                setConfiguration={setConfiguration}
+              />
+              <br />
+              <KeydbOptions
+                configuration={configuration}
+                setConfiguration={setConfiguration}
+              />
+            </>
+          )}
           <ShowError
             error={error}
             setError={setError}
@@ -161,9 +270,11 @@ function SelectColor({ configuration, setConfiguration }) {
 function Mountpoint({ configuration, setConfiguration }) {
   return (
     <div>
-      Mountpoint
+      Mount at <code>/home/user/{configuration.mountpoint}</code> in all of
+      compute servers in this project.
       <br />
       <Input
+        style={{ marginTop: "5px" }}
         value={configuration.mountpoint}
         onChange={(e) => {
           setConfiguration({ ...configuration, mountpoint: e.target.value });
@@ -176,7 +287,7 @@ function Mountpoint({ configuration, setConfiguration }) {
 function Compression({ configuration, setConfiguration }) {
   return (
     <div>
-      Compression. <b>This cannot be changed later.</b>
+      Compression
       <br />
       <Radio.Group
         onChange={(e) =>
@@ -184,9 +295,9 @@ function Compression({ configuration, setConfiguration }) {
         }
         value={configuration.compression}
       >
-        <Radio value={"lz4"}>lz4 (fast)</Radio>
-        <Radio value={"zstd"}>zstd (small)</Radio>
-        <Radio value={"none"}>none</Radio>
+        <Radio value={"lz4"}>LZ4 (fast)</Radio>
+        <Radio value={"zstd"}>ZSTD (small)</Radio>
+        <Radio value={"none"}>None</Radio>
       </Radio.Group>
     </div>
   );
@@ -195,9 +306,11 @@ function Compression({ configuration, setConfiguration }) {
 function BlockSize({ configuration, setConfiguration }) {
   return (
     <div>
-      Block Size (in MB). <b>This cannot be changed later.</b>
+      Block Size (in MB)
       <br />
       <InputNumber
+        style={{ width: "110px" }}
+        addonAfter={"MB"}
         min={MIN_BLOCK_SIZE}
         max={MAX_BLOCK_SIZE}
         value={configuration.block_size}
@@ -212,10 +325,11 @@ function BlockSize({ configuration, setConfiguration }) {
 function Lock({ configuration, setConfiguration }) {
   return (
     <div>
-      Delete phrase to prevent yourself from accidentally deleting this cloud
-      filesystem
+      If you delete this filesystem later, you will be asked to type this
+      phrase. Use this to avoid mistakes.
       <br />
       <Input
+        style={{ marginTop: "5px" }}
         value={configuration.lock}
         onChange={(e) => {
           setConfiguration({ ...configuration, lock: e.target.value });
@@ -228,7 +342,21 @@ function Lock({ configuration, setConfiguration }) {
 function MountOptions({ configuration, setConfiguration }) {
   return (
     <div>
-      Mount Options
+      <Button
+        style={{ float: "right" }}
+        type="text"
+        onClick={() => {
+          setConfiguration({
+            ...configuration,
+            mount_options: DEFAULT_CONFIGURATION.mount_options,
+          });
+        }}
+      >
+        Reset
+      </Button>
+      <A href="https://juicefs.com/docs/community/command_reference#mount">
+        Mount Options
+      </A>
       <br />
       <Input
         value={configuration.mount_options}
@@ -243,8 +371,19 @@ function MountOptions({ configuration, setConfiguration }) {
 function KeydbOptions({ configuration, setConfiguration }) {
   return (
     <div>
-      Keydb Options
-      <br />
+      <Button
+        style={{ float: "right" }}
+        type="text"
+        onClick={() => {
+          setConfiguration({
+            ...configuration,
+            keydb_options: DEFAULT_CONFIGURATION.keydb_options,
+          });
+        }}
+      >
+        Reset
+      </Button>
+      <A href="https://docs.keydb.dev/docs/config-file/">Keydb Options</A>
       <Input
         value={configuration.keydb_options}
         onChange={(e) => {
