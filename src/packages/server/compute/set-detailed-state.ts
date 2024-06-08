@@ -89,7 +89,7 @@ export async function getDetailedState({ project_id, id, name }) {
   if (!name) {
     const { rows } = await pool.query(
       "SELECT detailed_state FROM compute_servers WHERE id=$1 AND project_id=$2",
-      [id, project_id, name],
+      [id, project_id],
     );
     return rows[0]?.detailed_state;
   } else {
