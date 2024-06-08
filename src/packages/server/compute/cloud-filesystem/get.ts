@@ -9,7 +9,9 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { SCHEMA } from "@cocalc/util/db-schema";
 
 const logger = getLogger("server:compute:cloud-filesystem/get");
-const FIELDS = SCHEMA.cloud_filesystems?.user_query?.get?.fields;
+export const FIELDS = Object.keys(
+  SCHEMA.cloud_filesystems?.user_query?.get?.fields ?? {},
+);
 
 // Returns changes that were actually made as an object
 export async function userGetCloudFilesystems(opts: {
@@ -22,7 +24,7 @@ export async function userGetCloudFilesystems(opts: {
     throw Error("cloud filesystems not properly configured");
   }
   const { conditions, params, checkCollab } = await getConditions(opts);
-  const query = `SELECT ${Object.keys(FIELDS).join(
+  const query = `SELECT ${FIELDS.join(
     ",",
   )} FROM cloud_filesystems WHERE ${conditions}`;
   const pool = getPool();
@@ -44,9 +46,7 @@ export async function userGetCloudFilesystems(opts: {
   return rows;
 }
 
-async function getConditions(
-  opts,
-): Promise<{
+async function getConditions(opts): Promise<{
   conditions: string[];
   params: (string | number)[];
   checkCollab: boolean;

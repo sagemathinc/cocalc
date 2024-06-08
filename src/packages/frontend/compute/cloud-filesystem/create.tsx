@@ -141,10 +141,10 @@ export default function CreateCloudFilesystem({
         />{" "}
         <p>
           The CoCalc Cloud Filesystem is a scalable distributed filesystem with
-          local caching. There are no limits on how many files you can store.
-          You do not specify the size of a cloud filesystem in advance, and the
-          cost per GB is typically much less than a compute server disk, but you
-          pay for operations on files.
+          local caching. There are no limits on how much you can store. You do
+          not specify the size of a cloud filesystem in advance, and the cost
+          per GB is typically much less than a compute server disk, but you pay
+          for operations on files.
         </p>
         <Card
           style={{
@@ -187,6 +187,20 @@ export default function CreateCloudFilesystem({
             Mountpoint
           </Divider>
           <Mountpoint
+            configuration={configuration}
+            setConfiguration={setConfiguration}
+          />
+          <Divider>
+            <Icon
+              name="disk-snapshot"
+              style={{ fontSize: "16pt", marginRight: "15px" }}
+            />{" "}
+            Bucket
+          </Divider>
+          Your data is stored in a Google Cloud Storage bucket in a single
+          region or multiregion bucket, and recently used data is cached locally
+          on each compute server's disk.
+          <BucketLocation
             configuration={configuration}
             setConfiguration={setConfiguration}
           />
@@ -252,32 +266,17 @@ export default function CreateCloudFilesystem({
               />
               <Divider>
                 <Icon
-                  name="disk-snapshot"
+                  name="database"
                   style={{ fontSize: "16pt", marginRight: "15px" }}
                 />{" "}
-                Bucket: Location and Storage Class
+                Data Storage
               </Divider>
-              Your data is stored in a Google Cloud Storage bucket in a single
-              region or multiregion bucket, and recently used data is cached
-              locally on each compute server's disk.
               <div>
-                <BucketLocation
-                  configuration={configuration}
-                  setConfiguration={setConfiguration}
-                />
                 <BucketStorageClass
                   configuration={configuration}
                   setConfiguration={setConfiguration}
                 />
-              </div>
-              <Divider>
-                <Icon
-                  name="settings"
-                  style={{ fontSize: "16pt", marginRight: "15px" }}
-                />{" "}
-                Filesystem: Compression and Block Size
-              </Divider>
-              <div>
+
                 <Compression
                   configuration={configuration}
                   setConfiguration={setConfiguration}
@@ -296,11 +295,10 @@ export default function CreateCloudFilesystem({
               </Divider>
               Mount options impact cache speed and other aspects of your
               filesystem, and can be changed when the filesystem is not mounted.
-              <br />
-              You can set any possible JuiceFS or KeyDB configuration below,
-              which will be used when mounting your filesystem. Be careful since
-              a mistake here could make it so the filesystem will not mount,
-              though you can easily edit this and try again.
+              You can set any possible JuiceFS or KeyDB configuration, which
+              will be used when mounting your filesystem. Be careful since a
+              mistake here could make it so the filesystem will temporarily not
+              mount.
               <br />
               <MountOptions
                 configuration={configuration}
@@ -375,7 +373,7 @@ function BucketStorageClass({ configuration, setConfiguration }) {
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt" }}>
         <A href="https://cloud.google.com/storage/docs/storage-classes">
-          Bucket Storage Class
+          {EXTERNAL} Bucket Storage Class
         </A>
       </b>
       <br />
@@ -411,7 +409,7 @@ function BucketLocation({ configuration, setConfiguration }) {
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt", color: "#666" }}>
         <A href="https://cloud.google.com/storage/docs/locations">
-          Bucket Location
+          {EXTERNAL} Bucket Location
         </A>
       </b>
       {NO_CHANGE}
@@ -442,10 +440,16 @@ function BucketLocation({ configuration, setConfiguration }) {
 function Compression({ configuration, setConfiguration }) {
   return (
     <div style={{ marginTop: "10px" }}>
-      <b style={{ fontSize: "13pt", color: "#666" }}>Compression</b>
+      <b style={{ fontSize: "13pt", color: "#666" }}>
+        <A href="https://juicefs.com/docs/community/internals/#data-compression">
+          {EXTERNAL}
+          Compression
+        </A>
+      </b>
       {NO_CHANGE}
-      You can optionally automatically compress all data that is stored to save
-      money.
+      You can optionally automatically compress all data using{" "}
+      <A href="https://lz4.github.io/lz4">LZ4</A> or{" "}
+      <A href="https://facebook.github.io/zstd">ZSTD</A>.
       <div style={{ textAlign: "center" }}>
         <Radio.Group
           onChange={(e) =>
@@ -453,8 +457,8 @@ function Compression({ configuration, setConfiguration }) {
           }
           value={configuration.compression}
         >
-          <Radio value={"lz4"}>LZ4 (fast)</Radio>
-          <Radio value={"zstd"}>ZSTD (small)</Radio>
+          <Radio value={"lz4"}>LZ4 - faster performance</Radio>
+          <Radio value={"zstd"}>ZSTD - better compression ratio</Radio>
           <Radio value={"none"}>None</Radio>
         </Radio.Group>
       </div>
@@ -470,7 +474,7 @@ function BlockSize({ configuration, setConfiguration }) {
       The block size, which is between 1MB and 64MB, is an upper bound on the
       size of the chunks that are storied in the cloud storage bucket. Around
       4MB is the fastest, but 64MB means storing far less objects, which can
-      make the longterm cost much more affordable. <br />
+      make longterm costs much more affordable. <br />
       <div style={{ textAlign: "center" }}>
         <InputNumber
           size="large"
@@ -491,23 +495,26 @@ function BlockSize({ configuration, setConfiguration }) {
 function TrashDays({ configuration, setConfiguration }) {
   return (
     <div style={{ marginTop: "10px" }}>
-      <b style={{ fontSize: "13pt", color: "#666" }}>Trash</b>
-      <br />
       <A href="https://juicefs.com/docs/community/security/trash">
-        JuiceFS Trash
-      </A>{" "}
-      can be configured to store deleted files in{" "}
+        <b style={{ fontSize: "13pt" }}>{EXTERNAL} Trash</b>
+      </A>
+      <br />
+      You can optionally store deleted files in{" "}
       <code>~/{configuration.mountpoint}/.trash</code> for a certain number of
-      days. Set to 0 to disable. You can change this later.
-      <div style={{ textAlign: "center" }}>
+      days. Set to 0 to disable. You <b>can</b> change this later, but it only
+      impacts newly written data.
+      <div style={{ textAlign: "center", marginTop: "5px" }}>
         <InputNumber
           size="large"
           style={{ width: "200px" }}
-          addonAfter={"days trash"}
+          addonAfter={"days"}
           min={0}
           value={configuration.trash_days}
           onChange={(trash_days) =>
-            setConfiguration({ ...configuration, trash_days })
+            setConfiguration({
+              ...configuration,
+              trash_days: Math.round(trash_days),
+            })
           }
         />
       </div>
@@ -615,3 +622,5 @@ const NO_CHANGE = (
     <br />
   </div>
 );
+
+const EXTERNAL = <Icon name="external-link" style={{ marginRight: "5px" }} />;

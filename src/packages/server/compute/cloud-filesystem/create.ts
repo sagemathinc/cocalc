@@ -39,6 +39,7 @@ import { addBucketPolicyBinding } from "@cocalc/server/compute/cloud/google-clou
 import { uuid } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { delay } from "awaiting";
+import { FIELDS } from "./get";
 
 const logger = getLogger("server:compute:cloud-filesystem:create");
 
@@ -58,11 +59,6 @@ import {
 interface Options extends CreateCloudFilesystem {
   account_id: string;
 }
-
-const FIELDS =
-  "project_id,account_id,bucket,mountpoint,secret_key,port,compression,block_size,title,color,notes,lock,mount,position,mount_options,keydb_options,bucket_location,bucket_storage_class,trash_days".split(
-    ",",
-  );
 
 export async function createCloudFilesystem(opts: Options): Promise<number> {
   logger.debug("createCloudFilesystem", opts);
@@ -155,7 +151,7 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
 
     // create storage bucket -- for now only support google
     // cloud storage, as mentioned above.
-    await createBucket(bucket);
+    await createBucket(bucket, bucketOptions(opts));
     await pool.query("UPDATE cloud_filesystems SET bucket=$1 WHERE id=$2", [
       bucket,
       id,
@@ -233,4 +229,10 @@ async function getPort(project_id: string): Promise<number> {
 export async function getServiceAccountId(id: number) {
   const t = `-cloudfs-${id}`;
   return `${(await getGoogleCloudPrefix()).slice(0, 30 - t.length - 1)}${t}`;
+}
+
+function bucketOptions({ bucket_storage_class, bucket_location }: Options) {
+  if (!bucket_location) {
+    bucket_location = "us";
+  }
 }

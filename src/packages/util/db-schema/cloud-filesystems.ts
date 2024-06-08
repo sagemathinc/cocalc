@@ -166,7 +166,9 @@ export type CreateCloudFilesystem = Pick<
   | "notes"
   | "position"
   | "mount_options"
-  | "keydb_options" | "bucket_location" | "bucket_storage_class"
+  | "keydb_options"
+  | "bucket_location"
+  | "bucket_storage_class"
 >;
 
 export const DEFAULT_CONFIGURATION = {
@@ -177,9 +179,10 @@ export const DEFAULT_CONFIGURATION = {
   trash_days: 0,
   title: "Cloud Filesystem",
   lock: "DELETE",
-  mount_options: "--writeback",
+  mount_options:
+    "--writeback --buffer-size=500 --open-cache=180",
   keydb_options: "",
-  bucket_location: "us-east1",
+  bucket_location: "us",
   bucket_storage_class: "standard",
 } as const;
 

@@ -32,9 +32,13 @@ export default function MountButton({
 
   return (
     <Popconfirm
-      title={`Are you sure you want to ${
-        cloudFilesystem.mount ? "unmount" : "mount"
-      } this filesystem?  Expect this to take about 30 seconds to appear on any running compute server.`}
+      title={
+        <div style={{ maxWidth: "400px" }}>
+          Are you sure you want to {cloudFilesystem.mount ? "unmount" : "mount"}{" "}
+          this filesystem? Expect this to take about 30 seconds to appear on any
+          running compute server.
+        </div>
+      }
       onConfirm={toggleMount}
       okText="Yes"
       cancelText="No"
