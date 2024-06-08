@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Card,
   Divider,
@@ -9,7 +10,7 @@ import {
   Select,
   Spin,
 } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { A, Icon } from "@cocalc/frontend/components";
 import Color, { randomColor } from "../color";
@@ -38,27 +39,33 @@ export default function CreateCloudFilesystem({
   cloudFilesystems,
   refresh,
 }) {
+  const [taken, setTaken] = useState<{
+    ports: Set<number>;
+    mountpoints: Set<string>;
+  }>({ ports: new Set(), mountpoints: new Set() });
+  useEffect(() => {
+    if (cloudFilesystems == null) {
+      return;
+    }
+    setTaken({
+      ports: new Set(cloudFilesystems.map((x) => x.port)),
+      mountpoints: new Set(cloudFilesystems.map((x) => x.mountpoint)),
+    });
+  }, [cloudFilesystems]);
   const [creating, setCreating] = useState<boolean>(false);
   const [createStarted, setCreateStarted] = useState<Date>(new Date());
   const [editing, setEditing] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [advanced, setAdvanced] = useState<boolean>(false);
-  const [configuration, setConfiguration] = useState<CreateCloudFilesystem>({
-    project_id,
-    ...DEFAULT_CONFIGURATION,
-    mountpoint: generateMountpoint(
-      cloudFilesystems,
-      DEFAULT_CONFIGURATION.mountpoint,
-    ),
-    color: randomColor(),
-  });
+  const [configuration, setConfiguration] =
+    useState<CreateCloudFilesystem | null>(null);
 
   const reset = () => {
     setConfiguration({
       project_id,
       ...DEFAULT_CONFIGURATION,
       mountpoint: generateMountpoint(
-        cloudFilesystems,
+        taken.mountpoints,
         DEFAULT_CONFIGURATION.mountpoint,
       ),
       color: randomColor(),
@@ -66,7 +73,7 @@ export default function CreateCloudFilesystem({
   };
 
   const create = async () => {
-    if (creating) {
+    if (creating || configuration == null) {
       return;
     }
     try {
@@ -91,6 +98,7 @@ export default function CreateCloudFilesystem({
         size="large"
         disabled={creating || editing}
         onClick={() => {
+          reset();
           setEditing(true);
         }}
         style={{
@@ -123,7 +131,7 @@ export default function CreateCloudFilesystem({
           setEditing(false);
           reset();
         }}
-        open={editing}
+        open={editing && configuration != null}
         okText={<>Create Cloud Filesystem {creating ? <Spin /> : undefined}</>}
         onOk={() => {
           create();
@@ -150,9 +158,9 @@ export default function CreateCloudFilesystem({
         <Card
           style={{
             margin: "15px 0",
-            border: `0.5px solid ${configuration.color ?? "#f0f0f0"}`,
-            borderRight: `10px solid ${configuration.color ?? "#aaa"}`,
-            borderLeft: `10px solid ${configuration.color ?? "#aaa"}`,
+            border: `0.5px solid ${configuration?.color ?? "#f0f0f0"}`,
+            borderRight: `10px solid ${configuration?.color ?? "#aaa"}`,
+            borderLeft: `10px solid ${configuration?.color ?? "#aaa"}`,
             ...(creating ? { opacity: 0.4 } : undefined),
           }}
         >
@@ -190,6 +198,7 @@ export default function CreateCloudFilesystem({
           <Mountpoint
             configuration={configuration}
             setConfiguration={setConfiguration}
+            mountpoints={taken.mountpoints}
           />
           <Divider>
             <Icon
@@ -352,19 +361,29 @@ function SelectColor({ configuration, setConfiguration }) {
   );
 }
 
-function Mountpoint({ configuration, setConfiguration }) {
+function Mountpoint({ configuration, setConfiguration, mountpoints }) {
+  const taken = mountpoints.has(configuration.mountpoint);
   return (
     <div>
       Mount at <code>~/{configuration.mountpoint}</code> on all compute servers.
       You can change this when the filesystem is not mounted.
       <br />
       <Input
+        status={taken ? "error" : undefined}
         style={{ marginTop: "10px" }}
         value={configuration.mountpoint}
         onChange={(e) => {
           setConfiguration({ ...configuration, mountpoint: e.target.value });
         }}
       />
+      {taken && (
+        <Alert
+          style={{ margin: "10px 0" }}
+          showIcon
+          type="error"
+          message="This mountpoint is already being used by another Cloud Filesystem in this project. Please change the mountpoint."
+        />
+      )}
     </div>
   );
 }
@@ -602,9 +621,9 @@ function KeyDBOptions({ configuration, setConfiguration }) {
   );
 }
 
-function generateMountpoint(cloudFilesystems, base): string {
-  const mountpoints = new Set(cloudFilesystems.map((x) => x.mountpoint));
+function generateMountpoint(mountpoints, base): string {
   if (!mountpoints.has(base)) {
+    console.log("generateMountpoint", { mountpoints, base });
     return base;
   }
   let i = 1;

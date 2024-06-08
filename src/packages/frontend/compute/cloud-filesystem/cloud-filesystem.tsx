@@ -47,8 +47,8 @@ export default function CloudFilesystem({
           <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
             Cloud Filesystem mounted at{" "}
-            <code>~/{cloudFilesystem.mountpoint}</code>
-            in {getLocation(cloudFilesystem)}.
+            <code>~/{cloudFilesystem.mountpoint}</code>{" "}
+            <Location bucket_location={cloudFilesystem.bucket_location} />.
             {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
             )}
@@ -61,16 +61,25 @@ export default function CloudFilesystem({
   );
 }
 
-function getCompression({ compression }) {
-  if (compression == "none") {
-    return "not compressed";
-  } else if (compression == "lz4") {
-    return "lz4 compressed";
-  } else if (compression == "zlib") {
-    return "zlib compressed";
+// function getCompression({ compression }) {
+//   if (compression == "none") {
+//     return "not compressed";
+//   } else if (compression == "lz4") {
+//     return "lz4 compressed";
+//   } else if (compression == "zlib") {
+//     return "zlib compressed";
+//   } else {
+//     return `${compression} compressed`;
+//   }
+// }
+
+function Location({ bucket_location }) {
+  if (!bucket_location) {
+    return null;
+  }
+  if (bucket_location.includes("-")) {
+    return <>in {bucket_location}</>;
   } else {
-    return `${compression} compressed`;
+    return <>in {bucket_location.toUpperCase()}</>;
   }
 }
-
-function getLocation({})
