@@ -30,7 +30,10 @@ likely have their own SAN or NFS they want to use instead.
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import getLogger from "@cocalc/backend/logger";
 import { getGoogleCloudPrefix } from "@cocalc/server/compute/cloud/google-cloud/index";
-import { createBucket } from "@cocalc/server/compute/cloud/google-cloud/storage";
+import {
+  createBucket,
+  CreateBucketRequest,
+} from "@cocalc/server/compute/cloud/google-cloud/storage";
 import {
   createServiceAccount,
   createServiceAccountKey,
@@ -231,8 +234,22 @@ export async function getServiceAccountId(id: number) {
   return `${(await getGoogleCloudPrefix()).slice(0, 30 - t.length - 1)}${t}`;
 }
 
+// TODO: as of June "Soft delete policy" is by default 7 days and is FREE
+// until Sept 1, when it gets potentially expensive.
+//   https://cloud.google.com/resources/storage/soft-delete-announce?hl=en
+
 function bucketOptions({ bucket_storage_class, bucket_location }: Options) {
-  if (!bucket_location) {
-    bucket_location = "us";
+  let options: CreateBucketRequest = {};
+  options.location = bucket_location.toUpperCase();
+  if (bucket_storage_class.includes("autoclass")) {
+    options.autoclass = {
+      enabled: true,
+      terminalStorageClass: bucket_storage_class.includes("nearline")
+        ? "NEARLINE"
+        : "ARCHIVE",
+    };
+  } else {
+    options[bucket_storage_class] = true;
   }
+  return options;
 }

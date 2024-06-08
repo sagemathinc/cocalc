@@ -11,6 +11,8 @@ import { uuid } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
 import { addStorageTransferPolicy } from "./policy";
 
+export type { CreateBucketRequest };
+
 const logger = getLogger("server:compute:cloud:google-cloud:storage");
 
 // create a google cloud storage bucket

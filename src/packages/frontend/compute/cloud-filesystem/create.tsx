@@ -75,6 +75,7 @@ export default function CreateCloudFilesystem({
       const id = await createCloudFilesystem(configuration);
       console.log("created", id);
       setEditing(false);
+      reset();
       refresh();
     } catch (err) {
       setError(`${err}`);
