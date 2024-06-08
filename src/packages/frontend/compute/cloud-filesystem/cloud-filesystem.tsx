@@ -21,6 +21,7 @@ export default function CloudFilesystem({
 }: Props) {
   const [error, setError] = useState<string>("");
   const { color, deleting } = cloudFilesystem;
+
   return (
     <Card
       style={{
@@ -45,15 +46,13 @@ export default function CloudFilesystem({
         description={
           <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
-            Mountpoint: <code>~/{cloudFilesystem.mountpoint}</code> on all
-            compute servers in{" "}
-            {showProject ? (
+            Cloud Filesystem mounted at{" "}
+            <code>~/{cloudFilesystem.mountpoint}</code>
+            in {getLocation(cloudFilesystem)}.
+            {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
-            ) : (
-              "this project"
             )}
             <br />
-            Compression: {cloudFilesystem.compression?.toUpperCase() ?? "NONE"},
             Block Size: {cloudFilesystem.block_size ?? 4}MB
           </div>
         }
@@ -61,3 +60,17 @@ export default function CloudFilesystem({
     </Card>
   );
 }
+
+function getCompression({ compression }) {
+  if (compression == "none") {
+    return "not compressed";
+  } else if (compression == "lz4") {
+    return "lz4 compressed";
+  } else if (compression == "zlib") {
+    return "zlib compressed";
+  } else {
+    return `${compression} compressed`;
+  }
+}
+
+function getLocation({})
