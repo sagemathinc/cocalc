@@ -7,7 +7,14 @@ import { getImages } from "@cocalc/server/compute/images";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServerImagesInputSchema,
+  GetComputeServerImagesOutputSchema,
+} from "lib/api/schema/compute/get-images";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -32,3 +39,24 @@ async function get(req) {
   }
   return await getImages({ noCache: !!noCache });
 }
+
+export default apiRoute({
+  getImages: apiRouteOperation({
+    method: "GET",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      query: GetComputeServerImagesInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServerImagesOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

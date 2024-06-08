@@ -6,7 +6,14 @@ import getAccountId from "lib/account/get-account";
 import { getEventLog } from "@cocalc/server/compute/event-log";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServerLogInputSchema,
+  GetComputeServerLogOutputSchema,
+} from "lib/api/schema/compute/get-log";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -25,3 +32,24 @@ async function get(req) {
   });
   return await getEventLog({ id, account_id });
 }
+
+export default apiRoute({
+  getLog: apiRouteOperation({
+    method: "GET",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      query: GetComputeServerLogInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServerLogOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

@@ -1,7 +1,6 @@
 /*
-Set whether or not the image a compute server with given id is using has been tested.
-This is used by admins when manually doing final integration testing for a new image
-on some cloud provider.
+Set a specific compute server template by id. This operation is designed for
+administrators only.
 */
 
 import getAccountId from "lib/account/get-account";
@@ -9,7 +8,14 @@ import { setTemplate } from "@cocalc/server/compute/templates";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  SetComputeServerTemplateInputSchema,
+  SetComputeServerTemplateOutputSchema,
+} from "lib/api/schema/compute/set-template";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -33,3 +39,24 @@ async function get(req) {
   await setTemplate({ account_id, id, template });
   return { status: "ok" };
 }
+
+export default apiRoute({
+  setTemplate: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SetComputeServerTemplateInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SetComputeServerTemplateOutputSchema,
+      },
+    ])
+    .handler(handle),
+});
