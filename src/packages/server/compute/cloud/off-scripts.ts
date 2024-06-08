@@ -41,8 +41,8 @@ setState compute stop '' 30 50
 docker stop compute
 setState compute off '' 30 0
 
-# optional storage networked files
-docker stop storage
+# optional cloud filesystem container
+docker stop cloud-filesystem
 
 ${extraUnmount()}
 
@@ -87,9 +87,9 @@ setState compute off '' 30 50
 docker rm compute
 setState compute deleted '' 0 0
 
-# optional storage networked files
-docker stop storage
-docker rm storage
+# optional cloud filesystem
+docker stop cloud-filesystem
+docker rm cloud-filesystem
 
 ${extraUnmount()}
 
