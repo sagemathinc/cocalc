@@ -5,6 +5,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
 import { Mountpoint } from "./cloud-filesystem";
+import { checkInAll } from "@cocalc/frontend/compute/check-in";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -30,6 +31,7 @@ export default function MountCloudFilesystem({
         id: cloudFilesystem.id,
         mount: !cloudFilesystem.mount,
       });
+      checkInAll(cloudFilesystem.project_id);
       refresh();
       setOpen(false);
     } catch (err) {
@@ -54,8 +56,11 @@ export default function MountCloudFilesystem({
       open={open}
       onCancel={() => setOpen(false)}
       footer={[
-        <Button onClick={() => setOpen(false)}>Cancel</Button>,
+        <Button key="cancel" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>,
         <Button
+          key="ok"
           type="primary"
           danger={cloudFilesystem.mount}
           disabled={mounting}
@@ -78,7 +83,7 @@ export default function MountCloudFilesystem({
                 ? " The filesystem is currently mounted so make sure no applications have anything in this filesystem open to avoid data loss. "
                 : " "}
               Expect {cloudFilesystem.mount ? "unmounting" : "mounting"} to take
-              about <b>30 seconds</b> on any running compute server.
+              about <b>15 seconds</b> on any running compute server.
             </p>
           </>
         }

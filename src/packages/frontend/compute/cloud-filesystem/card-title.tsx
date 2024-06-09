@@ -16,7 +16,6 @@ export default function CloudFilesystemCardTitle({
   setError,
   setShowDelete,
   setShowMount,
-  refresh,
 }: Props) {
   return (
     <div
@@ -57,7 +56,6 @@ export default function CloudFilesystemCardTitle({
       <Menu
         cloudFilesystem={cloudFilesystem}
         setError={setError}
-        refresh={refresh}
         setShowDelete={setShowDelete}
         setShowMount={setShowMount}
       />

@@ -60,7 +60,6 @@ export default function Menu({
   cloudFilesystem,
   style,
   setError,
-  refresh,
   size,
   fontSize,
   setShowDelete,
@@ -69,16 +68,12 @@ export default function Menu({
   cloudFilesystem;
   style?;
   setError;
-  refresh?;
   size?;
   fontSize?;
   setShowDelete;
   setShowMount;
 }) {
   const [open, setOpen] = useState<boolean>(false);
-  const [modal, setModal] = useState<any>(null);
-  const close = () => setModal(null);
-  console.log(refresh, close);
   const { items, onClick } = useMemo(() => {
     if (!open) {
       return { onClick: () => {}, items: [] };
@@ -132,7 +127,6 @@ export default function Menu({
           </Button>
         </Tooltip>
       </Dropdown>
-      {modal}
     </div>
   );
 }

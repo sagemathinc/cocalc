@@ -30,7 +30,6 @@ export default function CloudFilesystems({ project_id }: Props) {
   const scheduledRefresh = useRef<boolean>(false);
 
   useEffect(() => {
-    console.log("refreshing list of filesystems", scheduledRefresh.current);
     (async () => {
       try {
         const c = await getCloudFilesystems({ project_id });
@@ -46,7 +45,6 @@ export default function CloudFilesystems({ project_id }: Props) {
           // again in 30s.
           for (const x of c) {
             if (x.deleting) {
-              console.log("scheduling a refresh");
               setTimeout(() => {
                 scheduledRefresh.current = false;
                 refresh();

@@ -1,4 +1,4 @@
-import api from "@cocalc/frontend/client/api";
+import api from "@cocalc/frontend/client/api";''
 import type {
   Action,
   ComputeServerTemplate,
@@ -269,4 +269,3 @@ export async function setImageTested(opts: {
 }) {
   return await api("compute/set-image-tested", opts);
 }
-

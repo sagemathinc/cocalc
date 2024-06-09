@@ -31,6 +31,7 @@ import {
 } from "@cocalc/util/db-schema/cloud-filesystems";
 import { createCloudFilesystem } from "./api";
 import { ProgressBarTimer } from "../state";
+import { checkInAll } from "@cocalc/frontend/compute/check-in";
 
 export default function CreateCloudFilesystem({
   project_id,
@@ -79,8 +80,8 @@ export default function CreateCloudFilesystem({
     try {
       setCreateStarted(new Date());
       setCreating(true);
-      const id = await createCloudFilesystem(configuration);
-      console.log("created", id);
+      await createCloudFilesystem(configuration);
+      checkInAll(project_id); // cause filesystem to be noticed (and mounted) asap
       setEditing(false);
       reset();
       refresh();
@@ -643,7 +644,6 @@ function KeyDBOptions({ configuration, setConfiguration }) {
 
 function generateMountpoint(mountpoints, base): string {
   if (!mountpoints.has(base)) {
-    console.log("generateMountpoint", { mountpoints, base });
     return base;
   }
   let i = 1;
