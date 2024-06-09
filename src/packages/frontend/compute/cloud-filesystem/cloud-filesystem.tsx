@@ -5,6 +5,7 @@ import CloudFilesystemAvatar from "./avatar";
 import CloudFilesystemCardTitle from "./card-title";
 import ShowError from "@cocalc/frontend/components/error";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import DeleteCloudFilesystem from "./delete-filesystem";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -21,6 +22,7 @@ export default function CloudFilesystem({
 }: Props) {
   const [error, setError] = useState<string>("");
   const { color, deleting } = cloudFilesystem;
+  const [showDelete, setShowDelete] = useState<boolean>(false);
 
   return (
     <Card
@@ -34,6 +36,12 @@ export default function CloudFilesystem({
         ...style,
       }}
     >
+      <DeleteCloudFilesystem
+        cloudFilesystem={cloudFilesystem}
+        open={showDelete}
+        setOpen={setShowDelete}
+        refresh={refresh}
+      />
       <Card.Meta
         avatar={<CloudFilesystemAvatar cloudFilesystem={cloudFilesystem} />}
         title={
@@ -41,6 +49,7 @@ export default function CloudFilesystem({
             cloudFilesystem={cloudFilesystem}
             setError={setError}
             refresh={refresh}
+            setShowDelete={setShowDelete}
           />
         }
         description={

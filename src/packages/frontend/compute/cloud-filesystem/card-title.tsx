@@ -7,11 +7,13 @@ interface Props {
   cloudFilesystem;
   setError;
   refresh?;
+  setShowDelete;
 }
 
 export default function CloudFilesystemCardTitle({
   cloudFilesystem,
   setError,
+  setShowDelete,
   refresh,
 }: Props) {
   return (
@@ -55,6 +57,7 @@ export default function CloudFilesystemCardTitle({
         cloudFilesystem={cloudFilesystem}
         setError={setError}
         refresh={refresh}
+        setShowDelete={setShowDelete}
       />
     </div>
   );

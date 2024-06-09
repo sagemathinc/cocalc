@@ -8,7 +8,7 @@ import { A, Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
 import openSupportTab from "@cocalc/frontend/support/open";
 
-function getItems(): MenuProps["items"] {
+function getItems(cloudFilesystem): MenuProps["items"] {
   const help = {
     key: "help",
     icon: <Icon name="question-circle" />,
@@ -37,7 +37,16 @@ function getItems(): MenuProps["items"] {
       },
     ],
   };
-  return [help];
+  return [
+    {
+      disabled: cloudFilesystem.mount,
+      danger: true,
+      key: "delete",
+      icon: <Icon name="trash" />,
+      label: "Delete",
+    },
+    help,
+  ];
 }
 
 export default function Menu({
@@ -47,6 +56,7 @@ export default function Menu({
   refresh,
   size,
   fontSize,
+  setShowDelete,
 }: {
   cloudFilesystem;
   style?;
@@ -54,6 +64,7 @@ export default function Menu({
   refresh?;
   size?;
   fontSize?;
+  setShowDelete;
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const [modal, setModal] = useState<any>(null);
@@ -65,11 +76,14 @@ export default function Menu({
     }
 
     return {
-      items: getItems(),
+      items: getItems(cloudFilesystem),
       onClick: async (obj) => {
         setOpen(false);
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
         switch (cmd) {
+          case "delete":
+            setShowDelete(true);
+            break;
           case "documentation":
           case "videos":
             // click opens new tab anyways

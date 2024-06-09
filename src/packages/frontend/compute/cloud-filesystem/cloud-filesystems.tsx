@@ -5,7 +5,7 @@ Component that shows a list of all cloud filesystems:
 - associated to an account
 */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCloudFilesystems } from "./api";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import ShowError from "@cocalc/frontend/components/error";
@@ -27,8 +27,10 @@ export default function CloudFilesystems({ project_id }: Props) {
   const [cloudFilesystems, setCloudFilesystems] = useState<
     CloudFilesystemType[] | null
   >(null);
+  const scheduledRefresh = useRef<boolean>(false);
 
   useEffect(() => {
+    console.log("refreshing list of filesystems", scheduledRefresh.current);
     (async () => {
       try {
         const c = await getCloudFilesystems({ project_id });
@@ -38,6 +40,22 @@ export default function CloudFilesystems({ project_id }: Props) {
           return -cmp(x.id ?? 0, y.id ?? 0);
         });
         setCloudFilesystems(c);
+
+        if (!scheduledRefresh.current) {
+          // if a filesystem is currently being deleted, we refresh
+          // again in 30s.
+          for (const x of c) {
+            if (x.deleting) {
+              console.log("scheduling a refresh");
+              setTimeout(() => {
+                scheduledRefresh.current = false;
+                refresh();
+              }, 30000);
+              scheduledRefresh.current = true;
+              break;
+            }
+          }
+        }
       } catch (err) {
         setError(`${err}`);
       }

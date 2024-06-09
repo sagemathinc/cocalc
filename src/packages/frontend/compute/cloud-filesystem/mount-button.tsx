@@ -2,6 +2,7 @@ import { Button, Spin, Popconfirm } from "antd";
 import { editCloudFilesystem } from "./api";
 import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
 
 interface Props {
   cloudFilesystem;
@@ -29,6 +30,34 @@ export default function MountButton({
       refresh?.();
     }
   };
+  if (cloudFilesystem.deleting) {
+    return (
+      <Popconfirm
+        title={
+          <div style={{ maxWidth: "400px" }}>
+            The Google Cloud Storage bucket is currently being deleted.
+            Depending on how much data you have, this can take a long time. It
+            is managed entirely on the backend using the{" "}
+            <A href="https://cloud.google.com/storage-transfer-service">
+              Storage Transfer Service
+            </A>
+            , so you do not need to keep your browser open.
+          </div>
+        }
+      >
+        <Button
+          danger
+          style={{
+            fontWeight: 600,
+            fontSize: "16px",
+          }}
+          type="text"
+        >
+          Deleting... <Spin style={{ marginLeft: "15px" }} />
+        </Button>
+      </Popconfirm>
+    );
+  }
 
   return (
     <Popconfirm
@@ -40,7 +69,7 @@ export default function MountButton({
         </div>
       }
       onConfirm={toggleMount}
-      okText="Yes"
+      okText={cloudFilesystem.mount ? "Unmount" : "Mount"}
       cancelText="No"
     >
       <Button
