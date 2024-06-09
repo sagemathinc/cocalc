@@ -4,6 +4,7 @@ import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
+import { Mountpoint } from "./cloud-filesystem";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -42,9 +43,12 @@ export default function MountCloudFilesystem({
 
   return (
     <Modal
+      centered
       title={
         <>
-          <Icon name={icon} /> {verb} Cloud Filesystem
+          <Icon name={icon} /> {verb} "{cloudFilesystem.title}"{" "}
+          {cloudFilesystem.mount ? "from" : "at"}{" "}
+          <Mountpoint {...cloudFilesystem} />
         </>
       }
       open={open}

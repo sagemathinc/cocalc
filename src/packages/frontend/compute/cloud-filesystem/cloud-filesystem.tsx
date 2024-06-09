@@ -64,9 +64,10 @@ export default function CloudFilesystem({
         description={
           <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
-            Cloud Filesystem with block size {cloudFilesystem.block_size ?? 4}MB
-            mounted at <code>~/{cloudFilesystem.mountpoint}</code> stored in a{" "}
-            <Bucket {...cloudFilesystem} />.
+            Cloud Filesystem <Compression {...cloudFilesystem} />{" "}
+            <BlockSize {...cloudFilesystem} />{" "}
+            {cloudFilesystem.mount ? "mounted" : "which would mount"} at{" "}
+            <Mountpoint {...cloudFilesystem} /> <Bucket {...cloudFilesystem} />.
             {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
             )}
@@ -77,23 +78,33 @@ export default function CloudFilesystem({
   );
 }
 
-// function getCompression({ compression }) {
-//   if (compression == "none") {
-//     return "not compressed";
-//   } else if (compression == "lz4") {
-//     return "lz4 compressed";
-//   } else if (compression == "zlib") {
-//     return "zlib compressed";
-//   } else {
-//     return `${compression} compressed`;
-//   }
-// }
+export function Mountpoint({ mountpoint }) {
+  return (
+    <>
+      <code>~/{mountpoint}</code>
+    </>
+  );
+}
+
+function BlockSize({ block_size }) {
+  return <>block size {block_size ?? 4}MB</>;
+}
+
+function Compression({ compression }) {
+  if (compression == "lz4") {
+    return <>with LZ4 compression and</>;
+  } else if (compression == "zlib") {
+    return <>with ZLIB compression and</>;
+  } else {
+    return <>with</>;
+  }
+}
 
 function Bucket({ bucket_location, bucket_storage_class }) {
   return (
     <>
-      {(bucket_storage_class ?? "standard").split("-").join(" ")} bucket in{" "}
-      <Location bucket_location={bucket_location} />
+      stored in a {(bucket_storage_class ?? "standard").split("-").join(" ")}{" "}
+      bucket in <Location bucket_location={bucket_location} />
     </>
   );
 }

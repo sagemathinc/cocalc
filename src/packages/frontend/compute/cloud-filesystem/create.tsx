@@ -146,13 +146,6 @@ export default function CreateCloudFilesystem({
           setError={setError}
           style={{ margin: "15px 0" }}
         />{" "}
-        <p>
-          The CoCalc Cloud Filesystem is a scalable distributed filesystem with
-          local caching. There are no limits on how much you can store. You do
-          not specify the size of a cloud filesystem in advance, and the cost
-          per GB is typically much less than a compute server disk, but you pay
-          for operations on files.
-        </p>
         <Card
           style={{
             margin: "15px 0",

@@ -72,11 +72,20 @@ export default function CloudFilesystems({ project_id }: Props) {
         <Icon name="refresh" />
         Refresh
       </Button>
-      <h2>Cloud Filesystems</h2>
+      <h2 style={{ textAlign: "center" }}>Cloud Filesystems</h2>
+      <p style={{ maxWidth: "700px", margin: "15px auto" }}>
+        CoCalc Cloud Filesystems are scalable distributed POSIX shared
+        filesystems with fast local caching. They are mounted and usable
+        simultaneously from all compute servers in a project. There are no
+        limits on how much data you can store. You do not specify the size of a
+        cloud filesystem in advance. The cost per GB is typically much less than
+        a compute server disk, but you pay for how many operations you do.
+      </p>
+
       <div style={{ margin: "5px 0" }}>
         {project_id
           ? ""
-          : "All Cloud Filesystems you own across your projects."}
+          : "All Cloud Filesystems you own across your projects are listed below."}
       </div>
       <ShowError error={error} setError={setError} />
       {project_id != null && cloudFilesystems != null && (

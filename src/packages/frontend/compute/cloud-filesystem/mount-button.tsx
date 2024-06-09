@@ -1,35 +1,13 @@
 import { Button, Spin, Popconfirm } from "antd";
-import { editCloudFilesystem } from "./api";
-import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
 
 interface Props {
   cloudFilesystem;
-  setError;
-  refresh?;
+  setShowMount;
 }
 
-export default function MountButton({
-  cloudFilesystem,
-  setError,
-  refresh,
-}: Props) {
-  const [changing, setChanging] = useState<boolean>(false);
-  const toggleMount = async () => {
-    try {
-      setChanging(true);
-      await editCloudFilesystem({
-        id: cloudFilesystem.id,
-        mount: !cloudFilesystem.mount,
-      });
-    } catch (err) {
-      setError(`${err}`);
-    } finally {
-      setChanging(false);
-      refresh?.();
-    }
-  };
+export default function MountButton({ cloudFilesystem, setShowMount }: Props) {
   if (cloudFilesystem.deleting) {
     return (
       <Popconfirm
@@ -60,34 +38,22 @@ export default function MountButton({
   }
 
   return (
-    <Popconfirm
-      title={
-        <div style={{ maxWidth: "400px" }}>
-          Are you sure you want to {cloudFilesystem.mount ? "unmount" : "mount"}{" "}
-          this filesystem? Expect this to take about 30 seconds to appear on any
-          running compute server.
-        </div>
-      }
-      onConfirm={toggleMount}
-      okText={cloudFilesystem.mount ? "Unmount" : "Mount"}
-      cancelText="No"
+    <Button
+      style={{
+        fontWeight: 600,
+        fontSize: "16px",
+        color: cloudFilesystem.mount ? "#389E0D" : "#FF4B00",
+      }}
+      type="text"
+      onClick={() => {
+        setShowMount(true);
+      }}
     >
-      <Button
-        disabled={changing}
-        style={{
-          fontWeight: 600,
-          fontSize: "16px",
-          color: cloudFilesystem.mount ? "#389E0D" : "#FF4B00",
-        }}
-        type="text"
-      >
-        <Icon
-          name={cloudFilesystem.mount ? "run" : "stop"}
-          style={{ marginRight: "5px" }}
-        />
-        {cloudFilesystem.mount ? "Mounted" : "Not Mounted"}
-        {changing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
-      </Button>
-    </Popconfirm>
+      <Icon
+        name={cloudFilesystem.mount ? "run" : "stop"}
+        style={{ marginRight: "5px" }}
+      />
+      {cloudFilesystem.mount ? "Mounted" : "Not Mounted"}
+    </Button>
   );
 }

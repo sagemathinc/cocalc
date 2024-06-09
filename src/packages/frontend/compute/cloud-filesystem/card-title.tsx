@@ -30,8 +30,7 @@ export default function CloudFilesystemCardTitle({
       <div style={{ flex: 1 }}>
         <MountButton
           cloudFilesystem={cloudFilesystem}
-          setError={setError}
-          refresh={refresh}
+          setShowMount={setShowMount}
         />
       </div>
       <div

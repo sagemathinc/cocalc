@@ -38,6 +38,7 @@ export default function DeleteCloudFilesystem({
 
   return (
     <Modal
+      centered
       title={
         <>
           <Icon name="trash" /> Delete Cloud Filesystem
