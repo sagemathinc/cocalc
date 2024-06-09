@@ -41,7 +41,7 @@ export default function DeleteCloudFilesystem({
       centered
       title={
         <>
-          <Icon name="trash" /> Delete Cloud Filesystem
+          <Icon name="trash" /> Delete "{cloudFilesystem.title}"{" "}
         </>
       }
       open={open}
