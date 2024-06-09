@@ -15,7 +15,14 @@ import {
   deleteProjectApiKey,
 } from "@cocalc/server/compute/project-api-key";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServerAPIKeyInputSchema,
+  GetComputeServerAPIKeyOutputSchema,
+} from "lib/api/schema/compute/get-api-key";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -40,3 +47,24 @@ async function get(req) {
   await deleteProjectApiKey({ account_id, server });
   return await setProjectApiKey({ account_id, server });
 }
+
+export default apiRoute({
+  getServerAPIKey: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: GetComputeServerAPIKeyInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServerAPIKeyOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

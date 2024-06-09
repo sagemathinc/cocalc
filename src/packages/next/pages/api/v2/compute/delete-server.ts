@@ -7,7 +7,14 @@ import getAccountId from "lib/account/get-account";
 import deleteServer from "@cocalc/server/compute/delete-server";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  DeleteComputeServerInputSchema,
+  DeleteComputeServerOutputSchema
+} from "lib/api/schema/compute/delete-server";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -28,3 +35,24 @@ async function get(req) {
   });
   return { status: "ok" };
 }
+
+export default apiRoute({
+  deleteServer: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: DeleteComputeServerInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: DeleteComputeServerOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

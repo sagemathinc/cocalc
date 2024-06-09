@@ -12,7 +12,14 @@ import { getDetailedState } from "@cocalc/server/compute/set-detailed-state";
 import getParams from "lib/api/get-params";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetDetailedServerStateInputSchema,
+  GetDetailedServerStateOutputSchema,
+} from "lib/api/schema/compute/get-detailed-state";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -52,3 +59,24 @@ async function get(req) {
     name,
   });
 }
+
+export default apiRoute({
+  getDetailedServerState: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: GetDetailedServerStateInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "text/plain",
+        body: GetDetailedServerStateOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

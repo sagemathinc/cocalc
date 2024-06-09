@@ -10,7 +10,14 @@ import { getServerNoCheck } from "@cocalc/server/compute/get-servers";
 import getParams from "lib/api/get-params";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServerSerialPortOutputInputSchema,
+  GetComputeServerSerialPortOutputOutputSchema
+} from "lib/api/schema/compute/get-serial-port-output";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -44,3 +51,24 @@ async function get(req) {
     account_id: server.account_id, // actual compute server owner
   });
 }
+
+export default apiRoute({
+  getSerialPortOutput: apiRouteOperation({
+    method: "GET",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      query: GetComputeServerSerialPortOutputInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServerSerialPortOutputOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

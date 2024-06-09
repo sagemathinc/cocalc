@@ -6,7 +6,14 @@ import getAccountId from "lib/account/get-account";
 import { state } from "@cocalc/server/compute/control";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServerStateInputSchema,
+  GetComputeServerStateOutputSchema
+} from "lib/api/schema/compute/get-server-state";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -26,3 +33,24 @@ async function get(req) {
     id,
   });
 }
+
+export default apiRoute({
+  getServerState: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: GetComputeServerStateInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServerStateOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

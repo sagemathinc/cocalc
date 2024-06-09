@@ -6,6 +6,13 @@ import getAccountId from "lib/account/get-account";
 import getServers from "@cocalc/server/compute/get-servers";
 import getParams from "lib/api/get-params";
 
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServersInputSchema,
+  GetComputeServersOutputSchema
+} from "lib/api/schema/compute/get-servers";
+
+
 async function handle(req, res) {
   try {
     res.json(await get(req));
@@ -30,31 +37,22 @@ async function get(req) {
   });
 }
 
-import { apiRoute, apiRouteOperation, z } from "lib/api";
-
-const serversSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-});
-
 export default apiRoute({
-  computeGetServers: apiRouteOperation({
+  getServers: apiRouteOperation({
     method: "GET",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
   })
     .input({
       contentType: "application/json",
-      body: z
-        .object({
-          project_id: z.string().optional(),
-          id: z.number().optional(),
-        })
-        .describe("Parameters that restrict compute servers to get."),
+      query: GetComputeServersInputSchema,
     })
     .outputs([
       {
         status: 200,
         contentType: "application/json",
-        body: z.array(serversSchema),
+        body: GetComputeServersOutputSchema,
       },
     ])
     .handler(handle),

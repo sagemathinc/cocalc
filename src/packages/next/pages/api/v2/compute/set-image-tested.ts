@@ -9,7 +9,14 @@ import { setImageTested } from "@cocalc/server/compute/control";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  SetComputeServerImageTestedInputSchema,
+  SetComputeServerImageTestedOutputSchema,
+} from "lib/api/schema/compute/set-image-tested";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -30,3 +37,24 @@ async function get(req) {
   await setImageTested({ id, account_id, tested });
   return { status: "ok" };
 }
+
+export default apiRoute({
+  setImageTested: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SetComputeServerImageTestedInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SetComputeServerImageTestedOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

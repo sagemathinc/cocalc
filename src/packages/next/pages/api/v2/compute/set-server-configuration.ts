@@ -7,7 +7,14 @@ import getAccountId from "lib/account/get-account";
 import setServerConfiguration from "@cocalc/server/compute/set-server-configuration";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  SetServerConfigurationInputSchema,
+  SetServerConfigurationOutputSchema
+} from "lib/api/schema/compute/set-server-configuration";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -29,3 +36,24 @@ async function get(req) {
   });
   return { status: "ok" };
 }
+
+export default apiRoute({
+  setServerConfiguration: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SetServerConfigurationInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SetServerConfigurationOutputSchema,
+      },
+    ])
+    .handler(handle),
+});
