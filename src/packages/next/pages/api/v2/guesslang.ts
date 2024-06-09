@@ -1,6 +1,12 @@
 import { ModelOperations } from "@vscode/vscode-languagedetection";
 import getParams from "lib/api/get-params";
 
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GuesslangInputSchema,
+  GuesslangOutputSchema
+} from "lib/api/schema/guesslang";
+
 const modelOperations = new ModelOperations();
 
 async function handle(req, res) {
@@ -15,47 +21,22 @@ async function handle(req, res) {
   }
 }
 
-//** OpenAPI below **
-
-import { z, apiRoute, apiRouteOperation } from "lib/api";
-
-const querySchema = z
-  .object({
-    code: z.string().describe("A snippet of code."),
-    cutoff: z
-      .number()
-      .positive()
-      .default(5)
-      .describe("Maximum number of results to return."),
-  })
-  .describe(
-    "Use a sophisticated machine learning model (see @vscode/vscode-languagedetection) to guess the language of a snippet of code.",
-  );
-
 export default apiRoute({
   guesslang: apiRouteOperation({
     method: "POST",
+    openApiOperation: {
+      tags: ["Utils"]
+    },
   })
-    .input({ contentType: "application/json", body: querySchema })
+    .input({
+      contentType: "application/json",
+      body: GuesslangInputSchema,
+    })
     .outputs([
       {
         status: 200,
         contentType: "application/json",
-        body: z.union([
-          z.object({
-            error: z
-              .string()
-              .optional()
-              .describe("Error message is something goes badly wrong."),
-          }),
-          z.object({
-            result: z
-              .array(z.string())
-              .describe(
-                "List of likely guesses for the type of code, from most likely to less likely.",
-              ),
-          }),
-        ]),
+        body: GuesslangOutputSchema,
       },
     ])
     .handler(handle),

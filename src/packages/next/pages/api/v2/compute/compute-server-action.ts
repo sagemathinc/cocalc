@@ -2,12 +2,19 @@
 Request to do an action (e.g., "start") with a compute server.
 You must be the owner of the compute server.
 */
+import computeServerAction from "@cocalc/server/compute/compute-server-action";
 
 import getAccountId from "lib/account/get-account";
-import computeServerAction from "@cocalc/server/compute/compute-server-action";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  ComputeServerActionInputSchema,
+  ComputeServerActionOutputSchema,
+} from "lib/api/schema/compute/compute-server-action";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -29,3 +36,24 @@ async function get(req) {
   });
   return { status: "ok" };
 }
+
+export default apiRoute({
+  serverAction: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: ComputeServerActionInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: ComputeServerActionOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

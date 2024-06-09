@@ -11,11 +11,20 @@ import {
   getStopScript,
   getDeprovisionScript,
 } from "@cocalc/server/compute/control";
-import { getAccountWithApiKey as getProjectIdWithApiKey } from "@cocalc/server/api/manage";
+import {
+  getAccountWithApiKey as getProjectIdWithApiKey,
+} from "@cocalc/server/api/manage";
 import getParams from "lib/api/get-params";
 import getPool from "@cocalc/database/pool";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  ComputeServerScriptsInputSchema,
+  ComputeServerScriptsOutputSchema,
+} from "lib/api/schema/compute/scripts";
+
+
+async function handle(req, res) {
   try {
     res.send(await get(req));
   } catch (err) {
@@ -71,3 +80,24 @@ export async function getScript({
     throw Error(`unknown action=${action}`);
   }
 }
+
+export default apiRoute({
+  scripts: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: ComputeServerScriptsInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "text/plain",
+        body: ComputeServerScriptsOutputSchema,
+      },
+    ])
+    .handler(handle),
+});
