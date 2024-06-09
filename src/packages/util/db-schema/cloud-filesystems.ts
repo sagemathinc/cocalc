@@ -44,18 +44,18 @@ export interface GoogleCloudServiceAccountKey {
 
 export type Compression = "lz4" | "zstd" | "none";
 export const GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES = [
-  "autoclass-nearline",
-  "autoclass-archive",
   "standard",
   "nearline",
   "coldline",
   "archive",
+  "autoclass-nearline",
+  "autoclass-archive",
 ];
 export const GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC = {
   "autoclass-nearline":
-    "Autoclass - unpredictable usage: transitions objects between Standard or Nearline based on activity",
+    "Autoclass - transitions objects between Standard or Nearline based on activity",
   "autoclass-archive":
-    "Autoclass - unpredictable usage: transitions objects between Standard, Nearline, Coldline, and Archive based on activity",
+    "Autoclass - transitions objects between Standard, Nearline, Coldline, and Archive based on activity",
   standard: "Standard - short-term storage and frequently accessed data",
   nearline: "Nearline - backups and data accessed less than once a month",
   coldline:
@@ -181,7 +181,8 @@ export const DEFAULT_CONFIGURATION = {
   lock: "DELETE",
   // The entry-cache and/or dir-entry-cache being on with a default of 1 caused
   // weird bugs, so they are disabled.  Also, without writeback things are brutally slow.
-  mount_options: "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other,writeback_cache",
+  mount_options:
+    "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other,writeback_cache",
   keydb_options: "",
   bucket_location: "us",
   bucket_storage_class: "standard",

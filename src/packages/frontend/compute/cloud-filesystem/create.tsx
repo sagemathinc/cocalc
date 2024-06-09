@@ -253,9 +253,12 @@ export default function CreateCloudFilesystem({
                 <A href="https://cloud.google.com/storage/pricing">
                   Google Cloud Storage Pricing.
                 </A>{" "}
-                The pricing is highly competitive but complicated; fortunately,
-                you can easily check each day to see how much a given filesystem
-                cost the previous day.
+                The pricing is highly competitive{" "}
+                <A href="https://cloud.google.com/storage/pricing#price-tables">
+                  but complicated
+                </A>
+                ; fortunately, you can check each day to see how much a given
+                filesystem cost the previous day.
               </p>
               <Divider>
                 <Icon
@@ -417,6 +420,30 @@ function BucketStorageClass({ configuration, setConfiguration }) {
           setConfiguration({ ...configuration, bucket_storage_class })
         }
       />
+      {configuration.bucket_storage_class.includes("auto") && (
+        <Alert
+          style={{ margin: "10px 0" }}
+          showIcon
+          type="warning"
+          message={
+            <>
+              <A href="https://cloud.google.com/storage/docs/autoclass">
+                Autoclass buckets
+              </A>{" "}
+              incur a monthly fee of about $3 for every million objects stored
+              in them. Each object corresponds to a chunk of a file, so if you
+              have a large number of small files (which is common with AI
+              research), the autoclass management fee can be substantial. E.g.,
+              if your cloud filesystem contains 1,000GB of data broken into 10
+              million blocks, the cost would be about $30/month to manage the
+              autoclass blocks and between $1 and $50 to store the data,
+              depending on how old it is. Make sure to user a large block size
+              (see below). If you're archiving your data, instead make a bucket
+              with a nearline, coldline or archive storage class.
+            </>
+          }
+        />
+      )}
     </div>
   );
 }
