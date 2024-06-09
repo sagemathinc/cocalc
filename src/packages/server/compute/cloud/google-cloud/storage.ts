@@ -51,7 +51,7 @@ export async function deleteFilesUsingTransferService(
   bucketName: string,
   _addTransferPolicy = false, // used in case of failure
 ) {
-  logger.debug("deleteFolderUsingTransferService", {
+  logger.debug("deleteFilesUsingTransferService", {
     bucketName,
     _addTransferPolicy,
   });
@@ -62,7 +62,7 @@ export async function deleteFilesUsingTransferService(
 
   if (_addTransferPolicy) {
     logger.debug(
-      "deleteFolderUsingTransferService -- adding transfer service account role binding",
+      "deleteFilesUsingTransferService -- adding transfer service account role binding",
     );
     // Note that the client's service account by default doesn't have permissions to
     // actually do anything, so the transfer fails.  The source code of StorageTransferServiceClient says
@@ -107,33 +107,33 @@ export async function deleteFilesUsingTransferService(
     };
 
     logger.debug(
-      "deleteFolderUsingTransferService: creating transfer job",
+      "deleteFilesUsingTransferService: creating transfer job",
       transferJob,
     );
 
     const [job] = await transferClient.createTransferJob({ transferJob });
 
-    logger.debug("deleteFolderUsingTransferService: transfer job created", job);
+    logger.debug("deleteFilesUsingTransferService: transfer job created", job);
     const runRequest = {
       jobName: job.name,
       projectId,
     };
     logger.debug(
-      "deleteFolderUsingTransferService: submitting request",
+      "deleteFilesUsingTransferService: submitting request",
       runRequest,
     );
     const [operation] = await transferClient.runTransferJob(runRequest);
 
     logger.debug(
-      "deleteFolderUsingTransferService: waiting for the operation to complete",
+      "deleteFilesUsingTransferService: waiting for the operation to complete",
     );
     await operation.promise();
 
-    logger.debug("deleteFolderUsingTransferService: operation completed!");
+    logger.debug("deleteFilesUsingTransferService: operation completed!");
 
     // Delete the job after completion
     logger.debug(
-      "deleteFolderUsingTransferService: deleting transfer job",
+      "deleteFilesUsingTransferService: deleting transfer job",
       job.name,
     );
     await transferClient.updateTransferJob({
@@ -144,25 +144,25 @@ export async function deleteFilesUsingTransferService(
       },
       updateTransferJobFieldMask: { paths: ["status"] },
     });
-    logger.debug("deleteFolderUsingTransferService: transfer job deleted");
+    logger.debug("deleteFilesUsingTransferService: transfer job deleted");
   } catch (err) {
     if (!_addTransferPolicy) {
       logger.debug(
-        "deleteFolderUsingTransferService: failed -- trying again after adding storage policy",
+        "deleteFilesUsingTransferService: failed -- trying again after adding storage policy",
         err,
       );
       await deleteFilesUsingTransferService(bucketName, true);
       return;
     }
   } finally {
-    logger.debug("deleteFolderUsingTransferService: deleting temp bucket");
+    logger.debug("deleteFilesUsingTransferService: deleting temp bucket");
     // obviously do not use transfer service for this!
     deleteBucket({ bucketName: tempBucket, useTransferService: false });
   }
 }
 
 // Delete a google cloud storage bucket
-// You should first delete most files using deleteFolderUsingTransferService.
+// You should first delete most files using deleteFilesUsingTransferService.
 // See the comment above.  Only call this when there's a few token files
 // or folders left.
 export async function deleteBucket({

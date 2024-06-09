@@ -46,7 +46,9 @@ export async function userDeleteCloudFilesystem({
     throw Error("unmount the cloud filesystem first");
   }
   if (cloudFilesystem.deleting) {
-    throw Error(`cloud filesystem ${id} is currently being deleted; please wait`);
+    throw Error(
+      `cloud filesystem ${id} is currently being deleted; please wait`,
+    );
   }
   // launch the delete without blocking api call response
   launchDelete(id);
@@ -81,12 +83,12 @@ async function launchDelete(id: number) {
 
 export async function deleteMaintenance() {
   // NOTE: if a single delete takes longer than 1 hour, then we'll end up running
-  // two deletes at once.  This could happen maybe, if a bucket has over a million
-  // objects in it, maybe.  Estimate are between 300/s and 1500/s, so maybe 5 million.
+  // two deletes at once.  This could happen maybe, if a bucket millions
+  // of objects in it, maybe.  Estimate are between 300/s and 1500/s, so maybe 5 million.
   // In any case, I don't think it would be the end of the world.
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT id FROM cloud_filesystems WHERE deleting=TRUE AND last_edited >= NOW() - interval '1 hour'",
+    "SELECT id FROM cloud_filesystems WHERE deleting=TRUE AND last_edited <= NOW() - interval '30 minutes'",
   );
   for (const { id } of rows) {
     launchDelete(id);
