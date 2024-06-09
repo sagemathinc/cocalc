@@ -83,7 +83,7 @@ export default function MountButton({
       >
         <Icon
           name={cloudFilesystem.mount ? "run" : "stop"}
-          style={{ marginRight: "15px" }}
+          style={{ marginRight: "5px" }}
         />
         {cloudFilesystem.mount ? "Mounted" : "Not Mounted"}
         {changing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}

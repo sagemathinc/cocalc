@@ -39,11 +39,18 @@ function getItems(cloudFilesystem): MenuProps["items"] {
   };
   return [
     {
-      disabled: cloudFilesystem.mount,
+      disabled: cloudFilesystem.deleting,
+      danger: cloudFilesystem.mount,
+      key: "mount",
+      icon: <Icon name={cloudFilesystem.mount ? "stop" : "run"} />,
+      label: cloudFilesystem.mount ? "Unmount..." : "Mount...",
+    },
+    {
+      disabled: cloudFilesystem.deleting || cloudFilesystem.mount,
       danger: true,
       key: "delete",
       icon: <Icon name="trash" />,
-      label: "Delete",
+      label: "Delete...",
     },
     help,
   ];
@@ -57,6 +64,7 @@ export default function Menu({
   size,
   fontSize,
   setShowDelete,
+  setShowMount,
 }: {
   cloudFilesystem;
   style?;
@@ -65,6 +73,7 @@ export default function Menu({
   size?;
   fontSize?;
   setShowDelete;
+  setShowMount;
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const [modal, setModal] = useState<any>(null);
@@ -81,6 +90,9 @@ export default function Menu({
         setOpen(false);
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
         switch (cmd) {
+          case "mount":
+            setShowMount(true);
+            break;
           case "delete":
             setShowDelete(true);
             break;

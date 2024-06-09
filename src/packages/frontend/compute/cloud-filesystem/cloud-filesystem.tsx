@@ -6,6 +6,7 @@ import CloudFilesystemCardTitle from "./card-title";
 import ShowError from "@cocalc/frontend/components/error";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import DeleteCloudFilesystem from "./delete-filesystem";
+import MountCloudFilesystem from "./mount-filesystem";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -23,6 +24,7 @@ export default function CloudFilesystem({
   const [error, setError] = useState<string>("");
   const { color, deleting } = cloudFilesystem;
   const [showDelete, setShowDelete] = useState<boolean>(false);
+  const [showMount, setShowMount] = useState<boolean>(false);
 
   return (
     <Card
@@ -42,6 +44,12 @@ export default function CloudFilesystem({
         setOpen={setShowDelete}
         refresh={refresh}
       />
+      <MountCloudFilesystem
+        cloudFilesystem={cloudFilesystem}
+        open={showMount}
+        setOpen={setShowMount}
+        refresh={refresh}
+      />
       <Card.Meta
         avatar={<CloudFilesystemAvatar cloudFilesystem={cloudFilesystem} />}
         title={
@@ -50,19 +58,18 @@ export default function CloudFilesystem({
             setError={setError}
             refresh={refresh}
             setShowDelete={setShowDelete}
+            setShowMount={setShowMount}
           />
         }
         description={
           <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
-            Cloud Filesystem mounted at{" "}
-            <code>~/{cloudFilesystem.mountpoint}</code>{" "}
-            <Location bucket_location={cloudFilesystem.bucket_location} />.
+            Cloud Filesystem with block size {cloudFilesystem.block_size ?? 4}MB
+            mounted at <code>~/{cloudFilesystem.mountpoint}</code> stored in a{" "}
+            <Bucket {...cloudFilesystem} />.
             {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
             )}
-            <br />
-            Block Size: {cloudFilesystem.block_size ?? 4}MB
           </div>
         }
       />
@@ -82,13 +89,22 @@ export default function CloudFilesystem({
 //   }
 // }
 
+function Bucket({ bucket_location, bucket_storage_class }) {
+  return (
+    <>
+      {(bucket_storage_class ?? "standard").split("-").join(" ")} bucket in{" "}
+      <Location bucket_location={bucket_location} />
+    </>
+  );
+}
+
 function Location({ bucket_location }) {
   if (!bucket_location) {
-    return null;
+    return <>unknown-region</>;
   }
   if (bucket_location.includes("-")) {
-    return <>in {bucket_location}</>;
+    return <>{bucket_location}</>;
   } else {
-    return <>in {bucket_location.toUpperCase()}</>;
+    return <>the {bucket_location.toUpperCase()} multiregion</>;
   }
 }

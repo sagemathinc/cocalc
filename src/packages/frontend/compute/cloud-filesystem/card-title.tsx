@@ -8,12 +8,14 @@ interface Props {
   setError;
   refresh?;
   setShowDelete;
+  setShowMount;
 }
 
 export default function CloudFilesystemCardTitle({
   cloudFilesystem,
   setError,
   setShowDelete,
+  setShowMount,
   refresh,
 }: Props) {
   return (
@@ -58,6 +60,7 @@ export default function CloudFilesystemCardTitle({
         setError={setError}
         refresh={refresh}
         setShowDelete={setShowDelete}
+        setShowMount={setShowMount}
       />
     </div>
   );
