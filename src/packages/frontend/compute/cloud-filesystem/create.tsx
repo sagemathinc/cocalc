@@ -67,6 +67,8 @@ export default function CreateCloudFilesystem({
         DEFAULT_CONFIGURATION.mountpoint,
       ),
       color: randomColor(),
+      // start mounted by default -- way less confusing
+      mount: true,
     });
   };
 

@@ -180,9 +180,10 @@ export const DEFAULT_CONFIGURATION = {
   title: "Cloud Filesystem",
   lock: "DELETE",
   // The entry-cache and/or dir-entry-cache being on with a default of 1 caused
-  // weird bugs, so they are disabled.  Also, without writeback things are brutally slow.
-  mount_options:
-    "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other,writeback_cache",
+  // weird bugs, so I explicitly disabled them.  Also, without writeback things
+  // are brutally slow, so it's enabled (and seems to never cause issue).
+  // allow_other makes it possible to use ZFS on top of this, which is interesting.
+  mount_options: "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other",
   keydb_options: "",
   bucket_location: "us",
   bucket_storage_class: "standard",
