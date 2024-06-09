@@ -13,7 +13,6 @@ import {
   GetComputeServerGoogleImagesOutputSchema,
 } from "lib/api/schema/compute/get-images-google";
 
-
 async function handle(req, res) {
   try {
     res.json(await get(req));
@@ -42,9 +41,9 @@ async function get(req) {
 
 export default apiRoute({
   getImagesGoogle: apiRouteOperation({
-    method: "GET",
+    method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({
