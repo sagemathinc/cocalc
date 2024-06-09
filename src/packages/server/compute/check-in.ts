@@ -18,8 +18,7 @@ import {
 } from "./cloud-filesystem";
 import { sha1 } from "@cocalc/backend/sha1";
 import getLogger from "@cocalc/backend/logger";
-
-export const CHECK_IN_PERIOD_S = 15;
+import { CHECK_IN_PERIOD_S } from "@cocalc/util/db-schema/compute-servers";
 
 const logger = getLogger("server:compute:check-in");
 
@@ -46,7 +45,7 @@ export async function checkIn(opts: {
     name: "vm",
     state: "ready",
     extra: "",
-    timeout: CHECK_IN_PERIOD_S + 10,
+    timeout: CHECK_IN_PERIOD_S + 15,
     progress: 100,
   });
 

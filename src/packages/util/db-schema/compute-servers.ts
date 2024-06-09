@@ -21,6 +21,9 @@ export {
 export const STANDARD_DISK_SIZE = 20;
 export const CUDA_DISK_SIZE = 60;
 
+export const CHECK_IN_PERIOD_S = 20;
+export const CHECK_IN_PATH = "/cocalc/conf/check-in";
+
 // Compute Server Images -- typings.  See packages/server/compute/images.ts for
 // how the actual data is populated.
 
