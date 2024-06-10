@@ -5,10 +5,7 @@ Get Templates
 import { getTemplates } from "@cocalc/server/compute/templates";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
-import {
-  GetComputeServerTemplatesOutputSchema
-} from "lib/api/schema/compute/get-templates";
-
+import { GetComputeServerTemplatesOutputSchema } from "lib/api/schema/compute/get-templates";
 
 async function handle(_req, res) {
   try {
@@ -21,9 +18,9 @@ async function handle(_req, res) {
 
 export default apiRoute({
   getTemplates: apiRouteOperation({
-    method: "GET",
+    method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .outputs([

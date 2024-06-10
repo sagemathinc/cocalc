@@ -13,9 +13,8 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import {
   GetComputeServerSerialPortOutputInputSchema,
-  GetComputeServerSerialPortOutputOutputSchema
+  GetComputeServerSerialPortOutputOutputSchema,
 } from "lib/api/schema/compute/get-serial-port-output";
-
 
 async function handle(req, res) {
   try {
@@ -54,9 +53,9 @@ async function get(req) {
 
 export default apiRoute({
   getSerialPortOutput: apiRouteOperation({
-    method: "GET",
+    method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

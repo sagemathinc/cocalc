@@ -12,7 +12,6 @@ import {
   GetComputeServerLogOutputSchema,
 } from "lib/api/schema/compute/get-log";
 
-
 async function handle(req, res) {
   try {
     res.json(await get(req));
@@ -35,9 +34,9 @@ async function get(req) {
 
 export default apiRoute({
   getLog: apiRouteOperation({
-    method: "GET",
+    method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({
