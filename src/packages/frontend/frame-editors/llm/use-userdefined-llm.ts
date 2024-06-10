@@ -6,13 +6,18 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 
 export function useUserDefinedLLM(): UserDefinedLLM[] {
+  const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
   const other_settings = useTypedRedux("account", "other_settings");
   return useMemo(() => {
+    if (!user_defined_llm) return [];
     return processUserDefinedLLM(other_settings);
   }, [other_settings]);
 }
 
 export function getUserDefinedLLM(): UserDefinedLLM[] {
+  const user_defined_llm = redux.getStore("customize").get("user_defined_llm");
+  if (!user_defined_llm) return [];
+
   const other_settings = redux.getStore("account").get("other_settings");
   return processUserDefinedLLM(other_settings);
 }

@@ -43,6 +43,7 @@ interface Props {
 
 export function OtherSettings(props: Readonly<Props>): JSX.Element {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+  const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
   const [model, setModel] = useLanguageModelSetting();
 
   function on_change(name: string, value: any): void {
@@ -392,8 +393,8 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
   }
 
   function render_custom_llm(): Rendered {
-    // Custom LLMs are only for on-prem – for now
-    if (isCoCalcCom) return;
+    // on cocalc.com, do not even show that they're disabled
+    if (isCoCalcCom && !user_defined_llm) return;
     return <UserDefinedLLMComponent on_change={on_change} />;
   }
 

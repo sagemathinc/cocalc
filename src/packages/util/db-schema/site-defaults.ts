@@ -776,7 +776,7 @@ export const site_settings_conf: SiteSettings = {
   user_defined_llm: {
     name: "User Defined LLM",
     desc: "If enabled, users are allowed to configure and run their own LLMs (their API keys, etc.)",
-    default: "yes",
+    default: "no",
     to_val: to_bool,
     valid: only_booleans,
     tags: ["AI LLM"],

@@ -41,8 +41,9 @@ export function have_llm(service: LLMServiceName) {
       return isSet(ANTHROPIC_KEY);
     case "ollama":
     case "custom_openai":
-    case "user":
       return false;
+    case "user":
+      return true;
     default:
       unreachable(service);
   }
