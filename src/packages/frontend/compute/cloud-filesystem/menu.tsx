@@ -39,6 +39,11 @@ function getItems(cloudFilesystem): MenuProps["items"] {
   };
   return [
     {
+      key: "edit-title-and-colors",
+      icon: <Icon name={"colors"} />,
+      label: "Edit Title and Color",
+    },
+    {
       disabled: cloudFilesystem.deleting,
       danger: cloudFilesystem.mount,
       key: "mount",
@@ -94,6 +99,9 @@ export default function Menu({
             break;
           case "edit-mountpoint":
             show.setShowEditMountpoint(true);
+            break;
+          case "edit-title-and-colors":
+            show.setShowEditTitleAndColors(true);
             break;
           case "delete":
             show.setShowDelete(true);

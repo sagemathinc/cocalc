@@ -50,16 +50,20 @@ export default function CloudFilesystemCardTitle({
           {trunc_middle(`~/${cloudFilesystem.mountpoint}`, 40)}
         </code>
       </div>
-      <Title
-        title={cloudFilesystem.title}
-        editable={false}
-        style={{
-          textOverflow: "ellipsis",
-          overflow: "hidden",
-          flex: 1,
-          padding: "5px 5px 0 5px",
-        }}
-      />
+      <div
+        style={{ flex: 1, cursor: "pointer" }}
+        onClick={() => show.setShowEditTitleAndColor(true)}
+      >
+        <Title
+          title={cloudFilesystem.title}
+          editable={false}
+          style={{
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            padding: "5px 5px 0 5px",
+          }}
+        />
+      </div>
       <Menu cloudFilesystem={cloudFilesystem} setError={setError} show={show} />
     </div>
   );

@@ -4,6 +4,7 @@ import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
+import Color from "../color";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -12,8 +13,8 @@ interface Props {
   refresh;
 }
 
-// Edit the mountpoint of a cloud filesystem
-export default function EditMountpoint({
+// Edit the title and color of a cloud filesystem
+export default function EditTitleAndColor({
   cloudFilesystem,
   open,
   setOpen,
@@ -21,12 +22,13 @@ export default function EditMountpoint({
 }: Props) {
   const [changing, setChanging] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [mountpoint, setMountpoint] = useState<string>(
-    cloudFilesystem.mountpoint,
+  const [title, setTitle] = useState<string>(
+    cloudFilesystem.title ?? "Untitled",
   );
+  const [color, setColor] = useState<string>(cloudFilesystem.color ?? "#666");
 
-  const doEditMountpoint = async () => {
-    if (cloudFilesystem.mountpoint == mountpoint) {
+  const doEdit = async () => {
+    if (cloudFilesystem.title == title && cloudFilesystem.color == color) {
       // no op
       setOpen(false);
       return;
@@ -35,7 +37,8 @@ export default function EditMountpoint({
       setChanging(true);
       await editCloudFilesystem({
         id: cloudFilesystem.id,
-        mountpoint,
+        title,
+        color,
       });
       refresh();
       setOpen(false);
@@ -51,8 +54,7 @@ export default function EditMountpoint({
       centered
       title={
         <>
-          <Icon name={"folder-open"} /> Edit Mountpoint of "
-          {cloudFilesystem.title}"
+          <Icon name={"colors"} /> Edit Title and Color
         </>
       }
       open={open}
@@ -64,21 +66,24 @@ export default function EditMountpoint({
         <Button
           key="ok"
           type="primary"
-          disabled={changing || cloudFilesystem.mountpoint == mountpoint}
-          onClick={doEditMountpoint}
+          disabled={
+            changing ||
+            (cloudFilesystem.title == title && cloudFilesystem.color == color)
+          }
+          onClick={doEdit}
         >
-          Change Mountpoint{" "}
+          Change Title and Color{" "}
           {changing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
         </Button>,
       ]}
     >
-      Mount at <code>~/{mountpoint}</code> on all compute servers.
       <Input
-        onPressEnter={doEditMountpoint}
-        style={{ width: "100%", marginTop: "10px" }}
-        value={mountpoint}
-        onChange={(e) => setMountpoint(e.target.value)}
+        onPressEnter={doEdit}
+        style={{ width: "100%", margin: "10px 0" }}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
       />
+      <Color editable color={color} onChange={setColor} />
       <ShowError error={error} setError={setError} />
     </Modal>
   );
