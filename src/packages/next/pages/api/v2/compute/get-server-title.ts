@@ -1,5 +1,5 @@
 /*
-Get event log for a particular compute server.
+Get server title and color for a particular compute server.
 */
 
 import getAccountId from "lib/account/get-account";

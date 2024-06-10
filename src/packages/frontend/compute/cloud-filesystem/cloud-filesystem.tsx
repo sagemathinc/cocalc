@@ -9,6 +9,7 @@ import DeleteCloudFilesystem from "./delete-filesystem";
 import MountCloudFilesystem from "./mount-filesystem";
 import EditMountpoint from "./edit-mountpoint";
 import EditTitleAndColor from "./edit-title-and-color";
+import EditLock from "./edit-lock";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -30,11 +31,13 @@ export default function CloudFilesystem({
   const [showEditMountpoint, setShowEditMountpoint] = useState<boolean>(false);
   const [showEditTitleAndColor, setShowEditTitleAndColor] =
     useState<boolean>(false);
+  const [showEditLock, setShowEditLock] = useState<boolean>(false);
   const show = {
     setShowDelete,
     setShowMount,
     setShowEditMountpoint,
     setShowEditTitleAndColor,
+    setShowEditLock,
   };
 
   return (
@@ -71,6 +74,12 @@ export default function CloudFilesystem({
         cloudFilesystem={cloudFilesystem}
         open={showEditTitleAndColor}
         setOpen={setShowEditTitleAndColor}
+        refresh={refresh}
+      />
+      <EditLock
+        cloudFilesystem={cloudFilesystem}
+        open={showEditLock}
+        setOpen={setShowEditLock}
         refresh={refresh}
       />
       <Card.Meta

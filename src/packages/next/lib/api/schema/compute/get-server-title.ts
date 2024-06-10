@@ -14,7 +14,7 @@ export const GetComputeServerTitleInputSchema = z
   .object({
     id: ComputeServerIdQueryParamSchema,
   })
-  .describe("Get server state from the cloud provider for a particular compute server.");
+  .describe("Get server title and color for a particular compute server.");
 
 export const GetComputeServerTitleOutputSchema = z.union([
   FailedAPIOperationSchema,
@@ -24,5 +24,9 @@ export const GetComputeServerTitleOutputSchema = z.union([
   }),
 ]);
 
-export type GetComputeServerTitleInput = z.infer<typeof GetComputeServerTitleInputSchema>;
-export type GetComputeServerTitleOutput = z.infer<typeof GetComputeServerTitleOutputSchema>;
+export type GetComputeServerTitleInput = z.infer<
+  typeof GetComputeServerTitleInputSchema
+>;
+export type GetComputeServerTitleOutput = z.infer<
+  typeof GetComputeServerTitleOutputSchema
+>;

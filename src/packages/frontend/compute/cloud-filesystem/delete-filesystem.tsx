@@ -47,8 +47,11 @@ export default function DeleteCloudFilesystem({
       open={open}
       onCancel={() => setOpen(false)}
       footer={[
-        <Button onClick={() => setOpen(false)}>Cancel</Button>,
+        <Button key="cancel" onClick={() => setOpen(false)}>
+          Cancel
+        </Button>,
         <Popconfirm
+          key="ok"
           title={
             <>
               <b>Permanently delete</b> '{cloudFilesystem.title}' (Id:{" "}

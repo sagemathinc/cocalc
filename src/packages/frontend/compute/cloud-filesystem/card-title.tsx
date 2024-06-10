@@ -51,7 +51,7 @@ export default function CloudFilesystemCardTitle({
         </code>
       </div>
       <div
-        style={{ flex: 1, cursor: "pointer" }}
+        style={{ flex: 1, cursor: "pointer", overflow: "hidden" }}
         onClick={() => show.setShowEditTitleAndColor(true)}
       >
         <Title

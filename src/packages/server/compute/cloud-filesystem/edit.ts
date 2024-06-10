@@ -22,7 +22,7 @@ interface Options extends EditCloudFilesystem {
   account_id: string;
 }
 
-const FIELDS = new Set(
+export const FIELDS = new Set(
   Array.from(CHANGE_MOUNTED).concat(Array.from(CHANGE_UNMOUNTED)),
 );
 

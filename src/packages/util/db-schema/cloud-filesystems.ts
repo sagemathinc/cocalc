@@ -201,6 +201,7 @@ export interface EditCloudFilesystem
     | "position"
     | "mount_options"
     | "keydb_options"
+    | "lock"
   > {
   // making these optional
   project_id?: string;

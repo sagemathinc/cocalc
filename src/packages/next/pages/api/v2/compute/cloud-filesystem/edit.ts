@@ -3,8 +3,12 @@ Edit properties of cloud filesystem
 */
 
 import getAccountId from "lib/account/get-account";
-import { userEditCloudFilesystem } from "@cocalc/server/compute/cloud-filesystem/edit";
+import {
+  userEditCloudFilesystem,
+  FIELDS,
+} from "@cocalc/server/compute/cloud-filesystem/edit";
 import getParams from "lib/api/get-params";
+import type { EditCloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 
 export default async function handle(req, res) {
   try {
@@ -20,32 +24,19 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const {
-    id,
-    project_id,
-    mountpoint,
-    mount,
-    mount_options,
-    keydb_options,
-    title,
-    color,
-    notes,
-    trash_days,
-    bucket_storage_class,
-  } = getParams(req);
+  const params = getParams(req);
+  const { id } = params;
+  const opts: Partial<EditCloudFilesystem> = {};
+  for (const field of FIELDS) {
+    const x = params[field];
+    if (x !== undefined) {
+      opts[field] = x;
+    }
+  }
 
   return await userEditCloudFilesystem({
-    id,
-    project_id,
+    ...(opts as EditCloudFilesystem),
     account_id,
-    mountpoint,
-    mount,
-    mount_options,
-    keydb_options,
-    title,
-    color,
-    notes,
-    trash_days,
-    bucket_storage_class,
+    id,
   });
 }

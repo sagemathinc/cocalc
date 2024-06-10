@@ -1,7 +1,7 @@
 /*
 Get serial port output (since boot) for a compute server.
 
-Any collaborator on the project containing the compute server has permission to get this log.
+Any collaborator on the project containing the compute server has permission to get this serial output.
 */
 
 import getAccountId from "lib/account/get-account";

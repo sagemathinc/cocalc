@@ -2,7 +2,7 @@
 Cloud filesystem menu.
 */
 
-import { Button, Dropdown, Tooltip } from "antd";
+import { Button, Dropdown } from "antd";
 import type { MenuProps } from "antd";
 import { A, Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
@@ -57,6 +57,11 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       label: "Edit Mountpoint",
     },
     {
+      key: "edit-lock",
+      icon: <Icon name={"lock"} />,
+      label: "Edit Delete Confirmation",
+    },
+    {
       disabled: cloudFilesystem.deleting || cloudFilesystem.mount,
       danger: true,
       key: "delete",
@@ -80,7 +85,13 @@ export default function Menu({
   setError;
   size?;
   fontSize?;
-  show;
+  show: {
+    setShowMount;
+    setShowEditMountpoint;
+    setShowEditTitleAndColor;
+    setShowDelete;
+    setShowEditLock;
+  };
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const { items, onClick } = useMemo(() => {
@@ -101,7 +112,10 @@ export default function Menu({
             show.setShowEditMountpoint(true);
             break;
           case "edit-title-and-colors":
-            show.setShowEditTitleAndColors(true);
+            show.setShowEditTitleAndColor(true);
+            break;
+          case "edit-lock":
+            show.setShowEditLock(true);
             break;
           case "delete":
             show.setShowDelete(true);
@@ -132,15 +146,13 @@ export default function Menu({
         trigger={["click"]}
         onOpenChange={setOpen}
       >
-        <Tooltip title="Customize and control cloud filesystem">
-          <Button type="text" size={size}>
-            <Icon
-              name="ellipsis"
-              style={{ fontSize: fontSize ?? "15pt", color: "#000" }}
-              rotate="90"
-            />
-          </Button>
-        </Tooltip>
+        <Button type="text" size={size}>
+          <Icon
+            name="ellipsis"
+            style={{ fontSize: fontSize ?? "15pt", color: "#000" }}
+            rotate="90"
+          />
+        </Button>
       </Dropdown>
     </div>
   );

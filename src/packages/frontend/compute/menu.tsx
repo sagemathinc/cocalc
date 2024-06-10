@@ -2,7 +2,7 @@
 Compute server hamburger menu.
 */
 
-import { Button, Dropdown, Spin, Tooltip } from "antd";
+import { Button, Dropdown, Spin } from "antd";
 import type { MenuProps } from "antd";
 import { A, Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
@@ -468,7 +468,6 @@ export default function Menu({
     (async () => {
       setTitle(await getTitle(id));
     })();
-
     return {
       items: getItems({ ...title, id, project_id, account_id, isAdmin }),
       onClick: async (obj) => {
@@ -568,15 +567,13 @@ export default function Menu({
         trigger={["click"]}
         onOpenChange={setOpen}
       >
-        <Tooltip title="Customize and control server">
-          <Button type="text" size={size}>
-            <Icon
-              name="ellipsis"
-              style={{ fontSize: fontSize ?? "15pt", color: "#000" }}
-              rotate="90"
-            />
-          </Button>
-        </Tooltip>
+        <Button type="text" size={size}>
+          <Icon
+            name="ellipsis"
+            style={{ fontSize: fontSize ?? "15pt", color: "#000" }}
+            rotate="90"
+          />
+        </Button>
       </Dropdown>
       {modal}
       <ShowError
