@@ -39,7 +39,7 @@ async function get(req) {
 
 export default apiRoute({
   getServers: apiRouteOperation({
-    method: "GET",
+    method: "POST",
     openApiOperation: {
       tags: ["Compute"]
     },

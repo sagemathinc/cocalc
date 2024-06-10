@@ -9,9 +9,8 @@ import getParams from "lib/api/get-params";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import {
   GetComputeServerTitleInputSchema,
-  GetComputeServerTitleOutputSchema
+  GetComputeServerTitleOutputSchema,
 } from "lib/api/schema/compute/get-server-title";
-
 
 async function handle(req, res) {
   try {
@@ -35,9 +34,9 @@ async function get(req) {
 
 export default apiRoute({
   getServerTitle: apiRouteOperation({
-    method: "GET",
+    method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({
