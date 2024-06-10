@@ -344,9 +344,10 @@ interface ValidLanguageModelNameProps {
   selectable_llms: string[]; // either empty, or an array stored in the server settings
 }
 
+// NOTE: these values must be in sync with the "no" vals in db-schema/site-defaults.ts
 const DEFAULT_FILTER: Readonly<LLMServicesAvailable> = {
-  openai: true,
-  google: true,
+  openai: false,
+  google: false,
   ollama: false,
   mistralai: false,
   anthropic: false,
