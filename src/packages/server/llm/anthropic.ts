@@ -38,12 +38,33 @@ interface AnthropicOpts {
   model: string; // this must be ollama-[model]
   stream?: (output?: string) => void;
   maxTokens?: number;
+  apiKey?: string;
+}
+
+async function getAnthropicParams(model) {
+  const settings = await getServerSettings();
+  const { anthropic_enabled, anthropic_api_key: anthropicApiKey } = settings;
+
+  if (!anthropic_enabled) {
+    throw new Error(`Anthropic is not enabled.`);
+  }
+
+  if (!anthropicApiKey) {
+    throw new Error(`Anthropic api key is not configured.`);
+  }
+
+  return {
+    anthropicApiKey,
+    // They do not have a "*-latest" … but we need stable model names
+    model: getModelName(model),
+  };
 }
 
 export async function evaluateAnthropic(
   opts: Readonly<AnthropicOpts>,
+  mode: "cocalc" | "user" = "cocalc",
 ): Promise<ChatOutput> {
-  if (!isAnthropicModel(opts.model)) {
+  if (mode === "cocalc" && !isAnthropicModel(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
   }
   const { system, history, input, maxTokens, stream, model } = opts;
@@ -57,25 +78,14 @@ export async function evaluateAnthropic(
     maxTokens,
   });
 
-  const settings = await getServerSettings();
-  const { anthropic_enabled, anthropic_api_key: anthropicApiKey } = settings;
+  const params =
+    mode === "cocalc"
+      ? await getAnthropicParams(model)
+      : { anthropicApiKey: opts.apiKey, model: opts.model };
 
-  if (!anthropic_enabled) {
-    throw new Error(`Anthropic is not enabled.`);
-  }
+  const anthropic = new ChatAnthropic({ maxTokens, ...params });
 
-  if (!anthropicApiKey) {
-    throw new Error(`Anthropic api key is not configured.`);
-  }
-
-  // They do not have a "*-latest" … but we need stable model names
-  const modelName = getModelName(model);
-
-  const anthropic = new ChatAnthropic({
-    anthropicApiKey,
-    modelName,
-    maxTokens,
-  });
+  log.debug("anthropic", params);
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],

@@ -35,6 +35,7 @@ import {
   isMistralModel,
   isOllamaLLM,
   isOpenAIModel,
+  isUserDefinedModel,
   isValidModel,
   model2service,
   model2vendor,
@@ -50,6 +51,7 @@ import { GoogleGenAIClient } from "./google-genai-client";
 import { evaluateMistral } from "./mistral";
 import { evaluateOllama } from "./ollama";
 import { saveResponse } from "./save-response";
+import { evaluateUserDefinedLLM } from "./user-defined";
 
 const THROTTLE_STREAM_MS = envToInt("COCALC_LLM_THROTTLE_STREAM_MS", 500);
 
@@ -147,72 +149,39 @@ async function evaluateImpl({
 
   stream = wrapStream(stream);
 
+  const params = {
+    system,
+    history,
+    input,
+    model,
+    maxTokens,
+    stream,
+  } as const;
+
   const { output, total_tokens, prompt_tokens, completion_tokens } =
     await (async () => {
-      if (isOllamaLLM(model)) {
-        return await evaluateOllama({
-          system,
-          history,
-          input,
-          model,
-          maxTokens,
-          stream,
-        });
+      if (isUserDefinedModel(model)) {
+        return await evaluateUserDefinedLLM(params, account_id);
+      } else if (isOllamaLLM(model)) {
+        return await evaluateOllama(params);
       } else if (isCustomOpenAI(model)) {
-        return await evaluateCustomOpenAI({
-          system,
-          history,
-          input,
-          model,
-          maxTokens,
-          stream,
-        });
+        return await evaluateCustomOpenAI(params);
       } else if (isMistralModel(model)) {
-        return await evaluateMistral({
-          system,
-          history,
-          input,
-          model,
-          maxTokens,
-          stream,
-        });
+        return await evaluateMistral(params);
       } else if (isAnthropicModel(model)) {
-        return await evaluateAnthropic({
-          system,
-          history,
-          input,
-          model,
-          maxTokens,
-          stream,
-        });
+        return await evaluateAnthropic(params);
       } else if (isGoogleModel(model)) {
         const client = await getClient(model);
         if (!(client instanceof GoogleGenAIClient)) {
           throw new Error("Wrong client. This should never happen. [GenAI]");
         }
-        return await evaluateGoogleGenAI({
-          system,
-          history,
-          input,
-          client,
-          maxTokens,
-          model,
-          stream,
-        });
+        return await evaluateGoogleGenAI({ ...params, client });
       } else {
         const client = await getClient(model);
         if (!(client instanceof OpenAI)) {
           throw new Error("Wrong client. This should never happen. [OpenAI]");
         }
-        return await evaluateOpenAI({
-          system,
-          history,
-          input,
-          client,
-          model,
-          maxTokens,
-          stream,
-        });
+        return await evaluateOpenAI({ ...params, client });
       }
     })();
 

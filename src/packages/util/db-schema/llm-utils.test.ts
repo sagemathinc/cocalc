@@ -6,6 +6,7 @@ import {
   LLM_COST,
   model2vendor,
   OLLAMA_PREFIX,
+  SERVICES,
   USER_SELECTABLE_LANGUAGE_MODELS,
   USER_SELECTABLE_LLMS_BY_VENDOR,
 } from "./llm-utils";
@@ -73,8 +74,9 @@ describe("llm", () => {
   });
 
   test("priority list is a shuffle of all llm vendors", () => {
+    // except for "user"
     const prio = DEFAULT_LLM_PRIORITY;
-    const vend = LANGUAGE_MODEL_SERVICES;
+    const vend = SERVICES;
     // test, that those lists have the same elements
     expect(prio.length).toBe(vend.length);
     for (const v of vend) {
