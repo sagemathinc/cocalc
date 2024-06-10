@@ -39,7 +39,6 @@ function getItems(cloudFilesystem): MenuProps["items"] {
   };
   return [
     {
-      disabled: cloudFilesystem.deleting,
       danger: cloudFilesystem.mount,
       key: "mount",
       icon: <Icon name={cloudFilesystem.mount ? "stop" : "run"} />,
@@ -54,15 +53,20 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       label: "Title and Color",
     },
     {
-      disabled: cloudFilesystem.deleting || cloudFilesystem.mount,
+      disabled: cloudFilesystem.mount,
       key: "edit-mountpoint",
       icon: <Icon name="folder-open" />,
       label: "Mountpoint",
     },
     {
+      key: "edit-bucket-storage-class",
+      icon: <Icon name="disk-snapshot" />,
+      label: "Bucket Storage Class",
+    },
+    {
       key: "edit-trash-config",
       icon: <Icon name={"trash"} />,
-      label: "Trash Configuration",
+      label: cloudFilesystem.trash_days ? "Configure Trash" : "Enable Trash",
     },
     {
       key: "edit-lock",
@@ -73,7 +77,7 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       type: "divider",
     },
     {
-      disabled: cloudFilesystem.deleting || cloudFilesystem.mount,
+      disabled: cloudFilesystem.mount,
       danger: true,
       key: "delete",
       icon: <Icon name="trash" />,
@@ -103,6 +107,7 @@ export default function Menu({
     setShowDelete;
     setShowEditLock;
     setShowEditTrashDays;
+    setShowEditBucketStorageClass;
   };
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -120,17 +125,20 @@ export default function Menu({
           case "mount":
             show.setShowMount(true);
             break;
-          case "edit-mountpoint":
-            show.setShowEditMountpoint(true);
-            break;
           case "edit-title-and-colors":
             show.setShowEditTitleAndColor(true);
             break;
           case "edit-lock":
             show.setShowEditLock(true);
             break;
+          case "edit-mountpoint":
+            show.setShowEditMountpoint(true);
+            break;
           case "edit-trash-config":
             show.setShowEditTrashDays(true);
+            break;
+          case "edit-bucket-storage-class":
+            show.setShowEditBucketStorageClass(true);
             break;
           case "delete":
             show.setShowDelete(true);
@@ -159,6 +167,7 @@ export default function Menu({
       <Dropdown
         menu={{ items, onClick }}
         trigger={["click"]}
+        disabled={cloudFilesystem.deleting}
         onOpenChange={setOpen}
       >
         <Button type="text" size={size}>

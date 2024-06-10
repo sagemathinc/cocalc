@@ -217,6 +217,7 @@ export const CHANGE_MOUNTED = new Set([
   "lock",
   "mount",
   "position",
+  "bucket_storage_class",
 ]);
 export const CHANGE_UNMOUNTED = new Set([
   "project_id",

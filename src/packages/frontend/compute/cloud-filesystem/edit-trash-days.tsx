@@ -78,7 +78,7 @@ export default function EditTrashDays({
           <A href="https://juicefs.com/docs/community/security/trash/">
             JuiceFS Trash
           </A>{" "}
-          is {trashDays == 0 ? "disabled" : "enabled"}.
+          is {cloudFilesystem.trash_days == 0 ? "disabled" : "enabled"}.
         </b>
       </p>
       Optionally store deleted files in{" "}

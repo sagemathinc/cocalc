@@ -11,6 +11,7 @@ import EditMountpoint from "./edit-mountpoint";
 import EditTitleAndColor from "./edit-title-and-color";
 import EditLock from "./edit-lock";
 import EditTrashDays from "./edit-trash-days";
+import EditBucketStorageClass from "./edit-bucket-storage-class";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -34,6 +35,8 @@ export default function CloudFilesystem({
     useState<boolean>(false);
   const [showEditLock, setShowEditLock] = useState<boolean>(false);
   const [showEditTrashDays, setShowEditTrashDays] = useState<boolean>(false);
+  const [showEditBucketStorageClass, setShowEditBucketStorageClass] =
+    useState<boolean>(false);
   const show = {
     setShowDelete,
     setShowMount,
@@ -41,6 +44,7 @@ export default function CloudFilesystem({
     setShowEditTitleAndColor,
     setShowEditLock,
     setShowEditTrashDays,
+    setShowEditBucketStorageClass,
   };
 
   return (
@@ -91,6 +95,12 @@ export default function CloudFilesystem({
         setOpen={setShowEditTrashDays}
         refresh={refresh}
       />
+      <EditBucketStorageClass
+        cloudFilesystem={cloudFilesystem}
+        open={showEditBucketStorageClass}
+        setOpen={setShowEditBucketStorageClass}
+        refresh={refresh}
+      />
       <Card.Meta
         avatar={<CloudFilesystemAvatar cloudFilesystem={cloudFilesystem} />}
         title={
@@ -107,7 +117,9 @@ export default function CloudFilesystem({
             Cloud Filesystem <Compression {...cloudFilesystem} />{" "}
             <BlockSize {...cloudFilesystem} />{" "}
             {cloudFilesystem.mount ? "mounted" : "which would mount"} at{" "}
-            <Mountpoint {...cloudFilesystem} /> <Bucket {...cloudFilesystem} />.
+            <Mountpoint {...cloudFilesystem} show={setShowEditMountpoint} />{" "}
+            <Bucket {...cloudFilesystem} show={setShowEditBucketStorageClass} />
+            .
             {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
             )}
@@ -118,11 +130,20 @@ export default function CloudFilesystem({
   );
 }
 
-export function Mountpoint({ mountpoint }) {
+export function Mountpoint({
+  mountpoint,
+  show,
+}: {
+  mountpoint: string;
+  show?;
+}) {
   return (
-    <>
+    <span
+      style={{ cursor: show != null ? "pointer" : undefined }}
+      onClick={show}
+    >
       <code>~/{mountpoint}</code>
-    </>
+    </span>
   );
 }
 
@@ -140,11 +161,14 @@ function Compression({ compression }) {
   }
 }
 
-function Bucket({ bucket_location, bucket_storage_class }) {
+function Bucket({ bucket_location, bucket_storage_class, show }) {
   return (
     <>
-      stored in a {(bucket_storage_class ?? "standard").split("-").join(" ")}{" "}
-      bucket in <Location bucket_location={bucket_location} />
+      stored in a{" "}
+      <span style={{ cursor: "pointer" }} onClick={show}>
+        {(bucket_storage_class ?? "standard").split("-").join(" ")} bucket
+      </span>{" "}
+      in <Location bucket_location={bucket_location} />
     </>
   );
 }

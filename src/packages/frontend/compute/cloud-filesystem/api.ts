@@ -5,6 +5,10 @@ import type {
   CloudFilesystem,
   EditCloudFilesystem,
 } from "@cocalc/util/db-schema/cloud-filesystems";
+import {
+  CHANGE_MOUNTED,
+  CHANGE_UNMOUNTED,
+} from "@cocalc/util/db-schema/cloud-filesystems";
 
 export async function createCloudFilesystem(
   opts: CreateCloudFilesystem,
@@ -25,6 +29,14 @@ export async function deleteCloudFilesystem({
 export async function editCloudFilesystem(
   opts: EditCloudFilesystem,
 ): Promise<void> {
+  for (const field in opts) {
+    if (field == "id") {
+      continue;
+    }
+    if (!CHANGE_MOUNTED.has(field) && !CHANGE_UNMOUNTED.has(field)) {
+      throw Error(`invalid field '${field}' for edit`);
+    }
+  }
   return await api("compute/cloud-filesystem/edit", opts);
 }
 
