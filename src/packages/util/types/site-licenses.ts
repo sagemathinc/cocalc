@@ -27,6 +27,12 @@ export interface SiteLicenseQuota {
   // JSON array of Array of JSON Patch Operations, e.g. "[{op: \"add\", path: \"/foo\", value: \"bar\"}]"
   // It's not an array of objects, because somewhere the array is converted to weird map of "0, 1, 2,..." indexed objects.
   patch?: string;
+  gpu?:
+    | number
+    | {
+        num?: number; // usualy 1, to set nvidia.com/gpu=1
+        toleration?: string; // e.g. gpu=cocalc for key=value
+      };
 }
 
 // For typescript use of these from user side, we make this available:
