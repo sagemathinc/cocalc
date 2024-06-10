@@ -1,12 +1,20 @@
 /*
-Undelete a compute server. 
+Undelete a compute server.
 */
 
 import getAccountId from "lib/account/get-account";
 import undeleteServer from "@cocalc/server/compute/undelete-server";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+
+import {
+  UndeleteComputeServerInputSchema,
+  UndeleteComputeServerOutputSchema,
+} from "lib/api/schema/compute/undelete-server";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -27,3 +35,24 @@ async function get(req) {
   });
   return { status: "ok" };
 }
+
+export default apiRoute({
+  undeleteServer: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: UndeleteComputeServerInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: UndeleteComputeServerOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

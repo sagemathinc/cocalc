@@ -4,7 +4,10 @@ Get Templates
 
 import { getTemplates } from "@cocalc/server/compute/templates";
 
-export default async function handle(_req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import { GetComputeServerTemplatesOutputSchema } from "lib/api/schema/compute/get-templates";
+
+async function handle(_req, res) {
   try {
     res.json(await await getTemplates());
   } catch (err) {
@@ -12,3 +15,20 @@ export default async function handle(_req, res) {
     return;
   }
 }
+
+export default apiRoute({
+  getTemplates: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"],
+    },
+  })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServerTemplatesOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

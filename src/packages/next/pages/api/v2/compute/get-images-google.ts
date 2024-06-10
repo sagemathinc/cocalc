@@ -7,7 +7,13 @@ import { getAllImages } from "@cocalc/server/compute/cloud/google-cloud/images";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetComputeServerGoogleImagesInputSchema,
+  GetComputeServerGoogleImagesOutputSchema,
+} from "lib/api/schema/compute/get-images-google";
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -32,3 +38,24 @@ async function get(req) {
   }
   return await getAllImages({ noCache: !!noCache });
 }
+
+export default apiRoute({
+  getImagesGoogle: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      query: GetComputeServerGoogleImagesInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetComputeServerGoogleImagesOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

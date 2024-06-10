@@ -6,7 +6,14 @@ import getAccountId from "lib/account/get-account";
 import setServerColor from "@cocalc/server/compute/set-server-color";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  SetComputeServerColorInputSchema,
+  SetComputeServerColorOutputSchema
+} from "lib/api/schema/compute/set-server-color";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -28,3 +35,24 @@ async function get(req) {
   });
   return { status: "ok" };
 }
+
+export default apiRoute({
+  setServerColor: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SetComputeServerColorInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SetComputeServerColorOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

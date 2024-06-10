@@ -19,7 +19,14 @@ import getProjectOrAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 import { checkIn } from "@cocalc/server/compute/check-in";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  ComputeServerCheckInInputSchema,
+  ComputeServerCheckInOutputSchema,
+} from "lib/api/schema/compute/check-in";
+
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -42,3 +49,24 @@ async function get(req) {
     storage_sha1,
   });
 }
+
+export default apiRoute({
+  checkIn: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Compute"]
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: ComputeServerCheckInInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: ComputeServerCheckInOutputSchema,
+      },
+    ])
+    .handler(handle),
+});
