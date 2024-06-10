@@ -1,7 +1,8 @@
-import { Button, Input, Modal, Spin } from "antd";
+import { Button, InputNumber, Modal, Spin } from "antd";
 import { useState } from "react";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
 
@@ -13,7 +14,7 @@ interface Props {
 }
 
 // Edit the title and color of a cloud filesystem
-export default function EditLock({
+export default function EditTrashDays({
   cloudFilesystem,
   open,
   setOpen,
@@ -21,10 +22,12 @@ export default function EditLock({
 }: Props) {
   const [changing, setChanging] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [lock, setLock] = useState<string>(cloudFilesystem.lock ?? "DELETE");
+  const [trashDays, setTrashDays] = useState<number>(
+    cloudFilesystem.trash_days ?? 0,
+  );
 
   const doEdit = async () => {
-    if (cloudFilesystem.lock == lock) {
+    if (cloudFilesystem.trash_days == trashDays) {
       // no op
       setOpen(false);
       return;
@@ -33,7 +36,7 @@ export default function EditLock({
       setChanging(true);
       await editCloudFilesystem({
         id: cloudFilesystem.id,
-        lock,
+        trash_days: trashDays,
       });
       refresh();
       setOpen(false);
@@ -49,7 +52,7 @@ export default function EditLock({
       centered
       title={
         <>
-          <Icon name={"lock"} /> Edit Delete Confirmation for "
+          <Icon name={"trash"} /> Edit Trash Configuration for "
           {cloudFilesystem.title}"
         </>
       }
@@ -62,7 +65,7 @@ export default function EditLock({
         <Button
           key="ok"
           type="primary"
-          disabled={changing || cloudFilesystem.lock == lock}
+          disabled={changing || cloudFilesystem.trash_days == trashDays}
           onClick={doEdit}
         >
           Change{" "}
@@ -70,14 +73,27 @@ export default function EditLock({
         </Button>,
       ]}
     >
-      If you delete this filesystem, you will first be asked to type this phrase
-      to avoid mistakes.
-      <Input
-        onPressEnter={doEdit}
-        style={{ width: "100%", margin: "10px 0", color: "red" }}
-        value={lock}
-        onChange={(e) => setLock(e.target.value)}
-      />
+      <p style={{ textAlign: "center", fontSize: "12pt" }}>
+        <b>
+          <A href="https://juicefs.com/docs/community/security/trash/">
+            JuiceFS Trash
+          </A>{" "}
+          is {trashDays == 0 ? "disabled" : "enabled"}.
+        </b>
+      </p>
+      Optionally store deleted files in{" "}
+      <code>~/{cloudFilesystem.mountpoint}/.trash</code> for the number of days
+      shown below. Set to 0 to disable.
+      <div style={{ textAlign: "center" }}>
+        <InputNumber
+          addonAfter={"days"}
+          min={0}
+          onPressEnter={doEdit}
+          style={{ width: "200px", margin: "10px 0", color: "red" }}
+          value={trashDays}
+          onChange={(d) => setTrashDays(Math.round(d ?? 0))}
+        />
+      </div>
       <ShowError error={error} setError={setError} />
     </Modal>
   );

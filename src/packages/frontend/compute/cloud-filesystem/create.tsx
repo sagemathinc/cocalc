@@ -540,7 +540,7 @@ function TrashDays({ configuration, setConfiguration }) {
         <b style={{ fontSize: "13pt" }}>{EXTERNAL} Trash</b>
       </A>
       <br />
-      You can optionally store deleted files in{" "}
+      Optionally store deleted files in{" "}
       <code>~/{configuration.mountpoint}/.trash</code> for a certain number of
       days. Set to 0 to disable. You <b>can</b> change this later, but it only
       impacts newly written data.
@@ -554,7 +554,7 @@ function TrashDays({ configuration, setConfiguration }) {
           onChange={(trash_days) =>
             setConfiguration({
               ...configuration,
-              trash_days: Math.round(trash_days),
+              trash_days: Math.round(trash_days ?? 0),
             })
           }
         />

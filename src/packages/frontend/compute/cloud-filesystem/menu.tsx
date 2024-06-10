@@ -39,11 +39,6 @@ function getItems(cloudFilesystem): MenuProps["items"] {
   };
   return [
     {
-      key: "edit-title-and-colors",
-      icon: <Icon name={"colors"} />,
-      label: "Edit Title and Color",
-    },
-    {
       disabled: cloudFilesystem.deleting,
       danger: cloudFilesystem.mount,
       key: "mount",
@@ -51,22 +46,38 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       label: cloudFilesystem.mount ? "Unmount" : "Mount",
     },
     {
+      type: "divider",
+    },
+    {
+      key: "edit-title-and-colors",
+      icon: <Icon name={"colors"} />,
+      label: "Title and Color",
+    },
+    {
       disabled: cloudFilesystem.deleting || cloudFilesystem.mount,
       key: "edit-mountpoint",
       icon: <Icon name="folder-open" />,
-      label: "Edit Mountpoint",
+      label: "Mountpoint",
+    },
+    {
+      key: "edit-trash-config",
+      icon: <Icon name={"trash"} />,
+      label: "Trash Configuration",
     },
     {
       key: "edit-lock",
       icon: <Icon name={"lock"} />,
-      label: "Edit Delete Confirmation",
+      label: "Delete Confirmation",
+    },
+    {
+      type: "divider",
     },
     {
       disabled: cloudFilesystem.deleting || cloudFilesystem.mount,
       danger: true,
       key: "delete",
       icon: <Icon name="trash" />,
-      label: "Delete",
+      label: "Delete Filesystem",
     },
     help,
   ];
@@ -91,6 +102,7 @@ export default function Menu({
     setShowEditTitleAndColor;
     setShowDelete;
     setShowEditLock;
+    setShowEditTrashDays;
   };
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -116,6 +128,9 @@ export default function Menu({
             break;
           case "edit-lock":
             show.setShowEditLock(true);
+            break;
+          case "edit-trash-config":
+            show.setShowEditTrashDays(true);
             break;
           case "delete":
             show.setShowDelete(true);
