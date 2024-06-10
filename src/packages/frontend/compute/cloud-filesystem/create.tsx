@@ -513,9 +513,9 @@ function BlockSize({ configuration, setConfiguration }) {
       <b style={{ fontSize: "13pt", color: "#666" }}>Block Size</b>
       {NO_CHANGE}
       The block size, which is between 1MB and 64MB, is an upper bound on the
-      size of the chunks that are storied in the cloud storage bucket. Around
+      size of the blocks that are storied in the cloud storage bucket. Around
       4MB is the fastest, but 64MB means storing far less objects, which can
-      make longterm costs much more affordable. <br />
+      make longterm costs more affordable for autoclass storage buckets. <br />
       <div style={{ textAlign: "center" }}>
         <InputNumber
           size="large"

@@ -173,9 +173,9 @@ export type CreateCloudFilesystem = Pick<
 
 export const DEFAULT_CONFIGURATION = {
   mountpoint: "cloud-filesystem",
-  mount: false,
+  mount: true,
   compression: "lz4",
-  block_size: 64,
+  block_size: 4,
   trash_days: 0,
   title: "Cloud Filesystem",
   lock: "DELETE",
@@ -183,7 +183,8 @@ export const DEFAULT_CONFIGURATION = {
   // weird bugs, so I explicitly disabled them.  Also, without writeback things
   // are brutally slow, so it's enabled (and seems to never cause issue).
   // allow_other makes it possible to use ZFS on top of this, which is interesting.
-  mount_options: "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other",
+  mount_options:
+    "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other",
   keydb_options: "",
   bucket_location: "us",
   bucket_storage_class: "standard",
