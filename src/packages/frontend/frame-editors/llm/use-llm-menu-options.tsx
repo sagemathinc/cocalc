@@ -12,12 +12,15 @@ import {
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  isLLMServiceName,
   toCustomOpenAIModel,
   toOllamaModel,
+  toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { getCustomLLMGroup } from "./components";
 import { LLMModelPrice, modelToName } from "./llm-selector";
+import { useUserDefinedLLM } from "./use-userdefined-llm";
 
 interface Model {
   name: LanguageModel;
@@ -42,6 +45,7 @@ export function useAvailableLLMs(project_id: string) {
   const ollama = useTypedRedux("customize", "ollama");
   const custom_openai = useTypedRedux("customize", "custom_openai");
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
+  const user_llm = useUserDefinedLLM();
 
   const providers: {
     [key in LLMServiceName | "custom"]?: {
@@ -109,6 +113,31 @@ export function useAvailableLLMs(project_id: string) {
     const { title, label } = getCustomLLMGroup();
     providers["custom"] = {
       models: custom,
+      name: label,
+      desc: title,
+    };
+  }
+
+  const user: Model[] = [];
+  if (user_llm.length > 0) {
+    //const text = LLM_PROVIDER.user.desc;
+    for (const llm of user_llm) {
+      const { display, model, service } = llm;
+      if (!isLLMServiceName(service)) continue;
+      const um = toUserLLMModelName(llm);
+      user.push({
+        name: um,
+        title: display || model,
+        desc: LLM_PROVIDER[service].name,
+        price: <LLMModelPrice model={um} />,
+      });
+    }
+  }
+
+  if (user.length > 0) {
+    const { title, label } = getCustomLLMGroup();
+    providers["user"] = {
+      models: user,
       name: label,
       desc: title,
     };

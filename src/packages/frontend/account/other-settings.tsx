@@ -7,7 +7,7 @@ import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
-import { Rendered, redux } from "@cocalc/frontend/app-framework";
+import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -30,10 +30,10 @@ import {
   VBAR_OPTIONS,
   getValidVBAROption,
 } from "../project/page/vbar";
-import { CustomLLM } from "./custom-llm";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
+import { UserDefinedLLMComponent } from "./user-defined-llm";
 
 interface Props {
   other_settings: Map<string, any>;
@@ -42,6 +42,8 @@ interface Props {
 }
 
 export function OtherSettings(props: Readonly<Props>): JSX.Element {
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+  const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
   const [model, setModel] = useLanguageModelSetting();
 
   function on_change(name: string, value: any): void {
@@ -391,10 +393,9 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
   }
 
   function render_custom_llm(): Rendered {
-    // This is disabled for now, will be enabled in a future PR
-    return;
-    // @ts-ignore
-    return <CustomLLM on_change={on_change} />;
+    // on cocalc.com, do not even show that they're disabled
+    if (isCoCalcCom && !user_defined_llm) return;
+    return <UserDefinedLLMComponent on_change={on_change} />;
   }
 
   if (props.other_settings == null) {

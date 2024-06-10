@@ -10,6 +10,7 @@ import { MessageInfo } from "@cocalc/frontend/client/hub";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
+  OTHER_SETTINGS_USERDEFINED_LLM,
 } from "@cocalc/util/db-schema/defaults";
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
@@ -46,6 +47,7 @@ export interface AccountState {
     dark_mode_sepia: number;
     dark_mode_grayscale: number;
     news_read_until: number; // JavaScript timestamp in milliseconds
+    [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

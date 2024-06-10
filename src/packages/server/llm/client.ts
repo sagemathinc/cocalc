@@ -76,6 +76,11 @@ export async function getClient(
     case "anthropic":
       throw new Error("Use the evaluateAnthropic function instead");
 
+    case "user":
+      throw new Error(
+        "This should never happen, user defined LLMs must be unpacked.",
+      );
+
     default:
       unreachable(vendorName);
       throw new Error(`unknown vendor: ${vendorName}`);

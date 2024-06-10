@@ -69,7 +69,7 @@ export function TestLLM({ model, test, queryState }: TestLLMProps) {
 
     try {
       setPassed(undefined);
-      const llmStream = await webapp_client.openai_client.queryStream({
+      const llmStream = webapp_client.openai_client.queryStream({
         input: prompt,
         project_id: null,
         tag: "admin-llm-test",

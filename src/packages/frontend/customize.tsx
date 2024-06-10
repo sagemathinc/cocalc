@@ -165,6 +165,7 @@ export interface CustomizeState {
   custom_openai?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
   selectable_llms: List<string>;
   default_llm?: string;
+  user_defined_llm?: boolean;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -192,6 +193,7 @@ export class CustomizeStore extends Store<CustomizeState> {
       custom_openai: this.get("custom_openai_enabled"),
       mistralai: this.get("mistral_enabled"),
       anthropic: this.get("anthropic_enabled"),
+      user: !this.get("is_cocalc_com"),
     };
   }
 }

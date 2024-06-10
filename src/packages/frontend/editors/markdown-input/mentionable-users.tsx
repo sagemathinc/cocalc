@@ -12,9 +12,11 @@ import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageMod
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import AnthropicAvatar from "@cocalc/frontend/components/anthropic-avatar";
 import GoogleGeminiLogo from "@cocalc/frontend/components/google-gemini-avatar";
+import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import MistralAvatar from "@cocalc/frontend/components/mistral-avatar";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { LLMModelPrice } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { useUserDefinedLLM } from "@cocalc/frontend/frame-editors/llm/use-userdefined-llm";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   ANTHROPIC_MODELS,
@@ -25,18 +27,20 @@ import {
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  UserDefinedLLM,
   fromCustomOpenAIModel,
   fromOllamaModel,
   isCustomOpenAI,
   isOllamaLLM,
+  isUserDefinedModel,
   model2service,
   model2vendor,
   toCustomOpenAIModel,
   toOllamaModel,
+  toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
-import { LanguageModelVendorAvatar } from "../../components/language-model-icon";
 import { Item as CompleteItem } from "./complete";
 
 // we make the show_llm_main_menu field required, to avoid forgetting to set it ;-)
@@ -56,6 +60,7 @@ export function useMentionableUsers(): (
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
   const custom_openai = useTypedRedux("customize", "custom_openai");
+  const user_llm = useUserDefinedLLM();
 
   // the current default model. This is always a valid LLM, even if none has ever been selected.
   const [model] = useLanguageModelSetting();
@@ -69,6 +74,7 @@ export function useMentionableUsers(): (
         model,
         ollama: ollama?.toJS() ?? {},
         custom_openai: custom_openai?.toJS() ?? {},
+        user_llm,
         selectableLLMs,
         opts,
       });
@@ -84,6 +90,7 @@ interface Props {
   custom_openai: { [key: string]: CustomLLMPublic };
   enabledLLMs: LLMServicesAvailable;
   selectableLLMs: List<string>;
+  user_llm: UserDefinedLLM[];
   opts?: Opts;
 }
 
@@ -95,6 +102,7 @@ function mentionableUsers({
   ollama,
   custom_openai,
   selectableLLMs,
+  user_llm,
   opts,
 }: Props): Item[] {
   const { avatarUserSize = 24, avatarLLMSize = 24 } = opts ?? {};
@@ -285,6 +293,30 @@ function mentionableUsers({
             <span>
               <LanguageModelVendorAvatar model={value} size={size} />{" "}
               {conf.display} <LLMModelPrice model={m} floatRight />
+            </span>
+          ),
+          search: search_term,
+          is_llm: true,
+          show_llm_main_menu,
+        });
+      }
+    }
+  }
+
+  if (!isEmpty(user_llm)) {
+    for (const llm of user_llm) {
+      const m = toUserLLMModelName(llm);
+      const show_llm_main_menu = isUserDefinedModel(model) && m === model;
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+      const value = m;
+      const search_term = `${value}${llm.display}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
+        mentions.push({
+          value,
+          label: (
+            <span>
+              <LanguageModelVendorAvatar model={value} size={size} />{" "}
+              {llm.display}
             </span>
           ),
           search: search_term,

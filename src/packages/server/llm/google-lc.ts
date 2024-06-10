@@ -3,18 +3,18 @@ import {
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
-import { ChatMistralAI, ChatMistralAIInput } from "@langchain/mistralai";
 
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings";
-import { isMistralModel } from "@cocalc/util/db-schema/llm-utils";
+import { isGoogleModel } from "@cocalc/util/db-schema/llm-utils";
 import { ChatOutput, History } from "@cocalc/util/types/llm";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 
-const log = getLogger("llm:mistral");
+const log = getLogger("llm:google-lc");
 
-interface MistralOpts {
+interface GoogleGenAIOpts {
   input: string; // new input that user types
   system?: string; // extra setup that we add for relevance and context
   history?: History;
@@ -24,31 +24,34 @@ interface MistralOpts {
   apiKey?: string;
 }
 
-async function getParams(model) {
+async function getParams(model: string) {
   const settings = await getServerSettings();
-  const { mistral_enabled, mistral_api_key } = settings;
+  const { google_vertexai_enabled, google_vertexai_key } = settings;
 
-  if (!mistral_enabled) {
-    throw new Error(`Mistral is not enabled.`);
+  if (!google_vertexai_enabled) {
+    throw new Error(`Google GenAI is not enabled.`);
   }
 
-  if (!mistral_api_key) {
-    throw new Error(`Mistral api key is not configured.`);
+  if (!google_vertexai_key) {
+    throw new Error(`Google GenAI api key is not configured.`);
   }
 
-  return { apiKey: mistral_api_key, model: model };
+  return {
+    apiKey: google_vertexai_key,
+    model,
+  };
 }
 
-export async function evaluateMistral(
-  opts: Readonly<MistralOpts>,
+export async function evaluateGoogleGenAILC(
+  opts: Readonly<GoogleGenAIOpts>,
   mode: "cocalc" | "user" = "cocalc",
 ): Promise<ChatOutput> {
-  if (mode === "cocalc" && !isMistralModel(opts.model)) {
+  if (mode === "cocalc" && !isGoogleModel(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
   }
   const { system, history, input, maxTokens, stream, model } = opts;
 
-  log.debug("evaluateMistral", {
+  log.debug("evaluateGoogleLC", {
     input,
     history,
     system,
@@ -57,10 +60,14 @@ export async function evaluateMistral(
     maxTokens,
   });
 
-  const params: ChatMistralAIInput =
+  const params =
     mode === "cocalc" ? await getParams(model) : { apiKey: opts.apiKey, model };
 
-  const mistral = new ChatMistralAI(params);
+  const genAI = new ChatGoogleGenerativeAI({
+    ...params,
+    maxOutputTokens: maxTokens,
+    streaming: stream != null,
+  });
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],
@@ -68,7 +75,7 @@ export async function evaluateMistral(
     ["human", "{input}"],
   ]);
 
-  const chain = prompt.pipe(mistral);
+  const chain = prompt.pipe(genAI);
 
   let historyTokens = 0;
 

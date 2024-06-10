@@ -3,6 +3,7 @@ import {
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
 import { RunnableWithMessageHistory } from "@langchain/core/runnables";
+import { OpenAI as LCOpenAI, OpenAICallOptions } from "@langchain/openai";
 
 import getLogger from "@cocalc/backend/logger";
 import {
@@ -28,8 +29,9 @@ interface CustomOpenAIOpts {
 
 export async function evaluateCustomOpenAI(
   opts: Readonly<CustomOpenAIOpts>,
+  client?: LCOpenAI<OpenAICallOptions>,
 ): Promise<ChatOutput> {
-  if (!isCustomOpenAI(opts.model)) {
+  if (client == null && !isCustomOpenAI(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
   }
   const model = fromCustomOpenAIModel(opts.model);
@@ -43,7 +45,7 @@ export async function evaluateCustomOpenAI(
     maxTokens,
   });
 
-  const customOpenAI = await getCustomOpenAI(model);
+  const customOpenAI = client ?? (await getCustomOpenAI(model));
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],

@@ -42,6 +42,8 @@ export function have_llm(service: LLMServiceName) {
     case "ollama":
     case "custom_openai":
       return false;
+    case "user":
+      return true;
     default:
       unreachable(service);
   }

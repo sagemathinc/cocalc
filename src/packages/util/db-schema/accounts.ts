@@ -12,7 +12,7 @@ import {
   DEFAULT_FONT_SIZE,
   DEFAULT_NEW_FILENAMES,
   NEW_FILENAMES,
-  OTHER_SETTINGS_CUSTOM_LLM,
+  OTHER_SETTINGS_USERDEFINED_LLM,
 } from "./defaults";
 
 Table({
@@ -341,7 +341,7 @@ Table({
             hide_project_popovers: false,
             hide_file_popovers: false,
             hide_button_tooltips: false,
-            [OTHER_SETTINGS_CUSTOM_LLM]: "[]",
+            [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
           },
           name: null,
           first_name: "",
