@@ -7,15 +7,13 @@ interface Props {
   cloudFilesystem;
   setError;
   refresh?;
-  setShowDelete;
-  setShowMount;
+  show;
 }
 
 export default function CloudFilesystemCardTitle({
   cloudFilesystem,
   setError,
-  setShowDelete,
-  setShowMount,
+  show,
 }: Props) {
   return (
     <div
@@ -29,7 +27,7 @@ export default function CloudFilesystemCardTitle({
       <div style={{ flex: 1 }}>
         <MountButton
           cloudFilesystem={cloudFilesystem}
-          setShowMount={setShowMount}
+          setShowMount={show.setShowMount}
         />
       </div>
       <div
@@ -41,7 +39,16 @@ export default function CloudFilesystemCardTitle({
           fontWeight: 400,
         }}
       >
-        <code>{trunc_middle(`~/${cloudFilesystem.mountpoint}`, 40)}</code>
+        <code
+          onClick={
+            cloudFilesystem.mount
+              ? undefined
+              : () => show.setShowEditMountpoint(true)
+          }
+          style={cloudFilesystem.mount ? {} : { cursor: "pointer" }}
+        >
+          {trunc_middle(`~/${cloudFilesystem.mountpoint}`, 40)}
+        </code>
       </div>
       <Title
         title={cloudFilesystem.title}
@@ -53,12 +60,7 @@ export default function CloudFilesystemCardTitle({
           padding: "5px 5px 0 5px",
         }}
       />
-      <Menu
-        cloudFilesystem={cloudFilesystem}
-        setError={setError}
-        setShowDelete={setShowDelete}
-        setShowMount={setShowMount}
-      />
+      <Menu cloudFilesystem={cloudFilesystem} setError={setError} show={show} />
     </div>
   );
 }

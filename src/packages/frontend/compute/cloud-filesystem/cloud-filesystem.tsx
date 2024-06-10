@@ -7,6 +7,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import DeleteCloudFilesystem from "./delete-filesystem";
 import MountCloudFilesystem from "./mount-filesystem";
+import EditMountpoint from "./edit-mountpoint";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -25,6 +26,12 @@ export default function CloudFilesystem({
   const { color, deleting } = cloudFilesystem;
   const [showDelete, setShowDelete] = useState<boolean>(false);
   const [showMount, setShowMount] = useState<boolean>(false);
+  const [showEditMountpoint, setShowEditMountpoint] = useState<boolean>(false);
+  const show = {
+    setShowDelete,
+    setShowMount,
+    setShowEditMountpoint,
+  };
 
   return (
     <Card
@@ -50,6 +57,12 @@ export default function CloudFilesystem({
         setOpen={setShowMount}
         refresh={refresh}
       />
+      <EditMountpoint
+        cloudFilesystem={cloudFilesystem}
+        open={showEditMountpoint}
+        setOpen={setShowEditMountpoint}
+        refresh={refresh}
+      />
       <Card.Meta
         avatar={<CloudFilesystemAvatar cloudFilesystem={cloudFilesystem} />}
         title={
@@ -57,8 +70,7 @@ export default function CloudFilesystem({
             cloudFilesystem={cloudFilesystem}
             setError={setError}
             refresh={refresh}
-            setShowDelete={setShowDelete}
-            setShowMount={setShowMount}
+            show={show}
           />
         }
         description={

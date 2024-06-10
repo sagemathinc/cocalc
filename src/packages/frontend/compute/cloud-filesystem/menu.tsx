@@ -43,14 +43,20 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       danger: cloudFilesystem.mount,
       key: "mount",
       icon: <Icon name={cloudFilesystem.mount ? "stop" : "run"} />,
-      label: cloudFilesystem.mount ? "Unmount..." : "Mount...",
+      label: cloudFilesystem.mount ? "Unmount" : "Mount",
+    },
+    {
+      disabled: cloudFilesystem.deleting || cloudFilesystem.mount,
+      key: "edit-mountpoint",
+      icon: <Icon name="folder-open" />,
+      label: "Edit Mountpoint",
     },
     {
       disabled: cloudFilesystem.deleting || cloudFilesystem.mount,
       danger: true,
       key: "delete",
       icon: <Icon name="trash" />,
-      label: "Delete...",
+      label: "Delete",
     },
     help,
   ];
@@ -62,16 +68,14 @@ export default function Menu({
   setError,
   size,
   fontSize,
-  setShowDelete,
-  setShowMount,
+  show,
 }: {
   cloudFilesystem;
   style?;
   setError;
   size?;
   fontSize?;
-  setShowDelete;
-  setShowMount;
+  show;
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const { items, onClick } = useMemo(() => {
@@ -86,10 +90,13 @@ export default function Menu({
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
         switch (cmd) {
           case "mount":
-            setShowMount(true);
+            show.setShowMount(true);
+            break;
+          case "edit-mountpoint":
+            show.setShowEditMountpoint(true);
             break;
           case "delete":
-            setShowDelete(true);
+            show.setShowDelete(true);
             break;
           case "documentation":
           case "videos":
