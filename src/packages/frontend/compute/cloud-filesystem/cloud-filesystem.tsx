@@ -13,6 +13,7 @@ import EditLock from "./edit-lock";
 import EditTrashDays from "./edit-trash-days";
 import EditBucketStorageClass from "./edit-bucket-storage-class";
 import EditMountOptions from "./edit-mount-options";
+import EditProject from "./edit-project";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -40,6 +41,7 @@ export default function CloudFilesystem({
     useState<boolean>(false);
   const [showEditMountOptions, setShowEditMountOptions] =
     useState<boolean>(false);
+  const [showEditProject, setShowEditProject] = useState<boolean>(false);
   const show = {
     setShowDelete,
     setShowMount,
@@ -49,6 +51,7 @@ export default function CloudFilesystem({
     setShowEditTrashDays,
     setShowEditBucketStorageClass,
     setShowEditMountOptions,
+    setShowEditProject,
   };
 
   return (
@@ -124,6 +127,14 @@ export default function CloudFilesystem({
           cloudFilesystem={cloudFilesystem}
           open={showEditMountOptions}
           setOpen={setShowEditMountOptions}
+          refresh={refresh}
+        />
+      )}
+      {showEditProject && (
+        <EditProject
+          cloudFilesystem={cloudFilesystem}
+          open={showEditProject}
+          setOpen={setShowEditProject}
           refresh={refresh}
         />
       )}

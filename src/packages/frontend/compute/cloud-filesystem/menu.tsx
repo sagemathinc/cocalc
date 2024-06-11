@@ -83,6 +83,12 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       label: "Mount and KeyDB Options",
     },
     {
+      key: "edit-project",
+      disabled: cloudFilesystem.mount,
+      icon: <Icon name={"pencil"} />,
+      label: "Move to Another Project",
+    },
+    {
       type: "divider",
     },
     {
@@ -118,6 +124,7 @@ export default function Menu({
     setShowEditTrashDays;
     setShowEditBucketStorageClass;
     setShowEditMountOptions;
+    setShowEditProject;
   };
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -143,6 +150,9 @@ export default function Menu({
             break;
           case "edit-mountpoint":
             show.setShowEditMountpoint(true);
+            break;
+          case "edit-project":
+            show.setShowEditProject(true);
             break;
           case "edit-mount-options":
             show.setShowEditMountOptions(true);
