@@ -133,16 +133,30 @@ export default function CreateCloudFilesystem({
           reset();
         }}
         open={editing && configuration != null}
-        okText={<>Create Cloud Filesystem {creating ? <Spin /> : undefined}</>}
-        onOk={() => {
-          create();
-        }}
         title={
           <div style={{ display: "flex", fontSize: "15pt" }}>
             <Icon name="disk-round" style={{ marginRight: "15px" }} /> Create a
             CoCalc Cloud Filesystem
           </div>
         }
+        footer={[
+          <Button
+            key="cancel"
+            disabled={creating}
+            onClick={() => {
+              setEditing(false);
+              reset();
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button key="ok" type="primary" disabled={creating} onClick={create}>
+            <>
+              Create Cloud Filesystem{" "}
+              {creating ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
+            </>
+          </Button>,
+        ]}
       >
         <ShowError
           error={error}

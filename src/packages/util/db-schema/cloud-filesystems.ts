@@ -176,8 +176,8 @@ export const DEFAULT_CONFIGURATION = {
   mount: true,
   compression: "lz4",
   block_size: 4,
-  trash_days: 0,
-  title: "Cloud Filesystem",
+  trash_days: 1,
+  title: "Untitled Filesystem",
   lock: "DELETE",
   // The entry-cache and/or dir-entry-cache being on with a default of 1 caused
   // weird bugs, so I explicitly disabled them.  Also, without writeback things

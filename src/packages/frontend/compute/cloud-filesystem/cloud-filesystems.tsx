@@ -24,6 +24,7 @@ interface Props {
 export default function CloudFilesystems({ project_id }: Props) {
   const { val: counter, inc: refresh } = useCounter();
   const [error, setError] = useState<string>("");
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [cloudFilesystems, setCloudFilesystems] = useState<
     CloudFilesystemType[] | null
   >(null);
@@ -32,6 +33,7 @@ export default function CloudFilesystems({ project_id }: Props) {
   useEffect(() => {
     (async () => {
       try {
+        setRefreshing(true);
         const c = await getCloudFilesystems({ project_id });
         c.sort((x, y) => {
           const d = cmp(x.position ?? 0, y.position ?? 0);
@@ -56,6 +58,8 @@ export default function CloudFilesystems({ project_id }: Props) {
         }
       } catch (err) {
         setError(`${err}`);
+      } finally {
+        setRefreshing(false);
       }
     })();
   }, [counter]);
@@ -68,7 +72,8 @@ export default function CloudFilesystems({ project_id }: Props) {
     <div>
       <Button style={{ float: "right" }} onClick={refresh}>
         <Icon name="refresh" />
-        Refresh
+        Refresh{" "}
+        {refreshing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
       </Button>
       <h2 style={{ textAlign: "center" }}>Cloud Filesystems</h2>
       <p style={{ maxWidth: "700px", margin: "15px auto" }}>

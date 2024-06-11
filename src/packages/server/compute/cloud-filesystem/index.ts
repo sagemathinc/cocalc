@@ -7,6 +7,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
+import { ensureBucketExists, ensureServiceAccountExists } from "./create";
 
 // last_edited gets updated about this frequently when filesystem actively mounted.
 const LAST_EDITED_UPDATE_INTERVAL_MS = 60 * 60 * 1000;
@@ -31,23 +32,46 @@ export async function getCloudFilesystem(id: number): Promise<CloudFilesystem> {
   return rows[0];
 }
 
+async function updateLastEdited(rows) {
+  const cutoff = new Date(Date.now() - LAST_EDITED_UPDATE_INTERVAL_MS);
+  const toUpdate = rows.filter((x) => x.last_edited <= cutoff).map((x) => x.id);
+  if (toUpdate.length > 0) {
+    const pool = getPool();
+    await pool.query(
+      "UPDATE cloud_filesystems SET last_edited=NOW() WHERE id=ANY($1)",
+      [toUpdate],
+    );
+  }
+}
+
 async function getMountedCloudFilesystems(
   project_id: string,
 ): Promise<CloudFilesystem[]> {
   logger.debug("getMountedCloudFilesystems: ", { project_id });
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT * FROM cloud_filesystems WHERE project_id=$1 AND (deleting IS null or deleting=false) AND mount=true AND secret_key IS NOT NULL`,
+    `SELECT * FROM cloud_filesystems WHERE project_id=$1 AND (deleting IS null or deleting=false) AND mount=true`,
     [project_id],
   );
-  const cutoff = new Date(Date.now() - LAST_EDITED_UPDATE_INTERVAL_MS);
-  const toUpdate = rows.filter((x) => x.last_edited <= cutoff).map((x) => x.id);
-  if (toUpdate.length > 0) {
-    await pool.query(
-      "UPDATE cloud_filesystems SET last_edited=NOW() WHERE id=ANY($1)",
-      [toUpdate],
-    );
+
+  // update last_edited in the database for these filesystems:
+  await updateLastEdited(rows);
+  // create any buckets, if they don't exist -- this may mutate rows.
+  // NOTE: this case absolutely should never happen since we create the bucket
+  // when creating the filesystem.  However, just in case, we leave it in,
+  // since it's a trivial check.
+  for (const row of rows) {
+    await ensureBucketExists(row);
   }
+  // create any service accounts that don't exist -- this may mutate rows
+  // and do NOT do in parallel since we do not want to encourage a race conditions
+  // when setting role bindings.
+  // This is expected to be necessary sometimes since we automatically
+  // delete service accounts of filesystems that haven't been used recently.
+  for (const row of rows) {
+    await ensureServiceAccountExists(row);
+  }
+
   return rows;
 }
 
