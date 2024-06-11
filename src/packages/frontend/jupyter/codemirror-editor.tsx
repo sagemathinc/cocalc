@@ -7,7 +7,6 @@
 
 declare const $: any;
 
-import { Button } from "antd";
 import { delay } from "awaiting";
 import CodeMirror from "codemirror";
 import { Map as ImmutableMap } from "immutable";
@@ -793,13 +792,16 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
             Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
           {setShowAICellGen != null ? (
-            <Button
-              type="link"
-              style={{ marginLeft: "-15px", opacity: 0.7 }}
+            <a
+              style={{
+                marginTop: "6px",
+                opacity: 0.7,
+                fontSize: "inherit",
+              }}
               onClick={() => setShowAICellGen("replace")}
             >
               generate using AI...
-            </Button>
+            </a>
           ) : undefined}
         </div>
       </div>
