@@ -34,7 +34,6 @@ import {
   A,
   Gap,
   HelpIcon,
-  NumberInput,
   Paragraph,
   TextInput,
 } from "@cocalc/frontend/components";
@@ -53,6 +52,7 @@ import {
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round1, test_valid_jsonpatch } from "@cocalc/util/misc";
+import { extract_gpu, process_gpu_quota } from "@cocalc/util/types/gpu";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { DEDICATED_VM_ONPREM_MACHINE } from "@cocalc/util/upgrades/consts";
 import { Upgrades } from "@cocalc/util/upgrades/quota";
@@ -522,7 +522,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
 
   function render_gpu_help(): JSX.Element {
     return (
-      <HelpIcon title="GPU Support">
+      <HelpIcon title="GPU Support" style={{ float: "right" }} maxWidth="500px">
         <Paragraph>
           This configures a license, which will cause the project to run on a
           GPU. You need to configure your VMs in your cluster in such a way,
@@ -533,73 +533,114 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <code>nvidia.com/gpu: 1</code>.
         </Paragraph>
         <Paragraph>
-          On top of that, you can optionally specify a taint, which will be
-          tolerated by that pod. This helps with keeping all other project pods
-          away from your GPU enabled nodes:{" "}
-          <code>
-            tolerations:{" "}
-            {JSON.stringify([
-              {
-                key: "gpu",
-                operator: "Equal",
-                value: "cocalc",
-                effect: "NoSchedule",
-              },
-            ])}
-          </code>
-          .
+          On top of that, you can optionally specify a{" "}
+          <Text strong>taint toleration</Text>. This helps with keeping all
+          other project pods away from your GPU enabled nodes. e.g.{" "}
+          <Text code>gpu=cocalc</Text> ends up as:{" "}
+          <pre>
+            {JSON.stringify({
+              tolerations: [
+                {
+                  key: "gpu",
+                  operator: "Equal",
+                  value: "cocalc",
+                  effect: "NoSchedule",
+                },
+              ],
+            })}
+          </pre>
+        </Paragraph>
+        <Paragraph>
+          You can also specify a <Text strong>node selector</Text>, useful if
+          you have several different types of GPU nodes in your cluster, and you
+          want to restrict where the project can run. E.g.{" "}
+          <Text code>gpu-type=nvidia-tesla-v100</Text> ends up as{" "}
+          <pre>
+            {JSON.stringify({
+              nodeSelector: { "gpu-type": "nvidia-tesla-v100" },
+            })}
+          </pre>
         </Paragraph>
       </HelpIcon>
     );
   }
 
   function render_gpu(): JSX.Element {
-    const { gpu } = quota;
-    const { num = 0, toleration = "" } =
-      typeof gpu === "object"
-        ? gpu
-        : typeof gpu === "number"
-        ? { num: gpu }
-        : {};
+    const { num = 0, toleration = "", nodeLabel = "" } = extract_gpu(quota);
+
+    const debug = process_gpu_quota(quota);
+
     return (
       <Row style={ROW_STYLE}>
         <Col md={col.control}>
           <Paragraph>
-            <Text strong>Request a GPU</Text>
-          </Paragraph>{" "}
-          <Paragraph>
-            <NumberInput
-              number={num}
-              min={0}
-              max={8}
-              on_change={(num: number) =>
-                onChange({ gpu: { num, toleration } })
-              }
-            />{" "}
-            GPUs (<code>nvidia.com/gpu: {num}</code>)
-          </Paragraph>
-          <Paragraph>
-            <Text>(optional) Tolerate a taint:</Text>{" "}
-            <TextInput
+            <Checkbox
+              checked={num > 0}
               disabled={disabled}
-              type={"text"}
-              on_change={(tol) =>
-                onChange({ gpu: { num, toleration: tol.trim() } })
+              style={{ fontWeight: "normal" }}
+              onChange={(e) =>
+                e.target.checked
+                  ? onChange({
+                      gpu: { num: num > 0 ? num : 1, toleration, nodeLabel },
+                    })
+                  : onChange({ gpu: { num } })
               }
-              style={{
-                fontWeight: "normal",
-                display: "inline-block",
-                margin: "0 10px",
-              }}
-              text={toleration}
-            />{" "}
-            (Enter <code>key=value</code> of a node taint. e.g.{" "}
-            <code>gpu=cocalc</code> means to ignore nodes tatined with key{" "}
-            <code>gpu</code> and value <code>cocalc</code>. Keep empty if you do
-            not use taints!)
+            >
+              <Text strong>Configure GPU</Text> {render_gpu_help()}
+            </Checkbox>
           </Paragraph>
-          {render_gpu_help()}
         </Col>
+        {num > 0 ? (
+          <Col md={col.desc}>
+            <Paragraph>
+              <Text strong>Number of GPUs</Text>{" "}
+              <InputNumber
+                min={1}
+                size={"small"}
+                value={num}
+                onChange={(num: number) =>
+                  onChange({ gpu: { num, toleration, nodeLabel } })
+                }
+              />{" "}
+              (usually "1")
+            </Paragraph>
+            <Paragraph>
+              <Text strong>Node selector:</Text>{" "}
+              <TextInput
+                size={"small"}
+                disabled={disabled}
+                type={"text"}
+                on_change={(label) =>
+                  onChange({
+                    gpu: { nodeLabel: label.trim(), toleration, num },
+                  })
+                }
+                style={{ display: "inline-block" }}
+                text={nodeLabel}
+              />{" "}
+              (optional, [1])
+            </Paragraph>
+            <Paragraph>
+              <Text strong>Tolerate a taint:</Text>{" "}
+              <TextInput
+                size={"small"}
+                disabled={disabled}
+                type={"text"}
+                on_change={(tol) =>
+                  onChange({ gpu: { toleration: tol.trim(), nodeLabel, num } })
+                }
+                style={{ display: "inline-block" }}
+                text={toleration}
+              />{" "}
+              (optional, [1])
+            </Paragraph>
+            <Paragraph type="secondary">
+              [1] format: <code>key=value</code>. Keep empty if you do not use
+              label selectors or taints. Specify mulitple ones via a "," comma.
+            </Paragraph>
+            <pre>{JSON.stringify(debug, null, 2)}</pre>
+          </Col>
+        ) : undefined}
       </Row>
     );
   }
