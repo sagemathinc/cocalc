@@ -15,6 +15,7 @@ import {
 import { isEqual } from "lodash";
 import { len } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { setDefaultStorageClass } from "@cocalc/server/compute/cloud/google-cloud/storage";
 
 const logger = getLogger("server:compute:cloud-filesystem/edit");
 
@@ -89,6 +90,16 @@ export async function userEditCloudFilesystem(
 
   if (changes.mountpoint) {
     assertValidPath(changes.mountpoint);
+  }
+
+  if (changes.bucket_storage_class) {
+    // set the new storage class
+    if (cloudFilesystem.bucket) {
+      await setDefaultStorageClass({
+        bucketName: cloudFilesystem.bucket,
+        storageClass: changes.bucket_storage_class,
+      });
+    }
   }
 
   const params: any[] = [];

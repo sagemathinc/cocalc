@@ -33,6 +33,7 @@ import { getGoogleCloudPrefix } from "@cocalc/server/compute/cloud/google-cloud/
 import {
   createBucket,
   CreateBucketRequest,
+  storageClassToOptions,
 } from "@cocalc/server/compute/cloud/google-cloud/storage";
 import {
   createServiceAccount,
@@ -239,17 +240,8 @@ export async function getServiceAccountId(id: number) {
 //   https://cloud.google.com/resources/storage/soft-delete-announce?hl=en
 
 function bucketOptions({ bucket_storage_class, bucket_location }: Options) {
-  let options: CreateBucketRequest = {};
-  options.location = bucket_location.toUpperCase();
-  if (bucket_storage_class.includes("autoclass")) {
-    options.autoclass = {
-      enabled: true,
-      terminalStorageClass: bucket_storage_class.includes("nearline")
-        ? "NEARLINE"
-        : "ARCHIVE",
-    };
-  } else {
-    options[bucket_storage_class] = true;
-  }
-  return options;
+  return {
+    location: bucket_location.toUpperCase(),
+    ...storageClassToOptions(bucket_storage_class),
+  } as CreateBucketRequest;
 }

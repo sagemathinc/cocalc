@@ -10,6 +10,8 @@ import { StorageTransferServiceClient } from "@google-cloud/storage-transfer";
 import { uuid } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
 import { addStorageTransferPolicy } from "./policy";
+import type { GoogleCloudBucketStorageClass } from "@cocalc/util/db-schema/cloud-filesystems";
+import { GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES } from "@cocalc/util/db-schema/cloud-filesystems";
 
 export type { CreateBucketRequest };
 
@@ -186,4 +188,76 @@ export async function deleteBucket({
 
   // now delete actual bucket.
   await bucket.delete({ ignoreNotFound: true });
+}
+
+export function storageClassToOptions(
+  storageClass: GoogleCloudBucketStorageClass,
+): Partial<CreateBucketRequest> {
+  if (!GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES.includes(storageClass)) {
+    // paranoia beyond typescript
+    throw Error(`unknown storage class: '${storageClass}'`);
+  }
+  if (storageClass.includes("autoclass")) {
+    return {
+      autoclass: {
+        enabled: true,
+        terminalStorageClass: storageClass.includes("nearline")
+          ? "NEARLINE"
+          : "ARCHIVE",
+      },
+    };
+  } else {
+    return { [storageClass]: true };
+  }
+}
+
+// set the default storage class of a bucket
+export async function setDefaultStorageClass({
+  bucketName,
+  storageClass,
+}: {
+  bucketName: string;
+  storageClass: GoogleCloudBucketStorageClass;
+}) {
+  if (!GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES.includes(storageClass)) {
+    // paranoia beyond typescript
+    throw Error(`unknown storage class: '${storageClass}'`);
+  }
+  const credentials = await getCredentials();
+  const storage = new Storage(credentials);
+  const bucket = storage.bucket(bucketName);
+
+  let metadata;
+  if (storageClass.includes("autoclass")) {
+    metadata = {
+      storageClass: "STANDARD",
+      autoclass: {
+        enabled: true,
+        terminalStorageClass: storageClass.includes("nearline")
+          ? "NEARLINE"
+          : "ARCHIVE",
+      },
+    };
+  } else {
+    metadata = {
+      storageClass: storageClass.toUpperCase(),
+      autoclass: { enabled: false },
+    };
+  }
+
+  try {
+    await bucket.setMetadata(metadata);
+    logger.debug(
+      "setDefaultStorageClass: Successfully set default storage class",
+      { bucketName, storageClass },
+    );
+  } catch (error) {
+    logger.error(
+      "setDefaultStorageClass: Error setting default storage class",
+      { bucketName, storageClass, error },
+    );
+    throw new Error(
+      `Error setting default storage class for bucket ${bucketName}: ${error.message}`,
+    );
+  }
 }
