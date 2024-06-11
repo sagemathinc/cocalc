@@ -320,6 +320,8 @@ export function FileTab(props: Readonly<Props>) {
 
   // how to read: default color -> style for component -> override color if there is activity
   const icon_style: CSSProperties = {
+    marginRight: "2px",
+    marginLeft: "-10px",
     color: COLORS.FILE_ICON,
     ...props.iconStyle,
     ...(has_activity ? { color: "orange" } : undefined),
@@ -473,11 +475,10 @@ export function FileTab(props: Readonly<Props>) {
 }
 
 const LABEL_STYLE: CSS = {
-  maxWidth: "250px",
   overflow: "hidden",
-  textOverflow: "ellipsis",
+  //textOverflow: "ellipsis",
+  margin: "auto",
   whiteSpace: "nowrap",
-  marginRight: "-15px", // this makes a lot more of the filename visible by undoing the antd tab spacing.
 } as const;
 
 const FULLPATH_LABEL_STYLE: CSS = {
