@@ -68,7 +68,7 @@ export function LLMQueryDropdownButton({
           onClick: () => llmTools?.setModel(name),
           icon: (
             <LanguageModelVendorAvatar
-              model={models[0].name}
+              model={name}
               size={18}
               style={{ top: "-5px" }}
             />

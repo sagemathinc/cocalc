@@ -1,10 +1,15 @@
 import type { SelectProps } from "antd";
 import { Select, Space, Tag, Tooltip } from "antd";
 import type { ConfigProviderProps } from "antd/lib/config-provider";
+import { isEmpty } from "lodash";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
+import {
+  getUserDefinedLLMByModel,
+  useUserDefinedLLM,
+} from "@cocalc/frontend/frame-editors/llm/use-userdefined-llm";
 import {
   ANTHROPIC_MODELS,
   GOOGLE_MODELS,
@@ -24,10 +29,13 @@ import {
   isCoreLanguageModel,
   isCustomOpenAI,
   isFreeModel,
+  isLLMServiceName,
   isOllamaLLM,
+  isUserDefinedModel,
   model2service,
   toCustomOpenAIModel,
   toOllamaModel,
+  toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
 import { round2up } from "@cocalc/util/misc";
 import type { CustomLLMPublic } from "@cocalc/util/types/llm";
@@ -53,6 +61,7 @@ export default function LLMSelector({
 }: Props) {
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
+  const user_llm = useUserDefinedLLM();
 
   // ATTN: you cannot use useProjectContext because this component is used outside a project context
   // when it is opened via an error in the gutter of a latex document. (I don't know why, maybe fixable)
@@ -100,7 +109,7 @@ export default function LLMSelector({
 
   function makeLLMGroup(
     ret: NonNullable<SelectProps["options"]>,
-    service: LLMServiceName | "custom",
+    service: LLMServiceName | "custom" | "user",
     options,
   ) {
     // there could be "undefined" in the list of options
@@ -116,6 +125,18 @@ export default function LLMSelector({
           </>
         ),
         title: "These language models are configured by the administrators.",
+        options,
+      });
+    } else if (service === "user") {
+      ret.push({
+        label: (
+          <>
+            <Text strong>User Defined LLM</Text> – Configured in Account →
+            Language Model
+          </>
+        ),
+        title:
+          "These language models are configured by you in Account Settings → Language Model.",
         options,
       });
     } else {
@@ -231,6 +252,29 @@ export default function LLMSelector({
     }
   }
 
+  function appendUserDefined(ret: NonNullable<SelectProps["options"]>): void {
+    if (isEmpty(user_llm)) return;
+    const user: NonNullable<SelectProps["options"]> = [];
+    const text = LLM_PROVIDER.user.desc;
+    for (const llm of user_llm) {
+      const { display, model, service } = llm;
+      if (!isLLMServiceName(service)) continue;
+      const um = toUserLLMModelName(llm);
+      const entry = (
+        <>
+          <LanguageModelVendorAvatar model={um} />{" "}
+          <strong>{display || model}</strong> – {LLM_PROVIDER[service].name}
+        </>
+      );
+      user.push({
+        value: um,
+        display: entry,
+        label: <Tooltip title={text}>{entry}</Tooltip>,
+      });
+    }
+    makeLLMGroup(ret, "user", user);
+  }
+
   function getOptions(): SelectProps["options"] {
     const ret: NonNullable<SelectProps["options"]> = [];
     appendOpenAI(ret);
@@ -243,6 +287,7 @@ export default function LLMSelector({
     if (custom.length > 0) {
       makeLLMGroup(ret, "custom", custom);
     }
+    appendUserDefined(ret);
     return ret;
   }
 
@@ -323,19 +368,27 @@ export function modelToName(model: LanguageModel): string {
     const om = ollama[fromOllamaModel(model)];
     return om ? om.display : `Ollama ${model}`;
   }
+
   if (isCustomOpenAI(model)) {
     const custom_openai =
       redux.getStore("customize").get("custom_openai")?.toJS() ?? {};
     const om = custom_openai[fromCustomOpenAIModel(model)];
     return om ? om.display : `OpenAI (custom) ${model}`;
   }
+
+  if (isUserDefinedModel(model)) {
+    const data = getUserDefinedLLMByModel(model);
+    return data?.display ?? model;
+  }
+
   return LLM_USERNAMES[model] ?? model;
 }
 
 export function modelToMention(model: LanguageModel): string {
-  return `<span class="user-mention" account-id=${model2service(
+  const id = isUserDefinedModel(model) ? model : model2service(model);
+  return `<span class="user-mention" account-id=${id} >@${modelToName(
     model,
-  )} >@${modelToName(model)}</span>`;
+  )}</span>`;
 }
 
 const FREE = "free";

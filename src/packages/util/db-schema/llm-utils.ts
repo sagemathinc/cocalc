@@ -5,19 +5,97 @@ import LRU from "lru-cache";
 
 import { unreachable } from "@cocalc/util/misc";
 
-// "Client LLMs" are defined in the user's account settings
-// They directly query an external LLM service.
-export interface ClientLLM {
-  type: "ollama"; // only one type for now
+// these can be defined by admins and users
+export const SERVICES = [
+  "openai",
+  "google",
+  "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
+  "anthropic",
+  "ollama",
+  "custom_openai",
+] as const;
+
+// a "user-*" model is a wrapper for all the model services
+export const LANGUAGE_MODEL_SERVICES = [...SERVICES, "user"] as const;
+
+export type UserDefinedLLMService = (typeof SERVICES)[number];
+
+export function isUserDefinedModelType(
+  model: unknown,
+): model is UserDefinedLLMService {
+  return SERVICES.includes(model as any);
+}
+
+// "User LLMs" are defined in the user's account settings.
+// They query an external LLM service of given type, endpoint, and API key.
+export interface UserDefinedLLM {
+  id: number; // a unique number
+  service: UserDefinedLLMService;
   model: string; // non-empty string
   display: string; // short user-visible string
   endpoint: string; // URL to the LLM service
+  apiKey: string;
+  icon?: string; // https://.../...png
 }
 
-const CLIENT_PREFIX = "client-";
+export const USER_LLM_PREFIX = "user-";
 
-export function isClientModel(model: string): boolean {
-  return model.startsWith(CLIENT_PREFIX);
+// This basically prefixes the "model" defined by the user with the USER and service prefix.
+// We do not use the to*() functions, because the names of the models could be arbitrary – for each service
+export function toUserLLMModelName(llm: UserDefinedLLM) {
+  const { service } = llm;
+  const model: string = (() => {
+    switch (service) {
+      case "custom_openai":
+        return `${CUSTOM_OPENAI_PREFIX}${llm.model}`;
+      case "ollama":
+        return toOllamaModel(llm.model);
+      case "anthropic":
+        return `${ANTHROPIC_PREFIX}${llm.model}`;
+      case "google":
+        return `${GOOGLE_PREFIX}${llm.model}`;
+      case "mistralai":
+        return `${MISTRAL_PREFIX}${llm.model}`;
+      case "openai":
+        return `${OPENAI_PREFIX}${llm.model}`;
+      default:
+        unreachable(service);
+        throw new Error(
+          `toUserLLMModelName of service ${service} not supported`,
+        );
+    }
+  })();
+  return `${USER_LLM_PREFIX}${model}`;
+}
+
+export function fromUserDefinedLLMModel(m: string): string | null {
+  if (isUserDefinedModel(m)) {
+    return m.slice(USER_LLM_PREFIX.length);
+  }
+  return null;
+}
+
+export function isUserDefinedModel(model: unknown): boolean {
+  if (typeof model !== "string") return false;
+  if (model.startsWith(USER_LLM_PREFIX)) {
+    const m2 = model.slice(USER_LLM_PREFIX.length);
+    return SERVICES.some((svc) => m2.startsWith(`${svc}-`));
+  }
+  return false;
+}
+
+export function unpackUserDefinedLLMModel(model: string): {
+  service: UserDefinedLLMService;
+  model: string;
+} | null {
+  const um = fromUserDefinedLLMModel(model);
+  if (um === null) return null;
+  for (const service of SERVICES) {
+    if (um.startsWith(`${service}-`)) {
+      return { service, model: um.slice(service.length + 1) };
+    }
+  }
+  return null;
 }
 
 export const OPENAI_PREFIX = "openai-";
@@ -161,6 +239,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   }),
   ollama: [], // this is empty, because these models are not hardcoded
   custom_openai: [], // this is empty, because these models are not hardcoded]
+  user: [],
 } as const;
 
 // This hardcodes which models can be selected by users – refine this by setting site_settings.selectable_llms!
@@ -192,19 +271,16 @@ export function isLanguageModel(model?: unknown): model is LanguageModel {
   if (typeof model !== "string") return false;
   if (isOllamaLLM(model)) return true;
   if (isCustomOpenAI(model)) return true;
+  if (isUserDefinedModel(model)) return true; // this also checks, if there is a valid model inside
   return LANGUAGE_MODELS.includes(model as any);
 }
 
-export const LANGUAGE_MODEL_SERVICES = [
-  "openai",
-  "google",
-  "mistralai", // the "*ai" is deliberately, because their model names start with "mistral-..." and we have to distinguish it from the prefix
-  "anthropic",
-  "ollama",
-  "custom_openai",
-] as const;
-
 export type LLMServiceName = (typeof LANGUAGE_MODEL_SERVICES)[number];
+
+export function isLLMServiceName(service: unknown): service is LLMServiceName {
+  if (typeof service !== "string") return false;
+  return LANGUAGE_MODEL_SERVICES.includes(service as any);
+}
 
 export type LLMServicesAvailable = Record<LLMServiceName, boolean>;
 
@@ -212,6 +288,7 @@ interface LLMService {
   name: string;
   short: string; // additional short text next to the company name
   desc: string; // more detailed description
+  url: string;
 }
 
 export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
@@ -219,31 +296,43 @@ export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
     name: "OpenAI",
     short: "AI research and deployment company",
     desc: "OpenAI is an AI research and deployment company. Their mission is to ensure that artificial general intelligence benefits all of humanity.",
+    url: "https://openai.com/",
   },
   google: {
     name: "Google",
     short: "Technology company",
     desc: "Google's mission is to organize the world's information and make it universally accessible and useful.",
+    url: "https://gemini.google.com/",
   },
   anthropic: {
     name: "Anthropic",
     short: "AI research company",
     desc: "Anthropic is an American artificial intelligence (AI) startup company, founded by former members of OpenAI.",
+    url: "https://www.anthropic.com/",
   },
   mistralai: {
     name: "Mistral AI",
     short: "French AI company",
     desc: "Mistral AI is a French company selling artificial intelligence (AI) products.",
+    url: "https://mistral.ai/",
   },
   ollama: {
     name: "Ollama",
     short: "Open-source software",
-    desc: "Ollama helps you to get up and running with large language models, locally.",
+    desc: "Ollama language model server at a custom API endpoint.",
+    url: "https://ollama.com/",
   },
   custom_openai: {
     name: "OpenAI API",
     short: "Custom endpoint",
     desc: "Calls a custom OpenAI API endoint.",
+    url: "https://js.langchain.com/v0.1/docs/integrations/llms/openai/",
+  },
+  user: {
+    name: "User Defined",
+    short: "Account → Language Model",
+    desc: "Defined by the user in Account Settings → Language Model",
+    url: "",
   },
 } as const;
 
@@ -255,13 +344,15 @@ interface ValidLanguageModelNameProps {
   selectable_llms: string[]; // either empty, or an array stored in the server settings
 }
 
+// NOTE: these values must be in sync with the "no" vals in db-schema/site-defaults.ts
 const DEFAULT_FILTER: Readonly<LLMServicesAvailable> = {
-  openai: true,
-  google: true,
+  openai: false,
+  google: false,
   ollama: false,
   mistralai: false,
   anthropic: false,
   custom_openai: false,
+  user: false,
 } as const;
 
 // this is used in initialization functions. e.g. to get a default model depending on the overall availability
@@ -307,7 +398,7 @@ export function getValidLanguageModelName({
   return DEFAULT_MODEL;
 }
 
-export const DEFAULT_LLM_PRIORITY: Readonly<LLMServiceName[]> = [
+export const DEFAULT_LLM_PRIORITY: Readonly<UserDefinedLLMService[]> = [
   "google",
   "openai",
   "anthropic",
@@ -401,8 +492,12 @@ export function model2service(model: LanguageModel): LanguageService {
   if (model === "text-embedding-ada-002") {
     return `${OPENAI_PREFIX}${model}`;
   }
-  if (isOllamaLLM(model) || isCustomOpenAI(model)) {
-    return model; // already has the ollama or custom_openai prefix
+  if (
+    isOllamaLLM(model) ||
+    isCustomOpenAI(model) ||
+    isUserDefinedModel(model)
+  ) {
+    return model; // already has a useful prefix
   }
   if (isMistralModel(model)) {
     return toMistralService(model);
@@ -451,6 +546,10 @@ export function service2model_core(
   const s = service.split("-")[0];
   const hasPrefix = LANGUAGE_MODEL_SERVICES.some((v) => s === v);
 
+  if (isUserDefinedModel(service)) {
+    return service;
+  }
+
   const m = hasPrefix ? service.split("-").slice(1).join("-") : service;
   if (hasPrefix) {
     // we add the trailing "-" to match with these prefixes, which include the "-"
@@ -477,22 +576,25 @@ interface LLMVendor {
 }
 
 export function model2vendor(model): LLMVendor {
-  if (isOllamaLLM(model)) {
-    return { name: "ollama", url: "https://ollama.com/" };
+  if (isUserDefinedModel(model)) {
+    return { name: "user", url: "" };
+  } else if (isOllamaLLM(model)) {
+    return { name: "ollama", url: LLM_PROVIDER.ollama.url };
   } else if (isCustomOpenAI(model)) {
     return {
       name: "custom_openai",
-      url: "https://js.langchain.com/v0.1/docs/integrations/llms/openai/",
+      url: LLM_PROVIDER.custom_openai.url,
     };
   } else if (isMistralModel(model)) {
-    return { name: "mistralai", url: "https://mistral.ai/" };
+    return { name: "mistralai", url: LLM_PROVIDER.mistralai.url };
   } else if (isOpenAIModel(model)) {
-    return { name: "openai", url: "https://openai.com/" };
+    return { name: "openai", url: LLM_PROVIDER.openai.url };
   } else if (isGoogleModel(model)) {
-    return { name: "google", url: "https://gemini.google.com/" };
+    return { name: "google", url: LLM_PROVIDER.google.url };
   } else if (isAnthropicModel(model)) {
-    return { name: "anthropic", url: "https://www.anthropic.com/" };
+    return { name: "anthropic", url: LLM_PROVIDER.anthropic.url };
   }
+
   throw new Error(`model2vendor: unknown model: "${model}"`);
 }
 
@@ -665,6 +767,7 @@ export const LLM_DESCR: LLM2String = {
 
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
   if (!isCoCalcCom) return true;
+  if (isUserDefinedModel(model)) return true;
   if (isOllamaLLM(model)) return true;
   if (isCustomOpenAI(model)) return true;
   if (typeof model === "string" && LANGUAGE_MODELS.includes(model as any)) {
@@ -683,6 +786,7 @@ export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
 export function isLanguageModelService(
   service: string,
 ): service is LanguageService {
+  if (isUserDefinedModel(service)) return true;
   for (const v of LANGUAGE_MODEL_SERVICES) {
     if (service.startsWith(`${v}-`)) {
       return true;
@@ -705,6 +809,8 @@ export function getLLMServiceStatusCheckMD(service: LLMServiceName): string {
       return `No status information for Mistral AI available.`;
     case "anthropic":
       return `Anthropic [status](https://status.anthropic.com/).`;
+    case "user":
+      return `No status information for user defined model available.`;
     default:
       unreachable(service);
   }
@@ -889,6 +995,7 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
 // TODO: remove this test – it's only used server side, and that server side check should work for all known LLM models
 export function isValidModel(model?: string): boolean {
   if (model == null) return false;
+  if (isUserDefinedModel(model)) return true;
   if (isOllamaLLM(model)) return true;
   if (isCustomOpenAI(model)) return true;
   if (isMistralModel(model)) return true;

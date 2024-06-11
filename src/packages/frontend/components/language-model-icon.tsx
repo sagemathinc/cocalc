@@ -1,10 +1,14 @@
 import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
+  LLMServiceName,
   LanguageModel,
+  SERVICES,
   fromCustomOpenAIModel,
   fromOllamaModel,
+  fromUserDefinedLLMModel,
   isGoogleModel,
   isLanguageModel,
+  isUserDefinedModel,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { unreachable } from "@cocalc/util/misc";
@@ -52,8 +56,9 @@ export function LanguageModelVendorAvatar(
     );
   }
 
-  if (isLanguageModel(model)) {
-    const vendorName = model2vendor(model).name;
+  function renderModel(model: string, vendor?: LLMServiceName) {
+    const useIcon = vendor == null;
+    const vendorName = vendor ?? model2vendor(model).name;
     switch (vendorName) {
       case "openai":
         return <OpenAIAvatar size={size} style={style} />;
@@ -63,7 +68,7 @@ export function LanguageModelVendorAvatar(
           fromCustomOpenAIModel(model),
           "icon",
         ]);
-        if (typeof icon === "string") {
+        if (useIcon && typeof icon === "string") {
           return renderImgIcon(icon);
         } else {
           return <OpenAIAvatar size={size} style={style} />;
@@ -74,7 +79,7 @@ export function LanguageModelVendorAvatar(
         if (model === "chat-bison-001") {
           // Palm2, no longer supported, just for backwards compatibility
           return <GooglePalmLogo size={size} style={style} />;
-        } else if (isGoogleModel(model)) {
+        } else if (!useIcon || isGoogleModel(model)) {
           return <GoogleGeminiLogo size={size} style={style} />;
         } else {
           return fallback();
@@ -86,7 +91,7 @@ export function LanguageModelVendorAvatar(
 
       case "ollama": {
         const icon = ollama?.getIn([fromOllamaModel(model), "icon"]);
-        if (typeof icon === "string") {
+        if (useIcon && typeof icon === "string") {
           return renderImgIcon(icon);
         } else {
           return <OllamaAvatar size={size} style={style} />;
@@ -96,10 +101,30 @@ export function LanguageModelVendorAvatar(
       case "anthropic":
         return <AnthropicAvatar size={size} style={style} />;
 
+      case "user":
+        // should never happen, because it is unpacked below
+        return fallback();
+
       default:
         unreachable(vendorName);
         return fallback();
     }
+  }
+
+  if (isUserDefinedModel(model)) {
+    const udm = fromUserDefinedLLMModel(model);
+    if (!udm) {
+      return fallback();
+    } else {
+      // TODO: support a customizable icon for user defined LLMs
+      for (const vendor of SERVICES) {
+        if (udm.startsWith(`${vendor}-`)) {
+          return renderModel(udm, vendor);
+        }
+      }
+    }
+  } else if (isLanguageModel(model)) {
+    return renderModel(model);
   }
 
   return fallback();

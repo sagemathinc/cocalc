@@ -236,7 +236,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             style={{
               marginLeft: "1px",
               padding: "4px 5px 4px 6px",
-              borderLeft: `1px solid ${COLORS.GRAY_LL}`,
+              borderLeft: `1px solid ${COLORS.GRAY_L}`,
             }}
           >
             {index + 1}

@@ -1,3 +1,4 @@
+import type { Ollama } from "@langchain/community/llms/ollama";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
@@ -25,8 +26,9 @@ interface OllamaOpts {
 
 export async function evaluateOllama(
   opts: Readonly<OllamaOpts>,
+  client?: Ollama,
 ): Promise<ChatOutput> {
-  if (!isOllamaLLM(opts.model)) {
+  if (client == null && !isOllamaLLM(opts.model)) {
     throw new Error(`model ${opts.model} not supported`);
   }
   const model = fromOllamaModel(opts.model);
@@ -40,7 +42,7 @@ export async function evaluateOllama(
     maxTokens,
   });
 
-  const ollama = await getOllama(model);
+  const ollama = client ?? (await getOllama(model));
 
   const prompt = ChatPromptTemplate.fromMessages([
     ["system", system ?? ""],
