@@ -10,9 +10,7 @@ import getParams from "lib/api/get-params";
 
 export default async function handle(req: Request, res: Response) {
   try {
-    const params = getParams(req, {
-      allowGet: true,
-    });
+    const params = getParams(req);
 
     res.setHeader("Content-Type", "application/json");
     res.setHeader("Cache-Control", "public, max-age=3600");

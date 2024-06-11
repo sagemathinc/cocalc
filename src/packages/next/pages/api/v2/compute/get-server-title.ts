@@ -26,9 +26,7 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const { id } = getParams(req, {
-    allowGet: true,
-  });
+  const { id } = getParams(req);
   return await getTitle({ id, account_id });
 }
 
