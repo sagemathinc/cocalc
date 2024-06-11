@@ -3,7 +3,15 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { List as AntdList, Button, Card, Form, Input, Space } from "antd";
+import {
+  List as AntdList,
+  Button,
+  Card,
+  Form,
+  Input,
+  InputNumber,
+  Space,
+} from "antd";
 import { List, Map, fromJS } from "immutable";
 
 import {
@@ -14,12 +22,13 @@ import {
   useActions,
   useRedux,
 } from "@cocalc/frontend/app-framework";
+import { useState } from "react";
 import { Gap, Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
+import { MAX_PARALLEL_TASKS } from "../student-projects/actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
 import { Result } from "../student-projects/run-in-all-projects";
-
 interface Props {
   name: string;
 }
@@ -30,8 +39,9 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
     const actions = useActions<CourseActions>({ name });
     const terminal_command: TerminalCommand | undefined = useRedux(
       name,
-      "terminal_command"
+      "terminal_command",
     );
+    const [timeout, setTimeout] = useState<number | null>(1);
 
     function render_button(running: boolean): Rendered {
       return (
@@ -59,16 +69,30 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
             run_terminal_command();
           }}
         >
-          <Space.Compact style={{ display: "flex", whiteSpace: "nowrap" }}>
+          <Space.Compact
+            style={{
+              display: "flex",
+              whiteSpace: "nowrap",
+              marginBottom: "5px",
+            }}
+          >
             <Input
               style={{ fontFamily: "monospace" }}
               placeholder="Terminal command..."
               onChange={(e) => {
                 set_field("input", e.target.value);
               }}
+              onPressEnter={() => run_terminal_command()}
             />
             {render_button(running)}
           </Space.Compact>
+          <InputNumber
+            value={timeout}
+            onChange={(t) => setTimeout(t ?? null)}
+            min={0}
+            max={30}
+            addonAfter={"minute timeout"}
+          />
         </Form>
       );
     }
@@ -117,12 +141,12 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
 
     function set_field(
       field: "input" | "running" | "output",
-      value: any
+      value: any,
     ): void {
       const store: CourseStore = get_store();
       let terminal_command: TerminalCommand = store.get(
         "terminal_command",
-        Map() as TerminalCommand
+        Map() as TerminalCommand,
       );
       if (value == null) {
         terminal_command = terminal_command.delete(field);
@@ -158,12 +182,11 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
       if (!input) return;
       try {
         set_field("running", true);
-        await actions.student_projects.run_in_all_student_projects(
-          input,
-          undefined,
-          undefined,
-          run_log
-        );
+        await actions.student_projects.run_in_all_student_projects({
+          command: input,
+          timeout: (timeout ? timeout : 1) * 60,
+          log: run_log,
+        });
       } finally {
         set_field("running", false);
       }
@@ -192,11 +215,13 @@ export const TerminalCommandPanel: React.FC<Props> = React.memo(
         {render_terminal()}
         <hr />
         <span style={{ color: "#666" }}>
-          Run a terminal command in the home directory of all student projects.
+          Run a bash terminal command in the home directory of all student
+          projects. Up to {MAX_PARALLEL_TASKS} commands run in parallel, with a
+          timeout of {timeout} minutes.
         </span>
       </Card>
     );
-  }
+  },
 );
 
 const PROJECT_LINK_STYLE: CSS = {
@@ -236,6 +261,8 @@ const Output: React.FC<{ result: TerminalCommandOutput }> = React.memo(
     const stdout = result.get("stdout");
     const stderr = result.get("stderr");
     const noresult = !stdout && !stderr;
+    const timeout = result.get("timeout");
+    const total_time = result.get("total_time");
 
     return (
       <div style={{ padding: 0, width: "100%" }}>
@@ -244,8 +271,16 @@ const Output: React.FC<{ result: TerminalCommandOutput }> = React.memo(
         </a>
         {stdout && <pre style={CODE_STYLE}>{stdout}</pre>}
         {stderr && <pre style={ERR_STYLE}>{stderr}</pre>}
-        {noresult && <div>No result/possibly timeout</div>}
+        {noresult && (
+          <div>
+            No output{" "}
+            {total_time != null && timeout != null && total_time >= timeout - 5
+              ? "(possible timeout)"
+              : ""}
+          </div>
+        )}
+        {total_time != null && <>(Time: {total_time} seconds)</>}
       </div>
     );
-  }
+  },
 );
