@@ -293,26 +293,8 @@ export default function CreateCloudFilesystem({
                   setConfiguration={setConfiguration}
                 />
               </div>
-              <Divider>
-                <Icon
-                  name="gears"
-                  style={{ fontSize: "16pt", marginRight: "15px" }}
-                />
-                Mount Options
-              </Divider>
-              Mount options impact cache speed and other aspects of your
-              filesystem, and can be changed when the filesystem is not mounted.
-              You can set any possible JuiceFS or KeyDB configuration, which
-              will be used when mounting your filesystem. Be careful since a
-              mistake here could make it so the filesystem will temporarily not
-              mount.
-              <br />
-              <MountOptions
-                configuration={configuration}
-                setConfiguration={setConfiguration}
-              />
-              <br />
-              <KeyDBOptions
+              <MountAndKeyDBOptions
+                showHeader
                 configuration={configuration}
                 setConfiguration={setConfiguration}
               />
@@ -580,6 +562,43 @@ function Lock({ configuration, setConfiguration }) {
   );
 }
 
+export function MountAndKeyDBOptions({
+  configuration,
+  setConfiguration,
+  showHeader,
+}) {
+  return (
+    <>
+      {showHeader && (
+        <Divider>
+          <Icon
+            name="database"
+            style={{ fontSize: "16pt", marginRight: "15px" }}
+          />
+          Mount and KeyDB Options
+        </Divider>
+      )}
+      <p>
+        Mount options impact cache speed and other aspects of your filesystem,
+        and can only be changed when the filesystem is not mounted. You can set
+        any possible JuiceFS or KeyDB configuration, which will be used when
+        mounting your filesystem. Be careful: changes here can make it so the
+        filesystem will not mount (if that happens, unmount and undo your
+        change); also, some options may cause things to break in subtle ways.
+      </p>
+      <MountOptions
+        configuration={configuration}
+        setConfiguration={setConfiguration}
+      />
+      <br />
+      <KeyDBOptions
+        configuration={configuration}
+        setConfiguration={setConfiguration}
+      />
+    </>
+  );
+}
+
 function MountOptions({ configuration, setConfiguration }) {
   return (
     <div>
@@ -596,7 +615,7 @@ function MountOptions({ configuration, setConfiguration }) {
         Reset
       </Button>
       <A href="https://juicefs.com/docs/community/command_reference#mount">
-        JuiceFS Mount Options
+        {EXTERNAL} JuiceFS Mount Options
       </A>
       <br />
       <Input
@@ -625,7 +644,7 @@ function KeyDBOptions({ configuration, setConfiguration }) {
         Reset
       </Button>
       <A href="https://docs.keydb.dev/docs/config-file/">
-        KeyDB Config File Options
+        {EXTERNAL} KeyDB Config File Options
       </A>
       <br />
       The text below is placed at the end of keydb.conf and can be used to

@@ -12,6 +12,7 @@ import EditTitleAndColor from "./edit-title-and-color";
 import EditLock from "./edit-lock";
 import EditTrashDays from "./edit-trash-days";
 import EditBucketStorageClass from "./edit-bucket-storage-class";
+import EditMountOptions from "./edit-mount-options";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -37,6 +38,8 @@ export default function CloudFilesystem({
   const [showEditTrashDays, setShowEditTrashDays] = useState<boolean>(false);
   const [showEditBucketStorageClass, setShowEditBucketStorageClass] =
     useState<boolean>(false);
+  const [showEditMountOptions, setShowEditMountOptions] =
+    useState<boolean>(false);
   const show = {
     setShowDelete,
     setShowMount,
@@ -45,6 +48,7 @@ export default function CloudFilesystem({
     setShowEditLock,
     setShowEditTrashDays,
     setShowEditBucketStorageClass,
+    setShowEditMountOptions,
   };
 
   return (
@@ -99,6 +103,12 @@ export default function CloudFilesystem({
         cloudFilesystem={cloudFilesystem}
         open={showEditBucketStorageClass}
         setOpen={setShowEditBucketStorageClass}
+        refresh={refresh}
+      />
+      <EditMountOptions
+        cloudFilesystem={cloudFilesystem}
+        open={showEditMountOptions}
+        setOpen={setShowEditMountOptions}
         refresh={refresh}
       />
       <Card.Meta

@@ -53,12 +53,6 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       label: "Title and Color",
     },
     {
-      disabled: cloudFilesystem.mount,
-      key: "edit-mountpoint",
-      icon: <Icon name="folder-open" />,
-      label: "Mountpoint",
-    },
-    {
       key: "edit-bucket-storage-class",
       icon: <Icon name="disk-snapshot" />,
       label: "Bucket Storage Class",
@@ -72,6 +66,21 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       key: "edit-lock",
       icon: <Icon name={"lock"} />,
       label: "Delete Confirmation",
+    },
+    {
+      type: "divider",
+    },
+    {
+      disabled: cloudFilesystem.mount,
+      key: "edit-mountpoint",
+      icon: <Icon name="folder-open" />,
+      label: "Mountpoint",
+    },
+    {
+      key: "edit-mount-options",
+      disabled: cloudFilesystem.mount,
+      icon: <Icon name={"database"} />,
+      label: "Mount and KeyDB Options",
     },
     {
       type: "divider",
@@ -108,6 +117,7 @@ export default function Menu({
     setShowEditLock;
     setShowEditTrashDays;
     setShowEditBucketStorageClass;
+    setShowEditMountOptions;
   };
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -133,6 +143,9 @@ export default function Menu({
             break;
           case "edit-mountpoint":
             show.setShowEditMountpoint(true);
+            break;
+          case "edit-mount-options":
+            show.setShowEditMountOptions(true);
             break;
           case "edit-trash-config":
             show.setShowEditTrashDays(true);

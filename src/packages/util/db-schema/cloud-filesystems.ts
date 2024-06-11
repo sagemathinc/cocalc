@@ -182,9 +182,9 @@ export const DEFAULT_CONFIGURATION = {
   // The entry-cache and/or dir-entry-cache being on with a default of 1 caused
   // weird bugs, so I explicitly disabled them.  Also, without writeback things
   // are brutally slow, so it's enabled (and seems to never cause issue).
-  // allow_other makes it possible to use ZFS on top of this, which is interesting.
-  mount_options:
-    "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other",
+  // "-o allow_other" (not below) makes it possible to use ZFS on top of this,
+  // which may be interesting later.
+  mount_options: "--writeback --entry-cache=0 --dir-entry-cache=0",
   keydb_options: "",
   bucket_location: "us",
   bucket_storage_class: "standard",
