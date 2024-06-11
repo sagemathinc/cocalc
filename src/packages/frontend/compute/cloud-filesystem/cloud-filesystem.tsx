@@ -14,6 +14,7 @@ import EditTrashDays from "./edit-trash-days";
 import EditBucketStorageClass from "./edit-bucket-storage-class";
 import EditMountOptions from "./edit-mount-options";
 import EditProject from "./edit-project";
+import { TimeAgo } from "@cocalc/frontend/components";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -155,8 +156,8 @@ export default function CloudFilesystem({
             <BlockSize {...cloudFilesystem} />{" "}
             {cloudFilesystem.mount ? "mounted" : "which would mount"} at{" "}
             <Mountpoint {...cloudFilesystem} show={setShowEditMountpoint} />{" "}
-            <Bucket {...cloudFilesystem} show={setShowEditBucketStorageClass} />
-            .
+            <Bucket {...cloudFilesystem} show={setShowEditBucketStorageClass} />{" "}
+            <LastEdited {...cloudFilesystem} />.
             {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
             )}
@@ -208,6 +209,15 @@ function Bucket({ bucket_location, bucket_storage_class, show }) {
       in <Location bucket_location={bucket_location} />
     </>
   );
+}
+
+function LastEdited({ last_edited }: { last_edited? }) {
+  if (!last_edited) {
+    return <>not used</>;
+  }
+  const d = new Date(last_edited);
+  const recent = d >= new Date(Date.now() - 5 * 60 * 1000);
+  return <>last edited {recent ? "recently" : <TimeAgo date={d} />}</>;
 }
 
 function Location({ bucket_location }) {

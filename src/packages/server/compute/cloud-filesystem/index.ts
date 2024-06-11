@@ -10,7 +10,7 @@ import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { ensureBucketExists, ensureServiceAccountExists } from "./create";
 
 // last_edited gets updated about this frequently when filesystem actively mounted.
-const LAST_EDITED_UPDATE_INTERVAL_MS = 60 * 60 * 1000;
+const LAST_EDITED_UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 const logger = getLogger("server:compute:cloud-filesystem");
 
