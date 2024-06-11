@@ -31,7 +31,7 @@ function Label({ path, project_id, label }) {
       path={path}
       label={label}
       noPopover={active != null}
-      style={width != null ? { width } : undefined}
+      style={width != null ? { width, marginRight: "-10px" } : undefined}
     />
   );
 }

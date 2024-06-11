@@ -92,11 +92,15 @@ export function SortableTabs(props: Props) {
       lastRef.current.length = items.length;
       return last.itemWidth;
     }
+    // resize?.width - 46 - the minus 46 is to take into account the "..." dropdown.
     const itemWidth =
       Math.max(
-        180,
-        Math.min(250 + 65, (resize?.width ?? 0) / Math.max(1, items.length))
-      ) - 70; // the constant accounts for the margin and x for an antd tab.
+        80,
+        Math.min(
+          250 + 65,
+          ((resize?.width ?? 500) - 46 ?? 0) / Math.max(1, items.length),
+        ),
+      ) - 55; // the constant accounts for the margin and x for an antd tab.
     lastRef.current = {
       width: resize.width ?? 0,
       length: items.length,
