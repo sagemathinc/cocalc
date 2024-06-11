@@ -26,6 +26,11 @@ d = require('awaiting')
 for(let i=31;i<110;i++){await a.createServiceAccount(`cocalc-${i}`); await d.delay(10000)}
 
 for(let i=0;i<110;i++){await a.deleteServiceAccount(`cocalc-${i}`); await d.delay(1000)}
+
+
+
+
+NOTE: "Google Cloud service account keys by default do not expire." -- https://cloud.google.com/blog/products/identity-security/introducing-time-bound-key-authentication-for-service-accounts
 */
 
 import { getCredentials } from "./client";

@@ -8,6 +8,9 @@ import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 
+// last_edited gets updated about this frequently when filesystem actively mounted.
+const LAST_EDITED_UPDATE_INTERVAL_MS = 60 * 60 * 1000;
+
 const logger = getLogger("server:compute:cloud-filesystem");
 
 export type CloudFilesystemConf = {
@@ -37,8 +40,14 @@ async function getMountedCloudFilesystems(
     `SELECT * FROM cloud_filesystems WHERE project_id=$1 AND (deleting IS null or deleting=false) AND mount=true AND secret_key IS NOT NULL`,
     [project_id],
   );
-  // TODO: we may have to address issues here with service account keys expiring, and
-  // maybe with collaborators on a project.
+  const cutoff = new Date(Date.now() - LAST_EDITED_UPDATE_INTERVAL_MS);
+  const toUpdate = rows.filter((x) => x.last_edited <= cutoff).map((x) => x.id);
+  if (toUpdate.length > 0) {
+    await pool.query(
+      "UPDATE cloud_filesystems SET last_edited=NOW() WHERE id=ANY($1)",
+      [toUpdate],
+    );
+  }
   return rows;
 }
 
