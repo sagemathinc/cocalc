@@ -4,6 +4,7 @@ import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { deleteCloudFilesystem } from "./api";
+import { editModalStyle } from "./util";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -38,6 +39,7 @@ export default function DeleteCloudFilesystem({
 
   return (
     <Modal
+      styles={{ body: editModalStyle(cloudFilesystem) }}
       centered
       title={
         <>

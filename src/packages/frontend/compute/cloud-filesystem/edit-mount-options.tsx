@@ -5,6 +5,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
 import { MountAndKeyDBOptions } from "./create";
+import { editModalStyle } from "./util";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -58,6 +59,7 @@ export default function EditBucketStorageClass({
   return (
     <Modal
       style={{ maxWidth: "100%" }}
+      styles={{ body: editModalStyle(cloudFilesystem) }}
       width={750}
       centered
       title={

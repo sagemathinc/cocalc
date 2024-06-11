@@ -5,6 +5,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
+import { editModalStyle } from "./util";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -49,6 +50,7 @@ export default function EditTrashDays({
 
   return (
     <Modal
+      styles={{ body: editModalStyle(cloudFilesystem) }}
       centered
       title={
         <>

@@ -63,54 +63,70 @@ export default function CloudFilesystem({
         ...style,
       }}
     >
-      <DeleteCloudFilesystem
-        cloudFilesystem={cloudFilesystem}
-        open={showDelete}
-        setOpen={setShowDelete}
-        refresh={refresh}
-      />
-      <MountCloudFilesystem
-        cloudFilesystem={cloudFilesystem}
-        open={showMount}
-        setOpen={setShowMount}
-        refresh={refresh}
-      />
-      <EditMountpoint
-        cloudFilesystem={cloudFilesystem}
-        open={showEditMountpoint}
-        setOpen={setShowEditMountpoint}
-        refresh={refresh}
-      />
-      <EditTitleAndColor
-        cloudFilesystem={cloudFilesystem}
-        open={showEditTitleAndColor}
-        setOpen={setShowEditTitleAndColor}
-        refresh={refresh}
-      />
-      <EditLock
-        cloudFilesystem={cloudFilesystem}
-        open={showEditLock}
-        setOpen={setShowEditLock}
-        refresh={refresh}
-      />
-      <EditTrashDays
-        cloudFilesystem={cloudFilesystem}
-        open={showEditTrashDays}
-        setOpen={setShowEditTrashDays}
-        refresh={refresh}
-      />
-      <EditBucketStorageClass
-        cloudFilesystem={cloudFilesystem}
-        open={showEditBucketStorageClass}
-        setOpen={setShowEditBucketStorageClass}
-        refresh={refresh}
-      />
-      <EditMountOptions
-        cloudFilesystem={cloudFilesystem}
-        open={showEditMountOptions}
-        setOpen={setShowEditMountOptions}
-        refresh={refresh}
-      />
+      {showDelete && (
+        <DeleteCloudFilesystem
+          cloudFilesystem={cloudFilesystem}
+          open={showDelete}
+          setOpen={setShowDelete}
+          refresh={refresh}
+        />
+      )}
+      {showMount && (
+        <MountCloudFilesystem
+          cloudFilesystem={cloudFilesystem}
+          open={showMount}
+          setOpen={setShowMount}
+          refresh={refresh}
+        />
+      )}
+      {showEditMountpoint && (
+        <EditMountpoint
+          cloudFilesystem={cloudFilesystem}
+          open={showEditMountpoint}
+          setOpen={setShowEditMountpoint}
+          refresh={refresh}
+        />
+      )}
+      {showEditTitleAndColor && (
+        <EditTitleAndColor
+          cloudFilesystem={cloudFilesystem}
+          open={showEditTitleAndColor}
+          setOpen={setShowEditTitleAndColor}
+          refresh={refresh}
+        />
+      )}
+      {showEditLock && (
+        <EditLock
+          cloudFilesystem={cloudFilesystem}
+          open={showEditLock}
+          setOpen={setShowEditLock}
+          refresh={refresh}
+        />
+      )}
+      {showEditTrashDays && (
+        <EditTrashDays
+          cloudFilesystem={cloudFilesystem}
+          open={showEditTrashDays}
+          setOpen={setShowEditTrashDays}
+          refresh={refresh}
+        />
+      )}
+      {showEditBucketStorageClass && (
+        <EditBucketStorageClass
+          cloudFilesystem={cloudFilesystem}
+          open={showEditBucketStorageClass}
+          setOpen={setShowEditBucketStorageClass}
+          refresh={refresh}
+        />
+      )}
+      {showEditMountOptions && (
+        <EditMountOptions
+          cloudFilesystem={cloudFilesystem}
+          open={showEditMountOptions}
+          setOpen={setShowEditMountOptions}
+          refresh={refresh}
+        />
+      )}
       <Card.Meta
         avatar={<CloudFilesystemAvatar cloudFilesystem={cloudFilesystem} />}
         title={

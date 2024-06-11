@@ -5,6 +5,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
 import Color from "../color";
+import { editModalStyle } from "./util";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -51,6 +52,7 @@ export default function EditTitleAndColor({
 
   return (
     <Modal
+      styles={{ body: editModalStyle(cloudFilesystem) }}
       centered
       title={
         <>

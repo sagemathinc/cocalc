@@ -6,6 +6,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
 import { Mountpoint } from "./cloud-filesystem";
 import { checkInAll } from "@cocalc/frontend/compute/check-in";
+import { editModalStyle } from "./util";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -45,6 +46,7 @@ export default function MountCloudFilesystem({
 
   return (
     <Modal
+      styles={{ body: editModalStyle(cloudFilesystem) }}
       centered
       title={
         <>
