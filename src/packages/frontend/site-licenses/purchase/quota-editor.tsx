@@ -522,7 +522,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
 
   function render_gpu_help(): JSX.Element {
     return (
-      <HelpIcon title="GPU Support" style={{ float: "right" }} maxWidth="500px">
+      <HelpIcon title="GPU Support" maxWidth="500px">
         <Paragraph>
           This configures a license, which will cause the project to run on a
           GPU. You need to configure your VMs in your cluster in such a way,
@@ -579,11 +579,13 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               disabled={disabled}
               style={{ fontWeight: "normal" }}
               onChange={(e) =>
-                e.target.checked
-                  ? onChange({
-                      gpu: { num: num > 0 ? num : 1, toleration, nodeLabel },
-                    })
-                  : onChange({ gpu: { num } })
+                onChange({
+                  gpu: {
+                    num: e.target.checked ? Math.max(1, num) : 0,
+                    toleration,
+                    nodeLabel,
+                  },
+                })
               }
             >
               <Text strong>Configure GPU</Text> {render_gpu_help()}
@@ -635,10 +637,14 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
               (optional, [1])
             </Paragraph>
             <Paragraph type="secondary">
-              [1] format: <code>key=value</code>. Keep empty if you do not use
-              label selectors or taints. Specify mulitple ones via a "," comma.
+              [1] format: <code>key=value</code> or for taints, also{" "}
+              <code>key</code> to tolerate the key regardless of value. Keep the
+              field empty if you do not use label selectors or taints. Specify
+              mulitple ones via a "," comma. Below is a "debug" view.
             </Paragraph>
-            <pre>{JSON.stringify(debug, null, 2)}</pre>
+            <pre style={{ fontSize: "85%" }}>
+              {JSON.stringify(debug, null, 2)}
+            </pre>
           </Col>
         ) : undefined}
       </Row>

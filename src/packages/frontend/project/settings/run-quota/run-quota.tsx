@@ -166,6 +166,10 @@ export const RunQuota: React.FC<Props> = React.memo(
       const { key, quota, quotaDedicated, usage } = record;
       if (QUOTAS_BOOLEAN.includes(key as any)) {
         return `This quota is ${booleanValueStr(quota)}.`;
+      } else if (key === "gpu") {
+        return usage != null
+          ? `There are ${usage.display} GPU(s) requested.`
+          : ``;
       } else if (key === "patch") {
         return usage != null
           ? `There are ${usage.display} patch(es) in total.`
@@ -221,6 +225,7 @@ export const RunQuota: React.FC<Props> = React.memo(
       // the usage of a boolean quota is always the same as its value
       if (QUOTAS_BOOLEAN.includes(record.key as any)) return;
       if (record.key === "patch") return;
+      if (record.key === "gpu") return;
       const usage: Usage = record.usage;
       if (usage == null) return;
       const { element } = usage;
@@ -241,17 +246,17 @@ export const RunQuota: React.FC<Props> = React.memo(
         );
       }
 
+      console.log(record.key, val);
+
       if (typeof val === "boolean") {
         return renderBoolean(val, projectIsRunning);
-      } else if (typeof val === "number") {
-        if (record.key === "idle_timeout") {
-          return val;
-        }
+      } else if (record.key === "idle_timeout") {
+        return val;
       } else if (Array.isArray(val)) {
         return val.length;
       } else {
         return (
-          <Text strong={true} style={style}>
+          <Text strong style={style}>
             <NoWrap>{val}</NoWrap>
           </Text>
         );

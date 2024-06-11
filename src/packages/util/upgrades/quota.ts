@@ -149,6 +149,7 @@ export interface Upgrades {
   ephemeral_disk: number;
   ext_rw?: number;
   patch?: Patch;
+  gpu?: GPU;
 }
 
 // this is onprem specific only!

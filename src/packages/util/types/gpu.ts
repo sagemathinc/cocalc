@@ -9,10 +9,28 @@ export function extract_gpu(quota: SiteLicenseQuota = {}) {
   return { num: 0 };
 }
 
-export function process_gpu_quota(quota: SiteLicenseQuota = {}) {
+type GPUQuotaInfo = {
+  resources?: { limits: { "nvidia.com/gpu": number } };
+  nodeSelector?: { [key: string]: string };
+  tolerations?: (
+    | {
+        key: string;
+        operator: string;
+        value: string;
+        effect: string;
+      }
+    | {
+        key: string;
+        operator: string;
+        effect: string;
+      }
+  )[];
+};
+
+export function process_gpu_quota(quota: SiteLicenseQuota = {}): GPUQuotaInfo {
   const { num = 0, toleration = "", nodeLabel = "" } = extract_gpu(quota);
 
-  const debug: any = {};
+  const debug: GPUQuotaInfo = {};
   if (num > 0) {
     debug.resources = { limits: { "nvidia.com/gpu": num } };
     if (nodeLabel) {
