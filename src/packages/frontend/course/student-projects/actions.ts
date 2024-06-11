@@ -40,7 +40,7 @@ export class StudentProjectsActions {
 
   // Create and configure a single student project.
   public async create_student_project(
-    student_id: string
+    student_id: string,
   ): Promise<string | undefined> {
     const { store, student } = this.course_actions.resolve({
       student_id,
@@ -49,7 +49,7 @@ export class StudentProjectsActions {
     if (store == null || student == null) return;
     if (store.get("students") == null || store.get("settings") == null) {
       this.course_actions.set_error(
-        "BUG: attempt to create when stores not yet initialized"
+        "BUG: attempt to create when stores not yet initialized",
       );
       return;
     }
@@ -77,8 +77,8 @@ export class StudentProjectsActions {
     } catch (err) {
       this.course_actions.set_error(
         `error creating student project for ${store.get_student_name(
-          student_id
-        )} -- ${err}`
+          student_id,
+        )} -- ${err}`,
       );
       return;
     } finally {
@@ -129,7 +129,7 @@ export class StudentProjectsActions {
           subject,
           true,
           replyto,
-          name
+          name,
         );
       this.course_actions.set({
         table: "students",
@@ -242,7 +242,7 @@ export class StudentProjectsActions {
   // changes to licenses.
   private async set_project_site_license(
     project_id: string,
-    license_ids: string[]
+    license_ids: string[],
   ): Promise<void> {
     const project_map = redux.getStore("projects").get("project_map");
     if (project_map == null || project_map.get(project_id) == null) {
@@ -253,15 +253,15 @@ export class StudentProjectsActions {
     const store = this.get_store();
     if (store == null) return;
     const currentLicenses: string[] = keys(
-      (project_map.getIn([project_id, "site_license"]) as any)?.toJS() ?? {}
+      (project_map.getIn([project_id, "site_license"]) as any)?.toJS() ?? {},
     );
     const courseLicenses = new Set(
-      ((store.getIn(["settings", "site_license_id"]) as any) ?? "").split(",")
+      ((store.getIn(["settings", "site_license_id"]) as any) ?? "").split(","),
     );
     const removedLicenses = new Set(
       ((store.getIn(["settings", "site_license_removed"]) as any) ?? "").split(
-        ","
-      )
+        ",",
+      ),
     );
     const toApply = [...license_ids];
     for (const id of currentLicenses) {
@@ -275,12 +275,12 @@ export class StudentProjectsActions {
 
   private async configure_project_license(
     student_project_id: string,
-    license_id?: string // if not set, all known licenses
+    license_id?: string, // if not set, all known licenses
   ): Promise<void> {
     if (license_id != null) {
       await this.set_project_site_license(
         student_project_id,
-        license_id.split(",")
+        license_id.split(","),
       );
       return;
     }
@@ -299,7 +299,7 @@ export class StudentProjectsActions {
   }
 
   private async remove_project_license(
-    student_project_id: string
+    student_project_id: string,
   ): Promise<void> {
     const actions = redux.getActions("projects");
     await actions.set_site_license(student_project_id, "");
@@ -323,7 +323,7 @@ export class StudentProjectsActions {
   }
 
   private async configure_project_visibility(
-    student_project_id: string
+    student_project_id: string,
   ): Promise<void> {
     const users_of_student_project = redux
       .getStore("projects")
@@ -354,7 +354,7 @@ export class StudentProjectsActions {
 
   private async configure_project_title(
     student_project_id: string,
-    student_id: string
+    student_id: string,
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) {
@@ -370,7 +370,7 @@ export class StudentProjectsActions {
 
   // start or stop projects of all (non-deleted) students running
   public async action_all_student_projects(
-    action: "start" | "stop"
+    action: "start" | "stop",
   ): Promise<void> {
     if (!["start", "stop"].includes(action)) {
       throw new Error(`unknown desired project_action ${action}`);
@@ -412,12 +412,17 @@ export class StudentProjectsActions {
     this.course_actions.setState({ action_all_projects_state: "any" });
   }
 
-  public async run_in_all_student_projects(
-    command: string,
-    args?: string[],
-    timeout?: number,
-    log?: Function
-  ): Promise<Result[]> {
+  public async run_in_all_student_projects({
+    command,
+    args,
+    timeout,
+    log,
+  }: {
+    command: string;
+    args?: string[];
+    timeout?: number;
+    log?: Function;
+  }): Promise<Result[]> {
     // in case "stop all projects" is running
     this.cancel_action_all_student_projects();
 
@@ -455,7 +460,7 @@ export class StudentProjectsActions {
         command,
         args,
         timeout,
-        done
+        done,
       );
     } finally {
       this.course_actions.set_activity({ id });
@@ -469,7 +474,7 @@ export class StudentProjectsActions {
     for (const student of store.get_students().valueSeq().toArray()) {
       const student_project_id = student.get("project_id");
       const project_title = `${store.get_student_name(
-        student.get("student_id")
+        student.get("student_id"),
       )} - ${title}`;
       if (student_project_id != null) {
         await actions.set_project_title(student_project_id, project_title);
@@ -479,19 +484,19 @@ export class StudentProjectsActions {
   }
 
   private async configure_project_description(
-    student_project_id: string
+    student_project_id: string,
   ): Promise<void> {
     const store = this.get_store();
     await redux
       .getActions("projects")
       .set_project_description(
         student_project_id,
-        store.getIn(["settings", "description"])
+        store.getIn(["settings", "description"]),
       );
   }
 
   public async set_all_student_project_descriptions(
-    description: string
+    description: string,
   ): Promise<void> {
     const store = this.get_store();
     const actions = redux.getActions("projects");
@@ -544,7 +549,7 @@ export class StudentProjectsActions {
           datastore,
           "student", // type of project
           student_project_functionality,
-          envvars
+          envvars,
         );
       }
     } finally {
@@ -592,7 +597,7 @@ export class StudentProjectsActions {
   }
 
   private async configure_project_compute_image(
-    student_project_id: string
+    student_project_id: string,
   ): Promise<void> {
     const store = this.get_store();
     if (store == null) return;
@@ -695,7 +700,7 @@ export class StudentProjectsActions {
     // we want to start with the license with the highest run limit
     const sortedLicenseIDs = sortBy(
       Object.keys(licenses),
-      (l) => -licenses[l].runLimit
+      (l) => -licenses[l].runLimit,
     );
     for (const license_id of sortedLicenseIDs) {
       const license = licenses[license_id];
@@ -728,7 +733,7 @@ export class StudentProjectsActions {
       let project_map = redux.getStore("projects").get("project_map");
       if (project_map == null || webapp_client.account_id == null) {
         throw Error(
-          "BUG -- project_map must be initialized and you must be signed in; try again later."
+          "BUG -- project_map must be initialized and you must be signed in; try again later.",
         );
       }
 
@@ -802,7 +807,7 @@ export class StudentProjectsActions {
       await this.set_all_student_project_course_info();
     } catch (err) {
       this.course_actions.set_error(
-        `Error configuring student projects - ${err}`
+        `Error configuring student projects - ${err}`,
       );
     } finally {
       if (this.course_actions.is_closed()) return;
@@ -828,7 +833,7 @@ export class StudentProjectsActions {
       }
     } catch (err) {
       this.course_actions.set_error(
-        `error deleting a student project... ${err}`
+        `error deleting a student project... ${err}`,
       );
     } finally {
       this.course_actions.set_activity({ id });
@@ -838,7 +843,7 @@ export class StudentProjectsActions {
   // upgrade_goal is a map from the quota type to the goal quota the instructor wishes
   // to get all the students to.
   public async upgrade_all_student_projects(
-    upgrade_goal: UpgradeGoal
+    upgrade_goal: UpgradeGoal,
   ): Promise<void> {
     const store = this.get_store();
     const plan = store.get_upgrade_plan(upgrade_goal);
