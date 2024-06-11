@@ -339,3 +339,4 @@ function bucketOptions({
     ...storageClassToOptions(bucket_storage_class),
   } as CreateBucketRequest;
 }
+

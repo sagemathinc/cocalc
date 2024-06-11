@@ -14,7 +14,10 @@ import { getServiceAccountId } from "./create";
 import { removeBucketPolicyBinding } from "@cocalc/server/compute/cloud/google-cloud/policy";
 import { delay } from "awaiting";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { DEFAULT_LOCK } from "@cocalc/util/db-schema/cloud-filesystems";
+import {
+  DEFAULT_LOCK,
+  CloudFilesystem,
+} from "@cocalc/util/db-schema/cloud-filesystems";
 import { uuid } from "@cocalc/util/misc";
 
 const logger = getLogger("server:compute:cloud-filesystem:delete");
@@ -111,12 +114,31 @@ export async function deleteCloudFilesystem(id) {
   // situation where we can't properly finish the delete, and manual intervention may
   // be required. Actually, this is fine, because deleting a deleted bucket and
   // deleting a deleted secret key works fine (by design!) so the next attempt will work.
+  await deleteServiceAccountAndBinding(cloudFilesystem);
 
-  const bucket = cloudFilesystem.bucket;
+  const { bucket } = cloudFilesystem;
+  if (bucket) {
+    logger.debug("deleteCloudFilesystem: delete the Google cloud bucket");
+    await deleteBucket({
+      bucketName: bucket,
+      useTransferService: true,
+    });
+    await pool.query("UPDATE cloud_filesystems SET bucket=NULL WHERE id=$1", [
+      id,
+    ]);
+  }
+  logger.debug("deleteCloudFilesystem: delete the database record");
+  await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);
+}
+
+async function deleteServiceAccountAndBinding(
+  cloudFilesystem: CloudFilesystem,
+) {
   if (cloudFilesystem.secret_key) {
     // delete service account first before bucket, since if things break
     // we want the bucket name to still be in the database.
     logger.debug("deleteCloudFilesystem: delete the service account");
+    const { id, bucket } = cloudFilesystem;
     const serviceAccountId = await getServiceAccountId(id);
     let error: any = null;
     if (bucket) {
@@ -135,7 +157,7 @@ export async function deleteCloudFilesystem(id) {
             "error removing bucket policy binding -- may try again",
             err,
           );
-          await delay(Math.random() * 5);
+          await delay(Math.random() * 5000);
         }
       }
     }
@@ -144,22 +166,27 @@ export async function deleteCloudFilesystem(id) {
     }
 
     await deleteServiceAccount(serviceAccountId);
+    const pool = getPool();
     await pool.query(
       "UPDATE cloud_filesystems SET secret_key=NULL WHERE id=$1",
       [id],
     );
   }
+}
 
-  if (bucket) {
-    logger.debug("deleteCloudFilesystem: delete the Google cloud bucket");
-    await deleteBucket({
-      bucketName: bucket,
-      useTransferService: true,
-    });
-    await pool.query("UPDATE cloud_filesystems SET bucket=NULL WHERE id=$1", [
-      id,
-    ]);
+// Periodically ensure that all service accounts that haven't been used
+// in a while are deleted to avoid clutter. Also the API for adding/removing
+// rolebindings looks like to blow up in our face if there are
+// too many of them!
+
+const SERVICE_ACCOUNT_PURGE_INTERVAL = "1 week";
+
+export async function serviceAccountMaintenance() {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    `SELECT * FROM cloud_filesystems WHERE secret_key IS NOT NULL AND last_edited IS NOT NULL AND last_edited <= NOW() - INTERVAL '${SERVICE_ACCOUNT_PURGE_INTERVAL}'`,
+  );
+  for (const row of rows) {
+    await deleteServiceAccountAndBinding(row);
   }
-  logger.debug("deleteCloudFilesystem: delete the database record");
-  await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);
 }
