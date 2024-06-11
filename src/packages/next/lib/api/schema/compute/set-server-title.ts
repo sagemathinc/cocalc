@@ -1,18 +1,21 @@
 import { z } from "../../framework";
 
-import { FailedAPIOperationSchema, SuccessfulAPIOperationSchema } from "../common";
+import {
+  FailedAPIOperationSchema,
+  SuccessfulAPIOperationSchema,
+} from "../common";
 
-import { ComputeServerIdBodySchema, ComputeServerTitleSchema } from "./common";
+import { ComputeServerIdSchema, ComputeServerTitleSchema } from "./common";
 
 // OpenAPI spec
 //
 export const SetComputeServerTitleInputSchema = z
   .object({
-    id: ComputeServerIdBodySchema,
+    id: ComputeServerIdSchema,
     title: ComputeServerTitleSchema,
   })
   .describe(
-    "Set the title of a compute server.  The owner is the only one allowed to do this."
+    "Set the title of a compute server.  The owner is the only one allowed to do this.",
   );
 
 export const SetComputeServerTitleOutputSchema = z.union([
@@ -20,5 +23,9 @@ export const SetComputeServerTitleOutputSchema = z.union([
   SuccessfulAPIOperationSchema,
 ]);
 
-export type SetComputeServerTitleInput = z.infer<typeof SetComputeServerTitleInputSchema>;
-export type SetComputeServerTitleOutput = z.infer<typeof SetComputeServerTitleOutputSchema>;
+export type SetComputeServerTitleInput = z.infer<
+  typeof SetComputeServerTitleInputSchema
+>;
+export type SetComputeServerTitleOutput = z.infer<
+  typeof SetComputeServerTitleOutputSchema
+>;

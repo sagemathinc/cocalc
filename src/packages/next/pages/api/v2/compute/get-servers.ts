@@ -9,9 +9,8 @@ import getParams from "lib/api/get-params";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import {
   GetComputeServersInputSchema,
-  GetComputeServersOutputSchema
+  GetComputeServersOutputSchema,
 } from "lib/api/schema/compute/get-servers";
-
 
 async function handle(req, res) {
   try {
@@ -41,12 +40,12 @@ export default apiRoute({
   getServers: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({
       contentType: "application/json",
-      query: GetComputeServersInputSchema,
+      body: GetComputeServersInputSchema,
     })
     .outputs([
       {

@@ -41,7 +41,7 @@ export default apiRoute({
   })
     .input({
       contentType: "application/json",
-      query: GetComputeServerLogInputSchema,
+      body: GetComputeServerLogInputSchema,
     })
     .outputs([
       {

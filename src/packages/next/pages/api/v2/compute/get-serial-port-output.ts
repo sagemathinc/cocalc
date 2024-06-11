@@ -60,7 +60,7 @@ export default apiRoute({
   })
     .input({
       contentType: "application/json",
-      query: GetComputeServerSerialPortOutputInputSchema,
+      body: GetComputeServerSerialPortOutputInputSchema,
     })
     .outputs([
       {

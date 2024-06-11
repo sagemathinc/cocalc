@@ -1,23 +1,28 @@
 import { z } from "../../framework";
 
-import { FailedAPIOperationSchema, SuccessfulAPIOperationSchema } from "../common";
+import {
+  FailedAPIOperationSchema,
+  SuccessfulAPIOperationSchema,
+} from "../common";
 
-import { ComputeServerIdBodySchema } from "./common";
+import { ComputeServerIdSchema } from "./common";
 
 // OpenAPI spec
 //
 export const DeleteComputeServerInputSchema = z
   .object({
-    id: ComputeServerIdBodySchema,
+    id: ComputeServerIdSchema,
   })
-  .describe(
-    "Deletes and deprovisions a compute server."
-  );
+  .describe("Deletes and deprovisions a compute server.");
 
 export const DeleteComputeServerOutputSchema = z.union([
   FailedAPIOperationSchema,
   SuccessfulAPIOperationSchema,
 ]);
 
-export type DeleteComputeServerInput = z.infer<typeof DeleteComputeServerInputSchema>;
-export type DeleteComputeServerOutput = z.infer<typeof DeleteComputeServerOutputSchema>;
+export type DeleteComputeServerInput = z.infer<
+  typeof DeleteComputeServerInputSchema
+>;
+export type DeleteComputeServerOutput = z.infer<
+  typeof DeleteComputeServerOutputSchema
+>;

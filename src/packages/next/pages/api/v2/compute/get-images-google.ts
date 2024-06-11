@@ -48,7 +48,7 @@ export default apiRoute({
   })
     .input({
       contentType: "application/json",
-      query: GetComputeServerGoogleImagesInputSchema,
+      body: GetComputeServerGoogleImagesInputSchema,
     })
     .outputs([
       {
