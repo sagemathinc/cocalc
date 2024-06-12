@@ -20,6 +20,7 @@ interface Props {
   onBlur?: () => void;
   disabled?: boolean;
   style?: CSS;
+  size?: "small";
 }
 
 export const TextInput: React.FC<Props> = React.memo(
@@ -34,6 +35,7 @@ export const TextInput: React.FC<Props> = React.memo(
       onBlur,
       disabled = false,
       style,
+      size,
     } = props;
 
     const inputRef = React.useRef<any>(null);
@@ -65,6 +67,7 @@ export const TextInput: React.FC<Props> = React.memo(
               style={{ marginBottom: "15px" }}
               bsStyle="success"
               onClick={saveChange}
+              bsSize={size === "small" ? "xsmall" : undefined}
             >
               <Icon name="save" /> Save
             </Button>
@@ -87,6 +90,7 @@ export const TextInput: React.FC<Props> = React.memo(
             onFocus={onFocus}
             onBlur={onBlur}
             disabled={disabled}
+            size={size === "small" ? "small" : undefined}
           />
         </Form.Item>
       );
@@ -98,5 +102,5 @@ export const TextInput: React.FC<Props> = React.memo(
         {render_save_button()}
       </Form>
     );
-  }
+  },
 );

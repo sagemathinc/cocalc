@@ -3,7 +3,6 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-
 /*
 To avoid inconsistency, we are going to follow the style guide/table from
 the "Microsoft Writing Style Guide" for things like "3 GB":
@@ -138,6 +137,11 @@ export function describe_quota(
     v.push(
       `${quota.dedicated_cpu} dedicated ${plural(quota.dedicated_cpu, "vCPU")}`,
     );
+  }
+  if (quota.gpu) {
+    const { gpu } = quota;
+    const num = gpu === true ? 1 : gpu.num ?? 1;
+    v.push(`${num} GPU(s)`);
   }
 
   if (
