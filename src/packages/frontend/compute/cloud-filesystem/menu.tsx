@@ -42,7 +42,7 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       danger: cloudFilesystem.mount,
       key: "mount",
       icon: <Icon name={cloudFilesystem.mount ? "stop" : "run"} />,
-      label: cloudFilesystem.mount ? "Unmount" : "Mount",
+      label: cloudFilesystem.mount ? "Unmount" : "Automount",
     },
     {
       type: "divider",

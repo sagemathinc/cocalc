@@ -43,7 +43,7 @@ export default function MountCloudFilesystem({
     }
   };
   const icon = cloudFilesystem.mount ? "stop" : "run";
-  const verb = cloudFilesystem.mount ? "Unmount" : "Mount";
+  const verb = cloudFilesystem.mount ? "Unmount" : "Automount";
 
   return (
     <Modal
@@ -76,13 +76,14 @@ export default function MountCloudFilesystem({
     >
       <p>
         <p>
-          Are you sure you want to {cloudFilesystem.mount ? "unmount" : "mount"}{" "}
-          this cloud filesystem?
+          Are you sure you want to{" "}
+          {cloudFilesystem.mount ? "unmount" : "automount"} this cloud
+          filesystem?
           {cloudFilesystem.mount
             ? " The filesystem is currently mounted so make sure no applications have anything in this filesystem open to avoid data loss. "
             : " "}
-          {cloudFilesystem.mount ? "Unmounting" : "Mounting"} typically takes
-          about <b>15 seconds</b>.
+          {cloudFilesystem.mount ? "Unmounting" : "Automatic mounting"}{" "}
+          typically takes about <b>15 seconds</b>.
         </p>
         <Alert
           showIcon
@@ -92,12 +93,12 @@ export default function MountCloudFilesystem({
         />
         <p style={{ color: "#666" }}>
           <b>WARNING:</b> When a cloud filesystem is first created or has not
-          been used for a while, it can take several minutes to mount due to the
-          time for{" "}
+          been used for a while, it can take several minutes to automount in a
+          running project while{" "}
           <A href="https://cloud.google.com/iam/docs/access-change-propagation">
             security policies
           </A>{" "}
-          to propagate.
+          propagate.
         </p>
       </p>
       <ShowError error={error} setError={setError} />

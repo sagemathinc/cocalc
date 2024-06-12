@@ -1,4 +1,4 @@
-import { Button, Spin, Popconfirm } from "antd";
+import { Button, Spin, Popconfirm, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
 
@@ -53,7 +53,15 @@ export default function MountButton({ cloudFilesystem, setShowMount }: Props) {
         name={cloudFilesystem.mount ? "run" : "stop"}
         style={{ marginRight: "5px" }}
       />
-      {cloudFilesystem.mount ? "Mounted" : "Not Mounted"}
+      {cloudFilesystem.mount ? (
+        <Tooltip
+          title={`Will attempt to mount at /home/user/${cloudFilesystem.mountpoint} on any running compute server in this project.`}
+        >
+          Automount
+        </Tooltip>
+      ) : (
+        "Not Mounted"
+      )}
     </Button>
   );
 }
