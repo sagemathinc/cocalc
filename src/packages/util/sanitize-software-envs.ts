@@ -3,8 +3,9 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { ComputeImage } from "@cocalc/util/compute-images";
 import { isEmpty, isObject, pick } from "lodash";
+
+import { ComputeImage } from "@cocalc/util/compute-images";
 import { DEFAULT_COMPUTE_IMAGE } from "./db-schema/defaults";
 
 // This sanitization routine checks if the "software environment" information
@@ -54,7 +55,7 @@ interface Opts {
  */
 export function sanitizeSoftwareEnv(
   opts: Opts,
-  L: (...msg) => void
+  L: (...msg) => void,
 ): SoftwareEnvConfig | null {
   const { software, registry, purpose } = opts;
 

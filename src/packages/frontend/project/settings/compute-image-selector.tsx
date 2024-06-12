@@ -7,6 +7,7 @@
 
 import { DownOutlined } from "@ant-design/icons";
 import { Button, Col, Dropdown, MenuProps, Row } from "antd";
+import { SizeType } from "antd/es/config-provider/SizeContext";
 import { fromJS } from "immutable";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -43,12 +44,21 @@ interface ComputeImageSelectorProps {
   onFocus?: () => void;
   onSelect: (e) => void;
   disabled?: boolean;
+  size?: SizeType;
 }
 
 export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
   props: ComputeImageSelectorProps,
 ) => {
-  const { selected_image, onFocus, onBlur, onSelect, layout, disabled } = props;
+  const {
+    selected_image,
+    onFocus,
+    onBlur,
+    onSelect,
+    layout,
+    disabled,
+    size = "small",
+  } = props;
 
   const software_envs: SoftwareEnvironments | null = useTypedRedux(
     "customize",
@@ -131,7 +141,7 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
         <Button
           onBlur={onBlur}
           onFocus={onFocus}
-          size="small"
+          size={size}
           disabled={disabled}
         >
           {selected_title} <DownOutlined />
