@@ -37,9 +37,7 @@ export default async function handle(req, res) {
 
 async function doIt(req) {
   const { input, kernel, history, tag, noCache, hash, project_id, path } =
-    getParams(req, {
-      allowGet: true,
-    });
+    getParams(req);
   const account_id = await getAccountId(req);
   const analytics_cookie = req.cookies[analytics_cookie_name];
   return await execute({

@@ -220,6 +220,16 @@ export const upgrades = {
       input_type: "string",
       desc: "Modifies the project's specification how it runs in the cluster.",
     },
+    gpu: {
+      display: "GPU",
+      unit: "GPU",
+      display_unit: "GPU",
+      display_factor: 1,
+      pricing_unit: "GPU",
+      pricing_factor: 1,
+      input_type: "string",
+      desc: "GPU support: if set, this requests access to a GPU in the cluster.",
+    },
   },
 
   field_order: [

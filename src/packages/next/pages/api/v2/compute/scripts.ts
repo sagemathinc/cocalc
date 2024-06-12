@@ -11,9 +11,7 @@ import {
   getStopScript,
   getDeprovisionScript,
 } from "@cocalc/server/compute/control";
-import {
-  getAccountWithApiKey as getProjectIdWithApiKey,
-} from "@cocalc/server/api/manage";
+import { getAccountWithApiKey as getProjectIdWithApiKey } from "@cocalc/server/api/manage";
 import getParams from "lib/api/get-params";
 import getPool from "@cocalc/database/pool";
 
@@ -22,7 +20,6 @@ import {
   ComputeServerScriptsInputSchema,
   ComputeServerScriptsOutputSchema,
 } from "lib/api/schema/compute/scripts";
-
 
 async function handle(req, res) {
   try {
@@ -34,7 +31,7 @@ async function handle(req, res) {
 }
 
 export async function get(req) {
-  const { api_key, id: id0, action } = getParams(req, { allowGet: true });
+  const { api_key, id: id0, action } = getParams(req);
   // use api_key to get project, and also verify access:
   const id = parseInt(id0);
   return await getScript({ api_key, id, action });
@@ -85,7 +82,7 @@ export default apiRoute({
   scripts: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

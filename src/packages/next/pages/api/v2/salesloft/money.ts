@@ -27,7 +27,7 @@ async function get(req) {
     throw Error("only admins can use the salesloft/money endpoint");
   }
 
-  const { account_id } = getParams(req, { allowGet: true });
+  const { account_id } = getParams(req);
 
   return await getMoneyData(account_id);
 }

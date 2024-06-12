@@ -3,6 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { GPU } from "./site-licenses";
+
 export interface VMsType {
   [id: string]:
     | {
@@ -36,7 +38,7 @@ export interface DiskType {
 
 export const DedicatedDiskSpeedNames = ["standard", "balanced", "ssd"] as const;
 
-export type DedicatedDiskSpeeds = typeof DedicatedDiskSpeedNames[number];
+export type DedicatedDiskSpeeds = (typeof DedicatedDiskSpeedNames)[number];
 
 export interface DedicatedDiskConfig {
   size_gb: number;
@@ -69,4 +71,5 @@ export function isDedicatedDisk(d): d is DedicatedDisk {
 export type DedicatedResources = {
   vm: false | DedicatedVM;
   disks: DedicatedDisk[];
+  gpu: GPU | false;
 };
