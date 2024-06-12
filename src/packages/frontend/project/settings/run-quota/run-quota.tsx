@@ -246,8 +246,6 @@ export const RunQuota: React.FC<Props> = React.memo(
         );
       }
 
-      console.log(record.key, val);
-
       if (typeof val === "boolean") {
         return renderBoolean(val, projectIsRunning);
       } else if (record.key === "idle_timeout") {

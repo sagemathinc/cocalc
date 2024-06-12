@@ -111,7 +111,7 @@ interface QuotaBase {
 interface QuotaOnPrem {
   ext_rw?: boolean;
   patch?: { [key: string]: string | object }[];
-  gpu?: GPU | false;
+  gpu?: GPU | boolean;
 }
 
 // the resulting quota is a combination of the base quota and the onprem specific one

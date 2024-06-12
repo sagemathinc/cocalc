@@ -8,6 +8,7 @@ import { fromPairs, isEqual } from "lodash";
 
 import { ProjectStatus } from "@cocalc/comm/project-status/types";
 import {
+  TypedMap,
   useEffect,
   useMemo,
   useState,
@@ -20,6 +21,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { round1, seconds2hms, server_time } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { GPU } from "@cocalc/util/types/site-licenses";
 import {
   Upgrades,
   quota2upgrade_key,
@@ -54,7 +56,12 @@ export function useRunQuota(
       return rq
         .map((val, key) => {
           if (key === "gpu") {
-            return val?.get("num", 0);
+            const v = val as boolean | TypedMap<GPU>;
+            if (typeof v === "boolean") {
+              return v ? 1 : null;
+            } else {
+              return v?.get("num", 0);
+            }
           } else if (typeof val !== "number") {
             return val;
           } else if (key == "idle_timeout") {
