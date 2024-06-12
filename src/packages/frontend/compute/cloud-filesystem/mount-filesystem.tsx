@@ -2,6 +2,7 @@ import { Alert, Button, Modal, Spin } from "antd";
 import { useState } from "react";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
 import { Mountpoint } from "./cloud-filesystem";
@@ -52,7 +53,7 @@ export default function MountCloudFilesystem({
         <>
           <Icon name={icon} /> {verb} "{cloudFilesystem.title}"{" "}
           {cloudFilesystem.mount ? "from" : "at"}{" "}
-          <Mountpoint {...cloudFilesystem} />
+          <Mountpoint {...cloudFilesystem} />?
         </>
       }
       open={open}
@@ -73,23 +74,32 @@ export default function MountCloudFilesystem({
         </Button>,
       ]}
     >
-      <Alert
-        type={cloudFilesystem.mount ? "warning" : "info"}
-        showIcon
-        message={
-          <>
-            <p>
-              Are you sure you want to{" "}
-              {cloudFilesystem.mount ? "unmount" : "mount"} this filesystem?
-              {cloudFilesystem.mount
-                ? " The filesystem is currently mounted so make sure no applications have anything in this filesystem open to avoid data loss. "
-                : " "}
-              Expect {cloudFilesystem.mount ? "unmounting" : "mounting"} to take
-              about <b>15 seconds</b> on any running compute server.
-            </p>
-          </>
-        }
-      />
+      <p>
+        <p>
+          Are you sure you want to {cloudFilesystem.mount ? "unmount" : "mount"}{" "}
+          this cloud filesystem?
+          {cloudFilesystem.mount
+            ? " The filesystem is currently mounted so make sure no applications have anything in this filesystem open to avoid data loss. "
+            : " "}
+          {cloudFilesystem.mount ? "Unmounting" : "Mounting"} typically takes
+          about <b>15 seconds</b>.
+        </p>
+        <Alert
+          showIcon
+          style={{ margin: "10px 0" }}
+          type="warning"
+          message="Currently cloud filesystems are only visible from compute servers, e.g., from a Jupyter notebook or terminal that is set to use a compute server."
+        />
+        <p style={{ color: "#666" }}>
+          <b>WARNING:</b> When a cloud filesystem is first created or has not
+          been used for a while, it can take several minutes to mount due to the
+          time for{" "}
+          <A href="https://cloud.google.com/iam/docs/access-change-propagation">
+            security policies
+          </A>{" "}
+          to propagate.
+        </p>
+      </p>
       <ShowError error={error} setError={setError} />
     </Modal>
   );

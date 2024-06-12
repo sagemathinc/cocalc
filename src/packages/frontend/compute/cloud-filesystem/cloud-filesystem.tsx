@@ -195,7 +195,7 @@ function Compression({ compression }) {
   } else if (compression == "zlib") {
     return <>with ZLIB compression and</>;
   } else {
-    return <>with</>;
+    return <>with no compression and</>;
   }
 }
 

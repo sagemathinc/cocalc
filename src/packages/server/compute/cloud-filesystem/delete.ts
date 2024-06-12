@@ -177,9 +177,13 @@ async function deleteServiceAccountAndBinding(
 // Periodically ensure that all service accounts that haven't been used
 // in a while are deleted to avoid clutter. Also the API for adding/removing
 // rolebindings looks like to blow up in our face if there are
-// too many of them!
+// too many of them!   We make this reasonably long, at least for now,
+// since having to create the service account role binding on the fly
+// can be disruptive -- and it takes "Typically 2 minutes, potentially
+// 7 minutes or longer" to actually work.
+// https://cloud.google.com/iam/docs/access-change-propagation
 
-const SERVICE_ACCOUNT_PURGE_INTERVAL = "1 week";
+const SERVICE_ACCOUNT_PURGE_INTERVAL = "1 month";
 
 export async function serviceAccountMaintenance() {
   const pool = getPool();

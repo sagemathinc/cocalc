@@ -267,7 +267,7 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   const { id } = rows[0];
 
   cloudFilesystem.id = id;
-  // NOTE: we create the bucket but NOT the service account because
+  // NOTE: no matter what, be sure to create the bucket but NOT the service account because
   // creating the bucket twice at once could lead to waste via
   // a race condition (e.g., multiple compute servers causing creating in different hubs),
   // with multiple bucket names and garbage.  However, creating the service
@@ -339,4 +339,3 @@ function bucketOptions({
     ...storageClassToOptions(bucket_storage_class),
   } as CreateBucketRequest;
 }
-
