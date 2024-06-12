@@ -9,9 +9,8 @@ import getParams from "lib/api/get-params";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import {
   GetComputeServersInputSchema,
-  GetComputeServersOutputSchema
+  GetComputeServersOutputSchema,
 } from "lib/api/schema/compute/get-servers";
-
 
 async function handle(req, res) {
   try {
@@ -27,9 +26,7 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const { project_id, id } = getParams(req, {
-    allowGet: true,
-  });
+  const { project_id, id } = getParams(req);
   return await getServers({
     account_id,
     project_id,
@@ -41,12 +38,12 @@ export default apiRoute({
   getServers: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({
       contentType: "application/json",
-      query: GetComputeServersInputSchema,
+      body: GetComputeServersInputSchema,
     })
     .outputs([
       {
