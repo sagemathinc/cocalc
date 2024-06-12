@@ -31,9 +31,7 @@ async function get(req) {
     throw Error("user must be signed in");
   }
   // id of the server
-  const { id } = getParams(req, {
-    allowGet: true,
-  });
+  const { id } = getParams(req);
   const server = await getServerNoCheck(id);
 
   if (
@@ -60,7 +58,7 @@ export default apiRoute({
   })
     .input({
       contentType: "application/json",
-      query: GetComputeServerSerialPortOutputInputSchema,
+      body: GetComputeServerSerialPortOutputInputSchema,
     })
     .outputs([
       {

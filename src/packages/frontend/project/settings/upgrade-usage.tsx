@@ -3,14 +3,11 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Card, Typography } from "antd";
-import { List } from "immutable";
-import { join } from "path";
 import {
   CSS,
   React,
-  redux,
   Rendered,
+  redux,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -18,6 +15,7 @@ import {
   Icon,
   Loading,
   Paragraph,
+  Text,
   Title,
   UpgradeAdjustor,
 } from "@cocalc/frontend/components";
@@ -33,8 +31,13 @@ import {
   DedicatedDisk,
   DedicatedResources,
 } from "@cocalc/util/types/dedicated";
+import { process_gpu_quota } from "@cocalc/util/types/gpu";
+import { GPU } from "@cocalc/util/types/site-licenses";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
+import { Button, Card, Typography } from "antd";
+import { List } from "immutable";
+import { join } from "path";
 import AdminQuotas from "./quota-editor/admin-quotas";
 import PayAsYouGoQuotaEditor from "./quota-editor/pay-as-you-go";
 import { RunQuota } from "./run-quota";
@@ -56,6 +59,7 @@ interface Props {
   all_projects_have_been_loaded?: boolean;
   site_license_ids: string[];
   dedicated_resources?: DedicatedResources;
+  gpu?: GPU;
   mode: "project" | "flyout";
 }
 
@@ -207,7 +211,10 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       return (
         <>
           {account_groups.includes("admin") && (
-            <AdminQuotas project_id={project_id} />
+            <AdminQuotas
+              project_id={project_id}
+              style={{ marginTop: "15px" }}
+            />
           )}
           {is_commercial && (
             <PayAsYouGoQuotaEditor
@@ -310,6 +317,47 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       );
     }
 
+    function render_gpu(): Rendered {
+      if (dedicated_resources == null) return;
+      const gpu = dedicated_resources.gpu;
+      if (gpu == null || gpu === false) return;
+      const info = process_gpu_quota({ gpu });
+      const nodes = info.nodeSelector
+        ? ` on nodes labaled: ${Object.entries(info.nodeSelector)
+            .map(([key, value]) => `${key}=${value}`)
+            .join(", ")}`
+        : "";
+      const taint = info.tolerations
+        ? ` with taint: ${info.tolerations
+            .map((t) => {
+              if ("value" in t) {
+                return `${t.key}=${t.value}`;
+              } else {
+                return `${t.key}`;
+              }
+            })
+            .join(", ")}`
+        : "";
+
+      return (
+        <Card
+          title={
+            <>
+              <Icon name="gpu" /> GPU
+            </>
+          }
+          type="inner"
+          style={{ marginTop: "15px" }}
+          styles={{ body: { padding: "10px" } }}
+        >
+          <Text>
+            Requesting {gpu.num} GPU(s){nodes}
+            {taint}.
+          </Text>
+        </Card>
+      );
+    }
+
     function render_support(): Rendered {
       if (!is_commercial) return; // don't render if not commercial
       return (
@@ -375,6 +423,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         {render_upgrades_button()}
         {renderQuotaEditor()}
         {render_dedicated_disks()}
+        {render_gpu()}
         {render_site_license()}
         {render_support()}
       </div>

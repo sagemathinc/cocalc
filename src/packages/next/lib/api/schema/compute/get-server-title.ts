@@ -4,7 +4,7 @@ import { FailedAPIOperationSchema } from "../common";
 
 import {
   ComputeServerColorSchema,
-  ComputeServerIdQueryParamSchema,
+  ComputeServerIdSchema,
   ComputeServerTitleSchema,
 } from "./common";
 
@@ -12,7 +12,7 @@ import {
 //
 export const GetComputeServerTitleInputSchema = z
   .object({
-    id: ComputeServerIdQueryParamSchema,
+    id: ComputeServerIdSchema,
   })
   .describe("Get server title and color for a particular compute server.");
 

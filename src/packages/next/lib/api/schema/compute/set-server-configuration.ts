@@ -1,9 +1,12 @@
 import { z } from "../../framework";
 
-import { FailedAPIOperationSchema, SuccessfulAPIOperationSchema } from "../common";
+import {
+  FailedAPIOperationSchema,
+  SuccessfulAPIOperationSchema,
+} from "../common";
 
 import {
-  ComputeServerIdBodySchema,
+  ComputeServerIdSchema,
   GoogleCloudServerConfigurationSchema,
   HyperstackServerConfigurationSchema,
 } from "./common";
@@ -12,7 +15,7 @@ import {
 //
 export const SetServerConfigurationInputSchema = z
   .object({
-    id: ComputeServerIdBodySchema,
+    id: ComputeServerIdSchema,
     configuration: z
       .union([
         GoogleCloudServerConfigurationSchema.partial(),
@@ -21,17 +24,19 @@ export const SetServerConfigurationInputSchema = z
       .describe(
         `Server configuration to change. Note that only a subset of the 
         configuration is necessary so that configuration fields may be individually
-        changed.`
+        changed.`,
       ),
   })
-  .describe(
-    "Create a new compute server with the provided configuration."
-  );
+  .describe("Create a new compute server with the provided configuration.");
 
 export const SetServerConfigurationOutputSchema = z.union([
   FailedAPIOperationSchema,
   SuccessfulAPIOperationSchema,
 ]);
 
-export type SetServerConfigurationInput = z.infer<typeof SetServerConfigurationInputSchema>;
-export type SetServerConfigurationOutput = z.infer<typeof SetServerConfigurationOutputSchema>;
+export type SetServerConfigurationInput = z.infer<
+  typeof SetServerConfigurationInputSchema
+>;
+export type SetServerConfigurationOutput = z.infer<
+  typeof SetServerConfigurationOutputSchema
+>;

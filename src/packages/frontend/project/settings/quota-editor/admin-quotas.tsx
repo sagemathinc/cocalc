@@ -5,6 +5,8 @@
 
 import { useEffect, useState } from "react";
 import { Button, Card, Popconfirm, Popover } from "antd";
+import { isEqual } from "lodash";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -13,16 +15,16 @@ import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import type { ProjectSettings } from "../types";
 import QuotaRow from "./quota-row";
 import type { QuotaParams } from "./types";
-import { isEqual } from "lodash";
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { CSS, useRedux } from "@cocalc/frontend/app-framework";
 
 const QUOTA_PARAMS = PROJECT_UPGRADES.params;
 
 interface Props {
   project_id: string;
+  style?: CSS;
 }
 
-export default function AdminQuotas({ project_id }: Props) {
+export default function AdminQuotas({ project_id, style }: Props) {
   const projectSettings: ProjectSettings | undefined = useRedux([
     "projects",
     "project_map",
@@ -114,6 +116,7 @@ export default function AdminQuotas({ project_id }: Props) {
 
   return (
     <Card
+      style={style}
       title={
         <>
           <Icon name="user-plus" /> Admin Quota Editor

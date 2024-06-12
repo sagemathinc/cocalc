@@ -44,6 +44,7 @@ export type TerminalCommandOutput = TypedMap<{
   project_id: string;
   stdout?: string;
   stderr?: string;
+  time_ms?: number;
 }>;
 
 export type TerminalCommand = TypedMap<{
@@ -226,7 +227,7 @@ export class CourseStore extends Store<CourseState> {
   // that graded the given student, or undefined if no relevant assignment.
   public get_peers_that_graded_student(
     assignment_id: string,
-    student_id: string
+    student_id: string,
   ): string[] {
     const peers: string[] = [];
     const assignment = this.get_assignment(assignment_id);
@@ -374,7 +375,7 @@ export class CourseStore extends Store<CourseState> {
         const name = users.get_name(student.get("account_id"));
         if (name != null) {
           extra = ` (You call them "${student.has("first_name")} ${student.has(
-            "last_name"
+            "last_name",
           )}", but they call themselves "${name}".)`;
         }
       }
@@ -392,7 +393,7 @@ export class CourseStore extends Store<CourseState> {
     }
     if (student.has("first_name") || student.has("last_name")) {
       return [student.get("last_name", ""), student.get("first_name", "")].join(
-        " "
+        " ",
       );
     }
     const account_id = student.get("account_id");
@@ -430,7 +431,7 @@ export class CourseStore extends Store<CourseState> {
     opts: {
       include_deleted?: boolean;
       deleted_only?: boolean;
-    } = {}
+    } = {},
   ): string[] {
     // include_deleted = if true, also include deleted projects
     // deleted_only = if true, only include deleted projects
@@ -474,8 +475,8 @@ export class CourseStore extends Store<CourseState> {
     v.sort((a, b) =>
       cmp(
         this.get_student_sort_name(a.get("student_id")),
-        this.get_student_sort_name(b.get("student_id"))
-      )
+        this.get_student_sort_name(b.get("student_id")),
+      ),
     );
     return v;
   }
@@ -489,14 +490,14 @@ export class CourseStore extends Store<CourseState> {
 
   public get_nbgrader_scores(
     assignment_id: string,
-    student_id: string
+    student_id: string,
   ): { [ipynb: string]: NotebookScores | string } | undefined {
     const { assignment } = this.resolve({ assignment_id });
     return assignment?.getIn(["nbgrader_scores", student_id])?.toJS();
   }
 
   public get_nbgrader_score_ids(
-    assignment_id: string
+    assignment_id: string,
   ): { [ipynb: string]: string[] } | undefined {
     const { assignment } = this.resolve({ assignment_id });
     const ids = assignment?.get("nbgrader_score_ids")?.toJS();
@@ -606,7 +607,7 @@ export class CourseStore extends Store<CourseState> {
   // get info about relation between a student and a given assignment
   public student_assignment_info(
     student_id: string,
-    assignment_id: string
+    assignment_id: string,
   ): {
     last_assignment?: LastCopyInfo;
     last_collect?: LastCopyInfo;
@@ -665,7 +666,7 @@ export class CourseStore extends Store<CourseState> {
     step: AssignmentCopyStep,
     assignment_id: string,
     student_id: string,
-    no_error?: boolean
+    no_error?: boolean,
   ): boolean {
     const x = this.getIn([
       "assignments",
@@ -688,7 +689,7 @@ export class CourseStore extends Store<CourseState> {
   }
 
   public get_assignment_status(
-    assignment_id: string
+    assignment_id: string,
   ): AssignmentStatus | undefined {
     //
     // Compute and return an object that has fields (deleted students are ignored)
@@ -791,7 +792,7 @@ export class CourseStore extends Store<CourseState> {
 
   public student_handout_info(
     student_id: string,
-    handout_id: string
+    handout_id: string,
   ): { status?: LastCopyInfo; handout_id: string; student_id: string } {
     // status -- important to be undefined if no info -- assumed in code
     const status = this.getIn(["handouts", handout_id, "status", student_id]);
@@ -819,7 +820,7 @@ export class CourseStore extends Store<CourseState> {
   }
 
   public get_handout_status(
-    handout_id: string
+    handout_id: string,
   ): undefined | { handout: number; not_handout: number } {
     //
     // Compute and return an object that has fields (deleted students are ignored)
@@ -881,13 +882,13 @@ export class CourseStore extends Store<CourseState> {
       student_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,
-        })
+        }),
       ),
       deleted_project_ids: set(
         this.get_student_project_ids({
           include_deleted: true,
           deleted_only: true,
-        })
+        }),
       ),
       upgrade_goal,
     });

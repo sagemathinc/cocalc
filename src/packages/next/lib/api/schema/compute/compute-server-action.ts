@@ -2,26 +2,19 @@ import { z } from "../../framework";
 
 import { FailedAPIOperationSchema } from "../common";
 
-import { ComputeServerIdBodySchema } from "./common";
+import { ComputeServerIdSchema } from "./common";
 
 // OpenAPI spec
 //
 export const ComputeServerActionInputSchema = z
   .object({
-    id: ComputeServerIdBodySchema,
+    id: ComputeServerIdSchema,
     action: z
-      .enum([
-        "start",
-        "stop",
-        "reboot",
-        "suspend",
-        "resume",
-        "deprovision",
-      ])
+      .enum(["start", "stop", "reboot", "suspend", "resume", "deprovision"])
       .describe("Action to be performed on the compute server."),
   })
   .describe(
-    "Perform various action on a specific compute server (e.g., power off, deprovision, etc.)."
+    "Perform various action on a specific compute server (e.g., power off, deprovision, etc.).",
   );
 
 export const ComputeServerActionOutputSchema = z.union([
@@ -35,5 +28,9 @@ export const ComputeServerActionOutputSchema = z.union([
   }),
 ]);
 
-export type ComputeServerActionInput = z.infer<typeof ComputeServerActionInputSchema>;
-export type ComputeServerActionOutput = z.infer<typeof ComputeServerActionOutputSchema>;
+export type ComputeServerActionInput = z.infer<
+  typeof ComputeServerActionInputSchema
+>;
+export type ComputeServerActionOutput = z.infer<
+  typeof ComputeServerActionOutputSchema
+>;

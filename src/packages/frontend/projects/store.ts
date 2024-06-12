@@ -12,9 +12,9 @@ import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
 import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
-  LLMServicesAvailable,
-  LLMServiceName,
   LANGUAGE_MODEL_SERVICES,
+  LLMServiceName,
+  LLMServicesAvailable,
 } from "@cocalc/util/db-schema/llm-utils";
 import {
   cmp,
@@ -29,7 +29,7 @@ import {
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
+import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 
@@ -451,6 +451,7 @@ export class ProjectsStore extends Store<ProjectsState> {
   public get_total_site_license_dedicated(project_id: string): {
     vm: false | DedicatedVM;
     disks: DedicatedDisk[];
+    gpu: GPU | false;
   } {
     const site_license: any = this.getIn([
       "project_map",
@@ -459,6 +460,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     ])?.toJS();
     const disks: DedicatedDisk[] = [];
     let vm: false | DedicatedVM = false;
+    let gpu: GPU | false = false;
     for (const license of Object.values(site_license ?? {})) {
       // could be null in the moment when a license is removed!
       if (license == null) continue;
@@ -470,8 +472,11 @@ export class ProjectsStore extends Store<ProjectsState> {
       if (!vm && typeof quota.dedicated_vm?.machine === "string") {
         vm = quota.dedicated_vm;
       }
+      if (!gpu && typeof quota.gpu === "object") {
+        gpu = quota.gpu;
+      }
     }
-    return { vm, disks };
+    return { vm, disks, gpu };
   }
 
   // Return string array of the site licenses that are applied to this project.
