@@ -179,12 +179,17 @@ export const DEFAULT_CONFIGURATION = {
   trash_days: 1,
   title: "Untitled Filesystem",
   lock: "DELETE",
+  //
   // The entry-cache and/or dir-entry-cache being on with a default of 1 caused
   // weird bugs, so I explicitly disabled them.  Also, without writeback things
-  // are brutally slow, so it's enabled (and seems to never cause issue).
-  // "-o allow_other" (not below) makes it possible to use ZFS on top of this,
-  // which may be interesting later.
-  mount_options: "--writeback --entry-cache=0 --dir-entry-cache=0",
+  // are quite slow (with GCS), so it's enabled (and seems to never cause issue).
+  // "-o allow_other" is because:
+  //  - makes it possible to use ZFS on top of this, which may be interesting later.
+  //  - makes 'juicefs rmr /home/user/cloudfs/.trash' to empty the trash *possible*;
+  //    as non-root there is no way to empty trash!
+  // I tried "-o writeback_cache" and also got weird problems.
+  mount_options:
+    "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other",
   keydb_options: "",
   bucket_location: "us",
   bucket_storage_class: "standard",

@@ -40,7 +40,7 @@ function construct_path(): string {
 
 const PATH = construct_path();
 
-// test if the given utiltiy "name" exists (executable in the PATH)
+// test if the given utility "name" exists (executable in the PATH)
 async function have(name: string): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     which(name, { path: PATH }, function (error, path) {
