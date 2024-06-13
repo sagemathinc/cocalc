@@ -207,6 +207,10 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
     assertValidPath(opts.mountpoint);
   }
 
+  // always set mount to false during creation, so that it doesn't try to mount *while* we're creating the bucket.
+  const mount_orig = opts.mount;
+  opts.mount = false;
+
   if (
     opts["block_size"] < MIN_BLOCK_SIZE ||
     opts["block_size"] > MAX_BLOCK_SIZE
@@ -278,6 +282,12 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   // it isn't active!
   try {
     await ensureBucketExists(cloudFilesystem);
+    if (mount_orig) {
+      // only now that the bucket exists do we actually mount.
+      await pool.query("UPDATE cloud_filesystems SET mount=TRUE WHERE id=$1", [
+        id,
+      ]);
+    }
   } catch (err) {
     await pool.query(
       "UPDATE cloud_filesystems SET error=$1,mount=FALSE WHERE id=$2",
