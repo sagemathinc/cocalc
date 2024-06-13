@@ -172,12 +172,12 @@ export type CreateCloudFilesystem = Pick<
 >;
 
 export const DEFAULT_CONFIGURATION = {
-  mountpoint: "cloud-filesystem",
+  mountpoint: "cloud",
   mount: true,
   compression: "lz4",
   block_size: 4,
   trash_days: 1,
-  title: "Untitled Filesystem",
+  title: "Untitled",
   lock: "DELETE",
   //
   // The entry-cache and/or dir-entry-cache being on with a default of 1 caused
@@ -223,13 +223,13 @@ export const CHANGE_MOUNTED = new Set([
   "mount",
   "position",
   "bucket_storage_class",
+  "trash_days",
 ]);
 export const CHANGE_UNMOUNTED = new Set([
   "project_id",
   "mountpoint",
   "mount_options",
   "keydb_options",
-  "trash_days",
 ]);
 
 Table({

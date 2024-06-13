@@ -5,6 +5,7 @@ import type {
 import { Alert, Select, Switch } from "antd";
 import { CSSProperties, useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
+import { DEFAULT_FAST_LOCAL } from "./create-compute-server";
 
 interface Props {
   setConfig;
@@ -81,11 +82,11 @@ export default function ExcludeFromSync({
                 your HOME directory is still mounted over the network.
                 {id == null && (
                   <>
-                    The directory <code>fast-local</code> is a fast local
-                    directory by default. You can also use
+                    The directory <code>{DEFAULT_FAST_LOCAL}</code> is a fast
+                    local directory by default. (You can also use
                     <code>[id]</code> in the path, and it will be replaced by
-                    the numerical id of the compute server. You can add and
-                    remove any other fast local directories.
+                    the numerical id of the compute server.) You can add and
+                    remove any other fast local subdirectories of HOME.
                   </>
                 )}
               </p>

@@ -43,7 +43,7 @@ export default function MountCloudFilesystem({
     }
   };
   const icon = cloudFilesystem.mount ? "stop" : "run";
-  const verb = cloudFilesystem.mount ? "Unmount" : "Automount";
+  const verb = cloudFilesystem.mount ? "Disable Automount" : "Automount";
 
   return (
     <Modal
