@@ -1,5 +1,5 @@
 import { Alert, Button, Modal, Spin } from "antd";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
@@ -25,6 +25,16 @@ export default function MountCloudFilesystem({
 }: Props) {
   const [mounting, setMounting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const buttonRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!cloudFilesystem.mount) {
+      // only focus for mounting (the non-dangerous one)
+      setTimeout(() => {
+        buttonRef.current?.focus();
+      }, 300);
+    }
+  }, []);
 
   const doToggleMount = async () => {
     try {
@@ -63,8 +73,9 @@ export default function MountCloudFilesystem({
           Cancel
         </Button>,
         <Button
+          ref={buttonRef}
           key="ok"
-          type="primary"
+          type={cloudFilesystem.mount ? "default" : "primary"}
           danger={cloudFilesystem.mount}
           disabled={mounting}
           onClick={doToggleMount}
@@ -80,7 +91,7 @@ export default function MountCloudFilesystem({
           {cloudFilesystem.mount ? "unmount" : "automount"} this cloud
           filesystem?
           {cloudFilesystem.mount
-            ? " The filesystem is currently mounted so make sure no applications have anything in this filesystem open to avoid data loss. "
+            ? " The filesystem may be currently mounted so make sure no applications have anything in this filesystem open to avoid data loss. "
             : " "}
           {cloudFilesystem.mount ? "Unmounting" : "Automatic mounting"}{" "}
           typically takes about <b>15 seconds</b>.

@@ -1,6 +1,7 @@
-import { Button, Modal, Spin } from "antd";
+import { Button, InputNumber, Modal, Spin } from "antd";
 import { useState } from "react";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
+import { MIN_PORT, MAX_PORT } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
@@ -14,7 +15,7 @@ interface Props {
   refresh;
 }
 
-export default function EditBucketStorageClass({
+export default function EditMountOptions({
   cloudFilesystem,
   open,
   setOpen,
@@ -25,17 +26,21 @@ export default function EditBucketStorageClass({
   const [configuration, setConfiguration] = useState<{
     keydb_options: string;
     mount_options: string;
+    port: number | null;
   }>({
     keydb_options: cloudFilesystem.keydb_options ?? "",
     mount_options: cloudFilesystem.mount_options ?? "",
+    port: cloudFilesystem.port,
   });
 
+  const changed = !(
+    cloudFilesystem.keydb_options == configuration.keydb_options &&
+    cloudFilesystem.mount_options == configuration.mount_options &&
+    cloudFilesystem.port == configuration.port
+  );
+
   const doEdit = async () => {
-    const { keydb_options, mount_options } = configuration;
-    if (
-      cloudFilesystem.keydb_options == keydb_options &&
-      cloudFilesystem.mount_options == mount_options
-    ) {
+    if (!changed) {
       // no op
       setOpen(false);
       return;
@@ -44,8 +49,7 @@ export default function EditBucketStorageClass({
       setChanging(true);
       await editCloudFilesystem({
         id: cloudFilesystem.id,
-        keydb_options,
-        mount_options,
+        ...configuration,
       });
       refresh();
       setOpen(false);
@@ -77,11 +81,7 @@ export default function EditBucketStorageClass({
         <Button
           key="ok"
           type="primary"
-          disabled={
-            changing ||
-            (cloudFilesystem.keydb_options == configuration.keydb_options &&
-              cloudFilesystem.mount_options == configuration.mount_options)
-          }
+          disabled={changing || !changed}
           onClick={doEdit}
         >
           Change{" "}
@@ -93,8 +93,30 @@ export default function EditBucketStorageClass({
         showHeader={false}
         configuration={configuration}
         setConfiguration={setConfiguration}
+        disabled={cloudFilesystem.mount}
       />
-      <ShowError error={error} setError={setError} />
+      <h5>KeyDB Port</h5>
+      <p>
+        The KeyDB server will listen on port {configuration.port}. You can
+        change this to a different port between {MIN_PORT} and {MAX_PORT}, in
+        case it conflicts with some other software you are using.
+      </p>
+      <div style={{ textAlign: "center" }}>
+        <InputNumber
+          disabled={cloudFilesystem.mount}
+          size="large"
+          style={{ width: "200px" }}
+          min={MIN_PORT}
+          max={MAX_PORT}
+          value={configuration.port}
+          onChange={(port) => setConfiguration({ ...configuration, port })}
+        />
+      </div>
+      <ShowError
+        style={{ marginTop: "15px" }}
+        error={error}
+        setError={setError}
+      />
     </Modal>
   );
 }

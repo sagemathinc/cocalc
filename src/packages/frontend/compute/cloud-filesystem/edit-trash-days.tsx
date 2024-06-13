@@ -6,6 +6,7 @@ import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
 import { editModalStyle } from "./util";
+import { checkInAll } from "@cocalc/frontend/compute/check-in";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -41,6 +42,10 @@ export default function EditTrashDays({
       });
       refresh();
       setOpen(false);
+      if (cloudFilesystem.mount) {
+        // cause quicker update
+        checkInAll(cloudFilesystem.project_id);
+      }
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -85,7 +90,8 @@ export default function EditTrashDays({
       </p>
       Optionally store deleted files in{" "}
       <code>~/{cloudFilesystem.mountpoint}/.trash</code> for the number of days
-      shown below. Set to 0 to disable.
+      shown below. Set to 0 to disable. You can change this at any time, even
+      when the filesystem is mounted, and it will be updated quickly.
       <div style={{ textAlign: "center" }}>
         <InputNumber
           addonAfter={"days"}
@@ -96,6 +102,11 @@ export default function EditTrashDays({
           onChange={(d) => setTrashDays(Math.round(d ?? 0))}
         />
       </div>
+      <p>
+        To quickly empty the trash type{" "}
+        <pre>sudo rm -rf ~/"{cloudFilesystem.mountpoint}"/.trash/*/*</pre> in a
+        terminal.
+      </p>
       <ShowError error={error} setError={setError} />
     </Modal>
   );

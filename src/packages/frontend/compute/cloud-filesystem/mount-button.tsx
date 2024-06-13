@@ -1,4 +1,4 @@
-import { Button, Spin, Popconfirm, Tooltip } from "antd";
+import { Button, Spin, Popconfirm, Switch } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { A } from "@cocalc/frontend/components/A";
 
@@ -37,31 +37,45 @@ export default function MountButton({ cloudFilesystem, setShowMount }: Props) {
     );
   }
 
+  //   return (
+  //     <Button
+  //       style={{
+  //         fontWeight: 600,
+  //         fontSize: "16px",
+  //         color: cloudFilesystem.mount ? "#389E0D" : "#FF4B00",
+  //       }}
+  //       type="text"
+  //       onClick={() => {
+  //         setShowMount(true);
+  //       }}
+  //     >
+  //       <Icon
+  //         name={cloudFilesystem.mount ? "run" : "stop"}
+  //         style={{ marginRight: "5px" }}
+  //       />
+  //       {cloudFilesystem.mount ? (
+  //         <Tooltip
+  //           title={`Will attempt to mount at /home/user/${cloudFilesystem.mountpoint} on any running compute server in this project.`}
+  //         >
+  //           Automount
+  //         </Tooltip>
+  //       ) : (
+  //         "Not Mounted"
+  //       )}
+  //     </Button>
+  //   );
   return (
-    <Button
-      style={{
-        fontWeight: 600,
-        fontSize: "16px",
-        color: cloudFilesystem.mount ? "#389E0D" : "#FF4B00",
-      }}
-      type="text"
+    <Switch
       onClick={() => {
         setShowMount(true);
       }}
-    >
-      <Icon
-        name={cloudFilesystem.mount ? "run" : "stop"}
-        style={{ marginRight: "5px" }}
-      />
-      {cloudFilesystem.mount ? (
-        <Tooltip
-          title={`Will attempt to mount at /home/user/${cloudFilesystem.mountpoint} on any running compute server in this project.`}
-        >
-          Automount
-        </Tooltip>
-      ) : (
-        "Not Mounted"
-      )}
-    </Button>
+      checkedChildren={
+        <>
+          <Icon name="run" /> Automount
+        </>
+      }
+      unCheckedChildren={<>Not Mounted</>}
+      checked={cloudFilesystem.mount}
+    />
   );
 }

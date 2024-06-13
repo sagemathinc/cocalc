@@ -230,6 +230,7 @@ export const CHANGE_UNMOUNTED = new Set([
   "mountpoint",
   "mount_options",
   "keydb_options",
+  "port",
 ]);
 
 Table({

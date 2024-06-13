@@ -580,6 +580,12 @@ export function MountAndKeyDBOptions({
   configuration,
   setConfiguration,
   showHeader,
+  disabled,
+}: {
+  configuration;
+  setConfiguration;
+  showHeader;
+  disabled?;
 }) {
   return (
     <>
@@ -594,31 +600,42 @@ export function MountAndKeyDBOptions({
       )}
       <p>
         Mount options impact cache speed and other aspects of your filesystem,
-        and can only be changed when the filesystem is not mounted. You can set
-        any possible JuiceFS or KeyDB configuration, which will be used when
-        mounting your filesystem. Be careful: changes here can make it so the
-        filesystem will not mount (if that happens, unmount and undo your
+        and <i>can only be changed when the filesystem is not mounted</i>. You
+        can set any possible JuiceFS or KeyDB configuration, which will be used
+        when mounting your filesystem. Be careful: changes here can make it so
+        the filesystem will not mount (if that happens, unmount and undo your
         change); also, some options may cause things to break in subtle ways.
       </p>
       <MountOptions
         configuration={configuration}
         setConfiguration={setConfiguration}
+        disabled={disabled}
       />
       <br />
       <KeyDBOptions
         configuration={configuration}
         setConfiguration={setConfiguration}
+        disabled={disabled}
       />
     </>
   );
 }
 
-function MountOptions({ configuration, setConfiguration }) {
+function MountOptions({
+  configuration,
+  setConfiguration,
+  disabled,
+}: {
+  configuration;
+  setConfiguration;
+  disabled?;
+}) {
   return (
     <div>
       <Button
         style={{ float: "right" }}
         type="text"
+        disabled={disabled}
         onClick={() => {
           setConfiguration({
             ...configuration,
@@ -633,6 +650,7 @@ function MountOptions({ configuration, setConfiguration }) {
       </A>
       <br />
       <Input
+        disabled={disabled}
         value={configuration.mount_options}
         onChange={(e) => {
           setConfiguration({ ...configuration, mount_options: e.target.value });
@@ -642,12 +660,21 @@ function MountOptions({ configuration, setConfiguration }) {
   );
 }
 
-function KeyDBOptions({ configuration, setConfiguration }) {
+function KeyDBOptions({
+  configuration,
+  setConfiguration,
+  disabled,
+}: {
+  configuration;
+  setConfiguration;
+  disabled?;
+}) {
   return (
     <div>
       <Button
         style={{ float: "right" }}
         type="text"
+        disabled={disabled}
         onClick={() => {
           setConfiguration({
             ...configuration,
@@ -664,6 +691,7 @@ function KeyDBOptions({ configuration, setConfiguration }) {
       The text below is placed at the end of keydb.conf and can be used to
       override or add to the keydb configuration used on each client.
       <Input.TextArea
+        disabled={disabled}
         style={{ marginTop: "5px" }}
         rows={4}
         value={configuration.keydb_options}

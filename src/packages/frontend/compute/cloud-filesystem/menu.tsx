@@ -63,9 +63,14 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       label: cloudFilesystem.trash_days ? "Configure Trash" : "Enable Trash",
     },
     {
+      key: "edit-mount-options",
+      icon: <Icon name={"database"} />,
+      label: "Mount and KeyDB Options",
+    },
+    {
       key: "edit-lock",
       icon: <Icon name={"lock"} />,
-      label: "Delete Confirmation",
+      label: "Delete Protection",
     },
     {
       type: "divider",
@@ -75,12 +80,6 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       key: "edit-mountpoint",
       icon: <Icon name="folder-open" />,
       label: "Mountpoint",
-    },
-    {
-      key: "edit-mount-options",
-      disabled: cloudFilesystem.mount,
-      icon: <Icon name={"database"} />,
-      label: "Mount and KeyDB Options",
     },
     {
       key: "edit-project",
