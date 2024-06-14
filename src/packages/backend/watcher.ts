@@ -25,24 +25,30 @@ import { watch, FSWatcher } from "chokidar";
 import { getLogger } from "./logger";
 import { debounce as lodashDebounce } from "lodash";
 
-const L = getLogger("watcher");
+const L = getLogger("backend:watcher");
 
 export class Watcher extends EventEmitter {
   private path: string;
   private interval: number;
   private watcher: FSWatcher;
 
-  constructor(path: string, interval: number=300, debounce: number=0) {
+  constructor(
+    path: string,
+    interval: number = 300,
+    debounce: number = 0,
+    opts?,
+  ) {
     super();
     this.path = path;
     this.interval = interval;
 
-    L.debug(`${path}: interval=${interval}, debounce=${debounce}`);
+    L.debug({ path, interval, debounce, opts });
     this.watcher = watch(this.path, {
       interval: this.interval, // only effective if we end up forced to use polling
       persistent: false,
       alwaysStat: true,
       atomic: true,
+      ...opts,
     });
     this.watcher.on("unlink", () => {
       this.emit("delete");

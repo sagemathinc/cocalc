@@ -37,6 +37,13 @@ export class ClientFs extends Client implements ClientFsType {
   }) {
     super({ project_id, client_id, role });
     this.filesystemClient.setHome(home ?? process.env.HOME ?? "/home/user");
+    if (client_id) {
+      // We always use polling for compute servers (client_id > 0) since they involve
+      // a lot of network mounted filesystems, whereas the main project
+      // 0 doesn't (yet!). Without polling the websocketfs, juicefs ALL
+      // do not work properly.
+      this.filesystemClient.setWatcherOpts({ usePolling: true });
+    }
   }
 }
 
@@ -46,9 +53,14 @@ export class ClientFs extends Client implements ClientFsType {
 export class FileSystemClient {
   private _file_io_lock?: { [key: string]: number }; // file → timestamps
   private home: string;
+  private watcherOpts?;
 
   constructor() {
     this.home = process.env.HOME ?? "/home/user";
+  }
+
+  setWatcherOpts(opts) {
+    this.watcherOpts = opts;
   }
 
   setHome(home: string) {
@@ -220,8 +232,8 @@ export class FileSystemClient {
     debounce?: number;
   }): Watcher => {
     const path = join(this.home, relPath);
-    logger.debug("watching file", path);
-    return new Watcher(path, interval, debounce);
+    logger.debug("watching file", path, this.watcherOpts);
+    return new Watcher(path, interval, debounce, this.watcherOpts);
   };
 
   is_deleted = (_path: string, _project_id: string) => {
