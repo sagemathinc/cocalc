@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Divider } from "antd";
+import { Alert, Button, Divider } from "antd";
 import { join } from "path";
 import {
   Col,
@@ -16,6 +16,7 @@ import {
 } from "react-bootstrap";
 
 import {
+  CSS,
   React,
   redux,
   useMemo,
@@ -27,6 +28,7 @@ import {
   Gap,
   Icon,
   Markdown,
+  Paragraph,
   SearchInput,
 } from "@cocalc/frontend/components";
 import {
@@ -49,22 +51,22 @@ import {
 
 const BINDER_URL = "https://mybinder.readthedocs.io/en/latest/";
 
-const cs_list_style: Readonly<React.CSSProperties> = Object.freeze({
+const CS_LIST_STYLE: CSS = {
   height: "250px",
   overflowX: "hidden" as "hidden",
   overflowY: "scroll" as "scroll",
   border: `1px solid ${COLORS.GRAY_LL}`,
   borderRadius: "5px",
   marginBottom: "0px",
-});
+} as const;
 
-const entries_item_style: Readonly<React.CSSProperties> = Object.freeze({
+const ENTRIES_ITEM_STYLE: CSS = {
   width: "100%",
   margin: "2px 0px",
   padding: "5px",
   border: "none",
   textAlign: "left" as "left",
-});
+} as const;
 
 export interface SoftwareEnvironmentState {
   image_selected?: string;
@@ -109,7 +111,9 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     "compute_images",
     "images",
   );
+
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const onCoCalcCom = customize_kucalc === KUCALC_COCALC_COM;
   const customize_software = useTypedRedux("customize", "software");
   const [dflt_software_img, software_images] = useMemo(
     () => [
@@ -188,7 +192,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
             key={id}
             active={image_selected === id}
             onClick={() => set_state(id, display, image_type)}
-            style={entries_item_style}
+            style={ENTRIES_ITEM_STYLE}
             bsSize={"small"}
           >
             {display}
@@ -198,7 +202,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
       .toArray();
 
     if (entries.length > 0) {
-      return <ListGroup style={cs_list_style}>{entries}</ListGroup>;
+      return <ListGroup style={CS_LIST_STYLE}>{entries}</ListGroup>;
     } else {
       if (search_img.length > 0) {
         return <div>No search hits.</div>;
@@ -322,8 +326,55 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     );
   }
 
+  function render_onprem() {
+    const selected = image_selected ?? dflt_software_img;
+    return (
+      <>
+        <Paragraph>
+          Select the software enviornment. Either go with the default
+          environment, or select one of the more specialized ones. Whatever you
+          pick, you can change it later in Project Settings → Control → Software
+          Environment at any time.
+        </Paragraph>
+        <Paragraph>
+          <ComputeImageSelector
+            size={"middle"}
+            selected_image={selected}
+            layout={"horizontal"}
+            onSelect={(img) => {
+              const display = software_images.get(img)?.get("title");
+              set_state(img, display, "standard");
+            }}
+          />
+        </Paragraph>
+        <Paragraph>
+          {selected !== dflt_software_img ? (
+            <Alert
+              type="info"
+              banner
+              message={
+                <>
+                  You've selected a non-standard image:{" "}
+                  <Button
+                    size="small"
+                    type="link"
+                    onClick={() => {
+                      set_state(dflt_software_img, undefined, "standard");
+                    }}
+                  >
+                    Reset
+                  </Button>
+                </>
+              }
+            />
+          ) : undefined}
+        </Paragraph>
+      </>
+    );
+  }
+
   function render_default_explanation(): JSX.Element {
-    if (customize_kucalc === KUCALC_COCALC_COM) {
+    if (onCoCalcCom) {
       return (
         <>
           <b>Default</b>: large repository of software, well tested – maintained
@@ -365,7 +416,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   }
 
   function render_standard_explanation(): JSX.Element {
-    if (customize_kucalc === KUCALC_COCALC_COM) {
+    if (onCoCalcCom) {
       return (
         <>
           <b>Standard</b>: upcoming and archived versions of the "Default"
@@ -466,13 +517,19 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   function render_type_selection() {
     return (
       <>
-        {showTitle && <ControlLabel>Software environment</ControlLabel>}
+        {showTitle ? (
+          <ControlLabel>Software environment</ControlLabel>
+        ) : undefined}
 
-        <FormGroup>
-          {render_default()}
-          {render_standard()}
-          {render_custom()}
-        </FormGroup>
+        {onCoCalcCom ? (
+          <FormGroup>
+            {render_default()}
+            {render_standard()}
+            {render_custom()}
+          </FormGroup>
+        ) : (
+          render_onprem()
+        )}
       </>
     );
   }
@@ -492,11 +549,15 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
         {render_type_selection()}
       </Col>
 
-      {render_divider()}
-      {render_standard_image_selector()}
-      <Col sm={6}>{render_custom_images()}</Col>
-      <Col sm={6}>{render_selected_custom_image_info()}</Col>
-      <Col sm={12}>{render_custom_images_info()}</Col>
+      {onCoCalcCom ? (
+        <>
+          {render_divider()}
+          {render_standard_image_selector()}
+          <Col sm={6}>{render_custom_images()}</Col>
+          <Col sm={6}>{render_selected_custom_image_info()}</Col>
+          <Col sm={12}>{render_custom_images_info()}</Col>
+        </>
+      ) : undefined}
     </Row>
   );
 };
