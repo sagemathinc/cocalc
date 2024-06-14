@@ -25,30 +25,30 @@ import { watch, FSWatcher } from "chokidar";
 import { getLogger } from "./logger";
 import { debounce as lodashDebounce } from "lodash";
 
-const L = getLogger("backend:watcher");
+const L = getLogger("watcher");
 
 export class Watcher extends EventEmitter {
   private path: string;
   private interval: number;
   private watcher: FSWatcher;
 
-  constructor(
-    path: string,
-    interval: number = 300,
-    debounce: number = 0,
-    opts?,
-  ) {
+  constructor(path: string, interval: number = 300, debounce: number = 0) {
     super();
     this.path = path;
     this.interval = interval;
 
-    L.debug({ path, interval, debounce, opts });
+    L.debug(`${path}: interval=${interval}, debounce=${debounce}`);
     this.watcher = watch(this.path, {
-      interval: this.interval, // only effective if we end up forced to use polling
+      interval: this.interval,
+      // polling is critical for network mounted filesystems,
+      // and given architecture of cocalc there is no easy way around this.
+      // E.g., on compute servers, everything breaks involving sync or cloudfs,
+      // and in shared project s3/gcsfuse/sshfs would all break. So we
+      // use polling.
+      usePolling: true,
       persistent: false,
       alwaysStat: true,
       atomic: true,
-      ...opts,
     });
     this.watcher.on("unlink", () => {
       this.emit("delete");
