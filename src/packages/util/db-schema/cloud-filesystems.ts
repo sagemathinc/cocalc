@@ -191,7 +191,7 @@ export const DEFAULT_CONFIGURATION = {
   mount_options:
     "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other",
   keydb_options: "",
-  bucket_location: "us",
+  bucket_location: "us-east1", // where cocalc.com is
   bucket_storage_class: "standard",
 } as const;
 
@@ -474,3 +474,89 @@ export function assertValidPath(path: string) {
     }
   }
 }
+
+Table({
+  name: "crm_cloud_filesystems",
+  fields: schema.cloud_filesystems.fields,
+  rules: {
+    primary_key: schema.cloud_filesystems.primary_key,
+    virtual: "cloud_filesystems",
+    user_query: {
+      get: {
+        admin: true,
+        pg_where: [],
+        fields: {
+          ...schema.cloud_filesystems.user_query?.get?.fields,
+          template: null,
+        },
+      },
+      set: {
+        admin: true,
+        fields: {
+          id: true,
+          title: true,
+          color: true,
+          notes: true,
+          mount_options: true,
+          keydb_options: true,
+        },
+      },
+    },
+  },
+});
+
+Table({
+  name: "cloud_filesystem_metrics",
+  rules: {
+    primary_key: ["timestamp", "cloud_filesystem_id", "compute_server_id"],
+  },
+  fields: {
+    timestamp: {
+      type: "timestamp",
+      desc: "When the metric was submitted.  This is assigned by the database when data is inserted, so should be assumed correct and non-decreasing.",
+    },
+    cloud_filesystem_id: {
+      ...ID,
+      desc: "The id of the cloud filesystem that this is a metric for.",
+    },
+    compute_server_id: {
+      ...ID,
+      desc: "The id of the compute server that is submitting this metric.",
+    },
+    compute_server_location: {
+      type: "string",
+      desc: "Location of compute server when this metric is recorded: google-northern-america, google-europe, google-asia, google-indonesia, google-oceania, google-middle-east, google-latin-america, non-google, non-google-china, non-google-australia.",
+    },
+    bytes_put: {
+      type: "integer",
+      desc: "The number of bytes of data that was written to cloud storage: juicefs_object_request_data_bytes_PUT in prometheus",
+    },
+    bytes_get: {
+      type: "integer",
+      desc: "The number of bytes of data that were written to cloud storage: juicefs_object_request_data_bytes_GET in prometheus",
+    },
+    objects_put: {
+      type: "integer",
+      desc: "Class A Operation: The number of distinct objects that were written to cloud storage: juicefs_object_request_durations_histogram_seconds_GET_total in prometheus",
+    },
+    objects_get: {
+      type: "integer",
+      desc: "Class B Operation: The number of distinct objects that were read from cloud storage: juicefs_object_request_durations_histogram_seconds_PUT_total in prometheus",
+    },
+    objects_delete: {
+      type: "integer",
+      desc: "Free Operation: The number of distinct objects that were deleted from cloud storage: juicefs_object_request_durations_histogram_seconds_DELETE_total in prometheus",
+    },
+    metric: {
+      not_null: true,
+      type: "map",
+      pg_type: "jsonb",
+      desc: "The metrics.",
+    },
+    cost: {
+      type: "number",
+      pg_type: "real",
+      desc: "The total cost from when the cloud filesystem was first created until this point in time.  This field gets filled in via a maintenance task periodically, by finding the most recent known cost, then computing the costs for all metrics from then until now.  This makes it possible to determine the exact cost between any two points in time with metrices, and also discard old data.",
+    },
+  },
+});

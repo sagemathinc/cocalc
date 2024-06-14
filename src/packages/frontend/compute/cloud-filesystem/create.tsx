@@ -9,8 +9,9 @@ import {
   Radio,
   Select,
   Spin,
+  Switch,
 } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { A, Icon } from "@cocalc/frontend/components";
 import Color, { randomColor } from "../color";
@@ -453,6 +454,25 @@ function BucketStorageClass({ configuration, setConfiguration }) {
 
 const REGIONS = GOOGLE_CLOUD_MULTIREGIONS.concat(GOOGLE_CLOUD_REGIONS);
 function BucketLocation({ configuration, setConfiguration }) {
+  const [multiregion, setMultiregion] = useState<boolean>(
+    !configuration.bucket_location?.includes("-"),
+  );
+  const options = useMemo(() => {
+    return REGIONS.filter((region) =>
+      multiregion ? !region.includes("-") : region.includes("-"),
+    )
+      .sort()
+      .map((region) => {
+        let label;
+        if (!region.includes("-")) {
+          label = <code>{`${region.toUpperCase()} (Multiregion)`}</code>;
+        } else {
+          label = <code>{region}</code>;
+        }
+        return { value: region, label, key: region };
+      });
+  }, [multiregion]);
+
   return (
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt", color: "#666" }}>
@@ -462,25 +482,59 @@ function BucketLocation({ configuration, setConfiguration }) {
       </b>
       {NO_CHANGE}
       You can use your cloud filesystem from any compute server in the world, in
-      any cloud or on prem. However, data transfer will be faster and cheaper
-      when the filesystem and compute server are physically close. <br />
-      <Select
-        showSearch
-        style={{ width: "300px", marginTop: "5px" }}
-        options={REGIONS.map((region) => {
-          let label;
-          if (!region.includes("-")) {
-            label = `${region.toUpperCase()} (Multiregion)`;
-          } else {
-            label = region;
-          }
-          return { value: region, label, key: region };
-        })}
-        value={configuration.bucket_location}
-        onChange={(bucket_location) =>
-          setConfiguration({ ...configuration, bucket_location })
-        }
-      />
+      any cloud or on prem. However, data transfer and operations are{" "}
+      <b>faster and cheaper</b> when the filesystem and compute server are
+      in the same region. <br />
+      <div style={{ display: "flex", margin: "10px 0" }}>
+        <Select
+          showSearch
+          style={{ flex: 1, width: "300px", marginTop: "5px" }}
+          options={options}
+          value={configuration.bucket_location}
+          onChange={(bucket_location) => {
+            setConfiguration({ ...configuration, bucket_location });
+            setMultiregion(!bucket_location?.includes("-"));
+          }}
+        />
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            textAlign: "center",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Switch
+            onClick={() => {
+              if (multiregion) {
+                setMultiregion(false);
+                setConfiguration({
+                  ...configuration,
+                  bucket_location: "us-east1",
+                });
+              } else {
+                setMultiregion(true);
+                setConfiguration({
+                  ...configuration,
+                  bucket_location: "us",
+                });
+              }
+            }}
+            checkedChildren={
+              <>
+                <Icon name="global" /> Multiregion
+              </>
+            }
+            unCheckedChildren={
+              <>
+                <Icon name="home" /> Single Region
+              </>
+            }
+            checked={multiregion}
+          />
+        </div>
+      </div>
     </div>
   );
 }
