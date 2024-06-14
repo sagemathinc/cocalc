@@ -7,7 +7,7 @@ interface Props {
   cloudFilesystem;
   setError;
   refresh?;
-  show;
+  show?;
 }
 
 export default function CloudFilesystemCardTitle({
@@ -27,7 +27,7 @@ export default function CloudFilesystemCardTitle({
       <div style={{ flex: 1 }}>
         <MountButton
           cloudFilesystem={cloudFilesystem}
-          setShowMount={show.setShowMount}
+          setShowMount={show?.setShowMount}
         />
       </div>
       <div
@@ -43,7 +43,7 @@ export default function CloudFilesystemCardTitle({
           onClick={
             cloudFilesystem.mount
               ? undefined
-              : () => show.setShowEditMountpoint(true)
+              : () => show?.setShowEditMountpoint(true)
           }
           style={cloudFilesystem.mount ? {} : { cursor: "pointer" }}
         >
@@ -52,7 +52,7 @@ export default function CloudFilesystemCardTitle({
       </div>
       <div
         style={{ flex: 1, cursor: "pointer", overflow: "hidden" }}
-        onClick={() => show.setShowEditTitleAndColor(true)}
+        onClick={() => show?.setShowEditTitleAndColor(true)}
       >
         <Title
           title={cloudFilesystem.title}

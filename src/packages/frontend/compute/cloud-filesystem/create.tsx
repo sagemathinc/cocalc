@@ -18,6 +18,7 @@ import Title from "../title";
 import type {
   CreateCloudFilesystem,
   Compression,
+  CloudFilesystem as CloudFilesystemType,
 } from "@cocalc/util/db-schema/cloud-filesystems";
 import {
   MIN_BLOCK_SIZE,
@@ -33,11 +34,19 @@ import { createCloudFilesystem } from "./api";
 import { ProgressBarTimer } from "../state";
 import { checkInAll } from "@cocalc/frontend/compute/check-in";
 
+interface Props {
+  project_id: string;
+  cloudFilesystems: {
+    [id: number]: CloudFilesystemType;
+  } | null;
+  refresh: Function;
+}
+
 export default function CreateCloudFilesystem({
   project_id,
   cloudFilesystems,
   refresh,
-}) {
+}: Props) {
   const [taken, setTaken] = useState<{
     ports: Set<number>;
     mountpoints: Set<string>;
@@ -46,9 +55,10 @@ export default function CreateCloudFilesystem({
     if (cloudFilesystems == null) {
       return;
     }
+    const v = Object.values(cloudFilesystems);
     setTaken({
-      ports: new Set(cloudFilesystems.map((x) => x.port)),
-      mountpoints: new Set(cloudFilesystems.map((x) => x.mountpoint)),
+      ports: new Set(v.map((x) => x.port)),
+      mountpoints: new Set(v.map((x) => x.mountpoint)),
     });
   }, [cloudFilesystems]);
   const [creating, setCreating] = useState<boolean>(false);

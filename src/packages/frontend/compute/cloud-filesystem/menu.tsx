@@ -7,6 +7,7 @@ import type { MenuProps } from "antd";
 import { A, Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
 import openSupportTab from "@cocalc/frontend/support/open";
+import { User } from "@cocalc/frontend/users";
 
 function getItems(cloudFilesystem): MenuProps["items"] {
   const help = {
@@ -114,7 +115,7 @@ export default function Menu({
   setError;
   size?;
   fontSize?;
-  show: {
+  show?: {
     setShowMount;
     setShowEditMountpoint;
     setShowEditTitleAndColor;
@@ -133,8 +134,11 @@ export default function Menu({
     }
 
     return {
-      items: getItems(cloudFilesystem),
+      items: show != null ? getItems(cloudFilesystem) : [],
       onClick: async (obj) => {
+        if (show == null) {
+          return;
+        }
         setOpen(false);
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
         switch (cmd) {
@@ -183,6 +187,14 @@ export default function Menu({
       },
     };
   }, [cloudFilesystem, open]);
+
+  if (show == null) {
+    return (
+      <div>
+        Owner: <User account_id={cloudFilesystem.account_id} />
+      </div>
+    );
+  }
 
   return (
     <div style={style}>

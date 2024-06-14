@@ -223,6 +223,7 @@ function State({
                 style={{
                   marginBottom: "10px",
                   position: "absolute",
+                  maxWidth: "400px",
                   zIndex: 1,
                 }}
                 error={extra}

@@ -4,7 +4,7 @@ import { A } from "@cocalc/frontend/components/A";
 
 interface Props {
   cloudFilesystem;
-  setShowMount;
+  setShowMount?;
 }
 
 export default function MountButton({ cloudFilesystem, setShowMount }: Props) {
@@ -66,8 +66,9 @@ export default function MountButton({ cloudFilesystem, setShowMount }: Props) {
   //   );
   return (
     <Switch
+      disabled={setShowMount == null}
       onClick={() => {
-        setShowMount(true);
+        setShowMount?.(true);
       }}
       checkedChildren={
         <>
