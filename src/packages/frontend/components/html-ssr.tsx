@@ -34,8 +34,8 @@ function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
   // - stripIgnoreTagBody - completely get rid of dangerous HTML
   //   (otherwise user sees weird mangled style code, when seeing
   //   nothing would be better).
-  // - whiteList - we need iframes, though we lock them down as
-  //   much as possible, while still supporting 3d graphics.
+  // - whiteList - we need iframes to support 3d graphics; unfortunately this
+  //   isn't safe without a lot more work, so we do NOT enable them.
   return {
     stripIgnoreTagBody: true,
     // SECURITY: whitelist note -- we had tried to explicitly allow mathjax script tags in sanitized html
@@ -45,16 +45,21 @@ function getXSSOptions(urlTransform): IFilterXSSOptions | undefined {
     // The fix is completley removing any whitelisting of any script tags.  The feature of
     // mathjax in html is not important enough to support, and too dangerous -- even if it worked,
     // it would probably be an easy attack vector by just making up fake mathjax.
+    // Due to https://github.com/sagemathinc/cocalc/security/advisories/GHSA-jpjc-pwjv-j9mg
+    // we also remove all use of iframes, which
     whiteList: {
       ...whiteList,
-      iframe: ["src", "srcdoc", "width", "height"],
+      // DISABLED due to https://github.com/sagemathinc/cocalc/security/advisories/GHSA-jpjc-pwjv-j9mg
+      // iframe: ["src", "srcdoc", "width", "height"],
+      iframe: [],
       html: [],
     },
     safeAttrValue: (tag, name, value) => {
-      if (tag == "iframe" && name == "srcdoc") {
-        // important not to mangle this or it won't work.
-        return value;
-      }
+      // disabled since not sufficiently secure.
+      //       if (tag == "iframe" && name == "srcdoc") {
+      //         // important not to mangle this or it won't work.
+      //         return value;
+      //       }
       if (urlTransform && URL_TAGS.includes(name)) {
         // use the url transform
         return urlTransform(value, tag, name) ?? value;
