@@ -47,7 +47,7 @@ export default function CloudFilesystems({ project_id }: Props) {
   //   const [sortBy, setSortBy] = useState<
   //     "id" | "title" | "custom" | "edited" | "state"
   //   >((get_local_storage(`cloudfs-${project_id}`) ?? "custom") as any);
-  const sortBy: string = "id";
+  const sortBy: string = "custom";
 
   const [ids, setIds] = useState<number[]>([]);
   const account_id = useTypedRedux("account", "account_id");
