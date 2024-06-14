@@ -9,6 +9,7 @@ import { Icon, Paragraph, Title } from "@cocalc/frontend/components";
 import {
   ComputeServers,
   computeServersEnabled,
+  cloudFilesystemsEnabled,
 } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
@@ -90,6 +91,8 @@ export function ServersFlyout({ project_id, wrap }) {
       ),
       children: renderComputeServers(),
     });
+  }
+  if (cloudFilesystemsEnabled()) {
     items.push({
       key: "cloud-filesystems",
       label: (

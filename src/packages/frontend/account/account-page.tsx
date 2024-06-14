@@ -29,7 +29,7 @@ import { UpgradesPage } from "./upgrades/upgrades-page";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 import StatementsPage from "@cocalc/frontend/purchases/statements-page";
-import { computeServersEnabled } from "@cocalc/frontend/compute";
+import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 
 export const AccountPage: React.FC = () => {
@@ -220,7 +220,7 @@ export const AccountPage: React.FC = () => {
         children: active_page === "upgrades" && <UpgradesPage />,
       });
     }
-    if (computeServersEnabled()) {
+    if (cloudFilesystemsEnabled()) {
       items.push({
         key: "cloud-filesystems",
         label: (

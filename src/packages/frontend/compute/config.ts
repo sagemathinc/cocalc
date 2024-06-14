@@ -23,6 +23,20 @@ export function computeServersEnabled(): true | false | null {
   return false;
 }
 
+export function cloudFilesystemsEnabled(): true | false | null {
+  const customize = redux.getStore("customize");
+  if (customize == null || customize.get("time") == null) {
+    // definitely NOT loaded yet.
+    return null;
+  }
+  // requires also google cloud and compute servers in general:
+  return (
+    !!customize.get("compute_servers_enabled") &&
+    !!customize.get("compute_servers_google-cloud_enabled") &&
+    !!customize.get("cloud_filesystems_enabled")
+  );
+}
+
 export function availableClouds(): Cloud[] {
   const v: Cloud[] = [];
   const customize = redux.getStore("customize");

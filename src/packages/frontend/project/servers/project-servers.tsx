@@ -11,6 +11,7 @@ import {
   ComputeServerDocs,
   ComputeServers,
   computeServersEnabled,
+  cloudFilesystemsEnabled,
 } from "@cocalc/frontend/compute";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { R_IDE } from "@cocalc/util/consts/ui";
@@ -180,6 +181,8 @@ export function ProjectServers(props: Props) {
         </>
       ),
     });
+  }
+  if (cloudFilesystemsEnabled()) {
     items.push({
       key: "cloud-filesystems",
       label: (
