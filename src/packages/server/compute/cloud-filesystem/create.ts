@@ -61,7 +61,7 @@ import {
   CloudFilesystem,
 } from "@cocalc/util/db-schema/cloud-filesystems";
 
-interface Options extends CreateCloudFilesystem {
+export interface Options extends CreateCloudFilesystem {
   account_id: string;
 }
 

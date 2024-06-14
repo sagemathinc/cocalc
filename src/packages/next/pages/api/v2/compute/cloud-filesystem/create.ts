@@ -3,7 +3,10 @@ Create a cloud filesystem
 */
 
 import getAccountId from "lib/account/get-account";
-import { createCloudFilesystem } from "@cocalc/server/compute/cloud-filesystem/create";
+import { createCloudFilesystem, Options } from "@cocalc/server/compute/cloud-filesystem/create";
+import { FIELDS } from "@cocalc/server/compute/cloud-filesystem/edit";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
+
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
@@ -20,34 +23,17 @@ async function get(req) {
   if (!account_id) {
     throw Error("must be signed in");
   }
-  const {
-    project_id,
-    mountpoint,
-    compression,
-    mount_options,
-    keydb_options,
-    block_size,
-    title,
-    color,
-    notes,
-    trash_days,
-    bucket_location,
-    bucket_storage_class,
-  } = getParams(req);
 
+  const params = getParams(req);
+  const opts: Partial<CloudFilesystem> = {};
+  for (const field of FIELDS) {
+    const x = params[field];
+    if (x !== undefined) {
+      opts[field] = x;
+    }
+  }
   return await createCloudFilesystem({
+    ...opts,
     account_id,
-    project_id,
-    mountpoint,
-    compression,
-    mount_options,
-    keydb_options,
-    block_size,
-    title,
-    color,
-    notes,
-    trash_days,
-    bucket_location,
-    bucket_storage_class,
-  });
+  } as Options);
 }

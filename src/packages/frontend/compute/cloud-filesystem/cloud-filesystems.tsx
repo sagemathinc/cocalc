@@ -26,7 +26,7 @@ import {
 // } from "@cocalc/frontend/misc/local-storage";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
-type CloudFilesystems = {
+export type CloudFilesystems = {
   [id: number]: CloudFilesystemType;
 };
 

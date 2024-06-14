@@ -18,7 +18,6 @@ import Title from "../title";
 import type {
   CreateCloudFilesystem,
   Compression,
-  CloudFilesystem as CloudFilesystemType,
 } from "@cocalc/util/db-schema/cloud-filesystems";
 import {
   MIN_BLOCK_SIZE,
@@ -33,12 +32,11 @@ import {
 import { createCloudFilesystem } from "./api";
 import { ProgressBarTimer } from "../state";
 import { checkInAll } from "@cocalc/frontend/compute/check-in";
+import type { CloudFilesystems } from "./cloud-filesystems";
 
 interface Props {
   project_id: string;
-  cloudFilesystems: {
-    [id: number]: CloudFilesystemType;
-  } | null;
+  cloudFilesystems: CloudFilesystems | null;
   refresh: Function;
 }
 
@@ -90,7 +88,10 @@ export default function CreateCloudFilesystem({
     try {
       setCreateStarted(new Date());
       setCreating(true);
-      await createCloudFilesystem(configuration);
+      await createCloudFilesystem({
+        ...configuration,
+        position: getPosition(cloudFilesystems),
+      });
       checkInAll(project_id); // cause filesystem to be noticed (and mounted) asap
       setEditing(false);
       reset();
@@ -735,3 +736,16 @@ const NO_CHANGE = (
 );
 
 const EXTERNAL = <Icon name="external-link" style={{ marginRight: "5px" }} />;
+
+// at least 1 bigger than any current one, so it is at the top
+function getPosition(cloudFilesystems: CloudFilesystems | null): number {
+  let position = 0;
+  if (cloudFilesystems == null) return position;
+  for (const cloudFilesystem of Object.values(cloudFilesystems)) {
+    const pos = cloudFilesystem.position ?? cloudFilesystem.id;
+    if (pos > position) {
+      position = pos + 1;
+    }
+  }
+  return position;
+}
