@@ -167,6 +167,7 @@ export default async function getCustomize(): Promise<Customize> {
     jupyterApiEnabled: settings.jupyter_api_enabled,
 
     computeServersEnabled: settings.compute_servers_enabled,
+    cloudFilesystemEnabled: settings.cloud_filesystem_enabled,
 
     // GitHub proxy project
     githubProjectId: settings.github_project_id,
