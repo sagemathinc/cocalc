@@ -108,6 +108,7 @@ export function useProjectContextProvider(
   const haveCustomOpenAI = useTypedRedux("customize", "custom_openai_enabled");
   const haveMistral = useTypedRedux("customize", "mistral_enabled");
   const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
+  const userDefinedLLM = useTypedRedux("customize", "user_defined_llm");
 
   const enabledLLMs = useMemo(() => {
     const projectsStore = redux.getStore("projects");
@@ -119,6 +120,7 @@ export function useProjectContextProvider(
     haveCustomOpenAI,
     haveMistral,
     haveAnthropic,
+    userDefinedLLM,
   ]);
 
   return {

@@ -20,16 +20,16 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
-import track from "@cocalc/frontend/user-tracking";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
   VBAR_OPTIONS,
   getValidVBAROption,
-} from "../project/page/vbar";
+} from "@cocalc/frontend/project/page/vbar";
+import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
+import track from "@cocalc/frontend/user-tracking";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
@@ -44,6 +44,7 @@ interface Props {
 export function OtherSettings(props: Readonly<Props>): JSX.Element {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
+
   const [model, setModel] = useLanguageModelSetting();
 
   function on_change(name: string, value: any): void {
@@ -398,24 +399,33 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     return <UserDefinedLLMComponent on_change={on_change} />;
   }
 
+  function render_llm_settings() {
+    // we hide this panel, if all servers and user defined LLms are disabled
+    const customize = redux.getStore("customize");
+    const enabledLLMs = customize.getEnabledLLMs();
+    const anyLLMenabled = Object.values(enabledLLMs).some((v) => v);
+    if (!anyLLMenabled) return;
+    return (
+      <Panel
+        header={
+          <>
+            <AIAvatar size={22} /> AI Settings
+          </>
+        }
+      >
+        {render_disable_all_llm()}
+        {render_language_model()}
+        {render_custom_llm()}
+      </Panel>
+    );
+  }
+
   if (props.other_settings == null) {
     return <Loading />;
   }
   return (
     <>
-      {redux.getStore("customize").get("openai_enabled") ? (
-        <Panel
-          header={
-            <>
-              <AIAvatar size={22} /> AI Settings
-            </>
-          }
-        >
-          {render_disable_all_llm()}
-          {render_language_model()}
-          {render_custom_llm()}
-        </Panel>
-      ) : undefined}
+      {render_llm_settings()}
 
       <Panel
         header={
