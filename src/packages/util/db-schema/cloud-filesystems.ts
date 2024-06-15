@@ -523,29 +523,37 @@ Table({
       ...ID,
       desc: "The id of the compute server that is submitting this metric.",
     },
-    compute_server_location: {
-      type: "string",
-      desc: "Location of compute server when this metric is recorded: google-northern-america, google-europe, google-asia, google-indonesia, google-oceania, google-middle-east, google-latin-america, non-google, non-google-china, non-google-australia.",
+    cost_put: {
+      type: "number",
+      desc: "Cost per GiB (=2^30 bytes) in dollars to put data, given where the compute server is and the type of storage bucket. Set to -1 if we do not know, e.g., on prem.",
+    },
+    cost_get: {
+      type: "number",
+      desc: "Cost per GiB in dollars to get data, given where the compute server is and the type of storage bucket.  Set to -1 if we do not know, e.g., on prem.",
+    },
+    total_bytes: {
+      type: "integer",
+      desc: "The total number of bytes of data in the bucket at this point in time.  This never comes directly from juicefs, but can be determined using the metrics API.",
     },
     bytes_put: {
       type: "integer",
-      desc: "The number of bytes of data that was written to cloud storage: juicefs_object_request_data_bytes_PUT in prometheus",
+      desc: "The number of bytes of data that was written to cloud storage: juicefs_object_request_data_bytes_PUT in .stats",
     },
     bytes_get: {
       type: "integer",
-      desc: "The number of bytes of data that were written to cloud storage: juicefs_object_request_data_bytes_GET in prometheus",
+      desc: "The number of bytes of data that were written to cloud storage: juicefs_object_request_data_bytes_GET in .stats",
     },
     objects_put: {
       type: "integer",
-      desc: "Class A Operation: The number of distinct objects that were written to cloud storage: juicefs_object_request_durations_histogram_seconds_GET_total in prometheus",
+      desc: "Class A Operation: The number of distinct objects that were written to cloud storage: juicefs_object_request_durations_histogram_seconds_PUT_total in .stats",
     },
     objects_get: {
       type: "integer",
-      desc: "Class B Operation: The number of distinct objects that were read from cloud storage: juicefs_object_request_durations_histogram_seconds_PUT_total in prometheus",
+      desc: "Class B Operation: The number of distinct objects that were read from cloud storage: juicefs_object_request_durations_histogram_seconds_GET_total in .stats",
     },
     objects_delete: {
       type: "integer",
-      desc: "Free Operation: The number of distinct objects that were deleted from cloud storage: juicefs_object_request_durations_histogram_seconds_DELETE_total in prometheus",
+      desc: "Free Operation: The number of distinct objects that were deleted from cloud storage: juicefs_object_request_durations_histogram_seconds_DELETE_total in .stats",
     },
     metric: {
       not_null: true,
