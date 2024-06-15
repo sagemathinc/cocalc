@@ -483,8 +483,8 @@ function BucketLocation({ configuration, setConfiguration }) {
       {NO_CHANGE}
       You can use your cloud filesystem from any compute server in the world, in
       any cloud or on prem. However, data transfer and operations are{" "}
-      <b>faster and cheaper</b> when the filesystem and compute server are
-      in the same region. <br />
+      <b>faster and cheaper</b> when the filesystem and compute server are in
+      the same region. <br />
       <div style={{ display: "flex", margin: "10px 0" }}>
         <Select
           showSearch
@@ -574,9 +574,20 @@ function BlockSize({ configuration, setConfiguration }) {
       <b style={{ fontSize: "13pt", color: "#666" }}>Block Size</b>
       {NO_CHANGE}
       The block size, which is between 1MB and 64MB, is an upper bound on the
-      size of the blocks that are storied in the cloud storage bucket. Around
-      4MB is the fastest, but 64MB means storing far less objects, which can
-      make longterm costs more affordable for autoclass storage buckets. <br />
+      size of the objects that are storied in the cloud storage bucket.
+      <Alert
+        style={{ margin: "10px" }}
+        showIcon
+        type="info"
+        message={
+          <>
+            Around 4MB is the default since it provides a good balance. It can
+            be better to use a larger block size, since the number of PUT, GET
+            and DELETE operations may be reduced. Also, if you use an autoclass
+            storage class, use 64MB since there is a monthly per-object cost.
+          </>
+        }
+      />
       <div style={{ textAlign: "center" }}>
         <InputNumber
           size="large"
