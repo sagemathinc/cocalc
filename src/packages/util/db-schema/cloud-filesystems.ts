@@ -529,11 +529,13 @@ Table({
       desc: "The id of the compute server that is submitting this metric.",
     },
     bytes_used: {
+      not_null: true,
       type: "integer",
       pg_type: "bigint",
       desc: "The total number of bytes of data in the bucket at this point in time.  This never comes directly from juicefs, but can hopefully be determined retroactively using the metrics API or other methods.",
     },
     process_uptime: {
+      not_null: true,
       type: "number",
       desc: "Seconds since the process started collecting these metrics.",
     },

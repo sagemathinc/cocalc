@@ -8,9 +8,9 @@ export default async function setMetrics(opts: {
   cloud_filesystem_id: number;
   compute_server_id: number;
   process_uptime: number;
+  bytes_used: number;
   bytes_get?: number;
   bytes_put?: number;
-  bytes_used?: number;
   objects_get?: number;
   objects_put?: number;
   objects_delete?: number;
