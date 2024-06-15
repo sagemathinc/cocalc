@@ -2,6 +2,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Divider,
   Input,
   InputNumber,
@@ -9,7 +10,6 @@ import {
   Radio,
   Select,
   Spin,
-  Switch,
 } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
@@ -505,34 +505,26 @@ function BucketLocation({ configuration, setConfiguration }) {
             justifyContent: "center",
           }}
         >
-          <Switch
-            onClick={() => {
-              if (multiregion) {
-                setMultiregion(false);
-                setConfiguration({
-                  ...configuration,
-                  bucket_location: "us-east1",
-                });
-              } else {
+          <Checkbox
+            onChange={(e) => {
+              if (e.target.checked) {
                 setMultiregion(true);
                 setConfiguration({
                   ...configuration,
                   bucket_location: "us",
                 });
+              } else {
+                setMultiregion(false);
+                setConfiguration({
+                  ...configuration,
+                  bucket_location: "us-east1",
+                });
               }
             }}
-            checkedChildren={
-              <>
-                <Icon name="global" /> Multiregion
-              </>
-            }
-            unCheckedChildren={
-              <>
-                <Icon name="home" /> Single Region
-              </>
-            }
             checked={multiregion}
-          />
+          >
+            <Icon name="global" /> Multiregion
+          </Checkbox>
         </div>
       </div>
     </div>
