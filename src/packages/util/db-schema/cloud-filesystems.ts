@@ -516,55 +516,52 @@ Table({
       desc: "When the metric was submitted.  This is assigned by the database when data is inserted, so should be assumed correct and non-decreasing.",
     },
     cloud_filesystem_id: {
-      ...ID,
+      type: "integer",
       desc: "The id of the cloud filesystem that this is a metric for.",
     },
     compute_server_id: {
-      ...ID,
+      type: "integer",
       desc: "The id of the compute server that is submitting this metric.",
     },
-    cost_put: {
-      type: "number",
-      desc: "Cost per GiB (=2^30 bytes) in dollars to put data, given where the compute server is and the type of storage bucket. Set to -1 if we do not know, e.g., on prem.",
-    },
-    cost_get: {
-      type: "number",
-      desc: "Cost per GiB in dollars to get data, given where the compute server is and the type of storage bucket.  Set to -1 if we do not know, e.g., on prem.",
-    },
-    total_bytes: {
+    bytes_used: {
       type: "integer",
-      desc: "The total number of bytes of data in the bucket at this point in time.  This never comes directly from juicefs, but can be determined using the metrics API.",
+      pg_type: "bigint",
+      desc: "The total number of bytes of data in the bucket at this point in time.  This never comes directly from juicefs, but can hopefully be determined retroactively using the metrics API or other methods.",
     },
     bytes_put: {
       type: "integer",
+      pg_type: "bigint",
       desc: "The number of bytes of data that was written to cloud storage: juicefs_object_request_data_bytes_PUT in .stats",
     },
     bytes_get: {
       type: "integer",
+      pg_type: "bigint",
       desc: "The number of bytes of data that were written to cloud storage: juicefs_object_request_data_bytes_GET in .stats",
     },
     objects_put: {
       type: "integer",
+      pg_type: "bigint",
       desc: "Class A Operation: The number of distinct objects that were written to cloud storage: juicefs_object_request_durations_histogram_seconds_PUT_total in .stats",
     },
     objects_get: {
       type: "integer",
+      pg_type: "bigint",
       desc: "Class B Operation: The number of distinct objects that were read from cloud storage: juicefs_object_request_durations_histogram_seconds_GET_total in .stats",
     },
     objects_delete: {
       type: "integer",
+      pg_type: "bigint",
       desc: "Free Operation: The number of distinct objects that were deleted from cloud storage: juicefs_object_request_durations_histogram_seconds_DELETE_total in .stats",
     },
-    metric: {
-      not_null: true,
-      type: "map",
-      pg_type: "jsonb",
-      desc: "The metrics.",
-    },
-    cost: {
+    cost_put_gib: {
       type: "number",
-      pg_type: "real",
-      desc: "The total cost from when the cloud filesystem was first created until this point in time.  This field gets filled in via a maintenance task periodically, by finding the most recent known cost, then computing the costs for all metrics from then until now.  This makes it possible to determine the exact cost between any two points in time with metrices, and also discard old data.",
+      pg_type: "double precision",
+      desc: "Cloud vendor cost to us per GiB (=2^30 bytes) in dollars to put data, given where the compute server is and the type of storage bucket. Is null if we do not know, e.g., on prem.",
+    },
+    cost_get_gib: {
+      type: "number",
+      pg_type: "double precision",
+      desc: "Cloud vendor cost to us per GiB in dollars to get data, given where the compute server is and the type of storage bucket.  Is null if we do not know, e.g., on prem.",
     },
   },
 });
