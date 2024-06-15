@@ -176,7 +176,7 @@ export const DEFAULT_CONFIGURATION = {
   mount: true,
   compression: "lz4",
   block_size: 4,
-  trash_days: 1,
+  trash_days: 3,
   title: "Untitled",
   lock: "DELETE",
   //
@@ -459,9 +459,14 @@ export function assertValidPath(path: string) {
   if (typeof path != "string") {
     throw Error("path must be a string");
   }
-  if (path.includes("\0") || path.includes("\n")) {
+  if (
+    path.includes("\0") ||
+    path.includes("\n") ||
+    path.includes("~") ||
+    path.includes("\\")
+  ) {
     throw Error(
-      `invalid path '${path}'  -- must not include newlines or null characters`,
+      `invalid path '${path}'  -- must not include newlines or null characters or ~ or \\`,
     );
   }
   if (path.length > 4096) {
@@ -527,6 +532,10 @@ Table({
       type: "integer",
       pg_type: "bigint",
       desc: "The total number of bytes of data in the bucket at this point in time.  This never comes directly from juicefs, but can hopefully be determined retroactively using the metrics API or other methods.",
+    },
+    process_uptime: {
+      type: "number",
+      desc: "Seconds since the process started collecting these metrics.",
     },
     bytes_put: {
       type: "integer",

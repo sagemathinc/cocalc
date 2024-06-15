@@ -7,6 +7,7 @@ export default async function setMetrics(opts: {
   project_id: string;
   cloud_filesystem_id: number;
   compute_server_id: number;
+  process_uptime: number;
   bytes_get?: number;
   bytes_put?: number;
   bytes_used?: number;
@@ -21,6 +22,7 @@ export default async function setMetrics(opts: {
     project_id,
     cloud_filesystem_id,
     compute_server_id,
+    process_uptime,
     bytes_get,
     bytes_put,
     bytes_used,
@@ -46,10 +48,11 @@ export default async function setMetrics(opts: {
   // for purchasing purposes.  The idea is that a user can only shoot themselves in the foot.
 
   await pool.query(
-    "INSERT INTO cloud_filesystem_metrics(timestamp,cloud_filesystem_id,compute_server_id,bytes_get,bytes_put,bytes_used,objects_get,objects_put,objects_delete) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8)",
+    "INSERT INTO cloud_filesystem_metrics(timestamp,cloud_filesystem_id,compute_server_id,process_uptime,bytes_get,bytes_put,bytes_used,objects_get,objects_put,objects_delete) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9)",
     [
       cloud_filesystem_id,
       compute_server_id,
+      process_uptime,
       bytes_get,
       bytes_put,
       bytes_used,

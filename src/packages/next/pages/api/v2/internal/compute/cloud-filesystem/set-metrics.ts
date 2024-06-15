@@ -32,6 +32,7 @@ async function get(req) {
   const {
     compute_server_id,
     cloud_filesystem_id,
+    process_uptime,
     bytes_used,
     bytes_get,
     bytes_put,
@@ -43,6 +44,7 @@ async function get(req) {
   await setMetrics({
     project_id,
     compute_server_id,
+    process_uptime,
     cloud_filesystem_id,
     bytes_used,
     bytes_get,
