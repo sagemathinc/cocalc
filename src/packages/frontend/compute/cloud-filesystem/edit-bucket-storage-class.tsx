@@ -4,7 +4,7 @@ import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
-import { BucketStorageClass } from "./create";
+import { BucketStorageClass } from "./bucket";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
