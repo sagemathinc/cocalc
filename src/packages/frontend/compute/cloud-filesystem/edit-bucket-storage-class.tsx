@@ -1,17 +1,10 @@
-import { Button, Select, Modal, Spin } from "antd";
+import { Button, Modal, Spin } from "antd";
 import { useState } from "react";
-import type {
-  CloudFilesystem,
-  GoogleCloudBucketStorageClass,
-} from "@cocalc/util/db-schema/cloud-filesystems";
-import {
-  GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES,
-  GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC,
-} from "@cocalc/util/db-schema/cloud-filesystems";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
 import { editCloudFilesystem } from "./api";
+import { BucketStorageClass } from "./create";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -28,13 +21,13 @@ export default function EditBucketStorageClass({
 }: Props) {
   const [changing, setChanging] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [storageClass, setStorageClass] =
-    useState<GoogleCloudBucketStorageClass>(
-      cloudFilesystem.bucket_storage_class ?? "standard",
-    );
+  const [configuration, setConfiguration] =
+    useState<CloudFilesystem>(cloudFilesystem);
 
   const doEdit = async () => {
-    if (cloudFilesystem.bucket_storage_class == storageClass) {
+    if (
+      cloudFilesystem.bucket_storage_class == configuration.bucket_storage_class
+    ) {
       // no op
       setOpen(false);
       return;
@@ -43,7 +36,7 @@ export default function EditBucketStorageClass({
       setChanging(true);
       await editCloudFilesystem({
         id: cloudFilesystem.id,
-        bucket_storage_class: storageClass,
+        bucket_storage_class: configuration.bucket_storage_class,
       });
       refresh();
       setOpen(false);
@@ -75,7 +68,9 @@ export default function EditBucketStorageClass({
           key="ok"
           type="primary"
           disabled={
-            changing || cloudFilesystem.bucket_storage_class == storageClass
+            changing ||
+            cloudFilesystem.bucket_storage_class ==
+              configuration.bucket_storage_class
           }
           onClick={doEdit}
         >
@@ -84,30 +79,11 @@ export default function EditBucketStorageClass({
         </Button>,
       ]}
     >
-      The{" "}
-      <A href="https://cloud.google.com/storage/docs/storage-classes">
-        Google Cloud Bucket Storage Class
-      </A>{" "}
-      determines how much it costs to store and access your files, but has
-      minimal impact on speed. You can change the storage class at any time, but
-      the change only impacts <i>newly created data</i> going forward.
-      <Select
-        style={{ width: "100%", margin: "10px 0" }}
-        options={GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES.map(
-          (bucket_storage_class) => {
-            return {
-              value: bucket_storage_class,
-              key: bucket_storage_class,
-              label:
-                GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC[
-                  bucket_storage_class
-                ] ?? bucket_storage_class,
-            };
-          },
-        )}
-        value={storageClass}
-        onChange={setStorageClass}
+      <BucketStorageClass
+        configuration={configuration}
+        setConfiguration={setConfiguration}
       />
+
       <ShowError error={error} setError={setError} />
     </Modal>
   );

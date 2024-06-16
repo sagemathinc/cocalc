@@ -71,6 +71,13 @@ export default async function setMetrics(opts: {
       compute_server_location,
     ],
   );
+
+  if (bytes_used != null) {
+    await pool.query("UPDATE cloud_filesystems SET bytes_used=$1 WHERE id=$2", [
+      bytes_used,
+      cloud_filesystem_id,
+    ]);
+  }
 }
 
 // Determine the network costs for transfering data between

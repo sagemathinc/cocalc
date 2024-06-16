@@ -1792,7 +1792,16 @@ export function currency(n: number, d?: number) {
   if (n == 0) {
     return `$0.00`;
   }
-  return `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
+  let s = `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
+  if (d == null || d <= 2) {
+    return s;
+  }
+  // strip excessive 0's off the end
+  const i = s.indexOf(".");
+  while (s[s.length - 1] == "0" && i <= s.length - 2) {
+    s = s.slice(0, s.length - 1);
+  }
+  return s;
 }
 
 export function stripeAmount(

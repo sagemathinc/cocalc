@@ -71,25 +71,24 @@ export type GoogleCloudBucketStorageClass =
 // complicated to specify and have subtle restrictions and
 // probably aren't that critical for our users, so we don't
 // support them.
-export const GOOGLE_CLOUD_MULTIREGIONS = ["asia", "eu", "us"];
+export const GOOGLE_CLOUD_MULTIREGIONS = ["us", "eu", "asia"];
 // We will have to update the zone list when google adds more zones, since I didn't
 // want to have a dependency on my package @cocalc/gcloud-pricing-calculator.
 // However it's easy using that package:
 //    a =require('@cocalc/gcloud-pricing-calculator')
 //    z = new Set(Object.keys((await a.getData()).zones).map((x)=>{i=x.lastIndexOf('-');return x.slice(0,i)}))
 export const GOOGLE_CLOUD_REGIONS = [
-  "africa-south1",
-  "asia-east1",
-  "asia-east2",
-  "asia-northeast1",
-  "asia-northeast2",
-  "asia-northeast3",
-  "asia-south1",
-  "asia-south2",
-  "asia-southeast1",
-  "asia-southeast2",
-  "australia-southeast1",
-  "australia-southeast2",
+  "us-central1",
+  "us-east1",
+  "us-east4",
+  "us-east5",
+  "us-west1",
+  "us-west2",
+  "us-west3",
+  "us-west4",
+  "us-south1",
+  "northamerica-northeast1",
+  "northamerica-northeast2",
   "europe-north1",
   "europe-central2",
   "europe-southwest1",
@@ -102,19 +101,20 @@ export const GOOGLE_CLOUD_REGIONS = [
   "europe-west9",
   "europe-west10",
   "europe-west12",
-  "northamerica-northeast1",
-  "northamerica-northeast2",
   "southamerica-east1",
   "southamerica-west1",
-  "us-central1",
-  "us-east1",
-  "us-east4",
-  "us-east5",
-  "us-west1",
-  "us-west2",
-  "us-west3",
-  "us-west4",
-  "us-south1",
+  "africa-south1",
+  "asia-east1",
+  "asia-east2",
+  "asia-northeast1",
+  "asia-northeast2",
+  "asia-northeast3",
+  "asia-south1",
+  "asia-south2",
+  "asia-southeast1",
+  "asia-southeast2",
+  "australia-southeast1",
+  "australia-southeast2",
   "me-central1",
   "me-central2",
   "me-west1",
@@ -148,6 +148,7 @@ export interface CloudFilesystem {
   lock?: string;
   position?: number;
   last_edited?: Date;
+  bytes_used?: number;
 }
 // See https://juicefs.com/docs/community/command_reference#mount
 
@@ -271,6 +272,7 @@ Table({
           deleting: null,
           mount_options: null,
           keydb_options: null,
+          bytes_used: null,
         },
       },
       set: {
@@ -411,6 +413,12 @@ Table({
       type: "timestamp",
       desc: "Last time some field was changed.  Also, this gets updated when the volume is actively mounted by some compute server, since the files are likely edited.",
     },
+    bytes_used: {
+      not_null: true,
+      type: "integer",
+      pg_type: "bigint",
+      desc: "The total number of bytes of data stored in the filesystem -- it's the output of df.  It is not impacted by compression, i.e., it's not the bucket size itself.",
+    },
   },
 });
 
@@ -532,7 +540,7 @@ Table({
       not_null: true,
       type: "integer",
       pg_type: "bigint",
-      desc: "The total number of bytes of data in the bucket at this point in time.  This never comes directly from juicefs, but can hopefully be determined retroactively using the metrics API or other methods.",
+      desc: "The total number of bytes of data stored in the filesystem -- it's the output of df.  It is not impacted by compression, i.e., it's not the bucket size itself.",
     },
     process_uptime: {
       not_null: true,
@@ -575,7 +583,7 @@ Table({
       not_null: true,
       type: "string",
       pg_type: "VARCHAR(64)",
-      desc: "Default storage class of the google cloud storage bucket at this point in time: 'standard', 'nearline', 'coldline', 'archive', autoclass-nearline' or 'autoclass-archive'",
+      desc: "Default storage class of the google cloud storage bucket at this point in time: 'standard', 'nearline', 'coldline', 'archive', 'autoclass-nearline' or 'autoclass-archive'",
       render: { type: "text", maxLength: 64, editable: false },
     },
     compute_server_location: {
@@ -590,5 +598,9 @@ Table({
       pg_type: "double precision",
       desc: "The estimated accumulated total cost from when the bucket was created until this point in time.  This could be recomputed, but is nice to have easily available, and means we can delete old data.",
     },
+    //     cost_state: {
+    //       type: "object",
+    //       desc: "Extra data at this point in time that can be used somehow in our cost estimation heuristic. E.g., {'bytes_used_standard':20000} would mean that we should assume going forward that 20000 bytes of data is of the standard storage class, irregardless of the current storage class because of a change of class.   Obviously, some of this data could be deleted, but we don't know.",
+    //     },
   },
 });

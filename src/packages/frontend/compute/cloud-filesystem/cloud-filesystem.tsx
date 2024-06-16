@@ -15,6 +15,7 @@ import EditBucketStorageClass from "./edit-bucket-storage-class";
 import EditMountOptions from "./edit-mount-options";
 import EditProject from "./edit-project";
 import { TimeAgo } from "@cocalc/frontend/components";
+import { human_readable_size } from "@cocalc/util/misc";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -160,18 +161,20 @@ export default function CloudFilesystem({
         description={
           <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
-            Cloud Filesystem <Compression {...cloudFilesystem} />{" "}
-            <BlockSize {...cloudFilesystem} />{" "}
+            Cloud Filesystem <BytesUsed {...cloudFilesystem} />,{" "}
+            <Compression {...cloudFilesystem} />{" "}
+            <BlockSize {...cloudFilesystem} />,{" "}
             {cloudFilesystem.mount ? "mounted" : "which would mount"} at{" "}
             <Mountpoint
               {...cloudFilesystem}
               show={show?.setShowEditMountpoint}
-            />{" "}
+            />
+            ,{" "}
             <Bucket
               {...cloudFilesystem}
               show={show?.setShowEditBucketStorageClass}
-            />{" "}
-            <LastEdited {...cloudFilesystem} />.
+            />
+            , <LastEdited {...cloudFilesystem} />.
             {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
             )}
@@ -200,7 +203,7 @@ export function Mountpoint({
 }
 
 function BlockSize({ block_size }) {
-  return <>block size {block_size ?? 4}MB</>;
+  return <>block size {block_size ?? 4} MB</>;
 }
 
 function Compression({ compression }) {
@@ -243,4 +246,15 @@ function Location({ bucket_location }) {
   } else {
     return <>the {bucket_location.toUpperCase()} multiregion</>;
   }
+}
+
+function BytesUsed({ bytes_used }: { bytes_used? }) {
+  return (
+    <>
+      storing{" "}
+      <span style={{ color: "#666", fontWeight: "bold" }}>
+        {human_readable_size(bytes_used ?? 0)}
+      </span>
+    </>
+  );
 }

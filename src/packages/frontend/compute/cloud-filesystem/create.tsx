@@ -36,6 +36,8 @@ import { checkInAll } from "@cocalc/frontend/compute/check-in";
 import type { CloudFilesystems } from "./cloud-filesystems";
 import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import { currency } from "@cocalc/util//misc";
+import { getDataStoragePriceRange } from "./util";
 
 interface Props {
   project_id: string;
@@ -311,7 +313,6 @@ export default function CreateCloudFilesystem({
                   configuration={configuration}
                   setConfiguration={setConfiguration}
                 />
-
                 <Compression
                   configuration={configuration}
                   setConfiguration={setConfiguration}
@@ -395,7 +396,13 @@ function Mountpoint({ configuration, setConfiguration, mountpoints }) {
   );
 }
 
-function BucketStorageClass({ configuration, setConfiguration }) {
+export function BucketStorageClass({ configuration, setConfiguration }) {
+  const [prices, setPrices] = useState<null | GoogleCloudData>(null);
+  useEffect(() => {
+    (async () => {
+      setPrices(await getGoogleCloudPriceData());
+    })();
+  }, []);
   return (
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt" }}>
@@ -405,19 +412,35 @@ function BucketStorageClass({ configuration, setConfiguration }) {
       </b>
       <br />
       The bucket storage class determines how much it costs to store and access
-      your data, but has minimal impact on speed. You can change this at any
-      time.
+      your data, but has minimal impact on speed. You can change this later, but
+      the change only impacts newly saved data. The classes other than
+      "standard" incur early retrieval fees.
       <Select
-        style={{ width: "100%", marginTop: "5px" }}
+        style={{ width: "100%", marginTop: "5px", height: "auto" }}
         options={GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES.map(
           (bucket_storage_class) => {
+            const { min, max } = getDataStoragePriceRange({
+              ...configuration,
+              prices,
+              bucket_storage_class,
+            });
             return {
               value: bucket_storage_class,
               key: bucket_storage_class,
-              label:
-                GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC[
-                  bucket_storage_class
-                ] ?? bucket_storage_class,
+              label: (
+                <div>
+                  <div>
+                    {GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC[
+                      bucket_storage_class
+                    ] ?? bucket_storage_class}
+                  </div>
+                  <div style={{ fontFamily: "monospace" }}>
+                    {min ? currency(min, 5) : null}
+                    {min != max && min && max ? ` - ${currency(max, 5)}` : null}
+                    {min && max ? " per GB per month at rest" : null}
+                  </div>
+                </div>
+              ),
             };
           },
         )}
@@ -437,10 +460,10 @@ function BucketStorageClass({ configuration, setConfiguration }) {
                 Autoclass buckets
               </A>{" "}
               incur a monthly fee of about $3 for every million objects stored
-              in them. Each object corresponds to a chunk of a file, so if you
-              have a large number of small files (which is common with AI
-              research), the autoclass management fee can be substantial. E.g.,
-              if your cloud filesystem contains 1,000GB of data broken into 10
+              in them. Each object corresponds to a block of a file, so if you
+              have a large number of small files (or a small filesystem block
+              size), the autoclass management fee can be substantial. E.g., if
+              your cloud filesystem contains 1,000 GB of data broken into 10
               million blocks, the cost would be about $30/month to manage the
               autoclass blocks and between $1 and $50 to store the data,
               depending on how old it is. Make sure to user a large block size
@@ -454,7 +477,6 @@ function BucketStorageClass({ configuration, setConfiguration }) {
   );
 }
 
-const REGIONS = GOOGLE_CLOUD_MULTIREGIONS.concat(GOOGLE_CLOUD_REGIONS);
 function BucketLocation({ configuration, setConfiguration }) {
   const [multiregion, setMultiregion] = useState<boolean>(
     !configuration.bucket_location?.includes("-"),
@@ -465,23 +487,36 @@ function BucketLocation({ configuration, setConfiguration }) {
       setPrices(await getGoogleCloudPriceData());
     })();
   }, []);
-  console.log("prices = ", prices);
 
   const options = useMemo(() => {
-    return REGIONS.filter((region) =>
-      multiregion ? !region.includes("-") : region.includes("-"),
-    )
-      .sort()
-      .map((region) => {
-        let label;
-        if (!region.includes("-")) {
-          label = <code>{`${region.toUpperCase()} (Multiregion)`}</code>;
-        } else {
-          label = <code>{region}</code>;
-        }
-        return { value: region, label, key: region };
+    let regions = multiregion
+      ? GOOGLE_CLOUD_MULTIREGIONS
+      : GOOGLE_CLOUD_REGIONS;
+    return regions.map((region) => {
+      let location;
+      const { min, max } = getDataStoragePriceRange({
+        ...configuration,
+        prices,
+        bucket_location: region,
       });
-  }, [multiregion]);
+      if (multiregion) {
+        location = `${region.toUpperCase()} (Multiregion)`;
+      } else {
+        location = region;
+      }
+      const label = (
+        <div style={{ display: "flex" }}>
+          <div style={{ flex: 0.5 }}>{location}</div>
+          <div style={{ flex: 1, fontFamily: "monospace" }}>
+            {min ? currency(min, 5) : null}
+            {min != max && min && max ? ` - ${currency(max, 5)}` : null}
+            {min && max ? " per GB per month at rest" : null}
+          </div>
+        </div>
+      );
+      return { value: region, label, key: region, price: { min, max } };
+    });
+  }, [multiregion, prices, configuration.bucket_storage_class]);
 
   return (
     <div style={{ marginTop: "10px" }}>
@@ -508,11 +543,11 @@ function BucketLocation({ configuration, setConfiguration }) {
         />
         <div
           style={{
-            flex: 1,
             display: "flex",
             textAlign: "center",
             alignItems: "center",
             justifyContent: "center",
+            padding: "0 15px",
           }}
         >
           <Checkbox
@@ -575,7 +610,7 @@ function BlockSize({ configuration, setConfiguration }) {
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt", color: "#666" }}>Block Size</b>
       {NO_CHANGE}
-      The block size, which is between 1MB and 64MB, is an upper bound on the
+      The block size, which is between 1 MB and 64 MB, is an upper bound on the
       size of the objects that are storied in the cloud storage bucket.
       <Alert
         style={{ margin: "10px" }}
@@ -583,10 +618,10 @@ function BlockSize({ configuration, setConfiguration }) {
         type="info"
         message={
           <>
-            Around 4MB is the default since it provides a good balance. It can
+            Around 4 MB is the default since it provides a good balance. It can
             be better to use a larger block size, since the number of PUT, GET
             and DELETE operations may be reduced. Also, if you use an autoclass
-            storage class, use 64MB since there is a monthly per-object cost.
+            storage class, use 64 MB since there is a monthly per-object cost.
           </>
         }
       />
