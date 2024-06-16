@@ -616,12 +616,13 @@ function BlockSize({ configuration, setConfiguration }) {
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={
+        message={"Recommendation: use 64MB."}
+        description={
           <>
-            Around 4 MB is the default since it provides a good balance. It can
-            be better to use a larger block size, since the number of PUT, GET
-            and DELETE operations may be reduced. Also, if you use an autoclass
-            storage class, use 64 MB since there is a monthly per-object cost.
+            It can be better to use a large block size, since the number of PUT
+            and GET operations is reduced, and they each cost money. Also, if
+            you use an autoclass storage class, use 64 MB since there is a
+            monthly per-object cost.
           </>
         }
       />

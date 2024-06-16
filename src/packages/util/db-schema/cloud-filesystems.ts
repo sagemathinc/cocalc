@@ -176,21 +176,19 @@ export const DEFAULT_CONFIGURATION = {
   mountpoint: "cloud",
   mount: true,
   compression: "lz4",
-  block_size: 4,
+  block_size: 64,
   trash_days: 3,
   title: "Untitled",
   lock: "DELETE",
   //
-  // The entry-cache and/or dir-entry-cache being on with a default of 1 caused
-  // weird bugs, so I explicitly disabled them.  Also, without writeback things
-  // are quite slow (with GCS), so it's enabled (and seems to never cause issue).
+  // Without writeback things are quite slow (with GCS), so it's enabled.
   // "-o allow_other" is because:
-  //  - makes it possible to use ZFS on top of this, which may be interesting later.
   //  - makes 'juicefs rmr /home/user/cloudfs/.trash' to empty the trash *possible*;
   //    as non-root there is no way to empty trash!
+  //  - makes it possible to use ZFS on top of this, which may be interesting later.
   // I tried "-o writeback_cache" and also got weird problems.
   mount_options:
-    "--writeback --entry-cache=0 --dir-entry-cache=0 -o allow_other",
+    "--writeback -o allow_other",
   keydb_options: "",
   bucket_location: "us-east1", // where cocalc.com is
   bucket_storage_class: "standard",
