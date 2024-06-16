@@ -4,7 +4,7 @@ Create a cloud filesystem
 
 import getAccountId from "lib/account/get-account";
 import { createCloudFilesystem, Options } from "@cocalc/server/compute/cloud-filesystem/create";
-import { FIELDS } from "@cocalc/server/compute/cloud-filesystem/edit";
+import { FIELDS } from "@cocalc/server/compute/cloud-filesystem/get";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 
 import getParams from "lib/api/get-params";
