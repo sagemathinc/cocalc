@@ -34,6 +34,8 @@ import { createCloudFilesystem } from "./api";
 import { ProgressBarTimer } from "../state";
 import { checkInAll } from "@cocalc/frontend/compute/check-in";
 import type { CloudFilesystems } from "./cloud-filesystems";
+import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
+import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 interface Props {
   project_id: string;
@@ -457,6 +459,14 @@ function BucketLocation({ configuration, setConfiguration }) {
   const [multiregion, setMultiregion] = useState<boolean>(
     !configuration.bucket_location?.includes("-"),
   );
+  const [prices, setPrices] = useState<null | GoogleCloudData>(null);
+  useEffect(() => {
+    (async () => {
+      setPrices(await getGoogleCloudPriceData());
+    })();
+  }, []);
+  console.log("prices = ", prices);
+
   const options = useMemo(() => {
     return REGIONS.filter((region) =>
       multiregion ? !region.includes("-") : region.includes("-"),

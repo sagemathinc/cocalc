@@ -47,8 +47,15 @@ export default async function setMetrics(opts: {
   // user insight into their filesystem usage, and double check it with other data later
   // for purchasing purposes.  The idea is that a user can only shoot themselves in the foot.
 
+  const { bucket_location, bucket_storage_class, compute_server_location } =
+    await computeCurrentConfiguration({
+      cloud_filesystem_id,
+      compute_server_id,
+      project_id,
+    });
+
   await pool.query(
-    "INSERT INTO cloud_filesystem_metrics(timestamp,cloud_filesystem_id,compute_server_id,process_uptime,bytes_get,bytes_put,bytes_used,objects_get,objects_put,objects_delete) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9)",
+    "INSERT INTO cloud_filesystem_metrics(timestamp,cloud_filesystem_id,compute_server_id,process_uptime,bytes_get,bytes_put,bytes_used,objects_get,objects_put,objects_delete,bucket_location,bucket_storage_class,compute_server_location) VALUES(NOW(),$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
     [
       cloud_filesystem_id,
       compute_server_id,
@@ -59,6 +66,9 @@ export default async function setMetrics(opts: {
       objects_get,
       objects_put,
       objects_delete,
+      bucket_location,
+      bucket_storage_class,
+      compute_server_location,
     ],
   );
 }
@@ -67,7 +77,7 @@ export default async function setMetrics(opts: {
 // the given cloud storage bucket and compute server, if possible.
 // This is used to provide insight to the user and as a sanity
 // check, but not for actually cost determination.
-export async function computeNetworkCosts({
+export async function computeCurrentConfiguration({
   cloud_filesystem_id,
   compute_server_id,
   project_id, // just as an extra security precaution.
@@ -75,9 +85,13 @@ export async function computeNetworkCosts({
   cloud_filesystem_id: number;
   compute_server_id: number;
   project_id: string;
-}): Promise<{ cost_put_gib?: number; cost_get_gib?: number }> {
+}): Promise<{
+  bucket_location: string;
+  bucket_storage_class: string;
+  compute_server_location: string;
+}> {
   // use "long" caching since the cloud filesystem and compute server
-  // do not move very often (and again, this is maily for insight)
+  // do not move very often (and again, this is mainly for insight and consistency)
   const pool = getPool("long");
   const {
     rows: [compute_server],
@@ -90,10 +104,21 @@ export async function computeNetworkCosts({
       `no compute server with id ${compute_server_id} in project ${project_id}`,
     );
   }
+
+  let compute_server_location = "unknown";
+  if (compute_server.configuration.cloud == "google-cloud") {
+    compute_server_location = compute_server.configuration.region;
+  } else if (compute_server.configuration.cloud == "hyperstack") {
+    compute_server_location = "world";
+  } else if (compute_server.configuration.cloud == "onprem") {
+    // for now, though soon we should let user specify this
+    compute_server_location = "unknown";
+  }
+
   const {
     rows: [cloud_filesystem],
   } = await pool.query(
-    "SELECT bucket_location FROM cloud_filesystems WHERE id=$1 AND project_id=$2",
+    "SELECT bucket_location, bucket_storage_class FROM cloud_filesystems WHERE id=$1 AND project_id=$2",
     [cloud_filesystem_id, project_id],
   );
   if (cloud_filesystem == null) {
@@ -101,23 +126,10 @@ export async function computeNetworkCosts({
       `no cloud filesystem with id ${cloud_filesystem_id} in project ${project_id}`,
     );
   }
-  if (compute_server.configuration.cloud == "google-cloud") {
-    const { region } = compute_server.configuration;
-    const { bucket_location } = cloud_filesystem;
-    if (region == bucket_location) {
-      // free!
-      return { cost_put_gib: 0, cost_get_gib: 0 };
-    } else {
-      // complicated -- TODO
-    }
-  } else if (compute_server.configuration.cloud == "hyperstack") {
-    return { cost_put_gib: 0, cost_get_gib: 0.12 };
-  } else if (compute_server.configuration.cloud == "onprem") {
-    // NOTE: to China is $0.23 and Australia is $0.19 (!)
-    // but everywhere else worldwide is $0.12/GB, so we go with that
-    // for our user estimate.
-    return { cost_put_gib: 0, cost_get_gib: 0.12 };
-  }
-  // go with same as for on prem
-  return { cost_put_gib: 0, cost_get_gib: 0.12 };
+  const { bucket_location, bucket_storage_class } = cloud_filesystem;
+  return {
+    compute_server_location,
+    bucket_location,
+    bucket_storage_class,
+  };
 }

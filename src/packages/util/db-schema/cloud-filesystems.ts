@@ -317,7 +317,7 @@ Table({
       not_null: true,
       type: "string",
       pg_type: "VARCHAR(64)",
-      desc: "How the google cloud storage bucket is stored.",
+      desc: "Default storage class of the google cloud storage bucket",
       render: { type: "text", maxLength: 64, editable: false },
     },
     bucket_location: {
@@ -564,15 +564,31 @@ Table({
       pg_type: "bigint",
       desc: "Free Operation: The number of distinct objects that were deleted from cloud storage: juicefs_object_request_durations_histogram_seconds_DELETE_total in .stats",
     },
-    cost_put_gib: {
-      type: "number",
-      pg_type: "double precision",
-      desc: "Cloud vendor cost to us per GiB (=2^30 bytes) in dollars to put data, given where the compute server is and the type of storage bucket. Is null if we do not know, e.g., on prem.",
+    bucket_location: {
+      not_null: true,
+      type: "string",
+      pg_type: "VARCHAR(64)",
+      desc: "Where the google cloud storage bucket is stored.  A GCP region or 'us','eu','asia' for multiregion buckets.",
+      render: { type: "text", maxLength: 64, editable: false },
     },
-    cost_get_gib: {
+    bucket_storage_class: {
+      not_null: true,
+      type: "string",
+      pg_type: "VARCHAR(64)",
+      desc: "Default storage class of the google cloud storage bucket at this point in time: 'standard', 'nearline', 'coldline', 'archive', autoclass-nearline' or 'autoclass-archive'",
+      render: { type: "text", maxLength: 64, editable: false },
+    },
+    compute_server_location: {
+      not_null: true,
+      type: "string",
+      pg_type: "VARCHAR(64)",
+      desc: "A GCP region or 'world', 'china', 'australia', 'unknown'.  Here 'world' means something oether than 'china' or 'australia'.  Also HK doesn't count as 'china'.",
+      render: { type: "text", maxLength: 64, editable: false },
+    },
+    cost: {
       type: "number",
       pg_type: "double precision",
-      desc: "Cloud vendor cost to us per GiB in dollars to get data, given where the compute server is and the type of storage bucket.  Is null if we do not know, e.g., on prem.",
+      desc: "The estimated accumulated total cost from when the bucket was created until this point in time.  This could be recomputed, but is nice to have easily available, and means we can delete old data.",
     },
   },
 });
