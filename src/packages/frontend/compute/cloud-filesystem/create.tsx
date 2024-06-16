@@ -407,7 +407,7 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt" }}>
         <A href="https://cloud.google.com/storage/docs/storage-classes">
-          {EXTERNAL} Bucket Storage Class
+          {EXTERNAL} Storage Class
         </A>
       </b>
       <br />
@@ -522,7 +522,7 @@ function BucketLocation({ configuration, setConfiguration }) {
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt", color: "#666" }}>
         <A href="https://cloud.google.com/storage/docs/locations">
-          {EXTERNAL} Bucket Location
+          {EXTERNAL} Location
         </A>
       </b>
       {NO_CHANGE}
