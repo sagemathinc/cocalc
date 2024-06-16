@@ -82,7 +82,7 @@ async function launchDelete(id: number) {
   try {
     logger.debug("launchDelete: ", { id }, " change mountpoint");
     await pool.query(
-      "UPDATE cloud_filesystems SET deleting=TRUE, last_edited=NOW(), port=0, mount=FALSE, mountpoint=$2 WHERE id=$1",
+      "UPDATE cloud_filesystems SET deleting=TRUE, last_edited=NOW(), mount=FALSE, mountpoint=$2 WHERE id=$1",
       [id, `deleting-${uuid().slice(0, 6)}`],
     );
     logger.debug("launchDelete: ", { id }, " actually delete...");
