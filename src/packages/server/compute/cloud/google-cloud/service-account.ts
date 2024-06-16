@@ -70,10 +70,9 @@ export async function createServiceAccount(serviceAccountId: string) {
   // todo: make sure deleting already deleted service account fully works.
   logger.debug("createServiceAccount", serviceAccountId);
   const { iam, credentials } = await getIamClient();
-  const name = `projects/${credentials.projectId}`;
   try {
     await iam.projects.serviceAccounts.create({
-      name,
+      name: `projects/${credentials.projectId}`,
       requestBody: { accountId: serviceAccountId },
     });
   } catch (err) {
@@ -84,7 +83,9 @@ export async function createServiceAccount(serviceAccountId: string) {
       err,
     );
     // maybe it already exists? if this doesn't throw we are good since it exists.
-    await iam.projects.serviceAccounts.get({ name });
+    await iam.projects.serviceAccounts.get({
+      name: await getServiceAccountName(serviceAccountId),
+    });
   }
 }
 
