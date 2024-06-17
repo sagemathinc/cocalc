@@ -52,16 +52,28 @@ export const GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES = [
   "autoclass-archive",
 ];
 export const GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC = {
-  "autoclass-nearline":
-    "Autoclass - transitions objects between Standard or Nearline based on activity",
-  "autoclass-archive":
-    "Autoclass - transitions objects between Standard, Nearline, Coldline, and Archive based on activity",
-  standard: "Standard - short-term storage and frequently accessed data",
-  nearline: "Nearline - backups and data accessed less than once a month",
-  coldline:
-    "Coldline - disaster recovery and data accessed less than once a quarter",
-  archive:
-    "Archive - long-term digital preservation of data accessed less than once a year",
+  "autoclass-nearline": {
+    desc: "Autoclass - transitions objects between Standard or Nearline based on activity",
+  },
+  "autoclass-archive": {
+    desc: "Autoclass - transitions objects between Standard, Nearline, Coldline, and Archive based on activity",
+  },
+  standard: {
+    desc: "Standard - short-term storage and frequently accessed data",
+    minStorageDays: 0,
+  },
+  nearline: {
+    desc: "Nearline - backups and data accessed less than once a month",
+    minStorageDays: 30,
+  },
+  coldline: {
+    desc: "Coldline - disaster recovery and data accessed less than once a quarter",
+    minStorageDays: 90,
+  },
+  archive: {
+    desc: "Archive - long-term digital preservation of data accessed less than once a year",
+    minStorageDays: 365,
+  },
 };
 export type GoogleCloudBucketStorageClass =
   (typeof GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES)[number];
@@ -187,8 +199,7 @@ export const DEFAULT_CONFIGURATION = {
   //    as non-root there is no way to empty trash!
   //  - makes it possible to use ZFS on top of this, which may be interesting later.
   // I tried "-o writeback_cache" and also got weird problems.
-  mount_options:
-    "--writeback -o allow_other",
+  mount_options: "--writeback -o allow_other",
   keydb_options: "",
   bucket_location: "us-east1", // where cocalc.com is
   bucket_storage_class: "standard",

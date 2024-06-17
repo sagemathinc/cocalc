@@ -49,7 +49,7 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
                   <div>
                     {GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC[
                       bucket_storage_class
-                    ] ?? bucket_storage_class}
+                    ]?.desc ?? bucket_storage_class}
                   </div>
                   <div style={{ fontFamily: "monospace" }}>
                     {min ? currency(min, 5) : null}
