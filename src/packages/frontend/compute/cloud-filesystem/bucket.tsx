@@ -8,10 +8,12 @@ import {
   GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC,
   GOOGLE_CLOUD_MULTIREGIONS,
   GOOGLE_CLOUD_REGIONS,
+  DEFAULT_CONFIGURATION,
 } from "@cocalc/util/db-schema/cloud-filesystems";
 import { useEffect, useMemo, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import { EXTERNAL, NO_CHANGE } from "./create";
+import { getRecentRegions } from "./regions";
 
 export function BucketStorageClass({ configuration, setConfiguration }) {
   const [prices, setPrices] = useState<null | GoogleCloudData>(null);
@@ -96,7 +98,8 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
 
 export function BucketLocation({ configuration, setConfiguration }) {
   const [multiregion, setMultiregion] = useState<boolean>(
-    !configuration.bucket_location?.includes("-"),
+    configuration.bucket_location &&
+      !configuration.bucket_location?.includes("-"),
   );
   const [prices, setPrices] = useState<null | GoogleCloudData>(null);
   useEffect(() => {
@@ -105,11 +108,38 @@ export function BucketLocation({ configuration, setConfiguration }) {
     })();
   }, []);
 
+  const [recentRegions, setRecentRegions] = useState<string[]>([]);
+  useEffect(() => {
+    if (!configuration.project_id) return;
+    (async () => {
+      const recent = await getRecentRegions(configuration.project_id);
+      setRecentRegions(recent);
+    })();
+  }, [configuration.project_id]);
+
+  useEffect(() => {
+    if (!configuration.bucket_location && recentRegions.length > 0) {
+      setConfiguration({
+        ...configuration,
+        bucket_location:
+          recentRegions[0] ?? DEFAULT_CONFIGURATION.bucket_location,
+      });
+    }
+  }, [recentRegions, configuration.bucket_location]);
+
   const options = useMemo(() => {
     let regions = multiregion
       ? GOOGLE_CLOUD_MULTIREGIONS
       : GOOGLE_CLOUD_REGIONS;
-    return regions.map((region) => {
+
+    if (multiregion) {
+      if (recentRegions[0]?.startsWith("europe")) {
+        regions = ["eu"].concat(regions.filter((x) => x != "eu"));
+      } else if (recentRegions[0]?.startsWith("asia")) {
+        regions = ["asia"].concat(regions.filter((x) => x != "asia"));
+      }
+    }
+    const options = regions.map((region) => {
       let location;
       const { min, max } = getDataStoragePriceRange({
         ...configuration,
@@ -133,6 +163,28 @@ export function BucketLocation({ configuration, setConfiguration }) {
       );
       return { value: region, label, key: region, price: { min, max } };
     });
+    if (!multiregion && recentRegions.length > 0) {
+      const z = new Set(recentRegions);
+      const m: { [region: string]: any } = {};
+      for (const x of options) {
+        if (z.has(x.value)) {
+          m[x.value] = x;
+        }
+      }
+      const recent: any[] = [];
+      for (const region of recentRegions) {
+        recent.push({ ...m[region], key: `recent-${region}` });
+      }
+
+      return [
+        {
+          label: "Your Recent Compute Server Regions",
+          options: recent,
+        },
+        { label: "All Regions", options },
+      ];
+    }
+    return options as any[];
   }, [multiregion, prices, configuration.bucket_storage_class]);
 
   return (

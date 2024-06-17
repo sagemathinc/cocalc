@@ -74,6 +74,8 @@ export default function CreateCloudFilesystem({
       color: randomColor(),
       // start mounted by default -- way less confusing
       mount: true,
+      // bucket_location gets filled in by BucketLocation component on init
+      bucket_location: "",
     });
   };
 
@@ -649,7 +651,9 @@ export const NO_CHANGE = (
   </div>
 );
 
-export const EXTERNAL = <Icon name="external-link" style={{ marginRight: "5px" }} />;
+export const EXTERNAL = (
+  <Icon name="external-link" style={{ marginRight: "5px" }} />
+);
 
 // at least 1 bigger than any current one, so it is at the top
 function getPosition(cloudFilesystems: CloudFilesystems | null): number {
