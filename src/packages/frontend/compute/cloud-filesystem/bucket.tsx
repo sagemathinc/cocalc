@@ -108,7 +108,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
     })();
   }, []);
 
-  const [recentRegions, setRecentRegions] = useState<string[]>([]);
+  const [recentRegions, setRecentRegions] = useState<string[] | null>(null);
   useEffect(() => {
     if (!configuration.project_id) return;
     (async () => {
@@ -118,11 +118,23 @@ export function BucketLocation({ configuration, setConfiguration }) {
   }, [configuration.project_id]);
 
   useEffect(() => {
-    if (!configuration.bucket_location && recentRegions.length > 0) {
+    if (!configuration.bucket_location && recentRegions != null) {
+      let bucket_location;
+      if (multiregion) {
+        if (recentRegions[0]?.startsWith("europe")) {
+          bucket_location = "eu";
+        } else if (recentRegions[0]?.startsWith("asia")) {
+          bucket_location = "asia";
+        } else {
+          bucket_location = "us";
+        }
+      } else {
+        bucket_location =
+          recentRegions[0] ?? DEFAULT_CONFIGURATION.bucket_location;
+      }
       setConfiguration({
         ...configuration,
-        bucket_location:
-          recentRegions[0] ?? DEFAULT_CONFIGURATION.bucket_location,
+        bucket_location,
       });
     }
   }, [recentRegions, configuration.bucket_location]);
@@ -133,9 +145,9 @@ export function BucketLocation({ configuration, setConfiguration }) {
       : GOOGLE_CLOUD_REGIONS;
 
     if (multiregion) {
-      if (recentRegions[0]?.startsWith("europe")) {
+      if (recentRegions?.[0]?.startsWith("europe")) {
         regions = ["eu"].concat(regions.filter((x) => x != "eu"));
-      } else if (recentRegions[0]?.startsWith("asia")) {
+      } else if (recentRegions?.[0]?.startsWith("asia")) {
         regions = ["asia"].concat(regions.filter((x) => x != "asia"));
       }
     }
@@ -163,7 +175,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
       );
       return { value: region, label, key: region, price: { min, max } };
     });
-    if (!multiregion && recentRegions.length > 0) {
+    if (!multiregion && (recentRegions?.length ?? 0) > 0) {
       const z = new Set(recentRegions);
       const m: { [region: string]: any } = {};
       for (const x of options) {
@@ -172,7 +184,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
         }
       }
       const recent: any[] = [];
-      for (const region of recentRegions) {
+      for (const region of recentRegions ?? []) {
         recent.push({ ...m[region], key: `recent-${region}` });
       }
 
@@ -225,13 +237,13 @@ export function BucketLocation({ configuration, setConfiguration }) {
                 setMultiregion(true);
                 setConfiguration({
                   ...configuration,
-                  bucket_location: "us",
+                  bucket_location: "",
                 });
               } else {
                 setMultiregion(false);
                 setConfiguration({
                   ...configuration,
-                  bucket_location: "us-east1",
+                  bucket_location: "",
                 });
               }
             }}
