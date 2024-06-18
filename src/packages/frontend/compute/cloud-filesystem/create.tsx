@@ -534,6 +534,7 @@ export function MountAndKeyDBOptions({
   showHeader;
   disabled?;
 }) {
+  const [details, setDetails] = useState<boolean>(false);
   return (
     <>
       {showHeader && (
@@ -546,24 +547,38 @@ export function MountAndKeyDBOptions({
         </Divider>
       )}
       <p>
-        Mount options impact cache speed and other aspects of your filesystem,
-        and <i>can only be changed when the filesystem is not mounted</i>. You
-        can set any possible JuiceFS or KeyDB configuration, which will be used
-        when mounting your filesystem. Be careful: changes here can make it so
-        the filesystem will not mount (if that happens, unmount and undo your
-        change); also, some options may cause things to break in subtle ways.
+        <b>
+          Configuring the cloud filesystem mount parameters is dangerous and can
+          lead to filesystem corruption.
+        </b>
+        <Button type="text" onClick={() => setDetails(!details)}>
+          {details ? "Hide" : "Show"} Details
+        </Button>
       </p>
-      <MountOptions
-        configuration={configuration}
-        setConfiguration={setConfiguration}
-        disabled={disabled}
-      />
-      <br />
-      <KeyDBOptions
-        configuration={configuration}
-        setConfiguration={setConfiguration}
-        disabled={disabled}
-      />
+      {details && (
+        <>
+          <p>
+            Mount options impact cache speed and other aspects of your
+            filesystem, and{" "}
+            <i>can only be changed when the filesystem is not mounted</i>. You
+            can set any possible JuiceFS or KeyDB configuration, which will be
+            used when mounting your filesystem. Be careful: changes here can
+            make it so the filesystem will not mount (if that happens, unmount
+            and undo your change); also, some options may cause corruption.
+          </p>
+          <MountOptions
+            configuration={configuration}
+            setConfiguration={setConfiguration}
+            disabled={disabled}
+          />
+          <br />
+          <KeyDBOptions
+            configuration={configuration}
+            setConfiguration={setConfiguration}
+            disabled={disabled}
+          />
+        </>
+      )}
     </>
   );
 }

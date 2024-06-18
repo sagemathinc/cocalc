@@ -1,4 +1,4 @@
-import Plot from "react-plotly.js";
+import Plot from "@cocalc/frontend/components/plotly";
 import { Data } from "./update";
 import dayjs from "dayjs";
 
@@ -23,7 +23,7 @@ export default function PlotActiveUsers({ data, startTimes, display }: Props) {
     yaxis: { title: "Active Users" },
   };
 
-  return <Plot style={{ height: "100%" }} data={plotData} layout={layout} />;
+  return <Plot data={plotData} layout={layout} />;
 }
 
 function getPlotData(display, timestamps, active) {

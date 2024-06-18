@@ -533,6 +533,22 @@ Table({
   },
 });
 
+export interface CloudFilesystemMetric {
+  timestamp: number; // what we get back from api since it's json -- ms since epoch
+  compute_server_id: number;
+  bytes_used: number;
+  process_uptime: number;
+  bytes_put?: number | null;
+  bytes_get?: number | null;
+  objects_put?: number | null;
+  objects_get?: number | null;
+  objects_delete?: number | null;
+  bucket_location: string;
+  bucket_storage_class: GoogleCloudBucketStorageClass;
+  compute_server_location: GoogleCloudBucketLocation;
+  cost?: number | null;
+}
+
 Table({
   name: "cloud_filesystem_metrics",
   rules: {

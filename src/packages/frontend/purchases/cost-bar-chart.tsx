@@ -1,7 +1,7 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useState } from "react";
 import { Alert, Button, Checkbox, Spin } from "antd";
-import Plot from "react-plotly.js";
+import Plot from "@cocalc/frontend/components/plotly";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 
 const LIMIT = 60; // ~2 months
@@ -99,21 +99,18 @@ export default function CostBarChart({}) {
       )}
       {costPerDay == null && <Spin delay={500} />}
       {costPerDay != null && (
-        <div style={{ overflow: "auto" }}>
-          <Plot
-            data={createPlotData(costPerDay)}
-            layout={{
-              title: cumulative ? "Cumulative Spend" : "Spend Each Day",
-              xaxis: {
-                title: "Date",
-              },
-              yaxis: {
-                title: cumulative ? "Cumulative Cost" : "Total Cost",
-              },
-              width: 1000,
-            }}
-          />
-        </div>
+        <Plot
+          data={createPlotData(costPerDay)}
+          layout={{
+            title: cumulative ? "Cumulative Spend" : "Spend Each Day",
+            xaxis: {
+              title: "Date",
+            },
+            yaxis: {
+              title: cumulative ? "Cumulative Cost" : "Total Cost",
+            },
+          }}
+        />
       )}
       {error && (
         <Alert type="error" description={error} onClose={updateData} closable />
