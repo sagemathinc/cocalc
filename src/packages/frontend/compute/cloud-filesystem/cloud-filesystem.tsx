@@ -16,6 +16,7 @@ import EditMountOptions from "./edit-mount-options";
 import EditProject from "./edit-project";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { human_readable_size } from "@cocalc/util/misc";
+import Metrics from "./metrics";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -178,6 +179,7 @@ export default function CloudFilesystem({
             {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
             )}
+            <Metrics id={cloudFilesystem.id} />
           </div>
         }
       />

@@ -51,3 +51,19 @@ export async function getCloudFilesystems(
 ): Promise<CloudFilesystem[]> {
   return await api("compute/cloud-filesystem/get", opts);
 }
+
+export async function getMetrics({
+  id,
+  limit,
+  offset,
+}: {
+  id: number;
+  limit?: number;
+  offset?: number;
+}) {
+  return await api("compute/cloud-filesystem/get-metrics", {
+    cloud_filesystem_id: id,
+    limit,
+    offset,
+  });
+}
