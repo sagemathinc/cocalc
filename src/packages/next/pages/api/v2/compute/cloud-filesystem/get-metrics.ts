@@ -22,11 +22,10 @@ async function get(req) {
   }
   const { cloud_filesystem_id, limit, offset } = getParams(req);
 
-  await getMetrics({
+  return await getMetrics({
     account_id,
     cloud_filesystem_id,
     limit,
     offset,
   });
-  return { status: "ok" };
 }

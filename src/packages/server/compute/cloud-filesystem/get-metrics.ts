@@ -18,7 +18,7 @@ export default async function getMetrics({
   logger.debug({ cloud_filesystem_id, account_id, limit, offset });
   const pool = getPool();
   const {
-    rows: [project_id],
+    rows: [{ project_id }],
   } = await pool.query("SELECT project_id FROM cloud_filesystems WHERE id=$1", [
     cloud_filesystem_id,
   ]);
@@ -28,7 +28,7 @@ export default async function getMetrics({
     );
   }
   const { rows } = await pool.query(
-    "SELECT * FROM cloud_filesystem_metrics WHERE cloud_filesystem_id=$1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3",
+    "SELECT (EXTRACT(EPOCH FROM timestamp) * 1000)::double AS timestamp, compute_server_id, bytes_used, process_uptime, bytes_put, bytes_get, objects_put, objects_get, objects_delete, bucket_location, bucket_storage_class, compute_server_location, cost  FROM cloud_filesystem_metrics WHERE cloud_filesystem_id=$1 ORDER BY timestamp DESC LIMIT $2 OFFSET $3",
     [cloud_filesystem_id, limit ?? 1000, offset ?? 0],
   );
   return rows;
