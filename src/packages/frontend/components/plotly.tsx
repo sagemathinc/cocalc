@@ -6,7 +6,7 @@ export default function Plot(props) {
   const divRef = useRef<HTMLDivElement>(null);
   const resize = useResizeObserver({ ref: divRef });
   return (
-    <div ref={divRef}>
+    <div ref={divRef} style={props.style}>
       <ReactPlotly
         {...props}
         layout={{ ...props.layout, width: resize.width }}

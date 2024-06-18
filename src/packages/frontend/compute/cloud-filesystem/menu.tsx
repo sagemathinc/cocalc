@@ -43,7 +43,12 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       danger: cloudFilesystem.mount,
       key: "mount",
       icon: <Icon name={cloudFilesystem.mount ? "stop" : "run"} />,
-      label: cloudFilesystem.mount ? "Disable Automount" : "Automount",
+      label: cloudFilesystem.mount ? "Disable Automount" : "Enable Automount",
+    },
+    {
+      key: "metrics",
+      icon: <Icon name={"graph"} />,
+      label: "Metrics",
     },
     {
       type: "divider",
@@ -80,7 +85,7 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       disabled: cloudFilesystem.mount,
       key: "edit-mountpoint",
       icon: <Icon name="folder-open" />,
-      label: "Mountpoint",
+      label: "Change Mountpoint",
     },
     {
       key: "edit-project",
@@ -97,6 +102,9 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       key: "delete",
       icon: <Icon name="trash" />,
       label: "Delete Filesystem",
+    },
+    {
+      type: "divider",
     },
     help,
   ];
@@ -125,6 +133,8 @@ export default function Menu({
     setShowEditBucketStorageClass;
     setShowEditMountOptions;
     setShowEditProject;
+    setShowMetrics;
+    showMetrics;
   };
 }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -144,6 +154,9 @@ export default function Menu({
         switch (cmd) {
           case "mount":
             show.setShowMount(true);
+            break;
+          case "metrics":
+            show.setShowMetrics(!show.showMetrics);
             break;
           case "edit-title-and-colors":
             show.setShowEditTitleAndColor(true);

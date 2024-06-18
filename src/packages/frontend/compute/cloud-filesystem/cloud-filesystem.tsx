@@ -35,6 +35,7 @@ export default function CloudFilesystem({
 }: Props) {
   const [error, setError] = useState<string>("");
   const { color, deleting } = cloudFilesystem;
+  const [showMetrics, setShowMetrics] = useState<boolean>(false);
   const [showDelete, setShowDelete] = useState<boolean>(false);
   const [showMount, setShowMount] = useState<boolean>(false);
   const [showEditMountpoint, setShowEditMountpoint] = useState<boolean>(false);
@@ -58,6 +59,8 @@ export default function CloudFilesystem({
         setShowEditBucketStorageClass,
         setShowEditMountOptions,
         setShowEditProject,
+        setShowMetrics,
+        showMetrics,
       }
     : undefined;
 
@@ -150,7 +153,13 @@ export default function CloudFilesystem({
         </>
       )}
       <Card.Meta
-        avatar={<CloudFilesystemAvatar cloudFilesystem={cloudFilesystem} />}
+        avatar={
+          <CloudFilesystemAvatar
+            cloudFilesystem={cloudFilesystem}
+            setShowMetrics={setShowMetrics}
+            showMetrics={showMetrics}
+          />
+        }
         title={
           <CloudFilesystemCardTitle
             cloudFilesystem={cloudFilesystem}
@@ -179,7 +188,7 @@ export default function CloudFilesystem({
             {showProject && (
               <ProjectTitle project_id={cloudFilesystem.project_id} />
             )}
-            <Metrics id={cloudFilesystem.id} />
+            {showMetrics && <Metrics id={cloudFilesystem.id} />}
           </div>
         }
       />
