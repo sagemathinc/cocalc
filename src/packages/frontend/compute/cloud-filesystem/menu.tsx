@@ -9,7 +9,7 @@ import { useMemo, useState } from "react";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { User } from "@cocalc/frontend/users";
 
-function getItems(cloudFilesystem): MenuProps["items"] {
+function getItems(cloudFilesystem, show): MenuProps["items"] {
   const help = {
     key: "help",
     icon: <Icon name="question-circle" />,
@@ -48,7 +48,7 @@ function getItems(cloudFilesystem): MenuProps["items"] {
     {
       key: "metrics",
       icon: <Icon name={"graph"} />,
-      label: "Metrics",
+      label: `${show.showMetrics ? "Hide" : "Show"} Metrics`,
     },
     {
       type: "divider",
@@ -67,11 +67,6 @@ function getItems(cloudFilesystem): MenuProps["items"] {
       key: "edit-trash-config",
       icon: <Icon name={"trash"} />,
       label: cloudFilesystem.trash_days ? "Configure Trash" : "Enable Trash",
-    },
-    {
-      key: "edit-mount-options",
-      icon: <Icon name={"database"} />,
-      label: "Mount and KeyDB Options",
     },
     {
       key: "edit-lock",
@@ -95,6 +90,12 @@ function getItems(cloudFilesystem): MenuProps["items"] {
     },
     {
       type: "divider",
+    },
+    {
+      danger: true,
+      key: "edit-mount-options",
+      icon: <Icon name={"database"} />,
+      label: "Mount and KeyDB Options",
     },
     {
       disabled: cloudFilesystem.mount,
@@ -144,7 +145,7 @@ export default function Menu({
     }
 
     return {
-      items: show != null ? getItems(cloudFilesystem) : [],
+      items: show != null ? getItems(cloudFilesystem, show) : [],
       onClick: async (obj) => {
         if (show == null) {
           return;

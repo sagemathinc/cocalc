@@ -2,7 +2,7 @@ import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
 import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { currency } from "@cocalc/util//misc";
 import { getDataStoragePriceRange } from "./util";
-import { Alert, Checkbox, Select } from "antd";
+import { Alert, Checkbox, Select, Spin } from "antd";
 import {
   GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES,
   GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES_DESC,
@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import { EXTERNAL, NO_CHANGE } from "./create";
 import { getRecentRegions } from "./regions";
+import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 export function BucketStorageClass({ configuration, setConfiguration }) {
   const [prices, setPrices] = useState<null | GoogleCloudData>(null);
@@ -22,6 +23,9 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
       setPrices(await getGoogleCloudPriceData());
     })();
   }, []);
+  if (prices == null) {
+    return <Spin />;
+  }
   return (
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt" }}>
@@ -32,8 +36,36 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
       <br />
       The bucket storage class determines how much it costs to store and access
       your data, but has minimal impact on speed. You can change this later, but
-      the change only impacts newly saved data. The classes other than
-      "standard" incur early deletion fees.
+      the change only impacts newly saved data. With nearline, coldline and
+      archive storage classes, you have to pay to store any data for at least 30
+      days, 90 days, and 1 year, respectively.
+      <Alert
+        style={{ margin: "10px" }}
+        showIcon
+        type="info"
+        message={`Recommendation: Use Autoclass`}
+        description={
+          <>
+            Use{" "}
+            <A href="https://cloud.google.com/storage/docs/autoclass">
+              autoclass
+            </A>
+            , because the management fee is minimal, there is no extra early
+            delete fee, and data you don't touch gets automatically stored
+            efficiently, down to a few dollars per TERABYTE after a year. Data
+            you frequently access costs the same as standard storage. The
+            monthly management fee is only{" "}
+            {currency(
+              markup({
+                cost: 2.5,
+                priceData: prices,
+              }),
+            )}{" "}
+            per million blocks (there are 65,536 blocks of size 16 MB in a 1 TB
+            file).
+          </>
+        }
+      />
       <Select
         style={{ width: "100%", marginTop: "5px", height: "auto" }}
         options={GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES.map(
@@ -78,16 +110,14 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
               <A href="https://cloud.google.com/storage/docs/autoclass">
                 Autoclass buckets
               </A>{" "}
-              incur a monthly fee of about $3 for every million objects stored
-              in them. Each object corresponds to a block of a file, so if you
-              have a large number of small files (or a small filesystem block
-              size), the autoclass management fee can be substantial. E.g., if
-              your cloud filesystem contains 1,000 GB of data broken into 10
-              million blocks, the cost would be about $30/month to manage the
-              autoclass blocks and between $1 and $50 to store the data,
-              depending on how old it is. Make sure to user a large block size
-              (see below). If you're archiving your data, instead make a bucket
-              with a nearline, coldline or archive storage class.
+              incur a monthly management fee of{" "}
+              {currency(
+                markup({
+                  cost: 2.5,
+                  priceData: prices,
+                }),
+              )}{" "}
+              for every million objects stored in them.
             </>
           }
         />

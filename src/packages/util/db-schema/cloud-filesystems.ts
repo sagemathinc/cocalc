@@ -187,9 +187,9 @@ export type CreateCloudFilesystem = Pick<
 export const DEFAULT_CONFIGURATION = {
   mountpoint: "cloud",
   mount: true,
-  compression: "lz4",
+  compression: "none",
   block_size: MAX_BLOCK_SIZE,
-  trash_days: 1,
+  trash_days: 0,
   title: "Untitled",
   lock: "DELETE",
   //
@@ -208,7 +208,7 @@ export const DEFAULT_CONFIGURATION = {
     "--writeback  --entry-cache=0 --dir-entry-cache=0  -o allow_other",
   keydb_options: "",
   bucket_location: "us-east1", // where cocalc.com is
-  bucket_storage_class: "standard",
+  bucket_storage_class: "autoclass-archive",
 } as const;
 
 export interface EditCloudFilesystem

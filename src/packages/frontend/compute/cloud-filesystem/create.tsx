@@ -405,19 +405,19 @@ function Compression({ configuration, setConfiguration }) {
         </A>
       </b>
       {NO_CHANGE}
-      You can compress all your data automatically.
+      You can compress your data automatically.
       <Alert
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation: use LZ4`}
+        message={`Recommendation`}
         description={
           <>
-            Do not enable compression if most of your data is already highly
+            Do not enable compression if most of your data is already
             compressed. Otherwise, <A href="https://lz4.github.io/lz4">LZ4</A>{" "}
-            is a very good choice; it uses minimal CPU, and can save significant
-            space. Use <A href="https://facebook.github.io/zstd">ZSTD</A> if a
-            lot of your data is compressible and more CPU usage is OK.
+            is a good choice; it uses less CPU, and can save significant space.
+            Use <A href="https://facebook.github.io/zstd">ZSTD</A> if a lot of
+            your data is compressible and more CPU usage is OK.
           </>
         }
       />
@@ -449,7 +449,7 @@ function BlockSize({ configuration, setConfiguration }) {
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation: use ${MAX_BLOCK_SIZE} MB.`}
+        message={`Recommendation: use ${MAX_BLOCK_SIZE} MB`}
         description={
           <>
             It can be better to use a large block size, since the number of PUT
@@ -547,12 +547,12 @@ export function MountAndKeyDBOptions({
         </Divider>
       )}
       <p>
-        <b>
-          Configuring the cloud filesystem mount parameters is dangerous and can
-          lead to filesystem corruption.
-        </b>
-        <Button type="text" onClick={() => setDetails(!details)}>
-          {details ? "Hide" : "Show"} Details
+        Changing the mount parameters can lead to filesystem corruption.
+        <Button
+          onClick={() => setDetails(!details)}
+          style={{ marginLeft: "15px" }}
+        >
+          {details ? "Hide" : "Show"} Details...
         </Button>
       </p>
       {details && (
