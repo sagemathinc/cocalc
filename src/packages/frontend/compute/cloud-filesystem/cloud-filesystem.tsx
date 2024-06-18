@@ -171,7 +171,8 @@ export default function CloudFilesystem({
         description={
           <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
-            Cloud Filesystem <BytesUsed {...cloudFilesystem} />,{" "}
+            Cloud Filesystem{" "}
+            <BytesUsed {...cloudFilesystem} show={show?.setShowMetrics} />,{" "}
             <Compression {...cloudFilesystem} />{" "}
             <BlockSize {...cloudFilesystem} />,{" "}
             {cloudFilesystem.mount ? "mounted" : "which would mount"} at{" "}
@@ -259,13 +260,13 @@ function Location({ bucket_location }) {
   }
 }
 
-function BytesUsed({ bytes_used }: { bytes_used? }) {
+function BytesUsed({ bytes_used, show }: { bytes_used?; show }) {
   return (
-    <>
+    <span style={{ cursor: "pointer" }} onClick={() => show(true)}>
       storing{" "}
       <span style={{ color: "#666", fontWeight: "bold" }}>
         {human_readable_size(bytes_used ?? 0)}
       </span>
-    </>
+    </span>
   );
 }

@@ -3,18 +3,33 @@ import { getMetrics } from "./api";
 import type { CloudFilesystemMetric } from "@cocalc/util/db-schema/cloud-filesystems";
 import Plot from "@cocalc/frontend/components/plotly";
 import { field_cmp } from "@cocalc/util/misc";
-import { Spin } from "antd";
+import { Button, Spin } from "antd";
+import useCounter from "@cocalc/frontend/app-framework/counter-hook";
+import { Icon } from "@cocalc/frontend/components/icon";
+import ShowError from "@cocalc/frontend/components/error";
 
 const GiB = 1024 * 1024 * 1024;
 
 export default function Metrics({ id }) {
   const [metrics, setMetrics] = useState<CloudFilesystemMetric[] | null>(null);
+  const { val: counter, inc: refresh } = useCounter();
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+
   useEffect(() => {
     (async () => {
-      let metrics = await getMetrics({ id });
+      let metrics;
+      try {
+        setRefreshing(true);
+        metrics = await getMetrics({ id });
+      } catch (err) {
+        setError(`${err}`);
+      } finally {
+        setRefreshing(false);
+      }
       setMetrics(metrics.sort(field_cmp("timestamp")));
     })();
-  }, []);
+  }, [counter]);
 
   if (metrics == null) {
     return (
@@ -26,6 +41,14 @@ export default function Metrics({ id }) {
 
   return (
     <>
+      <div>
+        <Button style={{ float: "right" }} onClick={refresh}>
+          <Icon name="refresh" />
+          Refresh{" "}
+          {refreshing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
+        </Button>
+      </div>
+      <ShowError error={error} setError={setError} />
       <PlotDiskUsage metrics={metrics} />
       <div style={{ display: "flex" }}>
         <PlotMetric
