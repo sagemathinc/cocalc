@@ -1,6 +1,3 @@
-import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
-import type { GoogleCloudData } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
-import { currency } from "@cocalc/util//misc";
 import { getDataStoragePriceRange } from "./util";
 import { Alert, Checkbox, Select, Spin } from "antd";
 import {
@@ -14,16 +11,14 @@ import { useEffect, useMemo, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import { EXTERNAL, NO_CHANGE } from "./create";
 import { getRecentRegions } from "./regions";
+import { currency } from "@cocalc/util//misc";
 import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
+import { useGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
 
 export function BucketStorageClass({ configuration, setConfiguration }) {
-  const [prices, setPrices] = useState<null | GoogleCloudData>(null);
-  useEffect(() => {
-    (async () => {
-      setPrices(await getGoogleCloudPriceData());
-    })();
-  }, []);
-  if (prices == null) {
+  const [priceData] = useGoogleCloudPriceData();
+
+  if (priceData == null) {
     return <Spin />;
   }
   return (
@@ -58,7 +53,7 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
             {currency(
               markup({
                 cost: 2.5,
-                priceData: prices,
+                priceData,
               }),
             )}{" "}
             per million blocks (there are 65,536 blocks of size 16 MB in a 1 TB
@@ -72,7 +67,7 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
           (bucket_storage_class) => {
             const { min, max } = getDataStoragePriceRange({
               ...configuration,
-              prices,
+              prices:priceData,
               bucket_storage_class,
             });
             return {
@@ -114,7 +109,7 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
               {currency(
                 markup({
                   cost: 2.5,
-                  priceData: prices,
+                  priceData,
                 }),
               )}{" "}
               for every million objects stored in them.
@@ -131,12 +126,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
     configuration.bucket_location &&
       !configuration.bucket_location?.includes("-"),
   );
-  const [prices, setPrices] = useState<null | GoogleCloudData>(null);
-  useEffect(() => {
-    (async () => {
-      setPrices(await getGoogleCloudPriceData());
-    })();
-  }, []);
+  const [priceData] = useGoogleCloudPriceData();
 
   const [recentRegions, setRecentRegions] = useState<string[] | null>(null);
   useEffect(() => {
@@ -185,7 +175,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
       let location;
       const { min, max } = getDataStoragePriceRange({
         ...configuration,
-        prices,
+        prices: priceData,
         bucket_location: region,
       });
       if (multiregion) {
@@ -227,7 +217,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
       ];
     }
     return options as any[];
-  }, [multiregion, prices, configuration.bucket_storage_class]);
+  }, [multiregion, priceData, configuration.bucket_storage_class]);
 
   return (
     <div style={{ marginTop: "10px" }}>

@@ -1,4 +1,5 @@
-import api from "@cocalc/frontend/client/api";''
+import api from "@cocalc/frontend/client/api";
+("");
 import type {
   Action,
   ComputeServerTemplate,
@@ -122,6 +123,23 @@ export const getGoogleCloudPriceData = reuseInFlight(
     return googleCloudPriceData;
   },
 );
+
+import { useState, useEffect } from "react";
+export function useGoogleCloudPriceData() {
+  const [priceData, setPriceData] = useState<null | GoogleCloudData>(null);
+  const [error, setError] = useState<string>("");
+  useEffect(() => {
+    (async () => {
+      try {
+        setError("");
+        setPriceData(await getGoogleCloudPriceData());
+      } catch (err) {
+        setError(`${err}`);
+      }
+    })();
+  }, []);
+  return [priceData, error];
+}
 
 // Cache for 5 minutes -- cache less since this includes realtime
 // information about GPU availability.

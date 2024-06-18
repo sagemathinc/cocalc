@@ -7,6 +7,10 @@ import { Button, Spin } from "antd";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
+import { estimateAtRestCost } from "@cocalc/util/compute/cloud/google-cloud/storage-costs";
+import { useGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
+import { currency } from "@cocalc/util//misc";
+import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 const GiB = 1024 * 1024 * 1024;
 
@@ -14,6 +18,7 @@ export default function Metrics({ id }) {
   const [metrics, setMetrics] = useState<CloudFilesystemMetric[] | null>(null);
   const { val: counter, inc: refresh } = useCounter();
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [priceData, priceDataError] = useGoogleCloudPriceData();
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
@@ -31,7 +36,7 @@ export default function Metrics({ id }) {
     })();
   }, [counter]);
 
-  if (metrics == null) {
+  if (metrics == null || priceData == null) {
     return (
       <div style={{ margin: "10px", textAlign: "center" }}>
         Loading Metrics... <Spin />
@@ -49,7 +54,8 @@ export default function Metrics({ id }) {
         </Button>
       </div>
       <ShowError error={error} setError={setError} />
-      <PlotDiskUsage metrics={metrics} />
+      <ShowError error={priceDataError} />
+      <PlotDiskUsage metrics={metrics} priceData={priceData} />
       <div style={{ display: "flex" }}>
         <PlotMetric
           style={{ flex: 1 }}
@@ -98,7 +104,7 @@ export default function Metrics({ id }) {
   );
 }
 
-function PlotDiskUsage({ metrics }) {
+function PlotDiskUsage({ metrics, priceData }) {
   const data = useMemo(() => {
     if (metrics == null) {
       return [];
@@ -111,20 +117,34 @@ function PlotDiskUsage({ metrics }) {
       },
     ];
   }, [metrics]);
+  const { cost: v, rate_per_GB_per_month } = estimateAtRestCost({
+    metrics,
+    priceData,
+  });
+  const cost = v.length > 0 ? v[v.length - 1] : 0;
 
   return (
-    <Plot
-      data={data}
-      layout={{
-        title: "Total Disk Space Used",
-        xaxis: {
-          title: "Time",
-        },
-        yaxis: {
-          title: "Disk Used (GB)",
-        },
-      }}
-    />
+    <>
+      <Plot
+        data={data}
+        layout={{
+          title: "Total Disk Space Used",
+          xaxis: {
+            title: "Time",
+          },
+          yaxis: {
+            title: "Disk Used (GB)",
+          },
+        }}
+      />
+      <strong>
+        Estimated total at rest data storage cost during this period:
+      </strong>{" "}
+      {currency(markup({ cost, priceData }), 5)}. This uses a rate of{" "}
+      {currency(markup({ cost: rate_per_GB_per_month, priceData }))} / GB per
+      month. Your actual cost will depend on the exact data stored, compression,
+      and other parameters.
+    </>
   );
 }
 
@@ -195,3 +215,4 @@ function PlotMetric({
     />
   );
 }
+
