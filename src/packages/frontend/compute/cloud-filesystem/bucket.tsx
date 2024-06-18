@@ -33,7 +33,7 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
       The bucket storage class determines how much it costs to store and access
       your data, but has minimal impact on speed. You can change this later, but
       the change only impacts newly saved data. The classes other than
-      "standard" incur early retrieval fees.
+      "standard" incur early deletion fees.
       <Select
         style={{ width: "100%", marginTop: "5px", height: "auto" }}
         options={GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES.map(
@@ -190,7 +190,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
 
       return [
         {
-          label: "Your Recent Compute Server Regions",
+          label: "Your Recent Compute Servers are in These Regions",
           options: recent,
         },
         { label: "All Regions", options },

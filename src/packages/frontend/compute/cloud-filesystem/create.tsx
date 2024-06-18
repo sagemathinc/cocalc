@@ -231,19 +231,25 @@ export default function CreateCloudFilesystem({
             configuration={configuration}
             setConfiguration={setConfiguration}
           />
-          {advanced ? (
-            <div style={{ marginTop: "15px", textAlign: "center" }}>
-              <Button onClick={() => setAdvanced(false)} type="link">
+          <Divider>
+            {advanced ? (
+              <Button
+                onClick={() => setAdvanced(false)}
+                type="link"
+                style={{ fontSize: "12pt" }}
+              >
                 <Icon name="eye-slash" /> Hide Advanced Settings
               </Button>
-            </div>
-          ) : (
-            <div style={{ marginTop: "15px", textAlign: "center" }}>
-              <Button onClick={() => setAdvanced(true)} type="link">
+            ) : (
+              <Button
+                onClick={() => setAdvanced(true)}
+                type="link"
+                style={{ fontSize: "12pt" }}
+              >
                 <Icon name="eye" /> Show Advanced Settings...
               </Button>
-            </div>
-          )}
+            )}
+          </Divider>
           {advanced && (
             <>
               <p>
@@ -399,10 +405,23 @@ function Compression({ configuration, setConfiguration }) {
         </A>
       </b>
       {NO_CHANGE}
-      You can optionally automatically compress all data using{" "}
-      <A href="https://lz4.github.io/lz4">LZ4</A> or{" "}
-      <A href="https://facebook.github.io/zstd">ZSTD</A>.
-      <div style={{ textAlign: "center" }}>
+      You can compress all your data automatically.
+      <Alert
+        style={{ margin: "10px" }}
+        showIcon
+        type="info"
+        message={`Recommendation: use LZ4`}
+        description={
+          <>
+            Do not enable compression if most of your data is already highly
+            compressed. Otherwise, <A href="https://lz4.github.io/lz4">LZ4</A>{" "}
+            is a very good choice; it uses minimal CPU, and can save significant
+            space. Use <A href="https://facebook.github.io/zstd">ZSTD</A> if a
+            lot of your data is compressible and more CPU usage is OK.
+          </>
+        }
+      />
+      <div style={{ textAlign: "center", marginTop: "10px" }}>
         <Radio.Group
           onChange={(e) =>
             setConfiguration({ ...configuration, compression: e.target.value })
@@ -423,19 +442,20 @@ function BlockSize({ configuration, setConfiguration }) {
     <div style={{ marginTop: "10px" }}>
       <b style={{ fontSize: "13pt", color: "#666" }}>Block Size</b>
       {NO_CHANGE}
-      The block size, which is between 1 MB and 64 MB, is an upper bound on the
-      size of the objects that are storied in the cloud storage bucket.
+      The block size, which is between {MIN_BLOCK_SIZE} MB and {MAX_BLOCK_SIZE}{" "}
+      MB, is an upper bound on the size of the objects that are storied in the
+      cloud storage bucket.
       <Alert
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={"Recommendation: use 64MB."}
+        message={`Recommendation: use ${MAX_BLOCK_SIZE} MB.`}
         description={
           <>
             It can be better to use a large block size, since the number of PUT
             and GET operations is reduced, and they each cost money. Also, if
-            you use an autoclass storage class, use 64 MB since there is a
-            monthly per-object cost.
+            you use an autoclass storage class, use {MAX_BLOCK_SIZE} MB since
+            there is a monthly per-object cost.
           </>
         }
       />
@@ -522,7 +542,7 @@ export function MountAndKeyDBOptions({
             name="database"
             style={{ fontSize: "16pt", marginRight: "15px" }}
           />
-          Mount and KeyDB Options
+          Mount Options
         </Divider>
       )}
       <p>
@@ -620,7 +640,7 @@ function KeyDBOptions({
       <Input.TextArea
         disabled={disabled}
         style={{ marginTop: "5px" }}
-        rows={4}
+        rows={2}
         value={configuration.keydb_options}
         onChange={(e) => {
           setConfiguration({ ...configuration, keydb_options: e.target.value });
