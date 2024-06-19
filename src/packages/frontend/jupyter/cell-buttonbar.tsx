@@ -26,7 +26,6 @@ import { JupyterActions } from "./browser-actions";
 import CellTiming from "./cell-output-time";
 import {
   CODE_BAR_BTN_STYLE,
-  MINI_BUTTONS_STYLE,
   MINI_BUTTONS_STYLE_INNER,
   RUN_ALL_CELLS_ABOVE_ICON,
   RUN_ALL_CELLS_BELOW_ICON,
@@ -113,37 +112,40 @@ export const CellButtonBar: React.FC<Props> = React.memo(
 
       const { label, icon, tooltip, onClick } = getRunStopButton();
 
+      // ATTN: this must be wrapped in a plain div, otherwise it's own flex & width 100% style disturbs the button bar
       return (
-        <Dropdown.Button
-          size="small"
-          type="text"
-          trigger={["click"]}
-          mouseLeaveDelay={1.5}
-          icon={<Icon name="angle-down" />}
-          onClick={onClick}
-          menu={{
-            items: [
-              {
-                key: "all-above",
-                icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
-                label: "Run All Above Selected Cell",
-                onClick: () => actions?.run_all_above_cell(id),
-              },
-              {
-                key: "all-below",
-                icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
-                label: "Run Selected Cell and All Below",
-                onClick: () => actions?.run_all_below_cell(id),
-              },
-            ],
-          }}
-        >
-          <Tooltip placement="top" title={tooltip}>
-            <span style={CODE_BAR_BTN_STYLE}>
-              <Icon name={icon} /> {label}
-            </span>
-          </Tooltip>
-        </Dropdown.Button>
+        <div>
+          <Dropdown.Button
+            size="small"
+            type="text"
+            trigger={["click"]}
+            mouseLeaveDelay={1.5}
+            icon={<Icon name="angle-down" />}
+            onClick={onClick}
+            menu={{
+              items: [
+                {
+                  key: "all-above",
+                  icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
+                  label: "Run All Above Selected Cell",
+                  onClick: () => actions?.run_all_above_cell(id),
+                },
+                {
+                  key: "all-below",
+                  icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
+                  label: "Run Selected Cell and All Below",
+                  onClick: () => actions?.run_all_below_cell(id),
+                },
+              ],
+            }}
+          >
+            <Tooltip placement="top" title={tooltip}>
+              <span style={CODE_BAR_BTN_STYLE}>
+                <Icon name={icon} /> {label}
+              </span>
+            </Tooltip>
+          </Dropdown.Button>
+        </div>
       );
     }
 
@@ -227,37 +229,20 @@ export const CellButtonBar: React.FC<Props> = React.memo(
 
     function renderCodeBarIndexNumber(input: string | undefined) {
       if (!input) return;
-      return (
-        <Tooltip
-          placement="top"
-          title={`This is the ${numToOrdinal(index + 1)} cell in the notebook.`}
-        >
-          <div
-            style={{
-              marginLeft: "1px",
-              padding: "4px 5px 4px 6px",
-              borderLeft: `1px solid ${COLORS.GRAY_L}`,
-            }}
-          >
-            {index + 1}
-          </div>
-        </Tooltip>
-      );
+      return <CellIndexNumber index={index} />;
     }
 
     const input: string | undefined = cell.get("input")?.trim();
 
     return (
-      <div style={MINI_BUTTONS_STYLE} className="hidden-xs">
-        <div style={MINI_BUTTONS_STYLE_INNER}>
-          {renderCodeBarCellTiming()}
-          {renderCodeBarRunStop()}
-          {renderCodeBarComputeServer()}
-          {renderCodeBarLLMButtons()}
-          {renderCodeBarFormatButton()}
-          {renderCodeBarCopyPasteButtons(input)}
-          {renderCodeBarIndexNumber(input)}
-        </div>
+      <div className="hidden-xs" style={MINI_BUTTONS_STYLE_INNER}>
+        {renderCodeBarCellTiming()}
+        {renderCodeBarRunStop()}
+        {renderCodeBarComputeServer()}
+        {renderCodeBarLLMButtons()}
+        {renderCodeBarFormatButton()}
+        {renderCodeBarCopyPasteButtons(input)}
+        {renderCodeBarIndexNumber(input)}
       </div>
     );
   },
@@ -290,6 +275,25 @@ function ComputeServerPrompt({ id }) {
             maxWidth: "125px",
           }}
         />
+      </div>
+    </Tooltip>
+  );
+}
+
+export function CellIndexNumber({ index }: { index: number }): JSX.Element {
+  return (
+    <Tooltip
+      placement="top"
+      title={`This is the ${numToOrdinal(index + 1)} cell in the notebook.`}
+    >
+      <div
+        style={{
+          marginLeft: "1px",
+          padding: "4px 5px 4px 6px",
+          borderLeft: `1px solid ${COLORS.GRAY_L}`,
+        }}
+      >
+        {index + 1}
       </div>
     </Tooltip>
   );

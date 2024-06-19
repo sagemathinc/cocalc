@@ -6,16 +6,11 @@ export const CODE_BAR_BTN_STYLE: CSS = {
   color: COLORS.GRAY_M,
 } as const;
 
-export const MINI_BUTTONS_STYLE: CSS = {
-  position: "absolute",
-  right: "2px",
-  top: "-22px",
-} as const;
-
 export const MINI_BUTTONS_STYLE_INNER: CSS = {
   display: "flex",
   gap: "3px",
   alignItems: "flex-start",
+  justifyContent: "flex-end",
   ...CODE_BAR_BTN_STYLE,
   //   borderTop: `1px solid ${COLORS.GRAY_L}`,
   //   borderLeft: `1px solid ${COLORS.GRAY_L}`,
