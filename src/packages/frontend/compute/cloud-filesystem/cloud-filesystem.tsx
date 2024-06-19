@@ -17,6 +17,7 @@ import EditProject from "./edit-project";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { human_readable_size } from "@cocalc/util/misc";
 import Metrics from "./metrics";
+import { HelpModal } from "./help";
 
 interface Props {
   cloudFilesystem: CloudFilesystemType;
@@ -37,6 +38,7 @@ export default function CloudFilesystem({
   const { color, deleting } = cloudFilesystem;
   const [showMetrics, setShowMetrics] = useState<boolean>(false);
   const [showDelete, setShowDelete] = useState<boolean>(false);
+  const [showHelp, setShowHelp] = useState<boolean>(false);
   const [showMount, setShowMount] = useState<boolean>(false);
   const [showEditMountpoint, setShowEditMountpoint] = useState<boolean>(false);
   const [showEditTitleAndColor, setShowEditTitleAndColor] =
@@ -51,6 +53,7 @@ export default function CloudFilesystem({
   const show = editable
     ? {
         setShowDelete,
+        setShowHelp,
         setShowMount,
         setShowEditMountpoint,
         setShowEditTitleAndColor,
@@ -102,6 +105,7 @@ export default function CloudFilesystem({
               refresh={refresh}
             />
           )}
+          {showHelp && <HelpModal open setOpen={setShowHelp} />}
           {showEditTitleAndColor && (
             <EditTitleAndColor
               cloudFilesystem={cloudFilesystem}

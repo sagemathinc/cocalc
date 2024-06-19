@@ -16,23 +16,30 @@ function getItems(cloudFilesystem, show): MenuProps["items"] {
     label: "Help",
     children: [
       {
+        key: "help-ops",
+        icon: <Icon name="question-circle" />,
+        label: "Filesystem Commands",
+      },
+      {
         key: "documentation",
         icon: <Icon name="question-circle" />,
         label: (
-          <A href="https://doc.cocalc.com/compute_server.html">Documentation</A>
+          <A href="https://doc.cocalc.com/compute_server.html">
+            Compute Server Documentation
+          </A>
         ),
       },
       {
         key: "support",
         icon: <Icon name="medkit" />,
-        label: "Support",
+        label: "CoCalc Support",
       },
       {
         key: "videos",
         icon: <Icon name="youtube" style={{ color: "red" }} />,
         label: (
           <A href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ">
-            Videos
+            Compute Server Videos
           </A>
         ),
       },
@@ -127,6 +134,7 @@ export default function Menu({
   size?;
   fontSize?;
   show?: {
+    setShowHelp;
     setShowMount;
     setShowEditMountpoint;
     setShowEditTitleAndColor;
@@ -184,6 +192,9 @@ export default function Menu({
             break;
           case "delete":
             show.setShowDelete(true);
+            break;
+          case "help-ops":
+            show.setShowHelp(true);
             break;
           case "documentation":
           case "videos":
