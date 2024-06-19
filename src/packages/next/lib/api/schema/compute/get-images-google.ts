@@ -2,12 +2,12 @@ import { z } from "../../framework";
 
 import { FailedAPIOperationSchema } from "../common";
 
-import { ServerImageNoCacheSchema } from "./common";
+import { RequestNoCacheSchema } from "../common";
 
 // OpenAPI spec
 //
 export const GetComputeServerGoogleImagesInputSchema =
-  ServerImageNoCacheSchema.describe(
+  RequestNoCacheSchema.describe(
     "Used to get available compute server images for deployment to GCP.",
   );
 

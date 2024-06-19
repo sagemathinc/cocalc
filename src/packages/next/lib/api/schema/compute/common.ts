@@ -6,15 +6,6 @@ export const ComputeServerIdSchema = z
   .min(0)
   .describe("Compute server id.");
 
-export const ServerImageNoCacheSchema = z.object({
-  noCache: z
-    .string()
-    .describe(
-      "**Administrators only**. Disables database caching for this query.",
-    )
-    .optional(),
-});
-
 export const ComputeServerStateSchema = z
   .enum([
     "deprovisioned",
@@ -126,4 +117,3 @@ export type HyperstackServerConfiguration = z.infer<
   typeof HyperstackServerConfigurationSchema
 >;
 export type ServerConfiguration = z.infer<typeof ServerConfigurationSchema>;
-export type ServerImageNoCache = z.infer<typeof ServerImageNoCacheSchema>;
