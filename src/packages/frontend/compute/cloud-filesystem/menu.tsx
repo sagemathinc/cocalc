@@ -63,11 +63,14 @@ function getItems(cloudFilesystem, show): MenuProps["items"] {
       icon: <Icon name="disk-snapshot" />,
       label: "Bucket Storage Class",
     },
-    {
-      key: "edit-trash-config",
-      icon: <Icon name={"trash"} />,
-      label: cloudFilesystem.trash_days ? "Configure Trash" : "Enable Trash",
-    },
+    // I think this leads to problems and corruption, and is also just really confusing to use.
+    // cocalc has timetravel, etc., and we should make a proper periodic backup-to-another-bucket
+    // functionality.
+    //     {
+    //       key: "edit-trash-config",
+    //       icon: <Icon name={"trash"} />,
+    //       label: cloudFilesystem.trash_days ? "Configure Trash" : "Enable Trash",
+    //     },
     {
       key: "edit-lock",
       icon: <Icon name={"lock"} />,
@@ -92,7 +95,6 @@ function getItems(cloudFilesystem, show): MenuProps["items"] {
       type: "divider",
     },
     {
-      danger: true,
       key: "edit-mount-options",
       icon: <Icon name={"database"} />,
       label: "Mount and KeyDB Options",

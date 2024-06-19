@@ -253,37 +253,32 @@ export default function CreateCloudFilesystem({
           {advanced && (
             <>
               <p>
-                The CoCalc Cloud Filesystem is a fully POSIX compliant
-                distributed filesystem built using{" "}
+                <b>What is it?:</b> The CoCalc Cloud Filesystem is a fully POSIX
+                compliant distributed filesystem built using{" "}
                 <A href="https://juicefs.com/">JuiceFS</A>,{" "}
                 <A href="https://docs.keydb.dev/">KeyDB</A> and{" "}
                 <A href="https://cloud.google.com/storage">
                   Google Cloud Storage
                 </A>
-                . It uses multimaster metdata replication so that file metadata
-                is efficiently available on every compute server.
+                .
               </p>
               <p>
-                You can change any advanced setting below later except
-                compression, block size and bucket location.
+                <b>Scope:</b> You can make up to{" "}
+                {MAX_CLOUD_FILESYSTEMS_PER_PROJECT} cloud filesystems per
+                project. Cloud filesystems can be instantly moved between
+                projects.
               </p>
               <p>
-                You can make up to {MAX_CLOUD_FILESYSTEMS_PER_PROJECT} cloud
-                filesystems per project that are configured in different ways
-                and use them all at once, and easily move a cloud filesystem to
-                another project.
-              </p>
-              <p>
-                The cost is a slightly marked up version of{" "}
+                <b>Cost:</b> The cost is a slightly marked up version of{" "}
                 <A href="https://cloud.google.com/storage/pricing">
-                  Google Cloud Storage Pricing.
+                  Google Cloud Storage Pricing, which is highly competitive.
                 </A>{" "}
-                The pricing is highly competitive{" "}
-                <A href="https://cloud.google.com/storage/pricing#price-tables">
-                  but complicated
-                </A>
-                ; fortunately, you can check each day to see how much a given
-                filesystem cost the previous day.
+                You can see how much your filesystem costs and why in realtime
+                by clicking "Show Metrics" in the cloud filesystem menu. If your
+                compute server and filesystem are in the same region, then data
+                transfer fees at completely free, and you mainly pay for storage
+                and operations (i.e., there is a fee per block of data that is
+                uploaded).
               </p>
               <Divider>
                 <Icon
@@ -296,10 +291,12 @@ export default function CreateCloudFilesystem({
                 configuration={configuration}
                 setConfiguration={setConfiguration}
               />
-              <TrashDays
-                configuration={configuration}
-                setConfiguration={setConfiguration}
-              />
+              {false && (
+                <TrashDays
+                  configuration={configuration}
+                  setConfiguration={setConfiguration}
+                />
+              )}
               <Divider>
                 <Icon
                   name="database"
@@ -476,6 +473,9 @@ function BlockSize({ configuration, setConfiguration }) {
   );
 }
 
+// The Juicefs Trash is REALLY WEIRD to use, and I also
+// think it might cause corruption or problems, especially
+// with keydb.  So do NOT enable this.
 function TrashDays({ configuration, setConfiguration }) {
   return (
     <div style={{ marginTop: "10px" }}>
