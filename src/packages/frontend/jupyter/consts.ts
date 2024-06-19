@@ -20,3 +20,6 @@ export const MINI_BUTTONS_STYLE_INNER: CSS = {
 
 export const RUN_ALL_CELLS_ABOVE_ICON = "vertical-align-bottom";
 export const RUN_ALL_CELLS_BELOW_ICON = "angle-double-right"; // and 90°
+export const DELETE_CELL_ICON = "trash";
+export const COPY_CELL_ICON = "files";
+export const SPLIT_CELL_ICON = "horizontal-split";

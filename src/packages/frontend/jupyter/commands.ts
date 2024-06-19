@@ -13,9 +13,15 @@ import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/co
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { JupyterActions } from "./browser-actions";
 import { NotebookMode } from "@cocalc/jupyter/types";
-import { RUN_ALL_CELLS_ABOVE_ICON, RUN_ALL_CELLS_BELOW_ICON } from "./consts";
+import { JupyterActions } from "./browser-actions";
+import {
+  COPY_CELL_ICON,
+  DELETE_CELL_ICON,
+  RUN_ALL_CELLS_ABOVE_ICON,
+  RUN_ALL_CELLS_BELOW_ICON,
+  SPLIT_CELL_ICON,
+} from "./consts";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -250,7 +256,7 @@ export function commands(actions: AllActions): {
     },
 
     "copy cell": {
-      i: "files",
+      i: COPY_CELL_ICON,
       m: "Copy Cells",
       k: [{ mode: "escape", which: 67 }],
       f: () => actions.frame_actions?.copy_selected_cells(),
@@ -270,7 +276,7 @@ export function commands(actions: AllActions): {
     "delete cell": {
       // jupyter has this but with d,d as shortcut, since they have no undo.
       m: "Delete Cells",
-      i: "trash",
+      i: DELETE_CELL_ICON,
       k: [
         { mode: "escape", which: 68, twice: true },
         { mode: "escape", which: 8 },
@@ -887,7 +893,7 @@ export function commands(actions: AllActions): {
     },
 
     "split cell at cursor": {
-      i: "horizontal-split",
+      i: SPLIT_CELL_ICON,
       m: "Split Cell",
       k: [
         { ctrl: true, shift: true, which: 189 },

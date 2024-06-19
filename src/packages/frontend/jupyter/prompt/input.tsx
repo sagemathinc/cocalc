@@ -12,18 +12,15 @@ which has different constraints!  See
 src/packages/frontend/frame-editors/whiteboard-editor/elements/code/input-prompt.tsx
 */
 
-import { Button, Space } from "antd";
 import React from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Tip } from "@cocalc/frontend/components/tip";
-import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { capitalize } from "@cocalc/util/misc";
 import { INPUT_STYLE, InputPromptProps } from "./base";
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {
-  const frameActions = useNotebookFrameActions();
   let n;
   if (props.type !== "code") {
     return <div style={INPUT_STYLE} />;
@@ -78,71 +75,6 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
       }
   }
 
-  function move_cell(delta): void {
-    if (props.id == null) return;
-    frameActions.current?.unselect_all_cells();
-    frameActions.current?.select_cell(props.id);
-    frameActions.current?.move_selected_cells(delta);
-  }
-
-  function cut_cell(): void {
-    if (props.id == null) return;
-    frameActions.current?.unselect_all_cells();
-    frameActions.current?.select_cell(props.id);
-    frameActions.current?.cut_selected_cells();
-  }
-
-  function run_cell(): void {
-    if (props.id == null || props.actions == null || props.actions.is_closed())
-      return;
-    props.actions?.run_cell(props.id);
-  }
-
-  function stop_cell(): void {
-    if (props.actions == null || props.actions.is_closed()) return;
-    props.actions?.signal("SIGINT");
-  }
-
-  const title = (
-    <div>
-      {props.actions != null ? (
-        <Space>
-          <Button.Group>
-            {!props.hideRun && (
-              <Button size="small" onClick={run_cell}>
-                <Icon name="step-forward" /> Run
-              </Button>
-            )}
-            <Button size="small" onClick={stop_cell}>
-              <Icon name="stop" /> Stop
-            </Button>
-          </Button.Group>
-          <Button.Group>
-            {!props.hideCut && (
-              <Button size="small" onClick={cut_cell}>
-                <Icon name="cut" /> Cut
-              </Button>
-            )}
-            {!props.hideMove && (
-              <Button size="small" onClick={() => move_cell(-1)}>
-                <Icon name="arrow-up" /> Up
-              </Button>
-            )}
-            {!props.hideMove && (
-              <>
-                <Button size="small" onClick={() => move_cell(1)}>
-                  <Icon name="arrow-down" /> Down
-                </Button>{" "}
-              </>
-            )}
-          </Button.Group>
-        </Space>
-      ) : (
-        "Code Cell"
-      )}
-    </div>
-  );
-
   function renderPrompt() {
     return (
       <div
@@ -153,7 +85,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
           ...props.style,
         }}
       >
-        <Tip title={title} tip={tip} placement="top">
+        <Tip tip={tip} placement="top">
           In [{n}]:
         </Tip>
       </div>

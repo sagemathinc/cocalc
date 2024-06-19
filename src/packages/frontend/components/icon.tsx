@@ -73,6 +73,7 @@ import {
   DoubleRightOutlined,
   DownCircleOutlined,
   DownOutlined,
+  DownSquareOutlined,
   DownloadOutlined,
   EditFilled,
   EditOutlined,
@@ -95,6 +96,7 @@ import {
   FolderOpenOutlined,
   FolderOutlined,
   FontSizeOutlined,
+  ForkOutlined,
   ForwardOutlined,
   FrownOutlined,
   FunctionOutlined,
@@ -138,6 +140,7 @@ import {
   MedicineBoxOutlined,
   MehOutlined,
   MenuOutlined,
+  MergeCellsOutlined,
   MinusCircleOutlined,
   MinusOutlined,
   MinusSquareOutlined,
@@ -203,6 +206,7 @@ import {
   UnorderedListOutlined,
   UpCircleOutlined,
   UpOutlined,
+  UpSquareOutlined,
   UploadOutlined,
   UserAddOutlined,
   UserDeleteOutlined,
@@ -612,6 +616,10 @@ const IconSpec: { [name: string]: any } = {
   "clean-outlined": ClearOutlined,
   "sound-outlined": SoundOutlined,
   "rise-outlined": RiseOutlined,
+  "up-square-outlined": UpSquareOutlined,
+  "down-square-outlined": DownSquareOutlined,
+  "merge-cells-outlined": MergeCellsOutlined,
+  "fork-outlined": ForkOutlined,
 };
 
 // Icon Fonts coming from https://www.iconfont.cn/?lang=en-us

@@ -14,15 +14,13 @@ import React, { useState } from "react";
 
 import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import CopyButton from "@cocalc/frontend/components/copy-button";
-import PasteButton from "@cocalc/frontend/components/paste-button";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import track from "@cocalc/frontend/user-tracking";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { numToOrdinal } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
+import { CodeBarDropdownMenu } from "./cell-buttonbar-menu";
+import { CellIndexNumber } from "./cell-index-number";
 import CellTiming from "./cell-output-time";
 import {
   CODE_BAR_BTN_STYLE,
@@ -205,34 +203,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
       );
     }
 
-    function renderCodeBarCopyPasteButtons(input: string | undefined) {
-      if (input) {
-        return (
-          <CopyButton
-            size="small"
-            value={cell.get("input") ?? ""}
-            style={CODE_BAR_BTN_STYLE}
-          />
-        );
-      } else {
-        return (
-          <PasteButton
-            style={CODE_BAR_BTN_STYLE}
-            paste={(text) => {
-              frameActions.current?.set_cell_input(id, text);
-              trackButton("paste");
-            }}
-          />
-        );
-      }
-    }
-
-    function renderCodeBarIndexNumber(input: string | undefined) {
-      if (!input) return;
-      return <CellIndexNumber index={index} />;
-    }
-
-    const input: string | undefined = cell.get("input")?.trim();
+    //const input: string | undefined = cell.get("input")?.trim();
 
     return (
       <div className="hidden-xs" style={MINI_BUTTONS_STYLE_INNER}>
@@ -241,8 +212,13 @@ export const CellButtonBar: React.FC<Props> = React.memo(
         {renderCodeBarComputeServer()}
         {renderCodeBarLLMButtons()}
         {renderCodeBarFormatButton()}
-        {renderCodeBarCopyPasteButtons(input)}
-        {renderCodeBarIndexNumber(input)}
+        <CodeBarDropdownMenu
+          actions={actions}
+          frameActions={frameActions}
+          id={id}
+          cell={cell}
+        />
+        <CellIndexNumber index={index} />
       </div>
     );
   },
@@ -275,25 +251,6 @@ function ComputeServerPrompt({ id }) {
             maxWidth: "125px",
           }}
         />
-      </div>
-    </Tooltip>
-  );
-}
-
-export function CellIndexNumber({ index }: { index: number }): JSX.Element {
-  return (
-    <Tooltip
-      placement="top"
-      title={`This is the ${numToOrdinal(index + 1)} cell in the notebook.`}
-    >
-      <div
-        style={{
-          marginLeft: "1px",
-          padding: "4px 5px 4px 6px",
-          borderLeft: `1px solid ${COLORS.GRAY_L}`,
-        }}
-      >
-        {index + 1}
       </div>
     </Tooltip>
   );
