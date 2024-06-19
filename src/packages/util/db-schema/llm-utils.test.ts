@@ -1,9 +1,14 @@
 import {
   DEFAULT_LLM_PRIORITY,
+  DEFAULT_MODEL,
+  getValidLanguageModelName,
+  isCoreLanguageModel,
   isFreeModel,
   LANGUAGE_MODEL_SERVICES,
   LANGUAGE_MODELS,
+  LanguageService,
   LLM_COST,
+  LLMServicesAvailable,
   model2vendor,
   OLLAMA_PREFIX,
   SERVICES,
@@ -82,5 +87,65 @@ describe("llm", () => {
     for (const v of vend) {
       expect(prio.includes(v)).toBe(true);
     }
+  });
+
+  test("getting valid language model", () => {
+    const selectable_llms = [...USER_SELECTABLE_LANGUAGE_MODELS];
+    const notAvailable = selectable_llms.pop();
+
+    function getModel(model: LanguageService, disabled?: LanguageService) {
+      const allEnabled = LANGUAGE_MODEL_SERVICES.reduce((acc, svc) => {
+        acc[svc] = disabled !== svc;
+        return acc;
+      }, {}) as LLMServicesAvailable;
+      return getValidLanguageModelName({
+        model,
+        filter: allEnabled,
+        ollama: ["phi3"],
+        custom_openai: ["bar"],
+        selectable_llms,
+      });
+    }
+
+    // meaningless name
+    expect(getModel("foobar")).toEqual(DEFAULT_MODEL);
+    expect(getModel("baz-delta99")).toEqual(DEFAULT_MODEL);
+    // gpt 3.5 is disabled
+    expect(getModel("gpt-3.5-turbo")).toEqual(DEFAULT_MODEL);
+    // not available
+    expect(
+      typeof notAvailable === "string" && isCoreLanguageModel(notAvailable),
+    ).toBe(true);
+    if (typeof notAvailable === "string") {
+      expect(getModel(notAvailable)).toEqual(DEFAULT_MODEL);
+    }
+    // not disabled
+    expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
+    expect(getModel("gpt-4")).toEqual("gpt-4");
+    expect(getModel(DEFAULT_MODEL)).toEqual(DEFAULT_MODEL);
+    expect(getModel("mistral-medium-latest")).toEqual(DEFAULT_MODEL);
+    expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
+    expect(getModel("claude-3-haiku-8k")).toEqual("claude-3-haiku-8k");
+    // anthropic service disabled
+    expect(getModel("claude-3-haiku-8k", "anthropic")).toEqual(DEFAULT_MODEL);
+    // ollama
+    expect(getModel("ollama-foo")).toEqual(DEFAULT_MODEL);
+    expect(getModel("ollama-phi3")).toEqual("ollama-phi3");
+    // openai api
+    expect(getModel("custom_openai-foo")).toEqual(DEFAULT_MODEL);
+    expect(getModel("custom_openai-bar")).toEqual("custom_openai-bar");
+    // user models: there are no further checks
+    expect(getModel("user-custom_openai-foo")).toEqual(
+      "user-custom_openai-foo",
+    );
+    expect(getModel("user-openai-gpt-3.5-turbo")).toEqual(
+      "user-openai-gpt-3.5-turbo",
+    );
+    // it's ok to use a model if disabled by the admin, since it's their key
+    expect(getModel("user-anthropic-claude-3-haiku-8k", "anthropic")).toEqual(
+      "user-anthropic-claude-3-haiku-8k",
+    );
+    // meaningless user service
+    expect(getModel("user-baz-delta99")).toEqual(DEFAULT_MODEL);
   });
 });
