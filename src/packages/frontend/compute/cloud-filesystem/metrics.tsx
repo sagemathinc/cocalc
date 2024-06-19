@@ -3,7 +3,7 @@ import { getMetrics } from "./api";
 import type { CloudFilesystemMetric } from "@cocalc/util/db-schema/cloud-filesystems";
 import Plot from "@cocalc/frontend/components/plotly";
 import { field_cmp } from "@cocalc/util/misc";
-import { Button, Spin } from "antd";
+import { Button, Spin, Tooltip } from "antd";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
@@ -134,7 +134,7 @@ function ShowTotal({ costsRef, priceData, counter }) {
     <div>
       <h3>
         Estimated total cost during this period:{" "}
-        {currency(markup({ cost, priceData }), DIGITS)}
+        <Money cost={cost} priceData={priceData} />
       </h3>
       This is the sum of at rest storage, data transfer, and object creation and
       deletion operations. It is only an estimate. See the plots and breakdown
@@ -178,9 +178,11 @@ function PlotDiskUsage({ metrics, priceData, costsRef }) {
         }}
       />
       Estimated total at rest data storage cost during this period:{" "}
-      <strong>{currency(markup({ cost, priceData }), DIGITS)}</strong>. This
-      uses a rate of{" "}
-      {currency(markup({ cost: rate_per_GB_per_month, priceData }))} / GB per
+      <strong>
+        <Money cost={cost} priceData={priceData} />
+      </strong>
+      . This uses a rate of{" "}
+      <Money cost={rate_per_GB_per_month} priceData={priceData} /> / GB per
       month. Your actual cost will depend on the exact data stored, compression,
       and other parameters.
     </>
@@ -280,7 +282,9 @@ function ShowCostEstimate({ cost, priceData }) {
     return (
       <div>
         Total cost during this period {desc}:{" "}
-        <b>{currency(markup({ cost: min, priceData }), DIGITS)}</b>
+        <b>
+          <Money cost={max} priceData={priceData} />
+        </b>
       </div>
     );
   }
@@ -288,11 +292,22 @@ function ShowCostEstimate({ cost, priceData }) {
     <div>
       Total cost during this period {desc}:{" "}
       <b>
-        between {currency(markup({ cost: min, priceData }), DIGITS)} and{" "}
-        {currency(markup({ cost: max, priceData }), DIGITS)}
+        between <Money cost={min} priceData={priceData} /> and{" "}
+        <Money cost={max} priceData={priceData} />
       </b>
       . This is a range because there is an active onprem server that might be
       in Australia or China (if not, the cost is the lower value).
     </div>
+  );
+}
+
+function Money({ cost, priceData }) {
+  if (priceData == null) {
+    return <>-</>;
+  }
+  return (
+    <Tooltip title={currency(markup({ cost, priceData }), DIGITS)}>
+      {currency(markup({ cost, priceData }), 2)}
+    </Tooltip>
   );
 }

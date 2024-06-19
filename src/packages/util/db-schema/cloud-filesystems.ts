@@ -200,7 +200,7 @@ export type CreateCloudFilesystem = Pick<
 export const DEFAULT_CONFIGURATION = {
   mountpoint: "cloud",
   mount: true,
-  compression: "none",
+  compression: "lz4",
   block_size: MAX_BLOCK_SIZE,
   trash_days: 0,
   title: "Untitled",
