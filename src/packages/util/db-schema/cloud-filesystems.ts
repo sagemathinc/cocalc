@@ -131,6 +131,19 @@ export const GOOGLE_CLOUD_REGIONS = [
   "me-central2",
   "me-west1",
 ];
+
+export const GOOGLE_REGION_PREFIX_TO_LOCATION = {
+  us: "North America",
+  northamerica: "North America",
+  europe: "Europe",
+  southamerica: "South America",
+  africa: "South Africa",
+  asia: "APAC",
+  australia: "APAC",
+  me: "Middle East",
+  eu: "Europe",
+};
+
 export type GoogleCloudBucketLocation =
   | (typeof GOOGLE_CLOUD_MULTIREGIONS)[number]
   | (typeof GOOGLE_CLOUD_REGIONS)[number];
