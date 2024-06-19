@@ -214,12 +214,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   [vendor in LLMServiceName]: Readonly<LanguageModelCore[]>;
 } = {
   openai: MODELS_OPENAI.filter(
-    (m) =>
-      m === "gpt-3.5-turbo" ||
-      m === "gpt-3.5-turbo-16k" ||
-      m === "gpt-4" ||
-      m === "gpt-4-turbo-preview-8k" ||
-      m === "gpt-4o-8k",
+    (m) => m === "gpt-4" || m === "gpt-4-turbo-preview-8k" || m === "gpt-4o-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
@@ -367,20 +362,28 @@ export function getValidLanguageModelName({
 }: ValidLanguageModelNameProps): LanguageModel {
   if (typeof model === "string" && isValidModel(model)) {
     try {
-      const v = model2vendor(model).name;
-      if (filter[v]) {
+      if (isCoreLanguageModel(model)) {
+        const v = model2vendor(model).name;
+        if (filter[v] && selectable_llms.includes(model)) {
+          return model;
+        }
+      }
+
+      if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
+        return model;
+      }
+
+      if (
+        isCustomOpenAI(model) &&
+        custom_openai.includes(fromCustomOpenAIModel(model))
+      ) {
+        return model;
+      }
+
+      if (isUserDefinedModel(model)) {
         return model;
       }
     } catch {}
-    if (isOllamaLLM(model) && ollama.includes(fromOllamaModel(model))) {
-      return model;
-    }
-    if (
-      isCustomOpenAI(model) &&
-      custom_openai.includes(fromCustomOpenAIModel(model))
-    ) {
-      return model;
-    }
   }
 
   for (const free of [true, false]) {
