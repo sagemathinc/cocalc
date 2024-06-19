@@ -211,14 +211,8 @@ export const DEFAULT_CONFIGURATION = {
   //  - makes 'juicefs rmr /home/user/cloudfs/.trash' to empty the trash *possible*;
   //    as non-root there is no way to empty trash!
   //  - makes it possible to use ZFS on top of this, which may be interesting later.
-  // I tried "-o writeback_cache" and also got weird problems.
-  // Disabling the entry-cache and dir-entry-cache is CRITICAL, since I got
-  // problems like "SHA1 COLLISION FOUND WITH c384da11a7a47b11a55980832603216efd8968ba !" and "error: unable to create temporary file: Not a directory" and "fatal: failed to write object"
-  // when doing git pull to the cocalc repo on various machines with the defaults.
-  // With them disabled things worked fine. This does have a performance hit.
-  // I think this is related to using keydb multimaster replication.
   mount_options:
-    "--writeback  --entry-cache=0 --dir-entry-cache=0  -o allow_other",
+    "--writeback -o allow_other",
   keydb_options: "",
   bucket_location: "us-east1", // where cocalc.com is
   bucket_storage_class: "autoclass-archive",
