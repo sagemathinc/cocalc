@@ -25,9 +25,6 @@ export interface InputPromptProps {
   actions?: JupyterActions;
   id?: string;
   style?: CSSProperties;
-  hideMove?: boolean;
-  hideCut?: boolean;
-  hideRun?: boolean;
   dragHandle?: JSX.Element;
 }
 

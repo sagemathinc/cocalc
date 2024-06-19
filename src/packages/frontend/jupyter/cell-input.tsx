@@ -24,13 +24,10 @@ import { filename_extension, startswith } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import { CellButtonBar } from "./cell-buttonbar";
 import { CellHiddenPart } from "./cell-hidden-part";
+import { CellIndexNumber } from "./cell-index-number";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
-import {
-  CODE_BAR_BTN_STYLE,
-  MINI_BUTTONS_STYLE,
-  MINI_BUTTONS_STYLE_INNER,
-} from "./consts";
+import { CODE_BAR_BTN_STYLE, MINI_BUTTONS_STYLE_INNER } from "./consts";
 import { Position } from "./insert-cell/types";
 import { InputPrompt } from "./prompt/input";
 import { get_blob_url } from "./server-urls";
@@ -195,17 +192,13 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     function render_markdown_edit_button(): Rendered {
       if (
-        !props.is_current ||
         props.actions == null ||
         props.cell.getIn(["metadata", "editable"]) === false
       ) {
         return;
       }
       return (
-        <div
-          style={{ ...MINI_BUTTONS_STYLE, top: "-25px" }}
-          className="hidden-xs"
-        >
+        <div className="hidden-xs">
           <div style={MINI_BUTTONS_STYLE_INNER}>
             <Button
               style={CODE_BAR_BTN_STYLE}
@@ -223,12 +216,14 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             >
               <Icon name="image" />
             </Button>
+            <CellIndexNumber index={props.index} />
           </div>
         </div>
       );
     }
 
     const fileContext = useFileContext();
+
     const urlTransform = useCallback(
       (url, tag?) => {
         const url1 = attachmentTransform(props.project_id, props.cell, url);
@@ -423,11 +418,29 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       );
     }
 
+    const type = props.cell.get("cell_type") || "code";
+
+    function render_cell_buttonbar() {
+      if (type !== "code" || fileContext.disableExtraButtons) return;
+      return (
+        <CellButtonBar
+          id={props.id}
+          index={props.index}
+          actions={props.actions}
+          cell={props.cell}
+          is_current={props.is_current}
+          is_readonly={props.is_readonly}
+          computeServerId={props.computeServerId}
+          llmTools={props.llmTools}
+          haveLLMCellTools={haveLLMCellTools}
+        />
+      );
+    }
+
     if (props.cell.getIn(["metadata", "jupyter", "source_hidden"])) {
       return render_hidden();
     }
 
-    const type = props.cell.get("cell_type") || "code";
     return (
       <FileContext.Provider
         value={{
@@ -436,6 +449,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         }}
       >
         <div>
+          {render_cell_buttonbar()}
           {render_cell_toolbar()}
           <div
             style={{
@@ -447,19 +461,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           >
             {render_input_prompt(type)}
             {render_input_value(type)}
-            {type === "code" && !fileContext.disableExtraButtons ? (
-              <CellButtonBar
-                id={props.id}
-                index={props.index}
-                actions={props.actions}
-                cell={props.cell}
-                is_current={props.is_current}
-                is_readonly={props.is_readonly}
-                computeServerId={props.computeServerId}
-                llmTools={props.llmTools}
-                haveLLMCellTools={haveLLMCellTools}
-              />
-            ) : undefined}
           </div>
         </div>
       </FileContext.Provider>

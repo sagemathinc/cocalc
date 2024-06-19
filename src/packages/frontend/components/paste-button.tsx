@@ -7,9 +7,10 @@ import { alert_message } from "@cocalc/frontend/alerts";
 interface Props {
   style?: CSSProperties;
   paste: (text: string) => any;
+  block?: true;
 }
 
-export default function PasteButton({ style, paste }: Props) {
+export default function PasteButton({ style, paste, block }: Props) {
   const [pasted, setPasted] = useState<boolean>(false);
 
   async function onClick() {
@@ -27,7 +28,13 @@ export default function PasteButton({ style, paste }: Props) {
   }
 
   return (
-    <Button size="small" type="text" style={style} onClick={onClick}>
+    <Button
+      size="small"
+      type="text"
+      style={style}
+      onClick={onClick}
+      block={block}
+    >
       <Icon name={pasted ? "check" : "paste"} />
       {pasted ? "Pasted" : "Paste"}
     </Button>
