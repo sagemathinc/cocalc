@@ -7,9 +7,10 @@
 The slideshow toolbar functionality for cells.
 */
 
-import { React } from "../app-framework";
-import { FormControl } from "@cocalc/frontend/antd-bootstrap";
 import { Map as ImmutableMap } from "immutable";
+
+import { FormControl } from "@cocalc/frontend/antd-bootstrap";
+import { React } from "@cocalc/frontend/app-framework";
 import { JupyterActions } from "./browser-actions";
 
 const TYPES = [
@@ -19,7 +20,7 @@ const TYPES = [
   { title: "Fragment", value: "fragment" },
   { title: "Skip", value: "skip" },
   { title: "Notes", value: "notes" },
-];
+] as const;
 
 const rendered_options = TYPES.map((x) => (
   <option key={x.value} value={x.value}>

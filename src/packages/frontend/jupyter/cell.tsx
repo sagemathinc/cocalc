@@ -11,6 +11,7 @@ import { Map } from "immutable";
 import { useState } from "react";
 
 import {
+  CSS,
   React,
   Rendered,
   useDelayedRender,
@@ -224,6 +225,57 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  function getBorderColor(): string {
+    if (props.is_current) {
+      // is the current cell
+      if (props.mode === "edit") {
+        // edit mode
+        return "#66bb6a";
+      } else {
+        // escape mode
+        if (props.is_focused) {
+          return "#42a5f5";
+        } else {
+          return "#42a5ff";
+        }
+      }
+    } else {
+      if (props.is_selected) {
+        return "#e3f2fd";
+      } else {
+        return "transparent";
+      }
+    }
+  }
+
+  function getCellStyle(): CSS {
+    const color = getBorderColor();
+
+    const style: React.CSSProperties = {
+      border: `1px solid ${color}`,
+      borderLeft: `10px solid ${color}`,
+      borderRight: `10px solid ${color}`,
+      borderRadius: "10px",
+      padding: "2px",
+      // The bigger top margin when in fully read only mode (no props.actions, e.g., timetravel view)
+      // is to deal with the fact that the insert cell bar isn't rendered, but some of the controls off
+      // to the right assume it is.
+      margin: props.actions != null ? "10px 15px 2px 5px" : "20px 15px 2px 5px",
+      position: "relative",
+    };
+
+    if (props.is_selected) {
+      style.background = "#e3f2fd";
+    }
+
+    if (props.isFirst) {
+      // make room for InsertCell(above)
+      style.marginTop = "30px";
+    }
+
+    return style;
+  }
+
   function render_metadata_state(): Rendered {
     let style: React.CSSProperties;
 
@@ -275,49 +327,6 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  let color;
-  if (props.is_current) {
-    // is the current cell
-    if (props.mode === "edit") {
-      // edit mode
-      color = "#66bb6a";
-    } else {
-      // escape mode
-      if (props.is_focused) {
-        color = "#42a5f5";
-      } else {
-        color = "#42a5ff";
-      }
-    }
-  } else {
-    if (props.is_selected) {
-      color = "#e3f2fd";
-    } else {
-      color = "transparent";
-    }
-  }
-  const style: React.CSSProperties = {
-    border: `1px solid ${color}`,
-    borderLeft: `10px solid ${color}`,
-    borderRight: `10px solid ${color}`,
-    borderRadius: "10px",
-    padding: "2px",
-    // The bigger top margin when in fully read only mode (no props.actions, e.g., timetravel view)
-    // is to deal with the fact that the insert cell bar isn't rendered, but some of the controls off
-    // to the right assume it is.
-    margin: props.actions != null ? "10px 15px 2px 5px" : "20px 15px 2px 5px",
-    position: "relative",
-  };
-
-  if (props.is_selected) {
-    style.background = "#e3f2fd";
-  }
-
-  if (props.isFirst) {
-    // make room for InsertCell(above)
-    style.marginTop = "30px";
-  }
-
   function render_insert_cell(
     position: "above" | "below" = "above",
   ): JSX.Element | null {
@@ -353,7 +362,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
     <>
       {render_insert_cell("above")}
       <div
-        style={style}
+        style={getCellStyle()}
         onMouseUp={props.is_current ? undefined : click_on_cell}
         onDoubleClick={double_click}
         id={id}

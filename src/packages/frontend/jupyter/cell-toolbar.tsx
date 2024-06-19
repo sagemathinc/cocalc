@@ -24,7 +24,6 @@ const STYLE: CSS = {
   display: "flex",
   background: "#eee",
   border: "1px solid rgb(247, 247, 247)",
-  marginTop: "20px",
 } as const;
 
 export interface CellToolbarProps {
@@ -39,7 +38,7 @@ const TOOLBARS = {
   tags: TagsToolbar,
   metadata: Metadata,
   create_assignment: CreateAssignmentToolbar,
-};
+} as const;
 
 export const CellToolbar: React.FC<CellToolbarProps> = React.memo(
   (props: CellToolbarProps) => {
