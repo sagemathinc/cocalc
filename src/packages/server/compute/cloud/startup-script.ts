@@ -382,7 +382,15 @@ docker rm filesystem >/dev/null 2>&1
 
 setState filesystem run '' 45 25
 
-export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
+# Get the total RAM
+total_ram=$(free -g | grep Mem: | awk '{print $2}')
+
+# Compute TOTAL_RAM as MAX(1, total_ram - 1)
+export TOTAL_RAM=$(($total_ram - 1))
+if [ "$TOTAL_RAM" -lt 1 ]; then
+    # Obviously 0 wouldn't work below.
+    export TOTAL_RAM=1
+fi
 
 mkdir -p /ephemeral
 chown 2001:2001 /ephemeral
@@ -464,7 +472,12 @@ docker start compute >/dev/null 2>&1
 
 if [ $? -ne 0 ]; then
   setState compute run '' 20 25
-  export TOTAL_RAM=$(free -g |grep Mem: | awk '{print $2}')
+  total_ram=$(free -g | grep Mem: | awk '{print $2}')
+  export TOTAL_RAM=$(($total_ram - 1))
+  if [ "$TOTAL_RAM" -lt 1 ]; then
+      # Obviously 0 wouldn't work below.
+      export TOTAL_RAM=1
+  fi
   mkdir -p /ephemeral
   chown 2001:2001 /ephemeral
   docker run -d ${gpu ? GPU_FLAGS : ""} \
