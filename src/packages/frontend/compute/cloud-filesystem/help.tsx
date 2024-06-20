@@ -17,13 +17,14 @@ export function HelpText() {
   return (
     <div>
       <h2>Filesystem Commands</h2>
-      Type <code>cocalc -h</code> in a terminal running on a compute server to
-      see the options for the cocalc command. This command has several helpful
-      subcommands for working with Cloud Filesystems:
+      Type <code>cocalc fs -h</code> in a terminal running on a compute server
+      to see the options for the filesystem cocalc subcommand. This command has
+      several helpful subcommands for working with Cloud Filesystems, including
+      the following:
       <ul style={{ marginTop: "15px" }}>
         <li>
           <strong>
-            <code>cocalc stats &lt;path&gt;</code>:
+            <code>cocalc fs stats &lt;path&gt;</code>:
           </strong>{" "}
           Show realtime performance statistics of a Cloud Filesystem. In
           particular, you can see what objects are being uploaded or downloaded
@@ -33,7 +34,7 @@ export function HelpText() {
 
         <li>
           <strong>
-            <code>cocalc sync &lt;source&gt; &lt;dest&gt;</code>:
+            <code>cocalc fs sync &lt;source&gt; &lt;dest&gt;</code>:
           </strong>{" "}
           Efficiently sync files from a source directory to a dest directory.
           This is similar to rsync but potentially much faster since it is aware
@@ -43,7 +44,7 @@ export function HelpText() {
 
         <li>
           <strong>
-            <code>cocalc warmup &lt;path&gt;</code>:
+            <code>cocalc fs warmup &lt;path&gt;</code>:
           </strong>{" "}
           Downloads all the chunks for the given path to the local disk cache
           for much faster subsequent access. The disk cache (which is in
