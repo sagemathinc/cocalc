@@ -36,31 +36,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import computeServers from "@cocalc/frontend/compute/manager";
-
-export interface ExecOpts {
-  project_id: string;
-  compute_server_id?: number; // if true, run on the compute server (if available)
-  filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
-  path?: string;
-  command: string;
-  args?: string[];
-  timeout?: number;
-  max_output?: number;
-  bash?: boolean;
-  aggregate?: string | number | { value: string | number };
-  err_on_exit?: boolean;
-  env?: { [key: string]: string }; // custom environment variables.
-  cb?: Function; // if given use a callback interface *instead* of async.
-}
-export const ExecOpts = null; // webpack + TS es2020 modules need this
-
-export interface ExecOutput {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
-  time: number; // time in ms, from user point of view.
-}
-export const ExecOutput = null; // webpack + TS es2020 modules need this
+import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 
 export class ProjectClient {
   private client: WebappClient;

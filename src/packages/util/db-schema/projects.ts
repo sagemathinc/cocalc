@@ -644,3 +644,26 @@ export interface CourseInfo {
   student_project_functionality?: StudentProjectFunctionality;
   envvars?: EnvVars;
 }
+
+export interface ExecOpts {
+  project_id: string;
+  compute_server_id?: number; // if true, run on the compute server (if available)
+  filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
+  path?: string;
+  command: string;
+  args?: string[];
+  timeout?: number;
+  max_output?: number;
+  bash?: boolean;
+  aggregate?: string | number | { value: string | number };
+  err_on_exit?: boolean;
+  env?: { [key: string]: string }; // custom environment variables.
+  cb?: Function; // if given use a callback interface *instead* of async.
+}
+
+export interface ExecOutput {
+  stdout: string;
+  stderr: string;
+  exit_code: number;
+  time: number; // time in ms, from user point of view.
+}
