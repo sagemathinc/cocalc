@@ -668,6 +668,11 @@ int main() {
   { label: "Teaching", tag: "course", color: "green" },
 ];
 
+export const TAG_TO_FEATURE: { [key: string]: Readonly<Tag> } = {};
+for (const t of TAGS_FEATURES) {
+  TAG_TO_FEATURE[t.tag] = t;
+}
+
 const professional = "professional";
 
 // Tags specific to user roles or if they want to be contacted
