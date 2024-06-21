@@ -70,11 +70,16 @@ export function CoCalcComFeatures() {
           , <A href={"/features/latex-editor"}>LaTeX files</A>,{" "}
           <A href="/features/sage">SageMath Worksheets</A>,{" "}
           <A href={"/features/whiteboard"}>Computational Whiteboards</A>, and
-          much more.
+          much more. We have an{" "}
+          <A href={"https://doc.cocalc.com/why.html#open-world-approach"}>
+            open world approach
+          </A>{" "}
+          giving users as much flexibility in choosing software and hardware as
+          possible.
         </Paragraph>
 
         <Paragraph>
-          Everyone's code runs in the same per-project environment, which
+          You and your collaborators use the same per-project environment, which
           provides consistent results, synchronized file changes, and automatic
           revision history so that you can go back in time when you need to
           discover what changed and when. {renderShareServer()}
@@ -439,10 +444,7 @@ export function CoCalcComFeatures() {
             >
               <Paragraph style={{ color: txtCol }}>
                 It is very easy to run {siteName} on your own computer or
-                cluster.
-              </Paragraph>
-              <Paragraph style={{ color: txtCol }}>
-                There are three options available:
+                cluster. The available options are:
                 <ol>
                   <li>
                     Make your computer available in a {siteName} project via an{" "}
