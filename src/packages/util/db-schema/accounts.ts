@@ -597,7 +597,7 @@ export const TAGS_FEATURES: Tag[] = [
     label: "SageMath",
     tag: "sage",
     language: "sagemath",
-    welcome: "print('Welcome to CoCalc from Sage!', factor(2023))",
+    welcome: "print('Welcome to CoCalc from Sage!', factor(2024))",
     torun: "# Click Terminal, then type 'sage welcome.sage'",
     color: "gold",
   },

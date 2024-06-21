@@ -126,17 +126,17 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
 
   function renderUpgrade() {
     if (hasLicenseUpgrades) {
-      const boostUrl = join(appBasePath, "/store/boost");
+      const boostUrl = join(appBasePath, "/settings/licenses");
       return (
         <A href={boostUrl} style={{ fontWeight: "bold" }}>
-          boost memory quota
+          edit your license to increase its memory quota
         </A>
       );
     } else {
       const slUrl = join(appBasePath, "/store/site-license");
       return (
         <A href={slUrl} style={{ fontWeight: "bold" }}>
-          upgrade memory quota
+          purchase a license with higher memory quota
         </A>
       );
     }
