@@ -53,6 +53,10 @@ import getLogger from "@cocalc/backend/logger";
 import { getImages } from "@cocalc/server/compute/images";
 import { defaultProxyConfig } from "@cocalc/util/compute/images";
 import { ensureComputeServerHasVpnIp } from "./vpn";
+import {
+  unmountAll as unmountAllCloudFilesystems,
+  numMounted as numMountedCloudFilesystems,
+} from "@cocalc/server/compute/cloud-filesystem/control";
 
 const logger = getLogger("server:compute:control");
 
@@ -509,12 +513,15 @@ export const suspend: (opts: {
   await setError(id, "");
   runTasks({ account_id, id }, async () => {
     await setState(id, "suspending");
-    await doSuspend(server);
+    await doSuspend(server, account_id);
     await setState(id, "suspended");
   });
 });
 
-async function doSuspend(server: ComputeServer) {
+async function doSuspend(server: ComputeServer, account_id: string) {
+  if ((await numMountedCloudFilesystems(server.project_id)) > 0) {
+    await unmountAllCloudFilesystems({ id: server.id, account_id });
+  }
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.suspend(server);

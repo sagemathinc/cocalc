@@ -7,14 +7,14 @@ import { getServer } from "./get-servers";
 import type { ExecOpts } from "@cocalc/util/db-schema/projects";
 
 // Run exec
-export async function exec({
+export default async function exec({
   account_id,
   id,
   execOpts,
 }: {
   account_id: string;
   id: number;
-  execOpts: ExecOpts;
+  execOpts: Partial<ExecOpts>;
 }) {
   const server = await getServer({ account_id, id });
 
@@ -25,6 +25,7 @@ export async function exec({
       ...execOpts,
       event: "project_exec",
       compute_server_id: id,
+      project_id: server.project_id,
     },
   });
 }
