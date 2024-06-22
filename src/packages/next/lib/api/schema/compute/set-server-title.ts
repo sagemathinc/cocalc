@@ -1,9 +1,6 @@
 import { z } from "../../framework";
 
-import {
-  FailedAPIOperationSchema,
-  SuccessfulAPIOperationSchema,
-} from "../common";
+import { FailedAPIOperationSchema, OkAPIOperationSchema } from "../common";
 
 import { ComputeServerIdSchema, ComputeServerTitleSchema } from "./common";
 
@@ -20,7 +17,7 @@ export const SetComputeServerTitleInputSchema = z
 
 export const SetComputeServerTitleOutputSchema = z.union([
   FailedAPIOperationSchema,
-  SuccessfulAPIOperationSchema,
+  OkAPIOperationSchema,
 ]);
 
 export type SetComputeServerTitleInput = z.infer<

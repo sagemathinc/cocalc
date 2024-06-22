@@ -11,7 +11,13 @@ import sendEmailVerification from "@cocalc/server/accounts/send-email-verificati
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  SendAccountVerificationEmailInputSchema,
+  SendAccountVerificationEmailOutputSchema,
+} from "lib/api/schema/accounts/send-verification-email";
+
+async function handle(req, res) {
   const account_id = await getAccountId(req);
   if (account_id == null) {
     res.json({ error: "must be signed in" });
@@ -20,8 +26,34 @@ export default async function handle(req, res) {
   const { email_address } = getParams(req);
   try {
     const msg = await sendEmailVerification(account_id, email_address);
-    res.json({ error: msg });
+
+    if (msg) {
+      res.json({ error: msg });
+    } else {
+      res.json({ status: "success" });
+    }
   } catch (err) {
     res.json({ error: err.message });
   }
 }
+
+export default apiRoute({
+  sendVerificationEmail: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SendAccountVerificationEmailInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SendAccountVerificationEmailOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

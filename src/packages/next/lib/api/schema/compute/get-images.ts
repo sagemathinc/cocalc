@@ -1,18 +1,14 @@
 import { z } from "../../framework";
 
-import { FailedAPIOperationSchema } from "../common";
+import { FailedAPIOperationSchema, RequestNoCacheSchema } from "../common";
 
-import {
-  ComputeServerImageProxySchema,
-  ServerImageNoCacheSchema,
-} from "./common";
+import { ComputeServerImageProxySchema } from "./common";
 
 // OpenAPI spec
 //
-export const GetComputeServerImagesInputSchema =
-  ServerImageNoCacheSchema.describe(
-    "Used to get available compute server images.",
-  );
+export const GetComputeServerImagesInputSchema = RequestNoCacheSchema.describe(
+  "Used to get available compute server images.",
+);
 
 export const GetComputeServerImagesOutputSchema = z.union([
   FailedAPIOperationSchema,

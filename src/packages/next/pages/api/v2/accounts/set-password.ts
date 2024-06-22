@@ -6,7 +6,13 @@ import setPassword from "@cocalc/server/accounts/set-password";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  SetAccountPasswordInputSchema,
+  SetAccountPasswordOutputSchema,
+} from "lib/api/schema/accounts/set-password";
+
+async function handle(req, res) {
   const account_id = await getAccountId(req);
   if (account_id == null) {
     res.json({ error: "must be signed in" });
@@ -15,8 +21,29 @@ export default async function handle(req, res) {
   const { currentPassword, newPassword } = getParams(req);
   try {
     await setPassword(account_id, currentPassword, newPassword);
-    res.json({});
+    res.json({ status: "success" });
   } catch (err) {
     res.json({ error: err.message });
   }
 }
+
+export default apiRoute({
+  setPassword: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SetAccountPasswordInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SetAccountPasswordOutputSchema,
+      },
+    ])
+    .handler(handle),
+});
