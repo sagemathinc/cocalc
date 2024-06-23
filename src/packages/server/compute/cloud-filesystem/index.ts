@@ -87,6 +87,15 @@ async function getMountedCloudFilesystems(
   // different cloud filesystem mountpoints, which is critical to avoid corruption.
   // This id would be difficult (impossible?) to assign locally from the mountpoint,
   // but easy to assign here globally, since we have a global view of the system.
+  //
+  // TODO: For the filesystem, the assigned client_id's should satisfy 0 <= client_id <= 1023.
+  // at least with my current setup.  If you had more than 1023 compute servers in a given
+  // project that would break this.  However, I very much doubt juicefs+keydb with a fully connected
+  // topology won't have already broken badly well before this limit.  Also probably the
+  // vpn stuff as I've set it up wouldn't even work (who knows).  So there will surely be
+  // a couple of challenges getting to (and beyond) 1000 compute servers in a single project.
+  // Our current users typically use 2 or 3 at most.
+  //
   const client_id = await getProjectSpecificId({
     compute_server_id,
     project_id,
