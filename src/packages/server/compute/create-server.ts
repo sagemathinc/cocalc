@@ -13,6 +13,9 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { CLOUDS_BY_NAME } from "@cocalc/util/db-schema/compute-servers";
 import { isDnsAvailable } from "./dns";
 import { getAvailableVpnIp } from "./vpn";
+import { getProjectSpecificId } from "./project-specific-id";
+import getLogger from "@cocalc/backend/logger";
+const logger = getLogger("server:compute:create-server");
 
 import type {
   Cloud,
@@ -38,6 +41,7 @@ const FIELDS =
   );
 
 export default async function createServer(opts: Options): Promise<number> {
+  logger.debug("createServer", opts);
   if (!isValidUUID(opts.account_id)) {
     throw Error("created_by must be a valid uuid");
   }
@@ -50,7 +54,9 @@ export default async function createServer(opts: Options): Promise<number> {
 
   if (opts.configuration != null) {
     if (opts.configuration.cloud != opts.cloud) {
-      throw Error("configuration must be for the same cloud");
+      throw Error(
+        `configuration must be for the same cloud: configuration.cloud='${opts.configuration.cloud}' != '${opts.cloud}'`,
+      );
     }
   }
 
@@ -100,6 +106,13 @@ export default async function createServer(opts: Options): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(query, params);
   const { id } = rows[0];
+
+  // set the project_specific_id properly for this new compute server
+  await getProjectSpecificId({
+    compute_server_id: id,
+    project_id: opts.project_id,
+  });
+
   return id;
 }
 

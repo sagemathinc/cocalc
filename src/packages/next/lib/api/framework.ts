@@ -9,7 +9,7 @@ import {
 } from "next-rest-framework";
 
 export function apiRoute(obj) {
-  if (process.env.NODE_ENV != "production") {
+  if (process.env.NODE_ENV != "production" && process.env.COCALC_DISABLE_API_VALIDATION != 'yes') {
     // this actually does all the clever validation, etc.
     return apiRoute0(obj);
   } else {

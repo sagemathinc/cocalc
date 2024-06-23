@@ -8,6 +8,7 @@ import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { ensureBucketExists, ensureServiceAccountExists } from "./create";
+import { getProjectSpecificId } from "@cocalc/server/compute/project-specific-id";
 
 // last_edited gets updated about this frequently when filesystem actively mounted.
 const LAST_EDITED_UPDATE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
@@ -46,6 +47,7 @@ async function updateLastEdited(rows) {
 
 async function getMountedCloudFilesystems(
   project_id: string,
+  compute_server_id: number,
 ): Promise<CloudFilesystem[]> {
   logger.debug("getMountedCloudFilesystems: ", { project_id });
   const pool = getPool();
@@ -53,26 +55,47 @@ async function getMountedCloudFilesystems(
     `SELECT * FROM cloud_filesystems WHERE project_id=$1 AND (deleting IS null or deleting=false) AND mount=true`,
     [project_id],
   );
+  if (rows.length == 0) {
+    return rows;
+  }
+
+  // turn rows into normal objects that can be mutated:
+  const filesystems: CloudFilesystem[] = rows.map((filesystem) => {
+    return { ...filesystem };
+  });
 
   // update last_edited in the database for these filesystems:
-  await updateLastEdited(rows);
+  await updateLastEdited(filesystems);
   // create any buckets, if they don't exist -- this may mutate rows.
   // NOTE: this case absolutely should never happen since we create the bucket
   // when creating the filesystem.  However, just in case, we leave it in,
   // since it's a trivial check.
-  for (const row of rows) {
-    await ensureBucketExists(row);
+  for (const filesystem of filesystems) {
+    await ensureBucketExists(filesystem);
   }
   // create any service accounts that don't exist -- this may mutate rows
   // and do NOT do in parallel since we do not want to encourage a race conditions
   // when setting role bindings.
   // This is expected to be necessary sometimes since we automatically
   // delete service accounts of filesystems that haven't been used recently.
-  for (const row of rows) {
-    await ensureServiceAccountExists(row);
+  for (const filesystem of filesystems) {
+    await ensureServiceAccountExists(filesystem);
   }
 
-  return rows;
+  // fill in the client_id of this compute server
+  // The client_id is used to ensure that inodes and slice id's can't overlap between
+  // different cloud filesystem mountpoints, which is critical to avoid corruption.
+  // This id would be difficult (impossible?) to assign locally from the mountpoint,
+  // but easy to assign here globally, since we have a global view of the system.
+  const client_id = await getProjectSpecificId({
+    compute_server_id,
+    project_id,
+  });
+  for (const filesystem of filesystems) {
+    filesystem["client_id"] = client_id;
+  }
+
+  return filesystems;
 }
 
 async function getImageName(): Promise<string> {
@@ -113,7 +136,7 @@ export async function getCloudFilesystemConf(
 ): Promise<CloudFilesystemConf> {
   logger.debug("getCloudFilesystemConf: ", { project_id });
   const image = await getImageName();
-  const filesystems = await getMountedCloudFilesystems(project_id);
+  const filesystems = await getMountedCloudFilesystems(project_id, id);
   const network = await getNetwork(project_id, id);
   return { image, filesystems, network };
 }
