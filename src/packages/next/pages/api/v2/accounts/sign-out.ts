@@ -13,10 +13,16 @@ import {
 } from "@cocalc/server/auth/remember-me";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  AccountSignOutInputSchema,
+  AccountSignOutOutputSchema,
+} from "lib/api/schema/accounts/sign-out";
+
+async function handle(req, res) {
   try {
     await signOut(req);
-    res.json({});
+    res.json({ status: "success" });
   } catch (err) {
     res.json({ error: err.message });
   }
@@ -35,3 +41,24 @@ async function signOut(req): Promise<void> {
     await deleteRememberMe(hash);
   }
 }
+
+export default apiRoute({
+  signOut: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: AccountSignOutInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: AccountSignOutOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

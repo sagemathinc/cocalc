@@ -1,9 +1,6 @@
 import { z } from "../../framework";
 
-import {
-  FailedAPIOperationSchema,
-  SuccessfulAPIOperationSchema,
-} from "../common";
+import { FailedAPIOperationSchema, OkAPIOperationSchema } from "../common";
 
 import { ComputeServerCloudSchema, ComputeServerIdSchema } from "./common";
 
@@ -22,7 +19,7 @@ export const SetComputeServerCloudInputSchema = z
 
 export const SetComputeServerCloudOutputSchema = z.union([
   FailedAPIOperationSchema,
-  SuccessfulAPIOperationSchema,
+  OkAPIOperationSchema,
 ]);
 
 export type SetComputeServerCloudInput = z.infer<
