@@ -211,7 +211,9 @@ export const DEFAULT_CONFIGURATION = {
   //  - makes 'juicefs rmr /home/user/cloudfs/.trash' to empty the trash *possible*;
   //    as non-root there is no way to empty trash!
   //  - makes it possible to use ZFS on top of this, which may be interesting later.
-  mount_options: "--writeback -o allow_other",
+  //  - --open-cache=1 is needed since otherwise juicefs tries to use redis for network
+  //    locks, which just don't work with async replication.
+  mount_options: "--writeback -o allow_other --open-cache=1",
   keydb_options: "",
   bucket_location: "us-east1", // where cocalc.com is
   bucket_storage_class: "autoclass-archive",
