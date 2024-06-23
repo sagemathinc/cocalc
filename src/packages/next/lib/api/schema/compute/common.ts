@@ -41,9 +41,9 @@ export const ComputeServerImageProxySchema = z.object({
   name: z.string().optional(),
 });
 
-export const GoogleCloudServerConfigurationSchema = z.object({});
+export const GoogleCloudServerConfigurationSchema = z.object({}).passthrough();
 
-export const HyperstackServerConfigurationSchema = z.object({});
+export const HyperstackServerConfigurationSchema = z.object({}).passthrough();
 
 export const ServerConfigurationSchema = z.union([
   GoogleCloudServerConfigurationSchema,
