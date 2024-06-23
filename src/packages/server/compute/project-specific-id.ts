@@ -39,6 +39,7 @@ export async function getProjectSpecificIds(
     }
     if (todo.length == 0) {
       // typical case -- everything is already assigned
+      await client.query("COMMIT"); // If everything goes correctly, does COMMIT
       return done;
     }
 
