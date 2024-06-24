@@ -21,6 +21,7 @@ import type {
 import {
   MIN_BLOCK_SIZE,
   MAX_BLOCK_SIZE,
+  RECOMMENDED_BLOCK_SIZE,
   MAX_CLOUD_FILESYSTEMS_PER_PROJECT,
   DEFAULT_CONFIGURATION,
 } from "@cocalc/util/db-schema/cloud-filesystems";
@@ -446,13 +447,14 @@ function BlockSize({ configuration, setConfiguration }) {
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation: use ${MAX_BLOCK_SIZE} MB`}
+        message={`Recommendation: use ${RECOMMENDED_BLOCK_SIZE} MB`}
         description={
           <>
             It can be better to use a large block size, since the number of PUT
             and GET operations is reduced, and they each cost money. Also, if
-            you use an autoclass storage class, use {MAX_BLOCK_SIZE} MB since
-            there is a monthly per-object cost.
+            you use an autoclass storage class, use at least{" "}
+            {RECOMMENDED_BLOCK_SIZE} MB since there is a monthly per-object
+            cost, and consider {MAX_BLOCK_SIZE} MB.
           </>
         }
       />

@@ -26,8 +26,9 @@ export const MAX_CLOUD_FILESYSTEMS_PER_PROJECT = 100;
 export const MIN_PORT = 40000;
 export const MAX_PORT = 48000;
 export const MIN_BLOCK_SIZE = 1;
-// requires my fork of juicefs to get above 16 (supports 64), and I don't trust that
-export const MAX_BLOCK_SIZE = 16;
+// requires my fork of juicefs to get above 16 (supports 64)
+export const MAX_BLOCK_SIZE = 64;
+export const RECOMMENDED_BLOCK_SIZE = 16;
 
 export interface GoogleCloudServiceAccountKey {
   type: "service_account";
@@ -202,7 +203,7 @@ export const DEFAULT_CONFIGURATION = {
   mountpoint: "cloud",
   mount: true,
   compression: "lz4",
-  block_size: MAX_BLOCK_SIZE,
+  block_size: RECOMMENDED_BLOCK_SIZE,
   trash_days: 0,
   title: "Untitled",
   lock: "DELETE",
