@@ -118,14 +118,26 @@ test_llm("mistralai")("Mistral AI", () => {
 });
 
 test_llm("anthropic")("Anthropic", () => {
-  const model: AnthropicModel = "claude-3-haiku";
+  const haiku: AnthropicModel = "claude-3-haiku";
+  const sonnet: AnthropicModel = "claude-3-5-sonnet-4k";
+  const opus: AnthropicModel = "claude-3-opus-8k";
 
   test("model", () => {
-    expect(isAnthropicModel(model)).toBe(true);
+    expect(isAnthropicModel(haiku)).toBe(true);
   });
 
-  test("basics", async () => {
-    const answer = await evaluateAnthropic({ model, ...QUERY });
+  test("haiku", async () => {
+    const answer = await evaluateAnthropic({ model: haiku, ...QUERY });
+    checkAnswer(answer);
+  });
+
+  test("sonnet", async () => {
+    const answer = await evaluateAnthropic({ model: sonnet, ...QUERY });
+    checkAnswer(answer);
+  });
+
+  test("opus", async () => {
+    const answer = await evaluateAnthropic({ model: opus, ...QUERY });
     checkAnswer(answer);
   });
 });
