@@ -251,6 +251,7 @@ export type SiteSettingsExtrasKeys =
   | "hyperstack_balance_alert_thresh"
   | "hyperstack_balance_alert_emails"
   | "google_cloud_service_account_json"
+  | "google_cloud_bigquery_billing_service_account_json"
   | "google_cloud_compute_servers_prefix"
   | "google_cloud_compute_servers_image_prefix"
   | "compute_servers_cloudflare_api_key"
@@ -822,6 +823,15 @@ export const EXTRAS: SettingsExtras = {
   google_cloud_service_account_json: {
     name: "Compute Servers: Google Cloud - Service Account Json",
     desc: 'Your Google Cloud Service Account created at https://console.cloud.google.com/iam-admin/serviceaccounts with permission to manipulate virtual machines.  This supports managing compute servers on Google Cloud, and you must (1) [enable the Compute Engine API](https://console.cloud.google.com/apis/library/compute.googleapis.com) and [the Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com) for this Google Cloud project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
+    default: "",
+    multiline: 5,
+    password: true,
+    show: compute_servers_google_enabled,
+    tags: ["Compute Servers"],
+  },
+  google_cloud_bigquery_billing_service_account_json: {
+    name: "Compute Servers: Google Cloud BigQuery Service Account Json",
+    desc: "Another Google Cloud Service Account that has read access to the regularly updated detailed billing data.  You have to [enable *detailed* billing export to BigQuery](https://cloud.google.com/billing/docs/how-to/export-data-bigquery), then provides a service account here that provides: 'BigQuery Data Viewer' and 'BigQuery Job User'.  NOTE: When I setup detailed billing export for cocalc.com it took about 3 days (!) before I started seeing any detailed billing data!",
     default: "",
     multiline: 5,
     password: true,

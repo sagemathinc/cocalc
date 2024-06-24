@@ -40,16 +40,22 @@ export default async function getClient(): Promise<Client> {
   return client;
 }
 
-export async function getCredentials() {
-  const { google_cloud_service_account_json } = await getServerSettings();
-  if (!google_cloud_service_account_json) {
-    throw Error(
-      "The Google Cloud service account for Compute Servers is not configure",
-    );
+export async function getCredentials(service_account_json?: string) {
+  if (!service_account_json) {
+    const { google_cloud_service_account_json } = await getServerSettings();
+    if (!google_cloud_service_account_json) {
+      throw Error(
+        "The Google Cloud service account for Compute Servers is not configure",
+      );
+    }
+    service_account_json = google_cloud_service_account_json;
+  }
+  if (!service_account_json) {
+    throw Error("service account not configured");
   }
   let serviceAccount;
   try {
-    serviceAccount = JSON.parse(google_cloud_service_account_json);
+    serviceAccount = JSON.parse(service_account_json);
   } catch (err) {
     throw Error(`The Google Cloud service account must be valid JSON - ${err}`);
   }
