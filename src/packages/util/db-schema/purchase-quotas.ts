@@ -135,6 +135,14 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: LLM_USERNAMES["claude-3-sonnet-4k"],
     color: "#181818",
   },
+  "anthropic-claude-3-5-sonnet": {
+    display: LLM_USERNAMES["claude-3-5-sonnet"],
+    color: "#181818",
+  },
+  "anthropic-claude-3-5-sonnet-4k": {
+    display: LLM_USERNAMES["claude-3-5-sonnet-4k"],
+    color: "#181818",
+  },
   "anthropic-claude-3-haiku": {
     display: LLM_USERNAMES["claude-3-haiku"],
     color: "#181818",
