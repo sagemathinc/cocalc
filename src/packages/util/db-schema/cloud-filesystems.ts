@@ -213,7 +213,7 @@ export const DEFAULT_CONFIGURATION = {
   //  - makes it possible to use ZFS on top of this, which may be interesting later.
   //  - --open-cache=1 is needed since otherwise juicefs tries to use redis for network
   //    locks, which just don't work with async replication.
-  mount_options: "--writeback -o allow_other --open-cache=1",
+  mount_options: "--writeback -o allow_other --open-cache=3 --entry-cache=3 --dir-entry-cache=3 --attr-cache=3",
   keydb_options: "",
   bucket_location: "us-east1", // where cocalc.com is
   bucket_storage_class: "autoclass-archive",
