@@ -26,9 +26,10 @@ export const MAX_CLOUD_FILESYSTEMS_PER_PROJECT = 100;
 export const MIN_PORT = 40000;
 export const MAX_PORT = 48000;
 export const MIN_BLOCK_SIZE = 1;
-// requires my fork of juicefs to get above 16 (supports 64)
+// requires my fork of juicefs to get above 16 (supports 64)!
+// do not use non-fork on a filesystem with a block size bigger than 16, as it may corrupt it...
 export const MAX_BLOCK_SIZE = 64;
-export const RECOMMENDED_BLOCK_SIZE = 16;
+export const RECOMMENDED_BLOCK_SIZE = 64;
 
 export interface GoogleCloudServiceAccountKey {
   type: "service_account";
