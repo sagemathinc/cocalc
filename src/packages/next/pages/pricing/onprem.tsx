@@ -44,7 +44,7 @@ function Body() {
 
   function cloud(): JSX.Element {
     const body = encodeURIComponent(
-      "I'm interested in puchasing CoCalc Cloud on-premises.",
+      "PLEASE EXPLAIN YOUR EXPECTED USE CASE TO HELP US GUIDE YOU:\n\nWE WOULD LOVE TO SETUP A VIDEO CALL WITH YOU! WHEN ARE YOU AVAILABLE?",
     );
 
     return (
