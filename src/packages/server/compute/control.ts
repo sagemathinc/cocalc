@@ -820,6 +820,7 @@ export async function setTestNetworkUsage({
 export async function getStartupParams(id: number): Promise<{
   cloud: Cloud;
   project_id: string;
+  project_specific_id: number;
   gpu?: boolean;
   arch: Architecture;
   image: string;
@@ -883,6 +884,7 @@ export async function getStartupParams(id: number): Promise<{
   }
   return {
     cloud: server.cloud,
+    project_specific_id: server.project_specific_id,
     tag: configuration.tag,
     tag_cocalc: configuration.tag_cocalc,
     tag_filesystem: configuration.tag_filesystem,
@@ -890,9 +892,9 @@ export async function getStartupParams(id: number): Promise<{
   };
 }
 
-export async function getHostname(id: number): Promise<string> {
+async function getHostname(project_specific_id: number): Promise<string> {
   // we might make this more customizable
-  return `compute-server-${id}`;
+  return `compute-server-${project_specific_id}`;
 }
 
 export async function getStartupScript({
@@ -908,7 +910,7 @@ export async function getStartupScript({
   return await startupScript({
     compute_server_id: id,
     api_key,
-    hostname: await getHostname(id),
+    hostname: await getHostname(params.project_specific_id),
     installUser,
     ...params,
   });
