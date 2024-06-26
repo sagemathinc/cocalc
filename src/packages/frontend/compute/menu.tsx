@@ -456,9 +456,11 @@ export default function Menu({
   const account_id = useTypedRedux("account", "account_id");
   const [modal, setModal] = useState<any>(null);
   const close = () => setModal(null);
-  const [title, setTitle] = useState<{ title: string; color: string } | null>(
-    null,
-  );
+  const [title, setTitle] = useState<{
+    title: string;
+    color: string;
+    project_specific_id: number;
+  } | null>(null);
   const isAdmin = useTypedRedux("account", "is_admin");
   const { items, onClick } = useMemo(() => {
     if (!open) {
@@ -548,7 +550,7 @@ export default function Menu({
           case "support":
             openSupportTab({
               type: "question",
-              subject: `Compute Server (Global Id: ${id})`,
+              subject: `Compute Server (Global Id: ${id}; Project Specific Id: ${title?.project_specific_id})`,
               body: `I am using a compute server, and have a question...`,
             });
             break;

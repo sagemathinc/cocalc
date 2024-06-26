@@ -266,10 +266,10 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   // there could be a race condition if user tries to make two cloud filesystems at
   // same time for same project -- one would fail and they get an error due to
   // database uniqueness constraint. That's fine for now.
-  push(
-    "project_specific_id",
-    await getAvailabelProjectSpecificId(opts.project_id),
+  const project_specific_id = await getAvailabelProjectSpecificId(
+    opts.project_id,
   );
+  push("project_specific_id", project_specific_id);
 
   const query = `INSERT INTO cloud_filesystems(${fields.join(
     ",",

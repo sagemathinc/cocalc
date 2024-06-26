@@ -203,8 +203,8 @@ export default function Menu({
           case "support":
             openSupportTab({
               type: "question",
-              subject: `Compute Server (Id: ${cloudFilesystem.id})`,
-              body: `I am using a compute server, and have a question...`,
+              subject: `Cloud Filesystem (Global Id: ${cloudFilesystem.id}; Project Specific Id: ${cloudFilesystem.project_specific_id})`,
+              body: `I am using a cloud filesystem, and have a question...`,
             });
             break;
 

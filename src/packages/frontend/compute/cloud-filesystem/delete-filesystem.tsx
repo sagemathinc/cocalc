@@ -57,7 +57,7 @@ export default function DeleteCloudFilesystem({
           title={
             <>
               <b>Permanently delete</b> '{cloudFilesystem.title}' (Id:{" "}
-              {cloudFilesystem.id})?
+              {cloudFilesystem.project_specific_id})?
             </>
           }
           onConfirm={doDelete}
@@ -78,7 +78,7 @@ export default function DeleteCloudFilesystem({
           <>
             <p>
               Are you sure you want to delete '{cloudFilesystem.title}' (Id:{" "}
-              {cloudFilesystem.id}) with mountpoint{" "}
+              {cloudFilesystem.project_specific_id}) with mountpoint{" "}
               <code>~/{cloudFilesystem.mountpoint}</code>? This action will
               permanently delete all data. <b>Data will not be recoverable.</b>
             </p>

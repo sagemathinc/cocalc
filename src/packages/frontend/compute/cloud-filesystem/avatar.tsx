@@ -7,14 +7,14 @@ export default function CloudFilesystemAvatar({
   showMetrics,
   setShowMetrics,
 }) {
-  const { color, id } = cloudFilesystem;
+  const { color, project_specific_id } = cloudFilesystem;
   return (
     <div style={{ width: "64px", marginBottom: "-20px" }}>
       <Icon
         name={"disk-round"}
         style={{ fontSize: "30px", color: color ?? "#666" }}
       />
-      <div style={{ color: "#888" }}>Id: {id}</div>
+      <div style={{ color: "#888" }}>Id: {project_specific_id}</div>
       <div
         style={{ color: "#888", cursor: "pointer" }}
         onClick={() => {

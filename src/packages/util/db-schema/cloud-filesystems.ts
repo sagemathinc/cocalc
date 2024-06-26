@@ -280,6 +280,7 @@ Table({
         throttle_changes: 0,
         fields: {
           id: null,
+          project_specific_id: null,
           project_id: null,
           account_id: null,
           bucket: null,
