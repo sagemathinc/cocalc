@@ -358,7 +358,7 @@ function bucketOptions({
   } as CreateBucketRequest;
 }
 
-async function getAvailabelProjectSpecificId(project_id: string) {
+export async function getAvailabelProjectSpecificId(project_id: string) {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT project_specific_id FROM cloud_filesystems WHERE project_id=$1",

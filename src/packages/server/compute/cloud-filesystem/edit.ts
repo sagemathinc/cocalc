@@ -16,8 +16,9 @@ import { isEqual } from "lodash";
 import { len } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { setDefaultStorageClass } from "@cocalc/server/compute/cloud/google-cloud/storage";
+import { getAvailabelProjectSpecificId } from "./create";
 
-const logger = getLogger("server:compute:cloud-filesystem/edit");
+const logger = getLogger("server:compute:cloud-filesystem:edit");
 
 interface Options extends EditCloudFilesystem {
   account_id: string;
@@ -34,7 +35,9 @@ export async function userEditCloudFilesystem(
   logger.debug("userEditCloudFilesystem", opts);
 
   const { id, account_id } = opts;
-  const changes = { ...opts } as Partial<Options>;
+  const changes = { ...opts } as Partial<Options> & {
+    project_specific_id?: number;
+  };
   delete changes.id;
   delete changes.account_id;
   const cloudFilesystem = await getCloudFilesystem(id);
@@ -86,6 +89,11 @@ export async function userEditCloudFilesystem(
         "can only move cloud filesystem to a project that user is a collaborator on",
       );
     }
+    // also when moving to a different project we have to re-allocate
+    // the project_specific_id, since the current one is probably not be valid!
+    changes.project_specific_id = await getAvailabelProjectSpecificId(
+      changes.project_id,
+    );
   }
 
   if (changes.mountpoint) {
@@ -114,12 +122,16 @@ export async function userEditCloudFilesystem(
       push(field, changes[field]);
     }
   }
+  if (changes.project_specific_id) {
+    push("project_specific_id", changes.project_specific_id);
+  }
   push("last_edited", new Date());
   params.push(id);
 
   const query = `UPDATE cloud_filesystems SET ${items.join(",")} WHERE id=$${
     params.length
   }`;
+  logger.debug("userEditCloudFilesystem", { query, params });
   const pool = getPool();
   await pool.query(query, params);
 

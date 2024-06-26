@@ -95,7 +95,7 @@ export default function EditMountOptions({
         setConfiguration={setConfiguration}
         disabled={cloudFilesystem.mount}
       />
-      <h5>KeyDB Port</h5>
+      <h6>KeyDB Port</h6>
       <p>
         The KeyDB server will listen on port {configuration.port}. You can
         change this to a different port between {MIN_PORT} and {MAX_PORT}, in
@@ -112,11 +112,16 @@ export default function EditMountOptions({
           onChange={(port) => setConfiguration({ ...configuration, port })}
         />
       </div>
+
       <ShowError
         style={{ marginTop: "15px" }}
         error={error}
         setError={setError}
       />
+      <h6>Advanced</h6>
+      <pre style={{ overflowY: "scroll", maxHeight: "100px" }}>
+        {JSON.stringify(cloudFilesystem, undefined, 2)}
+      </pre>
     </Modal>
   );
 }
