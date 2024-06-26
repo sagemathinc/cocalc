@@ -252,6 +252,7 @@ export type SiteSettingsExtrasKeys =
   | "hyperstack_balance_alert_emails"
   | "google_cloud_service_account_json"
   | "google_cloud_bigquery_billing_service_account_json"
+  | "google_cloud_bigquery_detailed_billing_table"
   | "google_cloud_compute_servers_prefix"
   | "google_cloud_compute_servers_image_prefix"
   | "compute_servers_cloudflare_api_key"
@@ -793,7 +794,6 @@ export const EXTRAS: SettingsExtras = {
     desc: "If your credit balance goes below this amount on the Hyperstack site, then you will be emailed (assuming email is configured).",
     default: "25",
     to_val: to_int,
-    valid: only_nonneg_int,
     show: compute_servers_hyperstack_enabled,
     tags: ["Compute Servers"],
   },
@@ -838,6 +838,15 @@ export const EXTRAS: SettingsExtras = {
     show: compute_servers_google_enabled,
     tags: ["Compute Servers"],
   },
+  google_cloud_bigquery_detailed_billing_table: {
+    name: "Compute Servers: Google Cloud Detailed Billing BigQuery Table Name",
+    desc: "The name of your BigQuery detailed billing exports table. See remarks about BigQuery Service Account above.  This might look like 'sage-math-inc.detailed_billing.gcp_billing_export_resource_v1_00D083_5513BD_B6E72F'",
+    default: "",
+    to_val: to_trimmed_str,
+    show: compute_servers_google_enabled,
+    valid: (x) => !x || x.includes(".detailed_billing."),
+    tags: ["Compute Servers"],
+  },
   google_cloud_compute_servers_prefix: {
     name: "Compute Servers: Google Cloud - Resource Prefix",
     desc: "Prepend this string to all Google cloud resources that are created, e.g., VM names, etc. This is useful if you are using a single Google cloud project for more than just this one cocalc server.  KEEP THIS SHORT!  If the prefix is 'comput', then the compute server with id 17 will be called 'compute-17'.  You very likely want to change this, especially if you have several servers in the same Google cloud project; it must be different between different servers.",
@@ -845,6 +854,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
     tags: ["Compute Servers"],
+    valid: () => true,
   },
   google_cloud_compute_servers_image_prefix: {
     name: "Compute Servers: Google Cloud - Image Prefix",
@@ -853,6 +863,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
     tags: ["Compute Servers"],
+    valid: () => true,
   },
 
   compute_servers_cloudflare_api_key: {
