@@ -11,7 +11,13 @@ import getPrivateProfile from "@cocalc/server/accounts/profile/private";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  AccountProfileInputSchema,
+  AccountProfileOutputSchema,
+} from "lib/api/schema/accounts/profile";
+
+async function handle(req, res) {
   const { account_id, noCache } = getParams(req);
   try {
     if (account_id == null) {
@@ -31,3 +37,24 @@ async function getPrivate(req, noCache) {
   }
   return await getPrivateProfile(account_id, noCache);
 }
+
+export default apiRoute({
+  profile: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: AccountProfileInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: AccountProfileOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

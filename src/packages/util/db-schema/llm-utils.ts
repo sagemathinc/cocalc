@@ -160,6 +160,8 @@ export const GOOGLE_MODEL_TO_ID: Partial<{ [m in GoogleModel]: string }> = {
 
 // https://docs.anthropic.com/claude/docs/models-overview -- stable names for the modesl ...
 export const ANTHROPIC_MODELS = [
+  "claude-3-5-sonnet",
+  "claude-3-5-sonnet-4k", // added 2024-06-24
   "claude-3-haiku",
   "claude-3-haiku-8k", // limited context window, offered for free
   "claude-3-sonnet",
@@ -170,12 +172,15 @@ export const ANTHROPIC_MODELS = [
 const CLAUDE_SONNET_VERSION = "20240229";
 const CLAUDE_HAIKU_VERSION = "20240307";
 const CLAUDE_OPUS_VERSION = "20240229";
+const CLAUDE_SONNET_3_5_VERSION = "20240620";
 // ... and we add a version number (there is no "*-latest") when dispatching on the backend
 export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string } = {
+  "claude-3-sonnet-4k": CLAUDE_SONNET_VERSION,
   "claude-3-opus": CLAUDE_OPUS_VERSION,
   "claude-3-opus-8k": CLAUDE_OPUS_VERSION,
   "claude-3-sonnet": CLAUDE_SONNET_VERSION,
-  "claude-3-sonnet-4k": CLAUDE_SONNET_VERSION,
+  "claude-3-5-sonnet": CLAUDE_SONNET_3_5_VERSION,
+  "claude-3-5-sonnet-4k": CLAUDE_SONNET_3_5_VERSION,
   "claude-3-haiku": CLAUDE_HAIKU_VERSION,
   "claude-3-haiku-8k": CLAUDE_HAIKU_VERSION,
 } as const;
@@ -228,7 +233,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
     // we show opus and the context restricted models (to avoid high costs)
     return (
       m === "claude-3-opus-8k" ||
-      m === "claude-3-sonnet-4k" ||
+      m === "claude-3-5-sonnet-4k" ||
       m === "claude-3-haiku-8k"
     );
   }),
@@ -709,6 +714,8 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-3-haiku-8k": "Claude 3 Haiku 8k",
   "claude-3-sonnet": "Claude 3 Sonnet",
   "claude-3-sonnet-4k": "Claude 3 Sonnet 4k",
+  "claude-3-5-sonnet": "Claude 3.5 Sonnet",
+  "claude-3-5-sonnet-4k": "Claude 3.5 Sonnet 4k",
   "claude-3-opus": "Claude 3 Opus 200k",
   "claude-3-opus-8k": "Claude 3 Opus 8k",
 } as const;
@@ -758,14 +765,18 @@ export const LLM_DESCR: LLM2String = {
     "Fastest model, lightweight actions (Anthropic, 200k token context)",
   "claude-3-haiku-8k":
     "Fastest model, lightweight actions (Anthropic, 8k token context)",
+  "claude-3-5-sonnet":
+    "Our most intelligent model (Anthropic, 200k token context)",
+  "claude-3-5-sonnet-4k":
+    "Our most intelligent model (Anthropic, 4k token context)",
   "claude-3-sonnet":
     "Best combination of performance and speed (Anthropic, 200k token context)",
   "claude-3-sonnet-4k":
     "Best combination of performance and speed (Anthropic, 4k token context)",
   "claude-3-opus":
-    "Most intelligent, complex analysis, higher-order math and coding (Anthropic, 200k token context)",
+    "Excels at writing and complex tasks (Anthropic, 200k token context)",
   "claude-3-opus-8k":
-    "Most intelligent, complex analysis, higher-order math and coding (Anthropic, 8k token context)",
+    "Excels at writing and complex tasks (Anthropic, 8k token context)",
 } as const;
 
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
@@ -967,6 +978,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(15),
     completion_tokens: usd1Mtokens(75),
     max_tokens: 200_000,
+    free: false,
+  },
+  "claude-3-5-sonnet": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 4_000, // limited to 4k tokens, offered for free
+    free: false,
+  },
+  "claude-3-5-sonnet-4k": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 4_000, // limited to 4k tokens, offered for free
     free: false,
   },
   "claude-3-sonnet-4k": {

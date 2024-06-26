@@ -7,7 +7,13 @@ import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { banUser } from "@cocalc/server/accounts/ban";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  BanAccountInputSchema,
+  BanAccountOutputSchema,
+} from "lib/api/schema/accounts/ban";
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -30,3 +36,24 @@ async function get(req) {
   await banUser(account_id);
   return { status: "success" };
 }
+
+export default apiRoute({
+  ban: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: BanAccountInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: BanAccountOutputSchema,
+      },
+    ])
+    .handler(handle),
+});
