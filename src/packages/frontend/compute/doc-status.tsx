@@ -172,7 +172,7 @@ export function ComputeServerDocStatus({
               >
                 {requestedServer?.get("title") ?? "Loading..."}
               </div>
-              (Id: {requestedId})
+              (Id: {requestedServer?.get("project_specific_id")})
             </div>
           </div>
           <DisplayImage
