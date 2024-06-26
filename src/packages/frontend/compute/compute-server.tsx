@@ -55,6 +55,7 @@ export default function ComputeServer({
 }: Props) {
   const {
     id,
+    project_specific_id,
     title,
     color = randomColor(),
     state,
@@ -303,7 +304,7 @@ export default function ComputeServer({
             {buttons}
             <Divider />
             <Icon name="edit" style={{ marginRight: "15px" }} />{" "}
-            {editable ? "Edit" : ""} Compute Server With Id={id}
+            {editable ? "Edit" : ""} Compute Server With Id={project_specific_id}
           </>
         }
         footer={
@@ -367,7 +368,7 @@ export default function ComputeServer({
               name={cloud == "onprem" ? "global" : "server"}
               style={{ fontSize: "30px", color: color ?? "#666" }}
             />
-            {id != null && <div style={{ color: "#888" }}>Id: {id}</div>}
+            {id != null && <div style={{ color: "#888" }}>Id: {project_specific_id}</div>}
             {id != null && (
               <ComputeServerLog id={id} style={{ marginLeft: "-15px" }} />
             )}

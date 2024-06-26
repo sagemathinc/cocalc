@@ -39,6 +39,7 @@ class ComputeServersTable extends Table {
         {
           project_id: nameToProjectId(this.name),
           id: null,
+          project_specific_id: null,
           account_id: null,
           title: null,
           color: null,

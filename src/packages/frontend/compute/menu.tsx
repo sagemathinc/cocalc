@@ -67,7 +67,7 @@ function getItems({
         key: "loading",
         label: (
           <>
-            Loading... (Id: {id}) <Spin />
+            Loading... <Spin />
           </>
         ),
         disabled: true,
@@ -107,7 +107,7 @@ function getItems({
         >
           {title}
         </div>
-        (Id: {id})
+        (Id: {server.project_specific_id})
       </div>
     ),
   };
@@ -548,7 +548,7 @@ export default function Menu({
           case "support":
             openSupportTab({
               type: "question",
-              subject: `Compute Server (Id: ${id})`,
+              subject: `Compute Server (Global Id: ${id})`,
               body: `I am using a compute server, and have a question...`,
             });
             break;

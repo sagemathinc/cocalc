@@ -3,6 +3,7 @@ import { SCHEMA } from "@cocalc/util/db-schema";
 import { getPool, stripNullFields } from "@cocalc/database";
 import { isValidUUID } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { getProjectSpecificId } from "./project-specific-id";
 
 interface Options {
   account_id: string; // user making the request
@@ -89,12 +90,12 @@ export async function getServerNoCheck(
 export async function getTitle({
   account_id,
   id,
-}): Promise<{ title: string; color: string }> {
+}): Promise<{ title: string; color: string; project_specific_id: number }> {
   if (id == 0) {
-    return { title: "The Project", color: "#666" };
+    return { title: "The Project", color: "#666", project_specific_id: 0 };
   }
   const { rows } = await getPool().query(
-    "SELECT title, color, project_id, account_id FROM compute_servers WHERE id=$1",
+    "SELECT title, color, project_id, account_id, project_specific_id FROM compute_servers WHERE id=$1",
     [id],
   );
   if (rows.length == 0) {
@@ -107,5 +108,15 @@ export async function getTitle({
       throw Error("user must be collaborator on project");
     }
   }
-  return { title: rows[0].title ?? "", color: rows[0].color ?? "" };
+  const { title, color, project_specific_id, project_id } = rows[0];
+  return {
+    title: title ?? "",
+    color: color ?? "",
+    project_specific_id:
+      project_specific_id ?? // shouldn't be undefined, but maybe during transition before we had project_specific_id, so this handles it
+      (await getProjectSpecificId({
+        compute_server_id: id,
+        project_id,
+      })),
+  };
 }

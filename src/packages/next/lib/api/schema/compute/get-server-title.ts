@@ -21,6 +21,7 @@ export const GetComputeServerTitleOutputSchema = z.union([
   z.object({
     color: ComputeServerColorSchema,
     title: ComputeServerTitleSchema,
+    project_specific_id: ComputeServerIdSchema,
   }),
 ]);
 

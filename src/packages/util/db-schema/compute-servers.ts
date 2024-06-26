@@ -624,6 +624,7 @@ export interface ComputeServerTemplate {
 
 export interface ComputeServerUserInfo {
   id: number;
+  project_specific_id?: number; // the project_specific_id of this compute server -- unique within project, minimal
   account_id: string;
   project_id: string;
   title?: string;
@@ -654,7 +655,6 @@ export interface ComputeServerUserInfo {
 export interface ComputeServer extends ComputeServerUserInfo {
   api_key?: string; // project level api key for the project
   api_key_id?: number; // id of the api key (needed so we can delete it from database).
-  project_specific_id?: number; // the project_specific_id of this compute server -- unique within project, minimal
 }
 
 Table({
