@@ -263,6 +263,14 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   const port = await getPort(opts.project_id);
   push("port", port);
 
+  // there could be a race condition if user tries to make two cloud filesystems at
+  // same time for same project -- one would fail and they get an error due to
+  // database uniqueness constraint. That's fine for now.
+  push(
+    "project_specific_id",
+    await getAvailabelProjectSpecificId(opts.project_id),
+  );
+
   const query = `INSERT INTO cloud_filesystems(${fields.join(
     ",",
   )}) VALUES(${dollars.join(",")}) RETURNING id`;
@@ -348,4 +356,20 @@ function bucketOptions({
     location: bucket_location.toUpperCase(),
     ...storageClassToOptions(bucket_storage_class),
   } as CreateBucketRequest;
+}
+
+async function getAvailabelProjectSpecificId(project_id: string) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT project_specific_id FROM cloud_filesystems WHERE project_id=$1",
+    [project_id],
+  );
+  const x = new Set(
+    rows.filter((x) => x.project_specific_id).map((x) => x.project_specific_id),
+  );
+  let id = 1;
+  while (x.has(id)) {
+    id += 1;
+  }
+  return id;
 }

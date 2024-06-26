@@ -859,7 +859,7 @@ Table({
     },
     project_specific_id: {
       type: "integer",
-      desc: "A unique project-specific id assigned to this compute server.  This is a positive integer that is guaranteed to be unique for compute servers *in a given project* and minimal when assigned (so it is as small as possible).   This number is useful for distributed algorithms, since it can be used to ensure distinct sequence without any additional coordination.   This is also useful to display to users so that the id number they see everywhere is not huge.  If a compute server is deleted, then its id is freed.",
+      desc: "A unique project-specific id assigned to this compute server.  This is a positive integer that is guaranteed to be unique for compute servers *in a given project* and minimal when assigned (so it is as small as possible).   This number is useful for distributed algorithms, since it can be used to ensure distinct sequence without any additional coordination.   This is also useful to display to users so that the id number they see everywhere is not huge.",
     },
   },
 });

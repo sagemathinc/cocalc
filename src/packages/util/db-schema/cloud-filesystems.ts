@@ -153,6 +153,7 @@ export type GoogleCloudBucketLocation =
 
 export interface CloudFilesystem {
   id: number;
+  project_specific_id: number;
   project_id: string;
   account_id: string;
   created: Date;
@@ -270,6 +271,7 @@ Table({
     pg_unique_indexes: [
       "(project_id, mountpoint)",
       "(project_id, port)",
+      "(project_id, project_specific_id)",
       "bucket",
     ],
     user_query: {
@@ -319,6 +321,11 @@ Table({
   },
   fields: {
     id: ID,
+    project_specific_id: {
+      not_null: true,
+      type: "integer",
+      desc: "A unique project-specific id assigned to this cloud filesystem.  This is a positive integer that is guaranteed to be unique for cloud filesystems *in a given project* and minimal when assigned (so it is as small as possible).  For now at least, I'm not using this in any way except as something to display to users.  Internally we always use the global id.",
+    },
     project_id: {
       not_null: true,
       type: "uuid",
