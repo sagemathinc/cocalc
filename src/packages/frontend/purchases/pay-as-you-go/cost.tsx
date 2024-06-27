@@ -7,7 +7,7 @@ user refreshes browser), since costs change VERY rarely.
 import { Alert, Spin, Table, Tooltip } from "antd";
 import LRU from "lru-cache";
 import { useEffect, useState } from "react";
-
+import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
@@ -23,7 +23,7 @@ interface Props {
   inline?: boolean; // just show minimal cost desc.
 }
 
-export default function Cost({ service, inline }: Props) {
+export default function Cost({ inline, service }: Props) {
   const [cost, setCost] = useState<any>(cache.get(service));
   const [error, setError] = useState<string>("");
 
@@ -72,29 +72,20 @@ export default function Cost({ service, inline }: Props) {
   } else if (service == "compute-server") {
     return (
       <div style={TEXT_STYLE}>
-        Competitive pay-as-you-go pricing depending on cloud rates, compute
-        server configuration and state. Pay by the second while the compute
-        server is provisioned. When your spend approaches this limit, your
-        compute servers are turned off, but the disk is not deleted (unless you
+        Competitive pay-as-you-go pricing depending on cloud rates and compute
+        server configuration. Pay by the second while the compute server is
+        provisioned. When your spend approaches this limit, your compute servers
+        are turned off, but the disk is not immediately deleted (unless you
         significantly exceed the limit).
       </div>
     );
   } else if (service == "compute-server-network-usage") {
     if (inline) {
-      return (
-        <span>
-          Network data transfered out from Google Cloud is {currency(cost)}/GB,
-          and incoming data is free.
-        </span>
-      );
+      return <GoogleNetworkCost />;
     }
     return (
       <div style={TEXT_STYLE}>
-        Network data transfer out from Google Cloud compute servers is charged
-        at a rate of {currency(cost)}/GB. This is the charge for all data that
-        leaves the compute server over the network. Incoming network data is
-        free. If your usage hits this limit during a month, your compute servers
-        are turned off.
+        <GoogleNetworkCost />
       </div>
     );
   }
@@ -219,5 +210,20 @@ function PriceWithToken({ text }) {
       <span style={{ color: "#000" }}>{text.split(" ")[0]}</span>
       <span style={{ color: "#666" }}> / 1K tokens</span>
     </span>
+  );
+}
+
+export function GoogleNetworkCost() {
+  const [markup, setMarkup] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    (async () => {
+      setMarkup((await getGoogleCloudPriceData()).markup);
+    })();
+  }, []);
+  return (
+    <>
+      The amount you pay is a {markup != null ? `${markup}%` : "small"} markup
+      on what Google actually charges CoCalc for your network usage.
+    </>
   );
 }

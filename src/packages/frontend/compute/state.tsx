@@ -7,13 +7,10 @@ import type {
 import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
 import { User } from "@cocalc/frontend/users";
 import { CSSProperties, useEffect, useState } from "react";
-import {
-  getGoogleCloudPriceData,
-  getNetworkUsage,
-  getServerState,
-} from "./api";
+import { getNetworkUsage, getServerState } from "./api";
 import { useInterval } from "react-interval-hook";
 import { currency, human_readable_size } from "@cocalc/util/misc";
+import { GoogleNetworkCost } from "@cocalc/frontend/purchases/pay-as-you-go/cost";
 
 interface Props {
   style?: CSSProperties;
@@ -138,23 +135,7 @@ function NetworkUsageCostEstimate({ period_end }) {
   return (
     <>
       The{" "}
-      <Tooltip
-        title={() => {
-          const [markup, setMarkup] = useState<number | undefined>(undefined);
-          useEffect(() => {
-            (async () => {
-              setMarkup((await getGoogleCloudPriceData()).markup);
-            })();
-          }, []);
-          return (
-            <>
-              The amount you pay is a {markup != null ? `${markup}%` : "small"}{" "}
-              markup on what Google actually charges CoCalc for your network
-              usage.
-            </>
-          );
-        }}
-      >
+      <Tooltip title={<GoogleNetworkCost />}>
         <span>
           <A href="https://cloud.google.com/vpc/network-pricing">rate</A>
         </span>
