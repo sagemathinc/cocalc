@@ -10,7 +10,7 @@ overrides:
   undici@<5.28.3: ^5.28.4
   postcss@<8.4.31: ^8.4.31
   retry-request@<7.0.1: ^7.0.2
-  '@langchain/core': ^0.2.5
+  '@langchain/core': ^0.2.10
   katex@<0.16.9: ^0.16.10
 
 importers:
@@ -1092,8 +1092,8 @@ importers:
         specifier: ^6.3.0
         version: 6.3.0
       dayjs:
-        specifier: ^1.11.10
-        version: 1.11.10
+        specifier: ^1.11.11
+        version: 1.11.11
       express:
         specifier: ^4.19.2
         version: 4.19.2
@@ -1349,8 +1349,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@google-ai/generativelanguage':
-        specifier: ^2.5.0
-        version: 2.5.0(encoding@0.1.13)
+        specifier: ^2.6.0
+        version: 2.6.0(encoding@0.1.13)
       '@google-cloud/compute':
         specifier: ^4.0.1
         version: 4.0.1(encoding@0.1.13)
@@ -1358,32 +1358,29 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0(encoding@0.1.13)
       '@google/generative-ai':
-        specifier: ^0.12.0
-        version: 0.12.0
+        specifier: ^0.14.0
+        version: 0.14.0
       '@isaacs/ttlcache':
         specifier: ^1.2.1
         version: 1.2.1
       '@langchain/anthropic':
-        specifier: ^0.1.21
-        version: 0.1.21(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+        specifier: ^0.2.2
+        version: 0.2.2(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       '@langchain/community':
-        specifier: ^0.2.4
-        version: 0.2.4(@google-ai/generativelanguage@2.5.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0)(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.47.2(encoding@0.1.13))(pg@8.11.5)(ws@8.17.0)
+        specifier: ^0.2.14
+        version: 0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.2.2))(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.11.5)(ws@8.17.0)
       '@langchain/core':
-        specifier: ^0.2.5
-        version: 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+        specifier: ^0.2.10
+        version: 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       '@langchain/google-genai':
-        specifier: ^0.0.16
-        version: 0.0.16(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))(zod@3.23.5)
+        specifier: ^0.0.21
+        version: 0.0.21(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))(zod@3.23.5)
       '@langchain/mistralai':
-        specifier: ^0.0.23
-        version: 0.0.23(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+        specifier: ^0.0.24
+        version: 0.0.24(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       '@langchain/openai':
-        specifier: ^0.1.0
-        version: 0.1.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))
-      '@mistralai/mistralai':
-        specifier: ^0.4.0
-        version: 0.4.0(encoding@0.1.13)
+        specifier: ^0.2.0
+        version: 0.2.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))
       '@node-saml/passport-saml':
         specifier: ^4.0.4
         version: 4.0.4
@@ -1397,11 +1394,11 @@ importers:
         specifier: ^2.1.4
         version: 2.1.4
       '@sendgrid/client':
-        specifier: ^8.1.1
-        version: 8.1.1
+        specifier: ^8.1.3
+        version: 8.1.3
       '@sendgrid/mail':
-        specifier: ^8.1.1
-        version: 8.1.1
+        specifier: ^8.1.3
+        version: 8.1.3
       '@types/async':
         specifier: ^2.0.43
         version: 2.4.2
@@ -1409,8 +1406,8 @@ importers:
         specifier: ^2.7.11
         version: 2.7.11
       '@types/dot-object':
-        specifier: ^2.1.2
-        version: 2.1.2
+        specifier: ^2.1.6
+        version: 2.1.6
       '@types/express':
         specifier: ^4.17.13
         version: 4.17.15
@@ -1475,17 +1472,14 @@ importers:
         specifier: ^0.8.0
         version: 0.8.0
       dayjs:
-        specifier: ^1.11.10
-        version: 1.11.10
+        specifier: ^1.11.11
+        version: 1.11.11
       dot-object:
         specifier: ^2.1.4
         version: 2.1.4
       express-session:
         specifier: ^1.17.3
         version: 1.17.3
-      google-auth-library:
-        specifier: ^9.4.1
-        version: 9.4.1(encoding@0.1.13)
       gpt3-tokenizer:
         specifier: ^1.1.5
         version: 1.1.5
@@ -1514,11 +1508,11 @@ importers:
         specifier: ^5.0.10
         version: 5.0.10(encoding@0.1.13)
       nodemailer:
-        specifier: ^6.9.9
-        version: 6.9.9
+        specifier: ^6.9.14
+        version: 6.9.14
       openai:
-        specifier: ^4.47.2
-        version: 4.47.2(encoding@0.1.13)
+        specifier: ^4.52.1
+        version: 4.52.1(encoding@0.1.13)
       parse-domain:
         specifier: ^5.0.0
         version: 5.0.0(encoding@0.1.13)
@@ -1982,8 +1976,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       dayjs:
-        specifier: ^1.11.10
-        version: 1.11.10
+        specifier: ^1.11.11
+        version: 1.11.11
       debug:
         specifier: ^4.3.2
         version: 4.3.4(supports-color@8.1.1)
@@ -2137,8 +2131,8 @@ packages:
     peerDependencies:
       react: '>=16.9.0'
 
-  '@anthropic-ai/sdk@0.21.1':
-    resolution: {integrity: sha512-fqdt74RTdplnaFOYhwNjjK/Ec09Dqv9ekYr7PuC6GdhV1RWkziqbpJBewn42CYYqCr92JeX6g+IXVgXmq9l7XQ==}
+  '@anthropic-ai/sdk@0.22.0':
+    resolution: {integrity: sha512-dv4BCC6FZJw3w66WNLsHlUFjhu19fS1L/5jMPApwhZLa/Oy1j0A2i3RypmDtHEPp4Wwg3aZkSHksp7VzYWjzmw==}
 
   '@babel/code-frame@7.21.4':
     resolution: {integrity: sha512-LYvhNKfwWSPpocw8GI7gpK2nq3HSDuEPC/uSYaALSJu9xjsalaaYFOq0Pwt5KmVqwEbZlDu81aLXwBOmD/Fv9g==}
@@ -2618,8 +2612,8 @@ packages:
     resolution: {integrity: sha512-+KpH+QxZU7O4675t3mnkQKcZZg56u+K/Ct2K+N2AZYNVK8kyeo/bI18tI8aPm3tvNNRyTWfj6s5tnGNlcbQRsA==}
     engines: {node: '>=14'}
 
-  '@google-ai/generativelanguage@2.5.0':
-    resolution: {integrity: sha512-M3ihN10el2mfoDWdnpzWNv8vcoqKFNmDaY7IviujAv5c+/p8kSwvjk2haTcOQ8lQOiihAWX3I7YtP1K4UaGnyA==}
+  '@google-ai/generativelanguage@2.6.0':
+    resolution: {integrity: sha512-T2tULO1/j4Gs1oYF9OMKCGXHE/m7aCPUonav32iu+sA4nN+acy5Z+Sz6yR4EzL+LkPSfkeW0FOjeRGkl5xtwvw==}
     engines: {node: '>=14.0.0'}
 
   '@google-cloud/compute@4.0.1':
@@ -2630,8 +2624,8 @@ packages:
     resolution: {integrity: sha512-7HBEWbusYzcaNr6aZHqM4sUmqYS7BCh5VashxHrurXU45yTwiYgfmqhHd4P1yO5J/zpVEDXPZBI+a+8nacQoqw==}
     engines: {node: '>=14.0.0'}
 
-  '@google/generative-ai@0.12.0':
-    resolution: {integrity: sha512-krWjurjEUHSFhCX4lGHMOhbnpBfYZGU31mpHpPBQwcfWm0T+/+wxC4UCAJfkxxc3/HvGJVG8r4AqrffaeDHDlA==}
+  '@google/generative-ai@0.14.0':
+    resolution: {integrity: sha512-wNgIGEpInlVd98SapqvnQX8HQz0zM43U9NMvrbIMKQzz2pQm60pJTeHHlICTDcy/yZNLsvFQ/RfD+Ck9H8K7vw==}
     engines: {node: '>=18.0.0'}
 
   '@google/generative-ai@0.7.1':
@@ -2824,12 +2818,12 @@ packages:
   '@jupyterlab/statedb@3.5.2':
     resolution: {integrity: sha512-BrxWSbCJ5MvDn0OiTC/Gv8vuPFIz6mbiQ6JTojcknK1YxDfMOqE5Hvl+f/oODSGnoaVu3s2czCjTMo1sPDjW8g==}
 
-  '@langchain/anthropic@0.1.21':
-    resolution: {integrity: sha512-7L5UDhO93UYfBwdaGxIqc5ZGSQ4wgMyYdENflLYhA9Aeho+BSHd0Krqh6zEHNGy4p+OrCElyDy58G8yiDEpxvw==}
+  '@langchain/anthropic@0.2.2':
+    resolution: {integrity: sha512-v8ey9WES5e+T07VB0jUjKdUNyjR/uHbDoWeAqL5hf8dAOY+aTsTAEFPK1xtgspUl3l9/A/buutvjpfkp9k+Ehg==}
     engines: {node: '>=18'}
 
-  '@langchain/community@0.2.4':
-    resolution: {integrity: sha512-rwrPNQLyIe84TPqPYbYOfDA4G/ba1rdj7OtZg63dQmxIvNDOmUCh4xIQac2iuRUnM3o4Ben0Faa9qz+V5oPgIA==}
+  '@langchain/community@0.2.14':
+    resolution: {integrity: sha512-AhSgqCo3/HFGPTqPmJd9+KWY07SL+joj0kXFdB5VZ/0VGv6r+83yIj+IwQusF2G+wza6Nb+nqpto/HLWSwGd8g==}
     engines: {node: '>=18'}
     peerDependencies:
       '@aws-crypto/sha256-js': ^5.0.0
@@ -2850,7 +2844,7 @@ packages:
       '@datastax/astra-db-ts': ^1.0.0
       '@elastic/elasticsearch': ^8.4.0
       '@getmetal/metal-sdk': '*'
-      '@getzep/zep-cloud': '*'
+      '@getzep/zep-cloud': ^1.0.6
       '@getzep/zep-js': ^0.9.0
       '@gomomento/sdk': ^1.51.1
       '@gomomento/sdk-core': ^1.51.1
@@ -2860,7 +2854,7 @@ packages:
       '@huggingface/inference': ^2.6.4
       '@layerup/layerup-security': ^1.5.12
       '@mendable/firecrawl-js': ^0.0.13
-      '@mlc-ai/web-llm': ^0.2.35
+      '@mlc-ai/web-llm': 0.2.46
       '@mozilla/readability': '*'
       '@neondatabase/serverless': '*'
       '@notionhq/client': ^2.2.10
@@ -2889,10 +2883,10 @@ packages:
       '@writerai/writer-sdk': ^0.40.2
       '@xata.io/client': ^0.28.0
       '@xenova/transformers': ^2.5.4
-      '@zilliz/milvus2-sdk-node': '>=2.2.7'
+      '@zilliz/milvus2-sdk-node': '>=2.3.5'
       apify-client: ^2.7.1
       assemblyai: ^4.0.0
-      better-sqlite3: ^9.4.0
+      better-sqlite3: '>=9.4.0 <12.0.0'
       cassandra-driver: ^4.7.2
       cborg: ^4.1.1
       cheerio: ^1.0.0-rc.12
@@ -2903,6 +2897,7 @@ packages:
       cohere-ai: '*'
       convex: ^1.3.1
       couchbase: ^4.3.0
+      crypto-js: ^4.2.0
       d3-dsv: ^2.0.0
       discord.js: ^14.14.1
       dria: ^0.0.3
@@ -2941,7 +2936,7 @@ packages:
       replicate: ^0.29.4
       sonix-speech-recognition: ^2.1.1
       srt-parser-2: ^1.2.3
-      typeorm: ^0.3.12
+      typeorm: ^0.3.20
       typesense: ^1.5.3
       usearch: ^1.1.1
       vectordb: ^0.1.4
@@ -3094,6 +3089,8 @@ packages:
         optional: true
       couchbase:
         optional: true
+      crypto-js:
+        optional: true
       d3-dsv:
         optional: true
       discord.js:
@@ -3191,16 +3188,16 @@ packages:
       youtubei.js:
         optional: true
 
-  '@langchain/core@0.2.5':
-    resolution: {integrity: sha512-tMaKRFVewFn8crQwlbXGjT7hlMdX1yXHap1ebBx7Bb2C3C9AeZ+sXbX11m27yamypNlVVegwUcisw3YCaDkZJA==}
+  '@langchain/core@0.2.10':
+    resolution: {integrity: sha512-M0WIaz7cdC5ilyfjAmxuJl88QP2i1EIPozjstkVNuOvA4gb16sfkhitQ2sGRDQwPsAL3+O1nLjAWYyrR9r1AIg==}
     engines: {node: '>=18'}
 
-  '@langchain/google-genai@0.0.16':
-    resolution: {integrity: sha512-aUHEeY7sTwxNqj7L5scvnOhNLOKPVSvf7HR6p1Y3M7BPyU63fXP7faB+qyuHmibtKU8pj+ApoXPpjRflYKSv4w==}
+  '@langchain/google-genai@0.0.21':
+    resolution: {integrity: sha512-WC+0BMIeYx6p4V3tjJc/FADU/uOGXTYcAn7KjCjFO+uc0vg74Lul4T84/VLB1oCUZcj/bF6WeQazRkqPoXUo7A==}
     engines: {node: '>=18'}
 
-  '@langchain/mistralai@0.0.23':
-    resolution: {integrity: sha512-0huhT3KXqrD1u20e2NWpBlprBoNidw4Q4hjBI9DySCb1Gx4wSIV6y8kswsWRfM1VDBZvJcCVLeVuOSAyShoFug==}
+  '@langchain/mistralai@0.0.24':
+    resolution: {integrity: sha512-rSABqabqA7WyNK3fCPLLwLGGW+Sb1O0MQ0N2e0S+D1VGmqPrZKfPtoS0/JRInUdmDJa7DyOpXQjBiX76EGyA0g==}
     engines: {node: '>=18'}
 
   '@langchain/openai@0.0.29':
@@ -3209,6 +3206,10 @@ packages:
 
   '@langchain/openai@0.1.0':
     resolution: {integrity: sha512-jm7U9oxXQ2N03q3+S9CzEAmMJaL2FqdAi4bOYdEBS0aAWAU29so35ZOs5i2uu4W29mK9oV9XS/4A5ggR1gOLEA==}
+    engines: {node: '>=18'}
+
+  '@langchain/openai@0.2.0':
+    resolution: {integrity: sha512-gZd+0IOxpiKuh1m6KTT5vtUoOO72GEYyoU4+c6qAUucOEqQS0Vvz3lMGyNWLjK4x4Xpd+r8GAF5mj/jvghwP1A==}
     engines: {node: '>=18'}
 
   '@langchain/textsplitters@0.0.0':
@@ -3660,16 +3661,16 @@ packages:
     peerDependencies:
       react: '>=16.8'
 
-  '@sendgrid/client@8.1.1':
-    resolution: {integrity: sha512-pg0gYhAdyQil3Aga7/xHVcZFpvDAjAQMNBgMy5njTSkjACoWHmpSi1nWBZM7nIH/ptcRNMpnBbm9B5EvQ8fX2w==}
+  '@sendgrid/client@8.1.3':
+    resolution: {integrity: sha512-mRwTticRZIdUTsnyzvlK6dMu3jni9ci9J+dW/6fMMFpGRAJdCJlivFVYQvqk8kRS3RnFzS7sf6BSmhLl1ldDhA==}
     engines: {node: '>=12.*'}
 
   '@sendgrid/helpers@8.0.0':
     resolution: {integrity: sha512-Ze7WuW2Xzy5GT5WRx+yEv89fsg/pgy3T1E3FS0QEx0/VvRmigMZ5qyVGhJz4SxomegDkzXv/i0aFPpHKN8qdAA==}
     engines: {node: '>= 12.0.0'}
 
-  '@sendgrid/mail@8.1.1':
-    resolution: {integrity: sha512-tNtmgWLtBA7ZxKtPuEGOaIdEZP1vZSXsj5zg9iuoDBPVj/fNz+7LWzndvTcKumHk5eaDrS0UPXJqBm61m3+H1A==}
+  '@sendgrid/mail@8.1.3':
+    resolution: {integrity: sha512-Wg5iKSUOER83/cfY6rbPa+o3ChnYzWwv1OcsR8gCV8SKi+sUPIMroildimlnb72DBkQxcbylxng1W7f0RIX7MQ==}
     engines: {node: '>=12.*'}
 
   '@sevinf/maybe@0.5.0':
@@ -3859,8 +3860,8 @@ packages:
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
 
-  '@types/dot-object@2.1.2':
-    resolution: {integrity: sha512-mARrpJofLNe6yhlukeBcznBe8ssZo5ZJ/CJWc3JKmG9L9151s0OHK+mealnkqSgO6cSn1219vND2wgL67Cuqiw==}
+  '@types/dot-object@2.1.6':
+    resolution: {integrity: sha512-G1e4SNPOuO72ZXv7wz/W2x29CzQtpxko3G9hBiHqGg/AvFIKoArCs2nbc/WPXnnUkO+1dmvX9WQCyj5gIlAzZg==}
 
   '@types/eslint-scope@3.7.4':
     resolution: {integrity: sha512-9K4zoImiZc3HlIp6AVUDE4CWYx22a+lhSZMYNpbjW04+YF0KWj4pJXnEMjdnFTiQibFFmElcsasJXDbdI/EPhA==}
@@ -5541,6 +5542,9 @@ packages:
 
   dayjs@1.11.10:
     resolution: {integrity: sha512-vjAczensTgRcqDERK0SR2XMwsF/tSvnvlv6VcF2GIhg6Sx4yOIt/irsr1RDJsKiIyBzJDpCoXiWWq28MqH2cnQ==}
+
+  dayjs@1.11.11:
+    resolution: {integrity: sha512-okzr3f11N6WuqYtZSvm+F776mB41wRZMhKP+hc34YdW+KmtYYK9iqvHSwo2k9FEH3fhGXvOPV6yz2IcSrfRUDg==}
 
   debug@2.6.9:
     resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
@@ -7528,9 +7532,6 @@ packages:
   js-cookie@2.2.1:
     resolution: {integrity: sha512-HvdH2LzI/EAZcUwA8+0nKNtWHqS+ZmijLA30RwZA0bo7ToCckjK5MkGhjED9KoRcXO6BaGI3I9UIzSA1FKFPOQ==}
 
-  js-tiktoken@1.0.10:
-    resolution: {integrity: sha512-ZoSxbGjvGyMT13x6ACo9ebhDha/0FHdKA+OsQcMOWcm1Zs7r90Rhk5lhERLzji+3rA7EKpXCgwXcM5fF3DMpdA==}
-
   js-tiktoken@1.0.12:
     resolution: {integrity: sha512-L7wURW1fH9Qaext0VzaUDpFGVQgjkdE3Dgsy9/+yXyGEpBKnylTd0mU0bfbNkKDlXRb6TEsZkwuflu1B8uQbJQ==}
 
@@ -7849,7 +7850,7 @@ packages:
   langsmith@0.1.30:
     resolution: {integrity: sha512-g8f10H1iiRjCweXJjgM3Y9xl6ApCa1OThDvc0BlSDLVrGVPy1on9wT39vAzYkeadC7oG48p7gfpGlYH3kLkJ9Q==}
     peerDependencies:
-      '@langchain/core': ^0.2.5
+      '@langchain/core': ^0.2.10
       langchain: '*'
       openai: '*'
     peerDependenciesMeta:
@@ -8481,8 +8482,8 @@ packages:
     resolution: {integrity: sha512-/xSACXAl4VLSLqUyql3dezEe9JgmyoQRBod5/At6FmvPMAsgGFn9KpVkbDpOprEW5MIJaRjYWjP2sCZDPqdQHA==}
     engines: {node: '>= 18'}
 
-  nodemailer@6.9.9:
-    resolution: {integrity: sha512-dexTll8zqQoVJEZPwQAKzxxtFn0qTnjdQTchoU6Re9BUUGBJiOy3YMn/0ShTW6J5M0dfQ1NeDeRTTl4oIWgQMA==}
+  nodemailer@6.9.14:
+    resolution: {integrity: sha512-Dobp/ebDKBvz91sbtRKhcznLThrKxKt97GI2FAlAyy+fk19j73Uz3sBXolVtmcXjaorivqsbbbjDY+Jkt4/bQA==}
     engines: {node: '>=6.0.0'}
 
   nopt@5.0.0:
@@ -8607,8 +8608,8 @@ packages:
     resolution: {integrity: sha512-1FlR+gjXK7X+AsAHso35MnyN5KqGwJRi/31ft6x0M194ht7S+rWAvd7PHss9xSKMzE0asv1pyIHaJYq+BbacAQ==}
     engines: {node: '>=12'}
 
-  openai@4.47.2:
-    resolution: {integrity: sha512-E3Wq9mYdDSLajmcJm9RO/lCegTKrQ7ilAkMbhob4UgGhTjHwIHI+mXNDNPl5+sGIUp2iVUkpoi772FjYa7JlqA==}
+  openai@4.52.1:
+    resolution: {integrity: sha512-kv2hevAWZZ3I/vd2t8znGO2rd8wkowncsfcYpo8i+wU9ML+JEcdqiViANXXjWWGjIhajFNixE6gOY1fEgqILAg==}
     hasBin: true
 
   openapi-types@12.1.3:
@@ -11532,7 +11533,7 @@ snapshots:
       resize-observer-polyfill: 1.5.1
       throttle-debounce: 5.0.0
 
-  '@anthropic-ai/sdk@0.21.1(encoding@0.1.13)':
+  '@anthropic-ai/sdk@0.22.0(encoding@0.1.13)':
     dependencies:
       '@types/node': 18.19.31
       '@types/node-fetch': 2.6.11
@@ -12111,7 +12112,7 @@ snapshots:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
       csv-parse: 5.5.6
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -12199,7 +12200,7 @@ snapshots:
 
   '@fastify/busboy@2.1.0': {}
 
-  '@google-ai/generativelanguage@2.5.0(encoding@0.1.13)':
+  '@google-ai/generativelanguage@2.6.0(encoding@0.1.13)':
     dependencies:
       google-gax: 4.0.4(encoding@0.1.13)
     transitivePeerDependencies:
@@ -12220,7 +12221,7 @@ snapshots:
       - encoding
       - supports-color
 
-  '@google/generative-ai@0.12.0': {}
+  '@google/generative-ai@0.14.0': {}
 
   '@google/generative-ai@0.7.1': {}
 
@@ -12609,10 +12610,10 @@ snapshots:
     transitivePeerDependencies:
       - crypto
 
-  '@langchain/anthropic@0.1.21(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))':
+  '@langchain/anthropic@0.2.2(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))':
     dependencies:
-      '@anthropic-ai/sdk': 0.21.1(encoding@0.1.13)
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      '@anthropic-ai/sdk': 0.22.0(encoding@0.1.13)
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       fast-xml-parser: 4.4.0
       zod: 3.23.5
       zod-to-json-schema: 3.23.0(zod@3.23.5)
@@ -12621,22 +12622,22 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/community@0.2.4(@google-ai/generativelanguage@2.5.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0)(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.47.2(encoding@0.1.13))(pg@8.11.5)(ws@8.17.0)':
+  '@langchain/community@0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.2.2))(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.11.5)(ws@8.17.0)':
     dependencies:
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
-      '@langchain/openai': 0.0.29(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
+      '@langchain/openai': 0.1.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))
       binary-extensions: 2.2.0
       expr-eval: 2.0.2
       flat: 5.0.2
       js-yaml: 4.1.0
-      langchain: 0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0)
-      langsmith: 0.1.30(@langchain/core@0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13)))(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      langchain: 0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0)
+      langsmith: 0.1.30(@langchain/core@0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13)))(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       uuid: 9.0.1
       zod: 3.23.5
       zod-to-json-schema: 3.23.0(zod@3.23.5)
     optionalDependencies:
-      '@google-ai/generativelanguage': 2.5.0(encoding@0.1.13)
-      '@qdrant/js-client-rest': 1.9.0
+      '@google-ai/generativelanguage': 2.6.0(encoding@0.1.13)
+      '@qdrant/js-client-rest': 1.9.0(typescript@5.2.2)
       cheerio: 1.0.0-rc.12
       google-auth-library: 9.4.1(encoding@0.1.13)
       ignore: 5.3.1
@@ -12654,13 +12655,13 @@ snapshots:
       - peggy
       - pyodide
 
-  '@langchain/core@0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))':
+  '@langchain/core@0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))':
     dependencies:
       ansi-styles: 5.2.0
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.12
-      langsmith: 0.1.30(@langchain/core@0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13)))(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      langsmith: 0.1.30(@langchain/core@0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13)))(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       ml-distance: 4.0.1
       mustache: 4.2.0
       p-queue: 6.6.2
@@ -12672,19 +12673,19 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/google-genai@0.0.16(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))(zod@3.23.5)':
+  '@langchain/google-genai@0.0.21(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))(zod@3.23.5)':
     dependencies:
       '@google/generative-ai': 0.7.1
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       zod-to-json-schema: 3.23.0(zod@3.23.5)
     transitivePeerDependencies:
       - langchain
       - openai
       - zod
 
-  '@langchain/mistralai@0.0.23(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))':
+  '@langchain/mistralai@0.0.24(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))':
     dependencies:
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       '@mistralai/mistralai': 0.4.0(encoding@0.1.13)
       uuid: 9.0.1
       zod: 3.23.5
@@ -12694,31 +12695,42 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/openai@0.0.29(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))':
+  '@langchain/openai@0.0.29(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))':
     dependencies:
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
-      js-tiktoken: 1.0.10
-      openai: 4.47.2(encoding@0.1.13)
-      zod: 3.23.5
-      zod-to-json-schema: 3.23.0(zod@3.23.5)
-    transitivePeerDependencies:
-      - encoding
-      - langchain
-
-  '@langchain/openai@0.1.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))':
-    dependencies:
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       js-tiktoken: 1.0.12
-      openai: 4.47.2(encoding@0.1.13)
+      openai: 4.52.1(encoding@0.1.13)
       zod: 3.23.5
       zod-to-json-schema: 3.23.0(zod@3.23.5)
     transitivePeerDependencies:
       - encoding
       - langchain
 
-  '@langchain/textsplitters@0.0.0(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))':
+  '@langchain/openai@0.1.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))':
     dependencies:
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
+      js-tiktoken: 1.0.12
+      openai: 4.52.1(encoding@0.1.13)
+      zod: 3.23.5
+      zod-to-json-schema: 3.23.0(zod@3.23.5)
+    transitivePeerDependencies:
+      - encoding
+      - langchain
+
+  '@langchain/openai@0.2.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))':
+    dependencies:
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
+      js-tiktoken: 1.0.12
+      openai: 4.52.1(encoding@0.1.13)
+      zod: 3.23.5
+      zod-to-json-schema: 3.23.0(zod@3.23.5)
+    transitivePeerDependencies:
+      - encoding
+      - langchain
+
+  '@langchain/textsplitters@0.0.0(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))':
+    dependencies:
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       js-tiktoken: 1.0.12
     transitivePeerDependencies:
       - langchain
@@ -12865,7 +12877,7 @@ snapshots:
 
   '@mistralai/mistralai@0.4.0(encoding@0.1.13)':
     dependencies:
-      node-fetch: 2.6.7(encoding@0.1.13)
+      node-fetch: 2.7.0(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
 
@@ -12934,7 +12946,7 @@ snapshots:
       '@types/xml-encryption': 1.2.2
       '@types/xml2js': 0.4.12
       '@xmldom/xmldom': 0.8.10
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
       xml-crypto: 3.2.0
       xml-encryption: 3.0.2
       xml2js: 0.5.0
@@ -13178,10 +13190,11 @@ snapshots:
       typescript: 5.4.5
       undici: 5.28.4
 
-  '@qdrant/js-client-rest@1.9.0':
+  '@qdrant/js-client-rest@1.9.0(typescript@5.2.2)':
     dependencies:
       '@qdrant/openapi-typescript-fetch': 1.2.6
       '@sevinf/maybe': 0.5.0
+      typescript: 5.2.2
       undici: 5.28.4
     optional: true
 
@@ -13266,7 +13279,7 @@ snapshots:
       '@react-hook/latest': 1.0.3(react@18.2.0)
       react: 18.2.0
 
-  '@sendgrid/client@8.1.1':
+  '@sendgrid/client@8.1.3':
     dependencies:
       '@sendgrid/helpers': 8.0.0
       axios: 1.6.8
@@ -13277,9 +13290,9 @@ snapshots:
     dependencies:
       deepmerge: 4.3.1
 
-  '@sendgrid/mail@8.1.1':
+  '@sendgrid/mail@8.1.3':
     dependencies:
-      '@sendgrid/client': 8.1.1
+      '@sendgrid/client': 8.1.3
       '@sendgrid/helpers': 8.0.0
     transitivePeerDependencies:
       - debug
@@ -13476,7 +13489,7 @@ snapshots:
     dependencies:
       '@types/ms': 0.7.31
 
-  '@types/dot-object@2.1.2': {}
+  '@types/dot-object@2.1.6': {}
 
   '@types/eslint-scope@3.7.4':
     dependencies:
@@ -14140,13 +14153,13 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -14434,7 +14447,7 @@ snapshots:
 
   axios@1.6.8:
     dependencies:
-      follow-redirects: 1.15.6
+      follow-redirects: 1.15.6(debug@4.3.4)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -15417,15 +15430,13 @@ snapshots:
 
   dayjs@1.11.10: {}
 
+  dayjs@1.11.11: {}
+
   debug@2.6.9:
     dependencies:
       ms: 2.0.0
 
   debug@3.2.7:
-    dependencies:
-      ms: 2.1.2
-
-  debug@4.3.4:
     dependencies:
       ms: 2.1.2
 
@@ -16404,8 +16415,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  follow-redirects@1.15.6: {}
-
   follow-redirects@1.15.6(debug@4.3.4):
     optionalDependencies:
       debug: 4.3.4(supports-color@8.1.1)
@@ -17132,7 +17141,7 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -17147,14 +17156,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.3.4
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -18073,10 +18082,6 @@ snapshots:
 
   js-cookie@2.2.1: {}
 
-  js-tiktoken@1.0.10:
-    dependencies:
-      base64-js: 1.5.1
-
   js-tiktoken@1.0.12:
     dependencies:
       base64-js: 1.5.1
@@ -18252,17 +18257,17 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0):
+  langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0):
     dependencies:
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
-      '@langchain/openai': 0.0.29(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))
-      '@langchain/textsplitters': 0.0.0(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
+      '@langchain/openai': 0.0.29(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))
+      '@langchain/textsplitters': 0.0.0(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       binary-extensions: 2.2.0
       js-tiktoken: 1.0.12
       js-yaml: 4.1.0
       jsonpointer: 5.0.1
       langchainhub: 0.0.10
-      langsmith: 0.1.30(@langchain/core@0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13)))(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
+      langsmith: 0.1.30(@langchain/core@0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13)))(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
       ml-distance: 4.0.1
       openapi-types: 12.1.3
       p-retry: 4.6.2
@@ -18285,7 +18290,7 @@ snapshots:
 
   langs@2.0.0: {}
 
-  langsmith@0.1.30(@langchain/core@0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13)))(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13)):
+  langsmith@0.1.30(@langchain/core@0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13)))(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13)):
     dependencies:
       '@types/uuid': 9.0.8
       commander: 10.0.1
@@ -18293,9 +18298,9 @@ snapshots:
       p-retry: 4.6.2
       uuid: 9.0.1
     optionalDependencies:
-      '@langchain/core': 0.2.5(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0))(openai@4.47.2(encoding@0.1.13))
-      langchain: 0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.47.2(encoding@0.1.13))(ws@8.17.0)
-      openai: 4.47.2(encoding@0.1.13)
+      '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0))(openai@4.52.1(encoding@0.1.13))
+      langchain: 0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.0)
+      openai: 4.52.1(encoding@0.1.13)
 
   ldap-filter@0.3.3:
     dependencies:
@@ -19031,7 +19036,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  nodemailer@6.9.9: {}
+  nodemailer@6.9.14: {}
 
   nopt@5.0.0:
     dependencies:
@@ -19223,7 +19228,7 @@ snapshots:
     dependencies:
       mimic-fn: 4.0.0
 
-  openai@4.47.2(encoding@0.1.13):
+  openai@4.52.1(encoding@0.1.13):
     dependencies:
       '@types/node': 18.19.31
       '@types/node-fetch': 2.6.11

@@ -1,4 +1,4 @@
-import { log } from "console";
+// import { log } from "console";
 
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import {
@@ -96,7 +96,6 @@ test_llm("google")("Google GenAI", () => {
         client: genAI as any as GoogleGenAIClient,
         ...QUERY,
       });
-      log("google answer", answer);
       checkAnswer(answer);
     },
     10 * 1000,
