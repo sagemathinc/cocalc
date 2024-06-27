@@ -304,10 +304,19 @@ async function manageNetworkPurchases({
   server,
   stableState,
 }) {
+  logger.debug(
+    "manageNetworkPurchases:",
+    networkPurchases.length,
+    " purchases",
+  );
   if (networkPurchases.length == 0) {
     // nothing to do
     return;
   }
+
+  // compute final costs of any sufficiently long closed network purchases (via bigquery)
+  await computeNetworkPurchaseCosts({ networkPurchases, server });
+
   if (
     server.state != "running" &&
     stableState != "running" &&
@@ -326,12 +335,12 @@ async function manageNetworkPurchases({
     // are still taking a very real risk!).
     await updateNetworkUsage({ networkPurchases, server });
   }
-
-  // possibly compute final costs of any network purchases (via bigquery)
-  await computeNetworkPurchaseCosts({ networkPurchases, server });
 }
 
-export async function computeNetworkPurchaseCosts({ networkPurchases, server }) {
+export async function computeNetworkPurchaseCosts({
+  networkPurchases,
+  server,
+}) {
   const cutoff = Date.now() - GOOGLE_COST_LAG_MS;
   const purchases = networkPurchases.filter(
     ({ period_end, cost }) =>
@@ -382,6 +391,10 @@ export async function computeNetworkPurchaseCosts({ networkPurchases, server }) 
 
 async function endNetworkPurchases({ networkPurchases, server }) {
   for (const purchase of networkPurchases) {
+    if (purchase.period_end != null) {
+      // this has already been ended.
+      continue;
+    }
     // only take purchases that started at least MIN_NETWORK_CLOSE_DELAY_MS ago,
     // since a new one could have started and we don't want to end that.
     if (

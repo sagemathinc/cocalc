@@ -46,6 +46,7 @@ export function ComputeServerNetworkUsageDescription({
         amount={amount}
         style={{ display: "inline-block" }}
         period_end={period_end}
+        cost={description.cost}
       />{" "}
       Network used by <InlineComputeServer id={id} />.{" "}
       {period_end == null && (
