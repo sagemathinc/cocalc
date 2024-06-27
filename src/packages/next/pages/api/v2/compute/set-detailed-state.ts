@@ -13,11 +13,11 @@ import getParams from "lib/api/get-params";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   SetDetailedServerStateInputSchema,
-  SetDetailedServerStateOutputSchema
+  SetDetailedServerStateOutputSchema,
 } from "lib/api/schema/compute/set-detailed-state";
-
 
 async function handle(req, res) {
   try {
@@ -72,14 +72,14 @@ async function get(req) {
     timeout,
     progress,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   setDetailedState: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

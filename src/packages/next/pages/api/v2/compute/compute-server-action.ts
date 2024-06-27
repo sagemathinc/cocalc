@@ -8,11 +8,11 @@ import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   ComputeServerActionInputSchema,
   ComputeServerActionOutputSchema,
 } from "lib/api/schema/compute/compute-server-action";
-
 
 async function handle(req, res) {
   try {
@@ -34,14 +34,14 @@ async function get(req) {
     id,
     action,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   serverAction: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

@@ -1,6 +1,6 @@
 import { z } from "../framework";
 
-const BasicallyAnHTTP204 = (status: string) =>
+const BasicallyAnHTTP204 = <T extends string>(status: T) =>
   z.object({
     status: z.enum([status]).describe(
       `Indicates the status of this operation; if the operation was successful, the 

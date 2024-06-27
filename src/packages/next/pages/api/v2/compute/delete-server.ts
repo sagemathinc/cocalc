@@ -8,11 +8,11 @@ import deleteServer from "@cocalc/server/compute/delete-server";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   DeleteComputeServerInputSchema,
-  DeleteComputeServerOutputSchema
+  DeleteComputeServerOutputSchema,
 } from "lib/api/schema/compute/delete-server";
-
 
 async function handle(req, res) {
   try {
@@ -33,14 +33,14 @@ async function get(req) {
     account_id,
     id,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   deleteServer: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

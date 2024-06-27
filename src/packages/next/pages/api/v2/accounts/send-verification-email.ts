@@ -12,6 +12,7 @@ import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { SuccessStatus } from "lib/api/status";
 import {
   SendAccountVerificationEmailInputSchema,
   SendAccountVerificationEmailOutputSchema,
@@ -30,7 +31,7 @@ async function handle(req, res) {
     if (msg) {
       res.json({ error: msg });
     } else {
-      res.json({ status: "success" });
+      res.json(SuccessStatus);
     }
   } catch (err) {
     res.json({ error: err.message });
