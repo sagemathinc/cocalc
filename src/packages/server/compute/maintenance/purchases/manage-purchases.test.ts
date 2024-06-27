@@ -194,6 +194,7 @@ describe("confirm managing of purchases works", () => {
     if (network.description.type != "compute-server-network-usage") {
       throw Error("bug");
     }
+    expect(network.cost).toBe(null);
     expect(network.cost_so_far).toBe(0);
     expect(network.description.amount).toBe(389);
   });
@@ -266,7 +267,7 @@ describe("confirm managing of purchases works", () => {
   // rule 6
   it("make time long so that balance is exceeded (but not by too much), and see that server gets stopped due to too low balance, and an email is sent to the user", async () => {
     resetTestEmails();
-    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 5));
+    await setPurchaseStart(new Date(Date.now() - 1000 * 60 * 60 * 24 * 10));
     const pool = getPool();
     await pool.query(
       "UPDATE compute_servers SET state='running', update_purchase=TRUE WHERE id=$1",
@@ -285,18 +286,22 @@ describe("confirm managing of purchases works", () => {
       "Action Taken: Computer Server Turned Off",
     );
 
-    // the network purchases is still active, but NOT the 'running' one:
+    // the two network purchases are still outstanding (since we have to wait two days), but NOT the 'running' one:
     const purchases = await outstandingPurchases(server);
-    expect(purchases.length).toBe(1);
+    expect(purchases.length).toBe(2);
+    expect(!!purchases[0].period_end).toBe(true);
+    expect(purchases[0].service).toBe("compute-server-network-usage");
+    expect(purchases[1].period_end).toBe(null);
+    expect(purchases[1].service).toBe("compute-server-network-usage");
     // Do another update loop:
     await pool.query(
       "UPDATE compute_servers SET update_purchase=TRUE WHERE id=$1",
       [server_id],
     );
     await managePurchases();
-    // and now there is a network and off purchase.
+    // and now there is are two network and one off purchase.
     const purchases2 = await outstandingPurchases(server);
-    expect(purchases2.length).toBe(2);
+    expect(purchases2.length).toBe(3);
   });
 
   it("shut off machine instead of starting purchase when user doesn't have enough money", async () => {

@@ -361,8 +361,7 @@ async function updateNetworkUsage({ networkPurchases, server }) {
         purchase.description.amount = network.amount;
         purchase.description.last_updated = end.valueOf();
         const pool = getPool();
-        await pool.query("UPDATE purchases SET description=$2 WHERE id=$3", [
-          network.cost,
+        await pool.query("UPDATE purchases SET description=$1 WHERE id=$2", [
           purchase.description,
           purchase.id,
         ]);
