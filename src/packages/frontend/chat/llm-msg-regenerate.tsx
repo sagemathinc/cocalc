@@ -184,7 +184,6 @@ export function RegenerateLLM({
         <Button
           size="small"
           type="text"
-          icon={<Icon name="refresh" />}
           style={{
             display: "inline",
             whiteSpace: "nowrap",
@@ -193,6 +192,7 @@ export function RegenerateLLM({
           }}
         >
           <Space>
+            <Icon name="refresh" />
             Regenerate
             <Icon name="chevron-down" />
           </Space>

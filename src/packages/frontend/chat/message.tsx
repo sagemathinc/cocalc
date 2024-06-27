@@ -743,7 +743,7 @@ export default function Message(props: Readonly<Props>) {
               <Avatar
                 account_id={isLLMThread}
                 size={16}
-                style={{ marginLeft: "10px", marginBottom: "2.5px" }}
+                style={{ top: "-5px" }}
               />
             ) : undefined}
           </Button>
