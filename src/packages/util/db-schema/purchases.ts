@@ -79,9 +79,10 @@ export interface ComputeServer {
 
 export interface ComputeServerNetworkUsage {
   type: "compute-server-network-usage";
+  cost?: number;
   compute_server_id: number;
   amount: number; // amount of data used in GB
-  last_updated: number;
+  last_updated?: number;
 }
 
 export interface License {
