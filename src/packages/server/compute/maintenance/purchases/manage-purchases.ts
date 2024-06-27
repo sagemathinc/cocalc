@@ -26,6 +26,7 @@ import lowBalance from "./low-balance";
 
 const logger = getLogger("server:compute:maintenance:purchases:manage");
 
+// we assumein close.ts that MIN_NETWORK_CLOSE_DELAY_MS is well over 1 hour.
 export const MIN_NETWORK_CLOSE_DELAY_MS = 2 * 60 * 1000;
 
 // a single purchase is split once it exceeds this length:
@@ -360,10 +361,11 @@ async function updateNetworkUsage({ networkPurchases, server }) {
         purchase.description.amount = network.amount;
         purchase.description.last_updated = end.valueOf();
         const pool = getPool();
-        await pool.query(
-          "UPDATE purchases SET cost_so_far=$1, description=$2 WHERE id=$3",
-          [network.cost, purchase.description, purchase.id],
-        );
+        await pool.query("UPDATE purchases SET description=$2 WHERE id=$3", [
+          network.cost,
+          purchase.description,
+          purchase.id,
+        ]);
       }
     }
   }

@@ -1,13 +1,17 @@
-import { Icon } from "@cocalc/frontend/components";
+import { A, Icon, TimeAgo } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import type {
   State,
   Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Divider, Popover, Progress, Spin } from "antd";
+import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
 import { User } from "@cocalc/frontend/users";
 import { CSSProperties, useEffect, useState } from "react";
-import { getNetworkUsage, getServerState } from "./api";
+import {
+  getGoogleCloudPriceData,
+  getNetworkUsage,
+  getServerState,
+} from "./api";
 import { useInterval } from "react-interval-hook";
 import { currency, human_readable_size } from "@cocalc/util/misc";
 
@@ -114,19 +118,75 @@ export default function State({
   );
 }
 
+function NetworkUsageCostEstimate({ period_end }) {
+  let whenKnown;
+  if (period_end) {
+    const msAgo = Date.now() - period_end.valueOf();
+    const howLong = Math.max(0, 1000 * 60 * 60 * 24 * 2 - msAgo);
+    if (howLong == 0) {
+      whenKnown = "soon";
+    } else {
+      whenKnown = (
+        <>
+          around <TimeAgo date={new Date(Date.now() + howLong)} />
+        </>
+      );
+    }
+  } else {
+    whenKnown = "";
+  }
+  return (
+    <>
+      The{" "}
+      <Tooltip
+        title={() => {
+          const [markup, setMarkup] = useState<number | undefined>(undefined);
+          useEffect(() => {
+            (async () => {
+              setMarkup((await getGoogleCloudPriceData()).markup);
+            })();
+          }, []);
+          return (
+            <>
+              The amount you pay is a {markup != null ? `${markup}%` : "small"}{" "}
+              markup on what Google actually charges CoCalc for your network
+              usage.
+            </>
+          );
+        }}
+      >
+        <span>
+          <A href="https://cloud.google.com/vpc/network-pricing">rate</A>
+        </span>
+      </Tooltip>{" "}
+      depends on the destination
+      {whenKnown ? <>, and will be finalized {whenKnown}.</> : "."}
+    </>
+  );
+}
+
 export function DisplayNetworkUsage({
   amount,
   cost,
   style,
+  period_end,
 }: {
   amount: number;
   cost?: number;
   style?;
+  period_end?: Date;
 }) {
+  if (cost == null) {
+  }
   return (
     <div style={style}>
       <Icon name="network-wired" /> {human_readable_size(amount * 2 ** 30)} of
-      network data transfer out{cost != null && <>: {currency(cost)}</>}
+      network data transfer out.{" "}
+      {cost != null ? (
+        <>Final Cost: {currency(cost)}</>
+      ) : (
+        <NetworkUsageCostEstimate period_end={period_end} />
+      )}
     </div>
   );
 }

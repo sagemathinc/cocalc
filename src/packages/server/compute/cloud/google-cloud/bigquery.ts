@@ -34,10 +34,11 @@ interface LineItem {
 // The time resolution is HOURS.  I.e., the start and end times for actual metered
 // usage by Google cloud are exact hours, i.e., the minutes and seconds are always 0.
 // There is a datapoint for each hour.  The data is delayed by about 24 hours, but
-// I think officially we should assume a 48 hour delay to be 100% safe.
+// I think we should assume a 48 hour delay to be 99% safe (nothing is actually safe
+// because google has no SLA for this - in practice the lag is typically less than 1 day).
 // We programatically enforce that all date inputs are at least this far in the past
 // to ensure we do not undercharge due to missing data!
-const MIN_LAG_DAYS = 2;
+const MIN_LAG_DAYS = 1;
 
 function assertLag(timestamp: Date) {
   if (Date.now() - timestamp.valueOf() < MIN_LAG_DAYS * 1000 * 60 * 60 * 24) {

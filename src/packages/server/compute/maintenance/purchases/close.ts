@@ -178,9 +178,19 @@ export async function closeAndPossiblyContinueNetworkPurchase({
   }
 
   // go slightly back in time so that the network usage data is likely
-  // to be all there by now, hopefully (any that isn't we are just giving
-  // away for free).
-  const end = new Date(Date.now() - 2 * MIN_NETWORK_CLOSE_DELAY_MS);
+  // to be all there by now, hopefully (any that isn't we just miss
+  // in the statement).  We are now going to do the actual cost calculation
+  // 2 days later using bigquery export, so nothing is missed.
+  // However, we want to end on an hour boundary, since Google cloud billing export
+  // is on hour boundaries. So go forward in time a little more.
+  let end = new Date(Date.now() - 2 * MIN_NETWORK_CLOSE_DELAY_MS);
+  end.setSeconds(0);
+  if (end.getMinutes() !== 0) {
+    let milliseconds_to_next_hour = (60 - end.getMinutes()) * 60 * 1000;
+    end = new Date(end.getTime() + milliseconds_to_next_hour);
+    end.setMinutes(0);
+  }
+
   const newPurchase = cloneDeep(purchase);
   if (newPurchase.description.type != "compute-server-network-usage") {
     throw Error("bug");
@@ -216,6 +226,9 @@ export async function closeAndPossiblyContinueNetworkPurchase({
   // Very important to do this as atomic transaction so we
   // don't end up with two simultaneous purchases, or purchase_id
   // wrong in the compute server record!
+  // The net result is that the purchase is closed because period_end
+  // is set.  However the actual costs are NOT set until 2 days from now,
+  // due to google cloud billing lag (we have to get the true network costs).
 
   const client = await getTransactionClient();
   try {
@@ -232,11 +245,14 @@ export async function closeAndPossiblyContinueNetworkPurchase({
     }
     // close existing purchase;
     logger.debug("closeAndContinueNetworkPurchase -- closing old purchase");
-    purchase.cost = Math.max(0.001, network.cost);
     purchase.period_end = end;
+    // we set cost and cost_so_far to NULL partly due to the fact we're rolling
+    // this out onto a production system with half done transactions that might
+    // have cost_so_far set, and want to be clear that they shouldn't be set
+    // on close anymore.  After a few days setting these to NULL should not be needed.
     await client.query(
-      "UPDATE purchases SET cost=$1, period_end=$2, cost_so_far=$3 WHERE id=$4",
-      [purchase.cost, purchase.period_end, purchase.cost_so_far, purchase.id],
+      "UPDATE purchases SET cost=NULL, period_end=$1, cost_so_far=NULL WHERE id=$2",
+      [purchase.period_end, purchase.id],
     );
     await client.query("COMMIT");
     return purchase_id;

@@ -45,12 +45,13 @@ export function ComputeServerNetworkUsageDescription({
       <DisplayNetworkUsage
         amount={amount}
         style={{ display: "inline-block" }}
+        period_end={period_end}
       />{" "}
-      by <InlineComputeServer id={id} />.{" "}
+      Network used by <InlineComputeServer id={id} />.{" "}
       {period_end == null && (
         <div>
-          <Cost service="compute-server-network-usage" inline /> Usage
-          is updated hourly.
+          <Cost service="compute-server-network-usage" inline /> Usage is
+          updated hourly.
         </div>
       )}
     </div>
