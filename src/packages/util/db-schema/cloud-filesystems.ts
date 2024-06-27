@@ -218,7 +218,7 @@ export const DEFAULT_CONFIGURATION = {
   //  - --open-cache=(something) is needed since otherwise juicefs tries to use redis for network
   //    locks, which just don't work with async replication.
   mount_options:
-    "--writeback -o allow_other --open-cache=1",
+    "--writeback -o allow_other --open-cache=1 --backup-meta=7200 --backup-skip-trash",
   keydb_options: "",
   bucket_location: "us-east1", // where cocalc.com is
   bucket_storage_class: "autoclass-archive",
