@@ -40,7 +40,7 @@
     "@types/debug": "^4.1.12",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
-    "dayjs": "^1.11.10",
+    "dayjs": "^1.11.11",
     "debug": "^4.3.2",
     "events": "3.3.0",
     "get-random-values": "^1.2.0",
