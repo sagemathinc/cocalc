@@ -1035,15 +1035,10 @@ export function AIGenerateDocumentButton({
           style={btnStyle}
           size={mode === "flyout" ? "small" : undefined}
         >
-          <AIAvatar
-            size={mode === "flyout" ? 18 : 14}
-            style={{
-              ...(mode === "flyout"
-                ? {}
-                : { position: "unset", marginRight: "5px" }),
-            }}
-          />
-          {mode === "full" ? ` ${AI_GEN_TEXT}` : ""}
+          <Space>
+            <AIAvatar size={15} />
+            {mode === "full" ? ` ${AI_GEN_TEXT}` : ""}
+          </Space>
         </Button>
       </Tip>
       <AIGenerateDocumentModal

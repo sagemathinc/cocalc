@@ -784,11 +784,7 @@ export default function Message(props: Readonly<Props>) {
       const style: CSS =
         mode === "standalone"
           ? {
-              marginTop:
-                props.show_avatar ||
-                (!props.is_prev_sender && is_viewers_message)
-                  ? MARGIN_TOP_VIEWER
-                  : "5px",
+              marginTop: MARGIN_TOP_VIEWER,
               marginLeft: "5px",
               marginRight: "5px",
             }

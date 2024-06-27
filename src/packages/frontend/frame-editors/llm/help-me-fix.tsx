@@ -3,7 +3,7 @@ A generic button for helping a user fix problems using chatgpt.
 If chatgpt is disabled or not available it renders as null.
 */
 
-import { Alert, Button } from "antd";
+import { Alert, Button, Space } from "antd";
 import type { BaseButtonProps } from "antd/lib/button/button";
 import { CSSProperties, useState } from "react";
 import useAsyncEffect from "use-async-effect";
@@ -151,12 +151,10 @@ export default function HelpMeFix({
         }}
       >
         <Button size={size} style={style} disabled={gettingHelp}>
-          <AIAvatar
-            size={16}
-            style={{ marginRight: "5px" }}
-            innerStyle={{ top: "2.5px" }}
-          />
-          Help me fix this...
+          <Space>
+            <AIAvatar size={16} />
+            Help me fix this...
+          </Space>
         </Button>
       </PopconfirmKeyboard>
       {errorGettingHelp && (
