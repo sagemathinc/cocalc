@@ -194,7 +194,7 @@ describe("confirm managing of purchases works", () => {
     if (network.description.type != "compute-server-network-usage") {
       throw Error("bug");
     }
-    expect(network.cost_so_far).toBe(3.89);
+    expect(network.cost_so_far).toBe(0);
     expect(network.description.amount).toBe(389);
   });
 
@@ -219,7 +219,7 @@ describe("confirm managing of purchases works", () => {
     if (network.description.type != "compute-server-network-usage") {
       throw Error("bug");
     }
-    expect(network.cost_so_far).toBe(3.89);
+    expect(network.cost_so_far).toBe(0);
     expect(network.description.amount).toBe(389);
 
     expect(normal.cost).toBeGreaterThan(1);

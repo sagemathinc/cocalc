@@ -73,7 +73,7 @@
     "basic-auth": "^2.0.1",
     "cookies": "^0.8.0",
     "csv-stringify": "^6.3.0",
-    "dayjs": "^1.11.10",
+    "dayjs": "^1.11.11",
     "express": "^4.19.2",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.1",

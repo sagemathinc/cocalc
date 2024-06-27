@@ -137,7 +137,6 @@ describe("creates account, project, test compute server, and purchase, then clos
       account_id,
       project_id,
       service: "compute-server-network-usage",
-      cost_so_far: 0,
       period_start,
       description: {
         type: "compute-server-network-usage",
@@ -156,7 +155,9 @@ describe("creates account, project, test compute server, and purchase, then clos
     });
     const purchaseAfter = await getPurchase(purchase_id);
     expect(purchaseAfter.period_end == null).toBe(false);
-    expect(purchaseAfter.cost).toBe(3.89);
+    // we now explicitly do NOT set these costs -- they will be set later upon querying bigquery.
+    expect(purchaseAfter.cost).toBe(null);
+    expect(purchaseAfter.cost_so_far).toBe(null);
     expect(new_id).toBe(undefined); // should NOT have created new one since server is off.
   });
 
@@ -186,7 +187,9 @@ describe("creates account, project, test compute server, and purchase, then clos
     });
     const purchaseAfter = await getPurchase(purchase_id);
     expect(purchaseAfter.period_end == null).toBe(false);
-    expect(purchaseAfter.cost).toBe(3.89);
+    // should be null -- this is NOT set by closing, but days later!
+    expect(purchaseAfter.cost).toBe(null);
+
     const newPurchase = await getPurchase(new_id);
     if (newPurchase.description.type != "compute-server-network-usage") {
       throw Error("bug");

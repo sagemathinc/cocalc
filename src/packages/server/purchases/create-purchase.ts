@@ -52,11 +52,6 @@ export default async function createPurchase(opts: Options): Promise<number> {
     if (period_start == null) {
       throw Error("if cost is not set, then  period_start must be set");
     }
-    if (cost_so_far == null && cost_per_hour == null) {
-      throw Error(
-        "if cost is not set, then at least one of cost_so_far (for a metered purchase) or cost_per_hour (for a rate based purchase) must be set",
-      );
-    }
     if (cost_so_far != null && cost_per_hour != null) {
       throw Error(
         "cost_so_far and cost_per_hour must not both be set, since cost_so_far being set indicates a metered purchase (e.g., amount of data transfer), and cost_per_hour being set indicates a rate-based purchase (e.g., amount per hour), and these are two completely different things",
