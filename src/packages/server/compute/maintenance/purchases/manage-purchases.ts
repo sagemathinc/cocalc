@@ -23,6 +23,13 @@ import {
   closeAndPossiblyContinueNetworkPurchase,
 } from "./close";
 import lowBalance from "./low-balance";
+import {
+  GOOGLE_COST_LAG_MS,
+  getInstanceTotalCost,
+  getBucketTotalCost,
+  haveBigQueryBilling,
+} from "@cocalc/server/compute/cloud/google-cloud/bigquery";
+import { getServerName } from "@cocalc/server/compute/cloud/google-cloud/index";
 
 const logger = getLogger("server:compute:maintenance:purchases:manage");
 
@@ -118,6 +125,13 @@ export async function updatePurchase(server: ComputeServer) {
   being corrupt due to race conditions or whatever, since I've setup the code
   so there shouldn't be any race conditions.
 
+  **
+  We define an "outstanding purchase" to be one for which the cost field is NULL.
+  The end time may be set so the actual thing being purchase may have ended days
+  ago.  This happens, e.g., with google networking and cloud storage, since we
+  don't know how much the thing cost until days after it happened.
+  **
+
   NOTES:
   - Google charges us from when a server starts starting until it is stopped, i.e., for
     the startup time and shutdown time.  There's probably some very good reasons for that,
@@ -139,10 +153,13 @@ export async function updatePurchase(server: ComputeServer) {
     from the purchase one (e.g., running vs off), end the current purchase.  If not deprovisioned,
     do a recursive call to create new purchase for new state.
 
-  - RULE 4: If there is an ongoing 'compute-server-network-usage' purchase, possibly update it.
+  - RULE 4: If there is a 'compute-server-network-usage' purchase, possibly update it.
     If project is not running and it has been at least X minutes after stopping/deleting,
-    update and close the purchase.  The issue here is just that network usage takes a few minutes to
-    get recorded.
+    update and close the purchase, which means setting the end time (but not necessarily cost!).
+    The issue here is just that network usage takes a few minutes to get recorded.
+    In addition, as part of this step, for purchases that ended days ago, we query
+    google for their actual cost and fill it in (if the appropriate service account, etc.
+    is actually available -- bigquery won't be hit from CI).
 
   - RULE 5: If the total duration of a purchase exceeds MAX_PURCHASE_INTERVAL_MS
     (e.g., 1 day), then we end that purchase and start another.
@@ -194,7 +211,7 @@ export async function updatePurchase(server: ComputeServer) {
 
   // Rule 4: End any networking purchases that we should end, and also
   // update the total amount of network usage periodically, so user
-  // can see it.  (This is only for google cloud)
+  // can see it.  (This is currently only for google cloud.)
   if (networkPurchases.length > 0) {
     await manageNetworkPurchases({ networkPurchases, server, stableState });
   }
@@ -287,6 +304,10 @@ async function manageNetworkPurchases({
   server,
   stableState,
 }) {
+  if (networkPurchases.length == 0) {
+    // nothing to do
+    return;
+  }
   if (
     server.state != "running" &&
     stableState != "running" &&
@@ -304,6 +325,58 @@ async function manageNetworkPurchases({
     // of money (you could probably easily spend $50/hour in network data tranfser out... so we
     // are still taking a very real risk!).
     await updateNetworkUsage({ networkPurchases, server });
+  }
+
+  // possibly compute final costs of any network purchases (via bigquery)
+  await computeNetworkPurchaseCosts({ networkPurchases, server });
+}
+
+export async function computeNetworkPurchaseCosts({ networkPurchases, server }) {
+  const cutoff = Date.now() - GOOGLE_COST_LAG_MS;
+  const purchases = networkPurchases.filter(
+    ({ period_end, cost }) =>
+      period_end != null && cost == null && period_end.valueOf() <= cutoff,
+  );
+  if (purchases.length == 0) {
+    logger.debug(
+      "computeNetworkPurchaseCosts: no purchases needing final cost computation",
+    );
+    return;
+  }
+  if (!(await haveBigQueryBilling())) {
+    // give up
+    logger.debug(
+      "computeNetworkPurchaseCosts: WARNING: we can never close out network purchases until BigQuery detailed billing export is configured.",
+    );
+    return;
+  }
+  for (const purchase of purchases) {
+    logger.debug(
+      "computeNetworkPurchaseCosts: need to compute cost of network usage",
+      purchase,
+    );
+    const name = await getServerName(server);
+    const end = new Date(purchase.period_end.valueOf() + 30000);
+    // for the start, we round down to the previous hour.  Why?
+    //   Rounding down does nothing if this was got by close network
+    //   purchase because we already round those down.
+    //   Rounding down includes the period in the google intervals
+    //   if the server was newly started.
+    let start = new Date(purchase.period_start.valueOf());
+    start.setSeconds(0);
+    start.setMinutes(0);
+    start = new Date(start.valueOf() - 30000);
+    // We always subtract 30 seconds because of the milliseconds:
+    // > a = new Date(); a.setSeconds(0); a.setMinutes(0); a
+    // 2024-06-27T17:00:00.751Z
+    const totalCost = await getInstanceTotalCost({ name, start, end });
+    purchase.cost = totalCost.network;
+    purchase.description.cost = totalCost.network;
+    const pool = getPool();
+    await pool.query(
+      "UPDATE purchases SET cost=$1, description=$2 WHERE id=$3",
+      [purchase.cost, purchase.description, purchase.id],
+    );
   }
 }
 
@@ -419,4 +492,54 @@ export async function updatePurchaseSoon(id: number) {
     "UPDATE compute_servers SET update_purchase=TRUE WHERE id=$1",
     [id],
   );
+}
+
+// similar to computeNetworkPurcahseCosts above, but for buckets.
+export async function computeBucketPurchaseCosts(bucketPurchases) {
+  const cutoff = Date.now() - GOOGLE_COST_LAG_MS;
+  const purchases = bucketPurchases.filter(
+    ({ period_end, cost }) =>
+      period_end != null && cost == null && period_end.valueOf() <= cutoff,
+  );
+  if (purchases.length == 0) {
+    logger.debug(
+      "computeBucketPurchaseCosts: no purchases needing final cost computation",
+    );
+    return;
+  }
+  if (!(await haveBigQueryBilling())) {
+    // give up
+    logger.debug(
+      "computeBucketPurchaseCosts: WARNING: we can never close out bucket purchases until BigQuery detailed billing export is configured.",
+    );
+    return;
+  }
+  for (const purchase of purchases) {
+    logger.debug(
+      "computeBucketPurchaseCosts: need to compute cost of bucket usage",
+      purchase,
+    );
+    // NOTE: do NOT rely on the cloud_filesystems database entry for getting the
+    // bucket name, because it could have long since been deleted.  Instead that
+    // name must be stored in the purchase description and that's what we use here.
+    const name = purchase.description.bucket;
+    const end = new Date(purchase.period_end.valueOf() + 30000);
+    let start = new Date(purchase.period_start.valueOf());
+    start.setSeconds(0);
+    start.setMinutes(0);
+    start = new Date(start.valueOf() - 30000);
+    const cost_breakdown = await getBucketTotalCost({ name, start, end });
+    let cost = 0;
+    for (const k in cost_breakdown) {
+      cost += cost_breakdown[k];
+    }
+    purchase.cost = cost;
+    purchase.description.cost = cost;
+    purchase.description.cost_breakdown = cost_breakdown;
+    const pool = getPool();
+    await pool.query(
+      "UPDATE purchases SET cost=$1, description=$2 WHERE id=$3",
+      [purchase.cost, purchase.description, purchase.id],
+    );
+  }
 }
