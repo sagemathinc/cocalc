@@ -216,6 +216,8 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   push("last_edited", now);
   const port = await getPort(opts.project_id);
   push("port", port);
+  // bytes_used MUST always be set, and of course initially it is 0.
+  push("bytes_used", 0);
 
   // there could be a race condition if user tries to make two cloud filesystems at
   // same time for same project -- one would fail and they get an error due to
