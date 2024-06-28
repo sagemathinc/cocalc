@@ -145,7 +145,7 @@ export async function closeAndContinuePurchase({
 }
 
 // Close the given network purchase, then create a new one
-// if the compue server is currently running.  If not, don't
+// if the compute server is currently running.  If not, don't
 // create new one.  Close and create are done together as a single
 // transaction.
 export async function closeAndPossiblyContinueNetworkPurchase({
@@ -266,4 +266,102 @@ export async function closeAndPossiblyContinueNetworkPurchase({
   } finally {
     client.release();
   }
+}
+
+export async function closeAndContinueCloudStoragePurchase({
+  purchase,
+}: {
+  purchase: Purchase;
+}) {
+  logger.debug("closeAndContinueCloudStoragePurchase", purchase);
+  if (purchase.cost != null || purchase.period_end != null) {
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase: WARNING -- can't close and continue purchase because it is already closed",
+    );
+    return;
+  }
+  if (purchase.description?.type != "compute-server-storage") {
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase: WARNING -- wrong kind of purchase",
+    );
+    return;
+  }
+
+  const now = new Date();
+
+  const exists = await cloudFilesystemExists(
+    purchase.description.cloud_filesystem_id,
+  );
+  if (!exists) {
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase: filesystem no longer exists, so just end current purchase",
+    );
+
+    const pool = getPool();
+    await pool.query("UPDATE purchases SET period_end=$1 WHERE id=$2", [
+      now,
+      purchase.id,
+    ]);
+
+    return;
+  }
+
+  // Filesystem does exist, so make new purchase too.
+  // round time down to nearest hour since Google cloud does
+  // purchase logging by hour intervals.
+  now.setSeconds(0);
+  now.setMinutes(0);
+  const newPurchase = cloneDeep(purchase);
+  newPurchase.time = now;
+  newPurchase.period_start = now;
+
+  logger.debug(
+    "closeAndContinueCloudStoragePurchase -- creating newPurchase=",
+    newPurchase,
+    "as a single atomic transaction",
+  );
+
+  // Very important to do this as atomic transaction so we
+  // don't end up with two simultaneous purchases, or purchase_id
+  // wrong in the cloud filesystem record.
+
+  const client = await getTransactionClient();
+  try {
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase -- creating new purchase",
+    );
+    const new_purchase_id = await createPurchase({ ...newPurchase, client });
+    await client.query(
+      "UPDATE cloud_filesystems SET purchase_id=$1 WHERE id=$2",
+      [new_purchase_id, purchase.description.cloud_filesystem_id],
+    );
+
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase -- set period_end for old purchase",
+    );
+    await client.query("UPDATE purchases SET period_end=$1 WHERE id=$2", [
+      now,
+      purchase.id,
+    ]);
+    await client.query("COMMIT");
+  } catch (err) {
+    await client.query("ROLLBACK");
+    logger.debug(
+      "closeAndContinueCloudStoragePurchase -- ERROR, rolling back",
+      err,
+    );
+    delete purchase.period_end;
+    delete purchase.cost;
+  } finally {
+    client.release();
+  }
+}
+
+async function cloudFilesystemExists(id: number) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT COUNT(*) AS count FROM cloud_filesystems WHERE id=$1",
+    [id],
+  );
+  return rows[0].count > 0;
 }

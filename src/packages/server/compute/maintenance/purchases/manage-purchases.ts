@@ -26,7 +26,6 @@ import lowBalance from "./low-balance";
 import {
   GOOGLE_COST_LAG_MS,
   getInstanceTotalCost,
-  getBucketTotalCost,
   haveBigQueryBilling,
 } from "@cocalc/server/compute/cloud/google-cloud/bigquery";
 import { getServerName } from "@cocalc/server/compute/cloud/google-cloud/index";
@@ -505,54 +504,4 @@ export async function updatePurchaseSoon(id: number) {
     "UPDATE compute_servers SET update_purchase=TRUE WHERE id=$1",
     [id],
   );
-}
-
-// similar to computeNetworkPurcahseCosts above, but for buckets.
-export async function computeBucketPurchaseCosts(bucketPurchases) {
-  const cutoff = Date.now() - GOOGLE_COST_LAG_MS;
-  const purchases = bucketPurchases.filter(
-    ({ period_end, cost }) =>
-      period_end != null && cost == null && period_end.valueOf() <= cutoff,
-  );
-  if (purchases.length == 0) {
-    logger.debug(
-      "computeBucketPurchaseCosts: no purchases needing final cost computation",
-    );
-    return;
-  }
-  if (!(await haveBigQueryBilling())) {
-    // give up
-    logger.debug(
-      "computeBucketPurchaseCosts: WARNING: we can never close out bucket purchases until BigQuery detailed billing export is configured.",
-    );
-    return;
-  }
-  for (const purchase of purchases) {
-    logger.debug(
-      "computeBucketPurchaseCosts: need to compute cost of bucket usage",
-      purchase,
-    );
-    // NOTE: do NOT rely on the cloud_filesystems database entry for getting the
-    // bucket name, because it could have long since been deleted.  Instead that
-    // name must be stored in the purchase description and that's what we use here.
-    const name = purchase.description.bucket;
-    const end = new Date(purchase.period_end.valueOf() + 30000);
-    let start = new Date(purchase.period_start.valueOf());
-    start.setSeconds(0);
-    start.setMinutes(0);
-    start = new Date(start.valueOf() - 30000);
-    const cost_breakdown = await getBucketTotalCost({ name, start, end });
-    let cost = 0;
-    for (const k in cost_breakdown) {
-      cost += cost_breakdown[k];
-    }
-    purchase.cost = cost;
-    purchase.description.cost = cost;
-    purchase.description.cost_breakdown = cost_breakdown;
-    const pool = getPool();
-    await pool.query(
-      "UPDATE purchases SET cost=$1, description=$2 WHERE id=$3",
-      [purchase.cost, purchase.description, purchase.id],
-    );
-  }
 }

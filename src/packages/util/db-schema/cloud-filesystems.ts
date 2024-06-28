@@ -184,6 +184,7 @@ export interface CloudFilesystem {
   lock?: string;
   position?: number;
   last_edited?: Date;
+  purchase_id?: number;
   bytes_used?: number;
 }
 // See https://juicefs.com/docs/community/command_reference#mount
@@ -306,6 +307,7 @@ Table({
           lock: null,
           position: null,
           last_edited: null,
+          purchase_id: null,
           deleting: null,
           mount_options: null,
           keydb_options: null,
@@ -454,6 +456,10 @@ Table({
     last_edited: {
       type: "timestamp",
       desc: "Last time some field was changed.  Also, this gets updated when the volume is actively mounted by some compute server, since the files are likely edited.",
+    },
+    purchase_id: {
+      type: "number",
+      desc: "if there is a current active purchase related to this compute server, this is the id of that purchase in the purchases table",
     },
     bytes_used: {
       not_null: true,

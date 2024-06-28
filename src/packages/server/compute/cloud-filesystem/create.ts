@@ -246,7 +246,7 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
     );
   }
 
-  logger.debug("createCloudFilesystem -- allowed");
+  logger.debug("createCloudFilesystem: allowed");
 
   // create storage record in the database
   const cloudFilesystem: Partial<CloudFilesystem> = {};
@@ -289,6 +289,24 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   if (cloudFilesystem.id == null) {
     throw Error("bug");
   }
+
+  logger.debug("createCloudFilesystem: start the purchase");
+  try {
+    await createCloudStoragePurchase({
+      cloud_filesystem_id: cloudFilesystem.id,
+      account_id: opts.account_id,
+      project_id: cloudFilesystem.project_id,
+      bucket: cloudFilesystem.bucket,
+    });
+  } catch (err) {
+    logger.debug(
+      "createCloudFilesystem: ERROR -- failed to create purchase",
+      err,
+    );
+    await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);
+    throw err;
+  }
+
   // NOTE: no matter what, be sure to create the bucket but NOT the service account because
   // creating the bucket twice at once could lead to waste via
   // a race condition (e.g., multiple compute servers causing creating in different hubs),
@@ -315,19 +333,6 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
     throw err;
   }
 
-  try {
-    // if can't
-    await createCloudStoragePurchase({
-      cloud_filesystem_id: cloudFilesystem.id,
-      account_id: opts.account_id,
-      project_id: cloudFilesystem.project_id,
-      bucket: cloudFilesystem.bucket,
-    });
-  } catch (err) {
-    await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);
-    throw err;
-  }
-
   return id;
 }
 
@@ -342,7 +347,7 @@ async function createCloudStoragePurchase({
   project_id;
   bucket;
 }) {
-  await createPurchase({
+  const purchase_id = await createPurchase({
     client: null,
     account_id,
     project_id,
@@ -356,6 +361,12 @@ async function createCloudStoragePurchase({
       last_updated: Date.now(),
     },
   });
+  const pool = getPool();
+  await pool.query("UPDATE cloud_filesystems SET purchase_id=$1 WHERE id=$2", [
+    purchase_id,
+    cloud_filesystem_id,
+  ]);
+  return purchase_id;
 }
 
 async function numberOfCloudFilesystems(project_id: string): Promise<number> {
