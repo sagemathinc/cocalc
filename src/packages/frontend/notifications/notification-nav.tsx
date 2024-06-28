@@ -9,7 +9,7 @@ import { capitalize } from "lodash";
 import React, { useMemo } from "react";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, IconName, Text } from "@cocalc/frontend/components";
+import { Icon, IconName, MenuItems, Text } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { CHANNELS, CHANNELS_ICONS } from "@cocalc/util/types/news";
 import { NotificationFilter } from "./mentions/types";
@@ -42,7 +42,7 @@ const MentionsCounter = () => {
   );
 };
 
-const ITEMS = [
+const ITEMS: MenuItems = [
   {
     key: "mentions",
     label: (
@@ -98,16 +98,14 @@ const ITEMS = [
           </>
         ),
       },
-      ...CHANNELS
-        .filter((c) => c !== "event")
-        .map((c) => ({
-          key: c,
-          label: (
-            <>
-              <Icon name={CHANNELS_ICONS[c] as IconName}/> {capitalize(c)}
-            </>
-          ),
-        })),
+      ...CHANNELS.filter((c) => c !== "event").map((c) => ({
+        key: c,
+        label: (
+          <>
+            <Icon name={CHANNELS_ICONS[c] as IconName} /> {capitalize(c)}
+          </>
+        ),
+      })),
     ],
     type: "group",
   },

@@ -410,7 +410,6 @@ export default function LanguageModelTitleBarButton({
             <Text type="secondary">{description}</Text>
           </>
         ),
-        type: preset.tag == tag ? "primary" : undefined,
         onClick: () => {
           setPreset(preset);
           track(TAG_TMPL, { project_id, template: label });
@@ -637,9 +636,9 @@ export default function LanguageModelTitleBarButton({
       >
         <span ref={buttonRef}>
           <AIAvatar
-            size={18}
+            size={16}
             iconColor={COLORS.AI_ASSISTANT_TXT}
-            style={{ top: "-2px", marginRight: "1px" }}
+            innerStyle={{ top: "2px" }}
           />
           {noLabel ? (
             ""
