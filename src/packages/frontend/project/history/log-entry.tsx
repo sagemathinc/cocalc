@@ -32,7 +32,7 @@ import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Tooltip } from "antd";
+import { Space, Tooltip } from "antd";
 import React from "react";
 import { Col, Grid, Row } from "react-bootstrap";
 import AIAvatar from "../../components/ai-avatar";
@@ -498,10 +498,10 @@ export const LogEntry: React.FC<Props> = React.memo(
       const { usage, model, path } = event;
 
       const name = (
-        <>
-          <AIAvatar size={14} style={{ top: "-4px" }} />
+        <Space size="small">
+          <AIAvatar size={14} style={{ top: "1px" }} />
           {model ? `LLM (${modelToName(model)})` : "LLM"}
-        </>
+        </Space>
       );
 
       const pathLink = (

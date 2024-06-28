@@ -9,8 +9,8 @@ import { RequestNoCacheSchema } from "../common";
 //
 export const AccountProfileInputSchema = z
   .object({
-    account_id: AccountIdSchema,
-    noCache: RequestNoCacheSchema,
+    account_id: AccountIdSchema.optional(),
+    noCache: RequestNoCacheSchema.optional(),
   })
   .describe(
     `Get the *public* profile for a given account or the private profile of the user 

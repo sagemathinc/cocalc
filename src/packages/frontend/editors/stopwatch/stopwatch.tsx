@@ -7,23 +7,25 @@
 The stopwatch and timer component
 */
 
-import { CSSProperties, useEffect, useState } from "react";
-import { redux, useForceUpdate } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
-import dayjs from "dayjs";
-import { Button, Row, Col, Modal, TimePicker, Tooltip } from "antd";
 import {
   DeleteTwoTone,
+  EditTwoTone,
   PauseCircleTwoTone,
   PlayCircleTwoTone,
   StopTwoTone,
-  EditTwoTone,
 } from "@ant-design/icons";
-import { TimerState } from "./actions";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { redux, useForceUpdate } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Button, Col, Modal, Row, TimePicker, Tooltip } from "antd";
+import type { Dayjs } from "dayjs";
+import dayjs from "dayjs";
+import { CSSProperties, useEffect, useState } from "react";
+
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { TimerState } from "./actions";
 import { TimeAmount } from "./time";
 
 function assertNever(x: never): never {
@@ -114,14 +116,14 @@ export default function Stopwatch(props: StopwatchProps) {
             {!props.compact ? "Edit" : undefined}
           </Button>
         </Tooltip>
-        {editingTime && (
+        {editingTime ? (
           <TimePicker
             open
             defaultValue={getCountdownMoment(props.countdown)}
             onChange={(time) => {
               if (time != null) {
                 setCountdown(
-                  time.second() + time.minute() * 60 + time.hour() * 60 * 60
+                  time.second() + time.minute() * 60 + time.hour() * 60 * 60,
                 );
                 // timeout so the setcountdown can fully propagate through flux; needed for whiteboard
                 setTimeout(() => props.clickButton("reset"), 0);
@@ -134,7 +136,7 @@ export default function Stopwatch(props: StopwatchProps) {
               }
             }}
           />
-        )}
+        ) : undefined}
       </div>
     );
   }
@@ -397,7 +399,7 @@ export default function Stopwatch(props: StopwatchProps) {
   }
 }
 
-export function getCountdownMoment(countdown: number | undefined) {
+export function getCountdownMoment(countdown: number | undefined): Dayjs {
   let amount = Math.round(countdown ?? 0);
   const m = dayjs();
   m.second(amount % 60);

@@ -152,13 +152,14 @@ export function InsertCell({
                 title="Create code based on your description (alt+click line)"
                 handleButtonClick={handleButtonClick}
               >
-                <AIAvatar
-                  backgroundColor={"transparent"}
-                  size={12}
-                  style={{ marginRight: "5px" }}
-                  innerStyle={{ color: "default", top: "-2.5px" }}
-                />{" "}
-                Generate...
+                <Space>
+                  <AIAvatar
+                    backgroundColor={"transparent"}
+                    size={14}
+                    innerStyle={{ color: "default", top: "-2px" }}
+                  />
+                  Generate...
+                </Space>
               </TinyButton>
             )}
           </Space>

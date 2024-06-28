@@ -424,7 +424,7 @@ export function LLMCellTool({
             icon={
               <AIAvatar
                 size={14}
-                style={{ position: "relative", top: "-4px", left: "4px" }}
+                style={{ top: "1px" }}
                 iconColor={is_current ? COLORS.AI_ASSISTANT_FONT : undefined}
               />
             }

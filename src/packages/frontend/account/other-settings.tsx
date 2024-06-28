@@ -409,7 +409,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       <Panel
         header={
           <>
-            <AIAvatar size={22} /> AI Settings
+            <AIAvatar size={18} /> AI Settings
           </>
         }
       >
