@@ -4689,6 +4689,7 @@ packages:
   are-we-there-yet@2.0.0:
     resolution: {integrity: sha512-Ci/qENmwHnsYo9xKIcUJN5LeDKdJ6R1Z1j9V/J5wyq8nh/mYPEpIKJbBZXtZjG04HiK7zV/p6Vs9952MrMeUIw==}
     engines: {node: '>=10'}
+    deprecated: This package is no longer supported.
 
   argh@0.1.4:
     resolution: {integrity: sha512-sQN85FUGbEUBLyQiSJp4v8yAHTST2ao1WVXb/L8jkVqQTsypZuJQD0gMVeOLoSZBz21p22izF6HsBQP16QKQtg==}
@@ -6626,6 +6627,7 @@ packages:
   gauge@3.0.2:
     resolution: {integrity: sha512-+5J6MS/5XksCuXq++uFRsnUd7Ovu1XenbeuIuNRJxYWjgQbPuFhT14lAvsWfqfAmnwluf1OwMjz39HjfLPci0Q==}
     engines: {node: '>=10'}
+    deprecated: This package is no longer supported.
 
   gaxios@6.1.1:
     resolution: {integrity: sha512-bw8smrX+XlAoo9o1JAksBwX+hi/RG15J+NTSxmNPIclKC3ZVK6C2afwY8OSdRvOK0+ZLecUJYtj2MmjOt3Dm0w==}
@@ -8742,6 +8744,7 @@ packages:
 
   npmlog@5.0.1:
     resolution: {integrity: sha512-AqZtDUWOMKs1G/8lwylVjrdYgqA4d9nu8hc+0gzRxlDb1I10+FHBGMXs6aiQHFdCUUlqH99MUMuLfzWDNDtfxw==}
+    deprecated: This package is no longer supported.
 
   nth-check@2.1.1:
     resolution: {integrity: sha512-lqjrjmaOoAnWfMmBPL+XNnynZh2+swxiX3WUE0s4yEHI6m+AwrK2UZOimIRl3X/4QctVqS8AiZjFqyOGrMXb/w==}
@@ -11843,10 +11846,10 @@ snapshots:
       '@babel/generator': 7.23.0
       '@babel/helper-compilation-targets': 7.22.15
       '@babel/helper-module-transforms': 7.23.3(@babel/core@7.21.4)
-      '@babel/helpers': 7.23.2
+      '@babel/helpers': 7.23.2(supports-color@9.3.1)
       '@babel/parser': 7.23.0
       '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.2
+      '@babel/traverse': 7.23.2(supports-color@9.3.1)
       '@babel/types': 7.23.0
       convert-source-map: 1.9.0
       debug: 4.3.4(supports-color@8.1.1)
@@ -11863,10 +11866,10 @@ snapshots:
       '@babel/generator': 7.23.0
       '@babel/helper-compilation-targets': 7.22.15
       '@babel/helper-module-transforms': 7.23.3(@babel/core@7.21.8)
-      '@babel/helpers': 7.23.2
+      '@babel/helpers': 7.23.2(supports-color@9.3.1)
       '@babel/parser': 7.23.4
       '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.2
+      '@babel/traverse': 7.23.2(supports-color@9.3.1)
       '@babel/types': 7.23.4
       convert-source-map: 1.9.0
       debug: 4.3.4(supports-color@8.1.1)
@@ -11909,7 +11912,7 @@ snapshots:
       '@babel/traverse': 7.24.5
       '@babel/types': 7.24.5
       convert-source-map: 2.0.0
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -11929,7 +11932,7 @@ snapshots:
       '@babel/traverse': 7.24.7
       '@babel/types': 7.24.7
       convert-source-map: 2.0.0
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -12171,14 +12174,6 @@ snapshots:
 
   '@babel/helper-validator-option@7.24.7':
     optional: true
-
-  '@babel/helpers@7.23.2':
-    dependencies:
-      '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.2
-      '@babel/types': 7.23.4
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/helpers@7.23.2(supports-color@9.3.1)':
     dependencies:
@@ -12475,21 +12470,6 @@ snapshots:
       '@babel/types': 7.24.7
     optional: true
 
-  '@babel/traverse@7.23.2':
-    dependencies:
-      '@babel/code-frame': 7.24.2
-      '@babel/generator': 7.24.5
-      '@babel/helper-environment-visitor': 7.22.20
-      '@babel/helper-function-name': 7.23.0
-      '@babel/helper-hoist-variables': 7.22.5
-      '@babel/helper-split-export-declaration': 7.22.6
-      '@babel/parser': 7.24.5
-      '@babel/types': 7.24.5
-      debug: 4.3.4(supports-color@8.1.1)
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/traverse@7.23.2(supports-color@9.3.1)':
     dependencies:
       '@babel/code-frame': 7.24.2
@@ -12500,7 +12480,7 @@ snapshots:
       '@babel/helper-split-export-declaration': 7.22.6
       '@babel/parser': 7.24.5
       '@babel/types': 7.24.5
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.5(supports-color@9.3.1)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -12515,7 +12495,7 @@ snapshots:
       '@babel/helper-split-export-declaration': 7.24.5
       '@babel/parser': 7.24.5
       '@babel/types': 7.24.5
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -12530,7 +12510,7 @@ snapshots:
       '@babel/helper-split-export-declaration': 7.24.7
       '@babel/parser': 7.24.7
       '@babel/types': 7.24.7
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -12591,7 +12571,7 @@ snapshots:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
       csv-parse: 5.5.6
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -14726,7 +14706,7 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -16076,9 +16056,11 @@ snapshots:
     optionalDependencies:
       supports-color: 9.3.1
 
-  debug@4.3.5:
+  debug@4.3.5(supports-color@9.3.1):
     dependencies:
       ms: 2.1.2
+    optionalDependencies:
+      supports-color: 9.3.1
 
   decamelize-keys@1.1.0:
     dependencies:
@@ -17854,7 +17836,7 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.4(supports-color@8.1.1)
+      debug: 4.3.5(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -18284,7 +18266,7 @@ snapshots:
 
   istanbul-lib-source-maps@4.0.1:
     dependencies:
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
       istanbul-lib-coverage: 3.2.2
       source-map: 0.6.1
     transitivePeerDependencies:
