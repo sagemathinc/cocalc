@@ -338,16 +338,15 @@ async function createCloudStoragePurchase({
   bucket,
 }: {
   cloud_filesystem_id: number;
-  account_id,
-  project_id,
-  bucket,
+  account_id;
+  project_id;
+  bucket;
 }) {
   await createPurchase({
     client: null,
     account_id,
     project_id,
     service: "compute-server-storage",
-    cost_so_far: 0,
     period_start: new Date(),
     description: {
       type: "compute-server-storage",
