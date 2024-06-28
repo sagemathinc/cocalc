@@ -1,5 +1,5 @@
 import api from "@cocalc/frontend/client/api";
-
+import LRU from "lru-cache";
 import type {
   CreateCloudFilesystem,
   CloudFilesystem,
@@ -40,6 +40,11 @@ export async function editCloudFilesystem(
   return await api("compute/cloud-filesystem/edit", opts);
 }
 
+const cloudFilesystemCache = new LRU<string, CloudFilesystem[]>({
+  max: 100,
+  ttl: 1000 * 30,
+});
+
 export async function getCloudFilesystems(
   // give no options to get all filesystems that YOU own across all your projects
   opts: {
@@ -47,9 +52,21 @@ export async function getCloudFilesystems(
     id?: number;
     // project_id = all in a given project (owned by anybody)
     project_id?: string;
+    // if true, use cache and potentially return stale data (good for repeated calls in a list, etc.)
+    cache?: boolean;
   } = {},
 ): Promise<CloudFilesystem[]> {
-  return await api("compute/cloud-filesystem/get", opts);
+  const key = `${opts.id}${opts.project_id}`;
+  if (opts.cache && cloudFilesystemCache.has(key)) {
+    return cloudFilesystemCache.get(key)!;
+  }
+  const filesystems = await api("compute/cloud-filesystem/get", {
+    id: opts.id,
+    project_id: opts.project_id,
+  });
+  // always save in cache
+  cloudFilesystemCache.set(key, filesystems);
+  return filesystems;
 }
 
 export async function getMetrics({

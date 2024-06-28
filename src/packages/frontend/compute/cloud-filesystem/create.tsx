@@ -30,6 +30,7 @@ import { createCloudFilesystem } from "./api";
 import { ProgressBarTimer } from "../state";
 import { checkInAll } from "@cocalc/frontend/compute/check-in";
 import type { CloudFilesystems } from "./cloud-filesystems";
+import confirmCreateCloudFilesystem from "@cocalc/frontend/purchases/pay-as-you-go/confirm-create-cloud-filesystem";
 
 interface Props {
   project_id: string;
@@ -85,8 +86,9 @@ export default function CreateCloudFilesystem({
       return;
     }
     try {
-      setCreateStarted(new Date());
       setCreating(true);
+      await confirmCreateCloudFilesystem();
+      setCreateStarted(new Date());
       await createCloudFilesystem({
         ...configuration,
         position: getPosition(cloudFilesystems),

@@ -53,7 +53,9 @@ export default function MountCloudFilesystem({
     }
   };
   const icon = cloudFilesystem.mount ? "stop" : "run";
-  const verb = cloudFilesystem.mount ? "Disable Automount" : "Automount";
+  const verb = cloudFilesystem.mount
+    ? "Unmount and Disable Automount"
+    : "Mount and Enable Automount";
 
   return (
     <Modal
@@ -85,7 +87,7 @@ export default function MountCloudFilesystem({
         </Button>,
       ]}
     >
-      <p>
+      <div>
         <p>
           Are you sure you want to{" "}
           {cloudFilesystem.mount ? "unmount" : "automount"} this cloud
@@ -100,18 +102,28 @@ export default function MountCloudFilesystem({
           showIcon
           style={{ margin: "10px 0" }}
           type="warning"
-          message="Currently cloud filesystems are only visible from compute servers, e.g., from a Jupyter notebook or terminal that is set to use a compute server."
+          message={<b>Cloud Filesystems Only Visible From Compute Servers</b>}
+          description={
+            <>
+              Currently cloud filesystems can only be used from compute servers,
+              i.e., from a Jupyter notebook or terminal that is set to use a
+              compute server or from the file browser set to explore a compute
+              server.
+            </>
+          }
         />
-        <p style={{ color: "#666" }}>
-          <b>WARNING:</b> When a cloud filesystem is first created or has not
-          been used for a while, it can take several minutes to automount in a
-          running project while{" "}
-          <A href="https://cloud.google.com/iam/docs/access-change-propagation">
-            security policies
-          </A>{" "}
-          propagate.
-        </p>
-      </p>
+        {!cloudFilesystem.mount && (
+          <p style={{ color: "#666" }}>
+            <b>WARNING:</b> When a cloud filesystem is first created or has not
+            been used for a while, it can take several minutes to automount in a
+            running project while{" "}
+            <A href="https://cloud.google.com/iam/docs/access-change-propagation">
+              security policies
+            </A>{" "}
+            propagate.
+          </p>
+        )}
+      </div>
       <ShowError error={error} setError={setError} />
     </Modal>
   );

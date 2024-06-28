@@ -11,6 +11,7 @@ import { getNetworkUsage, getServerState } from "./api";
 import { useInterval } from "react-interval-hook";
 import { currency, human_readable_size } from "@cocalc/util/misc";
 import { GoogleNetworkCost } from "@cocalc/frontend/purchases/pay-as-you-go/cost";
+import { GOOGLE_COST_LAG_MS } from "@cocalc/util/db-schema/compute-servers";
 
 interface Props {
   style?: CSSProperties;
@@ -115,11 +116,11 @@ export default function State({
   );
 }
 
-function NetworkUsageCostEstimate({ period_end }) {
+export function WhenKnown({ period_end }) {
   let whenKnown;
   if (period_end) {
     const msAgo = Date.now() - period_end.valueOf();
-    const howLong = Math.max(0, 1000 * 60 * 60 * 24 * 2 - msAgo);
+    const howLong = Math.max(0, GOOGLE_COST_LAG_MS - msAgo);
     if (howLong == 0) {
       whenKnown = "soon";
     } else {
@@ -133,6 +134,12 @@ function NetworkUsageCostEstimate({ period_end }) {
     whenKnown = "";
   }
   return (
+    <span>{whenKnown ? <>The cost will be finalized {whenKnown}.</> : ""}</span>
+  );
+}
+
+function NetworkUsageCostEstimate({ period_end }) {
+  return (
     <>
       The{" "}
       <Tooltip title={<GoogleNetworkCost />}>
@@ -140,8 +147,7 @@ function NetworkUsageCostEstimate({ period_end }) {
           <A href="https://cloud.google.com/vpc/network-pricing">rate</A>
         </span>
       </Tooltip>{" "}
-      depends on the destination
-      {whenKnown ? <>, and will be finalized {whenKnown}.</> : "."}
+      depends on the destination. <WhenKnown period_end={period_end} />
     </>
   );
 }

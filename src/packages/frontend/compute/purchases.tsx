@@ -1,11 +1,14 @@
 import type {
   ComputeServer,
   ComputeServerNetworkUsage,
+  ComputeServerStorage,
 } from "@cocalc/util/db-schema/purchases";
 import Description from "./description";
 import State, { DisplayNetworkUsage } from "./state";
 import InlineComputeServer from "./inline";
 import Cost from "@cocalc/frontend/purchases/pay-as-you-go/cost";
+import InlineCloudFilesystem from "./cloud-filesystem/inline";
+import { WhenKnown } from "@cocalc/frontend/compute/state";
 
 export function ComputeServerDescription({
   description,
@@ -55,6 +58,28 @@ export function ComputeServerNetworkUsageDescription({
           updated hourly.
         </div>
       )}
+    </div>
+  );
+}
+
+export function ComputeServerStorageDescription({
+  description,
+  period_end,
+}: {
+  description: ComputeServerStorage;
+  period_end?: Date;
+}) {
+  const { cloud_filesystem_id } = description;
+
+  return (
+    <div>
+      Cloud Storage used by{" "}
+      <InlineCloudFilesystem
+        cloud_filesystem_id={cloud_filesystem_id}
+        showProject
+      />
+      . {period_end == null && <Cost service="compute-server-storage" inline />}{" "}
+      <WhenKnown period_end={period_end} />
     </div>
   );
 }

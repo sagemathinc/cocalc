@@ -24,6 +24,12 @@ export const CUDA_DISK_SIZE = 60;
 export const CHECK_IN_PERIOD_S = 20;
 export const CHECK_IN_PATH = "/cocalc/conf/check-in";
 
+// Clients are recommended to wait this long after a purchase ends before
+// requesting the cost.  This should give us about a day of wiggle room.
+// There is no SLA on billing data.
+const GOOGLE_COST_LAG_DAYS = 2;
+export const GOOGLE_COST_LAG_MS = GOOGLE_COST_LAG_DAYS * 24 * 60 * 60 * 1000;
+
 // Compute Server Images -- typings.  See packages/server/compute/images.ts for
 // how the actual data is populated.
 

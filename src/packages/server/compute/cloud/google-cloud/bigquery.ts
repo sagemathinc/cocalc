@@ -2,12 +2,8 @@ import { getCredentials } from "./client";
 import { BigQuery } from "@google-cloud/bigquery";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-
-// Clients are recommended to wait this long after a purchase ends before
-// requesting the cost.  This should give us about a day of wiggle room.
-// There is no SLA on billing data.
-const GOOGLE_COST_LAG_DAYS = 2;
-export const GOOGLE_COST_LAG_MS = GOOGLE_COST_LAG_DAYS * 24 * 60 * 60 * 1000;
+import { GOOGLE_COST_LAG_MS } from "@cocalc/util/db-schema/compute-servers";
+export { GOOGLE_COST_LAG_MS }
 
 const logger = getLogger("server:compute:cloud:google-cloud:bigquery");
 
