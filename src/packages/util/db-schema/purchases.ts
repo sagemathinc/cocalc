@@ -106,16 +106,18 @@ export interface ComputeServerStorage {
   type: "compute-server-storage";
   cloud: "google-cloud"; // only google-cloud currently supported
   bucket: string; // SUPER important -- the name of the bucket
+  cloud_filesystem_id: number;
   // once the purchase is done and finalized, we put the final cost here:
   cost?: number;
   // this is a breakdown of the cost, which is cloud-specific
   cost_breakdown?: GoogleCloudStorageBucketCost;
   // filesystem the bucket is used for.
-  cloud_filesystem_id?: number;
   // an estimated cost for the given period of time -- we try to make this
   // based on collected metrics, and it may or may not be close to the
   // actual cost.
   estimated_cost?: { min: number; max: number };
+  // when the estimated cost was set.
+  last_updated?: number;
 }
 
 export interface License {
@@ -160,6 +162,7 @@ export type Description =
   | ProjectUpgrade
   | ComputeServer
   | ComputeServerNetworkUsage
+  | ComputeServerStorage
   | Credit
   | Refund
   | License

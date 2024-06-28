@@ -28,6 +28,7 @@ likely have their own SAN or NFS they want to use instead.
 */
 
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
+import createPurchase from "@cocalc/server/purchases/create-purchase";
 import getLogger from "@cocalc/backend/logger";
 import { getGoogleCloudPrefix } from "@cocalc/server/compute/cloud/google-cloud/index";
 import {
@@ -44,11 +45,12 @@ import { uuid } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { delay } from "awaiting";
 import { FIELDS } from "./get";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("server:compute:cloud-filesystem:create");
 
 import {
-  CREATE_CLOUD_FILESYSTEM_COST,
+  CREATE_CLOUD_FILESYSTEM_AMOUNT,
   DEFAULT_CONFIGURATION,
   MAX_CLOUD_FILESYSTEMS_PER_PROJECT,
   MIN_PORT,
@@ -69,14 +71,14 @@ export interface Options extends CreateCloudFilesystem {
 // mutates input
 export async function ensureBucketExists(
   cloudFilesystem: Partial<CloudFilesystem>,
-) {
+): Promise<string> {
   const { id } = cloudFilesystem;
   if (!id) {
     throw Error("ensureBucketExists failed -- id must be specified");
   }
   if (cloudFilesystem.bucket) {
     // already created
-    return;
+    return cloudFilesystem.bucket;
   }
   logger.debug("ensureBucketExists: creating for ", id);
   try {
@@ -104,6 +106,7 @@ export async function ensureBucketExists(
       bucket,
       id,
     ]);
+    return bucket;
   } catch (err) {
     logger.debug("ensureBucketExists: error ", err);
     const pool = getPool();
@@ -220,15 +223,19 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
     );
   }
 
-  // check that user has enough credit on account to make a MINIMAL purchase, to prevent abuse
+  // check that user has enough credit on account to make a MINIMAL purchase
   const { allowed, reason } = await isPurchaseAllowed({
     account_id: opts.account_id,
     service: "compute-server",
-    cost: CREATE_CLOUD_FILESYSTEM_COST,
+    cost: CREATE_CLOUD_FILESYSTEM_AMOUNT,
   });
   if (!allowed) {
     logger.debug("createCloudFilesystem -- not allowed", reason);
-    throw Error(reason);
+    throw Error(
+      `You must have at least ${currency(
+        CREATE_CLOUD_FILESYSTEM_AMOUNT,
+      )} credit on your account to create a cloud filesystem.  There is no charge to create the filesystem.`,
+    );
   }
   if (
     (await numberOfCloudFilesystems(opts.project_id)) >=
@@ -279,6 +286,9 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   const { id } = rows[0];
 
   cloudFilesystem.id = id;
+  if (cloudFilesystem.id == null) {
+    throw Error("bug");
+  }
   // NOTE: no matter what, be sure to create the bucket but NOT the service account because
   // creating the bucket twice at once could lead to waste via
   // a race condition (e.g., multiple compute servers causing creating in different hubs),
@@ -289,13 +299,14 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   // role bindings, but we obviously can't just delete the bucket when
   // it isn't active!
   try {
-    await ensureBucketExists(cloudFilesystem);
+    const bucket = await ensureBucketExists(cloudFilesystem);
     if (mount_orig) {
       // only now that the bucket exists do we actually mount.
       await pool.query("UPDATE cloud_filesystems SET mount=TRUE WHERE id=$1", [
         id,
       ]);
     }
+    cloudFilesystem.bucket = bucket;
   } catch (err) {
     await pool.query(
       "UPDATE cloud_filesystems SET error=$1,mount=FALSE WHERE id=$2",
@@ -304,7 +315,48 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
     throw err;
   }
 
+  try {
+    // if can't
+    await createCloudStoragePurchase({
+      cloud_filesystem_id: cloudFilesystem.id,
+      account_id: opts.account_id,
+      project_id: cloudFilesystem.project_id,
+      bucket: cloudFilesystem.bucket,
+    });
+  } catch (err) {
+    await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);
+    throw err;
+  }
+
   return id;
+}
+
+async function createCloudStoragePurchase({
+  cloud_filesystem_id,
+  account_id,
+  project_id,
+  bucket,
+}: {
+  cloud_filesystem_id: number;
+  account_id,
+  project_id,
+  bucket,
+}) {
+  await createPurchase({
+    client: null,
+    account_id,
+    project_id,
+    service: "compute-server-storage",
+    cost_so_far: 0,
+    period_start: new Date(),
+    description: {
+      type: "compute-server-storage",
+      cloud: "google-cloud",
+      bucket,
+      cloud_filesystem_id,
+      last_updated: Date.now(),
+    },
+  });
 }
 
 async function numberOfCloudFilesystems(project_id: string): Promise<number> {
