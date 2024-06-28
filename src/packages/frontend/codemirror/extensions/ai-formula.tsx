@@ -237,7 +237,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
     return (
       <>
         <Title level={4}>
-          <AIAvatar size={24} /> Generate LaTeX Formula
+          <AIAvatar size={20} /> Generate LaTeX Formula
         </Title>
         {enabled ? (
           <>

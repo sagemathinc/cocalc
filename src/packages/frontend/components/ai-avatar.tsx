@@ -32,7 +32,8 @@ export default function AIAvatar({
         height: size,
         display: "inline-block",
         position: "relative",
-        ...{ marginRight: "3px", ...style },
+        top: "2px",
+        ...style,
       }}
     >
       <div
@@ -41,7 +42,6 @@ export default function AIAvatar({
           backgroundColor,
           color: "white",
           height: size,
-          top: "5px",
           ...innerStyle,
         }}
       >

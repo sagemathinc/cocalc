@@ -2,16 +2,16 @@
 Start project with given pay as you go upgrade.
 */
 
+import { redux } from "@cocalc/frontend/app-framework";
+import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
+import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
 import {
   getPayAsYouGoPricesProjectQuotas,
   isPurchaseAllowed,
   setPayAsYouGoProjectQuotas,
 } from "../api";
-import { getPricePerHour } from "@cocalc/util/purchases/project-quotas";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import track from "@cocalc/frontend/user-tracking";
-import { redux } from "@cocalc/frontend/app-framework";
 
 // when checking user has sufficient credits to run project with
 // upgrade, require that they have enough for this many hours.
@@ -36,7 +36,7 @@ export default async function startProject({
   setStatus?.("Checking balance and limits...");
   const { allowed, reason } = await isPurchaseAllowed(
     "project-upgrade",
-    cost * MIN_HOURS
+    cost * MIN_HOURS,
   );
   if (!allowed) {
     setStatus?.("Increasing balance or limits ...");
@@ -52,7 +52,7 @@ export default async function startProject({
       setStatus?.("Checking balance and limits...");
       const { allowed, reason } = await isPurchaseAllowed(
         "project-upgrade",
-        cost * MIN_HOURS
+        cost * MIN_HOURS,
       );
       if (!allowed) {
         throw Error(reason);

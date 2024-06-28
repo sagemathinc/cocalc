@@ -89,8 +89,8 @@ export function AdminPage() {
       key: "llm-testing",
       label: (
         <div style={headerStyle}>
-          <AIAvatar size={16} style={{ marginRight: "8px", top: "-5px" }} />{" "}
-          Test LLM Integration
+          <AIAvatar size={16} style={{ marginRight: "8px" }} /> Test LLM
+          Integration
         </div>
       ),
       children: <TestLLMAdmin />,

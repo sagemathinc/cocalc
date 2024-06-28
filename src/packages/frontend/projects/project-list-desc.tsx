@@ -3,20 +3,25 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Icon, Gap } from "../components";
-import { plural } from "@cocalc/util/misc";
 import { Button } from "antd";
-import { Alert, ButtonGroup, ButtonToolbar } from "../antd-bootstrap";
-import { webapp_client } from "../webapp-client";
-import { alert_message } from "../alerts";
+
+import { ResetProjectsConfirmation } from "@cocalc/frontend/account/upgrades/reset-projects";
+import { alert_message } from "@cocalc/frontend/alerts";
+import {
+  Alert,
+  ButtonGroup,
+  ButtonToolbar,
+} from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useActions,
   useMemo,
-  useTypedRedux,
   useState,
-} from "../app-framework";
-import { ResetProjectsConfirmation } from "../account/upgrades/reset-projects";
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Gap, Icon } from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { plural } from "@cocalc/util/misc";
 
 interface Props {
   visible_projects: string[];
@@ -31,11 +36,9 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   const hidden = useTypedRedux("projects", "hidden");
   const search: string | undefined = useTypedRedux("projects", "search");
   const selected_hashtags = useTypedRedux("projects", "selected_hashtags");
-  const selected_hashtags_for_filter: {
-    [tag: string]: boolean;
-  } = useMemo(() => {
+  const selected_hashtags_for_filter: string[] = useMemo(() => {
     const filter = `${!!hidden}-${!!deleted}`;
-    return selected_hashtags?.get(filter)?.toJS() ?? {};
+    return selected_hashtags?.get(filter)?.toJS() ?? [];
   }, [selected_hashtags, deleted, hidden]);
 
   const [show_alert, set_show_alert] = useState<
@@ -130,7 +133,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     let query = (search ?? "").toLowerCase();
     const hashtags_string = (() => {
       const result: string[] = [];
-      for (const name in selected_hashtags_for_filter) {
+      for (const name of selected_hashtags_for_filter) {
         result.push(name);
       }
       return result;
@@ -261,7 +264,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
     return visible_projects.filter(
       (project_id) =>
         project_map?.getIn([project_id, "users", account_id, "group"]) !==
-        "owner"
+        "owner",
     );
   }
 
@@ -316,7 +319,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
           visible_projects.length
         } ${plural(
           visible_projects.length,
-          "project"
+          "project",
         )} listed here (you own the other ${plural(other, "one")}).`;
       } else {
         if (v.length === 1) {
@@ -324,7 +327,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
         } else {
           desc = `You are a collaborator on ALL of the ${v.length} ${plural(
             v.length,
-            "project"
+            "project",
           )} listed here.`;
         }
       }
