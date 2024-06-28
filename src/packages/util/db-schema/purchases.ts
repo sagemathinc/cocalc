@@ -37,6 +37,7 @@ export type ComputeService =
   | "project-upgrade"
   | "compute-server"
   | "compute-server-network-usage"
+  | "compute-server-storage"
   | "license"
   | "voucher"
   | "edit-license";
@@ -83,6 +84,38 @@ export interface ComputeServerNetworkUsage {
   compute_server_id: number;
   amount: number; // amount of data used in GB
   last_updated?: number;
+}
+
+// describes how the charges for GCS for a period time break down
+// into components.  Of course there is much more detail than this
+// in billing data, e.g., exactly how much of each kind of network.
+// But at least this breakdown is probably helpful as a start to
+// better understand charges.
+export interface GoogleCloudStorageBucketCost {
+  network: number;
+  storage: number;
+  classA: number;
+  classB: number;
+  autoclass: number;
+  other: number;
+}
+
+// This is used to support cloud filesystems; however, it's generic
+// enough it could be for any bucket storage.
+export interface ComputeServerStorage {
+  type: "compute-server-storage";
+  cloud: "google-cloud"; // only google-cloud currently supported
+  bucket: string; // SUPER important -- the name of the bucket
+  // once the purchase is done and finalized, we put the final cost here:
+  cost?: number;
+  // this is a breakdown of the cost, which is cloud-specific
+  cost_breakdown?: GoogleCloudStorageBucketCost;
+  // filesystem the bucket is used for.
+  cloud_filesystem_id?: number;
+  // an estimated cost for the given period of time -- we try to make this
+  // based on collected metrics, and it may or may not be close to the
+  // actual cost.
+  estimated_cost?: { min: number; max: number };
 }
 
 export interface License {

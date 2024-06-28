@@ -6,10 +6,17 @@ import { Table } from "./types";
 
 export type { Service };
 
+// Users will set their spend limits for these broad categories.
+// TODO: right now there is a separate limit for each quota spec,
+// which has got ridiculous.
+const SERVICE_CATEGORIES = ["money", "compute", "license", "ai"];
+type ServiceCategory = (typeof SERVICE_CATEGORIES)[number];
+
 interface Spec {
   display: string; // what to show user to describe this service
   noSet?: boolean; // if true, then no spend limits are set for this.
   color: string;
+  category: ServiceCategory;
 }
 
 export type QuotaSpec = Record<Service, Spec>;
@@ -17,6 +24,7 @@ export type QuotaSpec = Record<Service, Spec>;
 const GPT_TURBO: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
   color: "#10a37f",
+  category: "ai",
 } as const;
 
 const GPT_TURBO_8K: Spec = {
@@ -27,6 +35,7 @@ const GPT_TURBO_8K: Spec = {
 const GPT_OMNI: Spec = {
   display: "OpenAI GPT-4 Omni",
   color: "#10a37f",
+  category: "ai",
 } as const;
 
 const GPT_OMNI_8K: Spec = {
@@ -34,49 +43,72 @@ const GPT_OMNI_8K: Spec = {
   display: `${GPT_OMNI.display} 8k`,
 } as const;
 
+const GOOGLE_AI_COLOR = "#ff4d4f";
+
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
 export const QUOTA_SPEC: QuotaSpec = {
-  credit: { display: "Credit", noSet: true, color: "green" },
-  refund: { display: "Refund", noSet: true, color: "red" },
-  "project-upgrade": { display: "Project Upgrade", color: "#5bc0de" },
-  "compute-server": { display: "Compute Server", color: "#2196f3" },
+  credit: { display: "Credit", noSet: true, color: "green", category: "money" },
+  refund: { display: "Refund", noSet: true, color: "red", category: "money" },
+  "project-upgrade": {
+    display: "Project Upgrade",
+    color: "#5bc0de",
+    category: "compute",
+  },
+  "compute-server": {
+    display: "Compute Server",
+    color: "#2196f3",
+    category: "compute",
+  },
   "compute-server-network-usage": {
     display: "Network Data",
     color: "#2196f3",
+    category: "compute",
+  },
+  "compute-server-storage": {
+    display: "Cloud Storage",
+    color: "#fbbd05",
+    category: "compute",
   },
   license: {
     display: "License",
     color: "cyan",
     noSet: true,
+    category: "license",
   },
   "edit-license": {
     display: "Edit License",
     color: "gold",
     noSet: true,
+    category: "license",
   },
   voucher: {
     display: "Voucher",
     color: "#00238b",
     noSet: true,
+    category: "money",
   },
   // ATTN: LLMs comes below this line, the quotas above are the important ones to show first!
-  "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f" },
+  "openai-gpt-4": { display: "OpenAI GPT-4", color: "#10a37f", category: "ai" },
   "openai-gpt-3.5-turbo": {
     display: "OpenAI GPT-3.5",
     color: "#10a37f",
+    category: "ai",
   },
   "openai-gpt-3.5-turbo-16k": {
     display: "OpenAI GPT-3.5 16k",
     color: "#10a37f",
+    category: "ai",
   },
   "openai-text-embedding-ada-002": {
     display: "OpenAI Text Embedding Ada 002",
     color: "#10a37f",
     noSet: true, // because this model is not user visible yet
+    category: "ai",
   },
   "openai-gpt-4-32k": {
     display: "OpenAI GPT-4 32k",
     color: "#10a37f",
+    category: "ai",
   },
   "openai-gpt-4-turbo-preview": GPT_TURBO, // the "preview" is over
   "openai-gpt-4-turbo-preview-8k": GPT_TURBO_8K, // the "preview" is over
@@ -86,82 +118,101 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-4o-8k": GPT_OMNI_8K,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
-    color: "#4285f4",
+    color: GOOGLE_AI_COLOR,
     noSet: true, // deprecated, will be removed
+    category: "ai",
   },
   "google-chat-bison-001": {
     display: "Google Palm 2 (Chat)",
-    color: "#4285f4",
+    color: GOOGLE_AI_COLOR,
     noSet: true, // deprecated, will be removed
+    category: "ai",
   },
   "google-embedding-gecko-001": {
     display: "Google Gecko (Embedding)",
-    color: "#4285f4",
+    color: GOOGLE_AI_COLOR,
     noSet: true, // deprecated, will be removed
+    category: "ai",
   },
   "google-gemini-1.5-flash-8k": {
     display: "Google Gemini 1.5 Flash",
-    color: "#4285f4",
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
   },
   "google-gemini-pro": {
     display: "Google Gemini 1.0 Pro",
-    color: "#4285f4",
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
   },
   "google-gemini-1.0-ultra": {
     display: "Google Gemini 1.0 Ultra",
-    color: "#4285f4",
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
   },
   "google-gemini-1.5-pro-8k": {
     display: LLM_USERNAMES["gemini-1.5-pro-8k"],
-    color: "#4285f4",
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
   },
   "google-gemini-1.5-pro": {
     display: LLM_USERNAMES["gemini-1.5-pro"],
-    color: "#4285f4",
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
   },
   "anthropic-claude-3-opus": {
     display: LLM_USERNAMES["claude-3-opus"],
     color: "#181818",
+    category: "ai",
   },
   "anthropic-claude-3-opus-8k": {
     display: LLM_USERNAMES["claude-3-opus-8k"],
     color: "#181818",
+    category: "ai",
   },
   "anthropic-claude-3-sonnet": {
     display: LLM_USERNAMES["claude-3-sonnet"],
     color: "#181818",
+    category: "ai",
   },
   "anthropic-claude-3-sonnet-4k": {
     display: LLM_USERNAMES["claude-3-sonnet-4k"],
     color: "#181818",
+    category: "ai",
   },
   "anthropic-claude-3-5-sonnet": {
     display: LLM_USERNAMES["claude-3-5-sonnet"],
     color: "#181818",
+    category: "ai",
   },
   "anthropic-claude-3-5-sonnet-4k": {
     display: LLM_USERNAMES["claude-3-5-sonnet-4k"],
     color: "#181818",
+    category: "ai",
   },
   "anthropic-claude-3-haiku": {
     display: LLM_USERNAMES["claude-3-haiku"],
     color: "#181818",
+    category: "ai",
   },
   "anthropic-claude-3-haiku-8k": {
     display: LLM_USERNAMES["claude-3-haiku-8k"],
     color: "#181818",
+    category: "ai",
   },
   "mistralai-mistral-small-latest": {
     display: LLM_USERNAMES["mistral-small-latest"],
     color: "#ff7000", // the orange from their website
+    category: "ai",
   },
   "mistralai-mistral-medium-latest": {
     display: LLM_USERNAMES["mistral-medium-latest"],
     color: "#ff7000", // the orange from their website
+    category: "ai",
   },
   "mistralai-mistral-large-latest": {
     display: LLM_USERNAMES["mistral-large-latest"],
     color: "#ff7000", // the orange from their website
+    category: "ai",
   },
 } as const;
 

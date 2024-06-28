@@ -8,6 +8,7 @@ import { Alert, Spin, Table, Tooltip } from "antd";
 import LRU from "lru-cache";
 import { useEffect, useState } from "react";
 import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
+import { A } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
@@ -81,11 +82,20 @@ export default function Cost({ inline, service }: Props) {
     );
   } else if (service == "compute-server-network-usage") {
     if (inline) {
-      return <GoogleNetworkCost />;
+      return <GoogleNetworkCost markup={cost} />;
     }
     return (
       <div style={TEXT_STYLE}>
-        <GoogleNetworkCost />
+        <GoogleNetworkCost markup={cost} />
+      </div>
+    );
+  } else if (service == "compute-server-storage") {
+    if (inline) {
+      return <CloudStorageCost markup={cost} />;
+    }
+    return (
+      <div style={TEXT_STYLE}>
+        <CloudStorageCost markup={cost} />
       </div>
     );
   }
@@ -213,17 +223,44 @@ function PriceWithToken({ text }) {
   );
 }
 
-export function GoogleNetworkCost() {
-  const [markup, setMarkup] = useState<number | undefined>(undefined);
+function useMarkup(markup0) {
+  const [markup, setMarkup] = useState<number | undefined>(markup0);
   useEffect(() => {
-    (async () => {
-      setMarkup((await getGoogleCloudPriceData()).markup);
-    })();
+    if (markup == null) {
+      (async () => {
+        try {
+          setMarkup((await getGoogleCloudPriceData()).markup);
+        } catch (err) {
+          console.log(err);
+        }
+      })();
+    }
   }, []);
+}
+
+export function GoogleNetworkCost({ markup: markup0 }: { markup?: number }) {
+  // the passed in cost is the markup
+  const markup = useMarkup(markup0);
   return (
     <>
-      The amount you pay is a {markup != null ? `${markup}%` : "small"} markup
-      on what Google actually charges CoCalc for your network usage.
+      The networking pricing is a {markup != null ? `${markup}%` : "small"}{" "}
+      markup on exactly what{" "}
+      <A href="https://cloud.google.com/vpc/network-pricing">
+        Google charges for network usage.
+      </A>
+    </>
+  );
+}
+
+export function CloudStorageCost({ markup: markup0 }: { markup?: number }) {
+  const markup = useMarkup(markup0);
+  return (
+    <>
+      The cloud storage pricing is a {markup != null ? `${markup}%` : "small"}{" "}
+      markup on exactly what{" "}
+      <A href="https://cloud.google.com/storage/pricing">
+        Google charges for Google Cloud Storage usage.
+      </A>{" "}
     </>
   );
 }
