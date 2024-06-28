@@ -16,7 +16,7 @@ import { isEqual } from "lodash";
 import { len } from "@cocalc/util/misc";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { setDefaultStorageClass } from "@cocalc/server/compute/cloud/google-cloud/storage";
-import { getAvailabelProjectSpecificId } from "./create";
+import { getAvailableProjectSpecificId } from "./create";
 
 const logger = getLogger("server:compute:cloud-filesystem:edit");
 
@@ -91,7 +91,7 @@ export async function userEditCloudFilesystem(
     }
     // also when moving to a different project we have to re-allocate
     // the project_specific_id, since the current one is probably not be valid!
-    changes.project_specific_id = await getAvailabelProjectSpecificId(
+    changes.project_specific_id = await getAvailableProjectSpecificId(
       changes.project_id,
     );
   }

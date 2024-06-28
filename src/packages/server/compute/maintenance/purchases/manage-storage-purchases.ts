@@ -21,6 +21,7 @@ import getLogger from "@cocalc/backend/logger";
 import { closeAndContinueCloudStoragePurchase } from "./close";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { MAX_PURCHASE_LENGTH_MS } from "./manage-purchases";
+import { createCloudStoragePurchase } from "@cocalc/server/compute/cloud-filesystem/create";
 
 const logger = getLogger(
   "server:compute:maintenance:purchases:manage-cloud-filesystem-purchase",
@@ -37,6 +38,8 @@ export default async function manageStoragePurchases() {
   }
   const toComputeCost = await getPurchasesToComputeCost();
   await computeBucketPurchaseCosts(toComputeCost);
+
+  await ensureCloudFilesystemsHavePurchases();
 }
 
 async function getPurchasesToClose(): Promise<Purchase[]> {
@@ -107,4 +110,72 @@ async function computeBucketPurchaseCosts(bucketPurchases) {
       [purchase.cost, purchase.description, purchase.id],
     );
   }
+}
+
+// Make sure every cloud filesystem that exists in the database
+// has a corresponding active purchase associated to it.  There
+// should be no way that this is ever necessary, but for safety
+// and testing it is nice to do this, since not properly charging
+// for a bucket could cost a huge amount, and if somehow there wasn't
+// a purchase created, then there would never be a purchase without
+// something like this (since new purchases get created normally only
+// on bucket creation and when running purchases are closed continued).
+async function ensureCloudFilesystemsHavePurchases() {
+  const pool = getPool();
+  const { rows: missing } = await pool.query(
+    "SELECT id, created, bucket, account_id, project_id FROM cloud_filesystems WHERE purchase_id IS NULL",
+  );
+  for (const {
+    id: cloud_filesystem_id,
+    created,
+    bucket,
+    account_id,
+    project_id,
+  } of missing) {
+    const mostRecent = await getMostRecentPurchase(cloud_filesystem_id);
+    logger.debug("ensureCloudFilesystemsHavePurchases: creating for missing", {
+      cloud_filesystem_id,
+    });
+    await createCloudStoragePurchase({
+      cloud_filesystem_id,
+      account_id,
+      project_id,
+      bucket,
+      period_start: mostRecent?.period_end ?? created,
+    });
+  }
+
+  const { rows: notActive } = await pool.query(
+    "SELECT cloud_filesystems.id AS cloud_filesystem_id, purchases.period_end AS period_end, cloud_filesystems.bucket AS bucket, cloud_filesystems.account_id AS account_id, cloud_filesystems.project_id AS project_id FROM cloud_filesystems,purchases WHERE cloud_filesystems.purchase_id=purchases.id AND purchases.period_end IS NOT NULL",
+  );
+  for (const {
+    cloud_filesystem_id,
+    period_end,
+    bucket,
+    account_id,
+    project_id,
+  } of notActive) {
+    logger.debug(
+      "ensureCloudFilesystemsHavePurchases: creating for notActive",
+      { cloud_filesystem_id },
+    );
+    await createCloudStoragePurchase({
+      cloud_filesystem_id,
+      account_id,
+      project_id,
+      bucket,
+      period_start: period_end,
+    });
+  }
+}
+
+async function getMostRecentPurchase(
+  cloud_filesystem_id: number,
+): Promise<undefined | Purchase> {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT * FROM purchases WHERE description.cloud_filesystem_id=$1 ORDER BY time DESC LIMIT 1",
+    [cloud_filesystem_id],
+  );
+  return rows[0];
 }

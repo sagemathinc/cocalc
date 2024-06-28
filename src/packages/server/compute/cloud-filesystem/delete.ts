@@ -145,14 +145,14 @@ export async function deleteCloudFilesystem(id) {
 
   const { bucket } = cloudFilesystem;
   if (bucket) {
-    logger.debug("deleteCloudFilesystem: delete the Google cloud bucket");
+    // bucket should always be non-null
+    logger.debug("deleteCloudFilesystem: delete the Google cloud bucket", {
+      bucket,
+    });
     await deleteBucket({
       bucketName: bucket,
       useTransferService: true,
     });
-    await pool.query("UPDATE cloud_filesystems SET bucket=NULL WHERE id=$1", [
-      id,
-    ]);
   }
   logger.debug("deleteCloudFilesystem: delete the database record");
   await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);

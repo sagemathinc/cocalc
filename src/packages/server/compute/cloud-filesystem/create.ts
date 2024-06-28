@@ -67,57 +67,6 @@ export interface Options extends CreateCloudFilesystem {
   account_id: string;
 }
 
-// creates bucket -- a race condition here would result in creating an extra bucket (garbage).
-// mutates input
-export async function ensureBucketExists(
-  cloudFilesystem: Partial<CloudFilesystem>,
-): Promise<string> {
-  const { id } = cloudFilesystem;
-  if (!id) {
-    throw Error("ensureBucketExists failed -- id must be specified");
-  }
-  if (cloudFilesystem.bucket) {
-    // already created
-    return cloudFilesystem.bucket;
-  }
-  logger.debug("ensureBucketExists: creating for ", id);
-  try {
-    // randomized bucket name -- all GCS buckets are in a single global
-    // namespace, but by using a uuid it's extremely unlikely that
-    // a bucket name would ever not be avialable; also nobody will
-    // ever guess a bucket name, which is an extra level of security.
-    // If there is a conflict, it would be an error and the user
-    // would just retry creating their bucket (it's much more likely
-    // to hit a random networking error).
-    const s = `-${id}-${uuid()}`;
-    const bucket = `${(await getGoogleCloudPrefix()).slice(
-      0,
-      63 - s.length - 1,
-    )}${s}`;
-    logger.debug("ensureBucketExists", { bucket });
-    // in place mutate!
-    cloudFilesystem.bucket = bucket;
-
-    // create storage bucket -- for now only support google
-    // cloud storage, as mentioned above.
-    await createBucket(bucket, bucketOptions(cloudFilesystem));
-    const pool = getPool();
-    await pool.query("UPDATE cloud_filesystems SET bucket=$1 WHERE id=$2", [
-      bucket,
-      id,
-    ]);
-    return bucket;
-  } catch (err) {
-    logger.debug("ensureBucketExists: error ", err);
-    const pool = getPool();
-    await pool.query("UPDATE cloud_filesystems SET error=$1 WHERE id=$2", [
-      `${err}`,
-      id,
-    ]);
-    throw err;
-  }
-}
-
 // - create service account that has access to storage bucket
 // - mutates input
 // - race condition would create identical service account twice, so not a problem.
@@ -193,6 +142,8 @@ export async function ensureServiceAccountExists(
   }
 }
 
+const zeroPad = (num, places) => String(num).padStart(places, "0");
+
 export async function createCloudFilesystem(opts: Options): Promise<number> {
   logger.debug("createCloudFilesystem", opts);
   // copy to avoid mutating
@@ -209,10 +160,6 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   if (opts.mountpoint) {
     assertValidPath(opts.mountpoint);
   }
-
-  // always set mount to false during creation, so that it doesn't try to mount *while* we're creating the bucket.
-  const mount_orig = opts.mount;
-  opts.mount = false;
 
   if (
     opts["block_size"] < MIN_BLOCK_SIZE ||
@@ -273,10 +220,11 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   // there could be a race condition if user tries to make two cloud filesystems at
   // same time for same project -- one would fail and they get an error due to
   // database uniqueness constraint. That's fine for now.
-  const project_specific_id = await getAvailabelProjectSpecificId(
+  const project_specific_id = await getAvailableProjectSpecificId(
     opts.project_id,
   );
   push("project_specific_id", project_specific_id);
+  logger.debug("createCloudFilesystem", { cloudFilesystem });
 
   const query = `INSERT INTO cloud_filesystems(${fields.join(
     ",",
@@ -284,75 +232,64 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   const pool = getPool();
   const { rows } = await pool.query(query, params);
   const { id } = rows[0];
-
-  cloudFilesystem.id = id;
-  if (cloudFilesystem.id == null) {
+  if (id == null) {
     throw Error("bug");
   }
+  cloudFilesystem.id = id;
 
-  logger.debug("createCloudFilesystem: start the purchase");
   try {
+    const bucket = await createRandomBucketName(id);
+    await pool.query("UPDATE cloud_filesystems SET bucket=$1 WHERE id=$2", [
+      bucket,
+      id,
+    ]);
+
+    logger.debug("createCloudFilesystem: start the purchase");
     await createCloudStoragePurchase({
-      cloud_filesystem_id: cloudFilesystem.id,
+      cloud_filesystem_id: id,
       account_id: opts.account_id,
-      project_id: cloudFilesystem.project_id,
-      bucket: cloudFilesystem.bucket,
+      project_id: opts.project_id,
+      bucket,
     });
-  } catch (err) {
-    logger.debug(
-      "createCloudFilesystem: ERROR -- failed to create purchase",
-      err,
-    );
-    await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);
-    throw err;
-  }
 
-  // NOTE: no matter what, be sure to create the bucket but NOT the service account because
-  // creating the bucket twice at once could lead to waste via
-  // a race condition (e.g., multiple compute servers causing creating in different hubs),
-  // with multiple bucket names and garbage.  However, creating the service
-  // account is canonical so no worries about the race condition.
-  // Also, in general we will delete the service account completely when the
-  // filesystem isn't active, to avoid having too many service accounts and
-  // role bindings, but we obviously can't just delete the bucket when
-  // it isn't active!
-  try {
-    const bucket = await ensureBucketExists(cloudFilesystem);
-    if (mount_orig) {
-      // only now that the bucket exists do we actually mount.
-      await pool.query("UPDATE cloud_filesystems SET mount=TRUE WHERE id=$1", [
-        id,
-      ]);
-    }
-    cloudFilesystem.bucket = bucket;
+    // NOTE: no matter what, be sure to create the bucket but NOT the service account because
+    // creating the bucket twice at once could lead to waste via
+    // a race condition (e.g., multiple compute servers causing creating in different hubs),
+    // with multiple bucket names and garbage.  However, creating the service
+    // account is canonical so no worries about the race condition.
+    // Also, in general we will delete the service account completely when the
+    // filesystem isn't active, to avoid having too many service accounts and
+    // role bindings, but we obviously can't just delete the bucket when
+    // it isn't active!
+    await createBucket(bucket, bucketOptions(cloudFilesystem));
   } catch (err) {
-    await pool.query(
-      "UPDATE cloud_filesystems SET error=$1,mount=FALSE WHERE id=$2",
-      [`${err}`, id],
-    );
+    logger.debug("createCloudFilesystem: failed -- ", err);
+    await pool.query("DELETE FROM cloud_filesystems WHERE id=$1", [id]);
     throw err;
   }
 
   return id;
 }
 
-async function createCloudStoragePurchase({
+export async function createCloudStoragePurchase({
   cloud_filesystem_id,
   account_id,
   project_id,
   bucket,
+  period_start,
 }: {
   cloud_filesystem_id: number;
-  account_id;
-  project_id;
-  bucket;
+  account_id: string;
+  project_id: string;
+  bucket: string;
+  period_start?: Date;
 }) {
   const purchase_id = await createPurchase({
     client: null,
     account_id,
     project_id,
     service: "compute-server-storage",
-    period_start: new Date(),
+    period_start: period_start ?? new Date(),
     description: {
       type: "compute-server-storage",
       cloud: "google-cloud",
@@ -420,7 +357,7 @@ function bucketOptions({
   } as CreateBucketRequest;
 }
 
-export async function getAvailabelProjectSpecificId(project_id: string) {
+export async function getAvailableProjectSpecificId(project_id: string) {
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT project_specific_id FROM cloud_filesystems WHERE project_id=$1",
@@ -434,4 +371,20 @@ export async function getAvailabelProjectSpecificId(project_id: string) {
     id += 1;
   }
   return id;
+}
+
+async function createRandomBucketName(id: number): Promise<string> {
+  // randomized bucket name -- all GCS buckets are in a single global
+  // namespace, but by using a uuid it's sufficiently unlikely that
+  // a bucket name would ever not be available; also nobody will
+  // ever guess a bucket name, which is an extra level of security.
+  // If there is a conflict, it would be an error and the user
+  // would just retry creating their bucket (it's much more likely
+  // to hit a random networking error).
+  const s = `-${zeroPad(id, 8)}-${uuid()}`;
+  const bucket = `${(await getGoogleCloudPrefix()).slice(
+    0,
+    63 - s.length - 1,
+  )}${s}`;
+  return bucket;
 }

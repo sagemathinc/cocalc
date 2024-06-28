@@ -8,6 +8,7 @@ import getPool, {
 import getLogger from "@cocalc/backend/logger";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import type { ComputeServer } from "@cocalc/util/db-schema/compute-servers";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { cloneDeep } from "lodash";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { MIN_NETWORK_CLOSE_DELAY_MS } from "./manage-purchases";
@@ -289,10 +290,10 @@ export async function closeAndContinueCloudStoragePurchase({
 
   const now = new Date();
 
-  const exists = await cloudFilesystemExists(
+  const cloudFilesystem = await getCloudFilesystem(
     purchase.description.cloud_filesystem_id,
   );
-  if (!exists) {
+  if (cloudFilesystem == null) {
     logger.debug(
       "closeAndContinueCloudStoragePurchase: filesystem no longer exists, so just end current purchase",
     );
@@ -314,6 +315,10 @@ export async function closeAndContinueCloudStoragePurchase({
   const newPurchase = cloneDeep(purchase);
   newPurchase.time = now;
   newPurchase.period_start = now;
+  // the filesystem might have moded, so update project.   The project doesn't actually
+  // impact pricing or billing at all, so it's not crucial to handle this right when the
+  // filesystem moves.
+  newPurchase.project_id = cloudFilesystem.project_id;
 
   logger.debug(
     "closeAndContinueCloudStoragePurchase -- creating newPurchase=",
@@ -357,11 +362,13 @@ export async function closeAndContinueCloudStoragePurchase({
   }
 }
 
-async function cloudFilesystemExists(id: number) {
+async function getCloudFilesystem(
+  id: number,
+): Promise<undefined | CloudFilesystem> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT COUNT(*) AS count FROM cloud_filesystems WHERE id=$1",
+    "SELECT * FROM cloud_filesystems WHERE id=$1",
     [id],
   );
-  return rows[0].count > 0;
+  return rows[0];
 }

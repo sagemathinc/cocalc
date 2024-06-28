@@ -7,7 +7,7 @@ import getLogger from "@cocalc/backend/logger";
 import { getTag } from "@cocalc/server/compute/cloud/startup-script";
 import { getImages } from "@cocalc/server/compute/images";
 import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
-import { ensureBucketExists, ensureServiceAccountExists } from "./create";
+import { ensureServiceAccountExists } from "./create";
 import { getProjectSpecificId } from "@cocalc/server/compute/project-specific-id";
 
 // last_edited gets updated about this frequently when filesystem actively mounted.
@@ -66,13 +66,7 @@ async function getMountedCloudFilesystems(
 
   // update last_edited in the database for these filesystems:
   await updateLastEdited(filesystems);
-  // create any buckets, if they don't exist -- this may mutate rows.
-  // NOTE: this case absolutely should never happen since we create the bucket
-  // when creating the filesystem.  However, just in case, we leave it in,
-  // since it's a trivial check.
-  for (const filesystem of filesystems) {
-    await ensureBucketExists(filesystem);
-  }
+
   // create any service accounts that don't exist -- this may mutate rows
   // and do NOT do in parallel since we do not want to encourage a race conditions
   // when setting role bindings.
