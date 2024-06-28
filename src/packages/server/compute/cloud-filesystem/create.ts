@@ -271,19 +271,16 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   return id;
 }
 
-export async function createCloudStoragePurchase({
-  cloud_filesystem_id,
-  account_id,
-  project_id,
-  bucket,
-  period_start,
-}: {
+export async function createCloudStoragePurchase(opts: {
   cloud_filesystem_id: number;
   account_id: string;
   project_id: string;
   bucket: string;
   period_start?: Date;
 }) {
+  const { cloud_filesystem_id, account_id, project_id, bucket, period_start } =
+    opts;
+  logger.debug("createCloudStoragePurchase: ", opts);
   const purchase_id = await createPurchase({
     client: null,
     account_id,

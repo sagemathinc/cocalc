@@ -120,11 +120,12 @@ async function computeBucketPurchaseCosts(bucketPurchases) {
 // a purchase created, then there would never be a purchase without
 // something like this (since new purchases get created normally only
 // on bucket creation and when running purchases are closed continued).
-async function ensureCloudFilesystemsHavePurchases() {
+export async function ensureCloudFilesystemsHavePurchases() {
   const pool = getPool();
   const { rows: missing } = await pool.query(
     "SELECT id, created, bucket, account_id, project_id FROM cloud_filesystems WHERE purchase_id IS NULL",
   );
+
   for (const {
     id: cloud_filesystem_id,
     created,
@@ -173,8 +174,9 @@ async function getMostRecentPurchase(
   cloud_filesystem_id: number,
 ): Promise<undefined | Purchase> {
   const pool = getPool();
+  // this is not an efficient query... but we will probably never ever use this in practice so it does not matter.
   const { rows } = await pool.query(
-    "SELECT * FROM purchases WHERE description.cloud_filesystem_id=$1 ORDER BY time DESC LIMIT 1",
+    "SELECT * FROM purchases WHERE service = 'compute-server-storage' AND (description->'cloud_filesystem_id')::integer = $1 ORDER BY time DESC LIMIT 1",
     [cloud_filesystem_id],
   );
   return rows[0];

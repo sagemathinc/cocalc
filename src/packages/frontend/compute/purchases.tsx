@@ -79,7 +79,7 @@ export function ComputeServerStorageDescription({
         showProject
       />
       . {period_end == null && <Cost service="compute-server-storage" inline />}{" "}
-      <WhenKnown period_end={period_end} />
+      {description.cost == null && <WhenKnown period_end={period_end} />}
     </div>
   );
 }
