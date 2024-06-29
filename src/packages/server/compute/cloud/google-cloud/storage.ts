@@ -9,7 +9,7 @@ import { CreateBucketRequest, Storage } from "@google-cloud/storage";
 import { StorageTransferServiceClient } from "@google-cloud/storage-transfer";
 import { uuid } from "@cocalc/util/misc";
 import { getGoogleCloudPrefix } from "./index";
-import { addStorageTransferPolicy } from "./policy";
+import { addStorageTransferPolicy, getProjectNumber } from "./policy";
 import type { GoogleCloudBucketStorageClass } from "@cocalc/util/db-schema/cloud-filesystems";
 import { GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES } from "@cocalc/util/db-schema/cloud-filesystems";
 
@@ -73,11 +73,15 @@ export async function deleteFilesUsingTransferService(
     // We fix this by doing just that via the api as given below.
     // We only need to do this once, which is why the awkward style of this code,
     // where it fails and tries this.
-    const [serviceAccount] = await transferClient.getGoogleServiceAccount();
-    const { accountEmail } = serviceAccount;
-    if (!accountEmail) {
-      throw Error("unable to get storage transfer service email");
-    }
+    //     const [serviceAccount] = await transferClient.getGoogleServiceAccount();
+    //     const { accountEmail } = serviceAccount;
+    //     if (!accountEmail) {
+    //       throw Error("unable to get storage transfer service email");
+    //     }
+    // I can't get the above to work ! -- at least with all the permissions and api's I know about enabling.
+    // Fortunately the service account email for the transfer client follows a predictable pattern,
+    // so we just use that:
+    const accountEmail = `project-${await getProjectNumber()}@storage-transfer-service.iam.gserviceaccount.com`;
     await addStorageTransferPolicy(accountEmail);
   }
 

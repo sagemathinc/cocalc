@@ -72,7 +72,7 @@ export async function addBucketPolicyBinding({
   });
 }
 
-async function getCloudResourceManager() {
+export async function getCloudResourceManager() {
   const { credentials, projectId } = await getCredentials();
   const jwtClient = new JWT({
     email: credentials.client_email,
@@ -87,6 +87,15 @@ async function getCloudResourceManager() {
     },
   );
   return { cloudresourcemanager, projectId };
+}
+
+export async function getProjectNumber(): Promise<number> {
+  const { cloudresourcemanager, projectId } = await getCloudResourceManager();
+  const response = await cloudresourcemanager.projects.get({ projectId });
+  if (response.data.projectNumber == null) {
+    throw Error("no project number known");
+  }
+  return parseInt(response.data.projectNumber);
 }
 
 function getBucketPolicyBinding({ serviceAccountId, bucketName, projectId }) {
