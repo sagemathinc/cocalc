@@ -15,6 +15,7 @@ import { MAX_WIDTH_LANDING } from "lib/config";
 import useCustomize from "lib/use-customize";
 import Image from "./image";
 import SignIn from "./sign-in";
+import LiveDemo from "components/landing/live-demo";
 
 // See https://github.com/vercel/next.js/issues/29788 for why we have to define this for now (it's to work around a bug).
 interface StaticImageData {
@@ -172,18 +173,9 @@ export default function Content(props: Props) {
 
   function renderLogo() {
     if (typeof body === "string" || (body as StaticImageData)?.src != null) {
-      return (
-        <Logo
-          logo={body}
-          title={title}
-        />
-      );
+      return <Logo logo={body} title={title} />;
     } else {
-      return (
-        <>
-          {body}
-        </>
-      );
+      return <>{body}</>;
     }
   }
 
@@ -222,13 +214,17 @@ export default function Content(props: Props) {
             {renderTitle()}
             {subtitle && renderSubtitleTop()}
             {description && (
-              <Title
-                level={4}
-                style={{ color: COLORS.GRAY }}
-              >
+              <Title level={4} style={{ color: COLORS.GRAY }}>
                 {description}
               </Title>
             )}
+            <div style={{ marginTop: "15px" }}>
+              <LiveDemo
+                context={
+                  typeof title == "string" ? title : alt ?? "Feature Page"
+                }
+              />
+            </div>
             <SignIn startup={startup ?? title} hideFree={true} />
           </Space>
         </Col>

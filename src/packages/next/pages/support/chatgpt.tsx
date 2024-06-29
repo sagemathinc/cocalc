@@ -13,9 +13,9 @@ export default function ChatgptInfo({ customize }) {
   function renderChatGPT() {
     return (
       <div style={{ maxWidth: "1000px" }}>
-        Our integrated ChatGPT support is free and often very helpful since it
-        knows so much about the open source software in {siteName}. You can ask
-        a question below or use @chatgpt in any chat message when using{" "}
+        Our integrated AI support is often very helpful since it knows so much
+        about the open source software in {siteName}. You can ask a question
+        below or use @ mention an AI model in any chat message when using{" "}
         {siteName}.
         <ChatGPTHelp
           style={{ marginTop: "15px" }}
