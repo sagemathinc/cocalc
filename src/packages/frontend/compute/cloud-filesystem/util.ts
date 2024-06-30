@@ -49,11 +49,11 @@ export function getDataStoragePrice({
     return null;
   }
   if (!bucket_location.includes("-")) {
-    return prices.storage?.atRest?.multiRegions[bucket_location]?.[
+    return prices.storage?.atRest?.multiRegions?.[bucket_location]?.[
       capitalize(bucket_storage_class)
     ];
   } else {
-    return prices.storage?.atRest?.regions[bucket_location]?.[
+    return prices.storage?.atRest?.regions?.[bucket_location]?.[
       capitalize(bucket_storage_class)
     ];
   }

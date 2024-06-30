@@ -1340,8 +1340,8 @@ importers:
         specifier: workspace:*
         version: link:../database
       '@cocalc/gcloud-pricing-calculator':
-        specifier: ^1.12.4
-        version: 1.12.4
+        specifier: ^1.12.5
+        version: 1.12.5
       '@cocalc/server':
         specifier: workspace:*
         version: 'link:'
@@ -2629,8 +2629,8 @@ packages:
       react: ^16.3.2 || ^17.0.0 || ^18.0.0
       react-dom: ^16.3.2 || ^17.0.0 || ^18.0.0
 
-  '@cocalc/gcloud-pricing-calculator@1.12.4':
-    resolution: {integrity: sha512-meMC9InpHP+ok8kZD6eByUrSUnaAYDB+Usybgn8UeupHc9ruNFRSk20c/tMhKKqMGXoaT1gk1bI/Gy+a9hcxnw==}
+  '@cocalc/gcloud-pricing-calculator@1.12.5':
+    resolution: {integrity: sha512-Z7dsJa3KirOn77k6u8h1yuBgLek9cc3G35+/aG1VspDKy+uGJcPPhRiaN+VAFmOguB3m7Cc8OeL3/8IW5ZaokA==}
     engines: {node: '>=0.18.0'}
 
   '@cocalc/local-storage-lru@2.4.3':
@@ -12587,7 +12587,7 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  '@cocalc/gcloud-pricing-calculator@1.12.4':
+  '@cocalc/gcloud-pricing-calculator@1.12.5':
     dependencies:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
