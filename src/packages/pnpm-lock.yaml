@@ -839,7 +839,7 @@ importers:
         version: 2.1.2
       next:
         specifier: 14.1.1
-        version: 14.1.1(@babel/core@7.24.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.77.6)
+        version: 14.1.1(@babel/core@7.21.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.77.6)
       nyc:
         specifier: ^15.1.0
         version: 15.1.0
@@ -1340,8 +1340,8 @@ importers:
         specifier: workspace:*
         version: link:../database
       '@cocalc/gcloud-pricing-calculator':
-        specifier: ^1.12.3
-        version: 1.12.3
+        specifier: ^1.12.4
+        version: 1.12.4
       '@cocalc/server':
         specifier: workspace:*
         version: 'link:'
@@ -1377,7 +1377,7 @@ importers:
         version: 0.2.2(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.1))(openai@4.52.1(encoding@0.1.13))
       '@langchain/community':
         specifier: ^0.2.14
-        version: 0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.2.2))(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.17.1)
+        version: 0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.5.2))(axios@1.6.8)(better-sqlite3@11.1.1)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.17.1)
       '@langchain/core':
         specifier: ^0.2.10
         version: 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.1))(openai@4.52.1(encoding@0.1.13))
@@ -2629,8 +2629,8 @@ packages:
       react: ^16.3.2 || ^17.0.0 || ^18.0.0
       react-dom: ^16.3.2 || ^17.0.0 || ^18.0.0
 
-  '@cocalc/gcloud-pricing-calculator@1.12.3':
-    resolution: {integrity: sha512-nmkyZ3aT6uH0BMpz3O0G9NlWbKwSzSvLTDZG6hKrMzgGRvOCFnw6FSUADAOVNQT+l9iPwWSnQo/HvTtTrQsiCQ==}
+  '@cocalc/gcloud-pricing-calculator@1.12.4':
+    resolution: {integrity: sha512-meMC9InpHP+ok8kZD6eByUrSUnaAYDB+Usybgn8UeupHc9ruNFRSk20c/tMhKKqMGXoaT1gk1bI/Gy+a9hcxnw==}
     engines: {node: '>=0.18.0'}
 
   '@cocalc/local-storage-lru@2.4.3':
@@ -4922,6 +4922,9 @@ packages:
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
+  better-sqlite3@11.1.1:
+    resolution: {integrity: sha512-bAlQQb7gwCgxNpDYafK0O4AaIOiTwA7srfqRtBbw0Nsiq6P+qxEYGl3hLw+9C5jX2FVjKW7oxkSouxlJ+3VX8A==}
+
   better-sqlite3@8.3.0:
     resolution: {integrity: sha512-JTmvBZL/JLTc+3Msbvq6gK6elbU9/wVMqiudplHrVJpr7sVMR9KJrNhZAbW+RhXKlpMcuEhYkdcHa3TXKNXQ1w==}
 
@@ -5957,9 +5960,6 @@ packages:
 
   domutils@2.8.0:
     resolution: {integrity: sha512-w96Cjofp72M5IIhpjgobBimYEfoPjx1Vx0BSX9P30WBdZW2WIKU0T1Bd0kz2eNZ9ikjKgHbEyKx8BB6H1L3h3A==}
-
-  domutils@3.0.1:
-    resolution: {integrity: sha512-z08c1l761iKhDFtfXO04C7kTdPBLi41zwOZl00WS8b5eiaebNpY00HKbztwBq+e3vyqWNwWF3mP9YLUeqIrF+Q==}
 
   domutils@3.1.0:
     resolution: {integrity: sha512-H78uMmQtI2AhgDJjWeQmHwJJ2bLPD3GMmO7Zja/ZZh84wkm+4ut+IUnUdRa8uCGX88DiVx1j6FRe1XfxEgjEZA==}
@@ -8631,6 +8631,10 @@ packages:
     resolution: {integrity: sha512-2s6B2CWZM//kPgwnuI0KrYwNjfdByE25zvAaEpq9IH4zcNsarH8Ihu/UuX6XMPEogDAxkuUFeZn60pXNHAqn3A==}
     engines: {node: '>=10'}
 
+  node-abi@3.65.0:
+    resolution: {integrity: sha512-ThjYBfoDNr08AWx6hGaRbfPwxKV9kVzAzOzlLKbk2CuqXE2xnCh+cbAGnwM3t8Lq4v9rUB7VfondlkBckcJrVA==}
+    engines: {node: '>=10'}
+
   node-addon-api@6.1.0:
     resolution: {integrity: sha512-+eawOlIgy680F0kBzPUNFhMZGtJ1YmqM6l4+Crf4IkImjYrO/mqPwRMh352g23uIaQKFItcQ64I7KMaJxHgAVA==}
 
@@ -9273,6 +9277,11 @@ packages:
 
   prebuild-install@7.1.1:
     resolution: {integrity: sha512-jAXscXWMcCK8GgCoHOfIr0ODh5ai8mj63L2nWrjuAgXE6tDyYGnx4/8o/rCgU+B4JSyZBKbeZqzhtwtC3ovxjw==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  prebuild-install@7.1.2:
+    resolution: {integrity: sha512-UnNke3IQb6sgarcZIDU3gbMeTp/9SSU1DAIkil7PrqG1vZlBtY5msYccSKSHDqa3hNg436IXK+SNImReuA1wEQ==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -10280,6 +10289,11 @@ packages:
 
   semver@7.6.0:
     resolution: {integrity: sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  semver@7.6.2:
+    resolution: {integrity: sha512-FNAIBWCx9qcRhoHcgcJ0gvU7SN1lYU2ZXuSfl04bSC5OpvDHFyJCjdNHomPXxjQlCBU67YW64PzY7/VIEH7F2w==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -12573,7 +12587,7 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  '@cocalc/gcloud-pricing-calculator@1.12.3':
+  '@cocalc/gcloud-pricing-calculator@1.12.4':
     dependencies:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
@@ -13173,7 +13187,7 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/community@0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.2.2))(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.17.1)':
+  '@langchain/community@0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.9.0(typescript@5.5.2))(axios@1.6.8)(better-sqlite3@11.1.1)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.17.1)':
     dependencies:
       '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.1))(openai@4.52.1(encoding@0.1.13))
       '@langchain/openai': 0.1.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.17.1))
@@ -13189,7 +13203,8 @@ snapshots:
     optionalDependencies:
       '@google-ai/generativelanguage': 2.6.0(encoding@0.1.13)
       '@google-cloud/storage': 7.11.1(encoding@0.1.13)
-      '@qdrant/js-client-rest': 1.9.0(typescript@5.2.2)
+      '@qdrant/js-client-rest': 1.9.0(typescript@5.5.2)
+      better-sqlite3: 11.1.1
       cheerio: 1.0.0-rc.12
       google-auth-library: 9.4.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
@@ -13743,11 +13758,11 @@ snapshots:
       typescript: 5.5.2
       undici: 5.28.4
 
-  '@qdrant/js-client-rest@1.9.0(typescript@5.2.2)':
+  '@qdrant/js-client-rest@1.9.0(typescript@5.5.2)':
     dependencies:
       '@qdrant/openapi-typescript-fetch': 1.2.6
       '@sevinf/maybe': 0.5.0
-      typescript: 5.2.2
+      typescript: 5.5.2
       undici: 5.28.4
     optional: true
 
@@ -15156,6 +15171,12 @@ snapshots:
 
   bcryptjs@2.4.3: {}
 
+  better-sqlite3@11.1.1:
+    dependencies:
+      bindings: 1.5.0
+      prebuild-install: 7.1.2
+    optional: true
+
   better-sqlite3@8.3.0:
     dependencies:
       bindings: 1.5.0
@@ -15938,7 +15959,7 @@ snapshots:
       boolbase: 1.0.0
       css-what: 6.1.0
       domhandler: 5.0.3
-      domutils: 3.0.1
+      domutils: 3.1.0
       nth-check: 2.1.1
 
   css-system-font-keywords@1.0.0: {}
@@ -16277,12 +16298,6 @@ snapshots:
       dom-serializer: 1.4.1
       domelementtype: 2.3.0
       domhandler: 4.3.1
-
-  domutils@3.0.1:
-    dependencies:
-      dom-serializer: 2.0.0
-      domelementtype: 2.3.0
-      domhandler: 5.0.3
 
   domutils@3.1.0:
     dependencies:
@@ -19596,7 +19611,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  next@14.1.1(@babel/core@7.24.5)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.77.6):
+  next@14.1.1(@babel/core@7.21.8)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.77.6):
     dependencies:
       '@next/env': 14.1.1
       '@swc/helpers': 0.5.2
@@ -19606,7 +19621,7 @@ snapshots:
       postcss: 8.4.31
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-      styled-jsx: 5.1.1(@babel/core@7.24.5)(react@18.2.0)
+      styled-jsx: 5.1.1(@babel/core@7.21.8)(react@18.2.0)
     optionalDependencies:
       '@next/swc-darwin-arm64': 14.1.1
       '@next/swc-darwin-x64': 14.1.1
@@ -19638,6 +19653,11 @@ snapshots:
   node-abi@3.47.0:
     dependencies:
       semver: 7.6.0
+
+  node-abi@3.65.0:
+    dependencies:
+      semver: 7.6.2
+    optional: true
 
   node-addon-api@6.1.0: {}
 
@@ -20434,6 +20454,22 @@ snapshots:
       simple-get: 4.0.1
       tar-fs: 2.1.1
       tunnel-agent: 0.6.0
+
+  prebuild-install@7.1.2:
+    dependencies:
+      detect-libc: 2.0.3
+      expand-template: 2.0.3
+      github-from-package: 0.0.0
+      minimist: 1.2.8
+      mkdirp-classic: 0.5.3
+      napi-build-utils: 1.0.2
+      node-abi: 3.65.0
+      pump: 3.0.0
+      rc: 1.2.8
+      simple-get: 4.0.1
+      tar-fs: 2.1.1
+      tunnel-agent: 0.6.0
+    optional: true
 
   precond@0.2.3: {}
 
@@ -21679,6 +21715,9 @@ snapshots:
     dependencies:
       lru-cache: 6.0.0
 
+  semver@7.6.2:
+    optional: true
+
   send@0.18.0:
     dependencies:
       debug: 2.6.9
@@ -22126,12 +22165,12 @@ snapshots:
     optionalDependencies:
       '@babel/core': 7.21.4
 
-  styled-jsx@5.1.1(@babel/core@7.24.5)(react@18.2.0):
+  styled-jsx@5.1.1(@babel/core@7.21.8)(react@18.2.0):
     dependencies:
       client-only: 0.0.1
       react: 18.2.0
     optionalDependencies:
-      '@babel/core': 7.24.5
+      '@babel/core': 7.21.8
 
   stylis@4.3.0: {}
 
