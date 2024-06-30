@@ -148,19 +148,40 @@ export default function CloudFilesystems({ project_id }: Props) {
 
   return (
     <div>
-      <Button style={{ float: "right" }} onClick={refresh}>
+      <Button style={{ position: "absolute", right: 0 }} onClick={refresh}>
         <Icon name="refresh" />
         Refresh{" "}
         {refreshing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
       </Button>
       <h2 style={{ textAlign: "center" }}>Cloud Filesystems</h2>
-      <p style={{ maxWidth: "700px", margin: "15px auto" }}>
+      <div style={{ textAlign: "center" }}>
+        <Button
+          href="https://youtu.be/zYoldE2yS3I"
+          target="_new"
+          style={{ marginRight: "15px" }}
+        >
+          <Icon name="youtube" style={{ color: "red" }} />
+          Short Demo
+        </Button>
+        <Button href="https://youtu.be/uk5eA5piQEo" target="_new">
+          <Icon name="youtube" style={{ color: "red" }} />
+          Longer Demo
+        </Button>
+      </div>
+      <p
+        style={{
+          maxWidth: "700px",
+          margin: "15px auto",
+          fontSize: "11pt",
+          color: "#666",
+        }}
+      >
         CoCalc Cloud Filesystems are scalable distributed POSIX shared
-        filesystems with fast local caching. They are mounted and usable
-        simultaneously from all compute servers in a project. There are no
-        limits on how much data you can store. You do not specify the size of a
-        cloud filesystem in advance. The cost per GB is typically much less than
-        a compute server disk, but you pay for how many operations you do.
+        filesystems with fast local caching. Use them simultaneously from all
+        compute servers in this project. There are no limits on how much data
+        you can store. You do not specify the size of a cloud filesystem in
+        advance. The cost per GB is typically much less than a compute server
+        disk, but you pay network usage and operations.
       </p>
 
       <div style={{ margin: "5px 0" }}>
