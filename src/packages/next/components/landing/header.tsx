@@ -19,8 +19,8 @@ import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import SubNav, { Page, SubPage } from "./sub-nav";
 import LiveDemo from "components/landing/live-demo";
-// import { Button } from "antd";
-// import { Icon } from "@cocalc/frontend/components/icon";
+import { Button } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const GAP = "4%";
 
@@ -71,14 +71,16 @@ export default function Header(props: Props) {
             width: "150px", // CRITICAL -- this is to prevent flicker -- see https://github.com/sagemathinc/cocalc/issues/6504
           }}
         >
-          <LiveDemo context="header" />
-          {/*<Button
-            size="large"
-            type="primary"
-            href="/support/new?type=question&subject=&body=&title=Ask%20Us%20Anything!"
-          >
-            <Icon style={{ fontSize: "20px" }} name="question-circle" /> Contact
-          </Button>*/}
+          {account ? (
+            <LiveDemo context="header" />
+          ) : (
+            <Button
+              type="primary"
+              href="/support/new?type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            >
+              <Icon name="question-circle" /> Contact
+            </Button>
+          )}
         </span>
       );
     }

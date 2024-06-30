@@ -5,7 +5,6 @@
 
 import { Col, Row, Space } from "antd";
 import { ReactNode } from "react";
-
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
 import Path from "components/app/path";
@@ -74,7 +73,7 @@ export default function Content(props: Props) {
     title,
   } = props;
 
-  const { sandboxProjectId } = useCustomize();
+  const { account, sandboxProjectId } = useCustomize();
 
   function renderIndexInfo() {
     if (!imageAlternative) return;
@@ -218,13 +217,15 @@ export default function Content(props: Props) {
                 {description}
               </Title>
             )}
-            <div style={{ marginTop: "15px" }}>
-              <LiveDemo
-                context={
-                  typeof title == "string" ? title : alt ?? "Feature Page"
-                }
-              />
-            </div>
+            {account && (
+              <div style={{ marginTop: "15px" }}>
+                <LiveDemo
+                  context={
+                    typeof title == "string" ? title : alt ?? "Feature Page"
+                  }
+                />
+              </div>
+            )}
             <SignIn startup={startup ?? title} hideFree={true} />
           </Space>
         </Col>

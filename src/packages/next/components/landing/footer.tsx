@@ -62,6 +62,7 @@ export default function Footer() {
     organizationURL,
     enabledPages,
     termsOfServiceURL,
+    account,
   } = useCustomize();
 
   const footerColumns: Array<FooterColumn> = [
@@ -136,7 +137,7 @@ export default function Footer() {
         {
           text: "Get a Live Demo",
           url: liveDemoUrl("footer"),
-          hide: !enabledPages?.support,
+          hide: !account || !enabledPages?.support,
         },
       ],
     },
