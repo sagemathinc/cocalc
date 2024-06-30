@@ -29,30 +29,34 @@ const { F_OK, W_OK, R_OK } = fs_constants;
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { getLogger } from "./logger";
 
+const logger = getLogger("project:upload");
+
 export default function init(): Router {
-  const winston = getLogger("upload");
-  winston.info("configuring the upload endpoint");
+  logger.info("configuring the upload endpoint");
 
   const router = Router();
 
   router.get("/.smc/upload", function (_, res) {
-    winston.http("upload GET");
+    logger.http("upload GET");
     return res.send("hello");
   });
 
   router.post("/.smc/upload", async function (req, res): Promise<void> {
     function dbg(...m): void {
-      winston.http("upload POST ", ...m);
+      logger.http("upload POST ", ...m);
     }
     // See https://github.com/felixge/node-formidable; user uploaded a file
-    dbg();
 
     // See http://stackoverflow.com/questions/14022353/how-to-change-upload-path-when-use-formidable-with-express-in-node-js
     // Important to set maxFileSize, since the default is 200MB!
     // See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
     const { dest_dir } = req.query;
+    const compute_server_id = getComputeServerId(req);
+
+    dbg({ dest_dir, compute_server_id });
+
     if (typeof dest_dir != "string") {
-      res.status(500).send("query parm dest_dir must be a string");
+      res.status(500).send("query param dest_dir must be a string");
       return;
     }
     const { HOME } = process.env;
@@ -63,7 +67,7 @@ export default function init(): Router {
     try {
       const uploadDir = join(HOME, dest_dir);
 
-      // ensure target path existsJS
+      // ensure target path exists
       dbg("ensure target path exists... ", uploadDir);
       await mkdir(uploadDir, { recursive: true });
 
@@ -138,6 +142,14 @@ export default function init(): Router {
     }
   });
   return router;
+}
+
+function getComputeServerId(req) {
+  try {
+    return parseInt(req.query.compute_server_id ?? "0");
+  } catch (_) {
+    return 0;
+  }
 }
 
 async function handle_chunk_data(
