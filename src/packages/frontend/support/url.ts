@@ -11,6 +11,7 @@ export interface Options {
   type?: "problem" | "question" | "task" | "purchase";
   hideExtra?: boolean;
   context?: string; // additional context
+  required?: string; // if required is a string, then the user MUST change the body of the input
 }
 
 export default function getURL(options: Options = {}) {
@@ -24,14 +25,20 @@ export default function getURL(options: Options = {}) {
       options.url = "";
     }
   }
-  // Note that this is a 2K limit on URL lengths, so the body had better
-  // not be too large (or it gets truncated).
-  return encodeURI(
-    supportURL +
-      `?hideExtra=${options.hideExtra}&url=${options.url}&type=${
-        options.type ?? ""
-      }&subject=${options.subject ?? ""}&body=${options.body ?? ""}&context=${
-        options.context ?? ""
-      }`,
-  );
+
+  const params = {
+    hideExtra: options.hideExtra,
+    url: options.url,
+    type: options.type ?? "",
+    subject: options.subject ?? "",
+    body: options.body ?? "",
+    required: options.required ?? "",
+    context: options.context ?? "",
+  };
+
+  const queryParams = Object.keys(params)
+    .map((key) => `${key}=${encodeURIComponent(params[key] as string)}`)
+    .join("&");
+
+  return `${supportURL}?${queryParams}`;
 }
