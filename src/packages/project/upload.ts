@@ -23,6 +23,7 @@ import {
   unlink,
 } from "node:fs/promises";
 import { join } from "node:path";
+import { handleCopy } from "@cocalc/sync-fs/lib/handle-api-call";
 
 const { F_OK, W_OK, R_OK } = fs_constants;
 
@@ -133,6 +134,8 @@ export default function init(): Router {
         parseInt(fields.dztotalchunkcount),
         chunkFullPath,
         dest,
+        dest_dir,
+        compute_server_id,
       );
 
       res.send("received upload:\n\n");
@@ -157,6 +160,8 @@ async function handle_chunk_data(
   total: number,
   chunk: string,
   dest: string,
+  dest_dir: string,
+  compute_server_id: number,
 ): Promise<void> {
   const temp = dest + ".partial-upload";
   if (index === 0) {
@@ -170,20 +175,65 @@ async function handle_chunk_data(
   }
   // if it's the last chunk, move temp to actual file.
   if (index === total - 1) {
-    await moveFile(temp, dest);
+    await moveFile(temp, dest, dest_dir, compute_server_id);
   }
 }
 
-async function moveFile(src: string, dest: string): Promise<void> {
+async function moveFile(
+  src: string,
+  dest: string,
+  dest_dir?: string,
+  compute_server_id?: number,
+): Promise<void> {
   try {
-    await rename(src, dest);
-  } catch (_) {
-    // in some cases, e.g., cocalc-docker, this happens:
-    //   "EXDEV: cross-device link not permitted"
-    // so we just try again the slower way.  This is slightly
-    // inefficient, maybe, but more robust than trying to determine
-    // if we are doing a cross device rename.
-    await copyFile(src, dest);
-    await unlink(src);
+    if (compute_server_id) {
+      // The final destination of this file upload is a compute server.
+      // We copy the temp file (src) to the compute server, then remove
+      // the temp file.
+      // TODO: it would obviously be much more efficient to upload directly
+      // to the compute server without going through cocalc at all.  For
+      // various reasons that is simply impossible in general, unfortunately.
+      logger.debug("move temporary file to compute server", {
+        src,
+        dest,
+        dest_dir,
+        compute_server_id,
+      });
+
+      // input to handleCopy must be relative to home directory,
+      // but src and dest are absolute paths got by putting HOME
+      // in the front of them:
+      const { HOME } = process.env;
+      if (!HOME) {
+        throw Error("HOME env var must be set");
+      }
+      await rename(src, dest);
+      await handleCopy({
+        event: "copy_from_project_to_compute_server",
+        compute_server_id,
+        paths: [dest.slice(HOME.length + 1)],
+        dest: dest_dir,
+      });
+      return;
+    }
+
+    logger.debug("move temporary file to dest", {
+      src,
+      dest,
+    });
+    try {
+      await rename(src, dest);
+    } catch (_) {
+      // in some cases, e.g., cocalc-docker, this happens:
+      //   "EXDEV: cross-device link not permitted"
+      // so we just try again the slower way.  This is slightly
+      // inefficient, maybe, but more robust than trying to determine
+      // if we are doing a cross device rename.
+      await copyFile(src, dest);
+    }
+  } finally {
+    try {
+      await unlink(src);
+    } catch (_) {}
   }
 }
