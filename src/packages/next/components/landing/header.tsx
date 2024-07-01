@@ -71,7 +71,7 @@ export default function Header(props: Props) {
             width: "150px", // CRITICAL -- this is to prevent flicker -- see https://github.com/sagemathinc/cocalc/issues/6504
           }}
         >
-          {account ? (
+          {true || account ? (
             <LiveDemo context="header" />
           ) : (
             <Button
