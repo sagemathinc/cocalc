@@ -225,7 +225,6 @@ async function moveFile(
       if (!HOME) {
         throw Error("HOME env var must be set");
       }
-      await rename(temp, dest);
       await handleCopy({
         event: "copy_from_project_to_compute_server",
         compute_server_id,
