@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 
 export function liveDemoUrl(context) {
   return getSupportUrl({
-    subject: "Live Demo Request",
+    subject: "Contact Sales",
     type: "question",
-    body: `I would like to request a live demo on CoCalc!\n\nWHEN IS A GOOD TIME (include timezone!): [REQUIRED]\n\nTELLS US AS MUCH AS YOU CAN ABOUT YOUR INTENDED USE OF COCALC: [REQUIRED]\n\n`,
+    body: `I would like to chat with a Sales Representative!\n\nWHEN IS A GOOD TIME (include timezone!): [REQUIRED]\n\nYOUR ORGANIZATION: [REQUIRED]\n\n(Only requests filled out in good faith will receive a response.)\n`,
     hideExtra: true,
     context,
     url: "",
@@ -27,7 +27,7 @@ export default function LiveDemo({ context, label }: Props) {
   }, []);
   return (
     <Button href={href} type="primary">
-      <Icon name="users" /> {label ?? "Get a Live Demo"}
+      <Icon name="users" /> {label ?? "Contact Sales"}
     </Button>
   );
 }

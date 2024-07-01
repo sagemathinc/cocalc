@@ -73,7 +73,7 @@ export default function Content(props: Props) {
     title,
   } = props;
 
-  const { account, sandboxProjectId } = useCustomize();
+  const { sandboxProjectId } = useCustomize();
 
   function renderIndexInfo() {
     if (!imageAlternative) return;
@@ -217,15 +217,13 @@ export default function Content(props: Props) {
                 {description}
               </Title>
             )}
-            {account && (
-              <div style={{ marginTop: "15px" }}>
-                <LiveDemo
-                  context={
-                    typeof title == "string" ? title : alt ?? "Feature Page"
-                  }
-                />
-              </div>
-            )}
+            <div style={{ marginTop: "15px" }}>
+              <LiveDemo
+                context={
+                  typeof title == "string" ? title : alt ?? "Feature Page"
+                }
+              />
+            </div>
             <SignIn startup={startup ?? title} hideFree={true} />
           </Space>
         </Col>
