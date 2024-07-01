@@ -87,6 +87,7 @@ export default function CreateCloudFilesystem({
     }
     try {
       setCreating(true);
+      setCreateStarted(new Date());
       await confirmCreateCloudFilesystem();
       setCreateStarted(new Date());
       await createCloudFilesystem({
