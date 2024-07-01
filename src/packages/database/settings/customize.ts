@@ -58,6 +58,7 @@ export interface Customize {
   neuralSearchEnabled?: boolean;
   jupyterApiEnabled?: boolean;
   computeServersEnabled?: boolean;
+  cloudFilesystemsEnabled?: boolean;
   githubProjectId?: string;
   support?: string;
 }
@@ -167,6 +168,7 @@ export default async function getCustomize(): Promise<Customize> {
     jupyterApiEnabled: settings.jupyter_api_enabled,
 
     computeServersEnabled: settings.compute_servers_enabled,
+    cloudFilesystemsEnabled: settings.cloud_filesystems_enabled,
 
     // GitHub proxy project
     githubProjectId: settings.github_project_id,

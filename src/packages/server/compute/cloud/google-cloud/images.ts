@@ -85,7 +85,7 @@ export const { get: getAllImages } = createDatabaseCachedResource<{
   fetchData: fetchImagesFromGoogleCloud,
 });
 
-async function fetchImagesFromGoogleCloud({
+export async function fetchImagesFromGoogleCloud({
   labels,
 }: {
   labels?: object;

@@ -6,8 +6,11 @@ import { RequestNoCacheSchema } from "../common";
 
 // OpenAPI spec
 //
-export const GetComputeServerGoogleImagesInputSchema =
-  RequestNoCacheSchema.describe(
+export const GetComputeServerGoogleImagesInputSchema = z
+  .object({
+    noCache: RequestNoCacheSchema.optional(),
+  })
+  .describe(
     "Used to get available compute server images for deployment to GCP.",
   );
 

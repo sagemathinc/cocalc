@@ -15,6 +15,7 @@ import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
 
 import SocialMediaIconList from "./social-media-icon-list";
+import { liveDemoUrl } from "components/landing/live-demo";
 
 const FOOTER_STYLE: CSS = {
   borderTop: "1px solid lightgrey",
@@ -61,6 +62,7 @@ export default function Footer() {
     organizationURL,
     enabledPages,
     termsOfServiceURL,
+    account,
   } = useCustomize();
 
   const footerColumns: Array<FooterColumn> = [
@@ -68,7 +70,8 @@ export default function Footer() {
       header: "Product",
       links: [
         {
-          text: "Store", url: "/store",
+          text: "Store",
+          url: "/store",
           hide: !enabledPages?.store,
         },
         {
@@ -130,6 +133,11 @@ export default function Footer() {
           text: "Support",
           url: "/support",
           hide: !enabledPages?.support,
+        },
+        {
+          text: "Get a Live Demo",
+          url: liveDemoUrl("footer"),
+          hide: !account || !enabledPages?.support,
         },
       ],
     },

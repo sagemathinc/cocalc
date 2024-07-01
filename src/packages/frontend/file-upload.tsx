@@ -85,7 +85,14 @@ const Header = () => {
 
 function postUrl(project_id: string, path: string): string {
   const dest_dir = encode_path(path);
-  return join(appBasePath, project_id, `raw/.smc/upload?dest_dir=${dest_dir}`);
+  const compute_server_id = redux
+    .getProjectStore(project_id)
+    .get("compute_server_id");
+  return join(
+    appBasePath,
+    project_id,
+    `raw/.smc/upload?dest_dir=${dest_dir}&compute_server_id=${compute_server_id}`,
+  );
 }
 
 interface FileUploadProps {
@@ -98,7 +105,7 @@ interface FileUploadProps {
 
 export const FileUpload: React.FC<FileUploadProps> = (props) => {
   const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id
+    props.project_id,
   );
 
   if (student_project_functionality.disableUploads) {
@@ -137,7 +144,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
           eventHandlers={props.dropzone_handler}
           djsConfig={{
             previewTemplate: ReactDOMServer.renderToStaticMarkup(
-              dropzone_template()
+              dropzone_template(),
             ),
             ...UPLOAD_OPTIONS,
           }}
@@ -174,7 +181,7 @@ interface FileUploadWrapperProps {
 
 export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id
+    props.project_id,
   );
   const disabled =
     props.disabled || student_project_functionality.disableUploads;
@@ -196,12 +203,12 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
             ? ReactDOM.findDOMNode(preview_ref.current)
             : undefined,
         previewTemplate: ReactDOMServer.renderToStaticMarkup(
-          preview_template()
+          preview_template(),
         ),
         addRemoveLinks: props.event_handlers.removedfile != null,
         ...UPLOAD_OPTIONS,
       },
-      true
+      true,
     );
     return merge(with_defaults, props.config);
   }
@@ -252,7 +259,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
           true,
           {},
           dropzone.current.options,
-          get_djs_config()
+          get_djs_config(),
         );
       }
     }
@@ -270,7 +277,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
   // from the dropzone.  This is true by default if there is
   // no "removedfile" handler, and false otherwise.
   function close_preview(
-    remove_all: boolean = props.event_handlers.removedfile == null
+    remove_all: boolean = props.event_handlers.removedfile == null,
   ) {
     if (typeof props.on_close === "function") {
       props.on_close();

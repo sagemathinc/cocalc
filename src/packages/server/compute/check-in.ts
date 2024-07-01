@@ -1,23 +1,24 @@
 /*
 This is called periodically by compute servers to check in, thus
 proving that they are alive.  The response may contain information
-about the vpn or storage configuration.
+about the vpn or cloud filesystem configuration.
 
 It's used by the /api/v2/compute/check-in api endpoint.
 
-     /api/v2/compute/check-in?vpn_sha1=xxx&storage_sha1=xxx
+     /api/v2/compute/check-in?vpn_sha1=xxx&cloud_filesystem_sha1=xxx
 
 TODO:
- - [ ] finish storage
- - [ ] add ssh keys, so they get dynamically updated
+ - [ ] add ssh keys, so they get dynamically updated instead of requiring reboot!
 */
 import setDetailedState from "@cocalc/server/compute/set-detailed-state";
 import { getVpnConf, VpnConf } from "./vpn";
-import { getStorageConf, StorageConf } from "./storage";
+import {
+  getCloudFilesystemConf,
+  CloudFilesystemConf,
+} from "./cloud-filesystem";
 import { sha1 } from "@cocalc/backend/sha1";
 import getLogger from "@cocalc/backend/logger";
-
-export const CHECK_IN_PERIOD_S = 15;
+import { CHECK_IN_PERIOD_S } from "@cocalc/util/db-schema/compute-servers";
 
 const logger = getLogger("server:compute:check-in");
 
@@ -27,16 +28,16 @@ export async function checkIn(opts: {
   // claimed id by the compute server
   id: number;
   vpn_sha1?: string;
-  storage_sha1?: string;
+  cloud_filesystem_sha1?: string;
 }): Promise<{
   vpn?: VpnConf;
   vpn_sha1?: string;
-  storage?: StorageConf;
-  storage_sha1?: string;
+  cloud_filesystem?: CloudFilesystemConf;
+  cloud_filesystem_sha1?: string;
 }> {
   logger.debug("checkIn -- ", opts);
   const { project_id, id } = opts;
-  let { vpn_sha1, storage_sha1 } = opts;
+  let { vpn_sha1, cloud_filesystem_sha1 } = opts;
 
   await setDetailedState({
     project_id,
@@ -44,12 +45,12 @@ export async function checkIn(opts: {
     name: "vm",
     state: "ready",
     extra: "",
-    timeout: CHECK_IN_PERIOD_S + 10,
+    timeout: CHECK_IN_PERIOD_S + 15,
     progress: 100,
   });
 
   let vpn: VpnConf | undefined = undefined,
-    storage: StorageConf | undefined = undefined;
+    cloud_filesystem: CloudFilesystemConf | undefined = undefined;
   const new_vpn = await getVpnConf(project_id);
   const new_vpn_sha1 = sha1(JSON.stringify(new_vpn));
   if (new_vpn_sha1 != vpn_sha1) {
@@ -58,14 +59,14 @@ export async function checkIn(opts: {
   } else {
     vpn_sha1 = undefined;
   }
-  const new_storage = await getStorageConf(project_id);
-  const new_storage_sha1 = sha1(JSON.stringify(new_storage));
-  if (new_storage_sha1 != storage_sha1) {
-    storage = new_storage;
-    storage_sha1 = new_storage_sha1;
+  const new_cloud_filesystem = await getCloudFilesystemConf(project_id, id);
+  const new_cloud_filesystem_sha1 = sha1(JSON.stringify(new_cloud_filesystem));
+  if (new_cloud_filesystem_sha1 != cloud_filesystem_sha1) {
+    cloud_filesystem = new_cloud_filesystem;
+    cloud_filesystem_sha1 = new_cloud_filesystem_sha1;
   } else {
-    storage_sha1 = undefined;
+    cloud_filesystem_sha1 = undefined;
   }
 
-  return { vpn, vpn_sha1, storage, storage_sha1 };
+  return { vpn, vpn_sha1, cloud_filesystem, cloud_filesystem_sha1 };
 }

@@ -221,7 +221,7 @@ export class FileSystemClient {
   }): Watcher => {
     const path = join(this.home, relPath);
     logger.debug("watching file", path);
-    return new Watcher(path, interval, debounce);
+    return new Watcher(path, interval, debounce, );
   };
 
   is_deleted = (_path: string, _project_id: string) => {

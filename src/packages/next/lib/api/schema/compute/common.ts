@@ -4,7 +4,7 @@ export const ComputeServerIdSchema = z
   .number()
   .int()
   .min(0)
-  .describe("Compute server id.");
+  .describe("Compute server id (or 0 for the shared resources)");
 
 export const ComputeServerStateSchema = z
   .enum([
@@ -20,12 +20,12 @@ export const ComputeServerStateSchema = z
   .describe("The state of the compute server.");
 
 export const ComputeServerColorSchema = z.string().describe(
-  `Compute server color in \`rgb(#,#,#)\` format. Used for color-coding compute servers in 
+  `Compute server color in \`rgb(#,#,#)\` format. Used for color-coding compute servers in
     the CoCalc UI.`,
 );
 
 export const ComputeServerTitleSchema = z.string().describe(
-  `Title of this compute server. Used purely to make it easier for the user to keep 
+  `Title of this compute server. Used purely to make it easier for the user to keep
     track of it.`,
 );
 

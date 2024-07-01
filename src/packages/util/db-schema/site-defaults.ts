@@ -105,7 +105,8 @@ export type SiteSettingsKeys =
   | "compute_servers_onprem_enabled"
   | "compute_servers_dns_enabled"
   | "compute_servers_dns"
-  | "compute_servers_hyperstack_enabled";
+  | "compute_servers_hyperstack_enabled"
+  | "cloud_filesystems_enabled";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -805,13 +806,23 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_bool,
     tags: ["Compute Servers"],
   },
+  cloud_filesystems_enabled: {
+    name: "Enable Cloud Filesystems",
+    desc: "CoCalc Cloud Filesystems are scalable distributed POSIX shared filesystems with fast local caching built using [JuiceFS](https://juicefs.com/), [KeyDB](https://docs.keydb.dev/) and [Google Cloud Storage](https://cloud.google.com/storage).  You must enable the following API's in the Google Cloud project: [Storage Transfer API](https://console.cloud.google.com/apis/library/storagetransfer.googleapis.com), [Identity and Access Management (IAM) API](https://console.cloud.google.com/apis/library/iam.googleapis.com), [Cloud Resource Manger API](https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com).",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    show: (conf) =>
+      to_bool(conf.compute_servers_enabled) &&
+      to_bool(conf["compute_servers_google-cloud_enabled"]),
+    tags: ["Compute Servers"],
+  },
   version_compute_server_min_project: {
     name: "Required project version for compute server",
     desc: "Minimal *project* version required when starting a compute servers (if project older, error is displayed in frontend when user tries to start compute server).",
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
-
     tags: ["Compute Servers"],
   },
   "compute_servers_google-cloud_enabled": {

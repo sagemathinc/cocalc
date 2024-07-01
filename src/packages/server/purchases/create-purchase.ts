@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 
 import getLogger from "@cocalc/backend/logger";
 import getPool, { PoolClient } from "@cocalc/database/pool";
-import { Service } from "@cocalc/util/db-schema/purchase-quotas";
+import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Description } from "@cocalc/util/db-schema/purchases";
 import { getClosingDay } from "./closing-date";
 
@@ -51,11 +51,6 @@ export default async function createPurchase(opts: Options): Promise<number> {
   if (cost == null) {
     if (period_start == null) {
       throw Error("if cost is not set, then  period_start must be set");
-    }
-    if (cost_so_far == null && cost_per_hour == null) {
-      throw Error(
-        "if cost is not set, then at least one of cost_so_far (for a metered purchase) or cost_per_hour (for a rate based purchase) must be set",
-      );
     }
     if (cost_so_far != null && cost_per_hour != null) {
       throw Error(

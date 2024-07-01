@@ -116,6 +116,24 @@ export function ComputeServerDocStatus({
           Sync
         </SyncButton>
       )}
+      {progress < 100 && (
+        <Tooltip title={"Make sure the compute server is running."}>
+          <div
+            onClick={() => {
+              setShowDetails(showDetails === true ? false : true);
+            }}
+            style={{
+              whiteSpace: "nowrap",
+              padding: "2.5px 5px",
+              background: "darkred",
+              color: "white",
+              height: "24px",
+            }}
+          >
+            NOT CONNECTED
+          </div>
+        </Tooltip>
+      )}
       <Tooltip
         mouseEnterDelay={0.9}
         title={
@@ -154,7 +172,7 @@ export function ComputeServerDocStatus({
               >
                 {requestedServer?.get("title") ?? "Loading..."}
               </div>
-              (Id: {requestedId})
+              (Id: {requestedServer?.get("project_specific_id")})
             </div>
           </div>
           <DisplayImage
@@ -177,10 +195,6 @@ export function ComputeServerDocStatus({
     </div>
   );
 
-  if (id == requestedId && !showDetails) {
-    return topBar(100);
-  }
-
   const server: ComputeServerUserInfo | undefined = computeServers
     ?.get(`${requestedId}`)
     ?.toJS();
@@ -190,14 +204,17 @@ export function ComputeServerDocStatus({
     id,
     requestedId,
   );
-  if (showDetails != null && !showDetails) {
+  if (!showDetails) {
+    if (showDetails == null && progress < 100) {
+      setShowDetails(true);
+    }
     return topBar(progress);
   }
 
   return (
     <div
       className="smc-vfill"
-      style={{ flex: 100, minHeight: "250px", background: "white" }}
+      style={{ flex: 3, minHeight: "300px", background: "white" }}
     >
       <div>{topBar(progress)}</div>
       <div
@@ -274,13 +291,6 @@ function getProgress(
       status: "active",
     };
   }
-  if (id == requestedId) {
-    return {
-      progress: 100,
-      message: "Compute server is connected!",
-      status: "success",
-    };
-  }
   if (server == null) {
     return {
       progress: 0,
@@ -329,6 +339,14 @@ function getProgress(
       status: "exception",
     };
   }
+  if (server.state == "suspended") {
+    return {
+      progress: 15,
+      message:
+        "Please resume the compute server by clicking the Resume button below.",
+      status: "exception",
+    };
+  }
 
   if (server.state != "starting" && server.state != "running") {
     return {
@@ -347,29 +365,51 @@ function getProgress(
   }
 
   // below it is running
-  if (server.detailed_state?.compute?.state == "ready") {
-    if (isRecent(server.detailed_state?.compute?.time)) {
+
+  const computeIsLive = server.detailed_state?.compute?.state == "ready";
+  if (computeIsLive) {
+    if (id == requestedId) {
       return {
-        progress: 80,
-        message: "Waiting for compute server to connect.",
-        status: "normal",
+        progress: 100,
+        message: "Compute server is fully connected!",
+        status: "success",
+      };
+    } else {
+      return {
+        progress: 90,
+        message:
+          "Compute server is connected and should attach to this file soon...",
+        status: "success",
       };
     }
   }
-
-  if (server.detailed_state?.["filesystem-sync"]?.state == "ready") {
-    if (isRecent(server.detailed_state?.["filesystem-sync"]?.time)) {
+  const filesystemIsLive =
+    server.detailed_state?.["filesystem-sync"]?.state == "ready";
+  const computeIsRecent = isRecent(server.detailed_state?.compute?.time);
+  const filesystemIsRecent = isRecent(
+    server.detailed_state?.["filesystem-sync"]?.time,
+  );
+  if (filesystemIsRecent) {
+    return {
+      progress: 70,
+      message: "Waiting for filesystem to connect.",
+      status: "normal",
+    };
+  }
+  if (filesystemIsLive) {
+    if (computeIsRecent) {
       return {
-        progress: 65,
-        message: "Waiting for compute server to fully boot up.",
-        status: "active",
+        progress: 80,
+        message: "Waiting for compute to connect.",
+        status: "normal",
       };
     }
   }
 
   return {
     progress: 50,
-    message: "Waiting for compute server to finish booting up.",
+    message:
+      "Compute server is running, but filesystem and compute components aren't connected. Waiting...",
     status: "active",
   };
 }

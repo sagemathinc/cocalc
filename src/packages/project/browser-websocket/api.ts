@@ -41,15 +41,14 @@ import handleSyncFsApiCall, {
   handleComputeServerSyncRegister,
   handleCopy,
   handleSyncFsGetListing,
-  handleComputeServerFilesystemExec,
   handleComputeServerDeleteFiles,
   handleComputeServerMoveFiles,
   handleComputeServerRenameFile,
   handleComputeServerComputeRegister,
-  handleComputeServerComputeExec,
 } from "@cocalc/sync-fs/lib/handle-api-call";
 import { version } from "@cocalc/util/smc-version";
 import { getLogger } from "@cocalc/project/logger";
+import execCode from "./exec-code";
 
 const log = getLogger("websocket-api");
 
@@ -137,15 +136,10 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
     case "formatter_string":
       return await run_formatter_string(data.path, data.str, data.options, log);
     case "exec":
-      if (data.opts?.compute_server_id) {
-        if (data.opts.filesystem) {
-          return await handleComputeServerFilesystemExec(data.opts);
-        } else {
-          return await handleComputeServerComputeExec(data.opts);
-        }
-      } else {
-        return await exec(data.opts);
+      if (data.opts == null) {
+        throw Error("opts must not be null");
       }
+      return await execCode(data.opts);
     case "query":
       return await query(client, data.opts);
     case "eval_code":
@@ -217,18 +211,4 @@ async function listing(
   } else {
     return await handleSyncFsGetListing({ path, hidden, compute_server_id });
   }
-}
-
-// Execute code
-import { executeCode } from "@cocalc/backend/execute-code";
-
-import type {
-  ExecuteCodeOptions,
-  ExecuteCodeOutput,
-} from "@cocalc/util/types/execute-code";
-
-export async function exec(
-  opts: ExecuteCodeOptions,
-): Promise<ExecuteCodeOutput> {
-  return await executeCode(opts);
 }

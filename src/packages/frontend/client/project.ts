@@ -20,6 +20,7 @@ import * as message from "@cocalc/util/message";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import { connection_to_project } from "../project/websocket/connect";
 import { API } from "../project/websocket/api";
+import httpApi from "./api";
 import { redux } from "../app-framework";
 import { WebappClient } from "./client";
 import { allow_project_to_run } from "../project/client-side-throttle";
@@ -36,31 +37,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import computeServers from "@cocalc/frontend/compute/manager";
-
-export interface ExecOpts {
-  project_id: string;
-  compute_server_id?: number; // if true, run on the compute server (if available)
-  filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
-  path?: string;
-  command: string;
-  args?: string[];
-  timeout?: number;
-  max_output?: number;
-  bash?: boolean;
-  aggregate?: string | number | { value: string | number };
-  err_on_exit?: boolean;
-  env?: { [key: string]: string }; // custom environment variables.
-  cb?: Function; // if given use a callback interface *instead* of async.
-}
-export const ExecOpts = null; // webpack + TS es2020 modules need this
-
-export interface ExecOutput {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
-  time: number; // time in ms, from user point of view.
-}
-export const ExecOutput = null; // webpack + TS es2020 modules need this
+import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -208,7 +185,7 @@ export class ProjectClient {
     time" (which is stored in the db), which they client will know.  This is used, e.g.,
     for operations like "run rst2html on this file whenever it is saved."
     */
-  public async exec(opts: ExecOpts): Promise<ExecOutput> {
+  public async exec(opts: ExecOpts & { post?: boolean }): Promise<ExecOutput> {
     opts = defaults(opts, {
       project_id: required,
       compute_server_id: undefined,
@@ -222,6 +199,7 @@ export class ProjectClient {
       aggregate: undefined,
       err_on_exit: true,
       env: undefined,
+      post: false, // if true, uses the POST api through nextjs instead of the websocket api.
       cb: undefined, // if given use a callback interface instead of async
     });
 
@@ -239,11 +217,19 @@ export class ProjectClient {
       };
     }
 
-    try {
-      const ws = await this.websocket(opts.project_id);
-      const exec_opts = copy_without(opts, ["project_id"]);
+    const { post } = opts;
+    delete opts.post;
 
-      const msg = await ws.api.exec(exec_opts);
+    try {
+      let msg;
+      if (post) {
+        // use post API
+        msg = await httpApi("exec", opts);
+      } else {
+        const ws = await this.websocket(opts.project_id);
+        const exec_opts = copy_without(opts, ["project_id"]);
+        msg = await ws.api.exec(exec_opts);
+      }
       if (msg.status && msg.status == "error") {
         throw new Error(msg.error);
       }

@@ -280,11 +280,7 @@ export async function handleSyncFsRequestCall({ compute_server_id }) {
     return { status: "ok" };
   } else {
     log("handleSyncFsRequestCall: fail");
-    throw Error(
-      `no connection to compute server ${compute_server_id} -- only know about these: ${JSON.stringify(
-        Object.keys(sparks),
-      )}`,
-    );
+    throw Error(`no connection to compute server -- please start it or restart it`);
     //throw Error("no connection to compute server");
   }
 }
@@ -301,7 +297,7 @@ function callComputeServerApi(
   if (spark == null) {
     log("callComputeServerApi: no connection");
     throw Error(
-      `no connection to compute server ${compute_server_id} -- please start it`,
+      `no connection to compute server -- please start or restart it`,
     );
   }
   return new Promise((resolve, reject) => {

@@ -1,4 +1,5 @@
 import api from "@cocalc/frontend/client/api";
+("");
 import type {
   Action,
   ComputeServerTemplate,
@@ -123,6 +124,23 @@ export const getGoogleCloudPriceData = reuseInFlight(
   },
 );
 
+import { useState, useEffect } from "react";
+export function useGoogleCloudPriceData() {
+  const [priceData, setPriceData] = useState<null | GoogleCloudData>(null);
+  const [error, setError] = useState<string>("");
+  useEffect(() => {
+    (async () => {
+      try {
+        setError("");
+        setPriceData(await getGoogleCloudPriceData());
+      } catch (err) {
+        setError(`${err}`);
+      }
+    })();
+  }, []);
+  return [priceData, error];
+}
+
 // Cache for 5 minutes -- cache less since this includes realtime
 // information about GPU availability.
 let hyperstackPriceData: HyperstackPriceData | null = null;
@@ -168,9 +186,17 @@ export async function getLog(opts: { id }) {
   return await api("compute/get-log", opts);
 }
 
-export const getTitle = reuseInFlight(async (opts: { id: number }) => {
-  return await api("compute/get-server-title", opts);
-});
+export const getTitle = reuseInFlight(
+  async (opts: {
+    id: number;
+  }): Promise<{
+    title: string;
+    color: string;
+    project_specific_id: number;
+  }> => {
+    return await api("compute/get-server-title", opts);
+  },
+);
 
 // Setting a detailed state component for a compute server
 export async function setDetailedState(opts: {

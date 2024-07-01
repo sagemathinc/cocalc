@@ -23,36 +23,41 @@ import {
   unlink,
 } from "node:fs/promises";
 import { join } from "node:path";
+import { handleCopy } from "@cocalc/sync-fs/lib/handle-api-call";
 
 const { F_OK, W_OK, R_OK } = fs_constants;
 
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { getLogger } from "./logger";
 
+const logger = getLogger("project:upload");
+
 export default function init(): Router {
-  const winston = getLogger("upload");
-  winston.info("configuring the upload endpoint");
+  logger.info("configuring the upload endpoint");
 
   const router = Router();
 
   router.get("/.smc/upload", function (_, res) {
-    winston.http("upload GET");
+    logger.http("upload GET");
     return res.send("hello");
   });
 
   router.post("/.smc/upload", async function (req, res): Promise<void> {
     function dbg(...m): void {
-      winston.http("upload POST ", ...m);
+      logger.http("upload POST ", ...m);
     }
     // See https://github.com/felixge/node-formidable; user uploaded a file
-    dbg();
 
     // See http://stackoverflow.com/questions/14022353/how-to-change-upload-path-when-use-formidable-with-express-in-node-js
     // Important to set maxFileSize, since the default is 200MB!
     // See https://stackoverflow.com/questions/13374238/how-to-limit-upload-file-size-in-express-js
     const { dest_dir } = req.query;
+    const compute_server_id = getComputeServerId(req);
+
+    dbg({ dest_dir, compute_server_id });
+
     if (typeof dest_dir != "string") {
-      res.status(500).send("query parm dest_dir must be a string");
+      res.status(500).send("query param dest_dir must be a string");
       return;
     }
     const { HOME } = process.env;
@@ -61,9 +66,8 @@ export default function init(): Router {
     }
 
     try {
-      const uploadDir = join(HOME, dest_dir);
-
-      // ensure target path existsJS
+      const uploadDir = join(HOME, ".smc", "upload");
+      // ensure target path exists
       dbg("ensure target path exists... ", uploadDir);
       await mkdir(uploadDir, { recursive: true });
 
@@ -108,7 +112,7 @@ export default function init(): Router {
       }
       */
 
-      // Now, the strategy is to assemble to file chunk by chunk and save it with the original filename
+      // Now, the strategy is to assemble the file chunk by chunk and save it with the original filename
       const chunkFullPath = files.file[0]?.filepath;
       const originalFn = files.file[0]?.originalFilename;
 
@@ -119,6 +123,7 @@ export default function init(): Router {
         dbg(`uploading '${chunkFullPath}' -> '${originalFn}'`);
       }
 
+      const temp = join(uploadDir, originalFn);
       const dest = join(HOME, dest_dir, originalFn);
       dbg(`dest='${dest}'`);
       await ensureContainingDirectoryExists(dest);
@@ -128,7 +133,10 @@ export default function init(): Router {
         parseInt(fields.dzchunkindex),
         parseInt(fields.dztotalchunkcount),
         chunkFullPath,
+        temp,
         dest,
+        dest_dir,
+        compute_server_id,
       );
 
       res.send("received upload:\n\n");
@@ -140,38 +148,94 @@ export default function init(): Router {
   return router;
 }
 
+function getComputeServerId(req) {
+  try {
+    return parseInt(req.query.compute_server_id ?? "0");
+  } catch (_) {
+    return 0;
+  }
+}
+
 async function handle_chunk_data(
   index: number,
   total: number,
   chunk: string,
+  temp: string,
   dest: string,
+  dest_dir: string,
+  compute_server_id: number,
 ): Promise<void> {
-  const temp = dest + ".partial-upload";
   if (index === 0) {
-    // move chunk to the temp file
+    logger.debug("handle_chunk_data: move chunk to the temp file");
     await moveFile(chunk, temp);
   } else {
-    // append chunk to the temp file
+    logger.debug("handle_chunk_data: append chunk to the temp file");
     const data = await readFile(chunk);
     await appendFile(temp, data);
     await unlink(chunk);
   }
-  // if it's the last chunk, move temp to actual file.
   if (index === total - 1) {
-    await moveFile(temp, dest);
+    logger.debug(
+      "handle_chunk_data: it's the last chunk, move temp to actual file.",
+    );
+    await moveFile(temp, dest, dest_dir, compute_server_id);
   }
 }
 
-async function moveFile(src: string, dest: string): Promise<void> {
+async function moveFile(
+  temp: string,
+  dest: string,
+  dest_dir?: string,
+  compute_server_id?: number,
+): Promise<void> {
   try {
-    await rename(src, dest);
-  } catch (_) {
-    // in some cases, e.g., cocalc-docker, this happens:
-    //   "EXDEV: cross-device link not permitted"
-    // so we just try again the slower way.  This is slightly
-    // inefficient, maybe, but more robust than trying to determine
-    // if we are doing a cross device rename.
-    await copyFile(src, dest);
-    await unlink(src);
+    logger.debug("move temporary file to dest", {
+      temp,
+      dest,
+    });
+    try {
+      await rename(temp, dest);
+    } catch (_) {
+      // in some cases, e.g., cocalc-docker, this happens:
+      //   "EXDEV: cross-device link not permitted"
+      // so we just try again the slower way.  This is slightly
+      // inefficient, maybe, but more robust than trying to determine
+      // if we are doing a cross device rename.
+      await copyFile(temp, dest);
+    }
+
+    if (compute_server_id) {
+      // The final destination of this file upload is a compute server.
+      // We copy the temp file (temp) to the compute server, then remove
+      // the temp file.
+      // TODO: it would obviously be much more efficient to upload directly
+      // to the compute server without going through cocalc at all.  For
+      // various reasons that is simply impossible in general, unfortunately.
+      logger.debug("moveFile: move temporary file to compute server", {
+        temp,
+        dest,
+        dest_dir,
+        compute_server_id,
+      });
+
+      // input to handleCopy must be relative to home directory,
+      // but temp and dest are absolute paths got by putting HOME
+      // in the front of them:
+      const { HOME } = process.env;
+      if (!HOME) {
+        throw Error("HOME env var must be set");
+      }
+      await handleCopy({
+        event: "copy_from_project_to_compute_server",
+        compute_server_id,
+        paths: [dest.slice(HOME.length + 1)],
+        dest: dest_dir,
+      });
+      return;
+    }
+  } finally {
+    try {
+      await unlink(temp);
+    } catch (_) {}
   }
 }

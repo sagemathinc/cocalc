@@ -181,21 +181,16 @@ async function cancelOnePendingSubscription({ account_id, purchase_id }) {
   // They might manually pay anyways, but we don't want to count on that.
   const pendingBalance = await getPendingBalance(account_id);
   const { pay_as_you_go_min_payment } = await getServerSettings();
-  if (Math.abs(pendingBalance) <= pay_as_you_go_min_payment + 1) {  // pandingBalance is actually <=0.
+  if (Math.abs(pendingBalance) <= pay_as_you_go_min_payment + 1) {
+    // pandingBalance is actually <=0.
     return;
   }
   const client = await getTransactionClient();
   try {
-    const x = await client.query(
-      "SELECT id FROM subscriptions WHERE latest_purchase_id=$1",
-      [purchase_id],
+    const subscription_id = await getSubscriptionWithPurchaseId(
+      purchase_id,
+      client,
     );
-    const subscription_id = x.rows[0]?.id;
-    if (!subscription_id) {
-      throw Error(
-        `there is no subscription with latest purchase id ${purchase_id}`,
-      );
-    }
     await cancelSubscription({
       account_id,
       subscription_id,
@@ -212,6 +207,43 @@ async function cancelOnePendingSubscription({ account_id, purchase_id }) {
   } finally {
     client.release();
   }
+}
+
+// Get the id of the subscription that was (or should be) paid for using the
+// given purchase.
+export async function getSubscriptionWithPurchaseId(
+  purchase_id: number,
+  client?,
+): Promise<number> {
+  const pool = client ?? getPool();
+  // very easy case:
+  const x = await pool.query(
+    "SELECT id FROM subscriptions WHERE latest_purchase_id=$1",
+    [purchase_id],
+  );
+  let subscription_id = x.rows[0]?.id;
+  if (subscription_id) {
+    logger.debug("getSubscriptionWithPurchaseId -- latest purchase works");
+    return subscription_id;
+  }
+  // Unfortunately, we don't store that subscription id in the purchase itself,
+  // which makes it extra work to local the subscription.  But we can get it this
+  // way by using the metadata jsonb.  Basically the purchase description has the license_id
+  // and the subscription metadata also has the same license id, and there is only one
+  // subscription for a license.  I do select the newest subscription in case there is more
+  // than one for the same license (should be impossible).
+  logger.debug(
+    "getSubscriptionWithPurchaseId -- use license_id metadata and a join",
+  );
+  const y = await pool.query(
+    "SELECT subscriptions.id AS id FROM purchases,subscriptions WHERE (purchases.description#>>'{license_id}')::uuid=(subscriptions.metadata#>>'{license_id}')::uuid AND purchases.id=$1 ORDER BY subscriptions.created DESC",
+    [purchase_id],
+  );
+  subscription_id = y.rows[0]?.id;
+  if (subscription_id) {
+    return subscription_id;
+  }
+  throw Error(`there is no subscription with purchase id ${purchase_id}`);
 }
 
 // This export is only to make some private functions in this file available for unit testing.

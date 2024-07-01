@@ -228,7 +228,7 @@ export function modalParams({ current, target, path }) {
       </>
     ),
     cancelText: (
-      <div style={{display:'flex'}}>
+      <div style={{ display: "flex" }}>
         <div
           style={{
             maxWidth: "40ex",
@@ -240,11 +240,11 @@ export function modalParams({ current, target, path }) {
         >
           Stay {sourceDesc}
         </div>
-        (Id: {current})
+        <InlineComputeServer noColor key="current-id" id={current} idOnly />
       </div>
     ),
     okText: (
-      <div style={{display:'flex'}}>
+      <div style={{ display: "flex" }}>
         <div
           style={{
             maxWidth: "40ex",
@@ -256,13 +256,13 @@ export function modalParams({ current, target, path }) {
         >
           {what} {targetDesc}
         </div>
-        (Id: {target})
+        <InlineComputeServer noColor key="target-id" id={target} idOnly />
       </div>
     ),
     description: (
       <>
-        Do you want to {what} '{path}' {targetDesc} instead of {sourceDesc}?{" "}
-        {consequence}
+        Do you want to {what.toLowerCase()} '{path}' {targetDesc} instead of{" "}
+        {sourceDesc}? {consequence}
       </>
     ),
   };

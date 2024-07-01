@@ -14,15 +14,14 @@ export const GetComputeServerTitleInputSchema = z
   .object({
     id: ComputeServerIdSchema,
   })
-  .describe(
-    "Get server state from the cloud provider for a particular compute server.",
-  );
+  .describe("Get server title and color for a particular compute server.");
 
 export const GetComputeServerTitleOutputSchema = z.union([
   FailedAPIOperationSchema,
   z.object({
     color: ComputeServerColorSchema,
     title: ComputeServerTitleSchema,
+    project_specific_id: ComputeServerIdSchema,
   }),
 ]);
 

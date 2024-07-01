@@ -8,7 +8,8 @@ Typescript async/await rewrite of @cocalc/util/client.coffee...
 */
 
 import { redux } from "@cocalc/frontend/app-framework";
-import { ExecOpts, ExecOutput } from "@cocalc/frontend/client/project";
+import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
+export type { ExecOpts, ExecOutput };
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
 import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
@@ -18,7 +19,6 @@ import { FakeSyncstring } from "./syncstring-fake";
 const schema = require("@cocalc/util/schema");
 const DEFAULT_FONT_SIZE: number =
   require("@cocalc/util/db-schema").DEFAULT_FONT_SIZE;
-export { ExecOpts, ExecOutput };
 
 export function server_time(): Date {
   return webapp_client.time_client.server_time();
@@ -53,7 +53,7 @@ export async function touch_project(project_id: string): Promise<void> {
 // throwing a timeout means it attempted to start
 export async function start_project(
   project_id: string,
-  timeout: number = 60
+  timeout: number = 60,
 ): Promise<boolean> {
   const store = redux.getStore("projects");
   function is_running() {
@@ -76,7 +76,7 @@ export async function start_project(
 // throwing a timeout means it attempted to stop
 export async function stop_project(
   project_id: string,
-  timeout: number = 60
+  timeout: number = 60,
 ): Promise<boolean> {
   const store = redux.getStore("projects");
   function is_not_running() {
@@ -98,7 +98,7 @@ interface ReadTextFileOpts {
 }
 
 export async function read_text_file_from_project(
-  opts: ReadTextFileOpts
+  opts: ReadTextFileOpts,
 ): Promise<string> {
   return await webapp_client.project_client.read_text_file(opts);
 }
@@ -110,7 +110,7 @@ interface WriteTextFileOpts {
 }
 
 export async function write_text_file_to_project(
-  opts: WriteTextFileOpts
+  opts: WriteTextFileOpts,
 ): Promise<void> {
   await webapp_client.project_client.write_text_file(opts);
 }
@@ -118,7 +118,7 @@ export async function write_text_file_to_project(
 export async function formatter(
   project_id: string,
   path: string,
-  config: FormatterConfig
+  config: FormatterConfig,
 ): Promise<CompressedPatch> {
   const api = await webapp_client.project_client.api(project_id);
   const resp = await api.formatter(path, config);
@@ -127,7 +127,7 @@ export async function formatter(
     const loc = resp.error.loc;
     if (loc && loc.start) {
       throw Error(
-        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`
+        `Syntax error prevented formatting code (possibly on line ${loc.start.line} column ${loc.start.column}) -- fix and run again.`,
       );
     } else if (resp.error) {
       throw Error(resp.error);

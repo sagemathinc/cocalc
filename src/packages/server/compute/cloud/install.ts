@@ -29,7 +29,7 @@ apt-get install -y systemd-timesyncd
 
 echo 'RootDistanceMaxSec=1' >> /etc/systemd/timesyncd.conf
 echo 'PollIntervalMinSec=16' >> /etc/systemd/timesyncd.conf
-echo 'PollIntervalMaxSec=512' >> /etc/systemd/timesyncd.conf
+echo 'PollIntervalMaxSec=45' >> /etc/systemd/timesyncd.conf
 systemctl restart systemd-timesyncd
 `;
 }
