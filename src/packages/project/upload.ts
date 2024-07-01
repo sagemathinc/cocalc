@@ -66,8 +66,7 @@ export default function init(): Router {
     }
 
     try {
-      const uploadDir = join(HOME, dest_dir);
-
+      const uploadDir = join(HOME, ".smc", "upload");
       // ensure target path exists
       dbg("ensure target path exists... ", uploadDir);
       await mkdir(uploadDir, { recursive: true });
@@ -113,7 +112,7 @@ export default function init(): Router {
       }
       */
 
-      // Now, the strategy is to assemble to file chunk by chunk and save it with the original filename
+      // Now, the strategy is to assemble the file chunk by chunk and save it with the original filename
       const chunkFullPath = files.file[0]?.filepath;
       const originalFn = files.file[0]?.originalFilename;
 
@@ -124,6 +123,7 @@ export default function init(): Router {
         dbg(`uploading '${chunkFullPath}' -> '${originalFn}'`);
       }
 
+      const temp = join(uploadDir, originalFn);
       const dest = join(HOME, dest_dir, originalFn);
       dbg(`dest='${dest}'`);
       await ensureContainingDirectoryExists(dest);
@@ -133,6 +133,7 @@ export default function init(): Router {
         parseInt(fields.dzchunkindex),
         parseInt(fields.dztotalchunkcount),
         chunkFullPath,
+        temp,
         dest,
         dest_dir,
         compute_server_id,
@@ -159,11 +160,11 @@ async function handle_chunk_data(
   index: number,
   total: number,
   chunk: string,
+  temp: string,
   dest: string,
   dest_dir: string,
   compute_server_id: number,
 ): Promise<void> {
-  const temp = dest + ".partial-upload";
   if (index === 0) {
     // move chunk to the temp file
     await moveFile(chunk, temp);
