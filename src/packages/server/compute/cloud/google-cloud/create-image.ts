@@ -303,10 +303,15 @@ function getConf({
   }
 }
 
+/*
+ubuntu-2404-noble-amd64-v20240701a
+ubuntu-2404-noble-arm64-v20240701a
+*/
+
 function getSourceImage(arch: Architecture) {
-  return `projects/ubuntu-os-cloud/global/images/ubuntu-2204-jammy-${
-    arch == "arm64" ? "arm64-" : ""
-  }v20230829`;
+  return `projects/ubuntu-os-cloud/global/images/ubuntu-2404-noble-${
+    arch == "arm64" ? "arm" : "amd"
+  }64-v20240701a`;
 }
 
 const LOGDIR = "logs";
