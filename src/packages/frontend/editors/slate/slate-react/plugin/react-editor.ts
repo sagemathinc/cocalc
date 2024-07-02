@@ -100,7 +100,7 @@ export const ReactEditor = {
     }
 
     throw new Error(
-      `Unable to find the path for Slate node: ${JSON.stringify(node)}`
+      `Unable to find the path for Slate node: ${JSON.stringify(node)}`,
     );
   },
 
@@ -137,7 +137,12 @@ export const ReactEditor = {
    * Focus the editor.
    */
 
-  focus(editor: ReactEditor, force: boolean = false): void {
+  focus(
+    editor: ReactEditor,
+    force: boolean = false,
+    preserveSelection: boolean = false,
+  ): void {
+    console.trace("focus!", { force });
     const { selection } = editor;
     const el = ReactEditor.toDOMNode(editor, editor);
     IS_FOCUSED.set(editor, true);
@@ -151,8 +156,12 @@ export const ReactEditor = {
       el.blur();
       el.focus({ preventScroll: true });
     }
-    if (selection != null) {
-      // I've changed the focus method to preserve the selection if there is one.
+    if (selection != null && preserveSelection) {
+      console.log("setting selection", { selection });
+      // I've changed the focus method to optionally preserve the selection if there is one.
+      // However, doing this when not needed may be the cause of
+      // https://github.com/sagemathinc/cocalc/issues/6803
+      // hence the preserveSelection parameter.
       // Often when the editor not focused there is no selection. However,
       // in some cases, e.g., "set the selection, then focus", like we
       // do when using commands to move the cursors out of editing a void element,
@@ -186,7 +195,7 @@ export const ReactEditor = {
   hasDOMNode(
     editor: ReactEditor,
     target: DOMNode,
-    options: { editable?: boolean } = {}
+    options: { editable?: boolean } = {},
   ): boolean {
     const { editable = false } = options;
     const editorEl = ReactEditor.toDOMNode(editor, editor);
@@ -245,7 +254,7 @@ export const ReactEditor = {
     } catch (err) {
       console.warn(
         "SLATE: problem in setFragementData (invalid selection; so ignoring)",
-        err
+        err,
       );
     }
   },
@@ -267,7 +276,7 @@ export const ReactEditor = {
 
     if (!domNode) {
       throw new Error(
-        `Cannot resolve a DOM node from Slate node: ${JSON.stringify(node)}`
+        `Cannot resolve a DOM node from Slate node: ${JSON.stringify(node)}`,
       );
     }
 
@@ -319,7 +328,7 @@ export const ReactEditor = {
 
     if (!domPoint) {
       throw new Error(
-        `Cannot resolve a DOM point from Slate point: ${JSON.stringify(point)}`
+        `Cannot resolve a DOM point from Slate point: ${JSON.stringify(point)}`,
       );
     }
 
@@ -398,7 +407,7 @@ export const ReactEditor = {
 
     if (x == null || y == null) {
       throw new Error(
-        `Cannot resolve a Slate range from a DOM event: ${event}`
+        `Cannot resolve a Slate range from a DOM event: ${event}`,
       );
     }
 
@@ -446,7 +455,7 @@ export const ReactEditor = {
 
     if (!domRange) {
       throw new Error(
-        `Cannot resolve a Slate range from a DOM event: ${event}`
+        `Cannot resolve a Slate range from a DOM event: ${event}`,
       );
     }
 
@@ -521,7 +530,7 @@ export const ReactEditor = {
 
     if (!textNode) {
       throw new Error(
-        `Cannot resolve a Slate point from DOM point: ${domPoint}`
+        `Cannot resolve a Slate point from DOM point: ${domPoint}`,
       );
     }
 
@@ -539,7 +548,7 @@ export const ReactEditor = {
 
   toSlateRange(
     editor: ReactEditor,
-    domRange: DOMRange | DOMStaticRange | DOMSelection
+    domRange: DOMRange | DOMStaticRange | DOMSelection,
   ): Range {
     const el =
       domRange instanceof Selection
@@ -574,7 +583,7 @@ export const ReactEditor = {
       focusOffset == null
     ) {
       throw new Error(
-        `Cannot resolve a Slate range from DOM range: ${domRange}`
+        `Cannot resolve a Slate range from DOM range: ${domRange}`,
       );
     }
 
