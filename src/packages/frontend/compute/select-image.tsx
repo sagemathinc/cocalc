@@ -33,6 +33,8 @@ interface Props {
   // if specified, only show images with dockerSizeGb set and <= maxDockerSizeGb
   // Ignored if advanced is selected
   maxDockerSizeGb?: number;
+  // show a warning if dockerSizeGb is bigger than this:
+  warnBigGb?: number;
 }
 
 export default function SelectImage({
@@ -45,9 +47,13 @@ export default function SelectImage({
   googleImages,
   arch,
   maxDockerSizeGb,
+  warnBigGb,
 }: Props) {
   const [advanced, setAdvanced] = useState<boolean>(false);
   const [IMAGES, ImagesError] = useImages();
+  const [dockerSizeGb, setDockerSizeGb] = useState<number | undefined>(
+    undefined,
+  );
   const [value, setValue] = useState<string | undefined>(configuration.image);
   useEffect(() => {
     setValue(configuration.image);
@@ -103,6 +109,7 @@ export default function SelectImage({
           for (const option of options) {
             if (option.value == val) {
               x.tag = option.tag;
+              setDockerSizeGb(option.dockerSizeGb);
               break;
             }
           }
@@ -119,6 +126,21 @@ export default function SelectImage({
           IMAGES={IMAGES}
           setConfig={setConfig}
           configuration={configuration}
+        />
+      )}
+      {warnBigGb && (dockerSizeGb ?? 0) > warnBigGb && (
+        <Alert
+          style={{ margin: "15px 0" }}
+          showIcon
+          type="warning"
+          message="Large Image"
+          description={
+            <>
+              The compute server will take <b>several extra minutes</b> to start
+              the first time, because the {dockerSizeGb}GB Docker image must be
+              pulled and decompressed. Please be patient!
+            </>
+          }
         />
       )}
     </div>
@@ -151,6 +173,7 @@ function getOptions({
     value: string;
     search: string;
     label: JSX.Element;
+    dockerSizeGb?: number;
   }[] = [];
   for (const name in IMAGES) {
     const image = IMAGES[name];
@@ -217,7 +240,7 @@ function getOptions({
         }
       }
     }
-    if (advanced && dockerSizeGb) {
+    if (dockerSizeGb) {
       extra += ` - ${dockerSizeGb} GB`;
     }
 
@@ -227,6 +250,7 @@ function getOptions({
       priority,
       search: label?.toLowerCase() ?? "",
       tag,
+      dockerSizeGb,
       label: (
         <div style={{ fontSize: "12pt" }}>
           <div style={{ float: "right" }}>{versionLabel}</div>

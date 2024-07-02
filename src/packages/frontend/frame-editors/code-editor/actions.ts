@@ -258,8 +258,10 @@ export class Actions<
   // Init setting of value whenever syncstring changes -- only used in derived classes
   protected _init_syncstring_value(): void {
     this._syncstring.on("change", () => {
-      if (!this._syncstring) {
-        // edge case where actions closed but this event was still triggered.
+      if (!this._syncstring || this._syncstring.versions().length == 0) {
+        // edge case where actions closed but this event was still triggered, OR
+        // the syncstring changed, but has not actually loaded a version from
+        // disk yet, which happens with compute servers for a second.
         return;
       }
       this.setState({ value: this._syncstring.to_str() });
