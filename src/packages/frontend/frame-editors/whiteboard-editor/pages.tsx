@@ -5,13 +5,14 @@ where the page size expands to fit the width.
 
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
+import useResizeObserver from "use-resize-observer";
+
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "./hooks";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { Overview } from "./tools/navigation";
 import { State, elementsList } from "./actions";
-import useResizeObserver from "use-resize-observer";
 import {
   DragHandle,
   SortableList,
