@@ -14,11 +14,10 @@ export default function Image(props) {
         <div style={{ color: "#666", marginBottom: "5px" }}>
           Select compute server image. You will be able to use sudo with no
           password and can install anything into the Ubuntu 22.04 Linux image.
-          Click "advanced" for more options, which may be less tested or take
-          MUCH longer to start due to size.
+          Clicking "advanced" may show additional less tested or older options.
         </div>
       )}
-      <SelectImage {...props} gpu={true} arch={"x86_64"} maxDockerSizeGb={2} />
+      <SelectImage {...props} gpu={true} arch={"x86_64"} warnBigGb={4} />
       <div style={{ color: "#666", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />
         <ImageLinks
