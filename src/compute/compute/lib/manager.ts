@@ -40,11 +40,11 @@ interface Options {
   // it should be the id in the database from the compute_servers table.
   compute_server_id: number;
   // HOME = local home directory.  This should be a network mounted (or local)
-  // filesystem that is identical to the home directory of the target project.
+  // file system that is identical to the home directory of the target project.
   // The ipynb file will be loaded and saved from here, and must exist, and
   // process.env.HOME gets set to this.
   home: string;
-  // If true, doesn't do anything until the type of the filesystem that home is
+  // If true, doesn't do anything until the type of the file system that home is
   // mounted on is of this type, e.g., "fuse".
   waitHomeFilesystemType?: string;
 }
@@ -117,7 +117,7 @@ class Manager {
     this.state = "init";
     // Ping to start the project and ensure there is a hub connection to it.
     await pingProjectUntilSuccess(this.project_id);
-    // wait for home direcotry filesystem to be mounted:
+    // wait for home direcotry file system to be mounted:
     if (this.waitHomeFilesystemType) {
       this.reportComponentState({
         state: "waiting",

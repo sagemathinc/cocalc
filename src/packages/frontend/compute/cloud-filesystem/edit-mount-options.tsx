@@ -69,7 +69,7 @@ export default function EditMountOptions({
       title={
         <>
           <Icon name={"disk-snapshot"} /> Edit the Mount and KeyDB Options for
-          the cloud filesystem "{cloudFilesystem.title?.trim()}"
+          the cloud file system "{cloudFilesystem.title?.trim()}"
         </>
       }
       open={open}

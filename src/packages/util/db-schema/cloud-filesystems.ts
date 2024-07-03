@@ -16,7 +16,7 @@ import { Table } from "./types";
 import { ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
 
-// We do NOT charge to make a cloud filesystem.  However, we require that
+// We do NOT charge to make a cloud file system.  However, we require that
 // the user have enough money to make a CREATE_CLOUD_FILESYSTEM_AMOUNT purchase.
 // One reason to require credit is because billing is delayed by several days,
 // and a user could spend substantially during that time (e.g., over $1000
@@ -34,7 +34,7 @@ export const MIN_PORT = 40000;
 export const MAX_PORT = 48000;
 export const MIN_BLOCK_SIZE = 1;
 // requires my fork of juicefs to get above 16 (supports 64)!
-// do not use non-fork on a filesystem with a block size bigger
+// do not use non-fork on a file system with a block size bigger
 // than 16, as it may corrupt it...
 // Just in case -- for now we will restrict to 16 anyways.
 export const MAX_BLOCK_SIZE = 16;
@@ -336,7 +336,7 @@ Table({
     project_specific_id: {
       not_null: true,
       type: "integer",
-      desc: "A unique project-specific id assigned to this cloud filesystem.  This is a positive integer that is guaranteed to be unique for cloud filesystems *in a given project* and minimal when assigned (so it is as small as possible).  For now at least, I'm not using this in any way except as something to display to users.  Internally we always use the global id.",
+      desc: "A unique project-specific id assigned to this cloud file system.  This is a positive integer that is guaranteed to be unique for cloud filesystems *in a given project* and minimal when assigned (so it is as small as possible).  For now at least, I'm not using this in any way except as something to display to users.  Internally we always use the global id.",
     },
     project_id: {
       not_null: true,
@@ -347,7 +347,7 @@ Table({
     account_id: {
       not_null: true,
       type: "uuid",
-      desc: "User that owns this cloud filesystem (they pay)",
+      desc: "User that owns this cloud file system (they pay)",
       render: { type: "account" },
     },
     created: {
@@ -379,12 +379,12 @@ Table({
       not_null: true,
       type: "string",
       pg_type: "VARCHAR(4096)",
-      desc: "Where compute server is mounted in the filesystem.  If a relative path, then relative to home directory.  Target path does not have to be empty.  For sanity we restrict this string more than an arbitrary linux path.",
+      desc: "Where compute server is mounted in the file system.  If a relative path, then relative to home directory.  Target path does not have to be empty.  For sanity we restrict this string more than an arbitrary linux path.",
       render: { type: "text", maxLength: 4096, editable: true },
     },
     mount: {
       type: "boolean",
-      desc: "If true, then this cloud filesystem will be mounted on all compute servers associated to the project.",
+      desc: "If true, then this cloud file system will be mounted on all compute servers associated to the project.",
     },
     secret_key: {
       type: "map",
@@ -393,19 +393,19 @@ Table({
     },
     port: {
       type: "integer",
-      desc: "Numerical port where local service runs on each client for the filesystem.  E.g., this is keydb for juicefs.",
+      desc: "Numerical port where local service runs on each client for the file system.  E.g., this is keydb for juicefs.",
     },
     compression: {
       not_null: true,
       type: "string",
       pg_type: "VARCHAR(64)",
-      desc: "Compression for the filesystem: lz4, zstd or none.  Cannot be changed.",
+      desc: "Compression for the file system: lz4, zstd or none.  Cannot be changed.",
       render: { type: "text", maxLength: 64, editable: false },
     },
     block_size: {
       type: "integer",
       not_null: true,
-      desc: "Block size of filesystem in MB: between 1 and 64, inclusive.  Cannot be changed.",
+      desc: "Block size of file system in MB: between 1 and 64, inclusive.  Cannot be changed.",
     },
     trash_days: {
       type: "integer",
@@ -415,7 +415,7 @@ Table({
     mount_options: {
       type: "string",
       pg_type: "VARCHAR(4096)",
-      desc: "Options passed to the command line when running juicefs mount.  See https://juicefs.com/docs/community/command_reference#mount    This exact string is literally put on the command line after 'juicefs mount', and obviously getting it mangled can break mounting the filesystem.",
+      desc: "Options passed to the command line when running juicefs mount.  See https://juicefs.com/docs/community/command_reference#mount    This exact string is literally put on the command line after 'juicefs mount', and obviously getting it mangled can break mounting the file system.",
       render: { type: "text", maxLength: 4096, editable: true },
     },
     keydb_options: {
@@ -453,7 +453,7 @@ Table({
     },
     position: {
       type: "number",
-      desc: "Used for sorting a list of cloud filesystems in the UI.",
+      desc: "Used for sorting a list of cloud file systems in the UI.",
     },
     last_edited: {
       type: "timestamp",
@@ -467,7 +467,7 @@ Table({
       not_null: true,
       type: "integer",
       pg_type: "bigint",
-      desc: "The total number of bytes of data stored in the filesystem -- it's the output of df.  It is not impacted by compression, i.e., it's not the bucket size itself.",
+      desc: "The total number of bytes of data stored in the file system -- it's the output of df.  It is not impacted by compression, i.e., it's not the bucket size itself.",
     },
   },
 });
@@ -596,7 +596,7 @@ Table({
     },
     cloud_filesystem_id: {
       type: "integer",
-      desc: "The id of the cloud filesystem that this is a metric for.",
+      desc: "The id of the cloud file system that this is a metric for.",
     },
     compute_server_id: {
       type: "integer",
@@ -606,7 +606,7 @@ Table({
       not_null: true,
       type: "integer",
       pg_type: "bigint",
-      desc: "The total number of bytes of data stored in the filesystem -- it's the output of df.  It is not impacted by compression, i.e., it's not the bucket size itself.",
+      desc: "The total number of bytes of data stored in the file system -- it's the output of df.  It is not impacted by compression, i.e., it's not the bucket size itself.",
     },
     process_uptime: {
       not_null: true,

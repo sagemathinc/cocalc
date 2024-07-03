@@ -14,7 +14,7 @@ interface Props {
   refresh;
 }
 
-// Edit the project_id of a cloud filesystem
+// Edit the project_id of a cloud file system
 export default function EditProjectId({
   cloudFilesystem,
   open,
@@ -76,7 +76,7 @@ export default function EditProjectId({
       ]}
     >
       <p>
-        You can instantly move this cloud filesystem to any other project that
+        You can instantly move this cloud file system to any other project that
         you are a collaborator on.
       </p>
       <SelectProject

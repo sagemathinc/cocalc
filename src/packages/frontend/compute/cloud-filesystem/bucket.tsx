@@ -227,9 +227,9 @@ export function BucketLocation({ configuration, setConfiguration }) {
         </A>
       </b>
       {NO_CHANGE}
-      You can use your cloud filesystem from any compute server in the world, in
+      You can use your cloud file system from any compute server in the world, in
       any cloud or on prem. However, data transfer and operations are{" "}
-      <b>faster and cheaper</b> when the filesystem and compute server are in
+      <b>faster and cheaper</b> when the file system and compute server are in
       the same region. <br />
       <div style={{ display: "flex", margin: "10px 0" }}>
         <Select

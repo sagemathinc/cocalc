@@ -1,6 +1,6 @@
 /* This runs in the project and handles api calls from computer servers.
 
-It mainly handles a persistent connection from the filesystem container,
+It mainly handles a persistent connection from the file system container,
 and supports functions including moving files, syncing, executing code,
 etc.
 */

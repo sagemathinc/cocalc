@@ -354,11 +354,11 @@ function filesystem({
   const docker = IMAGES["filesystem"].package;
 
   return `
-# Docker container that mounts the filesystem(s)
+# Docker container that mounts the file system(s)
 setState filesystem init '' 60 15
 
 # Make the home directory
-# Note the filesystem mount is with the option nonempty, so
+# Note the file system mount is with the option nonempty, so
 # we don't have to worry anymore about deleting /home/user/*,
 # which is scary.
 fusermount -u /home/user || true
@@ -460,7 +460,7 @@ function compute({
   // and manages providing terminals and jupyter kernels
   // in this environment.
 
-  // The special mount line is necessary in case the filesystem has mounted when this
+  // The special mount line is necessary in case the file system has mounted when this
   // container starts (which is likely).
 
   return `

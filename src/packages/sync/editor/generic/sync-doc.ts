@@ -347,7 +347,7 @@ export class SyncDoc extends EventEmitter {
 
   // True if this client is responsible for managing
   // the state of this document with respect to
-  // the filesystem.  By default, the project is responsible,
+  // the file system.  By default, the project is responsible,
   // but it could be something else (e.g., a compute server!).  It's
   // important that whatever algorithm determines this, it is
   // a function of state that is eventually consistent.
@@ -2136,7 +2136,7 @@ export class SyncDoc extends EventEmitter {
         //         );
 
         // We make this non-fatal, because throwing an exception here WOULD
-        // DEFINITELY break other things.  Everything is saved to a filesystem
+        // DEFINITELY break other things.  Everything is saved to a file system
         // after all, so there's no major data loss potential at present.
         console.warn(
           "ERROR: (nonfatal) unable to confirm that snapshot was saved to the database",
@@ -2414,7 +2414,7 @@ export class SyncDoc extends EventEmitter {
         // It is normal behavior that *sometimes* this.save_to_disk might
         // throw an exception, e.g., if the file is temporarily deleted
         // or save it called before everything is initialized, or file
-        // is temporarily set readonly, or maybe there is a filesystem error.
+        // is temporarily set readonly, or maybe there is a file system error.
         // Of course, the finally below will also take care of this.  However,
         // it's nice to record the error here.
         this.syncstring_save_state = "done";
