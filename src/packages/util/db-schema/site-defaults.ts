@@ -808,7 +808,7 @@ export const site_settings_conf: SiteSettings = {
   },
   cloud_filesystems_enabled: {
     name: "Enable Cloud File Systems",
-    desc: "CoCalc Cloud File Systems are scalable distributed POSIX shared filesystems with fast local caching built using [JuiceFS](https://juicefs.com/), [KeyDB](https://docs.keydb.dev/) and [Google Cloud Storage](https://cloud.google.com/storage).  You must enable the following API's in the Google Cloud project: [Storage Transfer API](https://console.cloud.google.com/apis/library/storagetransfer.googleapis.com), [Identity and Access Management (IAM) API](https://console.cloud.google.com/apis/library/iam.googleapis.com), [Cloud Resource Manger API](https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com).",
+    desc: "CoCalc Cloud File Systems are scalable distributed POSIX shared file systems with fast local caching built using [JuiceFS](https://juicefs.com/), [KeyDB](https://docs.keydb.dev/) and [Google Cloud Storage](https://cloud.google.com/storage).  You must enable the following API's in the Google Cloud project: [Storage Transfer API](https://console.cloud.google.com/apis/library/storagetransfer.googleapis.com), [Identity and Access Management (IAM) API](https://console.cloud.google.com/apis/library/iam.googleapis.com), [Cloud Resource Manger API](https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com).",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

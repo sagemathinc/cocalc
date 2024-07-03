@@ -177,7 +177,7 @@ export default function CloudFilesystems({ project_id }: Props) {
         }}
       >
         CoCalc Cloud File Systems are scalable distributed POSIX shared
-        filesystems with fast local caching. Use them simultaneously from all
+        file systems with fast local caching. Use them simultaneously from all
         compute servers in this project. There are no limits on how much data
         you can store. You do not specify the size of a cloud file system in
         advance. The cost per GB is typically much less than a compute server
