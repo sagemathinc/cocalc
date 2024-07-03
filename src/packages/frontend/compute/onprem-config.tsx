@@ -107,7 +107,7 @@ export default function OnPremCloudConfiguration({
           <li>On-Prem compute servers are currently free.</li>
           <li>
             <A href="https://doc-cloud.cocalc.com/overview.html">
-              CoCalc-Cloud
+              CoCalc-OnPrem
             </A>{" "}
             is a related on-prem product for running a self-contained CoCalc
             cluster.
