@@ -142,7 +142,6 @@ export const ReactEditor = {
     force: boolean = false,
     preserveSelection: boolean = false,
   ): void {
-    console.trace("focus!", { force });
     const { selection } = editor;
     const el = ReactEditor.toDOMNode(editor, editor);
     IS_FOCUSED.set(editor, true);
@@ -157,7 +156,6 @@ export const ReactEditor = {
       el.focus({ preventScroll: true });
     }
     if (selection != null && preserveSelection) {
-      console.log("setting selection", { selection });
       // I've changed the focus method to optionally preserve the selection if there is one.
       // However, doing this when not needed may be the cause of
       // https://github.com/sagemathinc/cocalc/issues/6803
