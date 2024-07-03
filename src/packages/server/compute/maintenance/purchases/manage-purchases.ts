@@ -407,15 +407,17 @@ async function endNetworkPurchases({ networkPurchases, server }) {
         start: purchase.period_start,
         end,
       });
-      purchase.cost = Math.max(0.001, network.cost);
       purchase.period_end = end;
       purchase.description.amount = network.amount;
-      purchase.description.cost = network.cost;
       purchase.description.last_updated = end.valueOf();
+      // We very explicitly do NOT set any cost here.  That will only be done 2 days
+      // later via queries to BigQuery based on detailed billing export.
+      // The purchase.description.amount may be used for display and to provide an estimate
+      // and that's it.
       const pool = getPool();
       await pool.query(
-        "UPDATE purchases SET cost=$1, period_end=$2, description=$3 WHERE id=$4",
-        [purchase.cost, purchase.period_end, purchase.description, purchase.id],
+        "UPDATE purchases SET cost=NULL, cost_so_far=NULL, period_end=$1, description=$2 WHERE id=$3",
+        [purchase.period_end, purchase.description, purchase.id],
       );
     }
   }
