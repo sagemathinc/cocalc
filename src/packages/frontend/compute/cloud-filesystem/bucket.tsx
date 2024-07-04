@@ -38,10 +38,11 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation: Use Autoclass`}
+        message={`Recommendation: Autoclass`}
         description={
           <>
-            Use{" "}
+            Unless you understand why a different choice is better for your
+            data, use{" "}
             <A href="https://cloud.google.com/storage/docs/autoclass">
               autoclass
             </A>
@@ -56,8 +57,8 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
                 priceData,
               }),
             )}{" "}
-            per million blocks (there are 65,536 blocks of size 16 MB in a 1 TB
-            file).
+            per million blocks (there are 65,536 blocks of size 16 MB in 1 TB of
+            data).
           </>
         }
       />
@@ -67,7 +68,7 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
           (bucket_storage_class) => {
             const { min, max } = getDataStoragePriceRange({
               ...configuration,
-              prices:priceData,
+              prices: priceData,
               bucket_storage_class,
             });
             return {
@@ -227,8 +228,8 @@ export function BucketLocation({ configuration, setConfiguration }) {
         </A>
       </b>
       {NO_CHANGE}
-      You can use your cloud file system from any compute server in the world, in
-      any cloud or on prem. However, data transfer and operations are{" "}
+      You can use your cloud file system from any compute server in the world,
+      in any cloud or on prem. However, data transfer and operations are{" "}
       <b>faster and cheaper</b> when the file system and compute server are in
       the same region. <br />
       <div style={{ display: "flex", margin: "10px 0" }}>

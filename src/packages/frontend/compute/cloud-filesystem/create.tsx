@@ -411,7 +411,7 @@ function Compression({ configuration, setConfiguration }) {
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation`}
+        message={`Recommendation: LZ4`}
         description={
           <>
             Do not enable compression if most of your data is already
@@ -444,20 +444,18 @@ function BlockSize({ configuration, setConfiguration }) {
       <b style={{ fontSize: "13pt", color: "#666" }}>Block Size</b>
       {NO_CHANGE}
       The block size, which is between {MIN_BLOCK_SIZE} MB and {MAX_BLOCK_SIZE}{" "}
-      MB, is an upper bound on the size of the objects that are storied in the
+      MB, is an upper bound on the size of the objects that are stored in the
       cloud storage bucket.
       <Alert
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation: use ${RECOMMENDED_BLOCK_SIZE} MB`}
+        message={`Recommendation: ${RECOMMENDED_BLOCK_SIZE} MB`}
         description={
           <>
-            It can be better to use a large block size, since the number of PUT
-            and GET operations is reduced, and they each cost money. Also, if
-            you use an autoclass storage class, use at least{" "}
-            {RECOMMENDED_BLOCK_SIZE} MB since there is a monthly per-object
-            cost, and consider {MAX_BLOCK_SIZE} MB.
+            Larger block size reduces the number of PUT and GET operations, and
+            they each cost money. Also, if you use an autoclass storage class,
+            there is a monthly per-object cost.
           </>
         }
       />
