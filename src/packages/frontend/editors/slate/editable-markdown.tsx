@@ -496,24 +496,31 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
   }, [value]);
 
-  function setSyncstringFromSlate() {
-    if (actions.set_value == null) {
-      // no way to save the value out (e.g., just beginning to test
-      // using the component).
-      return;
-    }
-    if (!editor.hasUnsavedChanges()) {
-      // there are no changes to save
-      return;
-    }
+  const setSyncstringFromSlate = useMemo(() => {
+    const f = () => {
+      if (actions.set_value == null) {
+        // no way to save the value out (e.g., just beginning to test
+        // using the component).
+        return;
+      }
+      if (!editor.hasUnsavedChanges()) {
+        // there are no changes to save
+        return;
+      }
 
-    const markdown = editor.getMarkdownValue();
-    actions.set_value(markdown);
-    actions.syncstring_commit?.();
+      const markdown = editor.getMarkdownValue();
+      actions.set_value(markdown);
+      actions.syncstring_commit?.();
 
-    // Record that the syncstring's value is now equal to ours:
-    editor.resetHasUnsavedChanges();
-  }
+      // Record that the syncstring's value is now equal to ours:
+      editor.resetHasUnsavedChanges();
+    };
+    if (saveDebounceMs) {
+      return debounce(f, saveDebounceMs);
+    } else {
+      return f;
+    }
+  }, []);
 
   // We don't want to do saveValue too much, since it presumably can be slow,
   // especially if the document is large. By debouncing, we only do this when
