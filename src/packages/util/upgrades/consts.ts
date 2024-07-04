@@ -56,6 +56,6 @@ export const BOOST: Limits = {
   disk: { min: 0, dflt: 0, max: MAX_DISK_GB - 1 * DISK_DEFAULT_GB },
 } as const;
 
-// on-prem: this dedicated VM machine name is only used for cocalc-cloud
+// on-prem: this dedicated VM machine name is only used for cocalc-onprem
 // the project's resource quotas are encoded in the license spec, and not taken from the known VM specs
 export const DEDICATED_VM_ONPREM_MACHINE = "onprem";

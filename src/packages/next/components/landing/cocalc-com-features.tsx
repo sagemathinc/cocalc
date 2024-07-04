@@ -463,7 +463,7 @@ export function CoCalcComFeatures() {
                       style={link}
                       href="https://doc.cocalc.com/cocalc-cloud.html"
                     >
-                      <strong>cocalc-cloud</strong>
+                      <strong>cocalc-onprem</strong>
                     </A>
                     .
                   </li>
