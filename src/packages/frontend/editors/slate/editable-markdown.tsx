@@ -155,7 +155,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     placeholder,
     read_only,
     registerEditor,
-    saveDebounceMs,
+    saveDebounceMs = SAVE_DEBOUNCE_MS,
     selectionRef,
     style,
     submitMentionsRef,
@@ -257,7 +257,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // hook up to syncstring if available:
   useEffect(() => {
     if (actions._syncstring == null) return;
-    const beforeChange = setSyncstringFromSlate;
+    const beforeChange = setSyncstringFromSlateNOW;
     const change = () => {
       setEditorToValue(actions._syncstring.to_str());
     };
@@ -496,29 +496,31 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
   }, [value]);
 
+  const setSyncstringFromSlateNOW = () => {
+    if (actions.set_value == null) {
+      // no way to save the value out (e.g., just beginning to test
+      // using the component).
+      return;
+    }
+    if (!editor.hasUnsavedChanges()) {
+      // there are no changes to save
+      return;
+    }
+
+    const markdown = editor.getMarkdownValue();
+    actions.set_value(markdown);
+    actions.syncstring_commit?.();
+
+    // Record that the syncstring's value is now equal to ours:
+    editor.resetHasUnsavedChanges();
+  };
+
   const setSyncstringFromSlate = useMemo(() => {
-    const f = () => {
-      if (actions.set_value == null) {
-        // no way to save the value out (e.g., just beginning to test
-        // using the component).
-        return;
-      }
-      if (!editor.hasUnsavedChanges()) {
-        // there are no changes to save
-        return;
-      }
-
-      const markdown = editor.getMarkdownValue();
-      actions.set_value(markdown);
-      actions.syncstring_commit?.();
-
-      // Record that the syncstring's value is now equal to ours:
-      editor.resetHasUnsavedChanges();
-    };
     if (saveDebounceMs) {
-      return debounce(f, saveDebounceMs);
+      return debounce(setSyncstringFromSlateNOW, saveDebounceMs);
     } else {
-      return f;
+      // this case shouldn't happen
+      return setSyncstringFromSlateNOW;
     }
   }, []);
 

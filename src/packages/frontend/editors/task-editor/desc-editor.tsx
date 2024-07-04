@@ -59,6 +59,7 @@ export default function DescriptionEditor({
   return (
     <div>
       <MarkdownInput
+        saveDebounceMs={SAVE_DEBOUNCE_MS}
         cacheId={task_id}
         value={desc}
         onChange={(desc) => {
