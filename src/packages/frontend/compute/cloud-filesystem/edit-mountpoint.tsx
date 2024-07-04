@@ -13,7 +13,7 @@ interface Props {
   refresh;
 }
 
-// Edit the mountpoint of a cloud filesystem
+// Edit the mountpoint of a cloud file system
 export default function EditMountpoint({
   cloudFilesystem,
   open,

@@ -1,5 +1,5 @@
 /*
-Delete a cloud filesystem
+Delete a cloud file system
 */
 
 import getAccountId from "lib/account/get-account";

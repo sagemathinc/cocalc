@@ -1,5 +1,5 @@
 /*
-Component that shows a list of all cloud filesystems:
+Component that shows a list of all cloud file systems:
 
 - in a project
 - associated to an account
@@ -81,7 +81,7 @@ export default function CloudFilesystems({ project_id }: Props) {
         updateIds(cloudFilesystems);
 
         if (!scheduledRefresh.current) {
-          // if a filesystem is currently being deleted, we refresh
+          // if a file system is currently being deleted, we refresh
           // again in 30s.
           for (const { deleting } of Object.values(cloudFilesystems)) {
             if (deleting) {
@@ -153,7 +153,7 @@ export default function CloudFilesystems({ project_id }: Props) {
         Refresh{" "}
         {refreshing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
       </Button>
-      <h2 style={{ textAlign: "center" }}>Cloud Filesystems</h2>
+      <h2 style={{ textAlign: "center" }}>Cloud File Systems</h2>
       <div style={{ textAlign: "center" }}>
         <Button
           href="https://youtu.be/zYoldE2yS3I"
@@ -176,10 +176,10 @@ export default function CloudFilesystems({ project_id }: Props) {
           color: "#666",
         }}
       >
-        CoCalc Cloud Filesystems are scalable distributed POSIX shared
-        filesystems with fast local caching. Use them simultaneously from all
+        CoCalc Cloud File Systems are scalable distributed POSIX shared
+        file systems with fast local caching. Use them simultaneously from all
         compute servers in this project. There are no limits on how much data
-        you can store. You do not specify the size of a cloud filesystem in
+        you can store. You do not specify the size of a cloud file system in
         advance. The cost per GB is typically much less than a compute server
         disk, but you pay network usage and operations.
       </p>
@@ -187,7 +187,7 @@ export default function CloudFilesystems({ project_id }: Props) {
       <div style={{ margin: "5px 0" }}>
         {project_id
           ? ""
-          : "All Cloud Filesystems you own across your projects are listed below."}
+          : "All Cloud File Systems you own across your projects are listed below."}
       </div>
       <ShowError error={error} setError={setError} />
       {project_id != null && cloudFilesystems != null && (

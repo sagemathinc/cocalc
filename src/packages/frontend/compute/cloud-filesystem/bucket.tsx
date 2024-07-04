@@ -1,4 +1,4 @@
-import { getDataStoragePriceRange } from "./util";
+import { getCity, getDataStoragePriceRange } from "./util";
 import { Alert, Checkbox, Select, Spin } from "antd";
 import {
   GOOGLE_CLOUD_BUCKET_STORAGE_CLASSES,
@@ -14,6 +14,7 @@ import { getRecentRegions } from "./regions";
 import { currency } from "@cocalc/util//misc";
 import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { useGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
+import { filterOption } from "@cocalc/frontend/compute/util";
 
 export function BucketStorageClass({ configuration, setConfiguration }) {
   const [priceData] = useGoogleCloudPriceData();
@@ -38,10 +39,11 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation: Use Autoclass`}
+        message={`Recommendation: Autoclass`}
         description={
           <>
-            Use{" "}
+            Unless you understand why a different choice is better for your
+            data, use{" "}
             <A href="https://cloud.google.com/storage/docs/autoclass">
               autoclass
             </A>
@@ -56,8 +58,8 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
                 priceData,
               }),
             )}{" "}
-            per million blocks (there are 65,536 blocks of size 16 MB in a 1 TB
-            file).
+            per million blocks (there are 65,536 blocks of size 16 MB in 1 TB of
+            data).
           </>
         }
       />
@@ -67,7 +69,7 @@ export function BucketStorageClass({ configuration, setConfiguration }) {
           (bucket_storage_class) => {
             const { min, max } = getDataStoragePriceRange({
               ...configuration,
-              prices:priceData,
+              priceData,
               bucket_storage_class,
             });
             return {
@@ -175,7 +177,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
       let location;
       const { min, max } = getDataStoragePriceRange({
         ...configuration,
-        prices: priceData,
+        priceData,
         bucket_location: region,
       });
       if (multiregion) {
@@ -183,17 +185,26 @@ export function BucketLocation({ configuration, setConfiguration }) {
       } else {
         location = region;
       }
+      const city = getCity({ region, priceData });
       const label = (
         <div style={{ display: "flex" }}>
-          <div style={{ flex: 0.5 }}>{location}</div>
+          <div style={{ flex: 0.6 }}>
+            {location} ({city})
+          </div>
           <div style={{ flex: 1, fontFamily: "monospace" }}>
             {min ? currency(min, 5) : null}
             {min != max && min && max ? ` - ${currency(max, 5)}` : null}
-            {min && max ? " per GB per month at rest" : null}
+            {min && max ? " / GB / month at rest" : null}
           </div>
         </div>
       );
-      return { value: region, label, key: region, price: { min, max } };
+      return {
+        value: region,
+        label,
+        key: region,
+        price: { min, max },
+        search: `${city} ${location}`,
+      };
     });
     if (!multiregion && (recentRegions?.length ?? 0) > 0) {
       const z = new Set(recentRegions);
@@ -227,9 +238,9 @@ export function BucketLocation({ configuration, setConfiguration }) {
         </A>
       </b>
       {NO_CHANGE}
-      You can use your cloud filesystem from any compute server in the world, in
-      any cloud or on prem. However, data transfer and operations are{" "}
-      <b>faster and cheaper</b> when the filesystem and compute server are in
+      You can use your cloud file system from any compute server in the world,
+      in any cloud or on prem. However, data transfer and operations are{" "}
+      <b>faster and cheaper</b> when the file system and compute server are in
       the same region. <br />
       <div style={{ display: "flex", margin: "10px 0" }}>
         <Select
@@ -241,6 +252,8 @@ export function BucketLocation({ configuration, setConfiguration }) {
             setConfiguration({ ...configuration, bucket_location });
             setMultiregion(!bucket_location?.includes("-"));
           }}
+          optionFilterProp="children"
+          filterOption={filterOption}
         />
         <div
           style={{

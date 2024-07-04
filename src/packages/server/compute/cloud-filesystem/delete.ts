@@ -1,5 +1,5 @@
 /*
-Fully permanently deletes a cloud filesystem.  Deletes the actual data, configuration, database record,
+Fully permanently deletes a cloud file system.  Deletes the actual data, configuration, database record,
 etc.  This is NOT just deprovisioning.
 
 The actual call to delete the bucket can take arbitrarily long, and we need to come up with a
@@ -41,7 +41,7 @@ export async function userDeleteCloudFilesystem({
     const { name, email_address } = await getUser(account_id);
     logger.debug("userDeleteCloudFilesystem: no, not owner");
     throw Error(
-      `only the owner of the cloud filesystem volume can delete it -- this volume is owned by ${name} - ${email_address}`,
+      `only the owner of the cloud file system volume can delete it -- this volume is owned by ${name} - ${email_address}`,
     );
   }
   if ((cloudFilesystem.lock ?? DEFAULT_LOCK) != lock) {
@@ -54,12 +54,12 @@ export async function userDeleteCloudFilesystem({
   }
   if (cloudFilesystem.mount) {
     logger.debug("userDeleteCloudFilesystem: no, mounted");
-    throw Error("unmount the cloud filesystem first");
+    throw Error("unmount the cloud file system first");
   }
   if (cloudFilesystem.deleting) {
     logger.debug("userDeleteCloudFilesystem: no, already deleting");
     throw Error(
-      `cloud filesystem ${id} is currently being deleted; please wait`,
+      `cloud file system ${id} is currently being deleted; please wait`,
     );
   }
   logger.debug(
@@ -75,7 +75,7 @@ async function launchDelete(id: number) {
   // long that may take.  It could fail due to server restart, network issues, etc.,
   // but the actual delete of storage content is likely to work (since it is done
   // via a remote service on google cloud).
-  // There is another service that checks for cloud filesystems that haven't been
+  // There is another service that checks for cloud file systems that haven't been
   // deleted from the database but have deleting=TRUE and last_edited sufficiently long
   // ago, and tries those again, so eventually everything gets properly deleted.
   const pool = getPool();

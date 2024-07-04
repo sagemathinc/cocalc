@@ -1,10 +1,10 @@
 /*
-Set metrics for a cloud filesystem.   This is used from the cloud-filesystem container
-on a node to submit periodic information about the operations on filesystem, so we
+Set metrics for a cloud file system.   This is used from the cloud-filesystem container
+on a node to submit periodic information about the operations on file system, so we
 can provide information about usage to users.
 
 Example use, where 'sk-eTUKbl2lkP9TgvFJ00001n' is a project api key, where the given compute
-server and cloud filesystem are part of the given project.
+server and cloud file system are part of the given project.
 
 curl -sk -u sk-eTUKbl2lkP9TgvFJ00001n: -d '{"cloud_filesystem_id":18, "compute_server_id":"13", "bytes_get": 97574275, "bytes_put": 609263741, "bytes_used":1609263741, "objects_get": 5075, "objects_put": 34333, "objects_delete":2}}' -H 'Content-Type: application/json' https://cocalc.com/api/v2/compute/cloud-filesystem/set-metrics
 

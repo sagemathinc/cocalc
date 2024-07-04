@@ -30,7 +30,7 @@ export class OpenSnapshots extends Component<Props> {
           track("snapshots", { action: "open", where: "time-travel" });
         }}
         title={
-          "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
+          "Open the file system snapshots of this project, which may also be helpful in recovering past versions."
         }
       >
         <Icon name={"life-ring"} /> Backups

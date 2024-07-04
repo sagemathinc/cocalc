@@ -3,7 +3,7 @@ import { register } from "./tables";
 register({
   name: "cloud_filesystems",
 
-  title: "Cloud Filesystems",
+  title: "Cloud File Systems",
 
   icon: "disk-round",
 

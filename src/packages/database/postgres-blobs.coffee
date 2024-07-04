@@ -14,7 +14,7 @@ LICENSE   : AGPLv3
 # Bucket used for cheaper longterm storage of blobs (outside of PostgreSQL).
 # NOTE: We should add this to site configuration, and have it get read once when first
 # needed and cached.  Also it would be editable in admin account settings.
-# If this env variable begins with a / it is assumed to be a path in the filesystem,
+# If this env variable begins with a / it is assumed to be a path in the file system,
 # e.g., a remote mount (in practice, we are using gcsfuse to mount gcloud buckets).
 # If it is gs:// then it is a google cloud storage bucket.
 COCALC_BLOB_STORE = process.env.COCALC_BLOB_STORE
@@ -244,8 +244,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     blob_store: (bucket) =>
         if not bucket
             bucket = COCALC_BLOB_STORE
-        # Filesystem -- could be a big NFS volume, remotely mounted gcsfuse, or just
-        # a single big local filesystem -- etc. -- we don't care.
+        # File system -- could be a big NFS volume, remotely mounted gcsfuse, or just
+        # a single big local file system -- etc. -- we don't care.
         return filesystem_bucket(name: bucket)
 
     # Uploads the blob with given sha1 uuid to gcloud storage, if it hasn't already

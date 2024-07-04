@@ -46,7 +46,7 @@ const cloudFilesystemCache = new LRU<string, CloudFilesystem[]>({
 });
 
 export async function getCloudFilesystems(
-  // give no options to get all filesystems that YOU own across all your projects
+  // give no options to get all file systems that YOU own across all your projects
   opts: {
     // id = specific on
     id?: number;

@@ -100,7 +100,7 @@ export interface GoogleCloudStorageBucketCost {
   other: number;
 }
 
-// This is used to support cloud filesystems; however, it's generic
+// This is used to support cloud file systems; however, it's generic
 // enough it could be for any bucket storage.
 export interface ComputeServerStorage {
   type: "compute-server-storage";

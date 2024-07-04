@@ -1,7 +1,7 @@
 /*
 This is called periodically by compute servers to check in, thus
 proving that they are alive.  The response may contain information
-about the vpn or cloud filesystem configuration.
+about the vpn or cloud file system configuration.
 
 It's used by the /api/v2/compute/check-in api endpoint.
 

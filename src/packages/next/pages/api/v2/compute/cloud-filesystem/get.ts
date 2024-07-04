@@ -1,11 +1,11 @@
 /*
-Get a list of cloud filesystems:
+Get a list of cloud file systems:
 
-- all cloud filesystems that you own across all projects - no params
-- all cloud filesystems in a particular project (whether or not you own them) - specify project_id
-- a specific cloud filesystem - specify id
+- all cloud file systems that you own across all projects - no params
+- all cloud file systems in a particular project (whether or not you own them) - specify project_id
+- a specific cloud file system - specify id
 
-Always returns an array of cloud filesystem objects.
+Always returns an array of cloud file system objects.
 */
 
 import getAccountId from "lib/account/get-account";

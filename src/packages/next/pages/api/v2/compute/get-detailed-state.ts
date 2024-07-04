@@ -3,7 +3,7 @@ Get detailed state for a compute server.
 
 This can get just the state for a given component.
 
-One application of this is that the filesystem sync daemon
+One application of this is that the file system sync daemon
 can check for the error message to be cleared.
 */
 

@@ -8,7 +8,7 @@ curl -sk -u sk-eTUKbl2lkP9TgvFJ00001n: -d '{"id":"13","vpn_sha1":"fbdad59e0793e1
 Calling this endpoint:
 
 - sets detailed state saying the vm is ready
-- optionally returns vpn and/or cloud filesystem config, if input vpn_sha1 or cloud_filesystem_sha1 doesn't match
+- optionally returns vpn and/or cloud file system config, if input vpn_sha1 or cloud_filesystem_sha1 doesn't match
   current value.
 
 If compute server gets back vpn_sha1 or cloud_filesystem_sha1, it should update its local

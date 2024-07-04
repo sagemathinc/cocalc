@@ -15,7 +15,7 @@ interface Props {
   refresh;
 }
 
-// Edit the title and color of a cloud filesystem
+// Edit the title and color of a cloud file system
 export default function EditTrashDays({
   cloudFilesystem,
   open,
@@ -91,7 +91,7 @@ export default function EditTrashDays({
       Optionally store deleted files in{" "}
       <code>~/{cloudFilesystem.mountpoint}/.trash</code> for the number of days
       shown below. Set to 0 to disable. You can change this at any time, even
-      when the filesystem is mounted, and it will be updated quickly.
+      when the file system is mounted, and it will be updated quickly.
       <div style={{ textAlign: "center" }}>
         <InputNumber
           addonAfter={"days"}

@@ -30,7 +30,7 @@ export default function AuthToken({
       setError("");
       await setConfig({ authToken });
       if (id && state == "running") {
-        // also attempt to write it directly to the filesystem, which updates
+        // also attempt to write it directly to the file system, which updates
         // the proxy server in realtime to use the new token.
         await writeAuthToken({
           compute_server_id: id,
