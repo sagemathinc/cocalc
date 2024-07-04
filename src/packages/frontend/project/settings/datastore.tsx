@@ -4,7 +4,7 @@
  */
 
 /*
-Datastore (only for kucalc and cocalc-cloud)
+Datastore (only for kucalc and cocalc-onprem)
 */
 
 import {

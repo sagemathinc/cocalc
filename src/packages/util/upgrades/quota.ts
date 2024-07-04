@@ -107,7 +107,7 @@ interface QuotaBase {
   };
 }
 
-// additional fields of the quota result, which are used for onprem (cocalc-cloud) applications
+// additional fields of the quota result, which are used for onprem (cocalc-onprem) applications
 interface QuotaOnPrem {
   ext_rw?: boolean;
   patch?: { [key: string]: string | object }[];
@@ -983,7 +983,7 @@ export function quota_with_reasons(
       member_host: true,
     };
     if (dedicated_vm.machine === DEDICATED_VM_ONPREM_MACHINE) {
-      // for cocalc cloud, quotas are taken from that license (and only that license)
+      // for cocalc onprem, quotas are taken from that license (and only that license)
       if (isSiteLicenseQuotaSetting(dedicated_vm_license)) {
         const dvlq = dedicated_vm_license.quota;
         Object.assign(dedicated_quota, {
