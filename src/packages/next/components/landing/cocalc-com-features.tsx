@@ -459,11 +459,8 @@ export function CoCalcComFeatures() {
                   <li>
                     Deploy a highly scalable variant of {siteName} on your{" "}
                     <strong>Kubernetes cluster</strong> via{" "}
-                    <A
-                      style={link}
-                      href="https://doc.cocalc.com/cocalc-cloud.html"
-                    >
-                      <strong>cocalc-onprem</strong>
+                    <A style={link} href="https://onprem.cocalc.com/">
+                      <strong>CoCalc OnPrem</strong>
                     </A>
                     .
                   </li>
