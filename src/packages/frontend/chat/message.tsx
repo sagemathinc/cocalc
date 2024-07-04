@@ -195,6 +195,8 @@ export default function Message(props: Readonly<Props>) {
       }) != null
     );
   });
+  const [autoFocusReply, setAutoFocusReply] = useState<boolean>(false);
+  const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<SubmitMentionsFn>();
@@ -318,6 +320,7 @@ export default function Message(props: Readonly<Props>) {
       return;
     }
     props.actions.set_editing(message, true);
+    setAutoFocusEdit(true);
     props.scroll_into_view();
   }
 
@@ -579,7 +582,7 @@ export default function Message(props: Readonly<Props>) {
     return (
       <div>
         <ChatInput
-          autoFocus
+          autoFocus={autoFocusEdit}
           cacheId={`${props.path}${props.project_id}${date}`}
           input={newest_content(message)}
           submitMentionsRef={submitMentionsRef}
@@ -633,7 +636,7 @@ export default function Message(props: Readonly<Props>) {
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
-          autoFocus
+          autoFocus={autoFocusReply}
           style={{
             borderRadius: "8px",
             height: "auto" /* for some reason the default 100% breaks things */,
@@ -655,6 +658,7 @@ export default function Message(props: Readonly<Props>) {
         />
         <div style={{ margin: "5px 0" }}>
           <Button
+            style={{ marginRight: "5px" }}
             onClick={() => {
               setReplying(false);
               props.actions?.syncdb?.delete({
@@ -666,12 +670,8 @@ export default function Message(props: Readonly<Props>) {
           >
             Cancel
           </Button>
-          <Button
-            onClick={sendReply}
-            type="primary"
-            style={{ marginRight: "5px" }}
-          >
-            <Icon name="paper-plane" /> Send Reply
+          <Button onClick={sendReply} type="primary">
+            Send Reply
           </Button>
           <LLMCostEstimationChat
             llm_cost={llm_cost_reply}
@@ -734,7 +734,10 @@ export default function Message(props: Readonly<Props>) {
         >
           <Button
             type="text"
-            onClick={() => setReplying(true)}
+            onClick={() => {
+              setReplying(true);
+              setAutoFocusReply(true);
+            }}
             style={{ color: COLORS.GRAY_M }}
           >
             <Icon name="reply" /> Reply
