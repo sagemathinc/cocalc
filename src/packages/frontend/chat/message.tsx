@@ -626,11 +626,7 @@ export default function Message(props: Readonly<Props>) {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
     props.actions.send_reply({ message: message.toJS(), reply });
-    props.actions.syncdb?.delete({
-      event: "draft",
-      sender_id: props.account_id,
-      date: -date,
-    });
+    props.actions.delete_draft(date);
     props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
@@ -673,11 +669,7 @@ export default function Message(props: Readonly<Props>) {
             style={{ marginRight: "5px" }}
             onClick={() => {
               setReplying(false);
-              props.actions?.syncdb?.delete({
-                event: "draft",
-                sender_id: props.account_id,
-                date: -date,
-              });
+              props.actions?.delete_draft(date);
             }}
           >
             Cancel
