@@ -122,7 +122,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       style={{ color: "#666" }}
       onClick={() => {
         moveListItemUp(editor);
-        ReactEditor.focus(editor, false, true);
+        ReactEditor.focus(editor, false);
       }}
     >
       <Icon name={"arrow-up"} />
@@ -137,7 +137,7 @@ export const ListEdit: React.FC<Props> = ({ listProperties, editor }) => {
       style={{ color: "#666" }}
       onClick={() => {
         moveListItemDown(editor);
-        ReactEditor.focus(editor, false, true);
+        ReactEditor.focus(editor, false);
       }}
     >
       <Icon name={"arrow-down"} />

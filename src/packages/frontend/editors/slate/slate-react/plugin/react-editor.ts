@@ -137,11 +137,7 @@ export const ReactEditor = {
    * Focus the editor.
    */
 
-  focus(
-    editor: ReactEditor,
-    force: boolean = false,
-    preserveSelection: boolean = false,
-  ): void {
+  focus(editor: ReactEditor, force: boolean = false): void {
     const { selection } = editor;
     const el = ReactEditor.toDOMNode(editor, editor);
     IS_FOCUSED.set(editor, true);
@@ -155,7 +151,7 @@ export const ReactEditor = {
       el.blur();
       el.focus({ preventScroll: true });
     }
-    if (selection != null && preserveSelection) {
+    if (selection != null) {
       // I've changed the focus method to optionally preserve the selection if there is one.
       // However, doing this when not needed may be the cause of
       // https://github.com/sagemathinc/cocalc/issues/6803
@@ -166,6 +162,13 @@ export const ReactEditor = {
       // it's very important to restore the selection to where it was before
       // focusing, since otherwise the selection is reset to the top of the document.
       Transforms.setSelection(editor, selection);
+      // Critical to update the DOM selection ASAP, but not in same render loop (since that's too soon).
+      // Note that useLayoutEffect is not quick enough and things get broken without this below.  An example
+      // is in virtualized mode when moving a list item down in a list.
+      const { updateDOMSelection } = editor;
+      if (updateDOMSelection != null) {
+        window.requestAnimationFrame(updateDOMSelection);
+      }
     }
   },
 

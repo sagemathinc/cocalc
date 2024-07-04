@@ -25,15 +25,13 @@ function InsertButton({ children, onClick }) {
 }
 
 export default function InsertBar({ editor, element, info, above }) {
-  //const { hasLanguageModel } = useFileContext();
-
   const insert = (node: Node, offset = 0) => {
     let path = findElement(editor, element);
     if (path && !above) {
       path = Path.next(path);
     }
     Transforms.insertNodes(editor, node, { at: path });
-    ReactEditor.focus(editor, true, true);
+    ReactEditor.focus(editor, true);
     if (path) {
       setTimeout(() => {
         const sel = {
@@ -41,7 +39,7 @@ export default function InsertBar({ editor, element, info, above }) {
           focus: { path: path!, offset },
         };
         Transforms.setSelection(editor, sel);
-        ReactEditor.focus(editor, true, true);
+        ReactEditor.focus(editor, true);
       }, 50);
     }
   };

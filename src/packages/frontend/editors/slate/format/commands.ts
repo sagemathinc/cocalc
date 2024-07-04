@@ -311,6 +311,12 @@ export function getCollapsedSelection(editor: SlateEditor): Range {
 export function setSelectionAndFocus(editor: ReactEditor, selection): void {
   ReactEditor.focus(editor);
   Transforms.setSelection(editor, selection);
+
+  // see comment in react-editor.ts
+  const { updateDOMSelection } = editor;
+  if (updateDOMSelection != null) {
+    window.requestAnimationFrame(updateDOMSelection);
+  }
 }
 
 export function restoreSelectionAndFocus(editor: SlateEditor): void {
