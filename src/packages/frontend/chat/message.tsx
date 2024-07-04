@@ -187,13 +187,20 @@ export default function Message(props: Readonly<Props>) {
   const submitMentionsRef = useRef<SubmitMentionsFn>();
 
   const [replying, setReplying] = useState<boolean>(() => {
-    return (
-      props.actions?.syncdb?.get_one({
-        event: "draft",
-        sender_id: props.account_id,
-        date: -date,
-      }) != null
-    );
+    const draft = props.actions?.syncdb?.get_one({
+      event: "draft",
+      sender_id: props.account_id,
+      date: -date,
+    });
+    if (draft == null) {
+      return false;
+    }
+    if (draft.get("active") <= 1720071100408) {
+      // before this point in time, drafts never ever got deleted when sending replies!  So there's a massive
+      // clutter of reply drafts sitting in chats, and we don't want to resurrect them.
+      return false;
+    }
+    return true;
   });
   const [autoFocusReply, setAutoFocusReply] = useState<boolean>(false);
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
@@ -619,6 +626,11 @@ export default function Message(props: Readonly<Props>) {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
     props.actions.send_reply({ message: message.toJS(), reply });
+    props.actions.syncdb?.delete({
+      event: "draft",
+      sender_id: props.account_id,
+      date: -date,
+    });
     props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
