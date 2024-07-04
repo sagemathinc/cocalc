@@ -186,7 +186,15 @@ export default function Message(props: Readonly<Props>) {
 
   const submitMentionsRef = useRef<SubmitMentionsFn>();
 
-  const [replying, setReplying] = useState<boolean>(false);
+  const [replying, setReplying] = useState<boolean>(() => {
+    return (
+      props.actions?.syncdb?.get_one({
+        event: "draft",
+        sender_id: props.account_id,
+        date: -date,
+      }) != null
+    );
+  });
 
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<SubmitMentionsFn>();
@@ -484,19 +492,6 @@ export default function Message(props: Readonly<Props>) {
                     </Popconfirm>
                   </Tooltip>
                 ) : undefined}
-                {/* {!is_thread_body && props.allowReply && !replying ? (
-                  <Button
-                    type="text"
-                    disabled={replying}
-                    style={{
-                      color: is_viewers_message ? "white" : "#555",
-                    }}
-                    size="small"
-                    onClick={() => setReplying(true)}
-                  >
-                    <Icon name="reply" /> Reply
-                  </Button>
-                ) : undefined} */}
                 {message.get("history").size > 1 ||
                 message.get("editing").size > 0
                   ? editing_status(isEditing)
@@ -660,18 +655,23 @@ export default function Message(props: Readonly<Props>) {
         />
         <div style={{ margin: "5px 0" }}>
           <Button
+            onClick={() => {
+              setReplying(false);
+              props.actions?.syncdb?.delete({
+                event: "draft",
+                sender_id: props.account_id,
+                date: -date,
+              });
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
             onClick={sendReply}
             type="primary"
             style={{ marginRight: "5px" }}
           >
             <Icon name="paper-plane" /> Send Reply
-          </Button>
-          <Button
-            onClick={() => {
-              setReplying(false);
-            }}
-          >
-            Cancel
           </Button>
           <LLMCostEstimationChat
             llm_cost={llm_cost_reply}
