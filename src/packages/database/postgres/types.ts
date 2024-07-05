@@ -7,6 +7,7 @@ import { EventEmitter } from "events";
 import { Client } from "pg";
 
 import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
+import { ProjectState } from "@cocalc/util/db-schema/projects";
 import {
   CB,
   CBDB,
@@ -305,6 +306,8 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   });
 
+  delete_syncstring(opts: { string_id: string; cb: CB });
+
   projects_that_need_to_be_started(): Promise<string[]>;
 
   is_connected(): boolean;
@@ -316,4 +319,6 @@ export interface PostgreSQL extends EventEmitter {
       email_address: string;
     }>;
   }): Promise<void>;
+
+  set_project_state(opts: { project_id: string; state: ProjectState["state"] });
 }
