@@ -129,7 +129,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
           ...cmOptions?.extraKeys,
           "Shift-Enter": () => {
             Transforms.move(editor, { distance: 1, unit: "line" });
-            ReactEditor.focus(editor, false);
+            ReactEditor.focus(editor, false, true);
             onShiftEnter?.();
           },
           // We make it so doing select all when not everything is
@@ -342,7 +342,7 @@ function cursorHandlers(editor, isInline: boolean | undefined) {
     if (cur_line === n && cur_ch === line_length) {
       //Transforms.move(editor, { distance: 1, unit: "line" });
       moveCursorDown(editor, true);
-      ReactEditor.focus(editor, false);
+      ReactEditor.focus(editor, false, true);
       return true;
     } else {
       return false;
@@ -358,7 +358,7 @@ function cursorHandlers(editor, isInline: boolean | undefined) {
         if (!isInline) {
           moveCursorToBeginningOfBlock(editor);
         }
-        ReactEditor.focus(editor, false);
+        ReactEditor.focus(editor, false, true);
       } else {
         commands.goLineUp(cm);
       }
@@ -367,7 +367,7 @@ function cursorHandlers(editor, isInline: boolean | undefined) {
       const cur = cm.getCursor();
       if (cur?.line === cm.firstLine() && cur?.ch == 0) {
         Transforms.move(editor, { distance: 1, unit: "line", reverse: true });
-        ReactEditor.focus(editor, false);
+        ReactEditor.focus(editor, false, true);
       } else {
         commands.goCharLeft(cm);
       }

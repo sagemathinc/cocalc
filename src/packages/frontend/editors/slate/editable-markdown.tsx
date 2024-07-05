@@ -622,7 +622,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         // about selection at all.  TODO: we might be able to avoid the
         // slateDiff stuff entirely via some tricky stuff, e.g., managing
         // the cursor on the plain text side before/after the change, since
-        // codemirror is much faster at "setValueNoJump".
+        // codemirror is much faster att "setValueNoJump".
         // The main time we use this optimization here is when opening the
         // document in the first place, in which case we're converting
         // the document from "Loading..." to it's initial value.
