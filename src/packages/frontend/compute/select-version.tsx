@@ -34,10 +34,7 @@ export default function SelectVersion({
     }
     setConfig0(obj);
   };
-
   const [tag, setTag] = useState<string>(configuration.tag ?? "");
-  const [refreshing, setRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
   const [tag_filesystem, set_tag_filesystem] = useState<string>(
     configuration.tag_filesystem ?? "",
   );
@@ -94,26 +91,7 @@ export default function SelectVersion({
 
   return (
     <div style={style}>
-      <Button
-        size="small"
-        style={{ float: "right" }}
-        onClick={async () => {
-          try {
-            setError("");
-            setRefreshing(true);
-            await forceRefreshImages();
-          } catch (err) {
-            setError(`${err}`);
-          } finally {
-            setRefreshing(false);
-          }
-        }}
-        disabled={refreshing}
-      >
-        <Icon name="refresh" /> Refresh{refreshing ? "ing..." : ""} Images
-        {refreshing && <Spin style={{ marginLeft: "10px" }} />}
-      </Button>
-      <ShowError error={error} setError={setError} />
+      <RefreshImagesButton size={"small"} style={{ float: "right" }} />
       <SelectTag
         style={{ marginBottom: "5px" }}
         label={
@@ -193,7 +171,7 @@ function toOption(x: {
       <Tooltip
         title={
           <>
-            {x.tag ?? x.label ?? ""}{" "}{x.description ?? ""}
+            {x.tag ?? x.label ?? ""} {x.description ?? ""}
           </>
         }
       >
@@ -228,6 +206,34 @@ function SelectTag({ disabled, tag, setTag, options, label, style }) {
         optionType="button"
         buttonStyle="solid"
       />
+    </div>
+  );
+}
+
+export function RefreshImagesButton({ size, style }: { size?; style? }) {
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  return (
+    <div style={style}>
+      <Button
+        size={size}
+        onClick={async () => {
+          try {
+            setError("");
+            setRefreshing(true);
+            await forceRefreshImages();
+          } catch (err) {
+            setError(`${err}`);
+          } finally {
+            setRefreshing(false);
+          }
+        }}
+        disabled={refreshing}
+      >
+        <Icon name="refresh" /> Refresh{refreshing ? "ing..." : ""} Images
+        {refreshing && <Spin style={{ marginLeft: "10px" }} />}
+      </Button>
+      <ShowError error={error} setError={setError} />
     </div>
   );
 }
