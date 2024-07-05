@@ -11,18 +11,16 @@ const EXPENSIVE_DEBUG = false;
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import { debounce, isEqual, throttle } from "lodash";
-import { MutableRefObject, RefObject } from "react";
-
 import {
-  CSS,
-  React,
+  MutableRefObject,
+  RefObject,
   useCallback,
   useEffect,
-  useIsMountedRef,
   useMemo,
   useRef,
   useState,
-} from "@cocalc/frontend/app-framework";
+} from "react";
+import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { useMentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
@@ -496,6 +494,8 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
   }, [value]);
 
+  const lastSetValueRef = useRef<string | null>(null);
+
   const setSyncstringFromSlateNOW = () => {
     if (actions.set_value == null) {
       // no way to save the value out (e.g., just beginning to test
@@ -508,6 +508,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
 
     const markdown = editor.getMarkdownValue();
+    lastSetValueRef.current = markdown;
     actions.set_value(markdown);
     actions.syncstring_commit?.();
 
@@ -581,6 +582,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, [is_current]);
 
   const setEditorToValue = (value) => {
+    // console.log("setEditorToValue", { value, ed: editor.getMarkdownValue() });
+    if (lastSetValueRef.current == value) {
+      // this always happens once right after calling setSyncstringFromSlateNOW
+      // and it can randomly undo the last thing done, so don't do that!
+      // Also, this is an excellent optimization to do as well.
+      lastSetValueRef.current = null;
+      // console.log("setEditorToValue: skip");
+      return;
+    }
     if (value == null) return;
     if (value == editor.getMarkdownValue()) {
       // nothing to do, and in fact doing something
@@ -647,6 +657,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         // also so we don't update the source editor (and other browsers)
         // with a view with things like loan $'s escaped.'
         editor.syncCausedUpdate = true;
+        // console.log("setEditorToValue: applying operations...", { operations });
         preserveScrollPosition(editor, operations);
         applyOperations(editor, operations);
         // console.log("time to set via diff", new Date() - t);
@@ -662,6 +673,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
     try {
       if (editor.selection != null) {
+        // console.log("setEditorToValue: restore selection", editor.selection);
         const { anchor, focus } = editor.selection;
         Editor.node(editor, anchor);
         Editor.node(editor, focus);
