@@ -160,7 +160,7 @@ export async function mountProject({
         // modified = ignore any file modified with this many seconds (at least);
         //            also ignores any file not in the stat cache.
         readTrackingFile: readTrackingFile,
-        readTrackingExclude: [".*", ...exclude],
+        readTrackingExclude: exclude,
         // metadata file
         metadataFile,
       }));
