@@ -70,7 +70,7 @@ export function make_patch(s0: string, s1: string): CompressedPatch {
 // apply a compressed patch to a string.
 export function apply_patch(
   patch: CompressedPatch,
-  s: string
+  s: string,
 ): [string, boolean] {
   let x;
   try {
@@ -98,7 +98,7 @@ import { cmp_array } from "@cocalc/util/misc";
 export function patch_cmp(a: Patch, b: Patch): number {
   return cmp_array(
     [a.time.valueOf(), a.user_id],
-    [b.time.valueOf(), b.user_id]
+    [b.time.valueOf(), b.user_id],
   );
 }
 

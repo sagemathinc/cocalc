@@ -81,7 +81,7 @@ const ITEM_STYLES: { [name: string]: CSS } = {
 };
 
 interface item {
-  line: string;
+  line: number;
   file?: string;
   level: number;
   message?: string;
@@ -100,7 +100,7 @@ const Item: React.FC<ItemProps> = React.memo(
     function edit_source(e: React.SyntheticEvent<any>): void {
       e.stopPropagation();
       if (!item.get("file")) return; // not known
-      const line: number = parseInt(item.get("line"));
+      const line = item.get("line");
       let path = item.get("file");
       const head = path_split(actions.path).head;
       if (head != "") {

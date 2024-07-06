@@ -17,7 +17,7 @@ import { FrameTree } from "../frame-tree/types";
 
 export class Actions extends CodeEditorActions {
   private run_rst2html: Function;
-  private _last_rst_hash: string = "";
+  private _last_rst_hash: number | undefined = undefined;
 
   _init2(): void {
     if (!this.is_public) {
@@ -41,7 +41,7 @@ export class Actions extends CodeEditorActions {
           this._last_rst_hash = hash;
           await this.run_rst2html();
         }
-      })
+      }),
     );
 
     this._syncstring.once("ready", this.run_rst2html.bind(this));

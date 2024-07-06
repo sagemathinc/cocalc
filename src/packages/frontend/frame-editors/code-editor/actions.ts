@@ -48,7 +48,7 @@ import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import enableSearchEmbeddings from "@cocalc/frontend/search/embeddings";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { apply_patch } from "@cocalc/sync/editor/generic/util";
-import { SyncString } from "@cocalc/sync/editor/string";
+import type { SyncString } from "@cocalc/sync/editor/string/sync";
 import { once } from "@cocalc/util/async-utils";
 import {
   Config as FormatterConfig,
@@ -282,7 +282,7 @@ export class Actions<
 
   protected _init_syncstring(): void {
     if (this.doctype == "none") {
-      this._syncstring = <typeof SyncString>syncstring({
+      this._syncstring = syncstring({
         project_id: this.project_id,
         path: this.path,
         cursors: !this.disable_cursors,
@@ -290,7 +290,7 @@ export class Actions<
         after_change_hook: () => this.set_codemirror_to_syncstring(),
         fake: true,
         patch_interval: 500,
-      });
+      }) as SyncString;
     } else if (this.doctype == "syncstring") {
       this._syncstring = syncstring2({
         project_id: this.project_id,
@@ -570,6 +570,7 @@ export class Actions<
       // lose the very last change user made!
       this.set_syncstring_to_codemirror();
     }
+    // @ts-ignore
     delete this._syncstring;
     s.close(); // this should save synctables in syncstring
   }
@@ -1228,7 +1229,7 @@ export class Actions<
       if (this._state !== "closed") {
         this.set_error(`${SAVE_ERROR} -- ${err} -- ${SAVE_WORKAROUND}`);
         log_error({
-          string_id: this._syncstring ? this._syncstring._string_id : "",
+          string_id: this._syncstring?.get_string_id(),
           path: this.path,
           project_id: this.project_id,
           error: "Error saving file -- has_unsaved_changes",
@@ -1508,7 +1509,7 @@ export class Actions<
   syncstring_commit(): void {
     // We also skip if the syncstring hasn't yet been initialized.
     // This happens in some cases.
-    if (this._state === "closed" || this._syncstring.state != "ready") return;
+    if (this._state === "closed" || this._syncstring.get_state() != "ready") return;
     if (this._syncstring != null) {
       // we pass true since here we want any UI for this or any derived
       // editor to immediately react when we commit. This is particularly
@@ -1546,7 +1547,7 @@ export class Actions<
     // note -- we don't try to set the syncstring if actions are closed
     // or the syncstring isn't initialized yet.  The latter case happens when
     // switching the file that is being edited in a frame, e.g., for latex.
-    if (this._state === "closed" || this._syncstring.state != "ready") return;
+    if (this._state === "closed" || this._syncstring.get_state() != "ready") return;
     if (!do_not_exit_undo_mode) {
       // If we are NOT doing an undo operation, then setting the
       // syncstring due to any
