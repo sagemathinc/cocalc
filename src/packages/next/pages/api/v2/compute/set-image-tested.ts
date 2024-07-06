@@ -10,11 +10,11 @@ import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   SetComputeServerImageTestedInputSchema,
   SetComputeServerImageTestedOutputSchema,
 } from "lib/api/schema/compute/set-image-tested";
-
 
 async function handle(req, res) {
   try {
@@ -35,14 +35,14 @@ async function get(req) {
   }
   const { id, tested } = getParams(req);
   await setImageTested({ id, account_id, tested });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   setImageTested: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

@@ -51,7 +51,7 @@ export default apiRoute({
   getEmailAddress: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Accounts"],
+      tags: ["Accounts", "Admin"],
     },
   })
     .input({

@@ -6,6 +6,7 @@ within the last 6 hours.
 import getAccountId from "lib/account/get-account";
 import emailStatement from "@cocalc/server/purchases/statements/email-statement";
 import getParams from "lib/api/get-params";
+import { OkStatus } from "lib/api/status";
 
 export default async function handle(req, res) {
   try {
@@ -23,5 +24,5 @@ async function get(req) {
   }
   const { statement_id } = getParams(req);
   await emailStatement({ account_id, statement_id });
-  return { status: "ok" };
+  return OkStatus;
 }

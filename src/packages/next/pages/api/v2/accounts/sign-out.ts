@@ -14,6 +14,7 @@ import {
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { SuccessStatus } from "lib/api/status";
 import {
   AccountSignOutInputSchema,
   AccountSignOutOutputSchema,
@@ -22,7 +23,7 @@ import {
 async function handle(req, res) {
   try {
     await signOut(req);
-    res.json({ status: "success" });
+    res.json(SuccessStatus);
   } catch (err) {
     res.json({ error: err.message });
   }
