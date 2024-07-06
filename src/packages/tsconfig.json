@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "allowJs": true,
-    "checkJs": false,
     "composite": true,
     "declaration": true,
     "downlevelIteration": true,
