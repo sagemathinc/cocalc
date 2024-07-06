@@ -50,9 +50,9 @@ export const ShoppingCartAddInputSchema = z
       .union([
         z
           .object({
-            title: LicenseTitleSchema,
-            description: LicenseDescriptionSchema,
-            range: LicenseRangeSchema,
+            title: LicenseTitleSchema.optional(),
+            description: LicenseDescriptionSchema.optional(),
+            range: LicenseRangeSchema.optional(),
             period: z.enum(["range", "monthly", "yearly"]).describe(
               `Period for which this license is to be applied. If \`range\` is selected, 
                the \`range\` field must be populated in this request.`,
