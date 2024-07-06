@@ -1,15 +1,17 @@
-import { Icon } from "@cocalc/frontend/components";
+import { A, Icon, TimeAgo } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import type {
   State,
   Configuration,
 } from "@cocalc/util/db-schema/compute-servers";
-import { Button, Divider, Popover, Progress, Spin } from "antd";
+import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
 import { User } from "@cocalc/frontend/users";
 import { CSSProperties, useEffect, useState } from "react";
 import { getNetworkUsage, getServerState } from "./api";
 import { useInterval } from "react-interval-hook";
 import { currency, human_readable_size } from "@cocalc/util/misc";
+import { GoogleNetworkCost } from "@cocalc/frontend/purchases/pay-as-you-go/cost";
+import { GOOGLE_COST_LAG_MS } from "@cocalc/util/db-schema/compute-servers";
 
 interface Props {
   style?: CSSProperties;
@@ -114,19 +116,64 @@ export default function State({
   );
 }
 
+export function WhenKnown({ period_end }) {
+  let whenKnown;
+  if (period_end) {
+    const msAgo = Date.now() - period_end.valueOf();
+    const howLong = Math.max(0, GOOGLE_COST_LAG_MS - msAgo);
+    if (howLong == 0) {
+      whenKnown = "soon";
+    } else {
+      whenKnown = (
+        <>
+          around <TimeAgo date={new Date(Date.now() + howLong)} />
+        </>
+      );
+    }
+  } else {
+    whenKnown = "";
+  }
+  return (
+    <span>{whenKnown ? <>The cost will be finalized {whenKnown}.</> : ""}</span>
+  );
+}
+
+function NetworkUsageCostEstimate({ period_end }) {
+  return (
+    <>
+      The{" "}
+      <Tooltip title={<GoogleNetworkCost />}>
+        <span>
+          <A href="https://cloud.google.com/vpc/network-pricing">rate</A>
+        </span>
+      </Tooltip>{" "}
+      depends on the destination. <WhenKnown period_end={period_end} />
+    </>
+  );
+}
+
 export function DisplayNetworkUsage({
   amount,
   cost,
   style,
+  period_end,
 }: {
   amount: number;
   cost?: number;
   style?;
+  period_end?: Date;
 }) {
+  if (cost == null) {
+  }
   return (
     <div style={style}>
       <Icon name="network-wired" /> {human_readable_size(amount * 2 ** 30)} of
-      network data transfer out{cost != null && <>: {currency(cost)}</>}
+      network data transfer out.{" "}
+      {cost != null ? (
+        <>Final Cost: {currency(cost)}</>
+      ) : (
+        <NetworkUsageCostEstimate period_end={period_end} />
+      )}
     </div>
   );
 }
@@ -158,7 +205,7 @@ function NetworkUsage({ id, state, data }) {
   return <DisplayNetworkUsage amount={usage.amount} cost={usage.cost} />;
 }
 
-function ProgressBarTimer({
+export function ProgressBarTimer({
   startTime,
   style,
   width = "150px",

@@ -2,7 +2,7 @@
 Compute server hamburger menu.
 */
 
-import { Button, Dropdown, Spin, Tooltip } from "antd";
+import { Button, Dropdown, Spin } from "antd";
 import type { MenuProps } from "antd";
 import { A, Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
@@ -67,7 +67,7 @@ function getItems({
         key: "loading",
         label: (
           <>
-            Loading... (Id: {id}) <Spin />
+            Loading... <Spin />
           </>
         ),
         disabled: true,
@@ -107,7 +107,7 @@ function getItems({
         >
           {title}
         </div>
-        (Id: {id})
+        (Id: {server.project_specific_id})
       </div>
     ),
   };
@@ -456,9 +456,11 @@ export default function Menu({
   const account_id = useTypedRedux("account", "account_id");
   const [modal, setModal] = useState<any>(null);
   const close = () => setModal(null);
-  const [title, setTitle] = useState<{ title: string; color: string } | null>(
-    null,
-  );
+  const [title, setTitle] = useState<{
+    title: string;
+    color: string;
+    project_specific_id: number;
+  } | null>(null);
   const isAdmin = useTypedRedux("account", "is_admin");
   const { items, onClick } = useMemo(() => {
     if (!open) {
@@ -468,7 +470,6 @@ export default function Menu({
     (async () => {
       setTitle(await getTitle(id));
     })();
-
     return {
       items: getItems({ ...title, id, project_id, account_id, isAdmin }),
       onClick: async (obj) => {
@@ -549,7 +550,7 @@ export default function Menu({
           case "support":
             openSupportTab({
               type: "question",
-              subject: `Compute Server (Id: ${id})`,
+              subject: `Compute Server (Global Id: ${id}; Project Specific Id: ${title?.project_specific_id})`,
               body: `I am using a compute server, and have a question...`,
             });
             break;
@@ -568,15 +569,13 @@ export default function Menu({
         trigger={["click"]}
         onOpenChange={setOpen}
       >
-        <Tooltip title="Customize and control server">
-          <Button type="text" size={size}>
-            <Icon
-              name="ellipsis"
-              style={{ fontSize: fontSize ?? "15pt", color: "#000" }}
-              rotate="90"
-            />
-          </Button>
-        </Tooltip>
+        <Button type="text" size={size}>
+          <Icon
+            name="ellipsis"
+            style={{ fontSize: fontSize ?? "15pt", color: "#000" }}
+            rotate="90"
+          />
+        </Button>
       </Dropdown>
       {modal}
       <ShowError

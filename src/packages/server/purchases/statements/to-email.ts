@@ -65,7 +65,7 @@ export function statementToHtml(
 <tr><td ${TD}>Date</td><td style='text-align:center; ${STYLE}'>${new Date(
     statement.time
   ).toDateString()}</td></tr>
-<tr><td ${TD}>Previous Statement Balance</td><td style='font-family: monospace;text-align:center; ${STYLE}; color:${
+<tr><td ${TD}>Previous Account Balance</td><td style='font-family: monospace;text-align:center; ${STYLE}; color:${
     getAmountStyle(previousStatement?.balance ?? 0).color
   }'>${currency(previousStatement?.balance ?? 0)}</td></tr>
 <tr><td ${TD}>${statement.num_charges} ${plural(
@@ -98,7 +98,7 @@ export function statementToText(
 Your ${statement.interval == "day" ? "Daily" : "Monthly"} ${siteName} Statement
 Id: ${statement.id}
 Date: ${new Date(statement.time).toDateString()}
-Previous Statement Balance: ${currency(statement.balance)}
+Previous Account Balance: ${currency(statement.balance)}
 ${statement.num_charges} ${plural(statement.num_charges, "Charge")}: ${currency(
     -statement.total_charges
   )}

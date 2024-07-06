@@ -21,12 +21,11 @@ export type SuccessfulAPIOperation = z.infer<
 >;
 export type OkAPIOperation = z.infer<typeof OkAPIOperationSchema>;
 
-export const RequestNoCacheSchema = z.object({
-  noCache: z
-    .string()
-    .describe(
-      "**Administrators only**. Disables database caching for this query.",
-    )
-    .optional(),
-});
+export const RequestNoCacheSchema = z
+  .boolean()
+  .describe(
+    "**Administrators only**. Disables database caching for this query.",
+  )
+  .optional();
+
 export type RequestNoCache = z.infer<typeof RequestNoCacheSchema>;

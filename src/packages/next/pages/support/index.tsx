@@ -94,8 +94,8 @@ const dataSource = [
         <A href="https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform">
           fill out this form and request a live video chat with us
         </A>
-        . We love chatting (in English and German), and will hopefully be able
-        to answer all of your questions.
+        . We love chatting (in English, German and Russian), and will hopefully
+        be able to answer all of your questions.
       </>
     ),
   },

@@ -14,7 +14,10 @@ import {
   UID,
 } from "./install";
 import type { Cloud } from "@cocalc/util/db-schema/compute-servers";
-import { CHECK_IN_PERIOD_S } from "@cocalc/server/compute/check-in";
+import {
+  CHECK_IN_PATH,
+  CHECK_IN_PERIOD_S,
+} from "@cocalc/util/db-schema/compute-servers";
 
 // A one line startup script that grabs the latest version of the
 // real startup script via the API.  This is important, e.g., if
@@ -251,7 +254,7 @@ echo "Launching background daemons: disk_enlarger.py and check_in.py"
 
 exec /usr/bin/python3 -u /cocalc/disk_enlarger.py 2> /var/log/cocalc-disk-enlarger.err >/var/log/cocalc-disk-enlarger.log &
 
-exec /usr/bin/python3 -u /cocalc/check_in.py ${CHECK_IN_PERIOD_S} 2> /var/log/cocalc-check-in.err >/var/log/cocalc-check-in.log &
+exec /usr/bin/python3 -u /cocalc/check_in.py ${CHECK_IN_PERIOD_S} ${CHECK_IN_PATH} 2> /var/log/cocalc-check-in.err >/var/log/cocalc-check-in.log &
 
 # Put back unattended upgrades, since they are good to have for security reasons.
 apt-get install -y unattended-upgrades || true
@@ -351,11 +354,11 @@ function filesystem({
   const docker = IMAGES["filesystem"].package;
 
   return `
-# Docker container that mounts the filesystem(s)
+# Docker container that mounts the file system(s)
 setState filesystem init '' 60 15
 
 # Make the home directory
-# Note the filesystem mount is with the option nonempty, so
+# Note the file system mount is with the option nonempty, so
 # we don't have to worry anymore about deleting /home/user/*,
 # which is scary.
 fusermount -u /home/user || true
@@ -457,7 +460,7 @@ function compute({
   // and manages providing terminals and jupyter kernels
   // in this environment.
 
-  // The special mount line is necessary in case the filesystem has mounted when this
+  // The special mount line is necessary in case the file system has mounted when this
   // container starts (which is likely).
 
   return `

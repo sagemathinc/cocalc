@@ -21,6 +21,15 @@ export {
 export const STANDARD_DISK_SIZE = 20;
 export const CUDA_DISK_SIZE = 60;
 
+export const CHECK_IN_PERIOD_S = 20;
+export const CHECK_IN_PATH = "/cocalc/conf/check-in";
+
+// Clients are recommended to wait this long after a purchase ends before
+// requesting the cost.  This should give us about a day of wiggle room.
+// There is no SLA on billing data.
+const GOOGLE_COST_LAG_DAYS = 2;
+export const GOOGLE_COST_LAG_MS = GOOGLE_COST_LAG_DAYS * 24 * 60 * 60 * 1000;
+
 // Compute Server Images -- typings.  See packages/server/compute/images.ts for
 // how the actual data is populated.
 
@@ -364,7 +373,7 @@ interface BaseConfiguration {
   // If the tag is not given or not available, we use the latest
   // available tag.
   tag?: string;
-  // tag_filesystem: tag for the filesystem container
+  // tag_filesystem: tag for the file system container
   tag_filesystem?: string;
   // tag_cocalc: tag for the @cocalc/compute-server package.
   tag_cocalc?: string;
@@ -621,6 +630,7 @@ export interface ComputeServerTemplate {
 
 export interface ComputeServerUserInfo {
   id: number;
+  project_specific_id?: number; // the project_specific_id of this compute server -- unique within project, minimal
   account_id: string;
   project_id: string;
   title?: string;
@@ -658,7 +668,10 @@ Table({
   rules: {
     primary_key: "id",
     // unique vpn ip address *within* a given project only:
-    pg_unique_indexes: ["(project_id, vpn_ip)"],
+    pg_unique_indexes: [
+      "(project_id, vpn_ip)",
+      "(project_id, project_specific_id)",
+    ],
     user_query: {
       get: {
         pg_where: [{ "project_id = $::UUID": "project_id" }],
@@ -689,6 +702,7 @@ Table({
           template: null,
           notes: null,
           vpn_ip: null,
+          project_specific_id: null,
         },
       },
       set: {
@@ -848,6 +862,10 @@ Table({
     vpn_private_key: {
       type: "string",
       desc: "Wireguard private key for this compute server.",
+    },
+    project_specific_id: {
+      type: "integer",
+      desc: "A unique project-specific id assigned to this compute server.  This is a positive integer that is guaranteed to be unique for compute servers *in a given project* and minimal when assigned (so it is as small as possible).   This number is useful for distributed algorithms, since it can be used to ensure distinct sequence without any additional coordination.   This is also useful to display to users so that the id number they see everywhere is not huge.",
     },
   },
 });

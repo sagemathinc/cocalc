@@ -18,4 +18,4 @@ hence that check happens upon SSO strategy initialization.
 ## Backend
 
 - Kucalc's proxy service redirects all `/auth` routes to `hub-next`, but since this is still setting up all the auth routes, everything should be fine.
-- cocalc-cloud's ingress route configuration file has to list them as well (shorter route names take precedence in the nginx ingress controller)
+- cocalc-onprem's ingress route configuration file has to list them as well (shorter route names take precedence in the nginx ingress controller)

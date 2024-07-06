@@ -1,5 +1,5 @@
 /*
-Mount a remote CoCalc project's filesystem locally over a websocket using FUSE.
+Mount a remote CoCalc project's file system locally over a websocket using FUSE.
 
  await require('.').mount({remote:'wss://cocalc.com/10f0e544-313c-4efe-8718-2142ac97ad11/raw/.smc/websocketfs',path:process.env.HOME + '/dev2', connectOptions:{perMessageDeflate: false,  headers: {Cookie: require('cookie').serialize('api_key', 'sk-at7ALcGBKMbzq7Vc00000P')}}})
 
@@ -39,9 +39,9 @@ interface Options {
   unionfs?: {
     upper: string;
     lower: string;
-    // If true, doesn't do anything until the type of the filesystem that lower is
+    // If true, doesn't do anything until the type of the file system that lower is
     // mounted on is of this type, e.g., "fuse". This is done *INSTEAD OF* just
-    // trying to mount that filesystem.  Why? because in docker we hit a deadlock
+    // trying to mount that file system.  Why? because in docker we hit a deadlock
     // when trying to do both in the same process (?), which I can't solve -- maybe
     // a bug in node.  In any case, separating the unionfs into a separate container
     // is nice anyways.
@@ -160,7 +160,7 @@ export async function mountProject({
         // modified = ignore any file modified with this many seconds (at least);
         //            also ignores any file not in the stat cache.
         readTrackingFile: readTrackingFile,
-        readTrackingExclude: [".*", ...exclude],
+        readTrackingExclude: exclude,
         // metadata file
         metadataFile,
       }));

@@ -6,8 +6,6 @@
 import { Layout } from "antd";
 import Link from "next/link";
 import { join } from "path";
-
-import { Icon } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SoftwareEnvNames } from "@cocalc/util/consts/software-envs";
 import { COLORS } from "@cocalc/util/theme";
@@ -20,6 +18,9 @@ import ChatGPTHelp from "components/openai/chatgpt-help";
 import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import SubNav, { Page, SubPage } from "./sub-nav";
+import LiveDemo from "components/landing/live-demo";
+import { Button } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const GAP = "4%";
 
@@ -67,32 +68,19 @@ export default function Header(props: Props) {
         <span
           style={{
             float: "right",
-            right: 15,
-            top: 25,
-            color: "white",
-            backgroundColor: COLORS.BLUE_D,
-            outline: `1px solid ${COLORS.BLUE_DD}`,
-            padding: "2px 8px",
-            borderRadius: "5px",
-            width: "100px", // CRITICAL -- this is to prevent flicker -- see https://github.com/sagemathinc/cocalc/issues/6504
+            width: "150px", // CRITICAL -- this is to prevent flicker -- see https://github.com/sagemathinc/cocalc/issues/6504
           }}
         >
-          <A
-            type="primary"
-            size="large"
-            href="/support/new?type=question&subject=&body=&title=Ask%20Us%20Anything!"
-            title="Ask a question"
-            style={{
-              color: "white",
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: "10px",
-            }}
-          >
-            <Icon style={{ fontSize: "20px" }} name="question-circle" />{" "}
-            <div>Contact</div>
-          </A>
+          {true || account ? (
+            <LiveDemo context="header" />
+          ) : (
+            <Button
+              type="primary"
+              href="/support/new?type=question&subject=&body=&title=Ask%20Us%20Anything!"
+            >
+              <Icon name="question-circle" /> Contact
+            </Button>
+          )}
         </span>
       );
     }

@@ -57,7 +57,7 @@ export function FetchDirectoryErrors({
         return (
           <ShowError
             message="Project unavailable"
-            error={`This project seems to not be responding.   Free projects are hosted on massively overloaded computers, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $14/month) by entering your credit card in the Billing tab next to account settings, then move your projects to a members only server. \n\n${
+            error={`This project seems to not be responding.\n\n${
               !(quotas != undefined ? quotas.member_host : undefined)
                 ? error
                 : undefined

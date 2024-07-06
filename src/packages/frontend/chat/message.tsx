@@ -186,7 +186,24 @@ export default function Message(props: Readonly<Props>) {
 
   const submitMentionsRef = useRef<SubmitMentionsFn>();
 
-  const [replying, setReplying] = useState<boolean>(false);
+  const [replying, setReplying] = useState<boolean>(() => {
+    const draft = props.actions?.syncdb?.get_one({
+      event: "draft",
+      sender_id: props.account_id,
+      date: -date,
+    });
+    if (draft == null) {
+      return false;
+    }
+    if (draft.get("active") <= 1720071100408) {
+      // before this point in time, drafts never ever got deleted when sending replies!  So there's a massive
+      // clutter of reply drafts sitting in chats, and we don't want to resurrect them.
+      return false;
+    }
+    return true;
+  });
+  const [autoFocusReply, setAutoFocusReply] = useState<boolean>(false);
+  const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
 
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<SubmitMentionsFn>();
@@ -310,6 +327,7 @@ export default function Message(props: Readonly<Props>) {
       return;
     }
     props.actions.set_editing(message, true);
+    setAutoFocusEdit(true);
     props.scroll_into_view();
   }
 
@@ -484,19 +502,6 @@ export default function Message(props: Readonly<Props>) {
                     </Popconfirm>
                   </Tooltip>
                 ) : undefined}
-                {/* {!is_thread_body && props.allowReply && !replying ? (
-                  <Button
-                    type="text"
-                    disabled={replying}
-                    style={{
-                      color: is_viewers_message ? "white" : "#555",
-                    }}
-                    size="small"
-                    onClick={() => setReplying(true)}
-                  >
-                    <Icon name="reply" /> Reply
-                  </Button>
-                ) : undefined} */}
                 {message.get("history").size > 1 ||
                 message.get("editing").size > 0
                   ? editing_status(isEditing)
@@ -584,7 +589,7 @@ export default function Message(props: Readonly<Props>) {
     return (
       <div>
         <ChatInput
-          autoFocus
+          autoFocus={autoFocusEdit}
           cacheId={`${props.path}${props.project_id}${date}`}
           input={newest_content(message)}
           submitMentionsRef={submitMentionsRef}
@@ -621,6 +626,7 @@ export default function Message(props: Readonly<Props>) {
     if (props.actions == null) return;
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
     props.actions.send_reply({ message: message.toJS(), reply });
+    props.actions.delete_draft(date);
     props.actions.scrollToBottom(props.index);
     setReplying(false);
   }
@@ -638,7 +644,7 @@ export default function Message(props: Readonly<Props>) {
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
-          autoFocus
+          autoFocus={autoFocusReply}
           style={{
             borderRadius: "8px",
             height: "auto" /* for some reason the default 100% breaks things */,
@@ -660,18 +666,16 @@ export default function Message(props: Readonly<Props>) {
         />
         <div style={{ margin: "5px 0" }}>
           <Button
-            onClick={sendReply}
-            type="primary"
             style={{ marginRight: "5px" }}
-          >
-            <Icon name="paper-plane" /> Send Reply
-          </Button>
-          <Button
             onClick={() => {
               setReplying(false);
+              props.actions?.delete_draft(date);
             }}
           >
             Cancel
+          </Button>
+          <Button onClick={sendReply} type="primary">
+            Send Reply
           </Button>
           <LLMCostEstimationChat
             llm_cost={llm_cost_reply}
@@ -734,7 +738,10 @@ export default function Message(props: Readonly<Props>) {
         >
           <Button
             type="text"
-            onClick={() => setReplying(true)}
+            onClick={() => {
+              setReplying(true);
+              setAutoFocusReply(true);
+            }}
             style={{ color: COLORS.GRAY_M }}
           >
             <Icon name="reply" /> Reply
@@ -743,7 +750,7 @@ export default function Message(props: Readonly<Props>) {
               <Avatar
                 account_id={isLLMThread}
                 size={16}
-                style={{ marginLeft: "10px", marginBottom: "2.5px" }}
+                style={{ top: "-5px" }}
               />
             ) : undefined}
           </Button>
@@ -784,11 +791,7 @@ export default function Message(props: Readonly<Props>) {
       const style: CSS =
         mode === "standalone"
           ? {
-              marginTop:
-                props.show_avatar ||
-                (!props.is_prev_sender && is_viewers_message)
-                  ? MARGIN_TOP_VIEWER
-                  : "5px",
+              marginTop: MARGIN_TOP_VIEWER,
               marginLeft: "5px",
               marginRight: "5px",
             }

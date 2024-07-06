@@ -9,7 +9,7 @@ This is for filesystem sync, rather than document sync like in `@cocalc/sync`.
 The code here helps with periodically syncing a compute server and the project,
 where the compute server uses unionfs\-fuse combined with websocketfs, and the
 project uses a non\-FUSE fast local filesystem \(e.g., ext4 or zfs\). This
-algorithm will result in the filesystems being equal if there is no activity for
+algorithm will result in the file systems being equal if there is no activity for
 a few seconds. ItϨ's meant to provide a "last on to change the path wins", BUT
 with a tolerance of maybe ~10 seconds, especially for deletes.
 

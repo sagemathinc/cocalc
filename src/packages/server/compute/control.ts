@@ -53,6 +53,10 @@ import getLogger from "@cocalc/backend/logger";
 import { getImages } from "@cocalc/server/compute/images";
 import { defaultProxyConfig } from "@cocalc/util/compute/images";
 import { ensureComputeServerHasVpnIp } from "./vpn";
+import {
+  unmountAll as unmountAllCloudFilesystems,
+  numMounted as numMountedCloudFilesystems,
+} from "@cocalc/server/compute/cloud-filesystem/control";
 
 const logger = getLogger("server:compute:control");
 
@@ -509,12 +513,15 @@ export const suspend: (opts: {
   await setError(id, "");
   runTasks({ account_id, id }, async () => {
     await setState(id, "suspending");
-    await doSuspend(server);
+    await doSuspend(server, account_id);
     await setState(id, "suspended");
   });
 });
 
-async function doSuspend(server: ComputeServer) {
+async function doSuspend(server: ComputeServer, account_id: string) {
+  if ((await numMountedCloudFilesystems(server.project_id)) > 0) {
+    await unmountAllCloudFilesystems({ id: server.id, account_id });
+  }
   switch (server.cloud) {
     case "google-cloud":
       return await googleCloud.suspend(server);
@@ -720,6 +727,9 @@ export async function makeConfigurationChange({
     // always safe to change this -- no heck required and no impact on actual deployment
     changed.delete("ephemeral");
   }
+  if (changed.has("excludeFromSync") && state == "off") {
+    changed.delete("excludeFromSync");
+  }
   if (changed.size == 0) {
     // nothing else to change
     return;
@@ -747,7 +757,7 @@ export async function makeConfigurationChange({
     default:
       throw Error(
         `makeConfigurationChange not implemented for cloud '${cloud}' changing value of ${JSON.stringify(
-          changed,
+          Array.from(changed),
         )}`,
       );
   }
@@ -810,6 +820,7 @@ export async function setTestNetworkUsage({
 export async function getStartupParams(id: number): Promise<{
   cloud: Cloud;
   project_id: string;
+  project_specific_id: number;
   gpu?: boolean;
   arch: Architecture;
   image: string;
@@ -873,6 +884,7 @@ export async function getStartupParams(id: number): Promise<{
   }
   return {
     cloud: server.cloud,
+    project_specific_id: server.project_specific_id,
     tag: configuration.tag,
     tag_cocalc: configuration.tag_cocalc,
     tag_filesystem: configuration.tag_filesystem,
@@ -880,9 +892,9 @@ export async function getStartupParams(id: number): Promise<{
   };
 }
 
-export async function getHostname(id: number): Promise<string> {
+async function getHostname(project_specific_id: number): Promise<string> {
   // we might make this more customizable
-  return `compute-server-${id}`;
+  return `compute-server-${project_specific_id}`;
 }
 
 export async function getStartupScript({
@@ -898,7 +910,7 @@ export async function getStartupScript({
   return await startupScript({
     compute_server_id: id,
     api_key,
-    hostname: await getHostname(id),
+    hostname: await getHostname(params.project_specific_id),
     installUser,
     ...params,
   });

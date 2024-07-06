@@ -21,7 +21,7 @@ export default async function deleteServer({ account_id, id }) {
     await computeServerAction({ account_id, id, action: "deprovision" });
   }
   const { rowCount } = await pool.query(
-    "UPDATE compute_servers SET deleted=true, last_edited=NOW()  WHERE id=$1 AND account_id=$2",
+    "UPDATE compute_servers SET deleted=true, last_edited=NOW() WHERE id=$1 AND account_id=$2",
     [id, account_id],
   );
   if (rowCount == 0) {

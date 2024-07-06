@@ -21,6 +21,7 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import {
   ComputeServerDescription,
   ComputeServerNetworkUsageDescription,
+  ComputeServerStorageDescription,
 } from "@cocalc/frontend/compute/purchases";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { load_target } from "@cocalc/frontend/history";
@@ -730,6 +731,15 @@ function Description({ description, period_end, service }) {
   if (service === "compute-server-network-usage") {
     return (
       <ComputeServerNetworkUsageDescription
+        description={description}
+        period_end={period_end}
+      />
+    );
+  }
+
+  if (service === "compute-server-storage") {
+    return (
+      <ComputeServerStorageDescription
         description={description}
         period_end={period_end}
       />

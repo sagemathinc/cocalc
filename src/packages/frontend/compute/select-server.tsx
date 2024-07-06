@@ -89,8 +89,15 @@ export default function SelectServer({
     for (const id in computeServers) {
       const server = computeServers[id];
       if (server.deleted) continue;
-      const { color, title, state, configuration, position, account_id } =
-        server;
+      const {
+        color,
+        title,
+        state,
+        configuration,
+        position,
+        account_id,
+        project_specific_id,
+      } = server;
       const { icon } = STATE_INFO[state ?? "off"] ?? {};
       const label = (
         <div
@@ -115,7 +122,7 @@ export default function SelectServer({
               </div>
             )}
             {(open || !noLabel) && <div style={{ flex: 1, minWidth: "5px" }} />}
-            <div style={{ marginRight: "15px" }}>Id: {id}</div>
+            <div style={{ marginRight: "15px" }}>Id: {project_specific_id}</div>
           </div>
           {value != Number(id) && (
             <div style={{ marginLeft: "20px" }}>

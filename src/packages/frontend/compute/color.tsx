@@ -8,7 +8,7 @@ interface Props {
   color: string;
   id?: number;
   editable?: boolean;
-  setError;
+  setError?;
   onChange?;
   style?;
 }
@@ -59,7 +59,7 @@ export default function Color({
         setSaving(true);
         await setServerColor({ color: choice, id });
       } catch (err) {
-        setError(`${err}`);
+        setError?.(`${err}`);
       } finally {
         setSaving(false);
       }

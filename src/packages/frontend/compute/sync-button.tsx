@@ -70,7 +70,11 @@ export default function SyncButton({
             <Spin delay={1000} size="small" style={{ marginLeft: "5px" }} />
           )}
         </Button>
-        <ShowError error={error} setError={setError} />
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ position: "absolute", zIndex: 1 }}
+        />
       </>
     </Tooltip>
   );

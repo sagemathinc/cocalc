@@ -6,9 +6,11 @@ import { ComputeServerImageProxySchema } from "./common";
 
 // OpenAPI spec
 //
-export const GetComputeServerImagesInputSchema = RequestNoCacheSchema.describe(
-  "Used to get available compute server images.",
-);
+export const GetComputeServerImagesInputSchema = z
+  .object({
+    noCache: RequestNoCacheSchema.optional(),
+  })
+  .describe("Used to get available compute server images.");
 
 export const GetComputeServerImagesOutputSchema = z.union([
   FailedAPIOperationSchema,

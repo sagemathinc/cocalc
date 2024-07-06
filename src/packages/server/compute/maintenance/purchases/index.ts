@@ -7,6 +7,7 @@ this to periodically update aspects of the compute servers.
 
 import ongoingPurchases from "./ongoing-purchases";
 import managePurchases from "./manage-purchases";
+import manageStoragePurchases from "./manage-storage-purchases";
 import getLogger from "@cocalc/backend/logger";
 import { delay } from "awaiting";
 
@@ -32,9 +33,16 @@ async function runMaintenanceLoop() {
     try {
       await managePurchases();
     } catch (err) {
+      // TODO: we should really be getting emails if this happens a few times?
       logger.debug(
         `WARNING -- issue managing purchases due to state changes -- ${err}`,
       );
+    }
+    try {
+      await manageStoragePurchases();
+    } catch (err) {
+      // TODO: we should really be getting emails if this happens a few times!
+      logger.debug(`WARNING -- issue managing storage purchases -- ${err}`);
     }
     await delay(MANAGE_PURCHASES_DELAY_MS);
 

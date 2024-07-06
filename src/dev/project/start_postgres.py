@@ -18,7 +18,7 @@ if not os.path.exists(PG_DATA):
 
     # Lock down authentication so it is ONLY via unix socket
     open(os.path.join(PG_DATA, 'pg_hba.conf'), 'w').write("""
-# This is safe since we only enable a socket protected by filesystem permissions:
+# This is safe since we only enable a socket protected by file system permissions:
 local all all trust
 
 # You can uncomment this and comment out the above if you want to test password auth.

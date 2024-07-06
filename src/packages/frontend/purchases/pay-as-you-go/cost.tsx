@@ -7,7 +7,8 @@ user refreshes browser), since costs change VERY rarely.
 import { Alert, Spin, Table, Tooltip } from "antd";
 import LRU from "lru-cache";
 import { useEffect, useState } from "react";
-
+import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
+import { A } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
@@ -23,7 +24,7 @@ interface Props {
   inline?: boolean; // just show minimal cost desc.
 }
 
-export default function Cost({ service, inline }: Props) {
+export default function Cost({ inline, service }: Props) {
   const [cost, setCost] = useState<any>(cache.get(service));
   const [error, setError] = useState<string>("");
 
@@ -72,29 +73,29 @@ export default function Cost({ service, inline }: Props) {
   } else if (service == "compute-server") {
     return (
       <div style={TEXT_STYLE}>
-        Competitive pay-as-you-go pricing depending on cloud rates, compute
-        server configuration and state. Pay by the second while the compute
-        server is provisioned. When your spend approaches this limit, your
-        compute servers are turned off, but the disk is not deleted (unless you
+        Competitive pay-as-you-go pricing depending on cloud rates and compute
+        server configuration. Pay by the second while the compute server is
+        provisioned. When your spend approaches this limit, your compute servers
+        are turned off, but the disk is not immediately deleted (unless you
         significantly exceed the limit).
       </div>
     );
   } else if (service == "compute-server-network-usage") {
     if (inline) {
-      return (
-        <span>
-          Network data transfered out from Google Cloud is {currency(cost)}/GB,
-          and incoming data is free.
-        </span>
-      );
+      return <GoogleNetworkCost markup={cost} />;
     }
     return (
       <div style={TEXT_STYLE}>
-        Network data transfer out from Google Cloud compute servers is charged
-        at a rate of {currency(cost)}/GB. This is the charge for all data that
-        leaves the compute server over the network. Incoming network data is
-        free. If your usage hits this limit during a month, your compute servers
-        are turned off.
+        <GoogleNetworkCost markup={cost} />
+      </div>
+    );
+  } else if (service == "compute-server-storage") {
+    if (inline) {
+      return <CloudStorageCost markup={cost} />;
+    }
+    return (
+      <div style={TEXT_STYLE}>
+        <CloudStorageCost markup={cost} />
       </div>
     );
   }
@@ -219,5 +220,47 @@ function PriceWithToken({ text }) {
       <span style={{ color: "#000" }}>{text.split(" ")[0]}</span>
       <span style={{ color: "#666" }}> / 1K tokens</span>
     </span>
+  );
+}
+
+function useMarkup(markup0) {
+  const [markup, setMarkup] = useState<number | undefined>(markup0);
+  useEffect(() => {
+    if (markup == null) {
+      (async () => {
+        try {
+          setMarkup((await getGoogleCloudPriceData()).markup);
+        } catch (err) {
+          console.log(err);
+        }
+      })();
+    }
+  }, []);
+}
+
+export function GoogleNetworkCost({ markup: markup0 }: { markup?: number }) {
+  // the passed in cost is the markup
+  const markup = useMarkup(markup0);
+  return (
+    <>
+      The networking pricing is a {markup != null ? `${markup}%` : "small"}{" "}
+      markup on exactly what{" "}
+      <A href="https://cloud.google.com/vpc/network-pricing">
+        Google charges for network usage.
+      </A>
+    </>
+  );
+}
+
+export function CloudStorageCost({ markup: markup0 }: { markup?: number }) {
+  const markup = useMarkup(markup0);
+  return (
+    <>
+      Cloud storage pricing is a {markup != null ? `${markup}%` : "small"}{" "}
+      markup on exactly what{" "}
+      <A href="https://cloud.google.com/storage/pricing">
+        Google charges for Google Cloud Storage usage.
+      </A>{" "}
+    </>
   );
 }

@@ -5,6 +5,7 @@
 
 import type { MenuProps } from "antd";
 import { Button, Dropdown, Space, Tooltip } from "antd";
+import { isEmpty } from "lodash";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Text } from "@cocalc/frontend/components";
@@ -13,16 +14,18 @@ import {
   LLMModelPrice,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { useUserDefinedLLM } from "@cocalc/frontend/frame-editors/llm/use-userdefined-llm";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
-  LanguageModelCore,
   LanguageModel,
+  LanguageModelCore,
   USER_SELECTABLE_LLMS_BY_VENDOR,
+  isCustomOpenAI,
   isLanguageModel,
   isOllamaLLM,
-  toOllamaModel,
-  isCustomOpenAI,
   toCustomOpenAIModel,
+  toOllamaModel,
+  toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
 import { COLORS } from "@cocalc/util/theme";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
@@ -45,6 +48,7 @@ export function RegenerateLLM({
   const selectableLLMs = useTypedRedux("customize", "selectable_llms");
   const ollama = useTypedRedux("customize", "ollama");
   const custom_openai = useTypedRedux("customize", "custom_openai");
+  const user_llm = useUserDefinedLLM();
 
   const haveChatRegenerate = redux
     .getStore("projects")
@@ -117,6 +121,25 @@ export function RegenerateLLM({
     }
   }
 
+  if (!isEmpty(user_llm)) {
+    for (const llm of user_llm) {
+      const m = toUserLLMModelName(llm);
+      const name = modelToName(m);
+      entries.push({
+        key: m,
+        label: (
+          <>
+            <LanguageModelVendorAvatar model={m} /> {name}{" "}
+            <LLMModelPrice model={m} floatRight />
+          </>
+        ),
+        onClick: () => {
+          actions.regenerateLLMResponse(new Date(date), m);
+        },
+      });
+    }
+  }
+
   if (entries.length === 0) {
     entries.push({
       key: "none",
@@ -161,7 +184,6 @@ export function RegenerateLLM({
         <Button
           size="small"
           type="text"
-          icon={<Icon name="refresh" />}
           style={{
             display: "inline",
             whiteSpace: "nowrap",
@@ -170,6 +192,7 @@ export function RegenerateLLM({
           }}
         >
           <Space>
+            <Icon name="refresh" />
             Regenerate
             <Icon name="chevron-down" />
           </Space>

@@ -11,7 +11,7 @@ import { update } from "./people";
 import { sync } from "./sync";
 import getLogger from "@cocalc/backend/logger";
 
-const log = getLogger("salesloft:mony");
+const log = getLogger("salesloft:money");
 
 export async function updateMoney(cutoff: string = "2 days") {
   const pool = getPool("long");

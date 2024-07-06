@@ -23,6 +23,30 @@ interface ZoneData {
   gpus: boolean; // if true, has gpus
 }
 
+export interface BucketPricing {
+  Standard?: number;
+  Nearline?: number;
+  Coldline?: number;
+  Archive?: number;
+}
+
+export type GoogleWorldLocations =
+  | "APAC"
+  | "Europe"
+  | "Middle East"
+  | "North America"
+  | "South Africa"
+  | "South America";
+
+interface GoogleWorldPrices {
+  APAC: number;
+  Europe: number;
+  "Middle East": number;
+  "North America": number;
+  "South Africa": number;
+  "South America": number;
+}
+
 export interface GoogleCloudData {
   machineTypes: { [machineType: string]: PriceData };
   disks: {
@@ -38,6 +62,49 @@ export interface GoogleCloudData {
   // markup percentage: optionally include markup to always increase price by this amount,
   // e.g., if markup is 42, then price will be multiplied by 1.42.
   markup?: number;
+  storage: {
+    atRest: {
+      dualRegions: { [region: string]: BucketPricing };
+      multiRegions: {
+        asia: BucketPricing;
+        eu: BucketPricing;
+        us: BucketPricing;
+      };
+      regions: {
+        [region: string]: BucketPricing;
+      };
+    };
+    dataTransferInsideGoogleCloud: {
+      APAC: GoogleWorldPrices;
+      Europe: GoogleWorldPrices;
+      "Middle East": GoogleWorldPrices;
+      "North America": GoogleWorldPrices;
+      "South Africa": GoogleWorldPrices;
+      "South America": GoogleWorldPrices;
+    };
+    dataTransferOutsideGoogleCloud: {
+      worldwide: number;
+      china: number;
+      australia: number;
+    };
+    interRegionReplication: {
+      asia: number;
+      eu: number;
+      us: number;
+    };
+    retrieval: {
+      standard: number;
+      nearline: number;
+      coldline: number;
+      archive: number;
+    };
+    singleRegionOperations: {
+      standard: { classA1000: number; classB1000: number };
+      nearline: { classA1000: number; classB1000: number };
+      coldline: { classA1000: number; classB1000: number };
+      archive: { classA1000: number; classB1000: number };
+    };
+  };
 }
 
 interface Options {

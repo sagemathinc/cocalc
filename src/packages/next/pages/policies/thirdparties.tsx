@@ -225,6 +225,17 @@ export default function TermsOfService({ customize }) {
                   </li>
                 </ul>
                 <li>
+                  <A href="https://www.salesloft.com/">Salesloft</A>
+                  <ul>
+                    <li>usage: onboarding emails, sales, marketing</li>
+                    <li>
+                      <A href="https://www.salesloft.com/security-compliance">
+                        Security and Compliance
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+                <li>
                   <A href="https://sendgrid.com/">Sendgrid (twilio)</A>
                 </li>
                 <ul>

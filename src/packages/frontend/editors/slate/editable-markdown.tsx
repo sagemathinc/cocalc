@@ -11,18 +11,16 @@ const EXPENSIVE_DEBUG = false;
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import { debounce, isEqual, throttle } from "lodash";
-import { MutableRefObject, RefObject } from "react";
-
 import {
-  CSS,
-  React,
+  MutableRefObject,
+  RefObject,
   useCallback,
   useEffect,
-  useIsMountedRef,
   useMemo,
   useRef,
   useState,
-} from "@cocalc/frontend/app-framework";
+} from "react";
+import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { useMentionableUsers } from "@cocalc/frontend/editors/markdown-input/mentionable-users";
 import { submit_mentions } from "@cocalc/frontend/editors/markdown-input/mentions";
@@ -155,7 +153,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     placeholder,
     read_only,
     registerEditor,
-    saveDebounceMs,
+    saveDebounceMs = SAVE_DEBOUNCE_MS,
     selectionRef,
     style,
     submitMentionsRef,
@@ -257,7 +255,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // hook up to syncstring if available:
   useEffect(() => {
     if (actions._syncstring == null) return;
-    const beforeChange = setSyncstringFromSlate;
+    const beforeChange = setSyncstringFromSlateNOW;
     const change = () => {
       setEditorToValue(actions._syncstring.to_str());
     };
@@ -496,7 +494,9 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
   }, [value]);
 
-  function setSyncstringFromSlate() {
+  const lastSetValueRef = useRef<string | null>(null);
+
+  const setSyncstringFromSlateNOW = () => {
     if (actions.set_value == null) {
       // no way to save the value out (e.g., just beginning to test
       // using the component).
@@ -508,12 +508,22 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     }
 
     const markdown = editor.getMarkdownValue();
+    lastSetValueRef.current = markdown;
     actions.set_value(markdown);
     actions.syncstring_commit?.();
 
     // Record that the syncstring's value is now equal to ours:
     editor.resetHasUnsavedChanges();
-  }
+  };
+
+  const setSyncstringFromSlate = useMemo(() => {
+    if (saveDebounceMs) {
+      return debounce(setSyncstringFromSlateNOW, saveDebounceMs);
+    } else {
+      // this case shouldn't happen
+      return setSyncstringFromSlateNOW;
+    }
+  }, []);
 
   // We don't want to do saveValue too much, since it presumably can be slow,
   // especially if the document is large. By debouncing, we only do this when
@@ -572,6 +582,15 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   }, [is_current]);
 
   const setEditorToValue = (value) => {
+    // console.log("setEditorToValue", { value, ed: editor.getMarkdownValue() });
+    if (lastSetValueRef.current == value) {
+      // this always happens once right after calling setSyncstringFromSlateNOW
+      // and it can randomly undo the last thing done, so don't do that!
+      // Also, this is an excellent optimization to do as well.
+      lastSetValueRef.current = null;
+      // console.log("setEditorToValue: skip");
+      return;
+    }
     if (value == null) return;
     if (value == editor.getMarkdownValue()) {
       // nothing to do, and in fact doing something
@@ -638,6 +657,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         // also so we don't update the source editor (and other browsers)
         // with a view with things like loan $'s escaped.'
         editor.syncCausedUpdate = true;
+        // console.log("setEditorToValue: applying operations...", { operations });
         preserveScrollPosition(editor, operations);
         applyOperations(editor, operations);
         // console.log("time to set via diff", new Date() - t);
@@ -653,6 +673,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
     try {
       if (editor.selection != null) {
+        // console.log("setEditorToValue: restore selection", editor.selection);
         const { anchor, focus } = editor.selection;
         Editor.node(editor, anchor);
         Editor.node(editor, focus);

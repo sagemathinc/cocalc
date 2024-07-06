@@ -17,6 +17,7 @@ interface Props {
   noColor?: boolean;
   colorOnly?: boolean;
   style?;
+  idOnly?: boolean;
   titleOnly?: boolean;
   prompt?: boolean;
   computeServer?; // immutable js object from store, if known
@@ -29,6 +30,7 @@ export default function ComputeServer({
   colorOnly,
   style,
   titleOnly,
+  idOnly,
   prompt,
   computeServer,
   colorLabel,
@@ -36,9 +38,14 @@ export default function ComputeServer({
   const [server, setServer] = useState<null | {
     title: string;
     color: string;
+    project_specific_id: number;
   }>(
     computeServer != null
-      ? { title: computeServer.get("title"), color: computeServer.get("color") }
+      ? {
+          title: computeServer.get("title"),
+          color: computeServer.get("color"),
+          project_specific_id: computeServer.get("project_specific_id"),
+        }
       : null,
   );
   useEffect(() => {
@@ -46,11 +53,16 @@ export default function ComputeServer({
       setServer({
         title: computeServer.get("title"),
         color: computeServer.get("color"),
+        project_specific_id: computeServer.get("project_specific_id"),
       });
       return;
     }
     if (!id) {
-      setServer({ title: "Default Shared Resources", color: PROJECT_COLOR });
+      setServer({
+        title: "Default Shared Resources",
+        color: PROJECT_COLOR,
+        project_specific_id: 0,
+      });
       return;
     }
     (async () => {
@@ -58,10 +70,6 @@ export default function ComputeServer({
         setServer(await getTitle(id));
       } catch (err) {
         console.warn(err);
-        setServer({
-          title: `Compute Server with Id=${id}`,
-          color: "#000",
-        });
       }
     })();
   }, [id, computeServer]);
@@ -83,7 +91,11 @@ export default function ComputeServer({
   }
 
   if (prompt) {
-    const s = <span style={style}>compute-server-{id}</span>;
+    const s = (
+      <span style={style}>
+        compute-server-{server?.project_specific_id ?? "?"}
+      </span>
+    );
     if (server == null) {
       return s;
     }
@@ -101,13 +113,19 @@ export default function ComputeServer({
       </span>
     );
   }
-  const label = titleOnly ? (
-    trunc_middle(server.title, 30)
-  ) : (
-    <>
-      Compute Server '{trunc_middle(server.title, 30)}' (Id: {id})
-    </>
-  );
+  let label;
+  if (idOnly) {
+    label = `Id: ${server.project_specific_id}`;
+  } else {
+    label = titleOnly ? (
+      trunc_middle(server.title, 30)
+    ) : (
+      <>
+        Compute Server '{trunc_middle(server.title, 30)}' (Id:{" "}
+        {server.project_specific_id})
+      </>
+    );
+  }
   if (noColor) {
     return <span style={style}>{label}</span>;
   }

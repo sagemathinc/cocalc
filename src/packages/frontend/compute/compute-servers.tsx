@@ -1,10 +1,19 @@
 import { A } from "@cocalc/frontend/components/A";
-import ComputeServer from "./compute-server";
+import ComputeServer, { currentlyEditing } from "./compute-server";
 import CreateComputeServer from "./create-compute-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp, plural } from "@cocalc/util/misc";
 import { availableClouds } from "./config";
-import { Input, Card, Checkbox, Radio, Switch, Tooltip } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  Card,
+  Checkbox,
+  Radio,
+  Switch,
+  Tooltip,
+} from "antd";
 import { useEffect, useState } from "react";
 const { Search } = Input;
 import { search_match, search_split } from "@cocalc/util/misc";
@@ -48,13 +57,11 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
           />
           {help && (
             <div style={{ fontSize: "12pt" }}>
-              Compute Servers provide{" "}
-              <strong>
-                <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/ollama.md">
-                  affordable GPUs
-                </A>
-              </strong>
-              , <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                Compute Servers
+              </A>{" "}
+              provide <strong>affordable GPUs</strong>,{" "}
+              <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
               <strong>Docker</strong> and <strong>Kubernetes</strong> on CoCalc.
               Compute servers are virtual machines where you and your
               collaborators can run Jupyter notebooks, terminals and web servers
@@ -168,6 +175,7 @@ function ComputeServerTable({
   >(
     (get_local_storage(`${project_id}-compute-server-sort`) ?? "custom") as any,
   );
+
   if (!computeServers || computeServers.size == 0) {
     return (
       <div style={{ textAlign: "center" }}>
@@ -181,7 +189,14 @@ function ComputeServerTable({
   const search_words = search_split(search.toLowerCase());
   const ids: number[] = [];
   let numDeleted = 0;
+  let numSkipped = 0;
   for (const [id] of computeServers) {
+    if (currentlyEditing.id == id) {
+      // always include the one that is currently being edited.  We wouldn't want,
+      // e.g., changing the title shouldn't make the editing modal vanish!
+      ids.push(id);
+      continue;
+    }
     const isDeleted = !!computeServers.getIn([id, "deleted"]);
     if (isDeleted) {
       numDeleted += 1;
@@ -193,6 +208,7 @@ function ComputeServerTable({
       if (
         !search_match(computeServerToSearch(computeServers, id), search_words)
       ) {
+        numSkipped += 1;
         continue;
       }
     }
@@ -260,7 +276,7 @@ function ComputeServerTable({
           style={{ marginBottom: "10px" }}
           key={`${id}`}
           editable={account_id == server.account_id}
-          controls={{ setShowDeleted, setSearch }}
+          controls={{ setShowDeleted }}
         />
       </div>
     );
@@ -349,7 +365,28 @@ function ComputeServerTable({
             </Checkbox>
           )}
         </div>
-        <div style={{ maxHeight: "60vh", overflow: "auto", width: "100%" }}>
+        {numSkipped > 0 && (
+          <Alert
+            showIcon
+            style={{ margin: "15px auto", maxWidth: "600px" }}
+            type="warning"
+            message={
+              <div style={{ marginTop: "5px" }}>
+                Not showing {numSkipped} compute servers due to current filter.
+                <Button
+                  type="text"
+                  style={{ float: "right", marginTop: "-5px" }}
+                  onClick={() => setSearch("")}
+                >
+                  Clear
+                </Button>
+              </div>
+            }
+          />
+        )}
+        <div
+          style={{ /* maxHeight: "60vh", overflow: "auto", */ width: "100%" }}
+        >
           <SortableList
             disabled={sortBy != "custom"}
             items={ids}

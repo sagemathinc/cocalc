@@ -44,17 +44,17 @@ function Body() {
 
   function cloud(): JSX.Element {
     const body = encodeURIComponent(
-      "I'm interested in puchasing CoCalc Cloud on-premises.",
+      "PLEASE EXPLAIN YOUR EXPECTED USE CASE TO HELP US GUIDE YOU:\n\nWE WOULD LOVE TO SETUP A VIDEO CALL WITH YOU! WHEN ARE YOU AVAILABLE?",
     );
 
     return (
       <>
         <Title level={2}>
-          CoCalc Cloud <Icon name="network-wired" style={{ float: "right" }} />
+          CoCalc OnPrem <Icon name="network-wired" style={{ float: "right" }} />
         </Title>
         <Paragraph>
           <Text strong>
-            <A href="https://doc-cloud.cocalc.com/">CoCalc Cloud</A>
+            <A href="https://onprem.cocalc.com/">CoCalc OnPrem</A>
           </Text>{" "}
           is an on-prem version of CoCalc that runs on a full-fledged{" "}
           <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>. The
@@ -140,12 +140,11 @@ function Body() {
         </Paragraph>
         <Paragraph>
           For more details, see the{" "}
-          <A href="https://doc-cloud.cocalc.com/">CoCalc Cloud documentation</A>
-          .
+          <A href="https://onprem.cocalc.com/">CoCalc OnPrem documentation</A>.
         </Paragraph>
-        <Title level={3}>Purchasing CoCalc Cloud</Title>
+        <Title level={3}>Purchasing CoCalc OnPrem</Title>
         <Paragraph>
-          CoCalc Cloud is a scalable solution and the license price depends on
+          CoCalc OnPrem is a scalable solution and the license price depends on
           the use case and expected number of users. Additionally, various
           levels of support and custom development can be negotiated for an
           additional cost.
@@ -153,7 +152,7 @@ function Body() {
             type="link"
             onClick={() =>
               router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Quote&body=${body}&title=Purchase%20CoCalc-Cloud`,
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20OnPrem%20Quote&body=${body}&title=Purchase%20CoCalc-OnPrem`,
               )
             }
           >
@@ -167,7 +166,7 @@ function Body() {
             size="large"
             onClick={() =>
               router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Business&body=${body}&title=Purchase%20CoCalc-Cloud`,
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20OnPrem%20Business&body=${body}&title=Purchase%20CoCalc-OnPrem`,
               )
             }
           >
@@ -179,7 +178,7 @@ function Body() {
             size="large"
             onClick={() =>
               router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20Cloud%20Academic&body=${body}&title=Purchase%20CoCalc-Cloud`,
+                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20OnPrem%20Academic&body=${body}&title=Purchase%20CoCalc-OnPrem`,
               )
             }
           >

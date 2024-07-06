@@ -12,13 +12,13 @@ It's really more than just that button, since it gives info as starting/stopping
 happens, and also when the system is heavily loaded.
 */
 
-import { Alert, Button } from "antd";
+import { Alert, Button, Space } from "antd";
 import { CSSProperties, useRef } from "react";
+
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
   Delay,
-  Gap,
   Icon,
   ProjectState,
   VisibleMDLG,
@@ -158,6 +158,7 @@ export function StartButton() {
       state == null ||
       (allowed &&
         ["opened", "closed", "archived"].includes(state?.get("state")));
+    const txt = `Start${starting ? "ing" : ""} project`;
     return (
       <div>
         <Button
@@ -173,8 +174,10 @@ export function StartButton() {
             }
           }}
         >
-          {starting ? <Icon name="cocalc-ring" spin /> : <Icon name="play" />}
-          <Gap /> <Gap /> Start{starting ? "ing" : ""} project
+          <Space>
+            {starting ? <Icon name="cocalc-ring" spin /> : <Icon name="play" />}
+            {txt}
+          </Space>
         </Button>
       </div>
     );

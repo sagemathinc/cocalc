@@ -10,7 +10,6 @@ import {
 } from "antd";
 import { useRouter } from "next/router";
 import { ReactNode, useRef, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -62,6 +61,7 @@ export default function Create() {
   const [body, setBody] = useState<string>(
     router.query.body ? `${router.query.body}` : "",
   );
+  const required = router.query.required ? `${router.query.required}` : "";
   const [subject, setSubject] = useState<string>(
     router.query.subject ? `${router.query.subject}` : "",
   );
@@ -72,6 +72,10 @@ export default function Create() {
 
   const showExtra = router.query.hideExtra != "true";
 
+  // hasRequired means "has the required information", which
+  // means that body does NOT have required in it!
+  const hasRequired = !required || !body.includes(required);
+
   const submittable = useRef<boolean>(false);
   submittable.current = !!(
     !submitting &&
@@ -79,7 +83,8 @@ export default function Create() {
     !success &&
     isValidEmailAddress(email) &&
     subject &&
-    (body ?? "").length >= MIN_BODY_LENGTH
+    (body ?? "").length >= MIN_BODY_LENGTH &&
+    hasRequired
   );
 
   if (!zendesk) {
@@ -217,7 +222,7 @@ export default function Create() {
               </>
             )}
             <b>
-              <Status done={body && body.length >= MIN_BODY_LENGTH} />{" "}
+              <Status done={body && body.length >= MIN_BODY_LENGTH && hasRequired} />{" "}
               Description
             </b>
             <div
@@ -241,14 +246,16 @@ export default function Create() {
               {type == "task" && <Task onChange={setBody} />}
             </div>
           </VSpace>
-          <p style={{ marginTop: "30px" }}>
-            After submitting this, you'll receive a link, which you should save
-            until you receive a confirmation email. You can also{" "}
-            <A href="/support/tickets">check the status of your tickets here</A>
-            .
-          </p>
 
           <div style={{ textAlign: "center", marginTop: "30px" }}>
+            {!hasRequired && (
+              <Alert
+                showIcon
+                style={{ margin: "15px 30px" }}
+                type="error"
+                description={`You must replace the text '${required}' everywhere above with the requested information.`}
+              />
+            )}
             <Button
               shape="round"
               size="large"
@@ -308,6 +315,11 @@ export default function Create() {
             )}
           </div>
         </form>
+        <p style={{ marginTop: "30px" }}>
+          After submitting this, you'll receive a link, which you should save
+          until you receive a confirmation email. You can also{" "}
+          <A href="/support/tickets">check the status of your tickets here</A>.
+        </p>
       </div>
     </Layout.Content>
   );

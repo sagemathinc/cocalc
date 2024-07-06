@@ -1,5 +1,5 @@
 import { Button, Modal, Spin } from "antd";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
 import {
   createServer,
   computeServerAction,
@@ -25,6 +25,7 @@ import { Docs } from "./compute-servers";
 import PublicTemplates from "@cocalc/frontend/compute/public-templates";
 import { delay } from "awaiting";
 import { cloneDeep } from "lodash";
+export const DEFAULT_FAST_LOCAL = "scratch";
 
 function defaultTitle() {
   return `Untitled ${new Date().toISOString().split("T")[0]}`;
@@ -46,7 +47,7 @@ function defaultConfiguration() {
 }
 
 function genericDefaults(conf) {
-  return { ...conf, excludeFromSync: ["compute-server-[id]"] };
+  return { ...conf, excludeFromSync: [DEFAULT_FAST_LOCAL] };
 }
 
 export default function CreateComputeServer({ project_id, onCreate }) {

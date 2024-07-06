@@ -19,7 +19,7 @@ The code below deals with two very different cases:
         NOTE: this case can't happen when path='', which exists, so we can assume to have read perms on parent.
  - when the path does exist: use fs.watch (hence inotify) on the path itself to report when it changes
 
-NOTE: if you are running on a filesystem like NFS, inotify won't work well or not at all.
+NOTE: if you are running on a file system like NFS, inotify won't work well or not at all.
 In that case, set the env variable COCALC_FS_WATCHER=poll to use polling instead.
 You can configure the poll interval by setting COCALC_FS_WATCHER_POLL_INTERVAL_MS.
 
