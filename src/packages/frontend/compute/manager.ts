@@ -42,6 +42,15 @@ export class ComputeServersManager extends EventEmitter {
     this.sync_db.close();
   };
 
+  // save the current state to the backend.  This is critical to do, e.g., before
+  // opening a file and after calling connectComputeServerToPath, since otherwise
+  // the project doesn't even know that the file should open on the compute server
+  // until after it has opened it, which is disconcerting and not efficient (but
+  // does mostly work, though it is intentionally making things really hard on ourselves).
+  save = async () => {
+    await this.sync_db.save();
+  };
+
   getComputeServers = () => {
     const servers = {};
     const cursors = this.sync_db.get_cursors().toJS();

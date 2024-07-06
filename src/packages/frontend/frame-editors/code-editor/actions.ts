@@ -258,7 +258,7 @@ export class Actions<
   // Init setting of value whenever syncstring changes -- only used in derived classes
   protected _init_syncstring_value(): void {
     this._syncstring.on("change", () => {
-      if (!this._syncstring || this._syncstring.versions().length == 0) {
+      if (!this._syncstring) {
         // edge case where actions closed but this event was still triggered, OR
         // the syncstring changed, but has not actually loaded a version from
         // disk yet, which happens with compute servers for a second.
@@ -1509,7 +1509,9 @@ export class Actions<
   syncstring_commit(): void {
     // We also skip if the syncstring hasn't yet been initialized.
     // This happens in some cases.
-    if (this._state === "closed" || this._syncstring.get_state() != "ready") return;
+    if (this._state === "closed" || this._syncstring.get_state() != "ready") {
+      return;
+    }
     if (this._syncstring != null) {
       // we pass true since here we want any UI for this or any derived
       // editor to immediately react when we commit. This is particularly
@@ -1547,7 +1549,9 @@ export class Actions<
     // note -- we don't try to set the syncstring if actions are closed
     // or the syncstring isn't initialized yet.  The latter case happens when
     // switching the file that is being edited in a frame, e.g., for latex.
-    if (this._state === "closed" || this._syncstring.get_state() != "ready") return;
+    if (this._state === "closed" || this._syncstring.get_state() != "ready") {
+      return;
+    }
     if (!do_not_exit_undo_mode) {
       // If we are NOT doing an undo operation, then setting the
       // syncstring due to any
