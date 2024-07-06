@@ -445,16 +445,22 @@ export function commands(actions: AllActions): {
     },
 
     "merge cell with next cell": {
+      i: "merge-cells-outlined",
+      ir: "90",
       m: "Merge Cell Below",
       f: () => actions.frame_actions?.merge_cell_below(),
     },
 
     "merge cell with previous cell": {
+      i: "merge-cells-outlined",
+      ir: "90",
       m: "Merge Cell Above",
       f: () => actions.frame_actions?.merge_cell_above(),
     },
 
     "merge cells": {
+      i: "merge-cells-outlined",
+      ir: "90",
       m: "Merge Selected Cells",
       k: [{ mode: "escape", shift: true, which: 77 }],
       f: () => actions.frame_actions?.merge_selected_cells(),
@@ -462,6 +468,8 @@ export function commands(actions: AllActions): {
 
     "merge selected cells": {
       // why is this in jupyter; it's the same as the above?
+      i: "merge-cells-outlined",
+      ir: "90",
       m: "Merge selected cells",
       f: () => actions.frame_actions?.merge_selected_cells(),
     },

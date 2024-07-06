@@ -769,7 +769,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function renderPlaceholder() {
-    if (!is_current || cmValue) {
+    if (!is_current || cmValue || !setShowAICellGen) {
       return;
     }
     return (
