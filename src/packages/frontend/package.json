@@ -198,6 +198,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc  --build && coffee  -m -c -o dist/ .",
+    "build-coffee": "pnpm exec coffee -m -c -o dist/ .",
     "tsc": "NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc  --watch  --pretty --preserveWatchOutput ",
     "test": "npx jest dist/",
     "prepublishOnly": "pnpm test",
