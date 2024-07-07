@@ -7,6 +7,7 @@ import deleteAccount from "@cocalc/server/accounts/delete";
 
 import isPost from "lib/api/is-post";
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { SuccessStatus } from "lib/api/status";
 import { DeleteAccountOutputSchema } from "lib/api/schema/accounts/delete";
 
 async function handle(req, res) {
@@ -17,7 +18,7 @@ async function handle(req, res) {
         throw Error("must be signed in");
       }
       await deleteAccount(account_id);
-      res.json({ status: "success" });
+      res.json(SuccessStatus);
     }
   } catch (err) {
     res.json({ error: err.message });

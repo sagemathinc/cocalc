@@ -346,10 +346,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
         });
         // hack which seems necessary for jupyter at least.
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-          }),
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+            }),
         );
       }
     } else if (scroll.startsWith("list")) {
@@ -359,11 +360,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "end",
         });
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-            align: "end",
-          }),
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+              align: "end",
+            }),
         );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
@@ -371,11 +373,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           index: index + EXTRA_TOP_CELLS,
           align: "start",
         });
-        requestAnimationFrame(() =>
-          virtuosoRef.current?.scrollToIndex({
-            index: index + EXTRA_TOP_CELLS,
-            align: "start",
-          }),
+        requestAnimationFrame(
+          () =>
+            virtuosoRef.current?.scrollToIndex({
+              index: index + EXTRA_TOP_CELLS,
+              align: "start",
+            }),
         );
       }
     }
@@ -795,7 +798,6 @@ function DivTempHeight({ children, height }) {
 
   const style: CSS = {
     minHeight: height,
-    paddingTop: "5px", // for the cell buttons on top of the input, otherwise they're cut off
   };
 
   return (

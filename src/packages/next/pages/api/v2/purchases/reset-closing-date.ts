@@ -4,6 +4,7 @@ Set closing day to today (or 1 if today is >=29).
 
 import getAccountId from "lib/account/get-account";
 import resetClosingDate from "@cocalc/server/purchases/reset-closing-date";
+import { OkStatus } from "lib/api/status";
 
 export default async function handle(req, res) {
   try {
@@ -20,5 +21,5 @@ async function get(req) {
     throw Error("must be signed in");
   }
   await resetClosingDate(account_id);
-  return { status: "ok" };
+  return OkStatus;
 }

@@ -9,11 +9,11 @@ import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   SetComputeServerTemplateInputSchema,
   SetComputeServerTemplateOutputSchema,
 } from "lib/api/schema/compute/set-template";
-
 
 async function handle(req, res) {
   try {
@@ -37,14 +37,14 @@ async function get(req) {
   }
   const { id, template } = getParams(req);
   await setTemplate({ account_id, id, template });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   setTemplate: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute", "Admin"],
     },
   })
     .input({

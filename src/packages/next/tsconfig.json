@@ -22,7 +22,7 @@
     "outDir": "dist",
     "baseUrl": ".",
     "incremental": true,
-    "target": "es5"
+    "target": "es2020"
   },
   "include": [
     "next-env.d.ts",

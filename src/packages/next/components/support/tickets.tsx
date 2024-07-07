@@ -11,7 +11,7 @@ import Loading from "components/share/loading";
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
 import useAPI from "lib/hooks/api";
-import { Type } from "./create";
+import type { Type } from "./create";
 import { NoZendesk } from "./util";
 
 export default function Tickets() {

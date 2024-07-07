@@ -1375,6 +1375,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id,
       path: sidePath,
     });
+    await computeServerAssociations.save();
   };
 
   //   getComputeServerIdForFile = async ({
@@ -1426,6 +1427,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       id: selectedComputeServerId,
       path,
     });
+    // Now we save: why?
+    // Because we need to be sure the backend actually knows we want to use the compute
+    // server for the file before opening it; otherwise, it'll first get opened
+    // in the project, then later on the compute server, which is potentially VERY
+    // disconcerting and annoying, especially if the file doesn't exist.  It does
+    // work without doing this (because our design is robust to switching compute servers
+    // at any time), but it ends up with a blank file for a moment, and lots of empty files
+    // being created.
+    await computeServerAssociations.save();
     return true;
   };
 

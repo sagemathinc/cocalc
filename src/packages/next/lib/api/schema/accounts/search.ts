@@ -8,7 +8,7 @@ import { AccountUserSchema } from "./common";
 export const AccountSearchInputSchema = z
   .object({
     query: z.string()
-      .describe(`Comma- or space-delimited) list of account e-mail addresses, account ids, 
+      .describe(`Comma- or space-delimited list of account e-mail addresses, account ids, 
       and/or first/last names to query for an account by.`),
   })
   .describe(

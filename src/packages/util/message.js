@@ -112,8 +112,8 @@ function message(obj) {
     if (opts.event != null) {
       throw Error(
         `ValueError: must not define 'event' when calling message creation function (opts=${JSON.stringify(
-          opts
-        )}, obj=${JSON.stringify(obj)})`
+          opts,
+        )}, obj=${JSON.stringify(obj)})`,
       );
     }
     return defaults(opts, obj, false, strict);
@@ -272,7 +272,7 @@ Example:
            "9b896055-920a-413c-9172-dfb4007a8e7f":{"first_name":"Jane","last_name":"Doe"}}}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -356,7 +356,7 @@ Attempting to create the same account a second time results in an error:
        "reason":{"email_address":"This e-mail address is already taken."}}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -480,7 +480,6 @@ message({
   only_verify: undefined,
 }); // usually true, if false the full "welcome" email is sent
 
-
 // client --> hub
 API(
   message2({
@@ -539,7 +538,7 @@ Fails if new email address is already in use.
 
 **Note:** \`account_id\` and \`password\` must match the \`id\` of the current login.\
 `,
-  })
+  }),
 );
 
 // hub --> client
@@ -815,7 +814,7 @@ Notes:
 - If the project is stopped or archived, this API call will cause it to be started. Starting the project can take
   several seconds. In this case, the call may return a timeout error and will need to be repeated. \
 `,
-  })
+  }),
 );
 
 // project --> client
@@ -920,7 +919,7 @@ Read a text file.
        "content":"hello"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 // hub --> client
@@ -989,7 +988,7 @@ Create a text file.
     https://cocalc.com/api/v1/write_text_file_to_project
 \`\`\`\
 `,
-  })
+  }),
 );
 
 // The file_written_to_project message is sent by a project_server to
@@ -1050,7 +1049,7 @@ Example:
         "project_id":"07897899-6bbb-4fbc-80a7-3586c43348d1"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 // hub --> client
@@ -1155,7 +1154,7 @@ Email and string search types may be mixed in a single query:
     https://cocalc.com/api/v1/user_search
 \`\`\`\
 `,
-  })
+  }),
 );
 
 API(
@@ -1183,7 +1182,7 @@ Example:
    example not available yet
 \`\`\`\
 `,
-  })
+  }),
 );
 
 API(
@@ -1211,7 +1210,7 @@ Example:
    example not available yet
 \`\`\`\
 `,
-  })
+  }),
 );
 
 // hub --> client
@@ -1285,7 +1284,7 @@ Example:
        "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 API(
@@ -1332,7 +1331,7 @@ Example:
        "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 API(
@@ -1368,7 +1367,7 @@ Example:
        "id":"e80fd64d-fd7e-4cbc-981c-c0e8c843deec"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 // DANGER -- can be used to spam people.
@@ -1457,7 +1456,7 @@ Then go to <a href='https://cocalc.com/projects/18955da4-4bfa-4afa-910c-7f2358c0
 the project 'Team Project'</a>.</b><br/>
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -1633,7 +1632,7 @@ Folder \`A\` will be created in target project if it does not exist already.
        "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -1695,7 +1694,7 @@ There might also be an \`"error"\`!
 
 **Note:** You need to have read/write access to the associated src/target project.
 `,
-  })
+  }),
 );
 
 message({
@@ -1719,7 +1718,7 @@ You need to have read/write access to the associated src/target project.
 
 **Note:** This will only remove entries which are *scheduled* and not yet completed.
 `,
-  })
+  }),
 );
 
 //############################################
@@ -1811,7 +1810,7 @@ Using JSON format to provide request id:
   ==> {"event":"pong","id":"8ec4ac73-2595-42d2-ad47-0b9641043b46","now":"2017-05-24T17:15:59.288Z"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -1890,7 +1889,7 @@ Copy public file \`PUBLIC/doc.txt\` from source project to private file
        "id":"45d851ac-5ea0-4aea-9997-99a06c054a60"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 API(
@@ -1931,7 +1930,7 @@ via the API and is intended for use by CoCalc support only:
   "time":"2017-07-06T02:32:41.176Z"}]
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -1968,7 +1967,7 @@ API(
   message({
     event: "stripe_get_customer",
     id: undefined,
-  })
+  }),
 );
 
 API(
@@ -1977,7 +1976,7 @@ API(
     id: undefined,
     customer: undefined, // if user already has a stripe customer account, info about it.
     stripe_publishable_key: undefined,
-  })
+  }),
 ); // if stripe is configured for this SMC instance, this is the public API key.
 
 // card
@@ -1986,7 +1985,7 @@ API(
     event: "stripe_create_source",
     id: undefined,
     token: required,
-  })
+  }),
 );
 
 API(
@@ -1994,7 +1993,7 @@ API(
     event: "stripe_delete_source",
     card_id: required,
     id: undefined,
-  })
+  }),
 );
 
 API(
@@ -2002,7 +2001,7 @@ API(
     event: "stripe_set_default_source",
     card_id: required,
     id: undefined,
-  })
+  }),
 );
 
 API(
@@ -2011,7 +2010,7 @@ API(
     card_id: required,
     info: required, // see https://stripe.com/docs/api/node#update_card, except we don't allow changing metadata
     id: undefined,
-  })
+  }),
 );
 
 // subscriptions to plans
@@ -2021,7 +2020,7 @@ API(
     event: "stripe_plans",
     id: undefined,
     plans: required,
-  })
+  }),
 ); // [{name:'Basic', projects:1, description:'...', price:'$10/month', trial_period:'30 days', ...}, ...]
 
 // Create a subscription to a plan
@@ -2032,7 +2031,7 @@ API(
     plan: required, // name of plan
     quantity: 1,
     coupon_id: undefined,
-  })
+  }),
 );
 
 // Delete a subscription to a plan
@@ -2042,7 +2041,7 @@ API(
     id: undefined,
     subscription_id: required,
     at_period_end: true,
-  })
+  }),
 );
 
 // Modify a subscription to a plan, e.g., change which projects plan applies to.
@@ -2055,7 +2054,7 @@ API(
     projects: undefined, // change associated projects from what they were to new list
     plan: undefined, // change plan to this
     coupon_id: undefined,
-  })
+  }),
 ); // apply a coupon to this subscription
 
 API(
@@ -2065,7 +2064,7 @@ API(
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_charges
     starting_after: undefined,
-  })
+  }),
 );
 
 message({
@@ -2079,7 +2078,7 @@ API(
     event: "stripe_get_coupon",
     id: undefined,
     coupon_id: required,
-  })
+  }),
 );
 
 message({
@@ -2096,7 +2095,7 @@ API(
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_charges
     starting_after: undefined,
-  })
+  }),
 );
 
 message({
@@ -2113,7 +2112,7 @@ API(
     limit: undefined, // between 1 and 100 (default: 10)
     ending_before: undefined, // see https://stripe.com/docs/api/node#list_customer_invoices
     starting_after: undefined,
-  })
+  }),
 );
 
 message({
@@ -2226,7 +2225,7 @@ Example:
        "url":"https://sagemathcloud.zendesk.com/requests/0123"}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -2274,7 +2273,7 @@ curl -u sk_abcdefQWERTY090900000000:  -X POST \\
                    "url":"https://sagemathcloud.zendesk.com/requests/0123"}]}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 message({
@@ -2552,7 +2551,7 @@ Within directory 'db-schema':
         { id: "uuid", event: "query", response: "..." },
       ],
     ],
-  })
+  }),
 );
 
 message({
@@ -2636,7 +2635,7 @@ You can now use the auth token to craft a URL like this:
 
 and provide that to a user.  When they visit that URL, they will be temporarily signed in as that user.\
 `,
-  })
+  }),
 );
 
 // hub --> client
@@ -2736,7 +2735,7 @@ Example:
      "network":372}}
 \`\`\`\
 `,
-  })
+  }),
 );
 
 // client --> hub
@@ -2754,7 +2753,7 @@ API(
       },
     },
     desc: "Mark this project as being actively used by the user sending this message.  This keeps the project from idle timing out, among other things.",
-  })
+  }),
 );
 
 // client --> hub
@@ -2772,7 +2771,7 @@ API(
       },
     },
     desc: "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development.",
-  })
+  }),
 );
 
 // client <-- hub
@@ -2849,7 +2848,7 @@ API(
     id: undefined,
     string_id: required,
     patches: undefined,
-  })
+  }),
 );
 
 // hub --> client
@@ -2891,7 +2890,7 @@ API(
     event: "purchase_license",
     id: undefined,
     info: required, // import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
-  })
+  }),
 );
 
 message({
@@ -2912,7 +2911,7 @@ API(
     model: undefined,
     tag: undefined,
     stream: undefined, // if true, instead sends many little chatgpt_response messages with the last text value undefined.
-  })
+  }),
 );
 
 message({
@@ -2933,7 +2932,7 @@ API(
     limit: required,
     selector: undefined,
     offset: undefined,
-  })
+  }),
 );
 
 message({
@@ -2950,7 +2949,7 @@ API(
     path: required,
     data: required,
     id: undefined,
-  })
+  }),
 );
 
 message({
@@ -2967,7 +2966,7 @@ API(
     project_id: required,
     path: required,
     data: required,
-  })
+  }),
 );
 
 message({
@@ -2989,7 +2988,7 @@ API(
     tag: undefined,
     pool: undefined, // {size?: number; timeout_s?: number;}
     limits: undefined, // see packages/jupyter/nbgrader/jupyter-run.ts
-  })
+  }),
 );
 
 message({
@@ -3006,7 +3005,7 @@ API(
     id: undefined,
     project_id: undefined,
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
-  })
+  }),
 );
 
 API(
@@ -3015,5 +3014,5 @@ API(
     id: undefined,
     project_id: undefined,
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
-  })
+  }),
 );

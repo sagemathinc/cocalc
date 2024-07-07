@@ -7,6 +7,7 @@ paid or expiring), removes the entry from the database.
 
 import getAccountId from "lib/account/get-account";
 import { cancelCurrentSession } from "@cocalc/server/purchases/create-stripe-checkout-session";
+import { OkStatus } from "lib/api/status";
 
 export default async function handle(req, res) {
   try {
@@ -23,5 +24,5 @@ async function get(req) {
     throw Error("must be signed in");
   }
   await cancelCurrentSession(account_id);
-  return { status: "ok" };
+  return OkStatus;
 }

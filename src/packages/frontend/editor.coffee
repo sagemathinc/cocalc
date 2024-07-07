@@ -499,9 +499,12 @@ class CodeMirrorEditor extends FileEditor
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
                 cursorScrollMargin      : 6
-                viewportMargin          : 300 # larger than the default of 10 specifically so *sage worksheets* (which are the only thing that uses this)
+                viewportMargin          : Infinity  # larger than the default of 10 specifically so *sage worksheets* (which are the only thing that uses this)
                                               # don't feel jumpy when re-rendering output.
                                               # NOTE that in cocalc right now, no remaining non-sagews editors use this code.
+                                              # with images, even using a viewport of 300 causes major jumpiness problems with images.
+                                              # See https://github.com/sagemathinc/cocalc/issues/7654
+                                              # Browser caching may have changed in newer browsers as well making 300 feel jumpy in "modern times".
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}

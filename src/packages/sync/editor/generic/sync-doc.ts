@@ -1356,6 +1356,10 @@ export class SyncDoc extends EventEmitter {
       // large or is not readable by the user. They are informed to
       // fix the problem... and once they do (and wait up to 10s),
       // this will finish.
+      //       if (!this.client.is_browser() && !this.client.is_project()) {
+      //         // FAKE DELAY!!!  Just to simulate flakiness / slow network!!!!
+      //         await delay(10000);
+      //       }
       await retry_until_success({
         f: this.init_load_from_disk.bind(this),
         max_delay: 10000,
@@ -1599,7 +1603,7 @@ export class SyncDoc extends EventEmitter {
           size = await this.load_from_disk();
           if (firstLoad) {
             dbg("emitting first-load event");
-            // this event is emittd the first time the document is ever loaded from disk.
+            // this event is emited the first time the document is ever loaded from disk.
             this.emit("first-load");
           }
           dbg("loaded");

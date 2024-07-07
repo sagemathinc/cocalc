@@ -8,6 +8,7 @@ import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { banUser } from "@cocalc/server/accounts/ban";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { SuccessStatus } from "lib/api/status";
 import {
   BanAccountInputSchema,
   BanAccountOutputSchema,
@@ -34,14 +35,14 @@ async function get(req) {
 
   const { account_id } = getParams(req);
   await banUser(account_id);
-  return { status: "success" };
+  return SuccessStatus;
 }
 
 export default apiRoute({
   ban: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Accounts"],
+      tags: ["Accounts", "Admin"],
     },
   })
     .input({

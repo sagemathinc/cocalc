@@ -47,6 +47,12 @@ declare const $: any;
 const SCROLLBACK = 5000;
 const MAX_HISTORY_LENGTH = 100 * SCROLLBACK;
 
+// I think this may be flaky in some cases? Not sure.  Not sure it is worth it.  I can
+// never tell the difference.  ALSO, we do so much to throttle the terminal to avoid
+// messing up the browser and/or using excessive bandwidth when people do dumb things,
+// that we can't really leverage this speed (or rather network is more of a limit).
+const ENABLE_WEBGL = false;
+
 interface Path {
   file?: string;
   directory?: string;
@@ -143,25 +149,27 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       throw Error("terminal.element must be defined");
     }
 
-    const webglAddon = new WebglAddon();
-    try {
-      this.terminal.loadAddon(webglAddon);
-      webglAddon.onContextLoss(() => {
-        // This really does work and properly switches back to canvas.  To convince yourself
-        // of this, open a single terminal, then open another tab with another terminal and
-        // split it about 20+ times. In the console, you'll see that the oldest webGL contexts
-        // go away. That triggers calling this function, and indeed the terminal then falls
-        // back seamlessly to canvas rendering.  Very impressive, xterm.js.
-        webglAddon.dispose();
-      });
-    } catch (err) {
-      // We have to disable the dispose when it doesn't get used, since it breaks
-      // on cleanup, and the xtermjs api has no way of removing an addon, and
-      // only catching the error on dispose later would mean leaving other things
-      // potentially not cleaned up properly.  I read the code of webglAddon.dispose
-      // and it doesn't do anything if the addon wasn't initialized.
-      webglAddon.dispose = () => {};
-      console.log(`WebGL Terminal not available (using fallback). -- ${err}`);
+    if (ENABLE_WEBGL) {
+      const webglAddon = new WebglAddon();
+      try {
+        this.terminal.loadAddon(webglAddon);
+        webglAddon.onContextLoss(() => {
+          // This really does work and properly switches back to canvas.  To convince yourself
+          // of this, open a single terminal, then open another tab with another terminal and
+          // split it about 20+ times. In the console, you'll see that the oldest webGL contexts
+          // go away. That triggers calling this function, and indeed the terminal then falls
+          // back seamlessly to canvas rendering.  Very impressive, xterm.js.
+          webglAddon.dispose();
+        });
+      } catch (err) {
+        // We have to disable the dispose when it doesn't get used, since it breaks
+        // on cleanup, and the xtermjs api has no way of removing an addon, and
+        // only catching the error on dispose later would mean leaving other things
+        // potentially not cleaned up properly.  I read the code of webglAddon.dispose
+        // and it doesn't do anything if the addon wasn't initialized.
+        webglAddon.dispose = () => {};
+        console.log(`WebGL Terminal not available (using fallback). -- ${err}`);
+      }
     }
 
     this.element = this.terminal.element;
@@ -887,6 +895,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
         id,
         path: this.term_path,
       });
+      await computeServerAssociations.save();
     }
   };
 }

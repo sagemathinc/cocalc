@@ -8,11 +8,11 @@ import setServerTitle from "@cocalc/server/compute/set-server-title";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   SetComputeServerTitleInputSchema,
   SetComputeServerTitleOutputSchema,
 } from "lib/api/schema/compute/set-server-title";
-
 
 async function handle(req, res) {
   try {
@@ -34,14 +34,14 @@ async function get(req) {
     id,
     title,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   setServerTitle: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({
