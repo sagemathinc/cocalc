@@ -72,7 +72,7 @@ export default function Header(props: Props) {
           }}
         >
           {true || account ? (
-            <LiveDemo context="header" />
+            <LiveDemo context="header" type="primary" />
           ) : (
             <Button
               type="primary"
