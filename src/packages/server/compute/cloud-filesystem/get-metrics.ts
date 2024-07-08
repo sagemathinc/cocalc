@@ -24,7 +24,7 @@ export default async function getMetrics({
   ]);
   if (!(await isCollaborator({ account_id, project_id }))) {
     throw Error(
-      "user must be collaborator on the project that contains the cloud filesystem",
+      "user must be collaborator on the project that contains the cloud file system",
     );
   }
   const { rows } = await pool.query(

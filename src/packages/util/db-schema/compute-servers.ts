@@ -373,7 +373,7 @@ interface BaseConfiguration {
   // If the tag is not given or not available, we use the latest
   // available tag.
   tag?: string;
-  // tag_filesystem: tag for the filesystem container
+  // tag_filesystem: tag for the file system container
   tag_filesystem?: string;
   // tag_cocalc: tag for the @cocalc/compute-server package.
   tag_cocalc?: string;

@@ -93,7 +93,7 @@ export default function MountCloudFilesystem({
           {cloudFilesystem.mount ? "unmount" : "automount"} this cloud
           filesystem?
           {cloudFilesystem.mount
-            ? " The filesystem may be currently mounted so make sure no applications have anything in this filesystem open to avoid data loss. "
+            ? " The file system may be currently mounted so make sure no applications have anything in this filesystem open to avoid data loss. "
             : " "}
           {cloudFilesystem.mount ? "Unmounting" : "Automatic mounting"}{" "}
           typically takes about <b>15 seconds</b>.
@@ -102,10 +102,10 @@ export default function MountCloudFilesystem({
           showIcon
           style={{ margin: "10px 0" }}
           type="warning"
-          message={<b>Cloud Filesystems Only Visible From Compute Servers</b>}
+          message={<b>Cloud File Systems Only Visible From Compute Servers</b>}
           description={
             <>
-              Currently cloud filesystems can only be used from compute servers,
+              Currently cloud file systems can only be used from compute servers,
               i.e., from a Jupyter notebook or terminal that is set to use a
               compute server or from the file browser set to explore a compute
               server.
@@ -114,7 +114,7 @@ export default function MountCloudFilesystem({
         />
         {!cloudFilesystem.mount && (
           <p style={{ color: "#666" }}>
-            <b>WARNING:</b> When a cloud filesystem is first created or has not
+            <b>WARNING:</b> When a cloud file system is first created or has not
             been used for a while, it can take several minutes to automount in a
             running project while{" "}
             <A href="https://cloud.google.com/iam/docs/access-change-propagation">

@@ -1,6 +1,6 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-// Write a (relatively SMALL) text file to the filesystem
-// on a compute server, using the filesystem exec api call.
+// Write a (relatively SMALL) text file to the file system
+// on a compute server, using the file system exec api call.
 // This writes to a tmp file, then moves it, so that the
 // write is atomic, e.g., because an application of this is
 // to our proxy, which watches for file changes and reads the

@@ -1,5 +1,5 @@
 /*
-Cloud filesystem menu.
+Cloud file system menu.
 */
 
 import { Button, Dropdown } from "antd";
@@ -203,8 +203,8 @@ export default function Menu({
           case "support":
             openSupportTab({
               type: "question",
-              subject: `Cloud Filesystem (Global Id: ${cloudFilesystem.id}; Project Specific Id: ${cloudFilesystem.project_specific_id})`,
-              body: `I am using a cloud filesystem, and have a question...`,
+              subject: `Cloud File System (Global Id: ${cloudFilesystem.id}; Project Specific Id: ${cloudFilesystem.project_specific_id})`,
+              body: `I am using a cloud file system, and have a question...`,
             });
             break;
 

@@ -13,10 +13,9 @@ import { Button, Tooltip } from "antd";
 const SCROLLED_STYLE: React.CSSProperties = {
   fontSize: "inherit",
   padding: 0,
-  display: "flex", // flex used to move output prompt to bottom.
-  flexDirection: "column",
   height: "auto",
-  cursor: "pointer",
+  display: "flex",
+  flexDirection: "column",
 } as const;
 
 const NORMAL_STYLE: React.CSSProperties = {
@@ -52,11 +51,11 @@ export const OutputToggle: React.FC<OutputToggleProps> = React.memo(
           onDoubleClick={collapse_output}
         >
           {children}
-          <div style={{ flex: 1 }} /> {/* use up all space */}
+          <span style={{ flex: 1 }} />
         </Button>
       </Tooltip>
     );
-  }
+  },
 );
 
 interface CollapsedOutputProps {
@@ -85,5 +84,5 @@ export const CollapsedOutput: React.FC<CollapsedOutputProps> = React.memo(
         </Button>
       </div>
     );
-  }
+  },
 );

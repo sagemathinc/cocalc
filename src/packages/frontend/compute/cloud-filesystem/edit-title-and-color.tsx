@@ -14,7 +14,7 @@ interface Props {
   refresh;
 }
 
-// Edit the title and color of a cloud filesystem
+// Edit the title and color of a cloud file system
 export default function EditTitleAndColor({
   cloudFilesystem,
   open,

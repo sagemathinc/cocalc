@@ -6,16 +6,17 @@ of the "font_size" parameter for the frame.
 
 */
 
-import NewPage, { AddPage } from "./new-page";
-import DeletePage from "./delete-page";
-import { CSSProperties, useEffect, ReactNode } from "react";
+import { CSSProperties, ReactNode, useEffect } from "react";
+import type { GridItemProps } from "react-virtuoso";
 import { VirtuosoGrid } from "react-virtuoso";
-import { useFrameContext } from "./hooks";
+
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { Overview as OnePage } from "./tools/navigation";
 import { State, elementsList } from "./actions";
-import type { GridItemProps } from "react-virtuoso";
+import DeletePage from "./delete-page";
+import { useFrameContext } from "./hooks";
+import NewPage, { AddPage } from "./new-page";
+import { Overview as OnePage } from "./tools/navigation";
 
 export default function Overview() {
   const { actions, id: frameId, project_id, path, desc } = useFrameContext();
@@ -111,7 +112,7 @@ export default function Overview() {
         onClick={(e) => {
           e.stopPropagation(); // so doesn't focus this frame then page, causing flicker.
           const frameId = actions.show_focused_frame_of_type(
-            actions.mainFrameType
+            actions.mainFrameType,
           );
           actions.setPage(frameId, index + 1);
           actions.fitToScreen(frameId);

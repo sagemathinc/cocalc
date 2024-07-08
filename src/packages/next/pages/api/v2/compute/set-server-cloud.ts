@@ -9,11 +9,11 @@ import setServerCloud from "@cocalc/server/compute/set-server-cloud";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   SetComputeServerCloudInputSchema,
   SetComputeServerCloudOutputSchema,
 } from "lib/api/schema/compute/set-server-cloud";
-
 
 async function handle(req, res) {
   try {
@@ -35,14 +35,14 @@ async function get(req) {
     id,
     cloud,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   setServerCloud: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

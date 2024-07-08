@@ -63,7 +63,7 @@ output: html_document
 `;
 
 export class Actions extends MarkdownActions {
-  private _last_rmd_hash: string | null = null;
+  private _last_rmd_hash: number | undefined = undefined;
   private is_building: boolean = false;
   public run_rmd_converter: Function;
 

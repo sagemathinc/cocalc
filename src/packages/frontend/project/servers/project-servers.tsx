@@ -187,7 +187,7 @@ export function ProjectServers(props: Props) {
       key: "cloud-filesystems",
       label: (
         <span style={{ fontSize: "14pt" }}>
-          <Icon name="disk-round" /> Cloud Filesystems
+          <Icon name="disk-round" /> Cloud File Systems
         </span>
       ),
       children: <CloudFilesystems project_id={project_id} />,

@@ -7,12 +7,12 @@ import { getServer } from "@cocalc/server/compute/get-servers";
 import getParams from "lib/api/get-params";
 import { deleteProjectApiKey } from "@cocalc/server/compute/project-api-key";
 
-import { apiRoute, apiRouteOperation, } from "lib/api";
+import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   DeleteComputeServerAPIKeyInputSchema,
-  DeleteComputeServerAPIKeyOutputSchema
+  DeleteComputeServerAPIKeyOutputSchema,
 } from "lib/api/schema/compute/delete-api-key";
-
 
 async function handle(req, res) {
   try {
@@ -34,14 +34,14 @@ async function get(req) {
     throw Error("you must be the owner of the compute server");
   }
   await deleteProjectApiKey({ account_id, server });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   deleteServerAPIKey: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

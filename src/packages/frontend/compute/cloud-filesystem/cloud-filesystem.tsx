@@ -175,7 +175,7 @@ export default function CloudFilesystem({
         description={
           <div style={{ color: "#666" }}>
             <ShowError setError={setError} error={error} />
-            Cloud Filesystem{" "}
+            Cloud File System{" "}
             <BytesUsed {...cloudFilesystem} show={show?.setShowMetrics} />,{" "}
             <Compression {...cloudFilesystem} />{" "}
             <BlockSize {...cloudFilesystem} />,{" "}

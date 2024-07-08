@@ -1,5 +1,5 @@
 /*
-Get metrics for a cloud filesystem.
+Get metrics for a cloud file system.
 */
 
 import getProjectOrAccountId from "lib/account/get-account";

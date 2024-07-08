@@ -168,7 +168,6 @@ export const CellButtonBar: React.FC<Props> = React.memo(
           id={id}
           actions={actions}
           llmTools={llmTools}
-          is_current={is_current}
         />
       );
     }

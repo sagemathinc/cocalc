@@ -1,5 +1,5 @@
 /*
-Create a scalable cloud filesystem and returns the numerical id of it.
+Create a scalable cloud file system and returns the numerical id of it.
 
 This DOES create an actual GCP bucket and service account that has
 access ONLY to that one bucket.
@@ -181,7 +181,7 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
     throw Error(
       `You must have at least ${currency(
         CREATE_CLOUD_FILESYSTEM_AMOUNT,
-      )} credit on your account to create a cloud filesystem.  There is no charge to create the filesystem.`,
+      )} credit on your account to create a cloud file system.  There is no charge to create the file system.`,
     );
   }
   if (
@@ -219,7 +219,7 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   // bytes_used MUST always be set, and of course initially it is 0.
   push("bytes_used", 0);
 
-  // there could be a race condition if user tries to make two cloud filesystems at
+  // there could be a race condition if user tries to make two cloud file systems at
   // same time for same project -- one would fail and they get an error due to
   // database uniqueness constraint. That's fine for now.
   const project_specific_id = await getAvailableProjectSpecificId(

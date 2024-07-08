@@ -698,7 +698,7 @@ class SyncFS {
     log("sendFiles: ", files.length, "sent");
   };
 
-  // pathToFileList is the path to a file in the filesystem on
+  // pathToFileList is the path to a file in the file system on
   // in the project that has the names of the files to copy to
   // the compute server.
   private receiveFiles = async (pathToFileList: string) => {

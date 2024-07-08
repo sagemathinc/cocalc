@@ -55,7 +55,7 @@ export default function EditBucketStorageClass({
       title={
         <>
           <Icon name={"disk-snapshot"} /> Edit the Default Bucket Storage Class
-          for the cloud filesystem "{cloudFilesystem.title?.trim()}"
+          for the cloud file system "{cloudFilesystem.title?.trim()}"
         </>
       }
       open={open}

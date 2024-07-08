@@ -137,7 +137,7 @@ export default function CreateCloudFilesystem({
           }}
         />
         <br />
-        Create Cloud Filesystem... {creating ? <Spin /> : null}
+        Create Cloud File System... {creating ? <Spin /> : null}
       </Button>
       <Modal
         width={"900px"}
@@ -149,7 +149,7 @@ export default function CreateCloudFilesystem({
         title={
           <div style={{ display: "flex", fontSize: "15pt" }}>
             <Icon name="disk-round" style={{ marginRight: "15px" }} /> Create a
-            CoCalc Cloud Filesystem
+            CoCalc Cloud File System
           </div>
         }
         footer={[
@@ -165,7 +165,7 @@ export default function CreateCloudFilesystem({
           </Button>,
           <Button key="ok" type="primary" disabled={creating} onClick={create}>
             <>
-              Create Cloud Filesystem{" "}
+              Create Cloud File System{" "}
               {creating ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
             </>
           </Button>,
@@ -192,8 +192,8 @@ export default function CreateCloudFilesystem({
             />{" "}
             Title and Color
           </Divider>
-          Select a meaningful title and color for your Cloud Filesystem. You can
-          change these at any time, and they do not impact anything else.
+          Select a meaningful title and color for your Cloud File System. You
+          can change these at any time, and they do not impact anything else.
           <br />
           <div style={{ display: "flex" }}>
             <div style={{ flex: 1 }} />
@@ -257,8 +257,8 @@ export default function CreateCloudFilesystem({
           {advanced && (
             <>
               <p>
-                <b>What is it?:</b> The CoCalc Cloud Filesystem is a fully POSIX
-                compliant distributed filesystem built using{" "}
+                <b>What is it?:</b> The CoCalc Cloud File System is a fully
+                POSIX compliant distributed file system built using{" "}
                 <A href="https://juicefs.com/">JuiceFS</A>,{" "}
                 <A href="https://docs.keydb.dev/">KeyDB</A> and{" "}
                 <A href="https://cloud.google.com/storage">
@@ -268,8 +268,8 @@ export default function CreateCloudFilesystem({
               </p>
               <p>
                 <b>Scope:</b> You can make up to{" "}
-                {MAX_CLOUD_FILESYSTEMS_PER_PROJECT} cloud filesystems per
-                project. Cloud filesystems can be instantly moved between
+                {MAX_CLOUD_FILESYSTEMS_PER_PROJECT} cloud file systems per
+                project. Cloud file systems can be instantly moved between
                 projects.
               </p>
               <p>
@@ -277,12 +277,12 @@ export default function CreateCloudFilesystem({
                 <A href="https://cloud.google.com/storage/pricing">
                   Google Cloud Storage Pricing, which is highly competitive.
                 </A>{" "}
-                You can see how much your filesystem costs and why in realtime
-                by clicking "Show Metrics" in the cloud filesystem menu. If your
-                compute server and filesystem are in the same region, then data
-                transfer fees at completely free, and you mainly pay for storage
-                and operations (i.e., there is a fee per block of data that is
-                uploaded).
+                You can see how much your file system costs and why in realtime
+                by clicking "Show Metrics" in the cloud file system menu. If
+                your compute server and filesystem are in the same region, then
+                data transfer fees at completely free, and you mainly pay for
+                storage and operations (i.e., there is a fee per block of data
+                that is uploaded).
               </p>
               <Divider>
                 <Icon
@@ -331,7 +331,7 @@ export default function CreateCloudFilesystem({
           )}
           {creating && (
             <div style={{ textAlign: "center", fontSize: "14pt" }}>
-              Creating Cloud Filesystem...{" "}
+              Creating Cloud File System...{" "}
               <ProgressBarTimer
                 startTime={createStarted}
                 style={{ marginLeft: "10px" }}
@@ -374,7 +374,7 @@ function Mountpoint({ configuration, setConfiguration, mountpoints }) {
   return (
     <div>
       Mount at <code>~/{configuration.mountpoint}</code> on all compute servers.
-      You can change this when the filesystem is not mounted.
+      You can change this when the file system is not mounted.
       <br />
       <Input
         status={taken ? "error" : undefined}
@@ -389,7 +389,7 @@ function Mountpoint({ configuration, setConfiguration, mountpoints }) {
           style={{ margin: "10px 0" }}
           showIcon
           type="error"
-          message="This mountpoint is already being used by another Cloud Filesystem in this project. Please change the mountpoint."
+          message="This mountpoint is already being used by another Cloud File System in this project. Please change the mountpoint."
         />
       )}
     </div>
@@ -411,7 +411,7 @@ function Compression({ configuration, setConfiguration }) {
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation`}
+        message={`Recommendation: LZ4`}
         description={
           <>
             Do not enable compression if most of your data is already
@@ -444,20 +444,18 @@ function BlockSize({ configuration, setConfiguration }) {
       <b style={{ fontSize: "13pt", color: "#666" }}>Block Size</b>
       {NO_CHANGE}
       The block size, which is between {MIN_BLOCK_SIZE} MB and {MAX_BLOCK_SIZE}{" "}
-      MB, is an upper bound on the size of the objects that are storied in the
+      MB, is an upper bound on the size of the objects that are stored in the
       cloud storage bucket.
       <Alert
         style={{ margin: "10px" }}
         showIcon
         type="info"
-        message={`Recommendation: use ${RECOMMENDED_BLOCK_SIZE} MB`}
+        message={`Recommendation: ${RECOMMENDED_BLOCK_SIZE} MB`}
         description={
           <>
-            It can be better to use a large block size, since the number of PUT
-            and GET operations is reduced, and they each cost money. Also, if
-            you use an autoclass storage class, use at least{" "}
-            {RECOMMENDED_BLOCK_SIZE} MB since there is a monthly per-object
-            cost, and consider {MAX_BLOCK_SIZE} MB.
+            Larger block size reduces the number of PUT and GET operations, and
+            they each cost money. Also, if you use an autoclass storage class,
+            there is a monthly per-object cost.
           </>
         }
       />
@@ -565,10 +563,10 @@ export function MountAndKeyDBOptions({
           <p>
             Mount options impact cache speed and other aspects of your
             filesystem, and{" "}
-            <i>can only be changed when the filesystem is not mounted</i>. You
+            <i>can only be changed when the file system is not mounted</i>. You
             can set any possible JuiceFS or KeyDB configuration, which will be
-            used when mounting your filesystem. Be careful: changes here can
-            make it so the filesystem will not mount (if that happens, unmount
+            used when mounting your file system. Be careful: changes here can
+            make it so the file system will not mount (if that happens, unmount
             and undo your change); also, some options may cause corruption.
           </p>
           <MountOptions

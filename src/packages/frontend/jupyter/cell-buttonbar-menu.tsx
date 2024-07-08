@@ -174,7 +174,14 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       icon: <Icon name="arrow-down" />,
       onClick: () => move_cell(1),
     },
-  ];
+  ].map(({ key, label, icon, onClick }) => {
+    return {
+      key,
+      label,
+      onClick,
+      icon: <span style={{ width: "24px" }}>{icon}</span>,
+    };
+  });
 
   return (
     <Dropdown
@@ -184,13 +191,8 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       mouseLeaveDelay={1.5}
       overlayClassName={"cc-jupyter-buttonbar-dropdown"}
     >
-      <Button
-        type="text"
-        size="small"
-        style={CODE_BAR_BTN_STYLE}
-        icon={<Icon name="ellipsis" rotate="90" />}
-      >
-        More
+      <Button type="text" size="small" style={CODE_BAR_BTN_STYLE}>
+        <Icon name="ellipsis" rotate="90" style={{ fontSize: "20px" }} />
       </Button>
     </Dropdown>
   );

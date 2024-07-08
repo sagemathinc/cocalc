@@ -29,7 +29,6 @@ interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
 
 interface Controls {
   setShowDeleted?: (showDeleted: boolean) => void;
-  setSearch?: (search: string) => void;
   onTitleChange?;
   onColorChange?;
   onCloudChange?;
@@ -44,6 +43,9 @@ interface Props {
   modalOnly?: boolean;
   close?: () => void;
 }
+export const currentlyEditing = {
+  id: 0,
+};
 
 export default function ComputeServer({
   server,
@@ -74,7 +76,6 @@ export default function ComputeServer({
 
   const {
     setShowDeleted,
-    setSearch,
     onTitleChange,
     onColorChange,
     onCloudChange,
@@ -87,6 +88,11 @@ export default function ComputeServer({
     setEdit0(edit);
     if (!edit && close != null) {
       close();
+    }
+    if (edit) {
+      currentlyEditing.id = id ?? 0;
+    } else {
+      currentlyEditing.id = 0;
     }
   };
 
@@ -112,11 +118,6 @@ export default function ComputeServer({
           key="edit"
           type="text"
           onClick={() => {
-            if (!edit) {
-              // clear the search -- otherwise changing the title a little
-              // closes the modal!
-              setSearch?.("");
-            }
             setEdit(!edit);
           }}
         >
@@ -304,7 +305,8 @@ export default function ComputeServer({
             {buttons}
             <Divider />
             <Icon name="edit" style={{ marginRight: "15px" }} />{" "}
-            {editable ? "Edit" : ""} Compute Server With Id={project_specific_id}
+            {editable ? "Edit" : ""} Compute Server With Id=
+            {project_specific_id}
           </>
         }
         footer={
@@ -368,7 +370,9 @@ export default function ComputeServer({
               name={cloud == "onprem" ? "global" : "server"}
               style={{ fontSize: "30px", color: color ?? "#666" }}
             />
-            {id != null && <div style={{ color: "#888" }}>Id: {project_specific_id}</div>}
+            {id != null && (
+              <div style={{ color: "#888" }}>Id: {project_specific_id}</div>
+            )}
             {id != null && (
               <ComputeServerLog id={id} style={{ marginLeft: "-15px" }} />
             )}

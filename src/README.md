@@ -180,12 +180,12 @@ which installs exactly the right packages, and builds the code.
 
 See `packages/backend/data.ts` . In particular, you can set BASE_PATH, DATA, PGHOST, PGDATA, PROJECTS, SECRETS to override the defaults. Data is stored in `cocalc/src/data/` by default.
 
-#### Filesystem Build Caching
+#### File System Build Caching
 
-There are two types of filesystem build caching. These greatly improve the time to compile typescript or start webpack between runs. However, in rare cases bugs may lead to weird broken behavior. Here's where the caches are, so you know how to clear them to check if this is the source of trouble. _As of now, I'm_ _**not**_ _aware of any bugs in filesystem caching._
+There are two types of file system build caching. These greatly improve the time to compile typescript or start webpack between runs. However, in rare cases bugs may lead to weird broken behavior. Here's where the caches are, so you know how to clear them to check if this is the source of trouble. _As of now, I'm_ _**not**_ _aware of any bugs in file system caching._
 
 - In the `dist/` subdirectory of a package, there's a file `tsconfig.tsbuildinfo` that caches incremental typescript builds, so running `tsc` is much faster. This is enabled by setting `incremental: true` in `tsconfig.json`. I've never actually seen a case where caching of this file caused a problem (those typescript developers are careful).
-- Webpack caches its builds in `/tmp/webpack` . This is configured in `packages/static/webpack.config.js` , and we use `/tmp` since random access file system performance is critical for this **large** GB+ cache -- otherwise, it's almost slower than no cache. (I also benchmarked tsc, and it works fine on a potentially slow local filesystem.) I did sees bugs with this cache when I had some useless antd tree shaking plugin enabled, but I have never seen any problems with it since I got rid of that.
+- Webpack caches its builds in `/tmp/webpack` . This is configured in `packages/static/webpack.config.js` , and we use `/tmp` since random access file system performance is critical for this **large** GB+ cache -- otherwise, it's almost slower than no cache. (I also benchmarked tsc, and it works fine on a potentially slow local file system.) I did sees bugs with this cache when I had some useless antd tree shaking plugin enabled, but I have never seen any problems with it since I got rid of that.
 
 #### Creating an admin user
 

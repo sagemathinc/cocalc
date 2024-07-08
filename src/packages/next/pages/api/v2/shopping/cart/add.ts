@@ -15,7 +15,13 @@ import addToCart, {
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  ShoppingCartAddInputSchema,
+  ShoppingCartAddOutputSchema,
+} from "lib/api/schema/shopping/cart/add";
+
+async function handle(req, res) {
   try {
     res.json(await add(req));
   } catch (err) {
@@ -44,3 +50,24 @@ async function add(req): Promise<number | undefined> {
   }
   return await addToCart(account_id, product, description, project_id);
 }
+
+export default apiRoute({
+  add: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Shopping"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: ShoppingCartAddInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: ShoppingCartAddOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

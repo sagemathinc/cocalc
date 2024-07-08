@@ -120,7 +120,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       return;
     }
     const value = this._syncstring.undo().to_str();
-    this._syncstring.set(value, true);
+    this._syncstring.set(value);
     this._syncstring.commit();
     // Important: also set codemirror editor state, if there is one (otherwise it will be out of sync!)
     this._get_cm()?.setValueNoJump(value, true);
@@ -141,7 +141,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       return;
     }
     const value = doc.to_str();
-    this._syncstring.set(value, true);
+    this._syncstring.set(value);
     this._syncstring.commit();
     // Important: also set codemirror editor state, as for undo above.
     this._get_cm()?.setValueNoJump(value, true);
