@@ -28,6 +28,7 @@ import {
   useManagedLicenses,
 } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
+import track from "@cocalc/frontend/user-tracking";
 import {
   BANNER_NON_DISMISSABLE_DAYS,
   EVALUATION_PERIOD_DAYS,
@@ -380,9 +381,10 @@ interface CountdownProjectProps {
 }
 
 function CountdownProject({ fontSize }: CountdownProjectProps) {
-  const { status, project, project_id } = useProjectContext();
+  const { status, project, project_id, actions } = useProjectContext();
   const limit_min = useTypedRedux("customize", "limit_free_project_uptime");
   const [showInfo, setShowInfo] = useState<boolean>(false);
+  const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const triggered = useRef<boolean>(false);
   const update = useForceUpdate();
 
@@ -410,6 +412,9 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
 
   if (countdown < 0 && !triggered.current) {
     triggered.current = true;
+
+    // This closes all tabs and then stops the project.
+    openFiles.map((path) => actions?.close_tab(path));
     redux.getActions("projects").stop_project(project_id);
   }
 
@@ -487,7 +492,10 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
           cursor: "pointer",
         }}
         color={COLORS.GRAY_LL}
-        onClick={() => setShowInfo(true)}
+        onClick={() => {
+          setShowInfo(true);
+          track("trial-banner", { what: "countdown", project_id });
+        }}
       >
         <TimeAmount
           key={"time"}
