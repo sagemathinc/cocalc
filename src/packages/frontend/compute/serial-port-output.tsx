@@ -49,7 +49,7 @@ export default function SerialPortOutput({
           style={{ color: "#666", ...style }}
           onClick={() => setShow(!show)}
         >
-          <Icon name="laptop" /> Serial
+          <Icon name="laptop" />
         </Button>
         {show && (
           <SerialLogModal id={id} title={title} close={() => setShow(false)} />

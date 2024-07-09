@@ -5,7 +5,7 @@ More precisely this is a little button that you click on, and
 it shows the log in a modal.
 */
 
-import { Modal, Button, Spin, Table } from "antd";
+import { Modal, Button, Spin, Table, Tooltip } from "antd";
 import { useEffect, useState } from "react";
 import LogEntry from "./log-entry";
 import type { ComputeServerEvent } from "@cocalc/util/compute/log";
@@ -25,7 +25,7 @@ export default function ComputeServerLog({
   const [open, setOpen] = useState<boolean>(false);
 
   return (
-    <>
+    <Tooltip title={"Show configuration and control log"}>
       <Button
         size={"small"}
         type="text"
@@ -37,7 +37,7 @@ export default function ComputeServerLog({
         <Icon name="history" /> Log
       </Button>
       {open && <LogModal id={id} close={() => setOpen(false)} />}
-    </>
+    </Tooltip>
   );
 }
 
