@@ -50,6 +50,23 @@ const COST = {
     ALWAYS_RUNNING_FACTOR: 2,
   },
 
+  2: {
+    SUB_DISCOUNT: { no: 1, monthly: 0.85, yearly: 0.8 },
+    GCE_COSTS: {
+      ram: 0.67,
+      cpu: 5,
+      disk: 0.05,
+      non_pre_factor: 3.5,
+    },
+    COST_MULTIPLIER: 1.2,
+    NONMEMBER_DENSITY: 2,
+    ACADEMIC_DISCOUNT: 0.6,
+    DISK_FACTOR: 20,
+    RAM_OVERCOMMIT: 5,
+    CPU_OVERCOMMIT: 10,
+    ALWAYS_RUNNING_FACTOR: 2,
+  },
+
   // this version is PURELY for testing purposes
   test_1: {
     SUB_DISCOUNT: { no: 1, monthly: 0.9, yearly: 0.85 },

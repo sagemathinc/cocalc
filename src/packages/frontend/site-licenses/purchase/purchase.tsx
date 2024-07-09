@@ -42,9 +42,9 @@ import {
   discount_yearly_pct,
 } from "@cocalc/util/licenses/purchase/consts";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import {
+import type {
   Cost,
-  PurchaseInfoQuota,
+  PurchaseInfo,
   Subscription,
   Upgrade,
   User,
@@ -71,6 +71,7 @@ import { create_quote_support_ticket } from "./get-a-quote";
 import { PurchaseMethod } from "./purchase-method";
 import { QuotaEditor } from "./quota-editor";
 import { RadioGroup } from "./radio-group";
+import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 
 const { RangePicker } = DatePicker;
 
@@ -173,6 +174,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       return undefined;
     }
     return compute_cost({
+      version: CURRENT_VERSION,
       type: "quota",
       quantity,
       user,
@@ -589,7 +591,8 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
       quote == null
     )
       return;
-    const info: PurchaseInfoQuota = {
+    const info: PurchaseInfo = {
+      version: CURRENT_VERSION,
       type: "quota",
       quantity,
       user,

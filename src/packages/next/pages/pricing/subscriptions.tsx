@@ -32,6 +32,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { Paragraph, Title } from "components/misc";
 import dayjs from "dayjs";
+import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 
 function addMonth(date: Date): Date {
   return dayjs(date).add(30, "days").add(12, "hours").toDate();
@@ -64,6 +65,7 @@ const hobby: Item = (() => {
   } as const;
 
   const info: PurchaseInfo = {
+    version: CURRENT_VERSION,
     type: "quota",
     user: conf.user,
     upgrade: "custom",
@@ -109,6 +111,7 @@ const academic: Item = (() => {
   } as const;
 
   const info: PurchaseInfo = {
+    version: CURRENT_VERSION,
     type: "quota",
     user: conf.user,
     upgrade: "custom",
@@ -155,6 +158,7 @@ const business: Item = (() => {
   } as const;
 
   const info: PurchaseInfo = {
+    version: CURRENT_VERSION,
     type: "quota",
     user: conf.user,
     upgrade: "custom",
