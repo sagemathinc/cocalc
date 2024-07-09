@@ -3,32 +3,41 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Tag } from "antd";
+import { Alert, Modal, Space, Tag } from "antd";
 import humanizeList from "humanize-list";
 import { join } from "path";
 
 import {
   CSS,
   React,
-  useMemo,
-  useState,
   redux,
+  useEffect,
+  useForceUpdate,
+  useMemo,
+  useRef,
+  useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Icon, Paragraph } from "@cocalc/frontend/components";
+import { A, Icon, Paragraph, Text } from "@cocalc/frontend/components";
+import { SiteName } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { TimeAmount } from "@cocalc/frontend/editors/stopwatch/time";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import {
   SiteLicenseInput,
   useManagedLicenses,
 } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
+import track from "@cocalc/frontend/user-tracking";
 import {
   BANNER_NON_DISMISSABLE_DAYS,
   EVALUATION_PERIOD_DAYS,
   LICENSE_MIN_PRICE,
 } from "@cocalc/util/consts/billing";
-import { server_time } from "@cocalc/util/relative-time";
+import { server_time } from "@cocalc/util/misc";
 import { COLORS, DOC_URL } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
+import { useProjectContext } from "./context";
 import { applyLicense } from "./settings/site-license";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
@@ -133,22 +142,22 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       <strong>No upgrades</strong>
     );
 
-    function renderComputeServer() {
-      return (
-        <a
-          style={a_style}
-          onClick={() => {
-            const actions = redux.getProjectActions(project_id);
-            actions.setState({ create_compute_server: true });
-            actions.set_active_tab("servers", {
-              change_history: true,
-            });
-          }}
-        >
-          using a compute server
-        </a>
-      );
-    }
+    // function renderComputeServer() {
+    //   return (
+    //     <a
+    //       style={a_style}
+    //       onClick={() => {
+    //         const actions = redux.getProjectActions(project_id);
+    //         actions.setState({ create_compute_server: true });
+    //         actions.set_active_tab("servers", {
+    //           change_history: true,
+    //         });
+    //       }}
+    //     >
+    //       using a compute server
+    //     </a>
+    //   );
+    // }
 
     function renderBuyAndUpgrade(text: string = "with a license"): JSX.Element {
       return (
@@ -160,9 +169,10 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             asLink={true}
             style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
           />
-          . Price starts at {LICENSE_MIN_PRICE}.{" "}
+          .<br />
+          Price starts at {LICENSE_MIN_PRICE}.{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
-            Apply your license to this project.
+            Apply your license to this project
           </a>
         </>
       );
@@ -183,7 +193,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         return (
           <span>
             {trial_project} You can improve hosting quality and get internet
-            access {renderComputeServer()} or {renderBuyAndUpgrade()}.
+            access {/* {renderComputeServer()} */} or {renderBuyAndUpgrade()}.
             <br />
             Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
             {"."}
@@ -251,20 +261,28 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       return null;
     }
 
+    function renderClose() {
+      return (
+        <Tag
+          style={{ marginTop: "10px", fontSize: style.fontSize }}
+          color="#faad14"
+        >
+          <Icon name="times" /> Dismiss
+        </Tag>
+      );
+    }
+
+    function renderCountDown() {
+      if (closable) return;
+
+      return <CountdownProject fontSize={style.fontSize} />;
+    }
+
     return (
       <Alert
         type="warning"
         closable={closable}
-        closeIcon={
-          closable ? (
-            <Tag
-              style={{ marginTop: "10px", fontSize: style.fontSize }}
-              color="#faad14"
-            >
-              <Icon name="times" /> Dismiss
-            </Tag>
-          ) : undefined
-        }
+        closeIcon={renderClose()}
         style={style}
         banner={true}
         showIcon={!closable || (internet && host)}
@@ -286,15 +304,16 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
                 padding: 0,
               }}
             >
+              {renderCountDown()}
               {renderMessage()} {renderLearnMore(style.color)}
             </Paragraph>
-            {showAddLicense && (
+            {showAddLicense ? (
               <BannerApplySiteLicense
                 project_id={project_id}
                 projectSiteLicenses={projectSiteLicenses}
                 setShowAddLicense={setShowAddLicense}
               />
-            )}
+            ) : undefined}
           </>
         }
       />
@@ -356,3 +375,137 @@ export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = (
     </>
   );
 };
+
+interface CountdownProjectProps {
+  fontSize: CSS["fontSize"];
+}
+
+function CountdownProject({ fontSize }: CountdownProjectProps) {
+  const { status, project, project_id, actions } = useProjectContext();
+  const limit_min = useTypedRedux("customize", "limit_free_project_uptime");
+  const [showInfo, setShowInfo] = useState<boolean>(false);
+  const openFiles = useTypedRedux({ project_id }, "open_files_order");
+  const triggered = useRef<boolean>(false);
+  const update = useForceUpdate();
+
+  useEffect(() => {
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (
+    status.get("state") !== "running" ||
+    project == null ||
+    limit_min == null ||
+    limit_min <= 0
+  ) {
+    return null;
+  }
+
+  // start_ts is e.g. 1508576664416
+  const start_ts = project.getIn(["status", "start_ts"]);
+  if (start_ts == undefined) return null;
+
+  const shutdown_ts = start_ts + 1000 * 60 * limit_min;
+  const countdown = shutdown_ts - server_time().getTime();
+  const countdwon0 = countdown > 0 ? countdown : 0;
+
+  if (countdown < 0 && !triggered.current) {
+    triggered.current = true;
+
+    // This closes all tabs and then stops the project.
+    openFiles.map((path) => actions?.close_tab(path));
+    redux.getActions("projects").stop_project(project_id);
+  }
+
+  function renderInfo() {
+    return (
+      <Modal
+        title={
+          <Space>
+            <Icon name="hand-stop" /> Automatic Project Shutdown
+          </Space>
+        }
+        open={showInfo}
+        onOk={() => open_new_tab(BUY_A_LICENSE_URL)}
+        onCancel={() => setShowInfo(false)}
+      >
+        <Paragraph>
+          <A href={"https://doc.cocalc.com/trial.html"}>Trial projects</A> have
+          a maximum uptime of {limit_min} minutes. After that period, the
+          project will stop and interrupt your work.
+        </Paragraph>
+        <Paragraph strong>
+          This shutdown timer only exists for projects without any upgrades!
+        </Paragraph>
+        <Alert
+          banner
+          type="info"
+          showIcon={false}
+          message={
+            <>
+              <Paragraph strong>
+                This is a call to support <SiteName /> by{" "}
+                <A href={BUY_A_LICENSE_URL}>purchasing a license</A>.
+              </Paragraph>
+              <Paragraph>
+                Behind this curtains,{" "}
+                <A href={"/about/team"}>humans are working hard</A> to keep the
+                service running and improving it constantly. Your files and
+                computations <A href={"/info/status"}>run in our cluster</A>,
+                which costs money as well.
+              </Paragraph>
+              <Paragraph>
+                <SiteName /> receives no funding from large venture captital
+                organizations or charitable foundations. The site depends
+                entirely <Text strong>on your financial support</Text> to
+                continue operating. Without your financial support this service
+                will not survive long-term!
+              </Paragraph>
+              <Paragraph>
+                <A
+                  href={
+                    "/support/new?hideExtra=true&type=purchase&subject=Support+CoCalc&title=Support+CoCalc"
+                  }
+                >
+                  Contact us
+                </A>{" "}
+                if you can give support in other ways.
+              </Paragraph>
+            </>
+          }
+        />
+      </Modal>
+    );
+  }
+
+  return (
+    <>
+      {renderInfo()}
+      <Tag
+        style={{
+          marginTop: "5px",
+          fontSize,
+          float: "right",
+          fontWeight: "bold",
+          color: COLORS.ANTD_RED,
+          cursor: "pointer",
+        }}
+        color={COLORS.GRAY_LL}
+        onClick={() => {
+          setShowInfo(true);
+          track("trial-banner", { what: "countdown", project_id });
+        }}
+      >
+        <TimeAmount
+          key={"time"}
+          amount={countdwon0}
+          compact={true}
+          showIcon={true}
+          countdown={countdwon0}
+          style={{ color: COLORS.ANTD_RED }}
+        />
+      </Tag>
+    </>
+  );
+}

@@ -14,13 +14,13 @@ import {
   PlayCircleTwoTone,
   StopTwoTone,
 } from "@ant-design/icons";
-import { redux, useForceUpdate } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { Button, Col, Modal, Row, TimePicker, Tooltip } from "antd";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { CSSProperties, useEffect, useState } from "react";
 
+import { redux, useForceUpdate } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components/icon";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -36,7 +36,7 @@ interface StopwatchProps {
   state: TimerState; // 'paused' or 'running' or 'stopped'
   time: number; // when entered this state
   countdown?: number; // if given, this is a countdown timer, counting down from this many seconds.
-  clickButton: (str: string) => void;
+  clickButton?: (str: string) => void;
   setLabel?: (str: string) => void;
   setCountdown?: (time: number) => void; // time in seconds
   compact?: boolean;
@@ -71,7 +71,7 @@ export default function Stopwatch(props: StopwatchProps) {
       >
         <Button
           icon={<PlayCircleTwoTone />}
-          onClick={() => props.clickButton("start")}
+          onClick={() => props.clickButton?.("start")}
           style={!props.compact ? { width: "8em" } : undefined}
         >
           {!props.compact ? "Start" : undefined}
@@ -98,7 +98,7 @@ export default function Stopwatch(props: StopwatchProps) {
       >
         <Button
           icon={<StopTwoTone />}
-          onClick={() => props.clickButton("reset")}
+          onClick={() => props.clickButton?.("reset")}
         >
           {!props.compact ? "Reset" : undefined}
         </Button>
@@ -126,7 +126,7 @@ export default function Stopwatch(props: StopwatchProps) {
                   time.second() + time.minute() * 60 + time.hour() * 60 * 60,
                 );
                 // timeout so the setcountdown can fully propagate through flux; needed for whiteboard
-                setTimeout(() => props.clickButton("reset"), 0);
+                setTimeout(() => props.clickButton?.("reset"), 0);
               }
             }}
             showNow={false}
@@ -152,7 +152,7 @@ export default function Stopwatch(props: StopwatchProps) {
       >
         <Button
           icon={<DeleteTwoTone />}
-          onClick={() => props.clickButton("delete")}
+          onClick={() => props.clickButton?.("delete")}
         >
           {!props.compact ? "Delete" : undefined}
         </Button>
@@ -165,7 +165,7 @@ export default function Stopwatch(props: StopwatchProps) {
       <Tooltip mouseEnterDelay={1} title="Pause the stopwatch">
         <Button
           icon={<PauseCircleTwoTone />}
-          onClick={() => props.clickButton("pause")}
+          onClick={() => props.clickButton?.("pause")}
           style={!props.compact ? { width: "8em" } : undefined}
         >
           {!props.compact ? "Pause" : undefined}
@@ -229,13 +229,13 @@ export default function Stopwatch(props: StopwatchProps) {
             }
             open
             onOk={() => {
-              props.clickButton("reset");
+              props.clickButton?.("reset");
               redux
                 .getProjectActions(frame.project_id)
                 ?.open_file({ path: frame.path });
             }}
             onCancel={() => {
-              props.clickButton("reset");
+              props.clickButton?.("reset");
             }}
           >
             {props.label && <StaticMarkdown value={props.label} />}
