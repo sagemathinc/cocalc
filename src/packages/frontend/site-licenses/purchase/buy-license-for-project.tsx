@@ -48,7 +48,11 @@ export const BuyLicenseForProject: React.FC<Props> = ({
 
   function renderBuyButton() {
     if (asLink) {
-      return <A href={url("store/site-license")}>{buyText}...</A>;
+      return (
+        <A href={url("store/site-license")} style={style}>
+          {buyText}
+        </A>
+      );
     }
     return (
       <Button
@@ -67,7 +71,11 @@ export const BuyLicenseForProject: React.FC<Props> = ({
 
   function renderVoucherButton() {
     if (asLink) {
-      return <A href={url("redeem")}>{voucherText}...</A>;
+      return (
+        <A href={url("redeem")} style={style}>
+          {voucherText}
+        </A>
+      );
     }
     return (
       <Button

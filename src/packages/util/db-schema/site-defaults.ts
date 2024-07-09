@@ -574,6 +574,7 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_int,
     valid: only_nonneg_int,
     show: only_cocalc_com,
+    to_display: (val) => `${val} minutes`,
   },
   datastore: {
     name: "Datastore",
