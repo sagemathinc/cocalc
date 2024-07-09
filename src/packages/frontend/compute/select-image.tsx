@@ -58,8 +58,7 @@ export default function SelectImage({
   useEffect(() => {
     setValue(configuration.image);
   }, [configuration.image]);
-  // [ ] TODO: MAYBE we should allow gpu/non-gpu options in
-  // all cases, but just suggest one or the other?
+
   const options = useMemo(() => {
     if (IMAGES == null || typeof IMAGES == "string") {
       return [];
@@ -105,10 +104,12 @@ export default function SelectImage({
         options={options}
         onChange={(val) => {
           setValue(val);
-          const x: any = { image: val };
+          const x = {
+            image: val,
+            tag: null,
+          };
           for (const option of options) {
             if (option.value == val) {
-              x.tag = option.tag;
               setDockerSizeGb(option.dockerSizeGb);
               break;
             }

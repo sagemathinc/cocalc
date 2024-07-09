@@ -1411,9 +1411,11 @@ function ensureConsistentImage(configuration, changes, IMAGES) {
   if (gpu && !gpuSelected) {
     // GPU image but non-GPU machine -- change image to non-GPU
     configuration["image"] = changes["image"] = "python";
+    configuration["tag"] = changes["tag"] = null;
   } else if (!gpu && gpuSelected) {
     // GPU machine but not image -- change image to pytorch
     configuration["image"] = changes["image"] = "pytorch";
+    configuration["tag"] = changes["tag"] = null;
   }
 }
 
