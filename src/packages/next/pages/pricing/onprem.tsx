@@ -16,9 +16,6 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { useRouter } from "next/router";
 
-const K8S_PRICE = "$5000";
-const K8S_PRICE_ACADEMIC = "$3000";
-
 export default function OnPrem({ customize }) {
   const { siteName } = customize;
   return (
