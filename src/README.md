@@ -192,7 +192,7 @@ There are two types of file system build caching. These greatly improve the time
 It is handy to have a user with admin rights in your dev cocalc server. With the database running you can make a `user@example.com` an admin as follows:
 
 ```sh
-~/cocalc/src$ pnpm run c
+~/cocalc/src$ pnpm install -D express && pnpm run c
 ...
 > db.make_user_admin({email_address:'user@example.com', cb:console.log})
 ...

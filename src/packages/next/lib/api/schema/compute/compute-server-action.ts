@@ -14,7 +14,8 @@ export const ComputeServerActionInputSchema = z
       .describe("Action to be performed on the compute server."),
   })
   .describe(
-    "Perform various action on a specific compute server (e.g., power off, deprovision, etc.).",
+    `Perform various actions on a specific compute server (e.g., power off, deprovision, 
+     etc.).`,
   );
 
 export const ComputeServerActionOutputSchema = z.union([
