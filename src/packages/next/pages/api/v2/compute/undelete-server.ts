@@ -7,12 +7,11 @@ import undeleteServer from "@cocalc/server/compute/undelete-server";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
-
+import { OkStatus } from "lib/api/status";
 import {
   UndeleteComputeServerInputSchema,
   UndeleteComputeServerOutputSchema,
 } from "lib/api/schema/compute/undelete-server";
-
 
 async function handle(req, res) {
   try {
@@ -33,14 +32,14 @@ async function get(req) {
     account_id,
     id,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   undeleteServer: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

@@ -1,6 +1,6 @@
 /*
 Confirming with a modal if necessary that a user has available
-funds for creating a cloud filesystem.
+funds for creating a cloud file system.
 */
 
 import { webapp_client } from "@cocalc/frontend/webapp-client";

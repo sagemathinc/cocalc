@@ -1023,11 +1023,9 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   gotoUser(account_id: string, frameId?: string) {
-    const locs = this._syncstring
-      .get_cursors({ maxAge: 0 })
-      ?.getIn([account_id, "locs"])
-      ?.toJS();
-    if (locs == null) return; // no info
+    const cursors = this._syncstring.get_cursors({ maxAge: 0 })?.toJS();
+    if (cursors == null) return; // no info
+    const locs = cursors[account_id]?.locs;
     for (const loc of locs) {
       if (loc.id != null) {
         this.scrollElementIntoView(loc.id, frameId);

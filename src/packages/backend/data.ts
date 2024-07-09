@@ -1,11 +1,11 @@
 /*
 Where Data is Stored:
 
-We centralize here determination of all directories on the filesystem
+We centralize here determination of all directories on the file system
 where data is stored for any of the components of CoCalc, run in any way.
 
 All information here must be determinable when this module is initialized,
-e.g., from environment variables or heuristics involving the filesystem.
+e.g., from environment variables or heuristics involving the file system.
 In particular, nothing here can be impacted by command line flags
 or content of a database.
 */

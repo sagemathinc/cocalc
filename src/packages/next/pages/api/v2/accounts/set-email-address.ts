@@ -15,6 +15,7 @@ import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { SuccessStatus } from "lib/api/status";
 import {
   SetAccountEmailAddressInputSchema,
   SetAccountEmailAddressOutputSchema,
@@ -29,7 +30,7 @@ async function handle(req, res) {
   const { email_address, password } = getParams(req);
   try {
     await setEmailAddress(account_id, email_address, password);
-    res.json({ status: "success" });
+    res.json(SuccessStatus);
   } catch (err) {
     if (err.message.includes("duplicate key")) {
       err = Error(

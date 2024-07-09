@@ -7,11 +7,11 @@ import setServerColor from "@cocalc/server/compute/set-server-color";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   SetComputeServerColorInputSchema,
-  SetComputeServerColorOutputSchema
+  SetComputeServerColorOutputSchema,
 } from "lib/api/schema/compute/set-server-color";
-
 
 async function handle(req, res) {
   try {
@@ -33,14 +33,14 @@ async function get(req) {
     id,
     color,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   setServerColor: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

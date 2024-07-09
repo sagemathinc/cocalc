@@ -1,6 +1,6 @@
 import { Range } from "slate";
 
-import { SyncString } from "@cocalc/sync/editor/string";
+import type { SyncString } from "@cocalc/sync/editor/string/sync";
 import { ReactEditor } from "./slate-react";
 
 export interface SlateEditor extends ReactEditor {

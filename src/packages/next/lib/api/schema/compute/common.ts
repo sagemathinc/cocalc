@@ -4,7 +4,7 @@ export const ComputeServerIdSchema = z
   .number()
   .int()
   .min(0)
-  .describe("Compute server id (or 0 for the shared resources)");
+  .describe("Compute server id (or 0 for your home base)");
 
 export const ComputeServerStateSchema = z
   .enum([

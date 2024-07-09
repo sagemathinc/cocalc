@@ -40,7 +40,7 @@ export class Watcher extends EventEmitter {
     L.debug(`${path}: interval=${interval}, debounce=${debounce}`);
     this.watcher = watch(this.path, {
       interval: this.interval,
-      // polling is critical for network mounted filesystems,
+      // polling is critical for network mounted file systems,
       // and given architecture of cocalc there is no easy way around this.
       // E.g., on compute servers, everything breaks involving sync or cloudfs,
       // and in shared project s3/gcsfuse/sshfs would all break. So we

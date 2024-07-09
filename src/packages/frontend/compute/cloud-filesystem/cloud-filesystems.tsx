@@ -1,5 +1,5 @@
 /*
-Component that shows a list of all cloud filesystems:
+Component that shows a list of all cloud file systems:
 
 - in a project
 - associated to an account
@@ -14,6 +14,8 @@ import { Button, Spin } from "antd";
 import CreateCloudFilesystem from "./create";
 import CloudFilesystem from "./cloud-filesystem";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
+import RefreshButton from "@cocalc/frontend/components/refresh";
 import { cmp } from "@cocalc/util/misc";
 import {
   SortableList,
@@ -81,7 +83,7 @@ export default function CloudFilesystems({ project_id }: Props) {
         updateIds(cloudFilesystems);
 
         if (!scheduledRefresh.current) {
-          // if a filesystem is currently being deleted, we refresh
+          // if a file system is currently being deleted, we refresh
           // again in 30s.
           for (const { deleting } of Object.values(cloudFilesystems)) {
             if (deleting) {
@@ -148,12 +150,12 @@ export default function CloudFilesystems({ project_id }: Props) {
 
   return (
     <div>
-      <Button style={{ position: "absolute", right: 0 }} onClick={refresh}>
-        <Icon name="refresh" />
-        Refresh{" "}
-        {refreshing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
-      </Button>
-      <h2 style={{ textAlign: "center" }}>Cloud Filesystems</h2>
+      <RefreshButton
+        refresh={refresh}
+        style={{ position: "absolute", right: 0 }}
+        refreshing={refreshing}
+      />
+      <h2 style={{ textAlign: "center" }}>Cloud File Systems</h2>
       <div style={{ textAlign: "center" }}>
         <Button
           href="https://youtu.be/zYoldE2yS3I"
@@ -163,9 +165,20 @@ export default function CloudFilesystems({ project_id }: Props) {
           <Icon name="youtube" style={{ color: "red" }} />
           Short Demo
         </Button>
-        <Button href="https://youtu.be/uk5eA5piQEo" target="_new">
+        <Button
+          href="https://youtu.be/uk5eA5piQEo"
+          target="_new"
+          style={{ marginRight: "15px" }}
+        >
           <Icon name="youtube" style={{ color: "red" }} />
-          Longer Demo
+          Long Demo
+        </Button>
+        <Button
+          href="https://doc.cocalc.com/cloud_file_system.html"
+          target="_new"
+        >
+          <Icon name="external-link" />
+          Docs
         </Button>
       </div>
       <p
@@ -176,18 +189,21 @@ export default function CloudFilesystems({ project_id }: Props) {
           color: "#666",
         }}
       >
-        CoCalc Cloud Filesystems are scalable distributed POSIX shared
-        filesystems with fast local caching. Use them simultaneously from all
-        compute servers in this project. There are no limits on how much data
-        you can store. You do not specify the size of a cloud filesystem in
-        advance. The cost per GB is typically much less than a compute server
-        disk, but you pay network usage and operations.
+        <A href="https://doc.cocalc.com/cloud_file_system.html">
+          CoCalc Cloud File Systems{" "}
+        </A>
+        are scalable distributed POSIX shared file systems with fast local
+        caching. Use them simultaneously from all compute servers in this
+        project. There are no limits on how much data you can store. You do not
+        specify the size of a cloud file system in advance. The cost per GB is
+        typically much less than a compute server disk, but you pay network
+        usage and operations.
       </p>
 
       <div style={{ margin: "5px 0" }}>
         {project_id
           ? ""
-          : "All Cloud Filesystems you own across your projects are listed below."}
+          : "All Cloud File Systems you own across your projects are listed below."}
       </div>
       <ShowError error={error} setError={setError} />
       {project_id != null && cloudFilesystems != null && (

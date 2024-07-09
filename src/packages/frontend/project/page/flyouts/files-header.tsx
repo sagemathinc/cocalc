@@ -449,7 +449,7 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
                   });
                 }}
                 title={
-                  "Open the filesystem snapshots of this project, which may also be helpful in recovering past versions."
+                  "Open the file system snapshots of this project, which may also be helpful in recovering past versions."
                 }
                 icon={<Icon name={"life-ring"} />}
               />

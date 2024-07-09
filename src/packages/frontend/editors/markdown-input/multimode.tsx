@@ -85,7 +85,9 @@ interface Props {
   submitMentionsRef?: SubmitMentionsRef;
   extraHelp?: ReactNode;
   hideHelp?: boolean;
-  saveDebounceMs?: number; // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
+  // debounce how frequently get updates from onChange; if saveDebounceMs=0 get them on every change.  Default is the global SAVE_DEBOUNCE_MS const.
+  // can be a little more frequent in case of shift or alt enter, or blur.
+  saveDebounceMs?: number;
   onBlur?: () => void;
   onFocus?: () => void;
   minimal?: boolean;

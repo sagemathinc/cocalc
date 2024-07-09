@@ -4,6 +4,7 @@ Let user get all of their purchase quotas.
 
 import getAccountId from "lib/account/get-account";
 import syncPaidInvoices from "@cocalc/server/purchases/sync-paid-invoices";
+import { OkStatus } from "lib/api/status";
 
 export default async function handle(req, res) {
   try {
@@ -20,5 +21,8 @@ async function get(req) {
     throw Error("must be signed in");
   }
   const count = await syncPaidInvoices(account_id);
-  return { status: "ok", count };
+  return {
+    ...OkStatus,
+    count,
+  };
 }

@@ -1,5 +1,5 @@
 /*
-Edit properties of cloud filesystem
+Edit properties of cloud file system
 */
 
 import getAccountId from "lib/account/get-account";

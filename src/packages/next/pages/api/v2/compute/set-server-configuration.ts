@@ -8,11 +8,11 @@ import setServerConfiguration from "@cocalc/server/compute/set-server-configurat
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { OkStatus } from "lib/api/status";
 import {
   SetServerConfigurationInputSchema,
-  SetServerConfigurationOutputSchema
+  SetServerConfigurationOutputSchema,
 } from "lib/api/schema/compute/set-server-configuration";
-
 
 async function handle(req, res) {
   try {
@@ -34,14 +34,14 @@ async function get(req) {
     id,
     configuration,
   });
-  return { status: "ok" };
+  return OkStatus;
 }
 
 export default apiRoute({
   setServerConfiguration: apiRouteOperation({
     method: "POST",
     openApiOperation: {
-      tags: ["Compute"]
+      tags: ["Compute"],
     },
   })
     .input({

@@ -7,6 +7,7 @@ import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { SuccessStatus } from "lib/api/status";
 import {
   SetAccountPasswordInputSchema,
   SetAccountPasswordOutputSchema,
@@ -21,7 +22,7 @@ async function handle(req, res) {
   const { currentPassword, newPassword } = getParams(req);
   try {
     await setPassword(account_id, currentPassword, newPassword);
-    res.json({ status: "success" });
+    res.json(SuccessStatus);
   } catch (err) {
     res.json({ error: err.message });
   }

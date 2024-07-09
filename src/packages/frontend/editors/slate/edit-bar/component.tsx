@@ -61,6 +61,7 @@ export const EditBar: React.FC<Props> = (props: Props) => {
         height: HEIGHT,
         display: "flex",
         flexDirection: "row",
+        overflow: "hidden",
         ...style,
       }}
     >

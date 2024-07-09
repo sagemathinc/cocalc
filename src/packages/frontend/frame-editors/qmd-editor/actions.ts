@@ -28,7 +28,7 @@ No PDF file has been generated.
 `;
 
 export class Actions extends MarkdownActions {
-  private _last_qmd_hash: string | null = null;
+  private _last_qmd_hash: number | undefined = undefined;
   private is_building: boolean = false;
   private run_qmd_converter: Function;
 

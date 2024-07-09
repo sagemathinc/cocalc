@@ -1,5 +1,5 @@
 /*
-For cloud filesystem purchases we have to do these things:
+For cloud file system purchases we have to do these things:
 
   - We periodically split long purchases so they don't exceed 1 day
 
@@ -112,7 +112,7 @@ async function computeBucketPurchaseCosts(bucketPurchases) {
   }
 }
 
-// Make sure every cloud filesystem that exists in the database
+// Make sure every cloud file system that exists in the database
 // has a corresponding active purchase associated to it.  There
 // should be no way that this is ever necessary, but for safety
 // and testing it is nice to do this, since not properly charging

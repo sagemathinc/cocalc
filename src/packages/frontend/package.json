@@ -155,7 +155,7 @@
     "sha1": "^1.1.1",
     "shallowequal": "^1.1.0",
     "shell-escape": "^0.2.0",
-    "slate": "^0.101.1",
+    "slate": "^0.103.0",
     "superb": "^3.0.0",
     "three-ancient": "npm:three@^0.78.0",
     "timeago": "^1.6.3",
@@ -198,6 +198,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc  --build && coffee  -m -c -o dist/ .",
+    "build-coffee": "pnpm exec coffee -m -c -o dist/ .",
     "tsc": "NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc  --watch  --pretty --preserveWatchOutput ",
     "test": "npx jest dist/",
     "prepublishOnly": "pnpm test",

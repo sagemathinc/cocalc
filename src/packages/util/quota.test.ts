@@ -719,7 +719,7 @@ describe("main quota functionality", () => {
   it("allow for much larger max_upgrades", () => {
     const site_settings = {
       max_upgrades: {
-        // taken from cocalc-cloud example configuration
+        // taken from cocalc-onprem example configuration
         memory: 32000,
         cores: 16,
       },
@@ -826,7 +826,7 @@ describe("main quota functionality", () => {
         cpu_oc: 1,
       },
       max_upgrades: {
-        // taken from cocalc-cloud example configuration
+        // taken from cocalc-onprem example configuration
         memory: 32000,
         memory_request: 32000,
         cores: 16,
@@ -873,7 +873,7 @@ describe("main quota functionality", () => {
         cpu_oc: 1,
       },
       max_upgrades: {
-        // taken from cocalc-cloud example configuration
+        // taken from cocalc-onprem example configuration
         memory: 32000,
         memory_request: 32000,
         cores: 16,

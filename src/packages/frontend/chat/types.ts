@@ -30,14 +30,30 @@ export interface MessageHistory {
 }
 
 export interface ChatMessage {
-  sender_id: string;
   event: "chat";
+  sender_id: string;
   history: MessageHistory[];
   date: Date | string; // string is used to create it
   reply_to?: string;
   generating?: boolean;
   editing?: { [author_id: string]: "FUTURE" | null };
   folding?: string[];
+}
+
+// this type isn't explicitly used anywhere yet, but the actual structure is and I just
+// wanted to document it.
+export interface Draft {
+  event: "draft";
+  // account_id of the user writing this draft
+  sender_id: string;
+  // ms since epoch when this draft was last edited.  This is used to show a message to
+  // other users that one user is writing a message.
+  active: number;
+  // date = 0 when composing an entirely new message
+  // data = -[timestamp in ms] of the message being replied to
+  date: number;
+  // input = string contents of current version of the message
+  input: "string";
 }
 
 export type ChatMessageTyped = TypedMap<{

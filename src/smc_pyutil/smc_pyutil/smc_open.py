@@ -9,7 +9,7 @@ MAX_FILES = 15
 
 # ROOT_SYMLINK is a symlink to / from somehow in the user's home directory.
 # This symlink should get created as part  of project startup, so that we can
-# treat all paths in the filesystem as being contained in the user's home direoctory.
+# treat all paths in the file system as being contained in the user's home direoctory.
 # This may be dumb but simplifies our code and is assumed in some places.
 #     ~$ ls -ls .smc/root
 #      0 lrwxrwxrwx 1 user user 1 Oct 22 23:00 .smc/root -> /

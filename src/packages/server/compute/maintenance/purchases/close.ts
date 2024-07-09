@@ -307,7 +307,7 @@ export async function closeAndContinueCloudStoragePurchase({
     return;
   }
 
-  // Filesystem does exist, so make new purchase too.
+  // File system does exist, so make new purchase too.
   // round time down to nearest hour since Google cloud does
   // purchase logging by hour intervals.
   now.setSeconds(0);
@@ -315,7 +315,7 @@ export async function closeAndContinueCloudStoragePurchase({
   const newPurchase = cloneDeep(purchase);
   newPurchase.time = now;
   newPurchase.period_start = now;
-  // the filesystem might have moded, so update project.   The project doesn't actually
+  // the file system might have moded, so update project.   The project doesn't actually
   // impact pricing or billing at all, so it's not crucial to handle this right when the
   // filesystem moves.
   newPurchase.project_id = cloudFilesystem.project_id;
@@ -328,7 +328,7 @@ export async function closeAndContinueCloudStoragePurchase({
 
   // Very important to do this as atomic transaction so we
   // don't end up with two simultaneous purchases, or purchase_id
-  // wrong in the cloud filesystem record.
+  // wrong in the cloud file system record.
 
   const client = await getTransactionClient();
   try {

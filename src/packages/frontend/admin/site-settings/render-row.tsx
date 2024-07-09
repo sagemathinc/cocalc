@@ -3,7 +3,7 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Button, Popover } from "antd";
+import { Alert, Button, Popover } from "antd";
 import { CSSProperties } from "react";
 
 import { Icon, LabeledRow, Markdown } from "@cocalc/frontend/components";
@@ -12,6 +12,7 @@ import { Config, RowType, Tag } from "@cocalc/util/db-schema/site-defaults";
 import { COLORS } from "@cocalc/util/theme";
 import { Data, IsReadonly } from "./types";
 import { RowEntry } from "./row-entry";
+import { RefreshImagesButton } from "@cocalc/frontend/compute/select-version";
 
 interface RenderRowProps {
   name: string;
@@ -150,6 +151,17 @@ export function RenderRow({
         clearable={conf.clearable}
         update={update}
       />
+      {name == "compute_servers_images_spec_url" && (
+        <div>
+          <RefreshImagesButton />
+          <Alert
+            showIcon
+            style={{ margin: "15px" }}
+            type="info"
+            message="Click the above button after updating the images spec URL to clear the cache."
+          />
+        </div>
+      )}
     </LabeledRow>
   );
 }

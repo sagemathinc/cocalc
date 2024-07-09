@@ -6,7 +6,13 @@ import getAccountId from "lib/account/get-account";
 import getPurchases from "@cocalc/server/purchases/get-purchases";
 import getParams from "lib/api/get-params";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import {
+  GetPurchasesInputSchema,
+  GetPurchasesOutputSchema,
+} from "lib/api/schema/purchases/get-purchases";
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -46,3 +52,24 @@ async function get(req) {
     no_statement,
   });
 }
+
+export default apiRoute({
+  getPurchases: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Purchases"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: GetPurchasesInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: GetPurchasesOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

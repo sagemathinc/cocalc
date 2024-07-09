@@ -247,6 +247,7 @@ export type SiteSettingsExtrasKeys =
   //  | "lambda_cloud_api_key"
   | "hyperstack_api_key"
   | "hyperstack_compute_servers_prefix"
+  | "hyperstack_compute_servers_markup_percentage"
   | "hyperstack_ssh_public_key"
   | "hyperstack_balance_alert_thresh"
   | "hyperstack_balance_alert_emails"
@@ -757,8 +758,8 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Compute Servers"],
   },
   compute_servers_markup_percentage: {
-    name: "Compute Servers -- Markup Percentage",
-    desc: "The markup percentage that we add to the cost we pay to the cloud service providers.  This accounts for maintenance, dev, servers, and *bandwidth* (which can be massive). For example, '30' would mean we add 30% to the price that the cloud service provides charge us for compute, and we currently gamble regarding bandwidth costs.",
+    name: "Compute Servers - Markup Percentage",
+    desc: "The default markup percentage that we add to the cost we pay to the cloud service providers.  This accounts for maintenance, dev, servers, and *bandwidth* (which can be massive). For example, '30' would mean we add 30% to the price that the cloud service provides charge us for compute, and we currently gamble regarding bandwidth costs.  There may be more customized pricing and markups for specific providers configured elsewhere.",
     default: "30",
     show: (conf) => only_commercial(conf) && compute_servers_enabled(conf),
     to_val: toFloat,
@@ -771,7 +772,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Hyperstack"],
   },
   hyperstack_compute_servers_prefix: {
     name: "Compute Servers: Hyperstack - Resource Prefix",
@@ -779,7 +780,16 @@ export const EXTRAS: SettingsExtras = {
     default: "cocalc",
     to_val: to_trimmed_str,
     show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Hyperstack"],
+  },
+  hyperstack_compute_servers_markup_percentage: {
+    name: "Compute Servers: Hyperstack - Markup Percentage",
+    desc: "Markup percentage specifically for hyperstack.  If not given (i.e., empty string), the global compute server markup is used.  This is always the markup on the public list price, and has nothing to do with negotiated wholesale pricing.",
+    default: "",
+    show: compute_servers_hyperstack_enabled,
+    to_val: to_trimmed_str,
+    valid: () => true,
+    tags: ["Compute Servers", "Hyperstack"],
   },
   hyperstack_ssh_public_key: {
     name: "Compute Servers: Hyperstack - Public SSH Key",
@@ -787,7 +797,7 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Hyperstack"],
   },
   hyperstack_balance_alert_thresh: {
     name: "Compute Servers: Hyperstack - Balance Alert Threshold",
@@ -795,14 +805,14 @@ export const EXTRAS: SettingsExtras = {
     default: "25",
     to_val: to_int,
     show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Hyperstack"],
   },
   hyperstack_balance_alert_emails: {
     name: "Compute Servers: Hyperstack - Balance Email Addresses",
     desc: "If your credit balance goes below your configured threshold, then these email addresses will get an alert message.  Separate addresses by commas.",
     default: "",
     show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Hyperstack"],
   },
 
   //   lambda_cloud_api_key: {
@@ -822,12 +832,12 @@ export const EXTRAS: SettingsExtras = {
   //   },
   google_cloud_service_account_json: {
     name: "Compute Servers: Google Cloud - Service Account Json",
-    desc: 'A Google Cloud [Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts) with the following IAM Roles: "Editor" (for compute servers) AND "Project IAM Admin" (for cloud filesystem).  This supports managing compute servers on Google Cloud, and you must (1) [enable the Compute Engine API](https://console.cloud.google.com/apis/library/compute.googleapis.com) and [the Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com) for this Google Cloud project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
+    desc: 'A Google Cloud [Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts) with the following IAM Roles: "Editor" (for compute servers) AND "Project IAM Admin" (for cloud file system).  This supports managing compute servers on Google Cloud, and you must (1) [enable the Compute Engine API](https://console.cloud.google.com/apis/library/compute.googleapis.com) and [the Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com) for this Google Cloud project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
     default: "",
     multiline: 5,
     password: true,
     show: compute_servers_google_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Google Cloud"],
   },
   google_cloud_bigquery_billing_service_account_json: {
     name: "Compute Servers: Google Cloud BigQuery Service Account Json",
@@ -836,7 +846,7 @@ export const EXTRAS: SettingsExtras = {
     multiline: 5,
     password: true,
     show: compute_servers_google_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Google Cloud"],
   },
   google_cloud_bigquery_detailed_billing_table: {
     name: "Compute Servers: Google Cloud Detailed Billing BigQuery Table Name",
@@ -845,7 +855,7 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
     valid: (x) => !x || x.includes(".detailed_billing."),
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Google Cloud"],
   },
   google_cloud_compute_servers_prefix: {
     name: "Compute Servers: Google Cloud - Resource Prefix",
@@ -853,7 +863,7 @@ export const EXTRAS: SettingsExtras = {
     default: "compute",
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Google Cloud"],
     valid: () => true,
   },
   google_cloud_compute_servers_image_prefix: {
@@ -862,7 +872,7 @@ export const EXTRAS: SettingsExtras = {
     default: "cocalc",
     to_val: to_trimmed_str,
     show: compute_servers_google_enabled,
-    tags: ["Compute Servers"],
+    tags: ["Compute Servers", "Google Cloud"],
     valid: () => true,
   },
 

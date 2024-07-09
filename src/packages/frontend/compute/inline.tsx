@@ -59,7 +59,7 @@ export default function ComputeServer({
     }
     if (!id) {
       setServer({
-        title: "Default Shared Resources",
+        title: "Home Base",
         color: PROJECT_COLOR,
         project_specific_id: 0,
       });

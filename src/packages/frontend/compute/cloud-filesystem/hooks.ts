@@ -28,7 +28,7 @@ export function useCloudFilesystem({
         return;
       }
       if (v.length != 1) {
-        setError(`no cloud filesystem with global id ${cloud_filesystem_id}`);
+        setError(`no cloud file system with global id ${cloud_filesystem_id}`);
       } else {
         setFilesystem(v[0]);
       }

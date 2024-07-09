@@ -1,5 +1,5 @@
 /*
-Get cloud filesystems -- suitable for frontend user clients (e.g., don't include secret_key)
+Get cloud file systems -- suitable for frontend user clients (e.g., don't include secret_key)
 */
 
 import getPool from "@cocalc/database/pool";
@@ -21,7 +21,7 @@ export async function userGetCloudFilesystems(opts: {
 }): Promise<CloudFilesystem[]> {
   logger.debug("userGetCloudFilesystem", opts);
   if (FIELDS == null) {
-    throw Error("cloud filesystems not properly configured");
+    throw Error("cloud file systems not properly configured");
   }
   const { conditions, params, checkCollab } = await getConditions(opts);
   const query = `SELECT ${FIELDS.join(
@@ -38,7 +38,7 @@ export async function userGetCloudFilesystems(opts: {
         }))
       ) {
         throw Error(
-          `you must be a collaborator on the project that contains cloud filesystem ${row.id}`,
+          `you must be a collaborator on the project that contains cloud file system ${row.id}`,
         );
       }
     }

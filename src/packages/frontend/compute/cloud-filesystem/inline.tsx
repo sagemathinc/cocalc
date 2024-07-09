@@ -17,11 +17,11 @@ export default function InlineCloudFilesystem({
   });
 
   if (cloudFilesystem == null) {
-    return <span>Cloud Filesystem</span>;
+    return <span>Cloud File System</span>;
   }
   return (
     <span>
-      Cloud Filesystem{" "}
+      Cloud File System{" "}
       <span
         style={{
           backgroundColor: cloudFilesystem.color,

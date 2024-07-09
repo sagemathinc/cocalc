@@ -105,7 +105,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   public project_id: string;
   public store: Store<LatexEditorState>;
   private _last_sagetex_hash: string;
-  private _last_syncstring_hash: string | undefined;
+  private _last_syncstring_hash: number | undefined;
   private is_building: boolean = false;
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
@@ -202,11 +202,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-
   private is_likely_master(): boolean {
     if (this.not_ready()) return false;
     const s = this._syncstring.to_str();
-    return s && s.indexOf("\\document") != -1;
+    return s != null && s.indexOf("\\document") != -1;
   }
 
   private init_latexmk(): void {

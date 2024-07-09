@@ -1,4 +1,5 @@
 import { capitalize } from "@cocalc/util//misc";
+import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 export function editModalStyle(cloudFilesystem) {
   return {
@@ -10,29 +11,30 @@ export function editModalStyle(cloudFilesystem) {
   };
 }
 
+// Price returned from this includes markup
 export function getDataStoragePriceRange({
-  prices,
+  priceData,
   bucket_location,
   bucket_storage_class,
 }): { min: number | null; max: number | null } {
-  if (prices == null) {
+  if (priceData == null) {
     return { min: null, max: null };
   }
   if (bucket_storage_class.startsWith("autoclass")) {
     const min = getDataStoragePrice({
-      prices,
+      priceData,
       bucket_location,
       bucket_storage_class: bucket_storage_class.split("-")[1],
     });
     const max = getDataStoragePrice({
-      prices,
+      priceData,
       bucket_location,
       bucket_storage_class: "standard",
     });
     return { min, max };
   } else {
     const price = getDataStoragePrice({
-      prices,
+      priceData,
       bucket_location,
       bucket_storage_class,
     });
@@ -40,21 +42,43 @@ export function getDataStoragePriceRange({
   }
 }
 
+// Price returned from this includes markup
 export function getDataStoragePrice({
-  prices,
+  priceData,
   bucket_location,
   bucket_storage_class,
 }): number | null {
-  if (prices == null) {
+  if (priceData == null) {
     return null;
   }
+  let cost;
   if (!bucket_location.includes("-")) {
-    return prices.storage?.atRest?.multiRegions?.[bucket_location]?.[
-      capitalize(bucket_storage_class)
-    ];
+    cost =
+      priceData.storage?.atRest?.multiRegions?.[bucket_location]?.[
+        capitalize(bucket_storage_class)
+      ];
   } else {
-    return prices.storage?.atRest?.regions?.[bucket_location]?.[
-      capitalize(bucket_storage_class)
-    ];
+    cost =
+      priceData.storage?.atRest?.regions?.[bucket_location]?.[
+        capitalize(bucket_storage_class)
+      ];
   }
+  return markup({
+    cost,
+    priceData,
+  });
+}
+
+const alpha = "abcdefghijklmnopqrstuvwxyz".split("");
+export function getCity({ region, priceData }) {
+  if (priceData?.zones == null) {
+    return "";
+  }
+  for (const x of alpha) {
+    const z = priceData.zones[`${region}-${x}`];
+    if (z != null) {
+      return z.location.split(",")[1].trim();
+    }
+  }
+  return "";
 }

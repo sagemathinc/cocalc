@@ -167,29 +167,34 @@ export default function SelectServer({
             sort: "project",
             state: "",
             label: (
-              <div
-                style={{
-                  background: PROJECT_COLOR,
-                  color: avatar_fontcolor(PROJECT_COLOR),
-                  padding: "0 5px",
-                  borderRadius: "3px",
-                }}
+              <Tooltip
+                title="The Home Base is the core of your project; it contains your primary files and has limited compute resources to work with them. You can upgrade it using a license.  For GPUs, high end CPUs, and root access use a compute server."
+                placement="right"
               >
-                {value != 0 ? (
-                  <div>
+                <div
+                  style={{
+                    background: PROJECT_COLOR,
+                    color: avatar_fontcolor(PROJECT_COLOR),
+                    padding: "0 5px",
+                    borderRadius: "3px",
+                  }}
+                >
+                  {value != 0 ? (
                     <div>
-                      <Icon name="edit" /> Shared Resources
+                      <div>
+                        <Icon name="edit" /> Home Base
+                      </div>
+                      <div style={{ marginLeft: "15px" }}>
+                        <Icon name="users" /> Standard image
+                      </div>
                     </div>
-                    <div style={{ marginLeft: "15px" }}>
-                      <Icon name="users" /> Standard image
+                  ) : (
+                    <div style={{ padding: "5px 15px" }}>
+                      <Icon name="edit" /> Home Base
                     </div>
-                  </div>
-                ) : (
-                  <div>
-                    <Icon name="edit" /> Shared Resources
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </Tooltip>
             ),
           },
         ],
@@ -267,9 +272,7 @@ export default function SelectServer({
       title={
         title ??
         `This is open ${
-          !value
-            ? "on the default shared resources"
-            : `on compute server ${value}`
+          !value ? "in your home base" : `on compute server ${value}`
         }.`
       }
     >

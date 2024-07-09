@@ -18,8 +18,7 @@ import {
 } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Entries } from "type-fest";
-
-import { CSS, useAsyncEffect } from "@cocalc/frontend/app-framework";
+import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { A, Paragraph, RawPrompt, Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
@@ -38,7 +37,6 @@ import track from "@cocalc/frontend/user-tracking";
 import { LLMTools } from "@cocalc/jupyter/types";
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { capitalize, getRandomColor, unreachable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "../browser-actions";
 import { CODE_BAR_BTN_STYLE } from "../consts";
 import { cellOutputToText } from "../output-messages/ansi";
@@ -48,7 +46,6 @@ interface Props {
   id: string;
   style?: CSSProperties;
   llmTools?: LLMTools;
-  is_current?: boolean;
 }
 
 const CONTENT_WIDTH = 600;
@@ -213,7 +210,6 @@ export function LLMCellTool({
   id,
   style,
   llmTools,
-  is_current,
 }: Props) {
   const { actions: project_actions, onCoCalcCom } = useProjectContext();
   const { project_id, path } = useFrameContext();
@@ -388,13 +384,6 @@ export function LLMCellTool({
   }
 
   function renderDropdown() {
-    const txtStyle: CSS = is_current
-      ? {
-          color: COLORS.AI_ASSISTANT_FONT,
-          fontWeight: "bold",
-        }
-      : {};
-
     return (
       <Dropdown
         trigger={["click"]}
@@ -406,7 +395,8 @@ export function LLMCellTool({
                 key: mode,
                 label: (
                   <Tooltip title={action.descr} placement={"left"}>
-                    <Icon name={action.icon} /> {capitalize(mode)}
+                    <Icon name={action.icon} style={{ marginRight: "5px" }} />{" "}
+                    {capitalize(mode)}
                   </Tooltip>
                 ),
                 onClick: () => setMode(mode as Mode),
@@ -415,22 +405,16 @@ export function LLMCellTool({
           ),
         }}
       >
-        <Tooltip title="Use AI assistance on this cell">
+        <Tooltip title="Use AI assitant on this cell">
           <Button
             disabled={isQuerying}
             type="text"
             size="small"
             style={CODE_BAR_BTN_STYLE}
-            icon={
-              <AIAvatar
-                size={14}
-                style={{ top: "1px" }}
-                iconColor={is_current ? COLORS.AI_ASSISTANT_FONT : undefined}
-              />
-            }
+            icon={<AIAvatar size={14} style={{ top: "1px" }} />}
           >
             <Space size="small">
-              <span style={txtStyle}>Tools</span>
+              Assistant
               <Icon name="angle-down" />
             </Space>
           </Button>

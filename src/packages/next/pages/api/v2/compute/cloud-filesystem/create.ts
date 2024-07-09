@@ -1,5 +1,5 @@
 /*
-Create a cloud filesystem
+Create a cloud file system
 */
 
 import getAccountId from "lib/account/get-account";

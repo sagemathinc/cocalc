@@ -23,9 +23,9 @@ pnpm build
   - You \(and collabs\) can then use this power from cocalc on your laptop.
 - A web browser with WebGPU [providing PyTorch](https://praeclarum.org/2023/05/19/webgpu-torch.html) \(say\).
 
-## The filesystem
+## The File System
 
-The filesystem from the project will get mounted via [WebSocketFS](https://github.com/sagemathinc/websocketfs). This will initially only be for FUSE, but later could also use WASI in the browser.
+The file system from the project will get mounted via [WebSocketFS](https://github.com/sagemathinc/websocketfs). This will initially only be for FUSE, but later could also use WASI in the browser.
 
 ## Status
 

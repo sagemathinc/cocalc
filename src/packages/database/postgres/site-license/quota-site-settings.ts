@@ -11,7 +11,7 @@ export async function getQuotaSiteSettings(): Promise<
   SiteSettingsQuotas | undefined
 > {
   const allSettings = await getServerSettings();
-  // default_quotas and max_upgrades only play a role for cocalc-cloud
+  // default_quotas and max_upgrades only play a role for cocalc-onprem
   // it's fine to pass down "undefined" to the quota calculation function
   if (allSettings.kucalc === KUCALC_ON_PREMISES) {
     return {

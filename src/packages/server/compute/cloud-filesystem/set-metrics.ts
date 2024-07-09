@@ -40,7 +40,7 @@ export default async function setMetrics(opts: {
     [cloud_filesystem_id, project_id],
   );
   if (rows[0].count != 1) {
-    throw Error("cloud filesystem must be mounted on the given project");
+    throw Error("cloud file system must be mounted on the given project");
   }
   // Of course, the client could put nonsense data in here or the wrong compute server id.
   // That's fine and part of our security model -- we use this data entirely to provide realtime
@@ -97,7 +97,7 @@ export async function computeCurrentConfiguration({
   bucket_storage_class: string;
   compute_server_location: string;
 }> {
-  // use "long" caching since the cloud filesystem and compute server
+  // use "long" caching since the cloud file system and compute server
   // do not move very often (and again, this is mainly for insight and consistency)
   const pool = getPool("long");
   const {
@@ -130,7 +130,7 @@ export async function computeCurrentConfiguration({
   );
   if (cloud_filesystem == null) {
     throw Error(
-      `no cloud filesystem with id ${cloud_filesystem_id} in project ${project_id}`,
+      `no cloud file system with id ${cloud_filesystem_id} in project ${project_id}`,
     );
   }
   const { bucket_location, bucket_storage_class } = cloud_filesystem;

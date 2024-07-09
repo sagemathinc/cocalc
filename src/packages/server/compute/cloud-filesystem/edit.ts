@@ -1,5 +1,5 @@
 /*
-Edit a cloud filesystem definition.
+Edit a cloud file system definition.
 */
 
 import getPool from "@cocalc/database/pool";
@@ -44,7 +44,7 @@ export async function userEditCloudFilesystem(
   if (cloudFilesystem.account_id != account_id) {
     const { name, email_address } = await getUser(account_id);
     throw Error(
-      `only the owner of the cloud filesystem can edit it -- this volume is owned by ${name} - ${email_address}`,
+      `only the owner of the cloud file system can edit it -- this volume is owned by ${name} - ${email_address}`,
     );
   }
 
@@ -58,7 +58,7 @@ export async function userEditCloudFilesystem(
     }
     if (!FIELDS.has(field)) {
       throw Error(
-        `cannot change field '${field}' of cloud filesystem after it is created'`,
+        `cannot change field '${field}' of cloud file system after it is created'`,
       );
     }
   }
@@ -72,7 +72,7 @@ export async function userEditCloudFilesystem(
     for (const field in changes) {
       if (!CHANGE_MOUNTED.has(field)) {
         throw Error(
-          `can only change '${field}' when cloud filesystem is not mounted - ${JSON.stringify(
+          `can only change '${field}' when cloud file system is not mounted - ${JSON.stringify(
             changes,
           )}`,
         );
@@ -86,7 +86,7 @@ export async function userEditCloudFilesystem(
       !(await isCollaborator({ project_id: changes.project_id, account_id }))
     ) {
       throw Error(
-        "can only move cloud filesystem to a project that user is a collaborator on",
+        "can only move cloud file system to a project that user is a collaborator on",
       );
     }
     // also when moving to a different project we have to re-allocate

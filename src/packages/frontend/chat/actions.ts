@@ -448,10 +448,18 @@ export class ChatActions extends Actions<ChatState> {
     sender_id: string | undefined = undefined,
   ) {
     if (!this.syncdb) return;
+    sender_id = sender_id ?? this.redux.getStore("account").get_account_id();
+    // date should always be negative for drafts (stupid, but that's the code),
+    // so I'm just deleting both for now.
     this.syncdb.delete({
       event: "draft",
-      sender_id: sender_id ?? this.redux.getStore("account").get_account_id(),
+      sender_id,
       date,
+    });
+    this.syncdb.delete({
+      event: "draft",
+      sender_id,
+      date: -date,
     });
     if (commit) {
       this.syncdb.commit();
@@ -833,9 +841,12 @@ export class ChatActions extends Actions<ChatState> {
     // submit question to the given language model
     const id = uuid();
     this.chatStreams.add(id);
-    setTimeout(() => {
-      this.chatStreams.delete(id);
-    }, 3 * 60 * 1000);
+    setTimeout(
+      () => {
+        this.chatStreams.delete(id);
+      },
+      3 * 60 * 1000,
+    );
 
     // construct the LLM history for the given thread
     const history = reply_to ? this.getLLMHistory(reply_to) : undefined;

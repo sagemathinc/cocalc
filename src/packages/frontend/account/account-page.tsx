@@ -225,7 +225,7 @@ export const AccountPage: React.FC = () => {
         key: "cloud-filesystems",
         label: (
           <>
-            <Icon name="disk-round" /> Cloud Filesystems
+            <Icon name="disk-round" /> Cloud File Systems
           </>
         ),
         children: <CloudFilesystems />,

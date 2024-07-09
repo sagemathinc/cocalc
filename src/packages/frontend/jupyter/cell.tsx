@@ -256,12 +256,26 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
       borderLeft: `10px solid ${color}`,
       borderRight: `10px solid ${color}`,
       borderRadius: "10px",
-      padding: "2px",
-      // The bigger top margin when in fully read only mode (no props.actions, e.g., timetravel view)
-      // is to deal with the fact that the insert cell bar isn't rendered, but some of the controls off
-      // to the right assume it is.
-      margin: props.actions != null ? "10px 15px 2px 5px" : "20px 15px 2px 5px",
       position: "relative",
+      // The bigger top margin when in fully read only mode (no props.actions,
+      // e.g., timetravel view) is to deal with the fact that the insert cell
+      // bar isn't rendered, but some of the controls off
+      // to the right assume it is.
+      // The bigger BOTTOM margin when no output is because otherwise the big
+      // top margin makes things look very weirdly unbalanced.
+      ...(props.cell.get("output") || props.actions == null
+        ? {
+            padding: "2px",
+            margin:
+              props.actions != null ? "10px 15px 2px 5px" : "20px 15px 2px 5px",
+          }
+        : {
+            padding: "2px 2px 15px 2px",
+            margin:
+              props.actions != null
+                ? "10px 15px -15px 5px"
+                : "20px 15px -15px 5px",
+          }),
     };
 
     if (props.is_selected) {
