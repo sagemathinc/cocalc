@@ -51,17 +51,17 @@ const COST = {
   },
 
   2: {
-    SUB_DISCOUNT: { no: 1, monthly: 0.85, yearly: 0.8 },
+    SUB_DISCOUNT: { no: 1, monthly: 0.85, yearly: 0.75 },
     GCE_COSTS: {
-      ram: 0.67,
+      ram: 0.7,
       cpu: 5,
-      disk: 0.05,
+      disk: 0.1,
       non_pre_factor: 3.5,
     },
-    COST_MULTIPLIER: 1.2,
+    COST_MULTIPLIER: 1,
     NONMEMBER_DENSITY: 2,
     ACADEMIC_DISCOUNT: 0.6,
-    DISK_FACTOR: 20,
+    DISK_FACTOR: 10,
     RAM_OVERCOMMIT: 5,
     CPU_OVERCOMMIT: 10,
     ALWAYS_RUNNING_FACTOR: 2,

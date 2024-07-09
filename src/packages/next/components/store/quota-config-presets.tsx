@@ -47,7 +47,7 @@ type PresetEntries = {
 
 // some constants to keep text and preset in sync
 const STANDARD_CPU = 1;
-const STANDARD_RAM = 3;
+const STANDARD_RAM = 4;
 const LARGE_RAM = 8;
 const STANDARD_DISK = 3;
 
