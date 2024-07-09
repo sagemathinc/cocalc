@@ -24,9 +24,8 @@ export default function Statements({
   defaultExpandAllRows,
 }: Props) {
   const [statements, setStatements] = useState<Statement[] | null>(null);
-  const [error, setError] = useState<any>("");
+  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-
   const refresh = async () => {
     try {
       setLoading(true);
@@ -112,19 +111,24 @@ export default function Statements({
     { title: "ID", dataIndex: "id", key: "id" },
   ];
 
-  if (loading) {
-    return <Spin />;
-  }
   const adjective = interval == "day" ? "daily" : "monthly";
   return (
     <div style={{ minHeight: "50px" }}>
       {!noRefresh && (
-        <Refresh refresh={refresh} style={{ marginBottom: "8px" }} />
+        <Refresh
+          refresh={refresh}
+          style={{ marginBottom: "8px", float: "right" }}
+        />
       )}
       {interval == "day" && (
         <EmailDailyStatements style={{ marginLeft: "30px" }} />
       )}
       <ShowError error={error} setError={setError} />
+      {loading && (
+        <div style={{ margin: "0 15px" }}>
+          <Spin />
+        </div>
+      )}
       {statements != null && statements?.length > 0 && (
         <Table
           rowKey="id"
