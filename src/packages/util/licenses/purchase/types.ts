@@ -54,6 +54,10 @@ import type { Uptime } from "@cocalc/util/consts/site-license";
 import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import type { CustomDescription, Period } from "../../upgrades/shopping";
 
+interface Version {
+  version?: string; // it's just a string with no special interpretation.
+}
+
 interface PurchaseInfoQuota0 {
   type: "quota";
   user: User;
@@ -77,7 +81,8 @@ interface PurchaseInfoQuota0 {
   run_limit?: number;
 }
 
-export type PurchaseInfoQuota = PurchaseInfoQuota0 &
+export type PurchaseInfoQuota = Version &
+  PurchaseInfoQuota0 &
   CustomDescription &
   StartEndDates;
 

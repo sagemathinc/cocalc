@@ -8,7 +8,7 @@ import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
 } from "@cocalc/util/consts/site-license";
-import { BASIC, COSTS, GCE_COSTS, MAX, STANDARD } from "./consts";
+import { BASIC, getCosts, MAX, STANDARD } from "./consts";
 import { dedicatedPrice } from "./dedicated-price";
 import { Cost, PurchaseInfo } from "./types";
 
@@ -22,6 +22,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
   }
 
   let {
+    version,
     quantity,
     user,
     upgrade,
@@ -35,8 +36,6 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_uptime,
   } = info;
 
-  // at this point, we assume the start/end dates are already
-  // set to the start/end time of a day in the user's timezone.
   const start = info.start ? new Date(info.start) : undefined;
   const end = info.end ? new Date(info.end) : undefined;
 
@@ -45,7 +44,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
     throw new Error(`unknown user ${user}`);
   }
 
-  // this is set in the next if/else block
+  // custom_always_running is set in the next if/else block
   let custom_always_running = false;
   if (upgrade == "standard") {
     // set custom_* to what they would be:
@@ -77,6 +76,8 @@ export function compute_cost(info: PurchaseInfo): Cost {
     custom_member = true;
   }
 
+  const COSTS = getCosts(version);
+
   // We compute the cost for one project for one month.
   // First we add the cost for RAM and CPU.
   let cost_per_project_per_month =
@@ -93,7 +94,7 @@ export function compute_cost(info: PurchaseInfo): Cost {
       // always on non-member means it gets restarted whenever the
       // pre-empt gets killed, which is still potentially very useful
       // for long-running computations that can be checkpointed and started.
-      cost_per_project_per_month *= GCE_COSTS.non_pre_factor;
+      cost_per_project_per_month *= COSTS.gce.non_pre_factor;
     }
   } else {
     // multiply by the idle_timeout factor
