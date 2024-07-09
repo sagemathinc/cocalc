@@ -10,8 +10,23 @@ import {
 } from "@cocalc/util/consts/site-license";
 import { BASIC, getCosts, MAX, STANDARD } from "./consts";
 import { dedicatedPrice } from "./dedicated-price";
-import { Cost, PurchaseInfo } from "./types";
+import type { Cost, PurchaseInfo } from "./types";
 
+// NOTE: the PurchaseInfo object optionally has a "version" field in it.
+// If the version is not specified, then it defaults to "1", which is the version
+// when we started versioning prices.  If it is something else, then different
+// cost parameters may be used in the algorithm below -- that's what's currently
+// implemented.  However... maybe we want a new cost function entirely?  That's
+// possible too:
+//    - just call a new function for your new version below (that's the easy part), and
+//    - there is frontend and other UI code that depends on the structure exported
+//      by contst.ts, and anything that uses that MUST be updated accordingly.  E.g.,
+//      there are tables with example costs for various scenarios, stuff about academic
+//      discounts, etc., and a completely different cost function would need to explain
+//      all that differently to users.
+// OBVIOUSLY: NEVER EVER CHANGE the code or parameters that compute the value of
+// a specific version of a license!  If you make any change, then you must assign a
+// new version number and also keep the old version around.
 export function compute_cost(info: PurchaseInfo): Cost {
   if (info.type === "disk" || info.type === "vm") {
     return compute_cost_dedicated(info);

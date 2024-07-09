@@ -1,0 +1,103 @@
+import { compute_cost } from "./compute-cost";
+import { round2up } from "@cocalc/util/misc";
+
+describe("use the compute-cost function with v1 pricing, no version, and a test version to compute the price of a license", () => {
+  // This is a monthly business subscription for 3 projects with 1 cpu, 2 GB ram and 3 GB disk,
+  // using v1 pricing.  On the website right now it says this should cost:
+  //   "Cost: USD $27.15 monthly USD $9.05 per project"
+  const monthly1 = 27.15;
+  const info1 = {
+    version: "1",
+    end: new Date("2024-01-06T22:00:02.582Z"),
+    type: "quota",
+    user: "business",
+    boost: false,
+    start: new Date("2023-12-05T17:15:55.781Z"),
+    upgrade: "custom",
+    quantity: 3,
+    account_id: "6aae57c6-08f1-4bb5-848b-3ceb53e61ede",
+    custom_cpu: 1,
+    custom_ram: 2,
+    custom_disk: 3,
+    subscription: "monthly",
+    custom_member: true,
+    custom_uptime: "short",
+    custom_dedicated_cpu: 0,
+    custom_dedicated_ram: 0,
+  } as const;
+
+  it("computes the cost", () => {
+    const cost1 = compute_cost(info1);
+    expect(round2up(cost1.cost_sub_month * cost1.quantity)).toBe(monthly1);
+  });
+
+  it("computes correct cost when version not given (since version 1 is the default)", () => {
+    const info = { ...info1 };
+    // @ts-ignore
+    delete info["version"];
+    const cost = compute_cost(info);
+    expect(round2up(cost.cost_sub_month * cost.quantity)).toBe(monthly1);
+  });
+
+  it("computes correct cost with a different version of pricing params", () => {
+    const info = { ...info1 };
+    // @ts-ignore
+    info.version = "test_1";
+    const cost = compute_cost(info);
+    expect(round2up(cost.cost_sub_month * cost.quantity)).toBe(54.29);
+  });
+});
+
+describe("a couple more consistency checks with prod", () => {
+  // each price below comes from just configuring this on prod
+
+  it("computes the cost of a yearly academic license sub", () => {
+    const yearly = 306.98; // from prod store
+    const info = {
+      version: "1",
+      end: new Date("2024-01-06T22:00:02.582Z"),
+      type: "quota",
+      user: "academic",
+      boost: false,
+      start: new Date("2023-12-05T17:15:55.781Z"),
+      upgrade: "custom",
+      quantity: 3,
+      account_id: "6aae57c6-08f1-4bb5-848b-3ceb53e61ede",
+      custom_cpu: 2,
+      custom_ram: 2,
+      custom_disk: 3,
+      subscription: "yearly",
+      custom_member: true,
+      custom_uptime: "short",
+      custom_dedicated_cpu: 0,
+      custom_dedicated_ram: 0,
+    } as const;
+    const cost = compute_cost(info);
+    expect(round2up(cost.cost_sub_year * cost.quantity)).toBe(yearly);
+  });
+
+  it("computes the cost of a specific period academic license", () => {
+    const amount = 29.61; // from prod store
+    const info = {
+      version: "1",
+      start: new Date("2024-08-01T00:00:00.000Z"),
+      type: "quota",
+      user: "academic",
+      boost: false,
+      end: new Date("2024-08-31T00:00:00.000Z"),
+      upgrade: "custom",
+      quantity: 3,
+      account_id: "6aae57c6-08f1-4bb5-848b-3ceb53e61ede",
+      custom_cpu: 2,
+      custom_ram: 2,
+      custom_disk: 3,
+      subscription: "no",
+      custom_member: true,
+      custom_uptime: "short",
+      custom_dedicated_cpu: 0,
+      custom_dedicated_ram: 0,
+    } as const;
+    const cost = compute_cost(info);
+    expect(round2up(cost.cost)).toBe(amount);
+  });
+});

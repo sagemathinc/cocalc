@@ -3,6 +3,10 @@
 // the value of any existing licenses.  For pay-as-you-go, on the other hand, the charges
 // are always short live and ephemeral, and the parameters for them are in the database.
 
+// OBVIOUSLY: NEVER EVER CHANGE the existing parameters that define the value of
+// a specific released version of a license!  If you make any change, then you must assign a
+// new version number and also keep the old version around!!!!
+
 const COST = {
   1: {
     // Subscription discount
@@ -43,6 +47,24 @@ const COST = {
     // projects that are not always on, are off much of the time (at least 50%).
     // We use this factor since a 50-simultaneous active projects license could
     // easily be used about half of the time during a week in a large class.
+    ALWAYS_RUNNING_FACTOR: 2,
+  },
+
+  // this version is PURELY for testing purposes
+  test_1: {
+    SUB_DISCOUNT: { no: 1, monthly: 0.9, yearly: 0.85 },
+    GCE_COSTS: {
+      ram: 0.67,
+      cpu: 5,
+      disk: 0.04,
+      non_pre_factor: 3.5,
+    },
+    COST_MULTIPLIER: 1.6, // double version 1
+    NONMEMBER_DENSITY: 2,
+    ACADEMIC_DISCOUNT: 0.6,
+    DISK_FACTOR: 10,
+    RAM_OVERCOMMIT: 5,
+    CPU_OVERCOMMIT: 10,
     ALWAYS_RUNNING_FACTOR: 2,
   },
 } as const;
