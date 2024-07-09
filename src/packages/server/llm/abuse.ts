@@ -1,6 +1,6 @@
 /*
 This is a basic rate limitation for free and metered usage of LLMs.
-- any call must be identified by an account (we had by a token, but it got abused)
+- any call must be identified by an account (we had just by a cookie ID, but it got abused, hence noAccount=0)
 - There is a distinction between "cocalc.com" and "on-prem":
    - cocalc.com has some models (the more expensive ones) which are metered per token and some which are free
    - on-prem: there is only rate limiting, no metered usage
@@ -11,7 +11,7 @@ This is a basic rate limitation for free and metered usage of LLMs.
 
 import { isObject } from "lodash";
 
-import { newCounter, newGauge } from "@cocalc/backend/metrics";
+import { newCounter, newGauge, newHistogram } from "@cocalc/backend/metrics";
 import { process_env_int } from "@cocalc/backend/misc";
 import getPool, { CacheTime } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings";
@@ -30,6 +30,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
+import isValidAccount from "../accounts/is-valid-account";
 
 // These are tokens over a given period of time – summed by account/analytics_cookie or global.
 const QUOTAS = {
@@ -38,11 +39,18 @@ const QUOTAS = {
   global: process_env_int("COCALC_LLM_QUOTA_GLOBAL", 10 ** 6),
 } as const;
 
-const prom_quotas = newGauge(
+const prom_quota_global = newGauge(
   "llm",
-  "abuse_usage_pct",
-  "Language model abuse, 0 to 100 percent of limit",
+  "abuse_usage_global_pct",
+  "Language model abuse limit, global, 0 to 100 percent of limit, rounded",
   ["quota"],
+);
+
+const prom_quota_per_account = newHistogram(
+  "llm",
+  "abuse_usage_account_pct",
+  "Language model usage per account, to see if users reach certain thresholds for their account usage.",
+  { buckets: [25, 50, 75, 100, 110] },
 );
 
 const prom_rejected = newCounter(
@@ -85,7 +93,6 @@ export async function checkForAbuse({
     (await getServerSettings()).kucalc === KUCALC_COCALC_COM;
 
   if (!isFreeModel(model, is_cocalc_com)) {
-    // we exclude Ollama (string), because it is free.
     const service = model2service(model) as LanguageServiceCore;
     // This is a for-pay product, so let's make sure user can purchase it.
     await assertPurchaseAllowed({ account_id, service });
@@ -103,7 +110,9 @@ export async function checkForAbuse({
     analytics_cookie,
   });
 
-  prom_quotas.labels("account").set(100 * (usage / QUOTAS.account));
+  // this fluctuates for each account, we'll tally up how often users end up in certain usage buckets
+  // that's more explicit than a histogram
+  prom_quota_per_account.observe(100 * (usage / QUOTAS.account));
 
   // console.log("usage = ", usage);
   if (account_id) {
@@ -127,8 +136,9 @@ export async function checkForAbuse({
   // Prevent more sophisticated abuse, e.g., changing analytics_cookie or account frequently,
   // or just a general huge surge in usage.
   const overallUsage = await recentUsage({ cache: "long", period: "1 hour" });
-  prom_quotas.labels("global").set(100 * (overallUsage / QUOTAS.global));
-  // console.log("overallUsage = ", usage);
+  prom_quota_global
+    .labels("global")
+    .set(Math.round(100 * (overallUsage / QUOTAS.global)));
   if (overallUsage > QUOTAS.global) {
     prom_rejected.labels("global").inc();
     throw new Error(
@@ -156,11 +166,7 @@ async function recentUsage({
   const pool = getPool(cache);
   let query, args;
   if (account_id) {
-    const { rows } = await pool.query(
-      "SELECT COUNT(*) FROM accounts WHERE account_id=$1",
-      [account_id],
-    );
-    if (rows.length == 0) {
+    if (!(await isValidAccount(account_id))) {
       throw Error(`invalid account_id ${account_id}`);
     }
     query = `SELECT SUM(total_tokens) AS usage FROM openai_chatgpt_log WHERE account_id=$1 AND time >= NOW() - INTERVAL '${period}'`;
