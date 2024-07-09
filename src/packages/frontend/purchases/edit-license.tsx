@@ -23,6 +23,7 @@ import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import { isEqual } from "lodash";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 
 interface Props {
   license_id: string;
@@ -112,6 +113,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
         }
         subInfo.start = null;
         subInfo.end = null;
+        subInfo.version = CURRENT_VERSION;
         setModifiedSubscriptionCost(compute_cost(subInfo).cost);
       }
     } catch (err) {
@@ -258,7 +260,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
                     modifiedSubscriptionCost != null &&
                     modifiedSubscriptionCost != subscription.cost && (
                       <>
-                        cost:{" "}
+                        cost at current rates:{" "}
                         <b>
                           {currency(modifiedSubscriptionCost)}/
                           {subscription.interval}
@@ -270,8 +272,8 @@ export default function EditLicense({ license_id, refresh }: Props) {
                   {subscription?.cost != null && (
                     <div>
                       {" "}
-                      Current cost: {currency(subscription?.cost)}/
-                      {subscription.interval}.
+                      What you currently pay: {currency(subscription?.cost)}/
+                      {subscription.interval}
                     </div>
                   )}
                   {subscription != null &&
@@ -279,8 +281,9 @@ export default function EditLicense({ license_id, refresh }: Props) {
                     modifiedSubscriptionCost != subscription.cost && (
                       <div>
                         <b>
-                          New cost: {currency(modifiedSubscriptionCost)}/
-                          {subscription.interval}.
+                          New cost after changes:{" "}
+                          {currency(modifiedSubscriptionCost)}/
+                          {subscription.interval}
                         </b>
                       </div>
                     )}

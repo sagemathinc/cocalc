@@ -7,6 +7,7 @@ import { CURRENT_VERSION } from "./consts";
 import type { Date0 } from "@cocalc/util/types/store";
 import dayjs from "dayjs";
 
+// this ALWAYS returns purchaseInfo that is the *current* version.
 export default function getPurchaseInfo(
   conf: SiteLicenseDescriptionDB,
 ): PurchaseInfo {

@@ -342,7 +342,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
       if (rec.expired) {
         return (
           <>
-            Expired {when}.{delimiter}Could update {runLimit} running{" "}
+            Expired {when}.{delimiter}Could upgrade {runLimit} running{" "}
             {plural(runLimit, "project")}.
           </>
         );

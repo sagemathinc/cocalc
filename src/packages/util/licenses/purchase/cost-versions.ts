@@ -58,7 +58,7 @@ const COST = {
       disk: 0.1,
       non_pre_factor: 3.5,
     },
-    COST_MULTIPLIER: 1,
+    COST_MULTIPLIER: 0.9,
     NONMEMBER_DENSITY: 2,
     ACADEMIC_DISCOUNT: 0.6,
     DISK_FACTOR: 10,
