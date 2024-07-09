@@ -8,6 +8,13 @@ util/compute/cloud/hyperstack/pricing.ts
 We of course include not-available options so that we can compute
 the current price of any VM.
 
+VERY IMPORTANT!!!  The pricebook that Hyperstack returns to us has (see [1])
+two fields "value" and "original_value".   We signed a contract with Hyperstack
+stating that we will not divulge the "value" field.  Thus below in creating
+the version of this data that should be sent to customers, be very careful to
+only access and use the "original_value" field!
+
+[1] https://infrahub-doc.nexgencloud.com/docs/api-reference/pricebook-resources/pricebook
 */
 
 import type {
@@ -107,10 +114,15 @@ export default async function getPricingData(
     }
   }
 
-  const { compute_servers_markup_percentage: markup } =
-    await getServerSettings();
-  const external_ip_cost_per_hour = Number(priceMap["PublicIP"].value);
-  const ssd_cost_per_hour = Number(priceMap["Cloud-SSD"].value);
+  const {
+    compute_servers_markup_percentage: global_markup,
+    hyperstack_compute_servers_markup_percentage: hyperstack_markup,
+  } = await getServerSettings();
+  const markup = hyperstack_markup
+    ? parseFloat(hyperstack_markup)
+    : global_markup;
+  const external_ip_cost_per_hour = Number(priceMap["PublicIP"].original_value);
+  const ssd_cost_per_hour = Number(priceMap["Cloud-SSD"].original_value);
   const x = { options, markup, external_ip_cost_per_hour, ssd_cost_per_hour };
 
   ttlCache.set("x", x);
@@ -127,17 +139,17 @@ function computeCost({
   gpu_count,
 }): number | string {
   let cost =
-    Number(priceMap["Cloud-SSD"].value) * disk +
-    Number(priceMap["PublicIP"].value);
+    Number(priceMap["Cloud-SSD"].original_value) * disk +
+    Number(priceMap["PublicIP"].original_value);
   if (gpu) {
     // for machines with GPU's, the cost seems to be the internal disk (which we do not use at all)
     // plus the cost of an ip address, plus the gpu cost.
-    cost += Number(priceMap[gpu].value) * gpu_count;
+    cost += Number(priceMap[gpu].original_value) * gpu_count;
   } else {
     // for NON-GPU machines (cpu only) the cost is a function of the number of cpu's and the amount of ram.
     cost +=
-      Number(priceMap["vCPU (cpu-only-flavors)"].value) * cpu +
-      Number(priceMap["RAM (cpu-only-flavors)"].value) * ram;
+      Number(priceMap["vCPU (cpu-only-flavors)"].original_value) * cpu +
+      Number(priceMap["RAM (cpu-only-flavors)"].original_value) * ram;
   }
   return cost;
 }

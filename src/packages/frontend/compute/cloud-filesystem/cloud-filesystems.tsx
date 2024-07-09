@@ -14,6 +14,8 @@ import { Button, Spin } from "antd";
 import CreateCloudFilesystem from "./create";
 import CloudFilesystem from "./cloud-filesystem";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { A } from "@cocalc/frontend/components/A";
+import RefreshButton from "@cocalc/frontend/components/refresh";
 import { cmp } from "@cocalc/util/misc";
 import {
   SortableList,
@@ -148,11 +150,11 @@ export default function CloudFilesystems({ project_id }: Props) {
 
   return (
     <div>
-      <Button style={{ position: "absolute", right: 0 }} onClick={refresh}>
-        <Icon name="refresh" />
-        Refresh{" "}
-        {refreshing ? <Spin style={{ marginLeft: "15px" }} /> : undefined}
-      </Button>
+      <RefreshButton
+        refresh={refresh}
+        style={{ position: "absolute", right: 0 }}
+        refreshing={refreshing}
+      />
       <h2 style={{ textAlign: "center" }}>Cloud File Systems</h2>
       <div style={{ textAlign: "center" }}>
         <Button
@@ -163,9 +165,20 @@ export default function CloudFilesystems({ project_id }: Props) {
           <Icon name="youtube" style={{ color: "red" }} />
           Short Demo
         </Button>
-        <Button href="https://youtu.be/uk5eA5piQEo" target="_new">
+        <Button
+          href="https://youtu.be/uk5eA5piQEo"
+          target="_new"
+          style={{ marginRight: "15px" }}
+        >
           <Icon name="youtube" style={{ color: "red" }} />
-          Longer Demo
+          Long Demo
+        </Button>
+        <Button
+          href="https://doc.cocalc.com/cloud_file_system.html"
+          target="_new"
+        >
+          <Icon name="external-link" />
+          Docs
         </Button>
       </div>
       <p
@@ -176,12 +189,15 @@ export default function CloudFilesystems({ project_id }: Props) {
           color: "#666",
         }}
       >
-        CoCalc Cloud File Systems are scalable distributed POSIX shared
-        file systems with fast local caching. Use them simultaneously from all
-        compute servers in this project. There are no limits on how much data
-        you can store. You do not specify the size of a cloud file system in
-        advance. The cost per GB is typically much less than a compute server
-        disk, but you pay network usage and operations.
+        <A href="https://doc.cocalc.com/cloud_file_system.html">
+          CoCalc Cloud File Systems{" "}
+        </A>
+        are scalable distributed POSIX shared file systems with fast local
+        caching. Use them simultaneously from all compute servers in this
+        project. There are no limits on how much data you can store. You do not
+        specify the size of a cloud file system in advance. The cost per GB is
+        typically much less than a compute server disk, but you pay network
+        usage and operations.
       </p>
 
       <div style={{ margin: "5px 0" }}>

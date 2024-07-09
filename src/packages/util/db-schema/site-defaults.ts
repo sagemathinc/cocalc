@@ -34,6 +34,8 @@ export const TAGS = [
   "GitHub",
   "Pay as you Go",
   "Compute Servers",
+  "Google Cloud",
+  "Hyperstack",
   "AI LLM",
   "Theme",
   "On-Prem",

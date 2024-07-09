@@ -55,6 +55,13 @@ import {
 import Export from "./export";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
 
+// Cancel immediately makes it pointless to ever buy a license without
+// buying a subscription, since you can just buy a license via a subscription,
+// get a big discount, and cancel exactly at the end of the period. Hence
+// disabling this for now, unless we come up with something better.  This
+// flag can be toggled to turn the functionality back on.
+const SUPPORT_CANCEL_IMMEDIATELY = false;
+
 export function SubscriptionStatus({ status }) {
   return (
     <Tag color={STATUS_TO_COLOR[status]}>
@@ -171,6 +178,70 @@ function SubscriptionActions({
     }
   };
 
+  const footer = [
+    <Button
+      disabled={loading}
+      key="nothing"
+      onClick={() => setModalOpen(false)}
+      type="primary"
+    >
+      No Change
+    </Button>,
+  ];
+  if (SUPPORT_CANCEL_IMMEDIATELY) {
+    footer.push(
+      <Popconfirm
+        key="cancelNow"
+        title={"Cancel this subscription immediately?"}
+        description={() => {
+          setTimeout(updateCreditToCancel, 1);
+          if (creditToCancel == null) {
+            return <Spin />;
+          }
+
+          return (
+            <div style={{ maxWidth: "450px" }}>
+              The license will immediately become invalid and any projects using
+              it will stop.
+              {license?.info?.purchased.type == "disk" && (
+                <b> All data on the disk will be permanently deleted.</b>
+              )}{" "}
+              You will receive a <b>credit of {currency(creditToCancel)}</b> for
+              the prorated time left on the subscription. There are no
+              transaction fees for canceling or resuming a subscription, and you
+              can resume your subscription at any point later.
+            </div>
+          );
+        }}
+        onConfirm={() => handleCancel(true)}
+        okText="Yes"
+        cancelText="No"
+      >
+        <Button disabled={loading} danger>
+          Cancel Now...
+        </Button>
+      </Popconfirm>,
+    );
+  }
+  footer.push(
+    <Popconfirm
+      key="cancelEnd"
+      title={"Cancel this subscription at period end?"}
+      description={
+        <div style={{ maxWidth: "450px" }}>
+          The license will still be valid until the subscription period ends.
+          You can always restart the subscription or edit the license to change
+          the subscription price.
+        </div>
+      }
+      onConfirm={() => handleCancel(false)}
+      okText="Yes"
+      cancelText="No"
+    >
+      <Button disabled={loading}>Cancel at Period End...</Button>
+    </Popconfirm>,
+  );
+
   return (
     <Space direction="vertical">
       {loading && <Spin />}
@@ -218,79 +289,31 @@ function SubscriptionActions({
           title="Cancel Subscription"
           open={modalOpen}
           onCancel={() => setModalOpen(false)}
-          footer={[
-            <Button
-              disabled={loading}
-              key="nothing"
-              onClick={() => setModalOpen(false)}
-              type="primary"
-            >
-              No Change
-            </Button>,
-            <Popconfirm
-              key="cancelNow"
-              title={"Cancel this subscription immediately?"}
-              description={() => {
-                setTimeout(updateCreditToCancel, 1);
-                if (creditToCancel == null) {
-                  return <Spin />;
-                }
-
-                return (
-                  <div style={{ maxWidth: "450px" }}>
-                    The license will immediately become invalid and any projects
-                    using it will stop.
-                    {license?.info?.purchased.type == "disk" && (
-                      <b> All data on the disk will be permanently deleted.</b>
-                    )}{" "}
-                    You will receive a{" "}
-                    <b>credit of {currency(creditToCancel)}</b> for the prorated
-                    time left on the subscription. There are no transaction fees
-                    for canceling or resuming a subscription, and you can resume
-                    your subscription at any point later.
-                  </div>
-                );
-              }}
-              onConfirm={() => handleCancel(true)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button disabled={loading} danger>
-                Cancel Now...
-              </Button>
-            </Popconfirm>,
-            <Popconfirm
-              key="cancelEnd"
-              title={"Cancel this subscription at period end?"}
-              description={
-                <div style={{ maxWidth: "450px" }}>
-                  The license will still be valid until the subscription period
-                  ends. You can always restart the subscription or edit the
-                  license to change the subscription price.
-                </div>
-              }
-              onConfirm={() => handleCancel(false)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button disabled={loading}>Cancel at Period End...</Button>
-            </Popconfirm>,
-          ]}
+          footer={footer}
         >
           <div style={{ maxWidth: "450px" }}>
             Are you sure you want to cancel this subscription? The corresponding
             license will not be renewed.
             <ul style={{ margin: "15px 0" }}>
               <li>
-                Select "Cancel at Period End" to let your license continue to
-                the end of the current period.
+                Select "Cancel at Period End" to cancel your subscription. You
+                have already paid for your license, so it will continue to the
+                end of the current period.
               </li>
               <li>
-                To receive a prorated credit for the remainder of this license,
-                select "Cancel Now". You can spend your credit on another
-                license, pay-as-you-go project upgrades, etc.
+                You can always edit the license, which will change the
+                subscription price. Click the license code to the left, then
+                click "Edit License..."
               </li>
-              <li>You can always resume a canceled subscription later.</li>
+              {SUPPORT_CANCEL_IMMEDIATELY && (
+                <li>
+                  To receive a prorated credit for the remainder of this
+                  license, select "Cancel Now". You can spend your
+                  non-refundable credit on another license, pay-as-you-go
+                  project upgrades, etc.
+                </li>
+              )}
+              <li>You can resume a canceled subscription later.</li>
             </ul>
             {license?.info?.purchased.type == "disk" && (
               <Alert
@@ -319,16 +342,16 @@ function SubscriptionActions({
             return (
               <div style={{ maxWidth: "450px" }}>
                 The corresponding license will become active again, and{" "}
-                <b>you will be charged {currency(round2up(costToResume))}</b> for the
-                remainder of the current period.
+                <b>you will be charged {currency(round2up(costToResume))}</b>{" "}
+                for the remainder of the current period.
                 {periodicCost != null && (
                   <span>
                     {" "}
                     The cost will then be{" "}
                     <b>
                       {currency(round2up(periodicCost))}/{interval}
-                    </b>,{" "}
-                    which is the current rate.
+                    </b>
+                    , which is the current rate.
                   </span>
                 )}
               </div>
