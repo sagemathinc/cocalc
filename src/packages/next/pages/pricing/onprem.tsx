@@ -145,9 +145,8 @@ function Body() {
         <Title level={3}>Purchasing CoCalc OnPrem</Title>
         <Paragraph>
           CoCalc OnPrem is a scalable solution and the license price depends on
-          the use case and expected number of users. Additionally, various
-          levels of support and custom development can be negotiated for an
-          additional cost.
+          the use case, expected number of users, level of support, and amount
+          of customization and training involved.
           <Button
             type="link"
             onClick={() =>
@@ -158,33 +157,6 @@ function Body() {
           >
             Contact us for a quote.
           </Button>
-        </Paragraph>
-        <Paragraph>
-          The price starts at{" "}
-          <Button
-            type="primary"
-            size="large"
-            onClick={() =>
-              router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20OnPrem%20Business&body=${body}&title=Purchase%20CoCalc-OnPrem`,
-              )
-            }
-          >
-            {K8S_PRICE}/year
-          </Button>{" "}
-          or, if an academic discount applies, starting at{" "}
-          <Button
-            type="primary"
-            size="large"
-            onClick={() =>
-              router.push(
-                `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20OnPrem%20Academic&body=${body}&title=Purchase%20CoCalc-OnPrem`,
-              )
-            }
-          >
-            {K8S_PRICE_ACADEMIC}/year
-          </Button>
-          .
         </Paragraph>
       </>
     );

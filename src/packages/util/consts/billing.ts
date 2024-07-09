@@ -13,5 +13,5 @@ export const ONE_MONTH_MS = AVG_MONTH_DAYS * ONE_DAY_MS;
 export const LICENSE_MIN_PRICE = "about $5/month";
 
 // Trial Banner in the UI
-export const EVALUATION_PERIOD_DAYS = 10;
-export const BANNER_NON_DISMISSABLE_DAYS = 15;
+export const EVALUATION_PERIOD_DAYS = 3;
+export const BANNER_NON_DISMISSABLE_DAYS = 7;

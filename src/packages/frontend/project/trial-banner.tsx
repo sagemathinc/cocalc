@@ -3,15 +3,14 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert, Modal, Space, Tag } from "antd";
+import { Alert, Modal, Space, Tag, Tooltip } from "antd";
 import humanizeList from "humanize-list";
 import { join } from "path";
-
+import { useInterval } from "react-interval-hook";
 import {
   CSS,
   React,
   redux,
-  useEffect,
   useForceUpdate,
   useMemo,
   useRef,
@@ -387,11 +386,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const triggered = useRef<boolean>(false);
   const update = useForceUpdate();
-
-  useEffect(() => {
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  useInterval(update, 1000);
 
   if (
     status.get("state") !== "running" ||
@@ -404,7 +399,9 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
 
   // start_ts is e.g. 1508576664416
   const start_ts = project.getIn(["status", "start_ts"]);
-  if (start_ts == undefined) return null;
+  if (start_ts == null && !showInfo) {
+    return null;
+  }
 
   const shutdown_ts = start_ts + 1000 * 60 * limit_min;
   const countdown = shutdown_ts - server_time().getTime();
@@ -449,7 +446,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
                 <A href={BUY_A_LICENSE_URL}>purchasing a license</A>.
               </Paragraph>
               <Paragraph>
-                Behind this curtains,{" "}
+                Behind the curtain,{" "}
                 <A href={"/about/team"}>humans are working hard</A> to keep the
                 service running and improving it constantly. Your files and
                 computations <A href={"/info/status"}>run in our cluster</A>,
@@ -470,7 +467,8 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
                 >
                   Contact us
                 </A>{" "}
-                if you can give support in other ways.
+                if you can give support in other ways or have any questions or
+                comments.
               </Paragraph>
             </>
           }
@@ -482,30 +480,31 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
   return (
     <>
       {renderInfo()}
-      <Tag
-        style={{
-          marginTop: "5px",
-          fontSize,
-          float: "right",
-          fontWeight: "bold",
-          color: COLORS.ANTD_RED,
-          cursor: "pointer",
-        }}
-        color={COLORS.GRAY_LL}
-        onClick={() => {
-          setShowInfo(true);
-          track("trial-banner", { what: "countdown", project_id });
-        }}
-      >
-        <TimeAmount
-          key={"time"}
-          amount={countdwon0}
-          compact={true}
-          showIcon={true}
-          countdown={countdwon0}
-          style={{ color: COLORS.ANTD_RED }}
-        />
-      </Tag>
+      <Tooltip title="Automatic Project Shutdown: click for details...">
+        <Tag
+          style={{
+            marginTop: "5px",
+            fontSize,
+            float: "right",
+            fontWeight: "bold",
+            cursor: "pointer",
+          }}
+          color={"red"}
+          onClick={() => {
+            setShowInfo(true);
+            track("trial-banner", { what: "countdown", project_id });
+          }}
+        >
+          <TimeAmount
+            key={"time"}
+            amount={countdwon0}
+            compact={true}
+            showIcon={true}
+            countdown={countdwon0}
+            style={{ color: COLORS.ANTD_RED }}
+          />
+        </Tag>
+      </Tooltip>
     </>
   );
 }
