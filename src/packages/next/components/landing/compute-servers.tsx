@@ -30,7 +30,7 @@ export default function ComputeServers() {
       level={LANDING_HEADER_LEVEL}
       title={
         <>
-          Powerful Compute Servers with Optional GPU Support
+          Powerful Compute Servers with GPU Options
           <ComputeServerTemplates
             getPopupContainer={() => ref.current}
             style={{ maxWidth: "900px" }}
@@ -52,8 +52,8 @@ export default function ComputeServers() {
     >
       <Paragraph>
         Extend your {siteName} projects with powerful{" "}
-        <Text strong>compute servers</Text>. They give you much more power,
-        optional GPU support, and flexibility for your computations.
+        <Text strong>compute servers</Text>. They give you much more power, GPU
+        options, and flexibility for your computations.
       </Paragraph>
       <Paragraph>
         From within your {siteName} project, spin up and connect to a powerful
@@ -67,17 +67,17 @@ export default function ComputeServers() {
         project.
       </Paragraph>
       <Paragraph>
-        These machines optionally come with{" "}
-        <Text strong>extensive GPU support</Text>, from a single NVIDIA T4 to
-        eight H100's, with many options in between, including L4 and L40,
-        RTX-A4/5/6000, and A100 with 40GB and 80GB. The finely configured
-        software images include SageMath, Anaconda,{" "}
-        <A href="https://youtu.be/kcxyShH3wYE">Google Colab</A>, Julia,{" "}
-        <A href="https://youtu.be/JG6jm6yv_KE">PyTorch</A>, Tensorflow and{" "}
-        <A href="https://youtu.be/OMN1af0LUcA">Open WebUI</A>, accommodating a
-        versatile range of uses. The pre-configured software environments make
-        it very easy to make use of them, right out of the box. You can also run
-        any command as{" "}
+        These servers optionally come with{" "}
+        <Text strong>very competitively priced GPU support</Text>, from a single
+        NVIDIA T4 to eight H100's, with many options in between, including L4
+        and L40, RTX-A4/5/6000, and A100 with 40GB and 80GB. The finely
+        configured software images include{" "}
+        <A href="https://youtu.be/kcxyShH3wYE">Google Colab</A>, SageMath,
+        Anaconda, Julia, <A href="https://youtu.be/JG6jm6yv_KE">PyTorch</A>,
+        Tensorflow and <A href="https://youtu.be/OMN1af0LUcA">Open WebUI</A>,
+        accommodating a versatile range of uses. The pre-configured software
+        environments make it very easy to make use of them, right out of the
+        box. You can also run any command as{" "}
         <A href="https://doc.cocalc.com/compute_server.html#becoming-root-and-port-forwarding">
           root
         </A>
@@ -88,8 +88,8 @@ export default function ComputeServers() {
         <A href="https://doc.cocalc.com/compute_server.html#compute-server-filesystem">
           <Text strong>files are synchronized</Text>
         </A>
-        . Therefore, you can seamlessly switch between local and remote
-        computing. You also have much more disk storage on the remote machine.
+        . Therefore, you can seamlessly switch between different servers. You
+        also have much more disk storage on the remote machine.
       </Paragraph>
       <Paragraph>
         Usage of these machines is <Text strong>billed by the second</Text>. The

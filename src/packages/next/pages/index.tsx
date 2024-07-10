@@ -171,7 +171,7 @@ export default function Home(props: Props) {
               onCoCalcCom ? <Videos videos={YOUTUBE_IDS} /> : indexInfo
             }
           />
-          <Tagline value={indexTagline} />
+          <Tagline value={indexTagline} style={{ padding: "5px" }} />
           {renderCoCalcComFeatures()}
           <Footer />
         </Layout.Content>

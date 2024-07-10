@@ -38,10 +38,9 @@ import type { PathContents as PathContentsType } from "lib/share/get-contents";
 import Avatar from "components/share/proxy/avatar";
 import A from "components/misc/A";
 import { join } from "path";
+import { Tagline } from "components/landing/tagline";
 
-import {
-  SocialMediaShareLinks
-} from "components/landing/social-media-share-links";
+import { SocialMediaShareLinks } from "components/landing/social-media-share-links";
 
 export interface PublicPathProps {
   id: string;
@@ -71,8 +70,8 @@ export interface PublicPathProps {
   // doesn't use the names. See https://github.com/sagemathinc/cocalc/issues/6115
   redirect?: string;
   jupyter_api: boolean;
-  created: string|null; // ISO 8601 string
-  last_edited: string|null; // ISO 8601 string
+  created: string | null; // ISO 8601 string
+  last_edited: string | null; // ISO 8601 string
   ogUrl?: string; // Open Graph URL for social media sharing
   ogImage?: string; // Open Graph image for social media sharing
 }
@@ -344,12 +343,12 @@ export default function PublicPath({
             <AntdAvatar
               shape="square"
               size={160}
-              icon={(
+              icon={
                 <img
                   src={projectAvatarImage}
                   alt={`Avatar for ${projectTitle}.`}
                 />
-              )}
+              }
               style={{ float: "left", margin: "20px" }}
             />
           ) : undefined
@@ -363,6 +362,10 @@ export default function PublicPath({
           />
         )}
         <div>
+          <Tagline
+            value={customize.indexTagline}
+            style={{ marginTop: "-15px", padding: "5px" }}
+          />
           {invalidRedirect && (
             <Alert
               type="warning"
