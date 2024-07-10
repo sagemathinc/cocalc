@@ -1065,7 +1065,7 @@ importers:
         specifier: ^4.17.13
         version: 4.17.15
       '@types/pg':
-        specifier: 8.11.6
+        specifier: ^8.11.6
         version: 8.11.6
       '@types/react':
         specifier: ^18.0.26
