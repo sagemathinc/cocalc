@@ -149,12 +149,12 @@ export class NBGraderActions {
         { title: "Cancel" },
         {
           title: "Generate student version",
-          style: !minimal_stubs ? "success" : undefined,
+          style: !minimal_stubs ? "primary" : undefined,
           default: !minimal_stubs,
         },
         {
           title: MINIMAL_STUBS,
-          style: minimal_stubs ? "success" : undefined,
+          style: minimal_stubs ? "primary" : undefined,
           default: minimal_stubs,
         },
       ],
