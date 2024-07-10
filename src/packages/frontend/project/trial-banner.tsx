@@ -7,6 +7,7 @@ import { Alert, Modal, Space, Tag, Tooltip } from "antd";
 import humanizeList from "humanize-list";
 import { join } from "path";
 import { useInterval } from "react-interval-hook";
+
 import {
   CSS,
   React,
@@ -40,6 +41,8 @@ import { useProjectContext } from "./context";
 import { applyLicense } from "./settings/site-license";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
+
+const TRACK_KEY = "trial_banner";
 
 // explains implications for having no internet and/or no member hosting
 export const A_STYLE: CSS = {
@@ -413,6 +416,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
     // This closes all tabs and then stops the project.
     openFiles.map((path) => actions?.close_tab(path));
     redux.getActions("projects").stop_project(project_id);
+    track(TRACK_KEY, { what: "shutdown", project_id });
   }
 
   function renderInfo() {
@@ -492,7 +496,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
           color={"red"}
           onClick={() => {
             setShowInfo(true);
-            track("trial-banner", { what: "countdown", project_id });
+            track(TRACK_KEY, { what: "countdown-click", project_id });
           }}
         >
           <TimeAmount
