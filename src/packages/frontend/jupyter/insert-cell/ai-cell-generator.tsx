@@ -364,6 +364,7 @@ export function AIGenerateCodeCell({
 
   function doQuery(prevCodeContents: string) {
     cancel.current = false;
+    setError("");
     setQuerying(true);
 
     if (showAICellGen == null) return;
@@ -571,7 +572,12 @@ export function AIGenerateCodeCell({
             >
               <Icon name="arrow-left" /> Discard
             </Button>
-            <Button onClick={insert} type="primary" disabled={querying}>
+            <Button
+              size="large"
+              onClick={insert}
+              type="primary"
+              disabled={querying}
+            >
               <Icon name="plus" /> Insert {capitalize(cellStr)}
             </Button>
           </Space>
@@ -688,7 +694,10 @@ export function AIGenerateCodeCell({
           <LLMSelector
             project_id={project_id}
             model={model}
-            setModel={setModel}
+            setModel={(model) => {
+              setError("");
+              setModel(model);
+            }}
           />
           <Button
             onClick={() => setShowAICellGen(null)}
