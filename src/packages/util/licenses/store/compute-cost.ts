@@ -16,6 +16,7 @@ import { fixRange } from "@cocalc/util/licenses/purchase/purchase-info";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import type { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
+import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 
 function computeDedicatedDiskCost(
   props: ComputeCostProps,
@@ -138,6 +139,7 @@ export function computeCost(
       }
 
       const input: PurchaseInfo = {
+        version: CURRENT_VERSION,
         type: "quota",
         user,
         upgrade: "custom" as "custom",

@@ -10,26 +10,30 @@ import A from "components/misc/A";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 
 const A_STYLE: CSS = {
-  color: "white",
+  color: "#ddd",
   backgroundColor: "transparent",
 } as const;
 
-export function Tagline({ value }: { value?: string }) {
+export function Tagline({ value, style }: { value?: string; style? }) {
   function renderContent() {
     if (value) {
       return <SanitizedMarkdown value={value} anchorStyle={A_STYLE} />;
     } else {
       return (
         <>
-          Realtime collaborative{" "}
+          CoCalc Runs Your{" "}
           <A href="/features/jupyter-notebook" style={A_STYLE}>
-            Jupyter notebooks
+            Jupyter Notebooks
+          </A>{" "}
+          and{" "}
+          <A href="/features/terminal" style={A_STYLE}>
+            Linux Terminals
+          </A>{" "}
+          using Powerful{" "}
+          <A href="/features/compute-server" style={A_STYLE}>
+            CPUs and GPUs
           </A>
-          ,{" "}
-          <A href="/features/latex-editor" style={A_STYLE}>
-            LaTeX
-          </A>
-          , Markdown, and Linux with GPUs
+          !
         </>
       );
     }
@@ -37,13 +41,11 @@ export function Tagline({ value }: { value?: string }) {
 
   return (
     <Info.Heading
-      level={2}
+      level={3}
       textStyle={{ color: "white" }}
       style={{
         backgroundColor: COLORS.BLUE_D,
-        paddingBottom: "30px",
-        marginTop: "30px",
-        paddingTop: "30px",
+        ...style,
       }}
     >
       {renderContent()}

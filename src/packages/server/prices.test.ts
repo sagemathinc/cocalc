@@ -6,10 +6,7 @@
 // test product ID and pricing
 
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
-import type {
-  PurchaseInfo,
-  PurchaseInfoQuota,
-} from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
 import {
@@ -31,7 +28,8 @@ describe("product id and compute cost", () => {
   // (since it isn't!) we set it back to run this test.
   // @ts-ignore
   COSTS.online_discount = 0.75;
-  const info1: Omit<PurchaseInfoQuota, "quantity"> = {
+  const info1 = {
+    version: "1",
     type: "quota",
     user: "academic",
     upgrade: "custom",
@@ -75,6 +73,7 @@ describe("product id and compute cost", () => {
         new Date((info1.start as Date).getTime() + days * ONE_DAY_MS),
       ),
     };
+    // @ts-ignore
     info2.cost = compute_cost(info2);
     // console.log(days, info2, Math.round(info2.cost.cost_per_unit * 10000));
     const unit_amount = unitAmount(info2);
@@ -89,6 +88,7 @@ describe("product id and compute cost", () => {
       start: new Date("2022-04-28T10:08:10.072Z"),
       end: new Date("2022-05-05T10:08:10.072Z"),
     };
+    // @ts-ignore
     info2.cost = compute_cost(info2);
     expect(unitAmount(info2)).toEqual(111);
   });
@@ -152,6 +152,7 @@ describe("dedicated disk", () => {
   it("calculates subscription price of one disk", () => {
     const start = startOfDay(new Date());
     const purchaseInfo: PurchaseInfo = {
+      version: "1",
       type: "disk",
       start,
       end: dayjs(start).add(30, "days").add(12, "hours").toDate(), // adding exact amount of time to make test well defined

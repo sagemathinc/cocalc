@@ -7,7 +7,6 @@ import type { MenuProps } from "antd";
 import { A, Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
 import getTitle from "./get-title";
-import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LogModal } from "./compute-server-log";
 import { EditModal } from "./compute-server";
@@ -46,8 +45,6 @@ function getItems({
   id,
   project_id,
   account_id,
-  title,
-  color,
   isAdmin,
 }: {
   id: number;
@@ -82,34 +79,9 @@ function getItems({
 
   const titleAndColor = {
     key: "title-color",
-    icon: <Icon name="server" />,
+    icon: <Icon name="colors" />,
     disabled: !is_owner,
-    label: (
-      <div
-        style={{
-          fontWeight: "bold",
-          fontSize: "11pt",
-          display: "flex",
-          color: avatar_fontcolor(color),
-          background: color,
-          padding: "0 5px",
-          borderRadius: "3px",
-        }}
-      >
-        <div
-          style={{
-            maxWidth: "20ex",
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            marginRight: "5px",
-          }}
-        >
-          {title}
-        </div>
-        (Id: {server.project_specific_id})
-      </div>
-    ),
+    label: "Edit Title and Color",
   };
   const jupyterlab = {
     key: "top-jupyterlab",
@@ -133,29 +105,10 @@ function getItems({
     key: "xpra",
     label: "X11 Desktop",
     icon: <Icon name="desktop" />,
-    disabled: apps["xpra"] == null,
-  };
-
-  const logs = {
-    key: "logs",
-    label: "Logs",
-    icon: <Icon name="history" />,
-    children: [
-      {
-        key: "control-log",
-        icon: <Icon name="history" />,
-        label: "Control and Configuration Log",
-      },
-      {
-        key: "serial-console-log",
-        disabled:
-          server.cloud != "google-cloud" ||
-          server.state == "off" ||
-          server.state == "deprovisioned",
-        icon: <Icon name="laptop" />,
-        label: "Serial Console Log",
-      },
-    ],
+    disabled:
+      apps["xpra"] == null ||
+      server.state != "running" ||
+      !server.data?.externalIp,
   };
 
   const optionItems: (
@@ -257,36 +210,6 @@ function getItems({
     ],
   };
 
-  const launch = {
-    key: "launch",
-    label: "Applications",
-    icon: <Icon name="global" />,
-    disabled: server.state != "running",
-    children: [
-      {
-        key: "run-app-on",
-        type: "group",
-        label: "Run On Compute Server",
-        children: [
-          { ...jupyterlab, key: "jupyterlab-sub" },
-          { ...vscode, key: "vscode-sub" },
-          { ...xpra, key: "xpra-sub" },
-          //         {
-          //           key: "pluto",
-          //           label: "Pluto (Julia)",
-          //           icon: <Icon name="julia" />,
-          //         },
-          //         {
-          //           key: "rstudio",
-          // value:"rstudio",
-          //           label: "R Studio",
-          //           icon: <Icon name="r" />,
-          //         },
-        ],
-      },
-    ],
-  };
-
   const help = {
     key: "help",
     icon: <Icon name="question-circle" />,
@@ -312,6 +235,14 @@ function getItems({
             Videos
           </A>
         ),
+      },
+      {
+        type: "divider",
+      },
+      {
+        key: "dedicated",
+        icon: <Icon name="bank" />,
+        label: "Dedicated Always On Server for 6+ Months...",
       },
     ],
   };
@@ -344,17 +275,33 @@ function getItems({
     },
     jupyterlab,
     vscode,
+    xpra,
     {
       type: "divider",
     },
-    launch,
-    logs,
+    settings,
     options,
     {
       type: "divider",
     },
+    {
+      key: "control-log",
+      icon: <Icon name="history" />,
+      label: "Configuration Log",
+    },
+    {
+      key: "serial-console-log",
+      disabled:
+        server.cloud != "google-cloud" ||
+        server.state == "off" ||
+        server.state == "deprovisioned",
+      icon: <Icon name="laptop" />,
+      label: "Serial Console",
+    },
+    {
+      type: "divider",
+    },
     help,
-    settings,
     //     {
     //       key: "control",
     //       icon: <Icon name="wrench" />,
@@ -471,7 +418,7 @@ export default function Menu({
       setTitle(await getTitle(id));
     })();
     return {
-      items: getItems({ ...title, id, project_id, account_id, isAdmin }),
+      items: getItems({ id, project_id, account_id, isAdmin }),
       onClick: async (obj) => {
         setOpen(false);
         let cmd = obj.key.startsWith("top-") ? obj.key.slice(4) : obj.key;
@@ -552,6 +499,14 @@ export default function Menu({
               type: "question",
               subject: `Compute Server (Global Id: ${id}; Project Specific Id: ${title?.project_specific_id})`,
               body: `I am using a compute server, and have a question...`,
+            });
+            break;
+
+          case "dedicated":
+            openSupportTab({
+              type: "question",
+              subject: `Compute Server (Global Id: ${id}; Project Specific Id: ${title?.project_specific_id})`,
+              body: `I need a dedicated always on compute server for at least 6 months, and am interested in significant discounts.\nI would love to tell you about my problem, and see if CoCalc can help!`,
             });
             break;
 

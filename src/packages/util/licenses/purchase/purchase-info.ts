@@ -3,9 +3,11 @@ import type {
   SiteLicenseDescriptionDB,
 } from "@cocalc/util/upgrades/shopping";
 import type { PurchaseInfo, StartEndDates, Subscription } from "./types";
+import { CURRENT_VERSION } from "./consts";
 import type { Date0 } from "@cocalc/util/types/store";
 import dayjs from "dayjs";
 
+// this ALWAYS returns purchaseInfo that is the *current* version.
 export default function getPurchaseInfo(
   conf: SiteLicenseDescriptionDB,
 ): PurchaseInfo {
@@ -28,6 +30,7 @@ export default function getPurchaseInfo(
         boost = false,
       } = conf;
       return {
+        version: CURRENT_VERSION,
         type, // "quota"
         user,
         upgrade: "custom" as "custom",
@@ -48,6 +51,7 @@ export default function getPurchaseInfo(
 
     case "vm":
       return {
+        version: CURRENT_VERSION,
         type: "vm",
         quantity: 1,
         dedicated_vm: conf.dedicated_vm,
@@ -59,6 +63,7 @@ export default function getPurchaseInfo(
 
     case "disk":
       return {
+        version: CURRENT_VERSION,
         type: "disk",
         quantity: 1,
         dedicated_disk: conf.dedicated_disk,

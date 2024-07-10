@@ -7,7 +7,10 @@ import getParams from "lib/api/get-params";
 import callProject from "@cocalc/server/projects/call";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
-export default async function handle(req, res) {
+import { apiRoute, apiRouteOperation } from "lib/api";
+import { ExecInputSchema, ExecOutputSchema } from "lib/api/schema/exec";
+
+async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
@@ -65,3 +68,24 @@ async function get(req) {
   delete resp.id;
   return resp;
 }
+
+export default apiRoute({
+  exec: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Utils"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: ExecInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/octet-stream",
+        body: ExecOutputSchema,
+      },
+    ])
+    .handler(handle),
+});

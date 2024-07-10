@@ -373,20 +373,20 @@ export default function ComputeServer({
             {id != null && (
               <div style={{ color: "#888" }}>Id: {project_specific_id}</div>
             )}
-            {id != null && (
-              <ComputeServerLog id={id} style={{ marginLeft: "-15px" }} />
-            )}
-            {id != null &&
-              configuration.cloud == "google-cloud" &&
-              (state == "starting" ||
-                state == "stopping" ||
-                state == "running") && (
-                <SerialPortOutput
-                  id={id}
-                  style={{ marginLeft: "-15px" }}
-                  title={title}
-                />
-              )}
+            <div style={{ display: "flex", marginLeft: "-20px" }}>
+              {id != null && <ComputeServerLog id={id} />}
+              {id != null &&
+                configuration.cloud == "google-cloud" &&
+                (state == "starting" ||
+                  state == "stopping" ||
+                  state == "running") && (
+                  <SerialPortOutput
+                    id={id}
+                    title={title}
+                    style={{ marginLeft: "-5px" }}
+                  />
+                )}
+            </div>
             {id != null && (
               <div style={{ marginLeft: "-15px" }}>
                 <CurrentCost state={state} cost_per_hour={cost_per_hour} />

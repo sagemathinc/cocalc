@@ -54,6 +54,10 @@ import type { Uptime } from "@cocalc/util/consts/site-license";
 import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import type { CustomDescription, Period } from "../../upgrades/shopping";
 
+interface Version {
+  version: string; // it's just a string with no special interpretation.
+}
+
 interface PurchaseInfoQuota0 {
   type: "quota";
   user: User;
@@ -108,11 +112,13 @@ export type PurchaseInfoDisk = {
   payment_method?: string;
 };
 
-export type PurchaseInfo =
-  | PurchaseInfoQuota
-  | (PurchaseInfoVoucher & CustomDescription)
-  | (PurchaseInfoVM & StartEndDates & CustomDescription)
-  | (PurchaseInfoDisk & StartEndDates & CustomDescription);
+export type PurchaseInfo = Version &
+  (
+    | PurchaseInfoQuota
+    | (PurchaseInfoVoucher & CustomDescription)
+    | (PurchaseInfoVM & StartEndDates & CustomDescription)
+    | (PurchaseInfoDisk & StartEndDates & CustomDescription)
+  );
 
 // stripe's metadata can only handle string or number values.
 export type ProductMetadataQuota = Record<

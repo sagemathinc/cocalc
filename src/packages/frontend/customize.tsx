@@ -126,6 +126,7 @@ export interface CustomizeState {
   logo_square: string;
   max_upgrades: TypedMap<Partial<Upgrades>>;
   nonfree_countries?: List<string>;
+  limit_free_project_uptime: number; // minutes
   onprem_quota_heading: string;
   organization_email: string;
   organization_name: string;

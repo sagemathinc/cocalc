@@ -136,7 +136,7 @@ describe("create a subscription license and edit it and confirm the subscription
         member: true,
         period: "yearly",
         uptime: "short",
-        run_limit: 500,
+        run_limit: 200,
       },
       cost: {} as any,
     };

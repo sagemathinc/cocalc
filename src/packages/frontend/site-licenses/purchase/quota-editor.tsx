@@ -47,7 +47,6 @@ import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import {
   COSTS,
   CostMap,
-  GCE_COSTS,
 } from "@cocalc/util/licenses/purchase/consts";
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -112,7 +111,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     return (
       (quota.member ? COSTS.custom_cost.member : 1) *
       (quota.always_running ? COSTS.custom_cost.always_running : 1) *
-      (quota.member && quota.always_running ? GCE_COSTS.non_pre_factor : 1)
+      (quota.member && quota.always_running ? COSTS.gce.non_pre_factor : 1)
     );
   }, [quota]);
 
@@ -724,7 +723,7 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
           <>
             <b>
               longer idle time increases price by up to{" "}
-              {COSTS.custom_cost.always_running * GCE_COSTS.non_pre_factor}{" "}
+              {COSTS.custom_cost.always_running * COSTS.gce.non_pre_factor}{" "}
               times
             </b>{" "}
             {render_explanation(`If you leave your project alone, it will be shut down the latest
