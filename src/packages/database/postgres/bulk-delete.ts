@@ -1,14 +1,17 @@
-// see packages/database/pool/pool.ts for where this name is also hard coded:
-process.env.PGDATABASE = "smc_ephemeral_testing_database";
-
 import { escapeIdentifier } from "pg";
 
 import getPool from "@cocalc/database/pool";
 import { SCHEMA } from "@cocalc/util/schema";
 
+type Field =
+  | "project_id"
+  | "account_id"
+  | "target_project_id"
+  | "source_project_id";
+
 interface Opts {
   table: string; // e.g. project_log, etc.
-  field: "project_id" | "account_id"; // for now, we only support a few
+  field: Field; // for now, we only support a few
   id?: string; // default "id", the ID field in the table, which identifies each row uniquely
   value: string; // a UUID
   limit?: number; // default 1024

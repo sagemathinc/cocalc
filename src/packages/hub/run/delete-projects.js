@@ -16,7 +16,8 @@ async function update() {
   console.log("unlinking old deleted projects...");
   try {
     await db.unlink_old_deleted_projects();
-    await db.cleanup_old_projects_data();
+    const max_run_m = (INTERVAL_MS / 2) / (1000 * 60)
+    await db.cleanup_old_projects_data(max_run_m);
   } catch (err) {
     if (err !== null) {
       throw Error(`failed to unlink projects -- ${err}`);

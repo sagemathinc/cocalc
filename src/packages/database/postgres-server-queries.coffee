@@ -2591,8 +2591,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         return await unlink_old_deleted_projects(@)
 
     # async function
-    cleanup_old_projects_data: () =>
-        return await cleanup_old_projects_data(@)
+    cleanup_old_projects_data: (max_run_m) =>
+        return await cleanup_old_projects_data(@, max_run_m)
 
     # async function
     unlist_all_public_paths: (account_id, is_owner) =>
