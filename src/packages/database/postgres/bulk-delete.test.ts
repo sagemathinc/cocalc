@@ -20,6 +20,14 @@ describe("bulk delete", () => {
     const p = getPool();
     const project_id = uuid();
     const N = 2000;
+
+    // extra entry, which has to remain
+    const other = uuid();
+    await p.query(
+      "INSERT INTO project_log (id, project_id, time) VALUES($1::UUID, $2::UUID, $3::TIMESTAMP)",
+      [other, uuid(), new Date()],
+    );
+
     for (let i = 0; i < N; i++) {
       await p.query(
         "INSERT INTO project_log (id, project_id, time) VALUES($1::UUID, $2::UUID, $3::TIMESTAMP)",
@@ -33,17 +41,31 @@ describe("bulk delete", () => {
     );
     expect(num1.rows[0].num).toEqual(N);
 
-    await bulk_delete({
+    const res = await bulk_delete({
       table: "project_log",
       field: "project_id",
       value: project_id,
-      limit: 100,
+      limit: 128,
     });
+
+    // if this ever fails, the "ret.rowCount" value is inaccurate.
+    // This must be replaced by "RETURNING 1" in the the query and a "SELECT COUNT(*) ..." and so.
+    // (and not only here, but everywhere in the code base)
+    expect(res.rowsDeleted).toEqual(N);
+    expect(res.durationS).toBeGreaterThan(0.01);
+    expect(res.totalPgTimeS).toBeGreaterThan(0.001);
+    expect(res.totalWaitS).toBeGreaterThan(0.001);
+    expect((res.totalPgTimeS * 10) / res.totalWaitS).toBeGreaterThan(0.5);
 
     const num2 = await p.query(
       "SELECT COUNT(*)::INT as num FROM project_log WHERE project_id = $1",
       [project_id],
     );
     expect(num2.rows[0].num).toEqual(0);
-  });
+
+    const otherRes = await p.query("SELECT * FROM project_log WHERE id = $1", [
+      other,
+    ]);
+    expect(otherRes.rows[0].id).toEqual(other);
+  }, 10000);
 });
