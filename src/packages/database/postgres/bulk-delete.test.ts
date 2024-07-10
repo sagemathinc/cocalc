@@ -3,15 +3,12 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-// see packages/database/pool/pool.ts for where this name is also hard coded:
-process.env.PGDATABASE = "smc_ephemeral_testing_database";
-
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
 import { bulk_delete } from "./bulk-delete";
 
 beforeAll(async () => {
-  await initEphemeralDatabase({ reset: true });
+  await initEphemeralDatabase({});
 }, 15000);
 
 afterAll(async () => {
