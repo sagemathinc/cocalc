@@ -334,6 +334,9 @@ class Manager {
       COCALC_PROJECT_ID: this.project_id,
       COCALC_USERNAME: userInfo().username,
       COMPUTE_SERVER_ID: `${this.compute_server_id}`,
+      // default so that any windows that any user apps in terminal or jupyter run will
+      // automatically just work in xpra's X11 desktop.... if they happen to be running it.
+      DISPLAY: ":0",
     };
   };
 
