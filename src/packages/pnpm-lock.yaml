@@ -1579,6 +1579,9 @@ importers:
       sanitize-html:
         specifier: ^2.12.1
         version: 2.12.1
+      sql-template-strings:
+        specifier: ^2.2.2
+        version: 2.2.2
       stripe:
         specifier: ^12.17.0
         version: 12.17.0
@@ -10496,6 +10499,10 @@ packages:
   sql-string-escape@1.1.6:
     resolution: {integrity: sha512-akLfyyrqKHSwoJ3i2mNEAM0Zq837jXumofnWB7822PIjzpy+2soXU8T/tzCy6clcvDoc/x0fA4y7VXdxKN4VTA==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+  sql-template-strings@2.2.2:
+    resolution: {integrity: sha512-UXhXR2869FQaD+GMly8jAMCRZ94nU5KcrFetZfWEMd+LVVG6y0ExgHAhatEcKZ/wk8YcKPdi+hiD2wm75lq3/Q==}
+    engines: {node: '>=4.0.0'}
 
   stack-trace@0.0.9:
     resolution: {integrity: sha512-vjUc6sfgtgY0dxCdnc40mK6Oftjo9+2K8H/NG81TMhgL392FtiPA9tn9RLyTxXmTLPJPjF3VyzFp6bsWFLisMQ==}
@@ -21942,6 +21949,8 @@ snapshots:
   sprintf-js@1.0.3: {}
 
   sql-string-escape@1.1.6: {}
+
+  sql-template-strings@2.2.2: {}
 
   stack-trace@0.0.9: {}
 

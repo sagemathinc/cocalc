@@ -1352,18 +1352,24 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             opts.cb?()
             return
 
-        # If expire no pii expiration is set, use 1 year as a fallback
+        values =
+            'id         :: UUID     ' : misc.uuid()
+            'project_id :: UUID     ' : opts.project_id
+            'account_id :: UUID     ' : opts.account_id
+            'filename   :: TEXT     ' : opts.filename
+            'time       :: TIMESTAMP' : 'NOW()'
+
+        # If expire no pii expiration is set, do not expire.
+        # NOTE that the new usage_profiles total_file_access is completely
+        # useless and meaningless if this data is being deleted!
         expire = await pii_expire(@) ? expire_time(365*24*60*60)
+        expire = await pii_expire(@)
+        if expire
+            values['expire     :: TIMESTAMP'] = expire
 
         @_query
             query  : 'INSERT INTO file_access_log'
-            values :
-                'id         :: UUID     ' : misc.uuid()
-                'project_id :: UUID     ' : opts.project_id
-                'account_id :: UUID     ' : opts.account_id
-                'filename   :: TEXT     ' : opts.filename
-                'time       :: TIMESTAMP' : 'NOW()'
-                'expire     :: TIMESTAMP' : expire
+            values : values
             cb     : opts.cb
 
     ###

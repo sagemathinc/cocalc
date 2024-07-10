@@ -117,6 +117,7 @@
     "random-key": "^0.3.2",
     "safe-json-stringify": "^1.2.0",
     "sanitize-html": "^2.12.1",
+    "sql-template-strings": "^2.2.2",
     "stripe": "^12.17.0",
     "uuid": "^8.3.2"
   },
