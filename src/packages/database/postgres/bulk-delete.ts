@@ -37,7 +37,7 @@ WHERE ${ID} IN (
 )`;
 }
 
-export async function bulk_delete(opts: Opts): Ret {
+export async function bulkDelete(opts: Opts): Ret {
   const { table, field, value, id = "id", maxUtilPct = 10 } = opts;
   let { limit = 1024 } = opts;
   // assert table name is a key in SCHEMA

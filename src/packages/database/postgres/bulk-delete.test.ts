@@ -5,7 +5,7 @@
 
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { uuid } from "@cocalc/util/misc";
-import { bulk_delete } from "./bulk-delete";
+import { bulkDelete } from "./bulk-delete";
 
 beforeAll(async () => {
   await initEphemeralDatabase({});
@@ -41,7 +41,7 @@ describe("bulk delete", () => {
     );
     expect(num1.rows[0].num).toEqual(N);
 
-    const res = await bulk_delete({
+    const res = await bulkDelete({
       table: "project_log",
       field: "project_id",
       value: project_id,
