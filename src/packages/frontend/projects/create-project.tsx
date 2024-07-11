@@ -48,9 +48,10 @@ interface Props {
 
 type EditState = "edit" | "view" | "saving";
 
-export const NewProjectCreator: React.FC<Props> = (props: Props) => {
-  const { start_in_edit_mode, default_value } = props;
-
+export const NewProjectCreator: React.FC<Props> = ({
+  start_in_edit_mode,
+  default_value,
+}: Props) => {
   const managed_licenses = useTypedRedux("billing", "managed_licenses");
 
   // view --> edit --> saving --> view
@@ -78,6 +79,8 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     () => [KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc),
     [customize_kucalc],
   );
+
+  //const requireLicense = customize_kucalc == KUCALC_COCALC_COM;
 
   const [form] = Form.useForm();
 
@@ -227,7 +230,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   function create_disabled() {
     return (
       // no name of new project
-      title_text === "" ||
+      !title_text?.trim() ||
       // currently saving (?)
       state === "saving" ||
       // user wants a non-default image, but hasn't selected one yet
@@ -381,36 +384,48 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
                 />
               </Form.Item>
             </Form>
+            <div style={{ color: COLORS.GRAY, float: "right" }}>
+              You can change the title at any time.
+            </div>
           </Col>
           <Col sm={12}>
             <div style={{ color: COLORS.GRAY, marginLeft: "30px" }}>
-              A <A href="https://doc.cocalc.com/project.html">project</A> is an
-              isolated private computational workspace that you can share with
-              others. You can easily change the project's title at any time in
-              project settings.
+              A <A href="https://doc.cocalc.com/project.html">project</A> is a
+              private computational workspace that you can use with
+              collaborators that you explicitly invite. You can attach powerful{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                GPUs, CPUs
+              </A>{" "}
+              and{" "}
+              <A href="https://doc.cocalc.com/cloud_file_system.html">
+                storage
+              </A>{" "}
+              to a project.
             </div>
           </Col>
         </Row>
-        {render_advanced_toggle()}
-        {render_advanced()}
         {render_add_license_toggle()}
         {render_add_license()}
         {render_license()}
+        {render_advanced_toggle()}
+        {render_advanced()}
         <Row>
           <Col sm={24} style={{ marginTop: "10px" }}>
-            <Button.Group>
-              <Button disabled={state === "saving"} onClick={cancel_editing}>
-                Cancel
-              </Button>
-              <Button
-                disabled={create_disabled()}
-                onClick={() => create_project()}
-                type="primary"
-              >
-                Create Project
-                {create_disabled() ? " (enter a title above!)" : ""}
-              </Button>
-            </Button.Group>
+            <Button
+              disabled={state === "saving"}
+              onClick={cancel_editing}
+              style={{ marginRight: "8px" }}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={create_disabled()}
+              onClick={() => create_project()}
+              type="primary"
+            >
+              Create Project
+              {create_disabled() ? " (enter a title above!)" : ""}
+            </Button>
           </Col>
         </Row>
         <Row>
