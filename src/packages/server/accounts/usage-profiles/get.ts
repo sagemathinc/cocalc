@@ -30,15 +30,16 @@ export const getMostRecentUsageProfile = reuseInFlight(
     const usageProfile = await computeMostRecentUsageProfile(account_id);
     await pool.query(
       SQL`INSERT INTO usage_profiles(
-      account_id, time, total_purchases, total_file_access)
+      account_id, time, purchases_by_service_total, balance, file_access_by_ext_total, file_access_total)
       VALUES(${usageProfile.account_id}, ${usageProfile.time},
-             ${usageProfile.total_purchases}, ${usageProfile.total_file_access})`,
+             ${usageProfile.purchases_by_service_total}, ${usageProfile.balance},
+             ${usageProfile.file_access_by_ext_total}, ${usageProfile.file_access_total})`,
     );
     return usageProfile;
   },
 );
 
-// Dumbest first implementation.
+// Straightforward first implementation.
 // We'll have a much more efficient one that uses that last known usage profile
 // and fills in them from then until now, etc. But this is a good consistency check.
 export async function computeMostRecentUsageProfile(account_id: string) {
@@ -59,10 +60,13 @@ export async function computeMostRecentUsageProfile(account_id: string) {
     purchases.day_statement_id=statements.id
     AND statements.time <= ${time} GROUP BY purchases.service`,
   );
-  x.total_purchases = {};
+  x.purchases_by_service_total = {};
+  let balance = 0;
   for (const { service, total } of credit.rows) {
-    x.total_purchases[service] = total;
+    x.purchases_by_service_total[service] = -total;
+    balance += -total;
   }
+  x.balance = balance;
 
   // Get how *much* they used each type of file.
   // NOTE: this skips empty filename extension
@@ -70,10 +74,14 @@ export async function computeMostRecentUsageProfile(account_id: string) {
     "SELECT COUNT(*) AS total, substring(filename FROM '.([^.]*$)') AS extension FROM file_access_log WHERE account_id=$1 AND position('.' in filename) > 1 GROUP BY extension ORDER BY total DESC",
     [account_id],
   );
-  x.total_file_access = {};
+  x.file_access_by_ext_total = {};
+  let file_access_total = 0;
   for (const { extension, total } of file_access.rows) {
-    x.total_file_access[extension] = parseInt(total);
+    const s = parseInt(total);
+    x.file_access_by_ext_total[extension] = s;
+    file_access_total += s;
   }
+  x.file_access_total = file_access_total;
 
   return x as UsageProfile;
 }
