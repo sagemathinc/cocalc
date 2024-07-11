@@ -137,6 +137,7 @@ export const NewProjectCreator: React.FC<Props> = ({
       title: title_text,
       image: await derive_project_img_name(custom_software),
       start: true, // used to not start, due to apply_default_upgrades, but upgrades are  deprecated
+      license: license_id,
     };
     try {
       project_id = await actions.create_project(opts);
@@ -145,9 +146,6 @@ export const NewProjectCreator: React.FC<Props> = ({
       set_state("edit");
       set_error(`Error creating project -- ${err}`);
       return;
-    }
-    if (isValidUUID(license_id)) {
-      await actions.add_site_license_to_project(project_id, license_id);
     }
     track("create-project", {
       how: "projects-page",
