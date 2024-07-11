@@ -35,6 +35,7 @@ interface Props {
   style?: CSS;
   extra?: ReactNode; // plain-text node is ok
   extraButtons?: ReactNode;
+  requireValid?: boolean;
 }
 
 export default function SelectLicense(props: Props) {
@@ -49,6 +50,7 @@ export default function SelectLicense(props: Props) {
     style,
     extra,
     extraButtons,
+    requireValid,
   } = props;
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
@@ -154,24 +156,30 @@ export default function SelectLicense(props: Props) {
       style={{ width: "100%", ...style }}
     >
       <div>
-        {(showAll || licenseIds.length < len(managedLicenses)) && (
-          <Checkbox
-            style={{
-              flex: "1 0 0",
-              margin: "5px 0",
-              color: COLORS.GRAY_M,
-              whiteSpace: "nowrap",
-            }}
-            checked={showAll}
-            onChange={() => setShowAll(!showAll)}
-          >
-            Show expired
-          </Checkbox>
-        )}{" "}
+        {!requireValid &&
+          (showAll || licenseIds.length < len(managedLicenses)) && (
+            <Checkbox
+              style={{
+                flex: "1 0 0",
+                margin: "5px 0",
+                color: COLORS.GRAY_M,
+                whiteSpace: "nowrap",
+              }}
+              checked={showAll}
+              onChange={() => setShowAll(!showAll)}
+            >
+              Show expired
+            </Checkbox>
+          )}{" "}
         <Select
-          style={{ width: "100%", flex: "1 1 0", marginRight: "10px" }}
+          style={{
+            width: "100%",
+            height: licenseId ? "100px" : undefined,
+            flex: "1 1 0",
+            marginRight: "10px",
+          }}
           placeholder={
-            "Enter license code " +
+            `Enter${requireValid ? " valid " : " "}license code ` +
             (options.length > 0
               ? `or select from the ${options.length} licenses you manage`
               : "")

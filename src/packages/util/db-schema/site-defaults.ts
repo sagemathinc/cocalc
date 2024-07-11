@@ -77,6 +77,7 @@ export type SiteSettingsKeys =
   | "max_trial_projects"
   | "nonfree_countries"
   | "limit_free_project_uptime"
+  | "require_license_to_create_project"
   | "google_analytics"
   | "kucalc"
   | "dns"
@@ -575,6 +576,14 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: only_cocalc_com,
     to_display: (val) => `${val} minutes`,
+  },
+  require_license_to_create_project: {
+    name: "Require License to Create Project",
+    desc: "If yes the 'New Project' creation form on the projects page requires the user to enter a valid license.  This has no other impact and only impacts the frontend UI.  Users can circumvent this via the API or a course.",
+    default: "no",
+    valid: only_booleans,
+    show: only_cocalc_com,
+    to_val: to_bool,
   },
   datastore: {
     name: "Datastore",

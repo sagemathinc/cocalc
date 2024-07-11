@@ -9,7 +9,7 @@ Create a new project
 
 import { Button, Card, Col, Form, Input, Row } from "antd";
 import { delay } from "awaiting";
-
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -61,7 +61,6 @@ export const NewProjectCreator: React.FC<Props> = ({
   const [title_text, set_title_text] = useState<string>(default_value ?? "");
   const [error, set_error] = useState<string>("");
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
-  const [show_add_license, set_show_add_license] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
   const [warnBoost, setWarnBoost] = useState<boolean>(false);
@@ -73,14 +72,18 @@ export const NewProjectCreator: React.FC<Props> = ({
 
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const requireLicense = !!useTypedRedux(
+    "customize",
+    "require_license_to_create_project",
+  );
+  const [show_add_license, set_show_add_license] =
+    useState<boolean>(requireLicense);
 
   // onprem and cocalc.com use licenses to adjust quota configs – but only cocalc.com has custom software images
   const show = useMemo(
     () => [KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc),
     [customize_kucalc],
   );
-
-  //const requireLicense = customize_kucalc == KUCALC_COCALC_COM;
 
   const [form] = Form.useForm();
 
@@ -113,7 +116,7 @@ export const NewProjectCreator: React.FC<Props> = ({
     set_error("");
     set_custom_software({});
     set_show_advanced(false);
-    set_show_add_license(false);
+    set_show_add_license(requireLicense);
     set_title_prefill(true);
     set_license_id("");
   }
@@ -227,7 +230,10 @@ export const NewProjectCreator: React.FC<Props> = ({
     );
   }
 
-  function create_disabled() {
+  function isDisabled() {
+    if (requireLicense && !license_id) {
+      return true;
+    }
     return (
       // no name of new project
       !title_text?.trim() ||
@@ -286,8 +292,20 @@ export const NewProjectCreator: React.FC<Props> = ({
   function render_add_license() {
     if (!show_add_license) return;
     return (
-      <Card size="small" title="Select license" style={CARD_STYLE}>
+      <Card
+        size="small"
+        title={
+          <>
+            <div style={{ float: "right" }}>
+              <BuyLicenseForProject size="small" />
+            </div>
+            <Icon name="key" /> Select License
+          </>
+        }
+        style={CARD_STYLE}
+      >
         <SiteLicenseInput
+          requireValid
           confirmLabel={"Add this license"}
           onChange={addSiteLicense}
         />
@@ -325,6 +343,7 @@ export const NewProjectCreator: React.FC<Props> = ({
     return (
       <div style={TOGGLE_STYLE}>
         <Button
+          disabled={requireLicense}
           onClick={() => set_show_add_license(true)}
           type="link"
           style={TOGGLE_BUTTON_STYLE}
@@ -348,7 +367,7 @@ export const NewProjectCreator: React.FC<Props> = ({
           >
             add/remove licenses
           </A>{" "}
-          in the project settings later on.
+          in project settings later.
         </div>
       );
     }
@@ -419,12 +438,12 @@ export const NewProjectCreator: React.FC<Props> = ({
               Cancel
             </Button>
             <Button
-              disabled={create_disabled()}
+              disabled={isDisabled()}
               onClick={() => create_project()}
               type="primary"
             >
               Create Project
-              {create_disabled() ? " (enter a title above!)" : ""}
+              {requireLicense && !license_id && <> (select license above)</>}
             </Button>
           </Col>
         </Row>
