@@ -3,14 +3,16 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import pathToFiles from "./path-to-files";
 import { promises as fs } from "fs";
-import { join } from "path";
 import { sortBy } from "lodash";
+import { join } from "path";
+
+import { pathToFiles } from "@cocalc/backend/files/path-to-files";
 import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
 import { getExtension } from "./util";
 
 const MB: number = 1000000;
+
 const LIMITS = {
   listing: 10000, // directory listing is truncated after this many files
   ipynb: 15 * MB,
@@ -18,7 +20,7 @@ const LIMITS = {
   whiteboard: 5 * MB,
   slides: 5 * MB,
   other: 2 * MB,
-};
+} as const;
 
 export interface FileInfo {
   name: string;
@@ -40,7 +42,7 @@ export interface PathContents {
 
 export default async function getContents(
   project_id: string,
-  path: string
+  path: string,
 ): Promise<PathContents> {
   const fsPath = pathToFiles(project_id, path);
   const obj: PathContents = {};
@@ -72,7 +74,7 @@ export default async function getContents(
 }
 
 async function getDirectoryListing(
-  path: string
+  path: string,
 ): Promise<{ listing: FileInfo[]; truncated?: string }> {
   const listing: FileInfo[] = [];
   let truncated: string | undefined = undefined;

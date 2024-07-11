@@ -7,6 +7,10 @@
 Code related to permanently deleting projects.
 */
 
+import { promises as fs } from "node:fs";
+import { join } from "node:path";
+
+import { pathToFiles } from "@cocalc/backend/files/path-to-files";
 import getLogger from "@cocalc/backend/logger";
 import { newCounter } from "@cocalc/backend/metrics";
 import getPool from "@cocalc/database/pool";
@@ -105,7 +109,7 @@ SELECT project_id
 FROM projects
 WHERE deleted = true
   AND users IS NULL
-  AND state ->> 'state' != 'deleted'
+  AND coalesce(state ->> 'state', '') != 'deleted'
 ORDER BY created ASC
 LIMIT 1000
 `;
@@ -169,10 +173,12 @@ export async function cleanup_old_projects_data(
 
       if (on_prem) {
         L2(`delete all project files`);
-        // TODO: this only works on-prem, and requires the project files to be mounted
+        await deleteProjectFiles(L2, project_id);
 
         L2(`deleting all shared files`);
-        // TODO: do it directly like above, and also get rid of all those shares in the database
+        // this is something like /shared/projects/${project_id}
+        const shared_path = pathToFiles(project_id, "");
+        await fs.rm(shared_path, { recursive: true, force: true });
 
         // for now, on-prem only as well. This gets rid of all sorts of data in tables specific to the given project.
         delRows += await delete_associated_project_data(L2, project_id);
@@ -260,4 +266,25 @@ async function delete_associated_project_data(
   }
 
   return total;
+}
+
+async function deleteProjectFiles(L2, project_id: string) {
+  // TODO: this only works on-prem, and requires the project files to be mounted
+  const projects_root = process.env["MOUNTED_PROJECTS_ROOT"];
+  if (!projects_root) return;
+  const project_dir = join(projects_root, project_id);
+  try {
+    await fs.access(project_dir, fs.constants.F_OK | fs.constants.R_OK);
+    const stats = await fs.lstat(project_dir);
+    if (stats.isDirectory()) {
+      L2(`deleting all files in ${project_dir}`);
+      await fs.rm(project_dir, { recursive: true, force: true });
+    } else {
+      L2(`is not a directory: ${project_dir}`);
+    }
+  } catch (err) {
+    L2(
+      `not deleting project files: either it does not exist or is not accessible`,
+    );
+  }
 }
