@@ -18,7 +18,6 @@ import { size } from "lodash";
 import { delay } from "awaiting";
 import * as k3d from "./k3d";
 
-import "./v2";
 /*
 NOTES: Third party custom widgets:
 
@@ -74,7 +73,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
     this.setWidgetModelIdState = setWidgetModelIdState;
     this.init_ipywidgets_state();
-    window.y = { cocalc_manager: this };
   }
 
   private _v2;
@@ -201,6 +199,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   }
 
   private async handle_table_state_change({ model_id, type }): Promise<void> {
+    return;
     // console.log("handle_table_state_change - ", model_id, type);
     this.lastTableChange = Date.now();
     try {

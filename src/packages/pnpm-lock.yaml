@@ -300,8 +300,8 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1(crypto@1.0.1)(encoding@0.1.13)
       '@jupyter-widgets/controls':
-        specifier: ^3.1.0
-        version: 3.1.1(crypto@1.0.1)(encoding@0.1.13)
+        specifier: 5.0.0-rc.2
+        version: 5.0.0-rc.2(crypto@1.0.1)(encoding@0.1.13)
       '@jupyter-widgets/output':
         specifier: ^4.1.0
         version: 4.1.1(crypto@1.0.1)(encoding@0.1.13)
@@ -2946,8 +2946,11 @@ packages:
   '@jupyter-widgets/base@4.1.1':
     resolution: {integrity: sha512-bw3Qib1FbUaRXjXol0HcjzYnKzEvmevGXyXjxIiVXGIG43cwMipFLwL9mPa7RWUim/5u1H+XzGdWpfyNj4zdDA==}
 
-  '@jupyter-widgets/controls@3.1.1':
-    resolution: {integrity: sha512-zo+LZYqn/rIQc9o9TiPO5WX8n7g/jN8eFCwP0tjg6tRfv5Tl/uvdcByv1pIyFm/qB5fsn6k01NKrAc6NlKh2SQ==}
+  '@jupyter-widgets/base@6.0.8':
+    resolution: {integrity: sha512-2Y0gl6BXdlxU9DR4YBWXd3dv9m6kSd2T31W81XGLR5/MGH4SSZ2LuiC0TsuMRFL+b6dk4+X73tRaekRxo5iMKA==}
+
+  '@jupyter-widgets/controls@5.0.0-rc.2':
+    resolution: {integrity: sha512-opcHMgOcrpQLPZlibkO/GcmEFgSquL/A9TG6qh894VFAykLj6VcUO7cx+xEDSodSnz0eAl4jC5XqVLRJLgKV6g==}
 
   '@jupyter-widgets/output@4.1.1':
     resolution: {integrity: sha512-XYNabDT3MtPGNAx1yLFYHn9mJTqGWqRRsejyJkv1KrAlUhJJQTJwvoBInP2OdaGAUMk8n6pE16qzzQcCS1+Qog==}
@@ -3989,6 +3992,9 @@ packages:
   '@types/babel__traverse@7.20.5':
     resolution: {integrity: sha512-WXCyOcRtH37HAUkpXhUduaxdm82b4GSlyTqajXviN4EfiuPgNYR109xMCKvpl6zPIpua0DGlMEDCq+g8EdoheQ==}
 
+  '@types/backbone@1.4.14':
+    resolution: {integrity: sha512-85ldQ99fiYTJFBlZuAJRaCdvTZKZ2p1fSs3fVf+6Ub6k1X0g0hNJ0qJ/2FOByyyAQYLtbEz3shX5taKQfBKBDw==}
+
   '@types/backbone@1.4.15':
     resolution: {integrity: sha512-WWeKtYlsIMtDyLbbhkb96taJMEbfQBnuz7yw1u0pkphCOtksemoWhIXhK74VRCY9hbjnsH3rsJu2uUiFtnsEYg==}
 
@@ -4891,6 +4897,9 @@ packages:
   backbone@1.2.3:
     resolution: {integrity: sha512-1/eXj4agG79UDN7TWnZXcGD6BJrBwLZKCX7zYcBIy9jWf4mrtVkw7IE1VOYFnrKahsmPF9L55Tib9IQRvk027w==}
 
+  backbone@1.4.0:
+    resolution: {integrity: sha512-RLmDrRXkVdouTg38jcgHhyQ/2zjg7a8E6sz2zxfz21Hh17xDJYUHBZimVIt5fUyS8vbfpeSmTL3gUjTEvUV3qQ==}
+
   backoff@2.5.0:
     resolution: {integrity: sha512-wC5ihrnUXmR2douXmXLCe5O3zg3GKIyvRi/hi58a/XyRxVI+3/yM0PYueQOZXPXQ9pxBislYkw+sF9b7C/RuMA==}
     engines: {node: '>= 0.6'}
@@ -5666,6 +5675,10 @@ packages:
 
   d3-format@1.4.5:
     resolution: {integrity: sha512-J0piedu6Z8iB6TbIGfZgDzfXxUFN3qQRMofy2oPdXzQibYGqPB/9iMcxr/TGalU+2RsyDO+U4f33id8tbnSRMQ==}
+
+  d3-format@3.1.0:
+    resolution: {integrity: sha512-YyUI6AEuY/Wpt8KWLgZHsIU86atmikuoOmCfommt0LYHiQSPjvX2AcFc38PX0CBpr2RCyZhjex+NS/LPOv6YqA==}
+    engines: {node: '>=12'}
 
   d3-geo-projection@2.9.0:
     resolution: {integrity: sha512-ZULvK/zBn87of5rWAfFMc9mJOipeSo57O+BBitsKIXmU4rTVAnX1kSsJkE0R+TxY8pGNoM1nbyRRE7GYHhdOEQ==}
@@ -8746,6 +8759,9 @@ packages:
 
   normalize-wheel@1.0.1:
     resolution: {integrity: sha512-1OnlAPZ3zgrk8B91HyRj+eVv+kS5u+Z0SCsak6Xil/kmgEia50ga7zfkumayonZrImffAxPU/5WcyGhzetHNPA==}
+
+  nouislider@15.4.0:
+    resolution: {integrity: sha512-AV7UMhGhZ4Mj6ToMT812Ib8OJ4tAXR2/Um7C4l4ZvvsqujF0WpQTpqqHJ+9xt4174R7ueQOUrBR4yakJpAIPCA==}
 
   npm-run-path@4.0.1:
     resolution: {integrity: sha512-S48WzZW777zhNIrn7gxOlISNAqi9ZC/uQFnRdbeIHhZhCA6UqpkOT8T1G7BvfdgP4Er8gF4sUbaS0i7QvIfCWw==}
@@ -13069,18 +13085,35 @@ snapshots:
       - encoding
       - utf-8-validate
 
-  '@jupyter-widgets/controls@3.1.1(crypto@1.0.1)(encoding@0.1.13)':
+  '@jupyter-widgets/base@6.0.8(crypto@1.0.1)(encoding@0.1.13)':
     dependencies:
-      '@jupyter-widgets/base': 4.1.1(crypto@1.0.1)(encoding@0.1.13)
+      '@jupyterlab/services': 6.5.2(crypto@1.0.1)(encoding@0.1.13)
+      '@lumino/coreutils': 1.12.1(crypto@1.0.1)
+      '@lumino/messaging': 1.10.3
+      '@lumino/widgets': 1.36.0(crypto@1.0.1)
+      '@types/backbone': 1.4.14
+      '@types/lodash': 4.14.202
+      backbone: 1.4.0
+      jquery: 3.6.3
+      lodash: 4.17.21
+    transitivePeerDependencies:
+      - bufferutil
+      - crypto
+      - encoding
+      - utf-8-validate
+
+  '@jupyter-widgets/controls@5.0.0-rc.2(crypto@1.0.1)(encoding@0.1.13)':
+    dependencies:
+      '@jupyter-widgets/base': 6.0.8(crypto@1.0.1)(encoding@0.1.13)
       '@lumino/algorithm': 1.9.2
       '@lumino/domutils': 1.8.2
       '@lumino/messaging': 1.10.3
       '@lumino/signaling': 1.11.0
       '@lumino/widgets': 1.36.0(crypto@1.0.1)
-      d3-format: 1.4.5
+      d3-color: 3.1.0
+      d3-format: 3.1.0
       jquery: 3.6.3
-      jquery-ui: 1.13.2
-      underscore: 1.13.4
+      nouislider: 15.4.0
     transitivePeerDependencies:
       - bufferutil
       - crypto
@@ -14019,6 +14052,11 @@ snapshots:
   '@types/babel__traverse@7.20.5':
     dependencies:
       '@babel/types': 7.24.5
+
+  '@types/backbone@1.4.14':
+    dependencies:
+      '@types/jquery': 3.5.16
+      '@types/underscore': 1.11.4
 
   '@types/backbone@1.4.15':
     dependencies:
@@ -15138,6 +15176,10 @@ snapshots:
     dependencies:
       underscore: 1.13.4
 
+  backbone@1.4.0:
+    dependencies:
+      underscore: 1.13.4
+
   backoff@2.5.0:
     dependencies:
       precond: 0.2.3
@@ -15989,6 +16031,8 @@ snapshots:
       d3-timer: 1.0.10
 
   d3-format@1.4.5: {}
+
+  d3-format@3.1.0: {}
 
   d3-geo-projection@2.9.0:
     dependencies:
@@ -19755,6 +19799,8 @@ snapshots:
       svg-arc-to-cubic-bezier: 3.2.0
 
   normalize-wheel@1.0.1: {}
+
+  nouislider@15.4.0: {}
 
   npm-run-path@4.0.1:
     dependencies:

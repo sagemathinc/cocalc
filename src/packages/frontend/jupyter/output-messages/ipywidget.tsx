@@ -29,6 +29,7 @@ export function IpyWidget({ value, name, actions }: WidgetProps) {
       console.warn(err);
     }
   }, []);
+  console.log("IpyWidget", { name });
   return (
     <div
       id="fubar-widget"
