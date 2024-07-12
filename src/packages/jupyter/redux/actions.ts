@@ -10,9 +10,7 @@ This can be used both on the frontend and the backend.
 
 // This was 10000 for a while and that caused regular noticeable problems:
 //    https://github.com/sagemathinc/cocalc/issues/4590
-// It seems like 50000 provides a better tradeoff.  With 10000 we got about
-// four support messages *per year* about this...
-const DEFAULT_MAX_OUTPUT_LENGTH = 100000;
+const DEFAULT_MAX_OUTPUT_LENGTH = 1000000;
 
 declare const localStorage: any;
 

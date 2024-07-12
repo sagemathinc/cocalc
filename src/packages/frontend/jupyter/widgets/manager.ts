@@ -53,7 +53,7 @@ export type SendCommFunction = (string, data) => string;
 import { createWidgetManager, WidgetEnvironment, IComm } from "@cocalc/widgets";
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
-  private ipywidgets_state: IpywidgetsState;
+  public ipywidgets_state: IpywidgetsState;
   private setWidgetModelIdState: (
     model_id: string,
     state: string | null, // '' = created; 'module_name'=unsupported; null=not created.
@@ -89,7 +89,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       async getModelState(modelId) {
         const state = this.manager.ipywidgets_state.get_model_state(modelId);
         if (!state) {
-          throw Error(`no such model -- ${modelId}`);
+          return undefined;
         }
         return {
           modelName: state._model_name,
@@ -99,18 +99,44 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         };
       }
 
-      openCommChannel(
+      async openCommChannel(
         targetName: string,
         data?: unknown,
         buffers?: ArrayBuffer[],
       ): Promise<IComm> {
-        console.log({ targetName, data, buffers });
-        throw Error("not implemented");
+        console.log("openCommChannel", { targetName, data, buffers });
+        const comm = {
+          send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
+            return new Promise<void>((resolve, _reject) => {
+              console.log("Data sent:", data, "With options:", opts);
+              resolve();
+            });
+          },
+
+          close() {
+            console.log("Connection closed");
+          },
+
+          get messages() {
+            const message = {
+              data: "Hello",
+              buffers: [new ArrayBuffer(8)],
+            };
+            return {
+              [Symbol.asyncIterator]: async function* () {
+                yield message;
+              },
+            };
+          },
+        };
+        return comm;
       }
 
-      renderOutput(outputItem: unknown, destination: Element): Promise<void> {
-        console.log({ outputItem, destination });
-        throw Error("not implemented");
+      async renderOutput(
+        outputItem: unknown,
+        destination: Element,
+      ): Promise<void> {
+        console.log("renderOutput", { outputItem, destination });
       }
     }
 
