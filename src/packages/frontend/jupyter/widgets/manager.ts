@@ -18,6 +18,7 @@ import { size } from "lodash";
 import { delay } from "awaiting";
 import * as k3d from "./k3d";
 
+import "./v2";
 /*
 NOTES: Third party custom widgets:
 

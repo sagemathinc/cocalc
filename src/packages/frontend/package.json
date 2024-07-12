@@ -45,6 +45,7 @@
     "@cocalc/local-storage-lru": "^2.4.3",
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@cocalc/widgets": "link:/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/upstream/cocalc-widgets",
     "@cocalc/xpra-lz4": "^1.1.0",
     "@dnd-kit/core": "^6.0.7",
     "@dnd-kit/modifiers": "^6.0.1",
