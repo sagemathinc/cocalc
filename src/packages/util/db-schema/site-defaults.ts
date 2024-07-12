@@ -80,6 +80,7 @@ export type SiteSettingsKeys =
   | "require_license_to_create_project"
   | "google_analytics"
   | "kucalc"
+  | "delete_project_data"
   | "dns"
   | "datastore"
   | "ssh_gateway"
@@ -651,6 +652,12 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     to_val: split_iframe_comm_hosts,
     to_display: num_dns_hosts,
+  },
+  delete_project_data : {
+    name :"Delete Project Data",
+    desc: "When a project has been marked as deleted, also actually delete associated data from the database and (for OnPrem) also its files.",
+    default: "no",
+    to_val: to_bool,
   },
   email_enabled: {
     name: "Email sending enabled",

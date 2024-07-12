@@ -101,7 +101,7 @@ WHERE p.deleted = true
   AND p.users IS NULL
 ORDER BY
   p.project_id, s.string_id
-LIMIT 10000
+LIMIT 1000
 `;
 
 const Q_CLEANUP_PROJECTS = `
@@ -130,12 +130,18 @@ export async function cleanup_old_projects_data(
 ) {
   const settings = await getServerSettings();
   const on_prem = settings.kucalc === KUCALC_ON_PREMISES;
+  const delete_data = settings.delete_project_data;
   const L0 = log.extend("cleanup_old_projects_data");
   const L = L0.debug;
 
-  L("args", { max_run_m, on_prem });
-  const start_ts = new Date();
+  L("args", { max_run_m, on_prem, delete_data });
 
+  if (!delete_data) {
+    L(`deleting project data is disabled ('delete_project_data' setting).`);
+    return;
+  }
+
+  const start_ts = new Date();
   const pool = getPool();
 
   let numSyncStr = 0;
@@ -171,27 +177,34 @@ export async function cleanup_old_projects_data(
       numProj += 1;
       let delRows = 0;
 
+      // Clean up data *on* a given project. For now, remove all site licenses.
+      await pool.query(
+        `UPDATE projects SET site_license = NULL WHERE project_id = $1`,
+        [project_id],
+      );
+
       if (on_prem) {
         L2(`delete all project files`);
         await deleteProjectFiles(L2, project_id);
 
         L2(`deleting all shared files`);
-        // this is something like /shared/projects/${project_id}
-        const shared_path = pathToFiles(project_id, "");
-        await fs.rm(shared_path, { recursive: true, force: true });
-
-        // for now, on-prem only as well. This gets rid of all sorts of data in tables specific to the given project.
-        delRows += await delete_associated_project_data(L2, project_id);
+        try {
+          // this is something like /shared/projects/${project_id}
+          const shared_path = pathToFiles(project_id, "");
+          await fs.rm(shared_path, { recursive: true, force: true });
+        } catch (err) {
+          L2(`Unable to delete shared files: ${err}`);
+        }
       }
 
+      // This gets rid of all sorts of data in tables specific to the given project.
+      delRows += await delete_associated_project_data(L2, project_id);
+
       // now, that we're done with that project, mark it as state.state ->> 'deleted'
-      // in addition to the flag "deleted = true"
-      await callback2(db.set_project_state, {
-        project_id,
-        state: "deleted",
-      });
+      // in addition to the flag "deleted = true". This also updates the state.time timestamp.
+      await callback2(db.set_project_state, { project_id, state: "deleted" });
       L2(
-        `finished deleting project data | deleted ${delRows} entries | setting state.state="deleted"`,
+        `finished deleting project data | deleted ${delRows} entries | state.state="deleted"`,
       );
     }
 
@@ -247,7 +260,7 @@ async function delete_associated_project_data(
     const { rowsDeleted } = await bulkDelete({
       table: "listings",
       field: "project_id",
-      id: "project_id", // TODO listings has a more complex ID, is this a problem?
+      id: "project_id", // TODO listings has a more complex ID, which means this gets rid of everything in one go. should be fine, though.
       value: project_id,
     });
     total += rowsDeleted;
