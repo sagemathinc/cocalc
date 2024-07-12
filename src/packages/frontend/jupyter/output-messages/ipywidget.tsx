@@ -47,7 +47,7 @@ export function IpyWidget({ value, actions }: WidgetProps) {
       setUnknown(true);
       return;
     }
-    const manager = widget_manager?.v2();
+    const manager = widget_manager?.manager;
     if (manager == null) return;
     try {
       manager.render(id, divRef.current);

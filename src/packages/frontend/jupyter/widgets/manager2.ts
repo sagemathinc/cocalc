@@ -3,6 +3,13 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
+import { createWidgetManager } from "@cocalc/widgets";
+import type {
+  WidgetEnvironment,
+  Comm,
+  WidgetManager as CoCalcWidgetManager,
+} from "@cocalc/widgets";
+
 import * as base from "@jupyter-widgets/base";
 import * as phosphor_controls from "@jupyter-widgets/controls";
 import {
@@ -18,42 +25,11 @@ import { size } from "lodash";
 import { delay } from "awaiting";
 import * as k3d from "./k3d";
 
-/*
-NOTES: Third party custom widgets:
-
-Notes here, but they need to be async imported in the loadClass function, so
-they only get loaded when used, as they can be very large.
-
-pythreejs: fails
-
-ipyvolume: fails
-
-bqplot: sort of works.
-simple examples don't really use widgets, but the big notebook
-linked at https://github.com/bqplot/bqplot does
-This actually currently half way works. The plot appears, but
-things instantly get squished, and buttons don't work.  But it's close.
-To develop it, I switched to import "bqplot" instead of "bqplot/dist",
-and also (!) had to install the exact same random version of d3 that
-is needed by bqplot (since webpack grabs it rather than the one in bqplot).
-Also, it's necessary to install raw-loader into packages/frontend to
-do such dev work.
-
-matplotlib:
-This just silently fails when I've tried it.
-There's also warning by webpack about a map file missing. They are harmless.
-
-*/
-
 const MAX_DEREF_WAIT_MS = 1000 * 15;
 
 export type SendCommFunction = (string, data) => string;
 
-// v2 wip
-import { createWidgetManager, WidgetEnvironment, Comm } from "@cocalc/widgets";
-
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
-  public ipywidgets_state: IpywidgetsState;
   private setWidgetModelIdState: (
     model_id: string,
     state: string | null, // '' = created; 'module_name'=unsupported; null=not created.
@@ -61,7 +37,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
   private lastTableChange: number = 0;
-  public manager?;
+  public ipywidgets_state: IpywidgetsState;
+  public manager?: CoCalcWidgetManager;
 
   // setWidgetModelIdState gets called after each model is created.
   // This makes it so UI that is waiting on comm state so it
@@ -73,14 +50,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
       throw Error("ipywidgets_state must not be closed");
     }
     this.setWidgetModelIdState = setWidgetModelIdState;
-    this.init_ipywidgets_state();
+    this.initIpywidgetsState();
   }
 
-  private _v2;
-  v2() {
-    if (this._v2 != null) {
-      return this._v2;
-    }
+  private initManager = () => {
     class Environment implements WidgetEnvironment {
       private manager: WidgetManager;
       constructor(manager) {
@@ -142,52 +115,10 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
 
     const provider = new Environment(this);
-    const manager = createWidgetManager(provider);
-    this.manager = manager;
+    this.manager = createWidgetManager(provider);
+  };
 
-    // not efficient -- just a proof of concept/
-    /*
-    this.ipywidgets_state.on("change", async (keys) => {
-      for (const key of keys) {
-        const [, model_id] = JSON.parse(key);
-        const state = this.ipywidgets_state.get_model_state(model_id);
-        await this.dereference_model_links(state);
-        const model = await manager.get_model(model_id);
-        console.log("updating rendering of ", model_id);
-        model.set_state(state);
-      }
-    });
-    */
-    this._v2 = manager;
-    return this._v2;
-    /*
-    from IPython.display import display, HTML; display(HTML('<div id="v2">widget here</div>'))
-
----
-
-    id = "c5cba2c1634b4b9c8b0a2dbed33af91a"
-    manager = y.cocalc_manager.v2()
-    await manager.render(id, $("#v2")[0]);
-    model = await manager.get_model(id)
-
-    // make changes to widget in cocalc, even from another browser...
-
-    state = y.cocalc_manager.ipywidgets_state.get_model_state(id)
-    await y.cocalc_manager.dereference_model_links(state)
-    model.set_state(state)
-
-    // this works when changing the v2 model to sync back, but how can we
-    // do this directly with ipywidgets_state instead?
-    cmodel = await y.cocalc_manager.get_model(id)
-    cmodel.set_state(model.get_state())
-
-    // maybe this?  yes this works, but you only see the change
-    // on another browser, which seems reasonable.
-    await y.cocalc_manager.handle_model_change(model)
-    */
-  }
-
-  private async init_ipywidgets_state(): Promise<void> {
+  private initIpywidgetsState = async (): Promise<void> => {
     if (this.ipywidgets_state.get_state() != "ready") {
       // wait until ready to use.
       await once(this.ipywidgets_state, "ready");
@@ -206,7 +137,9 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         this.handle_table_state_change({ model_id, type });
       }
     });
-  }
+
+    this.initManager();
+  };
 
   // Wait until there has been no update to the sync table for
   // at least stableMs milliseconds.  The reason for doing this is
