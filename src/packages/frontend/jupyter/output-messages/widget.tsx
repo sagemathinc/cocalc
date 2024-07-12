@@ -21,7 +21,7 @@ import { A, Loading } from "@cocalc/frontend/components";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import getSupportURL from "@cocalc/frontend/support/url";
 import * as pWidget from "@lumino/widgets";
-import { JupyterActions } from "../browser-actions";
+import type { JupyterActions } from "../browser-actions";
 import { CellOutputMessages } from "./message";
 
 require("@jupyter-widgets/controls/css/widgets.css");
