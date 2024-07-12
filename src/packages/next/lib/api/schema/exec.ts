@@ -10,14 +10,14 @@ export const ExecInputSchema = z
   .object({
     project_id: ProjectIdSchema,
     compute_server_id: ComputeServerIdSchema.describe(
-      `If provided, the desired shell command will be run on the compute server whose id 
+      `If provided, the desired shell command will be run on the compute server whose id
        is specified in this field (if available).`,
     ).optional(),
     filesystem: z
       .boolean()
       .optional()
       .describe(
-        `If \`true\`, this shell command runs in the fileserver container on the compute 
+        `If \`true\`, this shell command runs in the fileserver container on the compute
          server; otherwise, it runs on the main compute container.`,
       ),
     path: z
@@ -46,7 +46,7 @@ export const ExecInputSchema = z
       .boolean()
       .optional()
       .describe(
-        `If \`true\`, this command runs in a \`bash\` shell. To do so, the provided shell 
+        `If \`true\`, this command runs in a \`bash\` shell. To do so, the provided shell
          command is written to a file and then executed via the \`bash\` command.`,
       ),
     aggregate: z
@@ -57,17 +57,17 @@ export const ExecInputSchema = z
       ])
       .optional()
       .describe(
-        `If provided, this shell command is aggregated as in 
+        `If provided, this shell command is aggregated as in
          \`src/packages/backend/aggregate.js\`. This parameter allows one to specify
-         multiple callbacks to be executed against the output of the same command 
+         multiple callbacks to be executed against the output of the same command
          (given identical arguments) within a 60-second window.`,
       ),
     err_on_exit: z
       .boolean()
       .optional()
       .describe(
-        `When \`true\`, this call will throw an error whenever the provided shell command 
-       exits with a non-zero exit code.`,
+        `When \`true\`, this call will throw an error whenever the provided shell command
+         exits with a non-zero exit code.`,
       ),
     env: z
       .record(z.string(), z.string())
@@ -75,6 +75,14 @@ export const ExecInputSchema = z
       .describe(
         "Environment variables to be passed to the shell command upon execution.",
       ),
+    async_exec: z.boolean().optional()
+      .describe(`If \`true\`, the execution happens asynchroneously.
+        This means it the API call does not block and returns an ID (\`async_id\`).
+        Later, use that ID in a call to \`async_get\` to eventually get the result`),
+    async_get: z.string().optional()
+      .describe(`For a given \`async_id\` returned by \`async\`,
+        retun the status, or the result as if it is called synchroneously.
+        Results are only cached temporarily!`),
   })
   .describe("Perform arbitrary shell commands in a compute server or project.");
 

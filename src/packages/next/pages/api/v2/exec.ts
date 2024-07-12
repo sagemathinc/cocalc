@@ -38,6 +38,8 @@ async function get(req) {
     aggregate,
     err_on_exit,
     env,
+    async_exec,
+    async_get,
   } = getParams(req);
 
   if (!(await isCollaborator({ account_id, project_id }))) {
@@ -61,6 +63,8 @@ async function get(req) {
       aggregate,
       err_on_exit,
       env,
+      async_exec,
+      async_get,
     },
   });
   // event and id don't make sense for http post api

@@ -89,3 +89,24 @@ describe("test timeout", () => {
     }
   });
 });
+
+describe("async", () => {
+  it("use ID for async execution", async () => {
+    const retID = await executeCode({
+      command: "sh",
+      args: ["-c", "sleep .1; echo foo;"],
+      bash: false,
+      timeout: 10,
+      async_exec: true,
+    });
+    const id = retID["async_id"];
+    expect(typeof id).toEqual("string");
+    if (typeof id === "string") {
+      await new Promise((done) => setTimeout(done, 1000));
+      const status = await executeCode({ async_get: id });
+      console.log("status", status);
+      expect(status.stdout).toEqual("foo\n");
+      expect(status.elapsed_s).toBeGreaterThan(0.1);
+    }
+  });
+});

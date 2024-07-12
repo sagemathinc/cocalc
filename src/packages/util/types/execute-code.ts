@@ -2,6 +2,8 @@ export interface ExecuteCodeOutput {
   stdout: string;
   stderr: string;
   exit_code: number;
+  async_id?: string;
+  elapsed_s?: number; // how long it took, async execution
 }
 
 export interface ExecuteCodeOptions {
@@ -20,6 +22,11 @@ export interface ExecuteCodeOptions {
   env?: object; // if given, added to exec environment
   aggregate?: string | number; // if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code (e.g., latex).
   verbose?: boolean; // default true -- impacts amount of logging
+  async_exec?: boolean; // default false -- if true, return an ID and execute it asynchroneously
+}
+
+export interface ExecuteCodeOptionsAsyncGet {
+  async_get: string; // if set, everything else is ignored and the status/output of the async call is returned
 }
 
 export interface ExecuteCodeOptionsWithCallback extends ExecuteCodeOptions {
@@ -27,5 +34,11 @@ export interface ExecuteCodeOptionsWithCallback extends ExecuteCodeOptions {
 }
 
 export type ExecuteCodeFunctionWithCallback = (
-  opts: ExecuteCodeOptionsWithCallback
+  opts: ExecuteCodeOptionsWithCallback,
 ) => void;
+
+export function isExecuteCodeOptionsAsyncGet(
+  opts: unknown,
+): opts is ExecuteCodeOptionsAsyncGet {
+  return typeof (opts as any)?.async_get === "string";
+}
