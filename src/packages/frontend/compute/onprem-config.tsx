@@ -77,7 +77,7 @@ export default function OnPremCloudConfiguration({
   if (!editable || !project_id) {
     return (
       <div>
-        On Prem {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux VM
+        OnPrem {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux VM
         {configuration.gpu ? " that has an NVIDIA GPU" : ""}.
       </div>
     );
@@ -91,7 +91,7 @@ export default function OnPremCloudConfiguration({
     <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "15px" }}>
         <div style={{ color: "#666", marginBottom: "5px" }}>
-          <b>On Prem Compute Server</b>
+          <b>OnPrem Compute Server</b>
         </div>
         You can connect your own <b>Ubuntu 22.04 Virtual Machine</b> to this
         CoCalc project and seamlessly run Jupyter notebooks and terminals on it.

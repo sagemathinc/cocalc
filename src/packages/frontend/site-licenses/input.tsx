@@ -34,6 +34,7 @@ interface Props {
   style?: CSS;
   extra?: React.ReactNode;
   extraButtons?: React.ReactNode;
+  requireValid?: boolean;
 }
 
 export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
@@ -46,6 +47,7 @@ export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
     confirmLabel = "Apply License",
     extra,
     extraButtons,
+    requireValid,
   } = props;
 
   const managedLicenses = useManagedLicenses();
@@ -63,6 +65,7 @@ export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
       style={style}
       extra={extra}
       extraButtons={extraButtons}
+      requireValid={requireValid}
     />
   );
 };

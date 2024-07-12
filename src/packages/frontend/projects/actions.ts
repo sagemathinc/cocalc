@@ -347,6 +347,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     image?: string; // if given, sets the compute image (the ID string)
     start?: boolean; // immediately start on create
     noPool?: boolean; // never use the pool
+    license?: string;
   }): Promise<string> {
     const image = await redux.getStore("customize").getDefaultComputeImage();
 
@@ -356,12 +357,14 @@ export class ProjectsActions extends Actions<ProjectsState> {
       image?: string;
       start: boolean;
       noPool?: boolean;
+      license?: string;
     } = defaults(opts, {
       title: "No Title",
       description: "No Description",
       image,
       start: false,
       noPool: undefined,
+      license: undefined,
     });
     if (!opts2.image) {
       // make falseish same as not specified.

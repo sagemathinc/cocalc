@@ -9,7 +9,7 @@ Create a new project
 
 import { Button, Card, Col, Form, Input, Row } from "antd";
 import { delay } from "awaiting";
-
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -48,9 +48,10 @@ interface Props {
 
 type EditState = "edit" | "view" | "saving";
 
-export const NewProjectCreator: React.FC<Props> = (props: Props) => {
-  const { start_in_edit_mode, default_value } = props;
-
+export const NewProjectCreator: React.FC<Props> = ({
+  start_in_edit_mode,
+  default_value,
+}: Props) => {
   const managed_licenses = useTypedRedux("billing", "managed_licenses");
 
   // view --> edit --> saving --> view
@@ -60,7 +61,6 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   const [title_text, set_title_text] = useState<string>(default_value ?? "");
   const [error, set_error] = useState<string>("");
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
-  const [show_add_license, set_show_add_license] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
   const [warnBoost, setWarnBoost] = useState<boolean>(false);
@@ -72,6 +72,12 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
 
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const requireLicense = !!useTypedRedux(
+    "customize",
+    "require_license_to_create_project",
+  );
+  const [show_add_license, set_show_add_license] =
+    useState<boolean>(requireLicense);
 
   // onprem and cocalc.com use licenses to adjust quota configs – but only cocalc.com has custom software images
   const show = useMemo(
@@ -110,7 +116,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     set_error("");
     set_custom_software({});
     set_show_advanced(false);
-    set_show_add_license(false);
+    set_show_add_license(requireLicense);
     set_title_prefill(true);
     set_license_id("");
   }
@@ -131,6 +137,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
       title: title_text,
       image: await derive_project_img_name(custom_software),
       start: true, // used to not start, due to apply_default_upgrades, but upgrades are  deprecated
+      license: license_id,
     };
     try {
       project_id = await actions.create_project(opts);
@@ -139,9 +146,6 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
       set_state("edit");
       set_error(`Error creating project -- ${err}`);
       return;
-    }
-    if (isValidUUID(license_id)) {
-      await actions.add_site_license_to_project(project_id, license_id);
     }
     track("create-project", {
       how: "projects-page",
@@ -224,10 +228,13 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function create_disabled() {
+  function isDisabled() {
+    if (requireLicense && !license_id) {
+      return true;
+    }
     return (
       // no name of new project
-      title_text === "" ||
+      !title_text?.trim() ||
       // currently saving (?)
       state === "saving" ||
       // user wants a non-default image, but hasn't selected one yet
@@ -283,8 +290,20 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
   function render_add_license() {
     if (!show_add_license) return;
     return (
-      <Card size="small" title="Select license" style={CARD_STYLE}>
+      <Card
+        size="small"
+        title={
+          <>
+            <div style={{ float: "right" }}>
+              <BuyLicenseForProject size="small" />
+            </div>
+            <Icon name="key" /> Select License
+          </>
+        }
+        style={CARD_STYLE}
+      >
         <SiteLicenseInput
+          requireValid
           confirmLabel={"Add this license"}
           onChange={addSiteLicense}
         />
@@ -322,6 +341,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
     return (
       <div style={TOGGLE_STYLE}>
         <Button
+          disabled={requireLicense}
           onClick={() => set_show_add_license(true)}
           type="link"
           style={TOGGLE_BUTTON_STYLE}
@@ -345,7 +365,7 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
           >
             add/remove licenses
           </A>{" "}
-          in the project settings later on.
+          in project settings later.
         </div>
       );
     }
@@ -381,36 +401,48 @@ export const NewProjectCreator: React.FC<Props> = (props: Props) => {
                 />
               </Form.Item>
             </Form>
+            <div style={{ color: COLORS.GRAY, float: "right" }}>
+              You can change the title at any time.
+            </div>
           </Col>
           <Col sm={12}>
             <div style={{ color: COLORS.GRAY, marginLeft: "30px" }}>
-              A <A href="https://doc.cocalc.com/project.html">project</A> is an
-              isolated private computational workspace that you can share with
-              others. You can easily change the project's title at any time in
-              project settings.
+              A <A href="https://doc.cocalc.com/project.html">project</A> is a
+              private computational workspace that you can use with
+              collaborators that you explicitly invite. You can attach powerful{" "}
+              <A href="https://doc.cocalc.com/compute_server.html">
+                GPUs, CPUs
+              </A>{" "}
+              and{" "}
+              <A href="https://doc.cocalc.com/cloud_file_system.html">
+                storage
+              </A>{" "}
+              to a project.
             </div>
           </Col>
         </Row>
-        {render_advanced_toggle()}
-        {render_advanced()}
         {render_add_license_toggle()}
         {render_add_license()}
         {render_license()}
+        {render_advanced_toggle()}
+        {render_advanced()}
         <Row>
           <Col sm={24} style={{ marginTop: "10px" }}>
-            <Button.Group>
-              <Button disabled={state === "saving"} onClick={cancel_editing}>
-                Cancel
-              </Button>
-              <Button
-                disabled={create_disabled()}
-                onClick={() => create_project()}
-                type="primary"
-              >
-                Create Project
-                {create_disabled() ? " (enter a title above!)" : ""}
-              </Button>
-            </Button.Group>
+            <Button
+              disabled={state === "saving"}
+              onClick={cancel_editing}
+              style={{ marginRight: "8px" }}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={isDisabled()}
+              onClick={() => create_project()}
+              type="primary"
+            >
+              Create Project
+              {requireLicense && !license_id && <> (select license above)</>}
+            </Button>
           </Col>
         </Row>
         <Row>
