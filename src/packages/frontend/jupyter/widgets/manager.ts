@@ -10,7 +10,7 @@ import {
   ModelState,
 } from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
-import { Comm } from "./comm";
+import { Comm as ClassicComm } from "./comm";
 import { copy, is_array, is_object, len, uuid } from "@cocalc/util/misc";
 import * as react_output from "./output";
 import * as react_controls from "./controls";
@@ -50,7 +50,7 @@ const MAX_DEREF_WAIT_MS = 1000 * 15;
 export type SendCommFunction = (string, data) => string;
 
 // v2 wip
-import { createWidgetManager, WidgetEnvironment, IComm } from "@cocalc/widgets";
+import { createWidgetManager, WidgetEnvironment, Comm } from "@cocalc/widgets";
 
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   public ipywidgets_state: IpywidgetsState;
@@ -103,7 +103,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
         targetName: string,
         data?: unknown,
         buffers?: ArrayBuffer[],
-      ): Promise<IComm> {
+      ): Promise<Comm> {
         console.log("openCommChannel", { targetName, data, buffers });
         const comm = {
           send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
@@ -600,8 +600,8 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     model_id: string,
     _data?: any,
     _metadata?: any,
-  ): Promise<Comm> {
-    const comm = new Comm(
+  ): Promise<ClassicComm> {
+    const comm = new ClassicComm(
       target_name,
       model_id,
       this.process_comm_message_from_browser.bind(this),
