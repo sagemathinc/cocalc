@@ -39,7 +39,7 @@ export function IpyWidget({ value, actions }: WidgetProps) {
     loadFontAwesome();
     const id = value.get("model_id");
 
-    const { widget_manager } = actions;
+    const { widget_manager2: widget_manager } = actions;
     if (widget_manager == null) {
       return;
     }

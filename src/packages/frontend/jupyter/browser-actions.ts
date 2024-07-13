@@ -38,7 +38,8 @@ import { parse_headings } from "./contents";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export class JupyterActions extends JupyterActions0 {
-  public widget_manager?: WidgetManager | WidgetManager2;
+  public widget_manager?: WidgetManager;
+  public widget_manager2?: WidgetManager2;
   public nbgrader_actions: NBGraderActions;
   public snippet_actions: any;
 
@@ -114,10 +115,7 @@ export class JupyterActions extends JupyterActions0 {
           this.setWidgetModelIdState.bind(this),
         );
       } else {
-        this.widget_manager = new WidgetManager2(
-          ipywidgets_state!,
-          this.setWidgetModelIdState.bind(this),
-        );
+        this.widget_manager2 = new WidgetManager2(ipywidgets_state!);
       }
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
