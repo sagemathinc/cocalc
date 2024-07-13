@@ -276,8 +276,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@cocalc/widgets':
-        specifier: link:/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/upstream/cocalc-widgets
-        version: link:../../../../upstream/cocalc-widgets
+        specifier: ^1.0.0
+        version: 1.0.0
       '@cocalc/xpra-lz4':
         specifier: ^1.1.0
         version: 1.1.0
@@ -2648,6 +2648,9 @@ packages:
   '@cocalc/primus-responder@1.0.5':
     resolution: {integrity: sha512-nFHqPo9zxbPNRkMzFH/ZbVrrp3RGb0vAVWSRG67+j8dwt3MN9pqZSEUOfWUt9AURsRJd9IR+gLnwrczQTNu6Zg==}
     engines: {node: '>=0.10.28'}
+
+  '@cocalc/widgets@1.0.0':
+    resolution: {integrity: sha512-sOePj7ikFP1W+fIq6IbbY7mla/BP+Sin0s9VTHaC/A9ha0j7UBYqBwPIKh8y6UCa9yPjg0spjhgbiXj4VoCu6A==}
 
   '@cocalc/xpra-lz4@1.1.0':
     resolution: {integrity: sha512-1+WqiakKIGzSrMCiOVvrxx+9tTpYR4bW0uw9sImFLbW7abZ/+EgYm2IwHUm1JNSpWCI6N6qj7jkIDIaq1ODxGg==}
@@ -12617,6 +12620,8 @@ snapshots:
       node-uuid: 1.4.8
     transitivePeerDependencies:
       - supports-color
+
+  '@cocalc/widgets@1.0.0': {}
 
   '@cocalc/xpra-lz4@1.1.0': {}
 
