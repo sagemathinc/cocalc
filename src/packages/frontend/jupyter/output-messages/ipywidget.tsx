@@ -66,5 +66,9 @@ export function IpyWidget({ value, actions }: WidgetProps) {
       />
     );
   }
-  return <div ref={divRef}></div>;
+  return (
+    <div>
+      <div ref={divRef}></div>
+    </div>
+  );
 }
