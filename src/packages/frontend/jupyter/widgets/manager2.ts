@@ -8,6 +8,10 @@ import type { WidgetEnvironment, Comm } from "@cocalc/widgets";
 import { IpywidgetsState } from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
 import { copy, is_array, len } from "@cocalc/util/misc";
+import { fromJS } from "immutable";
+import { CellOutputMessage } from "@cocalc/frontend/jupyter/output-messages/message";
+import React from "react";
+import ReactDOM from "react-dom";
 
 export type SendCommFunction = (string, data) => string;
 
@@ -220,8 +224,14 @@ class Environment implements WidgetEnvironment {
     return comm;
   }
 
-  async renderOutput(outputItem: unknown, destination: Element): Promise<void> {
+  async renderOutput(outputItem: any, destination: Element): Promise<void> {
     // the guassian plume notebook has example of this!
     console.log("renderOutput", { outputItem, destination });
+    //$(destination).append($(`<pre>${JSON.stringify(outputItem)}</pre>`));
+    const message = fromJS(outputItem);
+    const myDiv = document.createElement("div");
+    const component = React.createElement(CellOutputMessage, { message }, null);
+    ReactDOM.render(component, myDiv);
+    destination.appendChild(myDiv);
   }
 }
