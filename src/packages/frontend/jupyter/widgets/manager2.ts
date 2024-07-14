@@ -19,13 +19,21 @@ const log = console.log;
 
 export class WidgetManager {
   public ipywidgets_state: IpywidgetsState;
+  public send_comm_message_to_kernel;
   public manager;
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
   private watching: Set<string> = new Set();
 
-  constructor(ipywidgets_state: IpywidgetsState) {
+  constructor({
+    ipywidgets_state,
+    send_comm_message_to_kernel,
+  }: {
+    ipywidgets_state: IpywidgetsState;
+    send_comm_message_to_kernel;
+  }) {
     this.ipywidgets_state = ipywidgets_state;
+    this.send_comm_message_to_kernel = send_comm_message_to_kernel;
     if (this.ipywidgets_state.get_state() == "closed") {
       throw Error("ipywidgets_state must not be closed");
     }
@@ -70,6 +78,7 @@ export class WidgetManager {
         await this.ipywidgets_state_BuffersChange(model_id);
         break;
       case "message":
+        // This is how custom comm messages would get delivered
         await this.ipywidgets_state_MessageChange(model_id);
         break;
       default:
@@ -164,6 +173,8 @@ export class WidgetManager {
 
   private ipywidgets_state_MessageChange = async (model_id: string) => {
     log("handleMessageChange: ", model_id);
+    throw Error("not implemented!");
+    // this needs to tie into openCommChannel in the Environment...
   };
 
   // [ ] TODO: maybe have to keep trying for a while until model exists!
@@ -231,12 +242,12 @@ class Environment implements WidgetEnvironment {
     buffers?: ArrayBuffer[],
   ): Promise<Comm> {
     log("openCommChannel", { targetName, data, buffers });
+    const { send_comm_message_to_kernel } = this.manager;
     const comm = {
-      send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
-        return new Promise<void>((resolve, _reject) => {
-          log("Data sent:", data, "With options:", opts);
-          resolve();
-        });
+      async send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
+        // TODO: buffers!  These need to get encoded separately (?).
+        console.log("TODO buffers", opts);
+        await send_comm_message_to_kernel(targetName, data);
       },
 
       close() {

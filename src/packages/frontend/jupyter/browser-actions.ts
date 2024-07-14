@@ -115,7 +115,10 @@ export class JupyterActions extends JupyterActions0 {
           this.setWidgetModelIdState.bind(this),
         );
       } else {
-        this.widget_manager2 = new WidgetManager2(ipywidgets_state!);
+        this.widget_manager2 = new WidgetManager2({
+          ipywidgets_state: ipywidgets_state!,
+          send_comm_message_to_kernel: this.send_comm_message_to_kernel,
+        });
       }
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
@@ -467,11 +470,14 @@ export class JupyterActions extends JupyterActions0 {
     this.deprecated("command", name);
   };
 
-  public send_comm_message_to_kernel(comm_id: string, data: any): string {
+  send_comm_message_to_kernel = async (
+    comm_id: string,
+    data: any,
+  ): Promise<string> => {
     const msg_id = uuid();
-    this.api_call("comm", [msg_id, comm_id, data]);
+    await this.api_call("comm", [msg_id, comm_id, data]);
     return msg_id;
-  }
+  };
 
   // NOTE: someday move this to the frame-tree actions, since it would
   // be generically useful!

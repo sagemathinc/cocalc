@@ -583,7 +583,7 @@ export class IpywidgetsState extends EventEmitter {
       }
     }
     const model_id: string = comm_id;
-    dbg(`model_id=${model_id}`);
+    dbg({ model_id, comm_id });
 
     const { data } = content;
     if (data == null) {
@@ -673,7 +673,7 @@ export class IpywidgetsState extends EventEmitter {
         break;
       case undefined:
         if (state == null) return;
-        dbg("method -- undefined (=initial set?)");
+        dbg("method -- undefined (=set_model_state)");
         this.set_model_state(model_id, state, false);
         break;
       default:
@@ -686,7 +686,7 @@ export class IpywidgetsState extends EventEmitter {
   }
 
   /*
-  process_comm_message_from_widget gets called whenever a
+  process_comm_message_from_browser gets called whenever a
   browser client emits a comm message related to widgets.
   This updates the state of the table, which results in
   other frontends updating their widget state, *AND* the backend
