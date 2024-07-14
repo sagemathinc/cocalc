@@ -11,9 +11,11 @@ import { copy, is_array, len } from "@cocalc/util/misc";
 import { fromJS } from "immutable";
 import { CellOutputMessage } from "@cocalc/frontend/jupyter/output-messages/message";
 import React from "react";
-import ReactDOM from "react-dom";
+import ReactDOM from "react-dom/client";
 
 export type SendCommFunction = (string, data) => string;
+
+const log = console.log;
 
 export class WidgetManager {
   public ipywidgets_state: IpywidgetsState;
@@ -38,46 +40,56 @@ export class WidgetManager {
   }
 
   private handleIpWidgetsChange = async ({ model_id, type }) => {
-    // console.log("handleIpWidgetsChange", { model_id, type });
-    try {
-      switch (type) {
-        case "state":
-          await this.ipywidgets_state_StateChange(model_id);
-          break;
-        case "value":
-          await this.ipywidgets_state_ValueChange(model_id);
-          break;
-        case "buffers":
-          await this.ipywidgets_state_BuffersChange(model_id);
-          break;
-        case "message":
-          await this.ipywidgets_state_MessageChange(model_id);
-          break;
-        default:
-          throw Error(`unknown state type '${type}'`);
-      }
-    } catch (err) {
-      console.warn(
-        "issue handling table state change",
-        { model_id, type },
-        err,
-      );
+    log("handleIpWidgetsChange", { model_id, type });
+    // let i = 0;
+    //     while (!this.manager.has_model(model_id) && i < 10) {
+    //       try {
+    //         await this.manager.get_model(model_id);
+    //         break;
+    //       } catch (_err) {
+    //         i += 1;
+    //         await (require('awaiting').delay)(100);
+    //         log("waiting for ", model_id);
+    //       }
+    //     }
+    //     if (!this.manager.has_model(model_id)) {
+    //       // TODO: maybe have to wait and keep trying until exists?
+    //       log(
+    //         "handleIpWidgetsChange: skipping since model not fully created",
+    //       );
+    //       return;
+    //     }
+    switch (type) {
+      case "state":
+        await this.ipywidgets_state_StateChange(model_id);
+        break;
+      case "value":
+        await this.ipywidgets_state_ValueChange(model_id);
+        break;
+      case "buffers":
+        await this.ipywidgets_state_BuffersChange(model_id);
+        break;
+      case "message":
+        await this.ipywidgets_state_MessageChange(model_id);
+        break;
+      default:
+        throw Error(`unknown state type '${type}'`);
     }
   };
 
   private ipywidgets_state_StateChange = async (model_id: string) => {
     return;
-    console.log("handleStateChange: ", model_id);
+    log("handleStateChange: ", model_id);
     const state = this.ipywidgets_state.get_model_state(model_id);
-    console.log("handleStateChange: state=", state);
+    log("handleStateChange: state=", state);
     const model = await this.manager.get_model(model_id);
     model.set_state(state);
   };
 
   private ipywidgets_state_ValueChange = async (model_id: string) => {
-    // console.log("handleValueChange: ", model_id);
+    // log("handleValueChange: ", model_id);
     const changed = this.ipywidgets_state.get_model_value(model_id);
-    // console.log("handleValueChange: changed=", model_id, changed);
+    // log("handleValueChange: changed=", model_id, changed);
     for (const k in changed) {
       if (typeof changed[k] == "string" && changed[k].startsWith("IPY_MODEL")) {
         delete changed[k];
@@ -92,13 +104,13 @@ export class WidgetManager {
       changed.last_changed != null &&
       changed.last_changed <= this.last_changed[model_id].last_changed
     ) {
-      /* console.log(
+      /* log(
         "skipping due to last change time",
         this.last_changed[model_id],
         changed.last_changed
       ); */
       if (changed.last_changed < this.last_changed[model_id].last_changed) {
-        // console.log("strict inequality, so saving again");
+        // log("strict inequality, so saving again");
         // This is necessary since SyncTable has fairly week guarantees
         // when you try to write tons of changing rapidly to the *same*
         // key (in this case the value). SyncTable was mainly designed
@@ -126,13 +138,35 @@ export class WidgetManager {
   };
 
   private ipywidgets_state_BuffersChange = async (model_id: string) => {
-    console.log("handleBuffersChange: ", model_id);
+    log("handleBuffersChange: ", model_id);
+    /*
+    The data structures currently don't store which buffers changed, so we're
+    updating all of them before, which is of course inefficient.
+
+    We definitely do have to serialize, then pass to update_model, so that
+    the widget can properly deserialize again, as I learned with k3d, which
+    processes everything.
+    */
+    const model = await this.manager.get_model(model_id);
+    const { buffer_paths } =
+      await this.ipywidgets_state.get_model_buffers(model_id);
+    const deserialized_state = model.get_state(true);
+    const serializers = (model.constructor as any).serializers;
+    const change: { [key: string]: any } = {};
+    for (const paths of buffer_paths) {
+      const key = paths[0];
+      change[key] =
+        serializers[key]?.serialize(deserialized_state[key]) ??
+        deserialized_state[key];
+    }
+    model.set_state(change);
   };
 
   private ipywidgets_state_MessageChange = async (model_id: string) => {
-    console.log("handleMessageChange: ", model_id);
+    log("handleMessageChange: ", model_id);
   };
 
+  // [ ] TODO: maybe have to keep trying for a while until model exists!
   watchModel = async (model_id: string) => {
     if (this.watching.has(model_id)) {
       return;
@@ -143,7 +177,7 @@ export class WidgetManager {
   };
 
   private handleModelChange = async (model): Promise<void> => {
-    // console.log("handleModelChange", model);
+    // log("handleModelChange", model);
     const { model_id } = model;
     await model.state_change;
     if (this.state_lock.has(model_id)) {
@@ -196,17 +230,17 @@ class Environment implements WidgetEnvironment {
     data?: unknown,
     buffers?: ArrayBuffer[],
   ): Promise<Comm> {
-    console.log("openCommChannel", { targetName, data, buffers });
+    log("openCommChannel", { targetName, data, buffers });
     const comm = {
       send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
         return new Promise<void>((resolve, _reject) => {
-          console.log("Data sent:", data, "With options:", opts);
+          log("Data sent:", data, "With options:", opts);
           resolve();
         });
       },
 
       close() {
-        console.log("Connection closed");
+        log("Connection closed");
       },
 
       get messages() {
@@ -226,12 +260,13 @@ class Environment implements WidgetEnvironment {
 
   async renderOutput(outputItem: any, destination: Element): Promise<void> {
     // the guassian plume notebook has example of this!
-    console.log("renderOutput", { outputItem, destination });
+    log("renderOutput", { outputItem, destination });
     //$(destination).append($(`<pre>${JSON.stringify(outputItem)}</pre>`));
     const message = fromJS(outputItem);
     const myDiv = document.createElement("div");
-    const component = React.createElement(CellOutputMessage, { message }, null);
-    ReactDOM.render(component, myDiv);
     destination.appendChild(myDiv);
+    const component = React.createElement(CellOutputMessage, { message }, null);
+    const root = ReactDOM.createRoot(myDiv);
+    root.render(component);
   }
 }
