@@ -72,10 +72,10 @@ export const NewProjectCreator: React.FC<Props> = ({
 
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
-  const requireLicense = !!useTypedRedux(
-    "customize",
-    "require_license_to_create_project",
-  );
+  const hasLegacyUpgrades = redux.getStore("account").hasLegacyUpgrades();
+  const requireLicense =
+    !hasLegacyUpgrades &&
+    !!useTypedRedux("customize", "require_license_to_create_project");
   const [show_add_license, set_show_add_license] =
     useState<boolean>(requireLicense);
 
