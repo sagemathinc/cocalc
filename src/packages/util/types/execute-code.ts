@@ -1,8 +1,12 @@
+export type AsyncStatus = "running" | "completed" | "error";
+
 export interface ExecuteCodeOutput {
   stdout: string;
   stderr: string;
   exit_code: number;
+  async_start?: number;
   async_id?: string;
+  async_status?: AsyncStatus;
   elapsed_s?: number; // how long it took, async execution
 }
 
@@ -22,7 +26,8 @@ export interface ExecuteCodeOptions {
   env?: object; // if given, added to exec environment
   aggregate?: string | number; // if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code (e.g., latex).
   verbose?: boolean; // default true -- impacts amount of logging
-  async_exec?: boolean; // default false -- if true, return an ID and execute it asynchroneously
+  async_mode?: boolean; // default false -- if true, return an ID and execute it asynchroneously
+  async_get?: string; // if given, retrieve status or result of that async operation
 }
 
 export interface ExecuteCodeOptionsAsyncGet {

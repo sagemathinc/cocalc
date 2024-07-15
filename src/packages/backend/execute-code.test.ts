@@ -91,22 +91,26 @@ describe("test timeout", () => {
 });
 
 describe("async", () => {
-  it("use ID for async execution", async () => {
-    const retID = await executeCode({
+  it("use ID to get async execution result", async () => {
+    const c = await executeCode({
       command: "sh",
-      args: ["-c", "sleep .1; echo foo;"],
+      args: ["-c", "sleep .5; echo foo;"],
       bash: false,
       timeout: 10,
-      async_exec: true,
+      async_mode: true,
     });
-    const id = retID["async_id"];
+    expect(c.async_status).toEqual("running");
+    expect(c.async_start).toBeGreaterThan(1);
+    const id = c.async_id;
     expect(typeof id).toEqual("string");
     if (typeof id === "string") {
       await new Promise((done) => setTimeout(done, 1000));
       const status = await executeCode({ async_get: id });
-      console.log("status", status);
+      expect(status.async_status).toEqual("completed");
       expect(status.stdout).toEqual("foo\n");
       expect(status.elapsed_s).toBeGreaterThan(0.1);
+      expect(status.elapsed_s).toBeLessThan(3);
+      expect(status.async_start).toBeGreaterThan(1);
     }
   });
 });

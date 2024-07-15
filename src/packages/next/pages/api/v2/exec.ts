@@ -38,7 +38,7 @@ async function get(req) {
     aggregate,
     err_on_exit,
     env,
-    async_exec,
+    async_mode,
     async_get,
   } = getParams(req);
 
@@ -63,7 +63,7 @@ async function get(req) {
       aggregate,
       err_on_exit,
       env,
-      async_exec,
+      async_mode,
       async_get,
     },
   });

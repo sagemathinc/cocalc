@@ -40,6 +40,10 @@ export async function exec_shell_code(socket: CoCalcSocket, mesg) {
         stdout: out?.stdout,
         stderr: out?.stderr,
         exit_code: out?.exit_code,
+        async_id: out?.async_id,
+        async_start: out?.async_start,
+        async_status: out?.async_status,
+        elapsed_s: out?.elapsed_s,
       }),
     );
   } catch (err) {

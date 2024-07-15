@@ -73,7 +73,7 @@ async function executeCodeNoAggregate(
     if (cached != null) {
       return cached;
     } else {
-      throw new Error(`Status or result of '${opts.async_get}' not found.`);
+      throw new Error(`Async operation '${opts.async_get}' not found.`);
     }
   }
 
@@ -141,23 +141,29 @@ async function executeCodeNoAggregate(
       await chmod(tempPath, 0o700);
     }
 
-    if (opts.async_exec) {
+    if (opts.async_mode) {
       // we return an ID, the caller can then use it to query the status
-      const async_limit = 1024 * 1024; // we limit how much we keep in memory, to avoid problems
-      opts.max_output = Math.min(async_limit, opts.max_output ?? async_limit);
+      opts.max_output ??= 1024 * 1024; // we limit how much we keep in memory, to avoid problems;
+      opts.timeout ??= 10 * 60;
       const id = uuid();
       const start = new Date();
-      const started = {
+      const started: ExecuteCodeOutput = {
         stdout: `Process started running at ${start.toISOString()}`,
         stderr: "",
-        exit_code: start.getTime(),
+        exit_code: 0,
+        async_start: start.getTime(),
         async_id: id,
+        async_status: "running",
       };
       asyncCache.set(id, started);
 
-      doSpawn({ ...opts, origCommand }, (err, result) => {
-        const started = asyncCache.get(id)?.exit_code ?? 0;
-        const info = { elapsed_s: (Date.now() - started) / 1000 };
+      doSpawn({ ...opts, origCommand, async_id: id }, (err, result) => {
+        const started = asyncCache.get(id)?.async_start ?? 0;
+        const info: Partial<ExecuteCodeOutput> = {
+          elapsed_s: (Date.now() - started) / 1000,
+          async_start: start.getTime(),
+          async_status: "error",
+        };
         if (err) {
           asyncCache.set(id, {
             stdout: "",
@@ -166,7 +172,11 @@ async function executeCodeNoAggregate(
             ...info,
           });
         } else if (result != null) {
-          asyncCache.set(id, { ...result, ...info });
+          asyncCache.set(id, {
+            ...result,
+            ...info,
+            ...{ async_status: "completed" },
+          });
         } else {
           asyncCache.set(id, {
             stdout: "",
@@ -187,6 +197,18 @@ async function executeCodeNoAggregate(
     if (tempDir) {
       await rm(tempDir, { force: true, recursive: true });
     }
+  }
+}
+
+function update_async(
+  async_id: string | undefined,
+  stream: "stdout" | "stderr",
+  data: string,
+) {
+  if (!async_id) return;
+  const obj = asyncCache.get(async_id);
+  if (obj != null) {
+    obj[stream] = data;
   }
 }
 
@@ -256,6 +278,7 @@ function doSpawn(
     } else {
       stdout += data;
     }
+    update_async(opts.async_id, "stdout", stdout);
   });
 
   r.stderr.on("data", (data) => {
@@ -267,6 +290,7 @@ function doSpawn(
     } else {
       stderr += data;
     }
+    update_async(opts.async_id, "stderr", stderr);
   });
 
   let stderr_is_done = false;
