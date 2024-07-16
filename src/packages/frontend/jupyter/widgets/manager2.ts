@@ -246,7 +246,7 @@ class Environment implements WidgetEnvironment {
     const comm = {
       async send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
         // TODO: buffers!  These need to get encoded separately (?).
-        console.log("TODO buffers", opts);
+        log("comm.send -- (todo: buffers)", data, opts);
         await send_comm_message_to_kernel(targetName, data);
       },
 
@@ -266,6 +266,7 @@ class Environment implements WidgetEnvironment {
         };
       },
     };
+    await comm.send(data, { buffers });
     return comm;
   }
 

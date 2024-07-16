@@ -476,6 +476,7 @@ export class JupyterActions extends JupyterActions0 {
   ): Promise<string> => {
     const msg_id = uuid();
     await this.api_call("comm", [msg_id, comm_id, data]);
+    console.log("send_comm_message_to_kernel", "sent", [msg_id, comm_id, data]);
     return msg_id;
   };
 
