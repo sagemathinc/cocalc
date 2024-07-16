@@ -11,6 +11,7 @@ import { CoCalcSocket } from "@cocalc/backend/tcp/enable-messaging-protocol";
 import * as message from "@cocalc/util/message";
 import { getLogger } from "./logger";
 import execCode from "@cocalc/project/browser-websocket/exec-code";
+import { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
 
 const { debug: D } = getLogger("exec_shell_code");
 
@@ -33,19 +34,25 @@ export async function exec_shell_code(socket: CoCalcSocket, mesg) {
         : abspath(mesg.path != null ? mesg.path : ""),
       ...mesg,
     });
-    socket.write_mesg(
-      "json",
-      message.project_exec_output({
-        id: mesg.id,
-        stdout: out?.stdout,
-        stderr: out?.stderr,
-        exit_code: out?.exit_code,
-        async_id: out?.async_id,
-        async_start: out?.async_start,
-        async_status: out?.async_status,
+    let ret: ExecuteCodeOutput & { id: string } = {
+      id: mesg.id,
+      type: "blocking",
+      stdout: out?.stdout,
+      stderr: out?.stderr,
+      exit_code: out?.exit_code,
+    };
+    if (out?.type === "async") {
+      // extra fields for ExecuteCodeOutputAsync
+      ret = {
+        ...ret,
+        type: "async",
+        job_id: out?.job_id,
+        start: out?.start,
+        status: out?.status,
         elapsed_s: out?.elapsed_s,
-      }),
-    );
+      };
+    }
+    socket.write_mesg("json", message.project_exec_output(ret));
   } catch (err) {
     let error = `Error executing command '${mesg.command}' with args '${mesg.args}' -- ${err}`;
     if (error.indexOf("Connection refused") !== -1) {

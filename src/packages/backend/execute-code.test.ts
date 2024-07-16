@@ -90,27 +90,113 @@ describe("test timeout", () => {
   });
 });
 
+describe("test env", () => {
+  it("allows to specify environment variables", async () => {
+    const { stdout, stderr } = await executeCode({
+      command: "sh",
+      args: ["-c", "echo $FOO;"],
+      err_on_exit: false,
+      bash: false,
+      env: { FOO: "bar" },
+    });
+    expect(stdout).toBe("bar\n");
+    expect(stderr).toBe("");
+  });
+});
+
 describe("async", () => {
-  it("use ID to get async execution result", async () => {
+  it("use ID to get async result", async () => {
     const c = await executeCode({
       command: "sh",
-      args: ["-c", "sleep .5; echo foo;"],
+      args: ["-c", "echo foo; sleep .5; echo bar; sleep .5; echo baz;"],
       bash: false,
       timeout: 10,
-      async_mode: true,
+      async_call: true,
     });
-    expect(c.async_status).toEqual("running");
-    expect(c.async_start).toBeGreaterThan(1);
-    const id = c.async_id;
-    expect(typeof id).toEqual("string");
-    if (typeof id === "string") {
-      await new Promise((done) => setTimeout(done, 1000));
-      const status = await executeCode({ async_get: id });
-      expect(status.async_status).toEqual("completed");
-      expect(status.stdout).toEqual("foo\n");
-      expect(status.elapsed_s).toBeGreaterThan(0.1);
-      expect(status.elapsed_s).toBeLessThan(3);
-      expect(status.async_start).toBeGreaterThan(1);
+    expect(c.type).toEqual("async");
+    if (c.type !== "async") return;
+    const { status, start, job_id } = c;
+    expect(status).toEqual("running");
+    expect(start).toBeGreaterThan(1);
+    expect(typeof job_id).toEqual("string");
+    if (typeof job_id !== "string") return;
+    await new Promise((done) => setTimeout(done, 250));
+    {
+      const s = await executeCode({ async_get: job_id });
+      expect(s.type).toEqual("async");
+      if (s.type !== "async") return;
+      expect(s.status).toEqual("running");
+      // partial stdout result
+      expect(s.stdout).toEqual("foo\n");
+      expect(s.elapsed_s).toBeUndefined();
+      expect(s.start).toBeGreaterThan(1);
+      expect(s.exit_code).toEqual(0);
     }
+
+    await new Promise((done) => setTimeout(done, 900));
+    {
+      const s = await executeCode({ async_get: job_id });
+      expect(s.type).toEqual("async");
+      if (s.type !== "async") return;
+      expect(s.status).toEqual("completed");
+      expect(s.stdout).toEqual("foo\nbar\nbaz\n");
+      expect(s.elapsed_s).toBeGreaterThan(0.1);
+      expect(s.elapsed_s).toBeLessThan(3);
+      expect(s.start).toBeGreaterThan(1);
+      expect(s.stderr).toEqual("");
+      expect(s.exit_code).toEqual(0);
+    }
+  });
+
+  it("with an error", async () => {
+    const c = await executeCode({
+      command: ">&2 echo baz; exit 3",
+      bash: true,
+      async_call: true,
+    });
+    expect(c.type).toEqual("async");
+    if (c.type !== "async") return;
+    const { job_id } = c;
+    expect(typeof job_id).toEqual("string");
+    if (typeof job_id !== "string") return;
+    await new Promise((done) => setTimeout(done, 250));
+    const s = await executeCode({ async_get: job_id });
+    expect(s.type).toEqual("async");
+    if (s.type !== "async") return;
+    expect(s.status).toEqual("error");
+    expect(s.stdout).toEqual("");
+    expect(s.stderr).toEqual("baz\n");
+    // any error is code 1 it seems?
+    expect(s.exit_code).toEqual(1);
+  });
+
+  it("trigger a timeout", async () => {
+    const c = await executeCode({
+      command: "sh",
+      args: ["-c", "echo foo; sleep 1; echo bar;"],
+      bash: false,
+      timeout: 0.1,
+      async_call: true,
+    });
+    expect(c.type).toEqual("async");
+    if (c.type !== "async") return;
+    const { status, start, job_id } = c;
+    expect(status).toEqual("running");
+    expect(start).toBeGreaterThan(1);
+    expect(typeof job_id).toEqual("string");
+    if (typeof job_id !== "string") return;
+    await new Promise((done) => setTimeout(done, 250));
+    const s = await executeCode({ async_get: job_id });
+    expect(s.type).toEqual("async");
+    if (s.type !== "async") return;
+    expect(s.status).toEqual("error");
+    expect(s.stdout).toEqual("");
+    expect(s.elapsed_s).toBeGreaterThan(0.01);
+    expect(s.elapsed_s).toBeLessThan(3);
+    expect(s.start).toBeGreaterThan(1);
+    expect(s.stderr).toEqual(
+      "killed command 'sh -c echo foo; sleep 1; echo bar;'",
+    );
+    expect(s.exit_code).toEqual(1);
   });
 });

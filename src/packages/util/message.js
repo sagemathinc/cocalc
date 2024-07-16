@@ -824,9 +824,10 @@ message({
   stdout: required,
   stderr: required,
   exit_code: required,
-  async_id: undefined,
-  async_start: undefined,
-  async_status: undefined,
+  type: undefined,
+  job_id: undefined,
+  start: undefined,
+  status: undefined,
   elapsed_s: undefined,
 });
 

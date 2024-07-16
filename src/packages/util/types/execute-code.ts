@@ -1,14 +1,28 @@
-export type AsyncStatus = "running" | "completed" | "error";
+export const ASYNC_STATES = ["running", "completed", "error"] as const;
 
-export interface ExecuteCodeOutput {
+export type AsyncStatus = (typeof ASYNC_STATES)[number];
+
+interface ExecuteCodeBase {
   stdout: string;
   stderr: string;
   exit_code: number;
-  async_start?: number;
-  async_id?: string;
-  async_status?: AsyncStatus;
+}
+
+export interface ExecuteCodeOutputBlocking extends ExecuteCodeBase {
+  type: "blocking";
+}
+
+export interface ExecuteCodeOutputAsync extends ExecuteCodeBase {
+  type: "async";
+  start?: number;
+  job_id: string;
+  status: AsyncStatus;
   elapsed_s?: number; // how long it took, async execution
 }
+
+export type ExecuteCodeOutput =
+  | ExecuteCodeOutputBlocking
+  | ExecuteCodeOutputAsync;
 
 export interface ExecuteCodeOptions {
   command: string;
@@ -26,7 +40,7 @@ export interface ExecuteCodeOptions {
   env?: object; // if given, added to exec environment
   aggregate?: string | number; // if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code (e.g., latex).
   verbose?: boolean; // default true -- impacts amount of logging
-  async_mode?: boolean; // default false -- if true, return an ID and execute it asynchroneously
+  async_call?: boolean; // default false -- if true, return an ID and execute it asynchroneously
   async_get?: string; // if given, retrieve status or result of that async operation
 }
 
