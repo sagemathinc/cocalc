@@ -276,8 +276,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@cocalc/widgets':
-        specifier: ^1.0.3
-        version: 1.0.3
+        specifier: ^1.0.4
+        version: 1.0.4
       '@cocalc/xpra-lz4':
         specifier: ^1.1.0
         version: 1.1.0
@@ -586,7 +586,7 @@ importers:
         version: 1.8.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-redux:
         specifier: ^8.0.5
-        version: 8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@5.0.1)
+        version: 8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@4.2.1)
       react-timeago:
         specifier: ^7.2.0
         version: 7.2.0(react@18.2.0)
@@ -1383,7 +1383,7 @@ importers:
         version: 0.2.2(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.18.0))(openai@4.52.1(encoding@0.1.13))
       '@langchain/community':
         specifier: ^0.2.14
-        version: 0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.10.0(typescript@5.5.3))(axios@1.6.8)(better-sqlite3@11.1.2)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.18.0)
+        version: 0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.10.0(typescript@5.5.3))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.2.10
         version: 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.18.0))(openai@4.52.1(encoding@0.1.13))
@@ -1616,7 +1616,7 @@ importers:
     devDependencies:
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.5.10
-        version: 0.5.10(react-refresh@0.14.0)(type-fest@4.21.0)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))
+        version: 0.5.10(react-refresh@0.14.0)(type-fest@3.5.0)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))
       '@swc/core':
         specifier: 1.3.3
         version: 1.3.3
@@ -2653,8 +2653,8 @@ packages:
     resolution: {integrity: sha512-nFHqPo9zxbPNRkMzFH/ZbVrrp3RGb0vAVWSRG67+j8dwt3MN9pqZSEUOfWUt9AURsRJd9IR+gLnwrczQTNu6Zg==}
     engines: {node: '>=0.10.28'}
 
-  '@cocalc/widgets@1.0.3':
-    resolution: {integrity: sha512-vxZj++GHjmusnz8qiQy5tsAx1T6P7lhdgvPJIKGK49MPhIbQZXGP3vcor4at2l2Kp9oMeNaMffLRziivPSvhCQ==}
+  '@cocalc/widgets@1.0.4':
+    resolution: {integrity: sha512-fCLndJtgsfwzEVq6kCQWgwQqDkRGsOJflkfdYbke2NRHSgTtbZmxQTBpQQXb3DgmshMfrjQ1PvKb/6VZ7T3JiQ==}
 
   '@cocalc/xpra-lz4@1.1.0':
     resolution: {integrity: sha512-1+WqiakKIGzSrMCiOVvrxx+9tTpYR4bW0uw9sImFLbW7abZ/+EgYm2IwHUm1JNSpWCI6N6qj7jkIDIaq1ODxGg==}
@@ -4947,9 +4947,6 @@ packages:
 
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
-
-  better-sqlite3@11.1.2:
-    resolution: {integrity: sha512-gujtFwavWU4MSPT+h9B+4pkvZdyOUkH54zgLdIrMmmmd4ZqiBIrRNBzNzYVFO417xo882uP5HBu4GjOfaSrIQw==}
 
   better-sqlite3@8.3.0:
     resolution: {integrity: sha512-JTmvBZL/JLTc+3Msbvq6gK6elbU9/wVMqiudplHrVJpr7sVMR9KJrNhZAbW+RhXKlpMcuEhYkdcHa3TXKNXQ1w==}
@@ -8667,10 +8664,6 @@ packages:
     resolution: {integrity: sha512-2s6B2CWZM//kPgwnuI0KrYwNjfdByE25zvAaEpq9IH4zcNsarH8Ihu/UuX6XMPEogDAxkuUFeZn60pXNHAqn3A==}
     engines: {node: '>=10'}
 
-  node-abi@3.65.0:
-    resolution: {integrity: sha512-ThjYBfoDNr08AWx6hGaRbfPwxKV9kVzAzOzlLKbk2CuqXE2xnCh+cbAGnwM3t8Lq4v9rUB7VfondlkBckcJrVA==}
-    engines: {node: '>=10'}
-
   node-addon-api@6.1.0:
     resolution: {integrity: sha512-+eawOlIgy680F0kBzPUNFhMZGtJ1YmqM6l4+Crf4IkImjYrO/mqPwRMh352g23uIaQKFItcQ64I7KMaJxHgAVA==}
 
@@ -9320,11 +9313,6 @@ packages:
 
   prebuild-install@7.1.1:
     resolution: {integrity: sha512-jAXscXWMcCK8GgCoHOfIr0ODh5ai8mj63L2nWrjuAgXE6tDyYGnx4/8o/rCgU+B4JSyZBKbeZqzhtwtC3ovxjw==}
-    engines: {node: '>=10'}
-    hasBin: true
-
-  prebuild-install@7.1.2:
-    resolution: {integrity: sha512-UnNke3IQb6sgarcZIDU3gbMeTp/9SSU1DAIkil7PrqG1vZlBtY5msYccSKSHDqa3hNg436IXK+SNImReuA1wEQ==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -10033,9 +10021,6 @@ packages:
   redux@4.2.1:
     resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
 
-  redux@5.0.1:
-    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
-
   reflect-metadata@0.1.13:
     resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
 
@@ -10332,11 +10317,6 @@ packages:
 
   semver@7.6.0:
     resolution: {integrity: sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==}
-    engines: {node: '>=10'}
-    hasBin: true
-
-  semver@7.6.2:
-    resolution: {integrity: sha512-FNAIBWCx9qcRhoHcgcJ0gvU7SN1lYU2ZXuSfl04bSC5OpvDHFyJCjdNHomPXxjQlCBU67YW64PzY7/VIEH7F2w==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -11074,10 +11054,6 @@ packages:
   type-fest@3.5.0:
     resolution: {integrity: sha512-bI3zRmZC8K0tUz1HjbIOAGQwR2CoPQG68N5IF7gm0LBl8QSNXzkmaWnkWccCUL5uG9mCsp4sBwC8SBrNSISWew==}
     engines: {node: '>=14.16'}
-
-  type-fest@4.21.0:
-    resolution: {integrity: sha512-ADn2w7hVPcK6w1I0uWnM//y1rLXZhzB9mr0a3OirzclKF1Wp6VzevUmzz/NRAWunOT6E8HrnpGY7xOfc6K57fA==}
-    engines: {node: '>=16'}
 
   type-is@1.6.18:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
@@ -12653,7 +12629,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@cocalc/widgets@1.0.3': {}
+  '@cocalc/widgets@1.0.4': {}
 
   '@cocalc/xpra-lz4@1.1.0': {}
 
@@ -13248,7 +13224,7 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/community@0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.10.0(typescript@5.5.3))(axios@1.6.8)(better-sqlite3@11.1.2)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.18.0)':
+  '@langchain/community@0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.10.0(typescript@5.5.3))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.18.0)':
     dependencies:
       '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.18.0))(openai@4.52.1(encoding@0.1.13))
       '@langchain/openai': 0.1.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.18.0))
@@ -13265,7 +13241,7 @@ snapshots:
       '@google-ai/generativelanguage': 2.6.0(encoding@0.1.13)
       '@google-cloud/storage': 7.11.1(encoding@0.1.13)
       '@qdrant/js-client-rest': 1.10.0(typescript@5.5.3)
-      better-sqlite3: 11.1.2
+      better-sqlite3: 8.3.0
       cheerio: 1.0.0-rc.12
       google-auth-library: 9.4.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
@@ -13770,7 +13746,7 @@ snapshots:
 
   '@plotly/regl@2.1.2': {}
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(type-fest@4.21.0)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))':
+  '@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(type-fest@3.5.0)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))':
     dependencies:
       ansi-html-community: 0.0.8
       common-path-prefix: 3.0.0
@@ -13784,7 +13760,7 @@ snapshots:
       source-map: 0.7.4
       webpack: 5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4)
     optionalDependencies:
-      type-fest: 4.21.0
+      type-fest: 3.5.0
       webpack-hot-middleware: 2.25.4
 
   '@polka/url@1.0.0-next.21': {}
@@ -15244,12 +15220,6 @@ snapshots:
   batch@0.6.1: {}
 
   bcryptjs@2.4.3: {}
-
-  better-sqlite3@11.1.2:
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.2
-    optional: true
 
   better-sqlite3@8.3.0:
     dependencies:
@@ -19734,11 +19704,6 @@ snapshots:
     dependencies:
       semver: 7.6.0
 
-  node-abi@3.65.0:
-    dependencies:
-      semver: 7.6.2
-    optional: true
-
   node-addon-api@6.1.0: {}
 
   node-addon-api@7.0.0: {}
@@ -20542,22 +20507,6 @@ snapshots:
       tar-fs: 2.1.1
       tunnel-agent: 0.6.0
 
-  prebuild-install@7.1.2:
-    dependencies:
-      detect-libc: 2.0.3
-      expand-template: 2.0.3
-      github-from-package: 0.0.0
-      minimist: 1.2.8
-      mkdirp-classic: 0.5.3
-      napi-build-utils: 1.0.2
-      node-abi: 3.65.0
-      pump: 3.0.0
-      rc: 1.2.8
-      simple-get: 4.0.1
-      tar-fs: 2.1.1
-      tunnel-agent: 0.6.0
-    optional: true
-
   precond@0.2.3: {}
 
   predefine@0.1.3:
@@ -21326,7 +21275,7 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  react-redux@8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@5.0.1):
+  react-redux@8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@4.2.1):
     dependencies:
       '@babel/runtime': 7.20.7
       '@types/hoist-non-react-statics': 3.3.1
@@ -21339,7 +21288,7 @@ snapshots:
       '@types/react': 18.0.26
       '@types/react-dom': 18.0.10
       react-dom: 18.2.0(react@18.2.0)
-      redux: 5.0.1
+      redux: 4.2.1
 
   react-refresh@0.14.0: {}
 
@@ -21449,9 +21398,6 @@ snapshots:
   redux@4.2.1:
     dependencies:
       '@babel/runtime': 7.21.5
-
-  redux@5.0.1:
-    optional: true
 
   reflect-metadata@0.1.13: {}
 
@@ -21801,9 +21747,6 @@ snapshots:
   semver@7.6.0:
     dependencies:
       lru-cache: 6.0.0
-
-  semver@7.6.2:
-    optional: true
 
   send@0.18.0:
     dependencies:
@@ -22616,9 +22559,6 @@ snapshots:
   type-fest@0.8.1: {}
 
   type-fest@3.5.0: {}
-
-  type-fest@4.21.0:
-    optional: true
 
   type-is@1.6.18:
     dependencies:

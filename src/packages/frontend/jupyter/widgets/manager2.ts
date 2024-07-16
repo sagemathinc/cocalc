@@ -4,7 +4,7 @@
  */
 
 import * as base from "@jupyter-widgets/base";
-import { createWidgetManager } from "@cocalc/widgets";
+import { createWidgetManager, is_unpack_models } from "@cocalc/widgets";
 import type { WidgetEnvironment, Comm } from "@cocalc/widgets";
 import {
   IpywidgetsState,
@@ -78,24 +78,6 @@ export class WidgetManager {
 
   private handleIpWidgetsChange = async ({ model_id, type }) => {
     log("handleIpWidgetsChange", { model_id, type });
-    // let i = 0;
-    //     while (!this.manager.has_model(model_id) && i < 10) {
-    //       try {
-    //         await this.manager.get_model(model_id);
-    //         break;
-    //       } catch (_err) {
-    //         i += 1;
-    //         await (require('awaiting').delay)(100);
-    //         log("waiting for ", model_id);
-    //       }
-    //     }
-    //     if (!this.manager.has_model(model_id)) {
-    //       // TODO: maybe have to wait and keep trying until exists?
-    //       log(
-    //         "handleIpWidgetsChange: skipping since model not fully created",
-    //       );
-    //       return;
-    //     }
     switch (type) {
       case "state":
         await this.ipywidgets_state_StateChange(model_id);
@@ -139,25 +121,16 @@ export class WidgetManager {
     if (changed.last_changed != null) {
       this.last_changed[model_id] = changed;
     }
-    for (const k in changed) {
-      if (typeof changed[k] == "string" && changed[k].startsWith("IPY_MODEL")) {
-        delete changed[k];
-      } else if (is_array(changed[k]) && typeof changed[k][0] == "string") {
-        if (changed[k][0]?.startsWith("IPY_MODEL")) {
-          delete changed[k];
-        }
-      }
+    const success = await this.dereferenceModelLinks(changed);
+    if (!success) {
+      console.warn(
+        "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.",
+      );
+      return;
     }
-    //     const success = await this.dereferenceModelLinks(change);
-    //     if (!success) {
-    //       console.warn(
-    //         "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.",
-    //       );
-    //       return;
-    //     }
-    //     const state = await this.deserializeState(model, change);
-    //     log("set_state", state);
-    model.set_state(changed);
+    const state = await this.deserializeState(model, changed);
+    log("set_state", state);
+    model.set_state(state);
   };
 
   private ipywidgets_state_ValueChange = async (model_id: string) => {
@@ -268,6 +241,7 @@ export class WidgetManager {
     const { model_id } = model;
     await model.state_change;
     if (this.state_lock.has(model_id)) {
+      // log("handleModelChange: ignoring change due to state lock");
       return;
     }
     const changed: any = copy(model.serialize(model.changed));
@@ -284,6 +258,7 @@ export class WidgetManager {
         this.last_changed[model_id]?.last_changed ?? 0,
       ) + 1;
     this.last_changed[model_id] = changed;
+    // log("handleModelChange", changed);
     this.ipywidgets_state.set_model_value(model_id, changed, true);
     this.ipywidgets_state.save();
   };
@@ -292,7 +267,7 @@ export class WidgetManager {
     model: base.DOMWidgetModel,
     serialized_state: ModelState,
   ): Promise<ModelState> => {
-    // console.log("deserialize_state", { model, serialized_state });
+    log("deserializeState", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
     // but we untagle unpacking and deserializing, which is
@@ -331,7 +306,7 @@ export class WidgetManager {
     await this.setBuffers(model_id, serialized_state);
     for (const k in serialized_state) {
       const deserialize = serializers[k]?.deserialize;
-      if (deserialize != null && deserialize !== base.unpack_models) {
+      if (deserialize != null && !is_unpack_models(deserialize)) {
         deserialized[k] = deserialize(serialized_state[k]);
       } else {
         deserialized[k] = serialized_state[k];
@@ -397,7 +372,7 @@ export class WidgetManager {
   };
 
   private dereferenceModelLinks = async (state): Promise<boolean> => {
-    // log("dereferenceModelLinks", "BEFORE", state);
+    log("dereferenceModelLinks", "BEFORE", state);
     for (const key in state) {
       const val = state[key];
       if (typeof val === "string") {
@@ -441,7 +416,7 @@ export class WidgetManager {
         }
       }
     }
-    // log("dereferenceModelLinks", "AFTER (success)", state);
+    log("dereferenceModelLinks", "AFTER (success)", state);
     return true;
   };
 }
