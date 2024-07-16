@@ -194,6 +194,9 @@ export class WidgetManager {
     We definitely do have to serialize, then pass to updateModel, so that
     the widget can properly deserialize again, as I learned with k3d, which
     processes everything.
+
+    A simple example that uses buffers is this image one:
+       https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#image
     */
     const model = await this.manager.get_model(model_id);
     const { buffer_paths } =
