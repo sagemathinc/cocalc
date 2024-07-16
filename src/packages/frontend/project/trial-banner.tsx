@@ -457,11 +457,11 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
                 which costs money as well.
               </Paragraph>
               <Paragraph>
-                <SiteName /> receives no funding from large venture captital
-                organizations or charitable foundations. The site depends
-                entirely <Text strong>on your financial support</Text> to
-                continue operating. Without your financial support this service
-                will not survive long-term!
+                <SiteName /> receives no funding from large organizations or
+                charitable foundations. The site depends entirely{" "}
+                <Text strong>on your financial support</Text> to continue
+                operating. Without your financial support this service will not
+                survive long-term!
               </Paragraph>
               <Paragraph>
                 <A
