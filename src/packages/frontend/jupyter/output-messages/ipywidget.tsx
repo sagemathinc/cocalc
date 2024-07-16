@@ -24,31 +24,42 @@ function loadFontAwesome() {
 interface WidgetProps {
   value: Map<string, any>;
   actions?: JupyterActions;
-  name: string;
-  project_id?: string;
   directory?: string;
   trust?: boolean;
 }
 
 export function IpyWidget({ value, actions }: WidgetProps) {
+  console.log("IpyWidget", { value: value.toJS(), actions });
   const [unknown, setUnknown] = useState<boolean>(false);
   const divRef = useRef<any>(null);
 
   useEffect(() => {
-    if (actions == null || divRef.current == null) return;
+    if (actions == null) {
+      // console.log("IpyWidget: not rendering due to actions=null");
+      return;
+    }
+    if (divRef.current == null) {
+      // console.log("IpyWidget: not rendering due to divRef.current=null");
+      return;
+    }
     loadFontAwesome();
     const id = value.get("model_id");
 
     const { widget_manager2: widget_manager } = actions;
     if (widget_manager == null) {
+      // console.log("IpyWidget: not rendering due to widget_manager=null");
       return;
     }
     if (widget_manager.ipywidgets_state.get_model_state(id) == null) {
+      // console.log("IpyWidget: not rendering due to uknown model state");
       setUnknown(true);
       return;
     }
     const manager = widget_manager?.manager;
-    if (manager == null) return;
+    if (manager == null) {
+      // console.log("IpyWidget: not rendering due to manager not being set");
+      return;
+    }
     try {
       manager.render(id, divRef.current);
 

@@ -117,7 +117,7 @@ export class JupyterActions extends JupyterActions0 {
       } else {
         this.widget_manager2 = new WidgetManager2({
           ipywidgets_state: ipywidgets_state!,
-          send_comm_message_to_kernel: this.send_comm_message_to_kernel,
+          actions: this,
         });
       }
       // Stupid hack for now -- this just causes some activity so

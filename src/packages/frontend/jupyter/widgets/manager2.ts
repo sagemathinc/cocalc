@@ -17,6 +17,7 @@ import { CellOutputMessage } from "@cocalc/frontend/jupyter/output-messages/mess
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { size } from "lodash";
+import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 
 export type SendCommFunction = (string, data) => string;
 
@@ -24,7 +25,7 @@ const log = console.log;
 
 export class WidgetManager {
   public ipywidgets_state: IpywidgetsState;
-  public send_comm_message_to_kernel;
+  public actions: JupyterActions;
   public manager;
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
@@ -32,13 +33,13 @@ export class WidgetManager {
 
   constructor({
     ipywidgets_state,
-    send_comm_message_to_kernel,
+    actions,
   }: {
     ipywidgets_state: IpywidgetsState;
-    send_comm_message_to_kernel;
+    actions: JupyterActions;
   }) {
     this.ipywidgets_state = ipywidgets_state;
-    this.send_comm_message_to_kernel = send_comm_message_to_kernel;
+    this.actions = actions;
     if (this.ipywidgets_state.get_state() == "closed") {
       throw Error("ipywidgets_state must not be closed");
     }
@@ -68,6 +69,10 @@ export class WidgetManager {
         (async () => {
           try {
             await this.manager.get_model(model_id);
+            // also ensure any buffers are set, e.g., this is needed when loading
+            // https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#image
+            // so don't have to evaluate the cell on first load.
+            await this.ipywidgets_state_BuffersChange(model_id);
           } catch (err) {
             log("initAllModels", err);
           }
@@ -185,6 +190,33 @@ export class WidgetManager {
     this.state_lock.delete(model_id);
   };
 
+  // Mutate state to account for any buffers.  We have to do
+  // this any time we update the model via the updateModel
+  // function; otherwise the state that is getting sync'd around
+  // between clients will just forget the buffers that are set
+  // via ipywidgets_state_BuffersChange!
+  private setBuffers = async (
+    model_id: string,
+    state: ModelState,
+  ): Promise<void> => {
+    const { buffer_paths, buffers } =
+      await this.ipywidgets_state.get_model_buffers(model_id);
+    if (buffer_paths.length == 0) {
+      return; // nothing to do
+    }
+    // convert each ArrayBuffer in buffers to a DataView.
+    const paths: string[][] = [];
+    const vals: any[] = [];
+    for (let i = 0; i < buffers.length; i++) {
+      if (state[buffer_paths[i][0]] == null) {
+        continue;
+      }
+      vals.push(new DataView(buffers[i]));
+      paths.push(buffer_paths[i]);
+    }
+    put_buffers(state, paths, vals);
+  };
+
   private ipywidgets_state_BuffersChange = async (model_id: string) => {
     log("handleBuffersChange: ", model_id);
     /*
@@ -199,15 +231,18 @@ export class WidgetManager {
        https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#image
     */
     const model = await this.manager.get_model(model_id);
-    const { buffer_paths } =
+    const { buffer_paths, buffers } =
       await this.ipywidgets_state.get_model_buffers(model_id);
     const deserialized_state = model.get_state(true);
     const serializers = (model.constructor as any).serializers;
     const change: { [key: string]: any } = {};
-    for (const paths of buffer_paths) {
-      const key = paths[0];
+    for (let i = 0; i < buffer_paths.length; i++) {
+      // TODO/concern: what if buffer_paths is deeper (length > 1)?
+      // Will that break something?  We do set things properly later.
+      const buffer = buffers[i];
+      const key = buffer_paths[i][0];
       change[key] =
-        serializers[key]?.serialize(deserialized_state[key]) ??
+        serializers[key]?.serialize({ buffer, ...deserialized_state[key] }) ??
         deserialized_state[key];
     }
     model.set_state(change);
@@ -317,31 +352,6 @@ export class WidgetManager {
     }
 
     return deserialized;
-  };
-
-  // Mutate state to account for any buffers.  We have to do
-  // this any time we update the model via the updateModel
-  // function; otherwise the state that is getting sync'd around
-  // between clients will just forget the buffers that are set
-  // via ipywidgets_state_BuffersChange!
-  private setBuffers = async (
-    model_id: string,
-    state: ModelState,
-  ): Promise<void> => {
-    const { buffer_paths, buffers } =
-      await this.ipywidgets_state.get_model_buffers(model_id);
-    if (buffer_paths.length == 0) return; // nothing to do
-    // convert each ArrayBuffer in buffers to a DataView.
-    const paths: string[][] = [];
-    const vals: any[] = [];
-    for (let i = 0; i < buffers.length; i++) {
-      if (state[buffer_paths[i][0]] == null) {
-        continue;
-      }
-      vals.push(new DataView(buffers[i]));
-      paths.push(buffer_paths[i]);
-    }
-    put_buffers(state, paths, vals);
   };
 
   /*
@@ -458,7 +468,7 @@ class Environment implements WidgetEnvironment {
     buffers?: ArrayBuffer[],
   ): Promise<Comm> {
     log("openCommChannel", { targetName, data, buffers });
-    const { send_comm_message_to_kernel } = this.manager;
+    const { send_comm_message_to_kernel } = this.manager.actions;
     const comm = {
       async send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
         // TODO: buffers!  These need to get encoded separately (?).
@@ -487,13 +497,17 @@ class Environment implements WidgetEnvironment {
   }
 
   async renderOutput(outputItem: any, destination: Element): Promise<void> {
-    // the guassian plume notebook has example of this!
+    // the gaussian plume notebook has example of this!
     log("renderOutput", { outputItem, destination });
     //$(destination).append($(`<pre>${JSON.stringify(outputItem)}</pre>`));
     const message = fromJS(outputItem);
     const myDiv = document.createElement("div");
     destination.appendChild(myDiv);
-    const component = React.createElement(CellOutputMessage, { message }, null);
+    const component = React.createElement(
+      CellOutputMessage,
+      { message, actions: this.manager.actions },
+      null,
+    );
     const root = ReactDOM.createRoot(myDiv);
     root.render(component);
   }
