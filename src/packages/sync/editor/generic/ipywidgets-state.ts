@@ -35,6 +35,16 @@ type Value = { [key: string]: any };
 // data when they are not referenced in the notebook.
 const GC_DEBOUNCE_MS = 10000;
 
+// actually doing GC is bonus points; I don't think upstream even does it,
+// and it seems very hard to get right without causing subtle bugs.  We disable
+// it for now.  I think this core example breaks it, because the link isn't
+// taken into account properly:
+// from ipywidgets import VBox, jsdlink, IntSlider, Button
+// s1 = IntSlider(max=200, value=100); s2 = IntSlider(value=40)
+// jsdlink((s1, 'value'), (s2, 'max'))
+// VBox([s1, s2])
+const DISABLE_GC = true;
+
 interface CommMessage {
   header: { msg_id: string };
   parent_header: { msg_id: string };
@@ -92,14 +102,15 @@ export class IpywidgetsState extends EventEmitter {
       // persistent -- doesn't automatically vanish when all browser clients disconnect
       this.table_options = [{ ephemeral: true, persistent: true }];
     }
-    this.gc = client.is_project() // no-op if not project
-      ? debounce(() => {
-          // return; // temporarily disabled since it is still too aggressive
-          if (this.state == "ready") {
-            this.deleteUnused();
-          }
-        }, GC_DEBOUNCE_MS)
-      : () => {};
+    this.gc =
+      !DISABLE_GC && client.is_project() // no-op if not project or DISABLE_GC
+        ? debounce(() => {
+            // return; // temporarily disabled since it is still too aggressive
+            if (this.state == "ready") {
+              this.deleteUnused();
+            }
+          }, GC_DEBOUNCE_MS)
+        : () => {};
   }
 
   public async init(): Promise<void> {
@@ -493,7 +504,7 @@ export class IpywidgetsState extends EventEmitter {
     ways of referencing each other, and there's no way to know what they are
     doing.  The only possible way to do garbage collection is by reading
     and understanding their code or reverse engineering their data.
-    It's not unlikely that any nontrivail third
+    It's not unlikely that any nontrivial third
     party widget has invented it's own custom way to do object references,
     and for every single one we may need to write custom code for garbage
     collection, which can randomly break if they change.
@@ -537,6 +548,7 @@ export class IpywidgetsState extends EventEmitter {
   // The finite state machine state, e.g., 'init' --> 'ready' --> 'close'
   private set_state(state: State): void {
     this.state = state;
+    this.emit(state);
   }
 
   public get_state(): State {
@@ -673,7 +685,7 @@ export class IpywidgetsState extends EventEmitter {
         break;
       case undefined:
         if (state == null) return;
-        dbg("method -- undefined (=set_model_state)");
+        dbg("method -- undefined (=set_model_state)", { model_id, state });
         this.set_model_state(model_id, state, false);
         break;
       default:

@@ -44,6 +44,8 @@ export class WidgetManager {
     }
     const provider = new Environment(this);
     this.manager = createWidgetManager(provider);
+
+    this.initAllModels();
     this.ipywidgets_state.on("change", async (keys) => {
       for (const key of keys) {
         const [, model_id, type] = JSON.parse(key);
@@ -51,6 +53,28 @@ export class WidgetManager {
       }
     });
   }
+
+  private initAllModels = async () => {
+    if (this.ipywidgets_state.get_state() == "init") {
+      await once(this.ipywidgets_state, "ready");
+    }
+    if (this.ipywidgets_state.get_state() != "ready") {
+      return;
+    }
+    log("initAllModels");
+    for (const { model_id, type } of this.ipywidgets_state.keys()) {
+      if (type == "state") {
+        log("initAllModels", model_id);
+        (async () => {
+          try {
+            await this.manager.get_model(model_id);
+          } catch (err) {
+            log("initAllModels", err);
+          }
+        })();
+      }
+    }
+  };
 
   private handleIpWidgetsChange = async ({ model_id, type }) => {
     log("handleIpWidgetsChange", { model_id, type });
@@ -92,7 +116,6 @@ export class WidgetManager {
   };
 
   private ipywidgets_state_StateChange = async (model_id: string) => {
-    return;
     log("handleStateChange: ", model_id);
     const state = this.ipywidgets_state.get_model_state(model_id);
     log("handleStateChange: state=", state);
@@ -104,28 +127,37 @@ export class WidgetManager {
 
   private updateModel = async (
     model_id: string,
-    change: ModelState,
+    changed: ModelState,
   ): Promise<void> => {
     const model: base.DOMWidgetModel | undefined =
       await this.manager.get_model(model_id);
-    log("updateModel", { model, change });
+    log("updateModel", { model, changed });
     if (model == null) {
       return;
     }
     //log(`setting state of model "${model_id}" to `, change);
-    if (change.last_changed != null) {
-      this.last_changed[model_id] = change;
+    if (changed.last_changed != null) {
+      this.last_changed[model_id] = changed;
     }
-    const success = await this.dereferenceModelLinks(change);
-    if (!success) {
-      console.warn(
-        "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.",
-      );
-      return;
+    for (const k in changed) {
+      if (typeof changed[k] == "string" && changed[k].startsWith("IPY_MODEL")) {
+        delete changed[k];
+      } else if (is_array(changed[k]) && typeof changed[k][0] == "string") {
+        if (changed[k][0]?.startsWith("IPY_MODEL")) {
+          delete changed[k];
+        }
+      }
     }
-    const state = await this.deserializeState(model, change);
-    log("set_state", state);
-    model.set_state(state);
+    //     const success = await this.dereferenceModelLinks(change);
+    //     if (!success) {
+    //       console.warn(
+    //         "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.",
+    //       );
+    //       return;
+    //     }
+    //     const state = await this.deserializeState(model, change);
+    //     log("set_state", state);
+    model.set_state(changed);
   };
 
   private ipywidgets_state_ValueChange = async (model_id: string) => {
@@ -426,7 +458,6 @@ class Environment implements WidgetEnvironment {
       await once(this.manager.ipywidgets_state, "ready");
     }
     let state = this.manager.ipywidgets_state.get_model_state(model_id);
-    setTimeout(() => this.manager.watchModel(model_id), 1);
     if (!state) {
       log("getModelState", model_id, "not yet known -- waiting");
       while (state == null) {
@@ -434,6 +465,7 @@ class Environment implements WidgetEnvironment {
         state = this.manager.ipywidgets_state.get_model_state(model_id);
       }
     }
+    setTimeout(() => this.manager.watchModel(model_id), 1);
     return {
       modelName: state._model_name,
       modelModule: state._model_module,
