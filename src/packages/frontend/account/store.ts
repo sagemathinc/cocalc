@@ -38,7 +38,7 @@ export class AccountStore extends Store<AccountState> {
           this.get("is_logged_in"),
           this.get("email_address"),
           this.get("passports"),
-          this.get("lti_id")
+          this.get("lti_id"),
         );
       },
       dependencies: [
@@ -88,7 +88,7 @@ export class AccountStore extends Store<AccountState> {
   get_color(): string {
     return this.getIn(
       ["profile", "color"],
-      this.get("account_id", "f00").slice(0, 6)
+      this.get("account_id", "f00").slice(0, 6),
     );
   }
 
@@ -113,6 +113,10 @@ export class AccountStore extends Store<AccountState> {
     ]);
     return stripe_data && get_total_upgrades(stripe_data.toJS());
   }
+
+  hasLegacyUpgrades = () => {
+    return this.getIn(["stripe_customer", "subscriptions", "data"]) != null;
+  };
 
   // uses the total upgrades information to determine, if this is a paying member
   // TODO: this is not used anywhere; but, if it was, it should also take into account
@@ -141,7 +145,7 @@ function is_anonymous(
   is_logged_in: boolean,
   email_address: string | undefined | null,
   passports: Map<string, any> | undefined | null,
-  lti_id: List<string> | undefined | null
+  lti_id: List<string> | undefined | null,
 ): boolean {
   if (!is_logged_in) {
     return false;
