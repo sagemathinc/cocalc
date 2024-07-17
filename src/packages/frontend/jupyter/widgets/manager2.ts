@@ -139,26 +139,21 @@ export class WidgetManager {
     model.set_state(state);
   };
 
+  // ipywidgets_state_ValueChange is called when a value entry of the ipywidgets_state
+  // table is changed, e.g., when the backend decides a model should change or another client
+  // changes something, or even this client changes something.  When another client is
+  // responsible for the change, we make the change to the ipywidgets model here.
   private ipywidgets_state_ValueChange = async (model_id: string) => {
     // log("handleValueChange: ", model_id);
     const changed = this.ipywidgets_state.get_model_value(model_id);
     log("handleValueChange: changed=", model_id, changed);
-    for (const k in changed) {
-      if (typeof changed[k] == "string" && changed[k].startsWith("IPY_MODEL")) {
-        delete changed[k];
-      } else if (is_array(changed[k]) && typeof changed[k][0] == "string") {
-        if (changed[k][0]?.startsWith("IPY_MODEL")) {
-          delete changed[k];
-        }
-      }
-    }
     if (
       this.last_changed[model_id] != null &&
       changed.last_changed != null &&
       changed.last_changed <= this.last_changed[model_id].last_changed
     ) {
       log(
-        "handleValueChange: skipping due to last change time",
+        "handleValueChange: skipping due to last_changed sequence number -- i.e., change caused by this client",
         this.last_changed[model_id],
         changed.last_changed,
       );
@@ -273,10 +268,15 @@ export class WidgetManager {
     const model = await this.manager.get_model(model_id);
     model.on("change", this.handleModelChange);
     this.watching.add(model_id);
+    this.last_changed[model_id] = { last_changed: 0 };
   };
 
+  // handleModelChange is called when an ipywidgets model changes.
+  // This function serializes the change and saves it to
+  // ipywidgets_state, so that it is gets sync'd to the backend
+  // and any other clients.
   private handleModelChange = async (model): Promise<void> => {
-    // log("handleModelChange", model);
+    log("handleModelChange", model);
     const { model_id } = model;
     await model.state_change;
     if (this.state_lock.has(model_id)) {
@@ -292,13 +292,10 @@ export class WidgetManager {
     }
     // increment sequence number.
     changed.last_changed =
-      Math.max(
-        last_changed ?? 0,
-        this.last_changed[model_id]?.last_changed ?? 0,
-      ) + 1;
+      Math.max(last_changed ?? 0, this.last_changed[model_id].last_changed) + 1;
     this.last_changed[model_id] = changed;
-    // log("handleModelChange", changed);
-    this.ipywidgets_state.set_model_value(model_id, changed, true);
+    log("handleModelChange", changed);
+    this.ipywidgets_state.set_model_value(model_id, changed, false);
     this.ipywidgets_state.save();
   };
 
@@ -306,7 +303,7 @@ export class WidgetManager {
     model: base.DOMWidgetModel,
     serialized_state: ModelState,
   ): Promise<ModelState> => {
-    log("deserializeState", { model, serialized_state });
+    // log("deserializeState", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
     // but we untagle unpacking and deserializing, which is
@@ -386,7 +383,7 @@ export class WidgetManager {
   };
 
   private dereferenceModelLinks = async (state): Promise<boolean> => {
-    log("dereferenceModelLinks", "BEFORE", state);
+    // log("dereferenceModelLinks", "BEFORE", state);
     for (const key in state) {
       const val = state[key];
       if (typeof val === "string") {
@@ -430,7 +427,7 @@ export class WidgetManager {
         }
       }
     }
-    log("dereferenceModelLinks", "AFTER (success)", state);
+    // log("dereferenceModelLinks", "AFTER (success)", state);
     return true;
   };
 }
@@ -442,7 +439,7 @@ class Environment implements WidgetEnvironment {
   }
 
   async getModelState(model_id) {
-    log("getModelState", model_id);
+    // log("getModelState", model_id);
     if (this.manager.ipywidgets_state.get_state() != "ready") {
       await once(this.manager.ipywidgets_state, "ready");
     }

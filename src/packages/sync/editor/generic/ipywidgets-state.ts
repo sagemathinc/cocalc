@@ -281,7 +281,7 @@ export class IpywidgetsState extends EventEmitter {
 
   private set_model_buffers = (
     model_id: string,
-    buffer_paths: string[],
+    buffer_paths: string[][],
     buffers: Buffer[],
     fire_change_event: boolean = true,
   ): void => {
@@ -294,7 +294,7 @@ export class IpywidgetsState extends EventEmitter {
     }
     for (let i = 0; i < buffer_paths.length; i++) {
       const key = JSON.stringify(buffer_paths[i]);
-      // we set to the sha1 of the buffer not to make getting
+      // we set to the sha1 of the buffer not just to make getting
       // the buffer easy, but to make it easy to KNOW if we
       // even need to get the buffer.
       const hash = sha1(buffers[i]);
@@ -388,14 +388,15 @@ export class IpywidgetsState extends EventEmitter {
     this.set_state("closed");
   };
 
-  private dbg(_f): Function {
+  private dbg = (_f): Function => {
     if (this.client.is_project()) {
       return this.client.dbg(`IpywidgetsState.${_f}`);
     } else {
       return (..._) => {};
     }
-  }
-  public async clear(): Promise<void> {
+  };
+
+  clear = async (): Promise<void> => {
     // This is used when we restart the kernel -- we reset
     // things so no information about any models is known
     // and delete all Buffers.
@@ -417,13 +418,13 @@ export class IpywidgetsState extends EventEmitter {
       this.table.set({ string_id, type, model_id, data: null }, "none", false);
     }
     await this.table.save();
-  }
+  };
 
   // Clean up all data in the table about models that are not
   // referenced (directly or indirectly) in any cell in the notebook.
   // There is also a comm:close event/message somewhere, which
   // could also be useful....?
-  public async deleteUnused(): Promise<void> {
+  deleteUnused = async (): Promise<void> => {
     this.assert_state("ready");
     const dbg = this.dbg("deleteUnused");
     dbg();
@@ -442,13 +443,13 @@ export class IpywidgetsState extends EventEmitter {
       }
     });
     await this.table.save();
-  }
+  };
 
   // For each model in init, we add in all the ids of models
   // that it explicitly references, e.g., by IPY_MODEL_[model_id] fields
   // and by output messages and other things we learn about (e.g., k3d
   // has its own custom references).
-  public getReferencedModelIds(init: string | Set<string>): Set<string> {
+  getReferencedModelIds = (init: string | Set<string>): Set<string> => {
     const modelIds =
       typeof init == "string" ? new Set([init]) : new Set<string>(init);
     let before = 0;
@@ -470,14 +471,14 @@ export class IpywidgetsState extends EventEmitter {
     this.includeThirdPartyReferences(modelIds);
 
     return modelIds;
-  }
+  };
 
   // We find the ids of all models that are explicitly referenced
   // in the current version of the Jupyter notebook by iterating through
   // the output of all cells, then expanding the result to everything
   // that these models reference.  This is used as a foundation for
   // garbage collection.
-  private getActiveModelIds(): Set<string> {
+  private getActiveModelIds = (): Set<string> => {
     const modelIds: Set<string> = new Set();
     this.syncdoc.get({ type: "cell" }).forEach((cell) => {
       const output = cell.get("output");
@@ -497,9 +498,9 @@ export class IpywidgetsState extends EventEmitter {
       }
     });
     return this.getReferencedModelIds(modelIds);
-  }
+  };
 
-  private includeThirdPartyReferences(modelIds: Set<string>) {
+  private includeThirdPartyReferences = (modelIds: Set<string>) => {
     /*
     Motivation (RANT):
     It seems to me that third party widgets can just invent their own
@@ -545,23 +546,23 @@ export class IpywidgetsState extends EventEmitter {
         modelIds.add(model_id);
       }
     });
-  }
+  };
 
   // The finite state machine state, e.g., 'init' --> 'ready' --> 'close'
-  private set_state(state: State): void {
+  private set_state = (state: State): void => {
     this.state = state;
     this.emit(state);
-  }
+  };
 
-  public get_state(): State {
+  get_state = (): State => {
     return this.state;
-  }
+  };
 
-  private assert_state(state: string): void {
+  private assert_state = (state: string): void => {
     if (this.state != state) {
       throw Error(`state must be "${state}" but it is "${this.state}"`);
     }
-  }
+  };
 
   /*
   process_comm_message_from_kernel gets called whenever the
@@ -569,9 +570,9 @@ export class IpywidgetsState extends EventEmitter {
   the state of the table, which results in frontends creating widgets
   or updating state of widgets.
   */
-  public async process_comm_message_from_kernel(
+  process_comm_message_from_kernel = async (
     msg: CommMessage,
-  ): Promise<void> {
+  ): Promise<void> => {
     const dbg = this.dbg("process_comm_message_from_kernel");
     // WARNING: serializing any msg could cause huge server load, e.g., it could contain
     // a 20MB buffer in it.
@@ -697,7 +698,7 @@ export class IpywidgetsState extends EventEmitter {
     }
 
     await this.save();
-  }
+  };
 
   /*
   process_comm_message_from_browser gets called whenever a
@@ -707,20 +708,20 @@ export class IpywidgetsState extends EventEmitter {
   kernel changing the value of variables (and possibly
   updating other widgets).
   */
-  public async process_comm_message_from_browser(
+  process_comm_message_from_browser = async (
     msg: CommMessage,
-  ): Promise<void> {
+  ): Promise<void> => {
     const dbg = this.dbg("process_comm_message_from_browser");
     dbg(msg);
     this.assert_state("ready");
     // TODO: not implemented!
-  }
+  };
 
   // The mesg here is exactly what came over the IOPUB channel
   // from the kernel.
 
   // TODO: deal with buffers
-  public capture_output_message(mesg: any): boolean {
+  capture_output_message = (mesg: any): boolean => {
     const msg_id = mesg.parent_header.msg_id;
     if (this.capture_output[msg_id] == null) {
       return false;
@@ -759,13 +760,13 @@ export class IpywidgetsState extends EventEmitter {
     outputs.push(mesg.content);
     this.set_model_value(model_id, { outputs });
     return true;
-  }
+  };
 
-  private async sendCustomMessage(
+  private sendCustomMessage = async (
     model_id: string,
     message: object,
     fire_change_event: boolean = true,
-  ): Promise<void> {
+  ): Promise<void> => {
     /*
     Send a custom message.
 
@@ -782,11 +783,11 @@ export class IpywidgetsState extends EventEmitter {
     // Actually, delete is not implemented for synctable, so for
     // now we just set it to an empty message.
     this.set(model_id, "message", {}, fire_change_event);
-  }
+  };
 
-  public get_message(model_id: string) {
+  get_message = (model_id: string) => {
     return this.get(model_id, "message")?.toJS();
-  }
+  };
 }
 
 // Get model id's that appear either as serialized references

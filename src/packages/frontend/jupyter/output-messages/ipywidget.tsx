@@ -29,7 +29,7 @@ interface WidgetProps {
 }
 
 export function IpyWidget({ value, actions }: WidgetProps) {
-  console.log("IpyWidget", { value: value.toJS(), actions });
+  // console.log("IpyWidget", { value: value.toJS(), actions });
   const [unknown, setUnknown] = useState<boolean>(false);
   const divRef = useRef<any>(null);
 

@@ -1312,6 +1312,10 @@ export class JupyterActions extends JupyterActions0 {
     });
   }
 
+  // handle_ipywidgets_state_change is called when the project ipywidgets_state
+  // object changes, e.g., in response to a user moving a slider in the browser.
+  // It crafts a comm message that is sent to the running Jupyter kernel telling
+  // it about this change by calling send_comm_message_to_kernel.
   private handle_ipywidgets_state_change(keys): void {
     if (this.is_closed()) {
       return;
@@ -1338,7 +1342,20 @@ export class JupyterActions extends JupyterActions0 {
           data,
         );
       } else if (type === "buffers") {
-        // nothing to do on the backend (?)
+        // TODO: we will implement this soon.  A good example where this is required
+        // is by the file upload widget:
+        //    https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#file-upload
+        // which creates a buffer from the content of the file, then sends it to the backend,
+        // which sees a change and has to write that buffer to the kernel (here) so that
+        // the running python process can actually do something with the file contents (e.g.,
+        // process data, save file to disk, etc).
+        // We need to be careful though to not send buffers to the kernel that the kernel sent us,
+        // since that would be a waste.
+        // TODO
+        // I think the format for the send_comm_mmessage_to_kernel call here is easy to deduce
+        // from what process_comm_message_from_kernel unpacks.
+        //   ***
+        // TODO
       } else if (type === "state") {
         // TODO: currently ignoring this, since it seems chatty and pointless,
         // and could lead to race conditions probably with multiple users, etc.
