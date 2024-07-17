@@ -1,4 +1,6 @@
 import { createHash } from "crypto";
+
+import { projects } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 
 /*
@@ -68,4 +70,9 @@ export function envForSpawn() {
     delete env[name];
   }
   return env;
+}
+
+// return the absolute home directory of given @project_id project on disk
+export function homePath(project_id: string): string {
+  return projects.replace("[project_id]", project_id);
 }

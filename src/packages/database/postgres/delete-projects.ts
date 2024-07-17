@@ -13,6 +13,7 @@ import { join } from "node:path";
 import { pathToFiles } from "@cocalc/backend/files/path-to-files";
 import getLogger from "@cocalc/backend/logger";
 import { newCounter } from "@cocalc/backend/metrics";
+import { homePath } from "@cocalc/backend/misc";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -82,7 +83,8 @@ export async function unlink_old_deleted_projects(
   db: PostgreSQL,
   age_d = 30,
 ): Promise<void> {
-  await callback2(db._query, {
+  const L = log.extend("unlink_old_deleted_projects").debug;
+  const { rowCount } = await callback2(db._query, {
     query: "UPDATE projects",
     set: { users: null },
     where: [
@@ -91,6 +93,7 @@ export async function unlink_old_deleted_projects(
       `last_edited <= NOW() - '${age_d} days'::INTERVAL`,
     ],
   });
+  L("unlinked projects:", rowCount);
 }
 
 const Q_CLEANUP_SYNCSTRINGS = `
@@ -184,6 +187,13 @@ export async function cleanup_old_projects_data(
       );
 
       if (on_prem) {
+        // we don't delete the central_log, it has its own expiration
+        // such an entry is good to have for reconstructing what really happened
+        db.log({
+          event: "delete_project",
+          value: { deleting: "files", project_id },
+        });
+
         L2(`delete all project files`);
         await deleteProjectFiles(L2, project_id);
 
@@ -199,6 +209,10 @@ export async function cleanup_old_projects_data(
 
       // This gets rid of all sorts of data in tables specific to the given project.
       delRows += await delete_associated_project_data(L2, project_id);
+      db.log({
+        event: "delete_project",
+        value: { deleting: "database", project_id },
+      });
 
       // now, that we're done with that project, mark it as state.state ->> 'deleted'
       // in addition to the flag "deleted = true". This also updates the state.time timestamp.
@@ -283,7 +297,8 @@ async function delete_associated_project_data(
 
 async function deleteProjectFiles(L2, project_id: string) {
   // TODO: this only works on-prem, and requires the project files to be mounted
-  const projects_root = process.env["MOUNTED_PROJECTS_ROOT"];
+  const projects_root =
+    process.env["MOUNTED_PROJECTS_ROOT"] ?? homePath(project_id);
   if (!projects_root) return;
   const project_dir = join(projects_root, project_id);
   try {
@@ -297,7 +312,7 @@ async function deleteProjectFiles(L2, project_id: string) {
     }
   } catch (err) {
     L2(
-      `not deleting project files: either it does not exist or is not accessible`,
+      `not deleting project files: either path does not exist or is not accessible`,
     );
   }
 }
