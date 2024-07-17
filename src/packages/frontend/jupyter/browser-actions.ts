@@ -470,13 +470,19 @@ export class JupyterActions extends JupyterActions0 {
     this.deprecated("command", name);
   };
 
-  send_comm_message_to_kernel = async (
-    comm_id: string,
-    data: any,
-  ): Promise<string> => {
+  send_comm_message_to_kernel = async ({
+    comm_id,
+    target_name,
+    data,
+  }: {
+    comm_id: string;
+    target_name: string;
+    data: any;
+  }): Promise<string> => {
     const msg_id = uuid();
-    await this.api_call("comm", [msg_id, comm_id, data]);
-    console.log("send_comm_message_to_kernel", "sent", [msg_id, comm_id, data]);
+    const msg = { msg_id, target_name, comm_id, data };
+    await this.api_call("comm", msg);
+    // console.log("send_comm_message_to_kernel", "sent", msg);
     return msg_id;
   };
 

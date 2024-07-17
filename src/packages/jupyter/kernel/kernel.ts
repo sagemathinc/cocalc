@@ -990,18 +990,24 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     );
   }
 
-  public send_comm_message_to_kernel(
-    msg_id: string,
-    comm_id: string,
-    data: any,
-  ): void {
+  public send_comm_message_to_kernel({
+    msg_id,
+    comm_id,
+    target_name,
+    data,
+  }: {
+    msg_id: string;
+    comm_id: string;
+    target_name: string;
+    data: any;
+  }): void {
     const dbg = this.dbg("send_comm_message_to_kernel");
 
     const message = {
       parent_header: {},
       metadata: {},
       channel: "shell",
-      content: { comm_id, data },
+      content: { comm_id, target_name, data },
       header: {
         msg_id,
         username: "user",

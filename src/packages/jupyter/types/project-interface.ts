@@ -60,7 +60,7 @@ export interface Message {
 // which case value not in doc and sent via different channel).
 export type StdinFunction = (
   prompt: string,
-  password: boolean
+  password: boolean,
 ) => Promise<string>;
 
 export interface ExecOpts {
@@ -141,12 +141,17 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
   nbconvert(args: string[], timeout?: number): Promise<void>;
   load_attachment(path: string): Promise<string>;
   process_attachment(base64, mime): string | undefined;
-  send_comm_message_to_kernel(msg_id: string, comm_id: string, data: any): void;
+  send_comm_message_to_kernel(msg: {
+    msg_id: string;
+    comm_id: string;
+    target_name: string;
+    data: any;
+  }): void;
   get_connection_file(): string | undefined;
 
   _execute_code_queue: CodeExecutionEmitterInterface[];
   clear_execute_code_queue(): void;
-  _process_execute_code_queue(): Promise<void>
+  _process_execute_code_queue(): Promise<void>;
 
   chdir(path: string): Promise<void>;
   ensure_running(): Promise<void>;

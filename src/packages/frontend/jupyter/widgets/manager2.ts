@@ -135,6 +135,14 @@ export class WidgetManager {
       return;
     }
     const state = await this.deserializeState(model, changed);
+    if (state.hasOwnProperty("outputs") && state["outputs"] == null) {
+      // It can definitely be 'undefined' but set, e.g., the 'out.clear_output()' example at
+      // https://ipywidgets.readthedocs.io/en/latest/examples/Output%20Widget.html
+      // causes this, which then totally breaks rendering (due to how the
+      // upstream widget manager works).  This works around that.
+      state["outputs"] = [];
+    }
+
     log("set_state", state);
     model.set_state(state);
   };
@@ -265,10 +273,23 @@ export class WidgetManager {
     if (this.watching.has(model_id)) {
       return;
     }
-    const model = await this.manager.get_model(model_id);
-    model.on("change", this.handleModelChange);
+    // do this before anything else async, or we could end up watching it more
+    // than once at a time.
     this.watching.add(model_id);
+    const model = await this.manager.get_model(model_id);
     this.last_changed[model_id] = { last_changed: 0 };
+    model.on("change", this.handleModelChange);
+
+    // Also, setup comm channel.
+    const comm = await this.openCommChannel({
+      comm_id: model_id,
+      target_name: "jupyter.widget",
+    });
+    model.comm = comm;
+    model.comm_live = true;
+    // TODO: we need to setup handling comm messages from
+    // the kernel, which should call model._handle_comm_msg.
+    // See ipywidgets/packages/base/src/widget.ts
   };
 
   // handleModelChange is called when an ipywidgets model changes.
@@ -430,6 +451,49 @@ export class WidgetManager {
     // log("dereferenceModelLinks", "AFTER (success)", state);
     return true;
   };
+
+  openCommChannel = async ({
+    comm_id,
+    target_name,
+    data,
+    buffers,
+  }: {
+    comm_id: string;
+    target_name: string;
+    data?: unknown;
+    buffers?: ArrayBuffer[];
+  }): Promise<Comm> => {
+    log("openCommChannel", { comm_id, target_name, data, buffers });
+    const { send_comm_message_to_kernel } = this.actions;
+    const comm = {
+      async send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
+        // TODO: buffers!  These need to get sent somehow.
+        log("comm.send", data, opts);
+        await send_comm_message_to_kernel({ comm_id, target_name, data });
+      },
+
+      close() {
+        // nothing to actually do (?)
+        log("Connection closed");
+      },
+
+      get messages() {
+        // TODO:
+        log("comm.message: Not Implemented");
+        // upstream widgets handles these via
+        //   comm.on_msg(this._handle_comm_msg.bind(this));
+        // see ipywidgets/packages/base/src/widget.ts
+        return {
+          [Symbol.asyncIterator]: async function* () {},
+        };
+      },
+    };
+
+    if (data != null || buffers != null) {
+      await comm.send(data, { buffers });
+    }
+    return comm;
+  };
 }
 
 class Environment implements WidgetEnvironment {
@@ -451,6 +515,13 @@ class Environment implements WidgetEnvironment {
         state = this.manager.ipywidgets_state.get_model_state(model_id);
       }
     }
+    if (state.hasOwnProperty("outputs") && state["outputs"] == null) {
+      // It can definitely be 'undefined' but set, e.g., the 'out.clear_output()' example at
+      // https://ipywidgets.readthedocs.io/en/latest/examples/Output%20Widget.html
+      // causes this, which then totally breaks rendering (due to how the
+      // upstream widget manager works).  This works around that.
+      state["outputs"] = [];
+    }
     setTimeout(() => this.manager.watchModel(model_id), 1);
     return {
       modelName: state._model_name,
@@ -461,37 +532,12 @@ class Environment implements WidgetEnvironment {
   }
 
   async openCommChannel(
-    targetName: string,
+    target_name: string,
     data?: unknown,
     buffers?: ArrayBuffer[],
   ): Promise<Comm> {
-    log("openCommChannel", { targetName, data, buffers });
-    const { send_comm_message_to_kernel } = this.manager.actions;
-    const comm = {
-      async send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
-        // TODO: buffers!  These need to get encoded separately (?).
-        log("comm.send -- (todo: buffers)", data, opts);
-        await send_comm_message_to_kernel(targetName, data);
-      },
-
-      close() {
-        log("Connection closed");
-      },
-
-      get messages() {
-        //         const message = {
-        //           data: "Hello",
-        //           buffers: [new ArrayBuffer(8)],
-        //         };
-        return {
-          [Symbol.asyncIterator]: async function* () {
-            //yield message;
-          },
-        };
-      },
-    };
-    await comm.send(data, { buffers });
-    return comm;
+    log("Environment: openCommChannel", { target_name, data, buffers });
+    throw Error("Not implemented!");
   }
 
   async renderOutput(outputItem: any, destination: Element): Promise<void> {

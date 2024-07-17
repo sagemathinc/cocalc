@@ -259,7 +259,11 @@ export const Widget: React.FC<WidgetProps> = React.memo(
       view.current.send = (content) => {
         if (!is_mounted.current || actions == null) return;
         const data = { method: "custom", content };
-        actions.send_comm_message_to_kernel(model_id, data);
+        actions.send_comm_message_to_kernel({
+          comm_id: model_id,
+          data,
+          target_name: "jupyter.widget",
+        });
       };
     }
 

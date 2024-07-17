@@ -78,8 +78,7 @@ export async function handleApiRequest(
         return {};
       }
     case "comm":
-      const [msg_id, comm_id, data] = query;
-      return kernel.send_comm_message_to_kernel(msg_id, comm_id, data);
+      return kernel.send_comm_message_to_kernel(query);
     default:
       throw Error(`unknown endpoint "${endpoint}"`);
   }

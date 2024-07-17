@@ -1336,11 +1336,12 @@ export class JupyterActions extends JupyterActions0 {
       if (type === "value") {
         const state = this.syncdb.ipywidgets_state.get_model_value(model_id);
         data = { method: "update", state };
-        this.jupyter_kernel.send_comm_message_to_kernel(
-          misc.uuid(),
-          model_id,
+        this.jupyter_kernel.send_comm_message_to_kernel({
+          msg_id: misc.uuid(),
+          target_name: "jupyter.widget",
+          comm_id: model_id,
           data,
-        );
+        });
       } else if (type === "buffers") {
         // TODO: we will implement this soon.  A good example where this is required
         // is by the file upload widget:
