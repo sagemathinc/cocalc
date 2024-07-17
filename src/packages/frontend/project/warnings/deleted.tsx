@@ -3,8 +3,8 @@
  *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
  */
 
-import { Alert } from "../../antd-bootstrap";
-import { Icon } from "../../components";
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import { Icon } from "@cocalc/frontend/components";
 
 // A warning to put on pages when the project is deleted
 export const DeletedProjectWarning: React.FC = () => {

@@ -38,7 +38,7 @@ the user field so the user no longer can access the project, and we don't
 know that the user had anything to do with the project.  A separate phase
 later then purges these projects from disk as well as the database.
 
-TODO:it's referenced from postgres-server-queries.coffee, but is it actually used anywhere?
+TODO: it's referenced from postgres-server-queries.coffee, but is it actually used anywhere?
 */
 export async function permanently_unlink_all_deleted_projects_of_user(
   db: PostgreSQL,
