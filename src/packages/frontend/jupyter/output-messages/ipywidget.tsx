@@ -66,15 +66,17 @@ export function IpyWidget({ value, actions }: WidgetProps) {
       // HACK: because upstream ipywidgets only checks for  MathJax.Hub to be defined then
       // crashes on load -- they don't see this bug because user has to explicitly re-evaluate
       // code to see anything on page refresh, due to all state being on the frontend.
+      // @ts-ignore
       if (window.MathJax != null && window.MathJax.Hub == null) {
+        // @ts-ignore
         MathJax.Hub.Queue = () => {};
       }
       setTimeout(() => {
         // Run mathjax on labels:   widgets.HBox([widgets.Label(value="The $m$ in $E=mc^2$:"), widgets.FloatSlider()])
         // @ts-ignore
-        $(divRef.current).find(".widget-label").katex({ preProcess: true });
+        $(divRef.current).find(".widget-label").katex?.({ preProcess: true });
         // @ts-ignore
-        $(divRef.current).find(".widget-htmlmath").katex({ preProcess: true });
+        $(divRef.current).find(".widget-htmlmath").katex?.({ preProcess: true });
       }, 0);
     } catch (err) {
       console.warn(err);
