@@ -63,8 +63,9 @@ Where options is an object.
 
 */
 
-const { copy_without, field_cmp } = require("./misc");
 const json_stable = require("json-stable-stringify");
+
+import { copy_without, field_cmp } from "./misc";
 
 // To avoid using up too much memory, results are cached at most this long
 // (so long as function is called periodically to clear the cache... if not,
@@ -72,7 +73,7 @@ const json_stable = require("json-stable-stringify");
 const DONE_CACHE_TIMEOUT_MS = 60000;
 
 function clear_old(done) {
-  const now = new Date();
+  const now = Date.now();
   for (let key in done) {
     const s = done[key];
     if (now - s.time >= DONE_CACHE_TIMEOUT_MS) {
@@ -93,7 +94,7 @@ function leq(a, b) {
   return a <= b;
 }
 
-exports.aggregate = function (options, f) {
+export function aggregate(options, f?: any) {
   if (f == null) {
     f = options;
     options = undefined;
@@ -120,7 +121,7 @@ exports.aggregate = function (options, f) {
 
   function aggregate_call_f(opts) {
     // Key is a string that determines the inputs to f **that matter**.
-    const key = json_stable(copy_without(opts, omitted_fields));
+    const key: string = json_stable(copy_without(opts, omitted_fields));
     // Check state
     const current = state[key];
     const recent = done[key];
@@ -190,4 +191,4 @@ exports.aggregate = function (options, f) {
       aggregate_call_f(opts);
     }
   };
-};
+}

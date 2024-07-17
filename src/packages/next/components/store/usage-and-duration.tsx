@@ -180,8 +180,8 @@ export function UsageAndDuration(props: Props) {
         You can buy a license either via a subscription or a single purchase for
         specific dates. Once you purchase a license,{" "}
         <b>you can always edit it later, or cancel it for a prorated refund</b>{" "}
-        as credit that you can use to purchase something else. Even
-        subscriptions can be cancelled at any time for a full prorated refund!{" "}
+        as credit that you can use to purchase something else. Subscriptions
+        will be cancelled at the end of the paid for period.{" "}
         {duration == "range" && (
           <i>
             Licenses start and end at the indicated times in your local
