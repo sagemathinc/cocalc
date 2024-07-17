@@ -113,7 +113,7 @@ export class IpywidgetsState extends EventEmitter {
         : () => {};
   }
 
-  public async init(): Promise<void> {
+  init = async (): Promise<void> => {
     const query = {
       ipywidgets: [
         {
@@ -133,9 +133,9 @@ export class IpywidgetsState extends EventEmitter {
     this.table.on("change", (keys) => {
       this.emit("change", keys);
     });
-  }
+  };
 
-  public keys(): { model_id: string; type: "value" | "state" | "buffer" }[] {
+  keys = (): { model_id: string; type: "value" | "state" | "buffer" }[] => {
     // return type is arrow of s
     this.assert_state("ready");
     const x = this.table.get();
@@ -150,9 +150,9 @@ export class IpywidgetsState extends EventEmitter {
       }
     });
     return keys;
-  }
+  };
 
-  public get(model_id: string, type: string): iMap<string, any> | undefined {
+  get = (model_id: string, type: string): iMap<string, any> | undefined => {
     const key: string = JSON.stringify([
       this.syncdoc.get_string_id(),
       model_id,
@@ -163,11 +163,11 @@ export class IpywidgetsState extends EventEmitter {
       return undefined;
     }
     return record.get("data");
-  }
+  };
 
   // assembles together state we know about the widget with given model_id
   // from info in the table, and returns it as a Javascript object.
-  public get_model_state(model_id: string): ModelState | undefined {
+  get_model_state = (model_id: string): ModelState | undefined => {
     this.assert_state("ready");
     const state = this.get(model_id, "state");
     if (state == null) {
@@ -185,9 +185,9 @@ export class IpywidgetsState extends EventEmitter {
       }
     }
     return state_js;
-  }
+  };
 
-  public get_model_value(model_id: string): Value {
+  get_model_value = (model_id: string): Value => {
     this.assert_state("ready");
     let value: any = this.get(model_id, "value");
     if (value == null) {
@@ -198,7 +198,7 @@ export class IpywidgetsState extends EventEmitter {
       return {};
     }
     return value;
-  }
+  };
 
   /*
   Setting and getting buffers.
@@ -222,10 +222,12 @@ export class IpywidgetsState extends EventEmitter {
     buffers, which is a problem I don't think upstream ipywidgets
     has to solve.
   */
-  public async get_model_buffers(model_id: string): Promise<{
+  get_model_buffers = async (
+    model_id: string,
+  ): Promise<{
     buffer_paths: string[][];
     buffers: ArrayBuffer[];
-  }> {
+  }> => {
     let value: iMap<string, string> | undefined = this.get(model_id, "buffers");
     if (value == null) {
       return { buffer_paths: [], buffers: [] };
@@ -268,21 +270,21 @@ export class IpywidgetsState extends EventEmitter {
     // Run f in parallel on all of the keys of value:
     await Promise.all(value.keySeq().toJS().map(f));
     return { buffers, buffer_paths };
-  }
+  };
 
   // Used on the backend by the project http server
-  public getBuffer(model_id: string, buffer_path: string): Buffer | undefined {
+  getBuffer = (model_id: string, buffer_path: string): Buffer | undefined => {
     const dbg = this.dbg("getBuffer");
     dbg("getBuffer", model_id, buffer_path);
     return this.buffers[model_id]?.[buffer_path]?.buffer;
-  }
+  };
 
-  private set_model_buffers(
+  private set_model_buffers = (
     model_id: string,
     buffer_paths: string[],
     buffers: Buffer[],
     fire_change_event: boolean = true,
-  ): void {
+  ): void => {
     const dbg = this.dbg("set_model_buffers");
     dbg("buffer_paths = ", buffer_paths);
 
@@ -300,7 +302,7 @@ export class IpywidgetsState extends EventEmitter {
       this.buffers[model_id][key] = { buffer: buffers[i], hash };
     }
     this.set(model_id, "buffers", data, fire_change_event);
-  }
+  };
 
   /*
   Setting model state and value
@@ -318,29 +320,29 @@ export class IpywidgetsState extends EventEmitter {
     are efficient.)
   */
 
-  public set_model_value(
+  set_model_value = (
     model_id: string,
     value: Value,
     fire_change_event: boolean = true,
-  ): void {
+  ): void => {
     this.set(model_id, "value", value, fire_change_event);
-  }
+  };
 
-  public set_model_state(
+  set_model_state = (
     model_id: string,
     state: any,
     fire_change_event: boolean = true,
-  ): void {
+  ): void => {
     this.set(model_id, "state", state, fire_change_event);
-  }
+  };
 
   // Do any setting of the underlying table through this function.
-  public set(
+  set = (
     model_id: string,
     type: "value" | "state" | "buffers" | "message",
     data: any,
     fire_change_event: boolean = true,
-  ): void {
+  ): void => {
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
@@ -371,20 +373,20 @@ export class IpywidgetsState extends EventEmitter {
       merge,
       fire_change_event,
     );
-  }
+  };
 
-  public async save(): Promise<void> {
+  save = async (): Promise<void> => {
     this.gc();
     await this.table.save();
-  }
+  };
 
-  public async close(): Promise<void> {
+  close = async (): Promise<void> => {
     if (this.table != null) {
       await this.table.close();
     }
     close(this);
     this.set_state("closed");
-  }
+  };
 
   private dbg(_f): Function {
     if (this.client.is_project()) {
