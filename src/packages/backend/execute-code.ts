@@ -17,6 +17,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import shellEscape from "shell-escape";
 
+import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import getLogger from "@cocalc/backend/logger";
 import { aggregate } from "@cocalc/util/aggregate";
 import { callback_opts } from "@cocalc/util/async-utils";
@@ -36,9 +37,12 @@ import {
 
 const log = getLogger("execute-code");
 
+const ASYNC_CACHE_MAX = envToInt("COCALC_PROJECT_ASYNC_EXEC_CACHE_MAX", 100);
+const ASYNC_CACHE_TTL_S = envToInt("COCALC_PROJECT_ASYNC_EXEC_TTL_S", 60 * 60);
+
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
-  max: 100,
-  ttl: 1000 * 60 * 60,
+  max: ASYNC_CACHE_MAX,
+  ttl: 1000 * ASYNC_CACHE_TTL_S,
   ttlAutopurge: true,
   allowStale: true,
   updateAgeOnGet: true,
@@ -81,7 +85,7 @@ async function executeCodeNoAggregate(
     if (cached != null) {
       return cached;
     } else {
-      throw new Error(`Async operation '${opts.async_get}' not found.`);
+      throw new Error(`Async operation '${opts.async_get}' does not exist.`);
     }
   }
 

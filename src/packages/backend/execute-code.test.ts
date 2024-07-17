@@ -92,13 +92,14 @@ describe("test timeout", () => {
 
 describe("test env", () => {
   it("allows to specify environment variables", async () => {
-    const { stdout, stderr } = await executeCode({
+    const { stdout, stderr, type } = await executeCode({
       command: "sh",
       args: ["-c", "echo $FOO;"],
       err_on_exit: false,
       bash: false,
       env: { FOO: "bar" },
     });
+    expect(type).toBe("blocking");
     expect(stdout).toBe("bar\n");
     expect(stderr).toBe("");
   });
@@ -142,17 +143,18 @@ describe("async", () => {
       expect(s.stdout).toEqual("foo\nbar\nbaz\n");
       expect(s.elapsed_s).toBeGreaterThan(0.1);
       expect(s.elapsed_s).toBeLessThan(3);
-      expect(s.start).toBeGreaterThan(1);
+      expect(s.start).toBeGreaterThan(Date.now() - 10 * 1000);
       expect(s.stderr).toEqual("");
       expect(s.exit_code).toEqual(0);
     }
   });
 
-  it("with an error", async () => {
+  it("error/err_on_exit=true", async () => {
     const c = await executeCode({
       command: ">&2 echo baz; exit 3",
       bash: true,
       async_call: true,
+      err_on_exit: true, // default
     });
     expect(c.type).toEqual("async");
     if (c.type !== "async") return;
@@ -168,6 +170,29 @@ describe("async", () => {
     expect(s.stderr).toEqual("baz\n");
     // any error is code 1 it seems?
     expect(s.exit_code).toEqual(1);
+  });
+
+  // without err_on_exit, the call is "completed" and we get the correct exit code
+  it("error/err_on_exit=false", async () => {
+    const c = await executeCode({
+      command: ">&2 echo baz; exit 3",
+      bash: true,
+      async_call: true,
+      err_on_exit: false,
+    });
+    expect(c.type).toEqual("async");
+    if (c.type !== "async") return;
+    const { job_id } = c;
+    expect(typeof job_id).toEqual("string");
+    if (typeof job_id !== "string") return;
+    await new Promise((done) => setTimeout(done, 250));
+    const s = await executeCode({ async_get: job_id });
+    expect(s.type).toEqual("async");
+    if (s.type !== "async") return;
+    expect(s.status).toEqual("completed");
+    expect(s.stdout).toEqual("");
+    expect(s.stderr).toEqual("baz\n");
+    expect(s.exit_code).toEqual(3);
   });
 
   it("trigger a timeout", async () => {
