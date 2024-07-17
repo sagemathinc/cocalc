@@ -18,6 +18,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { size } from "lodash";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
 
 export type SendCommFunction = (string, data) => string;
 
@@ -503,10 +504,20 @@ class Environment implements WidgetEnvironment {
     const message = fromJS(outputItem);
     const myDiv = document.createElement("div");
     destination.appendChild(myDiv);
+    const { actions } = this.manager;
+    const { project_id } = actions;
+    // NOTE: we are NOT caching iframes here, so iframes in output
+    // widgets will refresh if you scroll them off the screen and back.
     const component = React.createElement(
-      CellOutputMessage,
-      { message, actions: this.manager.actions },
-      null,
+      FileContext.Provider,
+      {
+        value: { noSanitize: actions.store.get("trust"), project_id },
+      },
+      React.createElement(
+        CellOutputMessage,
+        { message, actions, project_id },
+        null,
+      ),
     );
     const root = ReactDOM.createRoot(myDiv);
     root.render(component);

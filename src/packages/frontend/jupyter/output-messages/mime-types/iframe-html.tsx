@@ -14,8 +14,6 @@ import { useEffect, useRef } from "react";
 import register from "./register";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 
-import SanitizedHtml from "./html";
-
 const IframeHtml = ({ value }) => {
   const iframeRef = useRef<any>(null);
   const isMountedRef = useIsMountedRef();
@@ -47,14 +45,11 @@ const IframeHtml = ({ value }) => {
       style={{ overflow: "auto", border: 0 }}
       src={value}
       srcDoc={value}
-      sandbox="allow-forms allow-scripts allow-same-origin"
+      sandbox="allow-forms allow-scripts allow-presentation"
     />
   );
 };
 
 register("text/html", 5, ({ value }) => {
-  if (value.includes("PLOTLY") || value.includes("<iframe srcdoc")) {
-    return <IframeHtml value={value} />;
-  }
-  return <SanitizedHtml value={value} />;
+  return <IframeHtml value={value} />;
 });
