@@ -824,6 +824,11 @@ message({
   stdout: required,
   stderr: required,
   exit_code: required,
+  type: undefined,
+  job_id: undefined,
+  start: undefined,
+  status: undefined,
+  elapsed_s: undefined,
 });
 
 //#####################################################################

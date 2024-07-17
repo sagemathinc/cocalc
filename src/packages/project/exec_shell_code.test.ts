@@ -21,6 +21,7 @@ test("exec_shell_code", (done) => {
         stdout: expect.any(String),
         stderr: "",
         exit_code: 0,
+        type: "blocking",
       });
       expect(mesg.stdout).toBe("42\n");
       done();
