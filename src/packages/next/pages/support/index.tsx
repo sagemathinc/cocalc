@@ -82,7 +82,7 @@ const dataSource = [
   },
   {
     landingPages: true,
-    link: "https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform",
+    link: "https://calendly.com/cocalc/discovery",
     title: "Request a Live Demo!",
     logo: "video-camera",
     hide: (customize) => !customize.isCommercial,
@@ -91,7 +91,7 @@ const dataSource = [
         If you're seriously considering using CoCalc to teach a course, but
         aren't sure of some of the details and really need to just{" "}
         <b>talk to a person</b>,{" "}
-        <A href="https://docs.google.com/forms/d/e/1FAIpQLSesDZkGD2XVu8BHKd_sPwn5g7MrLAA8EYRTpB6daedGVMTpkA/viewform">
+        <A href="https://calendly.com/cocalc/discovery">
           fill out this form and request a live video chat with us
         </A>
         . We love chatting (in English, German and Russian), and will hopefully
