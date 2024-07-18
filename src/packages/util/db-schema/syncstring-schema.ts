@@ -120,7 +120,7 @@ Table({
               } else {
                 cb(err);
               }
-            }
+            },
           );
         },
       },
@@ -159,7 +159,7 @@ Table({
             old_val,
             new_val,
             account_id,
-            cb
+            cb,
           );
         },
       },
@@ -340,7 +340,7 @@ Table({
             obj,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -366,7 +366,7 @@ Table({
             obj,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
         before_change(_db, old_val, new_val, _account_id, cb) {
@@ -381,7 +381,7 @@ Table({
               old_val.user_id !== new_val.user_id
             ) {
               cb(
-                `you may not change the author of a patch from ${old_val.user_id} to ${new_val.user_id}`
+                `you may not change the author of a patch from ${old_val.user_id} to ${new_val.user_id}`,
               );
               return;
             }
@@ -493,7 +493,7 @@ Table({
             obj,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -515,7 +515,7 @@ Table({
             obj,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -566,7 +566,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -588,7 +588,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -637,7 +637,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -659,7 +659,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
@@ -709,11 +709,12 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },
       set: {
+        delete: true,
         fields: {
           string_id: true,
           model_id: true,
@@ -731,7 +732,7 @@ Table({
             obj.string_id,
             account_id,
             project_id,
-            cb
+            cb,
           );
         },
       },

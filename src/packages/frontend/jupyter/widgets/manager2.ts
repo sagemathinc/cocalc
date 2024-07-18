@@ -239,10 +239,6 @@ export class WidgetManager {
     A simple example that uses buffers is this image one:
        https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#image
     */
-
-    console.log("TEMPORARILY skipping buffers change!!");
-    return;
-
     const model = await this.manager.get_model(model_id);
     const { buffer_paths, buffers } =
       await this.ipywidgets_state.get_model_buffers(model_id);
@@ -254,16 +250,24 @@ export class WidgetManager {
       // TODO/concern: what if buffer_paths is deeper (length > 1)?
       // Will that break something?  We do set things properly later.
       const key = buffer_paths[i][0];
-      if (deserialized_state[key] == null) {
+      const buffer = buffers[i];
+      if (deserialized_state[key] == null || buffer == null) {
         change[key] = null;
         continue;
       }
-      const buffer = buffers[i];
-      const s = serializers[key]?.serialize(deserialized_state[key]) ?? {};
-      s.value = { buffer };
+      let s;
+      const f = serializers[key];
+      if (f != null) {
+        s = f.serialize(deserialized_state[key]);
+        s.value = { buffer };
+        s = f.deserialize(s);
+      } else {
+        s = { ...deserialized_state[key], value: buffer };
+      }
       change[key] = s;
     }
     log("handleBuffersChange: ", model_id, change);
+    window.x = { model, model_id, change };
     model.set_state(change);
   };
 
