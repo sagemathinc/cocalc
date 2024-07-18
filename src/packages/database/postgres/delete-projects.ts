@@ -8,7 +8,6 @@ Code related to permanently deleting projects.
 */
 
 import { promises as fs } from "node:fs";
-import { join } from "node:path";
 
 import { pathToFiles } from "@cocalc/backend/files/path-to-files";
 import getLogger, { WinstonLogger } from "@cocalc/backend/logger";
@@ -301,12 +300,7 @@ async function deleteProjectFiles(
   L2: WinstonLogger["debug"],
   project_id: string,
 ) {
-  // $MOUNTED_PROJECTS_ROOT is for OnPrem and homePath only works in dev/single-user
-  const projects_root =
-    process.env["MOUNTED_PROJECTS_ROOT"] ?? homePath(project_id);
-  if (!projects_root) return;
-  const project_dir = join(projects_root, project_id);
-  L2(`attempting to delete all files in ${project_dir}`);
+  const project_dir = homePath(project_id);
   try {
     await fs.access(project_dir, F_OK | R_OK | W_OK);
     const stats = await fs.lstat(project_dir);
@@ -318,7 +312,7 @@ async function deleteProjectFiles(
     }
   } catch (err) {
     L2(
-      `not deleting project files: either path does not exist or is not accessible`,
+      `not deleting project files: either '${project_dir}' does not exist or is not accessible`,
     );
   }
 }

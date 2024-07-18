@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import { join } from "node:path";
 
 import { projects } from "@cocalc/backend/data";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
@@ -74,5 +75,11 @@ export function envForSpawn() {
 
 // return the absolute home directory of given @project_id project on disk
 export function homePath(project_id: string): string {
-  return projects.replace("[project_id]", project_id);
+  // $MOUNTED_PROJECTS_ROOT is for OnPrem and that "projects" location is only for dev/single-user
+  const projects_root = process.env.MOUNTED_PROJECTS_ROOT;
+  if (projects_root) {
+    return join(projects_root, project_id);
+  } else {
+    return projects.replace("[project_id]", project_id);
+  }
 }
