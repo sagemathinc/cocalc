@@ -342,12 +342,13 @@ export class IpywidgetsState extends EventEmitter {
     type: "value" | "state" | "buffers" | "message",
     data: any,
     fire_change_event: boolean = true,
+    merge?: "none" | "shallow" | "deep",
   ): void => {
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
     }
-    let merge: "none" | "shallow" | "deep";
+    let defaultMerge: "none" | "shallow" | "deep";
     if (type == "value") {
       // we manually do the shallow merge only on the data field.
       const data0 = this.get_model_value(model_id);
@@ -357,16 +358,19 @@ export class IpywidgetsState extends EventEmitter {
         }
         data = data0;
       }
-      merge = "none";
+      defaultMerge = "none";
     } else if (type == "buffers") {
       // we keep around the buffers that were
       // already set, but overwrite
       // when they change.
-      merge = "deep";
+      defaultMerge = "shallow";
     } else if (type == "message") {
-      merge = "none";
+      defaultMerge = "none";
     } else {
-      merge = "deep";
+      defaultMerge = "deep";
+    }
+    if (merge == null) {
+      merge = defaultMerge;
     }
     this.table.set(
       { string_id, type, model_id, data },
@@ -733,11 +737,12 @@ export class IpywidgetsState extends EventEmitter {
     if (model_id == null) return false; // should not happen.
 
     if (mesg.header.msg_type == "clear_output") {
-      if (mesg.content != null && mesg.content.wait) {
+      if (mesg.content?.wait) {
         this.clear_output[model_id] = true;
       } else {
         delete this.clear_output[model_id];
-        this.set_model_value(model_id, { outputs: [] });
+        this.clearOutputBuffers();
+        this.set_model_value(model_id, { outputs: null });
       }
       return true;
     }
@@ -747,9 +752,10 @@ export class IpywidgetsState extends EventEmitter {
       return false;
     }
 
-    let outputs: any[];
+    let outputs: any;
     if (this.clear_output[model_id]) {
       delete this.clear_output[model_id];
+      this.clearOutputBuffers();
       outputs = [];
     } else {
       outputs = this.get_model_value(model_id).outputs;
@@ -760,6 +766,29 @@ export class IpywidgetsState extends EventEmitter {
     outputs.push(mesg.content);
     this.set_model_value(model_id, { outputs });
     return true;
+  };
+
+  private clearOutputBuffers = () => {
+    // TODO: need to clear all output buffers.
+    /* Example where if you do not properly clear buffers, then broken output re-appears:
+
+import ipywidgets as widgets
+from IPython.display import YouTubeVideo
+out = widgets.Output(layout={'border': '1px solid black'})
+out.append_stdout('Output appended with append_stdout')
+out.append_display_data(YouTubeVideo('eWzY2nGfkXk'))
+out
+
+---
+
+out.clear_output()
+
+---
+
+with out:
+   print('hi')
+    */
+    // TODO!!!!
   };
 
   private sendCustomMessage = async (

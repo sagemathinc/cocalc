@@ -222,7 +222,6 @@ export class WidgetManager {
   };
 
   private ipywidgets_state_BuffersChange = async (model_id: string) => {
-    log("handleBuffersChange: ", model_id);
     /*
     The data structures currently don't store which buffers changed, so we're
     updating all of them before, which is of course inefficient.
@@ -237,6 +236,7 @@ export class WidgetManager {
     const model = await this.manager.get_model(model_id);
     const { buffer_paths, buffers } =
       await this.ipywidgets_state.get_model_buffers(model_id);
+    log("handleBuffersChange: ", model_id, buffer_paths);
     const deserialized_state = model.get_state(true);
     const serializers = (model.constructor as any).serializers;
     const change: { [key: string]: any } = {};
@@ -245,10 +245,13 @@ export class WidgetManager {
       // Will that break something?  We do set things properly later.
       const buffer = buffers[i];
       const key = buffer_paths[i][0];
-      change[key] =
+      const value =
         serializers[key]?.serialize({ buffer, ...deserialized_state[key] }) ??
-        deserialized_state[key];
+        deserialized_state[key] ??
+        null; // must be null, not undefined, so can json.
+      change[key] = value;
     }
+    log("handleBuffersChange: ", model_id, change);
     model.set_state(change);
   };
 
@@ -543,7 +546,9 @@ class Environment implements WidgetEnvironment {
   async renderOutput(outputItem: any, destination: Element): Promise<void> {
     // the gaussian plume notebook has example of this!
     log("renderOutput", { outputItem, destination });
-    //$(destination).append($(`<pre>${JSON.stringify(outputItem)}</pre>`));
+    if (outputItem == null) {
+      return;
+    }
     const message = fromJS(outputItem);
     const myDiv = document.createElement("div");
     destination.appendChild(myDiv);
