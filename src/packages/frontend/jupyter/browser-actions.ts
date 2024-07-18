@@ -471,15 +471,19 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   send_comm_message_to_kernel = async ({
+    msg_id,
     comm_id,
     target_name,
     data,
   }: {
+    msg_id?: string;
     comm_id: string;
     target_name: string;
     data: any;
   }): Promise<string> => {
-    const msg_id = uuid();
+    if (!msg_id) {
+      msg_id = uuid();
+    }
     const msg = { msg_id, target_name, comm_id, data };
     await this.api_call("comm", msg);
     // console.log("send_comm_message_to_kernel", "sent", msg);

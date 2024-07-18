@@ -276,8 +276,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@cocalc/widgets':
-        specifier: ^1.0.4
-        version: 1.0.4
+        specifier: ^1.1.0
+        version: 1.1.0
       '@cocalc/xpra-lz4':
         specifier: ^1.1.0
         version: 1.1.0
@@ -532,7 +532,7 @@ importers:
         version: 7.1.1
       plotly.js:
         specifier: ^2.29.1
-        version: 2.29.1(mapbox-gl@3.5.1)
+        version: 2.29.1(mapbox-gl@3.5.2)
       project-name-generator:
         specifier: ^2.1.6
         version: 2.1.9
@@ -580,13 +580,13 @@ importers:
         version: 1.1.3(react@18.2.0)
       react-plotly.js:
         specifier: ^2.6.0
-        version: 2.6.0(plotly.js@2.29.1(mapbox-gl@3.5.1))(react@18.2.0)
+        version: 2.6.0(plotly.js@2.29.1(mapbox-gl@3.5.2))(react@18.2.0)
       react-range:
         specifier: ^1.3.0
         version: 1.8.14(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react-redux:
         specifier: ^8.0.5
-        version: 8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@4.2.1)
+        version: 8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@5.0.1)
       react-timeago:
         specifier: ^7.2.0
         version: 7.2.0(react@18.2.0)
@@ -1383,7 +1383,7 @@ importers:
         version: 0.2.2(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.18.0))(openai@4.52.1(encoding@0.1.13))
       '@langchain/community':
         specifier: ^0.2.14
-        version: 0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.10.0(typescript@5.5.3))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.18.0)
+        version: 0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.10.0(typescript@5.5.3))(axios@1.6.8)(better-sqlite3@11.1.2)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.2.10
         version: 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.18.0))(openai@4.52.1(encoding@0.1.13))
@@ -1616,7 +1616,7 @@ importers:
     devDependencies:
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.5.10
-        version: 0.5.10(react-refresh@0.14.0)(type-fest@3.5.0)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))
+        version: 0.5.10(react-refresh@0.14.0)(type-fest@4.22.1)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))
       '@swc/core':
         specifier: 1.3.3
         version: 1.3.3
@@ -2653,8 +2653,8 @@ packages:
     resolution: {integrity: sha512-nFHqPo9zxbPNRkMzFH/ZbVrrp3RGb0vAVWSRG67+j8dwt3MN9pqZSEUOfWUt9AURsRJd9IR+gLnwrczQTNu6Zg==}
     engines: {node: '>=0.10.28'}
 
-  '@cocalc/widgets@1.0.4':
-    resolution: {integrity: sha512-fCLndJtgsfwzEVq6kCQWgwQqDkRGsOJflkfdYbke2NRHSgTtbZmxQTBpQQXb3DgmshMfrjQ1PvKb/6VZ7T3JiQ==}
+  '@cocalc/widgets@1.1.0':
+    resolution: {integrity: sha512-+V3XLj1BelaZq19dC+IlOBJTBjJM+Z5dhqyeHrk8nzoT2MpWA9H8dwVUUBJ8h9BDJbbtS7+6TcI3dyJSH0eojA==}
 
   '@cocalc/xpra-lz4@1.1.0':
     resolution: {integrity: sha512-1+WqiakKIGzSrMCiOVvrxx+9tTpYR4bW0uw9sImFLbW7abZ/+EgYm2IwHUm1JNSpWCI6N6qj7jkIDIaq1ODxGg==}
@@ -4065,6 +4065,9 @@ packages:
   '@types/express@4.17.21':
     resolution: {integrity: sha512-ejlPM315qwLpaQlQDTjPdsUFSc6ZsP4AN6AlWnogPjQ7CVi7PYF3YVz+CY3jE2pwYf7E/7HlDAN0rV2GxTG0HQ==}
 
+  '@types/geojson@7946.0.14':
+    resolution: {integrity: sha512-WCfD5Ht3ZesJUsONdhvm84dmzWOiOzOAqOncN0++w0lBw1o8OuDNJF2McvvCef/yBqb/HYRahp1BYtODFQ8bRg==}
+
   '@types/glob@7.2.0':
     resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
 
@@ -4134,6 +4137,12 @@ packages:
 
   '@types/lz4@0.6.3':
     resolution: {integrity: sha512-TCGanK06VNqwiP+i18csbaF8YwEFCHXA69PWCPjdg0b9jT+O2BBtKTmoNuX3TuXDfcQHUdPiH/y0Ig9NZjKWkQ==}
+
+  '@types/mapbox__point-geometry@0.1.4':
+    resolution: {integrity: sha512-mUWlSxAmYLfwnRBmgYV86tgYmMIICX4kza8YnE/eIlywGe2XoOxlpVnXWwir92xRLjwyarqwpu2EJKD2pk0IUA==}
+
+  '@types/mapbox__vector-tile@1.3.4':
+    resolution: {integrity: sha512-bpd8dRn9pr6xKvuEBQup8pwQfD4VUyqO/2deGjfpe6AwC8YRlyEipvefyRJUSiCJTZuCb8Pl1ciVV5ekqJ96Bg==}
 
   '@types/markdown-it@12.2.3':
     resolution: {integrity: sha512-GKMHFfv3458yYy+v/N8gjufHO6MSZKCOXpZc5GXIWWy8uldwfmPn98vp81gZ5f9SVw8YYBctgfJ22a2d7AOMeQ==}
@@ -4212,6 +4221,9 @@ packages:
 
   '@types/passport@1.0.11':
     resolution: {integrity: sha512-pz1cx9ptZvozyGKKKIPLcVDVHwae4hrH5d6g5J+DkMRRjR3cVETb4jMabhXAUbg3Ov7T22nFHEgaK2jj+5CBpw==}
+
+  '@types/pbf@3.0.5':
+    resolution: {integrity: sha512-j3pOPiEcWZ34R6a6mN07mUkM4o4Lwf6hPNt8eilOeZhTFbxFXmKhvXl9Y28jotFPaI1bpPDJsbCprUoNke6OrA==}
 
   '@types/pg@8.6.6':
     resolution: {integrity: sha512-O2xNmXebtwVekJDD+02udOncjVcMZQuTEQEMpKJ0ZRf5E7/9JJX3izhKUcUifBkyKpljyUM6BTgy2trmviKlpw==}
@@ -4947,6 +4959,9 @@ packages:
 
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
+
+  better-sqlite3@11.1.2:
+    resolution: {integrity: sha512-gujtFwavWU4MSPT+h9B+4pkvZdyOUkH54zgLdIrMmmmd4ZqiBIrRNBzNzYVFO417xo882uP5HBu4GjOfaSrIQw==}
 
   better-sqlite3@8.3.0:
     resolution: {integrity: sha512-JTmvBZL/JLTc+3Msbvq6gK6elbU9/wVMqiudplHrVJpr7sVMR9KJrNhZAbW+RhXKlpMcuEhYkdcHa3TXKNXQ1w==}
@@ -6057,8 +6072,8 @@ packages:
   electron-to-chromium@1.4.692:
     resolution: {integrity: sha512-d5rZRka9n2Y3MkWRN74IoAsxR0HK3yaAt7T50e3iT9VZmCCQDT3geXUO5ZRMhDToa1pkCeQXuNo+0g+NfDOVPA==}
 
-  electron-to-chromium@1.4.828:
-    resolution: {integrity: sha512-QOIJiWpQJDHAVO4P58pwb133Cwee0nbvy/MV1CwzZVGpkH1RX33N3vsaWRCpR6bF63AAq366neZrRTu7Qlsbbw==}
+  electron-to-chromium@1.4.829:
+    resolution: {integrity: sha512-5qp1N2POAfW0u1qGAxXEtz6P7bO1m6gpZr5hdf5ve6lxpLM7MpiM4jIPz7xcrNlClQMafbyUDDWjlIQZ1Mw0Rw==}
 
   element-size@1.1.1:
     resolution: {integrity: sha512-eaN+GMOq/Q+BIWy0ybsgpcYImjGIdNLyjLFJU4XsLHXYQao5jCNb36GyN6C2qwmDDYSfIBmKpPpr4VnBdLCsPQ==}
@@ -8326,8 +8341,8 @@ packages:
     resolution: {integrity: sha512-hdN1wVrZbb29eBGiGjJbeP8JbKjq1urkHJ/LIP/NY48MZ1QVXUsQBV1G1zvYFHn1XE06cwjBsOI2K3Ulnj1YXQ==}
     engines: {node: '>=8'}
 
-  mapbox-gl@3.5.1:
-    resolution: {integrity: sha512-sf4N18vl5FHS8lPRWZjTZShgIziDqSxan3MazHClvYYXezsAPn6hApRvAS2HEMTq7MXzRcvvt4sYgQWLubwnBw==}
+  mapbox-gl@3.5.2:
+    resolution: {integrity: sha512-KUrmDmLFKPp3MSsWGNTH5uvtYwJknV+eFJ+vxiN6hqKpzbme37z+JfYs5Mehs3CgFaIV/pUdnEV9UPUZJPuS+Q==}
 
   markdown-it-emoji@2.0.2:
     resolution: {integrity: sha512-zLftSaNrKuYl0kR5zm4gxXjHaOI3FAOEaloKmRA5hijmJZvSjmxcokOLlzycb/HXlUFWzXqpIEoyEMCE4i9MvQ==}
@@ -8664,6 +8679,10 @@ packages:
     resolution: {integrity: sha512-2s6B2CWZM//kPgwnuI0KrYwNjfdByE25zvAaEpq9IH4zcNsarH8Ihu/UuX6XMPEogDAxkuUFeZn60pXNHAqn3A==}
     engines: {node: '>=10'}
 
+  node-abi@3.65.0:
+    resolution: {integrity: sha512-ThjYBfoDNr08AWx6hGaRbfPwxKV9kVzAzOzlLKbk2CuqXE2xnCh+cbAGnwM3t8Lq4v9rUB7VfondlkBckcJrVA==}
+    engines: {node: '>=10'}
+
   node-addon-api@6.1.0:
     resolution: {integrity: sha512-+eawOlIgy680F0kBzPUNFhMZGtJ1YmqM6l4+Crf4IkImjYrO/mqPwRMh352g23uIaQKFItcQ64I7KMaJxHgAVA==}
 
@@ -8728,6 +8747,9 @@ packages:
 
   node-releases@2.0.14:
     resolution: {integrity: sha512-y10wOWt8yZpqXmOgRo77WaHEmhYQYGNA6y421PKsKYWEK8aW+cqAphborZDhqfyKrbZEN92CN1X2KbafY2s7Yw==}
+
+  node-releases@2.0.17:
+    resolution: {integrity: sha512-Ww6ZlOiEQfPfXM45v17oabk77Z7mg5bOt7AjDyzy7RjK9OrLrLC8dyZQoAPEOtFX9SaNf1Tdvr5gRJWdTJj7GA==}
 
   node-uuid@1.4.8:
     resolution: {integrity: sha512-TkCET/3rr9mUuRp+CpO7qfgT++aAxfDRaalQhwPFzI9BY/2rCDn6OfpZOVggi1AXfTPpfkTrg5f5WQx5G1uLxA==}
@@ -9316,6 +9338,11 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  prebuild-install@7.1.2:
+    resolution: {integrity: sha512-UnNke3IQb6sgarcZIDU3gbMeTp/9SSU1DAIkil7PrqG1vZlBtY5msYccSKSHDqa3hNg436IXK+SNImReuA1wEQ==}
+    engines: {node: '>=10'}
+    hasBin: true
+
   precond@0.2.3:
     resolution: {integrity: sha512-QCYG84SgGyGzqJ/vlMsxeXd/pgL/I94ixdNFyh1PusWmTCyVfPJjZ1K1jvHtsbfnXQs2TSkEP2fR7QiMZAnKFQ==}
     engines: {node: '>= 0.6'}
@@ -9484,6 +9511,9 @@ packages:
 
   quickselect@2.0.0:
     resolution: {integrity: sha512-RKJ22hX8mHe3Y6wH/N3wCM6BWtjaxIyyUIkpHOvfFnxdI4yD4tBXEBKSbriGujF6jnSVkJrffuo6vxACiSSxIw==}
+
+  quickselect@3.0.0:
+    resolution: {integrity: sha512-XdjUArbK4Bm5fLLvlm5KpTFOiOThgfWWI4axAZDWg4E/0mKdZyI9tNEfds27qCi1ze/vwTR16kvmmGhRra3c2g==}
 
   raf@3.4.1:
     resolution: {integrity: sha512-Sq4CW4QhwOHE8ucn6J34MqtZCeWFP2aQSmrlroYgqAV1PjStIhJXxYuTgUIfkEk7zTLjmIjLmU5q+fbD1NnOJA==}
@@ -10021,6 +10051,9 @@ packages:
   redux@4.2.1:
     resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
 
+  redux@5.0.1:
+    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
+
   reflect-metadata@0.1.13:
     resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
 
@@ -10317,6 +10350,11 @@ packages:
 
   semver@7.6.0:
     resolution: {integrity: sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==}
+    engines: {node: '>=10'}
+    hasBin: true
+
+  semver@7.6.3:
+    resolution: {integrity: sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -10912,6 +10950,9 @@ packages:
   tinyqueue@2.0.3:
     resolution: {integrity: sha512-ppJZNDuKGgxzkHihX8v9v9G5f+18gzaTfrukGrq6ueg0lmH4nqVnA2IPG0AEH3jKEk2GRJCUhDoqpoiw3PHLBA==}
 
+  tinyqueue@3.0.0:
+    resolution: {integrity: sha512-gRa9gwYU3ECmQYv3lslts5hxuIa90veaEcxDYuu3QGOIAEM2mOZkVHp48ANJuu1CURtRdHKUBY5Lm1tHV+sD4g==}
+
   tmp@0.0.33:
     resolution: {integrity: sha512-jRCJlojKnZ3addtTOjdIqoRuPEKBvNXcGYqzO6zWZX8KfKEpnGY5jfggJQ3EjKuu8D4bJRr0y+cYJFmYbImXGw==}
     engines: {node: '>=0.6.0'}
@@ -11055,6 +11096,10 @@ packages:
     resolution: {integrity: sha512-bI3zRmZC8K0tUz1HjbIOAGQwR2CoPQG68N5IF7gm0LBl8QSNXzkmaWnkWccCUL5uG9mCsp4sBwC8SBrNSISWew==}
     engines: {node: '>=14.16'}
 
+  type-fest@4.22.1:
+    resolution: {integrity: sha512-9tHNEa0Ov81YOopiVkcCJVz5TM6AEQ+CHHjFIktqPnE3NV0AHIkx+gh9tiCl58m/66wWxkOC9eltpa75J4lQPA==}
+    engines: {node: '>=16'}
+
   type-is@1.6.18:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
     engines: {node: '>= 0.6'}
@@ -11105,8 +11150,8 @@ packages:
     engines: {node: '>=0.8.0'}
     hasBin: true
 
-  uglify-js@3.18.0:
-    resolution: {integrity: sha512-SyVVbcNBCk0dzr9XL/R/ySrmYf0s372K6/hFklzgcp2lBFyXtw4I7BOdDjlLhE1aVqaI/SHWXWmYdlZxuyF38A==}
+  uglify-js@3.19.0:
+    resolution: {integrity: sha512-wNKHUY2hYYkf6oSFfhwwiHo4WCHzHmzcXsqXYTN9ja3iApYIFbb2U6ics9hBcYLHcYGQoAlwnZlTrf3oF+BL/Q==}
     engines: {node: '>=0.8.0'}
     hasBin: true
 
@@ -12629,7 +12674,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@cocalc/widgets@1.0.4': {}
+  '@cocalc/widgets@1.1.0': {}
 
   '@cocalc/xpra-lz4@1.1.0': {}
 
@@ -13224,7 +13269,7 @@ snapshots:
       - langchain
       - openai
 
-  '@langchain/community@0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.10.0(typescript@5.5.3))(axios@1.6.8)(better-sqlite3@8.3.0)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.18.0)':
+  '@langchain/community@0.2.14(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.11.1(encoding@0.1.13))(@qdrant/js-client-rest@1.10.0(typescript@5.5.3))(axios@1.6.8)(better-sqlite3@11.1.2)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(google-auth-library@9.4.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.52.1(encoding@0.1.13))(pg@8.12.0)(ws@8.18.0)':
     dependencies:
       '@langchain/core': 0.2.10(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.18.0))(openai@4.52.1(encoding@0.1.13))
       '@langchain/openai': 0.1.0(encoding@0.1.13)(langchain@0.2.3(axios@1.6.8)(cheerio@1.0.0-rc.12)(encoding@0.1.13)(fast-xml-parser@4.4.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.52.1(encoding@0.1.13))(ws@8.18.0))
@@ -13241,7 +13286,7 @@ snapshots:
       '@google-ai/generativelanguage': 2.6.0(encoding@0.1.13)
       '@google-cloud/storage': 7.11.1(encoding@0.1.13)
       '@qdrant/js-client-rest': 1.10.0(typescript@5.5.3)
-      better-sqlite3: 8.3.0
+      better-sqlite3: 11.1.2
       cheerio: 1.0.0-rc.12
       google-auth-library: 9.4.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
@@ -13430,9 +13475,9 @@ snapshots:
 
   '@mapbox/jsonlint-lines-primitives@2.0.2': {}
 
-  '@mapbox/mapbox-gl-supported@1.5.0(mapbox-gl@3.5.1)':
+  '@mapbox/mapbox-gl-supported@1.5.0(mapbox-gl@3.5.2)':
     dependencies:
-      mapbox-gl: 3.5.1
+      mapbox-gl: 3.5.2
 
   '@mapbox/mapbox-gl-supported@3.0.0': {}
 
@@ -13704,12 +13749,12 @@ snapshots:
 
   '@plotly/d3@3.8.1': {}
 
-  '@plotly/mapbox-gl@1.13.4(mapbox-gl@3.5.1)':
+  '@plotly/mapbox-gl@1.13.4(mapbox-gl@3.5.2)':
     dependencies:
       '@mapbox/geojson-rewind': 0.5.2
       '@mapbox/geojson-types': 1.0.2
       '@mapbox/jsonlint-lines-primitives': 2.0.2
-      '@mapbox/mapbox-gl-supported': 1.5.0(mapbox-gl@3.5.1)
+      '@mapbox/mapbox-gl-supported': 1.5.0(mapbox-gl@3.5.2)
       '@mapbox/point-geometry': 0.1.0
       '@mapbox/tiny-sdf': 1.2.5
       '@mapbox/unitbezier': 0.0.0
@@ -13746,7 +13791,7 @@ snapshots:
 
   '@plotly/regl@2.1.2': {}
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(type-fest@3.5.0)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))':
+  '@pmmmwh/react-refresh-webpack-plugin@0.5.10(react-refresh@0.14.0)(type-fest@4.22.1)(webpack-hot-middleware@2.25.4)(webpack@5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4))':
     dependencies:
       ansi-html-community: 0.0.8
       common-path-prefix: 3.0.0
@@ -13760,7 +13805,7 @@ snapshots:
       source-map: 0.7.4
       webpack: 5.88.2(@swc/core@1.3.3)(webpack-cli@5.1.4)
     optionalDependencies:
-      type-fest: 3.5.0
+      type-fest: 4.22.1
       webpack-hot-middleware: 2.25.4
 
   '@polka/url@1.0.0-next.21': {}
@@ -14160,6 +14205,8 @@ snapshots:
       '@types/qs': 6.9.7
       '@types/serve-static': 1.15.0
 
+  '@types/geojson@7946.0.14': {}
+
   '@types/glob@7.2.0':
     dependencies:
       '@types/minimatch': 5.1.2
@@ -14234,6 +14281,14 @@ snapshots:
   '@types/lz4@0.6.3':
     dependencies:
       '@types/node': 18.19.31
+
+  '@types/mapbox__point-geometry@0.1.4': {}
+
+  '@types/mapbox__vector-tile@1.3.4':
+    dependencies:
+      '@types/geojson': 7946.0.14
+      '@types/mapbox__point-geometry': 0.1.4
+      '@types/pbf': 3.0.5
 
   '@types/markdown-it@12.2.3':
     dependencies:
@@ -14315,6 +14370,8 @@ snapshots:
   '@types/passport@1.0.11':
     dependencies:
       '@types/express': 4.17.15
+
+  '@types/pbf@3.0.5': {}
 
   '@types/pg@8.6.6':
     dependencies:
@@ -15221,6 +15278,12 @@ snapshots:
 
   bcryptjs@2.4.3: {}
 
+  better-sqlite3@11.1.2:
+    dependencies:
+      bindings: 1.5.0
+      prebuild-install: 7.1.2
+    optional: true
+
   better-sqlite3@8.3.0:
     dependencies:
       bindings: 1.5.0
@@ -15353,8 +15416,8 @@ snapshots:
   browserslist@4.23.2:
     dependencies:
       caniuse-lite: 1.0.30001642
-      electron-to-chromium: 1.4.828
-      node-releases: 2.0.14
+      electron-to-chromium: 1.4.829
+      node-releases: 2.0.17
       update-browserslist-db: 1.1.0(browserslist@4.23.2)
 
   bs-logger@0.2.6:
@@ -16424,7 +16487,7 @@ snapshots:
 
   electron-to-chromium@1.4.692: {}
 
-  electron-to-chromium@1.4.828: {}
+  electron-to-chromium@1.4.829: {}
 
   element-size@1.1.1: {}
 
@@ -17630,7 +17693,7 @@ snapshots:
       source-map: 0.6.1
       wordwrap: 1.0.0
     optionalDependencies:
-      uglify-js: 3.18.0
+      uglify-js: 3.19.0
     optional: true
 
   hard-rejection@2.1.0: {}
@@ -19266,7 +19329,7 @@ snapshots:
 
   map-obj@4.3.0: {}
 
-  mapbox-gl@3.5.1:
+  mapbox-gl@3.5.2:
     dependencies:
       '@mapbox/jsonlint-lines-primitives': 2.0.2
       '@mapbox/mapbox-gl-supported': 3.0.0
@@ -19275,6 +19338,8 @@ snapshots:
       '@mapbox/unitbezier': 0.0.1
       '@mapbox/vector-tile': 1.3.1
       '@mapbox/whoots-js': 3.1.0
+      '@types/geojson': 7946.0.14
+      '@types/mapbox__vector-tile': 1.3.4
       cheap-ruler: 4.0.0
       csscolorparser: 1.0.3
       earcut: 3.0.0
@@ -19287,12 +19352,12 @@ snapshots:
       murmurhash-js: 1.0.0
       pbf: 3.3.0
       potpack: 2.0.0
-      quickselect: 2.0.0
+      quickselect: 3.0.0
       rw: 1.3.3
       serialize-to-js: 3.1.2
       supercluster: 8.0.1
       tiny-lru: 11.2.11
-      tinyqueue: 2.0.3
+      tinyqueue: 3.0.0
       tweakpane: 4.0.4
       vt-pbf: 3.1.3
 
@@ -19704,6 +19769,11 @@ snapshots:
     dependencies:
       semver: 7.6.0
 
+  node-abi@3.65.0:
+    dependencies:
+      semver: 7.6.3
+    optional: true
+
   node-addon-api@6.1.0: {}
 
   node-addon-api@7.0.0: {}
@@ -19773,6 +19843,8 @@ snapshots:
   node-releases@2.0.13: {}
 
   node-releases@2.0.14: {}
+
+  node-releases@2.0.17: {}
 
   node-uuid@1.4.8: {}
 
@@ -20370,12 +20442,12 @@ snapshots:
 
   pkginfo@0.4.1: {}
 
-  plotly.js@2.29.1(mapbox-gl@3.5.1):
+  plotly.js@2.29.1(mapbox-gl@3.5.2):
     dependencies:
       '@plotly/d3': 3.8.1
       '@plotly/d3-sankey': 0.7.2
       '@plotly/d3-sankey-circular': 0.33.1
-      '@plotly/mapbox-gl': 1.13.4(mapbox-gl@3.5.1)
+      '@plotly/mapbox-gl': 1.13.4(mapbox-gl@3.5.2)
       '@turf/area': 6.5.0
       '@turf/bbox': 6.5.0
       '@turf/centroid': 6.5.0
@@ -20506,6 +20578,22 @@ snapshots:
       simple-get: 4.0.1
       tar-fs: 2.1.1
       tunnel-agent: 0.6.0
+
+  prebuild-install@7.1.2:
+    dependencies:
+      detect-libc: 2.0.3
+      expand-template: 2.0.3
+      github-from-package: 0.0.0
+      minimist: 1.2.8
+      mkdirp-classic: 0.5.3
+      napi-build-utils: 1.0.2
+      node-abi: 3.65.0
+      pump: 3.0.0
+      rc: 1.2.8
+      simple-get: 4.0.1
+      tar-fs: 2.1.1
+      tunnel-agent: 0.6.0
+    optional: true
 
   precond@0.2.3: {}
 
@@ -20698,6 +20786,8 @@ snapshots:
   quick-lru@4.0.1: {}
 
   quickselect@2.0.0: {}
+
+  quickselect@3.0.0: {}
 
   raf@3.4.1:
     dependencies:
@@ -21262,9 +21352,9 @@ snapshots:
       react-dom: 18.2.0(react@18.2.0)
       warning: 3.0.0
 
-  react-plotly.js@2.6.0(plotly.js@2.29.1(mapbox-gl@3.5.1))(react@18.2.0):
+  react-plotly.js@2.6.0(plotly.js@2.29.1(mapbox-gl@3.5.2))(react@18.2.0):
     dependencies:
-      plotly.js: 2.29.1(mapbox-gl@3.5.1)
+      plotly.js: 2.29.1(mapbox-gl@3.5.2)
       prop-types: 15.8.1
       react: 18.2.0
 
@@ -21275,7 +21365,7 @@ snapshots:
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
 
-  react-redux@8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@4.2.1):
+  react-redux@8.0.5(@types/react-dom@18.0.10)(@types/react@18.0.26)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(redux@5.0.1):
     dependencies:
       '@babel/runtime': 7.20.7
       '@types/hoist-non-react-statics': 3.3.1
@@ -21288,7 +21378,7 @@ snapshots:
       '@types/react': 18.0.26
       '@types/react-dom': 18.0.10
       react-dom: 18.2.0(react@18.2.0)
-      redux: 4.2.1
+      redux: 5.0.1
 
   react-refresh@0.14.0: {}
 
@@ -21398,6 +21488,9 @@ snapshots:
   redux@4.2.1:
     dependencies:
       '@babel/runtime': 7.21.5
+
+  redux@5.0.1:
+    optional: true
 
   reflect-metadata@0.1.13: {}
 
@@ -21747,6 +21840,9 @@ snapshots:
   semver@7.6.0:
     dependencies:
       lru-cache: 6.0.0
+
+  semver@7.6.3:
+    optional: true
 
   send@0.18.0:
     dependencies:
@@ -22439,6 +22535,8 @@ snapshots:
 
   tinyqueue@2.0.3: {}
 
+  tinyqueue@3.0.0: {}
+
   tmp@0.0.33:
     dependencies:
       os-tmpdir: 1.0.2
@@ -22560,6 +22658,9 @@ snapshots:
 
   type-fest@3.5.0: {}
 
+  type-fest@4.22.1:
+    optional: true
+
   type-is@1.6.18:
     dependencies:
       media-typer: 0.3.0
@@ -22615,7 +22716,7 @@ snapshots:
 
   uglify-js@3.17.4: {}
 
-  uglify-js@3.18.0:
+  uglify-js@3.19.0:
     optional: true
 
   uid-safe@2.1.5:

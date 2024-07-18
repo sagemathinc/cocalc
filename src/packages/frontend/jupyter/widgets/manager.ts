@@ -49,9 +49,6 @@ const MAX_DEREF_WAIT_MS = 1000 * 15;
 
 export type SendCommFunction = (string, data) => string;
 
-// v2 wip
-import { createWidgetManager, WidgetEnvironment, Comm } from "@cocalc/widgets";
-
 export class WidgetManager extends base.ManagerBase<HTMLElement> {
   public ipywidgets_state: IpywidgetsState;
   private setWidgetModelIdState: (
@@ -74,117 +71,6 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     }
     this.setWidgetModelIdState = setWidgetModelIdState;
     this.init_ipywidgets_state();
-  }
-
-  private _v2;
-  v2() {
-    if (this._v2 != null) {
-      return this._v2;
-    }
-    class Environment implements WidgetEnvironment {
-      private manager: WidgetManager;
-      constructor(manager) {
-        this.manager = manager;
-      }
-
-      async getModelState(modelId) {
-        const state = this.manager.ipywidgets_state.get_model_state(modelId);
-        if (!state) {
-          return undefined;
-        }
-        return {
-          modelName: state._model_name,
-          modelModule: state._model_module,
-          modelModuleVersion: state._model_module_version,
-          state,
-        };
-      }
-
-      async openCommChannel(
-        targetName: string,
-        data?: unknown,
-        buffers?: ArrayBuffer[],
-      ): Promise<Comm> {
-        console.log("openCommChannel", { targetName, data, buffers });
-        const comm = {
-          send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
-            return new Promise<void>((resolve, _reject) => {
-              console.log("Data sent:", data, "With options:", opts);
-              resolve();
-            });
-          },
-
-          close() {
-            console.log("Connection closed");
-          },
-
-          get messages() {
-            const message = {
-              data: "Hello",
-              buffers: [new ArrayBuffer(8)],
-            };
-            return {
-              [Symbol.asyncIterator]: async function* () {
-                yield message;
-              },
-            };
-          },
-        };
-        return comm;
-      }
-
-      async renderOutput(
-        outputItem: unknown,
-        destination: Element,
-      ): Promise<void> {
-        console.log("renderOutput", { outputItem, destination });
-      }
-    }
-
-    const provider = new Environment(this);
-    const manager = createWidgetManager(provider);
-    this.manager = manager;
-
-    // not efficient -- just a proof of concept/
-    /*
-    this.ipywidgets_state.on("change", async (keys) => {
-      for (const key of keys) {
-        const [, model_id] = JSON.parse(key);
-        const state = this.ipywidgets_state.get_model_state(model_id);
-        await this.dereference_model_links(state);
-        const model = await manager.get_model(model_id);
-        console.log("updating rendering of ", model_id);
-        model.set_state(state);
-      }
-    });
-    */
-    this._v2 = manager;
-    return this._v2;
-    /*
-    from IPython.display import display, HTML; display(HTML('<div id="v2">widget here</div>'))
-
----
-
-    id = "c5cba2c1634b4b9c8b0a2dbed33af91a"
-    manager = y.cocalc_manager.v2()
-    await manager.render(id, $("#v2")[0]);
-    model = await manager.get_model(id)
-
-    // make changes to widget in cocalc, even from another browser...
-
-    state = y.cocalc_manager.ipywidgets_state.get_model_state(id)
-    await y.cocalc_manager.dereference_model_links(state)
-    model.set_state(state)
-
-    // this works when changing the v2 model to sync back, but how can we
-    // do this directly with ipywidgets_state instead?
-    cmodel = await y.cocalc_manager.get_model(id)
-    cmodel.set_state(model.get_state())
-
-    // maybe this?  yes this works, but you only see the change
-    // on another browser, which seems reasonable.
-    await y.cocalc_manager.handle_model_change(model)
-    */
   }
 
   private async init_ipywidgets_state(): Promise<void> {

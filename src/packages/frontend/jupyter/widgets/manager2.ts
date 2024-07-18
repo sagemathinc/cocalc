@@ -5,13 +5,19 @@
 
 import * as base from "@jupyter-widgets/base";
 import { createWidgetManager, is_unpack_models } from "@cocalc/widgets";
-import type { WidgetEnvironment, Comm } from "@cocalc/widgets";
+import type {
+  WidgetEnvironment,
+  IClassicComm,
+  ICallbacks,
+  JSONValue,
+  JSONObject,
+} from "@cocalc/widgets";
 import {
   IpywidgetsState,
   ModelState,
 } from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
-import { copy, is_array, is_object, len } from "@cocalc/util/misc";
+import { copy, is_array, is_object, len, uuid } from "@cocalc/util/misc";
 import { fromJS } from "immutable";
 import { CellOutputMessage } from "@cocalc/frontend/jupyter/output-messages/message";
 import React from "react";
@@ -459,41 +465,78 @@ export class WidgetManager {
     comm_id,
     target_name,
     data,
+    metadata,
     buffers,
   }: {
     comm_id: string;
     target_name: string;
-    data?: unknown;
+    data?: JSONValue;
+    metadata?: JSONValue;
     buffers?: ArrayBuffer[];
-  }): Promise<Comm> => {
-    log("openCommChannel", { comm_id, target_name, data, buffers });
+  }): Promise<IClassicComm> => {
+    log("openCommChannel", { comm_id, target_name, data, buffers, metadata });
     const { send_comm_message_to_kernel } = this.actions;
+
+    // TODO: we do not currently have anything at all that
+    // routes messages to this.
+    type Handler = (x: any) => void;
+    const messageHandlers: Handler[] = [];
+    const closeHandlers: Handler[] = [];
+
     const comm = {
-      async send(data: unknown, opts?: { buffers?: ArrayBuffer[] }) {
+      comm_id,
+
+      target_name,
+
+      open(
+        data: JSONValue,
+        callbacks?: ICallbacks,
+        metadata?: JSONObject,
+        buffers?: ArrayBuffer[] | ArrayBufferView[],
+      ): string {
+        log("comm.open", { data, callbacks, metadata, buffers });
+        throw Error("comm.open is not implemented");
+      },
+
+      send(
+        data: JSONValue,
+        callbacks?: ICallbacks,
+        metadata?: JSONObject,
+        buffers?: ArrayBuffer[] | ArrayBufferView[],
+      ): string {
         // TODO: buffers!  These need to get sent somehow.
-        log("comm.send", data, opts);
-        await send_comm_message_to_kernel({ comm_id, target_name, data });
+        log("comm.send", { data, buffers, metadata, callbacks });
+        const msg_id = uuid();
+        send_comm_message_to_kernel({ msg_id, comm_id, target_name, data });
+        return msg_id;
       },
 
-      close() {
-        // nothing to actually do (?)
-        log("Connection closed");
+      close(
+        data?: JSONValue,
+        callbacks?: ICallbacks,
+        metadata?: JSONObject,
+        buffers?: ArrayBuffer[] | ArrayBufferView[],
+      ): string {
+        log("comm.close", { data, callbacks, metadata, buffers });
+        throw Error("comm.close not implemented");
       },
 
-      get messages() {
-        // TODO:
-        log("comm.message: Not Implemented");
-        // upstream widgets handles these via
-        //   comm.on_msg(this._handle_comm_msg.bind(this));
-        // see ipywidgets/packages/base/src/widget.ts
-        return {
-          [Symbol.asyncIterator]: async function* () {},
-        };
+      on_msg(callback: Handler): void {
+        log("comm.on_msg -- adding a handler");
+        messageHandlers.push(callback);
+      },
+
+      on_close(callback: Handler): void {
+        log("comm.on_close -- adding a handler");
+        closeHandlers.push(callback);
       },
     };
 
-    if (data != null || buffers != null) {
-      await comm.send(data, { buffers });
+    if (data != null) {
+      // [ ] TODO: I think we need a flag so that this is a *create* comm message...
+      //     unless that just happens automatically.
+      // [ ] TODO: what about metadata?
+      await comm.send(data, undefined, undefined, buffers);
     }
     return comm;
   };
@@ -534,13 +577,9 @@ class Environment implements WidgetEnvironment {
     };
   }
 
-  async openCommChannel(
-    target_name: string,
-    data?: unknown,
-    buffers?: ArrayBuffer[],
-  ): Promise<Comm> {
-    log("Environment: openCommChannel", { target_name, data, buffers });
-    throw Error("Not implemented!");
+  async openCommChannel(opts) {
+    log("Environment: openCommChannel", opts);
+    return await this.manager.openCommChannel(opts);
   }
 
   async renderOutput(outputItem: any, destination: Element): Promise<void> {
