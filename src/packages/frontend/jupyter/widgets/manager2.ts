@@ -239,6 +239,10 @@ export class WidgetManager {
     A simple example that uses buffers is this image one:
        https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#image
     */
+
+    console.log("TEMPORARILY skipping buffers change!!");
+    return;
+
     const model = await this.manager.get_model(model_id);
     const { buffer_paths, buffers } =
       await this.ipywidgets_state.get_model_buffers(model_id);
@@ -249,13 +253,15 @@ export class WidgetManager {
     for (let i = 0; i < buffer_paths.length; i++) {
       // TODO/concern: what if buffer_paths is deeper (length > 1)?
       // Will that break something?  We do set things properly later.
-      const buffer = buffers[i];
       const key = buffer_paths[i][0];
-      const value =
-        serializers[key]?.serialize({ buffer, ...deserialized_state[key] }) ??
-        deserialized_state[key] ??
-        null; // must be null, not undefined, so can json.
-      change[key] = value;
+      if (deserialized_state[key] == null) {
+        change[key] = null;
+        continue;
+      }
+      const buffer = buffers[i];
+      const s = serializers[key]?.serialize(deserialized_state[key]) ?? {};
+      s.value = { buffer };
+      change[key] = s;
     }
     log("handleBuffersChange: ", model_id, change);
     model.set_state(change);
@@ -412,7 +418,7 @@ export class WidgetManager {
     return await this.manager.get_model(model_id);
   };
 
-  private dereferenceModelLinks = async (state): Promise<boolean> => {
+  dereferenceModelLinks = async (state): Promise<boolean> => {
     // log("dereferenceModelLinks", "BEFORE", state);
     for (const key in state) {
       const val = state[key];
@@ -568,6 +574,19 @@ class Environment implements WidgetEnvironment {
       // upstream widget manager works).  This works around that.
       state["outputs"] = [];
     }
+    const { buffer_paths, buffers } =
+      await this.manager.ipywidgets_state.get_model_buffers(model_id);
+    for (let i = 0; i < buffer_paths.length; i++) {
+      // TODO/concern: what if buffer_paths is deeper (length > 1)?
+      // Will that break something?  We do set things properly later.
+      const buffer = buffers[i];
+      const key = buffer_paths[i][0];
+      // TODO -- but what about deeply nested key!?
+      // I only figured out to use value:{buffer} from looking at
+      // the bqplot source code.
+      state[key] = { ...state[key], value: { buffer } };
+    }
+
     setTimeout(() => this.manager.watchModel(model_id), 1);
     return {
       modelName: state._model_name,
