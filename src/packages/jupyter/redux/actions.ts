@@ -482,7 +482,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             id,
             [property]: !cell.get(
               property,
-              property == "scrolled" ? true : false, // default scrolled to true
+              property == "scrolled" ? false : true, // default scrolled to false
             ),
           },
           false,
