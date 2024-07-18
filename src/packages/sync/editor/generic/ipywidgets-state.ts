@@ -240,7 +240,13 @@ export class IpywidgetsState extends EventEmitter {
     }
     const f = async (path: string) => {
       const hash = value?.get(path);
-      if (hash == null) return;
+      if (!hash) {
+        // It is important to look for !hash, since we use hash='' as a sentinel (in this.clearOutputBuffers)
+        // to indicate that we want to consider a buffer as having been deleted. This is very important
+        // to do since large outputs are often buffers in output widgets, and clear_output
+        // then needs to delete those buffers, or output never goes away.
+        return;
+      }
       const cur = this.arrayBuffers[model_id][path];
       if (cur?.hash == hash) {
         buffer_paths.push(JSON.parse(path));
@@ -741,7 +747,7 @@ export class IpywidgetsState extends EventEmitter {
         this.clear_output[model_id] = true;
       } else {
         delete this.clear_output[model_id];
-        this.clearOutputBuffers();
+        this.clearOutputBuffers(model_id);
         this.set_model_value(model_id, { outputs: null });
       }
       return true;
@@ -755,7 +761,7 @@ export class IpywidgetsState extends EventEmitter {
     let outputs: any;
     if (this.clear_output[model_id]) {
       delete this.clear_output[model_id];
-      this.clearOutputBuffers();
+      this.clearOutputBuffers(model_id);
       outputs = [];
     } else {
       outputs = this.get_model_value(model_id).outputs;
@@ -768,7 +774,7 @@ export class IpywidgetsState extends EventEmitter {
     return true;
   };
 
-  private clearOutputBuffers = () => {
+  private clearOutputBuffers = (model_id: string) => {
     // TODO: need to clear all output buffers.
     /* Example where if you do not properly clear buffers, then broken output re-appears:
 
@@ -789,6 +795,21 @@ with out:
    print('hi')
     */
     // TODO!!!!
+
+    const y: any = {};
+    let n = 0;
+    for (const jsonPath of this.get(model_id, "buffers")?.keySeq() ?? []) {
+      const path = JSON.parse(jsonPath);
+      console.log("path = ", path);
+      if (path[0] == "outputs") {
+        y[jsonPath] = "";
+        n += 1;
+      }
+    }
+    console.log("y = ", y);
+    if (n > 0) {
+      this.set(model_id, "buffers", y, true, "shallow");
+    }
   };
 
   private sendCustomMessage = async (
