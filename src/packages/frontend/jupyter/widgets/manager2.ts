@@ -242,33 +242,18 @@ export class WidgetManager {
     const model = await this.manager.get_model(model_id);
     const { buffer_paths, buffers } =
       await this.ipywidgets_state.get_model_buffers(model_id);
-    log("handleBuffersChange: ", model_id, buffer_paths);
+    log("handleBuffersChange: ", { model_id, buffer_paths, buffers });
     const deserialized_state = model.get_state(true);
-    const serializers = (model.constructor as any).serializers;
     const change: { [key: string]: any } = {};
     for (let i = 0; i < buffer_paths.length; i++) {
-      // TODO/concern: what if buffer_paths is deeper (length > 1)?
-      // Will that break something?  We do set things properly later.
       const key = buffer_paths[i][0];
-      const buffer = buffers[i];
-      if (deserialized_state[key] == null || buffer == null) {
-        change[key] = null;
-        continue;
-      }
-      let s;
-      const f = serializers[key];
-      if (f != null) {
-        s = f.serialize(deserialized_state[key]);
-        s.value = { buffer };
-        s = f.deserialize(s);
-      } else {
-        s = { ...deserialized_state[key], value: buffer };
-      }
-      change[key] = s;
+      setInObject(deserialized_state[key], buffer_paths[i], buffers[i]);
+      change[key] = deserialized_state[key];
     }
     log("handleBuffersChange: ", model_id, change);
-    window.x = { model, model_id, change };
-    model.set_state(change);
+    if (len(change) > 0) {
+      model.set_state(change);
+    }
   };
 
   private ipywidgets_state_MessageChange = async (model_id: string) => {
@@ -580,15 +565,10 @@ class Environment implements WidgetEnvironment {
     }
     const { buffer_paths, buffers } =
       await this.manager.ipywidgets_state.get_model_buffers(model_id);
+
     for (let i = 0; i < buffer_paths.length; i++) {
-      // TODO/concern: what if buffer_paths is deeper (length > 1)?
-      // Will that break something?  We do set things properly later.
       const buffer = buffers[i];
-      const key = buffer_paths[i][0];
-      // TODO -- but what about deeply nested key!?
-      // I only figured out to use value:{buffer} from looking at
-      // the bqplot source code.
-      state[key] = { ...state[key], value: { buffer } };
+      setInObject(state, buffer_paths[i], buffer);
     }
 
     setTimeout(() => this.manager.watchModel(model_id), 1);
@@ -646,7 +626,7 @@ WidgetModel.prototype.sync = () => {};
 // to be non-fatal, so it's more flexible wrt to our realtime sync setup.
 export function put_buffers(
   state,
-  buffer_paths: (string | number)[][],
+  buffer_paths: string[][],
   buffers: any[],
 ): void {
   for (let i = 0; i < buffer_paths.length; i++) {
@@ -658,19 +638,22 @@ export function put_buffers(
         buffer instanceof ArrayBuffer ? buffer : buffer.buffer,
       );
     }
-    // say we want to set state[x][y][z] = buffer
-    let obj = state as any;
-    // we first get obj = state[x][y]
-    for (let j = 0; j < buffer_path.length - 1; j++) {
-      if (obj[buffer_path[j]] == null) {
-        // doesn't exist, so create it.  This makes things work in
-        // possibly more random order, rather than crashing.  I hit this,
-        // e.g., when defining animations for k3d.
-        obj[buffer_path[j]] = {};
-      }
-      obj = obj[buffer_path[j]];
-    }
-    // and then set: obj[z] = buffer
-    obj[buffer_path[buffer_path.length - 1]] = buffer;
+    setInObject(state, buffer_path, buffer);
   }
+}
+
+function setInObject(obj: any, path: string[], value: any) {
+  // say we want to set obj[x][y][z] = value
+  // we first get obj = state[x][y]
+  for (let j = 0; j < path.length - 1; j++) {
+    if (obj[path[j]] == null) {
+      // doesn't exist, so create it.  This makes things work in
+      // possibly more random order, rather than crashing.  I hit this,
+      // e.g., when defining animations for k3d.
+      obj[path[j]] = {};
+    }
+    obj = obj[path[j]];
+  }
+  // and then set: obj[z] = value
+  obj[path[path.length - 1]] = value;
 }

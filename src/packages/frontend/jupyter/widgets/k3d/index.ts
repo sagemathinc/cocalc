@@ -1,3 +1,5 @@
+console.log("LOADING forked k3d");
+
 import ObjectModel from "./object-model";
 import ChunkModel from "./chunk-model";
 import ObjectView from "./object-view";
