@@ -12,9 +12,11 @@ process.env.DEBUG_HIDE_DATE = "yes"; // since we supply it ourselves
 // otherwise, maybe stuff like this works: (debug as any).inspectOpts["hideDate"] = true;
 
 import debug, { Debugger } from "debug";
-import { mkdirSync, createWriteStream, statSync, ftruncate } from "fs";
-import { format } from "util";
-import { dirname, join } from "path";
+
+import { createWriteStream, ftruncate, mkdirSync, statSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { format } from "node:util";
+
 import { logs } from "./data";
 
 const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024; // 20MB
@@ -25,12 +27,12 @@ let _trimLogFileSizePath = "";
 export function trimLogFileSize() {
   // THIS JUST DOESN'T REALLY WORK!
   return;
-  
+
   if (!_trimLogFileSizePath) return;
   let stats;
   try {
     stats = statSync(_trimLogFileSizePath);
-  } catch(_) {
+  } catch (_) {
     // this happens if the file doesn't exist, which is fine since "trimming" it would be a no-op
     return;
   }
@@ -141,19 +143,7 @@ function initTransports() {
 
 initTransports();
 
-const DEBUGGERS = {
-  error: COCALC.extend("error"),
-  warn: COCALC.extend("warn"),
-  info: COCALC.extend("info"),
-  http: COCALC.extend("http"),
-  verbose: COCALC.extend("verbose"),
-  debug: COCALC.extend("debug"),
-  silly: COCALC.extend("silly"),
-};
-
-type Level = keyof typeof DEBUGGERS;
-
-const LEVELS: Level[] = [
+const LEVELS = [
   "error",
   "warn",
   "info",
@@ -161,7 +151,19 @@ const LEVELS: Level[] = [
   "verbose",
   "debug",
   "silly",
-];
+] as const;
+
+type Level = (typeof LEVELS)[number];
+
+const DEBUGGERS: { [key in Level]: Debugger } = {
+  error: COCALC.extend("error"),
+  warn: COCALC.extend("warn"),
+  info: COCALC.extend("info"),
+  http: COCALC.extend("http"),
+  verbose: COCALC.extend("verbose"),
+  debug: COCALC.extend("debug"),
+  silly: COCALC.extend("silly"),
+} as const;
 
 class Logger {
   private name: string;
@@ -194,13 +196,13 @@ class Logger {
 }
 
 export interface WinstonLogger {
-  error: Function;
-  warn: Function;
-  info: Function;
-  http: Function;
-  verbose: Function;
-  debug: Function;
-  silly: Function;
+  error: Debugger;
+  warn: Debugger;
+  info: Debugger;
+  http: Debugger;
+  verbose: Debugger;
+  debug: Debugger;
+  silly: Debugger;
   extend: (name: string) => WinstonLogger;
   isEnabled: (level: Level) => boolean;
 }

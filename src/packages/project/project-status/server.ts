@@ -15,13 +15,10 @@ status updates.
 Hence in particular, information like cpu, memory and disk are smoothed out and throttled.
 */
 
-import { getLogger } from "@cocalc/project/logger";
-import { how_long_ago_m, round1 } from "@cocalc/util/misc";
-import { version as smcVersion } from "@cocalc/util/smc-version";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
-import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
+
 import { ProjectInfo } from "@cocalc/comm/project-info/types";
 import {
   ALERT_DISK_FREE,
@@ -36,6 +33,10 @@ import {
   ProjectStatus,
 } from "@cocalc/comm/project-status/types";
 import { cgroup_stats } from "@cocalc/comm/project-status/utils";
+import { getLogger } from "@cocalc/project/logger";
+import { how_long_ago_m, round1 } from "@cocalc/util/misc";
+import { version as smcVersion } from "@cocalc/util/smc-version";
+import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
 
 // TODO: only return the "next" value, if it is significantly different from "prev"
 //function threshold(prev?: number, next?: number): number | undefined {
@@ -83,7 +84,7 @@ export class ProjectStatusServer extends EventEmitter {
   constructor(testing = false) {
     super();
     this.testing = testing;
-    this.dbg = (...msg) => winston.debug(...msg);
+    this.dbg = (...msg) => winston.debug(msg[0], ...msg.slice(1));
     this.project_info = get_ProjectInfoServer();
   }
 

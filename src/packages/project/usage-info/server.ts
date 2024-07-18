@@ -12,17 +12,17 @@ from the ProjectInfoServer (which collects data about everything)
 */
 
 import { delay } from "awaiting";
+import { throttle } from "lodash";
 import { EventEmitter } from "node:events";
 
-import { getLogger } from "../logger";
-import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 import { Process, ProjectInfo } from "@cocalc/comm/project-info/types";
 import type { UsageInfo } from "@cocalc/util/types/project-usage-info";
-import { throttle } from "lodash";
+import { getLogger } from "../logger";
+import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
 
 const L = getLogger("usage-info:server").debug;
 
-const throttled_dbg = throttle((...args) => L(...args), 10000);
+const throttled_dbg = throttle(L, 10000);
 
 function is_diff(prev: UsageInfo, next: UsageInfo, key: keyof UsageInfo) {
   // we assume a,b >= 0, hence we leave out Math.abs operations

@@ -11,7 +11,7 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 
 import { pathToFiles } from "@cocalc/backend/files/path-to-files";
-import getLogger from "@cocalc/backend/logger";
+import getLogger, { WinstonLogger } from "@cocalc/backend/logger";
 import { newCounter } from "@cocalc/backend/metrics";
 import { homePath } from "@cocalc/backend/misc";
 import getPool from "@cocalc/database/pool";
@@ -21,6 +21,8 @@ import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { minutes_ago } from "@cocalc/util/misc";
 import { bulkDelete } from "./bulk-delete";
 import { PostgreSQL } from "./types";
+
+const { F_OK, R_OK, W_OK } = fs.constants;
 
 const log = getLogger("db:delete-projects");
 
@@ -197,10 +199,10 @@ export async function cleanup_old_projects_data(
         L2(`delete all project files`);
         await deleteProjectFiles(L2, project_id);
 
-        L2(`deleting all shared files`);
         try {
           // this is something like /shared/projects/${project_id}
           const shared_path = pathToFiles(project_id, "");
+          L2(`deleting all shared files in ${shared_path}`);
           await fs.rm(shared_path, { recursive: true, force: true });
         } catch (err) {
           L2(`Unable to delete shared files: ${err}`);
@@ -233,7 +235,7 @@ export async function cleanup_old_projects_data(
 }
 
 async function delete_associated_project_data(
-  L2,
+  L2: WinstonLogger["debug"],
   project_id: string,
 ): Promise<number> {
   let total = 0;
@@ -295,14 +297,18 @@ async function delete_associated_project_data(
   return total;
 }
 
-async function deleteProjectFiles(L2, project_id: string) {
-  // TODO: this only works on-prem, and requires the project files to be mounted
+async function deleteProjectFiles(
+  L2: WinstonLogger["debug"],
+  project_id: string,
+) {
+  // $MOUNTED_PROJECTS_ROOT is for OnPrem and homePath only works in dev/single-user
   const projects_root =
     process.env["MOUNTED_PROJECTS_ROOT"] ?? homePath(project_id);
   if (!projects_root) return;
   const project_dir = join(projects_root, project_id);
+  L2(`attempting to delete all files in ${project_dir}`);
   try {
-    await fs.access(project_dir, fs.constants.F_OK | fs.constants.R_OK);
+    await fs.access(project_dir, F_OK | R_OK | W_OK);
     const stats = await fs.lstat(project_dir);
     if (stats.isDirectory()) {
       L2(`deleting all files in ${project_dir}`);

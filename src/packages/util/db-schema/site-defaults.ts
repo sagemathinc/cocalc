@@ -655,7 +655,7 @@ export const site_settings_conf: SiteSettings = {
   },
   delete_project_data: {
     name: "Delete Project Data",
-    desc: "When a project has been marked as deleted, also actually delete associated data from the database and (OnPrem only) also its files.",
+    desc: "When a project has been marked as deleted, also actually delete associated data from the database and – for OnPrem and single-user dev mode only – also its files.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
