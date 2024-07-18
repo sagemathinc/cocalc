@@ -163,7 +163,7 @@
         "feature": "Open source",
         "cocalc": {
           "type": false,
-          "note": "Partial (noncommercial AGPLv3). Commercial license available.",
+          "note": "Partial (noncommercial MS-RSL). Commercial license available.",
           "link": "https://github.com/sagemathinc/cocalc"
         },
         "mybinder": true,

@@ -27,9 +27,9 @@ As of October 2023, you probably can't for the following _**reasons**_:
 
 - In addition to the core sync library, **you also need a way to transmit data** between all the parties involved in sync.  This is equally important and difficult, and how to best do this often depends on your application.   There's no documentation for @cocalc/sync, except what's in the comments, and no examples \(except cocalc itself\), so this could be challenging.
 
-- **The license is AGPL3 \+ common clause** <u>**non\-commercial use only**</u><u>,</u> which is  very unfriendly in terms of product integration.  Due to lack of community support and interest, I will definitely _**not**_ be licensing this under an OSI approved open source license.  However, SageMath, Inc. can sell a business friendly license to you for CoCalc, which includes this code \(email [help@sagemath.com](mailto:help@sagemath.com)\).
+- **The license is MS-RSL**: <u>**reference use only**</u>, which prohibits product integration.  Due to lack of community support and interest, I will definitely _**not**_ be licensing this under an OSI approved open source license.  However, SageMath, Inc. can sell a business friendly license to you for CoCalc, which includes this code \(email [help@sagemath.com](mailto:help@sagemath.com)\).
 
-Note that bugs or bad code are not in the above list.  I don't know of any bugs at all in this sync implementation, and thousands of people use it every day in production on https://cocalc.com.   Also, it's nice Typescript code with a test suite. 
+Note that bugs or bad code are not in the above list.  I don't know of any bugs at all in this sync implementation, and thousands of people use it every day in production on https://cocalc.com.   Also, it's nice Typescript code with a test suite.
 
 ## How does this work?
 
