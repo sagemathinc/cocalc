@@ -1,6 +1,6 @@
 The contents of this directory is just a rewrite of https://github.com/K3D-tools/K3D-jupyter/blob/main/js/src/k3d.js using Typescript and more modularity, and also using ES6 classes which is more "future proof" regarding Backbone.js and newer versions of Ipywidgets.
 
-The license is all code in this directory is the same as for upstream, namely the MIT license as given here:
+The license for all code in this directory is the same as for upstream, namely the MIT license as given here:
 
 https://github.com/K3D-tools/K3D-jupyter/blob/main/LICENSE.txt
 

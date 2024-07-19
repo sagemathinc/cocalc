@@ -17,7 +17,7 @@ import {
   ModelState,
 } from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
-import { copy, is_array, is_object, len, uuid } from "@cocalc/util/misc";
+import { is_array, is_object, len, uuid } from "@cocalc/util/misc";
 import { fromJS } from "immutable";
 import { CellOutputMessage } from "@cocalc/frontend/jupyter/output-messages/message";
 import React from "react";
@@ -116,16 +116,17 @@ export class WidgetManager {
     if (state == null) {
       return;
     }
-    await this.updateModel(model_id, state!);
+    await this.updateModel(model_id, state!, false);
   };
 
   private updateModel = async (
     model_id: string,
     changed: ModelState,
+    merge: boolean,
   ): Promise<void> => {
     const model: base.DOMWidgetModel | undefined =
       await this.manager.get_model(model_id);
-    log("updateModel", { model, changed });
+    log("updateModel", { model_id, merge, changed });
     if (model == null) {
       return;
     }
@@ -140,17 +141,33 @@ export class WidgetManager {
       );
       return;
     }
-    const state = await this.deserializeState(model, changed);
-    if (state.hasOwnProperty("outputs") && state["outputs"] == null) {
+    changed = await this.deserializeState(model, changed);
+    if (changed.hasOwnProperty("outputs") && changed["outputs"] == null) {
       // It can definitely be 'undefined' but set, e.g., the 'out.clear_output()' example at
       // https://ipywidgets.readthedocs.io/en/latest/examples/Output%20Widget.html
       // causes this, which then totally breaks rendering (due to how the
       // upstream widget manager works).  This works around that.
-      state["outputs"] = [];
+      changed["outputs"] = [];
     }
-
-    log("set_state", state);
-    model.set_state(state);
+    if (merge) {
+      const state = model.get_state(false);
+      const x: ModelState = {};
+      for (const k in changed) {
+        if (state[k] != null && is_object(state[k]) && is_object(changed[k])) {
+          x[k] = { ...state[k], ...changed[k] };
+        } else {
+          x[k] = changed[k];
+        }
+      }
+      changed = x;
+    }
+    log("updateModel -- doing set_state", { model_id, merge, changed });
+    try {
+      model.set(changed);
+    } catch (err) {
+      //window.z = { merge, model, model_id, changed };
+      console.error("saved to z", err);
+    }
   };
 
   // ipywidgets_state_ValueChange is called when a value entry of the ipywidgets_state
@@ -192,7 +209,7 @@ export class WidgetManager {
     }
     this.state_lock.add(model_id);
     log("handleValueChange: got model and now making this change -- ", changed);
-    await this.updateModel(model_id, changed);
+    await this.updateModel(model_id, changed, true);
     const model = await this.manager.get_model(model_id);
     if (model != null) {
       await model.state_change;
@@ -239,20 +256,31 @@ export class WidgetManager {
     A simple example that uses buffers is this image one:
        https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#image
     */
-    const model = await this.manager.get_model(model_id);
     const { buffer_paths, buffers } =
       await this.ipywidgets_state.get_model_buffers(model_id);
     log("handleBuffersChange: ", { model_id, buffer_paths, buffers });
-    const deserialized_state = model.get_state(true);
+    if (buffer_paths.length == 0) {
+      return;
+    }
+    const state = this.ipywidgets_state.get_model_state(model_id);
+    if (state == null) {
+      return;
+    }
     const change: { [key: string]: any } = {};
     for (let i = 0; i < buffer_paths.length; i++) {
       const key = buffer_paths[i][0];
-      setInObject(deserialized_state[key], buffer_paths[i], buffers[i]);
-      change[key] = deserialized_state[key];
+      setInObject(state, buffer_paths[i], buffers[i]);
+      change[key] = state[key];
     }
-    log("handleBuffersChange: ", model_id, change);
+    log("handleBuffersChange: ", model_id, { change });
     if (len(change) > 0) {
-      model.set_state(change);
+      const model = await this.manager.get_model(model_id);
+      try {
+        model.set(change);
+      } catch (err) {
+        // window.y = { model_id, model, change, buffer_paths, buffers };
+        console.error("saved to y", err);
+      }
     }
   };
 
@@ -301,18 +329,20 @@ export class WidgetManager {
   // ipywidgets_state, so that it is gets sync'd to the backend
   // and any other clients.
   private handleModelChange = async (model): Promise<void> => {
-    log("handleModelChange", model);
     const { model_id } = model;
+    let changed = model.changed;
+    log("handleModelChange", model_id, changed);
     await model.state_change;
     if (this.state_lock.has(model_id)) {
-      // log("handleModelChange: ignoring change due to state lock");
+      log("handleModelChange: ignoring change due to state lock");
       return;
     }
-    const changed: any = copy(model.serialize(model.changed));
+    changed = model.serialize(changed);
     delete changed.children; // sometimes they are in there, but shouldn't be sync'ed.
     const { last_changed } = changed;
     delete changed.last_changed;
     if (len(changed) == 0) {
+      log("handleModelChange: nothing changed");
       return; // nothing
     }
     // increment sequence number.
@@ -543,6 +573,18 @@ class Environment implements WidgetEnvironment {
     this.manager = manager;
   }
 
+  async loadClass(
+    className: string,
+    moduleName: string,
+    _moduleVersion: string,
+  ): Promise<any> {
+    if (false && moduleName === "k3d") {
+      // NOTE: I completely rewrote the entire k3d widget interface...
+      console.log("using builtin k3d");
+      return await import("k3d")[className];
+    }
+  }
+
   async getModelState(model_id) {
     // log("getModelState", model_id);
     if (this.manager.ipywidgets_state.get_state() != "ready") {
@@ -556,6 +598,23 @@ class Environment implements WidgetEnvironment {
         state = this.manager.ipywidgets_state.get_model_state(model_id);
       }
     }
+    if (state == null) {
+      throw Error("bug");
+    }
+    if (state._model_module == "k3d" && state.type != null) {
+      while (!state?.type || !state?.id) {
+        log(
+          "getModelState",
+          model_id,
+          "k3d: waiting for state.type to be defined",
+        );
+        await once(this.manager.ipywidgets_state, "change");
+        state = this.manager.ipywidgets_state.get_model_state(model_id);
+      }
+    }
+    if (state == null) {
+      throw Error("bug");
+    }
     if (state.hasOwnProperty("outputs") && state["outputs"] == null) {
       // It can definitely be 'undefined' but set, e.g., the 'out.clear_output()' example at
       // https://ipywidgets.readthedocs.io/en/latest/examples/Output%20Widget.html
@@ -566,12 +625,15 @@ class Environment implements WidgetEnvironment {
     const { buffer_paths, buffers } =
       await this.manager.ipywidgets_state.get_model_buffers(model_id);
 
-    for (let i = 0; i < buffer_paths.length; i++) {
-      const buffer = buffers[i];
-      setInObject(state, buffer_paths[i], buffer);
+    if (buffers.length > 0) {
+      for (let i = 0; i < buffer_paths.length; i++) {
+        const buffer = buffers[i];
+        setInObject(state, buffer_paths[i], buffer);
+      }
     }
-
     setTimeout(() => this.manager.watchModel(model_id), 1);
+
+    log("getModelState", { model_id, state });
     return {
       modelName: state._model_name,
       modelModule: state._model_module,

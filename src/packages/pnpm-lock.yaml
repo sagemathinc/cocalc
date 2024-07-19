@@ -276,8 +276,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@cocalc/widgets':
-        specifier: ^1.1.0
-        version: 1.1.0
+        specifier: ^1.1.1
+        version: 1.1.1
       '@cocalc/xpra-lz4':
         specifier: ^1.1.0
         version: 1.1.0
@@ -2653,8 +2653,8 @@ packages:
     resolution: {integrity: sha512-nFHqPo9zxbPNRkMzFH/ZbVrrp3RGb0vAVWSRG67+j8dwt3MN9pqZSEUOfWUt9AURsRJd9IR+gLnwrczQTNu6Zg==}
     engines: {node: '>=0.10.28'}
 
-  '@cocalc/widgets@1.1.0':
-    resolution: {integrity: sha512-+V3XLj1BelaZq19dC+IlOBJTBjJM+Z5dhqyeHrk8nzoT2MpWA9H8dwVUUBJ8h9BDJbbtS7+6TcI3dyJSH0eojA==}
+  '@cocalc/widgets@1.1.1':
+    resolution: {integrity: sha512-2qAYjvdIHvQpKI5h4t2TmZ80n6s1iO9nE8bk21wd29X4dnEaMU6/N2SDPg/kkwS2Akxyl0u4i+0b9MW/XnpMbg==}
 
   '@cocalc/xpra-lz4@1.1.0':
     resolution: {integrity: sha512-1+WqiakKIGzSrMCiOVvrxx+9tTpYR4bW0uw9sImFLbW7abZ/+EgYm2IwHUm1JNSpWCI6N6qj7jkIDIaq1ODxGg==}
@@ -6072,8 +6072,8 @@ packages:
   electron-to-chromium@1.4.692:
     resolution: {integrity: sha512-d5rZRka9n2Y3MkWRN74IoAsxR0HK3yaAt7T50e3iT9VZmCCQDT3geXUO5ZRMhDToa1pkCeQXuNo+0g+NfDOVPA==}
 
-  electron-to-chromium@1.4.829:
-    resolution: {integrity: sha512-5qp1N2POAfW0u1qGAxXEtz6P7bO1m6gpZr5hdf5ve6lxpLM7MpiM4jIPz7xcrNlClQMafbyUDDWjlIQZ1Mw0Rw==}
+  electron-to-chromium@1.4.830:
+    resolution: {integrity: sha512-TrPKKH20HeN0J1LHzsYLs2qwXrp8TF4nHdu4sq61ozGbzMpWhI7iIOPYPPkxeq1azMT9PZ8enPFcftbs/Npcjg==}
 
   element-size@1.1.1:
     resolution: {integrity: sha512-eaN+GMOq/Q+BIWy0ybsgpcYImjGIdNLyjLFJU4XsLHXYQao5jCNb36GyN6C2qwmDDYSfIBmKpPpr4VnBdLCsPQ==}
@@ -12674,7 +12674,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@cocalc/widgets@1.1.0': {}
+  '@cocalc/widgets@1.1.1': {}
 
   '@cocalc/xpra-lz4@1.1.0': {}
 
@@ -15416,7 +15416,7 @@ snapshots:
   browserslist@4.23.2:
     dependencies:
       caniuse-lite: 1.0.30001642
-      electron-to-chromium: 1.4.829
+      electron-to-chromium: 1.4.830
       node-releases: 2.0.17
       update-browserslist-db: 1.1.0(browserslist@4.23.2)
 
@@ -16487,7 +16487,7 @@ snapshots:
 
   electron-to-chromium@1.4.692: {}
 
-  electron-to-chromium@1.4.829: {}
+  electron-to-chromium@1.4.830: {}
 
   element-size@1.1.1: {}
 

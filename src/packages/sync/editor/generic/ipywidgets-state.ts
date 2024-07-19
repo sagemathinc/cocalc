@@ -14,6 +14,7 @@ import { Map as iMap } from "immutable";
 import {
   close,
   delete_null_fields,
+  is_object,
   len,
   auxFileToOriginal,
 } from "@cocalc/util/misc";
@@ -350,20 +351,28 @@ export class IpywidgetsState extends EventEmitter {
     fire_change_event: boolean = true,
     merge?: "none" | "shallow" | "deep",
   ): void => {
+    const dbg = this.dbg("set");
     const string_id = this.syncdoc.get_string_id();
     if (typeof data != "object") {
       throw Error("TypeError -- data must be a map");
     }
     let defaultMerge: "none" | "shallow" | "deep";
     if (type == "value") {
+      //defaultMerge = "shallow";
       // we manually do the shallow merge only on the data field.
-      const data0 = this.get_model_value(model_id);
-      if (data0 != null) {
+      const current = this.get_model_value(model_id);
+      dbg("value: before", { data, current });
+      if (current != null) {
         for (const k in data) {
-          data0[k] = data[k];
+          if (is_object(data[k]) && is_object(current[k])) {
+            current[k] = { ...current[k], ...data[k] };
+          } else {
+            current[k] = data[k];
+          }
         }
-        data = data0;
+        data = current;
       }
+      dbg("value -- after", { merged: data });
       defaultMerge = "none";
     } else if (type == "buffers") {
       // we keep around the buffers that were
@@ -646,8 +655,18 @@ export class IpywidgetsState extends EventEmitter {
         this.sendCustomMessage(model_id, message, false);
         break;
 
+      case "echo_update":
+        // just ignore echo_update -- it's a new ipywidgets 8 mechanism
+        // for some level of RTC sync between clients -- we don't need that
+        // since we have our own, obviously. Setting the env var
+        // JUPYTER_WIDGETS_ECHO to 0 will disable these messages to slightly
+        // reduce traffic.
+        return;
+
       case "update":
-        if (state == null) return;
+        if (state == null) {
+          return;
+        }
         dbg("method -- update");
         if (this.clear_output[model_id] && state.outputs != null) {
           // we are supposed to clear the output before inserting
