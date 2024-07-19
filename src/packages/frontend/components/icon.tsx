@@ -67,6 +67,7 @@ import {
   DatabaseFilled,
   DatabaseOutlined,
   DeleteOutlined,
+  DeliveredProcedureOutlined,
   DeploymentUnitOutlined,
   DesktopOutlined,
   DoubleLeftOutlined,
@@ -185,6 +186,7 @@ import {
   StarOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
+  StopFilled,
   StopOutlined,
   StrikethroughOutlined,
   SwapOutlined,
@@ -331,6 +333,7 @@ const IconSpec: { [name: string]: any } = {
   "deployment-unit": DeploymentUnitOutlined,
   dedicated: DatabaseOutlined, // icon for "dedicated resources", looks like a server rack
   desktop: DesktopOutlined,
+  "delivered-procedure-outlined": DeliveredProcedureOutlined,
   digitalocean: { IconFont: "digitalocean" },
   discord: { IconFont: "discord" },
   "disk-drive": { IconFont: "disk-drive" },
@@ -541,6 +544,7 @@ const IconSpec: { [name: string]: any } = {
   "step-backward": StepBackwardOutlined,
   "step-forward": StepForwardOutlined,
   stop: { IconFont: "stop" }, // the ant-design "stop" looks weird.
+  "stop-filled": StopFilled,
   stopwatch: FieldTimeOutlined,
   store: { IconFont: "store" },
   strikethrough: StrikethroughOutlined,

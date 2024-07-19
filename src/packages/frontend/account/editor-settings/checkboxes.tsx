@@ -4,10 +4,11 @@
  */
 
 import { Map } from "immutable";
-import { Rendered, Component } from "../../app-framework";
+
+import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
+import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { capitalize, is_different, keys } from "@cocalc/util/misc";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
-import { Checkbox } from "../../antd-bootstrap";
 
 const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
   extra_button_bar:
@@ -40,7 +41,7 @@ const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
   /* commented out since we are never using this.
   disable_jupyter_windowing:
     "never use windowing with Jupyter notebooks (windowing is sometimes used on the Chrome browser to make very large notebooks render quickly, but can lead to trouble)",*/
-};
+} as const;
 
 interface Props {
   editor_settings: Map<string, any>;
