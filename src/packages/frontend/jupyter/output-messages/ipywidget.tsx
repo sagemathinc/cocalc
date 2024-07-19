@@ -3,7 +3,8 @@ ipywidgets rendering using @cocalc/widgets
 */
 
 import { useEffect, useRef, useState } from "react";
-import { Alert } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { Alert, Button } from "antd";
 import type { JupyterActions } from "../browser-actions";
 import { Map } from "immutable";
 require("@jupyter-widgets/controls/css/widgets.css");
@@ -26,9 +27,10 @@ interface WidgetProps {
   actions?: JupyterActions;
   directory?: string;
   trust?: boolean;
+  id?: string;
 }
 
-export function IpyWidget({ value, actions }: WidgetProps) {
+export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
   // console.log("IpyWidget", { value: value.toJS(), actions });
   const [unknown, setUnknown] = useState<boolean>(false);
   const divRef = useRef<any>(null);
@@ -65,12 +67,27 @@ export function IpyWidget({ value, actions }: WidgetProps) {
   }, []);
 
   if (unknown) {
+    const msg = "Run cell to load widget.";
     return (
       <Alert
         showIcon
         style={{ margin: "15px" }}
         type="warning"
-        message="Run this cell to load this widget."
+        message={
+          actions != null && cell_id ? (
+            <Button
+              type="link"
+              onClick={() => {
+                console.log("hi", cell_id);
+                actions.run_cell(cell_id);
+              }}
+            >
+              <Icon name="step-forward" /> {msg}
+            </Button>
+          ) : (
+            <span>{msg}</span>
+          )
+        }
       />
     );
   }
