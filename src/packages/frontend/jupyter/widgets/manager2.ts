@@ -63,6 +63,19 @@ export class WidgetManager {
   }
 
   private initAllModels = async () => {
+    // TODO: this can do a lot that makes no sense
+    // due to lack of garbage collection and any link to what is actually
+    // in the notebook.
+    /*
+    With this disabled, this breaks for RTC or close/open:
+
+from ipywidgets import VBox, jsdlink, IntSlider
+s1 = IntSlider(max=200, value=100); s2 = IntSlider(value=40)
+jsdlink((s1, 'value'), (s2, 'max'))
+VBox([s1, s2])
+    */
+    // log("initAllModels: temporarily disabled"); return;
+
     if (this.ipywidgets_state.get_state() == "init") {
       await once(this.ipywidgets_state, "ready");
     }
@@ -268,7 +281,7 @@ export class WidgetManager {
     const change: { [key: string]: any } = {};
     for (let i = 0; i < buffer_paths.length; i++) {
       const key = buffer_paths[i][0];
-      setInObject(state, buffer_paths[i], buffers[i]);
+      setInObject(state, buffer_paths[i], new DataView(buffers[i]));
       change[key] = state[key];
     }
     if (len(change) > 0) {
@@ -632,7 +645,7 @@ class Environment implements WidgetEnvironment {
     if (buffers.length > 0) {
       for (let i = 0; i < buffer_paths.length; i++) {
         const buffer = buffers[i];
-        setInObject(state, buffer_paths[i], buffer);
+        setInObject(state, buffer_paths[i], new DataView(buffer));
       }
     }
 

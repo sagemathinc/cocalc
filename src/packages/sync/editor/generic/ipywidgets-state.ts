@@ -375,10 +375,25 @@ export class IpywidgetsState extends EventEmitter {
       dbg("value -- after", { merged: data });
       defaultMerge = "none";
     } else if (type == "buffers") {
-      // we keep around the buffers that were
-      // already set, but overwrite
-      // when they change.
-      defaultMerge = "shallow";
+      // it's critical to not throw away existing buffers when
+      // new ones come or current ones change.  With shallow merge,
+      // the existing ones go away, which is very broken, e.g.,
+      // see this with this example:
+/*
+import bqplot.pyplot as plt
+import numpy as np
+x, y = np.random.rand(2, 10)
+fig = plt.figure(animation_duration=3000)
+scat = plt.scatter(x=x, y=y)
+fig
+---
+scat.x, scat.y = np.random.rand(2, 50)
+
+# now close and open it, and it breaks with shallow merge,
+# since the second cell caused the opacity buffer to be
+# deleted, which breaks everything.
+*/
+      defaultMerge = "deep";
     } else if (type == "message") {
       defaultMerge = "none";
     } else {
