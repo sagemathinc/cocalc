@@ -105,6 +105,8 @@ export const OPENAI_PREFIX = "openai-";
 
 export const MODELS_OPENAI = [
   "gpt-3.5-turbo",
+  "gpt-4o-mini-8k", // context limited
+  "gpt-4o-mini", // Released 2024-07-18
   "gpt-4o-8k", // context limited, similar to gpt-4-turbo-8k
   "gpt-4o", // Released 2024-05-13
   // the "preview" variants are disabled, because the preview is over
@@ -219,7 +221,11 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   [vendor in LLMServiceName]: Readonly<LanguageModelCore[]>;
 } = {
   openai: MODELS_OPENAI.filter(
-    (m) => m === "gpt-4" || m === "gpt-4-turbo-preview-8k" || m === "gpt-4o-8k",
+    (m) =>
+      m === "gpt-4" ||
+      m === "gpt-4-turbo-preview-8k" ||
+      m === "gpt-4o-8k" ||
+      m === "gpt-4o-mini-8k",
   ),
   google: GOOGLE_MODELS.filter(
     (m) =>
@@ -699,6 +705,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-4-turbo-8k": "GPT-4 Turbo 8k",
   "gpt-4o": "GPT-4 Omni 128k",
   "gpt-4o-8k": "GPT-4 Omni 8k",
+  "gpt-4o-mini": "GPT-4o Mini 128k",
+  "gpt-4o-mini-8k": "GPT-4o Mini 8k",
   "text-embedding-ada-002": "Text Embedding Ada 002", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
@@ -742,6 +750,9 @@ export const LLM_DESCR: LLM2String = {
   "gpt-4o-8k":
     "Most powerful, fastest, and cheapest (OpenAI, 8k token context)",
   "gpt-4o": "Most powerful fastest, and cheapest (OpenAI, 128k token context)",
+  "gpt-4o-mini-8k":
+    "Most cost-efficient small model (OpenAI, 8k token context)",
+  "gpt-4o-mini": "Most cost-efficient small model (OpenAI, 128k token context)",
   "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "",
   "chat-bison-001": "",
@@ -909,6 +920,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     completion_tokens: usd1Mtokens(15),
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
     free: false,
+  },
+  "gpt-4o-mini-8k": {
+    prompt_tokens: usd1Mtokens(0.15),
+    completion_tokens: usd1Mtokens(0.6),
+    max_tokens: 8192, // like gpt-4-turbo-8k
+    free: true,
+  },
+  "gpt-4o-mini": {
+    prompt_tokens: usd1Mtokens(0.15),
+    completion_tokens: usd1Mtokens(0.6),
+    max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
+    free: true,
   },
   // also OpenAI
   "text-embedding-ada-002": {
