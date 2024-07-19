@@ -17,8 +17,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import shellEscape from "shell-escape";
 
-import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import getLogger from "@cocalc/backend/logger";
+import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
 import { callback_opts } from "@cocalc/util/async-utils";
 import { to_json, trunc, uuid, walltime } from "@cocalc/util/misc";
@@ -39,6 +39,7 @@ const log = getLogger("execute-code");
 
 const ASYNC_CACHE_MAX = envToInt("COCALC_PROJECT_ASYNC_EXEC_CACHE_MAX", 100);
 const ASYNC_CACHE_TTL_S = envToInt("COCALC_PROJECT_ASYNC_EXEC_TTL_S", 60 * 60);
+const MONITOR_INTERVAL_S = 10; // for async execution, every that many secs check up on the child-tree
 
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
@@ -231,6 +232,15 @@ function update_async(
   }
 }
 
+function setupMonitor(_job_id: string, _pid: number) {
+  // periodically check up on the child process tree and record stats
+  // this also keeps the entry in the cache alive, when the ttl is less than the duration of the execution
+
+  const projInfo = get_ProjectInfoServer()
+
+  return setInterval(() => {}, 1000 * MONITOR_INTERVAL_S);
+}
+
 function doSpawn(
   opts,
   cb: (err: string | undefined, result?: ExecuteCodeOutputBlocking) => void,
@@ -260,11 +270,11 @@ function doSpawn(
     },
   };
 
-  let r: ChildProcessWithoutNullStreams;
+  let child: ChildProcessWithoutNullStreams;
   let ran_code = false;
   try {
-    r = spawn(opts.command, opts.args, spawnOptions);
-    if (r.stdout == null || r.stderr == null) {
+    child = spawn(opts.command, opts.args, spawnOptions);
+    if (child.stdout == null || child.stderr == null) {
       // The docs/examples at https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
       // suggest that r.stdout and r.stderr are always defined.  However, this is
       // definitely NOT the case in edge cases, as we have observed.
@@ -288,7 +298,7 @@ function doSpawn(
   let stderr = "";
   let exit_code: undefined | number = undefined;
 
-  r.stdout.on("data", (data) => {
+  child.stdout.on("data", (data) => {
     data = data.toString();
     if (opts.max_output != null) {
       if (stdout.length < opts.max_output) {
@@ -300,7 +310,7 @@ function doSpawn(
     update_async(opts.job_id, "stdout", stdout);
   });
 
-  r.stderr.on("data", (data) => {
+  child.stderr.on("data", (data) => {
     data = data.toString();
     if (opts.max_output != null) {
       if (stderr.length < opts.max_output) {
@@ -316,17 +326,17 @@ function doSpawn(
   let stdout_is_done = false;
   let killed = false;
 
-  r.stderr.on("end", () => {
+  child.stderr.on("end", () => {
     stderr_is_done = true;
     finish();
   });
 
-  r.stdout.on("end", () => {
+  child.stdout.on("end", () => {
     stdout_is_done = true;
     finish();
   });
 
-  r.on("exit", (code) => {
+  child.on("exit", (code) => {
     exit_code = code != null ? code : undefined;
     finish();
   });
@@ -334,7 +344,7 @@ function doSpawn(
   // This can happen, e.g., "Error: spawn ENOMEM" if there is no memory.  Without this handler,
   // an unhandled exception gets raised, which is nasty.
   // From docs: "Note that the exit-event may or may not fire after an error has occurred. "
-  r.on("error", (err) => {
+  child.on("error", (err) => {
     if (exit_code == null) {
       exit_code = 1;
     }
@@ -343,6 +353,9 @@ function doSpawn(
     ran_code = false;
     finish();
   });
+
+  let monitor =
+    opts.job_id && child.pid ? setupMonitor(opts.job_id, child.pid) : undefined;
 
   let callback_done = false;
   const finish = (err?) => {
@@ -361,6 +374,10 @@ function doSpawn(
     if (timer != null) {
       clearTimeout(timer);
       timer = undefined;
+    }
+    if (monitor != null) {
+      clearInterval(monitor);
+      monitor = undefined;
     }
     if (opts.verbose && log.isEnabled("debug")) {
       log.debug(
@@ -418,11 +435,11 @@ function doSpawn(
     }
   };
 
-  let timer: any = undefined;
+  let timer: NodeJS.Timeout | undefined = undefined;
   if (opts.timeout) {
     // setup a timer that will kill the command after a certain amount of time.
     const f = () => {
-      if (r.exitCode != null) {
+      if (child.exitCode != null) {
         // command already exited.
         return;
       }
@@ -435,8 +452,8 @@ function doSpawn(
       }
       try {
         killed = true; // we set the kill flag in any case – i.e. process will no longer exist
-        if (r.pid != null) {
-          process.kill(-r.pid, "SIGKILL"); // this should kill process group
+        if (child.pid != null) {
+          process.kill(-child.pid, "SIGKILL"); // this should kill process group
         }
       } catch (err) {
         // Exceptions can happen, which left uncaught messes up calling code big time.
