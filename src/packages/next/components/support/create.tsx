@@ -149,7 +149,11 @@ export default function Create() {
               {helpEmail ? (
                 <>
                   You can also email us directly at{" "}
-                  <A href={`mailto:${helpEmail}`}>{helpEmail}</A>.
+                  <A href={`mailto:${helpEmail}`}>{helpEmail}</A> or{" "}
+                  <A href="https://calendly.com/cocalc/discovery">
+                    book a demo or discovery call
+                  </A>
+                  .
                 </>
               ) : undefined}
             </p>
@@ -222,7 +226,9 @@ export default function Create() {
               </>
             )}
             <b>
-              <Status done={body && body.length >= MIN_BODY_LENGTH && hasRequired} />{" "}
+              <Status
+                done={body && body.length >= MIN_BODY_LENGTH && hasRequired}
+              />{" "}
               Description
             </b>
             <div
