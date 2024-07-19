@@ -69,10 +69,8 @@ export class WidgetManager {
     if (this.ipywidgets_state.get_state() != "ready") {
       return;
     }
-    log("initAllModels");
     for (const { model_id, type } of this.ipywidgets_state.keys()) {
       if (type == "state") {
-        log("initAllModels", model_id);
         (async () => {
           try {
             await this.manager.get_model(model_id);
@@ -258,12 +256,13 @@ export class WidgetManager {
     */
     const { buffer_paths, buffers } =
       await this.ipywidgets_state.get_model_buffers(model_id);
-    log("handleBuffersChange: ", { model_id, buffer_paths, buffers });
     if (buffer_paths.length == 0) {
       return;
     }
+    log("handleBuffersChange: ", { model_id, buffer_paths, buffers });
     const state = this.ipywidgets_state.get_model_state(model_id);
     if (state == null) {
+      log("handleBuffersChange: no state data", { model_id });
       return;
     }
     const change: { [key: string]: any } = {};
@@ -272,11 +271,15 @@ export class WidgetManager {
       setInObject(state, buffer_paths[i], buffers[i]);
       change[key] = state[key];
     }
-    log("handleBuffersChange: ", model_id, { change });
     if (len(change) > 0) {
       const model = await this.manager.get_model(model_id);
+      const deserializedChange = await this.deserializeState(model, change);
+      log("handleBuffersChange: settings ", model_id, {
+        change,
+        deserializedChange,
+      });
       try {
-        model.set(change);
+        model.set(deserializedChange);
       } catch (err) {
         // window.y = { model_id, model, change, buffer_paths, buffers };
         console.error("saved to y", err);
@@ -490,7 +493,7 @@ export class WidgetManager {
     comm_id,
     target_name,
     data,
-    metadata,
+    metadata: _metadata,
     buffers,
   }: {
     comm_id: string;
@@ -499,7 +502,7 @@ export class WidgetManager {
     metadata?: JSONValue;
     buffers?: ArrayBuffer[];
   }): Promise<IClassicComm> => {
-    log("openCommChannel", { comm_id, target_name, data, buffers, metadata });
+    // log("openCommChannel", { comm_id, target_name, data, buffers, metadata });
     const { send_comm_message_to_kernel } = this.actions;
 
     // TODO: we do not currently have anything at all that
@@ -585,7 +588,7 @@ class Environment implements WidgetEnvironment {
     }
   }
 
-  async getModelState(model_id) {
+  async getSerializedModelState(model_id) {
     // log("getModelState", model_id);
     if (this.manager.ipywidgets_state.get_state() != "ready") {
       await once(this.manager.ipywidgets_state, "ready");
@@ -608,6 +611,7 @@ class Environment implements WidgetEnvironment {
           model_id,
           "k3d: waiting for state.type to be defined",
         );
+
         await once(this.manager.ipywidgets_state, "change");
         state = this.manager.ipywidgets_state.get_model_state(model_id);
       }
@@ -631,9 +635,9 @@ class Environment implements WidgetEnvironment {
         setInObject(state, buffer_paths[i], buffer);
       }
     }
-    setTimeout(() => this.manager.watchModel(model_id), 1);
 
     log("getModelState", { model_id, state });
+    setTimeout(() => this.manager.watchModel(model_id), 1);
     return {
       modelName: state._model_name,
       modelModule: state._model_module,

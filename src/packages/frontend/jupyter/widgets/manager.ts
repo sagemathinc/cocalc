@@ -16,7 +16,6 @@ import * as react_output from "./output";
 import * as react_controls from "./controls";
 import { size } from "lodash";
 import { delay } from "awaiting";
-import * as k3d from "./k3d";
 
 /*
 NOTES: Third party custom widgets:
@@ -592,7 +591,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     } else if (moduleName === "k3d") {
       // NOTE: I completely rewrote the entire k3d widget interface, since
       // it made tons of assumptions that break RTC.
-      module = k3d;
+      module = await import('k3d');
     } else if (moduleName === "jupyter-matplotlib") {
       //module = await import("jupyter-matplotlib");
       throw Error(`custom widgets: ${moduleName} not installed`);

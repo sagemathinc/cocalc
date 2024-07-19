@@ -38,7 +38,8 @@ export function IpyWidget({ value, actions }: WidgetProps) {
       // console.log("IpyWidget: not rendering due to actions=null");
       return;
     }
-    if (divRef.current == null) {
+    const div = divRef.current;
+    if (div == null) {
       // console.log("IpyWidget: not rendering due to divRef.current=null");
       return;
     }
@@ -60,27 +61,7 @@ export function IpyWidget({ value, actions }: WidgetProps) {
       // console.log("IpyWidget: not rendering due to manager not being set");
       return;
     }
-    try {
-      manager.render(id, divRef.current);
-
-      // HACK: because upstream ipywidgets only checks for  MathJax.Hub to be defined then
-      // crashes on load -- they don't see this bug because user has to explicitly re-evaluate
-      // code to see anything on page refresh, due to all state being on the frontend.
-      // @ts-ignore
-      if (window.MathJax != null && window.MathJax.Hub == null) {
-        // @ts-ignore
-        MathJax.Hub.Queue = () => {};
-      }
-      setTimeout(() => {
-        // Run mathjax on labels:   widgets.HBox([widgets.Label(value="The $m$ in $E=mc^2$:"), widgets.FloatSlider()])
-        // @ts-ignore
-        $(divRef.current).find(".widget-label").katex?.({ preProcess: true });
-        // @ts-ignore
-        $(divRef.current).find(".widget-htmlmath").katex?.({ preProcess: true });
-      }, 0);
-    } catch (err) {
-      console.warn(err);
-    }
+    render({ manager, id, div });
   }, []);
 
   if (unknown) {
@@ -98,4 +79,28 @@ export function IpyWidget({ value, actions }: WidgetProps) {
       <div ref={divRef}></div>
     </div>
   );
+}
+
+async function render({ manager, id, div }) {
+  try {
+    await manager.render(id, div);
+
+    // HACK: because upstream ipywidgets only checks for  MathJax.Hub to be defined then
+    // crashes on load -- they don't see this bug because user has to explicitly re-evaluate
+    // code to see anything on page refresh, due to all state being on the frontend.
+    // @ts-ignore
+    if (window.MathJax != null && window.MathJax.Hub == null) {
+      // @ts-ignore
+      MathJax.Hub.Queue = () => {};
+    }
+    setTimeout(() => {
+      // @ts-ignore
+      const elt = $(div) as any;
+      // Run mathjax on labels:   widgets.HBox([widgets.Label(value="The $m$ in $E=mc^2$:"), widgets.FloatSlider()])
+      elt.find(".widget-label").katex?.({ preProcess: true });
+      elt.find(".widget-htmlmath").katex?.({ preProcess: true });
+    }, 0);
+  } catch (err) {
+    console.error("Error Rendering Widget:", err);
+  }
 }

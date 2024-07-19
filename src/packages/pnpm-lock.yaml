@@ -276,8 +276,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@cocalc/widgets':
-        specifier: ^1.1.1
-        version: 1.1.1
+        specifier: ^1.1.2
+        version: 1.1.2
       '@cocalc/xpra-lz4':
         specifier: ^1.1.0
         version: 1.1.0
@@ -2653,8 +2653,8 @@ packages:
     resolution: {integrity: sha512-nFHqPo9zxbPNRkMzFH/ZbVrrp3RGb0vAVWSRG67+j8dwt3MN9pqZSEUOfWUt9AURsRJd9IR+gLnwrczQTNu6Zg==}
     engines: {node: '>=0.10.28'}
 
-  '@cocalc/widgets@1.1.1':
-    resolution: {integrity: sha512-2qAYjvdIHvQpKI5h4t2TmZ80n6s1iO9nE8bk21wd29X4dnEaMU6/N2SDPg/kkwS2Akxyl0u4i+0b9MW/XnpMbg==}
+  '@cocalc/widgets@1.1.2':
+    resolution: {integrity: sha512-pO8jtqpH18MoXVN0oiF3zWOYWNhoWS2faT4qK8G1c6T7LwaeeZ4+M0Un2hdGrITEJ/QNlFZ4AON8CXg5XjFO3Q==}
 
   '@cocalc/xpra-lz4@1.1.0':
     resolution: {integrity: sha512-1+WqiakKIGzSrMCiOVvrxx+9tTpYR4bW0uw9sImFLbW7abZ/+EgYm2IwHUm1JNSpWCI6N6qj7jkIDIaq1ODxGg==}
@@ -12674,7 +12674,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@cocalc/widgets@1.1.1': {}
+  '@cocalc/widgets@1.1.2': {}
 
   '@cocalc/xpra-lz4@1.1.0': {}
 
