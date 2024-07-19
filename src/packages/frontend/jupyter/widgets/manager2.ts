@@ -660,14 +660,15 @@ class Environment implements WidgetEnvironment {
     const { project_id } = actions;
     // NOTE: we are NOT caching iframes here, so iframes in output
     // widgets will refresh if you scroll them off the screen and back.
+    const trust = actions.store.get("trust");
     const component = React.createElement(
       FileContext.Provider,
       {
-        value: { noSanitize: actions.store.get("trust"), project_id },
+        value: { noSanitize: trust, project_id },
       },
       React.createElement(
         CellOutputMessage,
-        { message, actions, project_id },
+        { message, actions, project_id, trust },
         null,
       ),
     );
