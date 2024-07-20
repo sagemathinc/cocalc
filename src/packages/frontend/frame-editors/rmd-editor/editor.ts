@@ -48,12 +48,14 @@ const EDITOR_SPEC = {
       "redo",
       "format",
       "build",
+      "build_on_save",
     ]),
     buttons: set([
       "format-ai_formula",
       "decrease_font_size",
       "increase_font_size",
       "build",
+      "build_on_save",
     ]),
   } as EditorDescription,
 
