@@ -1,6 +1,6 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 ###
@@ -10,7 +10,7 @@ These are all the non-reactive non-push queries, e.g., adding entries to logs,
 checking on cookies, creating accounts and projects, etc.
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : AGPLv3
+LICENSE   : MS-RSL
 ###
 
 # limit for async.map or async.paralleLimit, esp. to avoid high concurrency when querying in parallel

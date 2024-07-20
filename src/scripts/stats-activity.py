@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 
 # this script scans the table recording file edits and tabulates the most active users and projects.
 # it bin-counts the active projects or active users by 10 minutes sized bins.
