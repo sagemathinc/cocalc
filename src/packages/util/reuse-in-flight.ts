@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // This code is a fork of the ISC licensed https://github.com/masotime/async-await-utils

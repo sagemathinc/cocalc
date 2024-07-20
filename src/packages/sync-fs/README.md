@@ -1,6 +1,6 @@
 # Compute Server Filesystem Sync
 
-## LICENSE: AGPL\+non\-commercial
+## LICENSE: MS-RSL
 
 ## Discussion
 

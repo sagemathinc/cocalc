@@ -75,6 +75,9 @@ test_llm("openai")("OpenAI", () => {
   test("gpt 4 omni works", async () => {
     llmOpenAI("gpt-4o-8k");
   });
+  test("gpt 4o mini works", async () => {
+    llmOpenAI("gpt-4o-mini-8k");
+  });
 });
 
 // ATTN: does not work everywhere around, geolocation matters

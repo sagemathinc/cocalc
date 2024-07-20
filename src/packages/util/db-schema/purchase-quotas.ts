@@ -43,6 +43,16 @@ const GPT_OMNI_8K: Spec = {
   display: `${GPT_OMNI.display} 8k`,
 } as const;
 
+const GPT_OMNI_MINI: Spec = {
+  ...GPT_OMNI,
+  display: "OpenAI GPT-4o Mini",
+};
+
+const GPT_OMNI_MINI_8K: Spec = {
+  ...GPT_OMNI_MINI,
+  display: `${GPT_OMNI_MINI.display} 8k`,
+};
+
 const GOOGLE_AI_COLOR = "#ff4d4f";
 
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
@@ -116,6 +126,8 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-4-turbo-8k": GPT_TURBO_8K,
   "openai-gpt-4o": GPT_OMNI,
   "openai-gpt-4o-8k": GPT_OMNI_8K,
+  "openai-gpt-4o-mini": GPT_OMNI_MINI,
+  "openai-gpt-4o-mini-8k": GPT_OMNI_MINI_8K,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: GOOGLE_AI_COLOR,

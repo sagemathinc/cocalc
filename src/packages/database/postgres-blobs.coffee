@@ -1,6 +1,6 @@
 #########################################################################
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
 ###
@@ -8,7 +8,7 @@ PostgreSQL -- implementation of queries needed for storage and managing blobs,
 including backups, integration with google cloud storage, etc.
 
 COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : AGPLv3
+LICENSE   : MS-RSL
 ###
 
 # Bucket used for cheaper longterm storage of blobs (outside of PostgreSQL).

@@ -435,11 +435,32 @@ addCommands({
   build: {
     group: "build",
     label: "Build",
-    title:
-      "Build the document.  To disable automatic builds, change Account → Editor → 'Build on save'.",
+    title: (
+      <>
+        Build the document.
+        <br />
+        To enable or disable automatic builds, click on the 'Build on Save'
+        button or menu entry.
+      </>
+    ),
     icon: "play-circle",
   },
-
+  build_on_save: {
+    group: "build",
+    label: () => (
+      <>
+        Build on Save{" "}
+        {redux.getStore("account").getIn(["editor_settings", "build_on_save"])
+          ? "(Enabled)"
+          : "(Disabled)"}
+      </>
+    ),
+    title: "Toggle automatic build on file save.",
+    icon: () =>
+      redux.getStore("account").getIn(["editor_settings", "build_on_save"])
+        ? "delivered-procedure-outlined"
+        : "stop-filled",
+  },
   force_build: {
     group: "build",
     label: "Force Build",

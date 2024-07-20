@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -17,8 +17,6 @@ https://github.com/overleaf/overleaf/blob/main/services/web/frontend/js/ide/log-
 
 changed the license to AGPLv3, and fixed a bunch of bugs.
 Do NOT merging in their upstream changes due to the copyright/license issues.
-The issue is that though we also use AGPLv3, we need to keep copyright of all
-AGPLv3 so we can provide non-AGPL licenses to customers.
 */
 
 import { normalize as path_normalize } from "path";

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -45,12 +45,14 @@ const EDITOR_SPEC = {
       "redo",
       "format",
       "build",
+      "build_on_save",
     ]),
     buttons: set([
       "format-ai_formula",
       "decrease_font_size",
       "increase_font_size",
       "build",
+      "build_on_save",
     ]),
   } as EditorDescription,
 

@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 
 # This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-# License: AGPLv3 s.t. "Commons Clause" – read LICENSE.md for details
+# License: MS-RSL – see LICENSE.md for details
 
 """
 This script converts a .m GNU Octave file to an SMC sagews file.
