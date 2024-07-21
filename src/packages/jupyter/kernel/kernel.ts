@@ -976,7 +976,9 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       return;
     }
     const dbg = this.dbg("process_comm_message_from_kernel");
-    dbg(mesg);
+    // This can be HUGE so don't print out the entire message; e.g., it could contain
+    // massive binary data!
+    dbg(mesg.header);
     this._actions.process_comm_message_from_kernel(mesg);
   }
 

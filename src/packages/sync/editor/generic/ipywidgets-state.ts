@@ -37,6 +37,7 @@ type Value = { [key: string]: any };
 // Also, we don't implement complete object delete yet so instead we
 // set the data field to null, which clears all state about and
 // object and makes it easy to know to ignore it.
+// We also use this time for deleting ephemeral messages.
 const GC_DEBOUNCE_MS = 10000;
 
 // If for some reason GC needs to be deleted, e.g., maybe you
@@ -475,11 +476,16 @@ scat.x, scat.y = np.random.rand(2, 50)
       }
       const [string_id, model_id, type] = JSON.parse(key);
       if (!activeIds.has(model_id)) {
+        // Delete this model from the table (or as close to delete as we have).
         this.table.set(
           { string_id, type, model_id, data: null },
           "none",
           false,
         );
+
+        // Also delete buffers for this model, which are stored in memory, and
+        // won't be requested again.
+        delete this.buffers[model_id];
       }
     });
     await this.table.save();
@@ -682,6 +688,8 @@ scat.x, scat.y = np.random.rand(2, 50)
     // the other data; otherwise, deserialization on
     // the client side can't work, since it is missing
     // the data it needs.
+    // This happens with method "update".  With method="custom",
+    // there is just an array of buffers and no buffer_paths at all.
     if (content.data.buffer_paths?.length > 0) {
       // Deal with binary buffers:
       dbg("setting binary buffers");
@@ -696,9 +704,19 @@ scat.x, scat.y = np.random.rand(2, 50)
     switch (content.data.method) {
       case "custom":
         const message = content.data.content;
-        dbg("custom message", message);
-        // NOTE: any buffers that are part of this comm message
-        // already got set above.
+        const { buffers } = msg;
+        dbg("custom message", {
+          message,
+          buffers: `${buffers?.length ?? "no"} buffers`,
+        });
+        if (
+          buffers != null &&
+          buffers.length > 0 &&
+          content.data.buffer_paths == null
+        ) {
+          // TODO
+          dbg("custom message  -- there are BUFFERS -- NOT implemented!!");
+        }
         // We now send the message.
         this.sendCustomMessage(model_id, message, false);
         break;
@@ -893,10 +911,14 @@ with out:
     via the table for a few seconds, then remove it.  Any clients
     that are connected while we do this can react, and any that aren't
     just don't get the message (which is presumably fine).
+
+    Some widgets like ipympl use this to initialize state, so when a new
+    client connects, it requests a message describing the plot, and everybody
+    receives it.
     */
 
     this.set(model_id, "message", message, fire_change_event);
-    await delay(3000);
+    await delay(GC_DEBOUNCE_MS);
     // Actually, delete is not implemented for synctable, so for
     // now we just set it to an empty message.
     this.set(model_id, "message", {}, fire_change_event);

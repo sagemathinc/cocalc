@@ -330,14 +330,19 @@ VBox([s1, s2])
     const message = this.ipywidgets_state.get_message(model_id);
     log("handleMessageChange: ", model_id, message);
     if (size(message) == 0) {
-      // TODO: temporary until we have delete functionality (?)
+      // TODO: temporary until we have delete functionality for tables
+      log("handleMessageChange: message is empty -- nothing to do");
       return;
     }
+    log("handleMessageChange: getting model", model_id);
     const model = await this.manager.get_model(model_id);
-    if (model == null) {
-      log("handleMessageChange: no model yet");
-      return;
-    }
+    log(
+      "handleMessageChange:",
+      "got model",
+      model_id,
+      "and now sending msg:custom",
+      message,
+    );
     model.trigger("msg:custom", message);
   };
 
@@ -613,15 +618,11 @@ class Environment implements WidgetEnvironment {
   }
 
   async loadClass(
-    className: string,
-    moduleName: string,
+    _className: string,
+    _moduleName: string,
     _moduleVersion: string,
   ): Promise<any> {
-    if (false && moduleName === "k3d") {
-      // NOTE: I completely rewrote the entire k3d widget interface...
-      console.log("using builtin k3d");
-      return await import("k3d")[className];
-    }
+    return;
   }
 
   async getSerializedModelState(model_id) {
