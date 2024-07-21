@@ -7,7 +7,7 @@ import * as base from "@jupyter-widgets/base";
 import * as phosphor_controls from "@jupyter-widgets/controls";
 import {
   IpywidgetsState,
-  ModelState,
+  SerializedModelState as ModelState,
 } from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
 import { Comm as ClassicComm } from "./comm";
@@ -146,12 +146,12 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
   ): Promise<void> {
     if (!this.has_model(model_id)) {
       // given table a chance to push out the corresponding value update
-      // before we create the model.  Otherwise get_model_state below
+      // before we create the model.  Otherwise getSerializedModelState below
       // can't take into account the value.
       await this.waitUntilTableStabilizes();
     }
     const state: ModelState | undefined =
-      this.ipywidgets_state.get_model_state(model_id);
+      this.ipywidgets_state.getSerializedModelState(model_id);
     if (state == null) {
       // nothing to do...
       return;
@@ -591,7 +591,7 @@ export class WidgetManager extends base.ManagerBase<HTMLElement> {
     } else if (moduleName === "k3d") {
       // NOTE: I completely rewrote the entire k3d widget interface, since
       // it made tons of assumptions that break RTC.
-      module = await import('k3d');
+      module = await import("k3d");
     } else if (moduleName === "jupyter-matplotlib") {
       //module = await import("jupyter-matplotlib");
       throw Error(`custom widgets: ${moduleName} not installed`);

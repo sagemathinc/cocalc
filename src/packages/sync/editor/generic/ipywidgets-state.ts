@@ -57,7 +57,7 @@ export interface Message {
   // don't know yet...
 }
 
-export type ModelState = { [key: string]: any };
+export type SerializedModelState = { [key: string]: any };
 
 export class IpywidgetsState extends EventEmitter {
   private syncdoc: SyncDoc;
@@ -168,7 +168,7 @@ export class IpywidgetsState extends EventEmitter {
 
   // assembles together state we know about the widget with given model_id
   // from info in the table, and returns it as a Javascript object.
-  get_model_state = (model_id: string): ModelState | undefined => {
+  getSerializedModelState = (model_id: string): SerializedModelState | undefined => {
     this.assert_state("ready");
     const state = this.get(model_id, "state");
     if (state == null) {

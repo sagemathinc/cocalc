@@ -14,7 +14,7 @@ import type {
 } from "@cocalc/widgets";
 import {
   IpywidgetsState,
-  ModelState,
+  SerializedModelState,
 } from "@cocalc/sync/editor/generic/ipywidgets-state";
 import { once } from "@cocalc/util/async-utils";
 import { is_array, is_object, len, uuid } from "@cocalc/util/misc";
@@ -25,6 +25,8 @@ import ReactDOM from "react-dom/client";
 import { size } from "lodash";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+
+type DeserializedModelState = { [key: string]: any };
 
 export type SendCommFunction = (string, data) => string;
 
@@ -57,7 +59,7 @@ export class WidgetManager {
     this.ipywidgets_state.on("change", async (keys) => {
       for (const key of keys) {
         const [, model_id, type] = JSON.parse(key);
-        this.handleIpWidgetsChange({ model_id, type });
+        this.handleIpwidgetsTableChange({ model_id, type });
       }
     });
   }
@@ -86,6 +88,7 @@ VBox([s1, s2])
       if (type == "state") {
         (async () => {
           try {
+            // causes initialization:
             await this.manager.get_model(model_id);
             // also ensure any buffers are set, e.g., this is needed when loading
             // https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#image
@@ -99,11 +102,17 @@ VBox([s1, s2])
     }
   };
 
-  private handleIpWidgetsChange = async ({ model_id, type }) => {
-    log("handleIpWidgetsChange", { model_id, type });
+  private handleIpwidgetsTableChange = async ({ model_id, type }) => {
+    log("handleIpwidgetsTableChange", { model_id, type });
     switch (type) {
       case "state":
-        await this.ipywidgets_state_StateChange(model_id);
+        // Overall state is only used for creating widget when it is
+        // rendered for the first time as part of Environment.getSerializedModelState
+        // So do NOT call it again here on any change.  Updates for RTC use
+        // type='value'. Doing this causes a lot of noise, which e.g., completely
+        // breaks rendering using the threejs custom widgets, e.g., this breaks;
+        //   from pythreejs import DodecahedronGeometry; DodecahedronGeometry()
+        // await this.ipywidgets_state_StateChange(model_id);
         break;
       case "value":
         await this.ipywidgets_state_ValueChange(model_id);
@@ -120,19 +129,19 @@ VBox([s1, s2])
     }
   };
 
-  private ipywidgets_state_StateChange = async (model_id: string) => {
-    log("handleStateChange: ", model_id);
-    const state = this.ipywidgets_state.get_model_state(model_id);
-    log("handleStateChange: state=", state);
-    if (state == null) {
-      return;
-    }
-    await this.updateModel(model_id, state!, false);
-  };
+  //   private ipywidgets_state_StateChange = async (model_id: string) => {
+  //     log("ipywidgets_state_StateChange: ", model_id);
+  //     const state = this.ipywidgets_state.getSerializedModelState(model_id);
+  //     log("ipywidgets_state_StateChange: state=", JSON.stringify(state));
+  //     if (state == null) {
+  //       return;
+  //     }
+  //     await this.updateModel(model_id, state!, false);
+  //   };
 
   private updateModel = async (
     model_id: string,
-    changed: ModelState,
+    changed: SerializedModelState,
     merge: boolean,
   ): Promise<void> => {
     const model: base.DOMWidgetModel | undefined =
@@ -145,14 +154,9 @@ VBox([s1, s2])
     if (changed.last_changed != null) {
       this.last_changed[model_id] = changed;
     }
-    const success = await this.dereferenceModelLinks(changed);
-    if (!success) {
-      console.warn(
-        "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.",
-      );
-      return;
-    }
+
     changed = await this.deserializeState(model, changed);
+
     if (changed.hasOwnProperty("outputs") && changed["outputs"] == null) {
       // It can definitely be 'undefined' but set, e.g., the 'out.clear_output()' example at
       // https://ipywidgets.readthedocs.io/en/latest/examples/Output%20Widget.html
@@ -161,23 +165,40 @@ VBox([s1, s2])
       changed["outputs"] = [];
     }
     if (merge) {
-      const state = model.get_state(false);
-      const x: ModelState = {};
+      const deserializedState = model.get_state(false);
+      const x: DeserializedModelState = {};
       for (const k in changed) {
-        if (state[k] != null && is_object(state[k]) && is_object(changed[k])) {
-          x[k] = { ...state[k], ...changed[k] };
+        if (
+          deserializedState[k] != null &&
+          is_object(deserializedState[k]) &&
+          is_object(changed[k])
+        ) {
+          x[k] = { ...deserializedState[k], ...changed[k] };
         } else {
           x[k] = changed[k];
         }
       }
       changed = x;
     }
-    log("updateModel -- doing set_state", { model_id, merge, changed });
+
+    const success = await this.dereferenceModelLinks(changed);
+    if (!success) {
+      console.warn(
+        "update model suddenly references not known models -- can't handle this yet (TODO!); ignoring update.",
+      );
+      return;
+    }
+
+    log("updateModel -- doing set", {
+      model_id,
+      merge,
+      changed: { ...changed },
+    });
     try {
       model.set(changed);
     } catch (err) {
-      //window.z = { merge, model, model_id, changed };
-      console.error("saved to z", err);
+      // window.z = { merge, model, model_id, changed: { ...changed } };
+      console.error("updateModel set failed -- ", err);
     }
   };
 
@@ -235,10 +256,11 @@ VBox([s1, s2])
   // via ipywidgets_state_BuffersChange!
   private setBuffers = async (
     model_id: string,
-    state: ModelState,
+    state: SerializedModelState,
   ): Promise<void> => {
     const { buffer_paths, buffers } =
       await this.ipywidgets_state.get_model_buffers(model_id);
+    log("setBuffers", model_id, buffer_paths);
     if (buffer_paths.length == 0) {
       return; // nothing to do
     }
@@ -273,7 +295,7 @@ VBox([s1, s2])
       return;
     }
     log("handleBuffersChange: ", { model_id, buffer_paths, buffers });
-    const state = this.ipywidgets_state.get_model_state(model_id);
+    const state = this.ipywidgets_state.getSerializedModelState(model_id);
     if (state == null) {
       log("handleBuffersChange: no state data", { model_id });
       return;
@@ -295,7 +317,7 @@ VBox([s1, s2])
         model.set(deserializedChange);
       } catch (err) {
         // window.y = { model_id, model, change, buffer_paths, buffers };
-        console.error("saved to y", err);
+        console.error("ipywidgets_state_BuffersChange failed -- ", err);
       }
     }
   };
@@ -372,8 +394,8 @@ VBox([s1, s2])
 
   private deserializeState = async (
     model: base.DOMWidgetModel,
-    serialized_state: ModelState,
-  ): Promise<ModelState> => {
+    serialized_state: SerializedModelState,
+  ): Promise<DeserializedModelState> => {
     // log("deserializeState", { model, serialized_state });
     // NOTE: this is a reimplementation of soemething in
     //     ipywidgets/packages/base/src/widget.ts
@@ -393,8 +415,8 @@ VBox([s1, s2])
   private _deserializeState = async (
     model_id: string,
     constructor: any,
-    serialized_state: ModelState,
-  ): Promise<ModelState> => {
+    serialized_state: SerializedModelState,
+  ): Promise<DeserializedModelState> => {
     //     console.log("_deserialize_state", {
     //       model_id,
     //       constructor,
@@ -409,11 +431,15 @@ VBox([s1, s2])
     // We skip deserialize if the deserialize function is unpack_model,
     // since we do our own model unpacking, due to issues with ordering
     // and RTC.
-    const deserialized: ModelState = {};
+    const deserialized: DeserializedModelState = {};
     await this.setBuffers(model_id, serialized_state);
     for (const k in serialized_state) {
       const deserialize = serializers[k]?.deserialize;
-      if (deserialize != null && !is_unpack_models(deserialize)) {
+      if (
+        deserialize != null &&
+        !is_unpack_models(deserialize) &&
+        !isModelReference(serialized_state[k])
+      ) {
         deserialized[k] = deserialize(serialized_state[k]);
       } else {
         deserialized[k] = serialized_state[k];
@@ -445,7 +471,7 @@ VBox([s1, s2])
   private dereferenceModelLink = async (
     val: string,
   ): Promise<base.DOMWidgetModel | undefined> => {
-    if (val.slice(0, 10) !== "IPY_MODEL_") {
+    if (!isModelReference(val)) {
       throw Error(`val (="${val}") is not a model reference.`);
     }
 
@@ -454,27 +480,21 @@ VBox([s1, s2])
   };
 
   dereferenceModelLinks = async (state): Promise<boolean> => {
-    // log("dereferenceModelLinks", "BEFORE", state);
+    // log("dereferenceModelLinks", "BEFORE", { ...state });
     for (const key in state) {
       const val = state[key];
-      if (typeof val === "string") {
-        // single string
-        if (val.slice(0, 10) === "IPY_MODEL_") {
-          // that is a reference
-          const model = await this.dereferenceModelLink(val);
-          if (model != null) {
-            state[key] = model;
-          } else {
-            return false; // something can't be resolved yet.
-          }
+      if (isModelReference(val)) {
+        // that is a reference
+        const model = await this.dereferenceModelLink(val);
+        if (model != null) {
+          state[key] = model;
+        } else {
+          return false; // something can't be resolved yet.
         }
       } else if (is_array(val)) {
         // array of stuff
         for (const i in val) {
-          if (
-            typeof val[i] === "string" &&
-            val[i].slice(0, 10) === "IPY_MODEL_"
-          ) {
+          if (isModelReference(val[i])) {
             // this one is a string reference
             const model = await this.dereferenceModelLink(val[i]);
             if (model != null) {
@@ -487,7 +507,7 @@ VBox([s1, s2])
       } else if (is_object(val)) {
         for (const key in val) {
           const z = val[key];
-          if (typeof z == "string" && z.slice(0, 10) == "IPY_MODEL_") {
+          if (isModelReference(z)) {
             const model = await this.dereferenceModelLink(z);
             if (model != null) {
               val[key] = model;
@@ -498,7 +518,7 @@ VBox([s1, s2])
         }
       }
     }
-    // log("dereferenceModelLinks", "AFTER (success)", state);
+    // log("dereferenceModelLinks", "AFTER (success)", { ...state });
     return true;
   };
 
@@ -602,16 +622,16 @@ class Environment implements WidgetEnvironment {
   }
 
   async getSerializedModelState(model_id) {
-    // log("getModelState", model_id);
+    // log("getSerializedModelState", model_id);
     if (this.manager.ipywidgets_state.get_state() != "ready") {
       await once(this.manager.ipywidgets_state, "ready");
     }
-    let state = this.manager.ipywidgets_state.get_model_state(model_id);
+    let state = this.manager.ipywidgets_state.getSerializedModelState(model_id);
     if (!state) {
-      log("getModelState", model_id, "not yet known -- waiting");
+      log("getSerializedModelState", model_id, "not yet known -- waiting");
       while (state == null) {
         await once(this.manager.ipywidgets_state, "change");
-        state = this.manager.ipywidgets_state.get_model_state(model_id);
+        state = this.manager.ipywidgets_state.getSerializedModelState(model_id);
       }
     }
     if (state == null) {
@@ -620,13 +640,13 @@ class Environment implements WidgetEnvironment {
     if (state._model_module == "k3d" && state.type != null) {
       while (!state?.type || !state?.id) {
         log(
-          "getModelState",
+          "getSerializedModelState",
           model_id,
           "k3d: waiting for state.type to be defined",
         );
 
         await once(this.manager.ipywidgets_state, "change");
-        state = this.manager.ipywidgets_state.get_model_state(model_id);
+        state = this.manager.ipywidgets_state.getSerializedModelState(model_id);
       }
     }
     if (state == null) {
@@ -649,7 +669,7 @@ class Environment implements WidgetEnvironment {
       }
     }
 
-    log("getModelState", { model_id, state });
+    log("getSerializedModelState", { model_id, state });
     setTimeout(() => this.manager.watchModel(model_id), 1);
     return {
       modelName: state._model_name,
@@ -736,4 +756,9 @@ function setInObject(obj: any, path: string[], value: any) {
   }
   // and then set: obj[z] = value
   obj[path[path.length - 1]] = value;
+}
+
+const IPY_MODEL = "IPY_MODEL_";
+function isModelReference(value): boolean {
+  return typeof value == "string" && value.startsWith(IPY_MODEL);
 }

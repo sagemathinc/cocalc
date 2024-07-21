@@ -53,7 +53,7 @@ export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
       // console.log("IpyWidget: not rendering due to widget_manager=null");
       return;
     }
-    if (widget_manager.ipywidgets_state.get_model_state(id) == null) {
+    if (widget_manager.ipywidgets_state.getSerializedModelState(id) == null) {
       // console.log("IpyWidget: not rendering due to uknown model state");
       setUnknown(true);
       return;

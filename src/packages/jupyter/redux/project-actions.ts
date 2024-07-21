@@ -1362,7 +1362,7 @@ export class JupyterActions extends JupyterActions0 {
         // and could lead to race conditions probably with multiple users, etc.
         // It happens right when the widget is created.
         /*
-        const state = this.syncdb.ipywidgets_state.get_model_state(model_id);
+        const state = this.syncdb.ipywidgets_state.getModelSerializedState(model_id);
         data = { method: "update", state };
         this.jupyter_kernel.send_comm_message_to_kernel(
           misc.uuid(),
