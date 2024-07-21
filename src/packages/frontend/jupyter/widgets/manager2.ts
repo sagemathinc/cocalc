@@ -106,13 +106,7 @@ VBox([s1, s2])
     log("handleIpwidgetsTableChange", { model_id, type });
     switch (type) {
       case "state":
-        // Overall state is only used for creating widget when it is
-        // rendered for the first time as part of Environment.getSerializedModelState
-        // So do NOT call it again here on any change.  Updates for RTC use
-        // type='value'. Doing this causes a lot of noise, which e.g., completely
-        // breaks rendering using the threejs custom widgets, e.g., this breaks;
-        //   from pythreejs import DodecahedronGeometry; DodecahedronGeometry()
-        // await this.ipywidgets_state_StateChange(model_id);
+        await this.ipywidgets_state_StateChange(model_id);
         break;
       case "value":
         await this.ipywidgets_state_ValueChange(model_id);
@@ -129,15 +123,28 @@ VBox([s1, s2])
     }
   };
 
-  //   private ipywidgets_state_StateChange = async (model_id: string) => {
-  //     log("ipywidgets_state_StateChange: ", model_id);
-  //     const state = this.ipywidgets_state.getSerializedModelState(model_id);
-  //     log("ipywidgets_state_StateChange: state=", JSON.stringify(state));
-  //     if (state == null) {
-  //       return;
-  //     }
-  //     await this.updateModel(model_id, state!, false);
-  //   };
+  private ipywidgets_state_StateChange = async (model_id: string) => {
+    // Overall state is only used for creating widget when it is
+    // rendered for the first time as part of Environment.getSerializedModelState,
+    // if it is called.  Some widgets though need to get created, but they are
+    // never rendered, so we only know about them due to state change.
+    //
+    // First: We only do this once if getSerializedModelState didn't happen.  Updates for RTC use
+    // type='value'. Doing this causes a lot of noise, which e.g., completely
+    // breaks rendering using the threejs custom widgets, e.g., this breaks;
+    //   from pythreejs import DodecahedronGeometry; DodecahedronGeometry()
+    //
+    // Second: This example shows that sometimes getSerializedModelState is never called, so
+    // it's important to call this in some cases:
+    //   from ipywidgets import VBox, jsdlink, IntSlider, Button; s1 = IntSlider(max=200, value=100); s2 = IntSlider(value=40); VBox([s1, s2])
+    //   jsdlink((s1, 'value'), (s2, 'max'))
+    //
+
+    // The solution: make sure the model gets created if state change is called.
+    // This results in getSerializedModelState being called and causes no
+    // problems if it were getting called anyways and works in both cases above.
+    await this.manager.get_model(model_id);
+  };
 
   private updateModel = async (
     model_id: string,
