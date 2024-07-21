@@ -65,9 +65,6 @@ export class WidgetManager {
   }
 
   private initAllModels = async () => {
-    // TODO: this can do a lot that makes no sense
-    // due to lack of garbage collection and any link to what is actually
-    // in the notebook.
     /*
     With this disabled, this breaks for RTC or close/open:
 
@@ -76,7 +73,6 @@ s1 = IntSlider(max=200, value=100); s2 = IntSlider(value=40)
 jsdlink((s1, 'value'), (s2, 'max'))
 VBox([s1, s2])
     */
-    // log("initAllModels: temporarily disabled"); return;
 
     if (this.ipywidgets_state.get_state() == "init") {
       await once(this.ipywidgets_state, "ready");

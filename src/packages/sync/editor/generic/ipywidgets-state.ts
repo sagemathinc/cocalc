@@ -34,17 +34,18 @@ type Value = { [key: string]: any };
 // backend project, and not by frontend browser clients.
 // The garbage collection is deleting models and related
 // data when they are not referenced in the notebook.
+// Also, we don't implement complete object delete yet so instead we
+// set the data field to null, which clears all state about and
+// object and makes it easy to know to ignore it.
 const GC_DEBOUNCE_MS = 10000;
 
-// actually doing GC is bonus points; I don't think upstream even does it,
-// and it seems very hard to get right without causing subtle bugs.  We disable
-// it for now.  I think this core example breaks it, because the link isn't
-// taken into account properly:
-// from ipywidgets import VBox, jsdlink, IntSlider, Button
-// s1 = IntSlider(max=200, value=100); s2 = IntSlider(value=40)
-// jsdlink((s1, 'value'), (s2, 'max'))
-// VBox([s1, s2])
-const DISABLE_GC = true;
+// If for some reason GC needs to be deleted, e.g., maybe you
+// suspect a bug, just toggle this flag.  In particular, note
+// includeThirdPartyReferences below that has to deal with a special
+// case schema that k3d uses for references, which they just made up,
+// which works with official upstream, since that has no garbage
+// collection.
+const DISABLE_GC = false;
 
 interface CommMessage {
   header: { msg_id: string };
@@ -168,7 +169,9 @@ export class IpywidgetsState extends EventEmitter {
 
   // assembles together state we know about the widget with given model_id
   // from info in the table, and returns it as a Javascript object.
-  getSerializedModelState = (model_id: string): SerializedModelState | undefined => {
+  getSerializedModelState = (
+    model_id: string,
+  ): SerializedModelState | undefined => {
     this.assert_state("ready");
     const state = this.get(model_id, "state");
     if (state == null) {
@@ -379,7 +382,7 @@ export class IpywidgetsState extends EventEmitter {
       // new ones come or current ones change.  With shallow merge,
       // the existing ones go away, which is very broken, e.g.,
       // see this with this example:
-/*
+      /*
 import bqplot.pyplot as plt
 import numpy as np
 x, y = np.random.rand(2, 10)
@@ -466,7 +469,10 @@ scat.x, scat.y = np.random.rand(2, 50)
     // which is why we just set the data to null.
     const activeIds = this.getActiveModelIds();
     this.table.get()?.forEach((val, key) => {
-      if (key == null || val == null || val.get("data") == null) return; // already deleted
+      if (key == null || val?.get("data") == null) {
+        // already deleted
+        return;
+      }
       const [string_id, model_id, type] = JSON.parse(key);
       if (!activeIds.has(model_id)) {
         this.table.set(
@@ -501,8 +507,11 @@ scat.x, scat.y = np.random.rand(2, 50)
       }
       after = modelIds.size;
     }
-    // Also any custom ways of doing referencing...
+    // Also any custom ways of doing referencing -- e.g., k3d does this.
     this.includeThirdPartyReferences(modelIds);
+
+    // Also anything that references any modelIds
+    this.includeReferenceTo(modelIds);
 
     return modelIds;
   };
@@ -532,6 +541,30 @@ scat.x, scat.y = np.random.rand(2, 50)
       }
     });
     return this.getReferencedModelIds(modelIds);
+  };
+
+  private includeReferenceTo = (modelIds: Set<string>) => {
+    // This example is extra tricky and one version of our GC broke it:
+    // from ipywidgets import VBox, jsdlink, IntSlider, Button; s1 = IntSlider(max=200, value=100); s2 = IntSlider(value=40); jsdlink((s1, 'value'), (s2, 'max')); VBox([s1, s2])
+    // What happens here is that this jsdlink model ends up referencing live widgets,
+    // but is not referenced by any cell, so it would get garbage collected.
+
+    let before = -1;
+    let after = modelIds.size;
+    while (before < after) {
+      before = modelIds.size;
+      this.table.get()?.forEach((val) => {
+        const data = val?.get("data");
+        if (data != null) {
+          for (const model_id of getModelIds(data)) {
+            if (modelIds.has(model_id)) {
+              modelIds.add(val.get("model_id"));
+            }
+          }
+        }
+      });
+      after = modelIds.size;
+    }
   };
 
   private includeThirdPartyReferences = (modelIds: Set<string>) => {
