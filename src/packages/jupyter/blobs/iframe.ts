@@ -13,6 +13,11 @@ import { decode } from "he";
 //import { getLogger } from "@cocalc/backend/logger";
 //const logger = getLogger("jupyter:blobs:iframe");
 
+// We use iframes to render html in a number of cases:
+//  - if it starts with iframe
+//  - if it has a whole page doctype
+//  - if it has a <script> tag anywhere without a type -- since those are ignored by safe HTML
+//    rendering; using an iframe is the only way.  This e.g., makes mpld3 work!  https://github.com/sagemathinc/cocalc/issues/1934
 export function is_likely_iframe(content: string): boolean {
   if (!content) {
     return false;
@@ -23,7 +28,8 @@ export function is_likely_iframe(content: string): boolean {
     content.includes("<!doctype html>") ||
     (content.includes("<html>") && content.includes("<head>")) ||
     // special case "altair" inline html -- https://github.com/sagemathinc/cocalc/issues/4468
-    content.includes('id="altair-viz-')
+    content.includes('id="altair-viz-') ||
+    content.includes("<script>")
   );
 }
 
