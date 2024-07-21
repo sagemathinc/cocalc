@@ -11,7 +11,7 @@ import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
 import { from_json, to_json, merge_copy, uuid } from "@cocalc/util/misc";
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
-import { WidgetManager } from "./widgets/manager2";
+import { WidgetManager } from "./widgets/manager";
 import { CursorManager } from "./cursor-manager";
 import { ConfirmDialogOptions } from "./confirm-dialog";
 import { callback2, once } from "@cocalc/util/async-utils";
