@@ -22,7 +22,6 @@ import { fromJS } from "immutable";
 import { CellOutputMessage } from "@cocalc/frontend/jupyter/output-messages/message";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { size } from "lodash";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 
@@ -262,7 +261,7 @@ VBox([s1, s2])
     state: SerializedModelState,
   ): Promise<void> => {
     const { buffer_paths, buffers } =
-      await this.ipywidgets_state.get_model_buffers(model_id);
+      await this.ipywidgets_state.getModelBuffers(model_id);
     log("setBuffers", model_id, buffer_paths);
     if (buffer_paths.length == 0) {
       return; // nothing to do
@@ -293,7 +292,7 @@ VBox([s1, s2])
        https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#image
     */
     const { buffer_paths, buffers } =
-      await this.ipywidgets_state.get_model_buffers(model_id);
+      await this.ipywidgets_state.getModelBuffers(model_id);
     if (buffer_paths.length == 0) {
       return;
     }
@@ -327,23 +326,14 @@ VBox([s1, s2])
 
   private ipywidgets_state_MessageChange = async (model_id: string) => {
     // does this needs to tie into openCommChannel in the Environment...?
-    const message = this.ipywidgets_state.get_message(model_id);
-    log("handleMessageChange: ", model_id, message);
-    if (size(message) == 0) {
-      // TODO: temporary until we have delete functionality for tables
-      log("handleMessageChange: message is empty -- nothing to do");
+    const x = await this.ipywidgets_state.getMessage(model_id);
+    if (x == null) {
       return;
     }
-    log("handleMessageChange: getting model", model_id);
+    const { message, buffers } = x;
+    log("handleMessageChange: ", model_id, message, buffers);
     const model = await this.manager.get_model(model_id);
-    log(
-      "handleMessageChange:",
-      "got model",
-      model_id,
-      "and now sending msg:custom",
-      message,
-    );
-    model.trigger("msg:custom", message);
+    model.trigger("msg:custom", message, buffers);
   };
 
   // [ ] TODO: maybe have to keep trying for a while until model exists!
@@ -664,7 +654,7 @@ class Environment implements WidgetEnvironment {
       state["outputs"] = [];
     }
     const { buffer_paths, buffers } =
-      await this.manager.ipywidgets_state.get_model_buffers(model_id);
+      await this.manager.ipywidgets_state.getModelBuffers(model_id);
 
     if (buffers.length > 0) {
       for (let i = 0; i < buffer_paths.length; i++) {

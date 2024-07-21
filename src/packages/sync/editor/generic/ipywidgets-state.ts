@@ -21,7 +21,6 @@ import {
 import { SyncDoc } from "./sync-doc";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { Client } from "./types";
-import { delay } from "awaiting";
 import { debounce } from "lodash";
 import sha1 from "sha1";
 
@@ -37,7 +36,6 @@ type Value = { [key: string]: any };
 // Also, we don't implement complete object delete yet so instead we
 // set the data field to null, which clears all state about and
 // object and makes it easy to know to ignore it.
-// We also use this time for deleting ephemeral messages.
 const GC_DEBOUNCE_MS = 10000;
 
 // If for some reason GC needs to be deleted, e.g., maybe you
@@ -47,6 +45,9 @@ const GC_DEBOUNCE_MS = 10000;
 // which works with official upstream, since that has no garbage
 // collection.
 const DISABLE_GC = false;
+
+// ignore messages past this age.
+const MAX_MESSAGE_TIME_MS = 10000;
 
 interface CommMessage {
   header: { msg_id: string };
@@ -74,7 +75,9 @@ export class IpywidgetsState extends EventEmitter {
   // This should be done in conjunction with the main table (with gc
   // on backend, and with change to null event on the frontend).
   private buffers: {
-    [model_id: string]: { [path: string]: { buffer: Buffer; hash: string } };
+    [model_id: string]: {
+      [path: string]: { buffer: Buffer; hash: string };
+    };
   } = {};
   // Similar but used on frontend
   private arrayBuffers: {
@@ -227,7 +230,7 @@ export class IpywidgetsState extends EventEmitter {
     buffers, which is a problem I don't think upstream ipywidgets
     has to solve.
   */
-  get_model_buffers = async (
+  getModelBuffers = async (
     model_id: string,
   ): Promise<{
     buffer_paths: string[][];
@@ -258,19 +261,8 @@ export class IpywidgetsState extends EventEmitter {
         buffers.push(cur.buffer);
         return;
       }
-      // async get of the buffer efficiently via HTTP:
-      if (this.client.ipywidgetsGetBuffer == null) {
-        throw Error(
-          "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers",
-        );
-      }
       try {
-        const buffer = await this.client.ipywidgetsGetBuffer(
-          this.syncdoc.project_id,
-          auxFileToOriginal(this.syncdoc.path),
-          model_id,
-          path,
-        );
+        const buffer = await this.clientGetBuffer(model_id, path);
         this.arrayBuffers[model_id][path] = { buffer, hash };
         buffer_paths.push(JSON.parse(path));
         buffers.push(buffer);
@@ -279,23 +271,52 @@ export class IpywidgetsState extends EventEmitter {
       }
     };
     // Run f in parallel on all of the keys of value:
-    await Promise.all(value.keySeq().toJS().map(f));
+    await Promise.all(
+      value
+        .keySeq()
+        .toJS()
+        .filter((path) => path.startsWith("["))
+        .map(f),
+    );
     return { buffers, buffer_paths };
   };
 
-  // Used on the backend by the project http server
-  getBuffer = (model_id: string, buffer_path: string): Buffer | undefined => {
-    const dbg = this.dbg("getBuffer");
-    dbg("getBuffer", model_id, buffer_path);
-    return this.buffers[model_id]?.[buffer_path]?.buffer;
+  private clientGetBuffer = async (model_id: string, path: string) => {
+    // async get of the buffer efficiently via HTTP:
+    if (this.client.ipywidgetsGetBuffer == null) {
+      throw Error(
+        "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers",
+      );
+    }
+    return await this.client.ipywidgetsGetBuffer(
+      this.syncdoc.project_id,
+      auxFileToOriginal(this.syncdoc.path),
+      model_id,
+      path,
+    );
   };
 
-  private set_model_buffers = (
+  // Used on the backend by the project http server
+  getBuffer = (
     model_id: string,
-    buffer_paths: string[][],
+    buffer_path_or_sha1: string,
+  ): Buffer | undefined => {
+    const dbg = this.dbg("getBuffer");
+    dbg("getBuffer", model_id, buffer_path_or_sha1);
+    return this.buffers[model_id]?.[buffer_path_or_sha1]?.buffer;
+  };
+
+  // returns the sha1 hashes of the buffers
+  private set_model_buffers = (
+    // model that buffers are associated to:
+    model_id: string,
+    // if given, these are buffers with given paths; if not given, we
+    // store buffer associated to sha1 (which is used for custom messages)
+    buffer_paths: string[][] | undefined,
+    // the actual buffers.
     buffers: Buffer[],
     fire_change_event: boolean = true,
-  ): void => {
+  ): string[] => {
     const dbg = this.dbg("set_model_buffers");
     dbg("buffer_paths = ", buffer_paths);
 
@@ -303,16 +324,28 @@ export class IpywidgetsState extends EventEmitter {
     if (this.buffers[model_id] == null) {
       this.buffers[model_id] = {};
     }
-    for (let i = 0; i < buffer_paths.length; i++) {
-      const key = JSON.stringify(buffer_paths[i]);
-      // we set to the sha1 of the buffer not just to make getting
-      // the buffer easy, but to make it easy to KNOW if we
-      // even need to get the buffer.
-      const hash = sha1(buffers[i]);
-      data[key] = hash;
-      this.buffers[model_id][key] = { buffer: buffers[i], hash };
+    const hashes: string[] = [];
+    if (buffer_paths != null) {
+      for (let i = 0; i < buffer_paths.length; i++) {
+        const key = JSON.stringify(buffer_paths[i]);
+        // we set to the sha1 of the buffer not just to make getting
+        // the buffer easy, but to make it easy to KNOW if we
+        // even need to get the buffer.
+        const hash = sha1(buffers[i]);
+        hashes.push(hash);
+        data[key] = hash;
+        this.buffers[model_id][key] = { buffer: buffers[i], hash };
+      }
+    } else {
+      for (const buffer of buffers) {
+        const hash = sha1(buffer);
+        hashes.push(hash);
+        this.buffers[model_id][hash] = { buffer, hash };
+        data[hash] = hash;
+      }
     }
     this.set(model_id, "buffers", data, fire_change_event);
+    return hashes;
   };
 
   /*
@@ -477,6 +510,8 @@ scat.x, scat.y = np.random.rand(2, 50)
       const [string_id, model_id, type] = JSON.parse(key);
       if (!activeIds.has(model_id)) {
         // Delete this model from the table (or as close to delete as we have).
+        // This removes the last message, state, buffer info, and value,
+        // depending on type.
         this.table.set(
           { string_id, type, model_id, data: null },
           "none",
@@ -709,16 +744,25 @@ scat.x, scat.y = np.random.rand(2, 50)
           message,
           buffers: `${buffers?.length ?? "no"} buffers`,
         });
+        let buffer_hashes: string[];
         if (
           buffers != null &&
           buffers.length > 0 &&
           content.data.buffer_paths == null
         ) {
           // TODO
-          dbg("custom message  -- there are BUFFERS -- NOT implemented!!");
+          dbg("custom message  -- there are BUFFERS -- saving them");
+          buffer_hashes = this.set_model_buffers(
+            model_id,
+            undefined,
+            buffers,
+            false,
+          );
+        } else {
+          buffer_hashes = [];
         }
         // We now send the message.
-        this.sendCustomMessage(model_id, message, false);
+        this.sendCustomMessage(model_id, message, buffer_hashes, false);
         break;
 
       case "echo_update":
@@ -900,6 +944,7 @@ with out:
   private sendCustomMessage = async (
     model_id: string,
     message: object,
+    buffer_hashes: string[],
     fire_change_event: boolean = true,
   ): Promise<void> => {
     /*
@@ -907,25 +952,41 @@ with out:
 
     It's not at all clear what this should even mean in the context of
     realtime collaboration, and there will likely be clients where
-    this is bad.  But for now, we just make the message available
-    via the table for a few seconds, then remove it.  Any clients
-    that are connected while we do this can react, and any that aren't
-    just don't get the message (which is presumably fine).
+    this is bad.  But for now, we just make the last message sent
+    available via the table, and each successive message overwrites the previous
+    one.  Any clients that are connected while we do this can react,
+    and any that aren't just don't get the message (which is presumably fine).
 
     Some widgets like ipympl use this to initialize state, so when a new
     client connects, it requests a message describing the plot, and everybody
     receives it.
     */
 
-    this.set(model_id, "message", message, fire_change_event);
-    await delay(GC_DEBOUNCE_MS);
-    // Actually, delete is not implemented for synctable, so for
-    // now we just set it to an empty message.
-    this.set(model_id, "message", {}, fire_change_event);
+    this.set(
+      model_id,
+      "message",
+      { message, buffer_hashes, time: Date.now() },
+      fire_change_event,
+    );
   };
 
-  get_message = (model_id: string) => {
-    return this.get(model_id, "message")?.toJS();
+  // Return the most recent message for the given model.
+  getMessage = async (
+    model_id: string,
+  ): Promise<{ message: object; buffers: ArrayBuffer[] } | undefined> => {
+    const x = this.get(model_id, "message")?.toJS();
+    if (x == null) {
+      return undefined;
+    }
+    if (Date.now() - (x.time ?? 0) >= MAX_MESSAGE_TIME_MS) {
+      return undefined;
+    }
+    const { message, buffer_hashes } = x;
+    let buffers: ArrayBuffer[] = [];
+    for (const hash of buffer_hashes) {
+      buffers.push(await this.clientGetBuffer(model_id, hash));
+    }
+    return { message, buffers };
   };
 }
 
