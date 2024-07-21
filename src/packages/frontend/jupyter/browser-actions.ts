@@ -11,8 +11,7 @@ import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
 import { from_json, to_json, merge_copy, uuid } from "@cocalc/util/misc";
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
-import { WidgetManager } from "./widgets/manager";
-import { WidgetManager as WidgetManager2 } from "./widgets/manager2";
+import { WidgetManager } from "./widgets/manager2";
 import { CursorManager } from "./cursor-manager";
 import { ConfirmDialogOptions } from "./confirm-dialog";
 import { callback2, once } from "@cocalc/util/async-utils";
@@ -39,7 +38,6 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
-  public widget_manager2?: WidgetManager2;
   public nbgrader_actions: NBGraderActions;
   public snippet_actions: any;
 
@@ -109,17 +107,10 @@ export class JupyterActions extends JupyterActions0 {
       if (ipywidgets_state == null) {
         throw Error("bug -- ipywidgets_state must be defined");
       }
-      if (false) {
-        this.widget_manager = new WidgetManager(
-          ipywidgets_state!,
-          this.setWidgetModelIdState.bind(this),
-        );
-      } else {
-        this.widget_manager2 = new WidgetManager2({
-          ipywidgets_state: ipywidgets_state!,
-          actions: this,
-        });
-      }
+      this.widget_manager = new WidgetManager({
+        ipywidgets_state: ipywidgets_state!,
+        actions: this,
+      });
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
       // This should not be necessary, and may indicate a bug in the sync layer?
@@ -322,20 +313,6 @@ export class JupyterActions extends JupyterActions0 {
   focus_unlock = () => {
     // this.deprecated("focus_unlock");
   };
-
-  private setWidgetModelIdState(
-    model_id: string,
-    state: string | null, // '' = good; 'nonempty' = bad; null=delete
-  ): void {
-    let widgetModelIdState: Map<string, string> =
-      this.store.get("widgetModelIdState");
-    if (state === null) {
-      widgetModelIdState = widgetModelIdState.delete(model_id);
-    } else {
-      widgetModelIdState = widgetModelIdState.set(model_id, state);
-    }
-    this.setState({ widgetModelIdState });
-  }
 
   protected close_client_only(): void {
     const account = this.redux.getStore("account");
