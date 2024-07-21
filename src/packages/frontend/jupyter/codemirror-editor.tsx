@@ -623,7 +623,11 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       options0.extraKeys["PageDown"] = page_down_key;
       options0.extraKeys["Cmd-/"] = "toggleComment";
       options0.extraKeys["Ctrl-/"] = "toggleComment";
-      options0.extraKeys["Ctrl-Enter"] = () => {}; // ignore control+enter, since there's a shortcut
+      // ignore shift+enter, control+enter, alt+enter and meta+enter since there's a shortcut
+      options0.extraKeys["Shift-Enter"] = () => {};
+      options0.extraKeys["Ctrl-Enter"] = () => {};
+      options0.extraKeys["Alt-Enter"] = () => {};
+      options0.extraKeys["Cmd-Enter"] = () => {};
       /*
       Disabled for now since fold state isn't preserved.
       if (options0.foldGutter) {
