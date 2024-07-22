@@ -1,12 +1,12 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 //##############################################################################
 //
 //    CoCalc: Collaborative Calculation
-//    Copyright (C) 2016, Sagemath Inc., AGPLv3.
+//    Copyright (C) 2016, Sagemath Inc., MS-RSL.
 //
 //##############################################################################
 

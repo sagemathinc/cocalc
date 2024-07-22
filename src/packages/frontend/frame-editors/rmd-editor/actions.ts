@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -82,7 +82,7 @@ export class Actions extends MarkdownActions {
     );
   }
 
-  private do_implicit_builds(): boolean {
+  private do_build_on_save(): boolean {
     const account: any = this.redux.getStore("account");
     if (account != null) {
       return !!account.getIn(["editor_settings", "build_on_save"]);
@@ -99,7 +99,7 @@ export class Actions extends MarkdownActions {
     );
 
     const do_build = reuseInFlight(async () => {
-      if (!this.do_implicit_builds()) return;
+      if (!this.do_build_on_save()) return;
       if (this._syncstring == null) return;
       const hash = this._syncstring.hash_of_saved_version();
       if (this._last_rmd_hash != hash) {

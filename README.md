@@ -49,7 +49,7 @@ New -- Feb 2022:  If you want to work on something at https://github.com/sagemat
 - Travis Scholl
 - Hal Snyder
 - William Stein
-- Jonathan Thompson 
+- Jonathan Thompson
 - Todd Zimmerman
 
 ... and _many_ others: See https://github.com/sagemathinc/cocalc/graphs/contributors
@@ -57,21 +57,22 @@ New -- Feb 2022:  If you want to work on something at https://github.com/sagemat
 ## Copyright/License
 
 The copyright of CoCalc is owned by SageMath, Inc., and the source code
-here is released under the GNU Affero General Public License version 3+
-subject to the "Commons Clause" License Condition v1.0.
+here is released under the **MICROSOFT REFERENCE SOURCE LICENSE (MS-RSL)**.
 
-See the included file LICENSE.md and [Commons Clause](https://commonsclause.com/).
+See the included file [LICENSE.md](./LICENSE.md) for more details.
 
-None of the frontend or server dependencies of CoCalc are themselves GPL
-licensed; they all have non-viral liberal licenses. If want to host
-your own CoCalc at a company, and need a different AGPL-free license,
-please contact [help@sagemath.com](mailto:help@sagemath.com).
+None of the frontend or server dependencies of CoCalc are themselves GPL licensed;
+they all have non-viral liberal licenses.
 
-To clarify the above in relation to the "commons clause":
+To clarify the above in relation to the "reference use":
 
-- you can setup CoCalc at your own educational institution for teaching and research
-- any kind of work you do on CoCalc itself is not impacted
-- if you are unsure about whether your use of CoCalc is not allowed by "commons clause", do not hesitate to email us at [help@cocalc.com](mailto:help@cocalc.com).
+- you can download the CoCalc source code at your organization
+- you are allowed to read the source code and to inspect it
+- you are allowed to enhance the interoperability of your product with CoCalc
+- you are **not** allowed to compile and run the code
+
+**If want to host your own CoCalc at your organization, please contact [help@sagemath.com](mailto:help@sagemath.com).**
+In particular, [CoCalc OnPrem](https://cocalc.com/pricing/onprem) is designed for setting up an instance of CoCalc on-premises.
 
 ## Trademark
 
@@ -79,7 +80,7 @@ To clarify the above in relation to the "commons clause":
 
 ## Development
 
-The scripts [here](https://github.com/sagemathinc/cocalc/tree/master/src/dev) might be helpful. &nbsp;We do most of our development of CoCalc on https://cocalc.com itself.  CoCalc requires npm version at least 7.
+The scripts [here](https://github.com/sagemathinc/cocalc/tree/master/src/dev) might be helpful. &nbsp;We do most of our development of CoCalc on https://cocalc.com itself.  CoCalc requires pnpm version at least 9.
 
 ## Acknowledgements
 
