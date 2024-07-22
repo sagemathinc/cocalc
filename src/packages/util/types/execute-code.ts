@@ -18,6 +18,13 @@ export interface ExecuteCodeOutputAsync extends ExecuteCodeBase {
   job_id: string;
   status: AsyncStatus;
   elapsed_s?: number; // how long it took, async execution
+  pid?: number; // in case you want to kill it remotely, good to know the PID
+  stats?: {
+    timestamp: number;
+    mem_rss: number;
+    cpu_pct: number;
+    cpu_secs: number;
+  }[];
 }
 
 export type ExecuteCodeOutput =

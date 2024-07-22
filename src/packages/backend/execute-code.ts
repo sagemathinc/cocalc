@@ -22,8 +22,6 @@ import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
 import { callback_opts } from "@cocalc/util/async-utils";
 import { to_json, trunc, uuid, walltime } from "@cocalc/util/misc";
-import { envForSpawn } from "./misc";
-
 import {
   ExecuteCodeOutputAsync,
   ExecuteCodeOutputBlocking,
@@ -34,12 +32,16 @@ import {
   type ExecuteCodeOptionsWithCallback,
   type ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
+import { Processes } from "@cocalc/util/types/project-info/types";
+import { envForSpawn } from "./misc";
+import { ProcessStats } from "./process-stats";
 
 const log = getLogger("execute-code");
 
 const ASYNC_CACHE_MAX = envToInt("COCALC_PROJECT_ASYNC_EXEC_CACHE_MAX", 100);
 const ASYNC_CACHE_TTL_S = envToInt("COCALC_PROJECT_ASYNC_EXEC_TTL_S", 60 * 60);
-const MONITOR_INTERVAL_S = 10; // for async execution, every that many secs check up on the child-tree
+// for async execution, every that many secs check up on the child-tree
+const MONITOR_INTERVAL_S = envToInt("COCALC_PROJECT_MONITOR_INTERVAL_S", 60);
 
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
@@ -49,6 +51,14 @@ const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   updateAgeOnGet: true,
   updateAgeOnHas: true,
 });
+
+function asyncCacheUpdate(job_id: string, upd) {
+  const obj = asyncCache.get(job_id);
+  if (Array.isArray(obj?.stats) && Array.isArray(upd.stats)) {
+    obj.stats.push(...upd.stats);
+  }
+  asyncCache.set(job_id, { ...obj, ...upd });
+}
 
 // Async/await interface to executing code.
 export async function executeCode(
@@ -159,7 +169,7 @@ async function executeCodeNoAggregate(
       opts.timeout ??= 10 * 60;
       const job_id = uuid();
       const start = new Date();
-      const started: ExecuteCodeOutputAsync = {
+      const job_config: ExecuteCodeOutputAsync = {
         type: "async",
         stdout: `Process started running at ${start.toISOString()}`,
         stderr: "",
@@ -168,48 +178,51 @@ async function executeCodeNoAggregate(
         job_id,
         status: "running",
       };
-      asyncCache.set(job_id, started);
+      asyncCache.set(job_id, job_config);
 
-      doSpawn({ ...opts, origCommand, job_id }, async (err, result) => {
-        try {
-          const started = asyncCache.get(job_id)?.start ?? 0;
-          const info: Omit<
-            ExecuteCodeOutputAsync,
-            "stdout" | "stderr" | "exit_code"
-          > = {
-            job_id,
-            type: "async",
-            elapsed_s: (Date.now() - started) / 1000,
-            start: start.getTime(),
-            status: "error",
-          };
-          if (err) {
-            asyncCache.set(job_id, {
-              stdout: "",
-              stderr: `${err}`,
-              exit_code: 1,
-              ...info,
-            });
-          } else if (result != null) {
-            asyncCache.set(job_id, {
-              ...result,
-              ...info,
-              ...{ status: "completed" },
-            });
-          } else {
-            asyncCache.set(job_id, {
-              stdout: "",
-              stderr: `No result`,
-              exit_code: 1,
-              ...info,
-            });
+      doSpawn(
+        { ...opts, origCommand, job_id, job_config },
+        async (err, result) => {
+          try {
+            const started = asyncCache.get(job_id)?.start ?? 0;
+            const info: Omit<
+              ExecuteCodeOutputAsync,
+              "stdout" | "stderr" | "exit_code"
+            > = {
+              job_id,
+              type: "async",
+              elapsed_s: (Date.now() - started) / 1000,
+              start: start.getTime(),
+              status: "error",
+            };
+            if (err) {
+              asyncCacheUpdate(job_id, {
+                stdout: "",
+                stderr: `${err}`,
+                exit_code: 1,
+                ...info,
+              });
+            } else if (result != null) {
+              asyncCacheUpdate(job_id, {
+                ...result,
+                ...info,
+                ...{ status: "completed" },
+              });
+            } else {
+              asyncCacheUpdate(job_id, {
+                stdout: "",
+                stderr: `No result`,
+                exit_code: 1,
+                ...info,
+              });
+            }
+          } finally {
+            await clean_up_tmp(tempDir);
           }
-        } finally {
-          await clean_up_tmp(tempDir);
-        }
-      });
+        },
+      );
 
-      return started;
+      return job_config;
     } else {
       // This is the blocking variant
       return await callback(doSpawn, { ...opts, origCommand });
@@ -222,27 +235,44 @@ async function executeCodeNoAggregate(
 
 function update_async(
   job_id: string | undefined,
-  stream: "stdout" | "stderr",
+  aspect: "stdout" | "stderr",
   data: string,
 ) {
   if (!job_id) return;
   const obj = asyncCache.get(job_id);
   if (obj != null) {
-    obj[stream] = data;
+    obj[aspect] = data;
   }
 }
 
-function setupMonitor(_job_id: string, _pid: number) {
-  // periodically check up on the child process tree and record stats
-  // this also keeps the entry in the cache alive, when the ttl is less than the duration of the execution
-
-  const projInfo = get_ProjectInfoServer()
-
-  return setInterval(() => {}, 1000 * MONITOR_INTERVAL_S);
+function sumChildren(
+  procs: Processes,
+  children: { [pid: number]: number[] },
+  pid: number,
+): { rss: number; pct_cpu: number; cpu_secs: number } {
+  const proc = procs[`${pid}`];
+  if (proc == null) {
+    log.debug(`sumChildren: no process ${pid} in proc`);
+    return { rss: 0, pct_cpu: 0, cpu_secs: 0 };
+  }
+  let rss = proc.stat.mem.rss;
+  let pct_cpu = proc.cpu.pct;
+  let cpu_secs = proc.cpu.secs;
+  for (const ch of children[pid] ?? []) {
+    const sc = sumChildren(procs, children, ch);
+    rss += sc.rss;
+    pct_cpu += sc.pct_cpu;
+    cpu_secs += sc.cpu_secs;
+  }
+  return { rss, pct_cpu, cpu_secs };
 }
 
 function doSpawn(
-  opts,
+  opts: ExecuteCodeOptions & {
+    origCommand: string;
+    job_id?: string;
+    job_config?: ExecuteCodeOutputAsync;
+  },
   cb: (err: string | undefined, result?: ExecuteCodeOutputBlocking) => void,
 ) {
   const start_time = walltime();
@@ -258,6 +288,7 @@ function doSpawn(
       "seconds",
     );
   }
+
   const spawnOptions: SpawnOptionsWithoutStdio = {
     detached: true, // so we can kill the entire process group if it times out
     cwd: opts.path,
@@ -270,8 +301,65 @@ function doSpawn(
     },
   };
 
+  // This is the state, which will be captured in closures
   let child: ChildProcessWithoutNullStreams;
   let ran_code = false;
+  let stdout = "";
+  let stderr = "";
+  let exit_code: undefined | number = undefined;
+  let stderr_is_done = false;
+  let stdout_is_done = false;
+  let killed = false;
+  let callback_done = false;
+  let monitorRef: NodeJS.Timer | null = null;
+  let timer: NodeJS.Timeout | undefined = undefined;
+
+  // periodically check up on the child process tree and record stats
+  // this also keeps the entry in the cache alive, when the ttl is less than the duration of the execution
+  async function setupMonitor() {
+    const pid = child.pid;
+    const job_id = opts.job_id;
+    if (job_id == null || pid == null) return;
+    const monitor = new ProcessStats();
+    await monitor.init();
+    await new Promise((done) => setTimeout(done, 1000));
+    if (callback_done) return;
+
+    monitorRef = setInterval(async () => {
+      const { procs } = await monitor.processes(Date.now());
+      // reconstruct process tree
+      const children: { [pid: number]: number[] } = {};
+      for (const p of Object.values(procs)) {
+        const { pid, ppid } = p;
+        children[ppid] ??= [];
+        children[ppid].push(pid);
+      }
+      // we only consider those, which are the pid itself or one of its children
+      const { rss, pct_cpu, cpu_secs } = sumChildren(procs, children, pid);
+
+      let obj = asyncCache.get(job_id);
+      obj ??= opts.job_config; // in case the cache "forgot" about it
+      if (obj != null) {
+        obj.pid = pid;
+        obj.stats ??= [];
+        obj.stats.push({
+          timestamp: Date.now(),
+          mem_rss: rss,
+          cpu_pct: pct_cpu,
+          cpu_secs,
+        });
+        asyncCache.set(job_id, obj);
+      }
+    }, 1000 * MONITOR_INTERVAL_S);
+  }
+
+  function clearMonitor() {
+    if (monitorRef != null) {
+      clearInterval(monitorRef);
+      monitorRef = null;
+    }
+  }
+
   try {
     child = spawn(opts.command, opts.args, spawnOptions);
     if (child.stdout == null || child.stderr == null) {
@@ -294,9 +382,6 @@ function doSpawn(
   if (opts.verbose) {
     log.debug("listening for stdout, stderr and exit_code...");
   }
-  let stdout = "";
-  let stderr = "";
-  let exit_code: undefined | number = undefined;
 
   child.stdout.on("data", (data) => {
     data = data.toString();
@@ -321,10 +406,6 @@ function doSpawn(
     }
     update_async(opts.job_id, "stderr", stderr);
   });
-
-  let stderr_is_done = false;
-  let stdout_is_done = false;
-  let killed = false;
 
   child.stderr.on("end", () => {
     stderr_is_done = true;
@@ -354,10 +435,10 @@ function doSpawn(
     finish();
   });
 
-  let monitor =
-    opts.job_id && child.pid ? setupMonitor(opts.job_id, child.pid) : undefined;
+  if (opts.job_id && child.pid) {
+    setupMonitor();
+  }
 
-  let callback_done = false;
   const finish = (err?) => {
     if (!killed && (!stdout_is_done || !stderr_is_done || exit_code == null)) {
       // it wasn't killed and one of stdout, stderr, and exit_code hasn't been
@@ -370,14 +451,11 @@ function doSpawn(
     }
     // finally finish up.
     callback_done = true;
+    clearMonitor();
 
     if (timer != null) {
       clearTimeout(timer);
       timer = undefined;
-    }
-    if (monitor != null) {
-      clearInterval(monitor);
-      monitor = undefined;
     }
     if (opts.verbose && log.isEnabled("debug")) {
       log.debug(
@@ -435,7 +513,6 @@ function doSpawn(
     }
   };
 
-  let timer: NodeJS.Timeout | undefined = undefined;
   if (opts.timeout) {
     // setup a timer that will kill the command after a certain amount of time.
     const f = () => {

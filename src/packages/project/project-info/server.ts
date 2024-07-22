@@ -12,25 +12,20 @@ import { delay } from "awaiting";
 import type { DiskUsage as DF_DiskUsage } from "diskusage";
 import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
-import { readFile, readdir, readlink } from "node:fs/promises";
-import { join } from "node:path";
+import { readFile } from "node:fs/promises";
 
-// import { getOptions } from "../init-program";
+import { ProcessStats } from "@cocalc/backend/process-stats";
 import { get_kernel_by_pid } from "@cocalc/jupyter/kernel";
 import { pidToPath as terminalPidToPath } from "@cocalc/terminal";
-import { get_path_for_pid as x11_pid2path } from "../x11/server";
 import {
   CGroup,
   CoCalcInfo,
-  Cpu,
   DiskUsage,
   Process,
   Processes,
   ProjectInfo,
-  Stat,
-  State,
-} from "@cocalc/comm/project-info/types";
-import { exec } from "./utils";
+} from "@cocalc/util/types/project-info/types";
+import { get_path_for_pid as x11_pid2path } from "../x11/server";
 //import { get_sage_path } from "../sage_session"
 import { getLogger } from "../logger";
 
@@ -40,9 +35,6 @@ const L = getLogger("project-info:server").debug;
 //   return process.env.SMC_LOCAL_HUB_HOME != null;
 // }
 
-// this is a hard limit on the number of processes we gather, just to
-// be on the safe side to avoid processing too much data.
-const LIMIT = 200;
 const bytes2MiB = (bytes) => bytes / (1024 * 1024);
 
 export class ProjectInfoServer extends EventEmitter {
@@ -50,10 +42,9 @@ export class ProjectInfoServer extends EventEmitter {
   private readonly dbg: Function;
   private running = false;
   private readonly testing: boolean;
-  private ticks: number;
-  private pagesize: number;
   private delay_s: number;
   private cgroupFilesAreMissing: boolean = false;
+  private processStats: ProcessStats;
 
   constructor(testing = false) {
     super();
@@ -62,48 +53,8 @@ export class ProjectInfoServer extends EventEmitter {
     this.dbg = L;
   }
 
-  public latest(): ProjectInfo | undefined {
-    return this.last;
-  }
-
-  // this is how long the underlying machine is running
-  // we need this information, because the processes' start time is
-  // measured in "ticks" since the machine started
-  private async uptime(): Promise<[number, Date]> {
-    // return uptime in secs
-    const out = await readFile("/proc/uptime", "utf8");
-    const uptime = parseFloat(out.split(" ")[0]);
-    const boottime = new Date(new Date().getTime() - 1000 * uptime);
-    return [uptime, boottime];
-  }
-
-  // the "stat" file contains all the information
-  // this page explains what is what
-  // https://man7.org/linux/man-pages/man5/proc.5.html
-  private async stat(path: string): Promise<Stat> {
-    // all time-values are in seconds
-    const raw = await readFile(path, "utf8");
-    // the "comm" field could contain additional spaces or parents
-    const [i, j] = [raw.indexOf("("), raw.lastIndexOf(")")];
-    const start = raw.slice(0, i - 1).trim();
-    const end = raw.slice(j + 1).trim();
-    const data = `${start} comm ${end}`.split(" ");
-    const get = (idx) => parseInt(data[idx]);
-    // "comm" is now a placeholder to keep indices as they are.
-    // don't forget to account for 0 vs. 1 based indexing.
-    const ret = {
-      ppid: get(3),
-      state: data[2] as State,
-      utime: get(13) / this.ticks, // CPU time spent in user code, measured in clock ticks (#14)
-      stime: get(14) / this.ticks, // CPU time spent in kernel code, measured in clock ticks (#15)
-      cutime: get(15) / this.ticks, // Waited-for children's CPU time spent in user code (in clock ticks) (#16)
-      cstime: get(16) / this.ticks, // Waited-for children's CPU time spent in kernel code (in clock ticks) (#17)
-      starttime: get(21) / this.ticks, // Time when the process started, measured in clock ticks (#22)
-      nice: get(18),
-      num_threads: get(19),
-      mem: { rss: (get(23) * this.pagesize) / (1024 * 1024) }, // MiB
-    };
-    return ret;
+  private async processes(timestamp: number) {
+    return await this.processStats.processes(timestamp);
   }
 
   // delta-time for this and the previous process information
@@ -111,27 +62,15 @@ export class ProjectInfoServer extends EventEmitter {
     return (timestamp - (this.last?.timestamp ?? 0)) / 1000;
   }
 
-  // calculate cpu times
-  private cpu({ pid, stat, timestamp }): Cpu {
-    // we are interested in that processes total usage: user + system
-    const total_cpu = stat.utime + stat.stime;
-    // the fallback is chosen in such a way, that it says 0% if we do not have historic data
-    const prev_cpu = this.last?.processes?.[pid]?.cpu.secs ?? total_cpu;
-    const dt = this.dt(timestamp);
-    // how much cpu time was used since last time we checked this process…
-    const pct = 100 * ((total_cpu - prev_cpu) / dt);
-    return { pct: pct, secs: total_cpu };
-  }
-
-  private async cmdline(path: string): Promise<string[]> {
-    // we split at the null-delimiter and filter all empty elements
-    return (await readFile(path, "utf8"))
-      .split("\0")
-      .filter((c) => c.length > 0);
+  public latest(): ProjectInfo | undefined {
+    return this.last;
   }
 
   // for a process we know (pid, etc.) we try to map to cocalc specific information
-  private cocalc({ pid, cmdline }): CoCalcInfo | undefined {
+  private cocalc({
+    pid,
+    cmdline,
+  }: Pick<Process, "pid" | "cmdline">): CoCalcInfo | undefined {
     //this.dbg("classify", { pid, exe, cmdline });
     if (pid === process.pid) {
       return { type: "project" };
@@ -159,51 +98,15 @@ export class ProjectInfoServer extends EventEmitter {
     }
   }
 
-  // this gathers all the information for a specific process with the given pid
-  private async process({ pid: pid_str, uptime, timestamp }): Promise<Process> {
-    const base = join("/proc", pid_str);
-    const pid = parseInt(pid_str);
-    const fn = (name) => join(base, name);
-    const [cmdline, exe, stat] = await Promise.all([
-      this.cmdline(fn("cmdline")),
-      readlink(fn("exe")),
-      this.stat(fn("stat")),
-    ]);
-    const data = {
-      pid,
-      ppid: stat.ppid,
-      cmdline,
-      exe,
-      stat,
-      cpu: this.cpu({ pid, timestamp, stat }),
-      uptime: uptime - stat.starttime,
-      cocalc: this.cocalc({ pid, cmdline }),
-    };
-    return data;
-  }
-
-  // this is where we gather information about all running processes
-  private async processes({ timestamp, uptime }): Promise<Processes> {
-    const procs: Processes = {};
-    let n = 0;
-    for (const pid of await readdir("/proc")) {
-      if (!pid.match(/^[0-9]+$/)) continue;
-      try {
-        const proc = await this.process({ pid, uptime, timestamp });
-        procs[proc.pid] = proc;
-      } catch (err) {
-        if (this.testing)
-          this.dbg(`process ${pid} likely vanished – could happen – ${err}`);
-      }
-      // we avoid processing and sending too much data
-      if (n > LIMIT) {
-        this.dbg(`too many processes – limit of ${LIMIT} reached!`);
-        break;
-      } else {
-        n += 1;
-      }
+  private lookupCoCalcInfo(processes: Processes) {
+    // iterate over all processes keys (pid) and call this.cocalc({pid, cmdline})
+    // to update the processes coclc field
+    for (const pid in processes) {
+      processes[pid].cocalc = this.cocalc({
+        pid: parseInt(pid),
+        cmdline: processes[pid].cmdline,
+      });
     }
-    return procs;
   }
 
   // this is specific to running a project in a CGroup container
@@ -293,33 +196,20 @@ export class ProjectInfoServer extends EventEmitter {
     return { tmp: convert(tmp), project: convert(project) };
   }
 
-  // this grabs some kernel configuration values we need. they won't change
-  private async init(): Promise<void> {
-    if (this.ticks == null) {
-      const [p_ticks, p_pagesize] = await Promise.all([
-        exec("getconf CLK_TCK"),
-        exec("getconf PAGESIZE"),
-      ]);
-      // should be 100, usually
-      this.ticks = parseInt(p_ticks.stdout.trim());
-      // 4096?
-      this.pagesize = parseInt(p_pagesize.stdout.trim());
-    }
-  }
-
   // orchestrating where all the information is bundled up for an update
   private async get_info(): Promise<ProjectInfo | undefined> {
     try {
-      const [uptime, boottime] = await this.uptime();
-      const timestamp = new Date().getTime();
+      const timestamp = Date.now();
       const [processes, cgroup, disk_usage] = await Promise.all([
-        this.processes({ uptime, timestamp }),
+        this.processes(timestamp),
         this.cgroup({ timestamp }),
         this.disk_usage(),
       ]);
+      const { procs, boottime, uptime } = processes;
+      this.lookupCoCalcInfo(procs);
       const info: ProjectInfo = {
         timestamp,
-        processes,
+        processes: procs,
         uptime,
         boottime,
         cgroup,
@@ -349,7 +239,11 @@ export class ProjectInfoServer extends EventEmitter {
       throw Error("Cannot start ProjectInfoServer twice");
     }
     this.running = true;
-    await this.init();
+    this.processStats = new ProcessStats({
+      testing: this.testing,
+      dbg: this.dbg,
+    });
+    await this.processStats.init();
     while (true) {
       //this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
       const info = await this.get_info();

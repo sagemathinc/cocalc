@@ -30,7 +30,7 @@ import {
   ProjectInfoCmds,
   Signal,
   State,
-} from "@cocalc/comm/project-info/types";
+} from "@cocalc/util/types/project-info/types";
 import { AlertType, ComponentName } from "@cocalc/comm/project-status/types";
 import { plural, seconds2hms, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
