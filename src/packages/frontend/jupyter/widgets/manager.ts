@@ -347,17 +347,6 @@ VBox([s1, s2])
     const model = await this.manager.get_model(model_id);
     this.last_changed[model_id] = { last_changed: 0 };
     model.on("change", this.handleModelChange);
-
-    // Also, setup comm channel.
-    const comm = await this.openCommChannel({
-      comm_id: model_id,
-      target_name: "jupyter.widget",
-    });
-    model.comm = comm;
-    model.comm_live = true;
-    // TODO: we need to setup handling comm messages from
-    // the kernel, which should call model._handle_comm_msg.
-    // See ipywidgets/packages/base/src/widget.ts
   };
 
   // handleModelChange is called when an ipywidgets model changes.
@@ -533,7 +522,7 @@ VBox([s1, s2])
     metadata?: JSONValue;
     buffers?: ArrayBuffer[];
   }): Promise<IClassicComm> => {
-    // log("openCommChannel", { comm_id, target_name, data, buffers, metadata });
+    // log("openCommChannel", { comm_id, target_name, data, buffers, _metadata });
     const { send_comm_message_to_kernel } = this.actions;
 
     // TODO: we do not currently have anything at all that
