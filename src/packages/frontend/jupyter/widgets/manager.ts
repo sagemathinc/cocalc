@@ -522,7 +522,7 @@ VBox([s1, s2])
     metadata?: JSONValue;
     buffers?: ArrayBuffer[];
   }): Promise<IClassicComm> => {
-    // log("openCommChannel", { comm_id, target_name, data, buffers, _metadata });
+    log("openCommChannel", { comm_id, target_name, data, buffers, _metadata });
     const { send_comm_message_to_kernel } = this.actions;
 
     // TODO: we do not currently have anything at all that

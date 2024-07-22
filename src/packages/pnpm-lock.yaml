@@ -276,8 +276,8 @@ importers:
         specifier: workspace:*
         version: link:../util
       '@cocalc/widgets':
-        specifier: ^1.1.3
-        version: 1.1.3
+        specifier: ^1.1.4
+        version: 1.1.4
       '@cocalc/xpra-lz4':
         specifier: ^1.1.0
         version: 1.1.0
@@ -2653,8 +2653,8 @@ packages:
     resolution: {integrity: sha512-nFHqPo9zxbPNRkMzFH/ZbVrrp3RGb0vAVWSRG67+j8dwt3MN9pqZSEUOfWUt9AURsRJd9IR+gLnwrczQTNu6Zg==}
     engines: {node: '>=0.10.28'}
 
-  '@cocalc/widgets@1.1.3':
-    resolution: {integrity: sha512-HZIQUeEYmhikzN961Ydi7vyVEfjuukHRZlo0UWXyAbzTZRUUm8lgzgqmThRd28UPjKJ6k0/ZPNkI9JbINSK0Sg==}
+  '@cocalc/widgets@1.1.4':
+    resolution: {integrity: sha512-rpHRrXjLhDmiiZEYIVfrYAuN0GIJwVrwRkwkCuSuIOU5OP6CM4CJr0ud0jKeC8dqp6XyXtVB6Ht2J83fS+cWmw==}
 
   '@cocalc/xpra-lz4@1.1.0':
     resolution: {integrity: sha512-1+WqiakKIGzSrMCiOVvrxx+9tTpYR4bW0uw9sImFLbW7abZ/+EgYm2IwHUm1JNSpWCI6N6qj7jkIDIaq1ODxGg==}
@@ -5151,8 +5151,8 @@ packages:
   caniuse-lite@1.0.30001593:
     resolution: {integrity: sha512-UWM1zlo3cZfkpBysd7AS+z+v007q9G1+fLTUU42rQnY6t2axoogPW/xol6T7juU5EUoOhML4WgBIdG+9yYqAjQ==}
 
-  caniuse-lite@1.0.30001642:
-    resolution: {integrity: sha512-3XQ0DoRgLijXJErLSl+bLnJ+Et4KqV1PY6JJBGAFlsNsz31zeAIncyeZfLCabHK/jtSh+671RM9YMldxjUPZtA==}
+  caniuse-lite@1.0.30001643:
+    resolution: {integrity: sha512-ERgWGNleEilSrHM6iUz/zJNSQTP8Mr21wDWpdgvRwcTXGAq6jMtOUPP4dqFPTdKqZ2wKTdtB+uucZ3MRpAUSmg==}
 
   canvas-fit@1.5.0:
     resolution: {integrity: sha512-onIcjRpz69/Hx5bB5HGbYKUF2uC6QT6Gp+pfpGm3A7mPfcluSLV5v4Zu+oflDUwLdUw0rLIBhUbi0v8hM4FJQQ==}
@@ -12701,7 +12701,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@cocalc/widgets@1.1.3': {}
+  '@cocalc/widgets@1.1.4': {}
 
   '@cocalc/xpra-lz4@1.1.0': {}
 
@@ -15442,7 +15442,7 @@ snapshots:
 
   browserslist@4.23.2:
     dependencies:
-      caniuse-lite: 1.0.30001642
+      caniuse-lite: 1.0.30001643
       electron-to-chromium: 1.4.832
       node-releases: 2.0.17
       update-browserslist-db: 1.1.0(browserslist@4.23.2)
@@ -15526,7 +15526,7 @@ snapshots:
 
   caniuse-lite@1.0.30001593: {}
 
-  caniuse-lite@1.0.30001642: {}
+  caniuse-lite@1.0.30001643: {}
 
   canvas-fit@1.5.0:
     dependencies:
