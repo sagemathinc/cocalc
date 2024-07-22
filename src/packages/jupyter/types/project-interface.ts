@@ -146,6 +146,8 @@ export interface JupyterKernelInterface extends EventEmitterInterface {
     comm_id: string;
     target_name: string;
     data: any;
+    buffers?: any[];
+    buffers64?: any[];
   }): void;
   get_connection_file(): string | undefined;
 

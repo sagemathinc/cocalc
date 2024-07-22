@@ -1335,16 +1335,28 @@ export class JupyterActions extends JupyterActions0 {
       let data: any;
       if (type === "value") {
         const state = this.syncdb.ipywidgets_state.get_model_value(model_id);
-        data = { method: "update", state };
+        // Saving the buffers on change is critical since otherwise this breaks:
+        //  https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#file-upload
+        // Note that stupidly the buffer (e.g., image upload) gets sent to the kernel twice.
+        // But it does work robustly, and the kernel and nodejs server processes next to each
+        // other so this isn't so bad.
+        const { buffer_paths, buffers } =
+          this.syncdb.ipywidgets_state.getKnownBuffers(model_id);
+        data = { method: "update", state, buffer_paths };
         this.jupyter_kernel.send_comm_message_to_kernel({
           msg_id: misc.uuid(),
           target_name: "jupyter.widget",
           comm_id: model_id,
           data,
+          buffers,
         });
       } else if (type === "buffers") {
-        // TODO: we will implement this soon.  A good example where this is required
-        // is by the file upload widget:
+        // TODO: we MIGHT need implement this... but MAYBE NOT.  An example where this seems like it might be
+        // required is by the file upload widget, but actually that just uses the value type above, since
+        // we explicitly fill in the widgets there; also there is an explicit comm upload message that
+        // the widget sends out that updates the buffer, and in send_comm_message_to_kernel in jupyter/kernel/kernel.ts
+        // when processing that message, we saves those buffers and make sure they are set in the
+        // value case above (otherwise they would get removed).
         //    https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#file-upload
         // which creates a buffer from the content of the file, then sends it to the backend,
         // which sees a change and has to write that buffer to the kernel (here) so that

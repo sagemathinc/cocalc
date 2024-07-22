@@ -999,20 +999,32 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     target_name,
     data,
     buffers64,
+    buffers,
   }: {
     msg_id: string;
     comm_id: string;
     target_name: string;
     data: any;
     buffers64?: string[];
+    buffers?: Buffer[];
   }): void {
     const dbg = this.dbg("send_comm_message_to_kernel");
     dbg({ msg_id, comm_id, target_name, data, buffers64 });
-    const buffers = buffers64?.map((x) => new Buffer(base64ToBuffer(x))) ?? [];
-    dbg(
-      "buffers lengths = ",
-      buffers.map((x) => x.byteLength),
-    );
+    if (buffers64 != null && buffers64.length > 0) {
+      buffers = buffers64?.map((x) => new Buffer(base64ToBuffer(x))) ?? [];
+      dbg(
+        "buffers lengths = ",
+        buffers.map((x) => x.byteLength),
+      );
+      if (this._actions?.syncdb.ipywidgets_state != null) {
+        this._actions.syncdb.ipywidgets_state.setModelBuffers(
+          comm_id,
+          data.buffer_paths,
+          buffers,
+          false,
+        );
+      }
+    }
 
     const message = {
       parent_header: {},

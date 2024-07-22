@@ -281,6 +281,39 @@ export class IpywidgetsState extends EventEmitter {
     return { buffers, buffer_paths };
   };
 
+  // This is used on the backend when syncing changes from project nodejs *to*
+  // the jupyter kernel.
+  getKnownBuffers = (model_id: string) => {
+    let value: iMap<string, string> | undefined = this.get(model_id, "buffers");
+    if (value == null) {
+      return { buffer_paths: [], buffers: [] };
+    }
+    // value is an array from JSON of paths array to array buffers:
+    const buffer_paths: string[][] = [];
+    const buffers: ArrayBuffer[] = [];
+    if (this.buffers[model_id] == null) {
+      this.buffers[model_id] = {};
+    }
+    const f = (path: string) => {
+      const hash = value?.get(path);
+      if (!hash) {
+        return;
+      }
+      const cur = this.buffers[model_id][path];
+      if (cur?.hash == hash) {
+        buffer_paths.push(JSON.parse(path));
+        buffers.push(cur.buffer);
+        return;
+      }
+    };
+    value
+      .keySeq()
+      .toJS()
+      .filter((path) => path.startsWith("["))
+      .map(f);
+    return { buffers, buffer_paths };
+  };
+
   private clientGetBuffer = async (model_id: string, path: string) => {
     // async get of the buffer efficiently via HTTP:
     if (this.client.ipywidgetsGetBuffer == null) {
@@ -307,7 +340,7 @@ export class IpywidgetsState extends EventEmitter {
   };
 
   // returns the sha1 hashes of the buffers
-  private set_model_buffers = (
+  setModelBuffers = (
     // model that buffers are associated to:
     model_id: string,
     // if given, these are buffers with given paths; if not given, we
@@ -317,7 +350,7 @@ export class IpywidgetsState extends EventEmitter {
     buffers: Buffer[],
     fire_change_event: boolean = true,
   ): string[] => {
-    const dbg = this.dbg("set_model_buffers");
+    const dbg = this.dbg("setModelBuffers");
     dbg("buffer_paths = ", buffer_paths);
 
     const data: { [path: string]: boolean } = {};
@@ -728,7 +761,7 @@ scat.x, scat.y = np.random.rand(2, 50)
     if (content.data.buffer_paths?.length > 0) {
       // Deal with binary buffers:
       dbg("setting binary buffers");
-      this.set_model_buffers(
+      this.setModelBuffers(
         model_id,
         content.data.buffer_paths,
         msg.buffers,
@@ -752,7 +785,7 @@ scat.x, scat.y = np.random.rand(2, 50)
         ) {
           // TODO
           dbg("custom message  -- there are BUFFERS -- saving them");
-          buffer_hashes = this.set_model_buffers(
+          buffer_hashes = this.setModelBuffers(
             model_id,
             undefined,
             buffers,
