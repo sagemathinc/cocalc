@@ -7,6 +7,9 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { Alert, Button } from "antd";
 import type { JupyterActions } from "../browser-actions";
 import { Map } from "immutable";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+
+// TODO: it would be better if somehow this were in @cocalc/jupyter, to 100% ensure css stays aligned.
 require("@jupyter-widgets/controls/css/widgets.css");
 
 let loadFontAwesomeDone = false;
@@ -34,9 +37,13 @@ export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
   // console.log("IpyWidget", { value: value.toJS(), actions });
   const [unknown, setUnknown] = useState<boolean>(false);
   const divRef = useRef<any>(null);
+  // We *ONLY* render widgets when they are visible.  Why?
+  //  (1) some widgets -- k3d labels!! -- assume they are visible, and just totally crash if not, due to bad code
+  //  (2) efficiency.
+  const { isVisible } = useFrameContext();
 
   useEffect(() => {
-    if (actions == null) {
+    if (actions == null || !isVisible) {
       // console.log("IpyWidget: not rendering due to actions=null");
       return;
     }
@@ -64,7 +71,11 @@ export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
       return;
     }
     render({ manager, id, div });
-  }, []);
+
+    return () => {
+      $(div).empty();
+    };
+  }, [isVisible]);
 
   if (unknown) {
     const msg = "Run cell to load widget.";

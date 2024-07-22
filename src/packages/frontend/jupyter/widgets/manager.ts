@@ -24,6 +24,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+
 import { delay } from "awaiting";
 
 const K3D_DELAY_MS = 25;
@@ -718,14 +720,23 @@ class Environment implements WidgetEnvironment {
     // widgets will refresh if you scroll them off the screen and back.
     const trust = actions.store.get("trust");
     const component = React.createElement(
-      FileContext.Provider,
+      FrameContext.Provider,
       {
-        value: { noSanitize: trust, project_id },
+        // @ts-ignore -- we aren't filling in all the standard stuff
+        // also we just always put isVisible true, since the output widget itself
+        // (which has proper context) gets not rendered and that contains this.
+        value: { isVisible: true },
       },
       React.createElement(
-        CellOutputMessage,
-        { message, actions, project_id, trust },
-        null,
+        FileContext.Provider,
+        {
+          value: { noSanitize: trust, project_id },
+        },
+        React.createElement(
+          CellOutputMessage,
+          { message, actions, project_id, trust },
+          null,
+        ),
       ),
     );
     const root = ReactDOM.createRoot(myDiv);
