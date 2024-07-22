@@ -1330,8 +1330,8 @@ export class JupyterActions extends JupyterActions0 {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
     for (const key of keys) {
-      dbg("key = ", key);
       const [, model_id, type] = JSON.parse(key);
+      dbg({ key, model_id, type });
       let data: any;
       if (type === "value") {
         const state = this.syncdb.ipywidgets_state.get_model_value(model_id);
@@ -1352,11 +1352,6 @@ export class JupyterActions extends JupyterActions0 {
         // process data, save file to disk, etc).
         // We need to be careful though to not send buffers to the kernel that the kernel sent us,
         // since that would be a waste.
-        // TODO
-        // I think the format for the send_comm_mmessage_to_kernel call here is easy to deduce
-        // from what process_comm_message_from_kernel unpacks.
-        //   ***
-        // TODO
       } else if (type === "state") {
         // TODO: currently ignoring this, since it seems chatty and pointless,
         // and could lead to race conditions probably with multiple users, etc.

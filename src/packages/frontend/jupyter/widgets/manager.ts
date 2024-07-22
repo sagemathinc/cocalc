@@ -30,6 +30,7 @@ type DeserializedModelState = { [key: string]: any };
 export type SendCommFunction = (string, data) => string;
 
 const log = console.log;
+// const log = (..._args) => {};
 
 export class WidgetManager {
   public ipywidgets_state: IpywidgetsState;
@@ -552,10 +553,15 @@ VBox([s1, s2])
         metadata?: JSONObject,
         buffers?: ArrayBuffer[] | ArrayBufferView[],
       ): string {
-        // TODO: buffers!  These need to get sent somehow.
         log("comm.send", { data, buffers, metadata, callbacks });
         const msg_id = uuid();
-        send_comm_message_to_kernel({ msg_id, comm_id, target_name, data });
+        send_comm_message_to_kernel({
+          msg_id,
+          comm_id,
+          target_name,
+          data,
+          buffers,
+        });
         return msg_id;
       },
 

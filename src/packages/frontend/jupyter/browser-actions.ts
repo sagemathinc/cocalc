@@ -35,6 +35,7 @@ import {
 } from "../misc/local-storage";
 import { parse_headings } from "./contents";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { bufferToBase64 } from "@cocalc/util/base64";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -452,16 +453,24 @@ export class JupyterActions extends JupyterActions0 {
     comm_id,
     target_name,
     data,
+    buffers,
   }: {
     msg_id?: string;
     comm_id: string;
     target_name: string;
-    data: any;
+    data: unknown;
+    buffers?: ArrayBuffer[] | ArrayBufferView[];
   }): Promise<string> => {
     if (!msg_id) {
       msg_id = uuid();
     }
-    const msg = { msg_id, target_name, comm_id, data };
+    let buffers64;
+    if (buffers != null) {
+      buffers64 = buffers.map(bufferToBase64);
+    } else {
+      buffers64 = [];
+    }
+    const msg = { msg_id, target_name, comm_id, data, buffers64 };
     await this.api_call("comm", msg);
     // console.log("send_comm_message_to_kernel", "sent", msg);
     return msg_id;

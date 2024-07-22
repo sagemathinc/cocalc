@@ -79,6 +79,7 @@ import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
+import { base64ToBuffer } from "@cocalc/util/base64";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
@@ -997,13 +998,21 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     comm_id,
     target_name,
     data,
+    buffers64,
   }: {
     msg_id: string;
     comm_id: string;
     target_name: string;
     data: any;
+    buffers64?: string[];
   }): void {
     const dbg = this.dbg("send_comm_message_to_kernel");
+    dbg({ msg_id, comm_id, target_name, data, buffers64 });
+    const buffers = buffers64?.map((x) => new Buffer(base64ToBuffer(x))) ?? [];
+    dbg(
+      "buffers lengths = ",
+      buffers.map((x) => x.byteLength),
+    );
 
     const message = {
       parent_header: {},
@@ -1018,6 +1027,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         version: VERSION,
         date: new Date().toISOString(),
       },
+      buffers,
     };
 
     dbg(message);
