@@ -524,6 +524,14 @@ scat.x, scat.y = np.random.rand(2, 50)
     await this.table.save();
   };
 
+  values = () => {
+    const x = this.table.get();
+    if (x == null) {
+      return [];
+    }
+    return Object.values(x.toJS()).filter((obj) => obj.data);
+  };
+
   // Clean up all data in the table about models that are not
   // referenced (directly or indirectly) in any cell in the notebook.
   // There is also a comm:close event/message somewhere, which

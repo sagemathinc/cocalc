@@ -24,6 +24,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
+import { delay } from "awaiting";
+
+const K3D_DELAY_MS = 25;
 
 type DeserializedModelState = { [key: string]: any };
 
@@ -39,6 +42,7 @@ export class WidgetManager {
   private last_changed: { [model_id: string]: { [key: string]: any } } = {};
   private state_lock: Set<string> = new Set();
   private watching: Set<string> = new Set();
+  public k3dObjectIds = new Set<number>();
 
   constructor({
     ipywidgets_state,
@@ -147,12 +151,19 @@ VBox([s1, s2])
     changed: SerializedModelState,
     merge: boolean,
   ): Promise<void> => {
-    const model: base.DOMWidgetModel | undefined =
-      await this.manager.get_model(model_id);
+    const model = await this.manager.get_model(model_id);
     log("updateModel", { model_id, merge, changed });
-    if (model == null) {
-      return;
+    if (model.module == "k3d") {
+      // k3d invents its own ad hoc inter-model reference scheme, so we have
+      // to deal with that.
+      if (changed.object_ids != null) {
+        while (!isSubset(changed.object_ids, this.k3dObjectIds)) {
+          log("k3d -- waiting for object_ids", changed.object_ids);
+          await delay(K3D_DELAY_MS);
+        }
+      }
     }
+
     //log(`setting state of model "${model_id}" to `, change);
     if (changed.last_changed != null) {
       this.last_changed[model_id] = changed;
@@ -598,6 +609,7 @@ VBox([s1, s2])
 
 class Environment implements WidgetEnvironment {
   private manager: WidgetManager;
+
   constructor(manager) {
     this.manager = manager;
   }
@@ -626,12 +638,17 @@ class Environment implements WidgetEnvironment {
     if (state == null) {
       throw Error("bug");
     }
+
     if (state._model_module == "k3d" && state.type != null) {
       while (!state?.type || !state?.id) {
         log(
-          "getSerializedModelState",
+          "getSerializedModelState -- k3d case",
           model_id,
-          "k3d: waiting for state.type to be defined",
+          "k3d: waiting for state.type and state.id to be defined",
+          {
+            type: state?.type,
+            id: state?.id,
+          },
         );
 
         await once(this.manager.ipywidgets_state, "change");
@@ -660,6 +677,19 @@ class Environment implements WidgetEnvironment {
 
     log("getSerializedModelState", { model_id, state });
     setTimeout(() => this.manager.watchModel(model_id), 1);
+
+    if (state._model_module == "k3d") {
+      if (state.object_ids != null) {
+        while (!isSubset(state.object_ids, this.manager.k3dObjectIds)) {
+          log("k3d -- waiting for object_ids", state.object_ids);
+          await delay(K3D_DELAY_MS);
+        }
+      }
+      if (state.id != null) {
+        this.manager.k3dObjectIds.add(state.id);
+      }
+    }
+
     return {
       modelName: state._model_name,
       modelModule: state._model_module,
@@ -750,4 +780,13 @@ function setInObject(obj: any, path: string[], value: any) {
 const IPY_MODEL = "IPY_MODEL_";
 function isModelReference(value): boolean {
   return typeof value == "string" && value.startsWith(IPY_MODEL);
+}
+
+function isSubset(X, Y) {
+  for (const a of X) {
+    if (!Y.has(a)) {
+      return false;
+    }
+  }
+  return true;
 }
