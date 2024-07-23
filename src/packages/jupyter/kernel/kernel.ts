@@ -985,8 +985,12 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
 
   public ipywidgetsGetBuffer(
     model_id: string,
-    buffer_path: string,
+    // buffer_path is the string[] *or* the JSON of that.
+    buffer_path: string | string[],
   ): Buffer | undefined {
+    if (typeof buffer_path != "string") {
+      buffer_path = JSON.stringify(buffer_path);
+    }
     return this._actions?.syncdb.ipywidgets_state?.getBuffer(
       model_id,
       buffer_path,

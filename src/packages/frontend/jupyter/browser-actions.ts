@@ -35,7 +35,8 @@ import {
 } from "../misc/local-storage";
 import { parse_headings } from "./contents";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { bufferToBase64 } from "@cocalc/util/base64";
+import { bufferToBase64, base64ToBuffer } from "@cocalc/util/base64";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -475,6 +476,16 @@ export class JupyterActions extends JupyterActions0 {
     // console.log("send_comm_message_to_kernel", "sent", msg);
     return msg_id;
   };
+
+  ipywidgetsGetBuffer = reuseInFlight(
+    async (model_id: string, buffer_path: string): Promise<ArrayBuffer> => {
+      const { buffer64 } = await this.api_call("ipywidgets-get-buffer", {
+        model_id,
+        buffer_path,
+      });
+      return base64ToBuffer(buffer64);
+    },
+  );
 
   // NOTE: someday move this to the frame-tree actions, since it would
   // be generically useful!

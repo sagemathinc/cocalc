@@ -34,7 +34,7 @@ type DeserializedModelState = { [key: string]: any };
 
 export type SendCommFunction = (string, data) => string;
 
-// const log = console.log;
+//const log = console.log;
 const log = (..._args) => {};
 
 export class WidgetManager {

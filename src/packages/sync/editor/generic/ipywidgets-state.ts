@@ -315,7 +315,7 @@ export class IpywidgetsState extends EventEmitter {
   };
 
   private clientGetBuffer = async (model_id: string, path: string) => {
-    // async get of the buffer efficiently via HTTP:
+    // async get of the buffer from backend
     if (this.client.ipywidgetsGetBuffer == null) {
       throw Error(
         "NotImplementedError: frontend client must implement ipywidgetsGetBuffer in order to support binary buffers",
