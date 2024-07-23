@@ -25,6 +25,7 @@ import ReactDOM from "react-dom/client";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import getAnchorTagComponent from "@cocalc/frontend/project/page/anchor-tag-component";
 
 import { delay } from "awaiting";
 
@@ -715,7 +716,7 @@ class Environment implements WidgetEnvironment {
     const myDiv = document.createElement("div");
     destination.appendChild(myDiv);
     const { actions } = this.manager;
-    const { project_id } = actions;
+    const { project_id, path } = actions;
     // NOTE: we are NOT caching iframes here, so iframes in output
     // widgets will refresh if you scroll them off the screen and back.
     const trust = actions.store.get("trust");
@@ -725,12 +726,18 @@ class Environment implements WidgetEnvironment {
         // @ts-ignore -- we aren't filling in all the standard stuff
         // also we just always put isVisible true, since the output widget itself
         // (which has proper context) gets not rendered and that contains this.
-        value: { isVisible: true },
+        value: { isVisible: true, project_id, path },
       },
       React.createElement(
         FileContext.Provider,
         {
-          value: { noSanitize: trust, project_id },
+          value: {
+            noSanitize: trust,
+            project_id,
+            path,
+            // see https://github.com/sagemathinc/cocalc/issues/5258
+            AnchorTagComponent: getAnchorTagComponent({ project_id, path }),
+          },
         },
         React.createElement(
           CellOutputMessage,
