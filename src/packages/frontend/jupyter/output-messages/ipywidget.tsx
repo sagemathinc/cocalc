@@ -89,7 +89,6 @@ export function IpyWidget({ id: cell_id, value, actions }: WidgetProps) {
             <Button
               type="link"
               onClick={() => {
-                console.log("hi", cell_id);
                 actions.run_cell(cell_id);
               }}
             >

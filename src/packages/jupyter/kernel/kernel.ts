@@ -1011,7 +1011,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
     const dbg = this.dbg("send_comm_message_to_kernel");
     dbg({ msg_id, comm_id, target_name, data, buffers64 });
     if (buffers64 != null && buffers64.length > 0) {
-      buffers = buffers64?.map((x) => new Buffer(base64ToBuffer(x))) ?? [];
+      buffers = buffers64?.map((x) => Buffer.from(base64ToBuffer(x))) ?? [];
       dbg(
         "buffers lengths = ",
         buffers.map((x) => x.byteLength),
