@@ -764,7 +764,7 @@ export function commands(actions: AllActions): {
     // on a mac). https://github.com/sagemathinc/cocalc/issues/7000
     "run cell": {
       i: "play",
-      m: "Run Selected Cells and Do not Advance",
+      m: "Run Selected Cells and Do Not Advance",
       b: "Stay",
       t: "Run all cells that are currently selected. Do not move the selection.",
       k: [

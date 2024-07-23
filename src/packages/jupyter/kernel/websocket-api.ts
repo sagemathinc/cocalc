@@ -10,6 +10,7 @@ various messages related to working with Jupyter.
 
 import { get_existing_kernel } from "@cocalc/jupyter/kernel";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
+import { bufferToBase64 } from "@cocalc/util/base64";
 
 export async function handleApiRequest(
   path: string,
@@ -37,15 +38,20 @@ export async function handleApiRequest(
     case "save_ipynb_file":
       await kernel.save_ipynb_file();
       return {};
+
     case "signal":
       kernel.signal(query.signal);
       return {};
+
     case "kernel_info":
       return await kernel.kernel_info();
+
     case "more_output":
       return kernel.more_output(query.id);
+
     case "complete":
       return await kernel.complete(get_code_and_cursor_pos(query));
+
     case "introspect":
       const { code, cursor_pos } = get_code_and_cursor_pos(query);
       let detail_level = 0;
@@ -64,6 +70,7 @@ export async function handleApiRequest(
         cursor_pos,
         detail_level,
       });
+
     case "store":
       const { key, value } = query;
       if (value === undefined) {
@@ -77,9 +84,21 @@ export async function handleApiRequest(
         kernel.store.set(key, value);
         return {};
       }
+
     case "comm":
-      const [msg_id, comm_id, data] = query;
-      return kernel.send_comm_message_to_kernel(msg_id, comm_id, data);
+      return kernel.send_comm_message_to_kernel(query);
+
+    case "ipywidgets-get-buffer":
+      const { model_id, buffer_path } = query;
+      const buffer = kernel.ipywidgetsGetBuffer(model_id, buffer_path);
+      if (buffer == null) {
+        throw Error(
+          `no buffer for model=${model_id}, buffer_path=${JSON.stringify(
+            buffer_path,
+          )}`,
+        );
+      }
+      return { buffer64: bufferToBase64(buffer) };
     default:
       throw Error(`unknown endpoint "${endpoint}"`);
   }

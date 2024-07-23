@@ -506,9 +506,22 @@ export class ProjectClient {
     path: string,
     model_id: string,
     buffer_path: string,
+    useHttp?: boolean, // ONLY works for home base, NOT compute servers!
   ): Promise<ArrayBuffer> {
-    const url = ipywidgetsGetBufferUrl(project_id, path, model_id, buffer_path);
-    return await (await fetch(url)).arrayBuffer();
+    if (useHttp) {
+      const url = ipywidgetsGetBufferUrl(
+        project_id,
+        path,
+        model_id,
+        buffer_path,
+      );
+      return await (await fetch(url)).arrayBuffer();
+    }
+    const actions = redux.getEditorActions(project_id, path);
+    return await actions.jupyter_actions.ipywidgetsGetBuffer(
+      model_id,
+      buffer_path,
+    );
   }
 
   // getting, setting, editing, deleting, etc., the  api keys for a project

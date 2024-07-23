@@ -3,6 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+// I just noticed there is another version of this file in jupyter/_jupyter.sass
+// They need to be carefully merged into one!  But not today.
+
 .smc-jupyter-nbviewer-content
   border: 1px solid lightgray
 
@@ -107,6 +110,18 @@
 
   .MathJax_SVG_Display
     padding-right: 1em
+
+  // the following helps a lot with inline math, esp labels in jupyter widgets
+  .MathJax_SVG
+    padding: 0 2.5px
+  .katex
+    padding: 0 2.5px
+
+// this seems to be missing from jupyter widgets, but is used to implement the according
+//   https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#accordion
+// I.e., without this css rule, accordian is just broken.
+.lm-Widget.lm-mod-hidden
+  display: none !important
 
 .cc-jupyter-buttonbar-dropdown
   .ant-dropdown-menu-item

@@ -119,10 +119,17 @@ export function create_key_handler(
     const mode = frame_actions.store.get("mode");
     if (mode === "escape") {
       const focused = $(":focus");
-      if (focused.length > 0 && focused[0].tagName != "DIV") {
+      if (
+        focused.length > 0 &&
+        (focused[0].tagName != "DIV" ||
+          focused[0].className?.includes("widget-readout"))
+      ) {
         // Never use keyboard shortcuts when something is focused, e.g.,
         // getting a password or using text input widget.  However, the cell list DIV
         // itself gets focused often, so we have to avoid that special case.
+        // An example with ipywidgets that the className case above covers:
+        //   import ipywidgets as widgets; w = widgets.IntSlider(0,1,100); w
+        // Then put your cursor in the number to the right of the slider and hit backspace.
         return;
       }
     }
