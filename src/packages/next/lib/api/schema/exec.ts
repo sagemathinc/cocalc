@@ -1,5 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { z } from "../framework";
 
+import { PROJECT_EXEC_DEFAULT_TIMEOUT_S } from "@cocalc/util/consts/project";
 import { FailedAPIOperationSchema } from "./common";
 import { ComputeServerIdSchema } from "./compute/common";
 import { ProjectIdSchema } from "./projects/common";
@@ -35,7 +41,7 @@ const ExecInputSchemaBlocking = ExecInputCommon.merge(
     timeout: z
       .number()
       .min(0)
-      .default(60)
+      .default(PROJECT_EXEC_DEFAULT_TIMEOUT_S)
       .optional()
       .describe("Number of seconds before this shell command times out."),
     max_output: z
@@ -58,10 +64,12 @@ const ExecInputSchemaBlocking = ExecInputCommon.merge(
       ),
     uid: z
       .number()
+      .min(0)
       .optional()
       .describe("Set the `UID` identity of the spawned process."),
     gid: z
       .number()
+      .min(0)
       .optional()
       .describe("Set the `GID` identity of the spawned process."),
     aggregate: z
@@ -119,6 +127,12 @@ as well as a status field indicating if the job is still running or has complete
 Start time and duration are returned as well.
 
 Results are cached temporarily in the project.`),
+    async_stats: z
+      .boolean()
+      .optional()
+      .describe(
+        `If true, retrieve recorded statistics (CPU/memory) of the process and its child processes.`,
+      ),
   }),
 );
 
@@ -147,14 +161,75 @@ const ExecOutputBlocking = z.object({
 const ExecOutputAsync = ExecOutputBlocking.extend({
   type: z.literal("async"),
   job_id: z.string().describe("The ID identifying the async operation"),
-  start: z
-    .number()
-    .optional()
-    .describe("UNIX timestamp, when the execution started"),
+  start: z.number().describe("UNIX timestamp, when the execution started"),
   elapsed_s: z.string().optional().describe("How long the execution took"),
   status: z // AsyncStatus
     .union([z.literal("running"), z.literal("completed"), z.literal("error")])
     .describe("Status of the async operation"),
+  pid: z.number().min(0).describe("Process ID"),
+  stats: z
+    .array(
+      z.object({
+        timestamp: z.number().describe("UNIX epoch timestamp"),
+        mem_rss: z
+          .number()
+          .describe(
+            "Sum of residual memory usage of that process and its children.",
+          ),
+        cpu_pct: z
+          .number()
+          .describe(
+            "Sum of percentage CPU usage of that process and its children.",
+          ),
+        cpu_secs: z
+          .number()
+          .describe(
+            "Sum of CPU time usage (user+system) of that process and its children.",
+          ),
+      }),
+    )
+    .optional()
+    .describe(
+      `Recorded metrics about the process. Each entry has a timestamp and corresponding cpu and memory usage, of that process and children. Initially, the sampling frequency is higher, but then it is spaced out. The total number of samples is truncated, discarding the oldest ones.
+
+You can visualize the data this way:
+
+\`\`\`python
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+# Extract stats data
+timestamps = [stat['timestamp'] for stat in data['stats']]
+mem_rss = [stat['mem_rss'] for stat in data['stats']]
+cpu_pct = [stat['cpu_pct'] for stat in data['stats']]
+
+# Convert timestamps to datetime objects
+timestamps = [datetime.fromtimestamp(ts / 1000) for ts in timestamps]
+
+# Create plots
+fig, ax1 = plt.subplots()
+
+# Memory usage
+ax1.plot(timestamps, mem_rss, color='blue', label='Memory (RSS)')
+ax1.set_xlabel('Time')
+ax1.set_ylabel('Memory (MB)', color='blue')
+ax1.tick_params(axis='y', labelcolor='blue')
+
+# CPU utilization (secondary axis)
+ax2 = ax1.twinx()
+ax2.plot(timestamps, cpu_pct, color='red', label='CPU (%)')
+ax2.set_ylabel('CPU (%)', color='red')
+ax2.tick_params(axis='y', labelcolor='red')
+
+# Add labels and legend
+plt.title('Job Stats')
+plt.legend(loc='upper left')
+
+# Display the plot
+plt.show()
+\`\`\`
+`,
+    ),
 });
 
 export const ExecOutputSchema = z.union([

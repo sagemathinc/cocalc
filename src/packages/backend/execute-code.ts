@@ -1,7 +1,7 @@
-//########################################################################
-// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: MS-RSL – see LICENSE.md for details
-//########################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020–2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
 
 // Execute code in a subprocess.
 
@@ -21,6 +21,7 @@ import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
 import { callback_opts } from "@cocalc/util/async-utils";
+import { PROJECT_EXEC_DEFAULT_TIMEOUT_S } from "@cocalc/util/consts/project";
 import { to_json, trunc, uuid, walltime } from "@cocalc/util/misc";
 import {
   ExecuteCodeOutputAsync,
@@ -38,10 +39,15 @@ import { ProcessStats } from "./process-stats";
 
 const log = getLogger("execute-code");
 
-const ASYNC_CACHE_MAX = envToInt("COCALC_PROJECT_ASYNC_EXEC_CACHE_MAX", 100);
-const ASYNC_CACHE_TTL_S = envToInt("COCALC_PROJECT_ASYNC_EXEC_TTL_S", 60 * 60);
+const PREFIX = "COCALC_PROJECT_ASYNC_EXEC";
+const ASYNC_CACHE_MAX = envToInt(`${PREFIX}_CACHE_MAX`, 100);
+const ASYNC_CACHE_TTL_S = envToInt(`${PREFIX}_TTL_S`, 60 * 60);
 // for async execution, every that many secs check up on the child-tree
-const MONITOR_INTERVAL_S = envToInt("COCALC_PROJECT_MONITOR_INTERVAL_S", 60);
+const MONITOR_INTERVAL_S = envToInt(`${PREFIX}_MONITOR_INTERVAL_S`, 60);
+const MONITOR_STATS_LENGTH_MAX = envToInt(
+  `${PREFIX}_MONITOR_STATS_LENGTH_MAX`,
+  100,
+);
 
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
@@ -56,6 +62,8 @@ function asyncCacheUpdate(job_id: string, upd) {
   const obj = asyncCache.get(job_id);
   if (Array.isArray(obj?.stats) && Array.isArray(upd.stats)) {
     obj.stats.push(...upd.stats);
+    // truncate to $MONITOR_STATS_LENGTH_MAX, by discarding the inital entries
+    obj.stats = obj.stats.slice(obj.stats.length - MONITOR_STATS_LENGTH_MAX);
   }
   asyncCache.set(job_id, { ...obj, ...upd });
 }
@@ -73,7 +81,14 @@ export const execute_code: ExecuteCodeFunctionWithCallback = aggregate(
   (opts: ExecuteCodeOptionsWithCallback): void => {
     (async () => {
       try {
-        opts.cb?.(undefined, await executeCodeNoAggregate(opts));
+        let data = await executeCodeNoAggregate(opts);
+        if (isExecuteCodeOptionsAsyncGet(opts) && data.type === "async") {
+          // stats could contain a lot of data. we only return it if requested.
+          if (opts.async_stats !== true) {
+            data = { ...data, stats: undefined };
+          }
+        }
+        opts.cb?.(undefined, data);
       } catch (err) {
         opts.cb?.(err);
       }
@@ -101,7 +116,7 @@ async function executeCodeNoAggregate(
   }
 
   opts.args ??= [];
-  opts.timeout ??= 10;
+  opts.timeout ??= PROJECT_EXEC_DEFAULT_TIMEOUT_S;
   opts.ulimit_timeout ??= true;
   opts.err_on_exit ??= true;
   opts.verbose ??= true;
@@ -166,15 +181,15 @@ async function executeCodeNoAggregate(
     if (opts.async_call) {
       // we return an ID, the caller can then use it to query the status
       opts.max_output ??= 1024 * 1024; // we limit how much we keep in memory, to avoid problems;
-      opts.timeout ??= 10 * 60;
+      opts.timeout ??= PROJECT_EXEC_DEFAULT_TIMEOUT_S;
       const job_id = uuid();
-      const start = new Date();
+      const start = Date.now();
       const job_config: ExecuteCodeOutputAsync = {
         type: "async",
-        stdout: `Process started running at ${start.toISOString()}`,
+        stdout: "",
         stderr: "",
         exit_code: 0,
-        start: start.getTime(),
+        start,
         job_id,
         status: "running",
       };
@@ -184,15 +199,14 @@ async function executeCodeNoAggregate(
         { ...opts, origCommand, job_id, job_config },
         async (err, result) => {
           try {
-            const started = asyncCache.get(job_id)?.start ?? 0;
             const info: Omit<
               ExecuteCodeOutputAsync,
               "stdout" | "stderr" | "exit_code"
             > = {
               job_id,
               type: "async",
-              elapsed_s: (Date.now() - started) / 1000,
-              start: start.getTime(),
+              elapsed_s: (Date.now() - start) / 1000,
+              start,
               status: "error",
             };
             if (err) {
@@ -311,21 +325,20 @@ function doSpawn(
   let stdout_is_done = false;
   let killed = false;
   let callback_done = false;
-  let monitorRef: NodeJS.Timer | null = null;
   let timer: NodeJS.Timeout | undefined = undefined;
 
   // periodically check up on the child process tree and record stats
   // this also keeps the entry in the cache alive, when the ttl is less than the duration of the execution
-  async function setupMonitor() {
+  async function startMonitor() {
     const pid = child.pid;
-    const job_id = opts.job_id;
-    if (job_id == null || pid == null) return;
+    const { job_id, job_config } = opts;
+    if (job_id == null || pid == null || job_config == null) return;
     const monitor = new ProcessStats();
     await monitor.init();
     await new Promise((done) => setTimeout(done, 1000));
     if (callback_done) return;
 
-    monitorRef = setInterval(async () => {
+    while (true) {
       const { procs } = await monitor.processes(Date.now());
       // reconstruct process tree
       const children: { [pid: number]: number[] } = {};
@@ -337,26 +350,26 @@ function doSpawn(
       // we only consider those, which are the pid itself or one of its children
       const { rss, pct_cpu, cpu_secs } = sumChildren(procs, children, pid);
 
-      let obj = asyncCache.get(job_id);
-      obj ??= opts.job_config; // in case the cache "forgot" about it
-      if (obj != null) {
-        obj.pid = pid;
-        obj.stats ??= [];
-        obj.stats.push({
-          timestamp: Date.now(),
-          mem_rss: rss,
-          cpu_pct: pct_cpu,
-          cpu_secs,
-        });
-        asyncCache.set(job_id, obj);
-      }
-    }, 1000 * MONITOR_INTERVAL_S);
-  }
+      // ?? fallback, in case the cache "forgot" about it
+      const obj = asyncCache.get(job_id) ?? job_config;
+      obj.pid = pid;
+      obj.stats ??= [];
+      obj.stats.push({
+        timestamp: Date.now(),
+        mem_rss: rss,
+        cpu_pct: pct_cpu,
+        cpu_secs,
+      });
+      asyncCache.set(job_id, obj);
 
-  function clearMonitor() {
-    if (monitorRef != null) {
-      clearInterval(monitorRef);
-      monitorRef = null;
+      // initially, we record more frequently, but then we space it out up until the interval (probably 1 minute)
+      const elapsed_s = (Date.now() - job_config.start) / 1000;
+      // i.e. after 6 minutes, we check every minute
+      const next_s = Math.max(1, Math.floor(elapsed_s / 6));
+      const wait_s = Math.min(next_s, MONITOR_INTERVAL_S);
+      await new Promise((done) => setTimeout(done, wait_s * 1000));
+
+      if (callback_done) return;
     }
   }
 
@@ -436,7 +449,8 @@ function doSpawn(
   });
 
   if (opts.job_id && child.pid) {
-    setupMonitor();
+    // we don't await it, it runs until $callback_done is true
+    startMonitor();
   }
 
   const finish = (err?) => {
@@ -449,9 +463,8 @@ function doSpawn(
       // we already finished up.
       return;
     }
-    // finally finish up.
+    // finally finish up – this will also terminate the monitor
     callback_done = true;
-    clearMonitor();
 
     if (timer != null) {
       clearTimeout(timer);

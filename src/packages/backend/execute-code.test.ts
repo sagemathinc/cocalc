@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 process.env.COCALC_PROJECT_MONITOR_INTERVAL_S = "1";
 
 import { executeCode } from "./execute-code";
@@ -267,7 +272,7 @@ describe("async", () => {
       if (typeof job_id !== "string") return;
       await new Promise((done) => setTimeout(done, 5500));
       // now we check up on the job
-      const s = await executeCode({ async_get: job_id });
+      const s = await executeCode({ async_get: job_id, async_stats: true });
       expect(s.type).toEqual("async");
       if (s.type !== "async") return;
       expect(s.elapsed_s).toBeGreaterThan(5);
@@ -275,11 +280,21 @@ describe("async", () => {
       expect(s.pid).toBeGreaterThan(1);
       expect(s.stats).toBeDefined();
       if (!Array.isArray(s.stats)) return;
-      const last_stat = s.stats[s.stats.length - 2];
-      expect(last_stat.cpu_pct).toBeGreaterThan(10);
-      expect(last_stat.cpu_secs).toBeGreaterThan(1);
-      expect(last_stat.mem_rss).toBeGreaterThan(1);
+      const pcts = Math.max(...s.stats.map((s) => s.cpu_pct));
+      const secs = Math.max(...s.stats.map((s) => s.cpu_secs));
+      const mems = Math.max(...s.stats.map((s) => s.mem_rss));
+      expect(pcts).toBeGreaterThan(10);
+      expect(secs).toBeGreaterThan(1);
+      expect(mems).toBeGreaterThan(1);
       expect(s.stdout).toEqual("foo\nbar\n");
+      // now without stats, after retrieving it
+      const s2 = await executeCode({ async_get: job_id });
+      if (s2.type !== "async") return;
+      expect(s2.stats).toBeUndefined();
+      // and check, that this is not removing stats entirely
+      const s3 = await executeCode({ async_get: job_id, async_stats: true });
+      if (s3.type !== "async") return;
+      expect(Array.isArray(s3.stats)).toBeTruthy();
     },
     10 * 1000,
   );
