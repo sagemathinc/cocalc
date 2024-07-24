@@ -79,6 +79,7 @@ import { VERSION } from "@cocalc/jupyter/kernel/version";
 import type { NbconvertParams } from "@cocalc/jupyter/types/nbconvert";
 import type { Client } from "@cocalc/sync/client/types";
 import { getLogger } from "@cocalc/backend/logger";
+import { base64ToBuffer } from "@cocalc/util/base64";
 
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
@@ -976,32 +977,64 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
       return;
     }
     const dbg = this.dbg("process_comm_message_from_kernel");
-    dbg(mesg);
+    // This can be HUGE so don't print out the entire message; e.g., it could contain
+    // massive binary data!
+    dbg(mesg.header);
     this._actions.process_comm_message_from_kernel(mesg);
   }
 
   public ipywidgetsGetBuffer(
     model_id: string,
-    buffer_path: string,
+    // buffer_path is the string[] *or* the JSON of that.
+    buffer_path: string | string[],
   ): Buffer | undefined {
+    if (typeof buffer_path != "string") {
+      buffer_path = JSON.stringify(buffer_path);
+    }
     return this._actions?.syncdb.ipywidgets_state?.getBuffer(
       model_id,
       buffer_path,
     );
   }
 
-  public send_comm_message_to_kernel(
-    msg_id: string,
-    comm_id: string,
-    data: any,
-  ): void {
+  public send_comm_message_to_kernel({
+    msg_id,
+    comm_id,
+    target_name,
+    data,
+    buffers64,
+    buffers,
+  }: {
+    msg_id: string;
+    comm_id: string;
+    target_name: string;
+    data: any;
+    buffers64?: string[];
+    buffers?: Buffer[];
+  }): void {
     const dbg = this.dbg("send_comm_message_to_kernel");
+    dbg({ msg_id, comm_id, target_name, data, buffers64 });
+    if (buffers64 != null && buffers64.length > 0) {
+      buffers = buffers64?.map((x) => Buffer.from(base64ToBuffer(x))) ?? [];
+      dbg(
+        "buffers lengths = ",
+        buffers.map((x) => x.byteLength),
+      );
+      if (this._actions?.syncdb.ipywidgets_state != null) {
+        this._actions.syncdb.ipywidgets_state.setModelBuffers(
+          comm_id,
+          data.buffer_paths,
+          buffers,
+          false,
+        );
+      }
+    }
 
     const message = {
       parent_header: {},
       metadata: {},
       channel: "shell",
-      content: { comm_id, data },
+      content: { comm_id, target_name, data },
       header: {
         msg_id,
         username: "user",
@@ -1010,6 +1043,7 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
         version: VERSION,
         date: new Date().toISOString(),
       },
+      buffers,
     };
 
     dbg(message);

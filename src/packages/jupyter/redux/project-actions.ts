@@ -1312,6 +1312,10 @@ export class JupyterActions extends JupyterActions0 {
     });
   }
 
+  // handle_ipywidgets_state_change is called when the project ipywidgets_state
+  // object changes, e.g., in response to a user moving a slider in the browser.
+  // It crafts a comm message that is sent to the running Jupyter kernel telling
+  // it about this change by calling send_comm_message_to_kernel.
   private handle_ipywidgets_state_change(keys): void {
     if (this.is_closed()) {
       return;
@@ -1326,25 +1330,46 @@ export class JupyterActions extends JupyterActions0 {
       throw Error("syncdb's ipywidgets_state must be defined!");
     }
     for (const key of keys) {
-      dbg("key = ", key);
       const [, model_id, type] = JSON.parse(key);
+      dbg({ key, model_id, type });
       let data: any;
       if (type === "value") {
         const state = this.syncdb.ipywidgets_state.get_model_value(model_id);
-        data = { method: "update", state };
-        this.jupyter_kernel.send_comm_message_to_kernel(
-          misc.uuid(),
-          model_id,
+        // Saving the buffers on change is critical since otherwise this breaks:
+        //  https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#file-upload
+        // Note that stupidly the buffer (e.g., image upload) gets sent to the kernel twice.
+        // But it does work robustly, and the kernel and nodejs server processes next to each
+        // other so this isn't so bad.
+        const { buffer_paths, buffers } =
+          this.syncdb.ipywidgets_state.getKnownBuffers(model_id);
+        data = { method: "update", state, buffer_paths };
+        this.jupyter_kernel.send_comm_message_to_kernel({
+          msg_id: misc.uuid(),
+          target_name: "jupyter.widget",
+          comm_id: model_id,
           data,
-        );
+          buffers,
+        });
       } else if (type === "buffers") {
-        // nothing to do on the backend (?)
+        // TODO: we MIGHT need implement this... but MAYBE NOT.  An example where this seems like it might be
+        // required is by the file upload widget, but actually that just uses the value type above, since
+        // we explicitly fill in the widgets there; also there is an explicit comm upload message that
+        // the widget sends out that updates the buffer, and in send_comm_message_to_kernel in jupyter/kernel/kernel.ts
+        // when processing that message, we saves those buffers and make sure they are set in the
+        // value case above (otherwise they would get removed).
+        //    https://ipywidgets.readthedocs.io/en/latest/examples/Widget%20List.html#file-upload
+        // which creates a buffer from the content of the file, then sends it to the backend,
+        // which sees a change and has to write that buffer to the kernel (here) so that
+        // the running python process can actually do something with the file contents (e.g.,
+        // process data, save file to disk, etc).
+        // We need to be careful though to not send buffers to the kernel that the kernel sent us,
+        // since that would be a waste.
       } else if (type === "state") {
         // TODO: currently ignoring this, since it seems chatty and pointless,
         // and could lead to race conditions probably with multiple users, etc.
         // It happens right when the widget is created.
         /*
-        const state = this.syncdb.ipywidgets_state.get_model_state(model_id);
+        const state = this.syncdb.ipywidgets_state.getModelSerializedState(model_id);
         data = { method: "update", state };
         this.jupyter_kernel.send_comm_message_to_kernel(
           misc.uuid(),

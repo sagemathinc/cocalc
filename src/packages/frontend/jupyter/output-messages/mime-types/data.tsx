@@ -28,7 +28,9 @@ export const Data: React.FC<DataProps> = React.memo((props) => {
   if (type == null) {
     type = getTypeToRender(types);
   }
-  if (type == null) throw Error("bug");
+  if (type == null) {
+    throw Error("bug");
+  }
   const H = getHandler(type);
   return <H type={type} value={data.get(type)} data={data} {...props} />;
 }, shouldMemoize);

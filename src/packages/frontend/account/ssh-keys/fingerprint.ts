@@ -11,7 +11,7 @@ import md5 from "md5";
 const colons = (s: string) => s.replace(/(.{2})(?=.)/g, "$1:");
 
 export function compute_fingerprint(pub: string): string {
-  const pubbuffer = new Buffer(pub, "base64");
+  const pubbuffer = Buffer.from(pub, "base64");
   const key = md5(pubbuffer);
   return colons(key);
 }

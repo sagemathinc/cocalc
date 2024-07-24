@@ -144,7 +144,7 @@ function OutputColumn({
   }
   return (
     <CellOutputMessages
-      scrolled={cell.get("scrolled", true)}
+      scrolled={cell.get("scrolled")}
       output={output}
       project_id={project_id}
       directory={directory}
@@ -196,7 +196,7 @@ function ControlColumn({ actions, cell, id }) {
       <OutputToggle
         actions={actions}
         id={id}
-        scrolled={cell.get("scrolled", true)}
+        scrolled={cell.get("scrolled")}
       >
         {prompt}
       </OutputToggle>

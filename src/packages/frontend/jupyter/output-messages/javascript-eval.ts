@@ -15,19 +15,13 @@ export function javascript_eval(line: string, element: any): string {
   require = requirejs = () =>
     console.warn(
       // TODO: replace "CoCalc"?
-      "require is not available in CoCalc; if you need a Javascript library, please email help@cocalc.com."
+      "require is not available in CoCalc; if you need a Javascript library, please email help@cocalc.com.",
     );
-  require = require = requirejs = requirejs;
-  require = require; // Same as below
-
-  // "element" is possibly used in eval.  Do this assign, so typescript thinks
-  // that "element" is being used so this will compile.
-  element = element;
-
   let define = (..._) => {
     throw Error("Custom ipywidgets are not yet supported in CoCalc.");
   };
-  define = define;
+  // @ts-ignore -- entirely for typescript
+  const _ = { require, requirejs, define, element };
 
   try {
     eval(line);
