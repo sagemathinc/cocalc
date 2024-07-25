@@ -255,7 +255,11 @@ export class IPynbImporter {
     );
   };
 
-  _get_new_id = () => {
+  _get_new_id = (cell) => {
+    if (cell?.id && this._id_is_available(cell.id)) {
+      // attempt to use id in the ipynb file
+      return cell.id;
+    }
     if (this._new_id != null) {
       return this._new_id(this._id_is_available);
     } else {
@@ -333,7 +337,7 @@ export class IPynbImporter {
         ? this._existing_ids != null
           ? this._existing_ids[n]
           : undefined
-        : this._get_new_id();
+        : this._get_new_id(cell);
     const obj: any = {
       type: "cell",
       id,
@@ -344,12 +348,12 @@ export class IPynbImporter {
         cell.metadata != null && cell.metadata.cocalc != null
           ? cell.metadata.cocalc.outputs
           : undefined,
-        id
+        id,
       ),
       cell_type: this._get_cell_type(cell.cell_type),
       exec_count: this._get_exec_count(
         cell.execution_count,
-        cell.prompt_number
+        cell.prompt_number,
       ),
     };
 
