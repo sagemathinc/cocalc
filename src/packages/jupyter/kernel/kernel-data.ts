@@ -54,7 +54,7 @@ export async function get_kernel_data(): Promise<KernelSpec[]> {
   for (const kernel in kernel_data) {
     const value = kernel_data[kernel];
     v.push({
-      name: kernel,
+      name: kernel.toLowerCase(),
       display_name: value.spec.display_name,
       language: spec2language(value.spec),
       // @ts-ignore
@@ -83,8 +83,9 @@ export async function getLanguage(kernelName: string): Promise<string> {
 }
 
 export async function get_kernel_data_by_name(
-  name: string
+  name: string,
 ): Promise<KernelSpec> {
+  name = name.toLowerCase();
   const kernel_data = await get_kernel_data();
   for (const kernel of kernel_data) {
     if (kernel.name == name) {

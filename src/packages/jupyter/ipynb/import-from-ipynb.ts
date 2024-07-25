@@ -162,6 +162,13 @@ export class IPynbImporter {
       this._ipynb.metadata &&
       this._ipynb.metadata.kernelspec &&
       this._ipynb.metadata.kernelspec.name;
+    if (this._kernel != null) {
+      // kernel names are supposed to be case insensitive
+      // https://jupyter-client.readthedocs.io/en/latest/kernels.html
+      // We also make them all lower case when reading them in at
+      // src/packages/jupyter/kernel/kernel-data.ts
+      this._kernel = this._kernel.toLowerCase();
+    }
   };
 
   _import_metadata = () => {

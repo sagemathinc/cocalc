@@ -382,7 +382,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
                 "this compute server"
               ) : (
                 <>
-                  the <SiteName /> shared environment
+                  the <SiteName /> Home Base environment
                 </>
               )}
               .
