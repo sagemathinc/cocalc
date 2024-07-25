@@ -372,7 +372,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   // Either show the most recently focused introspect frame, or ceate one.
   public async show_introspect(): Promise<void> {
-    this.show_recently_focused_frame_of_type("introspect", "row", false, 2 / 3);
+    this.show_recently_focused_frame_of_type("introspect", "col", false, 2 / 3);
   }
 
   // Close the most recently focused introspect frame, if there is one.
