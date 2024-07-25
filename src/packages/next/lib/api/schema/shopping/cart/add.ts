@@ -3,6 +3,11 @@ import { z } from "../../../framework";
 import { FailedAPIOperationSchema, OkAPIOperationSchema } from "../../common";
 
 import { ProjectIdSchema } from "../../projects/common";
+import {
+  SiteLicenseQuotaSchema,
+  SiteLicenseRunLimitSchema,
+  SiteLicenseUptimeSchema,
+} from "../../licenses/common";
 
 const LicenseRangeSchema = z
   .array(z.string())
@@ -48,71 +53,18 @@ export const ShoppingCartAddInputSchema = z
       .nullish(),
     description: z
       .union([
-        z
-          .object({
-            title: LicenseTitleSchema.optional(),
-            description: LicenseDescriptionSchema.optional(),
-            range: LicenseRangeSchema.optional(),
-            period: z.enum(["range", "monthly", "yearly"]).describe(
-              `Period for which this license is to be applied. If \`range\` is selected, 
+        SiteLicenseQuotaSchema.extend({
+          title: LicenseTitleSchema.optional(),
+          description: LicenseDescriptionSchema.optional(),
+          range: LicenseRangeSchema.optional(),
+          period: z.enum(["range", "monthly", "yearly"]).describe(
+            `Period for which this license is to be applied. If \`range\` is selected, 
                the \`range\` field must be populated in this request.`,
-            ),
-            type: z.enum(["quota"]).describe("License type"),
-            user: z.enum(["academic", "business"]).describe("User type."),
-            run_limit: z
-              .number()
-              .min(0)
-              .describe(
-                "Number of projects which may simultaneously use this license",
-              ),
-            always_running: z
-              .boolean()
-              .nullish()
-              .describe(
-                `Indicates whether the project(s) this license is applied to should be 
-                 allowed to always be running.`,
-              ),
-            ram: z
-              .number()
-              .min(1)
-              .describe(
-                "Limits the total memory a project can use. At least 2GB is recommended.",
-              ),
-            cpu: z
-              .number()
-              .min(1)
-              .describe(
-                "Limits the total number of vCPUs allocated to a project.",
-              ),
-            disk: z
-              .number()
-              .min(1)
-              .describe(
-                `Disk size in GB to be allocated to the project to which this license is 
-                 applied.`,
-              ),
-            member: z.boolean().describe(
-              `Member hosting significantly reduces competition for resources, and we 
-               prioritize support requests much higher. _Please be aware: licenses of 
-               different member hosting service levels cannot be combined!_`,
-            ),
-            uptime: z
-              .enum(["short", "medium", "day", "always_running"])
-              .describe(
-                `Determines how long a project runs while not being used before being 
-                 automatically stopped. A \`short\` value corresponds to a 30-minute 
-                 timeout, and a \`medium\` value to a 2-hour timeout.`,
-              ),
-            boost: z
-              .boolean()
-              .nullish()
-              .describe(
-                `If \`true\`, this license is a boost license and allows for a project to
-                 temporarily boost the amount of resources available to a project by the
-                 amount specified in the \`cpu\`, \`memory\`, and \`disk\` fields.`,
-              ),
-          })
-          .describe("Project resource quote license."),
+          ),
+          type: z.enum(["quota"]).describe("License type"),
+          run_limit: SiteLicenseRunLimitSchema,
+          uptime: SiteLicenseUptimeSchema,
+        }).describe("Project resource quota license."),
         z
           .object({
             title: LicenseTitleSchema,
