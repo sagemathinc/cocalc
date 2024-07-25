@@ -4,11 +4,11 @@
  */
 
 import { Map } from "immutable";
-
 import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { capitalize, is_different, keys } from "@cocalc/util/misc";
 import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
+import { A } from "@cocalc/frontend/components";
 
 const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
   extra_button_bar:
@@ -32,10 +32,10 @@ const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
   ask_jupyter_kernel: "ask which kernel to use for a new Jupyter Notebook",
   jupyter_classic: (
     <span>
-      use classical Jupyter notebook{" "}
-      <a href={JUPYTER_CLASSIC_MODERN} target="_blank">
-        (DANGER: this can cause trouble...)
-      </a>
+      <A href="https://github.com/sagemathinc/cocalc/issues/7706">
+        <b>DEPRECATED -- will to be removed after Aug 2024</b>
+      </A>{" "}
+      (see <A href={JUPYTER_CLASSIC_MODERN}>the docs</A>).
     </span>
   ),
   /* commented out since we are never using this.
