@@ -33,7 +33,9 @@ export interface KeyboardCommand {
   meta?: boolean;
   key?: string;
   // TODO: key is currently only used for displaying what the shortcut is; however,
-  // "which" is deprecated and we should switch to using only key!
+  // "which" is deprecated and we should switch to using only key.
+  // However, key is also tricky, e.g., key for shift+h is an upper case "H", but
+  // if you just hit h it is lower case "h", so you can't just switch to using event.key.
   // See https://github.com/sagemathinc/cocalc/issues/4020
 }
 
