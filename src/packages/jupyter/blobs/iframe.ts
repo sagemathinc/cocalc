@@ -13,6 +13,9 @@ import { decode } from "he";
 //import { getLogger } from "@cocalc/backend/logger";
 //const logger = getLogger("jupyter:blobs:iframe");
 
+// see https://github.com/sagemathinc/cocalc/issues/4322
+const MAX_HTML_SIZE = 10 ** 6;
+
 // We use iframes to render html in a number of cases:
 //  - if it starts with iframe
 //  - if it has a whole page doctype
@@ -26,6 +29,18 @@ export function is_likely_iframe(content: string): boolean {
     return false;
   }
   content = content.toLowerCase();
+  if (
+    content.includes("https://bokeh.org") &&
+    content.includes("bk-notebook-logo")
+  ) {
+    // Do NOT use an iframe for bokeh no matter what, since this won't work properly.
+    // Hopefully the above heuristic is sufficiently robust to detect but not overdetect.
+    return false;
+  }
+  if (content.length >= MAX_HTML_SIZE) {
+    // it'll just break anyways if we don't use an iframe -- if we do, there is hope.
+    return true;
+  }
   return (
     content.includes("bk-notebook-logo") ||
     content.startsWith("<iframe") ||
