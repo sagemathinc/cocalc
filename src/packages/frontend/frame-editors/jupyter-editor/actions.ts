@@ -537,6 +537,24 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   compute_server() {
     // this is here just so the dropdown gets enabled
   }
+
+  gotoUser(account_id: string, frameId?: string) {
+    const cursors = this.jupyter_actions.syncdb
+      .get_cursors({ maxAge: 0 })
+      ?.toJS();
+    if (cursors == null) return; // no info
+    const locs = cursors[account_id]?.locs;
+    for (const loc of locs) {
+      if (loc.id != null) {
+        const frameActions = this.get_frame_actions(frameId);
+        if (frameActions != null) {
+          frameActions.set_cur_id(loc.id);
+          frameActions.scroll("cell visible");
+          return;
+        }
+      }
+    }
+  }
 }
 
 export { JupyterEditorActions as Actions };
