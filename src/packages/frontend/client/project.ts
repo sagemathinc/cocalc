@@ -38,6 +38,7 @@ import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import computeServers from "@cocalc/frontend/compute/manager";
 import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
+import { HOME_ROOT } from "@cocalc/util/consts/files";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -79,7 +80,7 @@ export class ProjectClient {
     const base_path = appBasePath;
     if (opts.path[0] === "/") {
       // absolute path to the root
-      opts.path = ".smc/root" + opts.path; // use root symlink, which is created by start_smc
+      opts.path = HOME_ROOT + opts.path; // use root symlink, which is created by start_smc
     }
     return encode_path(join(base_path, `${opts.project_id}/raw/${opts.path}`));
   }

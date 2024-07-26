@@ -163,8 +163,8 @@ export async function open_file(
       if (!actions.open_files) return; // closed
       alert_message({
         type: "info",
-        message: `Opening realpath "${realpath}" instead, since filesystem links are not fully supported.`,
-        timeout: 15,
+        message: `Opening normalized real path "${realpath}"`,
+        timeout: 10,
       });
       actions.open_files.delete(opts.path);
       opts.path = realpath;
