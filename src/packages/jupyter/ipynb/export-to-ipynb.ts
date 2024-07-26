@@ -50,6 +50,7 @@ function cell_to_ipynb(id: string, opts: any) {
     cell_type: (left = cell.get("cell_type")) != null ? left : "code",
     source: diff_friendly((left1 = cell.get("input")) != null ? left1 : ""),
     metadata,
+    id,
   };
 
   // Handle any extra metadata (mostly user defined) that we don't handle in a special
@@ -87,7 +88,7 @@ function cell_to_ipynb(id: string, opts: any) {
       output,
       exec_count,
       opts.more_output != null ? opts.more_output[id] : undefined,
-      opts.blob_store
+      opts.blob_store,
     );
   } else if (obj.outputs == null && obj.cell_type === "code") {
     obj.outputs = []; // annoying requirement of ipynb file format.
@@ -130,7 +131,7 @@ function process_other_metadata(obj: any, other_metadata: any) {
 function process_attachments(
   obj: any,
   attachments: any,
-  blob_store: BlobStore | undefined
+  blob_store: BlobStore | undefined,
 ) {
   if (attachments == null || blob_store == null) {
     // don't have to or can't do anything (https://github.com/sagemathinc/cocalc/issues/4272)
@@ -155,7 +156,7 @@ function ipynb_outputs(
   output: any,
   exec_count: any,
   more_output: any,
-  blob_store: BlobStore | undefined
+  blob_store: BlobStore | undefined,
 ) {
   // If the last message has the more_output field, then there may be
   // more output messages stored, which are not in the cells object.
@@ -170,7 +171,7 @@ function ipynb_outputs(
         immutable.fromJS({
           text: "WARNING: Some output was deleted.\n",
           name: "stderr",
-        })
+        }),
       );
     } else {
       // Indeed, the last message has the more_output field.
@@ -204,7 +205,7 @@ function ipynb_outputs(
 function process_output_n(
   output_n: any,
   exec_count: any,
-  blob_store: BlobStore | undefined
+  blob_store: BlobStore | undefined,
 ) {
   if (output_n == null) {
     return;

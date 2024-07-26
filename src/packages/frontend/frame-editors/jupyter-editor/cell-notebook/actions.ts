@@ -828,6 +828,9 @@ export class NotebookFrameActions {
       }
     }
     this.jupyter_actions._sync();
+    setTimeout(() => {
+      this.scroll("cell visible");
+    }, 0);
   }
 
   public toggle_source_hidden(): void {

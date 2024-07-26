@@ -50,6 +50,18 @@ export function evt_to_obj(evt: any, mode: NotebookMode): KeyboardCommand {
   if (mode != null) {
     obj.mode = mode;
   }
+  if (evt.which == 173) {
+    // firefox sends 173 for the "-" key but everybody else sends 189
+    // see https://github.com/sagemathinc/cocalc/issues/4467
+    // See also https://stackoverflow.com/questions/18177818/why-jquerys-event-which-gives-different-results-in-firefox-and-chrome
+    // and of course we should rewrite this entire file to use
+    // evt.key instead of evt.which
+    evt.which = 189;
+  }
+  if (evt.which == 59) {
+    // firefox sends 59 for the "-" key but everybody else sends 186
+    evt.which = 186;
+  }
   return obj;
 }
 

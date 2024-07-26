@@ -29,3 +29,17 @@ export const RequestNoCacheSchema = z
   .optional();
 
 export type RequestNoCache = z.infer<typeof RequestNoCacheSchema>;
+
+export const LimitResultsSchema = z
+  .number()
+  .min(1)
+  .describe("Limits the number of returned results.");
+
+export type LimitResults = z.infer<typeof LimitResultsSchema>;
+
+export const SkipResultsSchema = z
+  .number()
+  .min(1)
+  .describe("Skips the first `n` results.");
+
+export type SkipResults = z.infer<typeof SkipResultsSchema>;
