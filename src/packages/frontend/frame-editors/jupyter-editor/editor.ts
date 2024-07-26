@@ -350,6 +350,12 @@ const JUPYTER_MENUS = {
           "toggle cell line numbers",
         ],
       },
+      {
+        label: "Code Folding",
+        name: "code-folding",
+        icon: "angle-right",
+        children: ["show code folding", "hide code folding"],
+      },
     ],
   },
   jupyter_run: {

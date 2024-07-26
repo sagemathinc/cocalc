@@ -76,7 +76,7 @@ export interface Actions extends CompleteActions {
 interface CodeMirrorEditorProps {
   actions: Actions; // e.g., JupyterActions from "./browser-actions".
   id: string;
-  options: ImmutableMap<any, any>;
+  options: ImmutableMap<string, any>;
   value: string;
   set_click_coords?: Function; // TODO: type
   font_size?: number; // font_size not explicitly used, but it is critical
@@ -792,7 +792,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           }}
           onClick={focus_cm}
         >
-          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 0" }}>
+          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 20px" }}>
             Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
           {setShowAICellGen != null ? (
