@@ -1096,3 +1096,4 @@ export class NotebookFrameActions {
     this.jupyter_actions.syncdb.commit();
   };
 }
+
