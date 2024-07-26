@@ -792,21 +792,19 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           }}
           onClick={focus_cm}
         >
-          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 20px" }}>
+          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 10px" }}>
             Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
-          {setShowAICellGen != null ? (
-            <a
-              style={{
-                marginTop: "6px",
-                opacity: 0.7,
-                fontSize: "inherit",
-              }}
-              onClick={() => setShowAICellGen("replace")}
-            >
-              generate using AI...
-            </a>
-          ) : undefined}
+          <a
+            style={{
+              marginTop: "6px",
+              opacity: 0.7,
+              fontSize: "inherit",
+            }}
+            onClick={() => setShowAICellGen("replace")}
+          >
+            generate using AI...
+          </a>
         </div>
       </div>
     );
