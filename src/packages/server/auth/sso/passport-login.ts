@@ -22,27 +22,27 @@ import Cookies from "cookies";
 import * as _ from "lodash";
 import { isEmpty } from "lodash";
 
+import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { legacyManageApiKey } from "@cocalc/server/api/manage";
-import generateHash from "@cocalc/server/auth/hash";
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
-import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
-import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import {
   PassportLoginLocals,
   PassportLoginOpts,
   PassportStrategyDB,
 } from "@cocalc/database/settings/auth-sso-types";
+import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import isBanned from "@cocalc/server/accounts/is-banned";
+import { legacyManageApiKey } from "@cocalc/server/api/manage";
+import generateHash from "@cocalc/server/auth/hash";
+import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
+import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
+import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { HELP_EMAIL } from "@cocalc/util/theme";
-import getEmailAddress from "../../accounts/get-email-address";
 import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
-import isBanned from "@cocalc/server/accounts/is-banned";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -248,7 +248,7 @@ export class PassportLogin {
   }
 
   // similar to the above, for a specific email address
-  private checkEmailExclusiveSSO(email_address): boolean {
+  private checkEmailExclusiveSSO(email_address: string): boolean {
     const emailDomain = getEmailDomain(email_address.toLocaleLowerCase());
     for (const strategyName in this.opts.passports) {
       const strategy = this.opts.passports[strategyName];
