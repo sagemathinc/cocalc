@@ -214,12 +214,14 @@ ax1.plot(timestamps, mem_rss, color='blue', label='Memory (RSS)')
 ax1.set_xlabel('Time')
 ax1.set_ylabel('Memory (MB)', color='blue')
 ax1.tick_params(axis='y', labelcolor='blue')
+ax1.set_ylim(bottom=0)
 
 # CPU utilization (secondary axis)
 ax2 = ax1.twinx()
 ax2.plot(timestamps, cpu_pct, color='red', label='CPU (%)')
 ax2.set_ylabel('CPU (%)', color='red')
 ax2.tick_params(axis='y', labelcolor='red')
+ax2.set_ylim(bottom=0)
 
 # Add labels and legend
 plt.title('Job Stats')

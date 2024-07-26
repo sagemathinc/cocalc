@@ -49,21 +49,32 @@ const MONITOR_STATS_LENGTH_MAX = envToInt(
   100,
 );
 
+log.debug("configuration:", {
+  ASYNC_CACHE_MAX,
+  ASYNC_CACHE_TTL_S,
+  MONITOR_INTERVAL_S,
+  MONITOR_STATS_LENGTH_MAX,
+});
+
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
   ttl: 1000 * ASYNC_CACHE_TTL_S,
-  ttlAutopurge: true,
-  allowStale: true,
   updateAgeOnGet: true,
   updateAgeOnHas: true,
 });
+
+function truncStats(obj?: ExecuteCodeOutputAsync) {
+  if (Array.isArray(obj?.stats)) {
+    // truncate to $MONITOR_STATS_LENGTH_MAX, by discarding the inital entries
+    obj.stats = obj.stats.slice(obj.stats.length - MONITOR_STATS_LENGTH_MAX);
+  }
+}
 
 function asyncCacheUpdate(job_id: string, upd) {
   const obj = asyncCache.get(job_id);
   if (Array.isArray(obj?.stats) && Array.isArray(upd.stats)) {
     obj.stats.push(...upd.stats);
-    // truncate to $MONITOR_STATS_LENGTH_MAX, by discarding the inital entries
-    obj.stats = obj.stats.slice(obj.stats.length - MONITOR_STATS_LENGTH_MAX);
+    truncStats(obj);
   }
   asyncCache.set(job_id, { ...obj, ...upd });
 }
@@ -324,7 +335,7 @@ function doSpawn(
   let stderr_is_done = false;
   let stdout_is_done = false;
   let killed = false;
-  let callback_done = false;
+  let callback_done = false; // set in "finish", which is also called in a timeout
   let timer: NodeJS.Timeout | undefined = undefined;
 
   // periodically check up on the child process tree and record stats
@@ -360,6 +371,7 @@ function doSpawn(
         cpu_pct: pct_cpu,
         cpu_secs,
       });
+      truncStats(obj);
       asyncCache.set(job_id, obj);
 
       // initially, we record more frequently, but then we space it out up until the interval (probably 1 minute)
