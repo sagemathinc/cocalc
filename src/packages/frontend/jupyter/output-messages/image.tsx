@@ -41,12 +41,12 @@ export const Image: React.FC<ImageProps> = React.memo((props: ImageProps) => {
   function render_image(src, on_error?): JSX.Element {
     const props = {
       src,
-      width: width,
-      height: height,
+      width,
+      height,
     };
     props["style"] = {
       maxWidth: "100%",
-      height: "auto",
+      height: props.height ?? "auto",
     } as React.CSSProperties;
     if (on_error != null) {
       props["onError"] = on_error;
