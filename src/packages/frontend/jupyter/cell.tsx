@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -251,6 +251,13 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
   function getCellStyle(): CSS {
     const color = getBorderColor();
 
+    // 30px -- make room for InsertCell(above)
+    const marginTop = props.isFirst
+      ? "30px"
+      : props.actions != null
+      ? "10px"
+      : "20px";
+
     const style: React.CSSProperties = {
       border: `1px solid ${color}`,
       borderLeft: `10px solid ${color}`,
@@ -267,24 +274,21 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         ? {
             padding: "2px",
             margin:
-              props.actions != null ? "10px 15px 2px 5px" : "20px 15px 2px 5px",
+              props.actions != null
+                ? `${marginTop} 15px 2px 5px`
+                : `${marginTop} 15px 2px 5px`,
           }
         : {
             padding: "2px 2px 15px 2px",
             margin:
               props.actions != null
-                ? "10px 15px -15px 5px"
-                : "20px 15px -15px 5px",
+                ? `${marginTop} 15px -15px 5px`
+                : `${marginTop} 15px -15px 5px`,
           }),
     };
 
     if (props.is_selected) {
       style.background = "#e3f2fd";
-    }
-
-    if (props.isFirst) {
-      // make room for InsertCell(above)
-      style.marginTop = "30px";
     }
 
     return style;

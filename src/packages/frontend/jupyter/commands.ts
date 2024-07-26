@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -33,7 +33,9 @@ export interface KeyboardCommand {
   meta?: boolean;
   key?: string;
   // TODO: key is currently only used for displaying what the shortcut is; however,
-  // "which" is deprecated and we should switch to using only key!
+  // "which" is deprecated and we should switch to using only key.
+  // However, key is also tricky, e.g., key for shift+h is an upper case "H", but
+  // if you just hit h it is lower case "h", so you can't just switch to using event.key.
   // See https://github.com/sagemathinc/cocalc/issues/4020
 }
 
@@ -764,7 +766,7 @@ export function commands(actions: AllActions): {
     // on a mac). https://github.com/sagemathinc/cocalc/issues/7000
     "run cell": {
       i: "play",
-      m: "Run Selected Cells and Do not Advance",
+      m: "Run Selected Cells and Do Not Advance",
       b: "Stay",
       t: "Run all cells that are currently selected. Do not move the selection.",
       k: [

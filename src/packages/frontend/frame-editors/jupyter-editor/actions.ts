@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -372,7 +372,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   // Either show the most recently focused introspect frame, or ceate one.
   public async show_introspect(): Promise<void> {
-    this.show_recently_focused_frame_of_type("introspect", "row", false, 2 / 3);
+    this.show_recently_focused_frame_of_type("introspect", "col", false, 2 / 3);
   }
 
   // Close the most recently focused introspect frame, if there is one.
@@ -536,6 +536,24 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   compute_server() {
     // this is here just so the dropdown gets enabled
+  }
+
+  gotoUser(account_id: string, frameId?: string) {
+    const cursors = this.jupyter_actions.syncdb
+      .get_cursors({ maxAge: 0 })
+      ?.toJS();
+    if (cursors == null) return; // no info
+    const locs = cursors[account_id]?.locs;
+    for (const loc of locs) {
+      if (loc.id != null) {
+        const frameActions = this.get_frame_actions(frameId);
+        if (frameActions != null) {
+          frameActions.set_cur_id(loc.id);
+          frameActions.scroll("cell visible");
+          return;
+        }
+      }
+    }
   }
 }
 

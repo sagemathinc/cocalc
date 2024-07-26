@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -32,6 +32,7 @@ import {
   Store,
   TypedMap,
   createTypedMap,
+  redux,
 } from "@cocalc/frontend/app-framework";
 import type { PageActions } from "@cocalc/frontend/app/actions";
 import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
@@ -98,6 +99,7 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
+import { set_account_table } from "../../account/util";
 
 interface gutterMarkerParams {
   line: number;
@@ -3008,5 +3010,13 @@ export class Actions<
 
   tour(_id: string, _refs: any): TourProps["steps"] {
     return [];
+  }
+
+  // toggle autobuild on save via the menu or button
+  public build_on_save(): void {
+    const val = redux
+      .getStore("account")
+      .getIn(["editor_settings", "build_on_save"]);
+    set_account_table({ editor_settings: { build_on_save: !val } });
   }
 }

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Set } from "immutable";
@@ -828,6 +828,9 @@ export class NotebookFrameActions {
       }
     }
     this.jupyter_actions._sync();
+    setTimeout(() => {
+      this.scroll("cell visible");
+    }, 0);
   }
 
   public toggle_source_hidden(): void {

@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // help users selecting a kernel
@@ -382,7 +382,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
                 "this compute server"
               ) : (
                 <>
-                  the <SiteName /> shared environment
+                  the <SiteName /> Home Base environment
                 </>
               )}
               .

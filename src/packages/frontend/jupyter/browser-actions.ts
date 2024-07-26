@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -35,6 +35,8 @@ import {
 } from "../misc/local-storage";
 import { parse_headings } from "./contents";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { bufferToBase64, base64ToBuffer } from "@cocalc/util/base64";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -107,10 +109,10 @@ export class JupyterActions extends JupyterActions0 {
       if (ipywidgets_state == null) {
         throw Error("bug -- ipywidgets_state must be defined");
       }
-      this.widget_manager = new WidgetManager(
-        ipywidgets_state,
-        this.setWidgetModelIdState.bind(this),
-      );
+      this.widget_manager = new WidgetManager({
+        ipywidgets_state: ipywidgets_state!,
+        actions: this,
+      });
       // Stupid hack for now -- this just causes some activity so
       // that the syncdb syncs.
       // This should not be necessary, and may indicate a bug in the sync layer?
@@ -314,20 +316,6 @@ export class JupyterActions extends JupyterActions0 {
     // this.deprecated("focus_unlock");
   };
 
-  private setWidgetModelIdState(
-    model_id: string,
-    state: string | null, // '' = good; 'nonempty' = bad; null=delete
-  ): void {
-    let widgetModelIdState: Map<string, string> =
-      this.store.get("widgetModelIdState");
-    if (state === null) {
-      widgetModelIdState = widgetModelIdState.delete(model_id);
-    } else {
-      widgetModelIdState = widgetModelIdState.set(model_id, state);
-    }
-    this.setState({ widgetModelIdState });
-  }
-
   protected close_client_only(): void {
     const account = this.redux.getStore("account");
     if (account != null) {
@@ -461,11 +449,43 @@ export class JupyterActions extends JupyterActions0 {
     this.deprecated("command", name);
   };
 
-  public send_comm_message_to_kernel(comm_id: string, data: any): string {
-    const msg_id = uuid();
-    this.api_call("comm", [msg_id, comm_id, data]);
+  send_comm_message_to_kernel = async ({
+    msg_id,
+    comm_id,
+    target_name,
+    data,
+    buffers,
+  }: {
+    msg_id?: string;
+    comm_id: string;
+    target_name: string;
+    data: unknown;
+    buffers?: ArrayBuffer[] | ArrayBufferView[];
+  }): Promise<string> => {
+    if (!msg_id) {
+      msg_id = uuid();
+    }
+    let buffers64;
+    if (buffers != null) {
+      buffers64 = buffers.map(bufferToBase64);
+    } else {
+      buffers64 = [];
+    }
+    const msg = { msg_id, target_name, comm_id, data, buffers64 };
+    await this.api_call("comm", msg);
+    // console.log("send_comm_message_to_kernel", "sent", msg);
     return msg_id;
-  }
+  };
+
+  ipywidgetsGetBuffer = reuseInFlight(
+    async (model_id: string, buffer_path: string): Promise<ArrayBuffer> => {
+      const { buffer64 } = await this.api_call("ipywidgets-get-buffer", {
+        model_id,
+        buffer_path,
+      });
+      return base64ToBuffer(buffer64);
+    },
+  );
 
   // NOTE: someday move this to the frame-tree actions, since it would
   // be generically useful!
@@ -780,9 +800,7 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public custom_jupyter_kernel_docs(): void {
-    open_new_tab(
-      "https://doc.cocalc.com/howto/custom-jupyter-kernel.html",
-    );
+    open_new_tab("https://doc.cocalc.com/howto/custom-jupyter-kernel.html");
   }
 
   /* Wait until the syncdb is ready *and* there is at

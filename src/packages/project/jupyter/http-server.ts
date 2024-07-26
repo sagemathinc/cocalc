@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -60,29 +60,6 @@ function jupyter_kernel_info_handler(router): void {
         res.status(200).send(buffer);
       } catch (err) {
         res.status(500).send(`Error getting ipywidgets buffer - ${err}`);
-      }
-    }
-  );
-
-  router.get(
-    BASE + "ipywidgets-get-buffer-info",
-    async function (req, res): Promise<void> {
-      try {
-        const { path, model_id, buffer_path } = req.query;
-        const kernel = get_existing_kernel(path);
-        if (kernel == null) {
-          res.status(404).send(`kernel associated to ${path} does not exist`);
-          return;
-        }
-        const buffer = kernel.ipywidgetsGetBuffer(model_id, buffer_path);
-        res.send({
-          path,
-          model_id,
-          buffer_path,
-          buffer_length: buffer?.length,
-        });
-      } catch (err) {
-        res.status(500).send(`Error getting ipywidgets buffer info - ${err}`);
       }
     }
   );

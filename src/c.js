@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -13,7 +13,7 @@ or just require('./c.js').
 The functions below in some cases return things, and in some cases set global variables!  Read docs.
 
 COPYRIGHT : (c) 2021 SageMath, Inc.
-LICENSE   : AGPLv3
+LICENSE   : MS-RSL
 */
 
 process.env.COCALC_ROOT = require("path").resolve(__dirname);

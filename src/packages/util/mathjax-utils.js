@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 // This is taken from Jupyter, which is BSD/Apache2 licensed... -- https://github.com/jupyter/notebook/blob/master/notebook/static/notebook/js/mathjaxutils.js

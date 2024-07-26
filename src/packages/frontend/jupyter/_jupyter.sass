@@ -1,7 +1,10 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
+
+// I just noticed there is another version of this file in ../_jupyter.sass
+// They need to be carefully merged into one!  But not today.
 
 .cocalc-jupyter-rendered
   img
@@ -101,3 +104,10 @@
 .cocalc-jupyter-menu
   .ant-dropdown-trigger:hover
     background-color: white
+
+// Make it so the widgets container has position relative,
+// which is assumed by some widgets, e.g.,
+// %matplotlib widgets
+// from pylab import plot; plot([1,2],[3,4])
+cocalc-lumino-adapter
+  position: relative

@@ -69,11 +69,14 @@ export default function CachedIFrame({ cacheId, sha1, project_id }: Props) {
     eltRef.current.style.width = `${divRect.width}px`;
     // Set the height to match the contents:
     try {
-      const height = Math.max(
-        200,
-        eltRef.current.contentWindow.document.documentElement.offsetHeight ??
-          200
-      );
+      const h =
+        eltRef.current.contentWindow.document.documentElement.offsetHeight;
+      if (!h) {
+        // do not use if 0 -- this happens, e.g., when put in the background,
+        // and would wreck everything.  This was a longstanding annoying bug, actually!
+        return;
+      }
+      const height = Math.max(200, h);
       eltRef.current.style.height = `${height}px`;
       divRef.current.style.height = `${height}px`;
     } catch (_) {
@@ -100,8 +103,8 @@ export default function CachedIFrame({ cacheId, sha1, project_id }: Props) {
         `<iframe id="${key}" src="${get_blob_url(
           project_id,
           "html",
-          sha1
-        )}" style="border:0;overflow:hidden;width:100%;height:${HEIGHT};position:absolute;left:130px"/>`
+          sha1,
+        )}" style="border:0;overflow:hidden;width:100%;height:${HEIGHT};position:absolute;left:130px"/>`,
       );
       holder.append(elt);
     }

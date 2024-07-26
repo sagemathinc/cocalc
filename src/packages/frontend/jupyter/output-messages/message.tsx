@@ -1,6 +1,6 @@
 /*
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: AGPLv3 s.t. "Commons Clause" – see LICENSE.md for details
+ *  License: MS-RSL – see LICENSE.md for details
  */
 
 /*
@@ -124,6 +124,9 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     for (const n of numericallyOrderedKeys(obj)) {
       const mesg = obj[n];
       if (mesg != null) {
+        if (mesg.get("transient")) {
+          continue;
+        }
         if (mesg.get("traceback")) {
           hasError = true;
           traceback += mesg.get("traceback").join("\n") + "\n";

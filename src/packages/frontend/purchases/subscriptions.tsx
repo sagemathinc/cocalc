@@ -480,8 +480,11 @@ export default function Subscriptions() {
         dataIndex: "cost",
         key: "cost",
         render: (cost, record) => {
-          if (record.status == "active") {
+          // in prod we hit a case where cost was null, hence the if here.
+          if (record.status == "active" && cost != null) {
             return `${currency(round2up(cost))}/${record.interval}`;
+          } else {
+            return "-";
           }
         },
       },
