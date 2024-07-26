@@ -444,7 +444,7 @@ export function commands(actions: AllActions): {
     "interrupt kernel": {
       i: "stop",
       b: "Stop",
-      m: "Interrupt Kernel",
+      m: "Interrupt Kernel (Stop)",
       k: [{ mode: "escape", which: 73, twice: true }],
       f: () => actions.jupyter_actions?.signal("SIGINT"),
     },
