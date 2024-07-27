@@ -253,8 +253,8 @@ export default function TermsOfService({ customize }) {
                 by posting the changes to the Site or the Service itself.{" "}
               </p>
               <p>
-                You may use the Services for commercial purposes. In particular,
-                there are no academic or personal-use restrictions.{" "}
+                In order to use the Services for commercial purposes, you must
+                obtain business license or subscription.
               </p>
               <h1>Feedback</h1>
               <p>
