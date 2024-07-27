@@ -32,6 +32,20 @@ import {
 } from "./pool-params";
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 
+// any kernel name whose lowercase representation contains one of these strings
+// will never use the pool. See https://github.com/sagemathinc/cocalc/issues/7041
+const BLACKLIST = ["julia"];
+
+function isBlacklisted(kernel: string) {
+  const s = kernel.toLowerCase();
+  for (const n of BLACKLIST) {
+    if (s.includes(n)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export type { LaunchJupyterOpts, SpawnedKernel };
 
 const log = getLogger("jupyter:pool");
@@ -71,10 +85,14 @@ export default async function launchJupyterKernel(
   name: string, // name of the kernel
   opts: LaunchJupyterOpts,
   size_arg?: number, // min number of these in the pool
-  timeout_s_arg?: number
+  timeout_s_arg?: number,
 ): Promise<SpawnedKernel> {
   const size: number = size_arg ?? getSize();
   const timeout_s: number = timeout_s_arg ?? getTimeoutS();
+  if (isBlacklisted(name)) {
+    log.debug(`not using kernel pool for ${name} because it is blacklisted`);
+    return await launchJupyterKernelNoPool(name, opts);
+  }
   let language;
   try {
     language = await getLanguage(name);
@@ -99,8 +117,8 @@ export default async function launchJupyterKernel(
         createSetenvCommand(
           language,
           "COCALC_JUPYTER_FILENAME",
-          opts.env.COCALC_JUPYTER_FILENAME
-        )
+          opts.env.COCALC_JUPYTER_FILENAME,
+        ),
       );
     } catch (error) {
       log.error("Failed to get setenv command -- not using pool", error);
@@ -138,6 +156,15 @@ export default async function launchJupyterKernel(
 // pool could end up a little too big.
 const replenishPool = reuseInFlight(
   async (key: string, size_arg?: number, timeout_s_arg?: number) => {
+    const { name, opts } = JSON.parse(key);
+    if (isBlacklisted(name)) {
+      log.debug(
+        "replenishPool",
+        key,
+        ` -- skipping since ${name} is blacklisted`,
+      );
+      return;
+    }
     const size: number = size_arg ?? getSize();
     const timeout_s: number = timeout_s_arg ?? getTimeoutS();
     log.debug("replenishPool", key, { size, timeout_s });
@@ -149,7 +176,6 @@ const replenishPool = reuseInFlight(
       while (pool.length < size) {
         log.debug("replenishPool - creating a kernel", key);
         writeConfig(key);
-        const { name, opts } = JSON.parse(key);
         await delay(getLaunchDelayMS());
         const kernel = await launchJupyterKernelNoPool(name, opts);
         pool.push(kernel);
@@ -162,7 +188,7 @@ const replenishPool = reuseInFlight(
   },
   {
     createKey: (args) => args[0],
-  }
+  },
 );
 
 /*
@@ -251,7 +277,7 @@ export async function killKernel(kernel: SpawnedKernel) {
       } catch (error) {
         log.error(
           `Failed to delete Jupyter kernel connection file ${kernel.connectionFile}`,
-          error
+          error,
         );
       }
     }
