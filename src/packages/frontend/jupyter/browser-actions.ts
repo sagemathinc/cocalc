@@ -237,7 +237,12 @@ export class JupyterActions extends JupyterActions0 {
     try {
       resp = await this.api_call_formatter(code, config);
     } catch (err) {
-      err.formatInput = code;
+      try {
+        err.formatInput = code;
+      } catch (_err) {
+        // it's possible that err = 'timeout', which is a string, and then the above fails.
+        // to see this, disconnect your laptop from the internet then try to format a cell.
+      }
       throw err;
     }
     resp = parsing.process_magics(resp, config.syntax, "unescape");
