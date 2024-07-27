@@ -24,7 +24,7 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
-import { FileUpload } from "@cocalc/frontend/file-upload";
+import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
@@ -265,7 +265,17 @@ export default function NewFilePage(props: Props) {
     <SettingBox
       show_header
       icon={"plus-circle"}
-      title={<>Create or Upload New File or Folder</>}
+      title={
+        <>
+          Create or{" "}
+          <UploadLink
+            project_id={project_id}
+            path={current_path}
+            onUpload={() => getActions().fetch_directory_listing()}
+          />{" "}
+          New File or Folder
+        </>
+      }
       subtitle={
         <div>
           <PathNavigator

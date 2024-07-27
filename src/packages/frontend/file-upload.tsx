@@ -101,6 +101,7 @@ interface FileUploadProps {
   dropzone_handler?: DropzoneComponentHandlers;
   close_button_onclick?: (event) => void;
   show_header: boolean;
+  config?: object; // All supported dropzone.js config options
 }
 
 export const FileUpload: React.FC<FileUploadProps> = (props) => {
@@ -140,7 +141,10 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
       {props.show_header ? <Header /> : undefined}
       <div style={DROPSTYLE}>
         <DropzoneComponent
-          config={{ postUrl: postUrl(props.project_id, props.current_path) }}
+          config={{
+            postUrl: postUrl(props.project_id, props.current_path),
+            ...props.config,
+          }}
           eventHandlers={props.dropzone_handler}
           djsConfig={{
             previewTemplate: ReactDOMServer.renderToStaticMarkup(
@@ -475,3 +479,29 @@ const DropzonePreview: React.FC<DropzonePreviewProps> = ({ project_id }) => {
     </div>
   );
 };
+
+export function UploadLink({
+  project_id,
+  path,
+  onUpload,
+  style,
+}: {
+  project_id: string;
+  path: string;
+  onUpload?: Function;
+  style?;
+}) {
+  return (
+    <FileUploadWrapper
+      project_id={project_id}
+      dest_path={path}
+      event_handlers={{ complete: onUpload }}
+      config={{ clickable: ".cocalc-upload-link" }}
+      style={{ display: "inline" }}
+    >
+      <a style={style} className="cocalc-upload-link">
+        Upload
+      </a>
+    </FileUploadWrapper>
+  );
+}
