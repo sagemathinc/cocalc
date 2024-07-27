@@ -23,7 +23,10 @@ export const TableOfContents: React.FC<Props> = React.memo(
       "contents",
     ]);
 
-    async function jump_to_cell(id: string, extra = "top" as "top"): Promise<void> {
+    async function jump_to_cell(
+      id: string,
+      extra = "top" as "top",
+    ): Promise<void> {
       actions.jump_to_cell(id, extra);
       // stupid hack due to rendering/windowing delays...
       await delay(100);
@@ -34,7 +37,13 @@ export const TableOfContents: React.FC<Props> = React.memo(
       <TOC
         contents={contents}
         style={{ fontSize: `${font_size - 6}px` }}
-        scrollTo={({ id, extra }) => jump_to_cell(id, extra)}
+        scrollTo={({ id, extra }) => {
+          // TODO: ignore markdown_id for now -- we just jump to the markdown cell, but not the exact heading
+          // in that cell, for now.
+          // markdown_id is string rep of number of block reference into the rendered markdown.
+          const { cell_id /*, markdown_id*/ } = JSON.parse(id);
+          jump_to_cell(cell_id, extra);
+        }}
       />
     );
   },

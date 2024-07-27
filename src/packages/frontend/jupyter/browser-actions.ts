@@ -33,7 +33,7 @@ import {
   get_local_storage,
   set_local_storage,
 } from "../misc/local-storage";
-import { parse_headings } from "./contents";
+import { parseHeadings } from "./contents";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { bufferToBase64, base64ToBuffer } from "@cocalc/util/base64";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -931,7 +931,7 @@ export class JupyterActions extends JupyterActions0 {
     if (cells == null) return;
     const cell_list = this.store.get("cell_list");
     if (cell_list == null) return;
-    const contents = fromJS(parse_headings(cells, cell_list));
+    const contents = fromJS(parseHeadings(cells, cell_list));
     this.setState({ contents });
   }
 
