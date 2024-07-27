@@ -79,6 +79,9 @@ export class JupyterActions extends JupyterActions0 {
     this.syncdb.on("metadata-change", this.sync_read_only);
     this.syncdb.on("connected", this.sync_read_only);
 
+    // first update
+    this.syncdb.once("change", this.updateContentsNow);
+
     this.syncdb.on("change", () => {
       // And activity indicator
       this.activity();
@@ -925,7 +928,7 @@ export class JupyterActions extends JupyterActions0 {
     set_local_storage(this.name, to_json(current));
   }
 
-  public update_contents(): void {
+  private updateContentsNow = () => {
     if (this._state == "closed") return;
     const cells = this.store.get("cells");
     if (cells == null) return;
@@ -933,6 +936,10 @@ export class JupyterActions extends JupyterActions0 {
     if (cell_list == null) return;
     const contents = fromJS(parseHeadings(cells, cell_list));
     this.setState({ contents });
+  };
+
+  public update_contents(): void {
+    this.updateContentsNow();
   }
 
   protected __syncdb_change_post_hook(_doInit: boolean) {
