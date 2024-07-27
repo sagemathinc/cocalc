@@ -15,8 +15,8 @@ import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
 import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
 import { latexMathToHtmlOrError } from "@cocalc/frontend/misc/math-to-html";
 import { replace_all } from "@cocalc/util/misc";
-import { redux } from "@cocalc/frontend/app-framework";
 import { replaceMathBracketDelims } from "./util";
+import { katexIsEnabled } from "@cocalc/frontend/account/other-settings";
 
 interface Props {
   data: string;
@@ -44,10 +44,7 @@ export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
     return <>{data}</>;
   }
 
-  if (
-    inMarkdown &&
-    redux.getStore("account")?.getIn(["other_settings", "katex"])
-  ) {
+  if (inMarkdown && katexIsEnabled()) {
     const __html = attemptKatex(text, math);
     if (__html != null) {
       // no error -- using katex is allowed and fully worked.
