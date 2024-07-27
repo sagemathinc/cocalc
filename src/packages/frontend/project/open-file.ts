@@ -50,7 +50,7 @@ export async function open_file(
   actions: ProjectActions,
   opts: OpenFileOpts,
 ): Promise<void> {
-  // console.log(opts);
+  // console.log("open_file: ", opts);
 
   if (opts.path.endsWith("/")) {
     actions.open_directory(opts.path);

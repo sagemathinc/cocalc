@@ -467,7 +467,24 @@ export class ProjectClient {
     project_id: string;
     path: string;
   }): Promise<string> {
-    return (await this.api(opts.project_id)).realpath(opts.path);
+    const real = (await this.api(opts.project_id)).realpath(opts.path);
+    return real;
+  }
+
+  async isdir({
+    project_id,
+    path,
+  }: {
+    project_id: string;
+    path: string;
+  }): Promise<boolean> {
+    const { stdout, exit_code } = await this.exec({
+      project_id,
+      command: "file",
+      args: ["-Eb", path],
+      err_on_exit: false,
+    });
+    return !exit_code && stdout.trim() == "directory";
   }
 
   // Add and remove a license from a project.  Note that these
