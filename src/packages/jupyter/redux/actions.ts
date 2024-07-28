@@ -1064,7 +1064,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   };
 
   undo = (): void => {
-    console.trace("jupyter redux undo");
     if (this.syncdb != null) {
       this.syncdb.undo();
     }
@@ -1703,6 +1702,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
     // For some reason, sometimes complete.matches are not unique, which is annoying/confusing,
     // and breaks an assumption in our react code too.
+    // I think the reason is e.g., a filename and a variable could be the same.   We're not
+    // worrying about that now.
     complete.matches = Array.from(new Set(complete.matches));
     // sort in a way that matches how JupyterLab sorts completions, which
     // is case insensitive with % magics at the bottom
