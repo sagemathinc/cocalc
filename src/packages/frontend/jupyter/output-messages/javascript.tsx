@@ -8,7 +8,7 @@ import $ from "jquery";
 import React, { useRef, useState } from "react";
 import { is_array } from "@cocalc/util/misc";
 import { javascript_eval } from "./javascript-eval";
-import { STDERR_STYLE } from "./style";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface JavascriptProps {
   value: string | List<string>;
@@ -16,7 +16,7 @@ interface JavascriptProps {
 
 // ATTN: better don't memoize this, since JS code evaluation happens when this is mounted
 export const Javascript: React.FC<JavascriptProps> = (
-  props: JavascriptProps
+  props: JavascriptProps,
 ) => {
   const { value } = props;
 
@@ -52,16 +52,7 @@ export const Javascript: React.FC<JavascriptProps> = (
   }, [value]);
 
   if (errors) {
-    // This conflicts with official Jupyter
-    return (
-      <div style={STDERR_STYLE}>
-        <span>
-          {errors}
-          <br />
-          See your browser Javascript console for more details.
-        </span>
-      </div>
-    );
+    return <ShowError error={errors} style={{ margin: "10px 0" }} />;
   } else {
     return <div ref={node} />;
   }
