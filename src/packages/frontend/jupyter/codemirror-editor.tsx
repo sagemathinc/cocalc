@@ -27,6 +27,7 @@ import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import { Position } from "./insert-cell/types";
+import { is_whitespace } from "@cocalc/util/misc";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -551,7 +552,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   function whitespace_before_cursor(): boolean {
     if (cm.current == null) return false;
     const cur = cm.current.getCursor();
-    return cur.ch === 0 || /\s/.test(cm.current.getLine(cur.line)[cur.ch - 1]);
+    return is_whitespace(cm.current.getLine(cur.line).slice(0, cur.ch));
   }
 
   async function tab_nothing_selected(): Promise<void> {
