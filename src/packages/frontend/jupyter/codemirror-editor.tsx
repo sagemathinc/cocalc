@@ -411,14 +411,23 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     ) {
       cm_save();
     }
-    actions.undo();
+    if (frameActions.current) {
+      // prefer this, because can update selection
+      frameActions.current.undo();
+    } else {
+      actions.undo();
+    }
   }
 
   function cm_redo(): void {
     if (cm.current == null || actions == null) {
       return;
     }
-    actions.redo();
+    if (frameActions.current) {
+      frameActions.current.redo();
+    } else {
+      actions.redo();
+    }
   }
 
   function shift_tab_key(): void {

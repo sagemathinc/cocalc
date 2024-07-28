@@ -389,7 +389,7 @@ export function commands(actions: AllActions): {
         { alt: true, mode: "escape", which: 90 },
         { ctrl: true, mode: "escape", which: 90 },
       ],
-      f: () => actions.jupyter_actions?.undo(),
+      f: () => actions.frame_actions?.undo(),
     },
 
     "global redo": {
@@ -402,7 +402,7 @@ export function commands(actions: AllActions): {
         { alt: true, mode: "escape", which: 89 },
         { ctrl: true, mode: "escape", which: 89 },
       ],
-      f: () => actions.jupyter_actions?.redo(),
+      f: () => actions.frame_actions?.redo(),
     },
 
     "hide all line numbers": {
