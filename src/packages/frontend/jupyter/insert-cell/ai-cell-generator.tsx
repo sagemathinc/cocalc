@@ -513,14 +513,14 @@ export function AIGenerateCodeCell({
             <Text strong>Please wait until it is fully generated...</Text>
           ) : (
             <Text strong>
-              Cells are generated. You can now{" "}
+              You can now{" "}
               <Button
                 size="small"
                 onClick={insert}
                 type="primary"
                 disabled={querying}
               >
-                insert the {cellStr}
+                <Icon name="plus" /> insert the {cellStr}
               </Button>
               .
             </Text>
@@ -555,7 +555,7 @@ export function AIGenerateCodeCell({
             </Flex>
             <Flex flex={1}>
               <Text type="secondary">
-                Add a cell attributing the language model and the prompt.
+                Include cell describing the language model and prompt.
               </Text>
             </Flex>
           </Flex>
@@ -570,7 +570,7 @@ export function AIGenerateCodeCell({
                 setQuerying(false);
               }}
             >
-              <Icon name="arrow-left" /> Discard
+              Cancel
             </Button>
             <Button
               size="large"
@@ -626,8 +626,8 @@ export function AIGenerateCodeCell({
     const empty = prompt.trim() == "";
     return (
       <>
-        <Paragraph type={empty ? "danger" : undefined}>
-          Describe, what the new cell should do:
+        <Paragraph>
+          What do you want the new cell to do?
         </Paragraph>
         <Paragraph>
           <Input.TextArea
@@ -635,13 +635,14 @@ export function AIGenerateCodeCell({
             allowClear
             autoFocus
             value={prompt}
-            status={empty ? "error" : undefined}
             onChange={(e) => {
               setPrompt(e.target.value);
             }}
             placeholder="Describe the new cell..."
             onPressEnter={(e) => {
               if (!e.shiftKey) return;
+              e.preventDefault(); // prevent the default action
+              e.stopPropagation(); // stop event propagation
               doQuery(prevCodeContents);
             }}
             autoSize={{ minRows: 2, maxRows: 6 }}
