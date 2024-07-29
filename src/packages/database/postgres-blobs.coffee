@@ -112,6 +112,29 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         uuid   : opts.uuid
                         cb     : (err, _ttl) =>
                             ttl = _ttl; cb(err)
+            (cb) =>
+                # double check that the blob definitely exists and has correct expire
+                # See discussion at https://github.com/sagemathinc/cocalc/issues/7715
+                # The problem is that maybe with VERY low probability somehow we extend
+                # the blob ttl at the same time that we're deleting blobs and the extend
+                # is too late and does an empty update.
+                @_query
+                    query : 'SELECT expire FROM blobs'
+                    where : "id = $::UUID" : opts.uuid
+                    cb    : (err, x) =>
+                        if err
+                            cb(err)
+                            return
+                        # some consistency checks
+                        rows = x?.rows
+                        if rows.length == 0
+                            cb("blob got removed while saving it")
+                            return
+                        if !opts.ttl and rows[0].expire
+                            cb("blob should have infinite ttl but it has expire set")
+                            return
+                        cb()
+
         ], (err) => opts.cb(err, ttl))
 
     # Used internally by save_blob to possibly extend the expire time of a blob.
