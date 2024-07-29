@@ -5,7 +5,6 @@
 
 import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
-
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -34,6 +33,19 @@ import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
+
+// See https://github.com/sagemathinc/cocalc/issues/5620
+// There are weird bugs with relying only on mathjax, whereas our
+// implementation of katex with a fallback to mathjax works very well.
+// This makes it so katex can't be disabled.
+const ALLOW_DISABLE_KATEX = false;
+
+export function katexIsEnabled() {
+  if (!ALLOW_DISABLE_KATEX) {
+    return true;
+  }
+  return redux.getStore("account")?.getIn(["other_settings", "katex"]) ?? true;
+}
 
 interface Props {
   other_settings: Map<string, any>;
@@ -110,7 +122,10 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     }
   }
 
-  function render_katex(): Rendered {
+  function render_katex() {
+    if (!ALLOW_DISABLE_KATEX) {
+      return null;
+    }
     return (
       <Checkbox
         checked={!!props.other_settings.get("katex")}

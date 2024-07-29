@@ -3210,34 +3210,29 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         if (store == null) {
           return; // project closed already
         }
+        // We check whether the path is a directory or not, first by checking if
+        // we have a recent directory listing in our cache, and if not, by calling
+        // isdir, which is a single exec.
+        let isdir;
         let { item, err } = store.get_item_in_path(last, parent_path);
         if (item == null || err) {
-          // Fetch again if error or nothing found
           try {
-            await this.fetch_directory_listing({
-              path: parent_path,
+            isdir = await webapp_client.project_client.isdir({
+              project_id: this.project_id,
+              path: normalize(full_path),
             });
-            const store = this.get_store();
-            if (store == null) {
-              // project closed
-              return;
-            }
-            const x = store.get_item_in_path(last, parent_path);
-            if (x.err) throw Error(x.err);
-            if (x.item == null) {
-              item = Map(); // creating file
-            } else {
-              item = x.item;
-            }
           } catch (err) {
+            // e.g., project is not running...
             alert_message({
               type: "error",
               message: `Error opening '${target}': ${err}`,
             });
             return;
           }
+        } else {
+          isdir = item.get("isdir");
         }
-        if (item.get("isdir")) {
+        if (isdir) {
           this.open_directory(full_path, change_history);
         } else {
           this.open_file({

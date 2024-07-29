@@ -190,14 +190,23 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   // per-session sync-aware undo
   undo(id: string): void {
-    id = id; // not used yet, since only one thing that can be undone.
-    this.jupyter_actions.undo();
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      // this properly moves the selection, so prefer if available
+      actions.undo();
+    } else {
+      this.jupyter_actions.undo();
+    }
   }
 
   // per-session sync-aware redo
   redo(id: string): void {
-    id = id; // not used yet
-    this.jupyter_actions.redo();
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      actions.redo();
+    } else {
+      this.jupyter_actions.redo();
+    }
   }
 
   cut(id: string): void {

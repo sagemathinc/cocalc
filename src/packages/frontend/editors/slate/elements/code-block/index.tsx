@@ -16,6 +16,7 @@ import { DARK_GREY_BORDER } from "../../util";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
+import ShowError from "@cocalc/frontend/components/error";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -47,6 +48,7 @@ const StaticElement: React.FC<RenderElementProps> = ({
 
   const [newValue, setNewValue] = useState<string | null>(null);
   const runRef = useRef<any>(null);
+  const mermaidRef = useRef<any>(null);
 
   const [output, setOutput] = useState<null | ReactNode>(null);
 
@@ -87,6 +89,42 @@ const StaticElement: React.FC<RenderElementProps> = ({
       runRef.current?.();
     }, 1);
   };
+
+  const isMermaid = temporaryInfo ?? element.info == "mermaid";
+  const [mermaidError, setMermaidError] = useState<string>("");
+
+  useEffect(() => {
+    const elt = mermaidRef.current;
+    if (!isMermaid || !elt) {
+      return;
+    }
+    (async () => {
+      try {
+        setMermaidError("");
+        const mermaid = (await import("mermaid")).default;
+        mermaid.initialize({
+          startOnLoad: false,
+        });
+        elt.removeAttribute("data-processed");
+        await mermaid.run({
+          nodes: [elt],
+        });
+      } catch (err) {
+        setMermaidError(err.str ?? `${err}`);
+      }
+    })();
+  }, [isMermaid, newValue ?? element.value]);
+
+  if (isMermaid) {
+    return (
+      <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
+        <pre className="mermaid" ref={mermaidRef}>
+          {newValue ?? element.value}
+        </pre>
+        <ShowError error={mermaidError} setError={setMermaidError} />
+      </div>
+    );
+  }
 
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   // editable since even CodeMirrorStatic is editable, but meant to be *ephemeral* editing.

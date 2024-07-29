@@ -675,7 +675,7 @@ export default function Message(props: Readonly<Props>) {
             Cancel
           </Button>
           <Button onClick={sendReply} type="primary">
-            Send Reply
+            <Icon name="paper-plane" /> Send
           </Button>
           <LLMCostEstimationChat
             llm_cost={llm_cost_reply}

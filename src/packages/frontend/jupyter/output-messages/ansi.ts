@@ -24,6 +24,10 @@ export function is_ansi(s: any): boolean {
   );
 }
 
+export function toText(s: string): string {
+  return Anser.ansiToText(s);
+}
+
 // Extract a plain-text representation of a given cell
 export function cellOutputToText(cell): string {
   const raw = cell.get("output");

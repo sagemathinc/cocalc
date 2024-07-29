@@ -56,7 +56,7 @@ const log = logger.debug.bind(logger);
 
 export async function sync(
   account_ids: string[],
-  delayMs: number = 1000, // wait this long after handling each account_id
+  delayMs: number = 250, // wait this long after handling each account_id
   maxDelayMs: number = 1000 * 60 * 15, // exponential backoff up to this long.
 ): Promise<{
   update: number;

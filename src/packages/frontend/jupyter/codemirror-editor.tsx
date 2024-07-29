@@ -27,6 +27,7 @@ import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import { Position } from "./insert-cell/types";
+import { is_whitespace } from "@cocalc/util/misc";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -76,7 +77,7 @@ export interface Actions extends CompleteActions {
 interface CodeMirrorEditorProps {
   actions: Actions; // e.g., JupyterActions from "./browser-actions".
   id: string;
-  options: ImmutableMap<any, any>;
+  options: ImmutableMap<string, any>;
   value: string;
   set_click_coords?: Function; // TODO: type
   font_size?: number; // font_size not explicitly used, but it is critical
@@ -411,14 +412,23 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     ) {
       cm_save();
     }
-    actions.undo();
+    if (frameActions.current) {
+      // prefer this, because can update selection
+      frameActions.current.undo();
+    } else {
+      actions.undo();
+    }
   }
 
   function cm_redo(): void {
     if (cm.current == null || actions == null) {
       return;
     }
-    actions.redo();
+    if (frameActions.current) {
+      frameActions.current.redo();
+    } else {
+      actions.redo();
+    }
   }
 
   function shift_tab_key(): void {
@@ -542,7 +552,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   function whitespace_before_cursor(): boolean {
     if (cm.current == null) return false;
     const cur = cm.current.getCursor();
-    return cur.ch === 0 || /\s/.test(cm.current.getLine(cur.line)[cur.ch - 1]);
+    return is_whitespace(cm.current.getLine(cur.line).slice(0, cur.ch));
   }
 
   async function tab_nothing_selected(): Promise<void> {
@@ -792,21 +802,19 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           }}
           onClick={focus_cm}
         >
-          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 0" }}>
+          <div style={{ whiteSpace: "nowrap", margin: "6px 5px 0 10px" }}>
             Enter code{setShowAICellGen == null ? "..." : " or "}
           </div>
-          {setShowAICellGen != null ? (
-            <a
-              style={{
-                marginTop: "6px",
-                opacity: 0.7,
-                fontSize: "inherit",
-              }}
-              onClick={() => setShowAICellGen("replace")}
-            >
-              generate using AI...
-            </a>
-          ) : undefined}
+          <a
+            style={{
+              marginTop: "6px",
+              opacity: 0.7,
+              fontSize: "inherit",
+            }}
+            onClick={() => setShowAICellGen("replace")}
+          >
+            generate using AI...
+          </a>
         </div>
       </div>
     );
