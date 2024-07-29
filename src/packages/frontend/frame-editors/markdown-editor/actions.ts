@@ -186,7 +186,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
     this.set_active_id(id, true);
   }
 
-  public updateTableOfContents(force: boolean = false): void {
+  updateTableOfContents = (force: boolean = false): void => {
     if (this._state == "closed" || this._syncstring == null) {
       // no need since not initialized yet or already closed.
       return;
@@ -202,7 +202,7 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       parseTableOfContents(this._syncstring.to_str()),
     ) as any;
     this.setState({ contents });
-  }
+  };
 
   public async scrollToHeading(entry: TableOfContentsEntry): Promise<void> {
     const id = this.show_focused_frame_of_type("slate");
@@ -214,8 +214,15 @@ export class Actions extends CodeEditorActions<MarkdownEditorState> {
       await delay(1);
       editor = this.getSlateEditor(id);
     }
-    if (editor == null) return;
-    scrollToHeading(editor, parseInt(entry.id));
+    if (editor == null) {
+      return;
+    }
+    const n = parseInt(entry.id);
+    scrollToHeading(editor, n);
+    // this is definitely necessary in case the editor wasn't opened, and doesn't
+    // hurt if it is.
+    await delay(1);
+    scrollToHeading(editor, n);
   }
 
   // for rendered markdown, switch frame type so that this rendered view

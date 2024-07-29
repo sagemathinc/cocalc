@@ -12,11 +12,11 @@ maybe safer/cleaner than nothing.
 export function javascript_eval(line: string, element: any): string {
   let requirejs: any;
   let require: any;
-  require = requirejs = () =>
-    console.warn(
-      // TODO: replace "CoCalc"?
+  require = requirejs = () => {
+    throw Error(
       "require is not available in CoCalc; if you need a Javascript library, please email help@cocalc.com.",
     );
+  };
   let define = (..._) => {
     throw Error("Custom ipywidgets are not yet supported in CoCalc.");
   };
@@ -26,7 +26,7 @@ export function javascript_eval(line: string, element: any): string {
   try {
     eval(line);
   } catch (err) {
-    console.warn(`Jupyter Eval Error: ${err} -- evaluating "${line}"`);
+    console.warn(`Jupyter Javascript Error: ${err} -- evaluating "${line}"`);
     return `${err}`;
   }
   return "";

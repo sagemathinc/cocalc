@@ -59,7 +59,16 @@ export async function updateMoney(cutoff: string = "2 days") {
     }
     const data = await getMoneyData(account_id);
     log.debug("updateMoney: ", { salesloft_id: id, account_id, data });
-    await update(id, { custom_fields: data });
+    try {
+      await update(id, { custom_fields: data });
+    } catch (err) {
+      // this can happen, e.g., if the id for the person is no longer in salesloft for some reason
+      // or just invalid.  This is the case with my wstein@sagemath.com account, which caused
+      //   https://github.com/sagemathinc/cocalc/issues/7683
+      // Better is to just make this a warning and skip those accounts -- salesloft doesn't need
+      // perfect info about all users.
+      log.debug("WARNING ", err);
+    }
   }
 }
 
