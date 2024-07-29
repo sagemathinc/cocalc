@@ -7,6 +7,13 @@
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
 
+export interface DBProject {
+  project_id: string;
+  title?: string;
+  description?: string;
+  name?: string;
+}
+
 // I may add more fields and more options later...
 export default async function getProjects({
   account_id,
@@ -14,7 +21,7 @@ export default async function getProjects({
 }: {
   account_id: string;
   limit?: number;
-}): Promise<{ project_id: string; title?: string; description?: string }[]> {
+}): Promise<DBProject[]> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id must be a UUIDv4");
   }
@@ -23,8 +30,8 @@ export default async function getProjects({
   }
   const pool = getPool();
   const { rows } = await pool.query(
-    `SELECT project_id, title, description FROM projects WHERE DELETED IS NOT true AND users ? $1 AND (users#>>'{${account_id},hide}')::BOOLEAN IS NOT TRUE ORDER BY last_edited DESC LIMIT $2`,
-    [account_id, limit]
+    `SELECT project_id, title, description, name FROM projects WHERE DELETED IS NOT true AND users ? $1 AND (users#>>'{${account_id},hide}')::BOOLEAN IS NOT TRUE ORDER BY last_edited DESC LIMIT $2`,
+    [account_id, limit],
   );
   return rows;
 }

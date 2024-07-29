@@ -9,6 +9,7 @@ import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { SuccessStatus } from "lib/api/status";
 import {
   SetAccountNameInputSchema,
   SetAccountNameOutputSchema,
@@ -16,7 +17,8 @@ import {
 
 async function handle(req, res) {
   try {
-    res.json(await get(req));
+    await get(req);
+    res.json(SuccessStatus);
   } catch (err) {
     res.json({ error: `${err.message ? err.message : err}` });
     return;
