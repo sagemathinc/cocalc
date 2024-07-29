@@ -159,7 +159,7 @@ if exists(saml20fn):
                 "last_name": "lastName",
                 "full_name": "displayName",
                 "emails": "email",
-                "id": "email",
+                "id": "id",
             },
             "issuer": "https://cocalc.com",
             "cert": saml20cert
@@ -170,7 +170,7 @@ if exists(saml20fn):
             "public": False,
             "display": "Saml20",
             "description": "Testing my SAML 2.0 IdP",
-            "exclusive_domains": ["example.com"],
+            "exclusive_domains": ["*"],
             "update_on_login": True,
             "cookie_ttl_s": 24 * 60 * 60,  # 24 hours
         }

@@ -277,6 +277,7 @@ export class PassportLogin {
     L(
       "check to see if the passport already exists indexed by the given id -- in that case we will log user in",
     );
+    // L({ locals });
 
     const passport_account_id = await this.database.passport_exists({
       strategy: opts.strategyName,
@@ -315,11 +316,12 @@ export class PassportLogin {
       // user authenticated, passport not known, adding to the user's account
       await this.createPassport(opts, locals);
     } else {
+      L(`passport_account_id=${passport_account_id}`);
       if (
         locals.has_valid_remember_me &&
         locals.account_id !== passport_account_id
       ) {
-        L("passport exists but is associated with another account already");
+        L("passport exists, but is associated with another account already");
         throw Error(
           `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings, if you want to instead associate it with this account.`,
         );
@@ -348,6 +350,7 @@ export class PassportLogin {
     locals: PassportLoginLocals,
   ): Promise<void> {
     const L = logger.extend("check_existing_emails").debug;
+    // L({ locals });
     // handle case where passport doesn't exist, but we know one or more email addresses → check for matching email
     if (locals.account_id != null || opts.emails == null) return;
 
@@ -414,6 +417,7 @@ export class PassportLogin {
   ): Promise<void> {
     if (locals.account_id) return;
     const L = logger.extend("maybe_create_account").debug;
+    // L({ locals });
 
     L(
       "no existing account to link, so create new account that can be accessed using this passport",
@@ -506,18 +510,9 @@ export class PassportLogin {
     }
 
     // We update the email address, if it does not belong to another account.
-    // Most likely, this just returns the very same account (hence an account exists).
+  
     if (is_valid_email_address(locals.email_address)) {
-      const existing_account_id = await cb2(this.database.account_exists, {
-        email_address: locals.email_address,
-      });
-      if (!existing_account_id) {
-        // There is no account with the new email address, hence we can update the email address as well
-        upd.email_address = locals.email_address;
-        L(
-          `No existing account with email address ${locals.email_address} provided by the SSO strategy. Hence we change the email address of account ${locals.account_id} as well.`,
-        );
-      }
+      upd.email_address = locals.email_address;
     }
 
     L(`account exists and we update name of user based on SSO`);

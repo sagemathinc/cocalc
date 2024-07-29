@@ -12,19 +12,19 @@ import {
   len,
 } from "@cocalc/util/misc";
 import { is_a_site_license_manager } from "./site-license/search";
-import { PostgreSQL } from "./types";
+import { PostgreSQL, SetAccountFields } from "./types";
 //import getLogger from "@cocalc/backend/logger";
 //const L = getLogger("db:pg:account-queries");
 
 /* For now we define "paying customer" to mean they have a subscription.
   It's OK if it expired.  They at least bought one once.
   This is mainly used for anti-abuse purposes...
-  
+
   TODO: modernize this or don't use this at all...
 */
 export async function is_paying_customer(
   db: PostgreSQL,
-  account_id: string
+  account_id: string,
 ): Promise<boolean> {
   let x;
   try {
@@ -44,17 +44,9 @@ export async function is_paying_customer(
   return await is_a_site_license_manager(db, account_id);
 }
 
-interface SetAccountFields {
-  db: PostgreSQL;
-  account_id: string;
-  email_address?: string | undefined;
-  first_name?: string | undefined;
-  last_name?: string | undefined;
-}
-
 // this is like set_account_info_if_different, but only sets the fields if they're not set
 export async function set_account_info_if_not_set(
-  opts: SetAccountFields
+  opts: SetAccountFields,
 ): Promise<void> {
   return await set_account_info_if_different(opts, false);
 }
@@ -62,7 +54,7 @@ export async function set_account_info_if_not_set(
 // This sets the given fields of an account, if it is different from the current value  – except for the email address, which we only set but not change
 export async function set_account_info_if_different(
   opts: SetAccountFields,
-  overwrite = true
+  overwrite = true,
 ): Promise<void> {
   const columns = ["email_address", "first_name", "last_name"];
 
@@ -106,7 +98,7 @@ export async function set_account_info_if_different(
 export async function set_account(
   db: PostgreSQL,
   account_id: string,
-  set: { [field: string]: any }
+  set: { [field: string]: any },
 ): Promise<void> {
   await db.async_query({
     query: "UPDATE accounts",
@@ -118,7 +110,7 @@ export async function set_account(
 export async function get_account(
   db: PostgreSQL,
   account_id: string,
-  columns: string[]
+  columns: string[],
 ): Promise<void> {
   return await callback2(db.get_account.bind(db), {
     account_id,
@@ -133,7 +125,7 @@ interface SetEmailAddressVerifiedOpts {
 }
 
 export async function set_email_address_verified(
-  opts: SetEmailAddressVerifiedOpts
+  opts: SetEmailAddressVerifiedOpts,
 ): Promise<void> {
   const { db, account_id, email_address } = opts;
   assert_valid_account_id(account_id);

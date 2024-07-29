@@ -318,3 +318,11 @@ export interface PostgreSQL extends EventEmitter {
     }>;
   }): Promise<void>;
 }
+
+export interface SetAccountFields {
+  db: PostgreSQL;
+  account_id: string;
+  email_address?: string | undefined;
+  first_name?: string | undefined;
+  last_name?: string | undefined;
+}

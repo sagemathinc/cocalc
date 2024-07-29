@@ -32,7 +32,8 @@ export default function SignupIndex(props: Props) {
 
   function renderDomains(domains) {
     if (domains == null || domains.length === 0) return;
-    return <Text type="secondary">{to_human_list(domains ?? [])}</Text>;
+    const names = (domains ?? []).map((d) => (d === "*" ? "all domains" : d));
+    return <Text type="secondary">{to_human_list(names)}</Text>;
   }
 
   function extra(sso) {
