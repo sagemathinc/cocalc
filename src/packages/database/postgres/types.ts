@@ -92,6 +92,7 @@ export interface UpdateAccountInfoAndPassportOpts {
   id: string;
   profile: any;
   passport_profile: any;
+  email_address?: string;
 }
 
 export interface PostgreSQL extends EventEmitter {

@@ -4,8 +4,9 @@ attacks.  This is in memory per-backend server, and doesn't touch
 the database.
 */
 
-import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import LRU from "lru-cache";
+
+import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import { checkRequiredSSO } from "./sso/check-required-sso";
 
 const emailShortCache = new LRU<string, number>({
@@ -30,7 +31,7 @@ async function isExclusiveEmail(email: string) {
 export async function signInCheck(
   email: string,
   ip?: string,
-  auth_token: boolean = false
+  auth_token: boolean = false,
 ): Promise<string | undefined> {
   if ((emailShortCache.get(email) ?? 0) > 5) {
     // A given email address is allowed at most 5 failed login attempts per minute

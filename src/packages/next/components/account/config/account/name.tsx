@@ -85,7 +85,7 @@ function ConfigureName() {
           type="error"
           showIcon
         />
-      )}{" "}
+      )}
       {get.loading ? (
         <Loading />
       ) : (
@@ -131,7 +131,6 @@ function ConfigureName() {
               for content you share publicly.
               {original.name && (
                 <>
-                  {" "}
                   Setting a username provides optional nicer URL's for shared
                   public documents. Your username can be between 1 and 39
                   characters, contain upper and lower case letters, numbers, and

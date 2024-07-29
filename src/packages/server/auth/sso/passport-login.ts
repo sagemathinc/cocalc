@@ -26,7 +26,10 @@ import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import type {
+  PostgreSQL,
+  UpdateAccountInfoAndPassportOpts,
+} from "@cocalc/database/postgres/types";
 import {
   PassportLoginLocals,
   PassportLoginOpts,
@@ -40,6 +43,7 @@ import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
 import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import { is_valid_email_address } from "@cocalc/util/misc";
 import { HELP_EMAIL } from "@cocalc/util/theme";
 import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
@@ -487,22 +491,37 @@ export class PassportLogin {
     if (locals.new_account_created || locals.account_id == null) return;
     const L = logger.extend("maybe_update_account_profile").debug;
 
-    // if (opts.emails != null) {
-    //   locals.email_address = opts.emails[0];
-    // }
-
-    L(`account exists and we update name of user based on SSO`);
-    await this.database.update_account_and_passport({
+    const upd: UpdateAccountInfoAndPassportOpts = {
       account_id: locals.account_id,
       first_name: opts.first_name,
       last_name: opts.last_name,
       strategy: opts.strategyName,
       id: opts.id,
       profile: opts.profile,
-      // but not the email address, at least for now
-      // email_address: locals.email_address,
       passport_profile: opts.profile,
-    });
+    };
+
+    if (Array.isArray(opts.emails) && opts.emails.length >= 1) {
+      locals.email_address = opts.emails[0];
+    }
+
+    // We update the email address, if it does not belong to another account.
+    // Most likely, this just returns the very same account (hence an account exists).
+    if (is_valid_email_address(locals.email_address)) {
+      const existing_account_id = await cb2(this.database.account_exists, {
+        email_address: locals.email_address,
+      });
+      if (!existing_account_id) {
+        // There is no account with the new email address, hence we can update the email address as well
+        upd.email_address = locals.email_address;
+        L(
+          `No existing account with email address ${locals.email_address} provided by the SSO strategy. Hence we change the email address of account ${locals.account_id} as well.`,
+        );
+      }
+    }
+
+    L(`account exists and we update name of user based on SSO`);
+    await this.database.update_account_and_passport(upd);
   }
 
   // There is a special case, where an api_key was requested.
