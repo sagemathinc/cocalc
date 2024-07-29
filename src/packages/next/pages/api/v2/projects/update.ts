@@ -32,17 +32,20 @@ async function get(req) {
     throw Error("Must be signed in to update project.");
   }
 
-  const { title, description, name, project_id } = getParams(req);
+  const { account_id, project_id, title, description, name } = getParams(req);
 
-  // If the API client is an admin, they may act on any project. Otherwise, the client may
-  // only update projects for which they are listed as owners.
+  // If the API client is an admin, they may act on any project on behalf of any account.
+  // Otherwise, the client may only update projects for which they are listed as
+  // collaborators.
   //
-  const acting_account_id = (await userIsInGroup(client_account_id, "admin"))
-    ? undefined
-    : client_account_id;
+  if (account_id && !(await userIsInGroup(client_account_id, "admin"))) {
+    throw Error(
+      "The `account_id` field may only be specified by account administrators.",
+    );
+  }
 
   return setProject({
-    acting_account_id,
+    acting_account_id: account_id || client_account_id,
     project_id,
     project_update: {
       title,

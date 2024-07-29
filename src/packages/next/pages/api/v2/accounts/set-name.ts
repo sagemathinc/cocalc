@@ -36,7 +36,9 @@ async function get(req) {
 
   // This user MUST be an admin:
   if (account_id && !(await userIsInGroup(client_account_id, "admin"))) {
-    throw Error("Only admins are authorized to specify an account id.");
+    throw Error(
+      "The `account_id` field may only be specified by account administrators.",
+    );
   }
 
   return userQuery({

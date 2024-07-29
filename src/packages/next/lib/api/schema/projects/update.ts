@@ -3,11 +3,16 @@ import { z } from "../../framework";
 import { FailedAPIOperationSchema, OkAPIOperationSchema } from "../common";
 
 import { ProjectIdSchema } from "./common";
+import { AccountIdSchema } from "../accounts/common";
 
 // OpenAPI spec
 //
 export const UpdateProjectInputSchema = z
   .object({
+    account_id: AccountIdSchema.describe(
+      `**Administrators only**. If provided, this operation will be executed on behalf of 
+       the account corresponding to this id.`,
+    ).optional(),
     project_id: ProjectIdSchema,
     title: z
       .string()
@@ -35,7 +40,7 @@ export const UpdateProjectInputSchema = z
   .describe(
     `Update an existing project's title, name, and/or description. If the API client is an 
      admin, they may act on any project. Otherwise, the client may only update projects 
-     for which they are listed as owners.`,
+     for which they are listed as collaborators.`,
   );
 
 export const UpdateProjectOutputSchema = z.union([
