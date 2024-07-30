@@ -52,6 +52,7 @@ interface JupyterNotebookButtonsProps {
   btnActive: (name: string) => boolean;
   grid: [number, number];
   filename: string;
+  filenameChanged?: boolean;
   mode: "full" | "flyout";
   makeNewFilename?: () => void;
 }
@@ -71,6 +72,7 @@ export function JupyterNotebookButtons({
   btnActive,
   grid,
   filename,
+  filenameChanged,
   mode,
   makeNewFilename,
 }: JupyterNotebookButtonsProps) {
@@ -244,6 +246,7 @@ export function JupyterNotebookButtons({
               project_id={project_id}
               mode="flyout"
               ext="ipynb"
+              filename={filename}
             />
           </Col>
         </>
@@ -286,6 +289,7 @@ export function JupyterNotebookButtons({
                 project_id={project_id}
                 mode="flyout"
                 ext="ipynb"
+                filename={filenameChanged ? filename : undefined}
               />
             </Flex>
           </Flex>
@@ -299,6 +303,7 @@ export function JupyterNotebookButtons({
             project_id={project_id}
             mode="full"
             ext="ipynb"
+            filename={filenameChanged ? filename : undefined}
           />
         </Col>
       );

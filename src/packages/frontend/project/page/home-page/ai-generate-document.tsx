@@ -118,12 +118,21 @@ type Ipynb = {
   metadata: { kernelspec: KernelSpec };
 };
 
+function ensureExtension(filename, ext) {
+  if (!filename) return filename;
+  if (!filename.endsWith("." + ext)) {
+    return filename + "." + ext;
+  }
+  return filename;
+}
+
 interface Props {
   project_id: string;
   onSuccess: () => void;
   ext: Ext;
   docName: string;
   show: boolean;
+  filename?: string;
 }
 
 function AIGenerateDocument({
@@ -132,6 +141,7 @@ function AIGenerateDocument({
   project_id,
   ext,
   docName,
+  filename: filename0,
 }: Props) {
   const projectActions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -145,7 +155,12 @@ function AIGenerateDocument({
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [preview, setPreview] = useState<string | null>(null);
-  const [filename, setFilename] = useState<string>("");
+  const [filename, setFilename] = useState<string>(
+    ensureExtension(filename0 ?? "", ext),
+  );
+  useEffect(() => {
+    setFilename(ensureExtension(filename0 ?? "", ext));
+  }, [filename0]);
   const promptRef = useRef<HTMLElement>(null);
 
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
@@ -452,6 +467,9 @@ function AIGenerateDocument({
   }
 
   function updateFilename(fnNext: string) {
+    if (filename) {
+      return;
+    }
     const fn = sanitizeFilename(fnNext, ext);
     const timestamp = getTimestamp();
     setFilename(`${fn}-${timestamp}.${ext}`);
@@ -741,7 +759,6 @@ function AIGenerateDocument({
   }
 
   function renderDialog() {
-    const empty = prompt.trim() == "";
     return (
       <>
         <Paragraph strong>
@@ -754,7 +771,7 @@ function AIGenerateDocument({
           />
         </Paragraph>
         {renderJupyterKernelSelector()}
-        <Paragraph type={empty ? "danger" : undefined}>
+        <Paragraph>
           Provide a detailed description of the {docName} document you want to
           create:
         </Paragraph>
@@ -767,7 +784,6 @@ function AIGenerateDocument({
             placeholder={PLACEHOLDER}
             value={prompt}
             disabled={querying}
-            status={empty ? "error" : undefined}
             onChange={({ target: { value } }) => setPrompt(value)}
             onPressEnter={(e) => {
               if (e.shiftKey) {
@@ -899,7 +915,7 @@ function AIGenerateDocument({
                 setPreview(null);
               }}
             >
-              <Icon name="arrow-left" /> Discard
+              Cancel
             </Button>
             <Button
               type="primary"
@@ -959,12 +975,14 @@ export function AIGenerateDocumentModal({
   setShow,
   project_id,
   ext,
+  filename,
 }: {
   show: boolean;
   setShow: (val: boolean) => void;
   project_id: string;
   style?: CSS;
   ext: Props["ext"];
+  filename?: string;
 }) {
   const docName = file_options(`x.${ext}`).name ?? `${capitalize(ext)}`;
 
@@ -986,6 +1004,7 @@ export function AIGenerateDocumentModal({
         onSuccess={() => setShow(false)}
         ext={ext}
         docName={docName}
+        filename={filename}
       />
     </Modal>
   );
@@ -996,11 +1015,13 @@ export function AIGenerateDocumentButton({
   style,
   mode = "full",
   ext,
+  filename,
 }: {
   project_id: string;
   style?: CSS;
   mode?: "full" | "flyout";
   ext: Props["ext"];
+  filename?: string;
 }) {
   const [show, setShow] = useState<boolean>(false);
 
@@ -1046,6 +1067,7 @@ export function AIGenerateDocumentButton({
         show={show}
         setShow={setShow}
         project_id={project_id}
+        filename={filename}
       />
     </>
   );

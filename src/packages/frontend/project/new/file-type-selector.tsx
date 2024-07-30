@@ -40,6 +40,7 @@ interface Props {
   selectedExt?: string;
   filename: string;
   makeNewFilename?: (ext: string) => void;
+  filenameChanged?: boolean;
 }
 
 // Use Rows and Cols to append more buttons to this class.
@@ -55,6 +56,7 @@ export function FileTypeSelector({
   children,
   filename,
   makeNewFilename,
+  filenameChanged,
 }: Props) {
   const { project_id } = useProjectContext();
 
@@ -103,6 +105,7 @@ export function FileTypeSelector({
             btnActive={btnActive}
             grid={[sm, md]}
             filename={filename}
+            filenameChanged={filenameChanged}
             makeNewFilename={() => makeNewFilename?.("ipynb")}
           />
           {renderLaTeX()}
@@ -362,6 +365,7 @@ export function FileTypeSelector({
                 project_id={project_id}
                 mode="flyout"
                 ext={ext}
+                filename={filenameChanged ? filename : undefined}
               />
             </Flex>
           </Flex>
@@ -375,6 +379,7 @@ export function FileTypeSelector({
             project_id={project_id}
             mode="full"
             ext={ext}
+            filename={filenameChanged ? filename : undefined}
           />
         </Col>
       );
