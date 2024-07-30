@@ -561,12 +561,11 @@ export default function LanguageModelTitleBarButton({
   }
 
   function renderContent() {
-    const empty = command.trim() == "";
     return (
       <Space direction="vertical" style={{ width: "800px", maxWidth: "90vw" }}>
-        <Paragraph type={empty ? "danger" : undefined}>
-          Describe, what the language model <LLMNameLink model={model} /> should
-          do. Be specific!
+        <Paragraph>
+          Describe what you want the language model{" "}
+          <LLMNameLink model={model} /> to do. Be specific!
         </Paragraph>
         <Paragraph ref={describeRef}>
           <Input.TextArea
@@ -576,7 +575,6 @@ export default function LanguageModelTitleBarButton({
             style={{ flex: 1 }}
             placeholder={"What should the language model do..."}
             value={command}
-            status={empty ? "error" : undefined}
             onChange={(e) => {
               setCommand(e.target.value);
               setTag("");
