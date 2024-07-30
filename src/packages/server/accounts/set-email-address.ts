@@ -72,7 +72,7 @@ export default async function setEmailAddress(
     // user has no password set, so we can set it – but not the email address
     if (!password_hash) {
       await pool.query(
-        "UPDATE accounts SET password_hash=$1,  WHERE account_id=$2",
+        "UPDATE accounts SET password_hash=$1 WHERE account_id=$2",
         [passwordHash(password), account_id]
       );
     }

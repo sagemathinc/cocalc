@@ -424,6 +424,11 @@ Table({
               }
             }
           }
+          // check, if account is exclusively controlled by SSO and its update_on_login config is true
+          const {email_address}  = obj
+          if (email_address != null) {
+            // TODO
+          }
           cb();
         },
       },

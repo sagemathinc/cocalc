@@ -39,9 +39,18 @@ export function getEmailDomain(email: string): string {
   return email.trim().toLowerCase().split("@")[1];
 }
 
+/**
+ * This checks if the email's domain is either exactly the ssoDomain or a subdomain.
+ * E.g. for "foo.edu", an email "name@mail.foo.edu" is covered as well.
+ *
+ * Special case: an sso domain "*" covers all domains. This is kind of a complete "take over",
+ * because all accounts on that instance of CoCalc have to go through that SSO mechanism.
+ * Note: In that case, it makes no sense to have more than one SSO mechanism configured.
+ */
 export function emailBelongsToDomain(
   emailDomain: string,
-  ssoDomain: string
+  ssoDomain: string,
 ): boolean {
+  if (ssoDomain === "*") return true;
   return emailDomain === ssoDomain || emailDomain.endsWith(`.${ssoDomain}`);
 }

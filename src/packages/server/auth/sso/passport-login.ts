@@ -22,27 +22,31 @@ import Cookies from "cookies";
 import * as _ from "lodash";
 import { isEmpty } from "lodash";
 
+import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
-import type { PostgreSQL } from "@cocalc/database/postgres/types";
-import { legacyManageApiKey } from "@cocalc/server/api/manage";
-import generateHash from "@cocalc/server/auth/hash";
-import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
-import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
-import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
-import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
+import type {
+  PostgreSQL,
+  UpdateAccountInfoAndPassportOpts,
+} from "@cocalc/database/postgres/types";
 import {
   PassportLoginLocals,
   PassportLoginOpts,
   PassportStrategyDB,
 } from "@cocalc/database/settings/auth-sso-types";
+import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import isBanned from "@cocalc/server/accounts/is-banned";
+import { legacyManageApiKey } from "@cocalc/server/api/manage";
+import generateHash from "@cocalc/server/auth/hash";
+import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
+import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
+import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import { is_valid_email_address } from "@cocalc/util/misc";
 import { HELP_EMAIL } from "@cocalc/util/theme";
-import getEmailAddress from "../../accounts/get-email-address";
 import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
-import isBanned from "@cocalc/server/accounts/is-banned";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -248,7 +252,7 @@ export class PassportLogin {
   }
 
   // similar to the above, for a specific email address
-  private checkEmailExclusiveSSO(email_address): boolean {
+  private checkEmailExclusiveSSO(email_address: string): boolean {
     const emailDomain = getEmailDomain(email_address.toLocaleLowerCase());
     for (const strategyName in this.opts.passports) {
       const strategy = this.opts.passports[strategyName];
@@ -273,6 +277,7 @@ export class PassportLogin {
     L(
       "check to see if the passport already exists indexed by the given id -- in that case we will log user in",
     );
+    // L({ locals });
 
     const passport_account_id = await this.database.passport_exists({
       strategy: opts.strategyName,
@@ -311,11 +316,12 @@ export class PassportLogin {
       // user authenticated, passport not known, adding to the user's account
       await this.createPassport(opts, locals);
     } else {
+      L(`passport_account_id=${passport_account_id}`);
       if (
         locals.has_valid_remember_me &&
         locals.account_id !== passport_account_id
       ) {
-        L("passport exists but is associated with another account already");
+        L("passport exists, but is associated with another account already");
         throw Error(
           `Your ${opts.strategyName} account is already attached to another CoCalc account.  First sign into that account and unlink ${opts.strategyName} in account settings, if you want to instead associate it with this account.`,
         );
@@ -344,6 +350,7 @@ export class PassportLogin {
     locals: PassportLoginLocals,
   ): Promise<void> {
     const L = logger.extend("check_existing_emails").debug;
+    // L({ locals });
     // handle case where passport doesn't exist, but we know one or more email addresses → check for matching email
     if (locals.account_id != null || opts.emails == null) return;
 
@@ -410,6 +417,7 @@ export class PassportLogin {
   ): Promise<void> {
     if (locals.account_id) return;
     const L = logger.extend("maybe_create_account").debug;
+    // L({ locals });
 
     L(
       "no existing account to link, so create new account that can be accessed using this passport",
@@ -487,22 +495,28 @@ export class PassportLogin {
     if (locals.new_account_created || locals.account_id == null) return;
     const L = logger.extend("maybe_update_account_profile").debug;
 
-    // if (opts.emails != null) {
-    //   locals.email_address = opts.emails[0];
-    // }
-
-    L(`account exists and we update name of user based on SSO`);
-    await this.database.update_account_and_passport({
+    const upd: UpdateAccountInfoAndPassportOpts = {
       account_id: locals.account_id,
       first_name: opts.first_name,
       last_name: opts.last_name,
       strategy: opts.strategyName,
       id: opts.id,
       profile: opts.profile,
-      // but not the email address, at least for now
-      // email_address: locals.email_address,
       passport_profile: opts.profile,
-    });
+    };
+
+    if (Array.isArray(opts.emails) && opts.emails.length >= 1) {
+      locals.email_address = opts.emails[0];
+    }
+
+    // We update the email address, if it does not belong to another account.
+  
+    if (is_valid_email_address(locals.email_address)) {
+      upd.email_address = locals.email_address;
+    }
+
+    L(`account exists and we update name of user based on SSO`);
+    await this.database.update_account_and_passport(upd);
   }
 
   // There is a special case, where an api_key was requested.
