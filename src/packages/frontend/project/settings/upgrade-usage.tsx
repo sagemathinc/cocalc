@@ -19,14 +19,11 @@ import {
   Title,
   UpgradeAdjustor,
 } from "@cocalc/frontend/components";
-import { HelpEmailLink } from "@cocalc/frontend/customize";
-import { ShowSupportLink } from "@cocalc/frontend/support";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { ROOT } from "@cocalc/util/consts/dedicated";
 import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { COLORS } from "@cocalc/util/theme";
 import {
   DedicatedDisk,
   DedicatedResources,
@@ -43,7 +40,6 @@ import PayAsYouGoQuotaEditor from "./quota-editor/pay-as-you-go";
 import { RunQuota } from "./run-quota";
 import { SiteLicense } from "./site-license";
 import { Project } from "./types";
-import { URLBox } from "./url-box";
 
 const UPGRADE_BUTTON_STYLE: CSS = {
   paddingBottom: "15px",
@@ -75,7 +71,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     dedicated_resources,
     mode,
   }: Readonly<Props>) => {
-    const isFlyout = mode === "flyout";
     const actions: ProjectsActions = useActions("projects");
     const project_actions = useActions({ project_id });
     const account_groups: List<string> =
@@ -358,40 +353,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       );
     }
 
-    function render_support(): Rendered {
-      if (!is_commercial) return; // don't render if not commercial
-      return (
-        <>
-          <hr />
-          <Paragraph type="secondary">
-            If you have any questions about upgrading a project, create a{" "}
-            <ShowSupportLink />
-            {isFlyout ? (
-              <>
-                , or email <HelpEmailLink /> and mention the project id:{" "}
-                <Paragraph
-                  style={{
-                    display: "inline",
-                    color: COLORS.GRAY,
-                    fontWeight: "bold",
-                  }}
-                  copyable={{ text: project_id }}
-                >
-                  {project_id}
-                </Paragraph>
-                .
-              </>
-            ) : (
-              <>
-                , or email <HelpEmailLink /> and include the following URL:
-                <URLBox />
-              </>
-            )}
-          </Paragraph>
-        </>
-      );
-    }
-
     function render_site_license(): Rendered {
       // site licenses are also used in on-prem setups to tweak project quotas
       if (!in_kucalc) return;
@@ -421,11 +382,10 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         </Paragraph>
         {render_run_quota()}
         {render_upgrades_button()}
+        {render_site_license()}
         {renderQuotaEditor()}
         {render_dedicated_disks()}
         {render_gpu()}
-        {render_site_license()}
-        {render_support()}
       </div>
     );
   },

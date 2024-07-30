@@ -37,6 +37,7 @@ interface Props {
   extraButtons?: ReactNode;
   requireValid?: boolean;
   requireLicense?: boolean;
+  requireMessage?: ReactNode;
 }
 
 export default function SelectLicense(props: Props) {
@@ -53,6 +54,7 @@ export default function SelectLicense(props: Props) {
     extraButtons,
     requireValid,
     requireLicense,
+    requireMessage = "A license is required.",
   } = props;
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
@@ -214,9 +216,9 @@ export default function SelectLicense(props: Props) {
         {requireLicense && !licenseId ? (
           <Alert
             style={{ marginTop: "10px" }}
-            type="info"
+            type="warning"
             showIcon
-            message={"A license is required."}
+            message={requireMessage}
             description={
               <div>
                 {showCall ? (

@@ -23,6 +23,7 @@ export type RowType = "header" | "setting";
 
 // for filtering, exact matches
 export const TAGS = [
+  "Commercialization",
   "OpenAI",
   "Jupyter",
   "Email",
@@ -78,6 +79,7 @@ export type SiteSettingsKeys =
   | "nonfree_countries"
   | "limit_free_project_uptime"
   | "require_license_to_create_project"
+  | "unlicensed_project_collaborator_limit"
   | "google_analytics"
   | "kucalc"
   | "dns"
@@ -552,6 +554,7 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: commercial_to_val,
     show: only_cocalc_com,
+    tags: ["Commercialization"],
   },
   max_trial_projects: {
     name: "Maximum Trial Projects",
@@ -560,6 +563,7 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_int,
     valid: only_nonneg_int,
     show: only_cocalc_com,
+    tags: ["Commercialization"],
   },
   nonfree_countries: {
     name: "Nonfree Countries",
@@ -567,6 +571,7 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     to_val: split_strings,
     show: only_cocalc_com,
+    tags: ["Commercialization"],
   },
   limit_free_project_uptime: {
     name: "Limit Free Project Uptime",
@@ -576,6 +581,7 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: only_cocalc_com,
     to_display: (val) => `${val} minutes`,
+    tags: ["Commercialization"],
   },
   require_license_to_create_project: {
     name: "Require License to Create Project",
@@ -584,6 +590,17 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     show: only_cocalc_com,
     to_val: to_bool,
+    tags: ["Commercialization"],
+  },
+  unlicensed_project_collaborator_limit: {
+    name: "Require License to Add Unlimited Collaborators to Projects",
+    desc: "If this number is positive, then projects without a valid license can have at most this many total collaborators. E.g., set this to 3 to allow up to a total of 3 users of a an unlicensed project.",
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_cocalc_com,
+    to_display: (val) => `${val} users`,
+    tags: ["Commercialization"],
   },
   datastore: {
     name: "Datastore",

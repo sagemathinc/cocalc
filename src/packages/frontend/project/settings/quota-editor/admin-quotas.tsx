@@ -119,7 +119,9 @@ export default function AdminQuotas({ project_id, style }: Props) {
       style={style}
       title={
         <>
-          <Icon name="user-plus" /> Admin Quota Editor
+          <h4>
+            <Icon name="user-plus" /> Admin Quota Editor
+          </h4>
           <span style={{ margin: "0 15px", float: "right" }}>
             {editing && (
               <>
