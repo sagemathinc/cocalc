@@ -45,11 +45,7 @@ export async function exec_shell_code(socket: CoCalcSocket, mesg) {
       // extra fields for ExecuteCodeOutputAsync
       ret = {
         ...ret,
-        type: "async",
-        job_id: out?.job_id,
-        start: out?.start,
-        status: out?.status,
-        elapsed_s: out?.elapsed_s,
+        ...out, // type=async, pid, status, job_id, stats, ...
       };
     }
     socket.write_mesg("json", message.project_exec_output(ret));

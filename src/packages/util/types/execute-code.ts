@@ -14,10 +14,17 @@ export interface ExecuteCodeOutputBlocking extends ExecuteCodeBase {
 
 export interface ExecuteCodeOutputAsync extends ExecuteCodeBase {
   type: "async";
-  start?: number;
+  start: number;
   job_id: string;
   status: AsyncStatus;
   elapsed_s?: number; // how long it took, async execution
+  pid?: number; // in case you want to kill it remotely, good to know the PID
+  stats?: {
+    timestamp: number;
+    mem_rss: number;
+    cpu_pct: number;
+    cpu_secs: number;
+  }[];
 }
 
 export type ExecuteCodeOutput =
@@ -41,11 +48,11 @@ export interface ExecuteCodeOptions {
   aggregate?: string | number; // if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code (e.g., latex).
   verbose?: boolean; // default true -- impacts amount of logging
   async_call?: boolean; // default false -- if true, return an ID and execute it asynchroneously
-  async_get?: string; // if given, retrieve status or result of that async operation
 }
 
 export interface ExecuteCodeOptionsAsyncGet {
   async_get: string; // if set, everything else is ignored and the status/output of the async call is returned
+  async_stats?: boolean; // if set, additionally return recorded cpu and memory metrics
 }
 
 export interface ExecuteCodeOptionsWithCallback extends ExecuteCodeOptions {
