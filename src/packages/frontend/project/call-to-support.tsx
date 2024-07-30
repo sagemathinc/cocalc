@@ -1,17 +1,19 @@
 import { Alert, Typography } from "antd";
 import { A } from "@cocalc/frontend/components/A";
-import { SiteName } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
 
 const { Paragraph, Text } = Typography;
 export const BUY_A_LICENSE_URL = join(appBasePath, "/store/site-license");
 
+// I'm just putting "CoCalc" since this is only for cocalc.com usage, and the
+// messages below literally only apply to cocalc.
+
 const VERSIONS = {
   hsy: (
     <>
       <Paragraph strong>
-        This is a call to support <SiteName /> by{" "}
+        This is a call to support CoCalc by{" "}
         <A href={BUY_A_LICENSE_URL}>purchasing a license</A>.
       </Paragraph>
       <Paragraph>
@@ -21,7 +23,7 @@ const VERSIONS = {
         costs money as well.
       </Paragraph>
       <Paragraph>
-        <SiteName /> receives no funding from large organizations or charitable
+        CoCalc receives no funding from large organizations or charitable
         foundations. The site depends entirely{" "}
         <Text strong>on your financial support</Text> to continue operating.
         Without your financial support this service will not survive long-term!
@@ -43,9 +45,7 @@ const VERSIONS = {
       <Paragraph strong>
         Please{" "}
         <b>
-          <A href={BUY_A_LICENSE_URL}>
-            purchase a <SiteName /> license
-          </A>
+          <A href={BUY_A_LICENSE_URL}>purchase a CoCalc license</A>
         </b>
         !
       </Paragraph>
