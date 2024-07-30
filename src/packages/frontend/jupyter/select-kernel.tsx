@@ -15,6 +15,7 @@ import {
   Popover,
   Spin,
   Tabs,
+  Tooltip,
   Typography,
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
@@ -134,7 +135,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       const priority: number = kernels_by_name
         ?.get(name)
         ?.getIn(["metadata", "cocalc", "priority"]) as number;
-      return (
+      const btn = (
         <Button
           key={`kernel-${lang}-${name}`}
           onClick={() => {
@@ -145,7 +146,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
               how: "click-button-in-dialog",
             });
           }}
-          style={{ marginBottom: "5px", height: "35px" }}
+          style={{ height: "35px" }}
         >
           <Logo
             kernel={name}
@@ -155,6 +156,15 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           {kernel_name(name) || name}
           <KernelStar priority={priority} />
         </Button>
+      );
+      const cocalc = kernels_by_name?.getIn([name, "metadata", "cocalc"]);
+      if (cocalc == null) {
+        return btn;
+      }
+      return (
+        <Tooltip color="white" title={render_suggested_link(cocalc)}>
+          {btn}
+        </Tooltip>
       );
     }
 
@@ -338,8 +348,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       return (
         <Descriptions bordered column={1} style={SELECTION_STYLE}>
           <Descriptions.Item label={"Quick select"}>
-            <div>
-              Your most recently selected kernel {render_kernel_button(name)}
+            <div style={{ display: "flex", alignItems: "center" }}>
+              Your most recently selected kernel{" "}
+              <div style={{ width: "15px" }} /> {render_kernel_button(name)}
             </div>
           </Descriptions.Item>
           <Descriptions.Item label={"Make default"}>
@@ -382,7 +393,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
                 "this compute server"
               ) : (
                 <>
-                  the <SiteName /> shared environment
+                  the <SiteName /> Home Base environment
                 </>
               )}
               .
@@ -492,7 +503,9 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
     function render_head(): Rendered {
       return (
         <div>
-          <div style={{ float: "right" }}>
+          <div
+            style={{ float: "right", display: "flex", alignItems: "center" }}
+          >
             {renderCloseButton()}
             {renderRefreshButton()}
           </div>

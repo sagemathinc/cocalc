@@ -22,7 +22,7 @@ import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
 import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
-import { ProjectInfo } from "@cocalc/comm/project-info/types";
+import { ProjectInfo } from "@cocalc/util/types/project-info/types";
 import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT /* ALERT_MEDIUM_PCT */,

@@ -5,9 +5,7 @@
 
 import { Alert, Modal, Space, Tag, Tooltip } from "antd";
 import humanizeList from "humanize-list";
-import { join } from "path";
 import { useInterval } from "react-interval-hook";
-
 import {
   CSS,
   React,
@@ -18,9 +16,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Icon, Paragraph, Text } from "@cocalc/frontend/components";
-import { SiteName } from "@cocalc/frontend/customize";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { A, Icon, Paragraph } from "@cocalc/frontend/components";
 import { TimeAmount } from "@cocalc/frontend/editors/stopwatch/time";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import {
@@ -39,6 +35,7 @@ import { COLORS, DOC_URL } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
 import { applyLicense } from "./settings/site-license";
+import { CallToSupport, BUY_A_LICENSE_URL } from "./call-to-support";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 
@@ -95,7 +92,6 @@ const INET_QUOTA =
 const MEMBER_QUOTA =
   "https://doc.cocalc.com/billing.html#what-is-member-hosting";
 // const ADD_LICENSE = "https://doc.cocalc.com/project-settings.html#project-add-license";
-export const BUY_A_LICENSE_URL = join(appBasePath, "/store/site-license");
 
 export const TrialBanner: React.FC<BannerProps> = React.memo(
   (props: BannerProps) => {
@@ -439,44 +435,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
         <Paragraph strong>
           This shutdown timer only exists for projects without any upgrades!
         </Paragraph>
-        <Alert
-          banner
-          type="info"
-          showIcon={false}
-          message={
-            <>
-              <Paragraph strong>
-                This is a call to support <SiteName /> by{" "}
-                <A href={BUY_A_LICENSE_URL}>purchasing a license</A>.
-              </Paragraph>
-              <Paragraph>
-                Behind the curtain,{" "}
-                <A href={"/about/team"}>humans are working hard</A> to keep the
-                service running and improving it constantly. Your files and
-                computations <A href={"/info/status"}>run in our cluster</A>,
-                which costs money as well.
-              </Paragraph>
-              <Paragraph>
-                <SiteName /> receives no funding from large organizations or
-                charitable foundations. The site depends entirely{" "}
-                <Text strong>on your financial support</Text> to continue
-                operating. Without your financial support this service will not
-                survive long-term!
-              </Paragraph>
-              <Paragraph>
-                <A
-                  href={
-                    "/support/new?hideExtra=true&type=purchase&subject=Support+CoCalc&title=Support+CoCalc"
-                  }
-                >
-                  Contact us
-                </A>{" "}
-                if you can give support in other ways or have any questions or
-                comments.
-              </Paragraph>
-            </>
-          }
-        />
+        <CallToSupport />
       </Modal>
     );
   }

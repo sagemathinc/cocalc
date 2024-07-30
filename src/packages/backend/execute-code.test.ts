@@ -1,3 +1,10 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+process.env.COCALC_PROJECT_MONITOR_INTERVAL_S = "1";
+
 import { executeCode } from "./execute-code";
 
 describe("hello world", () => {
@@ -88,6 +95,27 @@ describe("test timeout", () => {
       expect(err).toContain("killed command");
     }
   });
+});
+
+describe("test longer execution", () => {
+  it(
+    "runs 5 seconds",
+    async () => {
+      const t0 = Date.now();
+      const { stdout, stderr, exit_code } = await executeCode({
+        command: "sh",
+        args: ["-c", "echo foo; sleep 5; echo bar"],
+        err_on_exit: false,
+        bash: false,
+      });
+      expect(stdout).toBe("foo\nbar\n");
+      expect(stderr).toBe("");
+      expect(exit_code).toBe(0);
+      const t1 = Date.now();
+      expect((t1 - t0) / 1000).toBeGreaterThan(4.9);
+    },
+    10 * 1000,
+  );
 });
 
 describe("test env", () => {
@@ -211,6 +239,7 @@ describe("async", () => {
     expect(typeof job_id).toEqual("string");
     if (typeof job_id !== "string") return;
     await new Promise((done) => setTimeout(done, 250));
+    // now we check up on the job
     const s = await executeCode({ async_get: job_id });
     expect(s.type).toEqual("async");
     if (s.type !== "async") return;
@@ -224,4 +253,57 @@ describe("async", () => {
     );
     expect(s.exit_code).toEqual(1);
   });
+
+  it(
+    "long running async job",
+    async () => {
+      const c = await executeCode({
+        command: "sh",
+        args: ["-c", `echo foo; python3 -c '${CPU_PY}'; echo bar;`],
+        bash: false,
+        err_on_exit: false,
+        async_call: true,
+      });
+      expect(c.type).toEqual("async");
+      if (c.type !== "async") return;
+      const { status, job_id } = c;
+      expect(status).toEqual("running");
+      expect(typeof job_id).toEqual("string");
+      if (typeof job_id !== "string") return;
+      await new Promise((done) => setTimeout(done, 5500));
+      // now we check up on the job
+      const s = await executeCode({ async_get: job_id, async_stats: true });
+      expect(s.type).toEqual("async");
+      if (s.type !== "async") return;
+      expect(s.elapsed_s).toBeGreaterThan(5);
+      expect(s.exit_code).toBe(0);
+      expect(s.pid).toBeGreaterThan(1);
+      expect(s.stats).toBeDefined();
+      if (!Array.isArray(s.stats)) return;
+      const pcts = Math.max(...s.stats.map((s) => s.cpu_pct));
+      const secs = Math.max(...s.stats.map((s) => s.cpu_secs));
+      const mems = Math.max(...s.stats.map((s) => s.mem_rss));
+      expect(pcts).toBeGreaterThan(10);
+      expect(secs).toBeGreaterThan(1);
+      expect(mems).toBeGreaterThan(1);
+      expect(s.stdout).toEqual("foo\nbar\n");
+      // now without stats, after retrieving it
+      const s2 = await executeCode({ async_get: job_id });
+      if (s2.type !== "async") return;
+      expect(s2.stats).toBeUndefined();
+      // and check, that this is not removing stats entirely
+      const s3 = await executeCode({ async_get: job_id, async_stats: true });
+      if (s3.type !== "async") return;
+      expect(Array.isArray(s3.stats)).toBeTruthy();
+    },
+    10 * 1000,
+  );
 });
+
+// we burn a bit of CPU to get the cpu_pct and cpu_secs up
+const CPU_PY = `
+from time import time
+t0=time()
+while t0+5>time():
+  sum([_ for _ in range(10**6)])
+`;

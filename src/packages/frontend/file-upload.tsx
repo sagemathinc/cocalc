@@ -35,6 +35,14 @@ const CHUNK_SIZE_MB = 8;
 
 const TIMEOUT_S = 100;
 
+const CLOSE_BUTTON_STYLE = {
+  position: "absolute",
+  right: 0,
+  zIndex: 1, // so it floats above text/markdown buttons
+  background: "white",
+  cursor: "pointer",
+} as const;
+
 /*
 CHUNK_SIZE_MB being set properly is critical for cloudflare to work --
 we want this to be as big as possible, but MUST be smaller than
@@ -101,6 +109,7 @@ interface FileUploadProps {
   dropzone_handler?: DropzoneComponentHandlers;
   close_button_onclick?: (event) => void;
   show_header: boolean;
+  config?: object; // All supported dropzone.js config options
 }
 
 export const FileUpload: React.FC<FileUploadProps> = (props) => {
@@ -122,7 +131,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
 
   function render_close_button() {
     return (
-      <div className="close-button pull-right">
+      <div className="close-button" style={CLOSE_BUTTON_STYLE}>
         <span
           onClick={props.close_button_onclick}
           className="close-button-x"
@@ -140,7 +149,10 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
       {props.show_header ? <Header /> : undefined}
       <div style={DROPSTYLE}>
         <DropzoneComponent
-          config={{ postUrl: postUrl(props.project_id, props.current_path) }}
+          config={{
+            postUrl: postUrl(props.project_id, props.current_path),
+            ...props.config,
+          }}
           eventHandlers={props.dropzone_handler}
           djsConfig={{
             previewTemplate: ReactDOMServer.renderToStaticMarkup(
@@ -307,7 +319,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
 
     return (
       <div style={style}>
-        <div className="close-button pull-right">
+        <div className="close-button" style={CLOSE_BUTTON_STYLE}>
           <span
             onClick={() => {
               close_preview();
@@ -475,3 +487,29 @@ const DropzonePreview: React.FC<DropzonePreviewProps> = ({ project_id }) => {
     </div>
   );
 };
+
+export function UploadLink({
+  project_id,
+  path,
+  onUpload,
+  style,
+}: {
+  project_id: string;
+  path: string;
+  onUpload?: Function;
+  style?;
+}) {
+  return (
+    <FileUploadWrapper
+      project_id={project_id}
+      dest_path={path}
+      event_handlers={{ complete: onUpload }}
+      config={{ clickable: ".cocalc-upload-link" }}
+      style={{ display: "inline" }}
+    >
+      <a style={style} className="cocalc-upload-link">
+        Upload
+      </a>
+    </FileUploadWrapper>
+  );
+}

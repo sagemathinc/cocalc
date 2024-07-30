@@ -5,7 +5,6 @@
 
 import { Form, Switch, Tooltip } from "antd";
 import { join } from "path";
-
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Loading } from "@cocalc/frontend/components";
@@ -29,7 +28,7 @@ export const AccountPreferences: React.FC = () => {
   const email_address = useTypedRedux("account", "email_address");
   const email_address_verified = useTypedRedux(
     "account",
-    "email_address_verified"
+    "email_address_verified",
   );
   const passports = useTypedRedux("account", "passports");
   const sign_out_error = useTypedRedux("account", "sign_out_error");
@@ -95,7 +94,7 @@ export const AccountPreferences: React.FC = () => {
                         .getActions("account")
                         .set_other_settings(
                           "dark_mode",
-                          !other_settings.get("dark_mode")
+                          !other_settings.get("dark_mode"),
                         );
                     }}
                     style={{

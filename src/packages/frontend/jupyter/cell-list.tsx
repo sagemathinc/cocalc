@@ -742,7 +742,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           frameActions.current?.set_cur_id(id);
         }}
         onDragStop={(oldIndex, newIndex) => {
-          actions?.moveCell(oldIndex, newIndex);
+          const delta = newIndex - oldIndex;
+          frameActions.current?.move_selected_cells(delta);
           setTimeout(() => {
             frameActions.current?.scroll("cell visible");
           }, 0);

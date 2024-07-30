@@ -6,8 +6,6 @@
 // Inputing a site license, e.g., for a project, course, etc.
 
 import {
-  CSS,
-  React,
   redux,
   useEffect,
   useTypedRedux,
@@ -25,47 +23,18 @@ export function useManagedLicenses() {
   return managedLicenses;
 }
 
-interface Props {
-  onSave?: (licenseId: string) => void;
-  onCancel?: () => void;
-  onChange?: (licenseId: string) => void;
-  confirmLabel?: string;
-  exclude?: string[];
-  style?: CSS;
-  extra?: React.ReactNode;
-  extraButtons?: React.ReactNode;
-  requireValid?: boolean;
-}
-
-export const SiteLicenseInput: React.FC<Props> = (props: Props) => {
-  const {
-    onSave,
-    onCancel,
-    onChange,
-    exclude,
-    style,
-    confirmLabel = "Apply License",
-    extra,
-    extraButtons,
-    requireValid,
-  } = props;
-
+export function SiteLicenseInput(props) {
   const managedLicenses = useManagedLicenses();
 
-  if (managedLicenses == null) return <Loading />;
+  if (managedLicenses == null) {
+    return <Loading />;
+  }
 
   return (
     <SelectLicense
-      onSave={onSave}
-      onCancel={onCancel}
-      onChange={onChange}
-      exclude={exclude}
       managedLicenses={managedLicenses.toJS() as { [id: string]: License }}
-      confirmLabel={confirmLabel}
-      style={style}
-      extra={extra}
-      extraButtons={extraButtons}
-      requireValid={requireValid}
+      confirmLabel="Apply License"
+      {...props}
     />
   );
-};
+}

@@ -6,6 +6,8 @@
 /*
 Comprehensive list of Jupyter notebook (version 5) commands
 we support and how they work.
+
+See frontend/frame-editors/jupyter-editor/editor.ts for how these are organized into menus.
 */
 
 import { IconName } from "@cocalc/frontend/components";
@@ -22,6 +24,7 @@ import {
   RUN_ALL_CELLS_BELOW_ICON,
   SPLIT_CELL_ICON,
 } from "./consts";
+import { redux } from "@cocalc/frontend/app-framework";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -33,7 +36,9 @@ export interface KeyboardCommand {
   meta?: boolean;
   key?: string;
   // TODO: key is currently only used for displaying what the shortcut is; however,
-  // "which" is deprecated and we should switch to using only key!
+  // "which" is deprecated and we should switch to using only key.
+  // However, key is also tricky, e.g., key for shift+h is an upper case "H", but
+  // if you just hit h it is lower case "h", so you can't just switch to using event.key.
   // See https://github.com/sagemathinc/cocalc/issues/4020
 }
 
@@ -384,7 +389,7 @@ export function commands(actions: AllActions): {
         { alt: true, mode: "escape", which: 90 },
         { ctrl: true, mode: "escape", which: 90 },
       ],
-      f: () => actions.jupyter_actions?.undo(),
+      f: () => actions.frame_actions?.undo(),
     },
 
     "global redo": {
@@ -397,7 +402,7 @@ export function commands(actions: AllActions): {
         { alt: true, mode: "escape", which: 89 },
         { ctrl: true, mode: "escape", which: 89 },
       ],
-      f: () => actions.jupyter_actions?.redo(),
+      f: () => actions.frame_actions?.redo(),
     },
 
     "hide all line numbers": {
@@ -439,7 +444,7 @@ export function commands(actions: AllActions): {
     "interrupt kernel": {
       i: "stop",
       b: "Stop",
-      m: "Interrupt Kernel",
+      m: "Interrupt Kernel (Stop)",
       k: [{ mode: "escape", which: 73, twice: true }],
       f: () => actions.jupyter_actions?.signal("SIGINT"),
     },
@@ -871,6 +876,20 @@ export function commands(actions: AllActions): {
       i: "list-ol",
       m: "Show Line Numbers for All Cells",
       f: () => actions.jupyter_actions?.set_line_numbers(true),
+    },
+
+    "show code folding": {
+      i: "list-ol",
+      m: "Enable Code Folding",
+      f: () =>
+        redux.getActions("account").set_editor_settings("code_folding", true),
+    },
+
+    "hide code folding": {
+      i: "list-ol",
+      m: "Disable Code Folding",
+      f: () =>
+        redux.getActions("account").set_editor_settings("code_folding", false),
     },
 
     "show command palette": {

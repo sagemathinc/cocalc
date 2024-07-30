@@ -33,7 +33,7 @@ import {
   get_local_storage,
   set_local_storage,
 } from "../misc/local-storage";
-import { parse_headings } from "./contents";
+import { parseHeadings } from "./contents";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { bufferToBase64, base64ToBuffer } from "@cocalc/util/base64";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -78,6 +78,9 @@ export class JupyterActions extends JupyterActions0 {
     // Also maintain read_only state.
     this.syncdb.on("metadata-change", this.sync_read_only);
     this.syncdb.on("connected", this.sync_read_only);
+
+    // first update
+    this.syncdb.once("change", this.updateContentsNow);
 
     this.syncdb.on("change", () => {
       // And activity indicator
@@ -171,25 +174,14 @@ export class JupyterActions extends JupyterActions0 {
     const cell_type = cell.get("cell_type", "code");
     if (cell_type == "code") {
       const code = this.get_cell_input(id).trim();
-      const cm_mode = this.store.getIn(["cm_options", "mode", "name"]);
-      const language = this.store.get_kernel_language();
-      switch (parsing.run_mode(code, cm_mode, language)) {
-        case "show_source":
-          this.introspect(code.slice(0, code.length - 2), 1);
-          break;
-        case "show_doc":
-          this.introspect(code.slice(0, code.length - 1), 0);
-          break;
-        case "empty":
-          this.clear_cell(id, save);
-          break;
-        case "execute":
-          this.run_code_cell(id, save, no_halt);
-          break;
+      if (!code) {
+        this.clear_cell(id, save);
+        return;
       }
-    }
-    if (save) {
-      this.save_asap();
+      this.run_code_cell(id, save, no_halt);
+      if (save) {
+        this.save_asap();
+      }
     }
   }
 
@@ -237,7 +229,12 @@ export class JupyterActions extends JupyterActions0 {
     try {
       resp = await this.api_call_formatter(code, config);
     } catch (err) {
-      err.formatInput = code;
+      try {
+        err.formatInput = code;
+      } catch (_err) {
+        // it's possible that err = 'timeout', which is a string, and then the above fails.
+        // to see this, disconnect your laptop from the internet then try to format a cell.
+      }
       throw err;
     }
     resp = parsing.process_magics(resp, config.syntax, "unescape");
@@ -920,14 +917,18 @@ export class JupyterActions extends JupyterActions0 {
     set_local_storage(this.name, to_json(current));
   }
 
-  public update_contents(): void {
+  private updateContentsNow = () => {
     if (this._state == "closed") return;
     const cells = this.store.get("cells");
     if (cells == null) return;
     const cell_list = this.store.get("cell_list");
     if (cell_list == null) return;
-    const contents = fromJS(parse_headings(cells, cell_list));
+    const contents = fromJS(parseHeadings(cells, cell_list));
     this.setState({ contents });
+  };
+
+  public update_contents(): void {
+    this.updateContentsNow();
   }
 
   protected __syncdb_change_post_hook(_doInit: boolean) {

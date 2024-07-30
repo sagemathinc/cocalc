@@ -128,6 +128,7 @@ export interface CustomizeState {
   nonfree_countries?: List<string>;
   limit_free_project_uptime: number; // minutes
   require_license_to_create_project?: boolean;
+  unlicensed_project_collaborator_limit?: number;
   onprem_quota_heading: string;
   organization_email: string;
   organization_name: string;

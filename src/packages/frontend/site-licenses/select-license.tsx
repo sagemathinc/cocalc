@@ -9,12 +9,12 @@ IMPORTANT: this component must work in *both* from nextjs and static.
 import { Alert, Button, Checkbox, Popconfirm, Select, Space } from "antd";
 import { keys } from "lodash";
 import { ReactNode, useMemo, useRef, useState } from "react";
-
 import { CSS, Rendered } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 import { days_ago as daysAgo, isValidUUID, len } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { CallToSupport } from "@cocalc/frontend/project/call-to-support";
 
 const { Option } = Select;
 
@@ -36,6 +36,8 @@ interface Props {
   extra?: ReactNode; // plain-text node is ok
   extraButtons?: ReactNode;
   requireValid?: boolean;
+  requireLicense?: boolean;
+  requireMessage?: ReactNode;
 }
 
 export default function SelectLicense(props: Props) {
@@ -51,6 +53,8 @@ export default function SelectLicense(props: Props) {
     extra,
     extraButtons,
     requireValid,
+    requireLicense,
+    requireMessage = "A license is required.",
   } = props;
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
@@ -69,6 +73,7 @@ export default function SelectLicense(props: Props) {
     }
     return v;
   }, [managedLicenses, showAll]);
+  const [showCall, setShowCall] = useState<boolean>(false);
 
   const options: JSX.Element[] = useMemo(() => {
     const v: JSX.Element[] = [];
@@ -178,6 +183,7 @@ export default function SelectLicense(props: Props) {
             flex: "1 1 0",
             marginRight: "10px",
           }}
+          status={requireLicense && !licenseId ? "error" : undefined}
           placeholder={
             `Enter${requireValid ? " valid " : " "}license code ` +
             (options.length > 0
@@ -207,6 +213,28 @@ export default function SelectLicense(props: Props) {
         >
           {options}
         </Select>
+        {requireLicense && !licenseId ? (
+          <Alert
+            style={{ marginTop: "10px" }}
+            type="warning"
+            showIcon
+            message={requireMessage}
+            description={
+              <div>
+                {showCall ? (
+                  <CallToSupport onClose={() => setShowCall(false)} />
+                ) : (
+                  <Button
+                    style={{ marginLeft: "15px" }}
+                    onClick={() => setShowCall(true)}
+                  >
+                    Why?
+                  </Button>
+                )}
+              </div>
+            }
+          />
+        ) : undefined}
       </div>
       {!valid && licenseId && (
         <Alert

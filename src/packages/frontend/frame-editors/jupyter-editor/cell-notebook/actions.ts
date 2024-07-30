@@ -828,6 +828,9 @@ export class NotebookFrameActions {
       }
     }
     this.jupyter_actions._sync();
+    setTimeout(() => {
+      this.scroll("cell visible");
+    }, 0);
   }
 
   public toggle_source_hidden(): void {
@@ -1092,4 +1095,50 @@ export class NotebookFrameActions {
     }
     this.jupyter_actions.syncdb.commit();
   };
+
+  private focusFirstChangedCell = (before) => {
+    const store = this.jupyter_actions.store;
+    const after = store.get("cells");
+    const ids = store.get_cell_list();
+    const id = firstChangedCell({ before, after, ids });
+    if (id) {
+      this.set_cur_id(id);
+      this.scroll("cell visible");
+      setTimeout(() => this.scroll("cell visible"), 1);
+    }
+  };
+
+  undo = () => {
+    const before = this.jupyter_actions.store.get("cells");
+    this.jupyter_actions.syncdb.undo();
+    setTimeout(() => this.focusFirstChangedCell(before), 1);
+  };
+
+  redo = () => {
+    const before = this.jupyter_actions.store.get("cells");
+    this.jupyter_actions.syncdb.redo();
+    setTimeout(() => this.focusFirstChangedCell(before), 1);
+  };
+}
+
+// This function returns the id of the first (minimal position)
+// cell that changed going from before to after, or
+// null if no cells changed.  An annoying subtlety is that if
+// you reorder cells then *all* positions may change (to keep them
+// separated and sane) and then all cells are different.  It's
+// an edge case, and handling it in a more expected way would be much
+// more difficult and slower, so we don't.
+function firstChangedCell({ before, after, ids }): string | null {
+  // before and after are immutablejs cells maps, from
+  // cell id to cell description.
+  if (before.equals(after)) {
+    // obviously, nothing changed.
+    return null;
+  }
+  for (const id of ids) {
+    if (!before.get(id)?.equals(after.get(id))) {
+      return id;
+    }
+  }
+  return null;
 }

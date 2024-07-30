@@ -190,14 +190,23 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   // per-session sync-aware undo
   undo(id: string): void {
-    id = id; // not used yet, since only one thing that can be undone.
-    this.jupyter_actions.undo();
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      // this properly moves the selection, so prefer if available
+      actions.undo();
+    } else {
+      this.jupyter_actions.undo();
+    }
   }
 
   // per-session sync-aware redo
   redo(id: string): void {
-    id = id; // not used yet
-    this.jupyter_actions.redo();
+    const actions = this.get_frame_actions(id);
+    if (actions != null) {
+      actions.redo();
+    } else {
+      this.jupyter_actions.redo();
+    }
   }
 
   cut(id: string): void {
@@ -372,7 +381,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   // Either show the most recently focused introspect frame, or ceate one.
   public async show_introspect(): Promise<void> {
-    this.show_recently_focused_frame_of_type("introspect", "row", false, 2 / 3);
+    this.show_recently_focused_frame_of_type("introspect", "col", false, 2 / 3);
   }
 
   // Close the most recently focused introspect frame, if there is one.
@@ -536,6 +545,24 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   compute_server() {
     // this is here just so the dropdown gets enabled
+  }
+
+  gotoUser(account_id: string, frameId?: string) {
+    const cursors = this.jupyter_actions.syncdb
+      .get_cursors({ maxAge: 0 })
+      ?.toJS();
+    if (cursors == null) return; // no info
+    const locs = cursors[account_id]?.locs;
+    for (const loc of locs) {
+      if (loc.id != null) {
+        const frameActions = this.get_frame_actions(frameId);
+        if (frameActions != null) {
+          frameActions.set_cur_id(loc.id);
+          frameActions.scroll("cell visible");
+          return;
+        }
+      }
+    }
   }
 }
 
