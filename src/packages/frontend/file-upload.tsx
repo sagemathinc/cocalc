@@ -10,7 +10,6 @@ import {
   DropzoneComponent,
   DropzoneComponentHandlers,
 } from "react-dropzone-component";
-
 import ReactDOMServer from "react-dom/server"; // for dropzone below
 import { encode_path, defaults, merge, is_array } from "@cocalc/util/misc";
 import {
@@ -26,6 +25,7 @@ import { Icon, Tip } from "@cocalc/frontend/components";
 import { join } from "path";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Button } from "antd";
 
 // 3GB upload limit --  since that's the default filesystem quota
 // and it should be plenty?
@@ -37,7 +37,8 @@ const TIMEOUT_S = 100;
 
 const CLOSE_BUTTON_STYLE = {
   position: "absolute",
-  right: 0,
+  right: "15px",
+  top: "5px",
   zIndex: 1, // so it floats above text/markdown buttons
   background: "white",
   cursor: "pointer",
@@ -78,7 +79,7 @@ const DROPSTYLE: React.CSSProperties = {
   margin: "10px 0",
 };
 
-const Header = () => {
+const Header = ({ close_preview }: { close_preview?: Function }) => {
   return (
     <Tip
       icon="file"
@@ -86,7 +87,18 @@ const Header = () => {
       placement="bottom"
       tip="Drag and drop files from your computer into the box below to upload them into your project."
     >
-      <h4 style={{ color: "#666" }}>Drag and drop files from your computer</h4>
+      <h4 style={{ color: "#666", marginLeft: "10px" }}>
+        Drag and drop files from your computer
+        {close_preview && (
+          <Button
+            size="small"
+            style={{ marginLeft: "30px" }}
+            onClick={() => close_preview()}
+          >
+            Close
+          </Button>
+        )}
+      </h4>
     </Tip>
   );
 };
@@ -131,14 +143,16 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
 
   function render_close_button() {
     return (
-      <div className="close-button" style={CLOSE_BUTTON_STYLE}>
-        <span
-          onClick={props.close_button_onclick}
-          className="close-button-x"
-          style={{ cursor: "pointer", fontSize: "18px", color: "gray" }}
-        >
-          <Icon name={"times"} />
-        </span>
+      <div style={{ position: "relative" }}>
+        <div className="close-button" style={CLOSE_BUTTON_STYLE}>
+          <span
+            onClick={props.close_button_onclick}
+            className="close-button-x"
+            style={{ cursor: "pointer", fontSize: "18px", color: "gray" }}
+          >
+            <Icon name={"times"} />
+          </span>
+        </div>
       </div>
     );
   }
@@ -319,23 +333,24 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
 
     return (
       <div style={style}>
-        <div className="close-button" style={CLOSE_BUTTON_STYLE}>
-          <span
-            onClick={() => {
-              close_preview();
-            }}
-            className="close-button-x"
-            style={{
-              cursor: "pointer",
-              fontSize: "18px",
-              color: "gray",
-              marginRight: "20px",
-            }}
-          >
-            <Icon name={"times"} />
-          </span>
+        <div style={{ position: "relative" }}>
+          <div className="close-button" style={CLOSE_BUTTON_STYLE}>
+            <span
+              onClick={() => {
+                close_preview();
+              }}
+              className="close-button-x"
+              style={{
+                cursor: "pointer",
+                fontSize: "18px",
+                color: "gray",
+              }}
+            >
+              <Icon name={"times"} />
+            </span>
+          </div>
         </div>
-        {<Header />}
+        {<Header close_preview={close_preview} />}
         <div
           ref={preview_ref}
           className="filepicker dropzone"
@@ -511,5 +526,16 @@ export function UploadLink({
         Upload
       </a>
     </FileUploadWrapper>
+  );
+}
+
+export function BlobUpload(props) {
+  const url = `${join(appBasePath, "blobs")}?project_id=${props.project_id}`;
+  return (
+    <FileUploadWrapper
+      {...props}
+      dest_path={""}
+      config={{ url, ...props.config }}
+    />
   );
 }

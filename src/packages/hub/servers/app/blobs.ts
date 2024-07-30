@@ -11,6 +11,10 @@ export default function init(router: Router) {
   router.get("/blobs/*", async (req, res) => {
     logger.debug(`${JSON.stringify(req.query)}, ${req.path}`);
     const uuid = `${req.query.uuid}`;
+    if (req.headers["if-none-match"] === uuid) {
+      res.sendStatus(304);
+      return;
+    }
     if (!is_valid_uuid_string(uuid)) {
       res.status(404).send(`invalid uuid=${uuid}`);
       return;
@@ -33,6 +37,16 @@ export default function init(router: Router) {
         } else {
           res.type(filename);
         }
+        // Cache as long as possible (e.g., One year in seconds), since
+        // what we are returning is defined by a sha1 hash, so cannot change.
+        res.set("Cache-Control", `public, max-age=${365 * 24 * 60 * 60}`);
+        // "public means that the response may be cached by clients and any
+        // intermediary caches (like CDNs). max-age determines the amount
+        // of time (in seconds) a client should cache the response."
+        // The maximum value that you can set for max-age is 1 year
+        // (in seconds), which is compliant with the HTTP/1.1
+        // specifications (RFC2616)."
+        res.set("ETag", uuid);
         res.send(data);
       }
     } catch (err) {

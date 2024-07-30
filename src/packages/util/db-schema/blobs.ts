@@ -5,13 +5,26 @@
 
 import { Table } from "./types";
 
+// Note that github has a 10MB limit --
+//   https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/attaching-files
+// All code in cocalc (frontend, etc.) should use this,
+// rather than copying or defining their own!
+export const MAX_BLOB_SIZE = 10000000;
+
+// some throttling -- note that after a bit, most blobs end up longterm
+// cloud storage and are never accessed.  This is mainly a limit to
+// prevent abuse.
+export const MAX_BLOB_SIZE_PER_PROJECT_PER_DAY = {
+  licensed: 100 * MAX_BLOB_SIZE,
+  unlicensed: 10 * MAX_BLOB_SIZE,
+};
+
 Table({
   name: "blobs",
   fields: {
     id: {
       type: "uuid",
-      desc:
-        "The uuid of this blob, which is a uuid derived from the Sha1 hash of the blob content.",
+      desc: "The uuid of this blob, which is a uuid derived from the Sha1 hash of the blob content.",
     },
     blob: {
       type: "Buffer",
@@ -19,14 +32,17 @@ Table({
     },
     expire: {
       type: "timestamp",
-      desc:
-        "When to expire this blob (when delete_expired is called on the database).",
+      desc: "When to expire this blob (when delete_expired is called on the database).",
     },
     created: {
       type: "timestamp",
       desc: "When the blob was created.",
     },
     project_id: {
+      // I'm not really sure why we record a project associated to the blob, rather
+      // than something else (e.g., account_id).  However, it's useful for abuse, since
+      // if abuse happened with a project, we could easily delete all corresponding blobs,
+      // and also it's a good tag for throttling.
       type: "string",
       desc: "The uuid of the project that created the blob.",
     },
@@ -56,8 +72,7 @@ Table({
     },
   },
   rules: {
-    desc:
-      "Table that stores blobs mainly generated as output of Sage worksheets.",
+    desc: "Table that stores blobs mainly generated as output of Sage worksheets.",
     primary_key: "id",
     // these indices speed up the search been done in 'copy_all_blobs_to_gcloud'
     // less important to make this query fast, but we want to avoid thrashing cache
@@ -109,7 +124,7 @@ Table({
           _old_value,
           new_val,
           _account_id,
-          cb
+          cb,
         ): Promise<void> {
           database.save_blob({
             uuid: new_val.id,

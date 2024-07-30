@@ -10,9 +10,7 @@ winston = require('./logger').getLogger('blobs')
 misc_node = require('@cocalc/backend/misc_node')
 misc    = require('@cocalc/util/misc')
 {defaults, required} = misc
-
-MAX_BLOB_SIZE       = 15000000
-MAX_BLOB_SIZE_HUMAN = "15MB"
+{MAX_BLOB_SIZE} = require('@cocalc/util/db-schema/blobs')
 
 # save a blob in the blobstore database with given misc_node.uuidsha1 hash.
 exports.save_blob = (opts) ->
@@ -42,7 +40,7 @@ exports.save_blob = (opts) ->
         err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding project_id"
 
     else if opts.blob.length > MAX_BLOB_SIZE
-        err = "save_blob: blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.blob.length/1000000}MB"
+        err = "save_blob: blobs are limited to #{misc.human_readable_size(MAX_BLOB_SIZE)} and you just tried to save one of size #{opts.blob.length/1000000}MB"
 
     else if opts.check and opts.uuid != misc_node.uuidsha1(opts.blob)
         err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of blob, but it is not (possible malicious attack)"
