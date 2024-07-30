@@ -69,6 +69,7 @@ export default function NewFilePage(props: Props) {
   const [filename, setFilename] = useState<string>(
     filename0 ? filename0 : default_filename(undefined, project_id),
   );
+  const [filenameChanged, setFilenameChanged] = useState<boolean>(false);
   const file_creation_error = useTypedRedux(
     { project_id },
     "file_creation_error",
@@ -391,6 +392,7 @@ export default function NewFilePage(props: Props) {
                   "Name your file, folder, or a URL to download from..."
                 }
                 onChange={(e) => {
+                  setFilenameChanged(true);
                   if (extensionWarning) {
                     setExtensionWarning(false);
                   } else {
@@ -429,6 +431,7 @@ export default function NewFilePage(props: Props) {
             projectActions={actions}
             availableFeatures={availableFeatures}
             filename={filename}
+            filenameChanged={filenameChanged}
           >
             <Tip
               title={"Download files from the Internet"}
