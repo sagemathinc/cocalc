@@ -312,10 +312,8 @@ describe("await", () => {
     expect(s.elapsed_s).toBeLessThan(3);
     expect(s.exit_code).toBe(0);
     expect(s.pid).toBeGreaterThan(1);
-    expect(s.stats).toBeDefined();
     expect(s.stdout).toEqual("foo\n");
     expect(s.stderr).toEqual("");
-    expect(Array.isArray(s.stats)).toBeTruthy();
   };
 
   it("returns when a job finishes", async () => {
@@ -327,8 +325,9 @@ describe("await", () => {
     });
     expect(c.type).toEqual("async");
     if (c.type !== "async") return;
-    const { status, job_id } = c;
+    const { status, job_id, pid } = c;
     expect(status).toEqual("running");
+    expect(pid).toBeGreaterThan(1);
     const t0 = Date.now();
     const s = await executeCode({
       async_await: true,
@@ -339,6 +338,8 @@ describe("await", () => {
     // This is the main test: it really waited for at least a second until the job completed
     expect((t1 - t0) / 1000).toBeGreaterThan(1);
     check(s);
+    if (s.type !== "async") return;
+    expect(Array.isArray(s.stats)).toBeTruthy();
   });
 
   it("returns immediately if already done", async () => {
@@ -350,8 +351,9 @@ describe("await", () => {
     });
     expect(c.type).toEqual("async");
     if (c.type !== "async") return;
-    const { status, job_id } = c;
+    const { status, job_id, pid } = c;
     expect(status).toEqual("running");
+    expect(pid).toBeGreaterThan(1);
     await new Promise((done) => setTimeout(done, 2000));
     const s = await executeCode({
       async_await: true,
@@ -363,6 +365,28 @@ describe("await", () => {
     expect(s.elapsed_s).toBeLessThan(1.5);
   });
 
+  it("deal with unknown executables", async () => {
+    const c = await executeCode({
+      command: "random123unknown99",
+      err_on_exit: false,
+      async_call: true,
+    });
+    expect(c.type).toEqual("async");
+    if (c.type !== "async") return;
+    const { job_id, pid } = c;
+    expect(pid).toBeUndefined();
+    const s = await executeCode({
+      async_await: true,
+      async_get: job_id,
+      async_stats: true,
+    });
+    expect(s.type).toEqual("async");
+    if (s.type !== "async") return;
+    expect(s.exit_code).toBe(1);
+    expect(s.stderr).toContain("ENOENT");
+    expect(s.status).toBe("error");
+  });
+
   it("returns an error", async () => {
     const c = await executeCode({
       command: "sleep 1.5; >&2 echo baz; exit 3",
@@ -372,8 +396,9 @@ describe("await", () => {
     });
     expect(c.type).toEqual("async");
     if (c.type !== "async") return;
-    const { status, job_id } = c;
+    const { status, job_id, pid } = c;
     expect(status).toEqual("running");
+    expect(pid).toBeGreaterThan(1);
     const t0 = Date.now();
     const s = await executeCode({
       async_await: true,
@@ -386,6 +411,7 @@ describe("await", () => {
     expect(s.stderr).toEqual("baz\n");
     expect(s.exit_code).toEqual(3);
     expect(s.status).toEqual("completed");
+    expect(Array.isArray(s.stats)).toBeTruthy();
   });
 });
 

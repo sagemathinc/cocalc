@@ -47,7 +47,7 @@ export interface ExecuteCodeOptions {
   env?: object; // if given, added to exec environment
   aggregate?: string | number; // if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code (e.g., latex).
   verbose?: boolean; // default true -- impacts amount of logging
-  async_call?: boolean; // default false -- if true, return an ID and execute it asynchroneously
+  async_call?: boolean; // default false -- if true, return right after the process started (to get the PID) or when it fails.
 }
 
 export interface ExecuteCodeOptionsAsyncGet {

@@ -132,7 +132,7 @@ const ExecInputSchemaAsync = ExecInputSchemaAsyncCommon.merge(
       .describe(`For a given \`job_id\` job, which has been returned when setting \`async_call=true\`,
 retrieve the corresponding status or the result.
 
-The returned object contains the current \`stdout\` and \`stderr\` output,
+The returned object contains the current \`stdout\` and \`stderr\` output, the \`pid\`,
 as well as a status field indicating if the job is still running or has completed.
 Start time and duration are returned as well.
 
@@ -140,7 +140,7 @@ Note: Results are cached temporarily in the project.`),
     async_await: z.boolean().optional()
       .describe(`If \`true\`, the call opens a "hanging" HTTP polling connection,
 until the given \`job_id\` job has completed.
-If the job already finished, this is equivalent to a usual \`async_get\` call.
+If the job already finished, this is equivalent to an \`async_get\` call without this parameter.
 
 Note: If it times out, you have to reconnect on your end.`),
   }),
@@ -176,7 +176,13 @@ const ExecOutputAsync = ExecOutputBlocking.extend({
   status: z // AsyncStatus
     .union([z.literal("running"), z.literal("completed"), z.literal("error")])
     .describe("Status of the async operation"),
-  pid: z.number().min(0).describe("Process ID"),
+  pid: z
+    .number()
+    .min(0)
+    .optional()
+    .describe(
+      "Process ID. If not returned, then there has been a fundamenal problem spawning the process.",
+    ),
   stats: z
     .array(
       z.object({

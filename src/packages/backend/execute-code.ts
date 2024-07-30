@@ -57,9 +57,10 @@ log.debug("configuration:", {
   MONITOR_STATS_LENGTH_MAX,
 });
 
+type AsyncAwait = "finished";
 const updates = new EventEmitter();
-
-const eventKey = (job_id: string): string => `finished-${job_id}`;
+const eventKey = (type: AsyncAwait, job_id: string): string =>
+  `${type}-${job_id}`;
 
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
@@ -75,7 +76,7 @@ function truncStats(obj?: ExecuteCodeOutputAsync) {
   }
 }
 
-function asyncCacheUpdate(job_id: string, upd) {
+function asyncCacheUpdate(job_id: string, upd): ExecuteCodeOutputAsync {
   const obj = asyncCache.get(job_id);
   if (Array.isArray(obj?.stats) && Array.isArray(upd.stats)) {
     obj.stats.push(...upd.stats);
@@ -84,8 +85,9 @@ function asyncCacheUpdate(job_id: string, upd) {
   const next: ExecuteCodeOutputAsync = { ...obj, ...upd };
   asyncCache.set(job_id, next);
   if (next.status !== "running") {
-    updates.emit(eventKey(next.job_id), next);
+    updates.emit(eventKey("finished", next.job_id), next);
   }
+  return next;
 }
 
 // Async/await interface to executing code.
@@ -130,9 +132,10 @@ async function executeCodeNoAggregate(
     const key = opts.async_get;
     const cached = asyncCache.get(key);
     if (cached != null) {
-      if (opts.async_await === true && cached.status === "running") {
+      const { async_await } = opts;
+      if (cached.status === "running" && async_await === true) {
         return new Promise((done) =>
-          updates.once(eventKey(key), (data) => done(data)),
+          updates.once(eventKey("finished", key), (data) => done(data)),
         );
       } else {
         return cached;
@@ -222,7 +225,7 @@ async function executeCodeNoAggregate(
       };
       asyncCache.set(job_id, job_config);
 
-      doSpawn(
+      const pid = doSpawn(
         { ...opts, origCommand, job_id, job_config },
         async (err, result) => {
           try {
@@ -263,7 +266,8 @@ async function executeCodeNoAggregate(
         },
       );
 
-      return job_config;
+      // pid could be undefined, this means it wasn't possible to spawn a child
+      return { ...job_config, pid };
     } else {
       // This is the blocking variant
       return await callback(doSpawn, { ...opts, origCommand });
@@ -271,18 +275,6 @@ async function executeCodeNoAggregate(
   } finally {
     // do not delete the tempDir in async mode!
     if (!opts.async_call) await clean_up_tmp(tempDir);
-  }
-}
-
-function update_async(
-  job_id: string | undefined,
-  aspect: "stdout" | "stderr",
-  data: string,
-) {
-  if (!job_id) return;
-  const obj = asyncCache.get(job_id);
-  if (obj != null) {
-    obj[aspect] = data;
   }
 }
 
@@ -315,7 +307,7 @@ function doSpawn(
     job_config?: ExecuteCodeOutputAsync;
   },
   cb: (err: string | undefined, result?: ExecuteCodeOutputBlocking) => void,
-) {
+): number | undefined {
   const start_time = walltime();
 
   if (opts.verbose) {
@@ -424,6 +416,25 @@ function doSpawn(
     log.debug("listening for stdout, stderr and exit_code...");
   }
 
+  function update_async(
+    job_id: string | undefined,
+    aspect: "stdout" | "stderr" | "pid",
+    data: string | number,
+  ): ExecuteCodeOutputAsync | undefined {
+    if (!job_id) return;
+    // job_config fallback, in case the cache forgot about it
+    const obj = asyncCache.get(job_id) ?? opts.job_config;
+    if (obj != null) {
+      if (aspect === "pid") {
+        if (typeof data === "number") obj.pid = data;
+      } else if (typeof data === "string") {
+        obj[aspect] = data;
+      }
+      asyncCache.set(job_id, obj);
+    }
+    return obj;
+  }
+
   child.stdout.on("data", (data) => {
     data = data.toString();
     if (opts.max_output != null) {
@@ -478,6 +489,7 @@ function doSpawn(
 
   if (opts.job_id && child.pid) {
     // we don't await it, it runs until $callback_done is true
+    update_async(opts.job_id, "pid", child.pid);
     startMonitor();
   }
 
@@ -583,4 +595,6 @@ function doSpawn(
     };
     timer = setTimeout(f, opts.timeout * 1000);
   }
+
+  return child.pid;
 }
