@@ -98,12 +98,12 @@ export default function useUpload(
 
   return (
     <BlobUpload
+      show_upload={false}
       className="smc-vfill"
       project_id={project_id}
       event_handlers={updloadEventHandlers}
       style={{ height: "100%", width: "100%" }}
       dropzone_ref={dropzoneRef}
-      show_upload={true}
     >
       {body}
     </BlobUpload>

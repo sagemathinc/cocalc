@@ -156,10 +156,17 @@ export default function ChatInput({
       enableMentions={true}
       submitMentionsRef={submitMentionsRef}
       onChange={(input) => {
+        /* BUG: in Markdown mode this stops getting
+        called after you paste in an image.  It works
+        fine in Slate/Text mode. See
+        https://github.com/sagemathinc/cocalc/issues/7728
+        */
         setInput(input);
         saveChat(input);
       }}
       onShiftEnter={(input) => {
+        setInput(input);
+        saveChat(input);
         saveChat.cancel();
         on_send(input);
       }}
