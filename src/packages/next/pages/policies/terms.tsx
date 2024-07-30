@@ -33,7 +33,7 @@ export default function TermsOfService({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Terms of Service</h1>
-              <h2>Last Updated: May 5, 2023</h2>
+              <h2>Last Updated: July 30, 2024</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
