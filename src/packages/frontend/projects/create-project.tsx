@@ -52,8 +52,6 @@ export const NewProjectCreator: React.FC<Props> = ({
   start_in_edit_mode,
   default_value,
 }: Props) => {
-  const managed_licenses = useTypedRedux("billing", "managed_licenses");
-
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
     start_in_edit_mode ? "edit" : "view",
@@ -63,13 +61,9 @@ export const NewProjectCreator: React.FC<Props> = ({
   const [show_advanced, set_show_advanced] = useState<boolean>(false);
   const [title_prefill, set_title_prefill] = useState<boolean>(false);
   const [license_id, set_license_id] = useState<string>("");
-  const [warnBoost, setWarnBoost] = useState<boolean>(false);
-
   const [custom_software, set_custom_software] =
     useState<SoftwareEnvironmentState>({});
-
   const new_project_title_ref = useRef(null);
-
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const hasLegacyUpgrades = redux.getStore("account").hasLegacyUpgrades();
@@ -282,8 +276,6 @@ export const NewProjectCreator: React.FC<Props> = ({
   }
 
   function addSiteLicense(lic: string): void {
-    const license = managed_licenses?.get(lic)?.toJS();
-    setWarnBoost(license?.quota?.boost === true);
     set_license_id(lic);
   }
 
@@ -295,7 +287,7 @@ export const NewProjectCreator: React.FC<Props> = ({
         title={
           <>
             <div style={{ float: "right" }}>
-              <BuyLicenseForProject size="small" />
+              <BuyLicenseForProject />
             </div>
             <Icon name="key" /> Select License
           </>
@@ -306,14 +298,8 @@ export const NewProjectCreator: React.FC<Props> = ({
           requireValid
           confirmLabel={"Add this license"}
           onChange={addSiteLicense}
+          requireLicense
         />
-        {warnBoost && (
-          <Alert bsStyle="warning">
-            This license is for boosting on top of an already applied and active
-            license. This one alone will not provide any upgrades to this
-            project!
-          </Alert>
-        )}
       </Card>
     );
   }

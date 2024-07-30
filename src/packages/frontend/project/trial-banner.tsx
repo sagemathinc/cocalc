@@ -439,44 +439,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
         <Paragraph strong>
           This shutdown timer only exists for projects without any upgrades!
         </Paragraph>
-        <Alert
-          banner
-          type="info"
-          showIcon={false}
-          message={
-            <>
-              <Paragraph strong>
-                This is a call to support <SiteName /> by{" "}
-                <A href={BUY_A_LICENSE_URL}>purchasing a license</A>.
-              </Paragraph>
-              <Paragraph>
-                Behind the curtain,{" "}
-                <A href={"/about/team"}>humans are working hard</A> to keep the
-                service running and improving it constantly. Your files and
-                computations <A href={"/info/status"}>run in our cluster</A>,
-                which costs money as well.
-              </Paragraph>
-              <Paragraph>
-                <SiteName /> receives no funding from large organizations or
-                charitable foundations. The site depends entirely{" "}
-                <Text strong>on your financial support</Text> to continue
-                operating. Without your financial support this service will not
-                survive long-term!
-              </Paragraph>
-              <Paragraph>
-                <A
-                  href={
-                    "/support/new?hideExtra=true&type=purchase&subject=Support+CoCalc&title=Support+CoCalc"
-                  }
-                >
-                  Contact us
-                </A>{" "}
-                if you can give support in other ways or have any questions or
-                comments.
-              </Paragraph>
-            </>
-          }
-        />
+        <CallToSupport />
       </Modal>
     );
   }
@@ -510,5 +473,50 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
         </Tag>
       </Tooltip>
     </>
+  );
+}
+
+export function CallToSupport({ onClose }: { onClose? }) {
+  return (
+    <Alert
+      closable={onClose != null}
+      onClose={onClose}
+      banner
+      type="info"
+      showIcon={false}
+      message={
+        <>
+          <Paragraph strong>
+            This is a call to support <SiteName /> by{" "}
+            <A href={BUY_A_LICENSE_URL}>purchasing a license</A>.
+          </Paragraph>
+          <Paragraph>
+            Behind the scenes,{" "}
+            <A href={"/about/team"}>people are working hard</A> to keep the
+            service running and improve it constantly. Your files and
+            computations <A href={"/info/status"}>run in our cluster</A>, which
+            costs money as well.
+          </Paragraph>
+          <Paragraph>
+            <SiteName /> receives no funding from large organizations or
+            charitable foundations. The site depends entirely{" "}
+            <Text strong>on your financial support</Text> to continue operating.
+            Without your financial support this service will not survive
+            long-term!
+          </Paragraph>
+          <Paragraph>
+            <A
+              href={
+                "/support/new?hideExtra=true&type=purchase&subject=Support+CoCalc&title=Support+CoCalc"
+              }
+            >
+              Contact us
+            </A>{" "}
+            if you can give support in other ways or have any questions or
+            comments.
+          </Paragraph>
+        </>
+      }
+    />
   );
 }
