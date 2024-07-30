@@ -19,9 +19,9 @@ import {
   ALERT_STYLE,
   A_STYLE,
   BannerApplySiteLicense,
-  BUY_A_LICENSE_URL,
   NO_INTERNET,
 } from "./trial-banner";
+import { BUY_A_LICENSE_URL } from "./call-to-support";
 
 const MANAGE_LICENSE_URL = join(appBasePath, "/licenses/managed");
 

@@ -14,7 +14,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 import { days_ago as daysAgo, isValidUUID, len } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { CallToSupport } from "@cocalc/frontend/project/trial-banner";
+import { CallToSupport } from "@cocalc/frontend/project/call-to-support";
 
 const { Option } = Select;
 
