@@ -82,6 +82,7 @@ export type SiteSettingsKeys =
   | "unlicensed_project_collaborator_limit"
   | "google_analytics"
   | "kucalc"
+  | "delete_project_data"
   | "dns"
   | "datastore"
   | "ssh_gateway"
@@ -668,6 +669,13 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     to_val: split_iframe_comm_hosts,
     to_display: num_dns_hosts,
+  },
+  delete_project_data: {
+    name: "Delete Project Data",
+    desc: "When a project has been marked as deleted, also actually delete associated data from the database and – for OnPrem and single-user dev mode only – also its files.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
   },
   email_enabled: {
     name: "Email sending enabled",
