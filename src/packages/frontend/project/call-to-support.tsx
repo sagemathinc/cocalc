@@ -87,7 +87,7 @@ export function CallToSupport({ onClose }: { onClose? }) {
       closable={onClose != null}
       onClose={onClose}
       banner
-      type="info"
+      type="warning"
       showIcon={false}
       message={VERSIONS.blaec}
     />
