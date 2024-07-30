@@ -7,7 +7,7 @@ type Language = "python" | "r" | "sagemath" | "octave" | "julia";
 
 export const EXAMPLES_COMMON: readonly Example[] = [
   [
-    "Help me Studying ...",
+    "Help me Study...",
     "I am a student. I want to learn more about a topic. Explain it to me using code, formulas and plots!\n\nTopic: DESCRIBE_TOPIC_HERE",
     ["student", "learning"],
   ],

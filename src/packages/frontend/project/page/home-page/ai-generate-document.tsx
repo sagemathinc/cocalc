@@ -741,7 +741,6 @@ function AIGenerateDocument({
   }
 
   function renderDialog() {
-    const empty = prompt.trim() == "";
     return (
       <>
         <Paragraph strong>
@@ -754,7 +753,7 @@ function AIGenerateDocument({
           />
         </Paragraph>
         {renderJupyterKernelSelector()}
-        <Paragraph type={empty ? "danger" : undefined}>
+        <Paragraph>
           Provide a detailed description of the {docName} document you want to
           create:
         </Paragraph>
@@ -767,7 +766,6 @@ function AIGenerateDocument({
             placeholder={PLACEHOLDER}
             value={prompt}
             disabled={querying}
-            status={empty ? "error" : undefined}
             onChange={({ target: { value } }) => setPrompt(value)}
             onPressEnter={(e) => {
               if (e.shiftKey) {
@@ -899,7 +897,7 @@ function AIGenerateDocument({
                 setPreview(null);
               }}
             >
-              <Icon name="arrow-left" /> Discard
+              Cancel
             </Button>
             <Button
               type="primary"

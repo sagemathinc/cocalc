@@ -105,7 +105,7 @@ export default function useUpload(
       event_handlers={updloadEventHandlers}
       style={{ height: "100%", width: "100%" }}
       dropzone_ref={dropzoneRef}
-      show_upload={false}
+      show_upload={true}
     >
       {body}
     </FileUploadWrapper>
