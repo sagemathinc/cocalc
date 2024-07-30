@@ -61,7 +61,7 @@ export default function TermsOfService({ customize }) {
                 we do so, we’ll let you know either by posting the modified
                 Terms on the Site at{" "}
                 <A href="/policies/terms">https://cocalc.com/policies/terms</A>{" "}
-                or through other communications. You track complete details
+                or through other communications. You can track complete details
                 regarding every change{" "}
                 <A href="https://github.com/sagemathinc/cocalc/tree/master/src/packages/next/pages/policies">
                   on GitHub
@@ -215,7 +215,7 @@ export default function TermsOfService({ customize }) {
                   API key in order to use the API.
                 </li>
               </ul>
-              <h1>Payment, Refunds, Upgrading and Downgrading Accounts</h1>
+              <h1>Payments and Refunds</h1>
               <p>
                 Your subscription to use the Services can be on a free or paid
                 basis. If you are using the Services pursuant to a paid plan (or
@@ -223,29 +223,27 @@ export default function TermsOfService({ customize }) {
                 with complete and accurate billing and contact information. You
                 will be billed immediately upon an upgrade from the free plan to
                 any paid plan. Paid plans may include free temporary trial
-                periods. For paid plans where payment is due on a monthly basis,
-                you will be billed for the Services in advance on a monthly
-                non-refundable basis. There will be no refunds or credits for
-                partial months of service, upgrade/downgrade refunds, or refunds
-                for months unused with an open Account. No exceptions will be
-                made. When changing from a monthly billing cycle to a yearly
-                billing cycle, SMI will bill you for a full year upon the next
-                monthly billing date. All fees due hereunder in connection with
-                the Services are exclusive of all taxes, levies, or duties
-                imposed by taxing authorities, and you shall be responsible for
-                payment of all such taxes, levies, or duties, excluding only
-                United States (federal or state) taxes on SMI’s net income. For
-                any upgrade or downgrade in paid plan level while on a monthly
-                billing cycle, you will automatically be charged the new rate on
-                your next billing cycle. For upgrades or downgrades while on a
-                yearly plan, SMI will immediately charge or refund the
-                difference in plan cost, prorated for the remaining time in your
-                yearly billing cycle. Downgrading your plan may cause the loss
-                of access to Content, features, or capacity of your Account. SMI
+                periods. For paid plans where payment is due on a monthly or
+                annual basis, you will be billed for the Services in advance on
+                a non-refundable basis for the next period or a portion of it.
+                There will be no refunds or credits for partial months or years
+                of service, upgrade/downgrade refunds, or refunds for months
+                unused with an open Account. Pay-As-You-Go Services may require
+                you to put CoCalc Credit on your account before you can access
+                them. CoCalc Credit is given on a non-refundable basis. No
+                exceptions will be made except for billing errors. All fees due
+                hereunder in connection with the Services are exclusive of all
+                taxes, levies, or duties imposed by taxing authorities, and you
+                shall be responsible for payment of all such taxes, levies, or
+                duties, excluding only United States (federal or state) taxes on
+                SMI’s net income. Downgrading your plan may cause the loss of
+                access to Content, features, or capacity of your Account. SMI
                 does not accept any liability for such loss. We may suspend or
-                terminate the Services if fees are 30 days past due. You agree
-                to pay, and authorize SMI’s third party payment processor to
-                charge using your selected payment method, for all applicable
+                terminate the subscription Services if fees are 30 days past
+                due. Pay-As-You-Go services may be suspended or terminated
+                immediately, if your CoCalc credit balance becomes negative. You
+                agree to pay, and authorize SMI’s third party payment processor
+                to charge using your selected payment method, for all applicable
                 fees and taxes that may accrue in relation to your use of the
                 Services. The fees for your subscription to use the Services are
                 set forth at <A href="/pricing">https://cocalc.com/pricing</A>.
@@ -255,8 +253,8 @@ export default function TermsOfService({ customize }) {
                 by posting the changes to the Site or the Service itself.{" "}
               </p>
               <p>
-                You may use the Services for commercial purposes. In particular,
-                there are no academic or personal-use restrictions.{" "}
+                In order to use the Services for commercial purposes, you must
+                obtain business license or subscription.
               </p>
               <h1>Feedback</h1>
               <p>
