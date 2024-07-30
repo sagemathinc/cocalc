@@ -247,6 +247,7 @@ async function delete_associated_project_data(
     "file_access_log",
     "jupyter_api_log",
     "openai_chatgpt_log",
+    "blobs",
   ] as const;
 
   for (const table of tables) {
@@ -256,7 +257,7 @@ async function delete_associated_project_data(
       value: project_id,
     });
     total += rowsDeleted;
-    L2(`deleted ${table} ${rowsDeleted} entries`);
+    L2(`deleted in ${table}: ${rowsDeleted} entries`);
   }
 
   // these tables are different, i.e. another id, or the field to check the project_id value against is called differently
@@ -268,7 +269,7 @@ async function delete_associated_project_data(
       value: project_id,
     });
     total += rowsDeleted;
-    L2(`deleted copy_paths/${field} ${rowsDeleted} entries`);
+    L2(`deleted copy_paths/${field}: ${rowsDeleted} entries`);
   }
 
   {
@@ -279,7 +280,7 @@ async function delete_associated_project_data(
       value: project_id,
     });
     total += rowsDeleted;
-    L2(`deleted ${rowsDeleted} listings`);
+    L2(`deleted in listings: ${rowsDeleted} entries`);
   }
 
   {
@@ -290,7 +291,7 @@ async function delete_associated_project_data(
       id: "token",
     });
     total += rowsDeleted;
-    L2(`deleted ${rowsDeleted} entries`);
+    L2(`deleted in project_invite_tokens: ${rowsDeleted} entries`);
   }
 
   return total;
