@@ -115,24 +115,39 @@ HINT: set \`err_on_exit=false\`, to recieve the real \`exit_code\` of the execut
   }),
 );
 
-const ExecInputSchemaAsync = ExecInputCommon.merge(
+const ExecInputSchemaAsyncCommon = ExecInputCommon.merge(
   z.object({
     project_id: ProjectIdSchema,
-    async_get: z.string().optional()
-      .describe(`For a given \`job_id\`, which has been returned when setting \`async_call=true\`,
+    async_stats: z
+      .boolean()
+      .describe(
+        `If true, retrieve recorded statistics (CPU/memory) of the process and its child processes.`,
+      ),
+  }),
+);
+
+const ExecInputSchemaAsync = ExecInputSchemaAsyncCommon.merge(
+  z.object({
+    async_get: z.string()
+      .describe(`For a given \`job_id\` job, which has been returned when setting \`async_call=true\`,
 retrieve the corresponding status or the result.
 
 The returned object contains the current \`stdout\` and \`stderr\` output,
 as well as a status field indicating if the job is still running or has completed.
 Start time and duration are returned as well.
 
-Results are cached temporarily in the project.`),
-    async_stats: z
-      .boolean()
-      .optional()
-      .describe(
-        `If true, retrieve recorded statistics (CPU/memory) of the process and its child processes.`,
-      ),
+Note: Results are cached temporarily in the project.`),
+  }),
+);
+
+const ExecInputSchemaAwait = ExecInputSchemaAsyncCommon.merge(
+  z.object({
+    async_await: z.string()
+      .describe(`Similar to \`async_get\`, this call opens a "hanging" HTTP polling connection,
+until the given \`job_id\` job has completed.
+If the job already finished, this call falls back to be an \`async_get\` call.
+
+Note: If it times out, you have to reconnect on your end.`),
   }),
 );
 
@@ -141,6 +156,8 @@ export const ExecInputSchema = z
   .refine((data) => {
     if ("async_get" in data) {
       return ExecInputSchemaAsync.safeParse(data).success;
+    } else if ("async_await" in data) {
+      return ExecInputSchemaAwait.safeParse(data).success;
     } else {
       return ExecInputSchemaBlocking.safeParse(data).success;
     }

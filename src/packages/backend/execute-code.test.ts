@@ -4,6 +4,8 @@
  */
 
 process.env.COCALC_PROJECT_MONITOR_INTERVAL_S = "1";
+// default is much lower, might fail if you have more procs than the default
+process.env.COCALC_PROJECT_INFO_PROC_LIMIT = "10000";
 
 import { executeCode } from "./execute-code";
 
@@ -298,6 +300,37 @@ describe("async", () => {
     },
     10 * 1000,
   );
+});
+
+// the await case is essentially like the async case above, but more tricky due to long polling
+describe("await", () => {
+  it("returns when a job finishes", async () => {
+    const c = await executeCode({
+      command: "sleep 2; echo 'foo'",
+      bash: true,
+      err_on_exit: false,
+      async_call: true,
+    });
+    expect(c.type).toEqual("async");
+    if (c.type !== "async") return;
+    const { status, job_id } = c;
+    expect(status).toEqual("running");
+    const t0 = Date.now();
+    const s = await executeCode({ async_await: job_id, async_stats: true });
+    console.log(s);
+    const t1 = Date.now();
+    // This is the main test: it really waited for at least a second until the job completed
+    expect((t1 - t0) / 1000).toBeGreaterThan(1);
+    expect(s.type).toEqual("async");
+    if (s.type !== "async") return;
+    expect(s.elapsed_s).toBeGreaterThan(1);
+    expect(s.exit_code).toBe(0);
+    expect(s.pid).toBeGreaterThan(1);
+    expect(s.stats).toBeDefined();
+    expect(s.stdout).toEqual("foo\n");
+    expect(s.stderr).toEqual("");
+    expect(Array.isArray(s.stats)).toBeTruthy();
+  });
 });
 
 // we burn a bit of CPU to get the cpu_pct and cpu_secs up

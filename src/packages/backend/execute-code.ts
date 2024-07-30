@@ -15,6 +15,7 @@ import {
 import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { EventEmitter } from "node:stream";
 import shellEscape from "shell-escape";
 
 import getLogger from "@cocalc/backend/logger";
@@ -24,8 +25,10 @@ import { callback_opts } from "@cocalc/util/async-utils";
 import { PROJECT_EXEC_DEFAULT_TIMEOUT_S } from "@cocalc/util/consts/project";
 import { to_json, trunc, uuid, walltime } from "@cocalc/util/misc";
 import {
+  ExecuteCodeOptionsAsyncAwait,
   ExecuteCodeOutputAsync,
   ExecuteCodeOutputBlocking,
+  isExecuteCodeOptionsAsyncAwait,
   isExecuteCodeOptionsAsyncGet,
   type ExecuteCodeFunctionWithCallback,
   type ExecuteCodeOptions,
@@ -56,6 +59,10 @@ log.debug("configuration:", {
   MONITOR_STATS_LENGTH_MAX,
 });
 
+const updates = new EventEmitter();
+
+const eventKey = (job_id: string): string => `finished-${job_id}`;
+
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
   ttl: 1000 * ASYNC_CACHE_TTL_S,
@@ -76,14 +83,27 @@ function asyncCacheUpdate(job_id: string, upd) {
     obj.stats.push(...upd.stats);
     truncStats(obj);
   }
-  asyncCache.set(job_id, { ...obj, ...upd });
+  const next: ExecuteCodeOutputAsync = { ...obj, ...upd };
+  asyncCache.set(job_id, next);
+  if (next.status !== "running") {
+    updates.emit(eventKey(next.job_id), next);
+  }
 }
 
 // Async/await interface to executing code.
 export async function executeCode(
-  opts: ExecuteCodeOptions | ExecuteCodeOptionsAsyncGet,
+  opts:
+    | ExecuteCodeOptions
+    | ExecuteCodeOptionsAsyncGet
+    | ExecuteCodeOptionsAsyncAwait,
 ): Promise<ExecuteCodeOutput> {
   return await callback_opts(execute_code)(opts);
+}
+
+function isAsyncExec(opts) {
+  return (
+    isExecuteCodeOptionsAsyncGet(opts) || isExecuteCodeOptionsAsyncAwait(opts)
+  );
 }
 
 // Callback interface to executing code.
@@ -93,7 +113,7 @@ export const execute_code: ExecuteCodeFunctionWithCallback = aggregate(
     (async () => {
       try {
         let data = await executeCodeNoAggregate(opts);
-        if (isExecuteCodeOptionsAsyncGet(opts) && data.type === "async") {
+        if (isAsyncExec(opts) && data.type === "async") {
           // stats could contain a lot of data. we only return it if requested.
           if (opts.async_stats !== true) {
             data = { ...data, stats: undefined };
@@ -115,14 +135,26 @@ async function clean_up_tmp(tempDir: string | undefined) {
 
 // actual implementation, without the aggregate wrapper
 async function executeCodeNoAggregate(
-  opts: ExecuteCodeOptions | ExecuteCodeOptionsAsyncGet,
+  opts:
+    | ExecuteCodeOptions
+    | ExecuteCodeOptionsAsyncGet
+    | ExecuteCodeOptionsAsyncAwait,
 ): Promise<ExecuteCodeOutput> {
-  if (isExecuteCodeOptionsAsyncGet(opts)) {
-    const cached = asyncCache.get(opts.async_get);
+  if (isAsyncExec(opts)) {
+    const key = isExecuteCodeOptionsAsyncGet(opts)
+      ? opts.async_get
+      : opts.async_await;
+    const cached = asyncCache.get(key);
     if (cached != null) {
-      return cached;
+      if (isExecuteCodeOptionsAsyncAwait(opts) && cached.status !== "running") {
+        return new Promise((done) =>
+          updates.once(eventKey(key), (data) => done(data)),
+        );
+      } else {
+        return cached;
+      }
     } else {
-      throw new Error(`Async operation '${opts.async_get}' does not exist.`);
+      throw new Error(`Async operation '${key}' does not exist.`);
     }
   }
 
