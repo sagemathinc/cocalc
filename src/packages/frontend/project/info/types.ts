@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { State, CoCalcInfo } from "@cocalc/comm/project-info/types";
+import { State, CoCalcInfo } from "@cocalc/util/types/project-info/types";
 
 export interface PTStats {
   nprocs: number; // total number of processes

@@ -25,7 +25,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
-} from "@cocalc/comm/project-info/types";
+} from "@cocalc/util/types/project-info/types";
 import { cgroup_stats } from "@cocalc/comm/project-status/utils";
 import { unreachable } from "@cocalc/util/misc";
 import { CoCalcFile, render_cocalc_btn } from "./components";

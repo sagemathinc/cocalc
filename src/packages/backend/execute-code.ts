@@ -1,7 +1,7 @@
-//########################################################################
-// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
-// License: MS-RSL – see LICENSE.md for details
-//########################################################################
+/*
+ *  This file is part of CoCalc: Copyright © 2020–2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
 
 // Execute code in a subprocess.
 
@@ -17,13 +17,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import shellEscape from "shell-escape";
 
-import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import getLogger from "@cocalc/backend/logger";
+import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
 import { callback_opts } from "@cocalc/util/async-utils";
+import { PROJECT_EXEC_DEFAULT_TIMEOUT_S } from "@cocalc/util/consts/project";
 import { to_json, trunc, uuid, walltime } from "@cocalc/util/misc";
-import { envForSpawn } from "./misc";
-
 import {
   ExecuteCodeOutputAsync,
   ExecuteCodeOutputBlocking,
@@ -34,20 +33,51 @@ import {
   type ExecuteCodeOptionsWithCallback,
   type ExecuteCodeOutput,
 } from "@cocalc/util/types/execute-code";
+import { Processes } from "@cocalc/util/types/project-info/types";
+import { envForSpawn } from "./misc";
+import { ProcessStats } from "./process-stats";
 
 const log = getLogger("execute-code");
 
-const ASYNC_CACHE_MAX = envToInt("COCALC_PROJECT_ASYNC_EXEC_CACHE_MAX", 100);
-const ASYNC_CACHE_TTL_S = envToInt("COCALC_PROJECT_ASYNC_EXEC_TTL_S", 60 * 60);
+const PREFIX = "COCALC_PROJECT_ASYNC_EXEC";
+const ASYNC_CACHE_MAX = envToInt(`${PREFIX}_CACHE_MAX`, 100);
+const ASYNC_CACHE_TTL_S = envToInt(`${PREFIX}_TTL_S`, 60 * 60);
+// for async execution, every that many secs check up on the child-tree
+const MONITOR_INTERVAL_S = envToInt(`${PREFIX}_MONITOR_INTERVAL_S`, 60);
+const MONITOR_STATS_LENGTH_MAX = envToInt(
+  `${PREFIX}_MONITOR_STATS_LENGTH_MAX`,
+  100,
+);
+
+log.debug("configuration:", {
+  ASYNC_CACHE_MAX,
+  ASYNC_CACHE_TTL_S,
+  MONITOR_INTERVAL_S,
+  MONITOR_STATS_LENGTH_MAX,
+});
 
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
   ttl: 1000 * ASYNC_CACHE_TTL_S,
-  ttlAutopurge: true,
-  allowStale: true,
   updateAgeOnGet: true,
   updateAgeOnHas: true,
 });
+
+function truncStats(obj?: ExecuteCodeOutputAsync) {
+  if (Array.isArray(obj?.stats)) {
+    // truncate to $MONITOR_STATS_LENGTH_MAX, by discarding the inital entries
+    obj.stats = obj.stats.slice(obj.stats.length - MONITOR_STATS_LENGTH_MAX);
+  }
+}
+
+function asyncCacheUpdate(job_id: string, upd) {
+  const obj = asyncCache.get(job_id);
+  if (Array.isArray(obj?.stats) && Array.isArray(upd.stats)) {
+    obj.stats.push(...upd.stats);
+    truncStats(obj);
+  }
+  asyncCache.set(job_id, { ...obj, ...upd });
+}
 
 // Async/await interface to executing code.
 export async function executeCode(
@@ -62,7 +92,14 @@ export const execute_code: ExecuteCodeFunctionWithCallback = aggregate(
   (opts: ExecuteCodeOptionsWithCallback): void => {
     (async () => {
       try {
-        opts.cb?.(undefined, await executeCodeNoAggregate(opts));
+        let data = await executeCodeNoAggregate(opts);
+        if (isExecuteCodeOptionsAsyncGet(opts) && data.type === "async") {
+          // stats could contain a lot of data. we only return it if requested.
+          if (opts.async_stats !== true) {
+            data = { ...data, stats: undefined };
+          }
+        }
+        opts.cb?.(undefined, data);
       } catch (err) {
         opts.cb?.(err);
       }
@@ -90,7 +127,7 @@ async function executeCodeNoAggregate(
   }
 
   opts.args ??= [];
-  opts.timeout ??= 10;
+  opts.timeout ??= PROJECT_EXEC_DEFAULT_TIMEOUT_S;
   opts.ulimit_timeout ??= true;
   opts.err_on_exit ??= true;
   opts.verbose ??= true;
@@ -155,60 +192,62 @@ async function executeCodeNoAggregate(
     if (opts.async_call) {
       // we return an ID, the caller can then use it to query the status
       opts.max_output ??= 1024 * 1024; // we limit how much we keep in memory, to avoid problems;
-      opts.timeout ??= 10 * 60;
+      opts.timeout ??= PROJECT_EXEC_DEFAULT_TIMEOUT_S;
       const job_id = uuid();
-      const start = new Date();
-      const started: ExecuteCodeOutputAsync = {
+      const start = Date.now();
+      const job_config: ExecuteCodeOutputAsync = {
         type: "async",
-        stdout: `Process started running at ${start.toISOString()}`,
+        stdout: "",
         stderr: "",
         exit_code: 0,
-        start: start.getTime(),
+        start,
         job_id,
         status: "running",
       };
-      asyncCache.set(job_id, started);
+      asyncCache.set(job_id, job_config);
 
-      doSpawn({ ...opts, origCommand, job_id }, async (err, result) => {
-        try {
-          const started = asyncCache.get(job_id)?.start ?? 0;
-          const info: Omit<
-            ExecuteCodeOutputAsync,
-            "stdout" | "stderr" | "exit_code"
-          > = {
-            job_id,
-            type: "async",
-            elapsed_s: (Date.now() - started) / 1000,
-            start: start.getTime(),
-            status: "error",
-          };
-          if (err) {
-            asyncCache.set(job_id, {
-              stdout: "",
-              stderr: `${err}`,
-              exit_code: 1,
-              ...info,
-            });
-          } else if (result != null) {
-            asyncCache.set(job_id, {
-              ...result,
-              ...info,
-              ...{ status: "completed" },
-            });
-          } else {
-            asyncCache.set(job_id, {
-              stdout: "",
-              stderr: `No result`,
-              exit_code: 1,
-              ...info,
-            });
+      doSpawn(
+        { ...opts, origCommand, job_id, job_config },
+        async (err, result) => {
+          try {
+            const info: Omit<
+              ExecuteCodeOutputAsync,
+              "stdout" | "stderr" | "exit_code"
+            > = {
+              job_id,
+              type: "async",
+              elapsed_s: (Date.now() - start) / 1000,
+              start,
+              status: "error",
+            };
+            if (err) {
+              asyncCacheUpdate(job_id, {
+                stdout: "",
+                stderr: `${err}`,
+                exit_code: 1,
+                ...info,
+              });
+            } else if (result != null) {
+              asyncCacheUpdate(job_id, {
+                ...result,
+                ...info,
+                ...{ status: "completed" },
+              });
+            } else {
+              asyncCacheUpdate(job_id, {
+                stdout: "",
+                stderr: `No result`,
+                exit_code: 1,
+                ...info,
+              });
+            }
+          } finally {
+            await clean_up_tmp(tempDir);
           }
-        } finally {
-          await clean_up_tmp(tempDir);
-        }
-      });
+        },
+      );
 
-      return started;
+      return job_config;
     } else {
       // This is the blocking variant
       return await callback(doSpawn, { ...opts, origCommand });
@@ -221,18 +260,44 @@ async function executeCodeNoAggregate(
 
 function update_async(
   job_id: string | undefined,
-  stream: "stdout" | "stderr",
+  aspect: "stdout" | "stderr",
   data: string,
 ) {
   if (!job_id) return;
   const obj = asyncCache.get(job_id);
   if (obj != null) {
-    obj[stream] = data;
+    obj[aspect] = data;
   }
 }
 
+function sumChildren(
+  procs: Processes,
+  children: { [pid: number]: number[] },
+  pid: number,
+): { rss: number; pct_cpu: number; cpu_secs: number } {
+  const proc = procs[`${pid}`];
+  if (proc == null) {
+    log.debug(`sumChildren: no process ${pid} in proc`);
+    return { rss: 0, pct_cpu: 0, cpu_secs: 0 };
+  }
+  let rss = proc.stat.mem.rss;
+  let pct_cpu = proc.cpu.pct;
+  let cpu_secs = proc.cpu.secs;
+  for (const ch of children[pid] ?? []) {
+    const sc = sumChildren(procs, children, ch);
+    rss += sc.rss;
+    pct_cpu += sc.pct_cpu;
+    cpu_secs += sc.cpu_secs;
+  }
+  return { rss, pct_cpu, cpu_secs };
+}
+
 function doSpawn(
-  opts,
+  opts: ExecuteCodeOptions & {
+    origCommand: string;
+    job_id?: string;
+    job_config?: ExecuteCodeOutputAsync;
+  },
   cb: (err: string | undefined, result?: ExecuteCodeOutputBlocking) => void,
 ) {
   const start_time = walltime();
@@ -248,6 +313,7 @@ function doSpawn(
       "seconds",
     );
   }
+
   const spawnOptions: SpawnOptionsWithoutStdio = {
     detached: true, // so we can kill the entire process group if it times out
     cwd: opts.path,
@@ -260,11 +326,68 @@ function doSpawn(
     },
   };
 
-  let r: ChildProcessWithoutNullStreams;
+  // This is the state, which will be captured in closures
+  let child: ChildProcessWithoutNullStreams;
   let ran_code = false;
+  let stdout = "";
+  let stderr = "";
+  let exit_code: undefined | number = undefined;
+  let stderr_is_done = false;
+  let stdout_is_done = false;
+  let killed = false;
+  let callback_done = false; // set in "finish", which is also called in a timeout
+  let timer: NodeJS.Timeout | undefined = undefined;
+
+  // periodically check up on the child process tree and record stats
+  // this also keeps the entry in the cache alive, when the ttl is less than the duration of the execution
+  async function startMonitor() {
+    const pid = child.pid;
+    const { job_id, job_config } = opts;
+    if (job_id == null || pid == null || job_config == null) return;
+    const monitor = new ProcessStats();
+    await monitor.init();
+    await new Promise((done) => setTimeout(done, 1000));
+    if (callback_done) return;
+
+    while (true) {
+      const { procs } = await monitor.processes(Date.now());
+      // reconstruct process tree
+      const children: { [pid: number]: number[] } = {};
+      for (const p of Object.values(procs)) {
+        const { pid, ppid } = p;
+        children[ppid] ??= [];
+        children[ppid].push(pid);
+      }
+      // we only consider those, which are the pid itself or one of its children
+      const { rss, pct_cpu, cpu_secs } = sumChildren(procs, children, pid);
+
+      // ?? fallback, in case the cache "forgot" about it
+      const obj = asyncCache.get(job_id) ?? job_config;
+      obj.pid = pid;
+      obj.stats ??= [];
+      obj.stats.push({
+        timestamp: Date.now(),
+        mem_rss: rss,
+        cpu_pct: pct_cpu,
+        cpu_secs,
+      });
+      truncStats(obj);
+      asyncCache.set(job_id, obj);
+
+      // initially, we record more frequently, but then we space it out up until the interval (probably 1 minute)
+      const elapsed_s = (Date.now() - job_config.start) / 1000;
+      // i.e. after 6 minutes, we check every minute
+      const next_s = Math.max(1, Math.floor(elapsed_s / 6));
+      const wait_s = Math.min(next_s, MONITOR_INTERVAL_S);
+      await new Promise((done) => setTimeout(done, wait_s * 1000));
+
+      if (callback_done) return;
+    }
+  }
+
   try {
-    r = spawn(opts.command, opts.args, spawnOptions);
-    if (r.stdout == null || r.stderr == null) {
+    child = spawn(opts.command, opts.args, spawnOptions);
+    if (child.stdout == null || child.stderr == null) {
       // The docs/examples at https://nodejs.org/api/child_process.html#child_process_child_process_spawn_command_args_options
       // suggest that r.stdout and r.stderr are always defined.  However, this is
       // definitely NOT the case in edge cases, as we have observed.
@@ -284,11 +407,8 @@ function doSpawn(
   if (opts.verbose) {
     log.debug("listening for stdout, stderr and exit_code...");
   }
-  let stdout = "";
-  let stderr = "";
-  let exit_code: undefined | number = undefined;
 
-  r.stdout.on("data", (data) => {
+  child.stdout.on("data", (data) => {
     data = data.toString();
     if (opts.max_output != null) {
       if (stdout.length < opts.max_output) {
@@ -300,7 +420,7 @@ function doSpawn(
     update_async(opts.job_id, "stdout", stdout);
   });
 
-  r.stderr.on("data", (data) => {
+  child.stderr.on("data", (data) => {
     data = data.toString();
     if (opts.max_output != null) {
       if (stderr.length < opts.max_output) {
@@ -312,21 +432,17 @@ function doSpawn(
     update_async(opts.job_id, "stderr", stderr);
   });
 
-  let stderr_is_done = false;
-  let stdout_is_done = false;
-  let killed = false;
-
-  r.stderr.on("end", () => {
+  child.stderr.on("end", () => {
     stderr_is_done = true;
     finish();
   });
 
-  r.stdout.on("end", () => {
+  child.stdout.on("end", () => {
     stdout_is_done = true;
     finish();
   });
 
-  r.on("exit", (code) => {
+  child.on("exit", (code) => {
     exit_code = code != null ? code : undefined;
     finish();
   });
@@ -334,7 +450,7 @@ function doSpawn(
   // This can happen, e.g., "Error: spawn ENOMEM" if there is no memory.  Without this handler,
   // an unhandled exception gets raised, which is nasty.
   // From docs: "Note that the exit-event may or may not fire after an error has occurred. "
-  r.on("error", (err) => {
+  child.on("error", (err) => {
     if (exit_code == null) {
       exit_code = 1;
     }
@@ -344,7 +460,11 @@ function doSpawn(
     finish();
   });
 
-  let callback_done = false;
+  if (opts.job_id && child.pid) {
+    // we don't await it, it runs until $callback_done is true
+    startMonitor();
+  }
+
   const finish = (err?) => {
     if (!killed && (!stdout_is_done || !stderr_is_done || exit_code == null)) {
       // it wasn't killed and one of stdout, stderr, and exit_code hasn't been
@@ -355,7 +475,7 @@ function doSpawn(
       // we already finished up.
       return;
     }
-    // finally finish up.
+    // finally finish up – this will also terminate the monitor
     callback_done = true;
 
     if (timer != null) {
@@ -418,11 +538,10 @@ function doSpawn(
     }
   };
 
-  let timer: any = undefined;
   if (opts.timeout) {
     // setup a timer that will kill the command after a certain amount of time.
     const f = () => {
-      if (r.exitCode != null) {
+      if (child.exitCode != null) {
         // command already exited.
         return;
       }
@@ -435,8 +554,8 @@ function doSpawn(
       }
       try {
         killed = true; // we set the kill flag in any case – i.e. process will no longer exist
-        if (r.pid != null) {
-          process.kill(-r.pid, "SIGKILL"); // this should kill process group
+        if (child.pid != null) {
+          process.kill(-child.pid, "SIGKILL"); // this should kill process group
         }
       } catch (err) {
         // Exceptions can happen, which left uncaught messes up calling code big time.
