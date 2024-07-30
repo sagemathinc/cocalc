@@ -53,11 +53,7 @@ export interface ExecuteCodeOptions {
 export interface ExecuteCodeOptionsAsyncGet {
   async_get: string; // if set, everything else is ignored and the status/output of the async call is returned
   async_stats?: boolean; // if set, additionally return recorded cpu and memory metrics
-}
-
-export interface ExecuteCodeOptionsAsyncAwait {
-  async_await: string; // if set, everything else is ignored and the status/output of the async call is returned
-  async_stats?: boolean; // if set, additionally return recorded cpu and memory metrics
+  async_await?: boolean; // if set, the call returns when the job finishes (status "complete" or "error")
 }
 
 export interface ExecuteCodeOptionsWithCallback extends ExecuteCodeOptions {
@@ -72,10 +68,4 @@ export function isExecuteCodeOptionsAsyncGet(
   opts: unknown,
 ): opts is ExecuteCodeOptionsAsyncGet {
   return typeof (opts as any)?.async_get === "string";
-}
-
-export function isExecuteCodeOptionsAsyncAwait(
-  opts: unknown,
-): opts is ExecuteCodeOptionsAsyncAwait {
-  return typeof (opts as any)?.async_await === "string";
 }

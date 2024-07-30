@@ -137,15 +137,10 @@ as well as a status field indicating if the job is still running or has complete
 Start time and duration are returned as well.
 
 Note: Results are cached temporarily in the project.`),
-  }),
-);
-
-const ExecInputSchemaAwait = ExecInputSchemaAsyncCommon.merge(
-  z.object({
-    async_await: z.string()
-      .describe(`Similar to \`async_get\`, this call opens a "hanging" HTTP polling connection,
+    async_await: z.boolean().optional()
+      .describe(`If \`true\`, the call opens a "hanging" HTTP polling connection,
 until the given \`job_id\` job has completed.
-If the job already finished, this call falls back to be an \`async_get\` call.
+If the job already finished, this is equivalent to a usual \`async_get\` call.
 
 Note: If it times out, you have to reconnect on your end.`),
   }),
@@ -156,8 +151,6 @@ export const ExecInputSchema = z
   .refine((data) => {
     if ("async_get" in data) {
       return ExecInputSchemaAsync.safeParse(data).success;
-    } else if ("async_await" in data) {
-      return ExecInputSchemaAwait.safeParse(data).success;
     } else {
       return ExecInputSchemaBlocking.safeParse(data).success;
     }

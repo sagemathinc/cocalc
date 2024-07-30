@@ -25,10 +25,8 @@ import { callback_opts } from "@cocalc/util/async-utils";
 import { PROJECT_EXEC_DEFAULT_TIMEOUT_S } from "@cocalc/util/consts/project";
 import { to_json, trunc, uuid, walltime } from "@cocalc/util/misc";
 import {
-  ExecuteCodeOptionsAsyncAwait,
   ExecuteCodeOutputAsync,
   ExecuteCodeOutputBlocking,
-  isExecuteCodeOptionsAsyncAwait,
   isExecuteCodeOptionsAsyncGet,
   type ExecuteCodeFunctionWithCallback,
   type ExecuteCodeOptions,
@@ -92,18 +90,9 @@ function asyncCacheUpdate(job_id: string, upd) {
 
 // Async/await interface to executing code.
 export async function executeCode(
-  opts:
-    | ExecuteCodeOptions
-    | ExecuteCodeOptionsAsyncGet
-    | ExecuteCodeOptionsAsyncAwait,
+  opts: ExecuteCodeOptions | ExecuteCodeOptionsAsyncGet,
 ): Promise<ExecuteCodeOutput> {
   return await callback_opts(execute_code)(opts);
-}
-
-function isAsyncExec(opts) {
-  return (
-    isExecuteCodeOptionsAsyncGet(opts) || isExecuteCodeOptionsAsyncAwait(opts)
-  );
 }
 
 // Callback interface to executing code.
@@ -113,7 +102,7 @@ export const execute_code: ExecuteCodeFunctionWithCallback = aggregate(
     (async () => {
       try {
         let data = await executeCodeNoAggregate(opts);
-        if (isAsyncExec(opts) && data.type === "async") {
+        if (isExecuteCodeOptionsAsyncGet(opts) && data.type === "async") {
           // stats could contain a lot of data. we only return it if requested.
           if (opts.async_stats !== true) {
             data = { ...data, stats: undefined };
@@ -135,18 +124,13 @@ async function clean_up_tmp(tempDir: string | undefined) {
 
 // actual implementation, without the aggregate wrapper
 async function executeCodeNoAggregate(
-  opts:
-    | ExecuteCodeOptions
-    | ExecuteCodeOptionsAsyncGet
-    | ExecuteCodeOptionsAsyncAwait,
+  opts: ExecuteCodeOptions | ExecuteCodeOptionsAsyncGet,
 ): Promise<ExecuteCodeOutput> {
-  if (isAsyncExec(opts)) {
-    const key = isExecuteCodeOptionsAsyncGet(opts)
-      ? opts.async_get
-      : opts.async_await;
+  if (isExecuteCodeOptionsAsyncGet(opts)) {
+    const key = opts.async_get;
     const cached = asyncCache.get(key);
     if (cached != null) {
-      if (isExecuteCodeOptionsAsyncAwait(opts) && cached.status !== "running") {
+      if (opts.async_await === true && cached.status === "running") {
         return new Promise((done) =>
           updates.once(eventKey(key), (data) => done(data)),
         );
