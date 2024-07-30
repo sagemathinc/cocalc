@@ -15,7 +15,7 @@ import { delay } from "awaiting";
 import { throttle } from "lodash";
 import { EventEmitter } from "node:events";
 
-import { Process, ProjectInfo } from "@cocalc/comm/project-info/types";
+import { Process, ProjectInfo } from "@cocalc/util/types/project-info/types";
 import type { UsageInfo } from "@cocalc/util/types/project-usage-info";
 import { getLogger } from "../logger";
 import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";

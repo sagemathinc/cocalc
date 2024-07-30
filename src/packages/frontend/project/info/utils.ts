@@ -7,7 +7,7 @@ import { basename } from "path";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { project_websocket } from "@cocalc/frontend/frame-editors/generic/client";
-import { Process, Processes, State } from "@cocalc/comm/project-info/types";
+import { Process, Processes, State } from "@cocalc/util/types/project-info/types";
 import {
   ALERT_DISK_FREE,
   ALERT_HIGH_PCT,

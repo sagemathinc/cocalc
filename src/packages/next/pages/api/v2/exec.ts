@@ -2,10 +2,10 @@
 Run code in a project.
 */
 
-import getAccountId from "lib/account/get-account";
-import getParams from "lib/api/get-params";
 import callProject from "@cocalc/server/projects/call";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import getAccountId from "lib/account/get-account";
+import getParams from "lib/api/get-params";
 
 import { apiRoute, apiRouteOperation } from "lib/api";
 import { ExecInputSchema, ExecOutputSchema } from "lib/api/schema/exec";
@@ -40,6 +40,7 @@ async function get(req) {
     env,
     async_call,
     async_get,
+    async_stats,
   } = getParams(req);
 
   if (!(await isCollaborator({ account_id, project_id }))) {
@@ -65,6 +66,7 @@ async function get(req) {
       env,
       async_call,
       async_get,
+      async_stats,
     },
   });
   // event and id don't make sense for http post api

@@ -7,7 +7,7 @@
 Add collaborators to a project
 */
 
-import { Alert, Input, Select } from "antd";
+import { Alert, Button, Card, Input, Select } from "antd";
 import {
   React,
   redux,
@@ -18,7 +18,7 @@ import {
   useTypedRedux,
   useState,
 } from "../app-framework";
-import { Button, ButtonToolbar, Well } from "../antd-bootstrap";
+import { Well } from "../antd-bootstrap";
 import { A, Icon, Loading, ErrorDisplay, Gap } from "../components";
 import { webapp_client } from "../webapp-client";
 import { SITE_NAME } from "@cocalc/util/theme";
@@ -39,6 +39,9 @@ import { alert_message } from "../alerts";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import Sandbox from "./sandbox";
 import track from "@cocalc/frontend/user-tracking";
+import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
+import { applyLicense } from "@cocalc/frontend/project/settings/site-license";
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 
 interface RegisteredUser {
   sort?: string;
@@ -85,6 +88,10 @@ export const AddCollaborators: React.FC<Props> = ({
   where,
   mode = "project",
 }) => {
+  const unlicensedLimit = useTypedRedux(
+    "customize",
+    "unlicensed_project_collaborator_limit",
+  );
   const isFlyout = mode === "flyout";
   const student = useStudentProjectFunctionality(project_id);
   const user_map = useTypedRedux("users", "user_map");
@@ -118,6 +125,13 @@ export const AddCollaborators: React.FC<Props> = ({
   const [email_body_error, set_email_body_error] = useState<string>("");
   const [email_body_editing, set_email_body_editing] = useState<boolean>(false);
   const [invite_result, set_invite_result] = useState<string>("");
+
+  const hasLicense = (project?.get("site_license")?.size ?? 0) > 0;
+  const limitExceeded =
+    !!unlicensedLimit &&
+    !hasLicense &&
+    (project?.get("users").size ?? 1) + selected_entries.length >
+      unlicensedLimit;
 
   const isMountedRef = useIsMountedRef();
 
@@ -454,9 +468,7 @@ export const AddCollaborators: React.FC<Props> = ({
           />
           <div
             style={{
-              border: "1px solid lightgrey",
-              padding: "10px",
-              borderRadius: "5px",
+              padding: "20px 0",
               backgroundColor: "white",
               marginBottom: "15px",
             }}
@@ -464,14 +476,7 @@ export const AddCollaborators: React.FC<Props> = ({
             {render_email_body_error()}
             {render_email_textarea()}
           </div>
-          <ButtonToolbar>
-            <Button
-              bsStyle="primary"
-              onClick={send_email_invite}
-              disabled={!!email_body_editing}
-            >
-              Send Invitation
-            </Button>
+          <div style={{ display: "flex" }}>
             <Button
               onClick={() => {
                 set_email_to("");
@@ -481,7 +486,15 @@ export const AddCollaborators: React.FC<Props> = ({
             >
               Cancel
             </Button>
-          </ButtonToolbar>
+            <Gap />
+            <Button
+              type="primary"
+              onClick={send_email_invite}
+              disabled={!!email_body_editing}
+            >
+              Send Invitation
+            </Button>
+          </div>
         </Well>
       </div>
     );
@@ -640,14 +653,14 @@ export const AddCollaborators: React.FC<Props> = ({
         disabled = false;
       }
     }
-    if (email_body_error) {
+    if (email_body_error || limitExceeded) {
       disabled = true;
     }
     return (
-      <div>
+      <div style={{ display: "flex" }}>
         <Button onClick={reset}>Cancel</Button>
         <Gap />
-        <Button disabled={disabled} onClick={add_selected} bsStyle="primary">
+        <Button disabled={disabled} onClick={add_selected} type="primary">
           <Icon name="user-plus" /> {label}
         </Button>
       </div>
@@ -678,6 +691,30 @@ export const AddCollaborators: React.FC<Props> = ({
     <div
       style={isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined}
     >
+      {limitExceeded && (
+        <Card
+          size="small"
+          title={
+            <h4>
+              <div style={{ float: "right" }}>
+                <BuyLicenseForProject project_id={project_id} />
+              </div>
+              <Icon name="key" /> Select License
+            </h4>
+          }
+          style={{ margin: "10px 0" }}
+        >
+          <SiteLicenseInput
+            requireValid
+            confirmLabel={"Add this license"}
+            onChange={(license_id) => {
+              applyLicense({ project_id, license_id });
+            }}
+            requireLicense
+            requireMessage={`A license is required to have more than ${unlicensedLimit} collaborators on this project.`}
+          />
+        </Card>
+      )}
       {err && <ErrorDisplay error={err} onClose={() => set_err("")} />}
       {state == "searching" && <Loading />}
       {render_search()}
