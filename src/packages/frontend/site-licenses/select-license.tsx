@@ -216,9 +216,9 @@ export default function SelectLicense(props: Props) {
             style={{ marginTop: "10px" }}
             type="info"
             showIcon
-            message={
+            message={"A license is required."}
+            description={
               <div>
-                A license is required.
                 {showCall ? (
                   <CallToSupport onClose={() => setShowCall(false)} />
                 ) : (
