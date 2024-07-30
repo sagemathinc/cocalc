@@ -2094,16 +2094,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     ); // case to bool
   };
 
-  public insert_image(id: string): void {
-    if (this.check_edit_protection(id, "inserting an image")) {
-      return;
-    }
-    if (this.store.get_cell_type(id) != "markdown") {
-      throw Error("must be a markdown cell -- id " + id);
-    }
-    this.setState({ insert_image: id }); // causes a modal dialog to appear.
-  }
-
   scroll(pos): any {
     this.deprecated("scroll", pos);
   }
