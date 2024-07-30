@@ -159,7 +159,7 @@ export default function SideChat({ project_id, path, style }: Props) {
                 type="primary"
               >
                 <Icon name="paper-plane" />
-                Send Message (shift+enter)
+                Send
               </Button>
             </Tooltip>
             {/*

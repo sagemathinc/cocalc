@@ -25,9 +25,17 @@ export default async function init() {
     try {
       running = true;
       log.debug("Doing a salesloft MONEY update...");
-      await updateMoney("1 day");
+      try {
+        await updateMoney("1 day");
+      } catch (err) {
+        log.debug("WARNING -- issue doing updateMoney", err);
+      }
       log.debug("Doing a salesloft sync update...");
-      await update();
+      try {
+        await update();
+      } catch (err) {
+        log.debug("WARNING -- issue doing update", err);
+      }
     } catch (err) {
       log.debug("WARNING: Error doing salesloft update", err);
     } finally {

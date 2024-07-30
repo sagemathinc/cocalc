@@ -322,6 +322,10 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
     this.set_account_table({ other_settings: { [name]: value } });
   }
 
+  set_editor_settings = (name: string, value) => {
+    this.set_account_table({ editor_settings: { [name]: value } });
+  };
+
   public set_show_purchase_form(show: boolean) {
     // this controlls the default state of the "buy a license" purchase form in account → licenses
     // by default, it's not showing up

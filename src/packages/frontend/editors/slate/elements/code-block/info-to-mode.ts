@@ -5,13 +5,17 @@ import detectLanguage from "@cocalc/frontend/misc/detect-language";
 // when preferKernel is true return the actual kernel name or language.
 export default function infoToMode(
   info: string | undefined | null,
-  options: { value?: string; preferKernel?: boolean } = {}
+  options: { value?: string; preferKernel?: boolean } = {},
 ): string {
   const { value, preferKernel } = options;
   info = info?.trim().toLowerCase();
   if (!info) {
     if (!value) return ""; // no info
     info = detectLanguage(value);
+  }
+
+  if (info == "mermaid") {
+    return "md";
   }
 
   // Format that seems to work well with github (unlike python-markdown and rmarkdown!), and we

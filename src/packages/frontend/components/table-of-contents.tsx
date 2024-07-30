@@ -9,7 +9,7 @@ import { CSS, React, TypedMap } from "../app-framework";
 import { Markdown } from "./markdown";
 
 export interface TableOfContentsEntry {
-  id: string; // id that is unique across the table of contents
+  id: string; // id that is jumped to when entry is clicked -- must be unique across the table of contents
   value: string; // contents of the heading -- a 1-line string formatted using markdown (will be rendered using markdown)
   level?: 1 | 2 | 3 | 4 | 5 | 6; // optional heading size/level
   icon?: IconName; // default "minus" (a dash)
@@ -31,7 +31,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
     function renderHeader(
       level: 1 | 2 | 3 | 4 | 5 | 6,
       value: string,
-      icon: IconName | undefined
+      icon: IconName | undefined,
     ): JSX.Element {
       if (level < 1) level = 1;
       if (level > 6) level = 6;
@@ -114,5 +114,5 @@ export const TableOfContents: React.FC<Props> = React.memo(
         {entries}
       </div>
     );
-  }
+  },
 );

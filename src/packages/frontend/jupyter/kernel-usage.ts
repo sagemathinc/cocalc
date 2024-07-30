@@ -12,6 +12,8 @@ import { Usage, BackendState } from "@cocalc/jupyter/types";
 import { Map as immutableMap } from "immutable";
 import { compute_usage } from "./usage";
 
+const USAGE_TIMER_UPDATE_MS = 750;
+
 export default function useKernelUsage(name: string): {
   usage: Usage;
   expected_cell_runtime: number;
@@ -34,7 +36,7 @@ export default function useKernelUsage(name: string): {
   const cell_timings = useMemo(() => calc_cell_timings(cells), [cells]);
   const expected_cell_runtime = useMemo(
     () => calc_quantile(cell_timings),
-    [cell_timings]
+    [cell_timings],
   );
 
   // state of UI, derived from usage, timing stats, etc.
@@ -60,7 +62,7 @@ export default function useKernelUsage(name: string): {
         } else {
           set_cpu_runtime(0);
         }
-      }, 100);
+      }, USAGE_TIMER_UPDATE_MS);
     } else if (timer1.current != null) {
       set_cpu_runtime(0);
       clearInterval(timer1.current);
@@ -80,7 +82,7 @@ export default function useKernelUsage(name: string): {
         cpu_runtime,
         expected_cell_runtime,
       }),
-    [kernel_usage, backend_state, cpu_runtime, expected_cell_runtime]
+    [kernel_usage, backend_state, cpu_runtime, expected_cell_runtime],
   );
 
   return { usage, expected_cell_runtime };

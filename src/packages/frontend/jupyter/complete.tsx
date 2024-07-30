@@ -5,7 +5,8 @@
 
 declare const $: any;
 
-import { CSSProperties, useEffect, useRef } from "react";
+import { Tag, Tooltip } from "antd";
+import { CSSProperties, useEffect, useMemo, useRef } from "react";
 import { Map } from "immutable";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 
@@ -14,7 +15,7 @@ export interface Actions {
   select_complete: (
     id: string,
     item: string,
-    complete?: Map<string, any>
+    complete?: Map<string, any>,
   ) => void;
   complete_handle_key: (_: string, keyCode: number) => void;
   clear_complete: () => void;
@@ -44,6 +45,25 @@ export function Complete({ actions, id, complete }: Props) {
       frameActions.current?.set_mode("edit");
     };
   }, []);
+  const typeInfo = useMemo(() => {
+    const types = complete?.getIn(["metadata", "_jupyter_types_experimental"]);
+    if (types == null) {
+      return {};
+    }
+    const typeInfo: { [text: string]: { type: string; signature: string } } =
+      {};
+    // @ts-ignore
+    for (const info of types) {
+      const text = info.get("text");
+      if (typeInfo[text] == null) {
+        typeInfo[text] = {
+          type: info.get("type"),
+          signature: info.get("signature"),
+        };
+      }
+    }
+    return typeInfo;
+  }, [complete]);
 
   function select(item: string): void {
     // Save contents of editor to the store so that completion properly *places* the
@@ -57,8 +77,31 @@ export function Complete({ actions, id, complete }: Props) {
   function renderItem(item: string) {
     return (
       <li key={item}>
-        <a role="menuitem" tabIndex={-1} onClick={() => select(item)}>
+        <a
+          role="menuitem"
+          style={{ display: "flex", fontSize: "13px" }}
+          tabIndex={-1}
+          onClick={() => select(item)}
+        >
           {item}
+          {typeInfo[item]?.type ? (
+            <Tooltip title={`${item}${typeInfo[item].signature}`}>
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    float: "right",
+                    marginLeft: "30px",
+                    color: "#0000008a",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  <Tag color={typeToColor[typeInfo[item].type]}>
+                    {typeInfo[item].type}
+                  </Tag>
+                </div>
+              </div>
+            </Tooltip>
+          ) : null}
         </a>
       </li>
     );
@@ -104,3 +147,16 @@ export function Complete({ actions, id, complete }: Props) {
     </div>
   );
 }
+
+const typeToColor = {
+  function: "blue",
+  statement: "green",
+  module: "cyan",
+  class: "orange",
+  instance: "magenta",
+  "<unknown>": "red",
+  path: "gold",
+  keyword: "purple",
+  magic: "geekblue",
+  param: "volcano",
+};

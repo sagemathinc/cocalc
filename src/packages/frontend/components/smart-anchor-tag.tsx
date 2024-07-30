@@ -110,7 +110,7 @@ function CoCalcURL({ href, title, children, project_id }) {
           project_id,
           decodeURI(target),
           !((e as any)?.which === 2 || e?.ctrlKey || e?.metaKey),
-          fragmentId
+          fragmentId,
         );
       } catch (err) {
         // loadTarget could fail, e.g., if the project_id is mangled.
@@ -358,7 +358,7 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
           target = join(
             "files",
             path ? path_split(path).head : "",
-            decodeURI(hrefPlain)
+            decodeURI(hrefPlain),
           );
         }
         loadTarget(
@@ -366,7 +366,7 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
           project_id,
           target,
           !((e as any).which === 2 || e.ctrlKey || e.metaKey),
-          fragmentId
+          fragmentId,
         );
       }}
       title={title}
@@ -381,7 +381,7 @@ function loadTarget(
   project_id: string,
   target: string,
   switchTo: boolean,
-  fragmentId?: FragmentId
+  fragmentId?: FragmentId,
 ): void {
   if (!is_valid_uuid_string(project_id)) {
     throw Error(`invalid project id ${project_id}`);

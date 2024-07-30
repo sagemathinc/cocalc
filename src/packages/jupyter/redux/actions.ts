@@ -1702,7 +1702,18 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     }
     // For some reason, sometimes complete.matches are not unique, which is annoying/confusing,
     // and breaks an assumption in our react code too.
-    complete.matches = Array.from(new Set(complete.matches)).sort();
+    // I think the reason is e.g., a filename and a variable could be the same.   We're not
+    // worrying about that now.
+    complete.matches = Array.from(new Set(complete.matches));
+    // sort in a way that matches how JupyterLab sorts completions, which
+    // is case insensitive with % magics at the bottom
+    complete.matches.sort((x, y) => {
+      const c = misc.cmp(getCompletionGroup(x), getCompletionGroup(y));
+      if (c) {
+        return c;
+      }
+      return misc.cmp(x.toLowerCase(), y.toLowerCase());
+    });
     const i_complete = immutable.fromJS(complete);
     if (complete.matches && complete.matches.length === 1 && id != null) {
       // special case -- a unique completion and we know id of cell in which completing is given.
@@ -2741,4 +2752,15 @@ function bounded_integer(n: any, min: any, max: any, def: any) {
     return max;
   }
   return n;
+}
+
+function getCompletionGroup(x: string): number {
+  switch (x[0]) {
+    case "_":
+      return 1;
+    case "%":
+      return 2;
+    default:
+      return 0;
+  }
 }

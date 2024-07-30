@@ -4,8 +4,7 @@
  */
 
 import { Button, Input, Modal, Space } from "antd";
-import { useState } from "react";
-
+import { useEffect, useRef, useState } from "react";
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -24,7 +23,7 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
-import { FileUpload } from "@cocalc/frontend/file-upload";
+import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
@@ -41,6 +40,25 @@ interface Props {
 }
 
 export default function NewFilePage(props: Props) {
+  const [createFolderModal, setCreateFolderModal] = useState<boolean>(false);
+  const createFolderModalRef = useRef<any>(null);
+  useEffect(() => {
+    setTimeout(() => {
+      if (createFolderModal && createFolderModalRef.current) {
+        createFolderModalRef.current.focus();
+        createFolderModalRef.current.select();
+      }
+    }, 1);
+  }, [createFolderModal]);
+  const inputRef = useRef<any>(null);
+  useEffect(() => {
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        inputRef.current.select();
+      }
+    }, 1);
+  }, []);
   const { project_id } = props;
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const actions = useActions({ project_id });
@@ -51,6 +69,7 @@ export default function NewFilePage(props: Props) {
   const [filename, setFilename] = useState<string>(
     filename0 ? filename0 : default_filename(undefined, project_id),
   );
+  const [filenameChanged, setFilenameChanged] = useState<boolean>(false);
   const file_creation_error = useTypedRedux(
     { project_id },
     "file_creation_error",
@@ -265,7 +284,52 @@ export default function NewFilePage(props: Props) {
     <SettingBox
       show_header
       icon={"plus-circle"}
-      title={<>Create or Upload New File or Folder</>}
+      title={
+        <>
+          Create or{" "}
+          <UploadLink
+            project_id={project_id}
+            path={current_path}
+            onUpload={() => getActions().fetch_directory_listing()}
+          />{" "}
+          New File or{" "}
+          <a
+            onClick={() => {
+              setCreateFolderModal(true);
+            }}
+          >
+            Folder
+          </a>
+          <Modal
+            open={createFolderModal}
+            title={"Create New Folder"}
+            onCancel={() => setCreateFolderModal(false)}
+            onOk={() => {
+              setCreateFolderModal(false);
+              if (filename) {
+                createFolder();
+              }
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <Input
+                ref={createFolderModalRef}
+                style={{ margin: "15px 0" }}
+                autoFocus
+                size="large"
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                onPressEnter={() => {
+                  setCreateFolderModal(false);
+                  if (filename) {
+                    createFolder();
+                  }
+                }}
+              />
+            </div>
+          </Modal>
+        </>
+      }
       subtitle={
         <div>
           <PathNavigator
@@ -320,6 +384,7 @@ export default function NewFilePage(props: Props) {
             >
               <Input
                 size="large"
+                ref={inputRef}
                 autoFocus
                 value={filename}
                 disabled={extensionWarning}
@@ -327,6 +392,7 @@ export default function NewFilePage(props: Props) {
                   "Name your file, folder, or a URL to download from..."
                 }
                 onChange={(e) => {
+                  setFilenameChanged(true);
                   if (extensionWarning) {
                     setExtensionWarning(false);
                   } else {
@@ -365,6 +431,7 @@ export default function NewFilePage(props: Props) {
             projectActions={actions}
             availableFeatures={availableFeatures}
             filename={filename}
+            filenameChanged={filenameChanged}
           >
             <Tip
               title={"Download files from the Internet"}

@@ -736,17 +736,17 @@ export const LLM_DESCR: LLM2String = {
   chatgpt4:
     "Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
   "gpt-4":
-    "Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
+    "Most powerful OpenAI model. Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
   "gpt-4-32k": "",
   "gpt-3.5-turbo": "Fast, great for everyday tasks. (OpenAI, 4k token context)",
   "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
   "gpt-4-turbo-preview-8k":
     "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
   "gpt-4-turbo-preview":
-    "Like GPT-4 Turob 8k, but with up to 128k token context",
+    "Like GPT-4 Turbo 8k, but with up to 128k token context",
   "gpt-4-turbo-8k":
-    "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
-  "gpt-4-turbo": "Like GPT-4 Turob 8k, but with up to 128k token context",
+    "Faster, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
+  "gpt-4-turbo": "Like GPT-4 Turbo 8k, but with up to 128k token context",
   "gpt-4o-8k":
     "Most powerful, fastest, and cheapest (OpenAI, 8k token context)",
   "gpt-4o": "Most powerful fastest, and cheapest (OpenAI, 128k token context)",

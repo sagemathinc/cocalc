@@ -406,6 +406,7 @@ export function NewFlyout({
           create_file={handleOnClick}
           availableFeatures={availableFeatures}
           filename={filename}
+          filenameChanged={manual}
           makeNewFilename={(ext: string) => setFilename(getNewFilename(ext))}
         />
         <Tag color={COLORS.ANTD_ORANGE}>Additional types</Tag>
