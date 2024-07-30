@@ -9,7 +9,6 @@ import { useEffect, useMemo, useRef } from "react";
 import { Dropzone, BlobUpload } from "@cocalc/frontend/file-upload";
 import { getFocus } from "./format/commands";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { BASE_URL } from "@cocalc/frontend/misc";
 
 export default function useUpload(
   editor: SlateEditor,
@@ -59,23 +58,28 @@ export default function useUpload(
   // depends on in a ref and only create it once.
   const updloadEventHandlers = useMemo(() => {
     return {
+      error: (_, message) => {
+        actions.set_error(`${message}`);
+      },
       sending: ({ name }) => {
         actionsRef.current?.set_status?.(`Uploading ${name}...`);
       },
       complete: (file) => {
         actionsRef.current?.set_status?.("");
-        const { uuid } = JSON.parse(file.xhr.responseText);
-        const url = `${BASE_URL}/blobs/${encodeURIComponent(
-          file.upload.filename,
-        )}?uuid=${uuid}`;
+        const { url } = file;
+        if (!url) {
+          // probably an error
+          return;
+        }
         let node;
-        if (!file.type.includes("image")) {
+        const { dataURL, height, upload } = file;
+        if (!height && !dataURL?.startsWith("data:image")) {
           node = {
             type: "link",
             isInline: true,
-            children: [{ text: file.name }],
+            children: [{ text: upload.filename ? upload.filename : "file" }],
             url,
-          };
+          } as const;
         } else {
           node = {
             type: "image",
@@ -83,9 +87,9 @@ export default function useUpload(
             isVoid: true,
             src: url,
             children: [{ text: "" }],
-          };
+          } as const;
         }
-        Transforms.insertFragment(editor, [node as any], {
+        Transforms.insertFragment(editor, [node], {
           at: getFocus(editor),
         });
       },

@@ -26,6 +26,8 @@ import { join } from "path";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { Button } from "antd";
+import { BASE_URL } from "@cocalc/frontend/misc";
+import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 
 // 3GB upload limit --  since that's the default filesystem quota
 // and it should be plenty?
@@ -309,7 +311,9 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       props.on_close();
     }
     if (remove_all && dropzone.current != null) {
-      dropzone.current.removeAllFiles();
+      try {
+        dropzone.current.removeAllFiles();
+      } catch (_) {}
     }
     set_files([]);
   }
@@ -534,8 +538,29 @@ export function BlobUpload(props) {
   return (
     <FileUploadWrapper
       {...props}
+      event_handlers={{
+        ...props.event_handlers,
+        sending: props.event_handlers?.sending,
+        removedfile: props.event_handlers?.removedfile,
+        complete: (file) => {
+          if (file.xhr?.responseText) {
+            const { uuid } = JSON.parse(file.xhr.responseText);
+            const url = `${BASE_URL}/blobs/${encodeURIComponent(
+              file.upload.filename,
+            )}?uuid=${uuid}`;
+            props.event_handlers?.complete({ ...file, uuid, url });
+          } else {
+            // e.g., if there was an error
+            props.event_handlers?.complete(file);
+          }
+        },
+      }}
       dest_path={""}
-      config={{ url, ...props.config }}
+      config={{
+        url,
+        maxFilesize: MAX_BLOB_SIZE / (1000 * 1000),
+        ...props.config,
+      }}
     />
   );
 }
