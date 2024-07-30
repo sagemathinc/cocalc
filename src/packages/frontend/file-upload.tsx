@@ -35,6 +35,14 @@ const CHUNK_SIZE_MB = 8;
 
 const TIMEOUT_S = 100;
 
+const CLOSE_BUTTON_STYLE = {
+  position: "absolute",
+  right: 0,
+  zIndex: 1, // so it floats above text/markdown buttons
+  background: "white",
+  cursor: "pointer",
+} as const;
+
 /*
 CHUNK_SIZE_MB being set properly is critical for cloudflare to work --
 we want this to be as big as possible, but MUST be smaller than
@@ -123,7 +131,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
 
   function render_close_button() {
     return (
-      <div className="close-button pull-right">
+      <div className="close-button" style={CLOSE_BUTTON_STYLE}>
         <span
           onClick={props.close_button_onclick}
           className="close-button-x"
@@ -311,7 +319,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
 
     return (
       <div style={style}>
-        <div className="close-button pull-right">
+        <div className="close-button" style={CLOSE_BUTTON_STYLE}>
           <span
             onClick={() => {
               close_preview();

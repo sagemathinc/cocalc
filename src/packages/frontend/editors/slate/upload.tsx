@@ -20,7 +20,7 @@ function uploadTarget(path: string, file: { name: string }): string {
 
 export default function useUpload(
   editor: SlateEditor,
-  body: JSX.Element
+  body: JSX.Element,
 ): JSX.Element {
   const dropzoneRef = useRef<Dropzone>(null);
   const { actions, project_id, path } = useFrameContext();
@@ -50,7 +50,7 @@ export default function useUpload(
           if (file != null) {
             const blob = file.slice(0, -1, item.type);
             dropzoneRef?.current?.addFile(
-              new File([blob], `paste-${Math.random()}`, { type: item.type })
+              new File([blob], `paste-${Math.random()}`, { type: item.type }),
             );
           }
           return; // what if more than one ?
@@ -95,8 +95,6 @@ export default function useUpload(
     };
   }, []);
 
-  // Note: using show_upload={false} since showing the upload right in the
-  // wysiwyg editor is really disconcerting.
   return (
     <FileUploadWrapper
       className="smc-vfill"
