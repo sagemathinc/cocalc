@@ -829,6 +829,8 @@ message({
   start: undefined,
   status: undefined,
   elapsed_s: undefined,
+  pid: undefined,
+  stats: undefined,
 });
 
 //#####################################################################

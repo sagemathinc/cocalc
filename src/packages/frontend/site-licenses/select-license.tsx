@@ -14,7 +14,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 import { days_ago as daysAgo, isValidUUID, len } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { CallToSupport } from "@cocalc/frontend/project/trial-banner";
+import { CallToSupport } from "@cocalc/frontend/project/call-to-support";
 
 const { Option } = Select;
 
@@ -37,6 +37,7 @@ interface Props {
   extraButtons?: ReactNode;
   requireValid?: boolean;
   requireLicense?: boolean;
+  requireMessage?: ReactNode;
 }
 
 export default function SelectLicense(props: Props) {
@@ -53,6 +54,7 @@ export default function SelectLicense(props: Props) {
     extraButtons,
     requireValid,
     requireLicense,
+    requireMessage = "A license is required.",
   } = props;
   const isBlurredRef = useRef<boolean>(true);
   const [licenseId, setLicenseId] = useState<string>(defaultLicenseId ?? "");
@@ -214,11 +216,11 @@ export default function SelectLicense(props: Props) {
         {requireLicense && !licenseId ? (
           <Alert
             style={{ marginTop: "10px" }}
-            type="info"
+            type="warning"
             showIcon
-            message={
+            message={requireMessage}
+            description={
               <div>
-                A license is required.
                 {showCall ? (
                   <CallToSupport onClose={() => setShowCall(false)} />
                 ) : (

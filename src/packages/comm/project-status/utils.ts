@@ -3,7 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type { CGroup, DiskUsageInfo } from "@cocalc/comm/project-info/types";
+import type {
+  CGroup,
+  DiskUsageInfo,
+} from "@cocalc/util/types/project-info/types";
 
 // DiskUsage for /tmp !
 export function cgroup_stats(cg: CGroup, du?: DiskUsageInfo) {

@@ -39,7 +39,7 @@ import track from "@cocalc/frontend/user-tracking";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
-const CARD_STYLE: CSS = { marginTop: "10px", marginBottom: "10px" } as const;
+const CARD_STYLE: CSS = { margin: "10px 0" } as const;
 
 interface Props {
   start_in_edit_mode?: boolean;
@@ -285,12 +285,12 @@ export const NewProjectCreator: React.FC<Props> = ({
       <Card
         size="small"
         title={
-          <>
+          <h4>
             <div style={{ float: "right" }}>
               <BuyLicenseForProject />
             </div>
             <Icon name="key" /> Select License
-          </>
+          </h4>
         }
         style={CARD_STYLE}
       >
@@ -299,6 +299,7 @@ export const NewProjectCreator: React.FC<Props> = ({
           confirmLabel={"Add this license"}
           onChange={addSiteLicense}
           requireLicense
+          requireMessage={`A license is required to create additional projects.`}
         />
       </Card>
     );
