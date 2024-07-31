@@ -162,18 +162,6 @@ export default function SideChat({ project_id, path, style }: Props) {
                 Send
               </Button>
             </Tooltip>
-            {/*
-            This seems hard to implement with our current  model and
-            below doesn't work
-            <Button
-              style={{ marginLeft: "5px" }}
-              onClick={() => {
-                actions.delete_draft(0);
-                actions.set_input('');
-              }}
-            >
-              Cancel
-            </Button> */}
             <LLMCostEstimationChat
               compact
               llm_cost={llm_cost_room}

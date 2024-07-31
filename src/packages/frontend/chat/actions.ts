@@ -355,8 +355,9 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   // Used to edit sent messages.
-  // TODO: this is **Extremely** shockingly inefficient; it assumes
-  //       the number of edits is small.
+  // NOTE: this is inefficient; it assumes
+  //       the number of edits is small, which is reasonable -- nobody makes hundreds of distinct
+  //       edits of a single message.
   public send_edit(message: ChatMessageTyped, content: string): void {
     if (this.syncdb == null) {
       // WARNING: give an error or try again later?
@@ -432,13 +433,24 @@ export class ChatActions extends Actions<ChatState> {
       this.store?.get("messages") ?? (fromJS({}) as ChatMessages),
     );
     const time = reply_to?.valueOf() ?? 0;
-    this.delete_draft(-time);
-    return this.send_chat({
+    const time_stamp_str = this.send_chat({
       input: reply,
       sender_id: from ?? this.redux.getStore("account").get_account_id(),
       reply_to,
       noNotification,
     });
+    this.delete_draft(-time);
+    // it's conceivable that for some clients they recreate the draft
+    // message right as the editor for that message is being removed.
+    // Thus we do an extra delete a moment after send (after successfully
+    // sending the message) to be sure the draft is really gone.
+    // See https://github.com/sagemathinc/cocalc/issues/7662
+    // and note that I'm not able to reproduce this, so it might not
+    // be the right solution.
+    setTimeout(() => {
+      this.delete_draft(-time);
+    }, 500);
+    return time_stamp_str;
   }
 
   // negative date is used for replies.
@@ -451,11 +463,13 @@ export class ChatActions extends Actions<ChatState> {
     sender_id = sender_id ?? this.redux.getStore("account").get_account_id();
     // date should always be negative for drafts (stupid, but that's the code),
     // so I'm just deleting both for now.
-    this.syncdb.delete({
-      event: "draft",
-      sender_id,
-      date,
-    });
+    if (date) {
+      this.syncdb.delete({
+        event: "draft",
+        sender_id,
+        date,
+      });
+    }
     this.syncdb.delete({
       event: "draft",
       sender_id,
