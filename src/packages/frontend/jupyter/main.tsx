@@ -37,7 +37,6 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
 import { FindAndReplace } from "./find-and-replace";
-import { InsertImage } from "./insert-image";
 import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
 import KernelWarning from "./kernel-warning";
@@ -169,8 +168,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
   const path: undefined | string = useRedux([name, "path"]);
   const cell_toolbar: undefined | string = useRedux([name, "cell_toolbar"]);
-  // show insert image dialog
-  const insert_image: undefined | string = useRedux([name, "insert_image"]);
   const edit_attachments: undefined | string = useRedux([
     name,
     "edit_attachments",
@@ -336,19 +333,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_insert_image() {
-    if (insert_image == null || project_id == null) {
-      return;
-    }
-    return (
-      <InsertImage
-        actions={actions}
-        project_id={project_id}
-        insert_image={insert_image}
-      />
-    );
-  }
-
   function render_edit_attachments() {
     if (edit_attachments == null || cells == null) {
       return;
@@ -427,7 +411,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       <>
         {render_about()}
         {render_nbconvert()}
-        {render_insert_image()}
         {render_edit_attachments()}
         {render_edit_cell_metadata()}
         {render_find_and_replace()}

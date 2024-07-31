@@ -7,13 +7,8 @@
 Markdown editor
 */
 
-// Note -- the old file upload used .chat-images for everything,
-// rather than a directory for each file.
-const AUX_FILE_EXT = "upload";
-
 import * as CodeMirror from "codemirror";
 import { debounce, isEqual } from "lodash";
-import { join } from "path";
 import {
   CSSProperties,
   MutableRefObject,
@@ -25,7 +20,6 @@ import {
   useRef,
   useState,
 } from "react";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   ReactDOM,
@@ -36,21 +30,16 @@ import {
 import { SubmitMentionsRef } from "@cocalc/frontend/chat/types";
 import { A } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { Dropzone, FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { Dropzone, BlobUpload } from "@cocalc/frontend/file-upload";
 import { Cursors, CursorsType } from "@cocalc/frontend/jupyter/cursors";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { useProjectHasInternetAccess } from "@cocalc/frontend/project/settings/has-internet-access-hook";
-import {
-  aux_file,
-  len,
-  path_split,
-  trunc,
-  trunc_middle,
-} from "@cocalc/util/misc";
+import { len, trunc, trunc_middle } from "@cocalc/util/misc";
 import { Complete, Item } from "./complete";
 import { useMentionableUsers } from "./mentionable-users";
 import { submit_mentions } from "./mentions";
 import { EditorFunctions } from "./multimode";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
 
@@ -162,6 +151,7 @@ export function MarkdownInput(props: Props) {
     unregisterEditor,
     value,
   } = props;
+  const { actions } = useFrameContext();
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const editor_settings = useRedux(["account", "editor_settings"]);
@@ -579,7 +569,7 @@ export function MarkdownInput(props: Props) {
     }
     if (cm.current == null) return;
     const input = cm.current.getValue();
-    const s = upload_temp_link(path, file);
+    const s = upload_temp_link(file);
     if (input.indexOf(s) != -1) {
       // already have link.
       return;
@@ -588,11 +578,7 @@ export function MarkdownInput(props: Props) {
     saveValue();
   }
 
-  function upload_complete(file: {
-    type: string;
-    name: string;
-    status: string;
-  }): void {
+  function upload_complete(file): void {
     if (path == null) {
       throw Error("path must be set if enableUploads is set.");
     }
@@ -608,7 +594,7 @@ export function MarkdownInput(props: Props) {
     }
     if (cm.current == null) return;
     const input = cm.current.getValue();
-    const s0 = upload_temp_link(path, file);
+    const s0 = upload_temp_link(file);
     let s1: string;
     if (file.status == "error") {
       s1 = "";
@@ -617,41 +603,11 @@ export function MarkdownInput(props: Props) {
       // users can cancel files when they are being uploaded.
       s1 = "";
     } else {
-      s1 = upload_link(path, file);
+      s1 = upload_link(file);
     }
     const newValue = input.replace(s0, s1);
     setValueNoJump(newValue);
     saveValue();
-  }
-
-  function upload_removed(file: { name: string; type: string }): void {
-    if (cm.current == null) return;
-    if (project_id == null || path == null) {
-      throw Error("project_id and path must be set if enableUploads is set.");
-    }
-    if (!current_uploads_ref.current?.[file.name]) {
-      // it actually succeeded if this is not set -- it was removed
-      // via upload_complete above.
-      return;
-    }
-    delete current_uploads_ref.current[file.name];
-    if (onUploadEnd != null) {
-      onUploadEnd();
-    }
-
-    const input = cm.current.getValue();
-    const s = upload_link(path, file);
-    if (input.indexOf(s) == -1) {
-      // not there anymore; maybe user already submitted -- do nothing further.
-      return;
-    }
-    const newValue = input.replace(s, "");
-    setValueNoJump(newValue);
-    saveValue();
-    // delete from project itself
-    const target = join(aux_file(path, AUX_FILE_EXT), file.name);
-    // console.log("deleting target", target, { paths: [target] });
-    redux.getProjectActions(project_id).delete_files({ paths: [target] });
   }
 
   function handle_paste_event(_, e): void {
@@ -926,49 +882,45 @@ export function MarkdownInput(props: Props) {
     const event_handlers = {
       complete: upload_complete,
       sending: upload_sending,
-      removedfile: upload_removed,
+      error: (_, message) => {
+        actions?.set_error(`${message}`);
+      },
     };
     if (project_id == null || path == null) {
       throw Error("project_id and path must be set if enableUploads is set.");
     }
     body = (
-      <FileUploadWrapper
+      <BlobUpload
+        show_upload={false}
         project_id={project_id}
-        dest_path={aux_file(path, AUX_FILE_EXT)}
         event_handlers={event_handlers}
         style={{ height: "100%", width: "100%" }}
         dropzone_ref={dropzone_ref}
         close_preview_ref={upload_close_preview_ref}
+        config={
+          // only images work since when pasting other doc types
+          // things blow up (due to conflict with codemirror?)
+          { acceptedFiles: "image/*" }
+        }
       >
         {body}
-      </FileUploadWrapper>
+      </BlobUpload>
     );
   }
 
   return body;
 }
 
-function upload_target(path: string, file: { name: string }): string {
-  // path to our upload target, but relative to path.
-  return join(path_split(aux_file(path, AUX_FILE_EXT)).tail, file.name);
+function upload_temp_link(file): string {
+  return `[Uploading...]\(${file.name ?? file.upload?.filename ?? ""}\)`;
 }
 
-function upload_temp_link(path: string, file: { name: string }): string {
-  return `[Uploading...]\(${upload_target(path, file)}\)`;
-}
-
-function upload_link(
-  path: string,
-  file: { name: string; type: string },
-): string {
-  const target = upload_target(path, file);
-  if (file.type.indexOf("image") !== -1) {
-    return `<img src=\"${target}\" style="max-width:100%" />`;
+function upload_link(file): string {
+  const { url, dataURL, height, upload } = file;
+  if (!height && !dataURL?.startsWith("data:image")) {
+    return `[${upload.filename ? upload.filename : "file"}](${url})`;
   } else {
-    // We use an a tag instead of [${file.name}](${target}) because for
-    // some files (e.g,. word doc files) our markdown renderer inexplicably
-    // does NOT render them as links!?  a tags work though.
-    return `<a href=\"${target}\">${file.name}</a>`;
+    return `![](${url})`;
   }
 }
 

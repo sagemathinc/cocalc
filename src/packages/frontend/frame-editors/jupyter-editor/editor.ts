@@ -320,7 +320,6 @@ const JUPYTER_MENUS = {
         children: ["format cells", "format all cells"],
       },
     ],
-    "insert-image": ["insert image"],
   },
   view: {
     label: "View",

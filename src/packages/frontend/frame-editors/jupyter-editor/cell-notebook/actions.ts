@@ -984,15 +984,6 @@ export class NotebookFrameActions {
     }
   }
 
-  public insert_image(): void {
-    const cur_id = this.store.get("cur_id");
-    if (this.jupyter_actions.store.get_cell_type(cur_id) === "markdown") {
-      this.jupyter_actions.insert_image(cur_id); // causes a modal dialog to appear.
-    } else {
-      throw Error(`insert_image -- cell must be a markdown cell`);
-    }
-  }
-
   public toggle_selected_outputs(property: "collapsed" | "scrolled"): void {
     this.jupyter_actions.toggle_outputs(
       this.store.get_selected_cell_ids_list(),
