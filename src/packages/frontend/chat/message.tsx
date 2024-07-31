@@ -5,8 +5,7 @@
 
 import { Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { Map } from "immutable";
-import { CSSProperties, useLayoutEffect } from "react";
-
+import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -187,10 +186,14 @@ export default function Message(props: Readonly<Props>) {
   const submitMentionsRef = useRef<SubmitMentionsFn>();
 
   const [replying, setReplying] = useState<boolean>(() => {
+    if (!props.allowReply) {
+      return false;
+    }
+    const replyDate = -(props.actions?.store?.getThreadRootDate(date) ?? 0);
     const draft = props.actions?.syncdb?.get_one({
       event: "draft",
       sender_id: props.account_id,
-      date: -date,
+      date: replyDate,
     });
     if (draft == null) {
       return false;
@@ -202,6 +205,12 @@ export default function Message(props: Readonly<Props>) {
     }
     return true;
   });
+  useEffect(() => {
+    if (!props.allowReply) {
+      setReplying(false);
+    }
+  }, [props.allowReply]);
+
   const [autoFocusReply, setAutoFocusReply] = useState<boolean>(false);
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
 
@@ -640,6 +649,7 @@ export default function Message(props: Readonly<Props>) {
       // when null.
       return;
     }
+    const replyDate = -(props.actions.store?.getThreadRootDate(date) ?? 0);
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
@@ -654,7 +664,7 @@ export default function Message(props: Readonly<Props>) {
           on_send={sendReply}
           height={"auto"}
           syncdb={props.actions.syncdb}
-          date={-date}
+          date={replyDate}
           onChange={(value) => {
             replyMessageRef.current = value;
             // replyMentionsRef does not submit mentions, only gives us the value
@@ -668,7 +678,7 @@ export default function Message(props: Readonly<Props>) {
             style={{ marginRight: "5px" }}
             onClick={() => {
               setReplying(false);
-              props.actions?.delete_draft(date);
+              props.actions?.delete_draft(replyDate);
             }}
           >
             Cancel
