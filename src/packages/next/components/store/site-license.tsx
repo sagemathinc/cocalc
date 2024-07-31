@@ -9,7 +9,6 @@ Create a new site license.
 import { Form, Input } from "antd";
 import { isEmpty } from "lodash";
 import { useEffect, useRef, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
@@ -26,7 +25,6 @@ import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { InfoBar } from "./cost-info-bar";
 import { MemberHostingAndIdleTimeout } from "./member-idletime";
-import PaygInfo from "./payg-info";
 import { QuotaConfig } from "./quota-config";
 import { PRESETS, PRESET_MATCH_FIELDS, Presets } from "./quota-config-presets";
 import { decodeFormValues, encodeFormValues } from "./quota-query-params";
@@ -75,45 +73,37 @@ export default function SiteLicense(props: Props) {
       <Title level={3} ref={headerRef}>
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
-          ? "Edit Site License in Shopping Cart"
+          ? "Edit License in Shopping Cart"
           : "Buy a License"}
       </Title>
       {router.query.id == null && (
-        <>
-          <Paragraph>
+        <div>
+          <Paragraph style={{ fontSize: "12pt" }}>
             <A href="https://doc.cocalc.com/licenses.html">
-              <SiteName /> site licenses
+              <SiteName /> licenses
             </A>{" "}
             allow you to upgrade any number of projects to run more quickly,
-            have network access, more disk space, memory, or run on a dedicated
-            virtual machine. Licenses cover a wide range of use cases, ranging
-            from a single hobbyist project to thousands of simultaneous users
-            across a college campus.
+            have network access, more disk space and memory. Licenses cover a
+            wide range of use cases, ranging from a single hobbyist project to
+            thousands of simultaneous users across a large organization.
           </Paragraph>
 
-          <Paragraph>
+          <Paragraph style={{ fontSize: "12pt" }}>
             Create a license using the form below then add it to your{" "}
             <A href="/store/cart">shopping cart</A>. If you aren't sure exactly
-            what to buy, you can always edit your licenses later, including
-            changing dates, the run limit, idle timeout, and any other
-            configuration. Subscriptions are also very flexible and can be{" "}
+            what to buy, you can always edit your licenses later. Subscriptions
+            are also flexible and can be{" "}
             <A
               href="https://doc.cocalc.com/account/purchases.html#recent-updates-to-subscriptions"
               external
             >
-              edited or canceled at any time for a prorated refund.{" "}
+              edited at any time.{" "}
             </A>
-          </Paragraph>
-
-          <Paragraph>
-            <PaygInfo what="a license" />
-          </Paragraph>
-          <Paragraph>
             It is also possible to{" "}
             <A href="https://doc.cocalc.com/vouchers.html">create vouchers</A>{" "}
             for resale or distribution.
           </Paragraph>
-        </>
+        </div>
       )}
       <CreateSiteLicense
         showInfoBar={scrollY > offsetHeader}
