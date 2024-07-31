@@ -379,6 +379,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // Set the input of the given cell in the syncdb, which will also change the store.
   // Might throw a CellWriteProtectedException
   public set_cell_input(id: string, input: string, save = true): void {
+    if (!this.store) return;
     if (this.store.getIn(["cells", id, "input"]) == input) {
       // nothing changed.   Note, I tested doing the above check using
       // both this.syncdb and this.store, and this.store is orders of magnitude faster.
@@ -2092,16 +2093,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       save,
     ); // case to bool
   };
-
-  public insert_image(id: string): void {
-    if (this.check_edit_protection(id, "inserting an image")) {
-      return;
-    }
-    if (this.store.get_cell_type(id) != "markdown") {
-      throw Error("must be a markdown cell -- id " + id);
-    }
-    this.setState({ insert_image: id }); // causes a modal dialog to appear.
-  }
 
   scroll(pos): any {
     this.deprecated("scroll", pos);

@@ -434,13 +434,6 @@ export function commands(actions: AllActions): {
       },
     },
 
-    "insert image": {
-      i: "image",
-      b: "Image",
-      m: "Insert Images in Markdown Cell",
-      f: () => actions.frame_actions?.insert_image(),
-    },
-
     "interrupt kernel": {
       i: "stop",
       b: "Stop",

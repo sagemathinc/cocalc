@@ -117,13 +117,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       );
     }
 
-    function handle_upload_click(): void {
-      if (props.actions == null) {
-        return;
-      }
-      props.actions.insert_image(props.id);
-    }
-
     function handle_md_double_click(): void {
       frameActions.current?.switch_md_cell_to_edit(props.cell.get("id"));
     }
@@ -207,14 +200,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
               onClick={handle_md_double_click}
             >
               <Icon name="edit" /> Edit
-            </Button>
-            <Button
-              style={CODE_BAR_BTN_STYLE}
-              size="small"
-              type="text"
-              onClick={handle_upload_click}
-            >
-              <Icon name="image" />
             </Button>
             <CellIndexNumber index={props.index} />
           </div>
