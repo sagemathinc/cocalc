@@ -624,11 +624,10 @@ export default function Message(props: Readonly<Props>) {
 
   function sendReply() {
     if (props.actions == null) return;
+    setReplying(false);
     const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
     props.actions.send_reply({ message: message.toJS(), reply });
-    props.actions.delete_draft(date);
     props.actions.scrollToBottom(props.index);
-    setReplying(false);
   }
 
   function renderComposeReply() {
@@ -664,7 +663,7 @@ export default function Message(props: Readonly<Props>) {
           }}
           placeholder={"Reply to the above message..."}
         />
-        <div style={{ margin: "5px 0" }}>
+        <div style={{ margin: "5px 0", display: "flex" }}>
           <Button
             style={{ marginRight: "5px" }}
             onClick={() => {
