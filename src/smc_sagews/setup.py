@@ -7,7 +7,7 @@ from setuptools import setup
 
 setup(
     name='smc_sagews',
-    version='1.1',
+    version='1.2',
     description='CoCalc Worksheets',
     long_description=readme(),
     url='https://github.com/sagemathinc/cocalc',
@@ -28,6 +28,7 @@ setup(
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.12',
         'Topic :: Mathematics :: Server',
     ],
     keywords='server mathematics cloud',

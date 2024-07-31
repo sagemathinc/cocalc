@@ -17,7 +17,6 @@ import six
 
 # set backend of matplot lib before any other module is loaded
 import matplotlib
-import imp
 matplotlib.use('Agg')
 
 import copy, os, sys, types, re
@@ -2569,6 +2568,12 @@ class Fork(object):
             # Run some commands to tell Sage that its
             # pid has changed.
             import sage.misc.misc
+
+            # since python 3.12, there is no imp
+            try:
+                import imp
+            except:
+                import importlib as imp
             imp.reload(sage.misc.misc)
 
             # The pexpect interfaces (and objects defined in them) are
@@ -3369,7 +3374,7 @@ def var0(*args, **kwds):
 
 
 def var(*args, **kwds):
-    """
+    r"""
     Create symbolic variables and inject them into the global namespace.
 
     NOTE: In CoCalc, you can use var as a line decorator::
