@@ -225,7 +225,7 @@ async function executeCodeNoAggregate(
       };
       asyncCache.set(job_id, job_config);
 
-      const pid = doSpawn(
+      const pid: number | undefined = doSpawn(
         { ...opts, origCommand, job_id, job_config },
         async (err, result) => {
           try {
