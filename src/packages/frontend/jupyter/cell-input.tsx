@@ -373,7 +373,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         case "markdown":
           if (props.is_markdown_edit) {
             return renderMarkdownEdit();
-            //return render_codemirror(type);
           } else {
             return render_markdown();
           }
@@ -407,7 +406,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     const type = props.cell.get("cell_type") || "code";
 
     function render_cell_buttonbar() {
-      if (type !== "code" || fileContext.disableExtraButtons) return;
+      if (type !== "code" || fileContext.disableExtraButtons) {
+        return;
+      }
       return (
         <CellButtonBar
           id={props.id}
