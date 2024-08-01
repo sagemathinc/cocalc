@@ -8,6 +8,7 @@ import { List, fromJS, Map as immutableMap } from "immutable";
 import { Store, redux } from "@cocalc/frontend/app-framework";
 import type { HashtagState } from "@cocalc/frontend/editors/task-editor/types";
 import { ChatMessages, MentionList } from "./types";
+import { getReplyToRoot } from "./actions";
 
 export interface ChatState {
   project_id?: string;
@@ -64,5 +65,15 @@ export class ChatStore extends Store<ChatState> {
       font_size: redux.getStore("account").get("font_size"),
       filterRecentH: 0,
     };
+  };
+
+  getThreadRootDate = (date: number): number => {
+    const messages = this.get("messages") ?? (fromJS({}) as ChatMessages);
+    const message = messages.get(`${date}`)?.toJS();
+    if (message == null) {
+      return 0;
+    }
+    const d = getReplyToRoot(message, messages);
+    return d?.valueOf() ?? 0;
   };
 }

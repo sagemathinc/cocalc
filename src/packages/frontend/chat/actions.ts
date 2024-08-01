@@ -58,7 +58,7 @@ const MAX_CHATSTREAM = 10;
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
-  private store?: ChatStore;
+  public store?: ChatStore;
   // We use this to ensure at most once chatgpt output is streaming
   // at a time in a given chatroom.  I saw a bug where hundreds started
   // at once and it really did send them all to openai at once, and
@@ -424,36 +424,29 @@ export class ChatActions extends Actions<ChatState> {
     noNotification?: boolean;
     reply_to?: Date;
   }): string {
+    const store = this.store;
+    if (store == null) {
+      return "";
+    }
     // the reply_to field of the message is *always* the root.
     // the order of the replies is by timestamp.  This is meant
     // to make sure chat is just 1 layer deep, rather than a
     // full tree structure, which is powerful but too confusing.
-    reply_to ??= getReplyToRoot(
-      message,
-      this.store?.get("messages") ?? (fromJS({}) as ChatMessages),
-    );
-    const time = reply_to?.valueOf() ?? 0;
+    const reply_to_value =
+      reply_to != null
+        ? reply_to.valueOf()
+        : store.getThreadRootDate(new Date(message.date).valueOf());
     const time_stamp_str = this.send_chat({
       input: reply,
       sender_id: from ?? this.redux.getStore("account").get_account_id(),
-      reply_to,
+      reply_to: new Date(reply_to_value),
       noNotification,
     });
-    this.delete_draft(-time);
-    // it's conceivable that for some clients they recreate the draft
-    // message right as the editor for that message is being removed.
-    // Thus we do an extra delete a moment after send (after successfully
-    // sending the message) to be sure the draft is really gone.
-    // See https://github.com/sagemathinc/cocalc/issues/7662
-    // and note that I'm not able to reproduce this, so it might not
-    // be the right solution.
-    setTimeout(() => {
-      this.delete_draft(-time);
-    }, 500);
+    // negative date of reply_to root is used for replies.
+    this.delete_draft(-reply_to_value);
     return time_stamp_str;
   }
 
-  // negative date is used for replies.
   public delete_draft(
     date: number,
     commit: boolean = true,
@@ -461,19 +454,10 @@ export class ChatActions extends Actions<ChatState> {
   ) {
     if (!this.syncdb) return;
     sender_id = sender_id ?? this.redux.getStore("account").get_account_id();
-    // date should always be negative for drafts (stupid, but that's the code),
-    // so I'm just deleting both for now.
-    if (date) {
-      this.syncdb.delete({
-        event: "draft",
-        sender_id,
-        date,
-      });
-    }
     this.syncdb.delete({
       event: "draft",
       sender_id,
-      date: -date,
+      date,
     });
     if (commit) {
       this.syncdb.commit();
@@ -1147,7 +1131,7 @@ export function getRootMessage(
   }
 }
 
-function getReplyToRoot(
+export function getReplyToRoot(
   message: ChatMessage,
   messages: ChatMessages,
 ): Date | undefined {

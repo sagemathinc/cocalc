@@ -23,7 +23,11 @@ interface Props {
   on_send: (value: string) => void;
   onChange: (string) => void;
   syncdb: SyncDB | undefined;
-  date: number; // ms since epoch of when this message was first sent; set to 0 for editing new message. set to -time (negative time) to respond to message at time!
+  // date:
+  //   - ms since epoch of when this message was first sent
+  //   - set to 0 for editing new message
+  //   - set to -time (negative time) to respond to thread, where time is the time of ROOT message of the the thread.
+  date: number;
   input?: string;
   on_paste?: (e) => void;
   height?: string;
@@ -93,6 +97,7 @@ export default function ChatInput({
       // but definitely don't save (thus updating active) if
       // the input didn't really change, since we use active for
       // showing that a user is writing to other users.
+      console.log("saveChat", { date });
       const input0 = syncdb
         .get_one({
           event: "draft",
