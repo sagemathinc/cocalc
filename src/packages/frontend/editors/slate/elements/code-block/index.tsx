@@ -16,7 +16,7 @@ import { DARK_GREY_BORDER } from "../../util";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
-import ShowError from "@cocalc/frontend/components/error";
+import Mermaid from "./mermaid";
 
 export interface CodeBlock extends SlateElement {
   type: "code_block";
@@ -26,7 +26,7 @@ export interface CodeBlock extends SlateElement {
   info: string;
 }
 
-const StaticElement: React.FC<RenderElementProps> = ({
+export const StaticElement: React.FC<RenderElementProps> = ({
   attributes,
   element,
 }) => {
@@ -48,7 +48,6 @@ const StaticElement: React.FC<RenderElementProps> = ({
 
   const [newValue, setNewValue] = useState<string | null>(null);
   const runRef = useRef<any>(null);
-  const mermaidRef = useRef<any>(null);
 
   const [output, setOutput] = useState<null | ReactNode>(null);
 
@@ -90,38 +89,11 @@ const StaticElement: React.FC<RenderElementProps> = ({
     }, 1);
   };
 
-  const isMermaid = temporaryInfo ?? element.info == "mermaid";
-  const [mermaidError, setMermaidError] = useState<string>("");
-
-  useEffect(() => {
-    const elt = mermaidRef.current;
-    if (!isMermaid || !elt) {
-      return;
-    }
-    (async () => {
-      try {
-        setMermaidError("");
-        const mermaid = (await import("mermaid")).default;
-        mermaid.initialize({
-          startOnLoad: false,
-        });
-        elt.removeAttribute("data-processed");
-        await mermaid.run({
-          nodes: [elt],
-        });
-      } catch (err) {
-        setMermaidError(err.str ?? `${err}`);
-      }
-    })();
-  }, [isMermaid, newValue ?? element.value]);
-
+  const isMermaid = element.info == "mermaid";
   if (isMermaid) {
     return (
       <div {...attributes} style={{ marginBottom: "1em", textIndent: 0 }}>
-        <pre className="mermaid" ref={mermaidRef}>
-          {newValue ?? element.value}
-        </pre>
-        <ShowError error={mermaidError} setError={setMermaidError} />
+        <Mermaid value={newValue ?? element.value} />
       </div>
     );
   }
