@@ -144,6 +144,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const directory: undefined | string = useRedux([name, "directory"]);
   // const version: undefined | any = useRedux([name, "version"]);
   const about: undefined | boolean = useRedux([name, "about"]);
+  const read_only = useRedux([name, "read_only"]);
   const backend_kernel_info: undefined | immutable.Map<any, any> = useRedux([
     name,
     "backend_kernel_info",
@@ -281,6 +282,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <CellList
         actions={actions}
+        read_only={read_only}
         cell_list={cell_list}
         cell_toolbar={cell_toolbar}
         cells={cells}

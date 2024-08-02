@@ -22,7 +22,10 @@ export class RevertFile extends Component<Props> {
           if (this.props.version != null)
             this.props.actions.revert(this.props.version);
         }}
-        disabled={this.props.version == null}
+        disabled={
+          this.props.version == null ||
+          this.props.actions.syncdoc?.is_read_only()
+        }
       >
         <Icon name="undo" /> Revert
       </Button>

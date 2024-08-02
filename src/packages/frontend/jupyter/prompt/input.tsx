@@ -92,7 +92,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
     );
   }
 
-  if (props.dragHandle != null) {
+  if (!props.read_only && props.dragHandle != null) {
     return (
       <div>
         <div style={{ float: "left" }}>{props.dragHandle}</div>

@@ -112,12 +112,16 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
             actions={props.actions}
             id={props.id}
             dragHandle={props.dragHandle}
+            read_only={props.is_readonly}
           />
         </HiddenXS>
       );
     }
 
     function handle_md_double_click(): void {
+      if (props.is_readonly) {
+        return;
+      }
       frameActions.current?.switch_md_cell_to_edit(props.cell.get("id"));
     }
 
@@ -186,7 +190,8 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
     function render_markdown_edit_button(): Rendered {
       if (
         props.actions == null ||
-        props.cell.getIn(["metadata", "editable"]) === false
+        props.cell.getIn(["metadata", "editable"]) === false ||
+        props.is_readonly
       ) {
         return;
       }
@@ -238,6 +243,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           <MostlyStaticMarkdown
             value={value}
             onChange={(value) => {
+              if (props.is_readonly) {
+                return;
+              }
               // user checked a checkbox.
               props.actions?.set_cell_input(props.id, value, true);
             }}

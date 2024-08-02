@@ -90,11 +90,11 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       this.setState({ has_unsaved_changes });
     });
 
-    this.watch_for_introspect();
-    this.watch_for_connection_file_change();
+    this.watchFrameEditorStore();
+    this.watchJupyterStore();
   }
 
-  private watch_for_introspect(): void {
+  private watchFrameEditorStore = (): void => {
     const store = this.store;
     let introspect = store.get("introspect");
     store.on("change", () => {
@@ -108,14 +108,22 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
         introspect = i;
       }
     });
-  }
+  };
 
-  private watch_for_connection_file_change(): void {
+  private watchJupyterStore = (): void => {
     const store = this.jupyter_actions.store;
     let connection_file = store.get("connection_file");
-    this.jupyter_actions.store.on("change", () => {
+    store.on("change", () => {
+      // sync read only state -- source of true is jupyter_actions.store.get('read_only')
+      const read_only = store.get("read_only");
+      if (read_only != this.store.get("read_only")) {
+        this.setState({ read_only });
+      }
+      // sync connection file
       const c = store.get("connection_file");
-      if (c == connection_file) return;
+      if (c == connection_file) {
+        return;
+      }
       connection_file = c;
       const id = this._get_most_recent_shell_id("jupyter");
       if (id == null) {
@@ -125,7 +133,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       // This will update the connection file
       this.shell(id, true);
     });
-  }
+  };
 
   public focus(id?: string): void {
     const actions = this.get_frame_actions(id);
