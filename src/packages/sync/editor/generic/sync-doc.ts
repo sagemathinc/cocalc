@@ -42,6 +42,12 @@ const FILE_SERVER_AUTOSAVE_S = 45;
 // How big of files we allow users to open using syncstrings.
 const MAX_FILE_SIZE_MB = 8;
 
+// How frequently to check if file is or is not read only.
+// The filesystem watcher is NOT sufficient for this, because
+// it is NOT triggered on permissions changes. Thus we must
+// poll for read only status periodically, unfortunately.
+const READ_ONLY_CHECK_INTERVAL_MS = 7500;
+
 // This parameter determines throttling when broadcasting cursor position
 // updates.   Make this larger to reduce bandwidth at the expense of making
 // cursors less responsive.
@@ -163,6 +169,8 @@ export class SyncDoc extends EventEmitter {
   // This is what's actually output by setInterval -- it's
   // not an amount of time.
   private fileserver_autosave_timer: number = 0;
+
+  private read_only_timer: number = 0;
 
   // throttling of change events -- e.g., is useful for course
   // editor where we have hundreds of changes and the UI gets
@@ -892,7 +900,7 @@ export class SyncDoc extends EventEmitter {
     });
   }
 
-  private async save_to_disk_autosave(): Promise<void> {
+  private save_to_disk_autosave = async (): Promise<void> => {
     if (this.state !== "ready") {
       return;
     }
@@ -903,7 +911,7 @@ export class SyncDoc extends EventEmitter {
     } catch (err) {
       dbg(`failed -- ${err}`);
     }
-  }
+  };
 
   /* Make it so the local hub project will automatically save
      the file to disk periodically. */
@@ -924,10 +932,7 @@ export class SyncDoc extends EventEmitter {
 
     // Explicit cast due to node vs browser typings.
     this.fileserver_autosave_timer = <any>(
-      setInterval(
-        this.save_to_disk_autosave.bind(this),
-        FILE_SERVER_AUTOSAVE_S * 1000,
-      )
+      setInterval(this.save_to_disk_autosave, FILE_SERVER_AUTOSAVE_S * 1000)
     );
   }
 
@@ -980,7 +985,7 @@ export class SyncDoc extends EventEmitter {
     size: number,
   ): Promise<void> {
     this.assert_table_is_ready("syncstring");
-    this.dbg("set_initialized")();
+    this.dbg("set_initialized")({ error, read_only, size });
     const init = { time: this.client.server_time(), size, error };
     this.syncstring_table.set({
       string_id: this.string_id,
@@ -1093,6 +1098,11 @@ export class SyncDoc extends EventEmitter {
     if (this.fileserver_autosave_timer) {
       clearInterval(this.fileserver_autosave_timer as any);
       this.fileserver_autosave_timer = 0;
+    }
+
+    if (this.read_only_timer) {
+      clearInterval(this.read_only_timer as any);
+      this.read_only_timer = 0;
     }
 
     this.patch_update_queue = [];
@@ -1359,7 +1369,7 @@ export class SyncDoc extends EventEmitter {
       //         await delay(10000);
       //       }
       await retry_until_success({
-        f: this.init_load_from_disk.bind(this),
+        f: this.init_load_from_disk,
         max_delay: 10000,
         desc: "syncdoc -- load_from_disk",
       });
@@ -1572,11 +1582,11 @@ export class SyncDoc extends EventEmitter {
     }
   }
 
-  private async update_if_file_is_read_only(): Promise<void> {
+  private update_if_file_is_read_only = async (): Promise<void> => {
     this.set_read_only(await this.file_is_read_only());
-  }
+  };
 
-  private async init_load_from_disk(): Promise<void> {
+  private init_load_from_disk = async (): Promise<void> => {
     if (this.state == "closed") {
       // stop trying, no error -- this is assumed
       // in a retry_until_success elsewhere.
@@ -1585,7 +1595,7 @@ export class SyncDoc extends EventEmitter {
     if (await this.load_from_disk_if_newer()) {
       throw Error("failed to load from disk");
     }
-  }
+  };
 
   private async load_from_disk_if_newer(): Promise<boolean> {
     const last_changed = this.last_changed();
@@ -2595,11 +2605,12 @@ export class SyncDoc extends EventEmitter {
       return;
     }
     if (path == null) {
-      dbg("not opening another watcher");
+      dbg("not opening another watcher since path is null");
       this.watch_path = path;
       return;
     }
     if (this.watch_path != null) {
+      // this case is impossible since we deleted it above if it is was defined.
       dbg("watch_path already defined");
       return;
     }
@@ -2623,19 +2634,31 @@ export class SyncDoc extends EventEmitter {
         dbg(`wrote '${path}' to disk`);
       }
     } catch (err) {
-      // This should happen, e.g, if path is read only.
+      // This can happen, e.g, if path is read only.
       dbg(`could NOT write '${path}' to disk -- ${err}`);
+      await this.update_if_file_is_read_only();
       // In this case, can't really setup a file watcher.
       return;
     }
 
     dbg("now requesting to watch file");
     this.file_watcher = this.client.watch_file({ path });
-    this.file_watcher.on("change", this.handle_file_watcher_change.bind(this));
-    this.file_watcher.on("delete", this.handle_file_watcher_delete.bind(this));
+    this.file_watcher.on("change", this.handle_file_watcher_change);
+    this.file_watcher.on("delete", this.handle_file_watcher_delete);
+    this.setupReadOnlyTimer();
   }
 
-  private async handle_file_watcher_change(ctime: Date): Promise<void> {
+  private setupReadOnlyTimer = () => {
+    if (this.read_only_timer) {
+      clearInterval(this.read_only_timer as any);
+      this.read_only_timer = 0;
+    }
+    this.read_only_timer = <any>(
+      setInterval(this.update_if_file_is_read_only, READ_ONLY_CHECK_INTERVAL_MS)
+    );
+  };
+
+  private handle_file_watcher_change = async (ctime: Date): Promise<void> => {
     const dbg = this.dbg("handle_file_watcher_change");
     const time: number = ctime.valueOf();
     dbg(
@@ -2653,17 +2676,17 @@ export class SyncDoc extends EventEmitter {
       await this.load_from_disk();
       return;
     }
-  }
+  };
 
-  private async handle_file_watcher_delete(): Promise<void> {
+  private handle_file_watcher_delete = async (): Promise<void> => {
     this.assert_is_ready("handle_file_watcher_delete");
     const dbg = this.dbg("handle_file_watcher_delete");
     dbg("delete: set_deleted and closing");
     await this.client.set_deleted(this.path, this.project_id);
     this.close();
-  }
+  };
 
-  private async load_from_disk(): Promise<number> {
+  private load_from_disk = async (): Promise<number> => {
     const path = this.path;
     const dbg = this.dbg("load_from_disk");
     dbg();
@@ -2696,15 +2719,15 @@ export class SyncDoc extends EventEmitter {
     // save new version to database, which we just set via from_str.
     await this.save();
     return size;
-  }
+  };
 
-  private async set_save(x: {
+  private set_save = async (x: {
     state: string;
     error: string;
     hash?: number;
     expected_hash?: number;
     time?: number;
-  }): Promise<void> {
+  }): Promise<void> => {
     this.assert_table_is_ready("syncstring");
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
@@ -2713,15 +2736,15 @@ export class SyncDoc extends EventEmitter {
       this.syncstring_table_get_one().set("save", fromJS(x)),
     );
     await this.syncstring_table.save();
-  }
+  };
 
-  private async set_read_only(read_only: boolean): Promise<void> {
+  private set_read_only = async (read_only: boolean): Promise<void> => {
     this.assert_table_is_ready("syncstring");
     this.syncstring_table.set(
       this.syncstring_table_get_one().set("read_only", read_only),
     );
     await this.syncstring_table.save();
-  }
+  };
 
   public is_read_only = (): boolean => {
     this.assert_table_is_ready("syncstring");
