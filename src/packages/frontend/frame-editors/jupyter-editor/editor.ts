@@ -474,6 +474,7 @@ const JUPYTER_MENUS = {
                 // title: `Select the ${display_name} Jupyter kernel for writing code in ${Language}.`,
                 label: Language,
                 children: [menuItem],
+                disabled: ({ readOnly }) => readOnly,
               });
             }
           };
@@ -517,6 +518,7 @@ function initMenus() {
         throw Error(`invalid Jupyter command name "${name}"`);
       }
       return {
+        disabled: cmd.r ? undefined : ({ readOnly }) => readOnly,
         button: cmd.b,
         title: cmd.t,
         label: cmd.m,

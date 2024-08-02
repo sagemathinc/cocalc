@@ -440,16 +440,18 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           requestedId={requestedComputeServerId}
           project_id={project_id}
         />
-        <KernelWarning name={name} actions={actions} />
+        {!read_only && <KernelWarning name={name} actions={actions} />}
         {render_error()}
         {render_modals()}
-        <Kernel
-          is_fullscreen={is_fullscreen}
-          actions={actions}
-          usage={usage}
-          expected_cell_runtime={expected_cell_runtime}
-          computeServerId={computeServerId}
-        />
+        {!read_only && (
+          <Kernel
+            is_fullscreen={is_fullscreen}
+            actions={actions}
+            usage={usage}
+            expected_cell_runtime={expected_cell_runtime}
+            computeServerId={computeServerId}
+          />
+        )}
         {cell_toolbar == "create_assignment" && (
           <div
             style={{
