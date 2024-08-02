@@ -9,10 +9,13 @@ Run sagetex
 - TODO: this might be better done always as part of latexmk; not sure.
 */
 
-import { exec, ExecOutput } from "../generic/client";
-import { parse_path } from "../frame-tree/util";
-import { ProcessedLatexLog, Error } from "./latex-log-parser";
-import { BuildLog } from "./actions";
+import { parse_path } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import {
+  exec,
+  ExecOutput,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { Error, ProcessedLatexLog } from "./latex-log-parser";
+import { BuildLog } from "./types";
 
 function sagetex_file(base: string): string {
   return base + ".sagetex.sage";
@@ -23,7 +26,7 @@ export async function sagetex_hash(
   path: string,
   time: number,
   status: Function,
-  output_directory: string | undefined
+  output_directory: string | undefined,
 ): Promise<string> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
@@ -45,7 +48,7 @@ export async function sagetex(
   path: string,
   hash: string,
   status: Function,
-  output_directory: string | undefined
+  output_directory: string | undefined,
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
@@ -72,7 +75,7 @@ export async function sagetex(
 
 export function sagetex_errors(
   file: string,
-  output: BuildLog
+  output: BuildLog,
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 

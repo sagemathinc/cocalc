@@ -7,26 +7,29 @@
 Run Knitr on rnw/rtex files
 */
 
-import { exec, ExecOutput } from "../generic/client";
-import { parse_path } from "../frame-tree/util";
-import { ProcessedLatexLog, Error } from "./latex-log-parser";
-import { BuildLog } from "./actions";
+import { parse_path } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import {
+  exec,
+  ExecOutput,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { Error, ProcessedLatexLog } from "./latex-log-parser";
+import { BuildLog } from "./types";
 
 // this still respects the environment variables and init files
 const R_CMD = "R";
-const R_ARGS: ReadonlyArray<string> = [
+const R_ARGS: readonly string[] = [
   "--no-save",
   "--no-restore",
   "--quiet",
   "--no-readline",
   "-e",
-];
+] as const;
 
 export async function knitr(
   project_id: string,
   path: string, // pass in this.filename_knitr
   time: number | undefined,
-  status: Function
+  status: Function,
 ): Promise<ExecOutput> {
   const { directory, filename } = parse_path(path);
   const expr = `require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")`;
@@ -128,7 +131,7 @@ export async function patch_synctex(
   project_id: string,
   path: string, // pass in the actual .tex file path
   time: number | undefined,
-  status: Function
+  status: Function,
 ) {
   const { directory, filename } = parse_path(path);
   const expr = `require(patchSynctex); patchSynctex("${filename}")`;

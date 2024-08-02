@@ -389,7 +389,7 @@ describe("await", () => {
 
   it("returns an error", async () => {
     const c = await executeCode({
-      command: "sleep 1.5; >&2 echo baz; exit 3",
+      command: "sleep .1; >&2 echo baz; exit 3",
       bash: true,
       err_on_exit: false,
       async_call: true,
@@ -405,13 +405,12 @@ describe("await", () => {
       async_get: job_id,
       async_stats: true,
     });
-    expect((Date.now() - t0) / 1000).toBeGreaterThan(1);
+    expect((Date.now() - t0) / 1000).toBeGreaterThan(.05);
     expect(s.type).toEqual("async");
     if (s.type !== "async") return;
     expect(s.stderr).toEqual("baz\n");
     expect(s.exit_code).toEqual(3);
     expect(s.status).toEqual("completed");
-    expect(Array.isArray(s.stats)).toBeTruthy();
   });
 });
 

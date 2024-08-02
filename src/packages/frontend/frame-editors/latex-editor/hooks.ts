@@ -4,14 +4,15 @@
  */
 
 import { Map } from "immutable";
-import { React, useRedux } from "../../app-framework";
-import { BuildLogs } from "./actions";
 
-export function use_build_logs(name): BuildLogs {
+import { React, useRedux } from "@cocalc/frontend/app-framework";
+import { BuildLogs } from "./types";
+
+export function use_build_logs(name: string): BuildLogs {
   const build_logs_next: BuildLogs =
     useRedux([name, "build_logs"]) ?? Map<string, any>();
   const [build_logs, set_build_logs] = React.useState<BuildLogs>(
-    Map<string, any>()
+    Map<string, any>(),
   );
 
   // only update if any parsed logs differ
@@ -26,4 +27,3 @@ export function use_build_logs(name): BuildLogs {
 
   return build_logs;
 }
-

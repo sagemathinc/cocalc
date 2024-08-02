@@ -11,16 +11,17 @@
 import { Popover } from "antd";
 
 import { Icon } from "@cocalc/frontend/components";
+//import { Actions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize } from "@cocalc/util/misc";
-import { Actions } from "../code-editor/actions";
+import { Actions } from "./actions";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { Error, IProcessedLatexLog } from "./latex-log-parser";
 
 export function update_gutters(opts: {
   log: IProcessedLatexLog;
   set_gutter: Function;
-  actions;
+  actions: Actions;
 }): void {
   for (const group of ["typesetting", "warnings", "errors"]) {
     // errors last so always shown if multiple issues on a single line!
@@ -86,7 +87,7 @@ function component(
                   return v + `% this is line number ${line + 1}`;
                 }}
                 language={"latex"}
-                extraFileInfo={actions.languageModelExtraFileInfo(false)}
+                extraFileInfo={actions.languageModelExtraFileInfo()}
                 tag={"latex-error-popover"}
                 prioritize="end"
               />

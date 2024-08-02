@@ -3,13 +3,20 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { deep_copy } from "../misc";
-import { DEFAULT_QUOTAS } from "../upgrade-spec";
+import { State } from "@cocalc/util/compute-states";
+import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { deep_copy } from "@cocalc/util/misc";
+import {
+  ExecuteCodeOptions,
+  ExecuteCodeOptionsAsyncGet,
+  ExecuteCodeOutput,
+} from "@cocalc/util/types/execute-code";
+import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
+
+import { NOTES } from "./crm";
 import { FALLBACK_COMPUTE_IMAGE } from "./defaults";
 import { SCHEMA as schema } from "./index";
 import { Table } from "./types";
-import { State } from "../compute-states";
-import { NOTES } from "./crm";
 
 export const MAX_FILENAME_SEARCH_RESULTS = 100;
 
@@ -608,7 +615,6 @@ Table({
   },
 });
 
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 export type Datastore = boolean | string[] | undefined;
 // in the future, we might want to extend this to include custom environmment variables
 export interface EnvVarsRecord {
@@ -660,12 +666,13 @@ export interface ExecOpts {
   aggregate?: string | number | { value: string | number };
   err_on_exit?: boolean;
   env?: { [key: string]: string }; // custom environment variables.
+  async_call?: ExecuteCodeOptions["async_call"];
+  async_get?: ExecuteCodeOptionsAsyncGet["async_get"];
+  async_stats?: ExecuteCodeOptionsAsyncGet["async_stats"];
+  async_await?: ExecuteCodeOptionsAsyncGet["async_await"];
   cb?: Function; // if given use a callback interface *instead* of async.
 }
 
-export interface ExecOutput {
-  stdout: string;
-  stderr: string;
-  exit_code: number;
+export type ExecOutput = ExecuteCodeOutput & {
   time: number; // time in ms, from user point of view.
-}
+};

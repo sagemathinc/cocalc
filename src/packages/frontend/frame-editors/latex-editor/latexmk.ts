@@ -7,8 +7,11 @@
 Convert LaTeX file to PDF using latexmk.
 */
 
-import { exec, ExecOutput } from "../generic/client";
-import { path_split, change_filename_extension } from "@cocalc/util/misc";
+import {
+  exec,
+  ExecOutput,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { change_filename_extension, path_split } from "@cocalc/util/misc";
 import { pdf_path } from "./util";
 
 export async function latexmk(
@@ -17,7 +20,7 @@ export async function latexmk(
   build_command: string | string[],
   time: number | undefined, // (ms since epoch)  used to aggregate multiple calls into one across all users.
   status: Function,
-  output_directory: string | undefined
+  output_directory: string | undefined,
 ): Promise<ExecOutput> {
   const x = path_split(path);
   let command: string;
@@ -75,7 +78,7 @@ export const ENGINES = [
   "<disabled>",
 ] as const;
 
-export type Engine = typeof ENGINES[number];
+export type Engine = (typeof ENGINES)[number];
 
 export function get_engine_from_config(config: string): Engine | null {
   switch (config.toLowerCase()) {
@@ -109,7 +112,7 @@ function build_command_name(engine: Engine): BuildCommandName {
       return "lualatex";
     default:
       console.warn(
-        `LaTeX engine ${engine} unknown -- switching to fallback "PDFLaTeX"`
+        `LaTeX engine ${engine} unknown -- switching to fallback "PDFLaTeX"`,
       );
       return "pdf";
   }
@@ -119,7 +122,7 @@ export function build_command(
   engine: Engine,
   filename: string,
   knitr: boolean,
-  output_directory: string | undefined // probably should not require special escaping.
+  output_directory: string | undefined, // probably should not require special escaping.
 ): string[] {
   // special case: disable build
   // the ; is important, see actions::sanitize_build_cmd_str

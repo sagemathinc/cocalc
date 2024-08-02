@@ -18,72 +18,67 @@ const MINIMAL = `\\documentclass{article}
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
 const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
+
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
-import { normalize as path_normalize } from "path";
-import { debounce, union } from "lodash";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { fromJS, List, Map } from "immutable";
-import { once } from "@cocalc/util/async-utils";
-import { project_api } from "../generic/client";
+import { debounce, union } from "lodash";
+import { normalize as path_normalize } from "path";
+
+import { Store } from "@cocalc/frontend/app-framework";
+import {
+  TableOfContentsEntry,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
 import {
   Actions as BaseActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { print_html } from "@cocalc/frontend/frame-editors/frame-tree/print";
+import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import {
-  latexmk,
+  project_api,
+  server_time,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { once } from "@cocalc/util/async-utils";
+import {
+  change_filename_extension,
+  path_split,
+  separate_file_extension,
+  sha1,
+  splitlines,
+  startswith,
+} from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+
+import { bibtex } from "./bibtex";
+import { IBuildSpecs } from "./build";
+import { clean } from "./clean";
+import { KNITR_EXTS } from "./constants";
+import { count_words } from "./count_words";
+import { update_gutters } from "./gutters";
+import { knitr, knitr_errors, patch_synctex } from "./knitr";
+import { IProcessedLatexLog, LatexParser } from "./latex-log-parser";
+import {
   build_command,
   Engine,
   get_engine_from_config,
+  latexmk,
 } from "./latexmk";
-import { sagetex, sagetex_hash, sagetex_errors } from "./sagetex";
-import { pythontex, pythontex_errors } from "./pythontex";
-import { knitr, patch_synctex, knitr_errors } from "./knitr";
-import * as synctex from "./synctex";
-import { bibtex } from "./bibtex";
-import { count_words } from "./count_words";
-import { server_time, ExecOutput } from "../generic/client";
-import { clean } from "./clean";
-import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
-import { update_gutters } from "./gutters";
-import { ensureTargetPathIsCorrect, pdf_path } from "./util";
-import { KNITR_EXTS } from "./constants";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
-import { FrameTree } from "../frame-tree/types";
-import { Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework";
-import { print_html } from "../frame-tree/print";
-import { raw_url } from "../frame-tree/util";
-import {
-  path_split,
-  separate_file_extension,
-  splitlines,
-  startswith,
-  change_filename_extension,
-  sha1,
-} from "@cocalc/util/misc";
-import { IBuildSpecs } from "./build";
-import { open_new_tab } from "@cocalc/frontend/misc";
+import { pythontex, pythontex_errors } from "./pythontex";
+import { sagetex, sagetex_errors, sagetex_hash } from "./sagetex";
+import * as synctex from "./synctex";
 import { parseTableOfContents } from "./table-of-contents";
 import {
-  TableOfContentsEntryList,
-  TableOfContentsEntry,
-} from "@cocalc/frontend/components";
-
-export interface BuildLog extends ExecOutput {
-  parse?: IProcessedLatexLog;
-}
-
-export type BuildLogs = Map<string, Map<string, any>>;
-
-interface ScrollIntoViewParams {
-  page: number;
-  y: number;
-  id: string;
-}
-
-export const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
-export type ScrollIntoViewMap = TypedMap<ScrollIntoViewParams>;
+  BuildLog,
+  BuildLogs,
+  ScrollIntoViewMap,
+  ScrollIntoViewRecord,
+} from "./types";
+import { ensureTargetPathIsCorrect, pdf_path } from "./util";
 
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
