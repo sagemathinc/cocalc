@@ -415,8 +415,6 @@ export class SyncDoc extends EventEmitter {
   });
 
   private getFileServerPath = () => {
-    // id of who the user *wants* to be the file server.
-    this.path;
     if (this.path?.endsWith(".sage-jupyter2")) {
       // treating jupyter as a weird special case here.
       return auxFileToOriginal(this.path);
@@ -1557,6 +1555,14 @@ export class SyncDoc extends EventEmitter {
         path: this.path,
         mode: "w",
       });
+      // also check on the original file in case of Jupyter:
+      const path = this.getFileServerPath();
+      if (path != this.path) {
+        await callback2(this.client.path_access, {
+          path,
+          mode: "w",
+        });
+      }
       // no error -- it is NOT read only
       return false;
     } catch (err) {

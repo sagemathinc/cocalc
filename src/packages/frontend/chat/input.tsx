@@ -70,6 +70,7 @@ export default function ChatInput({
     () => redux.getStore("account").get_account_id(),
     [],
   );
+
   const [input, setInput] = useState<string>(() => {
     const dbInput = syncdb
       ?.get_one({
@@ -85,6 +86,7 @@ export default function ChatInput({
     const input = dbInput ?? propsInput;
     return input;
   });
+  const currentInputRef = useRef<string>(input);
 
   const isMountedRef = useIsMountedRef();
   const lastSavedRef = useRef<string | null>(null);
@@ -97,7 +99,6 @@ export default function ChatInput({
       // but definitely don't save (thus updating active) if
       // the input didn't really change, since we use active for
       // showing that a user is writing to other users.
-      console.log("saveChat", { date });
       const input0 = syncdb
         .get_one({
           event: "draft",
@@ -123,8 +124,41 @@ export default function ChatInput({
       }
     },
     SAVE_DEBOUNCE_MS,
-    { leading: true },
+    {
+      leading: true,
+    },
   );
+
+  useEffect(() => {
+    return () => {
+      // save before unmounting.  This is very important since if a new reply comes in,
+      // then the input component gets unmounted, then remounted BELOW the reply.
+      // Note: it is still slightly annoying, due to loss of focus... however, data
+      // loss is NOT ok, whereas loss of focus is.
+      const input = currentInputRef.current;
+      if (input == null || syncdb == null) {
+        return;
+      }
+      if (
+        syncdb.get_one({
+          event: "draft",
+          sender_id,
+          date,
+        }) == null
+      ) {
+        return;
+      }
+
+      syncdb.set({
+        event: "draft",
+        sender_id,
+        input,
+        date, // it's a primary key so can't use this to represent when user last edited this; use other date for editing past chats.
+        active: Date.now(),
+      });
+      syncdb.commit();
+    };
+  }, []);
 
   useEffect(() => {
     if (syncdb == null) return;
@@ -138,6 +172,7 @@ export default function ChatInput({
       const input = x?.get("input");
       if (input != null && input !== lastSavedRef.current) {
         setInput(input);
+        currentInputRef.current = input;
         lastSavedRef.current = null;
       }
     };
@@ -161,6 +196,7 @@ export default function ChatInput({
       enableMentions={true}
       submitMentionsRef={submitMentionsRef}
       onChange={(input) => {
+        currentInputRef.current = input;
         /* BUG: in Markdown mode this stops getting
         called after you paste in an image.  It works
         fine in Slate/Text mode. See

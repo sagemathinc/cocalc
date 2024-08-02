@@ -208,6 +208,7 @@ addCommands({
     }),
   },
   undo: {
+    disabled: ({ readOnly }) => readOnly,
     stayOpenOnClick: true,
     group: "undo-redo",
     pos: 0,
@@ -225,6 +226,7 @@ addCommands({
     },
   },
   redo: {
+    disabled: ({ readOnly }) => readOnly,
     stayOpenOnClick: true,
     group: "undo-redo",
     pos: 1,
@@ -560,6 +562,7 @@ addCommands({
   },
 
   delete: {
+    disabled: ({ readOnly }) => readOnly,
     group: "delete",
     icon: "trash",
     title: "Delete this file",
@@ -568,6 +571,7 @@ addCommands({
   },
 
   rename: {
+    disabled: ({ readOnly }) => readOnly,
     pos: 0,
     group: "misc-file-actions",
     icon: "swap",
@@ -600,6 +604,7 @@ addCommands({
     ...fileAction("copy"),
   },
   move_file: {
+    disabled: ({ readOnly }) => readOnly,
     pos: 4,
     group: "misc-file-actions",
     icon: "move",
@@ -687,6 +692,7 @@ addCommands({
   },
   save: {
     pos: 0,
+    disabled: ({ readOnly }) => readOnly,
     group: "save",
     icon: "save",
     title: "Save this file to disk",
@@ -709,7 +715,7 @@ addCommands({
     pos: 5,
     group: "help-link",
     icon: "comment",
-    label: "Chat With People or AI",
+    label: "Chat With Collaborators or AI",
     button: "Chat",
     title:
       "Open chat on the side of this file for chatting with project collaborators or AI about this file.",

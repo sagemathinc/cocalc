@@ -97,6 +97,7 @@ interface CellListProps {
   use_windowed_list?: boolean;
   llmTools?: LLMTools;
   computeServerId?: number;
+  read_only?: boolean;
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
@@ -126,6 +127,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     use_windowed_list,
     llmTools,
     computeServerId,
+    read_only,
   } = props;
 
   const cell_list_node = useRef<HTMLElement | null>(null);
@@ -478,6 +480,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           isFirst={isFirst}
           isLast={isLast}
           dragHandle={dragHandle}
+          read_only={read_only}
         />
       </div>
     );

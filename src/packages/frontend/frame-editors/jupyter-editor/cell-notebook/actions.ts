@@ -356,6 +356,9 @@ export class NotebookFrameActions {
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
+    if (this.jupyter_actions.store.get("read_only") && mode == "edit") {
+      return;
+    }
     if (mode == "edit") {
       // If we're changing to edit mode and current cell is a markdown
       // cell, switch it to the codemirror editor view.

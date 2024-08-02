@@ -501,7 +501,7 @@ export class ManageCommands {
     }
     // TODO: handle when cmd.confirm is defined.
     return {
-      disabled: cmd.disabled?.(this),
+      disabled: cmd.disabled?.(this) || allChildrenAreDisabled(children),
       label,
       onClick,
       key: cmd.stayOpenOnClick ? `${key}-${STAY_OPEN_ON_CLICK}` : key,
@@ -650,4 +650,16 @@ export class ManageCommands {
     }
     return ManageCommands.allCommandPositions;
   };
+}
+
+function allChildrenAreDisabled(children) {
+  if (children == null || children.length == 0) {
+    return false;
+  }
+  for(const child of children) {
+    if(!child.disabled) {
+      return false;
+    }
+  }
+  return true;
 }

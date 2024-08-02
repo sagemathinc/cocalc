@@ -21,13 +21,19 @@ const IframeHtml = ({ value }) => {
   // TODO: Might wnat to switch to https://www.npmjs.com/package/iframe-resizer-react
   // instead of the hack of timeouts below...
   useEffect(() => {
-    if (iframeRef.current == null) return;
+    if (iframeRef.current == null) {
+      return;
+    }
     const f = () => {
       if (iframeRef.current != null && isMountedRef.current) {
-        iframeRef.current.height = `${
-          iframeRef.current.contentWindow.document.documentElement
-            ?.offsetHeight ?? 600
-        }px`;
+        try {
+          iframeRef.current.height = `${
+            iframeRef.current.contentWindow.document.documentElement
+              ?.offsetHeight ?? 600
+          }px`;
+        } catch (_err) {
+          // this fails on the share server for security reasons, which is good.
+        }
       }
     };
     f();
