@@ -7,7 +7,6 @@
 
 import { Checkbox, Tooltip } from "antd";
 import { Map } from "immutable";
-import { ButtonGroup } from "react-bootstrap";
 import { redux } from "../../app-framework";
 import { Loading } from "../../components";
 import { TimeTravelActions, TimeTravelState } from "./actions";
@@ -323,6 +322,7 @@ export function TimeTravel(props: Props) {
         actions={props.actions}
         version={props.desc.get("version")}
         max={versions.size - 1}
+        versions={versions}
       />
     );
   };
@@ -415,7 +415,7 @@ export function TimeTravel(props: Props) {
         style={{
           background: props.is_current ? "#fafafa" : "#ddd",
           borderBottom: "1px solid #ccc",
-          marginLeft: "5px",
+          padding: "5px",
         }}
       >
         {renderChangesMode()}
@@ -442,13 +442,13 @@ export function TimeTravel(props: Props) {
           </Checkbox>
         </Tooltip>
         {renderNavigationButtons()}
-        <ButtonGroup style={{ margin: "0 10px" }}>
+        <div style={{ display: "inline-flex", margin: "0 5px" }}>
           {renderLoadFullHistory()}
           {renderOpenFile()}
           {renderRevertFile()}
           {renderOpenSnapshots()}
           {renderExport()}
-        </ButtonGroup>
+        </div>
         {renderVersion()}
         {", "}
         {renderAuthor()}

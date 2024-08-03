@@ -4,7 +4,7 @@
  */
 
 import { Rendered, Component } from "../../app-framework";
-import { Button } from "react-bootstrap";
+import { Button } from "antd";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
 

@@ -3,35 +3,45 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Component, Rendered } from "../../app-framework";
-
+import { Slider } from "antd";
 import { TimeTravelActions } from "./actions";
+import { TimeAgo } from "../../components";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
   id: string;
   actions: TimeTravelActions;
-
   version?: number;
+  versions;
   max: number;
 }
 
-export class NavigationSlider extends Component<Props> {
-  private handle_change(event: any): void {
-    this.props.actions.set_version(this.props.id, parseInt(event.target.value));
+export function NavigationSlider({
+  id,
+  actions,
+  version,
+  versions,
+  max,
+}: Props) {
+  const { isVisible } = useFrameContext();
+  if (version == null || !isVisible) {
+    return <div />;
   }
+  const renderTooltip = (index) => {
+    const date = versions.get(index);
+    if (date == null) return; // shouldn't happen
+    return <TimeAgo date={date} />;
+  };
 
-  public render(): Rendered {
-    const { version, max } = this.props;
-    if (version == null) return <div />;
-    return (
-      <input
-        style={{ cursor: "pointer" }}
-        type="range"
-        min={0}
-        max={max}
-        value={version}
-        onChange={this.handle_change.bind(this)}
-      />
-    );
-  }
+  return (
+    <Slider
+      min={0}
+      max={max}
+      value={version}
+      onChange={(value) => {
+        actions.set_version(id, value);
+      }}
+      tooltip={{ formatter: renderTooltip, placement: "bottom", open: true }}
+    />
+  );
 }

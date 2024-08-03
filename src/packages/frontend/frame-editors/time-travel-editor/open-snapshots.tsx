@@ -10,8 +10,7 @@
   just links to the info from backups about *this* file.
 */
 
-import { Button } from "react-bootstrap";
-
+import { Button } from "antd";
 import { Rendered, Component } from "@cocalc/frontend/app-framework";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "@cocalc/frontend/components";

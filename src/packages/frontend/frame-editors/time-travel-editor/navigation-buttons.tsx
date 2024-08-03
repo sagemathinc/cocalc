@@ -12,55 +12,50 @@ Navigation Buttons to:
  - last
 */
 
-import { Button, ButtonGroup } from "react-bootstrap";
-import { Component, Rendered } from "../../app-framework";
-import { Icon } from "../../components";
-
+import { Button } from "antd";
+import { Icon } from "@cocalc/frontend/components";
 import { TimeTravelActions } from "./actions";
 
 interface Props {
   id: string;
   actions: TimeTravelActions;
-
   version0: number;
   version1: number;
   max: number;
 }
 
-export class NavigationButtons extends Component<Props> {
-  public render(): Rendered {
-    const { version0, version1, max } = this.props;
-    return (
-      <ButtonGroup>
-        <Button
-          title={"First version"}
-          onClick={() => this.props.actions.step(this.props.id, -version0)}
-          disabled={version0 != null && version0 <= 0}
-        >
-          <Icon name="backward" />
-        </Button>
-        <Button
-          title={"Previous version"}
-          onClick={() => this.props.actions.step(this.props.id, -1)}
-          disabled={version0 != null && version0 <= 0}
-        >
-          <Icon name="step-backward" />
-        </Button>
-        <Button
-          title={"Next version"}
-          onClick={() => this.props.actions.step(this.props.id, 1)}
-          disabled={version1 != null && version1 >= max}
-        >
-          <Icon name="step-forward" />
-        </Button>
-        <Button
-          title={"Most recent version"}
-          onClick={() => this.props.actions.step(this.props.id, max - version1)}
-          disabled={version1 != null && version1 >= max}
-        >
-          <Icon name="forward" />
-        </Button>
-      </ButtonGroup>
-    );
-  }
+export function NavigationButtons(props: Props) {
+  const { version0, version1, max } = props;
+  return (
+    <div style={{ display: "inline-flex" }}>
+      <Button
+        title={"First version"}
+        onClick={() => props.actions.step(props.id, -version0)}
+        disabled={version0 != null && version0 <= 0}
+      >
+        <Icon name="backward" />
+      </Button>
+      <Button
+        title={"Previous version"}
+        onClick={() => props.actions.step(props.id, -1)}
+        disabled={version0 != null && version0 <= 0}
+      >
+        <Icon name="step-backward" />
+      </Button>
+      <Button
+        title={"Next version"}
+        onClick={() => props.actions.step(props.id, 1)}
+        disabled={version1 != null && version1 >= max}
+      >
+        <Icon name="step-forward" />
+      </Button>
+      <Button
+        title={"Most recent version"}
+        onClick={() => props.actions.step(props.id, max - version1)}
+        disabled={version1 != null && version1 >= max}
+      >
+        <Icon name="forward" />
+      </Button>
+    </div>
+  );
 }

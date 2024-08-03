@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "react-bootstrap";
+import { Button } from "antd";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
 
