@@ -45,7 +45,7 @@ const EXTENSION = ".time-travel";
   changes_mode: boolean;
 }*/
 
-interface TimeTravelState extends CodeEditorState {
+export interface TimeTravelState extends CodeEditorState {
   versions: List<Date>;
   loading: boolean;
   has_full_history: boolean;
