@@ -274,10 +274,9 @@ async function startServer(): Promise<void> {
     });
 
     const protocol = program.httpsKey ? "https" : "http";
+    const target = `${protocol}://${program.hostname}:${port}${basePath}`;
 
-    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${protocol}://${
-      program.hostname
-    }:${port}${basePath}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
+    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${target}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
       basePath.length <= 1
         ? ""
         : "If you are developing cocalc inside of cocalc, take the URL of the host cocalc\nand append " +
@@ -286,6 +285,26 @@ async function startServer(): Promise<void> {
     }\n\n-----------\n\n`;
     winston.info(msg);
     console.log(msg);
+
+    if (
+      program.websocketServer &&
+      program.nextServer &&
+      process.env["NODE_ENV"] != "production"
+    ) {
+      // This is entirely to deal with conflicts between both nextjs and webpack when doing
+      // hot module reloading.  They fight with each other, and the we -- the developers --
+      // win only AFTER the fight is done. So we force the fight automatically, rather than
+      // manually, which is confusing.
+      console.log(
+        `launch get of ${target} so that webpack and nextjs websockets can fight things out`,
+      );
+      const process = spawn(
+        "chromium-browser",
+        ["--no-sandbox", "--headless", target],
+        { detached: true, stdio: "ignore" },
+      );
+      process.unref();
+    }
   }
 
   if (program.all || program.mentions) {
