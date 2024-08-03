@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Rendered, Component } from "../../app-framework";
 import { Button } from "react-bootstrap";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
@@ -13,22 +12,18 @@ interface Props {
   version: Date | undefined;
 }
 
-export class RevertFile extends Component<Props> {
-  public render(): Rendered {
-    return (
-      <Button
-        title={`Revert file to the displayed version (this makes a new version, so nothing is lost)`}
-        onClick={() => {
-          if (this.props.version != null)
-            this.props.actions.revert(this.props.version);
-        }}
-        disabled={
-          this.props.version == null ||
-          this.props.actions.syncdoc?.is_read_only()
+export function RevertFile(props: Props) {
+  return (
+    <Button
+      title={`Revert file to the displayed version (this makes a new version, so nothing is lost)`}
+      onClick={() => {
+        if (props.version != null) {
+          props.actions.revert(props.version);
         }
-      >
-        <Icon name="undo" /> Revert
-      </Button>
-    );
-  }
+      }}
+      disabled={props.version == null || props.actions.syncdoc?.is_read_only()}
+    >
+      <Icon name="undo" /> Revert
+    </Button>
+  );
 }
