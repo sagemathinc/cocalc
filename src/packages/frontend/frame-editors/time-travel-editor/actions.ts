@@ -27,6 +27,8 @@ import {
 } from "@cocalc/util/misc";
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { webapp_client } from "../../webapp-client";
+import { exec } from "@cocalc/frontend/frame-editors/generic/client";
+
 import {
   Actions as CodeEditorActions,
   CodeEditorState,
@@ -60,6 +62,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   public syncdoc?: SyncDoc;
   private first_load: boolean = true;
   public ambient_actions?: CodeEditorActions;
+  private gitTimestampToHash: { [t: number]: string } = {};
 
   public _init2(): void {
     const { head, tail } = path_split(this.path);
@@ -136,13 +139,22 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   public async load_full_history(): Promise<void> {
-    if (this.store.get("has_full_history") || this.syncdoc == null) return;
+    if (
+      this.store.get("has_full_history") ||
+      this.syncdoc == null ||
+      this.store.get("git_mode")
+    )
+      return;
     await this.syncdoc.load_full_history(); // todo -- error reporting ...?
     this.setState({ has_full_history: true });
     this.syncdoc_changed(); // load new versions list.
   }
 
   private syncdoc_changed(): void {
+    if (this.store.get("git_mode")) {
+      this.updateGitVersions();
+      return;
+    }
     if (this.syncdoc == null) return;
     if (this.syncdoc?.get_state() != "ready") {
       return;
@@ -180,6 +192,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   // Get the given version of the document.
   public get_doc(version: Date): any {
+    if (this.store.get("git_mode")) {
+      return this.gitShow(version);
+    }
     if (this.syncdoc == null) return;
     const state = this.syncdoc.get_state();
     if (state != "ready") return;
@@ -295,6 +310,17 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   }
 
+  public setGitMode(id: string, git_mode: boolean): void {
+    for (const actions of [this, this.ambient_actions]) {
+      if (actions == null) continue;
+      const node = actions._get_frame_node(id);
+      if (node == null) continue;
+      git_mode = !!git_mode;
+      actions.set_frame_tree({ id, git_mode });
+      return;
+    }
+    this.updateGitVersions();
+  }
   public set_versions(id: string, version0: number, version1: number): void {
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null || actions._get_frame_node(id) == null) continue;
@@ -345,6 +371,57 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   // It will be very interesting and useful, because it will allow for
   // linking to a specific line/cell at a **specific point in time**.
   // async programmatical_goto_line() {}
+
+  private gitCommand = async (args: string[], commit?: string) => {
+    const { head, tail } = path_split(this.docpath);
+    return await exec({
+      command: "git",
+      args: args.concat([`${commit ? commit + ":" : ""}${tail}`]),
+      path: head,
+      project_id: this.project_id,
+      err_on_exit: true,
+    });
+  };
+
+  private updateGitVersions = async () => {
+    // versions is an ordered list of Date objects, one for each commit that involves this file.
+    try {
+      const { stdout } = await this.gitCommand([
+        "log",
+        `--format="%at %H"`,
+        "--",
+      ]);
+      this.gitTimestampToHash = {};
+      const versions: Date[] = [];
+      for (const x of stdout.split("\n")) {
+        const [t0, h] = x.slice(1, -1).split(" ");
+        if (!x || !t0 || !h) {
+          continue;
+        }
+        const t = parseInt(t0) * 1000;
+        this.gitTimestampToHash[t] = h.trim();
+        versions.push(new Date(t));
+      }
+      this.setState({ versions: List<Date>(versions) });
+    } catch (err) {
+      this.set_error(`${err}`);
+      return;
+    }
+  };
+
+  private gitShow = async (version: Date): Promise<string> => {
+    const h = this.gitTimestampToHash[version.valueOf()];
+    if (h == null) {
+      return "";
+    }
+    try {
+      const { stdout } = await this.gitCommand(["show"], h);
+      return stdout;
+    } catch (err) {
+      this.set_error(`${err}`);
+      return "";
+    }
+  };
 }
 
 export { TimeTravelActions as Actions };

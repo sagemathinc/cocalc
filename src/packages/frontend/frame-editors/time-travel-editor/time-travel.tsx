@@ -196,7 +196,7 @@ class TimeTravel extends Component<Props> {
 
   private render_document_jupyter_notebook(
     syncdoc: SyncDoc,
-    version: Date
+    version: Date,
   ): Rendered {
     return (
       <JupyterHistoryViewer
@@ -455,6 +455,16 @@ class TimeTravel extends Component<Props> {
             </Checkbox>
           </Tooltip>
         )}
+        <Tooltip title="Show Git history instead of CoCalc edit history">
+          <Checkbox
+            defaultChecked={!!this.props.desc.get("git_mode")}
+            onChange={(e) =>
+              this.props.actions.setGitMode(this.props.id, e.target.checked)
+            }
+          >
+            Git
+          </Checkbox>
+        </Tooltip>
         {this.render_navigation_buttons()}
         <ButtonGroup style={{ margin: "0 10px" }}>
           {this.render_load_full_history()}

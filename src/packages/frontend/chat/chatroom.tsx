@@ -197,7 +197,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
           }
           placement="left"
         >
-          <Icon name="arrow-down" /> <VisibleMDLG>New</VisibleMDLG>
+          <Icon name="arrow-down" /> <VisibleMDLG>Newest</VisibleMDLG>
         </Tip>
       </Button>
     );
