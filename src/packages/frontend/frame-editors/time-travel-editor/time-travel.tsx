@@ -202,7 +202,7 @@ export function TimeTravel(props: Props) {
       <Document
         actions={props.actions}
         id={props.id}
-        doc={doc.to_str()}
+        value={doc.to_str()}
         path={doc.value == null ? "a.js" : docpath}
         project_id={props.project_id}
         font_size={props.font_size}
@@ -394,9 +394,7 @@ export function TimeTravel(props: Props) {
         id={props.id}
         actions={props.actions}
         disabled={versions.size <= 1}
-        changes_mode={
-          props.desc != null && props.desc.get("changes_mode", false)
-        }
+        changes_mode={props.desc?.get("changes_mode", false)}
       />
     );
   };
@@ -419,18 +417,19 @@ export function TimeTravel(props: Props) {
         }}
       >
         {renderChangesMode()}
-        {HAS_SPECIAL_VIEWER.has(docext ?? "") && (
-          <Tooltip title="Display underlying file as text">
-            <Checkbox
-              defaultChecked={!!props.desc.get("text_mode")}
-              onChange={(e) =>
-                props.actions.setTextMode(props.id, e.target.checked)
-              }
-            >
-              Text
-            </Checkbox>
-          </Tooltip>
-        )}
+        {!props.desc?.get("changes_mode", false) &&
+          HAS_SPECIAL_VIEWER.has(docext ?? "") && (
+            <Tooltip title="Display underlying file as text">
+              <Checkbox
+                defaultChecked={!!props.desc.get("text_mode")}
+                onChange={(e) =>
+                  props.actions.setTextMode(props.id, e.target.checked)
+                }
+              >
+                Text
+              </Checkbox>
+            </Tooltip>
+          )}
         <Tooltip title="Show Git history instead of CoCalc edit history">
           <Checkbox
             defaultChecked={!!props.desc.get("git_mode")}
