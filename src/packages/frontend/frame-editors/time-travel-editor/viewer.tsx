@@ -6,10 +6,10 @@ import type { Document } from "@cocalc/sync/editor/generic/types";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { TextDocument } from "./document";
 import { TasksHistoryViewer } from "../../editors/task-editor/history-viewer";
-import { filenameMode } from "@cocalc/frontend/file-associations";
 import { HistoryViewer as JupyterHistoryViewer } from "../../jupyter/history-viewer";
 import { SagewsCodemirror } from "./sagews-codemirror";
 import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
+import { isObjectDoc } from "./view-document";
 
 export function Viewer({
   ext,
@@ -37,10 +37,7 @@ export function Viewer({
       <TextDocument
         value={doc.to_str()}
         id={id}
-        path={
-          /* TODO: this is to tell if json lines or text */
-          filenameMode(path, "") == "" ? "a.js" : path
-        }
+        path={isObjectDoc(path) ? "a.js" : path}
         project_id={project_id}
         font_size={font_size}
         editor_settings={editor_settings}

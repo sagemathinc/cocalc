@@ -1,46 +1,61 @@
 import { fromJS } from "immutable";
 import type { Document } from "@cocalc/sync/editor/generic/types";
+import { filenameMode } from "@cocalc/frontend/file-associations";
+
+export function isObjectDoc(path) {
+  /* not a great way to tell if json lines or text? */
+  const obj = "__cocalc__object_doc__";
+  return filenameMode(path, obj) == obj;
+}
 
 export class ViewDocument implements Document {
-  private v: any[] = [];
+  private v: any[] | null;
   private str: string;
 
-  constructor(str: string) {
+  constructor(path: string, str: string) {
     this.str = str;
-    const v: any[] = [];
-    for (const x of str.split("\n")) {
-      v.push(JSON.parse(x));
+    if (isObjectDoc(path)) {
+      const v: any[] = [];
+      for (const x of str.split("\n")) {
+        v.push(JSON.parse(x));
+      }
+      this.v = v;
+    } else {
+      this.v = null;
     }
-    this.v = v;
   }
 
-  // @ts-ignore
-  apply_patch(_patch) {
+  apply_patch(_patch): any {
     throw Error("not implemented");
   }
 
-  // @ts-ignore
-  make_patch(_doc) {
+  make_patch(_doc): any {
     throw Error("not implemented");
   }
 
-  // @ts-ignore
-  is_equal(_doc) {
+  is_equal(_doc): boolean {
     throw Error("not implemented");
   }
 
-  to_str() {
+  to_str(): string {
     return this.str;
   }
 
   // @ts-ignore
-  set(_x) {
+  set(_x: any): any {
     throw Error("not implemented");
   }
 
-  get(query) {
+  get(query?) {
+    const v = this.v;
+    if (v == null) {
+      return [];
+    }
+    if (query == null) {
+      return fromJS(v);
+    }
     const matches: any[] = [];
-    for (const x of this.v) {
+    for (const x of v) {
       for (const key in query) {
         if (x[key] != query[key]) {
           continue;
@@ -53,7 +68,11 @@ export class ViewDocument implements Document {
   }
 
   get_one(query) {
-    for (const x of this.v) {
+    const v = this.v;
+    if (v == null) {
+      return;
+    }
+    for (const x of v) {
       for (const key in query) {
         if (x[key] != query[key]) {
           continue;
@@ -65,16 +84,16 @@ export class ViewDocument implements Document {
   }
 
   // @ts-ignore
-  delete(_query) {
+  delete(_query): any {
     throw Error("not implemented");
   }
 
   // optional info about what changed going from prev to this.
-  changes(_prev) {
+  changes(_prev): any {
     throw Error("not implemented");
   }
   // how many in this document (length of string number of records in db-doc, etc.)
   count() {
-    return this.v.length;
+    return this.v?.length ?? this.str.length;
   }
 }

@@ -5,6 +5,7 @@
 
 // Time travel editor react component.
 
+import { useEffect, useState } from "react";
 import { Checkbox, Tooltip } from "antd";
 import { Map } from "immutable";
 import { redux } from "../../app-framework";
@@ -27,6 +28,7 @@ import { to_ipynb } from "../../jupyter/history-viewer";
 import { SagewsDiff } from "./sagews-diff";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Viewer } from "./viewer";
+import type { Document } from "@cocalc/sync/editor/generic/types";
 
 const HAS_SPECIAL_VIEWER = new Set([
   "tasks",
@@ -60,6 +62,8 @@ export function TimeTravel(props: Props) {
   const docext = useEditor("docext");
   const git = useEditor("git");
 
+  const [doc, setDoc] = useState<Document | undefined>(undefined);
+
   const getVersion = (): Date | undefined => {
     if (props.desc == null || versions == null) return;
     const version = props.desc.get("version");
@@ -67,6 +71,31 @@ export function TimeTravel(props: Props) {
     if (d != null) return d;
     return versions.get(-1);
   };
+
+  const getDoc = (version?: number | Date | undefined) => {
+    if (version == null) {
+      version = getVersion();
+    } else if (typeof version == "number") {
+      if (versions == null) return;
+      version = versions.get(version);
+    }
+    if (version == null) return;
+    return props.actions.get_doc(version);
+  };
+
+  useEffect(() => {
+    const version = getVersion();
+    if (version != null) {
+      if (props.desc?.get("git_mode")) {
+        (async () => {
+          const doc = await props.actions.gitDoc(version);
+          setDoc(doc ?? undefined);
+        })();
+      } else {
+        setDoc(getDoc(version));
+      }
+    }
+  }, [props.desc?.get("version"), versions]);
 
   const renderVersion = () => {
     if (props.desc == null || versions == null) return;
@@ -86,51 +115,6 @@ export function TimeTravel(props: Props) {
       if (date == null || version == null) return;
       return <Version date={date} number={version + 1} max={versions.size} />;
     }
-  };
-
-  const getDoc = (version?: number | Date | undefined) => {
-    if (version == null) {
-      version = getVersion();
-    } else if (typeof version == "number") {
-      if (versions == null) return;
-      version = versions.get(version);
-    }
-    if (version == null) return;
-    return props.actions.get_doc(version);
-  };
-
-  const renderDocument = () => {
-    if (
-      docpath == null ||
-      docext == null ||
-      props.desc == null ||
-      props.desc.get("changes_mode")
-    ) {
-      return;
-    }
-
-    const version = getVersion();
-    if (version == null) {
-      // no versions yet, so nothing to render
-      return;
-    }
-    const doc = getDoc(version);
-    if (doc == null) {
-      return;
-    }
-    return (
-      <Viewer
-        ext={docext}
-        doc={doc}
-        textMode={props.desc.get("text_mode")}
-        actions={props.actions}
-        id={props.id}
-        path={docpath ? docpath : "a.js"}
-        project_id={props.project_id}
-        font_size={props.font_size}
-        editor_settings={props.editor_settings}
-      />
-    );
   };
 
   const getDiffValues = ():
@@ -392,15 +376,6 @@ export function TimeTravel(props: Props) {
     return <Loading theme={"medium"} />;
   };
 
-  const renderView = () => {
-    return (
-      <>
-        {renderDocument()}
-        {renderDiff()}
-      </>
-    );
-  };
-
   if (loading) {
     return renderLoading();
   }
@@ -408,7 +383,25 @@ export function TimeTravel(props: Props) {
     <div className="smc-vfill">
       {renderControls()}
       {renderTimeSelect()}
-      {renderView()}
+      <>
+        {doc != null &&
+          docpath != null &&
+          docext != null &&
+          !props.desc?.get("changes_mode") && (
+            <Viewer
+              ext={docext}
+              doc={doc}
+              textMode={props.desc.get("text_mode")}
+              actions={props.actions}
+              id={props.id}
+              path={docpath ? docpath : "a.js"}
+              project_id={props.project_id}
+              font_size={props.font_size}
+              editor_settings={props.editor_settings}
+            />
+          )}
+        {renderDiff()}
+      </>
     </div>
   );
 }

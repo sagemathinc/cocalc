@@ -28,7 +28,7 @@ import {
 import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
 import { webapp_client } from "../../webapp-client";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
-
+import { ViewDocument } from "./view-document";
 import {
   Actions as CodeEditorActions,
   CodeEditorState,
@@ -163,10 +163,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       // syncdoc_changed -- can get called at any time, so have to be extra careful
       versions = List<Date>(this.syncdoc.all_versions());
     } catch (err) {
-      console.warn(
-        "ignoring issue with time travel due to syncdoc not being ready",
-        err,
-      );
       this.setState({ versions: List([]) });
       return;
     }
@@ -296,25 +292,19 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   public setTextMode(id: string, text_mode: boolean): void {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node == null) continue;
-      text_mode = !!text_mode;
-      actions.set_frame_tree({ id, text_mode });
-      break;
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      return;
     }
+    this.set_frame_tree({ id, text_mode: !!text_mode });
   }
 
   public setGitMode(id: string, git_mode: boolean): void {
-    for (const actions of [this, this.ambient_actions]) {
-      if (actions == null) continue;
-      const node = actions._get_frame_node(id);
-      if (node == null) continue;
-      git_mode = !!git_mode;
-      actions.set_frame_tree({ id, git_mode });
-      break;
+    const node = this._get_frame_node(id);
+    if (node == null) {
+      return;
     }
+    this.set_frame_tree({ id, git_mode: !!git_mode });
     this.updateGitVersions();
   }
 
@@ -371,9 +361,16 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   private gitCommand = async (args: string[], commit?: string) => {
     const { head, tail } = path_split(this.docpath);
+    console.log({
+      command: "git",
+      args: args.concat([`${commit ? commit + ":./" : ""}${tail}`]),
+      path: head,
+      project_id: this.project_id,
+      err_on_exit: true,
+    });
     return await exec({
       command: "git",
-      args: args.concat([`${commit ? commit + ":" : ""}${tail}`]),
+      args: args.concat([`${commit ? commit + ":./" : ""}${tail}`]),
       path: head,
       project_id: this.project_id,
       err_on_exit: true,
@@ -411,18 +408,26 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  gitShow = async (version: Date): Promise<string> => {
+  private gitShow = async (version: Date): Promise<string | undefined> => {
     const h = this.gitTimestampToHash[version.valueOf()];
     if (h == null) {
-      return "";
+      return;
     }
     try {
       const { stdout } = await this.gitCommand(["show"], h);
       return stdout;
     } catch (err) {
       this.set_error(`${err}`);
-      return "";
+      return;
     }
+  };
+
+  gitDoc = async (version: Date): Promise<ViewDocument | undefined> => {
+    const str = await this.gitShow(version);
+    if (str == null) {
+      return undefined;
+    }
+    return new ViewDocument(this.docpath, str);
   };
 }
 
