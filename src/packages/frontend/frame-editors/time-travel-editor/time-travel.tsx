@@ -272,10 +272,17 @@ export function TimeTravel(props: Props) {
   };
 
   const renderRevertFile = () => {
-    if (changesMode) {
+    if (changesMode || doc == null) {
       return;
     }
-    return <RevertFile actions={props.actions} version={getVersion()} />;
+    return (
+      <RevertFile
+        actions={props.actions}
+        version={getVersion()}
+        id={props.id}
+        doc={doc}
+      />
+    );
   };
 
   const renderChangesMode = () => {

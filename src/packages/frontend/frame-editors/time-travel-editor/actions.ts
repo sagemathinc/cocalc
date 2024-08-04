@@ -386,13 +386,21 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   // Revert the live version of the document to a specific version */
-  revert = async (version: Date): Promise<void> => {
-    if (this.syncdoc == null) return;
-    this.syncdoc.revert(version);
-    this.syncdoc.commit();
+  revert = async (id: string, version: Date, doc: Document): Promise<void> => {
+    const { syncdoc } = this;
+    if (syncdoc == null) {
+      return;
+    }
+    const node = this.getFrameNodeGlobal(id);
+    syncdoc.commit();
+    if (node.get("git_mode")) {
+      syncdoc.from_str(doc.to_str());
+    } else {
+      syncdoc.revert(version);
+    }
+    await syncdoc.commit();
     await this.open_file();
-    if (this.syncdoc == null) return;
-    this.syncdoc.emit("change");
+    syncdoc.emit("change");
   };
 
   open_snapshots = (): void => {
