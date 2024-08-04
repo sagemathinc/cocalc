@@ -23,8 +23,8 @@ import videoExtensions from "video-extensions";
 import audioExtensions from "audio-extensions";
 import { filename_extension } from "@cocalc/util/misc";
 
-export function filenameMode(path: string): string {
-  return file_associations[filename_extension(path)]?.opts?.mode ?? "text";
+export function filenameMode(path: string, fallback = "text"): string {
+  return file_associations[filename_extension(path)]?.opts?.mode ?? fallback;
 }
 
 const codemirror_associations: { [ext: string]: string } = {

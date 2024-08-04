@@ -10,7 +10,7 @@ Render a static version of a document for use in TimeTravel.
 import { fromJS } from "immutable";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 
-export function Document(props) {
+export function TextDocument(props) {
   return (
     <div className="smc-vfill" style={{ overflowY: "auto" }}>
       <CodemirrorEditor

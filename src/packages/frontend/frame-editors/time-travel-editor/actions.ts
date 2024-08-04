@@ -35,6 +35,7 @@ import {
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
+import type { Document } from "@cocalc/sync/editor/generic/types";
 
 const EXTENSION = ".time-travel";
 
@@ -51,6 +52,7 @@ export interface TimeTravelState extends CodeEditorState {
   has_full_history: boolean;
   docpath: string;
   docext: string;
+  git?: boolean;
   //frame_states: Map<string, any>; // todo: really map from frame_id to FrameState as immutable map.
 }
 
@@ -83,6 +85,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       docext: this.docext,
     });
     this.init_syncdoc();
+    this.updateGitVersions();
   }
 
   public _raw_default_frame_tree(): FrameTree {
@@ -151,10 +154,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   private syncdoc_changed(): void {
-    if (this.store.get("git_mode")) {
-      this.updateGitVersions();
-      return;
-    }
     if (this.syncdoc == null) return;
     if (this.syncdoc?.get_state() != "ready") {
       return;
@@ -191,10 +190,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   // Get the given version of the document.
-  public get_doc(version: Date): any {
-    if (this.store.get("git_mode")) {
-      return this.gitShow(version);
-    }
+  public get_doc(version: Date): Document | undefined {
     if (this.syncdoc == null) return;
     const state = this.syncdoc.get_state();
     if (state != "ready") return;
@@ -306,7 +302,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       if (node == null) continue;
       text_mode = !!text_mode;
       actions.set_frame_tree({ id, text_mode });
-      return;
+      break;
     }
   }
 
@@ -317,10 +313,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       if (node == null) continue;
       git_mode = !!git_mode;
       actions.set_frame_tree({ id, git_mode });
-      return;
+      break;
     }
     this.updateGitVersions();
   }
+
   public set_versions(id: string, version0: number, version1: number): void {
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null || actions._get_frame_node(id) == null) continue;
@@ -402,14 +399,19 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         this.gitTimestampToHash[t] = h.trim();
         versions.push(new Date(t));
       }
-      this.setState({ versions: List<Date>(versions) });
+      versions.reverse();
+      this.setState({
+        git: versions.length > 0,
+        versions: List<Date>(versions),
+      });
     } catch (err) {
       this.set_error(`${err}`);
+      this.setState({ git: false });
       return;
     }
   };
 
-  private gitShow = async (version: Date): Promise<string> => {
+  gitShow = async (version: Date): Promise<string> => {
     const h = this.gitTimestampToHash[version.valueOf()];
     if (h == null) {
       return "";

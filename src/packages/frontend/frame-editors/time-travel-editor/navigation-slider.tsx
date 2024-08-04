@@ -35,13 +35,14 @@ export function NavigationSlider({
 
   return (
     <Slider
+      style={{ margin: "10px 15px" }}
       min={0}
       max={max}
       value={version}
       onChange={(value) => {
         actions.set_version(id, value);
       }}
-      tooltip={{ formatter: renderTooltip, placement: "bottom", open: true }}
+      tooltip={{ formatter: renderTooltip, placement: "bottom" }}
     />
   );
 }

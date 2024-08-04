@@ -10,21 +10,19 @@ code to get this done for now.
 
 import { debounce } from "lodash";
 import * as CodeMirror from "codemirror";
-import { Map } from "immutable";
 import { useEffect, useRef, MutableRefObject } from "react";
-const { codemirror_editor } = require("../../editor");
-const { SynchronizedWorksheet } = require("../../sagews/sagews");
+const { codemirror_editor } = require("@cocalc/frontend/editor");
+const { SynchronizedWorksheet } = require("@cocalc/frontend/sagews/sagews");
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface Props {
-  content: string;
+  doc;
   path: string;
   project_id: string;
   font_size: number;
-  editor_settings: Map<string, any>;
 }
 
-export function SagewsCodemirror(props: Props) {
+export function SagewsCodemirror({ doc, path, project_id, font_size }: Props) {
   const { isVisible } = useFrameContext();
   const updateRef = useRef<Function>(null) as MutableRefObject<Function>;
   const cmRef = useRef<CodeMirror.Editor | null>(
@@ -41,7 +39,7 @@ export function SagewsCodemirror(props: Props) {
     }
 
     const opts = { mode: "sagews", read_only: true };
-    viewDocRef.current = codemirror_editor(props.project_id, props.path, opts);
+    viewDocRef.current = codemirror_editor(project_id, path, opts);
     cmRef.current = viewDocRef.current.codemirror;
     // insert it into the dom.
     $(viewDocRef.current.element).appendTo($(div));
@@ -54,14 +52,14 @@ export function SagewsCodemirror(props: Props) {
     };
     const worksheet = new SynchronizedWorksheet(viewDocRef.current, opts0);
 
-    const f = (content: string): void => {
+    const f = (value: string): void => {
       if (viewDocRef.current == null) {
         return;
       }
-      cmRef.current?.setValueNoJump(content);
+      cmRef.current?.setValueNoJump(value);
       worksheet.process_sage_updates();
     };
-    f(props.content);
+    f(doc.to_str());
     updateRef.current = debounce(f, 100);
   };
 
@@ -76,10 +74,10 @@ export function SagewsCodemirror(props: Props) {
   }, []);
 
   useEffect(() => {
-    updateRef.current?.(props.content);
-    viewDocRef.current?.set_font_size(cmRef.current, props.font_size);
+    updateRef.current?.(doc.to_str());
+    viewDocRef.current?.set_font_size(cmRef.current, font_size);
     cmRef.current?.refresh();
-  }, [props.font_size, props.content, isVisible]);
+  }, [font_size, doc, isVisible]);
 
   return (
     <div className="smc-vfill" style={{ overflow: "auto" }}>

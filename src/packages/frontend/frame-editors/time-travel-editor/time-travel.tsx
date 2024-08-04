@@ -10,7 +10,6 @@ import { Map } from "immutable";
 import { redux } from "../../app-framework";
 import { Loading } from "../../components";
 import { TimeTravelActions, TimeTravelState } from "./actions";
-import { Document } from "./document";
 import { Diff } from "./diff";
 import { NavigationButtons } from "./navigation-buttons";
 import { NavigationSlider } from "./navigation-slider";
@@ -24,17 +23,10 @@ import { ChangesMode } from "./changes-mode";
 import { OpenSnapshots } from "./open-snapshots";
 import { Export } from "./export";
 import json_stable from "json-stable-stringify";
-import { SyncDoc } from "@cocalc/sync/editor/generic/sync-doc";
-import { TasksHistoryViewer } from "../../editors/task-editor/history-viewer";
-import {
-  HistoryViewer as JupyterHistoryViewer,
-  to_ipynb,
-} from "../../jupyter/history-viewer";
-import { SagewsCodemirror } from "./sagews-codemirror";
+import { to_ipynb } from "../../jupyter/history-viewer";
 import { SagewsDiff } from "./sagews-diff";
-import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
+import { Viewer } from "./viewer";
 
 const HAS_SPECIAL_VIEWER = new Set([
   "tasks",
@@ -66,6 +58,7 @@ export function TimeTravel(props: Props) {
   const loading = useEditor("loading");
   const docpath = useEditor("docpath");
   const docext = useEditor("docext");
+  const git = useEditor("git");
 
   const getVersion = (): Date | undefined => {
     if (props.desc == null || versions == null) return;
@@ -115,95 +108,24 @@ export function TimeTravel(props: Props) {
     ) {
       return;
     }
+
     const version = getVersion();
-    if (version == null) return; // no versions yet, so nothing to render
-    const syncdoc = props.actions.syncdoc;
-    if (syncdoc == null) return; // no syncdoc yet so again nothing to render.
-    if (props.desc.get("text_mode")) {
-      return renderDocumentCodemirror();
+    if (version == null) {
+      // no versions yet, so nothing to render
+      return;
     }
-    // **if you change this, also change HAS_SPECIAL_VIEWER above!**
-    switch (docext) {
-      case "tasks":
-        return renderDocumentTasks(syncdoc, version);
-      case "ipynb":
-        return renderDocumentJupyterNotebook(syncdoc, version);
-      case "sagews":
-        return renderDocumentSagews();
-      case "md":
-        return (
-          <div style={{ overflow: "auto", padding: "50px 70px" }}>
-            <StaticMarkdown value={getDoc()?.to_str() ?? "Loading..."} />
-          </div>
-        );
-      case "board":
-        return (
-          <Whiteboard
-            syncdb={syncdoc}
-            version={version}
-            font_size={props.font_size}
-            mainFrameType={"whiteboard"}
-          />
-        );
-      case "slides":
-        return (
-          <Whiteboard
-            syncdb={syncdoc}
-            version={version}
-            font_size={props.font_size}
-            mainFrameType={"slides"}
-          />
-        );
-      default:
-        return renderDocumentCodemirror();
+    const doc = getDoc(version);
+    if (doc == null) {
+      return;
     }
-  };
-
-  const renderDocumentTasks = (syncdoc: SyncDoc, version: Date) => {
     return (
-      <TasksHistoryViewer
-        font_size={props.font_size}
-        syncdb={syncdoc}
-        version={version}
-      />
-    );
-  };
-
-  const renderDocumentJupyterNotebook = (syncdoc: SyncDoc, version: Date) => {
-    return (
-      <JupyterHistoryViewer
-        font_size={props.font_size}
-        syncdb={syncdoc}
-        version={version}
-      />
-    );
-  };
-
-  const renderDocumentSagews = () => {
-    if (docpath == null || props.project_id == null) return;
-    const doc = getDoc();
-    if (doc == null) return;
-    return (
-      <SagewsCodemirror
-        content={doc.to_str()}
-        path={docpath}
-        project_id={props.project_id}
-        font_size={props.font_size}
-        editor_settings={props.editor_settings}
-      />
-    );
-  };
-
-  const renderDocumentCodemirror = () => {
-    if (docpath == null) return;
-    const doc = getDoc();
-    if (doc == null) return;
-    return (
-      <Document
+      <Viewer
+        ext={docext}
+        doc={doc}
+        textMode={props.desc.get("text_mode")}
         actions={props.actions}
         id={props.id}
-        value={doc.to_str()}
-        path={doc.value == null ? "a.js" : docpath}
+        path={docpath ? docpath : "a.js"}
         project_id={props.project_id}
         font_size={props.font_size}
         editor_settings={props.editor_settings}
@@ -229,15 +151,15 @@ export function TimeTravel(props: Props) {
       if (d0 == null) return;
       const d1 = versions.get(props.desc.get("version1"));
       if (d1 == null) return;
-      const v0 = json_stable(to_ipynb(syncdb, d0), { space: 1 });
-      const v1 = json_stable(to_ipynb(syncdb, d1), { space: 1 });
+      const v0 = json_stable(to_ipynb(syncdb.version(d0)), { space: 1 });
+      const v1 = json_stable(to_ipynb(syncdb.version(d1)), { space: 1 });
       return { v0, v1, use_json: true };
     }
 
     const doc0 = getDoc(props.desc.get("version0"));
     if (doc0 == null) return; // something is wrong
     const v0 = doc0.to_str();
-    const use_json = doc0.value == null;
+    const use_json = doc0["value"] == null;
 
     const doc1 = getDoc(props.desc.get("version1"));
     if (doc1 == null) return; // something is wrong
@@ -430,16 +352,18 @@ export function TimeTravel(props: Props) {
               </Checkbox>
             </Tooltip>
           )}
-        <Tooltip title="Show Git history instead of CoCalc edit history">
-          <Checkbox
-            defaultChecked={!!props.desc.get("git_mode")}
-            onChange={(e) =>
-              props.actions.setGitMode(props.id, e.target.checked)
-            }
-          >
-            Git
-          </Checkbox>
-        </Tooltip>
+        {git && (
+          <Tooltip title="Show Git history instead of CoCalc edit history">
+            <Checkbox
+              defaultChecked={!!props.desc.get("git_mode")}
+              onChange={(e) =>
+                props.actions.setGitMode(props.id, e.target.checked)
+              }
+            >
+              Git
+            </Checkbox>
+          </Tooltip>
+        )}
         {renderNavigationButtons()}
         <div style={{ display: "inline-flex", margin: "0 5px" }}>
           {renderLoadFullHistory()}

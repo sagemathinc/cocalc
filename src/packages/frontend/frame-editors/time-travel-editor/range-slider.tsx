@@ -65,7 +65,7 @@ export function RangeSlider({
         paddingTop: "48px",
         paddingBottom: "20px",
         width: "90%",
-        margin: "auto",
+        margin: "10px 15px",
       }}
     >
       <Slider
