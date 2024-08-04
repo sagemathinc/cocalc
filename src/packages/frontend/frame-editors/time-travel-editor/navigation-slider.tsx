@@ -12,19 +12,12 @@ interface Props {
   id: string;
   actions: TimeTravelActions;
   version?: number;
-  versions;
-  max: number;
+  versions?;
 }
 
-export function NavigationSlider({
-  id,
-  actions,
-  version,
-  versions,
-  max,
-}: Props) {
+export function NavigationSlider({ id, actions, version, versions }: Props) {
   const { isVisible } = useFrameContext();
-  if (version == null || !isVisible) {
+  if (versions == null || version == null || !isVisible) {
     return <div />;
   }
   const renderTooltip = (index) => {
@@ -32,12 +25,11 @@ export function NavigationSlider({
     if (date == null) return; // shouldn't happen
     return <TimeAgo date={date} />;
   };
-
   return (
     <Slider
       style={{ margin: "10px 15px" }}
       min={0}
-      max={max}
+      max={versions.size - 1}
       value={version}
       onChange={(value) => {
         actions.set_version(id, value);

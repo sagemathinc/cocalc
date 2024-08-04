@@ -18,10 +18,9 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 interface Props {
   id: string;
   actions: TimeTravelActions;
-  versions: List<Date>;
+  versions?: List<Date>;
   version0?: number;
   version1?: number;
-  max: number;
 }
 
 export function RangeSlider({
@@ -30,9 +29,21 @@ export function RangeSlider({
   versions,
   version0,
   version1,
-  max,
 }: Props) {
   const { isVisible } = useFrameContext();
+
+  // Have to hide when isVisible because tooltip stays ALWAYS visible otherwise.
+  if (
+    versions == null ||
+    !isVisible ||
+    version0 == null ||
+    version1 == null ||
+    versions.size == 0 ||
+    version0 < 0 ||
+    version1 > versions.size - 1
+  ) {
+    return <div />;
+  }
 
   const handleChange = (values: number[]): void => {
     if (values[0] == null || values[1] == null) {
@@ -42,22 +53,11 @@ export function RangeSlider({
   };
 
   const renderTooltip = (index) => {
-    const date = versions.get(index);
+    const date = versions?.get(index);
     if (date == null) return; // shouldn't happen
     return <TimeAgo date={date} />;
   };
 
-  // Have to hide when isVisible because tooltip stays ALWAYS visible otherwise!
-  if (
-    !isVisible ||
-    version0 == null ||
-    version1 == null ||
-    max < 0 ||
-    version0 < 0 ||
-    version1 > max
-  ) {
-    return <div />;
-  }
   return (
     <div
       style={{
@@ -71,7 +71,7 @@ export function RangeSlider({
       <Slider
         range
         min={0}
-        max={max}
+        max={versions.size - 1}
         value={[version0, version1]}
         onChange={handleChange}
         tooltip={{ open: true, formatter: renderTooltip }}

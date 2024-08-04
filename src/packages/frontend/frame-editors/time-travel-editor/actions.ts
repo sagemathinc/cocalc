@@ -48,10 +48,12 @@ const EXTENSION = ".time-travel";
 
 export interface TimeTravelState extends CodeEditorState {
   versions: List<Date>;
+  git_versions: List<Date>;
   loading: boolean;
   has_full_history: boolean;
   docpath: string;
   docext: string;
+  // true if in a git repo
   git?: boolean;
   //frame_states: Map<string, any>; // todo: really map from frame_id to FrameState as immutable map.
 }
@@ -115,31 +117,54 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     });
   }
 
-  public init_frame_tree(versions?: List<Date>): void {
+  init_frame_tree = () => {
+    this.ensureSelectedVersionsAreConsistent();
+  };
+
+  ensureSelectedVersionsAreConsistent = ({
+    versions,
+    git_versions,
+  }: {
+    versions?;
+    git_versions?;
+  } = {}): void => {
     if (versions == null) {
       if (this.syncdoc == null || this.syncdoc.get_state() != "ready") return;
-      versions = List<Date>(this.syncdoc.all_versions());
+      versions =
+        this.store.get("versions") ?? List<Date>(this.syncdoc.all_versions());
+    }
+    if (git_versions == null) {
+      git_versions = this.store.get("git_versions");
     }
     // make sure all the version and version ranges are valid...
     const max = versions.size - 1;
+    const max_git = git_versions != null ? git_versions.size - 1 : Infinity;
     for (const actions of [this.ambient_actions, this]) {
       if (actions == null) continue;
       for (const id in actions._get_leaf_ids()) {
         const node = actions._get_frame_node(id);
-        if (node == null || node.get("type") != "time_travel") continue;
+        if (node?.get("type") != "time_travel") {
+          continue;
+        }
+        const m = node.get("git_mode") ? max_git : max;
         for (const x of ["version", "version0", "version1"]) {
           let n: number | undefined = node.get(x);
-          if (n == null || n > max || n < 0) {
-            // make it max except in the case of "version0"
+          if (n == null || n > m || n < 0) {
+            // make it m except in the case of "version0"
             // when we want it to be one less than version1, which
-            // will be max.
-            n = x == "version0" ? Math.max(0, max - 1) : max;
+            // will be m.
+            // Also for git mode when m=Infinity, use 0 since there is no other option.
+            if (m == Infinity) {
+              n = 0;
+            } else {
+              n = x == "version0" ? Math.max(0, m - 1) : m;
+            }
             actions.set_frame_tree({ id, [x]: n });
           }
         }
       }
     }
-  }
+  };
 
   public async load_full_history(): Promise<void> {
     if (
@@ -170,7 +195,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     this.setState({ versions });
     if (this.first_load) {
       this.first_load = false;
-      this.init_frame_tree(versions);
+      this.ensureSelectedVersionsAreConsistent({ versions });
     }
   }
 
@@ -220,14 +245,20 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     throw Error(`BUG -- no node with id ${id}`);
   }
 
-  public set_version(id: string, version: number): void {
+  set_version = (id: string, version: number): void => {
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null || actions._get_frame_node(id) == null) continue;
       if (typeof version != "number") {
         // be extra careful
         throw Error("version must be a number");
       }
-      const versions = this.store.get("versions");
+      const node = actions._get_frame_node(id);
+      if (node == null) {
+        return;
+      }
+      const versions = node.get("git_mode")
+        ? this.store.get("git_versions")
+        : this.store.get("versions");
       if (versions == null || versions.size == 0) return;
       if (version == -1 || version >= versions.size) {
         version = versions.size - 1;
@@ -237,7 +268,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       actions.set_frame_tree({ id, version });
       return;
     }
-  }
+  };
 
   public step(id: string, delta: number): void {
     const node = this.get_frame_node_global(id);
@@ -367,13 +398,6 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
 
   private gitCommand = async (args: string[], commit?: string) => {
     const { head, tail } = path_split(this.docpath);
-    console.log({
-      command: "git",
-      args: args.concat([`${commit ? commit + ":./" : ""}${tail}`]),
-      path: head,
-      project_id: this.project_id,
-      err_on_exit: true,
-    });
     return await exec({
       command: "git",
       args: args.concat([`${commit ? commit + ":./" : ""}${tail}`]),
@@ -403,10 +427,12 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         versions.push(new Date(t));
       }
       versions.reverse();
+      const git_versions = List<Date>(versions);
       this.setState({
         git: versions.length > 0,
-        versions: List<Date>(versions),
+        git_versions,
       });
+      this.ensureSelectedVersionsAreConsistent({ git_versions });
     } catch (err) {
       this.set_error(`${err}`);
       this.setState({ git: false });
