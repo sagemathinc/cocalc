@@ -36,14 +36,25 @@ import {
 import { FrameTree } from "../frame-tree/types";
 import { export_to_json } from "./export-to-json";
 import type { Document } from "@cocalc/sync/editor/generic/types";
+import LRUCache from "lru-cache";
 
 const EXTENSION = ".time-travel";
+
+// We use a global cache so if user closes and opens file
+// later it is fast.
+const gitShowCache = new LRUCache<string, string>({
+  maxSize: 10 * 10 ** 6, // 10MB
+  sizeCalculation: (value, _key) => {
+    return value.length + 1; // must be positive
+  },
+});
 
 /*interface FrameState {
   version: number;
   version0: number;
   version1: number;
   changes_mode: boolean;
+  git_mode: boolean;
 }*/
 
 export interface TimeTravelState extends CodeEditorState {
@@ -472,8 +483,13 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (h == null) {
       return;
     }
+    const key = `${h}:${this.docpath}`;
+    if (gitShowCache.has(key)) {
+      return gitShowCache.get(key);
+    }
     try {
       const { stdout } = await this.gitCommand(["show"], h);
+      gitShowCache.set(key, stdout);
       return stdout;
     } catch (err) {
       this.set_error(`${err}`);
