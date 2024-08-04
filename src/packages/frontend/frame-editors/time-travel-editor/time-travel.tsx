@@ -6,7 +6,7 @@
 // Time travel editor react component
 
 import { useState } from "react";
-import { Checkbox, Tooltip } from "antd";
+import { Button, Checkbox, Tooltip } from "antd";
 import { Map } from "immutable";
 import { redux } from "../../app-framework";
 import { Loading } from "../../components";
@@ -327,16 +327,31 @@ export function TimeTravel(props: Props) {
           </Tooltip>
         )}
         {git && (
-          <Tooltip title="Show Git history instead of CoCalc edit history">
-            <Checkbox
-              defaultChecked={gitMode}
-              onChange={(e) =>
-                props.actions.setGitMode(props.id, e.target.checked)
-              }
-            >
-              Git
-            </Checkbox>
-          </Tooltip>
+          <>
+            <Tooltip title="Show Git history instead of CoCalc edit history">
+              <Checkbox
+                defaultChecked={gitMode}
+                onChange={(e) =>
+                  props.actions.setGitMode(props.id, e.target.checked)
+                }
+              >
+                Git
+              </Checkbox>
+            </Tooltip>
+            {gitMode && (
+              <Tooltip title="Scan local Git repository for new revisions to this file">
+                <Button
+                  size="small"
+                  style={{ marginRight: "5px" }}
+                  onClick={() => {
+                    props.actions.updateGitVersions();
+                  }}
+                >
+                  Refresh
+                </Button>
+              </Tooltip>
+            )}
+          </>
         )}
         {renderNavigationButtons()}
         <div style={{ display: "inline-flex", margin: "0 5px" }}>

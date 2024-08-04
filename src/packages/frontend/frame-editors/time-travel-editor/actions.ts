@@ -462,7 +462,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     });
   };
 
-  private updateGitVersions = async () => {
+  updateGitVersions = async () => {
     // versions is an ordered list of Date objects, one for each commit that involves this file.
     try {
       const { stdout } = await this.gitCommand([
