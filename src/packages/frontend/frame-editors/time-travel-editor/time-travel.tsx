@@ -366,6 +366,22 @@ export function TimeTravel(props: Props) {
     return <Loading theme={"medium"} />;
   };
 
+  const renderGitSubject = () => {
+    const subject = props.actions.gitSubject(version);
+    if (!subject) return;
+    return (
+      <div
+        style={{
+          padding: "5px 0 5px 15px",
+          borderTop: "1px solid #ddd",
+          background: "#fafafa",
+        }}
+      >
+        {subject}
+      </div>
+    );
+  };
+
   if (loading) {
     return renderLoading();
   }
@@ -373,6 +389,7 @@ export function TimeTravel(props: Props) {
     <div className="smc-vfill">
       {renderControls()}
       {renderTimeSelect()}
+      {gitMode && !changesMode && renderGitSubject()}
       <>
         {doc != null && docpath != null && docext != null && !changesMode && (
           <Viewer

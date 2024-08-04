@@ -77,7 +77,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   syncdoc?: SyncDoc;
   private first_load: boolean = true;
   ambient_actions?: CodeEditorActions;
-  private gitLog: { [t: number]: { hash: string; name: string } } = {};
+  private gitLog: {
+    [t: number]: { hash: string; name: string; subject: string };
+  } = {};
 
   _init2(): void {
     const { head, tail } = path_split(this.path);
@@ -450,7 +452,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     try {
       const { stdout } = await this.gitCommand([
         "log",
-        `--format="%at %H %an <%ae>"`,
+        `--format="%at %H %an <%ae> %s"`,
         "--",
       ]);
       this.gitLog = {};
@@ -463,12 +465,14 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         const j = y.indexOf(" ", i + 1);
         if (j == -1) continue;
         const hash = y.slice(i + 1, j).trim();
-        const name = y.slice(j + 1).trim();
+        const k = y.indexOf("> ", j + 1);
+        const name = y.slice(j + 1, k + 1).trim();
+        const subject = y.slice(k + 1).trim();
         if (!x || !t0 || !hash) {
           continue;
         }
         const t = parseInt(t0) * 1000;
-        this.gitLog[t] = { hash, name };
+        this.gitLog[t] = { hash, name, subject };
         versions.push(new Date(t));
       }
       versions.reverse();
@@ -514,14 +518,31 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     if (v0 == null || v1 == null) {
       return [];
     }
+    if (v0 == v1) {
+      const d = this.gitLog[`${v0}`];
+      if (d) {
+        return [d.name];
+      } else {
+        return [];
+      }
+    }
     const names: string[] = [];
     for (const t in this.gitLog) {
       const t0 = parseInt(t);
-      if (t0 >= v0 && t0 <= v1) {
+      if (v0 < t0 && t0 <= v1) {
         names.push(this.gitLog[t].name);
       }
     }
     return names;
+  };
+
+  gitSubject = (version: number): string | undefined => {
+    const versions = this.store.get("git_versions");
+    if (versions == null) {
+      return;
+    }
+    const t = versions.get(version)?.valueOf();
+    return this.gitLog[`${t}`]?.subject;
   };
 
   gitDoc = async (version: Date): Promise<ViewDocument | undefined> => {

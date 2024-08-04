@@ -13,6 +13,7 @@ import {
 } from "@cocalc/util/compute/manager";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { plural } from "@cocalc/util/misc";
 
 interface Props {
   actions: TimeTravelActions;
@@ -42,10 +43,15 @@ export function GitAuthors({ actions, version0, version1 }: Props) {
   for (const person of w) {
     v.push(
       <Popover
-        title={<>{data[person].count} Commits</>}
+        key={person}
+        title={
+          <>
+            {data[person].count} {plural(data[person].count, "Commit")}
+          </>
+        }
         content={Array.from(data[person].emails).join(", ")}
       >
-        {person} ({data[person].count})
+        {person} {data[person].count > 1 ? `(${data[person].count})` : ""}
       </Popover>,
     );
   }
