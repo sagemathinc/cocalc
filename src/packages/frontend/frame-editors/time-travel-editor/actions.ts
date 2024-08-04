@@ -348,16 +348,31 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  setGitMode = (id: string, git_mode: boolean): void => {
+  setGitMode = async (id: string, git_mode: boolean) => {
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null) continue;
       const node = actions._get_frame_node(id);
       if (node == null) continue;
+      const cur = !!node.get("git_mode");
       git_mode = !!git_mode;
-      actions.set_frame_tree({ id, git_mode });
+      if (cur != git_mode) {
+        // actually changing it
+        actions.set_frame_tree({ id, git_mode });
+        let versions;
+        if (git_mode) {
+          // also set version to newest on change to git mode
+          versions =
+            this.store.get("git_versions") ?? (await this.updateGitVersions());
+        } else {
+          // set version to newest on change from git mode to time travel
+          versions = this.store.get("versions");
+        }
+        if (versions != null) {
+          actions.set_frame_tree({ id, version: versions.size - 1 });
+        }
+      }
       break;
     }
-    this.updateGitVersions();
   };
 
   setVersions = (id: string, version0: number, version1: number): void => {
@@ -482,6 +497,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
         git_versions,
       });
       this.ensureSelectedVersionsAreConsistent({ git_versions });
+      return git_versions;
     } catch (err) {
       this.set_error(`${err}`);
       this.setState({ git: false });
