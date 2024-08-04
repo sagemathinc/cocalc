@@ -19,40 +19,45 @@ import { TimeTravelActions } from "./actions";
 interface Props {
   id: string;
   actions: TimeTravelActions;
-  version0: number;
-  version1: number;
+  version0?: number;
+  version1?: number;
   max: number;
 }
 
-export function NavigationButtons(props: Props) {
-  const { version0, version1, max } = props;
+export function NavigationButtons({
+  id,
+  actions,
+  version0,
+  version1,
+  max,
+}: Props) {
   return (
     <div style={{ display: "inline-flex" }}>
       <Button
         title={"First version"}
-        onClick={() => props.actions.step(props.id, -version0)}
-        disabled={version0 != null && version0 <= 0}
+        onClick={() => actions.step(id, -(version0 ?? 0))}
+        disabled={version0 == null || version0 <= 0}
       >
         <Icon name="backward" />
       </Button>
       <Button
         title={"Previous version"}
-        onClick={() => props.actions.step(props.id, -1)}
-        disabled={version0 != null && version0 <= 0}
+        onClick={() => actions.step(id, -1)}
+        disabled={version0 == null || version0 <= 0}
       >
         <Icon name="step-backward" />
       </Button>
       <Button
         title={"Next version"}
-        onClick={() => props.actions.step(props.id, 1)}
-        disabled={version1 != null && version1 >= max}
+        onClick={() => actions.step(id, 1)}
+        disabled={version1 == null || version1 >= max}
       >
         <Icon name="step-forward" />
       </Button>
       <Button
         title={"Most recent version"}
-        onClick={() => props.actions.step(props.id, max - version1)}
-        disabled={version1 != null && version1 >= max}
+        onClick={() => actions.step(id, max - (version1 ?? 0))}
+        disabled={version1 == null || version1 >= max}
       >
         <Icon name="forward" />
       </Button>

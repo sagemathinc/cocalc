@@ -63,12 +63,12 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   private docpath: string;
   private docext: string;
   private syncpath: string;
-  public syncdoc?: SyncDoc;
+  syncdoc?: SyncDoc;
   private first_load: boolean = true;
-  public ambient_actions?: CodeEditorActions;
+  ambient_actions?: CodeEditorActions;
   private gitTimestampToHash: { [t: number]: string } = {};
 
-  public _init2(): void {
+  _init2(): void {
     const { head, tail } = path_split(this.path);
     this.docpath = tail.slice(1, tail.length - EXTENSION.length);
     if (head != "") {
@@ -90,11 +90,11 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     this.updateGitVersions();
   }
 
-  public _raw_default_frame_tree(): FrameTree {
+  _raw_default_frame_tree(): FrameTree {
     return { type: "time_travel" };
   }
 
-  private async init_syncdoc(): Promise<void> {
+  private init_syncdoc = async (): Promise<void> => {
     const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
     this.syncdoc = await webapp_client.sync_client.open_existing_sync_document({
       project_id: this.project_id,
@@ -102,7 +102,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       persistent,
     });
     if (this.syncdoc == null) return;
-    this.syncdoc.on("change", debounce(this.syncdoc_changed.bind(this), 1000));
+    this.syncdoc.on("change", debounce(this.syncdoc_changed, 1000));
     if (this.syncdoc.get_state() != "ready") {
       await once(this.syncdoc, "ready");
     }
@@ -115,7 +115,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       loading: false,
       has_full_history: this.syncdoc.has_full_history(),
     });
-  }
+  };
 
   init_frame_tree = () => {
     this.ensureSelectedVersionsAreConsistent();
@@ -166,7 +166,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  public async load_full_history(): Promise<void> {
+  load_full_history = async (): Promise<void> => {
     if (
       this.store.get("has_full_history") ||
       this.syncdoc == null ||
@@ -176,9 +176,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     await this.syncdoc.load_full_history(); // todo -- error reporting ...?
     this.setState({ has_full_history: true });
     this.syncdoc_changed(); // load new versions list.
-  }
+  };
 
-  private syncdoc_changed(): void {
+  private syncdoc_changed = (): void => {
     if (this.syncdoc == null) return;
     if (this.syncdoc?.get_state() != "ready") {
       return;
@@ -197,7 +197,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       this.first_load = false;
       this.ensureSelectedVersionsAreConsistent({ versions });
     }
-  }
+  };
 
   // For each store version in a frame node, check to see
   // if the Date changes from the current versions to the new
@@ -205,20 +205,20 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   // at time t at position p, and somebody inserts a new version
   // before position p ... then suddenly position p is no longer
   // time t, which would be confusing.
-  private ensure_versions_are_stable(new_versions): void {
+  private ensure_versions_are_stable = (new_versions): void => {
     // TODO
     new_versions = new_versions;
-  }
+  };
 
   // Get the given version of the document.
-  public get_doc(version: Date): Document | undefined {
+  get_doc = (version: Date): Document | undefined => {
     if (this.syncdoc == null) return;
     const state = this.syncdoc.get_state();
     if (state != "ready") return;
     return this.syncdoc.version(version);
-  }
+  };
 
-  public get_account_ids(version0: number, version1: number): string[] {
+  get_account_ids = (version0: number, version1: number): string[] => {
     if (this.syncdoc == null) return [];
     const versions = this.store.get("versions");
     if (versions == null || versions.size == 0) return [];
@@ -234,16 +234,16 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       }
     }
     return keys(account_ids);
-  }
+  };
 
-  private get_frame_node_global(id: string) {
+  private getFrameNodeGlobal = (id: string) => {
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null) continue;
       const node = actions._get_frame_node(id);
       if (node != null) return node;
     }
     throw Error(`BUG -- no node with id ${id}`);
-  }
+  };
 
   set_version = (id: string, version: number): void => {
     for (const actions of [this, this.ambient_actions]) {
@@ -270,17 +270,19 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  public step(id: string, delta: number): void {
-    const node = this.get_frame_node_global(id);
+  step = (id: string, delta: number): void => {
+    const node = this.getFrameNodeGlobal(id);
     if (node.get("changes_mode")) {
-      this.set_versions(
+      this.setVersions(
         id,
         node.get("version0") + delta,
         node.get("version1") + delta,
       );
       return;
     }
-    const versions = this.store.get("versions");
+    const versions = node.get("git_mode")
+      ? this.store.get("git_versions")
+      : this.store.get("versions");
     if (versions == null || versions.size == 0) return;
     let version = node.get("version");
     if (version == null) {
@@ -293,9 +295,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       version += versions.size;
     }
     this.set_version(id, version);
-  }
+  };
 
-  public set_changes_mode(id: string, changes_mode: boolean): void {
+  set_changes_mode = (id: string, changes_mode: boolean): void => {
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null) continue;
       const node = actions._get_frame_node(id);
@@ -320,9 +322,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       }
       return;
     }
-  }
+  };
 
-  public setTextMode(id: string, text_mode: boolean): void {
+  setTextMode = (id: string, text_mode: boolean): void => {
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null) continue;
       const node = actions._get_frame_node(id);
@@ -331,9 +333,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       actions.set_frame_tree({ id, text_mode });
       break;
     }
-  }
+  };
 
-  public setGitMode(id: string, git_mode: boolean): void {
+  setGitMode = (id: string, git_mode: boolean): void => {
     for (const actions of [this, this.ambient_actions]) {
       if (actions == null) continue;
       const node = actions._get_frame_node(id);
@@ -343,44 +345,61 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       break;
     }
     this.updateGitVersions();
-  }
+  };
 
-  public set_versions(id: string, version0: number, version1: number): void {
+  setVersions = (id: string, version0: number, version1: number): void => {
     for (const actions of [this, this.ambient_actions]) {
-      if (actions == null || actions._get_frame_node(id) == null) continue;
-      const versions = this.store.get("versions");
+      const node = actions?._get_frame_node(id);
+      if (node == null) {
+        continue;
+      }
+      const versions = node.get("git_mode")
+        ? this.store.get("git_versions")
+        : this.store.get("versions");
+      if (versions == null) {
+        // not configured.
+        return;
+      }
       if (version0 >= version1) {
         version0 = version1 - 1;
       }
-      if (version0 >= versions.size) version0 = versions.size - 1;
-      if (version0 < 0) version0 = 0;
-      if (version1 >= versions.size) version1 = versions.size - 1;
-      if (version1 < 0) version1 = 0;
-      actions.set_frame_tree({ id, version0, version1 });
+      if (version0 >= versions.size) {
+        version0 = versions.size - 1;
+      }
+      if (version0 < 0) {
+        version0 = 0;
+      }
+      if (version1 >= versions.size) {
+        version1 = versions.size - 1;
+      }
+      if (version1 < 0) {
+        version1 = 0;
+      }
+      actions?.set_frame_tree({ id, version0, version1 });
       return;
     }
-  }
+  };
 
-  public async open_file(): Promise<void> {
+  open_file = async (): Promise<void> => {
     const actions = this.redux.getProjectActions(this.project_id);
     await actions.open_file({ path: this.docpath, foreground: true });
-  }
+  };
 
   // Revert the live version of the document to a specific version */
-  public async revert(version: Date): Promise<void> {
+  revert = async (version: Date): Promise<void> => {
     if (this.syncdoc == null) return;
     this.syncdoc.revert(version);
     this.syncdoc.commit();
     await this.open_file();
     if (this.syncdoc == null) return;
     this.syncdoc.emit("change");
-  }
+  };
 
-  public open_snapshots(): void {
+  open_snapshots = (): void => {
     this.redux.getProjectActions(this.project_id).open_directory(".snapshots");
-  }
+  };
 
-  public async export(): Promise<string> {
+  exportEditHistory = async (): Promise<string> => {
     const path = await export_to_json(
       this.syncdoc,
       this.docpath,
@@ -389,7 +408,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     const actions = this.redux.getProjectActions(this.project_id);
     await actions.open_file({ path, foreground: true });
     return path;
-  }
+  };
 
   // We have not implemented any way to do programmatical_goto_line this for time travel yet.
   // It will be very interesting and useful, because it will allow for

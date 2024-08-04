@@ -5,7 +5,7 @@
 
 // Time travel editor react component
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Checkbox, Tooltip } from "antd";
 import { Map } from "immutable";
 import { redux } from "../../app-framework";
@@ -26,7 +26,7 @@ import { Export } from "./export";
 import json_stable from "json-stable-stringify";
 import { to_ipynb } from "../../jupyter/history-viewer";
 import { SagewsDiff } from "./sagews-diff";
-import { useEditorRedux } from "@cocalc/frontend/app-framework";
+import { useAsyncEffect, useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Viewer } from "./viewer";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 
@@ -67,27 +67,36 @@ export function TimeTravel(props: Props) {
   const changesMode = !!props.desc?.get("changes_mode");
 
   const [doc, setDoc] = useState<Document | undefined>(undefined);
+  const [doc0, setDoc0] = useState<string | undefined>(undefined);
+  const [doc1, setDoc1] = useState<string | undefined>(undefined);
+  const [useJson, setUseJson] = useState<boolean>(false);
 
   const version = props.desc?.get("version");
   const version0 = changesMode ? props.desc?.get("version0") : version;
   const version1 = changesMode ? props.desc?.get("version1") : version;
 
-  const getDoc = (version?: number | Date | undefined) => {
+  const getDoc = async (
+    version?: number | Date | undefined,
+  ): Promise<Document | undefined> => {
+    version =
+      version == null || typeof version == "number"
+        ? getVersion(version)
+        : version;
     if (version == null) {
-      version = getVersion();
-    } else if (typeof version == "number") {
-      version = versions.get(version);
+      return;
     }
-    if (version == null) return;
+    if (gitMode) {
+      return await props.actions.gitDoc(version);
+    }
     return props.actions.get_doc(version);
   };
 
   // convert from version number to Date object (or undefined)
-  const getVersion = (): Date | undefined => {
+  const getVersion = (version?): Date | undefined => {
     if (props.desc == null || versions == null) {
       return;
     }
-    const version = props.desc.get("version");
+    version = version ?? props.desc?.get("version");
     const d: Date | undefined = (gitMode ? gitVersions : versions)?.get(
       version,
     );
@@ -95,19 +104,42 @@ export function TimeTravel(props: Props) {
     return versions.get(-1);
   };
 
-  useEffect(() => {
-    const version = getVersion();
-    if (version != null) {
-      if (gitMode) {
-        (async () => {
-          const doc = await props.actions.gitDoc(version);
-          setDoc(doc ?? undefined);
-        })();
-      } else {
-        setDoc(getDoc(version));
-      }
+  useAsyncEffect(async () => {
+    if (docpath == null) {
+      return;
     }
-  }, [version, gitMode, versions, gitVersions]);
+    if (!changesMode) {
+      // non-changes mode
+      setDoc(await getDoc(version));
+    } else {
+      // diff mode
+      const doc0 = await getDoc(version0);
+      if (doc0 == null) return; // something is wrong
+      const doc1 = await getDoc(version1);
+      if (doc1 == null) return; // something is wrong
+
+      let v0, v1;
+      if (docext == "ipynb") {
+        v0 = json_stable(to_ipynb(doc0), { space: 1 });
+        v1 = json_stable(to_ipynb(doc1), { space: 1 });
+        setUseJson(true);
+      } else {
+        v0 = doc0.to_str();
+        v1 = doc1.to_str();
+        setUseJson(doc0["value"] == null);
+      }
+      setDoc0(v0);
+      setDoc1(v1);
+    }
+  }, [
+    version,
+    version0,
+    version1,
+    changesMode,
+    gitMode,
+    versions,
+    gitVersions,
+  ]);
 
   const renderVersion = () => {
     const max = (gitMode ? gitVersions : versions)?.size;
@@ -125,57 +157,19 @@ export function TimeTravel(props: Props) {
     }
   };
 
-  const getDiffValues = ():
-    | { v0: string; v1: string; use_json: boolean }
-    | undefined => {
-    if (
-      docpath == null ||
-      props.desc == null ||
-      versions == null ||
-      !changesMode
-    ) {
-      return;
-    }
-    if (docext == "ipynb") {
-      const syncdb = props.actions.syncdoc;
-      if (syncdb == null) return;
-      const d0 = versions.get(version0);
-      if (d0 == null) return;
-      const d1 = versions.get(version1);
-      if (d1 == null) return;
-      const v0 = json_stable(to_ipynb(syncdb.version(d0)), { space: 1 });
-      const v1 = json_stable(to_ipynb(syncdb.version(d1)), { space: 1 });
-      return { v0, v1, use_json: true };
-    }
-
-    const doc0 = getDoc(version0);
-    if (doc0 == null) return; // something is wrong
-    const v0 = doc0.to_str();
-    const use_json = doc0["value"] == null;
-
-    const doc1 = getDoc(version1);
-    if (doc1 == null) return; // something is wrong
-    const v1 = doc1.to_str();
-
-    return { v0, v1, use_json };
-  };
-
   const renderDiff = () => {
-    if (docpath == null || props.desc == null || !changesMode) {
+    if (!changesMode) {
       return;
     }
-
-    const x = getDiffValues();
-    if (x == null) {
+    if (doc0 == null || doc1 == null) {
       return renderLoading();
     }
-    const { v0, v1, use_json } = x;
 
     if (docext == "sagews") {
       return (
         <SagewsDiff
-          v0={v0}
-          v1={v1}
+          v0={doc0}
+          v1={doc1}
           path={docpath}
           project_id={props.project_id}
           font_size={props.font_size}
@@ -186,18 +180,22 @@ export function TimeTravel(props: Props) {
 
     return (
       <Diff
-        v0={v0}
-        v1={v1}
+        v0={doc0}
+        v1={doc1}
         path={docpath}
         font_size={props.font_size}
         editor_settings={props.editor_settings}
-        use_json={use_json}
+        use_json={useJson}
       />
     );
   };
 
   const renderNavigationButtons = () => {
-    if (versions == null || version0 == null || version1 == null) {
+    if (changesMode && (version0 == null || version1 == null)) {
+      return;
+    }
+    const size = (gitMode ? gitVersions : versions)?.size;
+    if (size == null) {
       return;
     }
     return (
@@ -206,7 +204,7 @@ export function TimeTravel(props: Props) {
         actions={props.actions}
         version0={version0}
         version1={version1}
-        max={versions.size - 1}
+        max={size - 1}
       />
     );
   };
@@ -227,19 +225,18 @@ export function TimeTravel(props: Props) {
   };
 
   const renderRangeSlider = () => {
-    if (
-      version0 == null ||
-      version1 == null ||
-      versions == null ||
-      !changesMode
-    ) {
+    if (version0 == null || version1 == null || !changesMode) {
+      return;
+    }
+    const v = gitMode ? gitVersions : versions;
+    if (v == null) {
       return;
     }
     return (
       <RangeSlider
         id={props.id}
         actions={props.actions}
-        versions={gitMode ? gitVersions : versions}
+        versions={v}
         version0={version0}
         version1={version1}
       />

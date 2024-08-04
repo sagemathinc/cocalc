@@ -18,9 +18,9 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 interface Props {
   id: string;
   actions: TimeTravelActions;
-  versions?: List<Date>;
-  version0?: number;
-  version1?: number;
+  versions: List<Date>;
+  version0: number;
+  version1: number;
 }
 
 export function RangeSlider({
@@ -34,14 +34,12 @@ export function RangeSlider({
 
   // Have to hide when isVisible because tooltip stays ALWAYS visible otherwise.
   if (
-    versions == null ||
     !isVisible ||
-    version0 == null ||
-    version1 == null ||
     versions.size == 0 ||
     version0 < 0 ||
-    version1 > versions.size - 1
+    version1 >= versions.size
   ) {
+    // invalid input
     return <div />;
   }
 
@@ -49,7 +47,7 @@ export function RangeSlider({
     if (values[0] == null || values[1] == null) {
       throw Error("invalid values");
     }
-    actions.set_versions(id, values[0], values[1]);
+    actions.setVersions(id, values[0], values[1]);
   };
 
   const renderTooltip = (index) => {
