@@ -58,14 +58,18 @@ export class Watcher extends EventEmitter {
   };
 
   private handleChange = (curr, prev) => {
+    const path = this.path;
     if (!curr.dev) {
+      logger.debug("handleChange: delete", { path });
       this.emit("delete");
       return;
     }
     if (curr.mtimeMs == prev.mtimeMs && curr.mode == prev.mode) {
+      logger.debug("handleChange: access but no change", { path });
       // just *accessing* triggers watchFile (really StatWatcher), of course.
       return;
     }
+    logger.debug("handleChange: change", { path });
     this.emitChange(curr);
   };
 
