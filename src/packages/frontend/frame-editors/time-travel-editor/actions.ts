@@ -292,19 +292,25 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   }
 
   public setTextMode(id: string, text_mode: boolean): void {
-    const node = this._get_frame_node(id);
-    if (node == null) {
-      return;
+    for (const actions of [this, this.ambient_actions]) {
+      if (actions == null) continue;
+      const node = actions._get_frame_node(id);
+      if (node == null) continue;
+      text_mode = !!text_mode;
+      actions.set_frame_tree({ id, text_mode });
+      break;
     }
-    this.set_frame_tree({ id, text_mode: !!text_mode });
   }
 
   public setGitMode(id: string, git_mode: boolean): void {
-    const node = this._get_frame_node(id);
-    if (node == null) {
-      return;
+    for (const actions of [this, this.ambient_actions]) {
+      if (actions == null) continue;
+      const node = actions._get_frame_node(id);
+      if (node == null) continue;
+      git_mode = !!git_mode;
+      actions.set_frame_tree({ id, git_mode });
+      break;
     }
-    this.set_frame_tree({ id, git_mode: !!git_mode });
     this.updateGitVersions();
   }
 
