@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Tooltip } from "antd";
+import { Popover, Tooltip } from "antd";
 const { User } = require("../../users");
 import { Loading, r_join } from "../../components";
 import { TimeTravelActions } from "./actions";
@@ -20,7 +20,39 @@ interface Props {
   version1: number;
 }
 
-export function Authors(props: Props) {
+export function GitAuthors({ actions, version0, version1 }: Props) {
+  const names = actions.gitNames(version0, version1);
+  const data: { [person: string]: { emails: Set<string>; count: number } } = {};
+  const people: string[] = [];
+  for (const name of names) {
+    const i = name.lastIndexOf("<");
+    const email = name.slice(i + 1, -1).trim();
+    const person = name.slice(0, i).trim();
+    people.push(person);
+    if (data[person] == null) {
+      data[person] = { emails: new Set([email]), count: 1 };
+    } else {
+      data[person].emails.add(email);
+      data[person].count += 1;
+    }
+  }
+  const w = Array.from(new Set(people));
+  w.sort();
+  const v: JSX.Element[] = [];
+  for (const person of w) {
+    v.push(
+      <Popover
+        title={<>{data[person].count} Commits</>}
+        content={Array.from(data[person].emails).join(", ")}
+      >
+        {person} ({data[person].count})
+      </Popover>,
+    );
+  }
+  return <span>{r_join(v)}</span>;
+}
+
+export function TimeTravelAuthors({ actions, version0, version1 }: Props) {
   const userMap = useTypedRedux("users", "user_map");
 
   const renderUser = (account_id: string) => {
@@ -69,7 +101,7 @@ export function Authors(props: Props) {
   const renderAuthor = (account_id: string) => {
     if (userMap != null && userMap.has(account_id)) {
       return renderUser(account_id);
-    } else if (account_id == props.actions.project_id) {
+    } else if (account_id == actions.project_id) {
       return renderProject();
     } else if (isEncodedNumUUID(account_id)) {
       return renderComputeServer(decodeUUIDtoNum(account_id));
@@ -83,10 +115,7 @@ export function Authors(props: Props) {
       return <Loading />;
     }
     const v: JSX.Element[] = [];
-    for (const account_id of props.actions.get_account_ids(
-      props.version0,
-      props.version1,
-    )) {
+    for (const account_id of actions.get_account_ids(version0, version1)) {
       v.push(renderAuthor(account_id));
     }
     if (v.length == 0) return renderUnknown();

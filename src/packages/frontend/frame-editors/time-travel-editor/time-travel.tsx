@@ -16,7 +16,7 @@ import { NavigationButtons } from "./navigation-buttons";
 import { NavigationSlider } from "./navigation-slider";
 import { RangeSlider } from "./range-slider";
 import { Version, VersionRange } from "./version";
-import { Authors } from "./authors";
+import { GitAuthors, TimeTravelAuthors } from "./authors";
 import { LoadFullHistory } from "./load-full-history";
 import { OpenFile } from "./open-file";
 import { RevertFile } from "./revert-file";
@@ -247,13 +247,12 @@ export function TimeTravel(props: Props) {
     if (version0 == null || version1 == null) {
       return;
     }
-    return (
-      <Authors
-        actions={props.actions}
-        version0={version0}
-        version1={version1}
-      />
-    );
+    const opts = { actions: props.actions, version0, version1 };
+    if (gitMode) {
+      return <GitAuthors {...opts} />;
+    } else {
+      return <TimeTravelAuthors {...opts} />;
+    }
   };
 
   const renderLoadFullHistory = () => {

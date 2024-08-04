@@ -77,7 +77,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   syncdoc?: SyncDoc;
   private first_load: boolean = true;
   ambient_actions?: CodeEditorActions;
-  private gitTimestampToHash: { [t: number]: string } = {};
+  private gitLog: { [t: number]: { hash: string; name: string } } = {};
 
   _init2(): void {
     const { head, tail } = path_split(this.path);
@@ -450,18 +450,25 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     try {
       const { stdout } = await this.gitCommand([
         "log",
-        `--format="%at %H"`,
+        `--format="%at %H %an <%ae>"`,
         "--",
       ]);
-      this.gitTimestampToHash = {};
+      this.gitLog = {};
       const versions: Date[] = [];
       for (const x of stdout.split("\n")) {
-        const [t0, h] = x.slice(1, -1).split(" ");
-        if (!x || !t0 || !h) {
+        const y = x.slice(1, -1);
+        const i = y.indexOf(" ");
+        if (i == -1) continue;
+        const t0 = y.slice(0, i);
+        const j = y.indexOf(" ", i + 1);
+        if (j == -1) continue;
+        const hash = y.slice(i + 1, j).trim();
+        const name = y.slice(j + 1).trim();
+        if (!x || !t0 || !hash) {
           continue;
         }
         const t = parseInt(t0) * 1000;
-        this.gitTimestampToHash[t] = h.trim();
+        this.gitLog[t] = { hash, name };
         versions.push(new Date(t));
       }
       versions.reverse();
@@ -479,7 +486,7 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   };
 
   private gitShow = async (version: Date): Promise<string | undefined> => {
-    const h = this.gitTimestampToHash[version.valueOf()];
+    const h = this.gitLog[version.valueOf()]?.hash;
     if (h == null) {
       return;
     }
@@ -495,6 +502,26 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       this.set_error(`${err}`);
       return;
     }
+  };
+
+  gitNames = (version0: number, version1: number): string[] => {
+    const versions = this.store.get("git_versions");
+    if (versions == null) {
+      return [];
+    }
+    const v0 = versions.get(version0)?.valueOf();
+    const v1 = versions.get(version1)?.valueOf();
+    if (v0 == null || v1 == null) {
+      return [];
+    }
+    const names: string[] = [];
+    for (const t in this.gitLog) {
+      const t0 = parseInt(t);
+      if (t0 >= v0 && t0 <= v1) {
+        names.push(this.gitLog[t].name);
+      }
+    }
+    return names;
   };
 
   gitDoc = async (version: Date): Promise<ViewDocument | undefined> => {
