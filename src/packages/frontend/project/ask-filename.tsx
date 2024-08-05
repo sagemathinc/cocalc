@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useEffect } from "react";
 import {
   Button,
   ButtonToolbar,
@@ -12,6 +11,8 @@ import {
   Form,
   Row,
 } from "@cocalc/frontend/antd-bootstrap";
+import { useEffect } from "react";
+
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -19,12 +20,12 @@ import {
   SearchInput,
   SelectorInput,
 } from "@cocalc/frontend/components";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { FileSpec } from "../file-associations";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   project_id: string;
