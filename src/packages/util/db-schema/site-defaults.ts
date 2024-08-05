@@ -80,6 +80,7 @@ export type SiteSettingsKeys =
   | "limit_free_project_uptime"
   | "require_license_to_create_project"
   | "unlicensed_project_collaborator_limit"
+  | "unlicensed_project_timetravel_limit"
   | "google_analytics"
   | "kucalc"
   | "dns"
@@ -600,6 +601,16 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: only_cocalc_com,
     to_display: (val) => `${val} users`,
+    tags: ["Commercialization"],
+  },
+  unlicensed_project_timetravel_limit: {
+    name: "Require License to View Unlimited TimeTravel History",
+    desc: "If this number is positive, then projects without a valid license can view at most this many past versions of a file via TimeTravel.  Set this to 200 to allow up to 200 past versions.",
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_cocalc_com,
+    to_display: (val) => `${val} versions`,
     tags: ["Commercialization"],
   },
   datastore: {
