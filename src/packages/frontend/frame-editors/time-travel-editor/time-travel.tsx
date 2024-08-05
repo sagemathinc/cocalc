@@ -285,12 +285,12 @@ export function TimeTravel(props: Props) {
   };
 
   const renderChangesMode = () => {
-    if (versions == null) return;
+    const size = (gitMode ? gitVersions : versions)?.size ?? 0;
     return (
       <ChangesMode
         id={props.id}
         actions={props.actions}
-        disabled={versions.size <= 1}
+        disabled={size <= 1}
         changes_mode={changesMode}
       />
     );
