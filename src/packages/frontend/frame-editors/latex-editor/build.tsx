@@ -8,32 +8,18 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import Ansi from "@cocalc/ansi-to-react";
+import { Button } from "antd";
+import { capitalize } from "lodash";
 
 import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import { React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
-import { IconName, Loading } from "@cocalc/frontend/components";
+import { Icon, Loading, r_join } from "@cocalc/frontend/components";
 import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import Stopwatch from "../../editors/stopwatch/stopwatch";
 import { BuildCommand } from "./build-command";
-import { use_build_logs } from "./hooks";
-import { BuildLogs } from "./types";
-
-interface IBuildSpec {
-  button: boolean;
-  label: string;
-  icon: IconName;
-  tip: string;
-}
-
-export interface IBuildSpecs {
-  build: IBuildSpec;
-  latex: IBuildSpec;
-  bibtex: IBuildSpec;
-  sagetex: IBuildSpec;
-  pythontex: IBuildSpec;
-  knitr: IBuildSpec;
-  clean: IBuildSpec;
-}
+import { use_build_logs, use_proc_infos } from "./hooks";
+import { BuildLogs, IBuildSpecs, ProcessInfos } from "./types";
 
 const BUILD_SPECS: IBuildSpecs = {
   build: {
@@ -99,6 +85,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
   const font_size = 0.8 * font_size_orig;
   const build_logs: BuildLogs = use_build_logs(name);
+  const proc_infos: ProcessInfos = use_proc_infos(name);
   const build_command = useRedux([name, "build_command"]);
   const build_command_hardcoded =
     useRedux([name, "build_command_hardcoded"]) ?? false;
@@ -218,6 +205,36 @@ export const Build: React.FC<Props> = React.memo((props) => {
     );
   }
 
+  function render_procs(): Rendered {
+    if (!proc_infos) return;
+    const infos: JSX.Element[] = [];
+    proc_infos.forEach((info, key) => {
+      if (!info || info.get("status") !== "running") return;
+      const start = info.get("start");
+      infos.push(
+        <Button
+          key={key}
+          size="small"
+          onClick={() => window.alert(`term ${info.get("pid")}`)}
+          icon={<Icon unicode={0x2620} />}
+        >
+          Stop {capitalize(key)}{" "}
+          {start != null ? (
+            <Stopwatch
+              compact
+              state="running"
+              time={start}
+              noLabel
+              noDelete
+              noButtons
+            />
+          ) : undefined}
+        </Button>,
+      );
+    });
+    return <div style={{ margin: "15px" }}>{r_join(infos)}</div>;
+  }
+
   function render_status(): Rendered {
     if (status) {
       return (
@@ -251,6 +268,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     >
       {render_build_command()}
       {render_status()}
+      {render_procs()}
       {logs}
     </div>
   );

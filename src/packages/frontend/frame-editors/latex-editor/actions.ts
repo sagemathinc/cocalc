@@ -25,7 +25,7 @@ import { fromJS, List, Map } from "immutable";
 import { debounce, union } from "lodash";
 import { normalize as path_normalize } from "path";
 
-import { Store } from "@cocalc/frontend/app-framework";
+import { Store, TypedMap } from "@cocalc/frontend/app-framework";
 import {
   TableOfContentsEntry,
   TableOfContentsEntryList,
@@ -53,8 +53,9 @@ import {
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
+import { ExecOutput } from "@cocalc/util/db-schema/projects";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { bibtex } from "./bibtex";
-import { IBuildSpecs } from "./build";
 import { clean } from "./clean";
 import { KNITR_EXTS } from "./constants";
 import { count_words } from "./count_words";
@@ -75,6 +76,8 @@ import { parseTableOfContents } from "./table-of-contents";
 import {
   BuildLog,
   BuildLogs,
+  IBuildSpecs,
+  ProcessInfos,
   ScrollIntoViewMap,
   ScrollIntoViewRecord,
 } from "./types";
@@ -94,6 +97,7 @@ interface LatexEditorState extends CodeEditorState {
   includeError?: string;
   build_command_hardcoded?: boolean; // if true, an % !TeX cocalc = ... directive sets the command via the document itself
   contents?: TableOfContentsEntryList; // table of contents data.
+  proc_infos: ProcessInfos;
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -694,7 +698,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_build(time: number, force: boolean): Promise<void> {
-    (this as unknown as any).setState({ build_logs: Map() });
+    this.setState({ build_logs: Map() });
+    this.setState({ proc_infos: Map() });
 
     if (this.bad_filename) {
       const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
@@ -846,6 +851,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.set_error("");
     this.set_build_logs({ latex: undefined });
+    this.set_proc_infos({ latex: undefined });
     if (typeof s == "string") {
       build_command = s;
     } else {
@@ -854,7 +860,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     const status = (s) => this.set_status(`Running Latex... ${s}`);
     status("");
     try {
-      output = await latexmk(
+      const [info, job] = await latexmk(
         this.project_id,
         this.path,
         build_command,
@@ -862,6 +868,10 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory(),
       );
+      this.set_proc_infos({ latex: info });
+      output = await job;
+      if (output.type !== "async") throw new Error("not an asnyc job");
+      this.set_proc_infos({ latex: output });
     } catch (err) {
       this.set_error(err);
       return;
@@ -1080,6 +1090,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory(),
       );
+      if (!output) throw new Error("Unable to run SageTeX.");
       if (output.stderr.indexOf("sagetex.VersionError") != -1) {
         // See https://github.com/sagemathinc/cocalc/issues/4432
         throw Error(
@@ -1274,16 +1285,34 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
+  set_proc_infos(obj: {
+    [K in keyof IBuildSpecs]?: ExecuteCodeOutputAsync;
+  }): void {
+    let proc_infos: ProcessInfos = this.store.get("proc_infos");
+    if (!proc_infos) {
+      return;
+    }
+    for (const k in obj) {
+      const v: ExecuteCodeOutputAsync = obj[k];
+      if (!v) continue;
+      proc_infos = proc_infos.set(
+        k as any,
+        fromJS(v) as any as TypedMap<ExecOutput>,
+      );
+    }
+    this.setState({ proc_infos });
+  }
+
   set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
     let build_logs: BuildLogs = this.store.get("build_logs");
     if (!build_logs) {
       // may have already been closed.
       return;
     }
-    let k: string;
-    for (k in obj) {
+    for (const k in obj) {
       const v: BuildLog = obj[k];
-      build_logs = build_logs.set(k, fromJS(v));
+      if (!v) continue;
+      build_logs = build_logs.set(k, fromJS(v) as any as TypedMap<BuildLog>);
     }
     this.setState({ build_logs });
   }
@@ -1296,7 +1325,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       log += s + "\n";
       const build_logs: BuildLogs = this.store.get("build_logs");
       this.setState({
-        build_logs: build_logs.set("clean", fromJS({ output: log })),
+        build_logs: build_logs.set(
+          "clean",
+          fromJS({ output: log }) as any as TypedMap<BuildLog>,
+        ),
       });
     };
 

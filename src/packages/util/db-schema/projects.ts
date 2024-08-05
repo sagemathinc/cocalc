@@ -653,8 +653,12 @@ export interface CourseInfo {
   envvars?: EnvVars;
 }
 
-export interface ExecOpts {
+type ExecOptsCommon = {
   project_id: string;
+  cb?: Function; // if given use a callback interface *instead* of async.
+};
+
+export type ExecOptsBlocking = ExecOptsCommon & {
   compute_server_id?: number; // if true, run on the compute server (if available)
   filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
   path?: string;
@@ -667,10 +671,22 @@ export interface ExecOpts {
   err_on_exit?: boolean;
   env?: { [key: string]: string }; // custom environment variables.
   async_call?: ExecuteCodeOptions["async_call"];
+};
+
+export type ExecOptsAsync = ExecOptsCommon & {
   async_get?: ExecuteCodeOptionsAsyncGet["async_get"];
   async_stats?: ExecuteCodeOptionsAsyncGet["async_stats"];
   async_await?: ExecuteCodeOptionsAsyncGet["async_await"];
-  cb?: Function; // if given use a callback interface *instead* of async.
+};
+
+export type ExecOpts = ExecOptsBlocking | ExecOptsAsync;
+
+export function isExecOptsBlocking(opts: unknown): opts is ExecOptsBlocking {
+  return (
+    typeof opts === "object" &&
+    typeof (opts as any).project_id === "string" &&
+    typeof (opts as any).command === "string"
+  );
 }
 
 export type ExecOutput = ExecuteCodeOutput & {

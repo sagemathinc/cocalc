@@ -1,5 +1,6 @@
-import { Icon } from "@cocalc/frontend/components/icon";
 import { CSSProperties } from "react";
+
+import { Icon } from "@cocalc/frontend/components/icon";
 
 function zpad(n: number): string {
   let s = `${n}`;

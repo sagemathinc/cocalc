@@ -4,26 +4,36 @@
  */
 
 import { Map } from "immutable";
+import { isEqual } from "lodash";
 
 import { React, useRedux } from "@cocalc/frontend/app-framework";
-import { BuildLogs } from "./types";
+import { BuildLogs, ProcessInfos } from "./types";
 
 export function use_build_logs(name: string): BuildLogs {
-  const build_logs_next: BuildLogs =
-    useRedux([name, "build_logs"]) ?? Map<string, any>();
-  const [build_logs, set_build_logs] = React.useState<BuildLogs>(
-    Map<string, any>(),
-  );
+  return use_infos<BuildLogs>(name, "build_logs");
+}
 
-  // only update if any parsed logs differ
+export function use_proc_infos(name: string): ProcessInfos {
+  return use_infos<ProcessInfos>(name, "proc_infos");
+}
+
+function use_infos<T extends Map<string, any>>(
+  name: string,
+  aspect: "build_logs" | "proc_infos",
+) {
+  const data_next: T = useRedux([name, aspect]) ?? Map<string, any>();
+  const [data, set_data] = React.useState<T>(Map<string, any>() as any as T);
+
+  // only update if any parsed logs or process infos differ
   for (const key of ["latex", "knitr", "pythontex", "sagetex"]) {
-    if (
-      build_logs_next.getIn([key, "parse"]) != build_logs.getIn([key, "parse"])
-    ) {
-      set_build_logs(build_logs_next);
-      break;
+    const isDiff =
+      aspect === "build_logs"
+        ? data_next.getIn([key, "parse"]) != data.getIn([key, "parse"])
+        : !isEqual(data_next.get(key), data.get(key));
+    if (isDiff) {
+      set_data(data_next);
     }
   }
 
-  return build_logs;
+  return data;
 }

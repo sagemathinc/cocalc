@@ -12,7 +12,11 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 import { HOME_ROOT } from "@cocalc/util/consts/files";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
-import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
+import {
+  isExecOptsBlocking,
+  type ExecOpts,
+  type ExecOutput,
+} from "@cocalc/util/db-schema/projects";
 import * as message from "@cocalc/util/message";
 import {
   coerce_codomain_to_numbers,
@@ -216,12 +220,10 @@ export class ProjectClient {
       });
     }
 
-    if (
-      !(await ensure_project_running(
-        opts.project_id,
-        `execute the command ${opts.command}`,
-      ))
-    ) {
+    const msg = isExecOptsBlocking(opts)
+      ? `execute the command ${opts.command}`
+      : `getting job ${opts.async_get}`;
+    if (!(await ensure_project_running(opts.project_id, msg))) {
       return {
         type: "blocking",
         stdout: "",
