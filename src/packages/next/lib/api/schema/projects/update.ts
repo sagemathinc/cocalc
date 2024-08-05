@@ -2,40 +2,24 @@ import { z } from "../../framework";
 
 import { FailedAPIOperationSchema, OkAPIOperationSchema } from "../common";
 
-import { ProjectIdSchema } from "./common";
-import { AccountIdSchema } from "../accounts/common";
+import { AdminAccountIdSchema } from "../accounts/common";
+
+import {
+  ProjectDescriptionSchema,
+  ProjectIdSchema,
+  ProjectNameSchema,
+  ProjectTitleSchema,
+} from "./common";
 
 // OpenAPI spec
 //
 export const UpdateProjectInputSchema = z
   .object({
-    account_id: AccountIdSchema.describe(
-      `**Administrators only**. If provided, this operation will be executed on behalf of 
-       the account corresponding to this id.`,
-    ).optional(),
+    account_id: AdminAccountIdSchema,
     project_id: ProjectIdSchema,
-    title: z
-      .string()
-      .describe(
-        `The short title of the project. Should use no special formatting, except 
-         hashtags.`,
-      )
-      .optional(),
-    description: z
-      .string()
-      .describe(
-        `A longer textual description of the project. This can include hashtags and should 
-         be formatted using markdown.`,
-      )
-      .optional(),
-    name: z
-      .string()
-      .describe(
-        `The optional name of this project. Must be globally unique (up to case) across 
-         all projects with a given *owner*. It can be between 1 and 100 characters from 
-         a-z A-Z 0-9 period and dash.`,
-      )
-      .optional(),
+    title: ProjectTitleSchema.optional(),
+    description: ProjectDescriptionSchema.optional(),
+    name: ProjectNameSchema.optional(),
   })
   .describe(
     `Update an existing project's title, name, and/or description. If the API client is an 
