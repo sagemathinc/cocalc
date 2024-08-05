@@ -111,7 +111,7 @@ You have ${subs.length} ${siteName} ${plural(
 <ul>
 ${subscriptionList.join("\n")}
 </ul>
-NOTE: You can easily cancel any subscription by clicking the link above without having to sign in to ${siteName}.
+NOTE: You can cancel a subscription via the link above without having to sign in to ${siteName}.
 
 <br/><br/>
 

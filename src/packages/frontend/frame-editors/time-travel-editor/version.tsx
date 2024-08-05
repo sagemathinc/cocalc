@@ -3,8 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Rendered, Component } from "../../app-framework";
-import { TimeAgo } from "../../components";
+import { TimeAgo } from "@cocalc/frontend/components";
 
 interface Props {
   date: Date;
@@ -12,9 +11,10 @@ interface Props {
   max: number;
 }
 
-export class Version extends Component<Props> {
-  private render_time(): Rendered {
-    return (
+export function Version({ date, number, max }: Props) {
+  if (max == 0) return <span />;
+  return (
+    <span>
       <span
         style={{
           fontWeight: "bold",
@@ -23,26 +23,14 @@ export class Version extends Component<Props> {
           whiteSpace: "nowrap",
         }}
       >
-        <TimeAgo date={this.props.date} />
+        <TimeAgo date={date} />
       </span>
-    );
-  }
-  private render_number(): Rendered {
-    return (
+      ,{" "}
       <span style={{ whiteSpace: "nowrap" }}>
-        revision {this.props.number} (of {this.props.max})
+        revision {number} (of {max})
       </span>
-    );
-  }
-
-  public render(): Rendered {
-    if (this.props.max == 0) return <span />;
-    return (
-      <span>
-        {this.render_time()}, {this.render_number()}
-      </span>
-    );
-  }
+    </span>
+  );
 }
 
 interface RangeProps {
@@ -51,14 +39,13 @@ interface RangeProps {
   max: number;
 }
 
-export class VersionRange extends Component<RangeProps> {
-  public render(): Rendered {
-    if (this.props.max == 0) return <span />;
-    return (
-      <span style={{ whiteSpace: "nowrap" }}>
-        Versions {this.props.version0 + 1} to {this.props.version1 + 1} (of{" "}
-        {this.props.max})
-      </span>
-    );
+export function VersionRange({ version0, version1, max }: RangeProps) {
+  if (max == 0) {
+    return <span />;
   }
+  return (
+    <span style={{ whiteSpace: "nowrap" }}>
+      Versions {version0 + 1} to {version1 + 1} (of {max})
+    </span>
+  );
 }

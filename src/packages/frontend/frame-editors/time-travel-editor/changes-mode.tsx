@@ -3,10 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Rendered, Component } from "../../app-framework";
-
 import { Checkbox, Tooltip } from "antd";
-
 import { TimeTravelActions } from "./actions";
 
 interface Props {
@@ -16,29 +13,24 @@ interface Props {
   changes_mode: boolean; // whether or not in changes mode.
 }
 
-export class ChangesMode extends Component<Props> {
-  private toggle(): void {
-    this.props.actions.set_changes_mode(
-      this.props.id,
-      !this.props.changes_mode
-    );
-  }
+export function ChangesMode(props: Props) {
+  const toggle = () => {
+    props.actions.set_changes_mode(props.id, !props.changes_mode);
+  };
 
-  public render(): Rendered {
-    return (
-      <Tooltip
-        placement="top"
-        title="Toggle whether or not to show the changes from one point in time to another"
-        mouseEnterDelay={1}
+  return (
+    <Tooltip
+      placement="top"
+      title="Toggle whether or not to show the changes from one point in time to another"
+      mouseEnterDelay={1}
+    >
+      <Checkbox
+        disabled={props.disabled}
+        onChange={toggle}
+        checked={props.disabled ? false : props.changes_mode}
       >
-        <Checkbox
-          disabled={this.props.disabled}
-          onChange={this.toggle.bind(this)}
-          checked={this.props.disabled ? false : this.props.changes_mode}
-        >
-          Changes
-        </Checkbox>
-      </Tooltip>
-    );
-  }
+        Changes
+      </Checkbox>
+    </Tooltip>
+  );
 }

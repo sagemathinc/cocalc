@@ -92,7 +92,8 @@ export default function ChatInput({
   const lastSavedRef = useRef<string | null>(null);
   const saveChat = useDebouncedCallback(
     (input) => {
-      if (!isMountedRef.current || syncdb == null) return;
+      if (!isMountedRef.current || syncdb == null || !saveOnUnmountRef.current)
+        return;
       onChange(input);
       lastSavedRef.current = input;
       // also save to syncdb, so we have undo, etc.
@@ -129,8 +130,12 @@ export default function ChatInput({
     },
   );
 
+  const saveOnUnmountRef = useRef<boolean>(true);
   useEffect(() => {
     return () => {
+      if (!saveOnUnmountRef.current) {
+        return;
+      }
       // save before unmounting.  This is very important since if a new reply comes in,
       // then the input component gets unmounted, then remounted BELOW the reply.
       // Note: it is still slightly annoying, due to loss of focus... however, data
@@ -148,7 +153,6 @@ export default function ChatInput({
       ) {
         return;
       }
-
       syncdb.set({
         event: "draft",
         sender_id,
@@ -206,6 +210,9 @@ export default function ChatInput({
         saveChat(input);
       }}
       onShiftEnter={(input) => {
+        // no need to save on unmount, since we are saving
+        // the correct state below.
+        saveOnUnmountRef.current = false;
         setInput(input);
         saveChat(input);
         saveChat.cancel();

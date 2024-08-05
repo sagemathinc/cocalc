@@ -610,21 +610,18 @@ export default function Message(props: Readonly<Props>) {
             edited_message_ref.current = value;
           }}
         />
-        <div style={{ marginTop: "10px" }}>
+        <div style={{ marginTop: "10px", display: "flex" }}>
           <Button
-            type="primary"
             style={{ marginRight: "5px" }}
-            onClick={saveEditedMessage}
-          >
-            <Icon name="save" /> Save Edited Message
-          </Button>
-          <Button
             onClick={() => {
               props.actions?.set_editing(message, false);
               props.actions?.delete_draft(date);
             }}
           >
             Cancel
+          </Button>
+          <Button type="primary" onClick={saveEditedMessage}>
+            <Icon name="save" /> Save Edited Message
           </Button>
         </div>
       </div>

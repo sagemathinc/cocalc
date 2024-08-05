@@ -8,8 +8,7 @@
 - This is really just some minimal data *about* the history for now.
 */
 
-import { Rendered, Component } from "../../app-framework";
-import { Button } from "react-bootstrap";
+import { Button } from "antd";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
 
@@ -17,15 +16,13 @@ interface Props {
   actions: TimeTravelActions;
 }
 
-export class Export extends Component<Props> {
-  public render(): Rendered {
-    return (
-      <Button
-        onClick={() => this.props.actions.export()}
-        title="Export information about edit history to a JSON file"
-      >
-        <Icon name={"file-export"} /> Export
-      </Button>
-    );
-  }
+export function Export({ actions }: Props) {
+  return (
+    <Button
+      onClick={() => actions.exportEditHistory()}
+      title="Export information about edit history to a JSON file"
+    >
+      <Icon name={"file-export"} /> Export
+    </Button>
+  );
 }
