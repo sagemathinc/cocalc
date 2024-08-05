@@ -1,6 +1,7 @@
 import { fromJS } from "immutable";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import { filenameMode } from "@cocalc/frontend/file-associations";
+import parseIpynb from "@cocalc/jupyter/ipynb/parse";
 
 export function isObjectDoc(path) {
   /* not a great way to tell if json lines or text? */
@@ -13,16 +14,24 @@ export class ViewDocument implements Document {
   private str: string;
 
   constructor(path: string, str: string) {
-    this.str = str;
-    if (isObjectDoc(path)) {
-      const v: any[] = [];
+    let s = str;
+    let v: any[] | null = null;
+    if (path.endsWith(".ipynb")) {
+      // Jupyter is a bit weird -- we parse the string ipynb to our internal jsonl format,
+      // then work with that exclusively, and ALSO make to_str() return that.
+      if (str.trim()) {
+        const { cells } = parseIpynb(str);
+        v = Object.values(cells);
+        s = v.map((x) => JSON.stringify(x)).join("\n");
+      }
+    } else if (isObjectDoc(path)) {
+      v = [];
       for (const x of str.split("\n")) {
         v.push(JSON.parse(x));
       }
-      this.v = v;
-    } else {
-      this.v = null;
     }
+    this.str = s;
+    this.v = v;
   }
 
   apply_patch(_patch): any {
