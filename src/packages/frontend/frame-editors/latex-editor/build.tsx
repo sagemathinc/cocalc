@@ -8,7 +8,7 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import Ansi from "@cocalc/ansi-to-react";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 
 import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import { React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
@@ -16,13 +16,16 @@ import { Icon, Loading, r_join } from "@cocalc/frontend/components";
 import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { Fragment } from "react";
+import { ExecOutput } from "../generic/client";
+import { Actions } from "./actions";
 import { BuildCommand } from "./build-command";
-import { use_build_logs, use_proc_infos } from "./hooks";
-import { BUILD_SPECS, BuildLogs, ProcessInfos } from "./types";
+import { use_build_logs, use_job_infos } from "./hooks";
+import { BUILD_SPECS, BuildLogs, BuildSpecName, JobInfos } from "./types";
 
 interface Props {
   name: string;
-  actions: any;
+  actions: Actions;
   path: string;
   font_size: number;
   status: string;
@@ -33,7 +36,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
   const font_size = 0.8 * font_size_orig;
   const build_logs: BuildLogs = use_build_logs(name);
-  const proc_infos: ProcessInfos = use_proc_infos(name);
+  const job_infos: JobInfos = use_job_infos(name);
   const build_command = useRedux([name, "build_command"]);
   const build_command_hardcoded =
     useRedux([name, "build_command_hardcoded"]) ?? false;
@@ -41,14 +44,14 @@ export const Build: React.FC<Props> = React.memo((props) => {
   const [active_tab, set_active_tab] = React.useState<string>(
     BUILD_SPECS.latex.label,
   );
-  const [error_tab, set_error_tab] = React.useState(null);
+  const [error_tab, set_error_tab] = React.useState<string | null>(null);
   let no_errors = true;
 
   function render_tab_item(
     title: string,
     value: string,
     error?: boolean,
-    time_str?: string,
+    job_info_str?: string,
   ): AntdTabItem {
     const style: React.CSSProperties = {
       fontFamily: "monospace",
@@ -71,21 +74,46 @@ export const Build: React.FC<Props> = React.memo((props) => {
       style,
       children: (
         <>
-          {time_str && `Build time: ${time_str}\n\n`}
+          {job_info_str ? (
+            <div
+              style={{
+                fontWeight: "bold",
+                marginBottom: "10px",
+                borderBottom: "1px solid black",
+              }}
+            >
+              {job_info_str}
+            </div>
+          ) : undefined}
           <Ansi>{value}</Ansi>
         </>
       ),
     });
   }
 
-  function render_log(stage): AntdTabItem | undefined {
+  function render_log(stage: BuildSpecName): AntdTabItem | undefined {
     if (build_logs == null) return;
     const x = build_logs.get(stage);
+    const y: ExecOutput | undefined = job_infos.get(stage)?.toJS();
+
     if (!x) return;
     const value = x.get("stdout") + x.get("stderr");
     if (!value) return;
-    const time: number | undefined = x.get("time");
-    const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
+    // const time: number | undefined = x.get("time");
+    // const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
+    let job_info_str = "";
+    if (y != null && y.type === "async") {
+      const { elapsed_s, stats } = y;
+      if (typeof elapsed_s === "number" && elapsed_s > 0) {
+        job_info_str = `Build time: ${elapsed_s.toFixed(1)} seconds.`;
+      }
+      if (Array.isArray(stats) && stats.length > 0) {
+        const max_mem = stats.reduce((cur, next) => {
+          return next.mem_rss > cur ? next.mem_rss : cur;
+        }, 0);
+        job_info_str += ` Memory usage: ${max_mem.toFixed(0)} MB.`;
+      }
+    }
     const title = BUILD_SPECS[stage].label;
     // highlights tab, if there is at least one parsed error
     const error =
@@ -98,7 +126,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
         set_error_tab(title);
       }
     }
-    return render_tab_item(title, value, error, time_str);
+    return render_tab_item(title, value, error, job_info_str);
   }
 
   function render_clean(): AntdTabItem | undefined {
@@ -113,7 +141,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
     const items: AntdTabItem[] = [];
 
-    for (const log in BUILD_SPECS) {
+    let log: BuildSpecName;
+    for (log in BUILD_SPECS) {
       if (log === "clean" || log === "build") continue; // skip these
       const item = render_log(log);
       if (item) items.push(item);
@@ -153,21 +182,17 @@ export const Build: React.FC<Props> = React.memo((props) => {
     );
   }
 
-  function render_procs(): Rendered {
-    if (!proc_infos) return;
+  // usually, one job is running at a time
+  function render_jobs(): Rendered {
+    if (!job_infos) return;
     const infos: JSX.Element[] = [];
-    proc_infos.forEach((info, key) => {
+    job_infos.forEach((info, key) => {
       if (!info || info.get("status") !== "running") return;
       const start = info.get("start");
       const { label } = BUILD_SPECS[key];
       infos.push(
-        <Button
-          key={key}
-          size="small"
-          onClick={() => window.alert(`term ${info.get("pid")}`)}
-          icon={<Icon unicode={0x2620} />}
-        >
-          Stop {label}{" "}
+        <Fragment key={key}>
+          {label}{" "}
           {start != null ? (
             <Stopwatch
               compact
@@ -178,16 +203,40 @@ export const Build: React.FC<Props> = React.memo((props) => {
               noButtons
             />
           ) : undefined}
-        </Button>,
+        </Fragment>,
       );
     });
-    return <div style={{ margin: "15px" }}>{r_join(infos)}</div>;
+
+    if (infos.length === 0) return;
+
+    return (
+      <div
+        style={{
+          margin: "10px",
+          justifyContent: "center",
+          alignItems: "center",
+          display: "flex",
+          gap: "5px",
+        }}
+      >
+        Running: {r_join(infos)}{" "}
+        <Tooltip title={"Stop building the document."}>
+          <Button
+            size="small"
+            onClick={() => actions.stop_build()}
+            icon={<Icon name={"stop"} />}
+          >
+            Stop
+          </Button>
+        </Tooltip>
+      </div>
+    );
   }
 
   function render_status(): Rendered {
     if (status) {
       return (
-        <div style={{ margin: "15px" }}>
+        <div style={{ margin: "10px" }}>
           <Loading
             text={status}
             style={{
@@ -216,8 +265,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
       }}
     >
       {render_build_command()}
+      {render_jobs()}
       {render_status()}
-      {render_procs()}
       {logs}
     </div>
   );

@@ -12,7 +12,10 @@ import {
   exec,
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
-import { Error, ProcessedLatexLog } from "./latex-log-parser";
+import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { TIMEOUT_LATEX_JOB_S } from "./constants";
+import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
 import { BuildLog } from "./types";
 
 // command documentation
@@ -32,6 +35,7 @@ export async function pythontex(
   force: boolean,
   status: Function,
   output_directory: string | undefined,
+  set_job_info: (info: ExecuteCodeOutputAsync) => void,
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
   const rerun = force ? "--rerun=always" : ""; // forced build implies to run all snippets
@@ -41,8 +45,8 @@ export async function pythontex(
   const command = `$(which {pythontex3,pythontex} | head -1) ${args}`;
   status(`pythontex[3] ${args}`);
   const aggregate = time && !force ? { value: time } : undefined;
-  return exec({
-    timeout: 360,
+  const job_info = await exec({
+    timeout: TIMEOUT_LATEX_JOB_S,
     bash: true, // timeout is enforced by ulimit
     command,
     env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203
@@ -51,6 +55,35 @@ export async function pythontex(
     err_on_exit: false,
     aggregate,
   });
+
+  if (job_info.type !== "async") {
+    throw new Error("not an async job");
+  }
+
+  set_job_info(job_info);
+
+  while (true) {
+    try {
+      const output = await exec({
+        project_id,
+        async_get: job_info.job_id,
+        async_await: true,
+        async_stats: true,
+      });
+      if (output.type !== "async") {
+        throw new Error("output type is not async exec");
+      }
+      set_job_info(output);
+      return output;
+    } catch (err) {
+      if (err === TIMEOUT_CALLING_PROJECT) {
+        // this will be fine, hopefully. We continue trying to get a reply.
+        await new Promise((done) => setTimeout(done, 100));
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 /*
@@ -76,7 +109,7 @@ export function pythontex_errors(
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
-  let err: Error | undefined = undefined;
+  let err: ErrorLog | undefined = undefined;
 
   for (const line of output.stdout.split("\n")) {
     if (line.search("PythonTeX stderr") > 0) {

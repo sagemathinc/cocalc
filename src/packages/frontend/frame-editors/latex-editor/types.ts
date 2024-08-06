@@ -96,4 +96,4 @@ interface ScrollIntoViewParams {
 export const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
 export type ScrollIntoViewMap = TypedMap<ScrollIntoViewParams>;
 
-export type ProcessInfos = Map<BuildSpecName, TypedMap<ExecOutput>>;
+export type JobInfos = Map<BuildSpecName, TypedMap<ExecOutput>>;

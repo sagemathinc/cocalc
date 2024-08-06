@@ -14,7 +14,10 @@ import {
   exec,
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
-import { Error, ProcessedLatexLog } from "./latex-log-parser";
+import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { TIMEOUT_LATEX_JOB_S } from "./constants";
+import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
 import { BuildLog } from "./types";
 
 function sagetex_file(base: string): string {
@@ -49,12 +52,13 @@ export async function sagetex(
   hash: string,
   status: Function,
   output_directory: string | undefined,
+  set_job_info: (info: ExecuteCodeOutputAsync) => void,
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sage ${s}`);
-  return exec({
-    timeout: 360,
+  const job_info = await exec({
+    timeout: TIMEOUT_LATEX_JOB_S,
     bash: true, // so timeout is enforced by ulimit
     command: "sage",
     args: [s],
@@ -63,6 +67,35 @@ export async function sagetex(
     err_on_exit: false,
     aggregate: hash ? { value: hash } : undefined,
   });
+
+  if (job_info.type !== "async") {
+    throw new Error("not an async job");
+  }
+
+  set_job_info(job_info)
+
+  while (true) {
+    try {
+      const output = await exec({
+        project_id,
+        async_get: job_info.job_id,
+        async_await: true,
+        async_stats: true,
+      });
+      if (output.type !== "async") {
+        throw new Error("output type is not async exec")
+      }
+      set_job_info(output)
+      return output
+    } catch (err) {
+      if (err === TIMEOUT_CALLING_PROJECT) {
+        // this will be fine, hopefully. We continue trying to get a reply.
+        await new Promise((done) => setTimeout(done, 100));
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 /* example error
@@ -79,7 +112,7 @@ export function sagetex_errors(
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
-  let err: Error | undefined = undefined;
+  let err: ErrorLog | undefined = undefined;
 
   // all fine
   if (output.stderr.indexOf("Sage processing complete") >= 0) {

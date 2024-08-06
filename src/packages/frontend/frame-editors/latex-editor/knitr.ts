@@ -12,7 +12,10 @@ import {
   exec,
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
-import { Error, ProcessedLatexLog } from "./latex-log-parser";
+import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { TIMEOUT_LATEX_JOB_S } from "./constants";
+import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
 import { BuildLog } from "./types";
 
 // this still respects the environment variables and init files
@@ -30,12 +33,13 @@ export async function knitr(
   path: string, // pass in this.filename_knitr
   time: number | undefined,
   status: Function,
+  set_job_info: (info: ExecuteCodeOutputAsync) => void,
 ): Promise<ExecOutput> {
   const { directory, filename } = parse_path(path);
   const expr = `require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")`;
   status(`${expr}`);
-  return exec({
-    timeout: 360,
+  const job_info = await exec({
+    timeout: TIMEOUT_LATEX_JOB_S,
     command: R_CMD,
     args: [...R_ARGS, expr],
     bash: true, // so timeout is enforced by ulimit
@@ -43,7 +47,37 @@ export async function knitr(
     path: directory,
     err_on_exit: false,
     aggregate: time ? { value: time } : undefined, // one might think to aggregate on hash, but the output could be random!
+    async_call: true,
   });
+
+  if (job_info.type !== "async") {
+    throw new Error("not an async job");
+  }
+
+  set_job_info(job_info);
+
+  while (true) {
+    try {
+      const output = await exec({
+        project_id,
+        async_get: job_info.job_id,
+        async_await: true,
+        async_stats: true,
+      });
+      if (output.type !== "async") {
+        throw new Error("output is not an async job");
+      }
+      set_job_info(output);
+      return output;
+    } catch (err) {
+      if (err === TIMEOUT_CALLING_PROJECT) {
+        // this will be fine, hopefully. We continue trying to get a reply.
+        await new Promise((done) => setTimeout(done, 100));
+      } else {
+        throw err;
+      }
+    }
+  }
 }
 
 /**
@@ -73,7 +107,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
   let file: string = "";
-  let err: Error | undefined = undefined;
+  let err: ErrorLog | undefined = undefined;
 
   const warnmsg = "Warning message:";
   const errline = "Quitting from lines ";
