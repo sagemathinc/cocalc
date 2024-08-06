@@ -29,7 +29,8 @@ interface Props {
 }
 
 export default function IFrame(props: Props) {
-  const iframeContext = useIFrameContext(); // we only use cached iframe if the iframecontext is setup, e.g., it is in Jupyter notebooks, but not in whiteboards.
+  // we only use cached iframe if the iframecontext is setup, e.g., it is in Jupyter notebooks, but not in whiteboards.
+  const iframeContext = useIFrameContext();
   return iframeContext.iframeDivRef == null || props.cacheId == null ? (
     <NonCachedIFrame {...props} />
   ) : (

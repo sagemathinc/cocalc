@@ -1,12 +1,18 @@
 /*
 
-It is completely impossible in modern times to move an iframe in the DOM without loosing state,
-as explained here:
-   https://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
+It is completely impossible in modern times to move an iframe's position in the DOM *tree*
+without losing state, as explained here:
 
-An annoying issue is that if you do shift+tab to get docs or hit the TimeTravel button or anything to
-split the Jupyter frame, then the iframes of course get reset.  That was a problem before this though,
-i.e., it's not special to using windowing.
+https://stackoverflow.com/questions/8318264/how-to-move-an-iframe-in-the-dom-without-losing-its-state
+
+That's what we instead use position absolute, and literally move the iframe's position on the screen.
+We never move it in the dom.
+
+Another unsolved issue is that if you do shift+tab to get docs or hit the TimeTravel button
+or anything to split the Jupyter frame, then the iframes of course get reset.  That was
+a problem before this though, i.e., it's not special to using windowing.  However, it
+is a problem we intend to solve, e.g., maybe we put the iframes somewhere else in the
+DOM and can reuse when rendering the notebook after the frame split happens.
 */
 
 import { Button, Tooltip } from "antd";
@@ -18,7 +24,8 @@ import { delay } from "awaiting";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useResizeObserver from "use-resize-observer";
 
-// This is just an initial default height; the actual height of the iframe resizes to the content.
+// This is just an initial default height; the actual height of the iframe should
+// resize to the content.
 const HEIGHT = "70vh";
 
 interface Props {
