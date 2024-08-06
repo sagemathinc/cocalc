@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
 
@@ -12,20 +12,27 @@ interface Props {
   actions: TimeTravelActions;
   version: Date | undefined;
   doc;
+  changesMode?: boolean;
 }
 
-export function RevertFile({ id, actions, version, doc }: Props) {
+export function RevertFile({ id, actions, version, doc, changesMode }: Props) {
   return (
-    <Button
-      title={`Revert file to the displayed version (this makes a new version, so nothing is lost)`}
-      onClick={() => {
-        if (version != null) {
-          actions.revert(id, version, doc);
-        }
-      }}
-      disabled={version == null || actions.syncdoc?.is_read_only()}
+    <Tooltip
+      title={`Revert file to the displayed version (this makes a new version, so nothing is lost). ${
+        changesMode ? "In changes mode, this uses newer version." : ""
+      }`}
     >
-      <Icon name="undo" /> Revert
-    </Button>
+      {" "}
+      <Button
+        onClick={() => {
+          if (version != null) {
+            actions.revert(id, version, doc);
+          }
+        }}
+        disabled={version == null || actions.syncdoc?.is_read_only()}
+      >
+        <Icon name="undo" /> Revert
+      </Button>
+    </Tooltip>
   );
 }

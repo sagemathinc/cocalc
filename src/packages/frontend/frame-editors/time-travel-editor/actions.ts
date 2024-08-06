@@ -67,6 +67,8 @@ export interface TimeTravelState extends CodeEditorState {
   // true if in a git repo
   git?: boolean;
   //frame_states: Map<string, any>; // todo: really map from frame_id to FrameState as immutable map.
+  // timetravel has own error state
+  error: string;
 }
 
 export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
@@ -106,6 +108,10 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
   _raw_default_frame_tree(): FrameTree {
     return { type: "time_travel" };
   }
+
+  set_error = (error) => {
+    this.setState({ error });
+  };
 
   private init_syncdoc = async (): Promise<void> => {
     const persistent = this.docext == "ipynb" || this.docext == "sagews"; // ugly for now (?)
@@ -179,14 +185,15 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
     }
   };
 
-  load_full_history = async (): Promise<void> => {
+  loadFullHistory = async (): Promise<void> => {
     if (
       this.store.get("has_full_history") ||
       this.syncdoc == null ||
       this.store.get("git_mode")
-    )
+    ) {
       return;
-    await this.syncdoc.load_full_history(); // todo -- error reporting ...?
+    }
+    await this.syncdoc.load_full_history();
     this.setState({ has_full_history: true });
     this.syncdoc_changed(); // load new versions list.
   };
@@ -280,6 +287,17 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       }
       actions.set_frame_tree({ id, version });
       return;
+    }
+  };
+
+  setNewestVersion = (id: string) => {
+    const node = this.getFrameNodeGlobal(id);
+    const versions = node?.get("git_mode")
+      ? this.store.get("git_versions")
+      : this.store.get("versions");
+    const v = (versions?.size ?? 0) - 1;
+    if (v >= 0) {
+      this.set_version(id, v);
     }
   };
 

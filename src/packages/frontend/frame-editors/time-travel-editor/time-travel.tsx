@@ -8,7 +8,12 @@
 import { useState } from "react";
 import { Button, Checkbox, Tooltip } from "antd";
 import { Map } from "immutable";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  useTypedRedux,
+  useAsyncEffect,
+  useEditorRedux,
+} from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { TimeTravelActions, TimeTravelState } from "./actions";
 import { Diff } from "./diff";
@@ -26,11 +31,11 @@ import { Export } from "./export";
 import json_stable from "json-stable-stringify";
 import { to_ipynb } from "../../jupyter/history-viewer";
 import { SagewsDiff } from "./sagews-diff";
-import { useAsyncEffect, useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Viewer } from "./viewer";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import useLicenses from "@cocalc/frontend/site-licenses/use-licenses";
 import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
+import ShowError from "@cocalc/frontend/components/error";
 
 const HAS_SPECIAL_VIEWER = new Set([
   "tasks",
@@ -62,6 +67,7 @@ export function TimeTravel(props: Props) {
     "unlicensed_project_timetravel_limit",
   );
   const licenses = useLicenses({ project_id });
+  const error = useEditor("error");
   const versions = useEditor("versions");
   const gitVersions = useEditor("git_versions");
   const hasFullHistory = useEditor("has_full_history");
@@ -263,8 +269,10 @@ export function TimeTravel(props: Props) {
   };
 
   const renderLoadFullHistory = () => {
-    if (hasFullHistory) return;
-    return <LoadFullHistory actions={props.actions} />;
+    if (hasFullHistory || gitMode) {
+      return;
+    }
+    return <LoadFullHistory id={props.id} actions={props.actions} />;
   };
 
   const renderOpenFile = () => {
@@ -278,11 +286,12 @@ export function TimeTravel(props: Props) {
   };
 
   const renderRevertFile = () => {
-    if (changesMode || doc == null) {
+    if (doc == null) {
       return;
     }
     return (
       <RevertFile
+        changesMode={changesMode}
         actions={props.actions}
         version={getVersion()}
         id={props.id}
@@ -304,7 +313,7 @@ export function TimeTravel(props: Props) {
   };
 
   const renderExport = () => {
-    if (redux.getStore("page").get("fullscreen") == "kiosk") {
+    if (gitMode || redux.getStore("page").get("fullscreen") == "kiosk") {
       // doesn't make sense in kiosk mode.
       return;
     }
@@ -447,6 +456,11 @@ export function TimeTravel(props: Props) {
       {renderControls()}
       {renderTimeSelect()}
       {gitMode && !changesMode && renderGitSubject()}
+      <ShowError
+        style={{ margin: "5px 15px" }}
+        error={error}
+        setError={props.actions.set_error}
+      />
       {body}
     </div>
   );
