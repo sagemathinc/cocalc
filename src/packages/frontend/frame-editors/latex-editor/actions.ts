@@ -76,6 +76,7 @@ import { parseTableOfContents } from "./table-of-contents";
 import {
   BuildLog,
   BuildLogs,
+  BuildSpecName,
   IBuildSpecs,
   ProcessInfos,
   ScrollIntoViewMap,
@@ -698,6 +699,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_build(time: number, force: boolean): Promise<void> {
+    // reset state and build info
     this.setState({ build_logs: Map() });
     this.setState({ proc_infos: Map() });
 
@@ -1292,8 +1294,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (!proc_infos) {
       return;
     }
-    for (const k in obj) {
-      const v: ExecuteCodeOutputAsync = obj[k];
+    let k: BuildSpecName;
+    for (k in obj) {
+      const v: ExecuteCodeOutputAsync | undefined = obj[k];
       if (!v) continue;
       proc_infos = proc_infos.set(
         k as any,
@@ -1309,8 +1312,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       // may have already been closed.
       return;
     }
-    for (const k in obj) {
-      const v: BuildLog = obj[k];
+    let k: BuildSpecName;
+    for (k in obj) {
+      const v: BuildLog | undefined = obj[k];
       if (!v) continue;
       build_logs = build_logs.set(k, fromJS(v) as any as TypedMap<BuildLog>);
     }

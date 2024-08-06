@@ -101,7 +101,7 @@ export async function latexmk(
   }
 
   if (typeof job_info.pid !== "number") {
-    throw new Error("Unable to spawn compile job.");
+    throw new Error("Unable to spawn LaTeX compile job.");
   }
 
   async function run_job(): Promise<BuildLog> {
