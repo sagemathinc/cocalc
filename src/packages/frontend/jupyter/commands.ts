@@ -630,7 +630,7 @@ export function commands(actions: AllActions): {
 
     "nbconvert latex pdf": {
       i: "tex",
-      m: "PDF via LaTeX (.pdf)",
+      m: "PDF via LaTeX and nbconvert (minimal image support) (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("pdf"),
       r: true,
     },

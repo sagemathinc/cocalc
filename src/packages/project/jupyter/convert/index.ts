@@ -29,7 +29,7 @@ export async function nbconvert(opts: NbconvertParams): Promise<void> {
 
     if (to == "cocalc-html" || to == "cocalc-pdf") {
       // We use our own internal cocalc conversion, since I'm tired of weird subtle issues
-      // with upstream nbconvert...
+      // with upstream nbconvert, and we can also be much faster.
       const ipynb = join(opts.directory ?? "", parseSource(opts.args)); // make relative to home directory
       const html = await ipynbToHtml(ipynb);
       if (to == "cocalc-html") {
