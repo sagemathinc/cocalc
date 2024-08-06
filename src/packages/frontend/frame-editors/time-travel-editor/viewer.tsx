@@ -10,6 +10,7 @@ import { HistoryViewer as JupyterHistoryViewer } from "../../jupyter/history-vie
 import { SagewsCodemirror } from "./sagews-codemirror";
 import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
 import { isObjectDoc } from "./view-document";
+import { getScale } from "@cocalc/frontend/frame-editors/frame-tree/hooks";
 
 export function Viewer({
   ext,
@@ -58,9 +59,13 @@ export function Viewer({
     case "sagews":
       return <SagewsCodemirror {...opts} />;
     case "md":
+      const scale = getScale(font_size);
       return (
         <div style={{ overflow: "auto", padding: "50px 70px" }}>
-          <StaticMarkdown value={doc.to_str()} />
+          <StaticMarkdown
+            value={doc.to_str()}
+            style={{ fontSize: `${100 * scale}%` }}
+          />
         </div>
       );
     case "board":
