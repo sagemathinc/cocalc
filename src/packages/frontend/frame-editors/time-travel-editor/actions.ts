@@ -516,8 +516,9 @@ export class TimeTravelActions extends CodeEditorActions<TimeTravelState> {
       });
       this.ensureSelectedVersionsAreConsistent({ git_versions });
       return git_versions;
-    } catch (err) {
-      this.set_error(`${err}`);
+    } catch (_err) {
+      // Do NOT report error -- instead, disable git mode.  This should
+      // happen if the file is not in a git repo.
       this.setState({ git: false });
       return;
     }
