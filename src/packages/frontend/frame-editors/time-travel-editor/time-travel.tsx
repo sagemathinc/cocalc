@@ -8,8 +8,8 @@
 import { useState } from "react";
 import { Button, Checkbox, Tooltip } from "antd";
 import { Map } from "immutable";
-import { redux } from "../../app-framework";
-import { Loading } from "../../components";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
 import { TimeTravelActions, TimeTravelState } from "./actions";
 import { Diff } from "./diff";
 import { NavigationButtons } from "./navigation-buttons";
@@ -29,6 +29,8 @@ import { SagewsDiff } from "./sagews-diff";
 import { useAsyncEffect, useEditorRedux } from "@cocalc/frontend/app-framework";
 import { Viewer } from "./viewer";
 import type { Document } from "@cocalc/sync/editor/generic/types";
+import useLicenses from "@cocalc/frontend/site-licenses/use-licenses";
+import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
 
 const HAS_SPECIAL_VIEWER = new Set([
   "tasks",
@@ -55,6 +57,11 @@ interface Props {
 export function TimeTravel(props: Props) {
   const { project_id, path } = props;
   const useEditor = useEditorRedux<TimeTravelState>({ project_id, path });
+  const unlicensedLimit = useTypedRedux(
+    "customize",
+    "unlicensed_project_timetravel_limit",
+  );
+  const licenses = useLicenses({ project_id });
   const versions = useEditor("versions");
   const gitVersions = useEditor("git_versions");
   const hasFullHistory = useEditor("has_full_history");
@@ -400,27 +407,47 @@ export function TimeTravel(props: Props) {
   if (loading) {
     return renderLoading();
   }
+
+  let body;
+  if (
+    unlicensedLimit &&
+    !gitMode &&
+    licenses != null &&
+    version != null &&
+    licenses.size == 0 &&
+    versions.size - unlicensedLimit > version
+  ) {
+    // need license to view this
+    body = (
+      <RequireLicense
+        project_id={project_id}
+        message={`A license is required to view more than ${unlicensedLimit} versions of this file.`}
+      />
+    );
+  } else if (doc != null && docpath != null && docext != null && !changesMode) {
+    body = (
+      <Viewer
+        ext={docext}
+        doc={doc}
+        textMode={textMode}
+        actions={props.actions}
+        id={props.id}
+        path={docpath ? docpath : "a.js"}
+        project_id={props.project_id}
+        font_size={props.font_size}
+        editor_settings={props.editor_settings}
+      />
+    );
+  } else {
+    body = renderDiff();
+  }
+
   return (
     <div className="smc-vfill">
       {renderControls()}
       {renderTimeSelect()}
       {gitMode && !changesMode && renderGitSubject()}
-      <>
-        {doc != null && docpath != null && docext != null && !changesMode && (
-          <Viewer
-            ext={docext}
-            doc={doc}
-            textMode={textMode}
-            actions={props.actions}
-            id={props.id}
-            path={docpath ? docpath : "a.js"}
-            project_id={props.project_id}
-            font_size={props.font_size}
-            editor_settings={props.editor_settings}
-          />
-        )}
-        {renderDiff()}
-      </>
+      {body}
     </div>
   );
 }

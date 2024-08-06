@@ -4,6 +4,14 @@ export const AccountIdSchema = z.string().uuid().describe("Account id.");
 
 export type AccountId = z.infer<typeof AccountIdSchema>;
 
+export const AdminAccountIdSchema = AccountIdSchema.optional().describe(
+  `**Administrators only**. Optional account id to set name(s) for. If this field is 
+     not provided, it is assumed that this operation pertains to the account id of the 
+     user making the request.`,
+);
+
+export type AdminAccountId = z.infer<typeof AdminAccountIdSchema>;
+
 export const AccountEmailSchema = z
   .string()
   .describe("The account e-mail address.");
