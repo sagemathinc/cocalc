@@ -180,17 +180,19 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       className="pull-right"
     >
       <ButtonGroup>
-        <TourButton project_id={project_id} />
-        {render_library_button()}
-        {render_upload_button()}
         {render_jupyterlab_button()}
         {render_vscode_button()}
+      </ButtonGroup>
+      <ButtonGroup>
+        {render_upload_button()}
+        {render_library_button()}
       </ButtonGroup>
       <div className="pull-right">
         <ButtonGroup>
           {render_hidden_toggle()}
           {render_masked_toggle()}
           {render_backup()}
+        <TourButton project_id={project_id} />
         </ButtonGroup>
       </div>
     </ButtonToolbar>
