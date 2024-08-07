@@ -8,9 +8,10 @@ import { useCallback, useEffect, useRef } from "react";
 import $ from "jquery";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { useIFrameContext } from "@cocalc/frontend/jupyter/cell-list";
+import { sha1 } from "@cocalc/util/misc";
 
 interface Props {
-  globalKey: string;
+  docId: string;
   html: string;
   zIndex?: number;
 }
@@ -35,14 +36,16 @@ const PADDING = 0;
 const STYLE = {} as const;
 
 export default function ImmortalDomNode({
-  globalKey,
+  docId,
   html,
   zIndex = Z_INDEX, // todo: support changing?
 }: Props) {
   const divRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
-  const { isVisible } = useFrameContext();
+  const { isVisible, project_id, path, id } = useFrameContext();
   const iframeContext = useIFrameContext();
+
+  const globalKey = sha1(`${project_id}-${id}-${docId}-${path}-${html}`);
 
   const position = useCallback(() => {
     // make it so elt is exactly positioned on top of divRef.current using CSS
@@ -82,7 +85,6 @@ export default function ImmortalDomNode({
     const parent = $(iframeContext.cellListDivRef?.current)[0];
     if (parent != null) {
       const parentRect = parent.getBoundingClientRect();
-      console.log({ parentRect, eltRect });
       // Calculate the overlap area
       const top = Math.max(0, parentRect.top - eltRect.top);
       // leave 30px on right so to not block scrollbar
@@ -149,8 +151,9 @@ export default function ImmortalDomNode({
   }, [isVisible]);
 
   useEffect(() => {
-    intervalRef.current = setInterval(position, 1000);
-
+    // TOOD: can we get rid of interval by using a resize observer on
+    // this iframeContext.cellListDivRef?
+    intervalRef.current = setInterval(position, 500);
     if (iframeContext.iframeOnScrolls != null) {
       let count = 0;
       iframeContext.iframeOnScrolls[globalKey] = async () => {
@@ -168,6 +171,9 @@ export default function ImmortalDomNode({
         position();
       };
     }
+    position();
+    setTimeout(position, 0);
+    setTimeout(position, 5);
 
     return () => {
       delete iframeContext.iframeOnScrolls?.[globalKey];

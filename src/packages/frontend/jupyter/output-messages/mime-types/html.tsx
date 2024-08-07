@@ -1,14 +1,21 @@
 import register from "./register";
 //import HTML from "@cocalc/frontend/components/html-ssr";
 import ImmortalDomNode from "../immortal-dom-node";
-import { sha1 } from "@cocalc/util/misc";
 
-const Html = ({ value }: { value: string }) => {
+const Html = ({
+  value,
+  id,
+  index,
+}: {
+  value: string;
+  id?: string;
+  index?: number;
+}) => {
   //      <HTML value={value} />
-
+  console.log("HTML", { id, index });
   return (
     <div style={{ margin: "5px 0" }}>
-      <ImmortalDomNode html={value} globalKey={sha1(value)} />
+      <ImmortalDomNode html={value} docId={`${id}-${index}`} />
     </div>
   );
 };

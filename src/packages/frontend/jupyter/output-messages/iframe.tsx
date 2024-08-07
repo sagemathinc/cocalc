@@ -30,6 +30,7 @@ interface Props {
   sha1: string;
   project_id: string;
   cacheId?: string;
+  index?: number;
 }
 
 export default function IFrame(props: Props) {
@@ -41,6 +42,8 @@ export default function IFrame(props: Props) {
     const src = get_blob_url(props.project_id, "html", props.sha1);
     return (
       <HTML
+        id={props.cacheId}
+        index={props.index}
         value={`<iframe src="${src}" style="border:0;height:${HEIGHT};width:${WIDTH}"/>`}
       />
     );

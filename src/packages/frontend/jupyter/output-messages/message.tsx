@@ -56,6 +56,7 @@ interface CellOutputMessageProps {
   actions?: JupyterActions; // optional  - not needed by most messages
   name?: string;
   id?: string; // optional, and not usually needed either; this is the id of the cell.  It is needed for iframe + windowing.
+  index?: number;
   trust?: boolean; // is notebook trusted by the user (if not won't eval javascript)
 }
 
@@ -71,6 +72,7 @@ export const CellOutputMessage: React.FC<CellOutputMessageProps> = React.memo(
         name={props.name}
         trust={props.trust}
         id={props.id}
+        index={props.index}
       />
     );
   },
@@ -137,6 +139,7 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
         v.push(
           <CellOutputMessage
             key={n}
+            index={n}
             message={mesg}
             project_id={project_id}
             directory={directory}
