@@ -150,7 +150,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     const base = serverURL(project_id, "jupyterlab");
     // we make sure the url ends wiht a slash, without messing up the full URL
     const s = base.slice(base.length - 1) === "/" ? "" : "/";
-    const url = `${base}${s}lab/tree/${current_path ?? ""}`;
+    const url = `${base}${s}${current_path ? "lab/tree/" + current_path : ""}`;
     return (
       <LinkRetry href={url} mode="button">
         <Tip
