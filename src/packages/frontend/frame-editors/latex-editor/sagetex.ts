@@ -66,13 +66,15 @@ export async function sagetex(
     path: output_directory || directory,
     err_on_exit: false,
     aggregate: hash ? { value: hash } : undefined,
+    async_call: true,
   });
 
   if (job_info.type !== "async") {
-    throw new Error("not an async job");
+    // this is not an async job. This could happen for old projects.
+    return job_info;
   }
 
-  set_job_info(job_info)
+  set_job_info(job_info);
 
   while (true) {
     try {
@@ -83,10 +85,10 @@ export async function sagetex(
         async_stats: true,
       });
       if (output.type !== "async") {
-        throw new Error("output type is not async exec")
+        throw new Error("output type is not async exec");
       }
-      set_job_info(output)
-      return output
+      set_job_info(output);
+      return output;
     } catch (err) {
       if (err === TIMEOUT_CALLING_PROJECT) {
         // this will be fine, hopefully. We continue trying to get a reply.

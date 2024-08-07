@@ -51,7 +51,8 @@ export async function knitr(
   });
 
   if (job_info.type !== "async") {
-    throw new Error("not an async job");
+    // this is not an async job. This could happen for old projects.
+    return job_info;
   }
 
   set_job_info(job_info);
@@ -65,7 +66,7 @@ export async function knitr(
         async_stats: true,
       });
       if (output.type !== "async") {
-        throw new Error("output is not an async job");
+        throw new Error("output: not an async task");
       }
       set_job_info(output);
       return output;

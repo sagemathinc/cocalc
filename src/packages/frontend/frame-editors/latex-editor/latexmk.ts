@@ -50,42 +50,38 @@ export async function latexmk(
     async_call: true,
   });
 
-  if (job_info.type !== "async") {
-    throw new Error("not an async job");
-  }
-
-  set_job_info(job_info);
-
-  if (typeof job_info.pid !== "number") {
-    throw new Error("Unable to spawn LaTeX compile job.");
-  }
-
-  if (job_info.type !== "async") {
-    throw new Error("not an async job");
-  }
-
   // Step 1: Wait for the launched job to finish
   let output: BuildLog;
-  while (true) {
-    try {
-      output = await exec({
-        project_id,
-        async_get: job_info.job_id,
-        async_await: true,
-        async_stats: true,
-      });
-      //console.log("LaTeX/latexmk: got output=", output);
-      if (output.type !== "async") {
-        throw new Error("not an async job");
-      }
-      set_job_info(output);
-      break;
-    } catch (err) {
-      if (err === TIMEOUT_CALLING_PROJECT) {
-        // this will be fine, hopefully. We continue trying to get a reply
-        await new Promise((done) => setTimeout(done, 100));
-      } else {
-        throw err;
+  if (job_info.type !== "async") {
+    output = job_info;
+  } else {
+    set_job_info(job_info);
+
+    if (typeof job_info.pid !== "number") {
+      throw new Error("Unable to spawn LaTeX compile job.");
+    }
+
+    while (true) {
+      try {
+        output = await exec({
+          project_id,
+          async_get: job_info.job_id,
+          async_await: true,
+          async_stats: true,
+        });
+        //console.log("LaTeX/latexmk: got output=", output);
+        if (output.type !== "async") {
+          throw new Error("not an async job");
+        }
+        set_job_info(output);
+        break;
+      } catch (err) {
+        if (err === TIMEOUT_CALLING_PROJECT) {
+          // this will be fine, hopefully. We continue trying to get a reply
+          await new Promise((done) => setTimeout(done, 100));
+        } else {
+          throw err;
+        }
       }
     }
   }

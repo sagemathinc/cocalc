@@ -54,10 +54,12 @@ export async function pythontex(
     path: output_directory || directory,
     err_on_exit: false,
     aggregate,
+    async_call: true,
   });
 
   if (job_info.type !== "async") {
-    throw new Error("not an async job");
+    // this is not an async job. This could happen for old projects.
+    return job_info;
   }
 
   set_job_info(job_info);
