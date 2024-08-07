@@ -19,6 +19,8 @@ const immortals: { [globalKey: string]: any } = {};
 
 const Z_INDEX = 1;
 
+const SCROLL_COUNT = 10;
+
 // make it really standout:
 // const PADDING = 5;
 // const STYLE = {
@@ -47,7 +49,8 @@ export default function ImmortalDomNode({
     if (divRef.current == null) {
       return;
     }
-    const elt = getElt()[0];
+    const jElt = getElt();
+    const elt = jElt[0];
     const eltRect = elt.getBoundingClientRect();
     const divRect = divRef.current.getBoundingClientRect();
 
@@ -82,19 +85,39 @@ export default function ImmortalDomNode({
       console.log({ parentRect, eltRect });
       // Calculate the overlap area
       const top = Math.max(0, parentRect.top - eltRect.top);
-      const right = Math.min(eltRect.width, parentRect.right - eltRect.left);
+      // leave 30px on right so to not block scrollbar
+      const right = Math.min(
+        eltRect.width,
+        parentRect.right - 30 - eltRect.left,
+      );
       const bottom = Math.min(eltRect.height, parentRect.bottom - eltRect.top);
       const left = Math.max(0, parentRect.left - eltRect.left);
 
       // Apply clip-path to elt to make it visible only inside of parentRect:
       elt.style.clipPath = `polygon(${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px)`;
+
+      // if its an iframe resize it
+      if (html.toLowerCase().startsWith("<iframe")) {
+        const iframe = jElt.find("iframe");
+        if (iframe.length > 0) {
+          var iframeBody = iframe.contents().find("body");
+          if (iframeBody.length > 0) {
+            // Get dimensions of the iframe's body
+            //const width = iframeBody.outerWidth();
+            const height = iframeBody.outerHeight();
+            //iframe[0].style.width = `${width}px`;
+            iframe[0].style.height = `${height}px`;
+            iframeBody[0].style["overflow-y"] = "hidden";
+          }
+        }
+      }
     }
   }, []);
 
   const getElt = () => {
     if (immortals[globalKey] == null) {
       const elt = (immortals[globalKey] = $(
-        `<div id="${globalKey}" style="border:0;position:absolute;z-index:${zIndex}"/>${html}</div>`,
+        `<div id="${globalKey}" style="border:0;position:absolute;overflow-y:hidden;z-index:${zIndex}"/>${html}</div>`,
       ));
       $("body").append(elt);
       return elt;
@@ -135,7 +158,7 @@ export default function ImmortalDomNode({
         // in order to make it so the iframe doesn't appear
         // to just get "dragged along" nearly as much, as
         // onScroll is throttled.
-        count = Math.min(100, count + 100);
+        count = Math.min(SCROLL_COUNT, SCROLL_COUNT + 100);
         while (count > 0) {
           position();
           await new Promise(requestAnimationFrame);
