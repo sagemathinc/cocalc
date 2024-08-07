@@ -10,7 +10,6 @@ Jupyter notebook server is running, then pops it up in a new tab.
 
 import { join } from "path";
 import React from "react";
-
 import {
   Icon,
   IconName,
@@ -144,14 +143,14 @@ export const NamedServerPanel: React.FC<Props> = ({
           {description}
           <br />
           <br />
-          Click the link below to start your {longName} server. It will then
-          attempt to open in a new browser tab. If this doesn't work, check for
-          a popup blocker warning!
+          Starting your {longName} server. It will then attempt to open in a new
+          browser tab. If this doesn't work, check for a popup blocker warning!
         </Paragraph>
         <Paragraph
           style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}
         >
           <LinkRetry
+            autoStart
             href={serverURL(project_id, name)}
             loadingText="Launching server..."
             onClick={() => {

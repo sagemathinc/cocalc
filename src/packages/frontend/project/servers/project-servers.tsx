@@ -163,6 +163,30 @@ export function ProjectServers(props: Props) {
   }
 
   const items: TabsProps["items"] = [];
+  items.push({
+    key: "notebooks",
+    label: (
+      <span style={{ fontSize: "14pt" }}>
+        <Icon name="jupyter" /> Notebook Servers
+      </span>
+    ),
+    children: (
+      <>
+        <Paragraph>
+          You can run various servers inside this project. They run in the same
+          environment, have access to the same files, and stop when the project
+          stops. You can also{" "}
+          <A href={"https://doc.cocalc.com/howto/webserver.html"}>
+            run your own servers
+          </A>
+          .
+        </Paragraph>
+        {renderNamedServers()}
+        <Divider plain />
+        {renderSageServerControl()}
+      </>
+    ),
+  });
   if (computeServersEnabled()) {
     items.push({
       key: "compute-servers",
@@ -193,30 +217,6 @@ export function ProjectServers(props: Props) {
       children: <CloudFilesystems project_id={project_id} />,
     });
   }
-  items.push({
-    key: "notebooks",
-    label: (
-      <span style={{ fontSize: "14pt" }}>
-        <Icon name="jupyter" /> Notebook Servers
-      </span>
-    ),
-    children: (
-      <>
-        <Paragraph>
-          You can run various servers inside this project. They run in the same
-          environment, have access to the same files, and stop when the project
-          stops. You can also{" "}
-          <A href={"https://doc.cocalc.com/howto/webserver.html"}>
-            run your own servers
-          </A>
-          .
-        </Paragraph>
-        {renderNamedServers()}
-        <Divider plain />
-        {renderSageServerControl()}
-      </>
-    ),
-  });
 
   return (
     <div style={{ ...ROOT_STYLE, margin: "0 auto" }}>
