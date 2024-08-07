@@ -9,6 +9,7 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 
 import Ansi from "@cocalc/ansi-to-react";
 import { Button, Tooltip } from "antd";
+import { Fragment } from "react";
 
 import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import { React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
@@ -16,7 +17,6 @@ import { Icon, Loading, r_join } from "@cocalc/frontend/components";
 import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Fragment } from "react";
 import { ExecOutput } from "../generic/client";
 import { Actions } from "./actions";
 import { BuildCommand } from "./build-command";
@@ -188,6 +188,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     const infos: JSX.Element[] = [];
     job_infos.forEach((info, key) => {
       if (!info || info.get("status") !== "running") return;
+      const stats_str = "";
       const start = info.get("start");
       const { label } = BUILD_SPECS[key];
       infos.push(
@@ -202,7 +203,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
               noDelete
               noButtons
             />
-          ) : undefined}
+          ) : undefined}{" "}
+          {stats_str}
         </Fragment>,
       );
     });
@@ -219,7 +221,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
           gap: "5px",
         }}
       >
-        Running: {r_join(infos)}{" "}
+        Active job: {r_join(infos)}{" "}
         <Tooltip title={"Stop building the document."}>
           <Button
             size="small"
@@ -228,7 +230,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
           >
             Stop
           </Button>
-        </Tooltip>
+        </Tooltip>{" "}
       </div>
     );
   }

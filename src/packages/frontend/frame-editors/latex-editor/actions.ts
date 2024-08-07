@@ -732,7 +732,6 @@ export class Actions extends BaseActions<LatexEditorState> {
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
     const job_infos = this.store.get("job_infos");
-    // console.log("stopping build jobs", job_infos?.toJS());
     if (job_infos) {
       for (const [name, job] of job_infos) {
         await this.kill(name, job.toJS());
@@ -1345,10 +1344,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   set_job_infos(obj: {
     [K in keyof IBuildSpecs]?: ExecuteCodeOutputAsync;
   }): void {
-    let job_infos: JobInfos = this.store.get("job_infos");
-    if (!job_infos) {
-      return;
-    }
+    let job_infos: JobInfos = this.store.get("job_infos") ?? Map();
     let k: BuildSpecName;
     for (k in obj) {
       const v: ExecuteCodeOutputAsync | undefined = obj[k];

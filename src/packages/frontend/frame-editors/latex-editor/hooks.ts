@@ -4,7 +4,6 @@
  */
 
 import { Map } from "immutable";
-import { isEqual } from "lodash";
 
 import { React, useRedux } from "@cocalc/frontend/app-framework";
 import { BuildLogs, JobInfos } from "./types";
@@ -29,7 +28,8 @@ function use_infos<T extends Map<string, any>>(
     const isDiff =
       aspect === "build_logs"
         ? data_next.getIn([key, "parse"]) != data.getIn([key, "parse"])
-        : !isEqual(data_next.get(key), data.get(key));
+        : data_next.get(key) != data.get(key);
+
     if (isDiff) {
       set_data(data_next);
     }
