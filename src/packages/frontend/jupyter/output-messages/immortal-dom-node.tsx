@@ -1,18 +1,31 @@
+/*
+Create an immortal DOM node.  This is a way to render HTML that stays stable
+irregardless of it being unmounted/remounted.
+This supports virtualization, window splitting, etc., without loss of state.
+*/
+
 import { useCallback, useEffect, useRef } from "react";
 import $ from "jquery";
 
-// This is just an initial default height; the actual height of the iframe should
+// This is just an initial default height; the actual height of the should
 // resize to the content.
-const HEIGHT = "70vh";
+const HEIGHT = "50vh";
 
 interface Props {
-  key: string;
+  globalKey: string;
   html: string;
+  zIndex?: number;
 }
 
-const immortals: { [key: string]: any } = {};
+const immortals: { [globalKey: string]: any } = {};
 
-export default function Immortal({ key, html }: Props) {
+const Z_INDEX = 1;
+
+export default function ImmortalDomNode({
+  globalKey,
+  html,
+  zIndex = Z_INDEX, // todo: support changing?
+}: Props) {
   const divRef = useRef<any>(null);
   const eltRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
@@ -45,17 +58,18 @@ export default function Immortal({ key, html }: Props) {
       return;
     }
     let elt;
-    if (immortals[key] == null) {
-      elt = immortals[key] = $(
-        `<div style="border:0;overflow:hidden;width:100%;height:${HEIGHT};position:absolute;left:130px"/>${html}</div>`,
+    if (immortals[globalKey] == null) {
+      elt = immortals[globalKey] = $(
+        `<div id="${globalKey}" style="border:0;overflow:hidden;width:100%;height:${HEIGHT};position:absolute;left:130px;z-index:${zIndex}"/>${html}</div>`,
       );
       $("body").append(elt);
     } else {
-      elt = immortals[key];
+      elt = immortals[globalKey];
       elt.show();
     }
     eltRef.current = elt[0];
-    intervalRef.current = setInterval(position, 500);
+    intervalRef.current = setInterval(position, 1000);
+    position();
 
     return () => {
       // unmounting so hide
@@ -66,5 +80,10 @@ export default function Immortal({ key, html }: Props) {
     };
   }, []);
 
-  return <div ref={divRef} />;
+  return (
+    <div
+      ref={divRef}
+      style={{ border: "1px solid black", height: HEIGHT }}
+    ></div>
+  );
 }

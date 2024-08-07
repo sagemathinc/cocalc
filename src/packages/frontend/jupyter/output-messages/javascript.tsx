@@ -5,7 +5,7 @@
 
 import { List } from "immutable";
 import $ from "jquery";
-import React, { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { is_array } from "@cocalc/util/misc";
 import { javascript_eval } from "./javascript-eval";
 import ShowError from "@cocalc/frontend/components/error";
@@ -24,7 +24,7 @@ export const Javascript: React.FC<JavascriptProps> = (
 
   const [errors, set_errors] = useState<string | undefined>(undefined);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (value == null || node.current == null) {
       return;
     }
