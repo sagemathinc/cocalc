@@ -31,6 +31,7 @@ const EDITOR_SPEC = {
       //"print",
       "decrease_font_size",
       "increase_font_size",
+      "set_zoom",
       "save",
       "time_travel",
       "show_table_of_contents",
@@ -51,6 +52,7 @@ const EDITOR_SPEC = {
       "readonly_view",
       "decrease_font_size",
       "increase_font_size",
+      "set_zoom",
       "sync",
       "show_table_of_contents",
     ]),
@@ -105,6 +107,7 @@ const EDITOR_SPEC = {
       "print",
       "decrease_font_size",
       "increase_font_size",
+      "set_zoom",
       "show_table_of_contents",
       "time_travel",
       "undo", // need these because button bars at top let you do something even in rendered only view.

@@ -8,7 +8,6 @@ Top-level react component, which ties everything together
 */
 
 import * as immutable from "immutable";
-
 import {
   CSS,
   React,

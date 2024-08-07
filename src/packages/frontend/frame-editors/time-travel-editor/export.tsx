@@ -8,7 +8,7 @@
 - This is really just some minimal data *about* the history for now.
 */
 
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
 import { TimeTravelActions } from "./actions";
 import { Icon } from "../../components";
 
@@ -18,11 +18,10 @@ interface Props {
 
 export function Export({ actions }: Props) {
   return (
-    <Button
-      onClick={() => actions.exportEditHistory()}
-      title="Export information about edit history to a JSON file"
-    >
-      <Icon name={"file-export"} /> Export
-    </Button>
+    <Tooltip title={"Export information about edit history to a JSON file"}>
+      <Button onClick={() => actions.exportEditHistory()}>
+        <Icon name={"file-export"} /> Export
+      </Button>
+    </Tooltip>
   );
 }
