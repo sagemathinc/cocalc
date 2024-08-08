@@ -6,7 +6,7 @@
 // React component that renders the ordered list of cells
 
 declare const $: any;
-
+import useResizeObserver from "use-resize-observer";
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 import { debounce } from "lodash";
@@ -37,7 +37,7 @@ import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 interface StableHtmlContextType {
   cellListDivRef?: MutableRefObject<any>;
-  htmlOnScrolls?: { [key: string]: () => void };
+  scrollOrResize?: { [key: string]: () => void };
 }
 const StableHtmlContext = createContext<StableHtmlContextType>({});
 export const useStableHtmlContext: () => StableHtmlContextType = () => {
@@ -506,8 +506,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               ...scrollState,
               id: cellListRef.current?.get(scrollState.index),
             };
-            for (const key in htmlOnScrolls) {
-              htmlOnScrolls[key]();
+            for (const key in scrollOrResize) {
+              scrollOrResize[key]();
             }
           },
           scrollerRef: handleCellListRef,
@@ -540,13 +540,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     });
   }, [cell_list]);
 
-  const htmlOnScrolls = useMemo(() => {
+  const scrollOrResize = useMemo(() => {
     return {};
   }, []);
   useEffect(() => {
     if (!use_windowed_list) return;
-    for (const key in htmlOnScrolls) {
-      htmlOnScrolls[key]();
+    for (const key in scrollOrResize) {
+      scrollOrResize[key]();
     }
   }, [cells]);
 
@@ -556,10 +556,19 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   const cellListDivRef = useRef<HTMLDivElement>(null);
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
+
+  const cellListResize = useResizeObserver({ ref: cellListDivRef });
+  useEffect(() => {
+    if (!use_windowed_list) return;
+    for (const key in scrollOrResize) {
+      scrollOrResize[key]();
+    }
+  }, [cellListResize]);
+
   if (use_windowed_list) {
     body = (
       <StableHtmlContext.Provider
-        value={{ cellListDivRef, htmlOnScrolls }}
+        value={{ cellListDivRef, scrollOrResize }}
       >
         <div ref={cellListDivRef} className="smc-vfill">
           <Virtuoso

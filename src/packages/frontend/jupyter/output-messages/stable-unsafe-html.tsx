@@ -40,9 +40,18 @@ const MAX_ELEMENTS = 500; // max items
 const SCROLL_WIDTH = 30;
 // we have to put the html on top of the notebook to be visible.  This is the z-index we use.
 const Z_INDEX = 1;
-// no matter what when the html is in the REACT dom, it will have its position updated this frequently.
-// it also gets updated on scroll of the cell list.
-const POSITION_WHEN_MOUNTED_INTERVAL_MS = 500;
+
+// POSITION_WHEN_MOUNTED_INTERVAL_MS: No matter what when the html is in the REACT
+// dom, it will have its position updated this frequently.
+// it also gets updated on scroll of the cell list. This also serves to
+// ensure that this item has a recent ttl so it isn't cleared from the ttl cache.
+// It should NOT ever actually be needed, since we always update the position on
+// resize and scroll events.
+const POSITION_WHEN_MOUNTED_INTERVAL_MS = 10000;
+
+// Scroll actively this many frames after each update, due to throttling of onscroll
+// and other events. This is to eliminate lag.
+const SCROLL_COUNT = 30;
 
 const cache = new TTL<string, any>({
   ttl: IDLE_TIMEOUT_S * 1000,
@@ -121,7 +130,7 @@ export default function StableUnsafeHtml({
     //     }px`;
 
     // clip our immortal html so it isn't visible outside the parent
-    const parent = $(stableHtmlContext.cellListDivRef?.current)[0];
+    const parent = stableHtmlContext.cellListDivRef?.current;
     if (parent != null) {
       const parentRect = parent.getBoundingClientRect();
       // Calculate the overlap area
@@ -151,8 +160,8 @@ export default function StableUnsafeHtml({
       // Apply clip-path to elt to make it visible only inside of parentRect:
       elt.style.clipPath = `polygon(${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px)`;
 
-      // Set widht, so it possible to scroll horizontally and see whatever widget is in the output.
-      const w = $(divRef.current).width();
+      // Set width, so it possible to scroll horizontally and see whatever widget is in the output.
+      const w = divRef.current.offsetWidth;
       if (w) {
         elt.style.width = `${w}px`;
       }
@@ -212,16 +221,27 @@ export default function StableUnsafeHtml({
   }, [isVisible]);
 
   useEffect(() => {
-    // TOOD: can we get rid of interval by using a resize observer on
-    // this stableHtmlContext.cellListDivRef?
     intervalRef.current = setInterval(
       position,
       POSITION_WHEN_MOUNTED_INTERVAL_MS,
     );
-    if (stableHtmlContext.htmlOnScrolls != null) {
-      stableHtmlContext.htmlOnScrolls[globalKey] = async () => {
-        position();
-        await new Promise(requestAnimationFrame);
+    if (stableHtmlContext.scrollOrResize != null) {
+      let count = 0;
+      stableHtmlContext.scrollOrResize[globalKey] = async () => {
+        if (count > 0) {
+          return;
+        }
+        // We run position a lot whenever there is a scroll
+        // in order to make it so the iframe doesn't appear
+        // to just get "dragged along" nearly as much, as
+        // onScroll is throttled.
+        count = SCROLL_COUNT;
+        while (count > 0) {
+          position();
+          await new Promise(requestAnimationFrame);
+          count -= 1;
+        }
+        // throw in an update when we're done.
         position();
       };
     }
@@ -229,7 +249,7 @@ export default function StableUnsafeHtml({
     setTimeout(position, 0);
 
     return () => {
-      delete stableHtmlContext.htmlOnScrolls?.[globalKey];
+      delete stableHtmlContext.scrollOrResize?.[globalKey];
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
