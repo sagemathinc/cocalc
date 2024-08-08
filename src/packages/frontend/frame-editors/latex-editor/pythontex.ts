@@ -12,11 +12,13 @@ import {
   exec,
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
+// import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
 import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { TIMEOUT_LATEX_JOB_S } from "./constants";
 import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
 import { BuildLog } from "./types";
+import { gatherJobInfo } from "./util";
 
 // command documentation
 //
@@ -63,6 +65,7 @@ export async function pythontex(
   }
 
   set_job_info(job_info);
+  gatherJobInfo(project_id, job_info, set_job_info);
 
   while (true) {
     try {
@@ -82,7 +85,9 @@ export async function pythontex(
         // this will be fine, hopefully. We continue trying to get a reply.
         await new Promise((done) => setTimeout(done, 100));
       } else {
-        throw err;
+        throw new Error(
+          "Unable to complete compilation. Check the project and try again...",
+        );
       }
     }
   }

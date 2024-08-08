@@ -5,7 +5,9 @@
 
 // data and functions specific to the latex editor.
 
+import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { separate_file_extension } from "@cocalc/util/misc";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 
 export function pdf_path(path: string): string {
   // if it is already a pdf, don't change the upper/lower casing -- #4562
@@ -20,7 +22,7 @@ export function pdf_path(path: string): string {
 */
 export function ensureTargetPathIsCorrect(
   cmd: string,
-  filename: string
+  filename: string,
 ): string {
   // make it so we can assume no whitespace at end:
   cmd = cmd.trim();
@@ -56,4 +58,37 @@ export function ensureTargetPathIsCorrect(
   // Get rid of whatever is between single quotes and put in the correct
   // thing (e.g., the filename may have been renamed).
   return cmd.slice(0, i).trim() + " " + quoted;
+}
+
+/**
+ * Periodically get information about the job and terminate (without another update!) when the job is no longer running.
+ */
+export async function gatherJobInfo(
+  project_id: string,
+  job_info: ExecuteCodeOutputAsync,
+  set_job_info: (info: ExecuteCodeOutputAsync) => void,
+): Promise<void> {
+  let wait_s = 1;
+  try {
+    while (true) {
+      await new Promise((done) => setTimeout(done, 1000 * wait_s));
+      const update = await exec({
+        project_id,
+        async_get: job_info.job_id,
+        async_stats: true,
+      });
+      if (update.type === "blocking") {
+        console.warn("Wrong type returned. The project is too old!");
+        return;
+      }
+      if (update.status === "running") {
+        set_job_info(update);
+      } else {
+        return;
+      }
+      wait_s = Math.min(10, wait_s + 1);
+    }
+  } catch {
+    return;
+  }
 }

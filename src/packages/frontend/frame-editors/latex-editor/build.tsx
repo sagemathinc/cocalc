@@ -8,20 +8,23 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import Ansi from "@cocalc/ansi-to-react";
-import { Button, Tooltip } from "antd";
-import { Fragment } from "react";
+import { Button, Flex, Tooltip } from "antd";
+import { Fragment, useState } from "react";
 
 import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
-import { React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, r_join } from "@cocalc/frontend/components";
+import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
+import { Icon, r_join } from "@cocalc/frontend/components";
 import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
-import { path_split } from "@cocalc/util/misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { path_split, tail } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { ExecOutput } from "../generic/client";
 import { Actions } from "./actions";
 import { BuildCommand } from "./build-command";
-import { use_build_logs, use_job_infos } from "./hooks";
-import { BUILD_SPECS, BuildLogs, BuildSpecName, JobInfos } from "./types";
+import { use_build_logs } from "./hooks";
+import { BUILD_SPECS, BuildLog, BuildLogs, BuildSpecName } from "./types";
+
+// after that many seconds, warn visibly about a long running task and e.g. highlight the stop button
+const WARN_LONG_RUNNING_S = 15;
 
 interface Props {
   name: string;
@@ -36,16 +39,29 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
   const font_size = 0.8 * font_size_orig;
   const build_logs: BuildLogs = use_build_logs(name);
-  const job_infos: JobInfos = use_job_infos(name);
+  //const job_infos: JobInfos = use_job_infos(name);
   const build_command = useRedux([name, "build_command"]);
   const build_command_hardcoded =
     useRedux([name, "build_command_hardcoded"]) ?? false;
   const knitr: boolean = useRedux([name, "knitr"]);
-  const [active_tab, set_active_tab] = React.useState<string>(
+  const [active_tab, set_active_tab] = useState<string>(
     BUILD_SPECS.latex.label,
   );
-  const [error_tab, set_error_tab] = React.useState<string | null>(null);
+  const [error_tab, set_error_tab] = useState<string | null>(null);
+
   let no_errors = true;
+
+  const logStyle: CSS = {
+    fontFamily: "monospace",
+    whiteSpace: "pre-line",
+    color: COLORS.GRAY_D,
+    background: COLORS.GRAY_LLL,
+    width: "100%",
+    padding: "5px",
+    fontSize: `${font_size}px`,
+    overflowY: "auto",
+    margin: "0",
+  } as const;
 
   function render_tab_item(
     title: string,
@@ -53,25 +69,13 @@ export const Build: React.FC<Props> = React.memo((props) => {
     error?: boolean,
     job_info_str?: string,
   ): AntdTabItem {
-    const style: React.CSSProperties = {
-      fontFamily: "monospace",
-      whiteSpace: "pre-line",
-      color: COLORS.GRAY_D,
-      background: COLORS.GRAY_LLL,
-      display: active_tab === title ? "block" : "none",
-      width: "100%",
-      padding: "5px",
-      fontSize: `${font_size}px`,
-      overflowY: "auto",
-      margin: "0",
-    };
     const err_style = error ? { background: COLORS.ATND_BG_RED_L } : undefined;
     const tab_button = <div style={err_style}>{title}</div>;
     return Tab({
       key: title,
       eventKey: title,
       title: tab_button,
-      style,
+      style: { ...logStyle, display: active_tab === title ? "block" : "none" },
       children: (
         <>
           {job_info_str ? (
@@ -93,31 +97,36 @@ export const Build: React.FC<Props> = React.memo((props) => {
 
   function render_log(stage: BuildSpecName): AntdTabItem | undefined {
     if (build_logs == null) return;
-    const x = build_logs.get(stage);
-    const y: ExecOutput | undefined = job_infos.get(stage)?.toJS();
+    const x: BuildLog | undefined = build_logs.get(stage)?.toJS();
+    // const y: ExecOutput | undefined = job_infos.get(stage)?.toJS();
 
     if (!x) return;
-    const value = x.get("stdout") + x.get("stderr");
+    const value = x.stdout ?? "" + x.stderr ?? "";
     if (!value) return;
     // const time: number | undefined = x.get("time");
     // const time_str = time ? `(${(time / 1000).toFixed(1)} seconds)` : "";
     let job_info_str = "";
-    if (y != null && y.type === "async") {
-      const { elapsed_s, stats } = y;
+    // if (y != null && y.type === "async") {
+    if (x.type === "async") {
+      const { elapsed_s, stats } = x; // y
       if (typeof elapsed_s === "number" && elapsed_s > 0) {
         job_info_str = `Build time: ${elapsed_s.toFixed(1)} seconds.`;
       }
       if (Array.isArray(stats) && stats.length > 0) {
-        const max_mem = stats.reduce((cur, next) => {
-          return next.mem_rss > cur ? next.mem_rss : cur;
+        const max_mem = stats.reduce((cur, val) => {
+          return val.mem_rss > cur ? val.mem_rss : cur;
         }, 0);
-        job_info_str += ` Memory usage: ${max_mem.toFixed(0)} MB.`;
+        // if there is no data (too many processes, etc.) then it is 0.
+        //  That information is misleading and we ignore it
+        if (max_mem > 0) {
+          job_info_str += ` Memory usage: ${max_mem.toFixed(0)} MB.`;
+        }
       }
     }
     const title = BUILD_SPECS[stage].label;
     // highlights tab, if there is at least one parsed error
     const error =
-      (build_logs.getIn([stage, "parse", "errors"]) as any).size > 0;
+      ((build_logs.getIn([stage, "parse", "errors"]) as any)?.size ?? 0) > 0;
     // also show the problematic log to the user
     if (error) {
       no_errors = false;
@@ -163,7 +172,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
         onSelect={set_active_tab}
         tabPosition={"left"}
         size={"small"}
-        style={{ height: "100%", overflowY: "auto" }}
+        style={{ height: "100%", overflowY: "hidden" }}
         items={items}
       />
     );
@@ -182,14 +191,20 @@ export const Build: React.FC<Props> = React.memo((props) => {
     );
   }
 
-  // usually, one job is running at a time
+  // usually, one job is running at a time – only render this if there is no status
   function render_jobs(): Rendered {
-    if (!job_infos) return;
+    if (!build_logs) return;
     const infos: JSX.Element[] = [];
-    job_infos.forEach((info, key) => {
+    let isLongRunning = false;
+    let logTail = "";
+    build_logs.forEach((info, key) => {
       if (!info || info.get("status") !== "running") return;
       const stats_str = "";
       const start = info.get("start");
+      logTail = tail(info.get("stdout") ?? "" + info.get("stderr") ?? "", 6);
+      isLongRunning ||=
+        typeof start === "number" &&
+        webapp_client.server_time() - start > WARN_LONG_RUNNING_S * 1000;
       const { label } = BUILD_SPECS[key];
       infos.push(
         <Fragment key={key}>
@@ -212,45 +227,41 @@ export const Build: React.FC<Props> = React.memo((props) => {
     if (infos.length === 0) return;
 
     return (
-      <div
-        style={{
-          margin: "10px",
-          justifyContent: "center",
-          alignItems: "center",
-          display: "flex",
-          gap: "5px",
-        }}
-      >
-        Active job: {r_join(infos)}{" "}
-        <Tooltip title={"Stop building the document."}>
-          <Button
-            size="small"
-            onClick={() => actions.stop_build()}
-            icon={<Icon name={"stop"} />}
-          >
-            Stop
-          </Button>
-        </Tooltip>{" "}
-      </div>
-    );
-  }
-
-  function render_status(): Rendered {
-    if (status) {
-      return (
-        <div style={{ margin: "10px" }}>
-          <Loading
-            text={status}
-            style={{
-              fontSize: "10pt",
-              textAlign: "center",
-              marginTop: "15px",
-              color: COLORS.GRAY,
-            }}
-          />
+      <>
+        <div
+          style={{
+            margin: "10px",
+            justifyContent: "center",
+            alignItems: "center",
+            display: "flex",
+            gap: "5px",
+          }}
+        >
+          <Flex flex={1} style={{ gap: "5px" }}>
+            Active: {r_join(infos)}...
+          </Flex>
+          <Flex flex={0}>
+            <Tooltip title={"Stop building the document."}>
+              <Button
+                size="small"
+                onClick={() => actions.stop_build()}
+                icon={<Icon name={"stop"} />}
+                type={isLongRunning ? "primary" : undefined}
+              >
+                Stop
+              </Button>
+            </Tooltip>
+          </Flex>
         </div>
-      );
-    }
+        <div style={logStyle}>
+          <span style={{ fontWeight: "bold" }}>
+            {status}
+            {"\n"}
+          </span>
+          {logTail}
+        </div>
+      </>
+    );
   }
 
   // if all errors are fixed, clear the state remembering we had an active error tab
@@ -268,7 +279,6 @@ export const Build: React.FC<Props> = React.memo((props) => {
     >
       {render_build_command()}
       {render_jobs()}
-      {render_status()}
       {logs}
     </div>
   );

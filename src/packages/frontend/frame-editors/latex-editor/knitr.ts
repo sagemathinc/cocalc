@@ -12,11 +12,12 @@ import {
   exec,
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
-import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { TIMEOUT_LATEX_JOB_S } from "./constants";
 import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
 import { BuildLog } from "./types";
+import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { gatherJobInfo } from "./util";
 
 // this still respects the environment variables and init files
 const R_CMD = "R";
@@ -56,6 +57,7 @@ export async function knitr(
   }
 
   set_job_info(job_info);
+  gatherJobInfo(project_id, job_info, set_job_info);
 
   while (true) {
     try {
@@ -75,7 +77,9 @@ export async function knitr(
         // this will be fine, hopefully. We continue trying to get a reply.
         await new Promise((done) => setTimeout(done, 100));
       } else {
-        throw err;
+        throw new Error(
+          "Unable to complete compilation. Check the project and try again...",
+        );
       }
     }
   }

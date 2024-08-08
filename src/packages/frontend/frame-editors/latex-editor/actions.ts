@@ -55,7 +55,7 @@ import {
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 import { ExecOutput } from "@cocalc/util/db-schema/projects";
-import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+// import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { bibtex } from "./bibtex";
 import { clean } from "./clean";
 import { KNITR_EXTS } from "./constants";
@@ -79,7 +79,7 @@ import {
   BuildLogs,
   BuildSpecName,
   IBuildSpecs,
-  JobInfos,
+  // JobInfos,
   ScrollIntoViewMap,
   ScrollIntoViewRecord,
 } from "./types";
@@ -99,7 +99,7 @@ interface LatexEditorState extends CodeEditorState {
   includeError?: string;
   build_command_hardcoded?: boolean; // if true, an % !TeX cocalc = ... directive sets the command via the document itself
   contents?: TableOfContentsEntryList; // table of contents data.
-  job_infos: JobInfos;
+  // job_infos: JobInfos;
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -675,7 +675,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build(); // kicks off a save of all relevant files
   }
 
-  // used by generic framework.
+  // used by generic framework – this is bound to the instance, otherwise "this" is undefined
   build = async (id?: string, force: boolean = false): Promise<void> => {
     this.set_error("");
     this.set_status("");
@@ -685,6 +685,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         cm.focus();
       }
     }
+    // initiating a build. if one is running & forced, we stop the build
     if (this.is_building) {
       if (force) {
         await this.stop_build();
@@ -723,15 +724,16 @@ export class Actions extends BaseActions<LatexEditorState> {
         // likely "No such process", we just ignore it
         // console.info("LatexEditor/actions/kill:", err);
       } finally {
-        // even if there was an error, we clean it out
-        this.set_job_infos({ [name]: null });
+        // we keep the data for debugging, but set its state to completed
+        job.status = "completed";
+        this.set_build_logs({ [name]: job });
       }
     }
   }
 
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
-    const job_infos = this.store.get("job_infos");
+    const job_infos = this.store.get("build_logs"); //  ("job_infos");
     if (job_infos) {
       for (const [name, job] of job_infos) {
         await this.kill(name, job.toJS());
@@ -739,13 +741,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
 
     // this must run in any case, we want a clean empty map!
-    this.setState({ job_infos: Map() });
+    //this.setState({ job_infos: Map() });
     this.set_status("");
     this.is_building = false;
   }
 
   private async run_build(time: number, force: boolean): Promise<void> {
-    // reset state and build info
+    // reset state of build_logs, since it is a fresh start
     this.setState({ build_logs: Map() });
 
     if (this.bad_filename) {
@@ -809,7 +811,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   private async run_knitr(time: number, force: boolean): Promise<void> {
     let output: BuildLog;
     const status = (s) => this.set_status(`Running Knitr... ${s}`);
-    const set_job_info = (job) => this.set_job_infos({ knitr: job });
+    const set_job_info = (job) => this.set_build_logs({ knitr: job });
     status("");
 
     try {
@@ -900,14 +902,14 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.set_error("");
     this.set_build_logs({ latex: undefined });
-    this.set_job_infos({ latex: undefined });
+    // this.set_job_infos({ latex: undefined });
     if (typeof s == "string") {
       build_command = s;
     } else {
       build_command = s.toJS();
     }
     const status = (s) => this.set_status(`Running Latex... ${s}`);
-    const set_job_info = (job) => this.set_job_infos({ latex: job });
+    const set_job_info = (job) => this.set_build_logs({ latex: job });
 
     status("");
     try {
@@ -936,6 +938,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.parsed_output_log = output.parse = new LatexParser(output.stdout, {
       ignoreDuplicates: true,
     }).parse();
+    console.log("set_build_logs after complete:", (output as any)?.status);
     this.set_build_logs({ latex: output });
     // TODO: knitr complicates multifile a lot, so we do
     // not support it yet.
@@ -1106,7 +1109,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   async run_sagetex(time: number, force: boolean): Promise<void> {
     const status = (s) => this.set_status(`Running SageTeX... ${s}`);
-    const set_job_info = (job) => this.set_job_infos({ sagetex: job });
+    const set_job_info = (job) => this.set_build_logs({ sagetex: job });
     status("");
     // First compute hash of sagetex file.
     let hash: string = "";
@@ -1176,7 +1179,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   async run_pythontex(time: number, force: boolean): Promise<void> {
     let output: BuildLog;
     const status = (s) => this.set_status(`Running PythonTeX... ${s}`);
-    const set_job_info = (job) => this.set_job_infos({ pythontex: job });
+    const set_job_info = (job) => this.set_build_logs({ pythontex: job });
     status("");
 
     try {
@@ -1341,36 +1344,37 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  set_job_infos(obj: {
-    [K in keyof IBuildSpecs]?: ExecuteCodeOutputAsync;
-  }): void {
-    let job_infos: JobInfos = this.store.get("job_infos") ?? Map();
-    let k: BuildSpecName;
-    for (k in obj) {
-      const v: ExecuteCodeOutputAsync | undefined = obj[k];
-      if (v) {
-        job_infos = job_infos.set(
-          k as any,
-          fromJS(v) as any as TypedMap<ExecOutput>,
-        );
-      } else {
-        job_infos = job_infos.delete(k);
-      }
-    }
-    this.setState({ job_infos });
-  }
+  // set_job_infos(obj: {
+  //   [K in keyof IBuildSpecs]?: ExecuteCodeOutputAsync;
+  // }): void {
+  //   let job_infos: JobInfos = this.store.get("job_infos") ?? Map();
+  //   let k: BuildSpecName;
+  //   for (k in obj) {
+  //     const v: ExecuteCodeOutputAsync | undefined = obj[k];
+  //     if (v) {
+  //       job_infos = job_infos.set(
+  //         k as any,
+  //         fromJS(v) as any as TypedMap<ExecOutput>,
+  //       );
+  //     } else {
+  //       job_infos = job_infos.delete(k);
+  //     }
+  //   }
+  //   this.setState({ job_infos });
+  // }
 
-  set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
-    let build_logs: BuildLogs = this.store.get("build_logs");
-    if (!build_logs) {
-      // may have already been closed.
-      return;
-    }
+  private set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
+    let build_logs: BuildLogs = this.store.get("build_logs") ?? Map();
     let k: BuildSpecName;
     for (k in obj) {
       const v: BuildLog | undefined = obj[k];
-      build_logs = build_logs.set(k, fromJS(v) as any as TypedMap<BuildLog>);
+      if (v) {
+        build_logs = build_logs.set(k, fromJS(v) as any as TypedMap<BuildLog>);
+      } else {
+        build_logs = build_logs.delete(k);
+      }
     }
+    console.log("set_job_info.latex", build_logs?.get("latex")?.get("status"));
     this.setState({ build_logs });
   }
 

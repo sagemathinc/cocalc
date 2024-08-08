@@ -199,6 +199,7 @@ export class ProjectClient {
         async_stats: undefined,
         async_await: undefined,
         post: false, // if true, uses the POST api through nextjs instead of the websocket api.
+        timeout: 30,
         cb: undefined,
       });
     } else {

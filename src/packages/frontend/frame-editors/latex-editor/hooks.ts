@@ -6,15 +6,18 @@
 import { Map } from "immutable";
 
 import { React, useRedux } from "@cocalc/frontend/app-framework";
-import { BuildLogs, JobInfos } from "./types";
+import {
+  BuildLogs,
+  //  JobInfos
+} from "./types";
 
 export function use_build_logs(name: string): BuildLogs {
   return use_infos<BuildLogs>(name, "build_logs");
 }
 
-export function use_job_infos(name: string): JobInfos {
-  return use_infos<JobInfos>(name, "job_infos");
-}
+// export function use_job_infos(name: string): JobInfos {
+//   return use_infos<JobInfos>(name, "job_infos");
+// }
 
 function use_infos<T extends Map<string, any>>(
   name: string,
@@ -25,11 +28,10 @@ function use_infos<T extends Map<string, any>>(
 
   // only update if any parsed logs or process infos differ
   for (const key of ["latex", "knitr", "pythontex", "sagetex"]) {
-    const isDiff =
-      aspect === "build_logs"
-        ? data_next.getIn([key, "parse"]) != data.getIn([key, "parse"])
-        : data_next.get(key) != data.get(key);
-
+    // ATTN: previously, this code only checked for changes of the "parse" attribute.
+    // But due to async execution, we update these objects dynamically and hence any change is a difference.
+    // data_next.getIn([key, "parse"]) != data.getIn([key, "parse"])
+    const isDiff = data_next.get(key) != data.get(key);
     if (isDiff) {
       set_data(data_next);
     }
