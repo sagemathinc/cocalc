@@ -24,6 +24,7 @@ export interface HandlerProps {
   name?: string;
   trust?: boolean;
   id?: string;
+  index?: number;
 }
 
 type Handler = React.FC<HandlerProps>;

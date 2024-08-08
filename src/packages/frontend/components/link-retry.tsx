@@ -104,7 +104,7 @@ const LinkRetry: React.FC<Props> = ({
     if (autoStart) {
       start();
     }
-  }, []);
+  }, [href]);
 
   function renderError() {
     if (!error) return;

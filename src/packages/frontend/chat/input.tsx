@@ -87,13 +87,18 @@ export default function ChatInput({
     return input;
   });
   const currentInputRef = useRef<string>(input);
+  const saveOnUnmountRef = useRef<boolean>(true);
 
   const isMountedRef = useIsMountedRef();
-  const lastSavedRef = useRef<string | null>(null);
+  const lastSavedRef = useRef<string>(input);
   const saveChat = useDebouncedCallback(
     (input) => {
-      if (!isMountedRef.current || syncdb == null || !saveOnUnmountRef.current)
+      if (
+        syncdb == null ||
+        (!isMountedRef.current && !saveOnUnmountRef.current)
+      ) {
         return;
+      }
       onChange(input);
       lastSavedRef.current = input;
       // also save to syncdb, so we have undo, etc.
@@ -130,10 +135,9 @@ export default function ChatInput({
     },
   );
 
-  const saveOnUnmountRef = useRef<boolean>(true);
   useEffect(() => {
     return () => {
-      if (!saveOnUnmountRef.current) {
+      if (!isMountedRef.current && !saveOnUnmountRef.current) {
         return;
       }
       // save before unmounting.  This is very important since if a new reply comes in,
@@ -174,10 +178,10 @@ export default function ChatInput({
         date,
       });
       const input = x?.get("input");
-      if (input != null && input !== lastSavedRef.current) {
+      if (input != null && input != lastSavedRef.current) {
         setInput(input);
         currentInputRef.current = input;
-        lastSavedRef.current = null;
+        lastSavedRef.current = input;
       }
     };
     syncdb.on("change", onSyncdbChange);
@@ -213,6 +217,7 @@ export default function ChatInput({
         // no need to save on unmount, since we are saving
         // the correct state below.
         saveOnUnmountRef.current = false;
+        lastSavedRef.current = input;
         setInput(input);
         saveChat(input);
         saveChat.cancel();
