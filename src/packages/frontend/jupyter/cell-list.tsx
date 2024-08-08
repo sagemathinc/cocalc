@@ -37,14 +37,14 @@ import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
-interface IFrameContextType {
+interface StableHtmlContextType {
   iframeDivRef?: MutableRefObject<any>;
   cellListDivRef?: MutableRefObject<any>;
   iframeOnScrolls?: { [key: string]: () => void };
 }
-const IFrameContext = createContext<IFrameContextType>({});
-export const useIFrameContext: () => IFrameContextType = () => {
-  return useContext(IFrameContext);
+const StableHtmlContext = createContext<StableHtmlContextType>({});
+export const useStableHtmlContext: () => StableHtmlContextType = () => {
+  return useContext(StableHtmlContext);
 };
 
 // 3 extra cells:
@@ -602,7 +602,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   if (use_windowed_list) {
     body = (
-      <IFrameContext.Provider
+      <StableHtmlContext.Provider
         value={{ iframeDivRef, cellListDivRef, iframeOnScrolls }}
       >
         <div ref={cellListDivRef} className="smc-vfill">
@@ -682,7 +682,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             {...virtuosoScroll}
           />
         </div>
-      </IFrameContext.Provider>
+      </StableHtmlContext.Provider>
     );
   } else {
     // This is needed for **the share server**, which hasn't had

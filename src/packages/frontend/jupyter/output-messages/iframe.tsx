@@ -13,7 +13,7 @@ import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { get_blob_url } from "../server-urls";
-import { useIFrameContext } from "@cocalc/frontend/jupyter/cell-list";
+import { useStableHtmlContext } from "@cocalc/frontend/jupyter/cell-list";
 import HTML from "./mime-types/html";
 
 // This impact loading the iframe data from the backend project (via the sha1 hash).
@@ -35,9 +35,9 @@ interface Props {
 
 export default function IFrame(props: Props) {
   // we only use cached iframe if the iframecontext is setup, e.g., it is in Jupyter notebooks, but not in whiteboards.
-  const iframeContext = useIFrameContext();
+  const stableHtmlContext = useStableHtmlContext();
   if (
-    iframeContext.iframeDivRef == null ||
+    stableHtmlContext.iframeDivRef == null ||
     props.cacheId == null ||
     !props.trust
   ) {

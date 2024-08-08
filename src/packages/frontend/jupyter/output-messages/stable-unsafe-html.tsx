@@ -27,7 +27,7 @@ the idle timeout is reset.
 import { useCallback, useEffect, useRef } from "react";
 import $ from "jquery";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { useIFrameContext } from "@cocalc/frontend/jupyter/cell-list";
+import { useStableHtmlContext } from "@cocalc/frontend/jupyter/cell-list";
 import { sha1 } from "@cocalc/util/misc";
 import TTL from "@isaacs/ttlcache";
 
@@ -81,7 +81,7 @@ export default function StableUnsafeHtml({
   const divRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
   const { isVisible, project_id, path, id } = useFrameContext();
-  const iframeContext = useIFrameContext();
+  const stableHtmlContext = useStableHtmlContext();
 
   const globalKey = sha1(`${project_id}-${id}-${docId}-${path}-${html}`);
 
@@ -120,7 +120,7 @@ export default function StableUnsafeHtml({
     //     }px`;
 
     // clip our immortal html so it isn't visible outside the parent
-    const parent = $(iframeContext.cellListDivRef?.current)[0];
+    const parent = $(stableHtmlContext.cellListDivRef?.current)[0];
     if (parent != null) {
       const parentRect = parent.getBoundingClientRect();
       // Calculate the overlap area
@@ -138,7 +138,7 @@ export default function StableUnsafeHtml({
       // scroll work in there though -- if you want to see the whole thing, you
       // must not collapse it.
       const containerRect = $(divRef.current)
-        .closest(".cocalc-jupyter-rendered")[0]
+        .closest(".cocalc-output-div")[0]
         ?.getBoundingClientRect();
       const bottom = Math.max(
         top,
@@ -216,13 +216,13 @@ export default function StableUnsafeHtml({
 
   useEffect(() => {
     // TOOD: can we get rid of interval by using a resize observer on
-    // this iframeContext.cellListDivRef?
+    // this stableHtmlContext.cellListDivRef?
     intervalRef.current = setInterval(
       position,
       POSITION_WHEN_MOUNTED_INTERVAL_MS,
     );
-    if (iframeContext.iframeOnScrolls != null) {
-      iframeContext.iframeOnScrolls[globalKey] = async () => {
+    if (stableHtmlContext.iframeOnScrolls != null) {
+      stableHtmlContext.iframeOnScrolls[globalKey] = async () => {
         position();
         await new Promise(requestAnimationFrame);
         position();
@@ -232,7 +232,7 @@ export default function StableUnsafeHtml({
     setTimeout(position, 0);
 
     return () => {
-      delete iframeContext.iframeOnScrolls?.[globalKey];
+      delete stableHtmlContext.iframeOnScrolls?.[globalKey];
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
