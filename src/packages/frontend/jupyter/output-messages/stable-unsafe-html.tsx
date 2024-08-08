@@ -146,6 +146,8 @@ export default function StableUnsafeHtml({
       // scroll work in there though -- if you want to see the whole thing, you
       // must not collapse it.
       const containerRect = cellOutputDivRef.current?.getBoundingClientRect();
+      //console.log({ containerRect, parentRect, eltRect });
+
       const bottom = Math.max(
         top,
         Math.min(
@@ -257,7 +259,7 @@ export default function StableUnsafeHtml({
   }, []);
 
   useEffect(() => {
-    // This is "ugly jquery"... but I did try passing this info
+    // This is "old fashioned jquery"... but I tried passing this info
     // down via stableHtmlContext and it gets REALLY complicated.
     // Also this only happens once on mount, so it's not a problem
     // regarding efficiency.

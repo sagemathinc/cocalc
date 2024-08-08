@@ -143,7 +143,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     frame_actions.cell_list_div = $(cell_list_node.current);
 
     return () => {
-      save_scroll();
+      saveScroll();
       // handle focus via an event handler on window.
       // We have to do this since, e.g., codemirror editors
       // involve spans that aren't even children, etc...
@@ -180,7 +180,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     return render_loading();
   }
 
-  function save_scroll(): void {
+  const saveScroll = useCallback(() => {
     if (use_windowed_list) {
       // TODO -- virtuoso
       // We don't actually need to do anything though since our virtuoso
@@ -190,7 +190,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         frameActions.current?.set_scrollTop(cell_list_node.current.scrollTop);
       }
     }
-  }
+  }, [use_windowed_list]);
+
+  const saveScrollDebounce = useMemo(() => {
+    return debounce(saveScroll, 2000);
+  }, [use_windowed_list]);
 
   async function restore_scroll(): Promise<void> {
     if (scrollTop == null || use_windowed_list) return;
@@ -543,12 +547,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const scrollOrResize = useMemo(() => {
     return {};
   }, []);
-  useEffect(() => {
-    if (!use_windowed_list) return;
+  const updateScrollOrResize = useCallback(() => {
     for (const key in scrollOrResize) {
       scrollOrResize[key]();
     }
-  }, [cells]);
+  }, []);
+
+  useEffect(updateScrollOrResize, [cells]);
 
   const fileContext = useFileContext();
 
@@ -559,7 +564,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   const cellListResize = useResizeObserver({ ref: cellListDivRef });
   useEffect(() => {
-    if (!use_windowed_list) return;
     for (const key in scrollOrResize) {
       scrollOrResize[key]();
     }
@@ -567,9 +571,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   if (use_windowed_list) {
     body = (
-      <StableHtmlContext.Provider
-        value={{ cellListDivRef, scrollOrResize }}
-      >
+      <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
         <div ref={cellListDivRef} className="smc-vfill">
           <Virtuoso
             ref={virtuosoRef}
@@ -658,24 +660,27 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     v.push(BOTTOM_PADDING_CELL);
 
     body = (
-      <div
-        key="cells"
-        className="smc-vfill"
-        style={{
-          fontSize: `${font_size}px`,
-          paddingLeft: "5px",
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-        }}
-        ref={handleCellListRef}
-        onClick={actions != null && complete != null ? on_click : undefined}
-        onScroll={debounce(() => {
-          save_scroll();
-        }, 3000)}
-      >
-        {v}
-      </div>
+      <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
+        <div
+          key="cells"
+          className="smc-vfill"
+          style={{
+            fontSize: `${font_size}px`,
+            paddingLeft: "5px",
+            flex: 1,
+            overflowY: "auto",
+            overflowX: "hidden",
+          }}
+          ref={cellListDivRef}
+          onClick={actions != null && complete != null ? on_click : undefined}
+          onScroll={() => {
+            updateScrollOrResize();
+            saveScrollDebounce();
+          }}
+        >
+          {v}
+        </div>
+      </StableHtmlContext.Provider>
     );
   }
 
