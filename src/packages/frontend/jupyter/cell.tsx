@@ -60,6 +60,7 @@ interface Props {
   isLast?: boolean;
   dragHandle?: JSX.Element;
   read_only?: boolean;
+  outputDivRef?;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -164,6 +165,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         trust={props.trust}
         complete={props.is_current && props.complete != null}
         llmTools={props.llmTools}
+        divRef={props.outputDivRef}
       />
     );
   }
