@@ -1,21 +1,24 @@
 import register from "./register";
-//import HTML from "@cocalc/frontend/components/html-ssr";
-import ImmortalDomNode from "../immortal-dom-node";
+import HTML from "@cocalc/frontend/components/html-ssr";
+import StableUnsafeHtml from "../stable-unsafe-html";
 
 const Html = ({
   value,
   id,
   index,
+  trust,
 }: {
   value: string;
   id?: string;
   index?: number;
+  trust?: boolean;
 }) => {
-  //      <HTML value={value} />
-  console.log("HTML", { id, index });
+  if (!trust) {
+    <HTML value={value} />;
+  }
   return (
     <div style={{ margin: "5px 0" }}>
-      <ImmortalDomNode html={value} docId={`${id}-${index}`} />
+      <StableUnsafeHtml html={value} docId={`${id}-${index}`} />
     </div>
   );
 };

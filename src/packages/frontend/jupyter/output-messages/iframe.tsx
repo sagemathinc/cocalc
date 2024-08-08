@@ -31,12 +31,17 @@ interface Props {
   project_id: string;
   cacheId?: string;
   index?: number;
+  trust?: boolean;
 }
 
 export default function IFrame(props: Props) {
   // we only use cached iframe if the iframecontext is setup, e.g., it is in Jupyter notebooks, but not in whiteboards.
   const iframeContext = useIFrameContext();
-  if (iframeContext.iframeDivRef == null || props.cacheId == null) {
+  if (
+    iframeContext.iframeDivRef == null ||
+    props.cacheId == null ||
+    !props.trust
+  ) {
     return <NonCachedIFrame {...props} />;
   } else {
     const src = get_blob_url(props.project_id, "html", props.sha1);
@@ -44,6 +49,7 @@ export default function IFrame(props: Props) {
       <HTML
         id={props.cacheId}
         index={props.index}
+        trust={props.trust}
         value={`<iframe src="${src}" style="border:0;height:${HEIGHT};width:${WIDTH}"/>`}
       />
     );

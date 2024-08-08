@@ -1,7 +1,11 @@
 /*
-Create an immortal DOM node.  This is a way to render HTML that stays stable
+Create stable unsafe HTML DOM node.  This is a way to render HTML that stays stable
 irregardless of it being unmounted/remounted.
-This supports virtualization, window splitting, etc., without loss of state.
+This supports virtualization, window splitting, etc., without loss of state...
+unless there are too many of them, then we delete the oldest.
+
+Unsafe is in the name since there is NO SANITIZATION.  Only use this on trusted
+documents.
 */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -16,11 +20,24 @@ interface Props {
   zIndex?: number;
 }
 
-const immortals: { [globalKey: string]: any } = {};
+import LRU from "lru-cache";
+
+const CACHE_SIZE = 100;
+
+const immortals = new LRU<string, any>({
+  max: CACHE_SIZE,
+  updateAgeOnGet: true,
+  updateAgeOnHas: true,
+  dispose: (elt) => {
+    elt.empty();
+    elt.remove();
+  },
+});
+// const immortals: { [globalKey: string]: any } = {};
 
 const Z_INDEX = 1;
 
-const SCROLL_COUNT = 10;
+const SCROLL_COUNT = 25;
 
 // make it really standout:
 // const PADDING = 5;
@@ -35,7 +52,7 @@ const SCROLL_COUNT = 10;
 const PADDING = 0;
 const STYLE = {} as const;
 
-export default function ImmortalDomNode({
+export default function StableUnsafeHtml({
   docId,
   html,
   zIndex = Z_INDEX, // todo: support changing?
@@ -117,14 +134,18 @@ export default function ImmortalDomNode({
   }, []);
 
   const getElt = () => {
-    if (immortals[globalKey] == null) {
-      const elt = (immortals[globalKey] = $(
+    console.log("size", immortals.size);
+    if (!immortals.has(globalKey)) {
+      console.log("cache miss", globalKey);
+      const elt = $(
         `<div id="${globalKey}" style="border:0;position:absolute;overflow-y:hidden;z-index:${zIndex}"/>${html}</div>`,
-      ));
+      );
+      immortals.set(globalKey, elt);
       $("body").append(elt);
       return elt;
     } else {
-      return immortals[globalKey];
+      console.log("cache hit", globalKey);
+      return immortals.get(globalKey);
     }
   };
 
@@ -161,7 +182,7 @@ export default function ImmortalDomNode({
         // in order to make it so the iframe doesn't appear
         // to just get "dragged along" nearly as much, as
         // onScroll is throttled.
-        count = Math.min(SCROLL_COUNT, SCROLL_COUNT + 100);
+        count = SCROLL_COUNT;
         while (count > 0) {
           position();
           await new Promise(requestAnimationFrame);
