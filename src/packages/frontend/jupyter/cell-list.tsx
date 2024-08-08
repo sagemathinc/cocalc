@@ -37,7 +37,7 @@ import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 interface StableHtmlContextType {
   cellListDivRef?: MutableRefObject<any>;
-  iframeOnScrolls?: { [key: string]: () => void };
+  htmlOnScrolls?: { [key: string]: () => void };
 }
 const StableHtmlContext = createContext<StableHtmlContextType>({});
 export const useStableHtmlContext: () => StableHtmlContextType = () => {
@@ -408,7 +408,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }
 
-  function render_cell({
+  function renderCell({
     id,
     isScrolling,
     index,
@@ -439,6 +439,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         }}
       />
     ) : undefined;
+
     return (
       <div key={id}>
         <Cell
@@ -505,8 +506,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               ...scrollState,
               id: cellListRef.current?.get(scrollState.index),
             };
-            for (const key in iframeOnScrolls) {
-              iframeOnScrolls[key]();
+            for (const key in htmlOnScrolls) {
+              htmlOnScrolls[key]();
             }
           },
           scrollerRef: handleCellListRef,
@@ -539,13 +540,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     });
   }, [cell_list]);
 
-  const iframeOnScrolls = useMemo(() => {
+  const htmlOnScrolls = useMemo(() => {
     return {};
   }, []);
   useEffect(() => {
     if (!use_windowed_list) return;
-    for (const key in iframeOnScrolls) {
-      iframeOnScrolls[key]();
+    for (const key in htmlOnScrolls) {
+      htmlOnScrolls[key]();
     }
   }, [cells]);
 
@@ -557,7 +558,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   if (use_windowed_list) {
     body = (
-      <StableHtmlContext.Provider value={{ cellListDivRef, iframeOnScrolls }}>
+      <StableHtmlContext.Provider
+        value={{ cellListDivRef, htmlOnScrolls }}
+      >
         <div ref={cellListDivRef} className="smc-vfill">
           <Virtuoso
             ref={virtuosoRef}
@@ -593,7 +596,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               if (id == null) return null;
               const h = virtuosoHeightsRef.current[index];
               if (actions == null) {
-                return render_cell({
+                return renderCell({
                   id,
                   isScrolling: false,
                   index,
@@ -602,7 +605,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               return (
                 <SortableItem id={id} key={id}>
                   <DivTempHeight height={h ? `${h}px` : undefined}>
-                    {render_cell({
+                    {renderCell({
                       id,
                       isScrolling: false,
                       index,
@@ -631,7 +634,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     cell_list.forEach((id: string) => {
       v.push(
         <SortableItem id={id} key={id}>
-          {render_cell({
+          {renderCell({
             id,
             isScrolling: false,
             index,
@@ -681,7 +684,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               fontSize: `${font_size}px`,
             }}
           >
-            {render_cell({ id })}
+            {renderCell({ id })}
           </div>
         )}
         onDragStart={(id) => {

@@ -79,6 +79,7 @@ export default function StableUnsafeHtml({
   zIndex = Z_INDEX, // todo: support changing?
 }: Props) {
   const divRef = useRef<any>(null);
+  const cellOutputDivRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
   const { isVisible, project_id, path, id } = useFrameContext();
   const stableHtmlContext = useStableHtmlContext();
@@ -131,15 +132,11 @@ export default function StableUnsafeHtml({
         parentRect.right - SCROLL_WIDTH - eltRect.left,
       );
 
-      // .closest('.a');
-      //const bottom = Math.min(eltRect.height, parentRect.bottom - eltRect.top);
-      // We do this so that if the output is COLLAPSED, then the html doesn't
+      // The bottom is complicated because if the output is COLLAPSED, then the html doesn't
       // go outside the shortened div.  We do not do anything regarding making
       // scroll work in there though -- if you want to see the whole thing, you
       // must not collapse it.
-      const containerRect = $(divRef.current)
-        .closest(".cocalc-output-div")[0]
-        ?.getBoundingClientRect();
+      const containerRect = cellOutputDivRef.current?.getBoundingClientRect();
       const bottom = Math.max(
         top,
         Math.min(
@@ -221,8 +218,8 @@ export default function StableUnsafeHtml({
       position,
       POSITION_WHEN_MOUNTED_INTERVAL_MS,
     );
-    if (stableHtmlContext.iframeOnScrolls != null) {
-      stableHtmlContext.iframeOnScrolls[globalKey] = async () => {
+    if (stableHtmlContext.htmlOnScrolls != null) {
+      stableHtmlContext.htmlOnScrolls[globalKey] = async () => {
         position();
         await new Promise(requestAnimationFrame);
         position();
@@ -232,11 +229,21 @@ export default function StableUnsafeHtml({
     setTimeout(position, 0);
 
     return () => {
-      delete stableHtmlContext.iframeOnScrolls?.[globalKey];
+      delete stableHtmlContext.htmlOnScrolls?.[globalKey];
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    // This is "ugly jquery"... but I did try passing this info
+    // down via stableHtmlContext and it gets REALLY complicated.
+    // Also this only happens once on mount, so it's not a problem
+    // regarding efficiency.
+    cellOutputDivRef.current = $(divRef.current).closest(
+      ".cocalc-output-div",
+    )[0];
   }, []);
 
   return <div ref={divRef} style={STYLE}></div>;

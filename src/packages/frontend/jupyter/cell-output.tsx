@@ -79,6 +79,9 @@ export function CellOutput({
         ...style,
       }}
       cocalc-test="cell-output"
+      className={
+        "cocalc-output-div" /* used by stable unsafe html for clipping */
+      }
     >
       {!hidePrompt && <ControlColumn cell={cell} actions={actions} id={id} />}
       <OutputColumn
@@ -193,11 +196,7 @@ function ControlColumn({ actions, cell, id }) {
   }
   if (actions != null) {
     return (
-      <OutputToggle
-        actions={actions}
-        id={id}
-        scrolled={cell.get("scrolled")}
-      >
+      <OutputToggle actions={actions} id={id} scrolled={cell.get("scrolled")}>
         {prompt}
       </OutputToggle>
     );
