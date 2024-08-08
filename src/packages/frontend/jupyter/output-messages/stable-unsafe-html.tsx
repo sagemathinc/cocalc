@@ -130,7 +130,25 @@ export default function StableUnsafeHtml({
         eltRect.width,
         parentRect.right - SCROLL_WIDTH - eltRect.left,
       );
-      const bottom = Math.min(eltRect.height, parentRect.bottom - eltRect.top);
+
+      // .closest('.a');
+      //const bottom = Math.min(eltRect.height, parentRect.bottom - eltRect.top);
+      // We do this so that if the output is COLLAPSED, then the html doesn't
+      // go outside the shortened div.  We do not do anything regarding making
+      // scroll work in there though -- if you want to see the whole thing, you
+      // must not collapse it.
+      const containerRect = $(divRef.current)
+        .closest(".cocalc-jupyter-rendered")[0]
+        ?.getBoundingClientRect();
+      const bottom = Math.max(
+        top,
+        Math.min(
+          eltRect.height,
+          (containerRect?.bottom ?? parentRect.bottom) - eltRect.top,
+          parentRect.bottom - eltRect.top,
+        ),
+      );
+
       const left = Math.max(0, parentRect.left - eltRect.left);
 
       // Apply clip-path to elt to make it visible only inside of parentRect:
