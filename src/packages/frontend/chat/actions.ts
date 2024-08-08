@@ -570,6 +570,7 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   public set_uploading(is_uploading: boolean): void {
+    console.log("set_uploading", is_uploading);
     this.setState({ is_uploading });
   }
 

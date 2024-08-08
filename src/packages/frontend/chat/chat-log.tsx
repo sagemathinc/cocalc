@@ -286,6 +286,14 @@ function isThread(messages: ChatMessages, message: ChatMessageTyped) {
   if (message.get("reply_to") != null) {
     return true;
   }
+  // TODO/WARNING!!! This is a linear search
+  // through all messages to decide if a message is the root of a thread.
+  // This is VERY BAD and must to be redone at some point, since we call isThread
+  // on all messages (in getSortedDates), making that algorithm O(n^2),
+  // which is hideous as the number of messages scales.  Instead one must
+  // use a proper data structure (or even a cache) to track this once
+  // and for all.  It's more complicated but everything needs to be at
+  // most O(n).
   return messages.some(
     (m) => m.get("reply_to") === message.get("date").toISOString(),
   );
