@@ -13,7 +13,6 @@ import ReactDOM from "react-dom";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import useCounter from "@cocalc/frontend/app-framework/counter-hook";
 import { get_blob_url } from "../server-urls";
-import CachedIFrame from "./cached-iframe";
 import { useIFrameContext } from "@cocalc/frontend/jupyter/cell-list";
 import HTML from "./mime-types/html";
 
@@ -24,7 +23,7 @@ const MAX_WAIT = 5000;
 const BACKOFF = 1.3;
 
 const HEIGHT = "70vh";
-const WIDTH = "max(800px,70vw)";
+const WIDTH = "100vw";
 
 interface Props {
   sha1: string;
@@ -53,8 +52,6 @@ export default function IFrame(props: Props) {
         value={`<iframe src="${src}" style="border:0;height:${HEIGHT};width:${WIDTH}"/>`}
       />
     );
-    // @ts-ignore
-    return <CachedIFrame {...props} />;
   }
 }
 
