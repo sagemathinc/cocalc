@@ -419,6 +419,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     delayRendering, // seems not used anywhere!
     isFirst,
     isLast,
+    isDragging,
   }: {
     id: string;
     isScrolling?: boolean;
@@ -426,6 +427,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     delayRendering?: number;
     isFirst?: boolean;
     isLast?: boolean;
+    isDragging?: boolean;
   }) {
     const cell = cells.get(id);
     if (cell == null) return null;
@@ -475,6 +477,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           isLast={isLast}
           dragHandle={dragHandle}
           read_only={read_only}
+          isDragging={isDragging}
         />
       </div>
     );
@@ -691,6 +694,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         disabled={actions == null}
         items={cell_list.toJS()}
         Item={({ id }) => (
+          /* This is what is displayed when dragging the given cell. */
           <div
             style={{
               background: "white",
@@ -698,7 +702,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               fontSize: `${font_size}px`,
             }}
           >
-            {renderCell({ id })}
+            {renderCell({ id, isDragging: true })}
           </div>
         )}
         onDragStart={(id) => {
