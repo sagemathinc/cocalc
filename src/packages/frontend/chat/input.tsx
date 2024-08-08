@@ -5,7 +5,6 @@
 
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
-
 import {
   CSS,
   redux,
@@ -61,6 +60,10 @@ export default function ChatInput({
   submitMentionsRef,
   syncdb,
 }: Props) {
+  const onSendRef = useRef<Function>(on_send);
+  useEffect(() => {
+    onSendRef.current = on_send;
+  }, [on_send]);
   const { project_id, path, actions } = useFrameContext();
   const fontSize = useRedux(["font_size"], project_id, path);
   if (font_size == null) {
@@ -213,16 +216,7 @@ export default function ChatInput({
         setInput(input);
         saveChat(input);
       }}
-      onShiftEnter={(input) => {
-        // no need to save on unmount, since we are saving
-        // the correct state below.
-        saveOnUnmountRef.current = false;
-        lastSavedRef.current = input;
-        setInput(input);
-        saveChat(input);
-        saveChat.cancel();
-        on_send(input);
-      }}
+      onShiftEnter={on_send}
       height={height}
       placeholder={getPlaceholder(project_id, placeholder)}
       extraHelp={

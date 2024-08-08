@@ -287,14 +287,21 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.set(message);
     if (!reply_to) {
       this.delete_draft(0);
+      // NOTE: we also clear search, since it's confusing to send a message and not
+      // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
+      // since by default the message you are sending has those tags.
+      // Also, only do this clearing when not replying.
+      // For replies search find full threads not individual messages.
+      this.setState({
+        input: "",
+        search: "",
+      });
+    } else {
+      // TODO: but until we fix search, do this:
+      this.setState({
+        search: "",
+      });
     }
-    // NOTE: we also clear search, since it's confusing to send a message and not
-    // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
-    // since by default the message you are sending has those tags.
-    this.setState({
-      input: "",
-      search: "",
-    });
     this.ensureDraftStartsWithHashtags(false);
 
     if (this.store) {
@@ -558,7 +565,7 @@ export class ChatActions extends Actions<ChatState> {
   public scrollToBottom(index: number = -1) {
     if (this.syncdb == null) return;
     // this triggers scroll behavior in the chat-log component.
-    this.setState({ scrollToBottom: null }); // noop, but necessary to trigger a change
+    this.setState({ scrollToBottom: null }); // no-op, but necessary to trigger a change
     this.setState({ scrollToBottom: index });
   }
 
