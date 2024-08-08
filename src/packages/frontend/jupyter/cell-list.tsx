@@ -39,6 +39,7 @@ import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 interface IFrameContextType {
   iframeDivRef?: MutableRefObject<any>;
+  cellListDivRef?: MutableRefObject<any>;
   iframeOnScrolls?: { [key: string]: () => void };
 }
 const IFrameContext = createContext<IFrameContextType>({});
@@ -597,85 +598,90 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   let body;
 
   const iframeDivRef = useRef<HTMLDivElement>(null);
+  const cellListDivRef = useRef<HTMLDivElement>(null);
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   if (use_windowed_list) {
     body = (
-      <IFrameContext.Provider value={{ iframeDivRef, iframeOnScrolls }}>
-        <Virtuoso
-          ref={virtuosoRef}
-          onClick={actions != null && complete != null ? on_click : undefined}
-          topItemCount={EXTRA_TOP_CELLS}
-          style={{
-            fontSize: `${font_size}px`,
-            flex: 1,
-            overflowX: "hidden",
-          }}
-          totalCount={
-            cell_list.size +
-            EXTRA_TOP_CELLS /* +EXTRA_TOP_CELLS due to the iframe cell and style cell at the top */ +
-            EXTRA_BOTTOM_CELLS
-          }
-          itemSize={(el) => {
-            // We capture measured heights -- see big coment above the
-            // the DivTempHeight component below for why this is needed
-            // for Jupyter notebooks (but not most things).
-            const h = el.getBoundingClientRect().height;
-            // WARNING: This uses perhaps an internal implementation detail of
-            //  virtuoso, which I hope they don't change, which is that the index of
-            // the elements whose height we're measuring is in the data-item-index
-            // attribute.
-            const data = el.getAttribute("data-item-index");
-            if (data != null) {
-              const index = parseInt(data);
-              virtuosoHeightsRef.current[index] = h;
+      <IFrameContext.Provider
+        value={{ iframeDivRef, cellListDivRef, iframeOnScrolls }}
+      >
+        <div ref={cellListDivRef} className="smc-vfill">
+          <Virtuoso
+            ref={virtuosoRef}
+            onClick={actions != null && complete != null ? on_click : undefined}
+            topItemCount={EXTRA_TOP_CELLS}
+            style={{
+              fontSize: `${font_size}px`,
+              flex: 1,
+              overflowX: "hidden",
+            }}
+            totalCount={
+              cell_list.size +
+              EXTRA_TOP_CELLS /* +EXTRA_TOP_CELLS due to the iframe cell and style cell at the top */ +
+              EXTRA_BOTTOM_CELLS
             }
-            return h;
-          }}
-          itemContent={(index) => {
-            if (index == 0) {
+            itemSize={(el) => {
+              // We capture measured heights -- see big coment above the
+              // the DivTempHeight component below for why this is needed
+              // for Jupyter notebooks (but not most things).
+              const h = el.getBoundingClientRect().height;
+              // WARNING: This uses perhaps an internal implementation detail of
+              //  virtuoso, which I hope they don't change, which is that the index of
+              // the elements whose height we're measuring is in the data-item-index
+              // attribute.
+              const data = el.getAttribute("data-item-index");
+              if (data != null) {
+                const index = parseInt(data);
+                virtuosoHeightsRef.current[index] = h;
+              }
+              return h;
+            }}
+            itemContent={(index) => {
+              if (index == 0) {
+                return (
+                  <div key="iframes" ref={iframeDivRef} style={ITEM_STYLE}>
+                    iframes here
+                  </div>
+                );
+              } else if (index == 1) {
+                return (
+                  <div key="styles" ref={iframeDivRef} style={ITEM_STYLE}>
+                    <style>{allStyles}</style>
+                  </div>
+                );
+              } else if (index == cell_list.size + EXTRA_TOP_CELLS) {
+                return BOTTOM_PADDING_CELL;
+              }
+              const id = cell_list.get(index - EXTRA_TOP_CELLS);
+              if (id == null) return null;
+              const h = virtuosoHeightsRef.current[index];
+              if (actions == null) {
+                return render_cell({
+                  id,
+                  isScrolling: false,
+                  index: index - EXTRA_TOP_CELLS,
+                });
+              }
               return (
-                <div key="iframes" ref={iframeDivRef} style={ITEM_STYLE}>
-                  iframes here
-                </div>
+                <SortableItem id={id} key={id}>
+                  <DivTempHeight height={h ? `${h}px` : undefined}>
+                    {render_cell({
+                      id,
+                      isScrolling: false,
+                      index: index - EXTRA_TOP_CELLS,
+                      isFirst: id === cell_list.get(0),
+                      isLast: id === cell_list.get(-1),
+                    })}
+                  </DivTempHeight>
+                </SortableItem>
               );
-            } else if (index == 1) {
-              return (
-                <div key="styles" ref={iframeDivRef} style={ITEM_STYLE}>
-                  <style>{allStyles}</style>
-                </div>
-              );
-            } else if (index == cell_list.size + EXTRA_TOP_CELLS) {
-              return BOTTOM_PADDING_CELL;
-            }
-            const id = cell_list.get(index - EXTRA_TOP_CELLS);
-            if (id == null) return null;
-            const h = virtuosoHeightsRef.current[index];
-            if (actions == null) {
-              return render_cell({
-                id,
-                isScrolling: false,
-                index: index - EXTRA_TOP_CELLS,
-              });
-            }
-            return (
-              <SortableItem id={id} key={id}>
-                <DivTempHeight height={h ? `${h}px` : undefined}>
-                  {render_cell({
-                    id,
-                    isScrolling: false,
-                    index: index - EXTRA_TOP_CELLS,
-                    isFirst: id === cell_list.get(0),
-                    isLast: id === cell_list.get(-1),
-                  })}
-                </DivTempHeight>
-              </SortableItem>
-            );
-          }}
-          rangeChanged={(visibleRange) => {
-            virtuosoRangeRef.current = visibleRange;
-          }}
-          {...virtuosoScroll}
-        />
+            }}
+            rangeChanged={(visibleRange) => {
+              virtuosoRangeRef.current = visibleRange;
+            }}
+            {...virtuosoScroll}
+          />
+        </div>
       </IFrameContext.Provider>
     );
   } else {

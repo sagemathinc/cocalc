@@ -1,10 +1,24 @@
 import register from "./register";
 import HTML from "@cocalc/frontend/components/html-ssr";
+import StableUnsafeHtml from "../stable-unsafe-html";
 
-const Html = ({ value }: { value: string }) => {
+const Html = ({
+  value,
+  id,
+  index,
+  trust,
+}: {
+  value: string;
+  id?: string;
+  index?: number;
+  trust?: boolean;
+}) => {
+  if (!trust) {
+    <HTML value={value} />;
+  }
   return (
     <div style={{ margin: "5px 0" }}>
-      <HTML value={value} />
+      <StableUnsafeHtml html={value} docId={`${id}-${index}`} />
     </div>
   );
 };

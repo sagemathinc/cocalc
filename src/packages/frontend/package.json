@@ -149,7 +149,7 @@
     "react-plotly.js": "^2.6.0",
     "react-redux": "^8.0.5",
     "react-timeago": "^7.2.0",
-    "react-virtuoso": "^4.5.1",
+    "react-virtuoso": "^4.9.0",
     "requirejs": "^2.3.6",
     "resize-observer-polyfill": "^1.5.1",
     "sha1": "^1.1.1",
