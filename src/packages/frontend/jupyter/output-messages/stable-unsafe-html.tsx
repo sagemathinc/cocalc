@@ -1,11 +1,27 @@
 /*
 Create stable unsafe HTML DOM node.  This is a way to render HTML that stays stable
 irregardless of it being unmounted/remounted.
-This supports virtualization, window splitting, etc., without loss of state...
+
+This supports virtualization, window splitting, etc., without loss of state,
 unless there are too many of them, then we delete the oldest.
+
+By default, the HTML is just directly put into the DOM exactly as is, except that
+we *do* process links so internal references work and math using katex.
 
 Unsafe is in the name since there is NO SANITIZATION.  Only use this on trusted
 documents.
+
+Elements only get re-rendered when for IDLE_TIMEOUT_S, both:
+
+- the underlying react element does not exist, AND
+- the parent is not scrolled at all.
+
+OR
+
+- if there are more than MAX_ELEMENTS, then the oldest are removed (to avoid catastrophic memory usage).
+
+If for any reason the react element exists or the parent is scrolled, then
+the idle timeout is reset.
 */
 
 import { useCallback, useEffect, useRef } from "react";
@@ -13,27 +29,21 @@ import $ from "jquery";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { useIFrameContext } from "@cocalc/frontend/jupyter/cell-list";
 import { sha1 } from "@cocalc/util/misc";
+import TTL from "@isaacs/ttlcache";
 
-interface Props {
-  docId: string;
-  html: string;
-  zIndex?: number;
-}
+const IDLE_TIMEOUT_S = 10 * 60; // 10 minutes
+const MAX_ELEMENTS = 500; // max items
 
-import LRU from "lru-cache";
-
-const CACHE_SIZE = 100;
-
-const immortals = new LRU<string, any>({
-  max: CACHE_SIZE,
+const cache = new TTL<string, any>({
+  ttl: IDLE_TIMEOUT_S * 1000,
+  max: MAX_ELEMENTS,
   updateAgeOnGet: true,
-  updateAgeOnHas: true,
   dispose: (elt) => {
     elt.empty();
     elt.remove();
   },
 });
-// const immortals: { [globalKey: string]: any } = {};
+// const cache: { [globalKey: string]: any } = {};
 
 const Z_INDEX = 1;
 
@@ -51,6 +61,12 @@ const SCROLL_COUNT = 25;
 // make it blend in
 const PADDING = 0;
 const STYLE = {} as const;
+
+interface Props {
+  docId: string;
+  html: string;
+  zIndex?: number;
+}
 
 export default function StableUnsafeHtml({
   docId,
@@ -134,18 +150,19 @@ export default function StableUnsafeHtml({
   }, []);
 
   const getElt = () => {
-    console.log("size", immortals.size);
-    if (!immortals.has(globalKey)) {
-      console.log("cache miss", globalKey);
+    if (!cache.has(globalKey)) {
       const elt = $(
         `<div id="${globalKey}" style="border:0;position:absolute;overflow-y:hidden;z-index:${zIndex}"/>${html}</div>`,
       );
-      immortals.set(globalKey, elt);
+      // @ts-ignore
+      elt.process_smc_links();
+      // @ts-ignore
+      elt.katex({ preProcess: true });
+      cache.set(globalKey, elt);
       $("body").append(elt);
       return elt;
     } else {
-      console.log("cache hit", globalKey);
-      return immortals.get(globalKey);
+      return cache.get(globalKey);
     }
   };
 

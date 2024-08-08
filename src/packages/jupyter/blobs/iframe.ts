@@ -41,17 +41,7 @@ export function is_likely_iframe(content: string): boolean {
     // it'll just break anyways if we don't use an iframe -- if we do, there is hope.
     return true;
   }
-  return (
-    content.includes("bk-notebook-logo") ||
-    content.startsWith("<iframe") ||
-    content.includes("<!doctype html>") ||
-    (content.includes("<html>") && content.includes("<head>")) ||
-    // this gets really serious -- we sanitize out script tags in non-iframe html,
-    // and a LOT of interesting jupyter outputs are self contained html + script tags... so
-    // by rendering them all in iframes (1) they suddenly all work, which is great, and
-    // (2) if they are large (which is common) they work even better, by far!
-    content.includes("<script")
-  );
+  return content.startsWith("<iframe");
 }
 
 export function process(
