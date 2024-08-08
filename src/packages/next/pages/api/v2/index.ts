@@ -64,5 +64,11 @@ export default docsApiRoute({
     title: "CoCalc API",
     description: "",
     logoUrl: "https://cocalc.com/_next/static/media/full.0a70e50d.svg",
+    ogConfig: {
+      title: "CoCalc HTTP API (v2)",
+      type: "website",
+      url: "https://cocalc.com/api/v2",
+      imageUrl: "https://cocalc.com/webapp/favicon.ico",
+    },
   },
 });
