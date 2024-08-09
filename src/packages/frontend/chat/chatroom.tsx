@@ -43,6 +43,7 @@ import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
+import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 const FILTER_RECENT_NONE = { value: 0, label: "All" } as const;
 
@@ -75,9 +76,10 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
 interface Props {
   project_id: string;
   path: string;
+  is_visible?: boolean;
 }
 
-export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
+export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
   const actions: ChatActions = useActions(project_id, path);
 
   const is_uploading = useRedux(["is_uploading"], project_id, path);
@@ -550,13 +552,26 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   if (messages == null || input == null) {
     return <Loading theme={"medium"} />;
   }
+  // remove frameContext once the chatroom is part of a frame tree.
+  // we need this now, e.g., since some markdown editing components
+  // for input assume in a frame tree, e.g., to fix
+  //  https://github.com/sagemathinc/cocalc/issues/7554
   return (
-    <div
-      onMouseMove={mark_as_read}
-      onClick={mark_as_read}
-      className="smc-vfill"
+    <FrameContext.Provider
+      value={{
+        project_id,
+        path,
+        isVisible: !!is_visible,
+        redux,
+      } as any}
     >
-      {render_body()}
-    </div>
+      <div
+        onMouseMove={mark_as_read}
+        onClick={mark_as_read}
+        className="smc-vfill"
+      >
+        {render_body()}
+      </div>
+    </FrameContext.Provider>
   );
 };

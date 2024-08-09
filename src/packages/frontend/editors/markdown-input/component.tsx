@@ -151,7 +151,7 @@ export function MarkdownInput(props: Props) {
     unregisterEditor,
     value,
   } = props;
-  const { actions } = useFrameContext();
+  const { actions, isVisible } = useFrameContext();
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const editor_settings = useRedux(["account", "editor_settings"]);
@@ -800,6 +800,14 @@ export function MarkdownInput(props: Props) {
       cm.current.focus();
     }
   }
+
+  // make sure that mentions is closed if we switch to another tab.
+  useEffect(() => {
+    console.log("")
+    if (mentions && !isVisible) {
+      close_mentions();
+    }
+  }, [isVisible]);
 
   function render_mentions_popup() {
     if (mentions == null || mentions_offset == null) return;
