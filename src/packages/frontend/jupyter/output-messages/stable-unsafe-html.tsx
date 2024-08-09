@@ -27,12 +27,31 @@ the idle timeout is reset.
 import { useCallback, useEffect, useRef } from "react";
 import $ from "jquery";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { useIFrameContext } from "@cocalc/frontend/jupyter/cell-list";
+import { useStableHtmlContext } from "@cocalc/frontend/jupyter/cell-list";
 import { sha1 } from "@cocalc/util/misc";
 import TTL from "@isaacs/ttlcache";
 
+// AFter this many seconds, an element that hasn't been in the react dom and whose
+// parent hasn't been scrolled, will get un-rendered.
 const IDLE_TIMEOUT_S = 10 * 60; // 10 minutes
+// If there are more than this many elements, old ones are un-rendered.
 const MAX_ELEMENTS = 500; // max items
+// Rough assumption about size of scrollbar.
+const SCROLL_WIDTH = 30;
+// we have to put the html on top of the notebook to be visible.  This is the z-index we use.
+const Z_INDEX = 1;
+
+// POSITION_WHEN_MOUNTED_INTERVAL_MS: No matter what when the html is in the REACT
+// dom, it will have its position updated this frequently.
+// it also gets updated on scroll of the cell list. This also serves to
+// ensure that this item has a recent ttl so it isn't cleared from the ttl cache.
+// It should NOT ever actually be needed, since we always update the position on
+// resize and scroll events.
+const POSITION_WHEN_MOUNTED_INTERVAL_MS = 10000;
+
+// Scroll actively this many frames after each update, due to throttling of onscroll
+// and other events. This is to eliminate lag.
+const SCROLL_COUNT = 30;
 
 const cache = new TTL<string, any>({
   ttl: IDLE_TIMEOUT_S * 1000,
@@ -43,11 +62,6 @@ const cache = new TTL<string, any>({
     elt.remove();
   },
 });
-// const cache: { [globalKey: string]: any } = {};
-
-const Z_INDEX = 1;
-
-const SCROLL_COUNT = 25;
 
 // make it really standout:
 // const PADDING = 5;
@@ -74,9 +88,10 @@ export default function StableUnsafeHtml({
   zIndex = Z_INDEX, // todo: support changing?
 }: Props) {
   const divRef = useRef<any>(null);
+  const cellOutputDivRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
   const { isVisible, project_id, path, id } = useFrameContext();
-  const iframeContext = useIFrameContext();
+  const stableHtmlContext = useStableHtmlContext();
 
   const globalKey = sha1(`${project_id}-${id}-${docId}-${path}-${html}`);
 
@@ -110,12 +125,12 @@ export default function StableUnsafeHtml({
     divRef.current.style.height = `${
       eltRect.bottom - eltRect.top + 2 * PADDING
     }px`;
-    divRef.current.style.width = `${
-      eltRect.right - eltRect.left + 2 * PADDING
-    }px`;
+    //     divRef.current.style.width = `${
+    //       eltRect.right - eltRect.left + 2 * PADDING
+    //     }px`;
 
     // clip our immortal html so it isn't visible outside the parent
-    const parent = $(iframeContext.cellListDivRef?.current)[0];
+    const parent = stableHtmlContext.cellListDivRef?.current;
     if (parent != null) {
       const parentRect = parent.getBoundingClientRect();
       // Calculate the overlap area
@@ -123,13 +138,35 @@ export default function StableUnsafeHtml({
       // leave 30px on right so to not block scrollbar
       const right = Math.min(
         eltRect.width,
-        parentRect.right - 30 - eltRect.left,
+        parentRect.right - SCROLL_WIDTH - eltRect.left,
       );
-      const bottom = Math.min(eltRect.height, parentRect.bottom - eltRect.top);
+
+      // The bottom is complicated because if the output is COLLAPSED, then the html doesn't
+      // go outside the shortened div.  We do not do anything regarding making
+      // scroll work in there though -- if you want to see the whole thing, you
+      // must not collapse it.
+      const containerRect = cellOutputDivRef.current?.getBoundingClientRect();
+      //console.log({ containerRect, parentRect, eltRect });
+
+      const bottom = Math.max(
+        top,
+        Math.min(
+          eltRect.height,
+          (containerRect?.bottom ?? parentRect.bottom) - eltRect.top,
+          parentRect.bottom - eltRect.top,
+        ),
+      );
+
       const left = Math.max(0, parentRect.left - eltRect.left);
 
       // Apply clip-path to elt to make it visible only inside of parentRect:
       elt.style.clipPath = `polygon(${left}px ${top}px, ${right}px ${top}px, ${right}px ${bottom}px, ${left}px ${bottom}px)`;
+
+      // Set width, so it possible to scroll horizontally and see whatever widget is in the output.
+      const w = divRef.current.offsetWidth;
+      if (w) {
+        elt.style.width = `${w}px`;
+      }
 
       // if its an iframe resize it
       if (html.toLowerCase().startsWith("<iframe")) {
@@ -138,11 +175,8 @@ export default function StableUnsafeHtml({
           var iframeBody = iframe.contents().find("body");
           if (iframeBody.length > 0) {
             // Get dimensions of the iframe's body
-            //const width = iframeBody.outerWidth();
             const height = iframeBody.outerHeight();
-            //iframe[0].style.width = `${width}px`;
             iframe[0].style.height = `${height}px`;
-            iframeBody[0].style["overflow-y"] = "hidden";
           }
         }
       }
@@ -152,7 +186,7 @@ export default function StableUnsafeHtml({
   const getElt = () => {
     if (!cache.has(globalKey)) {
       const elt = $(
-        `<div id="${globalKey}" style="border:0;position:absolute;overflow-y:hidden;z-index:${zIndex}"/>${html}</div>`,
+        `<div id="${globalKey}" style="border:0;position:absolute;overflow:auto;z-index:${zIndex}"/>${html}</div>`,
       );
       // @ts-ignore
       elt.process_smc_links();
@@ -189,12 +223,16 @@ export default function StableUnsafeHtml({
   }, [isVisible]);
 
   useEffect(() => {
-    // TOOD: can we get rid of interval by using a resize observer on
-    // this iframeContext.cellListDivRef?
-    intervalRef.current = setInterval(position, 500);
-    if (iframeContext.iframeOnScrolls != null) {
+    intervalRef.current = setInterval(
+      position,
+      POSITION_WHEN_MOUNTED_INTERVAL_MS,
+    );
+    if (stableHtmlContext.scrollOrResize != null) {
       let count = 0;
-      iframeContext.iframeOnScrolls[globalKey] = async () => {
+      stableHtmlContext.scrollOrResize[globalKey] = async () => {
+        if (count > 0) {
+          return;
+        }
         // We run position a lot whenever there is a scroll
         // in order to make it so the iframe doesn't appear
         // to just get "dragged along" nearly as much, as
@@ -211,14 +249,23 @@ export default function StableUnsafeHtml({
     }
     position();
     setTimeout(position, 0);
-    setTimeout(position, 5);
 
     return () => {
-      delete iframeContext.iframeOnScrolls?.[globalKey];
+      delete stableHtmlContext.scrollOrResize?.[globalKey];
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    // This is "old fashioned jquery"... but I tried passing this info
+    // down via stableHtmlContext and it gets REALLY complicated.
+    // Also this only happens once on mount, so it's not a problem
+    // regarding efficiency.
+    cellOutputDivRef.current = $(divRef.current).closest(
+      ".cocalc-output-div",
+    )[0];
   }, []);
 
   return <div ref={divRef} style={STYLE}></div>;

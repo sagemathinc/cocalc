@@ -6,7 +6,7 @@
 // React component that renders the ordered list of cells
 
 declare const $: any;
-
+import useResizeObserver from "use-resize-observer";
 import { delay } from "awaiting";
 import * as immutable from "immutable";
 import { debounce } from "lodash";
@@ -21,8 +21,6 @@ import {
   useRef,
 } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import { useDebounce } from "use-debounce";
-
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import {
@@ -37,21 +35,19 @@ import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
-interface IFrameContextType {
-  iframeDivRef?: MutableRefObject<any>;
+interface StableHtmlContextType {
   cellListDivRef?: MutableRefObject<any>;
-  iframeOnScrolls?: { [key: string]: () => void };
+  scrollOrResize?: { [key: string]: () => void };
 }
-const IFrameContext = createContext<IFrameContextType>({});
-export const useIFrameContext: () => IFrameContextType = () => {
-  return useContext(IFrameContext);
+const StableHtmlContext = createContext<StableHtmlContextType>({});
+export const useStableHtmlContext: () => StableHtmlContextType = () => {
+  return useContext(StableHtmlContext);
 };
 
 // 3 extra cells:
 //  - iframe cell  (hidden at top)
 //  - style cell   (hidden at top)
 //  - padding (at the bottom)
-const EXTRA_TOP_CELLS = 2;
 const EXTRA_BOTTOM_CELLS = 1;
 
 const CELL_VISIBLE_THRESH = 50;
@@ -66,11 +62,6 @@ const BOTTOM_PADDING_CELL = (
     style={{ height: "50vh", minHeight: "400px" }}
   ></div>
 );
-
-const ITEM_STYLE: CSS = {
-  height: "1px",
-  overflow: "hidden",
-};
 
 interface CellListProps {
   actions?: JupyterActions; // if not defined, then everything is read only
@@ -152,7 +143,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     frame_actions.cell_list_div = $(cell_list_node.current);
 
     return () => {
-      save_scroll();
+      saveScroll();
       // handle focus via an event handler on window.
       // We have to do this since, e.g., codemirror editors
       // involve spans that aren't even children, etc...
@@ -189,7 +180,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     return render_loading();
   }
 
-  function save_scroll(): void {
+  const saveScroll = useCallback(() => {
     if (use_windowed_list) {
       // TODO -- virtuoso
       // We don't actually need to do anything though since our virtuoso
@@ -199,7 +190,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         frameActions.current?.set_scrollTop(cell_list_node.current.scrollTop);
       }
     }
-  }
+  }, [use_windowed_list]);
+
+  const saveScrollDebounce = useMemo(() => {
+    return debounce(saveScroll, 2000);
+  }, [use_windowed_list]);
 
   async function restore_scroll(): Promise<void> {
     if (scrollTop == null || use_windowed_list) return;
@@ -284,9 +279,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }
 
   function scrollCellListVirtuoso(scroll: Scroll) {
-    // NOTE: below we add EXTRA_TOP_CELLS to the index to compensate
-    // for the first fixed hidden cell that contains all
-    // of the output iframes!
     if (typeof scroll == "number") {
       // scroll to a number is not meaningful for virtuoso; it might
       // be requested maybe (?) due to scroll restore and switching
@@ -304,7 +296,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         // We ONLY scroll if the cell is not in the visible, since
         // react-virtuoso's "scrollIntoView" aggressively scrolls, even
         // if the item is in view.
-        const n = index + EXTRA_TOP_CELLS;
+        const n = index;
         let isNotVisible = false;
         let align: "start" | "center" | "end" = "start";
         if (n < virtuosoRangeRef.current.startIndex) {
@@ -346,13 +338,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         }
       } else if (scroll == "cell top") {
         virtuosoRef.current?.scrollToIndex({
-          index: index + EXTRA_TOP_CELLS,
+          index,
         });
         // hack which seems necessary for jupyter at least.
         requestAnimationFrame(
           () =>
             virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
+              index,
             }),
         );
       }
@@ -360,26 +352,26 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       if (scroll == "list up") {
         const index = virtuosoRangeRef.current?.startIndex;
         virtuosoRef.current?.scrollToIndex({
-          index: index + EXTRA_TOP_CELLS,
+          index,
           align: "end",
         });
         requestAnimationFrame(
           () =>
             virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
+              index,
               align: "end",
             }),
         );
       } else if (scroll == "list down") {
         const index = virtuosoRangeRef.current?.endIndex;
         virtuosoRef.current?.scrollToIndex({
-          index: index + EXTRA_TOP_CELLS,
+          index,
           align: "start",
         });
         requestAnimationFrame(
           () =>
             virtuosoRef.current?.scrollToIndex({
-              index: index + EXTRA_TOP_CELLS,
+              index,
               align: "start",
             }),
         );
@@ -420,13 +412,14 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }
 
-  function render_cell({
+  function renderCell({
     id,
     isScrolling,
     index,
     delayRendering, // seems not used anywhere!
     isFirst,
     isLast,
+    isDragging,
   }: {
     id: string;
     isScrolling?: boolean;
@@ -434,6 +427,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     delayRendering?: number;
     isFirst?: boolean;
     isLast?: boolean;
+    isDragging?: boolean;
   }) {
     const cell = cells.get(id);
     if (cell == null) return null;
@@ -451,6 +445,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         }}
       />
     ) : undefined;
+
     return (
       <div key={id}>
         <Cell
@@ -482,6 +477,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           isLast={isLast}
           dragHandle={dragHandle}
           read_only={read_only}
+          isDragging={isDragging}
         />
       </div>
     );
@@ -515,10 +511,10 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           onScroll: (scrollState) => {
             lastScrollStateRef.current = {
               ...scrollState,
-              id: cellListRef.current?.get(scrollState.index - EXTRA_TOP_CELLS),
+              id: cellListRef.current?.get(scrollState.index),
             };
-            for (const key in iframeOnScrolls) {
-              iframeOnScrolls[key]();
+            for (const key in scrollOrResize) {
+              scrollOrResize[key]();
             }
           },
           scrollerRef: handleCellListRef,
@@ -539,87 +535,57 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       return;
     }
-    // index + EXTRA_TOP_CELLS because of iframe and style cells
-    // the offset+1 is I think compensating for a bug maybe in
-    // virtuoso or our use of it.
     virtuosoRef.current?.scrollToIndex({
-      index: index + EXTRA_TOP_CELLS,
+      index,
       offset: offset + 1,
     });
     requestAnimationFrame(() => {
       virtuosoRef.current?.scrollToIndex({
-        index: index + EXTRA_TOP_CELLS,
+        index,
         offset: offset + 1,
       });
     });
   }, [cell_list]);
 
-  const iframeOnScrolls = useMemo(() => {
+  const scrollOrResize = useMemo(() => {
     return {};
   }, []);
-  useEffect(() => {
-    if (!use_windowed_list) return;
-    for (const key in iframeOnScrolls) {
-      iframeOnScrolls[key]();
+  const updateScrollOrResize = useCallback(() => {
+    for (const key in scrollOrResize) {
+      scrollOrResize[key]();
     }
-  }, [cells]);
+  }, []);
 
-  // allStyles -- the CSS in <style> blocks in text/html outputs
-  // of all cells.  We gather this and place it in a special cell
-  // at the top, since that such css doesn't disappear when the cells
-  // that produced it are scrolled off the screen. See
-  //    https://github.com/sagemathinc/cocalc/issues/5943
-  // We only update allStyles with a debounce of 1s, since it
-  // can be time consuming as it involves a scan of the entire notebook.
-  const [debouncedCells] = useDebounce(cells, 1000);
-  const allStyles = useMemo(() => {
-    if (!use_windowed_list) return "";
-    let value = "";
-    cell_list.forEach((id) => {
-      (debouncedCells.getIn([id, "output"]) as any)?.forEach((output) => {
-        // I hit a case in prod of output not being defined. Given the
-        // debounce and how debouncedCells might not match up with cell_list,
-        // and how output is going from markdown cells or maybe cleared cells,
-        // it seems plausible output could contain an undefined entry.
-        const html = output?.getIn(["data", "text/html"]);
-        if (html?.includes("style")) {
-          // parse out and include style tags
-          for (const x of $("<div>" + html + "</div>").find("style")) {
-            value += x.innerHTML.trim() + "\n\n";
-          }
-        }
-      });
-    });
-    return value;
-  }, [debouncedCells, use_windowed_list]);
+  useEffect(updateScrollOrResize, [cells]);
 
   const fileContext = useFileContext();
 
   let body;
 
-  const iframeDivRef = useRef<HTMLDivElement>(null);
   const cellListDivRef = useRef<HTMLDivElement>(null);
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
+
+  const cellListResize = useResizeObserver({ ref: cellListDivRef });
+  useEffect(() => {
+    for (const key in scrollOrResize) {
+      scrollOrResize[key]();
+    }
+  }, [cellListResize]);
+
   if (use_windowed_list) {
     body = (
-      <IFrameContext.Provider
-        value={{ iframeDivRef, cellListDivRef, iframeOnScrolls }}
-      >
+      <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
         <div ref={cellListDivRef} className="smc-vfill">
           <Virtuoso
             ref={virtuosoRef}
             onClick={actions != null && complete != null ? on_click : undefined}
-            topItemCount={EXTRA_TOP_CELLS}
+            topItemCount={0}
             style={{
               fontSize: `${font_size}px`,
               flex: 1,
               overflowX: "hidden",
             }}
-            totalCount={
-              cell_list.size +
-              EXTRA_TOP_CELLS /* +EXTRA_TOP_CELLS due to the iframe cell and style cell at the top */ +
-              EXTRA_BOTTOM_CELLS
-            }
+            totalCount={cell_list.size + EXTRA_BOTTOM_CELLS}
             itemSize={(el) => {
               // We capture measured heights -- see big coment above the
               // the DivTempHeight component below for why this is needed
@@ -637,38 +603,26 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               return h;
             }}
             itemContent={(index) => {
-              if (index == 0) {
-                return (
-                  <div key="iframes" ref={iframeDivRef} style={ITEM_STYLE}>
-                    iframes here
-                  </div>
-                );
-              } else if (index == 1) {
-                return (
-                  <div key="styles" ref={iframeDivRef} style={ITEM_STYLE}>
-                    <style>{allStyles}</style>
-                  </div>
-                );
-              } else if (index == cell_list.size + EXTRA_TOP_CELLS) {
+              if (index == cell_list.size) {
                 return BOTTOM_PADDING_CELL;
               }
-              const id = cell_list.get(index - EXTRA_TOP_CELLS);
+              const id = cell_list.get(index);
               if (id == null) return null;
               const h = virtuosoHeightsRef.current[index];
               if (actions == null) {
-                return render_cell({
+                return renderCell({
                   id,
                   isScrolling: false,
-                  index: index - EXTRA_TOP_CELLS,
+                  index,
                 });
               }
               return (
                 <SortableItem id={id} key={id}>
                   <DivTempHeight height={h ? `${h}px` : undefined}>
-                    {render_cell({
+                    {renderCell({
                       id,
                       isScrolling: false,
-                      index: index - EXTRA_TOP_CELLS,
+                      index,
                       isFirst: id === cell_list.get(0),
                       isLast: id === cell_list.get(-1),
                     })}
@@ -682,7 +636,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             {...virtuosoScroll}
           />
         </div>
-      </IFrameContext.Provider>
+      </StableHtmlContext.Provider>
     );
   } else {
     // This is needed for **the share server**, which hasn't had
@@ -694,7 +648,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     cell_list.forEach((id: string) => {
       v.push(
         <SortableItem id={id} key={id}>
-          {render_cell({
+          {renderCell({
             id,
             isScrolling: false,
             index,
@@ -709,24 +663,27 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     v.push(BOTTOM_PADDING_CELL);
 
     body = (
-      <div
-        key="cells"
-        className="smc-vfill"
-        style={{
-          fontSize: `${font_size}px`,
-          paddingLeft: "5px",
-          flex: 1,
-          overflowY: "auto",
-          overflowX: "hidden",
-        }}
-        ref={handleCellListRef}
-        onClick={actions != null && complete != null ? on_click : undefined}
-        onScroll={debounce(() => {
-          save_scroll();
-        }, 3000)}
-      >
-        {v}
-      </div>
+      <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
+        <div
+          key="cells"
+          className="smc-vfill"
+          style={{
+            fontSize: `${font_size}px`,
+            paddingLeft: "5px",
+            flex: 1,
+            overflowY: "auto",
+            overflowX: "hidden",
+          }}
+          ref={cellListDivRef}
+          onClick={actions != null && complete != null ? on_click : undefined}
+          onScroll={() => {
+            updateScrollOrResize();
+            saveScrollDebounce();
+          }}
+        >
+          {v}
+        </div>
+      </StableHtmlContext.Provider>
     );
   }
 
@@ -737,6 +694,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         disabled={actions == null}
         items={cell_list.toJS()}
         Item={({ id }) => (
+          /* This is what is displayed when dragging the given cell. */
           <div
             style={{
               background: "white",
@@ -744,7 +702,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
               fontSize: `${font_size}px`,
             }}
           >
-            {render_cell({ id })}
+            {renderCell({ id, isDragging: true })}
           </div>
         )}
         onDragStart={(id) => {

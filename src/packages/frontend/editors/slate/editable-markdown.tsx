@@ -160,7 +160,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     unregisterEditor,
     value,
   } = props;
-  const { project_id, path, desc } = useFrameContext();
+  const { project_id, path, desc, isVisible } = useFrameContext();
   const isMountedRef = useIsMountedRef();
   const id = id0 ?? "";
   const actions = actions0 ?? {};
@@ -334,6 +334,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   const mentionableUsers = useMentionableUsers();
 
   const mentions = useMentions({
+    isVisible,
     editor,
     insertMention: (editor, account_id) => {
       Transforms.insertNodes(editor, [

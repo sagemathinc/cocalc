@@ -60,6 +60,7 @@ interface Props {
   isLast?: boolean;
   dragHandle?: JSX.Element;
   read_only?: boolean;
+  isDragging?: boolean;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -88,7 +89,8 @@ function areEqual(props: Props, nextProps: Props): boolean {
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current)) ||
     nextProps.dragHandle !== props.dragHandle ||
-    nextProps.read_only !== props.read_only
+    nextProps.read_only !== props.read_only ||
+    nextProps.isDragging !== props.isDragging
   );
 }
 
@@ -164,6 +166,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         trust={props.trust}
         complete={props.is_current && props.complete != null}
         llmTools={props.llmTools}
+        isDragging={props.isDragging}
       />
     );
   }

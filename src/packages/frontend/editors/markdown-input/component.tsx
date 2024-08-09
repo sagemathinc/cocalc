@@ -151,7 +151,7 @@ export function MarkdownInput(props: Props) {
     unregisterEditor,
     value,
   } = props;
-  const { actions } = useFrameContext();
+  const { actions, isVisible } = useFrameContext();
   const cm = useRef<CodeMirror.Editor>();
   const textarea_ref = useRef<HTMLTextAreaElement>(null);
   const editor_settings = useRedux(["account", "editor_settings"]);
@@ -561,9 +561,7 @@ export function MarkdownInput(props: Props) {
     // console.log("upload_sending", file);
     if (current_uploads_ref.current == null) {
       current_uploads_ref.current = { [file.name]: true };
-      if (onUploadStart != null) {
-        onUploadStart();
-      }
+      onUploadStart?.();
     } else {
       current_uploads_ref.current[file.name] = true;
     }
@@ -582,16 +580,16 @@ export function MarkdownInput(props: Props) {
     if (path == null) {
       throw Error("path must be set if enableUploads is set.");
     }
+    const filename = file.name ?? file.upload.filename;
 
     if (current_uploads_ref.current != null) {
-      delete current_uploads_ref.current[file.name];
+      delete current_uploads_ref.current[filename];
       if (len(current_uploads_ref.current) == 0) {
         current_uploads_ref.current = null;
-        if (onUploadEnd != null) {
-          onUploadEnd();
-        }
+        onUploadEnd?.();
       }
     }
+
     if (cm.current == null) return;
     const input = cm.current.getValue();
     const s0 = upload_temp_link(file);
@@ -802,6 +800,14 @@ export function MarkdownInput(props: Props) {
       cm.current.focus();
     }
   }
+
+  // make sure that mentions is closed if we switch to another tab.
+  useEffect(() => {
+    console.log("")
+    if (mentions && !isVisible) {
+      close_mentions();
+    }
+  }, [isVisible]);
 
   function render_mentions_popup() {
     if (mentions == null || mentions_offset == null) return;

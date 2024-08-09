@@ -628,10 +628,12 @@ export default function Message(props: Readonly<Props>) {
     );
   }
 
-  function sendReply() {
+  function sendReply(reply?: string) {
     if (props.actions == null) return;
     setReplying(false);
-    const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
+    if (!reply) {
+      reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
+    }
     props.actions.send_reply({ message: message.toJS(), reply });
     props.actions.scrollToBottom(props.index);
   }
@@ -680,7 +682,12 @@ export default function Message(props: Readonly<Props>) {
           >
             Cancel
           </Button>
-          <Button onClick={sendReply} type="primary">
+          <Button
+            onClick={() => {
+              sendReply();
+            }}
+            type="primary"
+          >
             <Icon name="paper-plane" /> Send
           </Button>
           <LLMCostEstimationChat

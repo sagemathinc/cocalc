@@ -63,18 +63,7 @@ interface CellOutputMessageProps {
 export const CellOutputMessage: React.FC<CellOutputMessageProps> = React.memo(
   (props: CellOutputMessageProps) => {
     const C: any = messageComponent(props.message);
-    return (
-      <C
-        message={props.message}
-        project_id={props.project_id}
-        directory={props.directory}
-        actions={props.actions}
-        name={props.name}
-        trust={props.trust}
-        id={props.id}
-        index={props.index}
-      />
-    );
+    return <C {...props} />;
   },
 );
 
