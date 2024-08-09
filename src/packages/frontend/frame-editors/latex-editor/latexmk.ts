@@ -8,13 +8,10 @@ Convert LaTeX file to PDF using latexmk.
 */
 
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
-import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
 import type { ExecOutput } from "@cocalc/util/db-schema/projects";
 import { change_filename_extension, path_split } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
-import { TIMEOUT_LATEX_JOB_S } from "./constants";
-import { BuildLog } from "./types";
-import { gatherJobInfo, pdf_path } from "./util";
+import { pdf_path, runJob } from "./util";
 
 export async function latexmk(
   project_id: string,
@@ -38,59 +35,17 @@ export async function latexmk(
     status([command].concat(args).join(" "));
   }
 
-  const job_info = await exec({
-    bash: true, // we use ulimit so that the timeout on the backend is *enforced* via ulimit!!
-    timeout: TIMEOUT_LATEX_JOB_S,
+  // Step 1: Wait for the launched job to finish
+  const output = await runJob({
+    project_id,
     command,
     args,
-    project_id,
-    path: head,
-    err_on_exit: false,
+    rundir: head,
     aggregate: time,
-    async_call: true,
+    set_job_info,
   });
 
-  // Step 1: Wait for the launched job to finish
-  let output: BuildLog;
-  if (job_info.type !== "async") {
-    output = job_info;
-  } else {
-    set_job_info(job_info);
-    gatherJobInfo(project_id, job_info, set_job_info);
-
-    if (typeof job_info.pid !== "number") {
-      throw new Error("Unable to spawn LaTeX compile job.");
-    }
-
-    while (true) {
-      try {
-        output = await exec({
-          project_id,
-          async_get: job_info.job_id,
-          async_await: true,
-          async_stats: true,
-        });
-        // console.log("LaTeX/latexmk: got output=", output);
-        if (output.type !== "async") {
-          throw new Error("not an async job");
-        }
-        set_job_info(output);
-        break;
-      } catch (err) {
-        // console.log("latexmk/while err=", err);
-        if (err === TIMEOUT_CALLING_PROJECT) {
-          // this will be fine, hopefully. We continue trying to get a reply
-          await new Promise((done) => setTimeout(done, 100));
-        } else {
-          throw new Error(
-            "Unable to complete compilation. Check the project and try again...",
-          );
-        }
-      }
-    }
-  }
-
-  // Step 2: do a copy operation
+  // Step 2: do a copy operation, if we run this in an output_directory (somewhere in /tmp)
   if (output_directory != null) {
     // We use cp instead of `ln -sf` so the file persists after project restart.
     // Using a symlink would be faster and more efficient *while editing*,

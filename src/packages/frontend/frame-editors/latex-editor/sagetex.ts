@@ -14,12 +14,10 @@ import {
   exec,
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
-import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
-import { TIMEOUT_LATEX_JOB_S } from "./constants";
 import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
 import { BuildLog } from "./types";
-import { gatherJobInfo } from "./util";
+import { runJob } from "./util";
 
 function sagetex_file(base: string): string {
   return base + ".sagetex.sage";
@@ -58,50 +56,15 @@ export async function sagetex(
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sage ${s}`);
-  const job_info = await exec({
-    timeout: TIMEOUT_LATEX_JOB_S,
-    bash: true, // so timeout is enforced by ulimit
+
+  return runJob({
+    project_id,
     command: "sage",
     args: [s],
-    project_id: project_id,
-    path: output_directory || directory,
-    err_on_exit: false,
+    set_job_info,
+    rundir: output_directory || directory,
     aggregate: hash ? { value: hash } : undefined,
-    async_call: true,
   });
-
-  if (job_info.type !== "async") {
-    // this is not an async job. This could happen for old projects.
-    return job_info;
-  }
-
-  set_job_info(job_info);
-  gatherJobInfo(project_id, job_info, set_job_info);
-
-  while (true) {
-    try {
-      const output = await exec({
-        project_id,
-        async_get: job_info.job_id,
-        async_await: true,
-        async_stats: true,
-      });
-      if (output.type !== "async") {
-        throw new Error("output type is not async exec");
-      }
-      set_job_info(output);
-      return output;
-    } catch (err) {
-      if (err === TIMEOUT_CALLING_PROJECT) {
-        // this will be fine, hopefully. We continue trying to get a reply.
-        await new Promise((done) => setTimeout(done, 100));
-      } else {
-        throw new Error(
-          "Unable to complete compilation. Check the project and try again...",
-        );
-      }
-    }
-  }
 }
 
 /* example error

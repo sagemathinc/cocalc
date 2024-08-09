@@ -5,9 +5,17 @@
 
 // data and functions specific to the latex editor.
 
-import { exec } from "@cocalc/frontend/frame-editors/generic/client";
+import {
+  exec,
+  ExecOpts,
+  ExecOutput,
+} from "@cocalc/frontend/frame-editors/generic/client";
 import { separate_file_extension } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+// import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
+import { TIMEOUT_LATEX_JOB_S } from "./constants";
 
 export function pdf_path(path: string): string {
   // if it is already a pdf, don't change the upper/lower casing -- #4562
@@ -90,5 +98,75 @@ export async function gatherJobInfo(
     }
   } catch {
     return;
+  }
+}
+
+interface RunJobOpts {
+  aggregate: ExecOptsBlocking["aggregate"];
+  args?: string[];
+  command: string;
+  env?: { [key: string]: string };
+  project_id: string;
+  rundir: string; // a directory! (output_directory if in /tmp, or the directory of the file's path)
+  set_job_info: (info: ExecuteCodeOutputAsync) => void;
+  timeout?: number;
+}
+
+export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
+  const { aggregate, args, command, env, project_id, rundir, set_job_info } =
+    opts;
+
+  const haveArgs = Array.isArray(args);
+
+  const job: ExecOpts = {
+    aggregate,
+    args,
+    async_call: true,
+    bash: !haveArgs,
+    command,
+    env,
+    err_on_exit: false,
+    path: rundir,
+    project_id,
+    timeout: TIMEOUT_LATEX_JOB_S,
+  };
+
+  const job_info = await exec(job);
+
+  if (job_info.type !== "async") {
+    // this is not an async job. This could happen for old projects.
+    return job_info;
+  }
+
+  if (typeof job_info.pid !== "number") {
+    throw new Error("Unable to spawn compile job.");
+  }
+
+  set_job_info(job_info);
+  gatherJobInfo(project_id, job_info, set_job_info);
+
+  while (true) {
+    try {
+      const output = await exec({
+        project_id,
+        async_get: job_info.job_id,
+        async_await: true,
+        async_stats: true,
+      });
+      if (output.type !== "async") {
+        throw new Error("output type is not async exec");
+      }
+      set_job_info(output);
+      return output;
+    } catch (err) {
+      if (err === TIMEOUT_CALLING_PROJECT) {
+        // this will be fine, hopefully. We continue trying to get a reply.
+        await new Promise((done) => setTimeout(done, 100));
+      } else {
+        throw new Error(
+          "Unable to complete compilation. Check the project and try again...",
+        );
+      }
+    }
   }
 }

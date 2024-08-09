@@ -13,11 +13,9 @@ import {
   ExecOutput,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
-import { TIMEOUT_LATEX_JOB_S } from "./constants";
 import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
 import { BuildLog } from "./types";
-import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
-import { gatherJobInfo } from "./util";
+import { runJob } from "./util";
 
 // this still respects the environment variables and init files
 const R_CMD = "R";
@@ -39,50 +37,15 @@ export async function knitr(
   const { directory, filename } = parse_path(path);
   const expr = `require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")`;
   status(`${expr}`);
-  const job_info = await exec({
-    timeout: TIMEOUT_LATEX_JOB_S,
+
+  return runJob({
+    project_id,
     command: R_CMD,
     args: [...R_ARGS, expr],
-    bash: true, // so timeout is enforced by ulimit
-    project_id: project_id,
-    path: directory,
-    err_on_exit: false,
-    aggregate: time ? { value: time } : undefined, // one might think to aggregate on hash, but the output could be random!
-    async_call: true,
+    rundir: directory,
+    aggregate: time ? { value: time } : undefined,
+    set_job_info,
   });
-
-  if (job_info.type !== "async") {
-    // this is not an async job. This could happen for old projects.
-    return job_info;
-  }
-
-  set_job_info(job_info);
-  gatherJobInfo(project_id, job_info, set_job_info);
-
-  while (true) {
-    try {
-      const output = await exec({
-        project_id,
-        async_get: job_info.job_id,
-        async_await: true,
-        async_stats: true,
-      });
-      if (output.type !== "async") {
-        throw new Error("output: not an async task");
-      }
-      set_job_info(output);
-      return output;
-    } catch (err) {
-      if (err === TIMEOUT_CALLING_PROJECT) {
-        // this will be fine, hopefully. We continue trying to get a reply.
-        await new Promise((done) => setTimeout(done, 100));
-      } else {
-        throw new Error(
-          "Unable to complete compilation. Check the project and try again...",
-        );
-      }
-    }
-  }
 }
 
 /**
