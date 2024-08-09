@@ -35,6 +35,7 @@ import Composing from "./composing";
 import Message from "./message";
 import { ChatMessageTyped, ChatMessages, MessageHistory, Mode } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
+import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -54,6 +55,7 @@ export function ChatLog(props: Readonly<Props>) {
     project_id,
     path,
   );
+  const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
 
   // see similar code in task list:
   const selectedHashtags0 = useRedux(["selectedHashtags"], project_id, path);
@@ -160,7 +162,16 @@ export function ChatLog(props: Readonly<Props>) {
       <Virtuoso
         ref={virtuosoRef}
         totalCount={sortedDates.length}
-        overscan={10000}
+        itemSize={(el) => {
+          // see comment in jupyter/cell-list.tsx
+          const h = el.getBoundingClientRect().height;
+          const data = el.getAttribute("data-item-index");
+          if (data != null) {
+            const index = parseInt(data);
+            virtuosoHeightsRef.current[index] = h;
+          }
+          return h;
+        }}
         itemContent={(index) => {
           const date = sortedDates[index];
           const message: ChatMessageTyped | undefined = messages.get(date);
@@ -175,50 +186,55 @@ export function ChatLog(props: Readonly<Props>) {
           const is_folded =
             !force_unfold && isFolded(messages, message, account_id);
           const is_thread_body = message.get("reply_to") != null;
+          const h = virtuosoHeightsRef.current[index];
 
           return (
             <div style={{ overflow: "hidden" }}>
-              <Message
-                key={date}
-                index={index}
-                account_id={account_id}
-                user_map={user_map}
-                message={message}
-                project_id={project_id}
-                path={path}
-                font_size={fontSize}
-                selectedHashtags={selectedHashtags}
-                actions={actions}
-                is_thread={is_thread}
-                is_folded={is_folded}
-                force_unfold={force_unfold}
-                is_thread_body={is_thread_body}
-                is_prev_sender={isPrevMessageSender(
-                  index,
-                  sortedDates,
-                  messages,
-                )}
-                is_next_sender={isNextMessageSender(
-                  index,
-                  sortedDates,
-                  messages,
-                )}
-                show_avatar={!isNextMessageSender(index, sortedDates, messages)}
-                mode={mode}
-                get_user_name={(account_id: string | undefined) =>
-                  // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
-                  typeof account_id === "string"
-                    ? getUserName(user_map, account_id)
-                    : "Unknown name"
-                }
-                scroll_into_view={() =>
-                  virtuosoRef.current?.scrollIntoView({ index })
-                }
-                allowReply={
-                  messages.getIn([sortedDates[index + 1], "reply_to"]) == null
-                }
-                llm_cost_reply={llm_cost_reply}
-              />
+              <DivTempHeight height={h ? `${h}px` : undefined}>
+                <Message
+                  key={date}
+                  index={index}
+                  account_id={account_id}
+                  user_map={user_map}
+                  message={message}
+                  project_id={project_id}
+                  path={path}
+                  font_size={fontSize}
+                  selectedHashtags={selectedHashtags}
+                  actions={actions}
+                  is_thread={is_thread}
+                  is_folded={is_folded}
+                  force_unfold={force_unfold}
+                  is_thread_body={is_thread_body}
+                  is_prev_sender={isPrevMessageSender(
+                    index,
+                    sortedDates,
+                    messages,
+                  )}
+                  is_next_sender={isNextMessageSender(
+                    index,
+                    sortedDates,
+                    messages,
+                  )}
+                  show_avatar={
+                    !isNextMessageSender(index, sortedDates, messages)
+                  }
+                  mode={mode}
+                  get_user_name={(account_id: string | undefined) =>
+                    // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
+                    typeof account_id === "string"
+                      ? getUserName(user_map, account_id)
+                      : "Unknown name"
+                  }
+                  scroll_into_view={() =>
+                    virtuosoRef.current?.scrollIntoView({ index })
+                  }
+                  allowReply={
+                    messages.getIn([sortedDates[index + 1], "reply_to"]) == null
+                  }
+                  llm_cost_reply={llm_cost_reply}
+                />
+              </DivTempHeight>
             </div>
           );
         }}
