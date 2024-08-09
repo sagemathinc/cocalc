@@ -210,7 +210,6 @@ export class ProjectClient {
         path: "",
         command: required,
         args: [],
-        timeout: 30,
         max_output: undefined,
         bash: false,
         aggregate: undefined,
@@ -218,6 +217,8 @@ export class ProjectClient {
         env: undefined,
         post: false, // if true, uses the POST api through nextjs instead of the websocket api.
         async_call: undefined, // if given use a callback interface instead of async
+        timeout: 30,
+        cb: undefined,
       });
     }
 

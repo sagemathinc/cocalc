@@ -16,7 +16,7 @@ import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon, r_join } from "@cocalc/frontend/components";
 import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { path_split, tail } from "@cocalc/util/misc";
+import { path_split, tail, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import {
   ExecuteCodeOutput,
@@ -99,16 +99,40 @@ export const Build: React.FC<Props> = React.memo((props) => {
     });
   }
 
-  function getMaxMem(stats?: ExecuteCodeOutputAsync["stats"]): string {
-    if (Array.isArray(stats) && stats.length > 0) {
-      const max_mem = stats.reduce((cur, val) => {
-        return val.mem_rss > cur ? val.mem_rss : cur;
-      }, 0);
-      // if there is no data (too many processes, etc.) then it is 0.
-      //  That information is misleading and we ignore it
-      if (max_mem > 0) {
-        return ` Memory usage: ${max_mem.toFixed(0)} MB.`;
+  function getResourceUsage(
+    stats: ExecuteCodeOutputAsync["stats"] | undefined,
+    type: "peak" | "last",
+  ): string {
+    if (!Array.isArray(stats) || stats.length === 0) {
+      return "";
+    }
+
+    switch (type) {
+      // This is after the job finished. We return the CPU time used and max memory.
+      case "peak": {
+        const max_mem = stats.reduce((cur, val) => {
+          return val.mem_rss > cur ? val.mem_rss : cur;
+        }, 0);
+        // if there is no data (too many processes, etc.) then it is 0.
+        //  That information is misleading and we ignore it
+        if (max_mem > 0) {
+          return ` Peak memory usage: ${max_mem.toFixed(0)} MB.`;
+        }
+        break;
       }
+
+      // This is while the log updates come in: last known CPU in % and memory usage.
+      case "last": {
+        const { mem_rss, cpu_pct } = stats.slice(-1)[0];
+        if (mem_rss > 0 || cpu_pct > 0) {
+          return ` Resource usage: ${mem_rss.toFixed(
+            0,
+          )} MB memory and ${cpu_pct.toFixed(0)}% CPU.`;
+        }
+        break;
+      }
+      default:
+        unreachable(type);
     }
     return "";
   }
@@ -130,7 +154,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
       if (typeof elapsed_s === "number" && elapsed_s > 0) {
         job_info_str = `Build time: ${elapsed_s.toFixed(1)} seconds.`;
       }
-      job_info_str += getMaxMem(stats);
+      job_info_str += getResourceUsage(stats, "peak");
     }
     const title = BUILD_SPECS[stage].label;
     // highlights tab, if there is at least one parsed error
@@ -209,7 +233,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
     build_logs.forEach((infoI, key) => {
       const info: ExecuteCodeOutput = infoI?.toJS();
       if (!info || info.type !== "async" || info.status !== "running") return;
-      const stats_str = getMaxMem(info.stats);
+      const stats_str = getResourceUsage(info.stats, "last");
       const start = info.start;
       logTail = tail(info.stdout ?? "" + info.stderr ?? "", 6);
       isLongRunning ||=

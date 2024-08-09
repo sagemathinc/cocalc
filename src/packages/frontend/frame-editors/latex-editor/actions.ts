@@ -714,18 +714,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     const { pid, status } = job;
     if (status === "running" && typeof pid === "number") {
       try {
-        // console.log("LatexEditor/actions/kill: killing", pid);
         await exec({
           project_id: this.project_id,
           // negative PID, to kill the entire process group
           command: `kill -9 -${pid}`,
-          // bash: kill + array does not work. IDK why.
+          // bash:true is necessary. kill + array does not work. IDK why.
           bash: true,
           err_on_exit: false,
         });
       } catch (err) {
         // likely "No such process", we just ignore it
-        console.info("LatexEditor/actions/kill:", err);
       } finally {
         // set this build log to be no longer running
         job.status = "completed";
@@ -939,7 +937,6 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.parsed_output_log = output.parse = new LatexParser(output.stdout, {
       ignoreDuplicates: true,
     }).parse();
-    console.log("set_build_logs after complete:", (output as any)?.status);
     this.set_build_logs({ latex: output });
     // TODO: knitr complicates multifile a lot, so we do
     // not support it yet.
@@ -1356,7 +1353,6 @@ export class Actions extends BaseActions<LatexEditorState> {
         build_logs = build_logs.delete(k);
       }
     }
-    console.log("set_job_info.latex", build_logs?.get("latex")?.get("status"));
     this.setState({ build_logs });
   }
 

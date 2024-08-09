@@ -90,7 +90,6 @@ export async function gatherJobInfo(
         return;
       }
       if (update.status === "running") {
-        console.log("gatherJobInfo", update);
         set_job_info(update);
       } else {
         return;
