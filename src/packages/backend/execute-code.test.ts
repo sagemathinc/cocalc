@@ -405,11 +405,40 @@ describe("await", () => {
       async_get: job_id,
       async_stats: true,
     });
-    expect((Date.now() - t0) / 1000).toBeGreaterThan(.05);
+    expect((Date.now() - t0) / 1000).toBeGreaterThan(0.05);
     expect(s.type).toEqual("async");
     if (s.type !== "async") return;
     expect(s.stderr).toEqual("baz\n");
     expect(s.exit_code).toEqual(3);
+    expect(s.status).toEqual("completed");
+  });
+
+  it("react to a killed process", async () => {
+    const c = await executeCode({
+      command: "sh",
+      args: ["-c", `echo foo; sleep 1; echo bar;`],
+      bash: false,
+      err_on_exit: false,
+      async_call: true,
+    });
+    expect(c.type).toEqual("async");
+    if (c.type !== "async") return;
+    const { job_id, pid } = c;
+    await new Promise((done) => setTimeout(done, 100));
+    await executeCode({
+      command: `kill -9 -${pid}`,
+      bash: true,
+    });
+    const s = await executeCode({
+      async_await: true,
+      async_get: job_id,
+      async_stats: true,
+    });
+    expect(s.type).toEqual("async");
+    if (s.type !== "async") return;
+    expect(s.stderr).toEqual("");
+    expect(s.stdout).toEqual("foo\n");
+    expect(s.exit_code).toEqual(0);
     expect(s.status).toEqual("completed");
   });
 });
