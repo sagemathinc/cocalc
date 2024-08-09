@@ -216,7 +216,11 @@ export default function ChatInput({
         setInput(input);
         saveChat(input);
       }}
-      onShiftEnter={on_send}
+      onShiftEnter={(input) => {
+        setInput(input);
+        saveChat(input);
+        on_send(input);
+      }}
       height={height}
       placeholder={getPlaceholder(project_id, placeholder)}
       extraHelp={
