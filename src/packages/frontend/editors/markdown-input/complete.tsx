@@ -214,7 +214,7 @@ export function Complete(props: Props) {
       key: "sub_llm",
       label: (
         <span style={style}>
-          <AIAvatar size={22} /> More Language Models
+          <AIAvatar size={22} /> More AI Language Models
         </span>
       ),
       style,

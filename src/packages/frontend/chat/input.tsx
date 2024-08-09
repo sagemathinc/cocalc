@@ -248,7 +248,7 @@ export default function ChatInput({
 function getPlaceholder(project_id, placeholder?: string): string {
   if (placeholder != null) return placeholder;
   if (redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
-    return "Type a new message (mention a collaborator or LLM via @chatgpt, @gemini, etc.)...";
+    return "Type a new message (chat with AI or notify a collaborator by typing @)...";
   }
-  return "Type a new message...";
+  return "Type a new message  (notify a collaborator by typing @)...";
 }

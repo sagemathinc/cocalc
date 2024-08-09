@@ -203,7 +203,7 @@ function AddChatCollab({ addCollab, project_id }) {
     <div>
       You can{" "}
       {redux.getProjectsStore().hasLanguageModelEnabled(project_id) && (
-        <>put @chatgpt in any message to get a response from ChatGPT, </>
+        <>chat with AI or notify a collaborator by typing @, </>
       )}
       <A href="https://github.com/sagemathinc/cocalc/discussions">
         join a discussion on GitHub
@@ -218,17 +218,6 @@ function AddChatCollab({ addCollab, project_id }) {
 }
 
 function CollabList({ project, addCollab, actions }) {
-  const projectsStore = redux.getProjectsStore();
-  const hasOpenAI = projectsStore.hasLanguageModelEnabled(
-    project.get("project_id"),
-    undefined,
-    "openai",
-  );
-  const hasGoogleLLM = projectsStore.hasLanguageModelEnabled(
-    project.get("project_id"),
-    undefined,
-    "google",
-  );
   return (
     <div
       style={
@@ -248,11 +237,9 @@ function CollabList({ project, addCollab, actions }) {
         <Icon name={addCollab ? "caret-down" : "caret-right"} />
       </div>
       <span style={{ color: COLORS.GRAY_M, fontSize: "10pt" }}>
-        {hasOpenAI && <>@ChatGPT, </>}
-        {hasGoogleLLM && <>@Gemini, </>}
         <ProjectUsers
           project={project}
-          none={<span>{hasOpenAI ? "add" : "Add"} people to work with...</span>}
+          none={<span>Add people to work with...</span>}
         />
       </span>
     </div>
