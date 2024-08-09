@@ -18,6 +18,10 @@ import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split, tail } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import {
+  ExecuteCodeOutput,
+  ExecuteCodeOutputAsync,
+} from "@cocalc/util/types/execute-code";
 import { Actions } from "./actions";
 import { BuildCommand } from "./build-command";
 import { use_build_logs } from "./hooks";
@@ -95,6 +99,20 @@ export const Build: React.FC<Props> = React.memo((props) => {
     });
   }
 
+  function getMaxMem(stats?: ExecuteCodeOutputAsync["stats"]): string {
+    if (Array.isArray(stats) && stats.length > 0) {
+      const max_mem = stats.reduce((cur, val) => {
+        return val.mem_rss > cur ? val.mem_rss : cur;
+      }, 0);
+      // if there is no data (too many processes, etc.) then it is 0.
+      //  That information is misleading and we ignore it
+      if (max_mem > 0) {
+        return ` Memory usage: ${max_mem.toFixed(0)} MB.`;
+      }
+    }
+    return "";
+  }
+
   function render_log(stage: BuildSpecName): AntdTabItem | undefined {
     if (build_logs == null) return;
     const x: BuildLog | undefined = build_logs.get(stage)?.toJS();
@@ -112,16 +130,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
       if (typeof elapsed_s === "number" && elapsed_s > 0) {
         job_info_str = `Build time: ${elapsed_s.toFixed(1)} seconds.`;
       }
-      if (Array.isArray(stats) && stats.length > 0) {
-        const max_mem = stats.reduce((cur, val) => {
-          return val.mem_rss > cur ? val.mem_rss : cur;
-        }, 0);
-        // if there is no data (too many processes, etc.) then it is 0.
-        //  That information is misleading and we ignore it
-        if (max_mem > 0) {
-          job_info_str += ` Memory usage: ${max_mem.toFixed(0)} MB.`;
-        }
-      }
+      job_info_str += getMaxMem(stats);
     }
     const title = BUILD_SPECS[stage].label;
     // highlights tab, if there is at least one parsed error
@@ -191,17 +200,18 @@ export const Build: React.FC<Props> = React.memo((props) => {
     );
   }
 
-  // usually, one job is running at a time – only render this if there is no status
+  // usually, one job is running at a time
   function render_jobs(): Rendered {
     if (!build_logs) return;
     const infos: JSX.Element[] = [];
     let isLongRunning = false;
     let logTail = "";
-    build_logs.forEach((info, key) => {
-      if (!info || info.get("status") !== "running") return;
-      const stats_str = "";
-      const start = info.get("start");
-      logTail = tail(info.get("stdout") ?? "" + info.get("stderr") ?? "", 6);
+    build_logs.forEach((infoI, key) => {
+      const info: ExecuteCodeOutput = infoI?.toJS();
+      if (!info || info.type !== "async" || info.status !== "running") return;
+      const stats_str = getMaxMem(info.stats);
+      const start = info.start;
+      logTail = tail(info.stdout ?? "" + info.stderr ?? "", 6);
       isLongRunning ||=
         typeof start === "number" &&
         webapp_client.server_time() - start > WARN_LONG_RUNNING_S * 1000;
@@ -254,10 +264,17 @@ export const Build: React.FC<Props> = React.memo((props) => {
           </Flex>
         </div>
         <div style={logStyle}>
-          <span style={{ fontWeight: "bold" }}>
+          <div
+            style={{
+              fontWeight: "bold",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
             {status}
             {"\n"}
-          </span>
+          </div>
           {logTail}
         </div>
       </>

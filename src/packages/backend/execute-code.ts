@@ -228,6 +228,7 @@ async function executeCodeNoAggregate(
       const pid: number | undefined = doSpawn(
         { ...opts, origCommand, job_id, job_config },
         async (err, result) => {
+          log.debug("async/doSpawn returned", { err, result });
           try {
             const info: Omit<
               ExecuteCodeOutputAsync,
@@ -282,17 +283,18 @@ function sumChildren(
   procs: Processes,
   children: { [pid: number]: number[] },
   pid: number,
-): { rss: number; pct_cpu: number; cpu_secs: number } {
+): { rss: number; pct_cpu: number; cpu_secs: number } | null {
   const proc = procs[`${pid}`];
   if (proc == null) {
     log.debug(`sumChildren: no process ${pid} in proc`);
-    return { rss: 0, pct_cpu: 0, cpu_secs: 0 };
+    return null;
   }
   let rss = proc.stat.mem.rss;
   let pct_cpu = proc.cpu.pct;
   let cpu_secs = proc.cpu.secs;
   for (const ch of children[pid] ?? []) {
     const sc = sumChildren(procs, children, ch);
+    if (sc == null) return null;
     rss += sc.rss;
     pct_cpu += sc.pct_cpu;
     cpu_secs += sc.cpu_secs;
@@ -358,6 +360,7 @@ function doSpawn(
     if (callback_done) return;
 
     while (true) {
+      if (callback_done) return;
       const { procs } = await monitor.processes(Date.now());
       // reconstruct process tree
       const children: { [pid: number]: number[] } = {};
@@ -367,8 +370,13 @@ function doSpawn(
         children[ppid].push(pid);
       }
       // we only consider those, which are the pid itself or one of its children
-      const { rss, pct_cpu, cpu_secs } = sumChildren(procs, children, pid);
-
+      const sc = sumChildren(procs, children, pid);
+      if (sc == null) {
+        // If the process by PID is no longer known, either the process was killed or there are too many running.
+        // in any case, stop monitoring and do not update any data.
+        return;
+      }
+      const { rss, pct_cpu, cpu_secs } = sc;
       // ?? fallback, in case the cache "forgot" about it
       const obj = asyncCache.get(job_id) ?? job_config;
       obj.pid = pid;
@@ -388,8 +396,6 @@ function doSpawn(
       const next_s = Math.max(1, Math.floor(elapsed_s / 6));
       const wait_s = Math.min(next_s, MONITOR_INTERVAL_S);
       await new Promise((done) => setTimeout(done, wait_s * 1000));
-
-      if (callback_done) return;
     }
   }
 
@@ -426,7 +432,9 @@ function doSpawn(
     const obj = asyncCache.get(job_id) ?? opts.job_config;
     if (obj != null) {
       if (aspect === "pid") {
-        if (typeof data === "number") obj.pid = data;
+        if (typeof data === "number") {
+          obj.pid = data;
+        }
       } else if (typeof data === "string") {
         obj[aspect] = data;
       }
@@ -470,7 +478,7 @@ function doSpawn(
   });
 
   child.on("exit", (code) => {
-    exit_code = code != null ? code : undefined;
+    exit_code = code ?? 0;
     finish();
   });
 
@@ -495,8 +503,8 @@ function doSpawn(
 
   const finish = (err?) => {
     if (!killed && (!stdout_is_done || !stderr_is_done || exit_code == null)) {
-      // it wasn't killed and one of stdout, stderr, and exit_code hasn't been
-      // set, so we let the rest of them get set before actually finishing up.
+      // it wasn't killed and none of stdout, stderr, and exit_code hasn't been set.
+      // so we let the rest of them get set before actually finishing up.
       return;
     }
     if (callback_done) {
@@ -510,6 +518,7 @@ function doSpawn(
       clearTimeout(timer);
       timer = undefined;
     }
+
     if (opts.verbose && log.isEnabled("debug")) {
       log.debug(
         "finished exec of",
@@ -524,6 +533,7 @@ function doSpawn(
         exit_code,
       });
     }
+
     if (err) {
       cb(err);
     } else if (opts.err_on_exit && exit_code != 0) {
@@ -588,7 +598,7 @@ function doSpawn(
       } catch (err) {
         // Exceptions can happen, which left uncaught messes up calling code big time.
         if (opts.verbose) {
-          log.debug("r.kill raised an exception", err);
+          log.debug("process.kill raised an exception", err);
         }
       }
       finish(`killed command '${opts.command} ${opts.args?.join(" ")}'`);

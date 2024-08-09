@@ -709,39 +709,40 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build_action("clean");
   }
 
-  async kill(name: BuildSpecName, job: ExecOutput): Promise<void> {
-    if (job.type !== "async") return;
+  private async kill(job: ExecOutput): Promise<ExecOutput> {
+    if (job.type !== "async") return job;
     const { pid, status } = job;
     if (status === "running" && typeof pid === "number") {
       try {
         // console.log("LatexEditor/actions/kill: killing", pid);
         await exec({
           project_id: this.project_id,
-          command: "kill",
-          args: [`${pid}`],
+          // negative PID, to kill the entire process group
+          command: `kill -9 -${pid}`,
+          // bash: kill + array does not work. IDK why.
+          bash: true,
+          err_on_exit: false,
         });
       } catch (err) {
         // likely "No such process", we just ignore it
-        // console.info("LatexEditor/actions/kill:", err);
+        console.info("LatexEditor/actions/kill:", err);
       } finally {
-        // we keep the data for debugging, but set its state to completed
+        // set this build log to be no longer running
         job.status = "completed";
-        this.set_build_logs({ [name]: job });
       }
     }
+    return job;
   }
 
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
-    const job_infos = this.store.get("build_logs"); //  ("job_infos");
-    if (job_infos) {
-      for (const [name, job] of job_infos) {
-        await this.kill(name, job.toJS());
+    const build_logs = this.store.get("build_logs");
+    if (build_logs) {
+      for (const [name, job] of build_logs) {
+        this.set_build_logs({ [name]: await this.kill(job.toJS()) });
       }
     }
 
-    // this must run in any case, we want a clean empty map!
-    //this.setState({ job_infos: Map() });
     this.set_status("");
     this.is_building = false;
   }
@@ -1343,25 +1344,6 @@ export class Actions extends BaseActions<LatexEditorState> {
       }),
     });
   }
-
-  // set_job_infos(obj: {
-  //   [K in keyof IBuildSpecs]?: ExecuteCodeOutputAsync;
-  // }): void {
-  //   let job_infos: JobInfos = this.store.get("job_infos") ?? Map();
-  //   let k: BuildSpecName;
-  //   for (k in obj) {
-  //     const v: ExecuteCodeOutputAsync | undefined = obj[k];
-  //     if (v) {
-  //       job_infos = job_infos.set(
-  //         k as any,
-  //         fromJS(v) as any as TypedMap<ExecOutput>,
-  //       );
-  //     } else {
-  //       job_infos = job_infos.delete(k);
-  //     }
-  //   }
-  //   this.setState({ job_infos });
-  // }
 
   private set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
     let build_logs: BuildLogs = this.store.get("build_logs") ?? Map();

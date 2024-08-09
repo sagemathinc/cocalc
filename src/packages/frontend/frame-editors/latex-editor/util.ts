@@ -76,25 +76,27 @@ export async function gatherJobInfo(
   job_info: ExecuteCodeOutputAsync,
   set_job_info: (info: ExecuteCodeOutputAsync) => void,
 ): Promise<void> {
+  await new Promise((done) => setTimeout(done, 100));
   let wait_s = 1;
   try {
     while (true) {
-      await new Promise((done) => setTimeout(done, 1000 * wait_s));
       const update = await exec({
         project_id,
         async_get: job_info.job_id,
         async_stats: true,
       });
-      if (update.type === "blocking") {
+      if (update.type !== "async") {
         console.warn("Wrong type returned. The project is too old!");
         return;
       }
       if (update.status === "running") {
+        console.log("gatherJobInfo", update);
         set_job_info(update);
       } else {
         return;
       }
-      wait_s = Math.min(10, wait_s + 1);
+      await new Promise((done) => setTimeout(done, 1000 * wait_s));
+      wait_s = Math.min(5, wait_s + 1);
     }
   } catch {
     return;
@@ -134,7 +136,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
   const job_info = await exec(job);
 
   if (job_info.type !== "async") {
-    // this is not an async job. This could happen for old projects.
+    // this is not an async job. This happens with "old" projects, not knowing about async_call.
     return job_info;
   }
 
@@ -142,11 +144,12 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     throw new Error("Unable to spawn compile job.");
   }
 
-  set_job_info(job_info);
+  // this runs async, until the job is no longer "running"
   gatherJobInfo(project_id, job_info, set_job_info);
 
   while (true) {
     try {
+      // This also returns the result, if the job has already completed.
       const output = await exec({
         project_id,
         async_get: job_info.job_id,
@@ -160,7 +163,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
       return output;
     } catch (err) {
       if (err === TIMEOUT_CALLING_PROJECT) {
-        // this will be fine, hopefully. We continue trying to get a reply.
+        // This will eventually be fine, hopefully. We continue trying to get a reply.
         await new Promise((done) => setTimeout(done, 100));
       } else {
         throw new Error(
