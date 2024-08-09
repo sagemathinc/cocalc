@@ -469,7 +469,14 @@ addCommands({
     title: "Force rebuild entire project.",
     icon: "play",
   },
-
+  stop_build: {
+    group: "build",
+    // TODO does not react to changes
+    // disabled: ({ props }) => props.editor_actions.is_running !== true,
+    label: "Stop",
+    title: "Stop all running jobs.",
+    icon: "stop",
+  },
   clean: {
     group: "build",
     label: "Delete Aux Files",

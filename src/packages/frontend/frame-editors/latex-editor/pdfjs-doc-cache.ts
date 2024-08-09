@@ -39,7 +39,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getDocument as pdfjs_getDocument } from "pdfjs-dist";
 import type { PDFDocumentProxy } from "pdfjs-dist/webpack.mjs";
 
-import { raw_url } from "../frame-tree/util";
+import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import { pdf_path } from "./util";
 
 const options = {

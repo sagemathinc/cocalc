@@ -2,14 +2,17 @@
 Handle incoming JSON messages from a project.
 */
 
-import handleVersion from "./handle-version";
+import { promisify } from "node:util";
+import { v4 } from "uuid";
+
+import getLogger from "@cocalc/backend/logger";
+import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { error, pong } from "@cocalc/util/message";
 import handleQuery from "./handle-query";
 import handleSyncdoc from "./handle-syncdoc";
-import { error, pong } from "@cocalc/util/message";
-import getLogger from "@cocalc/backend/logger";
+import handleVersion from "./handle-version";
+
 const logger = getLogger("project-connection:handle-message");
-import { v4 } from "uuid";
-import { promisify } from "util";
 
 interface Options {
   socket;
@@ -78,7 +81,7 @@ export default async function handleMessage({
 export async function callProjectMessage({
   socket,
   mesg,
-  timeoutSeconds = 60,
+  timeoutSeconds = 60, // DEV: change this to 3 to simulate quick timeouts
 }): Promise<any> {
   logger.debug("callProjectMessage", mesg.event, mesg.id);
   while (mesg.id == null || callCallbacks[mesg.id] != null) {
@@ -91,11 +94,11 @@ export async function callProjectMessage({
       cb(undefined, resp);
     };
     setTimeout(() => {
-      cb("timeout");
+      cb(TIMEOUT_CALLING_PROJECT);
       callCallbacks[mesg.id] = () => {
         logger.debug(
           mesg.id,
-          `callProjectMessage -- ignoring response due to timeout ${timeoutSeconds}s`
+          `callProjectMessage -- ignoring response due to timeout ${timeoutSeconds}s`,
         );
       };
     }, timeoutSeconds * 1000);

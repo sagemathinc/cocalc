@@ -18,12 +18,13 @@ import {
   useRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Loading } from "@cocalc/frontend/components";
+import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize, is_different, path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { EditorState } from "../frame-tree/types";
-import { Actions, BuildLogs } from "./actions";
+import { Actions } from "./actions";
 import { use_build_logs } from "./hooks";
+import { BuildLogs } from "./types";
 
 function group_to_level(group: string): string {
   switch (group) {

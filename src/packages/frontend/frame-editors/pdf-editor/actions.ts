@@ -7,18 +7,15 @@
 PDF Editor Actions
 */
 
-import { FrameTree } from "../frame-tree/types";
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
 import { print_html } from "../frame-tree/print";
+import { FrameTree } from "../frame-tree/types";
 import { raw_url } from "../frame-tree/util";
 
-import {
-  ScrollIntoViewRecord,
-  ScrollIntoViewMap,
-} from "../latex-editor/actions";
+import { ScrollIntoViewMap, ScrollIntoViewRecord } from "../latex-editor/types";
 
 import { EDITOR_SPEC } from "./editor";
 

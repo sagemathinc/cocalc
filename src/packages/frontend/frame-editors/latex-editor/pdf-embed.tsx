@@ -7,9 +7,8 @@
 This is a renderer using the embed tag, so works with browsers that have a PDF viewer plugin.
 */
 
-import { raw_url } from "../frame-tree/util";
-
-import { React } from "../../app-framework";
+import { React } from "@cocalc/frontend/app-framework";
+import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 
 export interface Props {
   actions: any;

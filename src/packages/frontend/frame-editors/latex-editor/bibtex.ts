@@ -7,8 +7,8 @@
 Run BibTex
 */
 
-import { exec } from "../generic/client";
-import { parse_path } from "../frame-tree/util";
+import { parse_path } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 
 // time (ms since epoch) to use for aggregate
 
@@ -16,7 +16,7 @@ export async function bibtex(
   project_id: string,
   path: string,
   time?: number,
-  output_directory?: string
+  output_directory?: string,
 ) {
   const { base, directory } = parse_path(path);
   return await exec({

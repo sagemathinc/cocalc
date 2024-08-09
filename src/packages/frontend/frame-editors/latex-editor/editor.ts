@@ -45,6 +45,7 @@ const EDITOR_SPEC = {
       "build",
       "build_on_save",
       "force_build",
+      "stop_build",
       "print",
       "decrease_font_size",
       "increase_font_size",
@@ -132,13 +133,20 @@ const EDITOR_SPEC = {
     commands: set([
       "build",
       "force_build",
+      "stop_build",
       "clean",
       "decrease_font_size",
       "increase_font_size",
       "rescan_latex_directive",
       "word_count",
     ]),
-    buttons: set(["build", "force_build", "build_on_save", "clean"]),
+    buttons: set([
+      "build",
+      "force_build",
+      "build_on_save",
+      "stop_build",
+      "clean",
+    ]),
   } as EditorDescription,
 
   latex_table_of_contents: {

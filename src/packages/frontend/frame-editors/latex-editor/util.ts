@@ -5,7 +5,17 @@
 
 // data and functions specific to the latex editor.
 
+import {
+  exec,
+  ExecOpts,
+  ExecOutput,
+} from "@cocalc/frontend/frame-editors/generic/client";
 import { separate_file_extension } from "@cocalc/util/misc";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+// import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { TIMEOUT_CALLING_PROJECT } from "@cocalc/util/consts/project";
+import { ExecOptsBlocking } from "@cocalc/util/db-schema/projects";
+import { TIMEOUT_LATEX_JOB_S } from "./constants";
 
 export function pdf_path(path: string): string {
   // if it is already a pdf, don't change the upper/lower casing -- #4562
@@ -20,7 +30,7 @@ export function pdf_path(path: string): string {
 */
 export function ensureTargetPathIsCorrect(
   cmd: string,
-  filename: string
+  filename: string,
 ): string {
   // make it so we can assume no whitespace at end:
   cmd = cmd.trim();
@@ -56,4 +66,109 @@ export function ensureTargetPathIsCorrect(
   // Get rid of whatever is between single quotes and put in the correct
   // thing (e.g., the filename may have been renamed).
   return cmd.slice(0, i).trim() + " " + quoted;
+}
+
+/**
+ * Periodically get information about the job and terminate (without another update!) when the job is no longer running.
+ */
+export async function gatherJobInfo(
+  project_id: string,
+  job_info: ExecuteCodeOutputAsync,
+  set_job_info: (info: ExecuteCodeOutputAsync) => void,
+): Promise<void> {
+  await new Promise((done) => setTimeout(done, 100));
+  let wait_s = 1;
+  try {
+    while (true) {
+      const update = await exec({
+        project_id,
+        async_get: job_info.job_id,
+        async_stats: true,
+      });
+      if (update.type !== "async") {
+        console.warn("Wrong type returned. The project is too old!");
+        return;
+      }
+      if (update.status === "running") {
+        set_job_info(update);
+      } else {
+        return;
+      }
+      await new Promise((done) => setTimeout(done, 1000 * wait_s));
+      wait_s = Math.min(5, wait_s + 1);
+    }
+  } catch {
+    return;
+  }
+}
+
+interface RunJobOpts {
+  aggregate: ExecOptsBlocking["aggregate"];
+  args?: string[];
+  command: string;
+  env?: { [key: string]: string };
+  project_id: string;
+  rundir: string; // a directory! (output_directory if in /tmp, or the directory of the file's path)
+  set_job_info: (info: ExecuteCodeOutputAsync) => void;
+  timeout?: number;
+}
+
+export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
+  const { aggregate, args, command, env, project_id, rundir, set_job_info } =
+    opts;
+
+  const haveArgs = Array.isArray(args);
+
+  const job: ExecOpts = {
+    aggregate,
+    args,
+    async_call: true,
+    bash: !haveArgs,
+    command,
+    env,
+    err_on_exit: false,
+    path: rundir,
+    project_id,
+    timeout: TIMEOUT_LATEX_JOB_S,
+  };
+
+  const job_info = await exec(job);
+
+  if (job_info.type !== "async") {
+    // this is not an async job. This happens with "old" projects, not knowing about async_call.
+    return job_info;
+  }
+
+  if (typeof job_info.pid !== "number") {
+    throw new Error("Unable to spawn compile job.");
+  }
+
+  // this runs async, until the job is no longer "running"
+  gatherJobInfo(project_id, job_info, set_job_info);
+
+  while (true) {
+    try {
+      // This also returns the result, if the job has already completed.
+      const output = await exec({
+        project_id,
+        async_get: job_info.job_id,
+        async_await: true,
+        async_stats: true,
+      });
+      if (output.type !== "async") {
+        throw new Error("output type is not async exec");
+      }
+      set_job_info(output);
+      return output;
+    } catch (err) {
+      if (err === TIMEOUT_CALLING_PROJECT) {
+        // This will eventually be fine, hopefully. We continue trying to get a reply.
+        await new Promise((done) => setTimeout(done, 100));
+      } else {
+        throw new Error(
+          "Unable to complete compilation. Check the project and try again...",
+        );
+      }
+    }
+  }
 }

@@ -2624,3 +2624,27 @@ export function hoursToTimeIntervalHuman(num: number): string {
     return `${n} ${plural(n, "week")}`;
   }
 }
+
+/**
+ * Return the last @lines lines of string s, in an efficient way. (e.g. long stdout, and return last 3 lines)
+ */
+export function tail(s: string, lines: number) {
+  if (lines < 1) return "";
+
+  let lineCount = 0;
+  let lastIndex = s.length - 1;
+
+  // Iterate backwards through the string, searching for newline characters
+  while (lastIndex >= 0 && lineCount < lines) {
+    lastIndex = s.lastIndexOf("\n", lastIndex);
+    if (lastIndex === -1) {
+      // No more newlines found, return the entire string
+      return s;
+    }
+    lineCount++;
+    lastIndex--;
+  }
+
+  // Return the substring starting from the next character after the last newline
+  return s.slice(lastIndex + 2);
+}

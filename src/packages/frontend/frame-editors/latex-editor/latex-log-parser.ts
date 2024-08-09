@@ -95,7 +95,7 @@ const state = {
   NORMAL: 0,
   ERROR: 1,
   DEPS: 2,
-};
+} as const;
 
 /* Type of an error or warning */
 export interface Error {
