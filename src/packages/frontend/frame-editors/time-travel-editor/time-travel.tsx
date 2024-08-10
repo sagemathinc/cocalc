@@ -31,20 +31,11 @@ import { Export } from "./export";
 import json_stable from "json-stable-stringify";
 import { to_ipynb } from "../../jupyter/history-viewer";
 import { SagewsDiff } from "./sagews-diff";
-import { Viewer } from "./viewer";
+import { HAS_SPECIAL_VIEWER, Viewer } from "./viewer";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import useLicenses from "@cocalc/frontend/site-licenses/use-licenses";
 import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
 import ShowError from "@cocalc/frontend/components/error";
-
-const HAS_SPECIAL_VIEWER = new Set([
-  "tasks",
-  "ipynb",
-  "sagews",
-  "board",
-  "slides",
-  "md",
-]);
 
 interface Props {
   actions: TimeTravelActions;

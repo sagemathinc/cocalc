@@ -35,7 +35,7 @@ import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-f
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
-import { history_path, hoursToTimeIntervalHuman } from "@cocalc/util/misc";
+import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
@@ -131,11 +131,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
   }
 
   function show_timetravel(): void {
-    redux.getProjectActions(project_id).open_file({
-      path: history_path(path),
-      foreground: true,
-      foreground_project: true,
-    });
+    actions.showTimeTravelInNewTab();
   }
 
   function render_preview_message(): JSX.Element | undefined {
@@ -558,12 +554,14 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
   //  https://github.com/sagemathinc/cocalc/issues/7554
   return (
     <FrameContext.Provider
-      value={{
-        project_id,
-        path,
-        isVisible: !!is_visible,
-        redux,
-      } as any}
+      value={
+        {
+          project_id,
+          path,
+          isVisible: !!is_visible,
+          redux,
+        } as any
+      }
     >
       <div
         onMouseMove={mark_as_read}
