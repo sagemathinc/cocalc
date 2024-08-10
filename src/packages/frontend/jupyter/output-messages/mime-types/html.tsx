@@ -18,7 +18,10 @@ const Html = ({
   }
   return (
     <div style={{ margin: "5px 0" }}>
-      <StableUnsafeHtml html={value} docId={`${id}-${index}`} />
+      <StableUnsafeHtml
+        html={`<div class="cocalc-jupyter-rendered">${value}</div>`}
+        docId={`${id}-${index}`}
+      />
     </div>
   );
 };
