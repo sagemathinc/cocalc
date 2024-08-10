@@ -94,9 +94,9 @@ export const useMentions: (Options) => MentionsControl = ({
           }
           if (Text.isText(current)) {
             const charBeforeCursor = current.text[focus.offset - 1];
+            //  keep use of this consistent with before stuff in frontend/editors/markdown-input/component.tsx
             const charBeforeBefore = current.text[focus.offset - 2]?.trim();
             let afterMatch, beforeMatch, beforeRange, search;
-            // try to keep this consistent with before stuff in frontend/editors/markdown-input/component.tsx
             if (charBeforeCursor == "@") {
               beforeRange = {
                 focus: editor.selection.focus,
@@ -121,10 +121,11 @@ export const useMentions: (Options) => MentionsControl = ({
               afterMatch = afterText.match(/^(\s|$)/);
             }
             if (
-              (charBeforeCursor == "@" || (beforeMatch && afterMatch)) &&
-              (!charBeforeBefore ||
-                charBeforeBefore == "(" ||
-                charBeforeBefore == "[")
+              (charBeforeCursor == "@" &&
+                (!charBeforeBefore ||
+                  charBeforeBefore == "(" ||
+                  charBeforeBefore == "[")) ||
+              (beforeMatch && afterMatch)
             ) {
               setTarget(beforeRange);
               setSearch(search);
