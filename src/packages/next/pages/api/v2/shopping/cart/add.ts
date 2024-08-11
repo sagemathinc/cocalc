@@ -52,7 +52,7 @@ async function add(req): Promise<number | undefined> {
 }
 
 export default apiRoute({
-  add: apiRouteOperation({
+  addCartItem: apiRouteOperation({
     method: "POST",
     openApiOperation: {
       tags: ["Shopping"],
