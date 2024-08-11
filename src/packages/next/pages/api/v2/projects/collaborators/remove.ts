@@ -1,21 +1,21 @@
 /*
-API endpoint to add a user to an existing project.
+API endpoint to remove a user from an existing project.
 
 Permissions checks are performed by the underlying API call and are NOT
 executed at this stage.
 
 */
 import { db } from "@cocalc/database";
-import { add_collaborators_to_projects } from "@cocalc/server/projects/collab";
+import { remove_collaborators_from_projects } from "@cocalc/server/projects/collab";
 
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import { OkStatus } from "lib/api/status";
 import {
-  AddProjectCollaboratorInputSchema,
-  AddProjectCollaboratorOutputSchema,
-} from "lib/api/schema/projects/collaborators/add";
+  RemoveProjectCollaboratorInputSchema,
+  RemoveProjectCollaboratorOutputSchema,
+} from "lib/api/schema/projects/collaborators/remove";
 
 async function handle(req, res) {
   const { project_id, account_id } = getParams(req);
@@ -26,7 +26,7 @@ async function handle(req, res) {
       throw Error("must be signed in");
     }
 
-    await add_collaborators_to_projects(
+    await remove_collaborators_from_projects(
       db(),
       client_account_id,
       [account_id],
@@ -40,7 +40,7 @@ async function handle(req, res) {
 }
 
 export default apiRoute({
-  addProjectCollaborator: apiRouteOperation({
+  removeProjectCollaborator: apiRouteOperation({
     method: "POST",
     openApiOperation: {
       tags: ["Projects", "Admin"],
@@ -48,13 +48,13 @@ export default apiRoute({
   })
     .input({
       contentType: "application/json",
-      body: AddProjectCollaboratorInputSchema,
+      body: RemoveProjectCollaboratorInputSchema,
     })
     .outputs([
       {
         status: 200,
         contentType: "application/json",
-        body: AddProjectCollaboratorOutputSchema,
+        body: RemoveProjectCollaboratorOutputSchema,
       },
     ])
     .handler(handle),
