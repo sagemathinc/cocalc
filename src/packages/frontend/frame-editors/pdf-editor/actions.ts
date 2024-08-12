@@ -18,7 +18,7 @@ import { raw_url } from "../frame-tree/util";
 import {
   ScrollIntoViewRecord,
   ScrollIntoViewMap,
-} from "../latex-editor/actions";
+} from "../latex-editor/types";
 
 import { EDITOR_SPEC } from "./editor";
 

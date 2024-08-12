@@ -42,7 +42,7 @@ import { knitr, patch_synctex, knitr_errors } from "./knitr";
 import * as synctex from "./synctex";
 import { bibtex } from "./bibtex";
 import { count_words } from "./count_words";
-import { server_time, ExecOutput } from "../generic/client";
+import { server_time } from "../generic/client";
 import { clean } from "./clean";
 import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
 import { update_gutters } from "./gutters";
@@ -50,8 +50,7 @@ import { ensureTargetPathIsCorrect, pdf_path } from "./util";
 import { KNITR_EXTS } from "./constants";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import { FrameTree } from "../frame-tree/types";
-import { Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework";
+import { Store, TypedMap } from "../../app-framework";
 import { print_html } from "../frame-tree/print";
 import { raw_url } from "../frame-tree/util";
 import {
@@ -69,21 +68,13 @@ import {
   TableOfContentsEntryList,
   TableOfContentsEntry,
 } from "@cocalc/frontend/components";
-
-export interface BuildLog extends ExecOutput {
-  parse?: IProcessedLatexLog;
-}
-
-export type BuildLogs = Map<string, Map<string, any>>;
-
-interface ScrollIntoViewParams {
-  page: number;
-  y: number;
-  id: string;
-}
-
-export const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
-export type ScrollIntoViewMap = TypedMap<ScrollIntoViewParams>;
+import {
+  BuildLog,
+  BuildLogs,
+  BuildSpecName,
+  ScrollIntoViewMap,
+  ScrollIntoViewRecord,
+} from "./types";
 
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
@@ -1285,10 +1276,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       // may have already been closed.
       return;
     }
-    let k: string;
+    let k: BuildSpecName;
     for (k in obj) {
-      const v: BuildLog = obj[k];
-      build_logs = build_logs.set(k, fromJS(v));
+      const v: BuildLog | undefined = obj[k];
+      if (v) {
+        build_logs = build_logs.set(k, fromJS(v) as any as TypedMap<BuildLog>);
+      }
     }
     this.setState({ build_logs });
   }
@@ -1301,7 +1294,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       log += s + "\n";
       const build_logs: BuildLogs = this.store.get("build_logs");
       this.setState({
-        build_logs: build_logs.set("clean", fromJS({ output: log })),
+        build_logs: build_logs.set(
+          "clean",
+          fromJS({ output: log }) as any as TypedMap<BuildLog>,
+        ),
       });
     };
 
