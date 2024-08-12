@@ -189,6 +189,19 @@ export default function MultiMarkdownInput(props: Props) {
     path,
   } = useFrameContext();
 
+  // We use refs for shiftEnter and onChange to be absolutely
+  // 100% certain that if either of these functions is changed,
+  // then the new function is used, even if the components
+  // implementing our markdown editor mess up somehow and hang on.
+  const onShiftEnterRef = useRef<any>(onShiftEnter);
+  useEffect(() => {
+    onShiftEnterRef.current = onShiftEnter;
+  }, [onShiftEnter]);
+  const onChangeRef = useRef<any>(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   const editBar2 = useRef<JSX.Element | undefined>(undefined);
 
   function getCache() {
@@ -380,7 +393,9 @@ export default function MultiMarkdownInput(props: Props) {
           divRef={editorDivRef}
           selectionRef={selectionRef}
           value={value}
-          onChange={onChange}
+          onChange={(value) => {
+            onChangeRef.current?.(value);
+          }}
           saveDebounceMs={saveDebounceMs}
           getValueRef={getValueRef}
           project_id={project_id}
@@ -389,7 +404,9 @@ export default function MultiMarkdownInput(props: Props) {
           onUploadStart={onUploadStart}
           onUploadEnd={onUploadEnd}
           enableMentions={enableMentions}
-          onShiftEnter={onShiftEnter}
+          onShiftEnter={(value) => {
+            onShiftEnterRef.current?.(value);
+          }}
           placeholder={placeholder ?? "Type markdown..."}
           fontSize={fontSize}
           cmOptions={cmOptions}
@@ -400,7 +417,7 @@ export default function MultiMarkdownInput(props: Props) {
           extraHelp={extraHelp}
           hideHelp={hideHelp}
           onBlur={(value) => {
-            onChange?.(value);
+            onChangeRef.current?.(value);
             if (!ignoreBlur.current) {
               onBlur?.();
             }
@@ -463,14 +480,14 @@ export default function MultiMarkdownInput(props: Props) {
             getValueRef={getValueRef}
             actions={{
               set_value: (value) => {
-                onChange?.(value);
+                onChangeRef.current?.(value);
               },
               shiftEnter: (value) => {
-                onChange?.(value);
-                onShiftEnter?.(value);
+                onChangeRef.current?.(value);
+                onShiftEnterRef.current?.(value);
               },
               altEnter: (value) => {
-                onChange?.(value);
+                onChangeRef.current?.(value);
                 setMode("markdown");
               },
               set_cursor_locs: onCursors,

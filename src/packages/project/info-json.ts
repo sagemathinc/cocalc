@@ -33,10 +33,10 @@ export default async function init() {
     // earlier, there was eth0, but newer Ubuntu's on GCP have ens4
     const nics = networkInterfaces();
     const mynic = nics.eth0 ?? nics.ens4;
-    host = mynic?.[0].address ?? "localhost";
+    host = mynic?.[0].address ?? "127.0.0.1";
   } else {
     // for a single machine (e.g., cocalc-docker)
-    host = "localhost";
+    host = "127.0.0.1";
   }
   INFO = {
     project_id,

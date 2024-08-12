@@ -21,61 +21,61 @@ import { capitalize } from "@cocalc/util/misc";
 import { INPUT_STYLE, InputPromptProps } from "./base";
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {
-  let n;
-  if (props.type !== "code") {
-    return <div style={INPUT_STYLE} />;
-  }
-  const kernel = capitalize(props.kernel != null ? props.kernel : "");
-  let tip: string | JSX.Element = "Enter code to be evaluated.";
-  switch (props.state) {
-    case "start":
-      n = <Icon name="arrow-circle-o-left" style={{ color: "#faad14" }} />;
-      tip = `Sending to be evaluated using ${kernel}.`;
-      break;
-    case "run":
-      n = <Icon name="hand" style={{ color: "#ff4d4f" }} />;
-      tip = `Waiting for another computation to finish first. Will evaluate using ${kernel}.`;
-      break;
-    case "busy":
-      n = (
-        <Icon
-          name="plus-circle-filled"
-          style={{
-            color: "#0a830a",
-            animation: "loadingCircle 3s infinite linear",
-          }}
-        />
-      );
-      if (props.start != null) {
-        tip = (
-          <span>
-            Running since <TimeAgo date={new Date(props.start)} /> using{" "}
-            {kernel}.
-          </span>
+  function renderPrompt() {
+    let n;
+    if (props.type !== "code") {
+      return <div style={INPUT_STYLE} />;
+    }
+    const kernel = capitalize(props.kernel != null ? props.kernel : "");
+    let tip: string | JSX.Element = "Enter code to be evaluated.";
+    switch (props.state) {
+      case "start":
+        n = <Icon name="arrow-circle-o-left" style={{ color: "#faad14" }} />;
+        tip = `Sending to be evaluated using ${kernel}.`;
+        break;
+      case "run":
+        n = <Icon name="hand" style={{ color: "#ff4d4f" }} />;
+        tip = `Waiting for another computation to finish first. Will evaluate using ${kernel}.`;
+        break;
+      case "busy":
+        n = (
+          <Icon
+            name="plus-circle-filled"
+            style={{
+              color: "#0a830a",
+              animation: "loadingCircle 3s infinite linear",
+            }}
+          />
         );
-      } else {
-        tip = `Running using ${kernel}.`;
-      }
-      break;
-    default:
-      // done (or never run)
-      if (props.exec_count) {
-        n = props.exec_count;
-        if (props.end != null) {
+        if (props.start != null) {
           tip = (
             <span>
-              Evaluated <TimeAgo date={new Date(props.end)} /> using {kernel}.
+              Running since <TimeAgo date={new Date(props.start)} /> using{" "}
+              {kernel}.
             </span>
           );
-        } else if (kernel) {
-          tip = `Last evaluated using ${kernel}.`;
+        } else {
+          tip = `Running using ${kernel}.`;
         }
-      } else {
-        n = " ";
-      }
-  }
+        break;
+      default:
+        // done (or never run)
+        if (props.exec_count) {
+          n = props.exec_count;
+          if (props.end != null) {
+            tip = (
+              <span>
+                Evaluated <TimeAgo date={new Date(props.end)} /> using {kernel}.
+              </span>
+            );
+          } else if (kernel) {
+            tip = `Last evaluated using ${kernel}.`;
+          }
+        } else {
+          n = " ";
+        }
+    }
 
-  function renderPrompt() {
     return (
       <div
         style={{
@@ -92,7 +92,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
     );
   }
 
-  if (props.dragHandle != null) {
+  if (!props.read_only && props.dragHandle != null) {
     return (
       <div>
         <div style={{ float: "left" }}>{props.dragHandle}</div>

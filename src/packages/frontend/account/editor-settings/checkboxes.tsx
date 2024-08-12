@@ -30,6 +30,8 @@ const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
   build_on_save: "build LaTex/Rmd files whenever it is saved to disk",
   show_exec_warning: "warn that certain files are not directly executable",
   ask_jupyter_kernel: "ask which kernel to use for a new Jupyter Notebook",
+  disable_jupyter_virtualization:
+    "render entire notebook instead of just visible part (slower and not recommended)",
   jupyter_classic: (
     <span>
       <A href="https://github.com/sagemathinc/cocalc/issues/7706">

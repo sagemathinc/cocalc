@@ -11,6 +11,8 @@ import { Table } from "./types";
 import { State } from "../compute-states";
 import { NOTES } from "./crm";
 
+export const MAX_FILENAME_SEARCH_RESULTS = 100;
+
 Table({
   name: "projects",
   rules: {

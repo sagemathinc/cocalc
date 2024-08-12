@@ -52,6 +52,7 @@ export interface CommandDescription {
   t?: string; // t=title = much longer description for tooltip
   menu?: string; // alternative to m just for dropdown menu
   d?: string; // even more extensive description (e.g., for a tooltip).
+  r?: boolean; // if set, this is a read only safe command
 }
 
 export interface AllActions {
@@ -73,6 +74,7 @@ export function commands(actions: AllActions): {
       m: "No cell toolbar",
       menu: "None",
       f: () => actions.jupyter_actions?.cell_toolbar(),
+      r: true,
     },
 
     "cell toolbar attachments": {
@@ -80,6 +82,7 @@ export function commands(actions: AllActions): {
       i: "image",
       menu: "Attachments",
       f: () => actions.jupyter_actions?.cell_toolbar("attachments"),
+      r: true,
     },
 
     "cell toolbar tags": {
@@ -87,6 +90,7 @@ export function commands(actions: AllActions): {
       m: "Edit cell tags toolbar",
       menu: "Tags",
       f: () => actions.jupyter_actions?.cell_toolbar("tags"),
+      r: true,
     },
 
     "cell toolbar metadata": {
@@ -94,6 +98,7 @@ export function commands(actions: AllActions): {
       i: "tags-outlined",
       menu: "Metadata",
       f: () => actions.jupyter_actions?.cell_toolbar("metadata"),
+      r: true,
     },
 
     "cell toolbar create_assignment": {
@@ -101,6 +106,7 @@ export function commands(actions: AllActions): {
       m: "Create Assignment Using NBgrader",
       menu: "Create assignment (nbgrader)",
       f: () => actions.jupyter_actions?.cell_toolbar("create_assignment"),
+      r: true,
     },
 
     "cell toolbar slideshow": {
@@ -108,6 +114,7 @@ export function commands(actions: AllActions): {
       m: "Slideshow toolbar",
       menu: "Slideshow",
       f: () => actions.jupyter_actions?.cell_toolbar("slideshow"),
+      r: true,
     },
 
     "change cell to code": {
@@ -183,6 +190,7 @@ export function commands(actions: AllActions): {
       i: "PoweroffOutlined",
       m: "Close and halt",
       f: () => actions.jupyter_actions?.confirm_close_and_halt(),
+      r: true,
     },
 
     "close pager": {
@@ -191,6 +199,7 @@ export function commands(actions: AllActions): {
       f: () => {
         actions.editor_actions?.close_introspect();
       },
+      r: true,
     },
 
     "confirm restart kernel": {
@@ -265,6 +274,7 @@ export function commands(actions: AllActions): {
       m: "Copy Cells",
       k: [{ mode: "escape", which: 67 }],
       f: () => actions.frame_actions?.copy_selected_cells(),
+      r: true,
     },
 
     //"copy cell attachments": undefined, // no clue what this means or is for... but I can guess...
@@ -301,6 +311,7 @@ export function commands(actions: AllActions): {
     "duplicate notebook": {
       m: "Make a copy...",
       f: () => actions.jupyter_actions?.file_action("duplicate"),
+      r: true,
     },
 
     "edit keyboard shortcuts": {
@@ -308,6 +319,7 @@ export function commands(actions: AllActions): {
       b: "Commands",
       m: "All Keyboard Shortcuts and Commands...",
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
+      r: true,
     },
 
     "enter command mode": {
@@ -342,6 +354,7 @@ export function commands(actions: AllActions): {
         }
         actions.frame_actions?.set_mode("escape");
       },
+      r: true,
     },
 
     "enter edit mode": {
@@ -360,6 +373,7 @@ export function commands(actions: AllActions): {
         { mode: "escape", shift: true, which: 38 },
       ],
       f: () => actions.frame_actions?.extend_selection(-1),
+      r: true,
     },
 
     "extend selection below": {
@@ -369,6 +383,7 @@ export function commands(actions: AllActions): {
         { mode: "escape", shift: true, which: 40 },
       ],
       f: () => actions.frame_actions?.extend_selection(1),
+      r: true,
     },
 
     "find and replace": {
@@ -409,11 +424,13 @@ export function commands(actions: AllActions): {
       i: "list-ol",
       m: "Hide Line Numbers for All Cells",
       f: () => actions.jupyter_actions?.set_line_numbers(false),
+      r: true,
     },
 
     "hide header": {
       m: "Hide header",
       f: () => actions.jupyter_actions?.set_header_state(true),
+      r: true,
     },
 
     "insert cell above": {
@@ -432,13 +449,6 @@ export function commands(actions: AllActions): {
       f: () => {
         actions.frame_actions?.insert_cell(1);
       },
-    },
-
-    "insert image": {
-      i: "image",
-      b: "Image",
-      m: "Insert Images in Markdown Cell",
-      f: () => actions.frame_actions?.insert_image(),
     },
 
     "interrupt kernel": {
@@ -496,16 +506,19 @@ export function commands(actions: AllActions): {
     "move cursor down": {
       m: "Move cursor down",
       f: () => actions.frame_actions?.move_edit_cursor(1),
+      r: true,
     },
 
     "move cursor up": {
       m: "Move cursor up",
       f: () => actions.frame_actions?.move_edit_cursor(-1),
+      r: true,
     },
 
     "new notebook": {
       m: "New...",
       f: () => actions.jupyter_actions?.file_new(),
+      r: true,
     },
 
     "nbconvert ipynb": {
@@ -515,107 +528,125 @@ export function commands(actions: AllActions): {
         actions.jupyter_actions?.save();
         actions.jupyter_actions?.file_action("download");
       },
+      r: true,
     },
 
     "nbconvert asciidoc": {
       i: "file-code",
       m: "AsciiDoc (.asciidoc)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("asciidoc"),
+      r: true,
     },
 
     "nbconvert python": {
       i: "python",
       m: "Python (.py)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("python"),
+      r: true,
     },
 
     "nbconvert classic html": {
       i: "html5",
       m: "HTML via Classic nbconvert (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("classic-html"),
+      r: true,
     },
 
     "nbconvert classic pdf": {
       i: "file-pdf",
       m: "PDF via Classic nbconvert and Chrome (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("classic-pdf"),
+      r: true,
     },
 
     "nbconvert lab html": {
       i: "html5",
       m: "HTML via JupyterLab nbconvert (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("lab-html"),
+      r: true,
     },
 
     "nbconvert lab pdf": {
       i: "file-pdf",
       m: "PDF via JupyterLab nbconvert and Chrome (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("lab-pdf"),
+      r: true,
     },
 
     "nbconvert cocalc html": {
       i: "html5",
       m: "HTML (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("cocalc-html"),
+      r: true,
     },
 
     "nbconvert markdown": {
       i: "markdown",
       m: "Markdown (.md)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("markdown"),
+      r: true,
     },
 
     "nbconvert rst": {
       i: "code",
       m: "reST (.rst)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("rst"),
+      r: true,
     },
 
     "nbconvert slides": {
       i: "slides",
       m: "Slideshow server via nbconvert",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("slides"),
+      r: true,
     },
 
     slideshow: {
       i: "slides",
       m: "Slideshow",
       f: () => actions.editor_actions?.show_revealjs_slideshow(),
+      r: true,
     },
 
     "table of contents": {
       m: "Table of Contents",
       f: () => actions.editor_actions?.show_table_of_contents(),
+      r: true,
     },
 
     "nbconvert tex": {
       i: "tex",
       m: "LaTeX (.tex)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("latex"),
+      r: true,
     },
 
     "nbconvert cocalc pdf": {
       i: "file-pdf",
       m: "PDF (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("cocalc-pdf"),
+      r: true,
     },
 
     "nbconvert latex pdf": {
       i: "tex",
-      m: "PDF via LaTeX (.pdf)",
+      m: "PDF via LaTeX and nbconvert (minimal image support) (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("pdf"),
+      r: true,
     },
 
     "nbconvert script": {
       i: "code-outlined",
       m: "Executable Script",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("script"),
+      r: true,
     },
 
     "nbconvert sagews": {
       i: "sagemath",
       m: "Sage Worksheet (.sagews)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("sagews"),
+      r: true,
     },
 
     "nbgrader validate": {
@@ -644,6 +675,7 @@ export function commands(actions: AllActions): {
     "open file": {
       m: "Open...",
       f: () => actions.jupyter_actions?.file_open(),
+      r: true,
     },
 
     "paste cell above": {
@@ -700,6 +732,7 @@ export function commands(actions: AllActions): {
       m: "How to Create a Custom Kernel...",
       t: "Show tutorial for how to create your own custom Jupyter kernel and use it here.",
       f: () => actions.jupyter_actions?.custom_jupyter_kernel_docs(),
+      r: true,
     },
 
     "rename notebook": {
@@ -816,18 +849,21 @@ export function commands(actions: AllActions): {
     "scroll cell visible": {
       m: "Scroll Selected Cell Into View",
       f: () => actions.frame_actions?.scroll("cell visible"),
+      r: true,
     },
 
     "scroll notebook down": {
       m: "Scroll Notebook Down",
       k: [{ mode: "escape", which: 32 }],
       f: () => actions.frame_actions?.scroll("list down"),
+      r: true,
     },
 
     "scroll notebook up": {
       m: "Scroll Notebook Up",
       k: [{ mode: "escape", shift: true, which: 32 }],
       f: () => actions.frame_actions?.scroll("list up"),
+      r: true,
     },
 
     "select all cells": {
@@ -838,12 +874,14 @@ export function commands(actions: AllActions): {
         { ctrl: true, mode: "escape", which: 65 },
       ],
       f: () => actions.frame_actions?.select_all_cells(),
+      r: true,
     },
 
     "deselect all cells": {
       i: "ban",
       m: "Deselect All Cells",
       f: () => actions.frame_actions?.unselect_all_cells(),
+      r: true,
     },
 
     "select next cell": {
@@ -857,6 +895,7 @@ export function commands(actions: AllActions): {
         actions.frame_actions?.unselect_all_cells();
         actions.frame_actions?.scroll("cell visible");
       },
+      r: true,
     },
 
     "select previous cell": {
@@ -870,12 +909,14 @@ export function commands(actions: AllActions): {
         actions.frame_actions?.unselect_all_cells();
         actions.frame_actions?.scroll("cell visible");
       },
+      r: true,
     },
 
     "show all line numbers": {
       i: "list-ol",
       m: "Show Line Numbers for All Cells",
       f: () => actions.jupyter_actions?.set_line_numbers(true),
+      r: true,
     },
 
     "show code folding": {
@@ -883,6 +924,7 @@ export function commands(actions: AllActions): {
       m: "Enable Code Folding",
       f: () =>
         redux.getActions("account").set_editor_settings("code_folding", true),
+      r: true,
     },
 
     "hide code folding": {
@@ -890,6 +932,7 @@ export function commands(actions: AllActions): {
       m: "Disable Code Folding",
       f: () =>
         redux.getActions("account").set_editor_settings("code_folding", false),
+      r: true,
     },
 
     "show command palette": {
@@ -899,11 +942,13 @@ export function commands(actions: AllActions): {
         { ctrl: true, shift: true, which: 80 },
       ],
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
+      r: true,
     },
 
     "show header": {
       m: "Show header",
       f: () => actions.jupyter_actions?.set_header_state(false),
+      r: true,
     },
 
     "show keyboard shortcuts": {
@@ -911,6 +956,7 @@ export function commands(actions: AllActions): {
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
+      r: true,
     },
 
     "shutdown kernel": {
@@ -935,6 +981,7 @@ export function commands(actions: AllActions): {
     "switch to classical notebook": {
       m: "Switch to classical notebook...",
       f: () => actions.jupyter_actions?.switch_to_classical_notebook(),
+      r: true,
     },
 
     "tab key": {
@@ -955,6 +1002,7 @@ export function commands(actions: AllActions): {
     "time travel": {
       m: "TimeTravel",
       f: () => actions.jupyter_actions?.show_history_viewer(),
+      r: true,
     },
 
     "toggle all cells output collapsed": {
@@ -967,6 +1015,7 @@ export function commands(actions: AllActions): {
       m: "Toggle Line Numbers of All Cells",
       k: [{ mode: "escape", shift: true, which: 76 }],
       f: () => actions.jupyter_actions?.toggle_line_numbers(),
+      r: true,
     },
 
     "toggle cell line numbers": {
@@ -974,6 +1023,7 @@ export function commands(actions: AllActions): {
       m: "Toggle Line Numbers of Selected Cells",
       k: [{ mode: "escape", which: 76 }],
       f: () => actions.jupyter_actions?.toggle_cell_line_numbers(id()),
+      r: true,
     },
 
     "toggle cell output collapsed": {
@@ -1039,6 +1089,7 @@ export function commands(actions: AllActions): {
     "toggle header": {
       m: "Toggle header",
       f: () => actions.jupyter_actions?.toggle_header(),
+      r: true,
     },
 
     /* "toggle rtl layout": {
@@ -1049,11 +1100,13 @@ export function commands(actions: AllActions): {
     "toggle toolbar": {
       m: "Toggle toolbar",
       f: () => actions.jupyter_actions?.toggle_toolbar(),
+      r: true,
     },
 
     "trust notebook": {
       m: "Trust notebook",
       f: () => actions.jupyter_actions?.trust_notebook(),
+      r: true,
     },
 
     //     "undo cell deletion": {
@@ -1066,12 +1119,14 @@ export function commands(actions: AllActions): {
       m: "Zoom in",
       k: [{ ctrl: true, shift: true, which: 190 }],
       f: () => actions.frame_actions?.zoom(1),
+      r: true,
     },
 
     "zoom out": {
       m: "Zoom out",
       k: [{ ctrl: true, shift: true, which: 188 }],
       f: () => actions.frame_actions?.zoom(-1),
+      r: true,
     },
 
     "write protect": {
@@ -1160,6 +1215,7 @@ export function commands(actions: AllActions): {
       f: () => {
         open_new_tab("https://doc.cocalc.com/jupyter.html");
       },
+      r: true,
     },
 
     "help - nbgrader in cocalc": {
@@ -1168,6 +1224,7 @@ export function commands(actions: AllActions): {
       f: () => {
         open_new_tab("https://doc.cocalc.com/teaching-nbgrader.html");
       },
+      r: true,
     },
     "help - markdown": {
       i: "external-link",
@@ -1175,8 +1232,8 @@ export function commands(actions: AllActions): {
       f: () => {
         open_new_tab("https://doc.cocalc.com/markdown.html");
       },
+      r: true,
     },
-
     "hide input": {
       i: "compress",
       m: "Collapse Selected Input",

@@ -150,7 +150,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     const base = serverURL(project_id, "jupyterlab");
     // we make sure the url ends wiht a slash, without messing up the full URL
     const s = base.slice(base.length - 1) === "/" ? "" : "/";
-    const url = `${base}${s}lab/tree/${current_path ?? ""}`;
+    const url = `${base}${s}${current_path ? "lab/tree/" + current_path : ""}`;
     return (
       <LinkRetry href={url} mode="button">
         <Tip
@@ -180,17 +180,19 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       className="pull-right"
     >
       <ButtonGroup>
-        <TourButton project_id={project_id} />
-        {render_library_button()}
-        {render_upload_button()}
         {render_jupyterlab_button()}
         {render_vscode_button()}
+      </ButtonGroup>
+      <ButtonGroup>
+        {render_upload_button()}
+        {render_library_button()}
       </ButtonGroup>
       <div className="pull-right">
         <ButtonGroup>
           {render_hidden_toggle()}
           {render_masked_toggle()}
           {render_backup()}
+        <TourButton project_id={project_id} />
         </ButtonGroup>
       </div>
     </ButtonToolbar>

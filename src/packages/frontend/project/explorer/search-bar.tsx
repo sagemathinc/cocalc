@@ -4,15 +4,16 @@
  */
 
 import React from "react";
-import { TERM_MODE_CHAR } from "./file-listing";
-import { Icon, SearchInput } from "../../components";
-import { ProjectActions } from "@cocalc/frontend/project_store";
-import { ListingItem } from "./types";
-import { output_style_searchbox } from "./mini-terminal";
-import { webapp_client } from "../../webapp-client";
-import { Alert } from "react-bootstrap";
-import { path_to_file } from "@cocalc/util/misc";
+
 import { redux } from "@cocalc/frontend/app-framework";
+import { Icon, SearchInput } from "@cocalc/frontend/components";
+import { ProjectActions } from "@cocalc/frontend/project_store";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { path_to_file } from "@cocalc/util/misc";
+import { Alert } from "antd";
+import { TERM_MODE_CHAR } from "./file-listing";
+import { output_style_searchbox } from "./mini-terminal";
+import { ListingItem } from "./types";
 
 interface Props {
   project_id: string; // Added by miniterm functionality
@@ -155,9 +156,11 @@ export const SearchBar = React.memo((props: Props) => {
         text = `Showing files matching ${file_search}`;
       }
       return (
-        <Alert style={{ wordWrap: "break-word" }} bsStyle="info">
-          {text}
-        </Alert>
+        <Alert
+          style={{ wordWrap: "break-word", marginBottom: "10px" }}
+          type="info"
+          message={text}
+        />
       );
     }
   }
@@ -166,12 +169,12 @@ export const SearchBar = React.memo((props: Props) => {
     if (file_creation_error) {
       return (
         <Alert
-          style={{ wordWrap: "break-word" }}
-          bsStyle="danger"
-          onDismiss={dismiss_alert}
-        >
-          {file_creation_error}
-        </Alert>
+          style={{ wordWrap: "break-word", marginBottom: "10px" }}
+          type="error"
+          closable
+          onClose={dismiss_alert}
+          message={file_creation_error}
+        />
       );
     }
   }

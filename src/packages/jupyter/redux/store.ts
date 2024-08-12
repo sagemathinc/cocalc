@@ -71,7 +71,6 @@ export interface JupyterStoreState {
   find_and_replace: any;
   has_uncommitted_changes?: boolean;
   has_unsaved_changes?: boolean;
-  insert_image: string; // id of a markdown cell
   introspect: any;
   kernel_error?: string;
   kernel_info?: any;

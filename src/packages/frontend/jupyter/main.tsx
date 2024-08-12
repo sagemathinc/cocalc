@@ -8,7 +8,6 @@ Top-level react component, which ties everything together
 */
 
 import * as immutable from "immutable";
-
 import {
   CSS,
   React,
@@ -37,7 +36,6 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { EditAttachments } from "./edit-attachments";
 import { EditCellMetadata } from "./edit-cell-metadata";
 import { FindAndReplace } from "./find-and-replace";
-import { InsertImage } from "./insert-image";
 import { JupyterContext } from "./jupyter-context";
 import useKernelUsage from "./kernel-usage";
 import KernelWarning from "./kernel-warning";
@@ -145,6 +143,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   const directory: undefined | string = useRedux([name, "directory"]);
   // const version: undefined | any = useRedux([name, "version"]);
   const about: undefined | boolean = useRedux([name, "about"]);
+  const read_only = useRedux([name, "read_only"]);
   const backend_kernel_info: undefined | immutable.Map<any, any> = useRedux([
     name,
     "backend_kernel_info",
@@ -169,8 +168,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   ]);
   const path: undefined | string = useRedux([name, "path"]);
   const cell_toolbar: undefined | string = useRedux([name, "cell_toolbar"]);
-  // show insert image dialog
-  const insert_image: undefined | string = useRedux([name, "insert_image"]);
   const edit_attachments: undefined | string = useRedux([
     name,
     "edit_attachments",
@@ -284,6 +281,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     return (
       <CellList
         actions={actions}
+        read_only={read_only}
         cell_list={cell_list}
         cell_toolbar={cell_toolbar}
         cells={cells}
@@ -332,19 +330,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         nbconvert={nbconvert}
         nbconvert_dialog={nbconvert_dialog}
         backend_kernel_info={backend_kernel_info}
-      />
-    );
-  }
-
-  function render_insert_image() {
-    if (insert_image == null || project_id == null) {
-      return;
-    }
-    return (
-      <InsertImage
-        actions={actions}
-        project_id={project_id}
-        insert_image={insert_image}
       />
     );
   }
@@ -427,7 +412,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
       <>
         {render_about()}
         {render_nbconvert()}
-        {render_insert_image()}
         {render_edit_attachments()}
         {render_edit_cell_metadata()}
         {render_find_and_replace()}
@@ -455,16 +439,18 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           requestedId={requestedComputeServerId}
           project_id={project_id}
         />
-        <KernelWarning name={name} actions={actions} />
+        {!read_only && <KernelWarning name={name} actions={actions} />}
         {render_error()}
         {render_modals()}
-        <Kernel
-          is_fullscreen={is_fullscreen}
-          actions={actions}
-          usage={usage}
-          expected_cell_runtime={expected_cell_runtime}
-          computeServerId={computeServerId}
-        />
+        {!read_only && (
+          <Kernel
+            is_fullscreen={is_fullscreen}
+            actions={actions}
+            usage={usage}
+            expected_cell_runtime={expected_cell_runtime}
+            computeServerId={computeServerId}
+          />
+        )}
         {cell_toolbar == "create_assignment" && (
           <div
             style={{

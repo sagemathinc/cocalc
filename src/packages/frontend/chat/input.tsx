@@ -5,7 +5,6 @@
 
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
-
 import {
   CSS,
   redux,
@@ -23,7 +22,11 @@ interface Props {
   on_send: (value: string) => void;
   onChange: (string) => void;
   syncdb: SyncDB | undefined;
-  date: number; // ms since epoch of when this message was first sent; set to 0 for editing new message. set to -time (negative time) to respond to message at time!
+  // date:
+  //   - ms since epoch of when this message was first sent
+  //   - set to 0 for editing new message
+  //   - set to -time (negative time) to respond to thread, where time is the time of ROOT message of the the thread.
+  date: number;
   input?: string;
   on_paste?: (e) => void;
   height?: string;
@@ -57,6 +60,10 @@ export default function ChatInput({
   submitMentionsRef,
   syncdb,
 }: Props) {
+  const onSendRef = useRef<Function>(on_send);
+  useEffect(() => {
+    onSendRef.current = on_send;
+  }, [on_send]);
   const { project_id, path, actions } = useFrameContext();
   const fontSize = useRedux(["font_size"], project_id, path);
   if (font_size == null) {
@@ -66,6 +73,7 @@ export default function ChatInput({
     () => redux.getStore("account").get_account_id(),
     [],
   );
+
   const [input, setInput] = useState<string>(() => {
     const dbInput = syncdb
       ?.get_one({
@@ -81,12 +89,19 @@ export default function ChatInput({
     const input = dbInput ?? propsInput;
     return input;
   });
+  const currentInputRef = useRef<string>(input);
+  const saveOnUnmountRef = useRef<boolean>(true);
 
   const isMountedRef = useIsMountedRef();
-  const lastSavedRef = useRef<string | null>(null);
+  const lastSavedRef = useRef<string>(input);
   const saveChat = useDebouncedCallback(
     (input) => {
-      if (!isMountedRef.current || syncdb == null) return;
+      if (
+        syncdb == null ||
+        (!isMountedRef.current && !saveOnUnmountRef.current)
+      ) {
+        return;
+      }
       onChange(input);
       lastSavedRef.current = input;
       // also save to syncdb, so we have undo, etc.
@@ -118,8 +133,43 @@ export default function ChatInput({
       }
     },
     SAVE_DEBOUNCE_MS,
-    { leading: true },
+    {
+      leading: true,
+    },
   );
+
+  useEffect(() => {
+    return () => {
+      if (!isMountedRef.current && !saveOnUnmountRef.current) {
+        return;
+      }
+      // save before unmounting.  This is very important since if a new reply comes in,
+      // then the input component gets unmounted, then remounted BELOW the reply.
+      // Note: it is still slightly annoying, due to loss of focus... however, data
+      // loss is NOT ok, whereas loss of focus is.
+      const input = currentInputRef.current;
+      if (input == null || syncdb == null) {
+        return;
+      }
+      if (
+        syncdb.get_one({
+          event: "draft",
+          sender_id,
+          date,
+        }) == null
+      ) {
+        return;
+      }
+      syncdb.set({
+        event: "draft",
+        sender_id,
+        input,
+        date, // it's a primary key so can't use this to represent when user last edited this; use other date for editing past chats.
+        active: Date.now(),
+      });
+      syncdb.commit();
+    };
+  }, []);
 
   useEffect(() => {
     if (syncdb == null) return;
@@ -131,9 +181,10 @@ export default function ChatInput({
         date,
       });
       const input = x?.get("input");
-      if (input != null && input !== lastSavedRef.current) {
+      if (input != null && input != lastSavedRef.current) {
         setInput(input);
-        lastSavedRef.current = null;
+        currentInputRef.current = input;
+        lastSavedRef.current = input;
       }
     };
     syncdb.on("change", onSyncdbChange);
@@ -156,11 +207,18 @@ export default function ChatInput({
       enableMentions={true}
       submitMentionsRef={submitMentionsRef}
       onChange={(input) => {
+        currentInputRef.current = input;
+        /* BUG: in Markdown mode this stops getting
+        called after you paste in an image.  It works
+        fine in Slate/Text mode. See
+        https://github.com/sagemathinc/cocalc/issues/7728
+        */
         setInput(input);
         saveChat(input);
       }}
       onShiftEnter={(input) => {
-        saveChat.cancel();
+        setInput(input);
+        saveChat(input);
         on_send(input);
       }}
       height={height}
@@ -190,7 +248,7 @@ export default function ChatInput({
 function getPlaceholder(project_id, placeholder?: string): string {
   if (placeholder != null) return placeholder;
   if (redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
-    return "Type a new message (mention a collaborator or LLM via @chatgpt, @gemini, etc.)...";
+    return "Type a new message (chat with AI or notify a collaborator by typing @)...";
   }
-  return "Type a new message...";
+  return "Type a new message  (notify a collaborator by typing @)...";
 }

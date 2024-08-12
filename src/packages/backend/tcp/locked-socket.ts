@@ -67,7 +67,7 @@ It is not used in any other way.
 */
 export async function connectToLockedSocket({
   port,
-  host = "localhost",
+  host = "127.0.0.1",
   token,
   timeout = 5, // in seconds (not milliseconds)
 }: {

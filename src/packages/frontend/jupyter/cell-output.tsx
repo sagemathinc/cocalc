@@ -32,6 +32,7 @@ interface CellOutputProps {
   style?: React.CSSProperties;
   divRef?;
   llmTools?: LLMTools;
+  isDragging?: boolean;
 }
 
 export function CellOutput({
@@ -48,6 +49,7 @@ export function CellOutput({
   divRef,
   style,
   llmTools,
+  isDragging,
 }: CellOutputProps) {
   const minHeight = complete ? "60vh" : undefined;
 
@@ -79,6 +81,9 @@ export function CellOutput({
         ...style,
       }}
       cocalc-test="cell-output"
+      className={
+        "cocalc-output-div" /* used by stable unsafe html for clipping */
+      }
     >
       {!hidePrompt && <ControlColumn cell={cell} actions={actions} id={id} />}
       <OutputColumn
@@ -91,6 +96,7 @@ export function CellOutput({
         name={name}
         trust={trust}
         llmTools={llmTools}
+        isDragging={isDragging}
       />
     </div>
   );
@@ -106,6 +112,7 @@ interface OutputColumnProps {
   name?: string;
   trust?: boolean;
   llmTools?;
+  isDragging?: boolean;
 }
 
 function OutputColumn({
@@ -118,7 +125,14 @@ function OutputColumn({
   name,
   trust,
   llmTools,
+  isDragging,
 }: OutputColumnProps) {
+  if (isDragging) {
+    // stable html + dragging breaks badly since you end up with two copies
+    // of the same thing, etc.  Also, not carrying the output makes seeing
+    // what is going on more manageable.
+    return null;
+  }
   if (cell.get("collapsed")) {
     return <CollapsedOutput actions={actions} id={id} />;
   }
@@ -193,11 +207,7 @@ function ControlColumn({ actions, cell, id }) {
   }
   if (actions != null) {
     return (
-      <OutputToggle
-        actions={actions}
-        id={id}
-        scrolled={cell.get("scrolled")}
-      >
+      <OutputToggle actions={actions} id={id} scrolled={cell.get("scrolled")}>
         {prompt}
       </OutputToggle>
     );

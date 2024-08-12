@@ -59,6 +59,8 @@ interface Props {
   isFirst?: boolean;
   isLast?: boolean;
   dragHandle?: JSX.Element;
+  read_only?: boolean;
+  isDragging?: boolean;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -86,7 +88,9 @@ function areEqual(props: Props, nextProps: Props): boolean {
     (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current)) ||
-    nextProps.dragHandle !== props.dragHandle
+    nextProps.dragHandle !== props.dragHandle ||
+    nextProps.read_only !== props.read_only ||
+    nextProps.isDragging !== props.isDragging
   );
 }
 
@@ -101,7 +105,10 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function is_editable(): boolean {
-    return props.cell.getIn(["metadata", "editable"], true) as any;
+    return (
+      !props.read_only &&
+      (props.cell.getIn(["metadata", "editable"], true) as any)
+    );
   }
 
   function is_deletable(): boolean {
@@ -159,6 +166,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         trust={props.trust}
         complete={props.is_current && props.complete != null}
         llmTools={props.llmTools}
+        isDragging={props.isDragging}
       />
     );
   }
@@ -175,6 +183,9 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function double_click(event: any): void {
+    if (props.read_only) {
+      return;
+    }
     if (props.cell.getIn(["metadata", "editable"]) === false) {
       return;
     }
@@ -378,7 +389,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
   // Note that the cell id is used for scroll functionality, so *is* important.
   return (
     <>
-      {render_insert_cell("above")}
+      {!props.read_only && render_insert_cell("above")}
       <div
         style={getCellStyle()}
         onMouseUp={props.is_current ? undefined : click_on_cell}
@@ -390,7 +401,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         {render_cell_input(props.cell)}
         {render_cell_output(props.cell)}
       </div>
-      {render_insert_cell("below")}
+      {!props.read_only && render_insert_cell("below")}
     </>
   );
 }, areEqual);

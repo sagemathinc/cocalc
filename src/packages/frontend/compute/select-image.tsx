@@ -6,7 +6,7 @@ import type {
   GoogleCloudImages,
 } from "@cocalc/util/db-schema/compute-servers";
 import { makeValidGoogleName } from "@cocalc/util/db-schema/compute-servers";
-import { Alert, Select, Spin } from "antd";
+import { Alert, Checkbox, Select, Spin } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { Icon, Markdown } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
@@ -129,17 +129,23 @@ export default function SelectImage({
           configuration={configuration}
         />
       )}
-      {warnBigGb && (dockerSizeGb ?? 0) > warnBigGb && (
+      {warnBigGb && (dockerSizeGb ?? 1) > warnBigGb && (
         <Alert
           style={{ margin: "15px 0" }}
-          showIcon
           type="warning"
-          message="Large Image"
+          message={<h4>Large Image Warning</h4>}
           description={
             <>
-              The compute server will take <b>several extra minutes</b> to start
-              the first time, because the {dockerSizeGb}GB Docker image must be
-              pulled and decompressed. Please be patient!
+              The compute server will take{" "}
+              <b>up to {Math.ceil((dockerSizeGb ?? 1) / 3)} extra minutes</b> to
+              start the first time, because a {dockerSizeGb} GB Docker image
+              must be pulled and decompressed. Please be patient!
+              <br />
+              <br />
+              <Checkbox>
+                I understand that initial startup will take at least{" "}
+                {Math.ceil((dockerSizeGb ?? 1) / 3)} extra minutes
+              </Checkbox>
             </>
           }
         />

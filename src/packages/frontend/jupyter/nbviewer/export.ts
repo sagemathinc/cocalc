@@ -16,7 +16,6 @@ import NBViewer from "./nbviewer";
 import { renderToString } from "react-dom/server";
 import { createElement, CSSProperties } from "react";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
-import cheerio from "cheerio";
 
 export default function exportToHTML({
   content,
@@ -43,18 +42,14 @@ export default function exportToHTML({
     [notebook],
   );
   let body = renderToString(element);
-  const $ = cheerio.load(body);
-  $(".katex-html").remove();
-  body = $.html();
-
   const { codemirror, antd, katex } = getVersions();
 
   return `<html>
 <head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/${codemirror}/codemirror.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/${katex}/katex.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/${antd}/antd.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@${katex}/dist/katex.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@${antd}/dist/antd.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
 ${body}
@@ -63,14 +58,14 @@ ${body}
 }
 
 // TODO regarding antd -- see https://github.com/sagemathinc/cocalc/issues/6305
-// For some reason the css for antd beyond version 4.24.7 is not available.
-// Thus for now we are just hardcoding version  4.24.7.  This is of course much
+// Due to a change in architecture, the css for antd beyond version 4.24.16 will
+// never be available.
+// Thus for now we are just hardcoding version  4.24.16.  This is of course much
 // better than being compltely broken, but not ideal.  The CSS we actually use
-// for Jupyter notebooks from antd is very minimal, except in maybe widgets, which
-// aren't relevant for printing (yet?).
+// for Jupyter notebooks from antd is very minimal, so maybe this won't be a problem.
 function getVersions() {
   return {
-    antd: "4.24.7", // require("antd").version
+    antd: "4.24.16", // require("antd").version
     codemirror: require("codemirror/package").version,
     katex: require("katex").version,
   };

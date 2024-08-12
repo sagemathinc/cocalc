@@ -4,78 +4,78 @@
  */
 
 /*
-Watch a file for changes
+Watch one SINGLE FILE for changes.   Use ./path-watcher.ts for a directory.
 
-Watch for changes to the given file.  Returns obj, which
+Watch for changes to the given file, which means the mtime changes or the
+mode changes (e.g., readonly versus readwrite).  Returns obj, which
 is an event emitter with events:
 
-   - 'change', ctime - when file changes or is created
+   - 'change', ctime, stats - when file changes or is created
    - 'delete' - when file is deleted
 
 and a method .close().
 
 Only fires after the file definitely has not had its
-ctime changed for at least debounce ms (this is the atomic
-option to chokidar).  Does NOT fire when the file first
-has ctime changed.
+ctime changed for at least debounce ms.  Does NOT
+fire when the file first has ctime changed.
+
+NOTE: for directories we use chokidar in path-watcher.  However,
+for a single file using polling, chokidar is horribly buggy and
+lacking in functionality (e.g., https://github.com/paulmillr/chokidar/issues/1132),
+and declared all bugs fixed, so we steer clear.  It had a lot of issues
+with just noticing actual file changes.
+
+We *always* use polling to fully support networked filesystems.
 */
 
 import { EventEmitter } from "node:events";
-import { watch, FSWatcher } from "chokidar";
+import { unwatchFile, watchFile } from "node:fs";
 import { getLogger } from "./logger";
 import { debounce as lodashDebounce } from "lodash";
 
-const L = getLogger("watcher");
+const logger = getLogger("backend:watcher");
 
 export class Watcher extends EventEmitter {
   private path: string;
-  private interval: number;
-  private watcher: FSWatcher;
 
-  constructor(path: string, interval: number = 300, debounce: number = 0) {
+  constructor(
+    path: string,
+    { debounce, interval = 300 }: { debounce?: number; interval?: number } = {},
+  ) {
     super();
     this.path = path;
-    this.interval = interval;
 
-    L.debug(`${path}: interval=${interval}, debounce=${debounce}`);
-    this.watcher = watch(this.path, {
-      interval: this.interval,
-      // polling is critical for network mounted file systems,
-      // and given architecture of cocalc there is no easy way around this.
-      // E.g., on compute servers, everything breaks involving sync or cloudfs,
-      // and in shared project s3/gcsfuse/sshfs would all break. So we
-      // use polling.
-      usePolling: true,
-      persistent: false,
-      alwaysStat: true,
-      atomic: true,
-    });
-    this.watcher.on("unlink", () => {
-      this.emit("delete");
-    });
-    this.watcher.on("unlinkDir", () => {
-      this.emit("delete");
-    });
+    logger.debug("watchFile", { path, debounce, interval });
+    watchFile(this.path, { persistent: false, interval }, this.handleChange);
 
-    const emitChange = lodashDebounce(
-      (ctime) => this.emit("change", ctime),
-      debounce,
-    );
-    this.watcher.on("error", (err) => {
-      L.debug("WATCHER error -- ", err);
-    });
-
-    this.watcher.on("change", (_, stats) => {
-      if (stats == null) {
-        L.debug("WATCHER change with no stats (shouldn't happen)", { path });
-        return;
-      }
-      emitChange(stats.ctime);
-    });
+    if (debounce) {
+      this.emitChange = lodashDebounce(this.emitChange, debounce);
+    }
   }
 
-  close = async () => {
+  private emitChange = (stats) => {
+    this.emit("change", stats.ctime, stats);
+  };
+
+  private handleChange = (curr, prev) => {
+    const path = this.path;
+    if (!curr.dev) {
+      logger.debug("handleChange: delete", { path });
+      this.emit("delete");
+      return;
+    }
+    if (curr.mtimeMs == prev.mtimeMs && curr.mode == prev.mode) {
+      logger.debug("handleChange: access but no change", { path });
+      // just *accessing* triggers watchFile (really StatWatcher), of course.
+      return;
+    }
+    logger.debug("handleChange: change", { path });
+    this.emitChange(curr);
+  };
+
+  close = () => {
+    logger.debug("close", this.path);
     this.removeAllListeners();
-    await this.watcher.close();
+    unwatchFile(this.path, this.handleChange);
   };
 }

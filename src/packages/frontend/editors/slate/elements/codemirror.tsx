@@ -94,7 +94,7 @@ export const SlateCodeMirror: React.FC<Props> = React.memo(
         } else {
           // everything selected, so now select all editor content.
           // NOTE that this only makes sense if we change focus
-          // to the enclosing select editor, thus loosing the
+          // to the enclosing select editor, thus losing the
           // cm editor focus, which is a bit weird.
           ReactEditor.focus(editor);
           selectAll(editor);

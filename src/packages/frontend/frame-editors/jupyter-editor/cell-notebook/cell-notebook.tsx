@@ -8,7 +8,6 @@ Frame that display a Jupyter notebook in the traditional way with input and outp
 */
 
 import { Map } from "immutable";
-
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { JupyterEditor } from "@cocalc/frontend/jupyter/main";

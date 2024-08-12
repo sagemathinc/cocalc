@@ -4,6 +4,9 @@
  */
 
 /*
+Watch A DIRECTORY for changes.  Use ./watcher.ts for a single file.
+
+
 Slightly generalized fs.watch that works even when the directory doesn't exist,
 but also doesn't provide any information about what changed.
 
@@ -76,11 +79,18 @@ export class Watcher extends EventEmitter {
   private exists: boolean;
   private watchContents?: FSWatcher;
   private watchExistence?: FSWatcher;
+  private interval_ms: number;
   private debounce_ms: number;
   private debouncedChange: any;
   private log: Function;
 
-  constructor(path: string, debounce_ms: number) {
+  constructor(
+    path: string,
+    {
+      debounce: debounce_ms = 0,
+      interval: interval_ms,
+    }: { debounce?: number; interval?: number } = {},
+  ) {
     super();
     this.log = logger.extend(path).debug;
     this.log(`initializing: poll=${POLLING}`);
@@ -89,10 +99,13 @@ export class Watcher extends EventEmitter {
     }
     this.path = path.startsWith("/") ? path : join(process.env.HOME, path);
     this.debounce_ms = debounce_ms;
-    this.debouncedChange = debounce(this.change.bind(this), this.debounce_ms, {
-      leading: true,
-      trailing: true,
-    }).bind(this);
+    this.interval_ms = interval_ms ?? DEFAULT_POLL_MS;
+    this.debouncedChange = this.debounce_ms
+      ? debounce(this.change, this.debounce_ms, {
+          leading: true,
+          trailing: true,
+        }).bind(this)
+      : this.change;
     this.init();
   }
 
@@ -109,8 +122,16 @@ export class Watcher extends EventEmitter {
     }
   }
 
+  private chokidarOptions = () => {
+    return {
+      ...ChokidarOpts,
+      interval: this.interval_ms,
+      binaryInterval: this.interval_ms,
+    };
+  };
+
   private initWatchContents(): void {
-    this.watchContents = watch(this.path, ChokidarOpts);
+    this.watchContents = watch(this.path, this.chokidarOptions());
     this.watchContents.on("all", this.debouncedChange);
     this.watchContents.on("error", (err) => {
       this.log(`error watching listings -- ${err}`);
@@ -119,7 +140,7 @@ export class Watcher extends EventEmitter {
 
   private async initWatchExistence(): Promise<void> {
     const containing_path = path_split(this.path).head;
-    this.watchExistence = watch(containing_path, ChokidarOpts);
+    this.watchExistence = watch(containing_path, this.chokidarOptions());
     this.watchExistence.on("all", this.watchExistenceChange(containing_path));
     this.watchExistence.on("error", (err) => {
       this.log(`error watching for existence of ${this.path} -- ${err}`);
@@ -147,9 +168,9 @@ export class Watcher extends EventEmitter {
     }
   };
 
-  private change(): void {
+  private change = (): void => {
     this.emit("change");
-  }
+  };
 
   public close(): void {
     this.watchExistence?.close();
