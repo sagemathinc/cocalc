@@ -402,7 +402,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
 
   function render_language_model(): Rendered {
     return (
-      <LabeledRow label={<>Default Language Model</>}>
+      <LabeledRow label={<>Default AI Language Model</>}>
         <LLMSelector model={model} setModel={setModel} />
       </LabeledRow>
     );

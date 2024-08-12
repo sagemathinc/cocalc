@@ -1,5 +1,5 @@
 /*
-Render a document, where the rendering is detemined by the file extension
+Render a document, where the rendering is determined by the file extension
 */
 
 import type { Document } from "@cocalc/sync/editor/generic/types";
@@ -11,6 +11,17 @@ import { SagewsCodemirror } from "./sagews-codemirror";
 import Whiteboard from "@cocalc/frontend/frame-editors/whiteboard-editor/time-travel";
 import { isObjectDoc } from "./view-document";
 import { getScale } from "@cocalc/frontend/frame-editors/frame-tree/hooks";
+import ChatViewer from "@cocalc/frontend/chat/viewer";
+
+export const HAS_SPECIAL_VIEWER = new Set([
+  "tasks",
+  "ipynb",
+  "sagews",
+  "board",
+  "slides",
+  "md",
+  "sage-chat",
+]);
 
 export function Viewer({
   ext,
@@ -51,6 +62,7 @@ export function Viewer({
   }
   const opts = { doc, project_id, path, font_size, editor_settings };
 
+  // CRITICAL: the extensions here *must* also be listed in HAS_SPECIAL_VIEWER above!
   switch (ext) {
     case "tasks":
       return <TasksHistoryViewer {...opts} />;
@@ -72,6 +84,8 @@ export function Viewer({
       return <Whiteboard {...opts} mainFrameType={"whiteboard"} />;
     case "slides":
       return <Whiteboard {...opts} mainFrameType={"slides"} />;
+    case "sage-chat":
+      return <ChatViewer {...opts} />;
     default:
       return renderText();
   }

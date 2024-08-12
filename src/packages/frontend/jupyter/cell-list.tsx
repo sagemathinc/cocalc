@@ -756,7 +756,7 @@ The easiest hack to deal with this, seems to be to record
 the last measured height, then set it for the initial render
 of each item, then remove it.
 */
-function DivTempHeight({ children, height }) {
+export function DivTempHeight({ children, height }) {
   const divRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (divRef.current != null) {

@@ -11,7 +11,6 @@ import { Alert } from "antd";
 import { List, Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
   TypedMap,
@@ -35,6 +34,7 @@ import Composing from "./composing";
 import Message from "./message";
 import { ChatMessageTyped, ChatMessages, MessageHistory, Mode } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
+import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -130,11 +130,6 @@ export function ChatLog(props: Readonly<Props>) {
     };
   }, [scrollToBottomRef != null]);
 
-  const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `${project_id}${path}`,
-    initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
-  });
-
   return (
     <>
       {visibleHashtags.size > 0 && (
@@ -157,76 +152,23 @@ export function ChatLog(props: Readonly<Props>) {
           filterRecentH={filterRecentH}
         />
       )}
-      <Virtuoso
-        ref={virtuosoRef}
-        totalCount={sortedDates.length}
-        overscan={10000}
-        itemContent={(index) => {
-          const date = sortedDates[index];
-          const message: ChatMessageTyped | undefined = messages.get(date);
-          if (message == null) {
-            // shouldn't happen.  But we should be robust to such a possibility.
-            return <div style={{ height: "1px" }} />;
-          }
-
-          const is_thread = isThread(messages, message);
-          // if we search for a message, we treat all threads as unfolded
-          const force_unfold = !!search;
-          const is_folded =
-            !force_unfold && isFolded(messages, message, account_id);
-          const is_thread_body = message.get("reply_to") != null;
-
-          return (
-            <div style={{ overflow: "hidden" }}>
-              <Message
-                key={date}
-                index={index}
-                account_id={account_id}
-                user_map={user_map}
-                message={message}
-                project_id={project_id}
-                path={path}
-                font_size={fontSize}
-                selectedHashtags={selectedHashtags}
-                actions={actions}
-                is_thread={is_thread}
-                is_folded={is_folded}
-                force_unfold={force_unfold}
-                is_thread_body={is_thread_body}
-                is_prev_sender={isPrevMessageSender(
-                  index,
-                  sortedDates,
-                  messages,
-                )}
-                is_next_sender={isNextMessageSender(
-                  index,
-                  sortedDates,
-                  messages,
-                )}
-                show_avatar={!isNextMessageSender(index, sortedDates, messages)}
-                mode={mode}
-                get_user_name={(account_id: string | undefined) =>
-                  // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
-                  typeof account_id === "string"
-                    ? getUserName(user_map, account_id)
-                    : "Unknown name"
-                }
-                scroll_into_view={() =>
-                  virtuosoRef.current?.scrollIntoView({ index })
-                }
-                allowReply={
-                  messages.getIn([sortedDates[index + 1], "reply_to"]) == null
-                }
-                llm_cost_reply={llm_cost_reply}
-              />
-            </div>
-          );
+      <MessageList
+        {...{
+          virtuosoRef,
+          sortedDates,
+          messages,
+          search,
+          account_id,
+          user_map,
+          project_id,
+          path,
+          fontSize,
+          selectedHashtags,
+          actions,
+          llm_cost_reply,
+          manualScrollRef,
+          mode,
         }}
-        rangeChanged={({ endIndex }) => {
-          // manually scrolling if NOT at the bottom.
-          manualScrollRef.current = endIndex < sortedDates.length - 1;
-        }}
-        {...virtuosoScroll}
       />
       <Composing
         projectId={project_id}
@@ -436,6 +378,136 @@ function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
           .
         </b>
       }
+    />
+  );
+}
+
+export function MessageList({
+  messages,
+  account_id,
+  virtuosoRef,
+  sortedDates,
+  search,
+  user_map,
+  project_id,
+  path,
+  fontSize,
+  selectedHashtags,
+  actions,
+  llm_cost_reply,
+  manualScrollRef,
+  mode,
+}: {
+  messages;
+  account_id;
+  user_map;
+  mode;
+  sortedDates;
+  virtuosoRef?;
+  search?;
+  project_id?;
+  path?;
+  fontSize?;
+  selectedHashtags?;
+  actions?;
+  llm_cost_reply?;
+  manualScrollRef?;
+}) {
+  const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
+  const virtuosoScroll = useVirtuosoScrollHook({
+    cacheId: `${project_id}${path}`,
+    initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
+  });
+
+  return (
+    <Virtuoso
+      ref={virtuosoRef}
+      totalCount={sortedDates.length}
+      itemSize={(el) => {
+        // see comment in jupyter/cell-list.tsx
+        const h = el.getBoundingClientRect().height;
+        const data = el.getAttribute("data-item-index");
+        if (data != null) {
+          const index = parseInt(data);
+          virtuosoHeightsRef.current[index] = h;
+        }
+        return h;
+      }}
+      itemContent={(index) => {
+        const date = sortedDates[index];
+        const message: ChatMessageTyped | undefined = messages.get(date);
+        if (message == null) {
+          // shouldn't happen.  But we should be robust to such a possibility.
+          return <div style={{ height: "1px" }} />;
+        }
+
+        const is_thread = isThread(messages, message);
+        // if we search for a message, we treat all threads as unfolded
+        const force_unfold = !!search;
+        const is_folded =
+          !force_unfold && isFolded(messages, message, account_id);
+        const is_thread_body = message.get("reply_to") != null;
+        const h = virtuosoHeightsRef.current[index];
+
+        return (
+          <div style={{ overflow: "hidden" }}>
+            <DivTempHeight height={h ? `${h}px` : undefined}>
+              <Message
+                key={date}
+                index={index}
+                account_id={account_id}
+                user_map={user_map}
+                message={message}
+                project_id={project_id}
+                path={path}
+                font_size={fontSize}
+                selectedHashtags={selectedHashtags}
+                actions={actions}
+                is_thread={is_thread}
+                is_folded={is_folded}
+                force_unfold={force_unfold}
+                is_thread_body={is_thread_body}
+                is_prev_sender={isPrevMessageSender(
+                  index,
+                  sortedDates,
+                  messages,
+                )}
+                is_next_sender={isNextMessageSender(
+                  index,
+                  sortedDates,
+                  messages,
+                )}
+                show_avatar={!isNextMessageSender(index, sortedDates, messages)}
+                mode={mode}
+                get_user_name={(account_id: string | undefined) =>
+                  // ATTN: this also works for LLM chat bot IDs, not just account UUIDs
+                  typeof account_id === "string"
+                    ? getUserName(user_map, account_id)
+                    : "Unknown name"
+                }
+                scroll_into_view={
+                  virtuosoRef
+                    ? () => virtuosoRef.current?.scrollIntoView({ index })
+                    : undefined
+                }
+                allowReply={
+                  messages.getIn([sortedDates[index + 1], "reply_to"]) == null
+                }
+                llm_cost_reply={llm_cost_reply}
+              />
+            </DivTempHeight>
+          </div>
+        );
+      }}
+      rangeChanged={
+        manualScrollRef
+          ? ({ endIndex }) => {
+              // manually scrolling if NOT at the bottom.
+              manualScrollRef.current = endIndex < sortedDates.length - 1;
+            }
+          : undefined
+      }
+      {...virtuosoScroll}
     />
   );
 }

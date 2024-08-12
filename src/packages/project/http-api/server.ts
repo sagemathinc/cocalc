@@ -20,7 +20,7 @@ import type { Request } from "express";
 import express from "express";
 import RateLimit from "express-rate-limit";
 import { writeFile } from "node:fs";
-
+import { getOptions } from "@cocalc/project/init-program";
 import { getClient } from "@cocalc/project/client";
 import { apiServerPortFile } from "@cocalc/project/data";
 import { getSecretToken } from "@cocalc/project/servers/secret-token";
@@ -43,7 +43,8 @@ export default async function init(): Promise<void> {
   dbg("configuring server...");
   configure(app, dbg);
 
-  const server = app.listen(0, "localhost");
+  const options = getOptions();
+  const server = app.listen(0, options.hostname);
   await once(server, "listening");
   const address = server.address();
   if (address == null || typeof address == "string") {
@@ -53,7 +54,7 @@ export default async function init(): Promise<void> {
   dbg(`writing port to file "${apiServerPortFile}"`);
   await callback(writeFile, apiServerPortFile, `${port}`);
 
-  dbg(`express server successfully listening at http://localhost:${port}`);
+  dbg(`express server successfully listening at http://${options.hostname}:${port}`);
 }
 
 function configure(server: express.Application, dbg: Function): void {

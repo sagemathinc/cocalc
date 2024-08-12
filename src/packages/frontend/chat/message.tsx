@@ -112,7 +112,7 @@ interface Props {
   mode: Mode;
   selectedHashtags?: Set<string>;
 
-  scroll_into_view: () => void; // call to scroll this message into view
+  scroll_into_view?: () => void; // call to scroll this message into view
 
   // if true, include a reply button - this should only be for messages
   // that don't have an existing reply to them already.
@@ -232,7 +232,7 @@ export default function Message(props: Readonly<Props>) {
 
   useLayoutEffect(() => {
     if (replying) {
-      props.scroll_into_view();
+      props.scroll_into_view?.();
     }
   }, [replying]);
 
@@ -337,7 +337,7 @@ export default function Message(props: Readonly<Props>) {
     }
     props.actions.set_editing(message, true);
     setAutoFocusEdit(true);
-    props.scroll_into_view();
+    props.scroll_into_view?.();
   }
 
   function avatar_column() {
@@ -736,7 +736,14 @@ export default function Message(props: Readonly<Props>) {
   }
 
   function renderReplyRow() {
-    if (replying || generating || !props.allowReply || is_folded) return;
+    if (
+      replying ||
+      generating ||
+      !props.allowReply ||
+      is_folded ||
+      props.actions == null
+    )
+      return;
 
     return (
       <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>

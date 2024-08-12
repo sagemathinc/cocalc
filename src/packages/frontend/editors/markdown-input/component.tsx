@@ -365,9 +365,16 @@ export function MarkdownInput(props: Props) {
     e.setAttribute("style", s);
 
     if (enableMentions) {
-      cm.current.on("change", (_cm, changeObj) => {
+      cm.current.on("change", (cm, changeObj) => {
         if (changeObj.text[0] == "@") {
-          show_mentions();
+          const before = cm
+            .getLine(changeObj.to.line)
+            .slice(changeObj.to.ch - 1, changeObj.to.ch)
+            ?.trim();
+          // If previous character is whitespace or nothing, then activate mentions:
+          if (!before || before == "(" || before == "[") {
+            show_mentions();
+          }
         }
       });
     }
@@ -803,7 +810,6 @@ export function MarkdownInput(props: Props) {
 
   // make sure that mentions is closed if we switch to another tab.
   useEffect(() => {
-    console.log("")
     if (mentions && !isVisible) {
       close_mentions();
     }

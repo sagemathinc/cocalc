@@ -6,7 +6,6 @@
 import { List, Map, Seq, fromJS, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
-
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -53,6 +52,7 @@ import {
   MessageHistory,
 } from "./types";
 import { getSelectedHashtagsSearch } from "./utils";
+import { history_path } from "@cocalc/util/misc";
 
 const MAX_CHATSTREAM = 10;
 
@@ -1122,6 +1122,16 @@ export class ChatActions extends Actions<ChatState> {
       setDefaultLLM(llm);
     }
   }
+
+  showTimeTravelInNewTab = () => {
+    const store = this.store;
+    if (store == null) return;
+    redux.getProjectActions(store.get("project_id")!).open_file({
+      path: history_path(store.get("path")!),
+      foreground: true,
+      foreground_project: true,
+    });
+  };
 }
 
 export function getRootMessage(
