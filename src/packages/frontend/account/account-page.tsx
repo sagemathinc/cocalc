@@ -11,8 +11,7 @@ and configuration.
 */
 
 import { DownOutlined } from "@ant-design/icons";
-import type { MenuProps } from "antd";
-import { Button, Dropdown, Space, Tooltip } from "antd";
+import { Button, Dropdown, MenuProps, Space, Tooltip } from "antd";
 
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
@@ -20,6 +19,7 @@ import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
+import { Locale, LOCALIZATIONS } from "@cocalc/frontend/i18n";
 import { LandingPage } from "@cocalc/frontend/landing-page/landing-page";
 import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
@@ -30,12 +30,12 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { LANGS, Languages } from "@cocalc/util/i18n/index";
 import { AccountPreferences } from "./account-preferences";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+import { useLocalizationCtx } from "../app/localize";
 
 export const AccountPage: React.FC = () => {
   const other_settings = useTypedRedux("account", "other_settings");
@@ -67,6 +67,8 @@ export const AccountPage: React.FC = () => {
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
+
+  const { setLocalization } = useLocalizationCtx();
 
   // for each exclusive domain, tell the user which strategy to use
   const exclusive_sso_domains = React.useMemo(() => {
@@ -242,16 +244,17 @@ export const AccountPage: React.FC = () => {
   }
 
   function renderI18N(): JSX.Element {
-    const i18n: Languages = other_settings.get("i18n") ?? "en_US";
+    const i18n: Locale = other_settings.get("i18n") ?? "en";
 
     const menu: MenuProps = {
-      items: Object.entries(LANGS).map(([key, val]) => {
+      items: Object.entries(LOCALIZATIONS).map(([key, val]) => {
         return { key, label: val };
       }),
       selectable: true,
       defaultSelectedKeys: [i18n],
       onClick: ({ key }) => {
         redux.getActions("account").set_other_settings("i18n", key);
+        setLocalization(key);
       },
     };
 
@@ -260,7 +263,7 @@ export const AccountPage: React.FC = () => {
         <Dropdown menu={menu} trigger={["click"]}>
           <Button>
             <Space>
-              {LANGS[i18n] ?? i18n}
+              {LOCALIZATIONS[i18n] ?? i18n}
               <DownOutlined />
             </Space>
           </Button>

@@ -3,10 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
 import { Popconfirm, Popover } from "antd";
+import React from "react";
+import { useIntl } from "react-intl";
 
-import { AccountActions } from "../account";
+import { AccountActions } from "@cocalc/frontend/account";
+import { labels } from "@cocalc/frontend/i18n";
 
 interface Props {
   icon: React.ReactNode; // When clicked, show popover
@@ -28,6 +30,9 @@ interface AccountTabProps {
 
 export const AccountTabDropdown: React.FC<Props> = (props: AccountTabProps) => {
   const { icon, links, label_class, show_label, is_active, user_label } = props;
+  const intl = useIntl();
+
+  const label = intl.formatMessage(labels.account);
 
   // If icon is a string then use the Icon component
   // Else (it is a node already) just render icon
@@ -52,7 +57,7 @@ export const AccountTabDropdown: React.FC<Props> = (props: AccountTabProps) => {
       >
         {icon}
         <span style={{ marginLeft: 5 }} className={label_class}>
-          {show_label ? "Account" : undefined}
+          {show_label ? label : undefined}
         </span>
       </div>
     </Popover>

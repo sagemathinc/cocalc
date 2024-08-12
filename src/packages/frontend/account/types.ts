@@ -7,13 +7,13 @@ import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { MessageInfo } from "@cocalc/frontend/client/hub";
+import type { Locale } from "@cocalc/frontend/i18n/index";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
   OTHER_SETTINGS_USERDEFINED_LLM,
 } from "@cocalc/util/db-schema/defaults";
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
-import type { Languages } from "@cocalc/util/i18n/index";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
@@ -94,5 +94,5 @@ export interface AccountState {
   purchase_closing_day?: number;
   email_daily_statements?: boolean;
   [SETTINGS_LANGUAGE_MODEL_KEY]?: LanguageModel;
-  i18n: Languages;
+  i18n: Locale;
 }

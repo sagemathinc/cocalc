@@ -10,6 +10,8 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
+import { useIntl } from "react-intl";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -25,7 +27,9 @@ import { Loading } from "@cocalc/frontend/components";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
+import { labels, Locale } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
+import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { COLORS } from "@cocalc/util/theme";
 import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
@@ -37,10 +41,10 @@ import { FullscreenButton } from "./fullscreen-button";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
+import PopconfirmModal from "./popconfirm-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
-import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
-import PopconfirmModal from "./popconfirm-modal";
+import { useLocalizationCtx } from "./localize";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -71,6 +75,9 @@ export const Page: React.FC = () => {
   const { pageStyle } = useAppState();
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
+  const intl = useIntl();
+  const { setLocalization } = useLocalizationCtx();
+
   const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
   useEffect(() => {
@@ -98,6 +105,7 @@ export const Page: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const other_settings = useTypedRedux("account", "other_settings");
   const doing_anonymous_setup = useTypedRedux(
     "account",
     "doing_anonymous_setup",
@@ -106,6 +114,11 @@ export const Page: React.FC = () => {
   const groups = useTypedRedux("account", "groups");
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
+
+  useEffect(() => {
+    const i18n: Locale = other_settings.get("i18n") ?? "en";
+    setLocalization(i18n);
+  }, []);
 
   function account_tab_icon(): IconName | JSX.Element {
     if (is_anonymous) {
@@ -152,7 +165,7 @@ export const Page: React.FC = () => {
       */
       setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
     } else {
-      label = "Account";
+      label = intl.formatMessage(labels.account);
       style = undefined;
     }
 
@@ -302,7 +315,7 @@ export const Page: React.FC = () => {
         active_top_tab={active_top_tab}
         tooltip="Show all the projects on which you collaborate."
         icon="edit"
-        label="Projects"
+        label={intl.formatMessage(labels.projects)}
       />
     );
   }

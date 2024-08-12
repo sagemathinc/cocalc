@@ -5,10 +5,6 @@
 
 import { ThemeConfig, theme } from "antd";
 import type { SizeType } from "antd/es/config-provider/SizeContext";
-import deDE from "antd/locale/de_DE";
-import enUS from "antd/locale/en_US";
-import zhCN from "antd/locale/zh_CN";
-import type { Locale as AntdLocale } from "antd/lib/locale";
 import { debounce } from "lodash";
 import { createContext, useContext } from "react";
 
@@ -19,8 +15,6 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Languages } from "@cocalc/util/i18n";
-import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import {
   FONT_SIZE_ICONS_NARROW,
@@ -175,20 +169,4 @@ function calcStyle(isNarrow: boolean): PageStyle {
     fontSizeIcons,
     height,
   };
-}
-
-export function useLocale(): [Languages, AntdLocale] {
-  const other_settings = useTypedRedux("account", "other_settings");
-  const i18n: Languages = other_settings?.get("i18n") ?? ("en_US" as Languages);
-  switch (i18n) {
-    case "en_US":
-      return [i18n, enUS];
-    case "de_DE":
-      return [i18n, deDE];
-    case "zh_CN":
-      return [i18n, zhCN];
-    default:
-      unreachable(i18n);
-  }
-  throw new Error("unreachable");
 }

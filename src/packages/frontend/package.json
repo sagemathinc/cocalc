@@ -177,6 +177,7 @@
     "zlibjs": "^0.3.1"
   },
   "devDependencies": {
+    "@formatjs/cli": "^6.2.12",
     "@types/codemirror": "^5.60.15",
     "@types/jquery": "^3.5.5",
     "@types/katex": "^0.16.7",
@@ -204,7 +205,10 @@
     "test": "npx jest dist/",
     "prepublishOnly": "pnpm test",
     "update-color-scheme": "node ./update-color-scheme.js",
-    "clean": "rm -rf dist node_modules"
+    "clean": "rm -rf dist node_modules",
+    "i18n:extract": "pnpm exec formatjs extract **/*.tsx i18n/*.ts --ignore='**/*.d.ts' --ignore='node_modules/*' --ignore='dist/*' --out-file i18n/extracted.json --id-interpolation-pattern '[sha512:contenthash:base64:6]'",
+    "i18n:upload": "simplelocalize upload --apiKey $SIMPLELOCALIZE_KEY --languageKey en_US --uploadFormat simplelocalize-json --uploadPath ./i18n/en_US.json",
+    "i18n:download": "for L in en_US de_DE zh_CN; do simplelocalize download --apiKey $SIMPLELOCALIZE_KEY --downloadPath ./i18n/$L.json --downloadFormat single-language-json --languageKey=$L; done"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "repository": {

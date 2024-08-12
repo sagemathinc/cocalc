@@ -3,18 +3,18 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux, Actions } from "../app-framework";
-import { set_window_title } from "../browser";
-import { update_params, set_url } from "../history";
-import { disconnect_from_project } from "../project/websocket/connect";
-import { session_manager } from "../session";
-import { PageState } from "./store";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
+import { set_window_title } from "@cocalc/frontend/browser";
+import { set_url, update_params } from "@cocalc/frontend/history";
 import {
   exitFullscreen,
   isFullscreen,
   requestFullscreen,
 } from "@cocalc/frontend/misc/fullscreen";
+import { disconnect_from_project } from "@cocalc/frontend/project/websocket/connect";
+import { session_manager } from "@cocalc/frontend/session";
 import { once } from "@cocalc/util/async-utils";
+import { PageState } from "./store";
 
 export class PageActions extends Actions<PageState> {
   private session_manager?: any;

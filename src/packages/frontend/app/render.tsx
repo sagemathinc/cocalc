@@ -6,30 +6,37 @@
 import { ConfigProvider as AntdConfigProvider } from "antd";
 import ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
-import { IntlProvider } from "react-intl";
 
 import { Redux } from "@cocalc/frontend/app-framework";
 import {
   AppContext,
-  useLocale,
   useAntdStyleProvider,
   useAppStateProvider,
 } from "./context";
+import { Localize, useAntdLocale } from "./localize";
 
-function Root({ Page }) {
+function App({ children }) {
   const appState = useAppStateProvider();
-  const [locale, antdLocale] = useLocale();
+  const antdLocale = useAntdLocale();
   const { antdTheme } = useAntdStyleProvider();
 
   return (
+    <AppContext.Provider value={appState}>
+      <AntdConfigProvider theme={antdTheme} locale={antdLocale}>
+        {children}
+      </AntdConfigProvider>
+    </AppContext.Provider>
+  );
+}
+
+function Root({ Page }) {
+  return (
     <Redux>
-      <IntlProvider locale={locale} defaultLocale="en_US">
-        <AppContext.Provider value={appState}>
-          <AntdConfigProvider theme={antdTheme} locale={antdLocale}>
-            <Page />
-          </AntdConfigProvider>
-        </AppContext.Provider>
-      </IntlProvider>
+      <Localize>
+        <App>
+          <Page />
+        </App>
+      </Localize>
     </Redux>
   );
 }
