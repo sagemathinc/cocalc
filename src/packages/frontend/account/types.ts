@@ -13,6 +13,7 @@ import {
   OTHER_SETTINGS_USERDEFINED_LLM,
 } from "@cocalc/util/db-schema/defaults";
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import type { Languages } from "@cocalc/util/i18n/index";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
@@ -93,4 +94,5 @@ export interface AccountState {
   purchase_closing_day?: number;
   email_daily_statements?: boolean;
   [SETTINGS_LANGUAGE_MODEL_KEY]?: LanguageModel;
+  i18n: Languages;
 }

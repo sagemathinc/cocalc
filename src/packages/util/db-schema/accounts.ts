@@ -342,6 +342,7 @@ Table({
             hide_file_popovers: false,
             hide_button_tooltips: false,
             [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
+            i18n: "en_US",
           },
           name: null,
           first_name: "",

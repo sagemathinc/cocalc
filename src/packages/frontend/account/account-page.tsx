@@ -10,29 +10,35 @@ for different account related information
 and configuration.
 */
 
+import { DownOutlined } from "@ant-design/icons";
+import type { MenuProps } from "antd";
+import { Button, Dropdown, Space, Tooltip } from "antd";
+
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
+import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
+import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { LandingPage } from "@cocalc/frontend/landing-page/landing-page";
 import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
+import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
+import StatementsPage from "@cocalc/frontend/purchases/statements-page";
+import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 import { SupportTickets } from "@cocalc/frontend/support";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
+import { LANGS, Languages } from "@cocalc/util/i18n/index";
 import { AccountPreferences } from "./account-preferences";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
-import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
-import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
-import StatementsPage from "@cocalc/frontend/purchases/statements-page";
-import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
-import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 
 export const AccountPage: React.FC = () => {
+  const other_settings = useTypedRedux("account", "other_settings");
   const active_page = useTypedRedux("account", "active_page");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
@@ -235,6 +241,43 @@ export const AccountPage: React.FC = () => {
     return items;
   }
 
+  function renderI18N(): JSX.Element {
+    const i18n: Languages = other_settings.get("i18n") ?? "en_US";
+
+    const menu: MenuProps = {
+      items: Object.entries(LANGS).map(([key, val]) => {
+        return { key, label: val };
+      }),
+      selectable: true,
+      defaultSelectedKeys: [i18n],
+      onClick: ({ key }) => {
+        redux.getActions("account").set_other_settings("i18n", key);
+      },
+    };
+
+    return (
+      <Tooltip title="Change the language of the user-interface.">
+        <Dropdown menu={menu} trigger={["click"]}>
+          <Button>
+            <Space>
+              {LANGS[i18n] ?? i18n}
+              <DownOutlined />
+            </Space>
+          </Button>
+        </Dropdown>
+      </Tooltip>
+    );
+  }
+
+  function renderExtraContent() {
+    return (
+      <Space>
+        {renderI18N()}
+        <SignOut everywhere={false} highlight={true} />
+      </Space>
+    );
+  }
+
   function render_logged_in_view(): JSX.Element {
     if (!account_id) {
       return (
@@ -263,7 +306,7 @@ export const AccountPage: React.FC = () => {
             activeKey={active_page ?? "account"}
             onSelect={handle_select}
             animation={false}
-            tabBarExtraContent={<SignOut everywhere={false} highlight={true} />}
+            tabBarExtraContent={renderExtraContent()}
             items={tabs}
           />
         </Col>

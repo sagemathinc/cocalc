@@ -3,27 +3,33 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { createRoot } from "react-dom/client";
 import { ConfigProvider as AntdConfigProvider } from "antd";
+import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
+import { IntlProvider } from "react-intl";
 
 import { Redux } from "@cocalc/frontend/app-framework";
 import {
   AppContext,
-  useAppStateProvider,
+  useLocale,
   useAntdStyleProvider,
+  useAppStateProvider,
 } from "./context";
 
 function Root({ Page }) {
   const appState = useAppStateProvider();
+  const [locale, antdLocale] = useLocale();
   const { antdTheme } = useAntdStyleProvider();
 
   return (
     <Redux>
-      <AppContext.Provider value={appState}>
-        <AntdConfigProvider theme={antdTheme}>
-          <Page />
-        </AntdConfigProvider>
-      </AppContext.Provider>
+      <IntlProvider locale={locale} defaultLocale="en_US">
+        <AppContext.Provider value={appState}>
+          <AntdConfigProvider theme={antdTheme} locale={antdLocale}>
+            <Page />
+          </AntdConfigProvider>
+        </AppContext.Provider>
+      </IntlProvider>
     </Redux>
   );
 }
@@ -36,7 +42,6 @@ export async function render(): Promise<void> {
   root.render(<Root Page={Page} />);
 }
 
-import ReactDOM from "react-dom";
 export async function xxx_render(): Promise<void> {
   finishedLoading(); // comment this out to leave the loading/startup banner visible
   const { Page } = await import("./page");
