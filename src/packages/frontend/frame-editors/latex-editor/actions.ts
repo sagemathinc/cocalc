@@ -107,6 +107,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   private _last_sagetex_hash: string;
   private _last_syncstring_hash: number | undefined;
   private is_building: boolean = false;
+  private is_stopping: boolean = false; // if true, do not continue running any compile jobs
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -725,7 +726,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         // likely "No such process", we just ignore it
       } finally {
         // set this build log to be no longer running
-        job.status = "completed";
+        job.status = "killed";
       }
     }
     return job;
@@ -734,17 +735,23 @@ export class Actions extends BaseActions<LatexEditorState> {
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
     const build_logs = this.store.get("build_logs");
-    if (build_logs) {
-      for (const [name, job] of build_logs) {
-        this.set_build_logs({ [name]: await this.kill(job.toJS()) });
+    try {
+      this.is_stopping = true;
+      if (build_logs) {
+        for (const [name, job] of build_logs) {
+          // this.kill returns the job with a modified status, it's not the kill exec itself
+          this.set_build_logs({ [name]: await this.kill(job.toJS()) });
+        }
       }
+    } finally {
+      this.set_status("");
+      this.is_building = false;
+      this.is_stopping = false;
     }
-
-    this.set_status("");
-    this.is_building = false;
   }
 
   private async run_build(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     // reset state of build_logs, since it is a fresh start
     this.setState({ build_logs: Map() });
 
@@ -807,6 +814,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private async run_knitr(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     const status = (s) => this.set_status(`Running Knitr... ${s}`);
     const set_job_info = (job) => this.set_build_logs({ knitr: job });
@@ -890,6 +898,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     force: boolean,
     update_pdf: boolean = true,
   ): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     let build_command: string | string[];
     const timestamp = this.make_timestamp(time, force);
@@ -1105,6 +1114,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_sagetex(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     const status = (s) => this.set_status(`Running SageTeX... ${s}`);
     const set_job_info = (job) => this.set_build_logs({ sagetex: job });
     status("");
@@ -1174,6 +1184,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_pythontex(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     const status = (s) => this.set_status(`Running PythonTeX... ${s}`);
     const set_job_info = (job) => this.set_build_logs({ pythontex: job });
