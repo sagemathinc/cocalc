@@ -44,6 +44,7 @@ import {
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { once } from "@cocalc/util/async-utils";
+import { ExecOutput } from "@cocalc/util/db-schema/projects";
 import {
   change_filename_extension,
   path_split,
@@ -53,8 +54,6 @@ import {
   startswith,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-
-import { ExecOutput } from "@cocalc/util/db-schema/projects";
 // import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { bibtex } from "./bibtex";
 import { clean } from "./clean";
