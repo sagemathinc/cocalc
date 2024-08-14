@@ -300,3 +300,24 @@ describe("hoursToTimeIntervalHuman", () => {
     expect(hoursToTimeIntervalHuman(2.5111 * 24 * 7)).toBe("2.5 weeks");
   });
 });
+
+describe("tail", () => {
+  const s = `
+foo
+bar
+baz
+abc
+xyz
+test 123`;
+  const { tail } = misc;
+  it("return the last 3 lines", () => {
+    const t = tail(s, 3);
+    expect(t.split("\n").length).toEqual(3);
+    expect(t.startsWith("abc")).toBe(true);
+  });
+  it("return the last line", () => {
+    const t = tail("foo", 3);
+    expect(t.split("\n").length).toEqual(1);
+    expect(t).toEqual("foo");
+  });
+});

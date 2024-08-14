@@ -10,7 +10,7 @@ Run Knitr on rnw/rtex files
 import { exec, ExecOutput } from "../generic/client";
 import { parse_path } from "../frame-tree/util";
 import { ProcessedLatexLog, Error } from "./latex-log-parser";
-import { BuildLog } from "./actions";
+import { BuildLog } from "./types";
 
 // this still respects the environment variables and init files
 const R_CMD = "R";

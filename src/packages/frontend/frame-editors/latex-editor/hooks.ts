@@ -5,13 +5,13 @@
 
 import { Map } from "immutable";
 import { React, useRedux } from "../../app-framework";
-import { BuildLogs } from "./actions";
+import { BuildLogs } from "./types";
 
 export function use_build_logs(name): BuildLogs {
   const build_logs_next: BuildLogs =
     useRedux([name, "build_logs"]) ?? Map<string, any>();
   const [build_logs, set_build_logs] = React.useState<BuildLogs>(
-    Map<string, any>()
+    Map<string, any>() as BuildLogs
   );
 
   // only update if any parsed logs differ

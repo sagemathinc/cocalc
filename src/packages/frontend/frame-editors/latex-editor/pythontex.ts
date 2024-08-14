@@ -10,7 +10,7 @@ Run PythonTeX
 import { exec, ExecOutput } from "../generic/client";
 import { parse_path } from "../frame-tree/util";
 import { ProcessedLatexLog, Error } from "./latex-log-parser";
-import { BuildLog } from "./actions";
+import { BuildLog } from "./types";
 
 // command documentation
 //
@@ -28,7 +28,7 @@ export async function pythontex(
   time: number,
   force: boolean,
   status: Function,
-  output_directory: string | undefined
+  output_directory: string | undefined,
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
   const rerun = force ? "--rerun=always" : ""; // forced build implies to run all snippets
@@ -69,7 +69,7 @@ PythonTeX:  pytex-test - 1 error(s), 0 warning(s)
 
 export function pythontex_errors(
   file: string,
-  output: BuildLog
+  output: BuildLog,
 ): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
