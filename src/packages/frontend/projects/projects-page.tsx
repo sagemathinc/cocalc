@@ -5,6 +5,7 @@
 
 import { Map, Set } from "immutable";
 import { useRef } from "react";
+import { useIntl } from "react-intl";
 
 // ensure redux stuff (actions and store) are initialized:
 import "./actions";
@@ -20,17 +21,18 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
+import { labels } from "@cocalc/frontend/i18n";
+import { COLORS } from "@cocalc/util/theme";
 import { UsersViewing } from "../account/avatar/users-viewing";
 import { NewProjectCreator } from "./create-project";
+import { FilenameSearch } from "./filename-search";
 import { Hashtags } from "./hashtags";
 import ProjectList from "./project-list";
 import { ProjectsListingDescription } from "./project-list-desc";
 import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
-import { FilenameSearch } from "./filename-search";
 import ProjectsPageTour from "./tour";
 import { get_visible_hashtags, get_visible_projects } from "./util";
-import { COLORS } from "@cocalc/util/theme";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
   color: COLORS.GRAY_D,
@@ -46,6 +48,7 @@ const LOADING_STYLE: React.CSSProperties = {
 } as const;
 
 export const ProjectsPage: React.FC = () => {
+  const intl = useIntl();
   const searchRef = useRef<any>(null);
   const filtersRef = useRef<any>(null);
   const createNewRef = useRef<any>(null);
@@ -161,7 +164,7 @@ export const ProjectsPage: React.FC = () => {
         <Row>
           <Col md={4}>
             <div style={PROJECTS_TITLE_STYLE}>
-              <Icon name="edit" /> Projects
+              <Icon name="edit" /> {intl.formatMessage(labels.projects)}
             </div>
           </Col>
           <Col md={3}>

@@ -8,32 +8,15 @@ import deDE from "antd/locale/de_DE";
 import enUS from "antd/locale/en_US";
 import zhCN from "antd/locale/zh_CN";
 import { createContext, useContext, useEffect, useState } from "react";
-import { IntlProvider, MessageFormatElement } from "react-intl";
+import { IntlProvider } from "react-intl";
 
-import { Locale, sanitizeLocale } from "@cocalc/frontend/i18n/index";
-
-const DEFAULT_LOCALE: Locale = "en";
-
-type Messages = Record<string, string> | Record<string, MessageFormatElement[]>;
-
-export function loadLocaleData(locale: Locale): Promise<Messages> {
-  switch (locale) {
-    case "de":
-      return import(
-        "@cocalc/frontend/i18n/de_DE.json"
-      ) as any as Promise<Messages>;
-    case "zh":
-      return import(
-        "@cocalc/frontend/i18n/zh_CN.json"
-      ) as any as Promise<Messages>;
-    case "en":
-      return import(
-        "@cocalc/frontend/i18n/en_US.json"
-      ) as any as Promise<Messages>;
-    default:
-      throw new Error(`Unknown locale '${locale}.`);
-  }
-}
+import {
+  DEFAULT_LOCALE,
+  loadLocaleData,
+  Locale,
+  Messages,
+  sanitizeLocale,
+} from "@cocalc/frontend/i18n";
 
 interface LanguageContextInterface {
   setLocalization: (language: string) => void;

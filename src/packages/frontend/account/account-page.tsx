@@ -19,7 +19,12 @@ import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
-import { Locale, LOCALIZATIONS } from "@cocalc/frontend/i18n";
+import {
+  getLocale,
+  Locale,
+  LOCALIZATIONS,
+  OTHER_SETTINGS_LOCALE_KEY,
+} from "@cocalc/frontend/i18n";
 import { LandingPage } from "@cocalc/frontend/landing-page/landing-page";
 import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
@@ -244,7 +249,7 @@ export const AccountPage: React.FC = () => {
   }
 
   function renderI18N(): JSX.Element {
-    const i18n: Locale = other_settings.get("i18n") ?? "en";
+    const i18n: Locale = getLocale(other_settings);
 
     const menu: MenuProps = {
       items: Object.entries(LOCALIZATIONS).map(([key, val]) => {
@@ -253,7 +258,9 @@ export const AccountPage: React.FC = () => {
       selectable: true,
       defaultSelectedKeys: [i18n],
       onClick: ({ key }) => {
-        redux.getActions("account").set_other_settings("i18n", key);
+        redux
+          .getActions("account")
+          .set_other_settings(OTHER_SETTINGS_LOCALE_KEY, key);
         setLocalization(key);
       },
     };

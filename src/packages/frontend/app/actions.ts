@@ -6,6 +6,7 @@
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
 import { set_url, update_params } from "@cocalc/frontend/history";
+import { getIntl, labels } from "@cocalc/frontend/i18n";
 import {
   exitFullscreen,
   isFullscreen,
@@ -150,18 +151,20 @@ export class PageActions extends Actions<PageState> {
       redux.getProjectActions(key)?.show();
     }
 
+    const intl = await getIntl();
+
     switch (key) {
       case "projects":
         if (change_history) {
           set_url("/projects");
         }
-        set_window_title("Projects");
+        set_window_title(intl.formatMessage(labels.projects));
         return;
       case "account":
         if (change_history) {
           redux.getActions("account").push_state();
         }
-        set_window_title("Account");
+        set_window_title(intl.formatMessage(labels.account));
         return;
       case "file-use": // this doesn't actually get used currently
         if (change_history) {

@@ -1,11 +1,13 @@
 /* Select one of the projects the signed in user is a collaborator on. */
 
-import { useMemo } from "react";
-import useDatabase from "lib/hooks/database";
 import { Alert, Divider, Select, Space } from "antd";
+import { useMemo } from "react";
+
 import Loading from "components/share/loading";
-import { field_cmp } from "@cocalc/util/cmp";
+import useDatabase from "lib/hooks/database";
+
 import { Icon } from "@cocalc/frontend/components/icon";
+import { field_cmp } from "@cocalc/util/cmp";
 
 interface Props {
   label?: string;

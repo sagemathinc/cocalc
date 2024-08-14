@@ -7,7 +7,7 @@ import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { MessageInfo } from "@cocalc/frontend/client/hub";
-import type { Locale } from "@cocalc/frontend/i18n/index";
+import type { Locale } from "@cocalc/frontend/i18n";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,

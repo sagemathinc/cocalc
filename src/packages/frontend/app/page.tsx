@@ -27,7 +27,7 @@ import { Loading } from "@cocalc/frontend/components";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
-import { labels, Locale } from "@cocalc/frontend/i18n";
+import { getLocale, labels, Locale } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
 import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
@@ -38,13 +38,13 @@ import { ConnectionIndicator } from "./connection-indicator";
 import { ConnectionInfo } from "./connection-info";
 import { useAppState } from "./context";
 import { FullscreenButton } from "./fullscreen-button";
+import { useLocalizationCtx } from "./localize";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
 import PopconfirmModal from "./popconfirm-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
-import { useLocalizationCtx } from "./localize";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -116,7 +116,7 @@ export const Page: React.FC = () => {
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
   useEffect(() => {
-    const i18n: Locale = other_settings.get("i18n") ?? "en";
+    const i18n: Locale = getLocale(other_settings);
     setLocalization(i18n);
   }, []);
 

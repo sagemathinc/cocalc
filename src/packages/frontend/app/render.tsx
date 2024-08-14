@@ -15,6 +15,7 @@ import {
 } from "./context";
 import { Localize, useAntdLocale } from "./localize";
 
+// App uses the context provided by Redux (for the locale, etc.) and Localize.
 function App({ children }) {
   const appState = useAppStateProvider();
   const antdLocale = useAntdLocale();
