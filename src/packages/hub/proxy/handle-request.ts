@@ -60,7 +60,7 @@ export default function init({ projectControl, isPersonal }: Options) {
     if (req.headers["cookie"] != null) {
       let cookie;
       ({ cookie, remember_me, api_key } = stripRememberMeCookie(
-        req.headers["cookie"]
+        req.headers["cookie"],
       ));
       req.headers["cookie"] = cookie;
     }
@@ -71,7 +71,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       // definitely block access.  4xx since this is a *client* problem.
       const url = await siteUrl();
       throw Error(
-        `Please login to <a target='_blank' href='${url}'>${url}</a> with cookies enabled, then refresh this page.`
+        `Please login to <a target='_blank' href='${url}'>${url}</a> with cookies enabled, then refresh this page.`,
       );
     }
 
@@ -94,7 +94,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       dbg("using cached proxy");
       proxy = cache.get(target);
     } else {
-      dbg("make a new proxy server to", target);
+      logger.debug("make a new proxy server to", target);
       proxy = createProxyServer({
         ws: false,
         target,
@@ -102,7 +102,7 @@ export default function init({ projectControl, isPersonal }: Options) {
       });
       // and cache it.
       cache.set(target, proxy);
-      dbg("created new proxy");
+      logger.debug("created new proxy");
       // setup error handler, so that if something goes wrong with this proxy (it will,
       // e.g., on project restart), we properly invalidate it.
       const remove_from_cache = () => {
@@ -111,11 +111,14 @@ export default function init({ projectControl, isPersonal }: Options) {
       };
 
       proxy.on("error", (e) => {
-        dbg("http proxy error event (ending proxy)", e);
+        logger.debug("http proxy error event (ending proxy)", e);
         remove_from_cache();
       });
 
-      proxy.on("close", remove_from_cache);
+      proxy.on("close", () => {
+        logger.debug("http proxy close event (ending proxy)");
+        remove_from_cache();
+      });
     }
 
     if (internal_url != null) {

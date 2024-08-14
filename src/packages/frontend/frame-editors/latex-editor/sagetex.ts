@@ -12,7 +12,7 @@ Run sagetex
 import { exec, ExecOutput } from "../generic/client";
 import { parse_path } from "../frame-tree/util";
 import { ProcessedLatexLog, Error } from "./latex-log-parser";
-import { BuildLog } from "./actions";
+import { BuildLog } from "./types";
 
 function sagetex_file(base: string): string {
   return base + ".sagetex.sage";

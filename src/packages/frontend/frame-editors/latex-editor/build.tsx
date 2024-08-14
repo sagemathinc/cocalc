@@ -13,7 +13,7 @@ import { React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { IconName, Loading } from "@cocalc/frontend/components";
 import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { BuildLogs } from "./actions";
+import { BuildLogs } from "./types";
 import { BuildCommand } from "./build-command";
 import { use_build_logs } from "./hooks";
 
