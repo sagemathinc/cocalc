@@ -538,6 +538,7 @@ function initMenus() {
     jupyterCommands[name] = true;
   }
 }
+
 initMenus();
 
 export const Editor = createEditor({

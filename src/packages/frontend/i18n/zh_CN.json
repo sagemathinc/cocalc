@@ -1,5 +1,5 @@
 {
-  "labels": "",
   "labels.account": "项目",
+  "labels.createProject": "创建项目...",
   "labels.projects": "帐户"
 }

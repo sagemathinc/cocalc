@@ -20,6 +20,7 @@ import {
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import { useImages } from "@cocalc/frontend/compute/images-hook";
+import { FormattedMessage } from "react-intl";
 
 import {
   CSS,
@@ -452,9 +453,14 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       return (
         <div style={{ color: COLORS.GRAY, paddingBottom: "2em" }}>
           <Paragraph>
-            <Text strong>Note:</Text> You can always change the selected kernel
-            later in the Kernel menu or by clicking on the kernel status logo in
-            the top right.
+            <FormattedMessage
+              id="jupyter.select_kernel.footer"
+              defaultMessage="<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left."
+              description="Jupyter kernel selector, bottom."
+              values={{
+                strong: (c) => <Text strong>{c}</Text>,
+              }}
+            />
           </Paragraph>
         </div>
       );

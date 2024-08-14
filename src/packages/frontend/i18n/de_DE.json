@@ -1,5 +1,5 @@
 {
-  "labels": "",
   "labels.account": "Konto",
+  "labels.createProject": "Neues Projekt...",
   "labels.projects": "Projekte"
 }

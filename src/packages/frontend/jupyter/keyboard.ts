@@ -109,6 +109,7 @@ export function create_key_handler(
     frame_actions,
     editor_actions,
   });
+
   for (const name in object) {
     val = object[name];
     if ((val != null ? val.k : undefined) == null) {
