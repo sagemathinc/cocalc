@@ -13,10 +13,11 @@ interface Props {
   sign_in?: boolean;
   highlight?: boolean;
   style?: React.CSSProperties;
+  narrow?: boolean;
 }
 
-export const SignOut: React.FC<Props> = (props: Props) => {
-  const { everywhere, sign_in, highlight, style } = props;
+export const SignOut: React.FC<Props> = (props: Readonly<Props>) => {
+  const { everywhere, sign_in, highlight, style, narrow = false } = props;
 
   function sign_out(): void {
     const account = redux.getActions("account");
@@ -65,7 +66,7 @@ export const SignOut: React.FC<Props> = (props: Props) => {
         type={highlight ? "primary" : undefined}
         style={style}
       >
-        {render_body()}
+        {!narrow || everywhere ? render_body() : undefined}
       </Button>
     </Popconfirm>
   );

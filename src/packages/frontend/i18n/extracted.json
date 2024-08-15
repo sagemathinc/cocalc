@@ -1,4 +1,8 @@
 {
+  "account.language_tooltip": {
+    "defaultMessage": "Change the language of the user-interface.",
+    "description": "Tooltip text of dropdown to change the UI language"
+  },
   "jupyter.select_kernel.footer": {
     "defaultMessage": "<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left.",
     "description": "Jupyter kernel selector, bottom."

@@ -195,6 +195,7 @@
     "coffeescript": "^2.5.1",
     "mocha": "^10.0.0",
     "react-test-renderer": "^18.2.0",
+    "tsd": "^0.22.0",
     "type-fest": "^3.3.0"
   },
   "scripts": {
@@ -202,13 +203,13 @@
     "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc  --build && coffee  -m -c -o dist/ .",
     "build-coffee": "pnpm exec coffee -m -c -o dist/ .",
     "tsc": "NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc  --watch  --pretty --preserveWatchOutput ",
-    "test": "npx jest dist/",
+    "test": "npx jest i18n/",
     "prepublishOnly": "pnpm test",
     "update-color-scheme": "node ./update-color-scheme.js",
     "clean": "rm -rf dist node_modules",
     "i18n:extract": "pnpm exec formatjs extract **/*.tsx i18n/*.ts --ignore='**/*.d.ts' --ignore='node_modules/*' --ignore='dist/*' --out-file i18n/extracted.json --id-interpolation-pattern '[sha512:contenthash:base64:6]'",
     "i18n:upload": "simplelocalize upload --apiKey $SIMPLELOCALIZE_KEY --languageKey en --uploadFormat simplelocalize-json --uploadPath ./i18n/extracted.json",
-    "i18n:download": "for L in en de_DE zh_CN; do simplelocalize download --apiKey $SIMPLELOCALIZE_KEY --downloadPath ./i18n/$L.json --downloadFormat single-language-json --languageKey=$L; done"
+    "i18n:download": "for L in en de_DE zh_CN es_ES; do simplelocalize download --apiKey $SIMPLELOCALIZE_KEY --downloadPath ./i18n/$L.json --downloadFormat single-language-json --languageKey=$L; done"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "repository": {

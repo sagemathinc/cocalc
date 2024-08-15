@@ -1,0 +1,11 @@
+{
+  "jupyter.select_kernel.footer": "<strong>Nota:</strong> Siempre puedes cambiar el kernel seleccionado más tarde en el menú Kernel o haciendo clic en el logotipo de estado del kernel en la parte superior izquierda.",
+  "labels.acconut.password": "Contraseña",
+  "labels.acconut.password.change": "Cambiar la contraseña",
+  "labels.acconut.password.forgot": "¿Has olvidado tu contraseña?",
+  "labels.account": "Cuenta",
+  "labels.account.first_name": "Nombre de pila",
+  "labels.account.last_name": "Apellido",
+  "labels.create_project": "Crear proyecto...",
+  "labels.projects": "Proyectos"
+}

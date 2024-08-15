@@ -12,15 +12,23 @@ and configuration.
 
 import { DownOutlined } from "@ant-design/icons";
 import { Button, Dropdown, MenuProps, Space, Tooltip } from "antd";
+import { useIntl } from "react-intl";
 
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
-import { React, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  React,
+  redux,
+  useTypedRedux,
+  useWindowDimensions,
+} from "@cocalc/frontend/app-framework";
+import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import {
   getLocale,
+  labels,
   Locale,
   LOCALIZATIONS,
   OTHER_SETTINGS_LOCALE_KEY,
@@ -40,9 +48,14 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
-import { useLocalizationCtx } from "../app/localize";
 
 export const AccountPage: React.FC = () => {
+  const intl = useIntl();
+  const { setLocale } = useLocalizationCtx();
+
+  const { width: windowWidth } = useWindowDimensions();
+  const isWide = windowWidth > 800;
+
   const other_settings = useTypedRedux("account", "other_settings");
   const active_page = useTypedRedux("account", "active_page");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
@@ -73,7 +86,6 @@ export const AccountPage: React.FC = () => {
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
 
-  const { setLocalization } = useLocalizationCtx();
 
   // for each exclusive domain, tell the user which strategy to use
   const exclusive_sso_domains = React.useMemo(() => {
@@ -251,26 +263,48 @@ export const AccountPage: React.FC = () => {
   function renderI18N(): JSX.Element {
     const i18n: Locale = getLocale(other_settings);
 
+    const items: MenuProps["items"] =
+      Object.entries(LOCALIZATIONS).map(([key, { name, flag }]) => {
+        return { key, label: `${flag} ${name}` };
+      }) ?? [];
+
+    items.push({ type: "divider" });
+    items.push({
+      key: "help",
+      label: (
+        <>
+          <Icon name="translation-outlined" /> About translations...
+        </>
+      ),
+      onClick: () => window.alert("help"),
+    });
+
     const menu: MenuProps = {
-      items: Object.entries(LOCALIZATIONS).map(([key, val]) => {
-        return { key, label: val };
-      }),
+      items,
       selectable: true,
       defaultSelectedKeys: [i18n],
       onClick: ({ key }) => {
-        redux
-          .getActions("account")
-          .set_other_settings(OTHER_SETTINGS_LOCALE_KEY, key);
-        setLocalization(key);
+        if (key in LOCALIZATIONS) {
+          redux
+            .getActions("account")
+            .set_other_settings(OTHER_SETTINGS_LOCALE_KEY, key);
+          setLocale(key);
+        }
       },
     };
 
+    const lang_icon = LOCALIZATIONS[i18n]?.flag;
+
     return (
-      <Tooltip title="Change the language of the user-interface.">
+      <Tooltip
+        title={intl.formatMessage(labels.account_language_tooltip)}
+        trigger={["hover"]}
+      >
         <Dropdown menu={menu} trigger={["click"]}>
           <Button>
             <Space>
-              {LOCALIZATIONS[i18n] ?? i18n}
+              {lang_icon}
+              {isWide ? LOCALIZATIONS[i18n]?.name ?? i18n : undefined}
               <DownOutlined />
             </Space>
           </Button>
@@ -283,7 +317,7 @@ export const AccountPage: React.FC = () => {
     return (
       <Space>
         {renderI18N()}
-        <SignOut everywhere={false} highlight={true} />
+        <SignOut everywhere={false} highlight={true} narrow={!isWide} />
       </Space>
     );
   }

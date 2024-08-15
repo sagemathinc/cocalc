@@ -220,7 +220,7 @@ export const NewProjectCreator: React.FC<Props> = ({
             style={{ width: "100%" }}
           >
             <Icon name="plus-circle" />{" "}
-            {intl.formatMessage(labels.createProject)}
+            {intl.formatMessage(labels.create_project)}
           </Button>
         </Col>
       </Row>

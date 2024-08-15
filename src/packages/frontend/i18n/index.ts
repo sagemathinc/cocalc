@@ -12,6 +12,7 @@ import {
   Locale,
   LOCALIZATIONS,
 } from "@cocalc/util/consts/locale";
+import { unreachable } from "@cocalc/util/misc";
 
 export { labels } from "./common";
 export { DEFAULT_LOCALE, LOCALIZATIONS };
@@ -44,7 +45,10 @@ export function loadLocaleData(locale: Locale): Promise<Messages> {
         return import("@cocalc/frontend/i18n/zh_CN.json");
       case "en":
         return import("@cocalc/frontend/i18n/en.json");
+      case "es":
+        return import("@cocalc/frontend/i18n/es_ES.json");
       default:
+        unreachable(locale);
         throw new Error(`Unknown locale '${locale}.`);
     }
   })() as any as Promise<Messages>;

@@ -76,7 +76,7 @@ export const Page: React.FC = () => {
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
   const intl = useIntl();
-  const { setLocalization } = useLocalizationCtx();
+  const { setLocale } = useLocalizationCtx();
 
   const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
@@ -117,7 +117,7 @@ export const Page: React.FC = () => {
 
   useEffect(() => {
     const i18n: Locale = getLocale(other_settings);
-    setLocalization(i18n);
+    setLocale(i18n);
   }, []);
 
   function account_tab_icon(): IconName | JSX.Element {
