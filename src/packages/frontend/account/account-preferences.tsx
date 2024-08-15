@@ -20,6 +20,7 @@ import { AccountSettings } from "./settings/account-settings";
 import ApiKeys from "./settings/api-keys";
 import TableError from "./table-error";
 import { TerminalSettings } from "./terminal-settings";
+import { FormattedMessage } from "react-intl";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
@@ -127,7 +128,12 @@ export const AccountPreferences: React.FC = () => {
     return (
       <>
         <div style={{ float: "right" }}>{renderDarkMode()}</div>
-        <h2>Account Preferences</h2>
+        <h2>
+          <FormattedMessage
+            id="account.account_preferences.title"
+            defaultMessage={"Account Preferences"}
+          />
+        </h2>
         <div style={{ fontSize: "14pt" }}>
           Adjust account preferences below.{" "}
           <A href={join(appBasePath, "config")}>

@@ -11,7 +11,7 @@ and configuration.
 */
 
 import { DownOutlined } from "@ant-design/icons";
-import { Button, Dropdown, MenuProps, Space, Tooltip } from "antd";
+import { Button, Dropdown, MenuProps, Modal, Space, Tooltip } from "antd";
 import { useIntl } from "react-intl";
 
 import { SignOut } from "@cocalc/frontend/account/sign-out";
@@ -23,7 +23,7 @@ import {
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { Icon, Loading, Paragraph, Text } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import {
@@ -85,7 +85,6 @@ export const AccountPage: React.FC = () => {
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
-
 
   // for each exclusive domain, tell the user which strategy to use
   const exclusive_sso_domains = React.useMemo(() => {
@@ -273,10 +272,48 @@ export const AccountPage: React.FC = () => {
       key: "help",
       label: (
         <>
-          <Icon name="translation-outlined" /> About translations...
+          <Icon name="translation-outlined" />
+          {intl.formatMessage({
+            id: "account.account_page.translation.info.label",
+            defaultMessage: "Translation Info...",
+            description: "Label of translation information modal in dropdown",
+          })}
         </>
       ),
-      onClick: () => window.alert("help"),
+      onClick: () =>
+        Modal.info({
+          title: intl.formatMessage({
+            id: "account.account_page.translation.info.title",
+            defaultMessage: "Translation Information",
+            description: "Title of translation information modal",
+          }),
+          content: (
+            <Paragraph>
+              {intl.formatMessage(
+                {
+                  id: "account.account_page.translation.info.content",
+                  defaultMessage: `
+We're excited to start offering our application in multiple languages! Here's what you need to know:
+
+<ul>
+<li><b>Work in Progress</b>: Our translation effort is just beginning. Many parts of the application are not yet translated.</li>
+<li><b>Gradual Improvement</b>: We're continuously working to expand our language coverage. You'll see more content translated over time.</li>
+<li><b>Your Help is Welcome</b>: We value our community's input. If you're fluent in multiple languages and would like to contribute to our translation efforts, we'd love to hear from you!</li>
+<li><b>Contact Us</b>: To learn more about contributing to translations or to report any issues, please reach out to our support team.</li>
+</ul>
+
+Thank you for your patience and understanding as we work to make our application accessible to a global audience!`,
+                  description: "Content of translation information modal",
+                },
+                {
+                  b: (e) => <Text strong>{e}</Text>,
+                  ul: (e) => <ul>{e}</ul>,
+                  li: (e) => <li>{e}</li>,
+                },
+              )}
+            </Paragraph>
+          ),
+        }),
     });
 
     const menu: MenuProps = {

@@ -1,7 +1,30 @@
 {
-  "account.language_tooltip": {
-    "defaultMessage": "Change the language of the user-interface.",
-    "description": "Tooltip text of dropdown to change the UI language"
+  "account.account_page.translation.info.content": {
+    "defaultMessage": "We're excited to start offering our application in multiple languages! Here's what you need to know: <ul> <li><b>Work in Progress</b>: Our translation effort is just beginning. Many parts of the application are not yet translated.</li> <li><b>Gradual Improvement</b>: We're continuously working to expand our language coverage. You'll see more content translated over time.</li> <li><b>Your Help is Welcome</b>: We value our community's input. If you're fluent in multiple languages and would like to contribute to our translation efforts, we'd love to hear from you!</li> <li><b>Contact Us</b>: To learn more about contributing to translations or to report any issues, please reach out to our support team.</li> </ul> Thank you for your patience and understanding as we work to make our application accessible to a global audience!",
+    "description": "Content of translation information modal"
+  },
+  "account.account_page.translation.info.label": {
+    "defaultMessage": "Translation Info...",
+    "description": "Label of translation information modal in dropdown"
+  },
+  "account.account_page.translation.info.title": {
+    "defaultMessage": "Translation Information",
+    "description": "Title of translation information modal"
+  },
+  "account.account_preferences.title": {
+    "defaultMessage": "Account Preferences"
+  },
+  "account.sign-out.button.title": {
+    "defaultMessage": "Are you sure you want to sign {account} out {everywhere, select, true {on all web browsers? Every web browser will have to reauthenticate before using this account again.} other {on this web browser?} } {is_anonymous, select, true {Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted! If you would like to save your work to a new account, click cancel and sign up below.} other {} }",
+    "description": "Sign out/Sign out everyhwere button in account settings"
+  },
+  "account.sign_out.body.sign_in": {
+    "defaultMessage": "Sign in to your account...",
+    "description": "Sign in button, if not signed in"
+  },
+  "account.sign_out.body.sign_out": {
+    "defaultMessage": "Sign out{everywhere, select, true { everywhere} other {}}...",
+    "description": "Sign out button, if signed in"
   },
   "jupyter.select_kernel.footer": {
     "defaultMessage": "<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left.",
@@ -27,9 +50,17 @@
     "defaultMessage": "First name",
     "description": "Label for Account/First name:"
   },
+  "labels.account.language_tooltip": {
+    "defaultMessage": "Change the language of the user-interface.",
+    "description": "Tooltip text of dropdown to change the UI language"
+  },
   "labels.account.last_name": {
     "defaultMessage": "Last name",
     "description": "Label for Account/Last name:"
+  },
+  "labels.botton.cancel": {
+    "defaultMessage": "Cancel",
+    "description": "'Cancel' button on all those small confirmation modals (other one is 'Ok' or 'Yes')"
   },
   "labels.create_project": {
     "defaultMessage": "Create Project...",

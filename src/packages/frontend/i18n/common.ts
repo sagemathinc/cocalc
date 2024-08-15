@@ -1,6 +1,12 @@
 import { defineMessages } from "react-intl";
 
 export const labels = defineMessages({
+  button_cancel: {
+    id: "labels.botton.cancel",
+    defaultMessage: "Cancel",
+    description:
+      "'Cancel' button on all those small confirmation modals (other one is 'Ok' or 'Yes')",
+  },
   projects: {
     id: "labels.projects",
     defaultMessage: "Projects",
