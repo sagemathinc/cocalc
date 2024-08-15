@@ -44,6 +44,10 @@ export function delete_local_storage(key: string): void {
   LS.delete(key);
 }
 
+export function exists_local_storage(key: string): boolean {
+  return LS.has(key);
+}
+
 export function has_local_storage(): boolean {
   return LS.localStorageIsAvailable();
 }
