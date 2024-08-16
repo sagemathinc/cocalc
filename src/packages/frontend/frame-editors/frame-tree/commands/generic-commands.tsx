@@ -1,6 +1,7 @@
 import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
+import { defineMessage } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -436,28 +437,36 @@ addCommands({
 
   build: {
     group: "build",
-    label: "Build",
-    title: (
-      <>
-        Build the document.
-        <br />
-        To enable or disable automatic builds, click on the 'Build on Save'
-        button or menu entry.
-      </>
-    ),
+    label: defineMessage({
+      id: "command.generic.build.label",
+      defaultMessage: "Build",
+    }),
+    title: defineMessage({
+      id: "command.generic.build.title",
+      defaultMessage:
+        "Build the document.{br}To enable or disable automatic builds, click on the 'Build on Save' button or menu entry.",
+    }),
     icon: "play-circle",
   },
   build_on_save: {
     group: "build",
-    label: () => (
-      <>
-        Build on Save{" "}
-        {redux.getStore("account").getIn(["editor_settings", "build_on_save"])
-          ? "(Enabled)"
-          : "(Disabled)"}
-      </>
-    ),
-    title: "Toggle automatic build on file save.",
+    label: ({ intl }) =>
+      intl.formatMessage(
+        {
+          id: "command.generic.build_on_save.label",
+          defaultMessage:
+            "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}",
+        },
+        {
+          enabled: redux
+            .getStore("account")
+            .getIn(["editor_settings", "build_on_save"]),
+        },
+      ),
+    title: defineMessage({
+      id: "command.generic.build_on_save.title",
+      defaultMessage: "Toggle automatic build on file save.",
+    }),
     icon: () =>
       redux.getStore("account").getIn(["editor_settings", "build_on_save"])
         ? "delivered-procedure-outlined"
@@ -465,8 +474,14 @@ addCommands({
   },
   force_build: {
     group: "build",
-    label: "Force Build",
-    title: "Force rebuild entire project.",
+    label: defineMessage({
+      id: "command.generic.force_build.label",
+      defaultMessage: "Force Build",
+    }),
+    title: defineMessage({
+      id: "command.generic.force_build.title",
+      defaultMessage: "Force rebuild entire project.",
+    }),
     icon: "play",
   },
 

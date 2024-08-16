@@ -5,10 +5,11 @@
 
 import { Popconfirm, Popover } from "antd";
 import React from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { AccountActions } from "@cocalc/frontend/account";
 import { labels } from "@cocalc/frontend/i18n";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 
 interface Props {
   icon: React.ReactNode; // When clicked, show popover
@@ -150,10 +151,20 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
         </li>
         <li>
           <Popconfirm
-            title={"Sign out of your account?"}
+            title={
+              <FormattedMessage
+                id="account.account-button.confirm.title"
+                defaultMessage={"Sign out of your account?"}
+              />
+            }
             onConfirm={() => account_actions.sign_out(false, false)}
-            okText={"Yes, sign out"}
-            cancelText={"Cancel"}
+            okText={
+              <FormattedMessage
+                id="account.account-button.confirm.ok"
+                defaultMessage={"Yes, sign out"}
+              />
+            }
+            cancelText={<CancelText />}
           >
             <a
               style={{

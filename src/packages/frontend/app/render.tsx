@@ -3,31 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { ConfigProvider as AntdConfigProvider } from "antd";
 import ReactDOM from "react-dom";
 import { createRoot } from "react-dom/client";
 
 import { Redux } from "@cocalc/frontend/app-framework";
-import {
-  AppContext,
-  useAntdStyleProvider,
-  useAppStateProvider,
-} from "./context";
-import { Localize, useAntdLocale } from "./localize";
+import { AppContext, useAppContextProvider } from "./context";
+import { Localize } from "./localize";
 
 // App uses the context provided by Redux (for the locale, etc.) and Localize.
 function App({ children }) {
-  const appState = useAppStateProvider();
-  const antdLocale = useAntdLocale();
-  const { antdTheme } = useAntdStyleProvider();
-
-  return (
-    <AppContext.Provider value={appState}>
-      <AntdConfigProvider theme={antdTheme} locale={antdLocale}>
-        {children}
-      </AntdConfigProvider>
-    </AppContext.Provider>
-  );
+  const appState = useAppContextProvider();
+  return <AppContext.Provider value={appState}>{children}</AppContext.Provider>;
 }
 
 function Root({ Page }) {

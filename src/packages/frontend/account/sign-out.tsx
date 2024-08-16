@@ -86,7 +86,13 @@ export const SignOut: React.FC<Props> = (props: Readonly<Props>) => {
         </div>
       }
       onConfirm={sign_out}
-      okText={`Yes, sign out${everywhere ? " everywhere" : ""}`}
+      okText={intl.formatMessage(
+        {
+          id: "account.sign-out.button.ok",
+          defaultMessage: `Yes, sign out{everywhere, select, true { everywhere} other {}}`,
+        },
+        { everywhere },
+      )}
       cancelText={intl.formatMessage(labels.button_cancel)}
     >
       <Button

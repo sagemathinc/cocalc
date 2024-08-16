@@ -3,10 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { ThemeConfig, theme } from "antd";
+import { theme, ThemeConfig } from "antd";
 import type { SizeType } from "antd/es/config-provider/SizeContext";
 import { debounce } from "lodash";
-import { createContext, useContext } from "react";
+import { createContext, ReactNode, useContext } from "react";
 
 import {
   CSS,
@@ -15,7 +15,9 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
+import { useIntl } from "react-intl";
 import {
   FONT_SIZE_ICONS_NARROW,
   FONT_SIZE_ICONS_NORMAL,
@@ -30,18 +32,22 @@ export interface AppState {
   pageStyle: PageStyle;
   antdComponentSize?: SizeType;
   antdTheme?: ThemeConfig;
+  formatIntl: (msg: IntlMessage | ReactNode | string) => ReactNode | string;
 }
 
 export const AppContext = createContext<AppState>({
   pageWidthPx: window.innerWidth,
   pageStyle: calcStyle(isNarrow()),
+  formatIntl: () => "Loading…",
 });
 
-export function useAppState() {
+export function useAppContext() {
   return useContext(AppContext);
 }
 
-export function useAppStateProvider() {
+export function useAppContextProvider() {
+  const intl = useIntl();
+
   const [pageWidthPx, setPageWidthPx] = useState<number>(window.innerWidth);
 
   const [narrow, setNarrow] = useState<boolean>(isNarrow());
@@ -68,7 +74,18 @@ export function useAppStateProvider() {
     return calcStyle(narrow);
   }, [narrow]);
 
+  function formatIntl(
+    msg: IntlMessage | ReactNode | string,
+  ): ReactNode | string {
+    if (isIntlMessage(msg)) {
+      return intl.formatMessage(msg);
+    } else {
+      return msg;
+    }
+  }
+
   return {
+    formatIntl,
     pageWidthPx,
     pageStyle,
   };

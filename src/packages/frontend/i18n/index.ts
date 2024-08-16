@@ -2,6 +2,7 @@ import {
   createIntl,
   createIntlCache,
   IntlShape,
+  MessageDescriptor,
   MessageFormatElement,
 } from "react-intl";
 
@@ -36,15 +37,17 @@ export function getLocale(
   return sanitizeLocale(val);
 }
 
-export function loadLocaleData(locale: Locale): Promise<Messages> {
+export function loadLocaleMessages(locale: Locale): Promise<Messages> {
   return (() => {
     switch (locale) {
+      case "en":
+        // For english, we do not specify any messages and let the fallback mechanism kick in
+        // Hence "defaultMessage" messages are used directly.
+        return {};
       case "de":
         return import("@cocalc/frontend/i18n/de_DE.json");
       case "zh":
         return import("@cocalc/frontend/i18n/zh_CN.json");
-      case "en":
-        return import("@cocalc/frontend/i18n/en.json");
       case "es":
         return import("@cocalc/frontend/i18n/es_ES.json");
       default:
@@ -65,6 +68,22 @@ export async function getIntl(): Promise<IntlShape> {
     .getStore("account")
     .getIn(["other_settings", OTHER_SETTINGS_LOCALE_KEY]);
   const locale = sanitizeLocale(val);
-  const messages = await loadLocaleData(locale);
+  const messages: Messages = await loadLocaleMessages(locale);
   return createIntl({ locale, messages }, cache);
+}
+
+// In CoCalc, we require all message to have an ID and defaultMessage (which is English)
+export type IntlMessage = MessageDescriptor & {
+  id: string;
+  defaultMessage: string;
+};
+
+// For us, the id and defaultMessage must be set to be a MessageDescriptor
+export function isIntlMessage(msg: unknown): msg is MessageDescriptor {
+  return (
+    typeof msg === "object" &&
+    msg != null &&
+    "id" in msg &&
+    "defaultMessage" in msg
+  );
 }

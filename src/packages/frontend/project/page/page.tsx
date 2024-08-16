@@ -16,7 +16,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { useAppState } from "@cocalc/frontend/app/context";
+import { useAppContext } from "@cocalc/frontend/app/context";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { Loading } from "@cocalc/frontend/components";
 import {
@@ -92,7 +92,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     getFlyoutWidth(project_id),
   );
   const [oldFlyoutWidth, setOldFlyoutWidth] = useState(flyoutWidth);
-  const { pageWidthPx } = useAppState();
+  const { pageWidthPx } = useAppContext();
 
   const narrowerPX = useMemo(() => {
     return hideActionButtons ? homePageButtonWidth : 0;

@@ -4,7 +4,6 @@
  */
 
 // help users selecting a kernel
-import { IS_MOBILE } from "@cocalc/frontend/feature";
 import type { TabsProps } from "antd";
 import {
   Alert,
@@ -19,7 +18,6 @@ import {
   Typography,
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
-import { useImages } from "@cocalc/frontend/compute/images-hook";
 import { FormattedMessage } from "react-intl";
 
 import {
@@ -37,11 +35,14 @@ import {
   Paragraph,
   Text,
 } from "@cocalc/frontend/components";
+import { useImages } from "@cocalc/frontend/compute/images-hook";
 import { SiteName } from "@cocalc/frontend/customize";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import track from "@cocalc/frontend/user-tracking";
 import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { useAppContext } from "../app/context";
 import { KernelStar } from "../components/run-button/kernel-star";
 import { useProjectContext } from "../project/context";
 import { FIXED_PROJECT_TABS } from "../project/page/file-tab";
@@ -571,6 +572,7 @@ a horrific disaster.  This one component though is maybe usable.
 );
 
 function ComputeServerInfo() {
+  const { formatIntl } = useAppContext();
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const [IMAGES, ImagesError] = useImages();
@@ -655,7 +657,7 @@ function ComputeServerInfo() {
             To get started, open the{" "}
             <Button onClick={() => actions?.set_active_tab("servers")}>
               <Icon name={FIXED_PROJECT_TABS.servers.icon} />{" "}
-              {FIXED_PROJECT_TABS.servers.label}
+              {formatIntl(FIXED_PROJECT_TABS.servers.label)}
             </Button>{" "}
             panel and instantiate and start your compute machine. Then, select
             the machine for this notebook, and pick one of the available kernels

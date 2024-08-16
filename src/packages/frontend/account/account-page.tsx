@@ -23,7 +23,7 @@ import {
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
-import { Icon, Loading, Paragraph, Text } from "@cocalc/frontend/components";
+import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import {
@@ -140,7 +140,7 @@ export const AccountPage: React.FC = () => {
       key: "account",
       label: (
         <span>
-          <Icon name="wrench" /> Preferences
+          <Icon name="wrench" /> {intl.formatMessage(labels.preferences)}
         </span>
       ),
       children: (active_page == null || active_page === "account") && (
@@ -161,7 +161,7 @@ export const AccountPage: React.FC = () => {
         key: "purchases",
         label: (
           <span>
-            <Icon name="money" /> Purchases
+            <Icon name="money" /> {intl.formatMessage(labels.purchases)}
           </span>
         ),
         children: active_page === "purchases" && <PurchasesPage />,
@@ -170,7 +170,7 @@ export const AccountPage: React.FC = () => {
         key: "subscriptions",
         label: (
           <span>
-            <Icon name="calendar" /> Subscriptions
+            <Icon name="calendar" /> {intl.formatMessage(labels.subscriptions)}
           </span>
         ),
         children: active_page === "subscriptions" && <SubscriptionsPage />,
@@ -179,7 +179,7 @@ export const AccountPage: React.FC = () => {
         key: "statements",
         label: (
           <span>
-            <Icon name="money" /> Statements
+            <Icon name="money" /> {intl.formatMessage(labels.statements)}
           </span>
         ),
         children: active_page === "statements" && <StatementsPage />,
@@ -195,7 +195,7 @@ export const AccountPage: React.FC = () => {
         key: "licenses",
         label: (
           <span>
-            <Icon name="key" /> Licenses
+            <Icon name="key" /> {intl.formatMessage(labels.licenses)}
           </span>
         ),
         children: active_page === "licenses" && <LicensesPage />,
@@ -207,7 +207,7 @@ export const AccountPage: React.FC = () => {
         key: "ssh-keys",
         label: (
           <span>
-            <Icon name="key" /> SSH Keys
+            <Icon name="key" /> {intl.formatMessage(labels.ssh_keys)}
           </span>
         ),
         children: active_page === "ssh-keys" && <SSHKeysPage />,
@@ -218,7 +218,7 @@ export const AccountPage: React.FC = () => {
         key: "support",
         label: (
           <span>
-            <Icon name="medkit" /> Support
+            <Icon name="medkit" /> {intl.formatMessage(labels.support)}
           </span>
         ),
         children: active_page === "support" && <SupportTickets />,
@@ -228,7 +228,8 @@ export const AccountPage: React.FC = () => {
       key: "public-files",
       label: (
         <span>
-          <Icon name="share-square" /> Public Files
+          <Icon name="share-square" />{" "}
+          {intl.formatMessage(labels.published_files)}
         </span>
       ),
       children: active_page === "public-files" && <PublicPaths />,
@@ -238,7 +239,8 @@ export const AccountPage: React.FC = () => {
         key: "upgrades",
         label: (
           <span>
-            <Icon name="arrow-circle-up" /> Upgrades
+            <Icon name="arrow-circle-up" />{" "}
+            {intl.formatMessage(labels.upgrades)}
           </span>
         ),
         children: active_page === "upgrades" && <UpgradesPage />,
@@ -249,7 +251,8 @@ export const AccountPage: React.FC = () => {
         key: "cloud-filesystems",
         label: (
           <>
-            <Icon name="disk-round" /> Cloud File Systems
+            <Icon name="disk-round" />{" "}
+            {intl.formatMessage(labels.cloud_file_system)}
           </>
         ),
         children: <CloudFilesystems />,
@@ -271,14 +274,14 @@ export const AccountPage: React.FC = () => {
     items.push({
       key: "help",
       label: (
-        <>
+        <Space>
           <Icon name="translation-outlined" />
           {intl.formatMessage({
             id: "account.account_page.translation.info.label",
             defaultMessage: "Translation Info...",
             description: "Label of translation information modal in dropdown",
           })}
-        </>
+        </Space>
       ),
       onClick: () =>
         Modal.info({
@@ -289,10 +292,9 @@ export const AccountPage: React.FC = () => {
           }),
           content: (
             <Paragraph>
-              {intl.formatMessage(
-                {
-                  id: "account.account_page.translation.info.content",
-                  defaultMessage: `
+              {intl.formatMessage({
+                id: "account.account_page.translation.info.content",
+                defaultMessage: `
 We're excited to start offering our application in multiple languages! Here's what you need to know:
 
 <ul>
@@ -303,14 +305,8 @@ We're excited to start offering our application in multiple languages! Here's wh
 </ul>
 
 Thank you for your patience and understanding as we work to make our application accessible to a global audience!`,
-                  description: "Content of translation information modal",
-                },
-                {
-                  b: (e) => <Text strong>{e}</Text>,
-                  ul: (e) => <ul>{e}</ul>,
-                  li: (e) => <li>{e}</li>,
-                },
-              )}
+                description: "Content of translation information modal",
+              })}
             </Paragraph>
           ),
         }),
@@ -318,8 +314,6 @@ Thank you for your patience and understanding as we work to make our application
 
     const menu: MenuProps = {
       items,
-      selectable: true,
-      defaultSelectedKeys: [i18n],
       onClick: ({ key }) => {
         if (key in LOCALIZATIONS) {
           redux

@@ -5,6 +5,7 @@
 
 import { ReloadOutlined } from "@ant-design/icons";
 import { Button, Collapse, CollapseProps, Space, Tooltip } from "antd";
+import { useIntl } from "react-intl";
 
 import {
   redux,
@@ -21,6 +22,7 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { AboutBox } from "@cocalc/frontend/project/settings/about-box";
 import { ApiKeys } from "@cocalc/frontend/project/settings/api-keys";
@@ -52,7 +54,7 @@ interface Props {
 
 export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   const { project_id, wrap } = _;
-
+  const intl = useIntl();
   const { status, project } = useProjectContext();
   const account_id = useTypedRedux("account", "account_id");
   const actions = useActions({ project_id });
@@ -62,7 +64,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
   const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
   const configuration_loading = useTypedRedux(
     { project_id },
-    "configuration_loading"
+    "configuration_loading",
   );
   const kucalc = useTypedRedux("customize", "kucalc");
   const datastore = useTypedRedux("customize", "datastore");
@@ -272,7 +274,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
         key: "ssh",
         label: (
           <>
-            <Icon name="list-ul" /> SSH Keys
+            <Icon name="list-ul" /> {intl.formatMessage(labels.ssh_keys)}
           </>
         ),
         children: (
@@ -351,6 +353,6 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
       {renderStatus()}
       {renderSettings()}
       {renderOther()}
-    </Space>
+    </Space>,
   );
 }

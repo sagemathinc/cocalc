@@ -1,4 +1,10 @@
 {
+  "account.account-button.confirm.ok": {
+    "defaultMessage": "Yes, sign out"
+  },
+  "account.account-button.confirm.title": {
+    "defaultMessage": "Sign out of your account?"
+  },
   "account.account_page.translation.info.content": {
     "defaultMessage": "We're excited to start offering our application in multiple languages! Here's what you need to know: <ul> <li><b>Work in Progress</b>: Our translation effort is just beginning. Many parts of the application are not yet translated.</li> <li><b>Gradual Improvement</b>: We're continuously working to expand our language coverage. You'll see more content translated over time.</li> <li><b>Your Help is Welcome</b>: We value our community's input. If you're fluent in multiple languages and would like to contribute to our translation efforts, we'd love to hear from you!</li> <li><b>Contact Us</b>: To learn more about contributing to translations or to report any issues, please reach out to our support team.</li> </ul> Thank you for your patience and understanding as we work to make our application accessible to a global audience!",
     "description": "Content of translation information modal"
@@ -14,6 +20,9 @@
   "account.account_preferences.title": {
     "defaultMessage": "Account Preferences"
   },
+  "account.sign-out.button.ok": {
+    "defaultMessage": "Yes, sign out{everywhere, select, true { everywhere} other {}}"
+  },
   "account.sign-out.button.title": {
     "defaultMessage": "Are you sure you want to sign {account} out {everywhere, select, true {on all web browsers? Every web browser will have to reauthenticate before using this account again.} other {on this web browser?} } {is_anonymous, select, true {Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted! If you would like to save your work to a new account, click cancel and sign up below.} other {} }",
     "description": "Sign out/Sign out everyhwere button in account settings"
@@ -25,6 +34,24 @@
   "account.sign_out.body.sign_out": {
     "defaultMessage": "Sign out{everywhere, select, true { everywhere} other {}}...",
     "description": "Sign out button, if signed in"
+  },
+  "command.generic.build.label": {
+    "defaultMessage": "Build"
+  },
+  "command.generic.build.title": {
+    "defaultMessage": "Build the document.{br}To enable or disable automatic builds, click on the 'Build on Save' button or menu entry."
+  },
+  "command.generic.build_on_save.label": {
+    "defaultMessage": "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}"
+  },
+  "command.generic.build_on_save.title": {
+    "defaultMessage": "Toggle automatic build on file save."
+  },
+  "command.generic.force_build.label": {
+    "defaultMessage": "Force Build"
+  },
+  "command.generic.force_build.title": {
+    "defaultMessage": "Force rebuild entire project."
   },
   "jupyter.select_kernel.footer": {
     "defaultMessage": "<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left.",
@@ -58,16 +85,113 @@
     "defaultMessage": "Last name",
     "description": "Label for Account/Last name:"
   },
-  "labels.botton.cancel": {
+  "labels.button.cancel": {
     "defaultMessage": "Cancel",
     "description": "'Cancel' button on all those small confirmation modals (other one is 'Ok' or 'Yes')"
+  },
+  "labels.cloud_file_system": {
+    "defaultMessage": "Cloud File Systems"
   },
   "labels.create_project": {
     "defaultMessage": "Create Project...",
     "description": "Label on buttons to open dialog to create a project, with 3 dots"
   },
+  "labels.frame-editors.title-bar.save_label": {
+    "defaultMessage": "{type, select, is_public {Public} read_only {Readonly} other {Save}}",
+    "description": "Frame editor's title bar 'Save' button"
+  },
+  "labels.licenses": {
+    "defaultMessage": "Licenses",
+    "description": "A license is part of a subscription or a one-time purchase to upgrade projects"
+  },
+  "labels.new.file": {
+    "defaultMessage": "New",
+    "description": "Create new file button '+ New'"
+  },
+  "labels.preferences": {
+    "defaultMessage": "Preferences"
+  },
+  "labels.project.settings.restart-project.confirm.explanation": {
+    "defaultMessage": "Restarting the project server will terminate all processes in the project, update the project code, and start the project running again. Running <a>compute servers</a> are not affected. It takes a few seconds, and can fix some issues in case things are not working properly. You'll not lose any files, but you have to start your notebooks and worksheets again."
+  },
+  "labels.project.settings.restart-project.confirm.ok": {
+    "defaultMessage": "Yes, {task} project"
+  },
+  "labels.project.settings.stop-project.label": {
+    "defaultMessage": "Stop{short, select, true {} other { Project}}…"
+  },
+  "labels.project.settings.stop-project.ok": {
+    "defaultMessage": "Yes, stop project"
+  },
   "labels.projects": {
     "defaultMessage": "Projects",
     "description": "Label for a collection of projects, label on a button, title, etc."
+  },
+  "labels.published_files": {
+    "defaultMessage": "Published Files"
+  },
+  "labels.purchases": {
+    "defaultMessage": "Purchases"
+  },
+  "labels.settings": {
+    "defaultMessage": "Settings",
+    "description": "On a button to show project settings"
+  },
+  "labels.ssh_keys": {
+    "defaultMessage": "SSH Keys"
+  },
+  "labels.statements": {
+    "defaultMessage": "Statements",
+    "description": "Billing statements"
+  },
+  "labels.subscriptons": {
+    "defaultMessage": "Subscriptions"
+  },
+  "labels.support": {
+    "defaultMessage": "Support"
+  },
+  "labels.upgrades": {
+    "defaultMessage": "Upgrades",
+    "description": "Upgrades for specific projects"
+  },
+  "labels.upload": {
+    "defaultMessage": "Upload",
+    "description": "Label on such buttons, where a file upload can be initiated"
+  },
+  "page.help.label": {
+    "defaultMessage": "Help"
+  },
+  "page.sign_in.label": {
+    "defaultMessage": "Sign in"
+  },
+  "project.new-file-page.title": {
+    "defaultMessage": "Create or {upload} New File or <folder>Folder</folder>"
+  },
+  "project.new-file-page.title.modal.title": {
+    "defaultMessage": "Create New Folder"
+  },
+  "project.page.file-tab.search_file.label": {
+    "defaultMessage": "Find"
+  },
+  "project.page.flyout.log.title": {
+    "defaultMessage": "Recent Files"
+  },
+  "project.page.flyout.new_file.title": {
+    "defaultMessage": "Create New File or Folder"
+  },
+  "project.page.flyout.settings.title": {
+    "defaultMessage": "Status and Settings"
+  },
+  "project.settings.stop-project.explanation": {
+    "defaultMessage": "Stopping the project server will kill all processes. After stopping a project, it will not start until you or a collaborator restarts the project."
+  },
+  "projects.filename-search.placeholder": {
+    "defaultMessage": "Search for filenames you edited..."
+  },
+  "projects.load-all.label": {
+    "defaultMessage": "Show all projects..."
+  },
+  "projects.search.placeholder": {
+    "defaultMessage": "Search for projects (use /re/ for regexp)..."
   }
 }

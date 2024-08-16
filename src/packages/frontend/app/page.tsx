@@ -36,7 +36,7 @@ import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
 import { ActiveContent } from "./active-content";
 import { ConnectionIndicator } from "./connection-indicator";
 import { ConnectionInfo } from "./connection-info";
-import { useAppState } from "./context";
+import { useAppContext } from "./context";
 import { FullscreenButton } from "./fullscreen-button";
 import { useLocalizationCtx } from "./localize";
 import { AppLogo } from "./logo";
@@ -72,7 +72,7 @@ const PAGE_STYLE: CSS = {
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
 
-  const { pageStyle } = useAppState();
+  const { pageStyle } = useAppContext();
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
   const intl = useIntl();
@@ -216,7 +216,10 @@ export const Page: React.FC = () => {
     return (
       <NavTab
         name="account"
-        label="Sign in"
+        label={intl.formatMessage({
+          id: "page.sign_in.label",
+          defaultMessage: "Sign in",
+        })}
         label_class={NAV_CLASS}
         icon="sign-in"
         on_click={sign_in_tab_clicked}
@@ -240,7 +243,10 @@ export const Page: React.FC = () => {
       <NavTab
         name={undefined} // does not open a tab, just a popup
         active_top_tab={active_top_tab} // it's never supposed to be active!
-        label={"Help"}
+        label={intl.formatMessage({
+          id: "page.help.label",
+          defaultMessage: "Help",
+        })}
         label_class={NAV_CLASS}
         icon={"medkit"}
         on_click={openSupportTab}

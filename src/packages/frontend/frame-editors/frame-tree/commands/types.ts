@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { MessageDescriptor } from "react-intl";
 
 import { IconRotation } from "@cocalc/frontend/components/icon";
 import type { ManageCommands } from "./manage";
@@ -24,12 +25,15 @@ export interface Command {
   name?: string; //not used
   // position, for sorting
   pos?: number;
-  title?: ReactNode;
+  title?: ReactNode | (MessageDescriptor & { id: string });
   icon?: ReactNode | ((opts: ManageCommands) => ReactNode);
   iconRotate?: IconRotation;
   button?: ReactNode | ((opts: ManageCommands) => ReactNode);
   //color?: string | ((opts: ManageCommands) => string);
-  label?: ReactNode | ((opts: ManageCommands) => ReactNode);
+  label?:
+    | ReactNode
+    | ((opts: ManageCommands) => ReactNode)
+    | (MessageDescriptor & { id: string });
   // If onClick is NOT set, then editor_actions[name] must be defined
   // and be a function that takes the frame id as input.
   onClick?: OnClick;

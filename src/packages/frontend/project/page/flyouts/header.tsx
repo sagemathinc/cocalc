@@ -5,10 +5,13 @@
 
 import { Button, Tooltip } from "antd";
 import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { TourName } from "@cocalc/frontend/account/tours";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import track from "@cocalc/frontend/user-tracking";
@@ -17,11 +20,10 @@ import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../tabs";
+import { ActiveHeader } from "./active-header";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
-import { ActiveHeader } from "./active-header";
-import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import { isIntlMessage } from "../../../i18n";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
@@ -33,6 +35,7 @@ interface Props {
 
 export function FlyoutHeader(_: Readonly<Props>) {
   const { flyout, flyoutWidth, narrowerPX = 0 } = _;
+  const intl = useIntl();
   const { actions, project_id, is_active } = useProjectContext();
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
@@ -51,7 +54,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
   function renderDefaultTitle() {
     const title = FIXED_PROJECT_TABS[flyout].flyoutTitle;
     if (title != null) {
-      return title;
+      return isIntlMessage(title) ? intl.formatMessage(title) : title;
     } else {
       return capitalize(flyout);
     }

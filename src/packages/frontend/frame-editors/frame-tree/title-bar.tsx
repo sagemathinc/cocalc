@@ -11,6 +11,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
+import { useIntl } from "react-intl";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -185,6 +186,8 @@ export function FrameTitleBar(props: Props) {
     };
   }, [props.project_id, props.path]);
 
+  const intl = useIntl();
+
   const [showMainButtonsPopover, setShowMainButtonsPopover] =
     useState<boolean>(false);
 
@@ -227,6 +230,7 @@ export function FrameTitleBar(props: Props) {
         setHelpSearch,
         readOnly: read_only,
         editorSettings,
+        intl
       }),
     [
       props,
@@ -237,6 +241,7 @@ export function FrameTitleBar(props: Props) {
       setShowNewAI,
       read_only,
       editorSettings,
+      intl
     ],
   );
 
