@@ -13,8 +13,8 @@ const Html = ({
   index?: number;
   trust?: boolean;
 }) => {
-  if (!trust) {
-    <HTML value={value} />;
+  if (!trust || !requiresStableUnsafeHtml(value)) {
+    return <HTML value={value} />;
   }
   return (
     <div style={{ margin: "5px 0" }}>
@@ -34,3 +34,20 @@ export default Html;
 // that looks good and is meant to be rendered on the frontend.
 // See https://github.com/sagemathinc/cocalc/issues/5925
 register("text/html", 5, Html);
+
+// Heuristics to only use plain stateless html.
+function requiresStableUnsafeHtml(value: string) {
+  if (!value) {
+    return false;
+  }
+  if (value.includes(".bk-notebook-logo")) {
+    // bokeh -- needs state
+    return true;
+  }
+  if (value.includes(`class="dataframe"`)) {
+    // pandas
+    return false;
+  }
+  // default for now
+  return true;
+}

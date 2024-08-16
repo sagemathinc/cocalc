@@ -64,17 +64,16 @@ const cache = new TTL<string, any>({
 });
 
 // make it really standout:
-// const PADDING = 5;
-// const STYLE = {
-//   border: "1px solid #ccc",
-//   borderRadius: "5px",
-//   padding: `${PADDING}px`,
-//   background: "#eee",
-// } as const;
+const PADDING = 5;
+const STYLE = {
+  border: "1px solid #ccc",
+  borderRadius: "5px",
+  padding: `${PADDING}px`,
+} as const;
 
-// make it blend in
-const PADDING = 0;
-const STYLE = {} as const;
+// // make it blend in
+// const PADDING = 0;
+// const STYLE = {} as const;
 
 interface Props {
   docId: string;
@@ -180,6 +179,22 @@ export default function StableUnsafeHtml({
           }
         }
       }
+
+      // This below sort of makes it so in some cases scrolling still works.
+      // It's flaky and not great, but perhaps the best we can do.
+      // It breaks clicking on the html for 1s after scrolling it.
+      let timer: any = 0;
+      //elt.addEventListener("wheel", () => {
+      elt.style.pointerEvents = "none";
+      if (timer) {
+        clearTimeout(timer);
+      }
+      timer = setTimeout(() => {
+        timer = 0;
+        // Re-enable pointer events after the scroll
+        elt.style.pointerEvents = "auto";
+      }, 1000);
+      // });
     }
   }, []);
 
@@ -192,6 +207,20 @@ export default function StableUnsafeHtml({
       elt.process_smc_links();
       // @ts-ignore
       elt.katex({ preProcess: true });
+
+      let timer: any = 0;
+      const elt0 = elt[0];
+      elt0.addEventListener("wheel", () => {
+        elt0.style.pointerEvents = "none";
+        if (timer) {
+          clearTimeout(timer);
+        }
+        timer = setTimeout(() => {
+          timer = 0;
+          elt0.style.pointerEvents = "auto";
+        }, 2000);
+      });
+
       cache.set(globalKey, elt);
       $("body").append(elt);
       return elt;
