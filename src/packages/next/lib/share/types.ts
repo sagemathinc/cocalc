@@ -3,12 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-export interface User {
-  account_id: string;
-  first_name: string;
-  last_name: string;
-}
-
 export interface PublicPath {
   id: string;
   path?: string;
