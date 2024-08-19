@@ -27,7 +27,7 @@ async function handle(req, res) {
     if (!account_id) {
       throw Error("must be signed in");
     }
-    if (!isCollaborator({ account_id, project_id })) {
+    if (!(await isCollaborator({ account_id, project_id }))) {
       throw Error("must be a collaborator to start project");
     }
     const project = getProject(project_id);

@@ -40,7 +40,9 @@ export default async function handle(req, res) {
     if (!account_id) {
       throw Error("must be signed in");
     }
-    if (!isCollaborator({ account_id, project_id: target_project_id })) {
+    if (
+      !(await isCollaborator({ account_id, project_id: target_project_id }))
+    ) {
       throw Error("must be a collaborator on target project");
     }
     if (public_id) {
@@ -54,7 +56,7 @@ export default async function handle(req, res) {
       ) {
       }
     } else {
-      if (!isCollaborator({ account_id, project_id: src_project_id })) {
+      if (!(await isCollaborator({ account_id, project_id: src_project_id }))) {
         throw Error("must be a collaborator on source project");
       }
     }
@@ -90,7 +92,7 @@ async function isContainedInPublicPath({ id, project_id, path }) {
   const pool = getPool("long");
   const { rows } = await pool.query(
     "SELECT project_id, path FROM public_paths WHERE disabled IS NOT TRUE AND vhost IS NULL AND id=$1",
-    [id]
+    [id],
   );
   return (
     rows.length > 0 &&
