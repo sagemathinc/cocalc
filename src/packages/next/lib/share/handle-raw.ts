@@ -5,14 +5,16 @@ It confirms that the request is valid (so the content is
 actually currently publicly shared) then sends the result.
 */
 
-import { join } from "path";
 import type { Request, Response } from "express";
 import { static as ExpressStatic } from "express";
-import DirectoryListing from "serve-index";
-import { getExtension, isSha1Hash } from "./util";
-import { pathFromID } from "./path-to-files";
 import LRU from "lru-cache";
 import ms from "ms";
+import { join } from "path";
+import DirectoryListing from "serve-index";
+
+import { pathFromID } from "./path-to-files";
+import { getExtension, isSha1Hash } from "./util";
+
 const MAX_AGE = Math.round(ms("15 minutes") / 1000);
 
 interface Options {
@@ -98,7 +100,7 @@ export function staticHandler(
   res: Response,
   next: Function,
 ) {
-  //console.log("staticHandler", { fsPath, url: req.url });
+  // console.log("staticHandler", { fsPath, url: req.url });
   const handler = getStaticFileHandler(fsPath);
   // @ts-ignore -- TODO
   handler(req, res, () => {
@@ -127,20 +129,28 @@ export function staticHandler(
   });
 }
 
-const staticFileCache = new LRU({ max: 200 });
-function getStaticFileHandler(path: string) {
-  if (staticFileCache.has(path)) {
-    return staticFileCache.get(path);
+const staticFileCache = new LRU<string, ReturnType<typeof ExpressStatic>>({
+  max: 200,
+});
+function getStaticFileHandler(path: string): ReturnType<typeof ExpressStatic> {
+  const sfh = staticFileCache.get(path);
+  if (sfh) {
+    return sfh;
   }
   const handler = ExpressStatic(path);
   staticFileCache.set(path, handler);
   return handler;
 }
 
-const directoryCache = new LRU({ max: 200 });
-function getDirectoryHandler(path: string) {
-  if (directoryCache.has(path)) {
-    return directoryCache.get(path);
+const directoryCache = new LRU<string, ReturnType<typeof DirectoryListing>>({
+  max: 200,
+});
+function getDirectoryHandler(
+  path: string,
+): ReturnType<typeof DirectoryListing> {
+  const dh = directoryCache.get(path);
+  if (dh) {
+    return dh;
   }
   const handler = DirectoryListing(path, { icons: true, view: "details" });
   directoryCache.set(path, handler);
