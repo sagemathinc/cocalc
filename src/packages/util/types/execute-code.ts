@@ -16,7 +16,7 @@ export interface ExecuteCodeOutputAsync extends ExecuteCodeBase {
   type: "async";
   start: number;
   job_id: string;
-  status: AsyncStatus;
+  status: AsyncStatus | "killed"; // killed is only set by the frontend (latex)
   elapsed_s?: number; // how long it took, async execution
   pid?: number; // in case you want to kill it remotely, good to know the PID
   stats?: {

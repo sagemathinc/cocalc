@@ -477,6 +477,12 @@ function doSpawn(
     finish();
   });
 
+  // Doc: https://nodejs.org/api/child_process.html#event-exit – read it!
+  // TODO: This is not 100% correct, because in case the process is killed (signal TERM),
+  // the $code is "null" and a second argument gives the signal (as a string). Hence, after a kill,
+  // this code below changes the exit code to 0. This could be a special case, though.
+  // It cannot be null, though, because the "finish" callback assumes that stdout, err and exit are set.
+  // The local $killed var is only true, if the process has been killed by the timeout – not by another kill.
   child.on("exit", (code) => {
     exit_code = code ?? 0;
     finish();
