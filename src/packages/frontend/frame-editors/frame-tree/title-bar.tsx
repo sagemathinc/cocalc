@@ -77,6 +77,7 @@ interface FrameActions extends Actions {
   clean?: (id: string) => void;
   word_count?: (time: number, force: boolean) => void;
   close_and_halt?: (id: string) => void;
+  stop_build?: (id: string) => void;
 }
 
 interface EditorActions extends Actions {

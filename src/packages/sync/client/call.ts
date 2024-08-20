@@ -2,13 +2,13 @@
 A handy utility function for implementing an api using the project websocket.
 */
 
-import type { ProjectWebsocket } from "./types";
 import { callback } from "awaiting";
+import type { ProjectWebsocket } from "./types";
 
 export default async function call(
   conn: ProjectWebsocket,
   mesg: object,
-  timeout_ms: number
+  timeout_ms: number,
 ) {
   const resp = await callback(call0, conn, mesg, timeout_ms);
   if (resp?.status == "error") {
@@ -21,7 +21,7 @@ function call0(
   conn: ProjectWebsocket,
   mesg: object,
   timeout_ms: number,
-  cb: Function
+  cb: Function,
 ): void {
   let done: boolean = false;
   let timer: any = 0;
