@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
@@ -14,6 +19,7 @@ import {
   undo as chatUndo,
 } from "@cocalc/frontend/frame-editors/generic/chat";
 import { get_default_font_size } from "@cocalc/frontend/frame-editors/generic/client";
+import { labels, menu } from "@cocalc/frontend/i18n";
 import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
 import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { AI_GENERATE_DOC_TAG } from "@cocalc/frontend/project/page/home-page/ai-generate-utils";
@@ -652,7 +658,7 @@ addCommands({
     group: "misc-file-actions",
     icon: "upload",
     title: "Upload a file or directory from your compute to the server",
-    label: "Upload",
+    label: labels.upload,
     ...fileAction("upload"),
   },
   share: {
@@ -677,7 +683,7 @@ addCommands({
     group: "new-open",
     icon: "plus-circle",
     title: "Create a new file",
-    label: "New File",
+    label: menu.new_file,
     ...fileAction("new"),
   },
   new_ai: {
@@ -718,7 +724,7 @@ addCommands({
     group: "save",
     icon: "save",
     title: "Save this file to disk",
-    label: "Save",
+    label: labels.save,
     keyboard: `${IS_MACOS ? "⌘" : "control"} + S`,
   },
   chatgpt: {
@@ -751,7 +757,7 @@ addCommands({
     group: "help-link",
     icon: "medkit",
     label: "Support Ticket",
-    button: "Support",
+    button: labels.support,
     title:
       "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
     onClick: () => {

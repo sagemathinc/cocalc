@@ -121,4 +121,14 @@ export const labels = defineMessages({
     defaultMessage: "Settings",
     description: "On a button to show project settings",
   },
+  help: {
+    id: "labels.help",
+    defaultMessage: "Help",
+    description: "Help entry in a menu or label on a button",
+  },
+  save: {
+    id: "labels.save",
+    defaultMessage: "Save",
+    description: "In the context of saving files, in a menu or on a button",
+  },
 });

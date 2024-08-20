@@ -48,6 +48,7 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { isIntlMessage } from "../../i18n";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
 import LanguageModelTitleBarButton from "../llm/title-bar-button";
@@ -231,7 +232,7 @@ export function FrameTitleBar(props: Props) {
         setHelpSearch,
         readOnly: read_only,
         editorSettings,
-        intl
+        intl,
       }),
     [
       props,
@@ -242,7 +243,7 @@ export function FrameTitleBar(props: Props) {
       setShowNewAI,
       read_only,
       editorSettings,
-      intl
+      intl,
     ],
   );
 
@@ -675,8 +676,10 @@ export function FrameTitleBar(props: Props) {
           key={`menu-${name}`}
           style={MENU_STYLE}
           title={
-            label == APPLICATION_MENU
+            label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
+              : isIntlMessage(label)
+              ? intl.formatMessage(label)
               : label
           }
           items={v}

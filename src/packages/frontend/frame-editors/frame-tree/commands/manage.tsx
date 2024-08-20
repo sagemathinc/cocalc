@@ -204,6 +204,11 @@ export class ManageCommands {
         if (label == APPLICATION_MENU) {
           return this.applicationMenuTitle();
         }
+
+        if (isIntlMessage(label)) {
+          return this.intl.formatMessage(label);
+        }
+
         return label;
       }
     }
@@ -292,7 +297,7 @@ export class ManageCommands {
 
   private cmd2display = (
     cmd: Partial<Command>,
-    aspect: "label" | "title",
+    aspect: "label" | "title" | "button",
   ): string | null | undefined | ReactNode => {
     if (cmd == null) return;
     const data = cmd[aspect];
@@ -446,8 +451,7 @@ export class ManageCommands {
       const icon = this.getCommandIcon(cmd);
       let buttonLabel;
       if (cmd.button != null) {
-        buttonLabel =
-          typeof cmd.button === "function" ? cmd.button(this) : cmd.button;
+        buttonLabel = this.cmd2display(cmd, "button");
       } else {
         buttonLabel = this.cmd2display(cmd, "label");
       }

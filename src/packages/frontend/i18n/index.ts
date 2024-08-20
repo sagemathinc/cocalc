@@ -18,6 +18,7 @@ import { unreachable } from "@cocalc/util/misc";
 import { IntlMessage, isIntlMessage } from "./types";
 
 export { labels } from "./common";
+export { menu } from "./menus";
 
 export { DEFAULT_LOCALE, isIntlMessage };
 

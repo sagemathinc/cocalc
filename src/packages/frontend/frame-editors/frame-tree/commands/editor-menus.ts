@@ -7,6 +7,7 @@ and addCommands functions.
 */
 
 import { IconRotation } from "@cocalc/frontend/components/icon";
+import { IntlMessage } from "@cocalc/frontend/i18n";
 import { capitalize } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
 import { addMenus } from "./menus";
@@ -22,9 +23,9 @@ type Command0 = {
 };
 
 type Menu = {
-  label: string;
+  label: string | IntlMessage;
   pos: number;
-  [key: string]: (Partial<Command0> | string)[] | number | string;
+  entries: { [key: string]: (Partial<Command0> | string)[] | number | string };
 };
 
 type EditorMenus = {
@@ -56,16 +57,13 @@ export function addEditorMenus({
   for (const menuName in editorMenus) {
     const menu = editorMenus[menuName];
     const groups: string[] = [];
-    for (const group in menu) {
-      const data = menu[group];
-      if (typeof data == "string" || typeof data == "number") {
-        // label and pos
-        continue;
-      }
+    const { entries } = menu;
+    for (const group in entries) {
+      const data = entries[group];
       const gp = `${prefix}-${group}`;
       groups.push(gp);
       let pos = -1;
-      for (const cmd of data) {
+      for (const cmd of Object.values(data)) {
         pos += 1;
         if (typeof cmd == "string") {
           COMMANDS[cmd] = { group: gp, pos };

@@ -2,11 +2,12 @@ import type { ReactNode } from "react";
 import type { MessageDescriptor } from "react-intl";
 
 import { IconRotation } from "@cocalc/frontend/components/icon";
+import { IntlMessage } from "@cocalc/frontend/i18n";
 import type { ManageCommands } from "./manage";
 import { MENUS } from "./menus";
 
 interface MenuSpec {
-  label: string;
+  label: IntlMessage | string;
   pos: number;
   groups: string[];
 }
@@ -28,12 +29,9 @@ export interface Command {
   title?: ReactNode | (MessageDescriptor & { id: string });
   icon?: ReactNode | ((opts: ManageCommands) => ReactNode);
   iconRotate?: IconRotation;
-  button?: ReactNode | ((opts: ManageCommands) => ReactNode);
+  button?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
   //color?: string | ((opts: ManageCommands) => string);
-  label?:
-    | ReactNode
-    | ((opts: ManageCommands) => ReactNode)
-    | (MessageDescriptor & { id: string });
+  label?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
   // If onClick is NOT set, then editor_actions[name] must be defined
   // and be a function that takes the frame id as input.
   onClick?: OnClick;

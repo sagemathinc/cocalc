@@ -54,7 +54,7 @@ CoCalc specific rules for implementing translations, of which I think are good t
 
 We discussed this internally on 2024-08-19 and came to the conclusion that we should not overdo translations.
 
-- Example: translating the "Run" button in Jupyter to German or Russian, which both have more or less the meaning of "running in the street", is extremely awkward. It's also a well recognizable element, which users are used to, even without knowing what it really means. Therefore, we do not translate elements like the "Run" button.
+- Example: translating the "Run" button in Jupyter to German or Russian, which both have more or less the meaning of "running in the street", is extremely awkward. It's also a well recognizable element, which users are used to, even without knowing what it really means. Same holds for "Kernel", which is even in English a pretty weird choice. Therefore, we do not translate elements like the "Run" button or "Kernel" for Jupyter Kernels. A "Run" menu however, in general, could be translated (e.g. in German it is called "Ausführen").
 - However, what we should translate (or add) are hover text explanations. So, in the case of the "Run" button, there should be a tooltip, which explains in the current language, what this button really does.
 
 ## Examples

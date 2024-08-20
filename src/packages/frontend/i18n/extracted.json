@@ -112,6 +112,10 @@
     "defaultMessage": "{type, select, is_public {Public} read_only {Readonly} other {Save}}",
     "description": "Frame editor's title bar 'Save' button"
   },
+  "labels.help": {
+    "defaultMessage": "Help",
+    "description": "Help entry in a menu or label on a button"
+  },
   "labels.licenses": {
     "defaultMessage": "Licenses",
     "description": "A license is part of a subscription or a one-time purchase to upgrade projects"
@@ -169,6 +173,37 @@
   "labels.upload": {
     "defaultMessage": "Upload",
     "description": "Label on such buttons, where a file upload can be initiated"
+  },
+  "menu.generic.edit.label": {
+    "defaultMessage": "Edit"
+  },
+  "menu.generic.file.label": {
+    "defaultMessage": "File"
+  },
+  "menu.generic.format.label": {
+    "defaultMessage": "Format"
+  },
+  "menu.generic.go.label": {
+    "defaultMessage": "Go"
+  },
+  "menu.generic.help.label": {
+    "defaultMessage": "Help"
+  },
+  "menu.generic.insert.label": {
+    "defaultMessage": "Insert"
+  },
+  "menu.generic.kernel.label": {
+    "defaultMessage": "Kernel",
+    "description": "Button label or menu entry for the 'Jupyter Kernel'. Keep its name 'Kernel' in all languages."
+  },
+  "menu.generic.new_file.label": {
+    "defaultMessage": "New File"
+  },
+  "menu.generic.run.label": {
+    "defaultMessage": "Run"
+  },
+  "menu.generic.view.label": {
+    "defaultMessage": "View"
   },
   "page.help.label": {
     "defaultMessage": "Help"
