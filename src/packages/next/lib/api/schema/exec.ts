@@ -115,24 +115,34 @@ HINT: set \`err_on_exit=false\`, to recieve the real \`exit_code\` of the execut
   }),
 );
 
-const ExecInputSchemaAsync = ExecInputCommon.merge(
+const ExecInputSchemaAsyncCommon = ExecInputCommon.merge(
   z.object({
     project_id: ProjectIdSchema,
-    async_get: z.string().optional()
-      .describe(`For a given \`job_id\`, which has been returned when setting \`async_call=true\`,
-retrieve the corresponding status or the result.
-
-The returned object contains the current \`stdout\` and \`stderr\` output,
-as well as a status field indicating if the job is still running or has completed.
-Start time and duration are returned as well.
-
-Results are cached temporarily in the project.`),
     async_stats: z
       .boolean()
-      .optional()
       .describe(
         `If true, retrieve recorded statistics (CPU/memory) of the process and its child processes.`,
       ),
+  }),
+);
+
+const ExecInputSchemaAsync = ExecInputSchemaAsyncCommon.merge(
+  z.object({
+    async_get: z.string()
+      .describe(`For a given \`job_id\` job, which has been returned when setting \`async_call=true\`,
+retrieve the corresponding status or the result.
+
+The returned object contains the current \`stdout\` and \`stderr\` output, the \`pid\`,
+as well as a status field indicating if the job is still running or has completed.
+Start time and duration are returned as well.
+
+Note: Results are cached temporarily in the project.`),
+    async_await: z.boolean().optional()
+      .describe(`If \`true\`, the call opens a "hanging" HTTP polling connection,
+until the given \`job_id\` job has completed.
+If the job already finished, this is equivalent to an \`async_get\` call without this parameter.
+
+Note: If it times out, you have to reconnect on your end.`),
   }),
 );
 
@@ -166,7 +176,13 @@ const ExecOutputAsync = ExecOutputBlocking.extend({
   status: z // AsyncStatus
     .union([z.literal("running"), z.literal("completed"), z.literal("error")])
     .describe("Status of the async operation"),
-  pid: z.number().min(0).describe("Process ID"),
+  pid: z
+    .number()
+    .min(0)
+    .optional()
+    .describe(
+      "Process ID. If not returned, then there has been a fundamenal problem spawning the process.",
+    ),
   stats: z
     .array(
       z.object({
