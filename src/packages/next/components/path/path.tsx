@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useEffect, useState } from "react";
 import {
   Alert,
   Avatar as AntdAvatar,
@@ -13,32 +12,34 @@ import {
   Tooltip,
 } from "antd";
 import Link from "next/link";
-import PathContents from "components/share/path-contents";
-import PathActions from "components/share/path-actions";
-import LinkedPath from "components/share/linked-path";
-import Loading from "components/share/loading";
-import License from "components/share/license";
-import ProjectLink from "components/share/project-link";
-import useCounter from "lib/share/counter";
-import { Layout } from "components/share/layout";
-import { Customize } from "lib/share/customize";
-import type { CustomizeType } from "lib/customize";
-import { getTitle } from "lib/share/util";
-import SanitizedMarkdown from "components/misc/sanitized-markdown";
-import Badge from "components/misc/badge";
+import { useRouter } from "next/router";
+import { join } from "path";
+import { useEffect, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import {
-  SHARE_AUTHENTICATED_ICON,
   SHARE_AUTHENTICATED_EXPLANATION,
+  SHARE_AUTHENTICATED_ICON,
 } from "@cocalc/util/consts/ui";
-import apiPost from "lib/api/post";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import { useRouter } from "next/router";
-import type { PathContents as PathContentsType } from "lib/share/get-contents";
-import Avatar from "components/share/proxy/avatar";
-import A from "components/misc/A";
-import { join } from "path";
 import { Tagline } from "components/landing/tagline";
+import A from "components/misc/A";
+import Badge from "components/misc/badge";
+import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import { Layout } from "components/share/layout";
+import License from "components/share/license";
+import LinkedPath from "components/share/linked-path";
+import Loading from "components/share/loading";
+import PathActions from "components/share/path-actions";
+import PathContents from "components/share/path-contents";
+import ProjectLink from "components/share/project-link";
+import Avatar from "components/share/proxy/avatar";
+import apiPost from "lib/api/post";
+import type { CustomizeType } from "lib/customize";
+import useCounter from "lib/share/counter";
+import { Customize } from "lib/share/customize";
+import type { PathContents as PathContentsType } from "lib/share/get-contents";
+import { getTitle } from "lib/share/util";
 
 import { SocialMediaShareLinks } from "components/landing/social-media-share-links";
 
