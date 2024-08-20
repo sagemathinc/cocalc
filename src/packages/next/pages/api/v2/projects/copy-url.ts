@@ -32,13 +32,13 @@ export default async function handle(req, res) {
     if (!account_id) {
       throw Error("must be signed in");
     }
-    if (!isCollaborator({ account_id, project_id })) {
+    if (!(await isCollaborator({ account_id, project_id }))) {
       throw Error("must be a collaborator on target project");
     }
     const info = await getProxiedPublicPathInfo(url);
     if (info.contents?.content == null) {
       throw Error(
-        "copying of directories (e.g., full GitHub repos) is not implemented; copy an individual file instead"
+        "copying of directories (e.g., full GitHub repos) is not implemented; copy an individual file instead",
       );
     }
     const i = url.lastIndexOf("/");
