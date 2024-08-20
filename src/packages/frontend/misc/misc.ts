@@ -3,8 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { QueryParams } from "../misc/query-params";
 import target from "@cocalc/frontend/client/handle-target";
+import { QueryParams } from "@cocalc/frontend/misc/query-params";
 
 declare var $: any;
 

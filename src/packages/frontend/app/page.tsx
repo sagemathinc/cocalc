@@ -27,7 +27,7 @@ import { Loading } from "@cocalc/frontend/components";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
-import { getLocale, labels, Locale } from "@cocalc/frontend/i18n";
+import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
 import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
@@ -38,7 +38,6 @@ import { ConnectionIndicator } from "./connection-indicator";
 import { ConnectionInfo } from "./connection-info";
 import { useAppContext } from "./context";
 import { FullscreenButton } from "./fullscreen-button";
-import { useLocalizationCtx } from "./localize";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
@@ -76,7 +75,6 @@ export const Page: React.FC = () => {
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
   const intl = useIntl();
-  const { setLocale } = useLocalizationCtx();
 
   const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
@@ -105,7 +103,6 @@ export const Page: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const other_settings = useTypedRedux("account", "other_settings");
   const doing_anonymous_setup = useTypedRedux(
     "account",
     "doing_anonymous_setup",
@@ -114,11 +111,6 @@ export const Page: React.FC = () => {
   const groups = useTypedRedux("account", "groups");
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
-
-  useEffect(() => {
-    const i18n: Locale = getLocale(other_settings);
-    setLocale(i18n);
-  }, []);
 
   function account_tab_icon(): IconName | JSX.Element {
     if (is_anonymous) {

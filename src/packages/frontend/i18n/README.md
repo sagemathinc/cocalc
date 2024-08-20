@@ -1,6 +1,8 @@
 # I18N in CoCalc
 
-Define messages directly in the component or use `./common.ts` for shared messages, etc. Search for e.g. `labels.projects` to see how they are used. This is only for the frontend – the Next.js part could be done similar, but needs a separate workflow.
+## Development
+
+Define messages directly in the component or use `./common.ts` for shared messages, etc. Search for e.g. `labels.projects` to see how they are used. This is only for the frontend – the Next.js part could be done similarly, but needs a separate workflow.
 
 `frontend/package.json` has three script entries, which are for [SimpleLocalize](https://simplelocalize.io/).
 
@@ -42,10 +44,18 @@ CoCalc specific rules for implementing translations, of which I think are good t
 
 - **Explicit ID**: Technically, the ID is optional. Then it is computed as a hash upon extraction. However, this has two negative sides:
   - If the message changes, it's hash changes, and you have to start over with the translation. This is good from an idealistic standpoint, but if you just tweak a word or correct a typo, the existing translations are still ok. If the meaning changes completely, it's better to create a new ID. (Of course, changes to the `defaultMessage` need to go through the `extract → upload` step, except that the English translation uses the `defaultMessage` directly.)
-  - Sorting: All the translations and also online tools like SimpleLocalize sort the translations by their keys. Look at the translated `i18n/de_DE.json` and you'll see, that messages that are related are also next to each other. This also makes it possible to filter for a specific
+  - Sorting: All the translations and also online tools like SimpleLocalize sort the translations by their keys. Look at the translated `i18n/de_DE.json` and you'll see that messages that are related are also next to each other. This also makes it possible to filter for a specific
 - Pitfall **No variables in properties**: I think the extraction process does not know how to deal with variables, when extracting strings from properties. So, either define the message objects elsewhere (like it is done with `labels`) or write a multiline string in place. See the examples below for what works.
 - **No `en` translation**: English is the default. The `defaultMessage` is already in the code. We do not download the supposedly translated `en` file and just let the fallback mechanism kick in. This also means that changes to the `defaultMessage` will show up with the next build, even without touching any of the translations.
 - **richTextElements**: in `app/localize.tsx`, a few default `richTextElements` are defined – just for convenience. Anchor tags must be defined individually, because link text and href can't be wrapped that way.
+- **Query parameter**: A new `?lang=en` (or `=de`, `=zh`, ...) query parameters lets you change the language as well. This also changes the account setting. Hence, a URL with `?lang=en` can be used to reset the account setting to English.
+
+## Style
+
+We discussed this internally on 2024-08-19 and came to the conclusion that we should not overdo translations.
+
+- Example: translating the "Run" button in Jupyter to German or Russian, which both have more or less the meaning of "running in the street", is extremely awkward. It's also a well recognizable element, which users are used to, even without knowing what it really means. Therefore, we do not translate elements like the "Run" button.
+- However, what we should translate (or add) are hover text explanations. So, in the case of the "Run" button, there should be a tooltip, which explains in the current language, what this button really does.
 
 ## Examples
 
@@ -119,7 +129,7 @@ force_build: {
 }
 ```
 
-The `ManageCommands` class knows what to do with that. If you use a function to deinfe a label or title,
+The `ManageCommands` class knows what to do with that. If you use a function to define a label or title,
 the `intl` (`IntlShape`) object is passed in as well.
 
 ```typescript
