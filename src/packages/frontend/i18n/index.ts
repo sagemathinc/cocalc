@@ -1,23 +1,27 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import {
   createIntl,
   createIntlCache,
+  defineMessage,
   IntlShape,
-  MessageDescriptor,
   MessageFormatElement,
 } from "react-intl";
 
 import { AccountState } from "@cocalc/frontend/account/types";
 import { redux } from "@cocalc/frontend/app-framework";
-import {
-  DEFAULT_LOCALE,
-  Locale,
-  LOCALIZATIONS,
-} from "@cocalc/util/consts/locale";
+import { DEFAULT_LOCALE, Locale } from "@cocalc/util/consts/locale";
 import { unreachable } from "@cocalc/util/misc";
+import { IntlMessage, isIntlMessage } from "./types";
 
 export { labels } from "./common";
-export { DEFAULT_LOCALE, LOCALIZATIONS };
-export type { Locale };
+
+export { DEFAULT_LOCALE, isIntlMessage };
+
+export type { IntlMessage, Locale };
 
 export const OTHER_SETTINGS_LOCALE_KEY = "i18n";
 
@@ -72,18 +76,48 @@ export async function getIntl(): Promise<IntlShape> {
   return createIntl({ locale, messages }, cache);
 }
 
-// In CoCalc, we require all message to have an ID and defaultMessage (which is English)
-export type IntlMessage = MessageDescriptor & {
-  id: string;
-  defaultMessage: string;
-};
-
-// For us, the id and defaultMessage must be set to be a MessageDescriptor
-export function isIntlMessage(msg: unknown): msg is MessageDescriptor {
-  return (
-    typeof msg === "object" &&
-    msg != null &&
-    "id" in msg &&
-    "defaultMessage" in msg
-  );
-}
+export const LOCALIZATIONS: {
+  [key in Locale]: {
+    name: string;
+    flag: string;
+    native: string;
+    trans: IntlMessage;
+  };
+} = {
+  en: {
+    name: "English",
+    flag: "🇺🇸",
+    native: "English",
+    trans: defineMessage({
+      id: "i18n.localization.lang.english",
+      defaultMessage: "English",
+    }),
+  },
+  es: {
+    name: "Spanish",
+    flag: "🇪🇸",
+    native: "Español",
+    trans: defineMessage({
+      id: "i18n.localization.lang.spanish",
+      defaultMessage: "Spanish",
+    }),
+  },
+  de: {
+    name: "German",
+    flag: "🇩🇪",
+    native: "Deutsch",
+    trans: defineMessage({
+      id: "i18n.localization.lang.german",
+      defaultMessage: "German",
+    }),
+  },
+  zh: {
+    name: "Chinese",
+    flag: "🇨🇳",
+    native: "中文",
+    trans: defineMessage({
+      id: "i18n.localization.lang.chinese",
+      defaultMessage: "Chinese",
+    }),
+  },
+} as const;

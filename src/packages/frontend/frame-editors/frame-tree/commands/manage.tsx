@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Button, Tooltip } from "antd";
 import { ReactNode } from "react";
 import { IntlShape } from "react-intl";

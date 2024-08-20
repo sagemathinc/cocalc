@@ -51,7 +51,7 @@ import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
-  const { setLocale } = useLocalizationCtx();
+  const { setLocale, locale } = useLocalizationCtx();
 
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
@@ -266,9 +266,12 @@ export const AccountPage: React.FC = () => {
     const i18n: Locale = getLocale(other_settings);
 
     const items: MenuProps["items"] =
-      Object.entries(LOCALIZATIONS).map(([key, { name, flag }]) => {
-        return { key, label: `${flag} ${name}` };
-      }) ?? [];
+      Object.entries(LOCALIZATIONS).map(
+        ([key, { name, trans, native, flag }]) => {
+          const other = key === locale ? name : intl.formatMessage(trans);
+          return { key, label: `${flag} ${native} (${other})` };
+        },
+      ) ?? [];
 
     items.push({ type: "divider" });
     items.push({
@@ -285,6 +288,7 @@ export const AccountPage: React.FC = () => {
       ),
       onClick: () =>
         Modal.info({
+          width: "min(90vw, 600px)",
           title: intl.formatMessage({
             id: "account.account_page.translation.info.title",
             defaultMessage: "Translation Information",
@@ -326,16 +330,29 @@ Thank you for your patience and understanding as we work to make our application
 
     const lang_icon = LOCALIZATIONS[i18n]?.flag;
 
+    const title =
+      i18n in LOCALIZATIONS
+        ? intl.formatMessage(LOCALIZATIONS[i18n].trans)
+        : i18n;
+
+    const cur = `${title} (${LOCALIZATIONS[i18n]?.name ?? i18n})`;
+    const msg = intl.formatMessage(labels.account_language_tooltip);
+    const tooltip = (
+      <>
+        {cur}
+        <br />
+        {msg}
+        <br />({labels.account_language_tooltip.defaultMessage})
+      </>
+    );
+
     return (
-      <Tooltip
-        title={intl.formatMessage(labels.account_language_tooltip)}
-        trigger={["hover"]}
-      >
+      <Tooltip title={tooltip} trigger={["hover"]}>
         <Dropdown menu={menu} trigger={["click"]}>
           <Button>
             <Space>
               {lang_icon}
-              {isWide ? LOCALIZATIONS[i18n]?.name ?? i18n : undefined}
+              {isWide ? title : undefined}
               <DownOutlined />
             </Space>
           </Button>

@@ -7,6 +7,7 @@ import { theme, ThemeConfig } from "antd";
 import type { SizeType } from "antd/es/config-provider/SizeContext";
 import { debounce } from "lodash";
 import { createContext, ReactNode, useContext } from "react";
+import { useIntl } from "react-intl";
 
 import {
   CSS,
@@ -15,9 +16,8 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
-import { useIntl } from "react-intl";
+import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import {
   FONT_SIZE_ICONS_NARROW,
   FONT_SIZE_ICONS_NORMAL,

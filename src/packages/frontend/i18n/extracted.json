@@ -53,6 +53,18 @@
   "command.generic.force_build.title": {
     "defaultMessage": "Force rebuild entire project."
   },
+  "i18n.localization.lang.chinese": {
+    "defaultMessage": "Chinese"
+  },
+  "i18n.localization.lang.english": {
+    "defaultMessage": "English"
+  },
+  "i18n.localization.lang.german": {
+    "defaultMessage": "German"
+  },
+  "i18n.localization.lang.spanish": {
+    "defaultMessage": "Spanish"
+  },
   "jupyter.select_kernel.footer": {
     "defaultMessage": "<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left.",
     "description": "Jupyter kernel selector, bottom."

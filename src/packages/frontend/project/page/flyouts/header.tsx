@@ -12,6 +12,7 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
+import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import track from "@cocalc/frontend/user-tracking";
@@ -23,7 +24,6 @@ import { FIXED_TABS_BG_COLOR } from "../tabs";
 import { ActiveHeader } from "./active-header";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
-import { isIntlMessage } from "../../../i18n";
 
 const FLYOUT_FULLPAGE_TOUR_NAME: TourName = "flyout-fullpage";
 
