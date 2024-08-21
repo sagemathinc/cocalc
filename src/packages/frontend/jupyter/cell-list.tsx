@@ -122,7 +122,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     read_only,
   } = props;
 
-  const cell_list_node = useRef<HTMLElement | null>(null);
+  const cellListDivRef = useRef<any>(null);
   const is_mounted = useIsMountedRef();
   const frameActions = useNotebookFrameActions();
 
@@ -140,7 +140,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     frame_actions.focus(true);
     // setup a click handler so we can manage focus
     $(window).on("click", window_click);
-    frame_actions.cell_list_div = $(cell_list_node.current);
+    frame_actions.cell_list_div = $(cellListDivRef.current);
 
     return () => {
       saveScroll();
@@ -172,7 +172,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   }, [cur_id, scroll, scroll_seq]);
 
   const handleCellListRef = useCallback((node: any) => {
-    cell_list_node.current = node;
+    cellListDivRef.current = node;
     frameActions.current?.set_cell_list_div(node);
   }, []);
 
@@ -186,8 +186,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       // We don't actually need to do anything though since our virtuoso
       // integration automatically solves this same problem.
     } else {
-      if (cell_list_node.current != null) {
-        frameActions.current?.set_scrollTop(cell_list_node.current.scrollTop);
+      if (cellListDivRef.current != null) {
+        frameActions.current?.set_scrollTop(cellListDivRef.current.scrollTop);
       }
     }
   }, [use_windowed_list]);
@@ -206,7 +206,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     let scrollHeight: number = 0;
     for (const tm of [0, 1, 100, 250, 500, 1000]) {
       if (!is_mounted.current) return;
-      const elt = cell_list_node.current;
+      const elt = cellListDivRef.current;
       if (elt != null && elt.scrollHeight !== scrollHeight) {
         // dynamically rendering actually changed something
         elt.scrollTop = scrollTop;
@@ -218,7 +218,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   function window_click(event: any): void {
     // if click in the cell list, focus the cell list; otherwise, blur it.
-    const elt = $(cell_list_node.current);
+    const elt = $(cellListDivRef.current);
     // list no longer exists, nothing left to do
     // Maybe elt can be null? https://github.com/sagemathinc/cocalc/issues/3580
     if (elt.length == 0) return;
@@ -242,8 +242,8 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     }
   }
 
-  async function scroll_cell_list_not_windowed(scroll: Scroll): Promise<void> {
-    const node = $(cell_list_node.current);
+  async function scrollCellListNotWindowed(scroll: Scroll): Promise<void> {
+    const node = $(cellListDivRef.current);
     if (node.length == 0) return;
     if (typeof scroll === "number") {
       node.scrollTop(node.scrollTop() + scroll);
@@ -307,7 +307,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           align = "end";
           isNotVisible = true;
         } else {
-          const scroller = $(cell_list_node.current);
+          const scroller = $(cellListDivRef.current);
           const cell = scroller.find(`#${cur_id}`);
           if (scroller[0] == null) return;
           if (cell[0] == null) return;
@@ -384,7 +384,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       scrollCellListVirtuoso(scroll);
     } else {
       // scroll not using windowed list
-      scroll_cell_list_not_windowed(scroll);
+      scrollCellListNotWindowed(scroll);
     }
   }
 
@@ -562,7 +562,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   let body;
 
-  const cellListDivRef = useRef<HTMLDivElement>(null);
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
 
   const cellListResize = useResizeObserver({ ref: cellListDivRef });
