@@ -20,6 +20,15 @@
   "account.account_preferences.title": {
     "defaultMessage": "Account Preferences"
   },
+  "account.settings.email_address.button_label": {
+    "defaultMessage": "{type, select, anonymous {Sign up using an email address and password} have_email {Change email address} other {Set email address and password}}"
+  },
+  "account.settings.email_address.new_email_address_label": {
+    "defaultMessage": "New email address"
+  },
+  "account.settings.email_address.password_label": {
+    "defaultMessage": "{have_email, select, true {Current password} other {Choose a password}}"
+  },
   "account.sign-out.button.ok": {
     "defaultMessage": "Yes, sign out{everywhere, select, true { everywhere} other {}}"
   },
@@ -34,6 +43,27 @@
   "account.sign_out.body.sign_out": {
     "defaultMessage": "Sign out{everywhere, select, true { everywhere} other {}}...",
     "description": "Sign out button, if signed in"
+  },
+  "chat.input.placeholder": {
+    "defaultMessage": "Type a new message ({have_llm, select, true {chat with AI or } other {}}notify a collaborator by typing @)..."
+  },
+  "chatroom.chat_input.preview_button.label": {
+    "defaultMessage": "Preview"
+  },
+  "chatroom.chat_input.send_button.label": {
+    "defaultMessage": "Send"
+  },
+  "chatroom.chat_input.send_button.tooltip": {
+    "defaultMessage": "Send message (shift+enter)"
+  },
+  "chatroom.scroll_bottom.label": {
+    "defaultMessage": "Newest"
+  },
+  "chatroom.scroll_bottom.tooltip.tip": {
+    "defaultMessage": "Scrolls the chat to the bottom showing the newest messages"
+  },
+  "chatroom.scroll_bottom.tooltip.title": {
+    "defaultMessage": "Newest Messages"
   },
   "command.format.ai_formula.button": {
     "defaultMessage": "Formula"
@@ -179,6 +209,10 @@
     "defaultMessage": "Create Project...",
     "description": "Label on buttons to open dialog to create a project, with 3 dots"
   },
+  "labels.email_address": {
+    "defaultMessage": "Email address",
+    "description": "e.g. a label in a form for the email address field"
+  },
   "labels.frame-editors.title-bar.save_label": {
     "defaultMessage": "{type, select, is_public {Public} read_only {Readonly} other {Save}}",
     "description": "Frame editor's title bar 'Save' button"
@@ -310,6 +344,9 @@
   },
   "menu.generic.view.label": {
     "defaultMessage": "View"
+  },
+  "page.flyouts.licenses.upgrades_explanation": {
+    "defaultMessage": "<p>This project is using the following resource quotas when running. You can add more resources by adding licenses or applying upgrades.</p>"
   },
   "page.help.label": {
     "defaultMessage": "Help"

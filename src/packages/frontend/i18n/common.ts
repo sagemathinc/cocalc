@@ -54,6 +54,11 @@ export const labels = defineMessages({
     defaultMessage: "Change the language of the user-interface.",
     description: "Tooltip text of dropdown to change the UI language",
   },
+  email_address: {
+    id: "labels.email_address",
+    defaultMessage: "Email address",
+    description: "e.g. a label in a form for the email address field",
+  },
   frame_editors_title_bar_save_label: {
     id: "labels.frame-editors.title-bar.save_label",
     defaultMessage:

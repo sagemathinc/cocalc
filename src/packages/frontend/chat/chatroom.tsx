@@ -33,9 +33,11 @@ import {
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
+import { FormattedMessage } from "react-intl";
 import { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
@@ -43,7 +45,6 @@ import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
-import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 const FILTER_RECENT_NONE = { value: 0, label: "All" } as const;
 
@@ -187,15 +188,32 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
     return (
       <Button onClick={button_scroll_to_bottom}>
         <Tip
-          title="Newest Messages"
+          title={
+            <FormattedMessage
+              id="chatroom.scroll_bottom.tooltip.title"
+              defaultMessage={"Newest Messages"}
+            />
+          }
           tip={
             <span>
-              Scrolls the chat to the bottom showing the newest messages
+              <FormattedMessage
+                id="chatroom.scroll_bottom.tooltip.tip"
+                defaultMessage={
+                  "Scrolls the chat to the bottom showing the newest messages"
+                }
+              />
             </span>
           }
           placement="left"
         >
-          <Icon name="arrow-down" /> <VisibleMDLG>Newest</VisibleMDLG>
+          <Icon name="arrow-down" />{" "}
+          <VisibleMDLG>
+            {" "}
+            <FormattedMessage
+              id="chatroom.scroll_bottom.label"
+              defaultMessage={"Newest"}
+            />
+          </VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -521,14 +539,25 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
                 margin: "0 0 5px 0",
               }}
             />
-            <Tooltip title={"Send message (shift+enter)"}>
+            <Tooltip
+              title={
+                <FormattedMessage
+                  id="chatroom.chat_input.send_button.tooltip"
+                  defaultMessage={"Send message (shift+enter)"}
+                />
+              }
+            >
               <Button
                 onClick={on_send_button_click}
                 disabled={input.trim() === "" || is_uploading}
                 type="primary"
                 style={{ height: "47.5px" }}
+                icon={<Icon name="paper-plane" />}
               >
-                <Icon name="paper-plane" /> Send
+                <FormattedMessage
+                  id="chatroom.chat_input.send_button.label"
+                  defaultMessage={"Send"}
+                />
               </Button>
             </Tooltip>
             <div style={{ height: "5px" }} />
@@ -537,7 +566,10 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
               style={{ height: "47.5px" }}
               disabled={is_preview}
             >
-              Preview
+              <FormattedMessage
+                id="chatroom.chat_input.preview_button.label"
+                defaultMessage={"Preview"}
+              />
             </Button>
           </div>
         </div>
