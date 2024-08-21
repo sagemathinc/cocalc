@@ -74,6 +74,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public _complete_request?: number;
   public store: JupyterStore;
   public syncdb: SyncDB;
+  private labels: { [label: string]: { tag: string; id: string } } = {};
 
   public _init(
     project_id: string,
@@ -2726,6 +2727,35 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // [ ] TODO: we also need to do this on compute servers, but
     // they don't yet have the listings table.
   };
+
+  processRenderedMarkdown = ({ value, id }: { value: string; id: string }) => {
+    const labels = this.labels;
+    const labelRegExp = /\s*\\label\{.*?\}\s*/g;
+    const noLabels = value.replace(labelRegExp, (labelContent) => {
+      const label = extractLabel(labelContent);
+      if (labels[label] == null) {
+        labels[label] = { tag: `${misc.len(labels) + 1}`, id };
+      }
+      return `\\tag{${labels[label].tag}}`;
+    });
+    const refRegExp = /\\ref\{.*?\}/g;
+    const noRefs = noLabels.replace(refRegExp, (refContent) => {
+      const label = extractLabel(refContent);
+      if (labels[label] == null) {
+        // nothing to do but strip it
+        return "";
+      }
+      const { tag, id } = labels[label];
+      return `[${tag}](#id=${id})`;
+    });
+    return noRefs;
+  };
+}
+
+function extractLabel(content: string): string {
+  const i = content.indexOf("{");
+  const j = content.lastIndexOf("}");
+  return content.slice(i + 1, j);
 }
 
 function bounded_integer(n: any, min: any, max: any, def: any) {
