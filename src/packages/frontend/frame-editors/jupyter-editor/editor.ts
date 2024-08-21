@@ -28,6 +28,7 @@ import { RawIPynb } from "./raw-ipynb";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
 import { TableOfContents } from "./table-of-contents";
+import { editor } from "@cocalc/frontend/i18n/common";
 
 const {
   ICON_NAME: SNIPPET_ICON_NAME,
@@ -100,7 +101,7 @@ export const EDITOR_SPEC = {
   } as EditorDescription,
   jupyter_table_of_contents: {
     short: "Contents",
-    name: "Table of Contents",
+    name: editor.table_of_contents_name,
     icon: "align-right",
     component: TableOfContents,
     commands: set(["decrease_font_size", "increase_font_size"]),

@@ -131,4 +131,102 @@ export const labels = defineMessages({
     defaultMessage: "Save",
     description: "In the context of saving files, in a menu or on a button",
   },
+  split_frame_vertically_title: {
+    id: "labels.split_frame_vertically.title",
+    defaultMessage: "Split frame vertically into two columns",
+  },
+  split_frame_horizontally_title: {
+    id: "labels.split_frame_horizontally.title",
+    defaultMessage: "Split Down",
+    description: "Split a frame horizontally",
+  },
+});
+
+export const menu = defineMessages({
+  file: {
+    id: "menu.generic.file.label",
+    defaultMessage: "File",
+  },
+  edit: {
+    id: "menu.generic.edit.label",
+    defaultMessage: "Edit",
+  },
+  insert: {
+    id: "menu.generic.insert.label",
+    defaultMessage: "Insert",
+  },
+  format: {
+    id: "menu.generic.format.label",
+    defaultMessage: "Format",
+  },
+  view: {
+    id: "menu.generic.view.label",
+    defaultMessage: "View",
+  },
+  go: {
+    id: "menu.generic.go.label",
+    defaultMessage: "Go",
+  },
+  help: {
+    id: "menu.generic.help.label",
+    defaultMessage: "Help",
+  },
+  new_file: {
+    id: "menu.generic.new_file.label",
+    defaultMessage: "New File",
+  },
+  run: {
+    id: "menu.generic.run.label",
+    defaultMessage: "Run",
+  },
+  kernel: {
+    id: "menu.generic.kernel.label",
+    defaultMessage: "Kernel",
+    description:
+      "Button label or menu entry for the 'Jupyter Kernel'. Keep its name 'Kernel' in all languages.",
+  },
+  close_and_halt: {
+    id: "menu.generic.close_and_halt.label",
+    defaultMessage: "Close and Halt...",
+    description: "Close and halt the editor for Jupyter, a server, etc.",
+  },
+  halt_jupyter_button: {
+    id: "menu.generic.halt_jupyter.button",
+    defaultMessage: "Halt",
+    description: "Halt Jupyter kernel and close the notebook editor",
+  },
+  halt_jupyter_title: {
+    id: "menu.generic.halt_jupyter.title",
+    defaultMessage: "Halt the running Jupyter kernel and close this notebook.",
+  },
+  kick_other_users_out_label: {
+    id: "menu.generic.kick_other_users_out.label",
+    defaultMessage: "Kick Other Users Out",
+  },
+  kick_other_users_out_button: {
+    id: "menu.generic.kick_other_users_out.button",
+    defaultMessage: "Kick",
+  },
+  kick_other_users_out_title: {
+    id: "menu.generic.kick_other_users_out.title",
+    defaultMessage:
+      "Kick all other users out from this document. It will close in all other browsers.",
+  },
+  split: {
+    id: "menu.generic.split.button",
+    defaultMessage: "Split",
+    description:
+      "Split a frame horizontally or vertically (short single word on button)",
+  },
+});
+
+export const editor = defineMessages({
+  table_of_contents_short: {
+    id: "editor.table_of_contents.short",
+    defaultMessage: "Content",
+  },
+  table_of_contents_name: {
+    id: "editor.table_of_contents.name",
+    defaultMessage: "Table of Contents",
+  },
 });

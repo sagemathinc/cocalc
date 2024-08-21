@@ -20,6 +20,7 @@ import {
 } from "@cocalc/frontend/frame-editors/generic/chat";
 import { get_default_font_size } from "@cocalc/frontend/frame-editors/generic/client";
 import { labels, menu } from "@cocalc/frontend/i18n";
+import { editor } from "@cocalc/frontend/i18n/common";
 import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
 import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { AI_GENERATE_DOC_TAG } from "@cocalc/frontend/project/page/home-page/ai-generate-utils";
@@ -34,7 +35,10 @@ addCommands({
     group: "frame-control",
     alwaysShow: true,
     pos: 1,
-    title: "Split frame horizontally into two rows",
+    title: defineMessage({
+      id: "command.generic.split_row.title",
+      defaultMessage: "Split frame horizontally into two rows",
+    }),
     onClick: ({ props }) => {
       if (props.is_full) {
         return props.actions.unset_frame_full();
@@ -43,14 +47,14 @@ addCommands({
       }
     },
     icon: "horizontal-split",
-    label: "Split Down",
-    button: "Split",
+    label: labels.split_frame_horizontally_title,
+    button: menu.split,
   },
   "split-col": {
     group: "frame-control",
     alwaysShow: true,
     pos: 2,
-    title: "Split frame vertically into two columns",
+    title: labels.split_frame_vertically_title,
     onClick: ({ props }) => {
       if (props.is_full) {
         return props.actions.unset_frame_full();
@@ -59,14 +63,21 @@ addCommands({
       }
     },
     icon: "vertical-split",
-    label: "Split Right",
-    button: "Split",
+    label: defineMessage({
+      id: "command.generic.split_col.label",
+      defaultMessage: "Split Right",
+      description: "Split a frame vertically",
+    }),
+    button: menu.split,
   },
   maximize: {
     group: "frame-control",
     alwaysShow: true,
     pos: 3,
-    title: "Toggle whether or not this frame is maximized",
+    title: defineMessage({
+      id: "command.generic.maximize.title",
+      defaultMessage: "Toggle whether or not this frame is maximized",
+    }),
     onClick: ({ props }) => {
       if (props.is_full) {
         props.actions.unset_frame_full();
@@ -74,33 +85,55 @@ addCommands({
         props.actions.set_frame_full(props.id);
       }
     },
-    label: ({ props }) => {
-      if (props.is_full) {
-        return <span>Demaximize Frame</span>;
-      } else {
-        return <span>Maximize Frame</span>;
-      }
-    },
+    label: ({ props, intl }) =>
+      intl.formatMessage(
+        {
+          id: "command.generic.maximize.label",
+          defaultMessage:
+            "{is_full, select, true {Demaximize Frame} other {Maximize Frame}}",
+          description:
+            "Depending on is_full, say maximize or de-maximize frame.",
+        },
+        {
+          is_full: props.is_full,
+        },
+      ),
     icon: "expand",
   },
   close: {
     group: "frame-control",
     alwaysShow: true,
     pos: 4,
-    title: "Close this frame. Close all frames to restore the default layout.",
+    title: defineMessage({
+      id: "command.generic.close.title",
+      defaultMessage:
+        "Close this frame. To restore the default layout, select the application menu entry 'Default Layout'.",
+    }),
     onClick: ({ props }) => {
       props.actions.close_frame(props.id);
     },
-    label: "Close Frame",
-    button: "Close",
+    label: defineMessage({
+      id: "command.generic.close.label",
+      defaultMessage: "Close Frame",
+    }),
+    button: defineMessage({
+      id: "command.generic.close.button",
+      defaultMessage: "Close",
+    }),
     icon: "times",
   },
   show_table_of_contents: {
     group: "show-frames",
-    title: "Show the Table of Contents",
+    title: defineMessage({
+      id: "command.generic.show_table_of_contents.title",
+      defaultMessage: "Show the Table of Contents",
+    }),
     icon: "align-right",
-    label: "Table of Contents",
-    button: "Contents",
+    label: editor.table_of_contents_name,
+    button: defineMessage({
+      id: "command.generic.show_table_of_contents.button",
+      defaultMessage: "Contents",
+    }),
   },
   guide: {
     group: "show-frames",
@@ -352,25 +385,24 @@ addCommands({
   kick_other_users_out: {
     group: "other-users",
     icon: "skull-crossbones",
-    title:
-      "Kick all other users out from this document. It will close in all other browsers.",
+    title: menu.kick_other_users_out_title,
     tour: "kick_other_users_out",
-    label: "Kick Other Users Out",
-    button: "Kick",
+    label: menu.kick_other_users_out_label,
+    button: menu.kick_other_users_out_button,
   },
 
   halt_jupyter: {
     group: "quit",
     icon: "PoweroffOutlined",
-    label: "Close and Halt...",
-    button: "Halt",
-    title: "Halt the running Jupyter kernel and close this notebook.",
+    label: menu.close_and_halt,
+    button: menu.halt_jupyter_button,
+    title: menu.halt_jupyter_title,
   },
 
   close_and_halt: {
     group: "quit",
     icon: "PoweroffOutlined",
-    label: "Close and Halt...",
+    label: menu.close_and_halt,
     title: "Halt backend server and close this file.",
   },
 
@@ -838,9 +870,18 @@ addCommands({
     alwaysShow: true,
     icon: "layout",
     group: "frame_types",
-    title: "Reset the layout of all frames to the default",
-    label: "Default Layout",
-    button: "Default",
+    title: defineMessage({
+      id: "command.generic.reset_local_view_state.title",
+      defaultMessage: "Reset the layout of all frames to the default",
+    }),
+    label: defineMessage({
+      id: "command.generic.reset_local_view_state.label",
+      defaultMessage: "Default Layout",
+    }),
+    button: defineMessage({
+      id: "command.generic.reset_local_view_state.button",
+      defaultMessage: "Default",
+    }),
   },
   button_bar: {
     alwaysShow: true,

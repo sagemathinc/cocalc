@@ -10,10 +10,12 @@ we support and how they work.
 See frontend/frame-editors/jupyter-editor/editor.ts for how these are organized into menus.
 */
 
+import { redux } from "@cocalc/frontend/app-framework";
 import { IconName } from "@cocalc/frontend/components";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { editor, IntlMessage } from "@cocalc/frontend/i18n";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { NotebookMode } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
@@ -24,7 +26,6 @@ import {
   RUN_ALL_CELLS_BELOW_ICON,
   SPLIT_CELL_ICON,
 } from "./consts";
-import { redux } from "@cocalc/frontend/app-framework";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -43,7 +44,7 @@ export interface KeyboardCommand {
 }
 
 export interface CommandDescription {
-  m: string; // m=menu = fuller description for use in menus and commands
+  m: string | IntlMessage; // m=menu = fuller description for use in menus and commands
   f: Function; // function that implements command.
   b?: string; // very short label; use for a button
   i?: IconName;
@@ -609,7 +610,7 @@ export function commands(actions: AllActions): {
     },
 
     "table of contents": {
-      m: "Table of Contents",
+      m: editor.table_of_contents_name,
       f: () => actions.editor_actions?.show_table_of_contents(),
       r: true,
     },

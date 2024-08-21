@@ -17,8 +17,7 @@ import { DEFAULT_LOCALE, Locale } from "@cocalc/util/consts/locale";
 import { unreachable } from "@cocalc/util/misc";
 import { IntlMessage, isIntlMessage } from "./types";
 
-export { labels } from "./common";
-export { menu } from "./menus";
+export { editor, labels, menu } from "./common";
 
 export { DEFAULT_LOCALE, isIntlMessage };
 

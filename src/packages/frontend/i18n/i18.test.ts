@@ -1,5 +1,4 @@
-import { labels } from "./common";
-import { menu } from "./menus";
+import { editor, labels, menu } from "./common";
 
 describe("i18n", () => {
   test("comon", () => {
@@ -13,6 +12,13 @@ describe("i18n", () => {
     for (const k in menu) {
       const v = menu[k];
       expect(v.id.startsWith("menu.")).toBe(true);
+    }
+  });
+
+  test("editor", () => {
+    for (const k in editor) {
+      const v = editor[k];
+      expect(v.id.startsWith("editor.")).toBe(true);
     }
   });
 });

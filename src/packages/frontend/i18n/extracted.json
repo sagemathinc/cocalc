@@ -35,6 +35,33 @@
     "defaultMessage": "Sign out{everywhere, select, true { everywhere} other {}}...",
     "description": "Sign out button, if signed in"
   },
+  "command.format.ai_formula.button": {
+    "defaultMessage": "Formula"
+  },
+  "command.format.ai_formula.label": {
+    "defaultMessage": "AI Generated Formula"
+  },
+  "command.format.ai_formula.title": {
+    "defaultMessage": "Insert AI generated formula."
+  },
+  "command.format.display_equation.button": {
+    "defaultMessage": "Display"
+  },
+  "command.format.display_equation.label": {
+    "defaultMessage": "Displayed Equation"
+  },
+  "command.format.display_equation.title": {
+    "defaultMessage": "Insert display LaTeX math equation"
+  },
+  "command.format.equation.button": {
+    "defaultMessage": "Math"
+  },
+  "command.format.equation.label": {
+    "defaultMessage": "Inline Equation"
+  },
+  "command.format.equation.title": {
+    "defaultMessage": "Insert inline LaTeX math equation"
+  },
   "command.generic.build.label": {
     "defaultMessage": "Build"
   },
@@ -47,11 +74,55 @@
   "command.generic.build_on_save.title": {
     "defaultMessage": "Toggle automatic build on file save."
   },
+  "command.generic.close.button": {
+    "defaultMessage": "Close"
+  },
+  "command.generic.close.label": {
+    "defaultMessage": "Close Frame"
+  },
+  "command.generic.close.title": {
+    "defaultMessage": "Close this frame. To restore the default layout, select the application menu entry 'Default Layout'."
+  },
   "command.generic.force_build.label": {
     "defaultMessage": "Force Build"
   },
   "command.generic.force_build.title": {
     "defaultMessage": "Force rebuild entire project."
+  },
+  "command.generic.maximize.label": {
+    "defaultMessage": "{is_full, select, true {Demaximize Frame} other {Maximize Frame}}",
+    "description": "Depending on is_full, say maximize or de-maximize frame."
+  },
+  "command.generic.maximize.title": {
+    "defaultMessage": "Toggle whether or not this frame is maximized"
+  },
+  "command.generic.reset_local_view_state.button": {
+    "defaultMessage": "Default"
+  },
+  "command.generic.reset_local_view_state.label": {
+    "defaultMessage": "Default Layout"
+  },
+  "command.generic.reset_local_view_state.title": {
+    "defaultMessage": "Reset the layout of all frames to the default"
+  },
+  "command.generic.show_table_of_contents.button": {
+    "defaultMessage": "Contents"
+  },
+  "command.generic.show_table_of_contents.title": {
+    "defaultMessage": "Show the Table of Contents"
+  },
+  "command.generic.split_col.label": {
+    "defaultMessage": "Split Right",
+    "description": "Split a frame vertically"
+  },
+  "command.generic.split_row.title": {
+    "defaultMessage": "Split frame horizontally into two rows"
+  },
+  "editor.table_of_contents.name": {
+    "defaultMessage": "Table of Contents"
+  },
+  "editor.table_of_contents.short": {
+    "defaultMessage": "Content"
   },
   "i18n.localization.lang.chinese": {
     "defaultMessage": "Chinese"
@@ -149,9 +220,20 @@
   "labels.purchases": {
     "defaultMessage": "Purchases"
   },
+  "labels.save": {
+    "defaultMessage": "Save",
+    "description": "In the context of saving files, in a menu or on a button"
+  },
   "labels.settings": {
     "defaultMessage": "Settings",
     "description": "On a button to show project settings"
+  },
+  "labels.split_frame_horizontally.title": {
+    "defaultMessage": "Split Down",
+    "description": "Split a frame horizontally"
+  },
+  "labels.split_frame_vertically.title": {
+    "defaultMessage": "Split frame vertically into two columns"
   },
   "labels.ssh_keys": {
     "defaultMessage": "SSH Keys"
@@ -174,6 +256,10 @@
     "defaultMessage": "Upload",
     "description": "Label on such buttons, where a file upload can be initiated"
   },
+  "menu.generic.close_and_halt.label": {
+    "defaultMessage": "Close and Halt...",
+    "description": "Close and halt the editor for Jupyter, a server, etc."
+  },
   "menu.generic.edit.label": {
     "defaultMessage": "Edit"
   },
@@ -186,6 +272,13 @@
   "menu.generic.go.label": {
     "defaultMessage": "Go"
   },
+  "menu.generic.halt_jupyter.button": {
+    "defaultMessage": "Halt",
+    "description": "Halt Jupyter kernel and close the notebook editor"
+  },
+  "menu.generic.halt_jupyter.title": {
+    "defaultMessage": "Halt the running Jupyter kernel and close this notebook."
+  },
   "menu.generic.help.label": {
     "defaultMessage": "Help"
   },
@@ -196,11 +289,24 @@
     "defaultMessage": "Kernel",
     "description": "Button label or menu entry for the 'Jupyter Kernel'. Keep its name 'Kernel' in all languages."
   },
+  "menu.generic.kick_other_users_out.button": {
+    "defaultMessage": "Kick"
+  },
+  "menu.generic.kick_other_users_out.label": {
+    "defaultMessage": "Kick Other Users Out"
+  },
+  "menu.generic.kick_other_users_out.title": {
+    "defaultMessage": "Kick all other users out from this document. It will close in all other browsers."
+  },
   "menu.generic.new_file.label": {
     "defaultMessage": "New File"
   },
   "menu.generic.run.label": {
     "defaultMessage": "Run"
+  },
+  "menu.generic.split.button": {
+    "defaultMessage": "Split",
+    "description": "Split a frame horizontally or vertically (short single word on button)"
   },
   "menu.generic.view.label": {
     "defaultMessage": "View"

@@ -36,6 +36,7 @@ import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/stand
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { AIGenerateDocumentModal } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
 import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
@@ -48,7 +49,6 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { isIntlMessage } from "../../i18n";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
 import LanguageModelTitleBarButton from "../llm/title-bar-button";
@@ -406,7 +406,7 @@ export function FrameTitleBar(props: Props) {
     return (
       <Button
         key={"split-row-button"}
-        title={"Split frame horizontally into two rows"}
+        title={intl.formatMessage(labels.split_frame_horizontally_title)}
         size="small"
         type="text"
         onClick={(e) => {
@@ -429,7 +429,7 @@ export function FrameTitleBar(props: Props) {
     return (
       <Button
         key={"split-col-button"}
-        title={"Split frame vertically into two columns"}
+        title={intl.formatMessage(labels.split_frame_vertically_title)}
         size="small"
         type="text"
         onClick={(e) => {
@@ -912,6 +912,18 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
+  function spec2display(
+    spec: EditorDescription,
+    aspect: "name" | "short",
+  ): string {
+    const label: string | IntlMessage = spec[aspect];
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
+  }
+
   function renderTitle(): Rendered {
     let title: string = "";
     if (props.title !== undefined) {
@@ -922,9 +934,9 @@ export function FrameTitleBar(props: Props) {
       if (spec != null) {
         if (!title) {
           if (spec.name) {
-            title = spec.name;
+            title = spec2display(spec, "name");
           } else if (spec.short) {
-            title = spec.short;
+            title = spec2display(spec, "short");
           }
         }
       }

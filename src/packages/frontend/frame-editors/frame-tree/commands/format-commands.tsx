@@ -1,4 +1,5 @@
 import { range } from "lodash";
+import { defineMessage } from "react-intl";
 
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
@@ -12,21 +13,48 @@ import { addEditorMenus } from "./editor-menus";
 
 const FORMAT_SPEC = {
   equation: {
-    button: "Math",
-    label: "Inline Equation",
-    title: "Insert inline LaTeX math equation.",
+    button: defineMessage({
+      id: "command.format.equation.button",
+      defaultMessage: "Math",
+    }),
+    label: defineMessage({
+      id: "command.format.equation.label",
+      defaultMessage: "Inline Equation",
+    }),
+    title: defineMessage({
+      id: "command.format.equation.title",
+      defaultMessage: "Insert inline LaTeX math equation",
+    }),
     icon: <span>$</span>,
   },
   display_equation: {
-    button: "Display",
-    label: "Displayed Equation",
-    title: "Insert display LaTeX math equation.",
+    button: defineMessage({
+      id: "command.format.display_equation.button",
+      defaultMessage: "Display",
+    }),
+    label: defineMessage({
+      id: "command.format.display_equation.label",
+      defaultMessage: "Displayed Equation",
+    }),
+    title: defineMessage({
+      id: "command.format.display_equation.title",
+      defaultMessage: "Insert display LaTeX math equation",
+    }),
     icon: <span>$$</span>,
   },
   ai_formula: {
-    button: "Formula",
-    label: "AI Generated Formula",
-    title: "Insert AI generated formula.",
+    button: defineMessage({
+      id: "command.format.ai_formula.button",
+      defaultMessage: "Formula",
+    }),
+    label: defineMessage({
+      id: "command.format.ai_formula.label",
+      defaultMessage: "AI Generated Formula",
+    }),
+    title: defineMessage({
+      id: "command.format.ai_formula.title",
+      defaultMessage: "Insert AI generated formula.",
+    }),
     icon: <AIAvatar size={16} />,
   },
   bold: { icon: "bold", title: "Make selected text bold" },
