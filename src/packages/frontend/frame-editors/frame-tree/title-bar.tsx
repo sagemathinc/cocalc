@@ -36,7 +36,9 @@ import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/stand
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { AIGenerateDocumentModal } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
 import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
@@ -68,7 +70,7 @@ import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 // actions that are not defined in the base code editor actions.
 // In all cases, we check these are actually defined before calling
 // them to avoid a runtime stacktrace.
-interface FrameActions extends Actions {
+export interface FrameActions extends Actions {
   zoom_page_width?: (id: string) => void;
   zoom_page_height?: (id: string) => void;
   sync?: (id: string, editor_actions: EditorActions) => void;
@@ -79,6 +81,10 @@ interface FrameActions extends Actions {
   word_count?: (time: number, force: boolean) => void;
   close_and_halt?: (id: string) => void;
   stop_build?: (id: string) => void;
+
+  // optional, set in frame-editors/jupyter-editor/editor.ts → initMenus
+  jupyter_actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
 }
 
 interface EditorActions extends Actions {
@@ -148,7 +154,7 @@ export function ConnectionStatusIcon({ status }: { status: ConnectionStatus }) {
   );
 }
 
-interface Props {
+export interface FrameTitleBarProps {
   actions: FrameActions;
   editor_actions: EditorActions;
   path: string;
@@ -173,7 +179,7 @@ interface Props {
   tab_is_visible?: boolean;
 }
 
-export function FrameTitleBar(props: Props) {
+export function FrameTitleBar(props: FrameTitleBarProps) {
   // Whether this is *the* active currently focused frame:
   const is_active = props.active_id === props.id;
   const track = useMemo(() => {

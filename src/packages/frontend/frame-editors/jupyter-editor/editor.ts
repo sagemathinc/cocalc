@@ -13,6 +13,7 @@ import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands
 import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { labels, menu } from "@cocalc/frontend/i18n";
+import { editor } from "@cocalc/frontend/i18n/common";
 import { AllActions, commands } from "@cocalc/frontend/jupyter/commands";
 import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
 import { capitalize, field_cmp, set } from "@cocalc/util/misc";
@@ -28,7 +29,6 @@ import { RawIPynb } from "./raw-ipynb";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
 import { TableOfContents } from "./table-of-contents";
-import { editor } from "@cocalc/frontend/i18n/common";
 
 const {
   ICON_NAME: SNIPPET_ICON_NAME,
@@ -542,7 +542,7 @@ function initMenus() {
         onClick: ({ props }) => {
           allActions.frame_actions = props.actions.frame_actions?.[props.id];
           allActions.jupyter_actions = props.actions.jupyter_actions;
-          allActions.editor_actions = props.actions;
+          allActions.editor_actions = props.actions; // TODO should this be props.editor_actions ?
           cmd.f();
         },
       };

@@ -1994,7 +1994,7 @@ export class Actions<
   // Do a formatting action to whatever code editor
   // is currently active, or the main document if none is
   // focused or force_main is true.
-  async format_action(cmd, args, force_main: boolean = false): Promise<void> {
+  async format_action(cmd, args?, force_main: boolean = false): Promise<void> {
     if (!force_main) {
       const id = this._get_active_id();
       const editor = this.get_code_editor(id);

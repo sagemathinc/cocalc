@@ -38,6 +38,10 @@ Ref:
 - https://simplelocalize.io/docs/integrations/format-js/
 - https://simplelocalize.io/docs/integrations/format-js-cli/
 
+### Issues
+
+In dev mode, there are warnings like `"defaultRichTextElements" was specified but "message" was not pre-compiled.`. I don't understand why. These simple json messages for translations are fine (at least there is no way to compile them) and they also seem to work. It's probably a matter of fixing the top level "render.tsx" components – i.e. when to prevent a rendering, because of incomplete data, or something like that.
+
 ## Specifics
 
 CoCalc specific rules for implementing translations, of which I think are good to follow in CoCalc's environment:

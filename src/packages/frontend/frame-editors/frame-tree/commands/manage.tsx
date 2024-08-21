@@ -13,8 +13,10 @@ import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { isIntlMessage } from "@cocalc/frontend/i18n";
+import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
+// import { FrameTitleBarProps } from "../title-bar";
+import { EditorDescription } from "../types";
 import { COMMANDS } from "./commands";
 import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
 import { GROUPS, MENUS } from "./menus";
@@ -25,7 +27,9 @@ const MAX_SEARCH_RESULTS = 10;
 const ICON_WIDTH = "24px";
 
 export class ManageCommands {
-  readonly props;
+  // TODO: setting this to FrameTitleBarProps causes type issues in frame-editors/jupyter-editor/editor.ts
+  // So, there is probably a fundamental problem with that mapping into "AllActions"
+  readonly props; // FrameTitleBarProps;
   readonly studentProjectFunctionality;
   readonly setShowAI: (val: boolean) => void;
   readonly setShowNewAI: (val: boolean) => void;
@@ -58,7 +62,7 @@ export class ManageCommands {
     this.readOnly = readOnly;
     this.editorSettings = editorSettings;
     this.intl = intl;
-    this.formatMessageValues = { br: <br />, ...this.props };
+    this.formatMessageValues = { br: <br /> };
     //window.x = { manage: this };
   }
 
@@ -171,6 +175,19 @@ export class ManageCommands {
     return v;
   };
 
+  spec2display = (
+    spec: EditorDescription,
+    aspect: "name" | "short",
+  ): string => {
+    const label: string | IntlMessage | undefined = spec[aspect];
+    if (isIntlMessage(label)) {
+      return this.intl.formatMessage(label);
+    } else if (typeof label === "string") {
+      return label;
+    }
+    return "";
+  };
+
   applicationMenuTitle = () => {
     let title: string = "Application";
     let icon: IconName | undefined = undefined;
@@ -179,9 +196,9 @@ export class ManageCommands {
       if (spec != null) {
         icon = spec.icon;
         if (spec.short) {
-          title = spec.short;
+          title = this.spec2display(spec, "short");
         } else if (spec.name) {
-          title = spec.name;
+          title = this.spec2display(spec, "name");
         }
       }
     }
@@ -243,11 +260,11 @@ export class ManageCommands {
           `BUG -- ${type} must be defined by the editor_spec, but is not`,
         );
       }
-      const search = spec.name?.toLowerCase();
-      let label = spec.name;
+      const label = this.spec2display(spec, "name");
+      const search = label.toLowerCase();
       items.push({
         search,
-        label: selected_type == type ? <b>{label}</b> : label,
+        label: selected_type === type ? <b>{label}</b> : label,
         icon: spec.icon ? spec.icon : "file",
         onClick: () => {
           if (createNew) {
