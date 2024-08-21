@@ -2777,8 +2777,93 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       const { tag, id } = labels[label];
       return `[${tag}](#id=${id})`;
     });
-    return noRefs;
+
+    const figures = transformFigures(noRefs);
+
+    return figures;
   };
+}
+
+/*
+Turn this:
+
+---
+
+...
+
+\begin{figure}
+\centering
+\centerline{\includegraphics[width=WIDTH]{URL}}
+\caption{CAPTION}
+\end{figure}
+
+...
+
+---
+
+into this:
+
+---
+
+...
+
+<div style="text-align:center"><img src="URL" style="width:WIDTH"/></div>
+\begin{equation}
+\text{CAPTION}
+\end{equation}
+
+...
+
+---
+
+There can be lots of figures.
+
+*/
+
+function transformFigures(content: string): string {
+  while (true) {
+    const i = content.indexOf("\\begin{figure}");
+    if (i == -1) {
+      return content;
+    }
+    const j = content.indexOf("\\end{figure}");
+    if (j == -1) {
+      return content;
+    }
+    const k = content.indexOf("\\includegraphics");
+    if (k == -1) {
+      return content;
+    }
+    const c = content.indexOf("\\caption{");
+    if (c == -1) {
+      return content;
+    }
+    const c2 = content.lastIndexOf("}", j);
+    if (c2 == -1) {
+      return content;
+    }
+
+    const w = content.indexOf("width=");
+    const w2 = content.indexOf("{", k);
+    const w3 = content.indexOf("}", k);
+    if (w2 == -1 || w3 == -1) {
+      return content;
+    }
+    let style = "";
+    if (w != -1) {
+      style = `width:${content.slice(w + "width=".length, w2 - 1)}`;
+    }
+    const url = content.slice(w2 + 1, w3);
+    const caption = content.slice(c + "\\caption{".length, c2);
+
+    const md = `\n\n<div style="text-align:center"><img src="${url}" style="${style}"/></div>\n\n
+\\begin{equation}
+\\text{${caption}}
+\\end{equation}\n\n`;
+
+    content =
+      content.slice(0, i) + md + content.slice(j + "\\end{figure}".length);
+  }
 }
 
 function extractLabel(content: string): string {
