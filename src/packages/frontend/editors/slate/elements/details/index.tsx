@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { load } from "cheerio";
 import { CSSProperties } from "react";
-import { register, SlateElement } from "../register";
+
 import { dict } from "@cocalc/util/misc";
-import $ from "cheerio";
+import { register, SlateElement } from "../register";
 
 export const STYLE = {
   cursor: "pointer",
@@ -42,7 +43,7 @@ register({
 
   toSlate: ({ children, state, token }) => {
     const attrs = dict(state.attrs as any);
-    const x = $(token.content);
+    const x = load("")(token.content);
     const summary = x.find("summary").text().trim();
     return {
       type: "details",

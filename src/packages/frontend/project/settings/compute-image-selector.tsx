@@ -108,10 +108,11 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
           key === defaultComputeImg ? <Text strong>{labelStr}</Text> : labelStr;
         const extra = registry && tag ? ` (${registry}:${tag})` : "";
         const title = `${img.get("descr")}${extra}`;
-        return { key, title, label };
+        const item: MenuItem = { key, title, label };
+        return item;
       })
       .valueSeq()
-      .toJS();
+      .toJS() as MenuItem[];
   }
 
   function render_menu_group(group: string): MenuItem {

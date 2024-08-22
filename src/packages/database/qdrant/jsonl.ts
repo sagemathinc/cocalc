@@ -50,14 +50,14 @@ export async function save({
   }
   const client = getClient({ url, apiKey });
   const info = await client.getCollection(collection);
-  const { vectors_count } = info;
+  const vectors_count = info.vectors_count ?? 0;
   log(
     "save: there are",
     vectors_count,
     "vectors to save in",
     collection,
     "to",
-    file
+    file,
   );
 
   // Create a write stream for the output file
@@ -79,7 +79,7 @@ export async function save({
       // delete first point since it was the offset.
       points.shift();
     }
-    offset = points[points.length-1].id as string;
+    offset = points[points.length - 1].id as string;
     for (const point of points) {
       const compressedLine = JSON.stringify(point) + "\n";
       compressedStream.write(compressedLine);

@@ -3,18 +3,22 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import React from "react";
+
 import { IconName } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
 import { register as registerSearch } from "./search/entries";
 
-export const components: { [main: string]: { [sub: string]: Function } } = {};
+export const components: {
+  [main: string]: { [sub: string]: React.FC };
+} = {};
 
 interface Options {
   path: string;
   title?: string;
   icon?: IconName | "ai";
   desc?: string;
-  Component: Function;
+  Component: React.FC;
   danger?: boolean;
   search?: string | object;
 }

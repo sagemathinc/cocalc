@@ -45,7 +45,7 @@ export async function save({
   const client = getClient({ url, apiKey });
 
   const info = await client.getCollection(collection);
-  const { vectors_count } = info;
+  const vectors_count = info.vectors_count ?? 0;
   log("dump: there are ", vectors_count, "vectors to dump in ", collection);
 
   // Create sqlite database
@@ -84,7 +84,7 @@ export async function save({
     offset = points[points.length - 1].id as string;
     // insert points into the sqlite3 table collection efficiently:
     const insertStmt = db.prepare(
-      `INSERT INTO ${collection} (id, payload, vector) VALUES (?, ?, ?)`
+      `INSERT INTO ${collection} (id, payload, vector) VALUES (?, ?, ?)`,
     );
 
     db.transaction(() => {
