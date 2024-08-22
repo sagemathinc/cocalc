@@ -13,7 +13,15 @@ const Html = ({
   index?: number;
   trust?: boolean;
 }) => {
-  if (!trust || !requiresStableUnsafeHtml(value)) {
+  // if id and index aren't set no way to track this as stable unsafe html.
+  // This happens, e.g., right now with renderOutput with ipywidgets, which is probably OK, since usually
+  // with widgets the HTML doesn't need to be stable -- you are using widgets for state, not HTML.
+  if (
+    id == null ||
+    index == null ||
+    !trust ||
+    !requiresStableUnsafeHtml(value)
+  ) {
     return <HTML value={value} />;
   }
   return (
