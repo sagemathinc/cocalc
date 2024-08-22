@@ -20,6 +20,9 @@
   "account.account_preferences.title": {
     "defaultMessage": "Account Preferences"
   },
+  "account.settings.created.label": {
+    "defaultMessage": "Created"
+  },
   "account.settings.email_address.button_label": {
     "defaultMessage": "{type, select, anonymous {Sign up using an email address and password} have_email {Change email address} other {Set email address and password}}"
   },
@@ -28,6 +31,15 @@
   },
   "account.settings.email_address.password_label": {
     "defaultMessage": "{have_email, select, true {Current password} other {Choose a password}}"
+  },
+  "account.settings.unlisted.label": {
+    "defaultMessage": "Unlisted: you can only be found by an exact email address match"
+  },
+  "account.settings.username.info": {
+    "defaultMessage": "Setting a username provides optional nicer URL's for shared public documents. Your username can be between 1 and 39 characters, contain upper and lower case letters, numbers, and dashes. {br} WARNING: If you change your username, existing links using the previous username will no longer work (automatic redirects are not implemented), so change with caution."
+  },
+  "account.settings.username.label": {
+    "defaultMessage": "Username (optional)"
   },
   "account.sign-out.button.ok": {
     "defaultMessage": "Yes, sign out{everywhere, select, true { everywhere} other {}}"
@@ -43,6 +55,12 @@
   "account.sign_out.body.sign_out": {
     "defaultMessage": "Sign out{everywhere, select, true { everywhere} other {}}...",
     "description": "Sign out button, if signed in"
+  },
+  "ai-generate-document.loading_kernels.error_message": {
+    "defaultMessage": "Unable to load Jupyter kernels. Make sure the project is running and Jupyter is installed."
+  },
+  "ai-generate-document.modal.title": {
+    "defaultMessage": "Generate a {docName} Document using AI"
   },
   "chat.input.placeholder": {
     "defaultMessage": "Type a new message ({have_llm, select, true {chat with AI or } other {}}notify a collaborator by typing @)..."
@@ -104,6 +122,12 @@
   "command.generic.build_on_save.title": {
     "defaultMessage": "Toggle automatic build on file save."
   },
+  "command.generic.chatgpt.label": {
+    "defaultMessage": "AI Assistant"
+  },
+  "command.generic.chatgpt.title": {
+    "defaultMessage": "Ask an Artificial Intelligence Assistant (e.g., ChatGPT) for help on what you're doing."
+  },
   "command.generic.close.button": {
     "defaultMessage": "Close"
   },
@@ -113,11 +137,35 @@
   "command.generic.close.title": {
     "defaultMessage": "Close this frame. To restore the default layout, select the application menu entry 'Default Layout'."
   },
+  "command.generic.decrease_font_size.button": {
+    "defaultMessage": "Smaller"
+  },
+  "command.generic.decrease_font_size.label": {
+    "defaultMessage": "Zoom Out"
+  },
+  "command.generic.decrease_font_size.title": {
+    "defaultMessage": "Decrease Font Size"
+  },
+  "command.generic.edit_init_script.label": {
+    "defaultMessage": "Initialization Script"
+  },
+  "command.generic.edit_init_script.title": {
+    "defaultMessage": "Edit the initialization script that is run when this starts"
+  },
   "command.generic.force_build.label": {
     "defaultMessage": "Force Build"
   },
   "command.generic.force_build.title": {
     "defaultMessage": "Force rebuild entire project."
+  },
+  "command.generic.increase_font_size.button": {
+    "defaultMessage": "Bigger"
+  },
+  "command.generic.increase_font_size.label": {
+    "defaultMessage": "Zoom In"
+  },
+  "command.generic.increase_font_size.title": {
+    "defaultMessage": "Increase Font Size"
   },
   "command.generic.maximize.label": {
     "defaultMessage": "{is_full, select, true {Demaximize Frame} other {Maximize Frame}}",
@@ -125,6 +173,22 @@
   },
   "command.generic.maximize.title": {
     "defaultMessage": "Toggle whether or not this frame is maximized"
+  },
+  "command.generic.open.label": {
+    "defaultMessage": "Open File",
+    "description": "Label on menu item"
+  },
+  "command.generic.open.title": {
+    "defaultMessage": "Open a file",
+    "description": "Tooltip on menu item"
+  },
+  "command.generic.open_recent.label": {
+    "defaultMessage": "Open Recent",
+    "description": "Label on menu item"
+  },
+  "command.generic.open_recent.title": {
+    "defaultMessage": "Open a file that was recently opened",
+    "description": "Tooltip on menu item"
   },
   "command.generic.reset_local_view_state.button": {
     "defaultMessage": "Default"
@@ -148,11 +212,74 @@
   "command.generic.split_row.title": {
     "defaultMessage": "Split frame horizontally into two rows"
   },
+  "command.generic.stop_build.label": {
+    "defaultMessage": "Stop"
+  },
+  "command.generic.stop_build.title": {
+    "defaultMessage": "Stop all running jobs."
+  },
+  "command.generic.sync.label": {
+    "defaultMessage": "Synchronize Views",
+    "description": "Synchronize the LaTeX source view with the PDF output"
+  },
+  "command.generic.sync.title": {
+    "defaultMessage": "Synchronize the LaTeX source view with the PDF output."
+  },
+  "command.generic.word_count.label": {
+    "defaultMessage": "Word Count"
+  },
+  "command.generic.word_count.title": {
+    "defaultMessage": "Show information about the number of words in this document.",
+    "description": "Tooltip for 'Word Count'"
+  },
+  "command.generic.zoom_page_height.label": {
+    "defaultMessage": "Zoom to Height"
+  },
+  "command.generic.zoom_page_height.title": {
+    "defaultMessage": "Zoom to page height"
+  },
+  "command.generic.zoom_page_width.label": {
+    "defaultMessage": "Zoom to Width"
+  },
+  "command.generic.zoom_page_width.title": {
+    "defaultMessage": "Zoom to page width"
+  },
+  "commands.generic.toggle_button_bar.confirm.description": {
+    "defaultMessage": "The menu toolbar is a customizable bar of shortcuts to menu items. <ul> <li> Everything in the menu toolbar is always available in the menus above. </li> <li> Show the toolbar by selecting 'View → Show Menu Toolbar'. </li> <li> Toggle buttons by clicking the icon next to any top level menu item. </li> <li> Hide only this frame's toolbar: 'View → Menu Toolbar → Remove All Buttons'. </li> </ul>"
+  },
+  "commands.generic.toggle_button_bar.confirm.ok": {
+    "defaultMessage": "Hide Menu Toolbar"
+  },
+  "commands.generic.toggle_button_bar.confirm.title": {
+    "defaultMessage": "Hide Menu Toolbar For All Editors"
+  },
+  "commands.generic.toggle_button_bar.label": {
+    "defaultMessage": "{show, select, true {Hide} other {Show}} Menu Toolbar..."
+  },
+  "commands.generic.toggle_button_bar.title": {
+    "defaultMessage": "Toggle whether or not the menu toolbar is displayed for all editors."
+  },
   "editor.table_of_contents.name": {
     "defaultMessage": "Table of Contents"
   },
   "editor.table_of_contents.short": {
-    "defaultMessage": "Content"
+    "defaultMessage": "Content",
+    "description": "Short for Table of Contents"
+  },
+  "editor.terminal.cmd.help.title": {
+    "defaultMessage": "Show documentation for using the Linux Terminal in CoCalc."
+  },
+  "frame_editors.frame_tree.title_bar.close": {
+    "defaultMessage": "Close this frame",
+    "description": "Click this X button to close the frame"
+  },
+  "frame_editors.frame_tree.title_bar.maximize": {
+    "defaultMessage": "Show only this frame",
+    "description": "Maximize this frame to show only this one"
+  },
+  "frame_editors.frame_tree.title_bar.minimize": {
+    "defaultMessage": "Show all frames",
+    "description": "Minimize this frame to show all frames"
   },
   "i18n.localization.lang.chinese": {
     "defaultMessage": "Chinese"
@@ -165,6 +292,111 @@
   },
   "i18n.localization.lang.spanish": {
     "defaultMessage": "Spanish"
+  },
+  "jupyter.commands.cell_toolbar_none": {
+    "defaultMessage": "No cell toolbar",
+    "description": "Jupyter Notebook cell toolbar 'None' hides the toolbar"
+  },
+  "jupyter.commands.cell_toolbar_none_menu": {
+    "defaultMessage": "None",
+    "description": "Jupyter Notebook cell toolbar 'None' hides the toolbar"
+  },
+  "jupyter.commands.change_kernel": {
+    "defaultMessage": "Change Kernel...",
+    "description": "Change the Kernel in the Jupyter Notebook"
+  },
+  "jupyter.commands.change_kernel_title": {
+    "defaultMessage": "Select from any of the available kernels.",
+    "description": "Tooltip description for changing the Kernel in the Jupyter Notebook"
+  },
+  "jupyter.commands.restart_kernel.label": {
+    "defaultMessage": "Restart Kernel..."
+  },
+  "jupyter.commands.restart_kernel_run_all_cells": {
+    "defaultMessage": "Restart and Run All Cells..."
+  },
+  "jupyter.commands.restart_kernel_run_all_cells_button": {
+    "defaultMessage": "Run All"
+  },
+  "jupyter.commands.run_current_cell.label": {
+    "defaultMessage": "Run Current Cell"
+  },
+  "jupyter.commands.toggle_all_line_numbers": {
+    "defaultMessage": "Toggle Line Numbers of All Cells"
+  },
+  "jupyter.commands.toggle_cell_line_numbers": {
+    "defaultMessage": "Toggle Line Numbers of Selected Cells"
+  },
+  "jupyter.editor.console_label": {
+    "defaultMessage": "Jupyter Console"
+  },
+  "jupyter.editor.console_title": {
+    "defaultMessage": "Open the Jupyter command line console connected to the running kernel."
+  },
+  "jupyter.editor.run_all_cells.label": {
+    "defaultMessage": "Run All Cells",
+    "description": "Run all cells in a Jupyter Notebook "
+  },
+  "jupyter.editor.run_selected_cells.label": {
+    "defaultMessage": "Run Selected Cells",
+    "description": "Run selected cells in a Jupyter Notebook"
+  },
+  "jupyter.llm.cell-tool.assistant.title": {
+    "defaultMessage": "Use AI assitant on this cell"
+  },
+  "jupyter.llm.cell-tool.explanation.bugfix": {
+    "defaultMessage": "Explain the problem of the code in the cell and the selected language model will attempt to fix it. Usually, it will tell you if it found a problem and explain it to you."
+  },
+  "jupyter.llm.cell-tool.explanation.document": {
+    "defaultMessage": "The language model will add documentation lines to the code in the cell."
+  },
+  "jupyter.llm.cell-tool.explanation.explain": {
+    "defaultMessage": "The code in the cell will be sent to the selected language model. It will explain the code to you in plain language."
+  },
+  "jupyter.llm.cell-tool.explanation.improve": {
+    "defaultMessage": "The selected language model will analyze the code and suggest improvements. Beware, that the results are not guaranteed to be correct, nor could cause subtle problmes – review them carefully."
+  },
+  "jupyter.llm.cell-tool.explanation.modify": {
+    "defaultMessage": "The language model will modify the code according to the given instructions. Pick one of the templates and modify it, or come up with some instructions of your own!"
+  },
+  "jupyter.llm.cell-tool.explanation.translate": {
+    "defaultMessage": "The language model will attempt to translate the code in the cell to another programming language. The result might not work at all – but if you're more familiar with the selected target language, you might find it easier to understand what's going on!"
+  },
+  "jupyter.llm.dell-tool.actions.bugfix.descr": {
+    "defaultMessage": "Describe the problem of that cell in order to get a bugfixed version."
+  },
+  "jupyter.llm.dell-tool.actions.bugfix.label": {
+    "defaultMessage": "Explain"
+  },
+  "jupyter.llm.dell-tool.actions.document.descr": {
+    "defaultMessage": "Add documentation"
+  },
+  "jupyter.llm.dell-tool.actions.document.label": {
+    "defaultMessage": "Document"
+  },
+  "jupyter.llm.dell-tool.actions.explain.descr": {
+    "defaultMessage": "Gain some insight into the code in that cell."
+  },
+  "jupyter.llm.dell-tool.actions.explain.label": {
+    "defaultMessage": "Explain"
+  },
+  "jupyter.llm.dell-tool.actions.improve.descr": {
+    "defaultMessage": "Improve the code in that cell."
+  },
+  "jupyter.llm.dell-tool.actions.improve.label": {
+    "defaultMessage": "Improve"
+  },
+  "jupyter.llm.dell-tool.actions.modify.descr": {
+    "defaultMessage": "Modify the code in the cell"
+  },
+  "jupyter.llm.dell-tool.actions.modify.label": {
+    "defaultMessage": "Modify"
+  },
+  "jupyter.llm.dell-tool.actions.translate.descr": {
+    "defaultMessage": "Translate the code in that cell to another language using AI."
+  },
+  "jupyter.llm.dell-tool.actions.translate.label": {
+    "defaultMessage": "Translate"
   },
   "jupyter.select_kernel.footer": {
     "defaultMessage": "<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left.",
@@ -198,6 +430,18 @@
     "defaultMessage": "Last name",
     "description": "Label for Account/Last name:"
   },
+  "labels.ai_generate_label": {
+    "defaultMessage": "Help me write...",
+    "description": "Label on the menu enty to open the AI Assistant for generating documents"
+  },
+  "labels.ai_generate_title": {
+    "defaultMessage": "Create a new file with the help of AI",
+    "description": "Tooltip on the menu enty to open the AI Assistant for generating documents"
+  },
+  "labels.assistant": {
+    "defaultMessage": "Assistant",
+    "description": "The button to engage with the AI Assistant dialog"
+  },
   "labels.button.cancel": {
     "defaultMessage": "Cancel",
     "description": "'Cancel' button on all those small confirmation modals (other one is 'Ok' or 'Yes')"
@@ -205,9 +449,15 @@
   "labels.cloud_file_system": {
     "defaultMessage": "Cloud File Systems"
   },
+  "labels.copy": {
+    "defaultMessage": "Copy"
+  },
   "labels.create_project": {
     "defaultMessage": "Create Project...",
     "description": "Label on buttons to open dialog to create a project, with 3 dots"
+  },
+  "labels.cut": {
+    "defaultMessage": "Cut"
   },
   "labels.email_address": {
     "defaultMessage": "Email address",
@@ -228,6 +478,9 @@
   "labels.new.file": {
     "defaultMessage": "New",
     "description": "Create new file button '+ New'"
+  },
+  "labels.paste": {
+    "defaultMessage": "Paste"
   },
   "labels.preferences": {
     "defaultMessage": "Preferences"
@@ -254,13 +507,30 @@
   "labels.purchases": {
     "defaultMessage": "Purchases"
   },
+  "labels.redo": {
+    "defaultMessage": "redo"
+  },
+  "labels.reload": {
+    "defaultMessage": "Reload"
+  },
+  "labels.reload_title": {
+    "defaultMessage": "Reload this document"
+  },
   "labels.save": {
     "defaultMessage": "Save",
     "description": "In the context of saving files, in a menu or on a button"
   },
+  "labels.save_title": {
+    "defaultMessage": "Save this file to disk",
+    "description": "In the context of saving files, this is the tooltip on a menu item or on a button"
+  },
   "labels.settings": {
     "defaultMessage": "Settings",
     "description": "On a button to show project settings"
+  },
+  "labels.snippets": {
+    "defaultMessage": "Snippets",
+    "description": "Short label for opening the 'Snippets' frame"
   },
   "labels.split_frame_horizontally.title": {
     "defaultMessage": "Split Down",
@@ -282,6 +552,20 @@
   "labels.support": {
     "defaultMessage": "Support"
   },
+  "labels.terminal": {
+    "defaultMessage": "Terminal",
+    "description": "Title of the Linux Terminal frame"
+  },
+  "labels.timetravel": {
+    "defaultMessage": "TimeTravel",
+    "description": "Open the 'TimeTravel' history of the current document. It records all changes of that file over time."
+  },
+  "labels.timetravel_title": {
+    "defaultMessage": "Show complete editing history of this document"
+  },
+  "labels.undo": {
+    "defaultMessage": "Undo"
+  },
   "labels.upgrades": {
     "defaultMessage": "Upgrades",
     "description": "Upgrades for specific projects"
@@ -289,6 +573,12 @@
   "labels.upload": {
     "defaultMessage": "Upload",
     "description": "Label on such buttons, where a file upload can be initiated"
+  },
+  "labels.zoom_in": {
+    "defaultMessage": "Zoom in"
+  },
+  "labels.zoom_out": {
+    "defaultMessage": "Zoom out"
   },
   "menu.generic.close_and_halt.label": {
     "defaultMessage": "Close and Halt...",

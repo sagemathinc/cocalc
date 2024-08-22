@@ -10,12 +10,15 @@ we support and how they work.
 See frontend/frame-editors/jupyter-editor/editor.ts for how these are organized into menus.
 */
 
+import { defineMessage } from "react-intl";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { IconName } from "@cocalc/frontend/components";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import { editor, IntlMessage } from "@cocalc/frontend/i18n";
+import { editor, IntlMessage, labels } from "@cocalc/frontend/i18n";
+import { jupyter } from "@cocalc/frontend/i18n/common";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { NotebookMode } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
@@ -46,12 +49,12 @@ export interface KeyboardCommand {
 export interface CommandDescription {
   m: string | IntlMessage; // m=menu = fuller description for use in menus and commands
   f: Function; // function that implements command.
-  b?: string; // very short label; use for a button
+  b?: string | IntlMessage; // very short label; use for a button
   i?: IconName;
   ir?: "90"; // rotate icon
   k?: KeyboardCommand[]; // keyboard commands
-  t?: string; // t=title = much longer description for tooltip
-  menu?: string; // alternative to m just for dropdown menu
+  t?: string | IntlMessage; // t=title = much longer description for tooltip
+  menu?: string | IntlMessage; // alternative to m just for dropdown menu
   d?: string; // even more extensive description (e.g., for a tooltip).
   r?: boolean; // if set, this is a read only safe command
 }
@@ -72,8 +75,8 @@ export function commands(actions: AllActions): {
   return {
     "cell toolbar none": {
       i: "ban",
-      m: "No cell toolbar",
-      menu: "None",
+      m: jupyter.commands.cell_toolbar_none,
+      menu: jupyter.commands.cell_toolbar_none_menu,
       f: () => actions.jupyter_actions?.cell_toolbar(),
       r: true,
     },
@@ -204,7 +207,10 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel": {
-      m: "Restart Kernel...",
+      m: defineMessage({
+        id: "jupyter.commands.restart_kernel.label",
+        defaultMessage: "Restart Kernel...",
+      }),
       b: "Kernel",
       i: "reload",
       k: [{ mode: "escape", which: 48, twice: true }],
@@ -226,8 +232,8 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel and run all cells": {
-      m: "Restart and Run All Cells...",
-      b: "Run All",
+      m: jupyter.commands.restart_kernel_run_all_cells,
+      b: jupyter.commands.restart_kernel_run_all_cells_button,
       menu: "Run all...",
       i: "forward",
       f: () => {
@@ -830,7 +836,10 @@ export function commands(actions: AllActions): {
 
     "run current cell and select next": {
       i: "step-forward",
-      m: "Run Current Cell",
+      m: defineMessage({
+        id: "jupyter.commands.run_current_cell.label",
+        defaultMessage: "Run Current Cell",
+      }),
       b: "Run",
       f() {
         actions.frame_actions?.shift_enter_run_current_cell();
@@ -1001,7 +1010,7 @@ export function commands(actions: AllActions): {
     },
 
     "time travel": {
-      m: "TimeTravel",
+      m: labels.timetravel,
       f: () => actions.jupyter_actions?.show_history_viewer(),
       r: true,
     },
@@ -1013,7 +1022,7 @@ export function commands(actions: AllActions): {
 
     "toggle all line numbers": {
       i: "list-ol",
-      m: "Toggle Line Numbers of All Cells",
+      m: jupyter.commands.toggle_all_line_numbers,
       k: [{ mode: "escape", shift: true, which: 76 }],
       f: () => actions.jupyter_actions?.toggle_line_numbers(),
       r: true,
@@ -1021,7 +1030,7 @@ export function commands(actions: AllActions): {
 
     "toggle cell line numbers": {
       i: "list-ol",
-      m: "Toggle Line Numbers of Selected Cells",
+      m: jupyter.commands.toggle_cell_line_numbers,
       k: [{ mode: "escape", which: 76 }],
       f: () => actions.jupyter_actions?.toggle_cell_line_numbers(id()),
       r: true,
@@ -1117,14 +1126,14 @@ export function commands(actions: AllActions): {
     //     },
 
     "zoom in": {
-      m: "Zoom in",
+      m: labels.zoom_in,
       k: [{ ctrl: true, shift: true, which: 190 }],
       f: () => actions.frame_actions?.zoom(1),
       r: true,
     },
 
     "zoom out": {
-      m: "Zoom out",
+      m: labels.zoom_out,
       k: [{ ctrl: true, shift: true, which: 188 }],
       f: () => actions.frame_actions?.zoom(-1),
       r: true,
@@ -1203,8 +1212,8 @@ export function commands(actions: AllActions): {
 
     "change kernel": {
       i: "jupyter",
-      m: "Change Kernel...",
-      t: "Select from any of the available kernels.",
+      m: jupyter.commands.change_kernel,
+      t: jupyter.commands.change_kernel_title,
       f: () => {
         actions.jupyter_actions?.show_select_kernel("user request");
       },

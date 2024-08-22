@@ -136,6 +136,12 @@ export const labels = defineMessages({
     defaultMessage: "Save",
     description: "In the context of saving files, in a menu or on a button",
   },
+  save_title: {
+    id: "labels.save_title",
+    defaultMessage: "Save this file to disk",
+    description:
+      "In the context of saving files, this is the tooltip on a menu item or on a button",
+  },
   split_frame_vertically_title: {
     id: "labels.split_frame_vertically.title",
     defaultMessage: "Split frame vertically into two columns",
@@ -144,6 +150,64 @@ export const labels = defineMessages({
     id: "labels.split_frame_horizontally.title",
     defaultMessage: "Split Down",
     description: "Split a frame horizontally",
+  },
+  assistant: {
+    id: "labels.assistant",
+    defaultMessage: "Assistant",
+    description: "The button to engage with the AI Assistant dialog",
+  },
+  timetravel: {
+    id: "labels.timetravel",
+    defaultMessage: "TimeTravel",
+    description:
+      "Open the 'TimeTravel' history of the current document. It records all changes of that file over time.",
+  },
+  timetravel_title: {
+    id: "labels.timetravel_title",
+    defaultMessage: "Show complete editing history of this document",
+  },
+  terminal: {
+    id: "labels.terminal",
+    defaultMessage: "Terminal",
+    description: "Title of the Linux Terminal frame",
+  },
+  snippets: {
+    id: "labels.snippets",
+    defaultMessage: "Snippets",
+    description: "Short label for opening the 'Snippets' frame",
+  },
+  zoom_in: {
+    id: "labels.zoom_in",
+    defaultMessage: "Zoom in",
+  },
+  zoom_out: {
+    id: "labels.zoom_out",
+    defaultMessage: "Zoom out",
+  },
+  reload: {
+    id: "labels.reload",
+    defaultMessage: "Reload",
+  },
+  cut: { id: "labels.cut", defaultMessage: "Cut" },
+  copy: { id: "labels.copy", defaultMessage: "Copy" },
+  undo: { id: "labels.undo", defaultMessage: "Undo" },
+  paste: { id: "labels.paste", defaultMessage: "Paste" },
+  redo: { id: "labels.redo", defaultMessage: "redo" },
+  reload_title: {
+    id: "labels.reload_title",
+    defaultMessage: "Reload this document",
+  },
+  ai_generate_label: {
+    id: "labels.ai_generate_label",
+    defaultMessage: "Help me write...",
+    description:
+      "Label on the menu enty to open the AI Assistant for generating documents",
+  },
+  ai_generate_title: {
+    id: "labels.ai_generate_title",
+    defaultMessage: "Create a new file with the help of AI",
+    description:
+      "Tooltip on the menu enty to open the AI Assistant for generating documents",
   },
 });
 
@@ -229,9 +293,80 @@ export const editor = defineMessages({
   table_of_contents_short: {
     id: "editor.table_of_contents.short",
     defaultMessage: "Content",
+    description: "Short for Table of Contents",
   },
   table_of_contents_name: {
     id: "editor.table_of_contents.name",
     defaultMessage: "Table of Contents",
   },
+  terminal_cmd_help_title: {
+    id: "editor.terminal.cmd.help.title",
+    defaultMessage:
+      "Show documentation for using the Linux Terminal in CoCalc.",
+  },
 });
+
+export const jupyter = {
+  editor: defineMessages({
+    run_all_cells: {
+      id: "jupyter.editor.run_all_cells.label",
+      defaultMessage: "Run All Cells",
+      description: "Run all cells in a Jupyter Notebook ",
+    },
+    run_selected_cells: {
+      id: "jupyter.editor.run_selected_cells.label",
+      defaultMessage: "Run Selected Cells",
+      description: "Run selected cells in a Jupyter Notebook",
+    },
+    console_label: {
+      id: "jupyter.editor.console_label",
+      defaultMessage: "Jupyter Console",
+    },
+    console_title: {
+      id: "jupyter.editor.console_title",
+      defaultMessage:
+        "Open the Jupyter command line console connected to the running kernel.",
+    },
+  }),
+  commands: defineMessages({
+    toggle_all_line_numbers: {
+      id: "jupyter.commands.toggle_all_line_numbers",
+      defaultMessage: "Toggle Line Numbers of All Cells",
+    },
+    toggle_cell_line_numbers: {
+      id: "jupyter.commands.toggle_cell_line_numbers",
+      defaultMessage: "Toggle Line Numbers of Selected Cells",
+    },
+    change_kernel: {
+      id: "jupyter.commands.change_kernel",
+      defaultMessage: "Change Kernel...",
+      description: "Change the Kernel in the Jupyter Notebook",
+    },
+    change_kernel_title: {
+      id: "jupyter.commands.change_kernel_title",
+      defaultMessage: "Select from any of the available kernels.",
+      description:
+        "Tooltip description for changing the Kernel in the Jupyter Notebook",
+    },
+    cell_toolbar_none: {
+      id: "jupyter.commands.cell_toolbar_none",
+      defaultMessage: "No cell toolbar",
+      description: "Jupyter Notebook cell toolbar 'None' hides the toolbar",
+    },
+    cell_toolbar_none_menu: {
+      id: "jupyter.commands.cell_toolbar_none_menu",
+      defaultMessage: "None",
+      description: "Jupyter Notebook cell toolbar 'None' hides the toolbar",
+    },
+    restart_kernel_run_all_cells: {
+      id: "jupyter.commands.restart_kernel_run_all_cells",
+      defaultMessage: "Restart and Run All Cells...",
+      describe: "In a Jupyter Notebook, restart kernel and run all cells",
+    },
+    restart_kernel_run_all_cells_button: {
+      id: "jupyter.commands.restart_kernel_run_all_cells_button",
+      defaultMessage: "Run All",
+      describe: "In a Jupyter Notebook, restart kernel and run all cells",
+    },
+  }),
+};

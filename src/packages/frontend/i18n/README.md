@@ -2,13 +2,26 @@
 
 ## Development
 
-Define messages directly in the component or use `./common.ts` for shared messages, etc. Search for e.g. `labels.projects` to see how they are used. This is only for the frontend – the Next.js part could be done similarly, but needs a separate workflow.
+Right now, all of this is only for the frontend – the Next.js part could be done similarly, but needs a separate workflow. In particular, on those "next" landing pages there would be additional sections for different languages – here, we translate specific strings in-place.
 
-`frontend/package.json` has three script entries, which are for [SimpleLocalize](https://simplelocalize.io/).
+To get started, you either define messages directly in a `tsx` file in the component or use `./common.ts` for shared messages, etc. Search for e.g. `labels.projects` to see how such defined messages are used. It is generally discuraged to re-use messages, because context usually matters – the exception are short labels and single words, which should actually be consistent across their usage.
+
+To get a feeling how this works, search in the source code for existing usages. At the end of this file are detailed examples.
+
+- The `<FormattedMessage id="[directory].[subdir].[filename].[aspect].[label|title|...]"                defaultMessage="..." />` is only used in `*.tsx` files. They return a `Fragment` and you can also specify values. Read up on its documentation to learn more. On top of that, read up on `Explicit ID` noted below.
+- A `defineMessage({ id: "[...].[...].[label|title|tooltip|...]",  defaultMessage:"..."})` is used when you define a message in a data structure, which will be referenced by a component. That "defined message" is basically a tagged object. You cannot use it directly in a component!
+  - To make use of such a `defineMessage`, you have to get a hold of `const intl = useIntl()` and then `intl.formatMessage(the_message_object)`. That will render a string.
+- Note: There is a type `IntlMessage` defiend by us here in `./types.ts`. It requires `id` and `defaultMessage`. Search for `isIntlMessage` in the code base to see, how it is used to check what to do with it.
+
+Note: The "extract" step parses the source-code of all `*.tsx` files and only a few selected `*.ts` files. You cannot use variables where messages are defined, because the extract tool does not know what to do with them. So, for example, the files that define commands are `*.ts` files, and the messages it uses are referencing the exported messages defined in `i18n/common.ts`. Scanning all files just takes too long.
 
 Note: the provider could be changed at any time – what's important is to end up with matching "compiled" files for each language, where "compiled" means we need those `single-language-json` formatted files for `formatjs`. In the end, just look at the language files: they are pretty simple and unique IDs for each message just need an entry in each language. Otherwise the `defaultMessage` is shown and an error is thrown.
 
-After introducing new messages:
+## Translation
+
+After introducing new messages, these are the steps to get all translations into CoCalc:
+
+`frontend/package.json` has four script entries, which are for [SimpleLocalize](https://simplelocalize.io/).
 
 1.  `pnpm i18n:extract`:
 
@@ -18,18 +31,26 @@ After introducing new messages:
 1.  `pnpm i18n:upload`:
 
     Basically, the `i18n/extracted.json` will be sent to SimpleLocalize.
+    The `--overwrite` switch is set, such that all new `defaultMessage`s will show up in the English language source.
+    This also means it makes no sense to touch the English language strings – they must be fixed in the source code in CoCalc's code base.
 
 1.  Open/refresh SimpleLocalize
 
-    It will show the additional entries – translate them – save the changes – review if necessary. You can use the sort mechanism to list the ones without a translation at the top. Existing translations with the same ID will not be touched. The English translation might be out of sync with the `defaultMessage`, and you can ignore it – we use the `defaultMessage` for English.
+    It will show the new keys or changed English language sources – translate them – save the changes – review if necessary. You can use the sort mechanism to list the ones without a translation at the top. Existing translations with the same ID will not be touched. The English translation might be out of sync with the `defaultMessage`, and you can ignore it – we use the `defaultMessage` for English.
 
 1.  `pnpm i18n:download`
 
     Will grab the updated files like `zh_CN.json` and save them in the `i18n` folder.
 
+1.  `pnpm i18n:compile`
+
+    This transforms the `[locale].json` files to `[locale].compiles.json`.
+    This could also reveal problems, when conditional ICU messages aren't properly formatted.
+    E.g. `"Sí, cerrar sesión{en todas partes, seleccionar, verdadero { en todas partes} otro {}}" with ID "account.sign-out.button.ok" in file "./i18n/es_ES.json"`: In the brackets, it has to start according to the syntax: `{everywhere, select, true {..} other {}}`.
+
 1.  Reload the `frontend` after a compile, such that `await import...` will load the updated translation file for the set locale.
 
-Note: if just a translation has been updated, you only need to do the `i18n:download` step.
+Note: if just a translation has been updated, you only need to do the `i18n:download` & `i18n:compile` steps.
 
 Ref:
 
@@ -37,10 +58,6 @@ Ref:
 - https://formatjs.io/docs/react-intl/api
 - https://simplelocalize.io/docs/integrations/format-js/
 - https://simplelocalize.io/docs/integrations/format-js-cli/
-
-### Issues
-
-In dev mode, there are warnings like `"defaultRichTextElements" was specified but "message" was not pre-compiled.`. I don't understand why. These simple json messages for translations are fine (at least there is no way to compile them) and they also seem to work. It's probably a matter of fixing the top level "render.tsx" components – i.e. when to prevent a rendering, because of incomplete data, or something like that.
 
 ## Specifics
 

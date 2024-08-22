@@ -1,0 +1,1770 @@
+{
+  "account.account-button.confirm.ok": [
+    {
+      "type": 0,
+      "value": "Sí, cerrar sesión"
+    }
+  ],
+  "account.account-button.confirm.title": [
+    {
+      "type": 0,
+      "value": "¿Cerrar sesión de tu cuenta?"
+    }
+  ],
+  "account.account_page.translation.info.content": [
+    {
+      "type": 0,
+      "value": "¡Estamos emocionados de empezar a ofrecer nuestra aplicación en múltiples idiomas! Esto es lo que necesitas saber: "
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "type": 0,
+                  "value": "Trabajo en Progreso"
+                }
+              ],
+              "type": 8,
+              "value": "b"
+            },
+            {
+              "type": 0,
+              "value": ": Nuestro esfuerzo de traducción está comenzando. Muchas partes de la aplicación aún no están traducidas."
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "type": 0,
+                  "value": "Mejora Gradual"
+                }
+              ],
+              "type": 8,
+              "value": "b"
+            },
+            {
+              "type": 0,
+              "value": ": Estamos trabajando continuamente para ampliar nuestra cobertura de idiomas. Verás más contenido traducido con el tiempo."
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "type": 0,
+                  "value": "Tu Ayuda es Bienvenida"
+                }
+              ],
+              "type": 8,
+              "value": "b"
+            },
+            {
+              "type": 0,
+              "value": ": Valoramos la opinión de nuestra comunidad. Si dominas varios idiomas y te gustaría contribuir a nuestros esfuerzos de traducción, ¡nos encantaría saber de ti!"
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "type": 0,
+                  "value": "Contáctanos"
+                }
+              ],
+              "type": 8,
+              "value": "b"
+            },
+            {
+              "type": 0,
+              "value": ": Para obtener más información sobre cómo contribuir a las traducciones o para informar de cualquier problema, por favor comunícate con nuestro equipo de soporte."
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        }
+      ],
+      "type": 8,
+      "value": "ul"
+    },
+    {
+      "type": 0,
+      "value": " ¡Gracias por tu paciencia y comprensión mientras trabajamos para hacer nuestra aplicación accesible a una audiencia global!"
+    }
+  ],
+  "account.account_page.translation.info.label": [
+    {
+      "type": 0,
+      "value": "Información de traducción"
+    }
+  ],
+  "account.account_page.translation.info.title": [
+    {
+      "type": 0,
+      "value": "Información de traducción"
+    }
+  ],
+  "account.account_preferences.title": [
+    {
+      "type": 0,
+      "value": "Preferencias de la cuenta"
+    }
+  ],
+  "account.settings.created.label": [
+    {
+      "type": 0,
+      "value": "Creado"
+    }
+  ],
+  "account.settings.email_address.button_label": [
+    {
+      "options": {
+        "anonymous": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Regístrate usando una dirección de correo electrónico y una contraseña"
+            }
+          ]
+        },
+        "have_email": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Cambiar dirección de correo electrónico"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Establecer dirección de correo electrónico y contraseña"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "type"
+    }
+  ],
+  "account.settings.email_address.new_email_address_label": [
+    {
+      "type": 0,
+      "value": "Nueva dirección de correo electrónico"
+    }
+  ],
+  "account.settings.email_address.password_label": [
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Elige una contraseña"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Contraseña actual"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "have_email"
+    }
+  ],
+  "account.settings.unlisted.label": [
+    {
+      "type": 0,
+      "value": "No listada: solo se te puede encontrar con una coincidencia exacta de dirección de correo electrónico"
+    }
+  ],
+  "account.settings.username.info": [
+    {
+      "type": 0,
+      "value": "Configurar un nombre de usuario proporciona URL's opcionales más bonitas para documentos públicos compartidos. Tu nombre de usuario puede tener entre 1 y 39 caracteres, contener letras mayúsculas y minúsculas, números y guiones. "
+    },
+    {
+      "type": 1,
+      "value": "br"
+    },
+    {
+      "type": 0,
+      "value": " ADVERTENCIA: Si cambias tu nombre de usuario, los enlaces existentes que usen el nombre de usuario anterior ya no funcionarán (no se implementan redirecciones automáticas), así que cambia con precaución."
+    }
+  ],
+  "account.settings.username.label": [
+    {
+      "type": 0,
+      "value": "Nombre de usuario (opcional)"
+    }
+  ],
+  "account.sign-out.button.ok": [
+    {
+      "type": 0,
+      "value": "Sí, cerrar sesión"
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": " en todas partes"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "everywhere"
+    }
+  ],
+  "account.sign-out.button.title": [
+    {
+      "type": 0,
+      "value": "¿Estás seguro de que quieres cerrar la sesión de "
+    },
+    {
+      "type": 1,
+      "value": "account"
+    },
+    {
+      "type": 0,
+      "value": " "
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "en este navegador web?"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "en todos los navegadores web? Cada navegador web tendrá que volver a autenticarse antes de usar esta cuenta nuevamente."
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "everywhere"
+    },
+    {
+      "type": 0,
+      "value": " "
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "¡Todo lo que hayas hecho usando esta CUENTA TEMPORAL se eliminará inmediatamente! Si deseas guardar tu trabajo en una nueva cuenta, haz clic en cancelar y regístrate a continuación."
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "is_anonymous"
+    }
+  ],
+  "account.sign_out.body.sign_in": [
+    {
+      "type": 0,
+      "value": "Inicie sesión en su cuenta"
+    }
+  ],
+  "account.sign_out.body.sign_out": [
+    {
+      "type": 0,
+      "value": "Cerrar sesión"
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": " en todas partes"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "everywhere"
+    },
+    {
+      "type": 0,
+      "value": "..."
+    }
+  ],
+  "ai-generate-document.loading_kernels.error_message": [
+    {
+      "type": 0,
+      "value": "No se pueden cargar los núcleos de Jupyter. Asegúrese de que el proyecto esté en ejecución y Jupyter esté instalado."
+    }
+  ],
+  "ai-generate-document.modal.title": [
+    {
+      "type": 0,
+      "value": "Generar un documento "
+    },
+    {
+      "type": 1,
+      "value": "docName"
+    },
+    {
+      "type": 0,
+      "value": " usando IA"
+    }
+  ],
+  "chat.input.placeholder": [
+    {
+      "type": 0,
+      "value": "Escribe un nuevo mensaje ("
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "chatea con AI o "
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "have_llm"
+    },
+    {
+      "type": 0,
+      "value": "notifica a un colaborador escribiendo @)..."
+    }
+  ],
+  "chatroom.chat_input.preview_button.label": [
+    {
+      "type": 0,
+      "value": "Vista previa"
+    }
+  ],
+  "chatroom.chat_input.send_button.label": [
+    {
+      "type": 0,
+      "value": "Enviar"
+    }
+  ],
+  "chatroom.chat_input.send_button.tooltip": [
+    {
+      "type": 0,
+      "value": "Enviar mensaje (shift+enter)"
+    }
+  ],
+  "chatroom.scroll_bottom.label": [
+    {
+      "type": 0,
+      "value": "Más reciente"
+    }
+  ],
+  "chatroom.scroll_bottom.tooltip.tip": [
+    {
+      "type": 0,
+      "value": "Desplaza el chat hacia abajo mostrando los mensajes más recientes"
+    }
+  ],
+  "chatroom.scroll_bottom.tooltip.title": [
+    {
+      "type": 0,
+      "value": "Mensajes más recientes"
+    }
+  ],
+  "command.format.ai_formula.button": [
+    {
+      "type": 0,
+      "value": "Fórmula"
+    }
+  ],
+  "command.format.ai_formula.label": [
+    {
+      "type": 0,
+      "value": "Fórmula Generada por IA"
+    }
+  ],
+  "command.format.ai_formula.title": [
+    {
+      "type": 0,
+      "value": "Insertar fórmula generada por IA"
+    }
+  ],
+  "command.format.display_equation.button": [
+    {
+      "type": 0,
+      "value": "Mostrar"
+    }
+  ],
+  "command.format.display_equation.label": [
+    {
+      "type": 0,
+      "value": "Ecuación Mostrada"
+    }
+  ],
+  "command.format.display_equation.title": [
+    {
+      "type": 0,
+      "value": "Insertar ecuación matemática LaTeX"
+    }
+  ],
+  "command.format.equation.button": [
+    {
+      "type": 0,
+      "value": "Matemáticas"
+    }
+  ],
+  "command.format.equation.label": [
+    {
+      "type": 0,
+      "value": "Ecuación en línea"
+    }
+  ],
+  "command.format.equation.title": [
+    {
+      "type": 0,
+      "value": "Insertar ecuación matemática LaTeX en línea"
+    }
+  ],
+  "command.generic.build.label": [
+    {
+      "type": 0,
+      "value": "Compilar"
+    }
+  ],
+  "command.generic.build.title": [
+    {
+      "type": 0,
+      "value": "Construir el documento."
+    },
+    {
+      "type": 1,
+      "value": "br"
+    },
+    {
+      "type": 0,
+      "value": "Para habilitar o deshabilitar compilaciones automáticas, haz clic en el botón 'Build on Save' o en la entrada del menú."
+    }
+  ],
+  "command.generic.build_on_save.label": [
+    {
+      "type": 0,
+      "value": "Compilar al Guardar "
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "(Deshabilitado)"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "(Habilitado)"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "enabled"
+    }
+  ],
+  "command.generic.build_on_save.title": [
+    {
+      "type": 0,
+      "value": "Alternar compilación automática al guardar archivo"
+    }
+  ],
+  "command.generic.chatgpt.label": [
+    {
+      "type": 0,
+      "value": "Asistente de IA"
+    }
+  ],
+  "command.generic.chatgpt.title": [
+    {
+      "type": 0,
+      "value": "Pide ayuda a un Asistente de Inteligencia Artificial (por ejemplo, ChatGPT) sobre lo que estás haciendo."
+    }
+  ],
+  "command.generic.close.button": [
+    {
+      "type": 0,
+      "value": "Cerrar"
+    }
+  ],
+  "command.generic.close.label": [
+    {
+      "type": 0,
+      "value": "Cerrar Marco"
+    }
+  ],
+  "command.generic.close.title": [
+    {
+      "type": 0,
+      "value": "Cerrar este marco. Para restaurar el diseño predeterminado, selecciona la entrada del menú de la aplicación 'Default Layout'."
+    }
+  ],
+  "command.generic.decrease_font_size.button": [
+    {
+      "type": 0,
+      "value": "Más pequeño"
+    }
+  ],
+  "command.generic.decrease_font_size.label": [
+    {
+      "type": 0,
+      "value": "Alejarse"
+    }
+  ],
+  "command.generic.decrease_font_size.title": [
+    {
+      "type": 0,
+      "value": "Disminuir Tamaño de Fuente"
+    }
+  ],
+  "command.generic.edit_init_script.label": [
+    {
+      "type": 0,
+      "value": "Script de Inicialización"
+    }
+  ],
+  "command.generic.edit_init_script.title": [
+    {
+      "type": 0,
+      "value": "Edite el script de inicialización que se ejecuta cuando esto comienza"
+    }
+  ],
+  "command.generic.force_build.label": [
+    {
+      "type": 0,
+      "value": "Forzar Compilación"
+    }
+  ],
+  "command.generic.force_build.title": [
+    {
+      "type": 0,
+      "value": "Forzar la reconstrucción de todo el proyecto"
+    }
+  ],
+  "command.generic.increase_font_size.button": [
+    {
+      "type": 0,
+      "value": "Más grande"
+    }
+  ],
+  "command.generic.increase_font_size.label": [
+    {
+      "type": 0,
+      "value": "Acercar"
+    }
+  ],
+  "command.generic.increase_font_size.title": [
+    {
+      "type": 0,
+      "value": "Aumentar tamaño de fuente"
+    }
+  ],
+  "command.generic.maximize.label": [
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Maximizar Marco"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Desmaximizar Marco"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "is_full"
+    }
+  ],
+  "command.generic.maximize.title": [
+    {
+      "type": 0,
+      "value": "Alternar si este marco está maximizado o no"
+    }
+  ],
+  "command.generic.open.label": [
+    {
+      "type": 0,
+      "value": "Abrir Archivo"
+    }
+  ],
+  "command.generic.open.title": [
+    {
+      "type": 0,
+      "value": "Abrir un archivo"
+    }
+  ],
+  "command.generic.open_recent.label": [
+    {
+      "type": 0,
+      "value": "Abrir Recientes"
+    }
+  ],
+  "command.generic.open_recent.title": [
+    {
+      "type": 0,
+      "value": "Abrir un archivo que se abrió recientemente"
+    }
+  ],
+  "command.generic.reset_local_view_state.button": [
+    {
+      "type": 0,
+      "value": "Predeterminado"
+    }
+  ],
+  "command.generic.reset_local_view_state.label": [
+    {
+      "type": 0,
+      "value": "Diseño Predeterminado"
+    }
+  ],
+  "command.generic.reset_local_view_state.title": [
+    {
+      "type": 0,
+      "value": "Restablecer el diseño de todos los marcos a los valores predeterminados"
+    }
+  ],
+  "command.generic.show_table_of_contents.button": [
+    {
+      "type": 0,
+      "value": "Contenidos"
+    }
+  ],
+  "command.generic.show_table_of_contents.title": [
+    {
+      "type": 0,
+      "value": "Mostrar la Tabla de Contenidos"
+    }
+  ],
+  "command.generic.split_col.label": [
+    {
+      "type": 0,
+      "value": "Dividir a la derecha"
+    }
+  ],
+  "command.generic.split_row.title": [
+    {
+      "type": 0,
+      "value": "Dividir el marco horizontalmente en dos filas"
+    }
+  ],
+  "command.generic.stop_build.label": [
+    {
+      "type": 0,
+      "value": "Detener"
+    }
+  ],
+  "command.generic.stop_build.title": [
+    {
+      "type": 0,
+      "value": "Detener todos los trabajos en ejecución."
+    }
+  ],
+  "command.generic.sync.label": [
+    {
+      "type": 0,
+      "value": "Sincronizar Vistas"
+    }
+  ],
+  "command.generic.sync.title": [
+    {
+      "type": 0,
+      "value": "Sincronizar la vista de origen LaTeX con la salida en PDF."
+    }
+  ],
+  "command.generic.word_count.label": [
+    {
+      "type": 0,
+      "value": "Conteo de Palabras"
+    }
+  ],
+  "command.generic.word_count.title": [
+    {
+      "type": 0,
+      "value": "Mostrar información sobre el número de palabras en este documento"
+    }
+  ],
+  "command.generic.zoom_page_height.label": [
+    {
+      "type": 0,
+      "value": "Zoom a la altura"
+    }
+  ],
+  "command.generic.zoom_page_height.title": [
+    {
+      "type": 0,
+      "value": "Zoom a la altura de la página"
+    }
+  ],
+  "command.generic.zoom_page_width.label": [
+    {
+      "type": 0,
+      "value": "Zoom a Ancho"
+    }
+  ],
+  "command.generic.zoom_page_width.title": [
+    {
+      "type": 0,
+      "value": "Ajustar a ancho de página"
+    }
+  ],
+  "commands.generic.toggle_button_bar.confirm.description": [
+    {
+      "type": 0,
+      "value": "La barra de menú es una barra personalizable de accesos directos a elementos del menú. "
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "type": 0,
+              "value": " Todo en la barra de menú está siempre disponible en los menús de arriba. "
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "type": 0,
+              "value": " Muestra la barra de menú seleccionando 'Ver → Mostrar barra de menú'. "
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "type": 0,
+              "value": " Alterna los botones haciendo clic en el ícono junto a cualquier elemento de menú de nivel superior. "
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "type": 0,
+              "value": " Oculta solo la barra de menú de este marco: 'Ver → Barra de menú → Eliminar todos los botones'. "
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        }
+      ],
+      "type": 8,
+      "value": "ul"
+    }
+  ],
+  "commands.generic.toggle_button_bar.confirm.ok": [
+    {
+      "type": 0,
+      "value": "Ocultar Barra de Herramientas del Menú"
+    }
+  ],
+  "commands.generic.toggle_button_bar.confirm.title": [
+    {
+      "type": 0,
+      "value": "Alternar si la barra de herramientas del menú se muestra o no para todos los editores."
+    }
+  ],
+  "commands.generic.toggle_button_bar.label": [
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Mostrar"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Ocultar"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "show"
+    },
+    {
+      "type": 0,
+      "value": " Menú Barra de herramientas..."
+    }
+  ],
+  "commands.generic.toggle_button_bar.title": [
+    {
+      "type": 0,
+      "value": "Alternar si la barra de herramientas del menú se muestra o no para todos los editores."
+    }
+  ],
+  "editor.table_of_contents.name": [
+    {
+      "type": 0,
+      "value": "Tabla de Contenidos"
+    }
+  ],
+  "editor.table_of_contents.short": [
+    {
+      "type": 0,
+      "value": "Contenido"
+    }
+  ],
+  "editor.terminal.cmd.help.title": [
+    {
+      "type": 0,
+      "value": "Mostrar documentación para usar el Terminal de Linux en CoCalc"
+    }
+  ],
+  "frame_editors.frame_tree.title_bar.close": [
+    {
+      "type": 0,
+      "value": "Cerrar este marco"
+    }
+  ],
+  "frame_editors.frame_tree.title_bar.maximize": [
+    {
+      "type": 0,
+      "value": "Mostrar solo este marco"
+    }
+  ],
+  "frame_editors.frame_tree.title_bar.minimize": [
+    {
+      "type": 0,
+      "value": "Mostrar todos los marcos"
+    }
+  ],
+  "i18n.localization.lang.chinese": [
+    {
+      "type": 0,
+      "value": "Chino"
+    }
+  ],
+  "i18n.localization.lang.english": [
+    {
+      "type": 0,
+      "value": "Inglés"
+    }
+  ],
+  "i18n.localization.lang.german": [
+    {
+      "type": 0,
+      "value": "Alemán"
+    }
+  ],
+  "i18n.localization.lang.spanish": [
+    {
+      "type": 0,
+      "value": "Español"
+    }
+  ],
+  "jupyter.commands.cell_toolbar_none": [
+    {
+      "type": 0,
+      "value": "Sin barra de herramientas de celda"
+    }
+  ],
+  "jupyter.commands.cell_toolbar_none_menu": [
+    {
+      "type": 0,
+      "value": "Ninguno"
+    }
+  ],
+  "jupyter.commands.change_kernel": [
+    {
+      "type": 0,
+      "value": "Cambiar Kernel..."
+    }
+  ],
+  "jupyter.commands.change_kernel_title": [
+    {
+      "type": 0,
+      "value": "Seleccionar de cualquiera de los kernels disponibles"
+    }
+  ],
+  "jupyter.commands.restart_kernel.label": [
+    {
+      "type": 0,
+      "value": "Reiniciar Kernel..."
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells": [
+    {
+      "type": 0,
+      "value": "Reiniciar y Ejecutar Todas las Celdas..."
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_button": [
+    {
+      "type": 0,
+      "value": "Ejecutar Todo"
+    }
+  ],
+  "jupyter.commands.run_current_cell.label": [
+    {
+      "type": 0,
+      "value": "Ejecutar Celda Actual"
+    }
+  ],
+  "jupyter.commands.toggle_all_line_numbers": [
+    {
+      "type": 0,
+      "value": "Alternar Números de Línea de Todas las Celdas"
+    }
+  ],
+  "jupyter.commands.toggle_cell_line_numbers": [
+    {
+      "type": 0,
+      "value": "Alternar Números de Línea de las Celdas Seleccionadas"
+    }
+  ],
+  "jupyter.editor.console_label": [
+    {
+      "type": 0,
+      "value": "Consola Jupyter"
+    }
+  ],
+  "jupyter.editor.console_title": [
+    {
+      "type": 0,
+      "value": "Abre la consola de línea de comandos de Jupyter conectada al kernel en ejecución"
+    }
+  ],
+  "jupyter.editor.run_all_cells.label": [
+    {
+      "type": 0,
+      "value": "Ejecutar todas las celdas"
+    }
+  ],
+  "jupyter.editor.run_selected_cells.label": [
+    {
+      "type": 0,
+      "value": "Ejecutar celdas seleccionadas"
+    }
+  ],
+  "jupyter.llm.cell-tool.assistant.title": [
+    {
+      "type": 0,
+      "value": "Usar asistente de IA en esta celda"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.bugfix": [
+    {
+      "type": 0,
+      "value": "Explica el problema del código en la celda y el modelo de lenguaje seleccionado intentará solucionarlo. Normalmente, te dirá si encontró un problema y te lo explicará."
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.document": [
+    {
+      "type": 0,
+      "value": "El modelo de lenguaje añadirá líneas de documentación al código en la celda"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.explain": [
+    {
+      "type": 0,
+      "value": "El código en la celda se enviará al modelo de lenguaje seleccionado. Te explicará el código en lenguaje sencillo."
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.improve": [
+    {
+      "type": 0,
+      "value": "El modelo de lenguaje seleccionado analizará el código y sugerirá mejoras. Cuidado, los resultados no están garantizados de ser correctos, ni podrían causar problemas sutiles – revíselos cuidadosamente."
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.modify": [
+    {
+      "type": 0,
+      "value": "El modelo de lenguaje modificará el código según las instrucciones dadas. Elige una de las plantillas y modifícala, ¡o crea tus propias instrucciones!"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.translate": [
+    {
+      "type": 0,
+      "value": "El modelo de lenguaje intentará traducir el código en la celda a otro lenguaje de programación. El resultado podría no funcionar en absoluto, pero si estás más familiarizado con el lenguaje de destino seleccionado, ¡podrías encontrarlo más fácil de entender lo que está pasando!"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.bugfix.descr": [
+    {
+      "type": 0,
+      "value": "Describe el problema de esa celda para obtener una versión corregida."
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.bugfix.label": [
+    {
+      "type": 0,
+      "value": "Explicar"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.document.descr": [
+    {
+      "type": 0,
+      "value": "Añadir documentación"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.document.label": [
+    {
+      "type": 0,
+      "value": "Documento"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.explain.descr": [
+    {
+      "type": 0,
+      "value": "Obtén una idea del código en esa celda"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.explain.label": [
+    {
+      "type": 0,
+      "value": "Explicar"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.improve.descr": [
+    {
+      "type": 0,
+      "value": "Mejora el código en esa celda"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.improve.label": [
+    {
+      "type": 0,
+      "value": "Mejorar"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.modify.descr": [
+    {
+      "type": 0,
+      "value": "Modificar el código en la celda"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.modify.label": [
+    {
+      "type": 0,
+      "value": "Modificar"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.translate.descr": [
+    {
+      "type": 0,
+      "value": "Traduce el código en esa celda a otro idioma usando IA"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.translate.label": [
+    {
+      "type": 0,
+      "value": "Traducir"
+    }
+  ],
+  "jupyter.run_all_cells.label": [
+    {
+      "type": 0,
+      "value": "Ejecutar todas las celdas"
+    }
+  ],
+  "jupyter.run_selected_cells.label": [
+    {
+      "type": 0,
+      "value": "Ejecutar celdas seleccionadas"
+    }
+  ],
+  "jupyter.select_kernel.footer": [
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "Nota:"
+        }
+      ],
+      "type": 8,
+      "value": "strong"
+    },
+    {
+      "type": 0,
+      "value": " Siempre puedes cambiar el núcleo seleccionado más tarde en el menú Núcleo o haciendo clic en el logotipo de estado del núcleo en la parte superior izquierda."
+    }
+  ],
+  "labels.acconut.password": [
+    {
+      "type": 0,
+      "value": "Contraseña"
+    }
+  ],
+  "labels.acconut.password.change": [
+    {
+      "type": 0,
+      "value": "Cambiar Contraseña"
+    }
+  ],
+  "labels.acconut.password.forgot": [
+    {
+      "type": 0,
+      "value": "¿Olvidaste la Contraseña?"
+    }
+  ],
+  "labels.account": [
+    {
+      "type": 0,
+      "value": "Cuenta"
+    }
+  ],
+  "labels.account.first_name": [
+    {
+      "type": 0,
+      "value": "Nombre"
+    }
+  ],
+  "labels.account.language_tooltip": [
+    {
+      "type": 0,
+      "value": "Cambiar el idioma de la interfaz de usuario"
+    }
+  ],
+  "labels.account.last_name": [
+    {
+      "type": 0,
+      "value": "Apellido"
+    }
+  ],
+  "labels.ai_generate_label": [
+    {
+      "type": 0,
+      "value": "Ayúdame a escribir..."
+    }
+  ],
+  "labels.ai_generate_title": [
+    {
+      "type": 0,
+      "value": "Crear un nuevo archivo con la ayuda de AI"
+    }
+  ],
+  "labels.assistant": [
+    {
+      "type": 0,
+      "value": "Asistente"
+    }
+  ],
+  "labels.button.cancel": [
+    {
+      "type": 0,
+      "value": "Cancelar"
+    }
+  ],
+  "labels.cloud_file_system": [
+    {
+      "type": 0,
+      "value": "Sistemas de Archivos en la Nube"
+    }
+  ],
+  "labels.copy": [
+    {
+      "type": 0,
+      "value": "Copiar"
+    }
+  ],
+  "labels.create_project": [
+    {
+      "type": 0,
+      "value": "Crear Proyecto..."
+    }
+  ],
+  "labels.cut": [
+    {
+      "type": 0,
+      "value": "Cortar"
+    }
+  ],
+  "labels.email_address": [
+    {
+      "type": 0,
+      "value": "Dirección de correo electrónico"
+    }
+  ],
+  "labels.frame-editors.title-bar.save_label": [
+    {
+      "options": {
+        "is_public": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Público"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Guardar"
+            }
+          ]
+        },
+        "read_only": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Solo lectura"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "type"
+    }
+  ],
+  "labels.help": [
+    {
+      "type": 0,
+      "value": "Ayuda"
+    }
+  ],
+  "labels.licenses": [
+    {
+      "type": 0,
+      "value": "Licencias"
+    }
+  ],
+  "labels.new.file": [
+    {
+      "type": 0,
+      "value": "Nuevo"
+    }
+  ],
+  "labels.paste": [
+    {
+      "type": 0,
+      "value": "Pegar"
+    }
+  ],
+  "labels.preferences": [
+    {
+      "type": 0,
+      "value": "Preferencias"
+    }
+  ],
+  "labels.project.settings.restart-project.confirm.explanation": [
+    {
+      "type": 0,
+      "value": "Reiniciar el servidor del proyecto finalizará todos los procesos en el proyecto, actualizará el código del proyecto y volverá a iniciar el proyecto. Los "
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "servidores de cómputo"
+        }
+      ],
+      "type": 8,
+      "value": "a"
+    },
+    {
+      "type": 0,
+      "value": " en ejecución no se verán afectados. Toma unos segundos y puede solucionar algunos problemas si algo no funciona correctamente. No perderá ningún archivo, pero tendrá que reiniciar sus cuadernos y hojas de trabajo."
+    }
+  ],
+  "labels.project.settings.restart-project.confirm.ok": [
+    {
+      "type": 0,
+      "value": "Sí, proyecto "
+    },
+    {
+      "type": 1,
+      "value": "task"
+    }
+  ],
+  "labels.project.settings.stop-project.label": [
+    {
+      "type": 0,
+      "value": "Detener"
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": " Proyecto"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+          ]
+        }
+      },
+      "type": 5,
+      "value": "short"
+    },
+    {
+      "type": 0,
+      "value": "…"
+    }
+  ],
+  "labels.project.settings.stop-project.ok": [
+    {
+      "type": 0,
+      "value": "Sí, detener proyecto"
+    }
+  ],
+  "labels.projects": [
+    {
+      "type": 0,
+      "value": "Proyectos"
+    }
+  ],
+  "labels.published_files": [
+    {
+      "type": 0,
+      "value": "Archivos Publicados"
+    }
+  ],
+  "labels.purchases": [
+    {
+      "type": 0,
+      "value": "Compras"
+    }
+  ],
+  "labels.redo": [
+    {
+      "type": 0,
+      "value": "rehacer"
+    }
+  ],
+  "labels.reload": [
+    {
+      "type": 0,
+      "value": "Recargar"
+    }
+  ],
+  "labels.reload_title": [
+    {
+      "type": 0,
+      "value": "Recargar este documento"
+    }
+  ],
+  "labels.save": [
+    {
+      "type": 0,
+      "value": "Guardar"
+    }
+  ],
+  "labels.save_title": [
+    {
+      "type": 0,
+      "value": "Guardar este archivo en el disco"
+    }
+  ],
+  "labels.settings": [
+    {
+      "type": 0,
+      "value": "Configuración"
+    }
+  ],
+  "labels.snippets": [
+    {
+      "type": 0,
+      "value": "Fragmentos"
+    }
+  ],
+  "labels.split_frame_horizontally.title": [
+    {
+      "type": 0,
+      "value": "Dividir abajo"
+    }
+  ],
+  "labels.split_frame_vertically.title": [
+    {
+      "type": 0,
+      "value": "Dividir marco verticalmente en dos columnas"
+    }
+  ],
+  "labels.ssh_keys": [
+    {
+      "type": 0,
+      "value": "Claves SSH"
+    }
+  ],
+  "labels.statements": [
+    {
+      "type": 0,
+      "value": "Declaraciones"
+    }
+  ],
+  "labels.subscriptons": [
+    {
+      "type": 0,
+      "value": "Suscripciones"
+    }
+  ],
+  "labels.support": [
+    {
+      "type": 0,
+      "value": "Soporte"
+    }
+  ],
+  "labels.terminal": [
+    {
+      "type": 0,
+      "value": "Terminal"
+    }
+  ],
+  "labels.timetravel": [
+    {
+      "type": 0,
+      "value": "ViajeEnElTiempo"
+    }
+  ],
+  "labels.timetravel_title": [
+    {
+      "type": 0,
+      "value": "Mostrar el historial completo de edición de este documento"
+    }
+  ],
+  "labels.undo": [
+    {
+      "type": 0,
+      "value": "Deshacer"
+    }
+  ],
+  "labels.upgrades": [
+    {
+      "type": 0,
+      "value": "Actualizaciones"
+    }
+  ],
+  "labels.upload": [
+    {
+      "type": 0,
+      "value": "Subir"
+    }
+  ],
+  "labels.zoom_in": [
+    {
+      "type": 0,
+      "value": "Acercar"
+    }
+  ],
+  "labels.zoom_out": [
+    {
+      "type": 0,
+      "value": "Disminuir zoom"
+    }
+  ],
+  "menu.generic.close_and_halt.label": [
+    {
+      "type": 0,
+      "value": "Cerrar y Detener"
+    }
+  ],
+  "menu.generic.edit.label": [
+    {
+      "type": 0,
+      "value": "Editar"
+    }
+  ],
+  "menu.generic.file.label": [
+    {
+      "type": 0,
+      "value": "Archivo"
+    }
+  ],
+  "menu.generic.format.label": [
+    {
+      "type": 0,
+      "value": "Formato"
+    }
+  ],
+  "menu.generic.go.label": [
+    {
+      "type": 0,
+      "value": "Ir"
+    }
+  ],
+  "menu.generic.halt_jupyter.button": [
+    {
+      "type": 0,
+      "value": "Detener"
+    }
+  ],
+  "menu.generic.halt_jupyter.title": [
+    {
+      "type": 0,
+      "value": "Detener el núcleo de Jupyter en ejecución y cerrar este cuaderno."
+    }
+  ],
+  "menu.generic.help.label": [
+    {
+      "type": 0,
+      "value": "Ayuda"
+    }
+  ],
+  "menu.generic.insert.label": [
+    {
+      "type": 0,
+      "value": "Insertar"
+    }
+  ],
+  "menu.generic.kernel.label": [
+    {
+      "type": 0,
+      "value": "Núcleo"
+    }
+  ],
+  "menu.generic.kick_other_users_out.button": [
+    {
+      "type": 0,
+      "value": "Expulsar"
+    }
+  ],
+  "menu.generic.kick_other_users_out.label": [
+    {
+      "type": 0,
+      "value": "Expulsar a Otros Usuarios"
+    }
+  ],
+  "menu.generic.kick_other_users_out.title": [
+    {
+      "type": 0,
+      "value": "Expulsar a todos los demás usuarios de este documento. Se cerrará en todos los demás navegadores."
+    }
+  ],
+  "menu.generic.new_file.label": [
+    {
+      "type": 0,
+      "value": "Nuevo Archivo"
+    }
+  ],
+  "menu.generic.run.label": [
+    {
+      "type": 0,
+      "value": "Ejecutar"
+    }
+  ],
+  "menu.generic.split.button": [
+    {
+      "type": 0,
+      "value": "Dividir"
+    }
+  ],
+  "menu.generic.view.label": [
+    {
+      "type": 0,
+      "value": "Ver"
+    }
+  ],
+  "page.flyouts.licenses.upgrades_explanation": [
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "Este proyecto está utilizando las siguientes cuotas de recursos al ejecutarse. Puedes añadir más recursos agregando licencias o aplicando actualizaciones."
+        }
+      ],
+      "type": 8,
+      "value": "p"
+    }
+  ],
+  "page.help.label": [
+    {
+      "type": 0,
+      "value": "Ayuda"
+    }
+  ],
+  "page.sign_in.label": [
+    {
+      "type": 0,
+      "value": "Iniciar sesión"
+    }
+  ],
+  "project.new-file-page.title": [
+    {
+      "type": 0,
+      "value": "Crear o "
+    },
+    {
+      "type": 1,
+      "value": "subir"
+    },
+    {
+      "type": 0,
+      "value": " Nuevo Archivo o "
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "Carpeta"
+        }
+      ],
+      "type": 8,
+      "value": "folder"
+    }
+  ],
+  "project.new-file-page.title.modal.title": [
+    {
+      "type": 0,
+      "value": "Crear nueva carpeta"
+    }
+  ],
+  "project.page.file-tab.search_file.label": [
+    {
+      "type": 0,
+      "value": "Buscar"
+    }
+  ],
+  "project.page.flyout.log.title": [
+    {
+      "type": 0,
+      "value": "Archivos Recientes"
+    }
+  ],
+  "project.page.flyout.new_file.title": [
+    {
+      "type": 0,
+      "value": "Crear nuevo archivo o carpeta"
+    }
+  ],
+  "project.page.flyout.settings.title": [
+    {
+      "type": 0,
+      "value": "Estado y Configuración"
+    }
+  ],
+  "project.settings.stop-project.explanation": [
+    {
+      "type": 0,
+      "value": "Detener el servidor del proyecto finalizará todos los procesos. Después de detener un proyecto, no se reiniciará hasta que usted o un colaborador reinicie el proyecto."
+    }
+  ],
+  "projects.filename-search.placeholder": [
+    {
+      "type": 0,
+      "value": "Buscar nombres de archivos que editaste"
+    }
+  ],
+  "projects.load-all.label": [
+    {
+      "type": 0,
+      "value": "Mostrar todos los proyectos..."
+    }
+  ],
+  "projects.search.placeholder": [
+    {
+      "type": 0,
+      "value": "Buscar proyectos (use /re/ para regexp)..."
+    }
+  ]
+}

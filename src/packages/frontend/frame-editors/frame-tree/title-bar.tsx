@@ -326,7 +326,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   function render_x(): Rendered {
     return (
       <Button
-        title={"Close this frame"}
+        title={intl.formatMessage({
+          id: "frame_editors.frame_tree.title_bar.close",
+          defaultMessage: "Close this frame",
+          description: "Click this X button to close the frame",
+        })}
         key={"close"}
         size="small"
         type="text"
@@ -373,7 +377,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return (
         <Button
           disabled={props.is_only}
-          title={"Show all frames"}
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.minimize",
+            defaultMessage: "Show all frames",
+            description: "Minimize this frame to show all frames",
+          })}
           key={"full-screen-button"}
           size="small"
           type="text"
@@ -394,7 +402,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <Button
           disabled={props.is_only}
           key={"full-screen-button"}
-          title={"Show only this frame"}
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.maximize",
+            defaultMessage: "Show only this frame",
+            description: "Maximize this frame to show only this one",
+          })}
           size="small"
           type="text"
           onClick={() => {
@@ -528,7 +540,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <Icon name="history" />
         {noLabel ? undefined : (
           <VisibleMDLG>
-            <span style={{ marginLeft: "5px" }}>TimeTravel</span>
+            <span style={{ marginLeft: "5px" }}>
+              {intl.formatMessage(labels.timetravel)}
+            </span>
           </VisibleMDLG>
         )}
       </Button>

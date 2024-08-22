@@ -13,7 +13,7 @@ import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands
 import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { labels, menu } from "@cocalc/frontend/i18n";
-import { editor } from "@cocalc/frontend/i18n/common";
+import { editor, jupyter } from "@cocalc/frontend/i18n/common";
 import { AllActions, commands } from "@cocalc/frontend/jupyter/commands";
 import { shortcut_to_string } from "@cocalc/frontend/jupyter/keyboard-shortcuts";
 import { capitalize, field_cmp, set } from "@cocalc/util/misc";
@@ -78,16 +78,15 @@ export const EDITOR_SPEC = {
         title: "Open a panel containing code snippets.",
       },
       shell: {
-        label: "Jupyter Console",
+        label: jupyter.editor.console_label,
         icon: "ipynb",
-        title:
-          "Open the Jupyter command line console connected to the running kernel.",
+        title: jupyter.editor.console_title,
       },
     },
   } as EditorDescription,
   commands_guide: {
-    short: "Snippets",
-    name: "Snippets",
+    short: labels.snippets,
+    name: labels.snippets,
     icon: SNIPPET_ICON_NAME,
     component: JupyterSnippets,
     commands: set(["decrease_font_size", "increase_font_size"]),
@@ -100,7 +99,7 @@ export const EDITOR_SPEC = {
     commands: set(["build"]),
   } as EditorDescription,
   jupyter_table_of_contents: {
-    short: "Contents",
+    short: editor.table_of_contents_short,
     name: editor.table_of_contents_name,
     icon: "align-right",
     component: TableOfContents,
@@ -372,7 +371,7 @@ const JUPYTER_MENUS = {
       "run-cells": [
         "run current cell and select next",
         {
-          label: "Run Selected Cells",
+          label: jupyter.editor.run_selected_cells,
           button: "Run",
           name: "run-selected-cells",
           icon: "play-square",
@@ -383,7 +382,7 @@ const JUPYTER_MENUS = {
           ],
         },
         {
-          label: "Run All Cells",
+          label: jupyter.editor.run_all_cells,
           button: "Run",
           name: "run-all-cells",
           icon: "forward",

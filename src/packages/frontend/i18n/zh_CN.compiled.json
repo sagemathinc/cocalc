@@ -1,0 +1,1764 @@
+{
+  "account.account-button.confirm.ok": [
+    {
+      "type": 0,
+      "value": "是，退出"
+    }
+  ],
+  "account.account-button.confirm.title": [
+    {
+      "type": 0,
+      "value": "要退出您的账户吗"
+    }
+  ],
+  "account.account_page.translation.info.content": [
+    {
+      "type": 0,
+      "value": "我们很高兴能开始提供多语言版本的应用程序！以下是您需要了解的信息："
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "type": 0,
+                  "value": "工作进行中"
+                }
+              ],
+              "type": 8,
+              "value": "b"
+            },
+            {
+              "type": 0,
+              "value": "：我们的翻译工作才刚刚开始。应用程序的许多部分尚未翻译。"
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "type": 0,
+                  "value": "逐步完善"
+                }
+              ],
+              "type": 8,
+              "value": "b"
+            },
+            {
+              "type": 0,
+              "value": "：我们正在不断努力扩大语言覆盖范围。随着时间的推移，您将看到更多的翻译内容。"
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "type": 0,
+                  "value": "欢迎您的帮助"
+                }
+              ],
+              "type": 8,
+              "value": "b"
+            },
+            {
+              "type": 0,
+              "value": "：我们重视社区的意见。"
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "children": [
+                {
+                  "type": 0,
+                  "value": "联系我们"
+                }
+              ],
+              "type": 8,
+              "value": "b"
+            },
+            {
+              "type": 0,
+              "value": "：要了解更多有关翻译的信息或报告任何问题，请联系我们的支持团队。"
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        }
+      ],
+      "type": 8,
+      "value": "ul"
+    },
+    {
+      "type": 0,
+      "value": " 在我们努力使全球受众都能使用我们的应用程序的过程中，感谢您的耐心和理解！"
+    }
+  ],
+  "account.account_page.translation.info.label": [
+    {
+      "type": 0,
+      "value": "翻译信息..."
+    }
+  ],
+  "account.account_page.translation.info.title": [
+    {
+      "type": 0,
+      "value": "翻译信息"
+    }
+  ],
+  "account.account_preferences.title": [
+    {
+      "type": 0,
+      "value": "账户首选项"
+    }
+  ],
+  "account.settings.created.label": [
+    {
+      "type": 0,
+      "value": "创建"
+    }
+  ],
+  "account.settings.email_address.button_label": [
+    {
+      "options": {
+        "anonymous": {
+          "value": [
+            {
+              "type": 0,
+              "value": "使用电子邮件地址和密码注册"
+            }
+          ]
+        },
+        "have_email": {
+          "value": [
+            {
+              "type": 0,
+              "value": "更改电子邮件地址"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "设置电子邮件地址和密码"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "type"
+    }
+  ],
+  "account.settings.email_address.new_email_address_label": [
+    {
+      "type": 0,
+      "value": "新电子邮件地址"
+    }
+  ],
+  "account.settings.email_address.password_label": [
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "选择密码"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "当前密码"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "have_email"
+    }
+  ],
+  "account.settings.unlisted.label": [
+    {
+      "type": 0,
+      "value": "未列出：只有通过精确的电子邮件地址匹配才能找到您"
+    }
+  ],
+  "account.settings.username.info": [
+    {
+      "type": 0,
+      "value": "设置用户名可以为共享的公共文档提供更好的URL。您的用户名可以是1到39个字符，包含大写和小写字母、数字和连字符。"
+    },
+    {
+      "type": 1,
+      "value": "br"
+    },
+    {
+      "type": 0,
+      "value": " 警告：如果您更改用户名，使用以前用户名的现有链接将无法再使用（未实现自动重定向），因此请谨慎更改。"
+    }
+  ],
+  "account.settings.username.label": [
+    {
+      "type": 0,
+      "value": "用户名（可选）"
+    }
+  ],
+  "account.sign-out.button.ok": [
+    {
+      "type": 0,
+      "value": "是，登出"
+    }
+  ],
+  "account.sign-out.button.title": [
+    {
+      "type": 0,
+      "value": "您确定要在"
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "此网页浏览器上登出"
+            },
+            {
+              "type": 1,
+              "value": "account"
+            },
+            {
+              "type": 0,
+              "value": "吗？"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "所有网页浏览器上登出"
+            },
+            {
+              "type": 1,
+              "value": "account"
+            },
+            {
+              "type": 0,
+              "value": "吗？每个网页浏览器在再次使用此账户前都需要重新验证。"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "everywhere"
+    },
+    {
+      "type": 0,
+      "value": " "
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "使用此临时账户所做的一切将被立即删除！如果您想将工作保存到新账户，请点击取消并在下方注册。"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "is_anonymous"
+    }
+  ],
+  "account.sign_out.body.sign_in": [
+    {
+      "type": 0,
+      "value": "登录到您的帐户"
+    }
+  ],
+  "account.sign_out.body.sign_out": [
+    {
+      "type": 0,
+      "value": "退出"
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": " everywhere"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "everywhere"
+    },
+    {
+      "type": 0,
+      "value": "..."
+    }
+  ],
+  "ai-generate-document.loading_kernels.error_message": [
+    {
+      "type": 0,
+      "value": "无法加载Jupyter内核。请确保项目正在运行并且已安装Jupyter。"
+    }
+  ],
+  "ai-generate-document.modal.title": [
+    {
+      "type": 0,
+      "value": "使用AI生成"
+    },
+    {
+      "type": 1,
+      "value": "docName"
+    },
+    {
+      "type": 0,
+      "value": "文档"
+    }
+  ],
+  "chat.input.placeholder": [
+    {
+      "type": 0,
+      "value": "输入新消息（"
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "与 AI 聊天或 "
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "have_llm"
+    },
+    {
+      "type": 0,
+      "value": "通过输入@通知协作者）..."
+    }
+  ],
+  "chatroom.chat_input.preview_button.label": [
+    {
+      "type": 0,
+      "value": "预览"
+    }
+  ],
+  "chatroom.chat_input.send_button.label": [
+    {
+      "type": 0,
+      "value": "发送"
+    }
+  ],
+  "chatroom.chat_input.send_button.tooltip": [
+    {
+      "type": 0,
+      "value": "发送消息（shift+enter）"
+    }
+  ],
+  "chatroom.scroll_bottom.label": [
+    {
+      "type": 0,
+      "value": "最新"
+    }
+  ],
+  "chatroom.scroll_bottom.tooltip.tip": [
+    {
+      "type": 0,
+      "value": "将聊天滚动到底部以显示最新消息"
+    }
+  ],
+  "chatroom.scroll_bottom.tooltip.title": [
+    {
+      "type": 0,
+      "value": "最新消息"
+    }
+  ],
+  "command.format.ai_formula.button": [
+    {
+      "type": 0,
+      "value": "公式"
+    }
+  ],
+  "command.format.ai_formula.label": [
+    {
+      "type": 0,
+      "value": "AI生成公式"
+    }
+  ],
+  "command.format.ai_formula.title": [
+    {
+      "type": 0,
+      "value": "插入AI生成公式"
+    }
+  ],
+  "command.format.display_equation.button": [
+    {
+      "type": 0,
+      "value": "显示"
+    }
+  ],
+  "command.format.display_equation.label": [
+    {
+      "type": 0,
+      "value": "显示的方程"
+    }
+  ],
+  "command.format.display_equation.title": [
+    {
+      "type": 0,
+      "value": "插入显示LaTeX数学方程"
+    }
+  ],
+  "command.format.equation.button": [
+    {
+      "type": 0,
+      "value": "数学"
+    }
+  ],
+  "command.format.equation.label": [
+    {
+      "type": 0,
+      "value": "行内公式"
+    }
+  ],
+  "command.format.equation.title": [
+    {
+      "type": 0,
+      "value": "插入内联LaTeX数学公式"
+    }
+  ],
+  "command.generic.build.label": [
+    {
+      "type": 0,
+      "value": "編譯"
+    }
+  ],
+  "command.generic.build.title": [
+    {
+      "type": 0,
+      "value": "构建文档"
+    },
+    {
+      "type": 1,
+      "value": "br"
+    },
+    {
+      "type": 0,
+      "value": "要启用或禁用自动构建，请点击“保存时构建”按钮或菜单项"
+    }
+  ],
+  "command.generic.build_on_save.label": [
+    {
+      "type": 0,
+      "value": "保存时构建 "
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "(禁用)"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "(启用)"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "enabled"
+    }
+  ],
+  "command.generic.build_on_save.title": [
+    {
+      "type": 0,
+      "value": "切换文件保存时自动构建"
+    }
+  ],
+  "command.generic.chatgpt.label": [
+    {
+      "type": 0,
+      "value": "AI助手"
+    }
+  ],
+  "command.generic.chatgpt.title": [
+    {
+      "type": 0,
+      "value": "请人工智能助手（例如，ChatGPT）帮助您完成工作。"
+    }
+  ],
+  "command.generic.close.button": [
+    {
+      "type": 0,
+      "value": "关闭"
+    }
+  ],
+  "command.generic.close.label": [
+    {
+      "type": 0,
+      "value": "关闭框架"
+    }
+  ],
+  "command.generic.close.title": [
+    {
+      "type": 0,
+      "value": "关闭此框架。要恢复默认布局，请选择应用菜单项“Default Layout”。"
+    }
+  ],
+  "command.generic.decrease_font_size.button": [
+    {
+      "type": 0,
+      "value": "较小"
+    }
+  ],
+  "command.generic.decrease_font_size.label": [
+    {
+      "type": 0,
+      "value": "缩小"
+    }
+  ],
+  "command.generic.decrease_font_size.title": [
+    {
+      "type": 0,
+      "value": "减小字体大小"
+    }
+  ],
+  "command.generic.edit_init_script.label": [
+    {
+      "type": 0,
+      "value": "初始化脚本"
+    }
+  ],
+  "command.generic.edit_init_script.title": [
+    {
+      "type": 0,
+      "value": "编辑启动时运行的初始化脚本"
+    }
+  ],
+  "command.generic.force_build.label": [
+    {
+      "type": 0,
+      "value": "强制构建"
+    }
+  ],
+  "command.generic.force_build.title": [
+    {
+      "type": 0,
+      "value": "强制重建整个项目"
+    }
+  ],
+  "command.generic.increase_font_size.button": [
+    {
+      "type": 0,
+      "value": "更大"
+    }
+  ],
+  "command.generic.increase_font_size.label": [
+    {
+      "type": 0,
+      "value": "放大"
+    }
+  ],
+  "command.generic.increase_font_size.title": [
+    {
+      "type": 0,
+      "value": "增加字体大小"
+    }
+  ],
+  "command.generic.maximize.label": [
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "最大化窗口"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "最小化窗口"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "is_full"
+    }
+  ],
+  "command.generic.maximize.title": [
+    {
+      "type": 0,
+      "value": "切换此框架是否最大化"
+    }
+  ],
+  "command.generic.open.label": [
+    {
+      "type": 0,
+      "value": "打开文件"
+    }
+  ],
+  "command.generic.open.title": [
+    {
+      "type": 0,
+      "value": "打开文件"
+    }
+  ],
+  "command.generic.open_recent.label": [
+    {
+      "type": 0,
+      "value": "打开最近"
+    }
+  ],
+  "command.generic.open_recent.title": [
+    {
+      "type": 0,
+      "value": "打开最近打开的文件"
+    }
+  ],
+  "command.generic.reset_local_view_state.button": [
+    {
+      "type": 0,
+      "value": "默认"
+    }
+  ],
+  "command.generic.reset_local_view_state.label": [
+    {
+      "type": 0,
+      "value": "默认布局"
+    }
+  ],
+  "command.generic.reset_local_view_state.title": [
+    {
+      "type": 0,
+      "value": "重置所有框架的布局为默认"
+    }
+  ],
+  "command.generic.show_table_of_contents.button": [
+    {
+      "type": 0,
+      "value": "内容"
+    }
+  ],
+  "command.generic.show_table_of_contents.title": [
+    {
+      "type": 0,
+      "value": "显示目录"
+    }
+  ],
+  "command.generic.split_col.label": [
+    {
+      "type": 0,
+      "value": "右侧分割"
+    }
+  ],
+  "command.generic.split_row.title": [
+    {
+      "type": 0,
+      "value": "将框架水平分成两行"
+    }
+  ],
+  "command.generic.stop_build.label": [
+    {
+      "type": 0,
+      "value": "停止"
+    }
+  ],
+  "command.generic.stop_build.title": [
+    {
+      "type": 0,
+      "value": "停止所有正在运行的作业"
+    }
+  ],
+  "command.generic.sync.label": [
+    {
+      "type": 0,
+      "value": "同步视图"
+    }
+  ],
+  "command.generic.sync.title": [
+    {
+      "type": 0,
+      "value": "同步LaTeX源视图与PDF输出。"
+    }
+  ],
+  "command.generic.word_count.label": [
+    {
+      "type": 0,
+      "value": "字数统计"
+    }
+  ],
+  "command.generic.word_count.title": [
+    {
+      "type": 0,
+      "value": "显示此文档中的字数信息"
+    }
+  ],
+  "command.generic.zoom_page_height.label": [
+    {
+      "type": 0,
+      "value": "缩放至高度"
+    }
+  ],
+  "command.generic.zoom_page_height.title": [
+    {
+      "type": 0,
+      "value": "缩放到页面高度"
+    }
+  ],
+  "command.generic.zoom_page_width.label": [
+    {
+      "type": 0,
+      "value": "缩放到宽度"
+    }
+  ],
+  "command.generic.zoom_page_width.title": [
+    {
+      "type": 0,
+      "value": "缩放到页面宽度"
+    }
+  ],
+  "commands.generic.toggle_button_bar.confirm.description": [
+    {
+      "type": 0,
+      "value": "菜单工具栏是一条可自定义的菜单项快捷栏。 "
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "type": 0,
+              "value": " 菜单工具栏中的所有内容在上方的菜单中始终可用。 "
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "type": 0,
+              "value": " 通过选择“视图 → 显示菜单工具栏”来显示工具栏。 "
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "type": 0,
+              "value": " 通过点击任意顶级菜单项旁边的图标来切换按钮。 "
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        },
+        {
+          "children": [
+            {
+              "type": 0,
+              "value": " 仅隐藏此框架的工具栏：'视图 → 菜单工具栏 → 移除所有按钮'。 "
+            }
+          ],
+          "type": 8,
+          "value": "li"
+        },
+        {
+          "type": 0,
+          "value": " "
+        }
+      ],
+      "type": 8,
+      "value": "ul"
+    }
+  ],
+  "commands.generic.toggle_button_bar.confirm.ok": [
+    {
+      "type": 0,
+      "value": "隐藏菜单工具栏"
+    }
+  ],
+  "commands.generic.toggle_button_bar.confirm.title": [
+    {
+      "type": 0,
+      "value": "切换是否为所有编辑器显示菜单工具栏"
+    }
+  ],
+  "commands.generic.toggle_button_bar.label": [
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "显示"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+            {
+              "type": 0,
+              "value": "隐藏"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "show"
+    },
+    {
+      "type": 0,
+      "value": " 菜单 工具栏..."
+    }
+  ],
+  "commands.generic.toggle_button_bar.title": [
+    {
+      "type": 0,
+      "value": "切换是否为所有编辑器显示菜单工具栏"
+    }
+  ],
+  "editor.table_of_contents.name": [
+    {
+      "type": 0,
+      "value": "目录"
+    }
+  ],
+  "editor.table_of_contents.short": [
+    {
+      "type": 0,
+      "value": "内容"
+    }
+  ],
+  "editor.terminal.cmd.help.title": [
+    {
+      "type": 0,
+      "value": "显示在 CoCalc 中使用 Linux 终端的文档"
+    }
+  ],
+  "frame_editors.frame_tree.title_bar.close": [
+    {
+      "type": 0,
+      "value": "关闭此框架"
+    }
+  ],
+  "frame_editors.frame_tree.title_bar.maximize": [
+    {
+      "type": 0,
+      "value": "仅显示此框架"
+    }
+  ],
+  "frame_editors.frame_tree.title_bar.minimize": [
+    {
+      "type": 0,
+      "value": "显示所有帧"
+    }
+  ],
+  "i18n.localization.lang.chinese": [
+    {
+      "type": 0,
+      "value": "中文"
+    }
+  ],
+  "i18n.localization.lang.english": [
+    {
+      "type": 0,
+      "value": "英语"
+    }
+  ],
+  "i18n.localization.lang.german": [
+    {
+      "type": 0,
+      "value": "德语"
+    }
+  ],
+  "i18n.localization.lang.spanish": [
+    {
+      "type": 0,
+      "value": "西班牙语"
+    }
+  ],
+  "jupyter.commands.cell_toolbar_none": [
+    {
+      "type": 0,
+      "value": "没有单元工具栏"
+    }
+  ],
+  "jupyter.commands.cell_toolbar_none_menu": [
+    {
+      "type": 0,
+      "value": "无"
+    }
+  ],
+  "jupyter.commands.change_kernel": [
+    {
+      "type": 0,
+      "value": "更改内核..."
+    }
+  ],
+  "jupyter.commands.change_kernel_title": [
+    {
+      "type": 0,
+      "value": "从任何可用的内核中选择"
+    }
+  ],
+  "jupyter.commands.restart_kernel.label": [
+    {
+      "type": 0,
+      "value": "重启内核..."
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells": [
+    {
+      "type": 0,
+      "value": "重新启动并运行所有单元格..."
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_button": [
+    {
+      "type": 0,
+      "value": "全部运行"
+    }
+  ],
+  "jupyter.commands.run_current_cell.label": [
+    {
+      "type": 0,
+      "value": "运行当前单元格"
+    }
+  ],
+  "jupyter.commands.toggle_all_line_numbers": [
+    {
+      "type": 0,
+      "value": "切换所有单元格的行号"
+    }
+  ],
+  "jupyter.commands.toggle_cell_line_numbers": [
+    {
+      "type": 0,
+      "value": "切换选定单元格的行号"
+    }
+  ],
+  "jupyter.editor.console_label": [
+    {
+      "type": 0,
+      "value": "Jupyter 控制台"
+    }
+  ],
+  "jupyter.editor.console_title": [
+    {
+      "type": 0,
+      "value": "打开连接到正在运行的内核的Jupyter命令行控制台"
+    }
+  ],
+  "jupyter.editor.run_all_cells.label": [
+    {
+      "type": 0,
+      "value": "运行所有单元格"
+    }
+  ],
+  "jupyter.editor.run_selected_cells.label": [
+    {
+      "type": 0,
+      "value": "运行选定的单元格"
+    }
+  ],
+  "jupyter.llm.cell-tool.assistant.title": [
+    {
+      "type": 0,
+      "value": "在此单元格中使用AI助手"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.bugfix": [
+    {
+      "type": 0,
+      "value": "解释单元格中代码的问题，所选语言模型将尝试修复它。通常，它会告诉你是否发现了问题并向你解释。"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.document": [
+    {
+      "type": 0,
+      "value": "语言模型将在单元格中的代码添加文档行"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.explain": [
+    {
+      "type": 0,
+      "value": "单元格中的代码将被发送到所选语言模型。它会用简单的语言向您解释代码。"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.improve": [
+    {
+      "type": 0,
+      "value": "所选语言模型将分析代码并提出改进建议。注意，结果不保证正确，也可能导致细微问题——请仔细审查。"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.modify": [
+    {
+      "type": 0,
+      "value": "语言模型将根据给定的指令修改代码。选择一个模板并进行修改，或者自己想一些指令！"
+    }
+  ],
+  "jupyter.llm.cell-tool.explanation.translate": [
+    {
+      "type": 0,
+      "value": "语言模型将尝试将单元格中的代码翻译成另一种编程语言。结果可能完全无法运行——但如果你对所选目标语言更熟悉，你可能会更容易理解发生了什么！"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.bugfix.descr": [
+    {
+      "type": 0,
+      "value": "描述该单元格的问题以获取修复版本"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.bugfix.label": [
+    {
+      "type": 0,
+      "value": "解释"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.document.descr": [
+    {
+      "type": 0,
+      "value": "添加文档"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.document.label": [
+    {
+      "type": 0,
+      "value": "文档"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.explain.descr": [
+    {
+      "type": 0,
+      "value": "对该单元格中的代码进行一些了解"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.explain.label": [
+    {
+      "type": 0,
+      "value": "解释"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.improve.descr": [
+    {
+      "type": 0,
+      "value": "改进该单元格中的代码"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.improve.label": [
+    {
+      "type": 0,
+      "value": "改进"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.modify.descr": [
+    {
+      "type": 0,
+      "value": "修改单元格中的代码"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.modify.label": [
+    {
+      "type": 0,
+      "value": "修改"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.translate.descr": [
+    {
+      "type": 0,
+      "value": "使用人工智能将该单元格中的代码翻译成另一种语言"
+    }
+  ],
+  "jupyter.llm.dell-tool.actions.translate.label": [
+    {
+      "type": 0,
+      "value": "翻译"
+    }
+  ],
+  "jupyter.run_all_cells.label": [
+    {
+      "type": 0,
+      "value": "运行所有单元格"
+    }
+  ],
+  "jupyter.run_selected_cells.label": [
+    {
+      "type": 0,
+      "value": "运行选定的单元格"
+    }
+  ],
+  "jupyter.select_kernel.footer": [
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "注意："
+        }
+      ],
+      "type": 8,
+      "value": "strong"
+    },
+    {
+      "type": 0,
+      "value": "稍后，您可以通过内核菜单或点击左上角的内核状态徽标更改所选内核。"
+    }
+  ],
+  "labels.acconut.password": [
+    {
+      "type": 0,
+      "value": "密码"
+    }
+  ],
+  "labels.acconut.password.change": [
+    {
+      "type": 0,
+      "value": "更改密码"
+    }
+  ],
+  "labels.acconut.password.forgot": [
+    {
+      "type": 0,
+      "value": "忘记密码？"
+    }
+  ],
+  "labels.account": [
+    {
+      "type": 0,
+      "value": "项目"
+    }
+  ],
+  "labels.account.first_name": [
+    {
+      "type": 0,
+      "value": "姓名"
+    }
+  ],
+  "labels.account.language_tooltip": [
+    {
+      "type": 0,
+      "value": "更改用户界面语言。"
+    }
+  ],
+  "labels.account.last_name": [
+    {
+      "type": 0,
+      "value": "姓氏"
+    }
+  ],
+  "labels.ai_generate_label": [
+    {
+      "type": 0,
+      "value": "帮我写..."
+    }
+  ],
+  "labels.ai_generate_title": [
+    {
+      "type": 0,
+      "value": "用AI创建新文件"
+    }
+  ],
+  "labels.assistant": [
+    {
+      "type": 0,
+      "value": "助手"
+    }
+  ],
+  "labels.button.cancel": [
+    {
+      "type": 0,
+      "value": "取消"
+    }
+  ],
+  "labels.cloud_file_system": [
+    {
+      "type": 0,
+      "value": "云文件系统"
+    }
+  ],
+  "labels.copy": [
+    {
+      "type": 0,
+      "value": "复制"
+    }
+  ],
+  "labels.create_project": [
+    {
+      "type": 0,
+      "value": "创建项目..."
+    }
+  ],
+  "labels.cut": [
+    {
+      "type": 0,
+      "value": "剪切"
+    }
+  ],
+  "labels.email_address": [
+    {
+      "type": 0,
+      "value": "电子邮件地址"
+    }
+  ],
+  "labels.frame-editors.title-bar.save_label": [
+    {
+      "options": {
+        "is_public": {
+          "value": [
+            {
+              "type": 0,
+              "value": "公开"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "保存"
+            }
+          ]
+        },
+        "read_only": {
+          "value": [
+            {
+              "type": 0,
+              "value": "只读"
+            }
+          ]
+        }
+      },
+      "type": 5,
+      "value": "type"
+    }
+  ],
+  "labels.help": [
+    {
+      "type": 0,
+      "value": "幫助"
+    }
+  ],
+  "labels.licenses": [
+    {
+      "type": 0,
+      "value": "许可证"
+    }
+  ],
+  "labels.new.file": [
+    {
+      "type": 0,
+      "value": "新"
+    }
+  ],
+  "labels.paste": [
+    {
+      "type": 0,
+      "value": "粘贴"
+    }
+  ],
+  "labels.preferences": [
+    {
+      "type": 0,
+      "value": "偏好设置"
+    }
+  ],
+  "labels.project.settings.restart-project.confirm.explanation": [
+    {
+      "type": 0,
+      "value": "重新啟動專案伺服器將終止專案中的所有進程，更新專案代碼，並再次啟動專案運行。運行中的"
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "計算伺服器"
+        }
+      ],
+      "type": 8,
+      "value": "a"
+    },
+    {
+      "type": 0,
+      "value": "不受影響。這需要幾秒鐘，並且在某些情況下可以解決問題。如果系統未正常工作，您將不會丟失任何文件，但必須重新啟動筆記本和工作表。"
+    }
+  ],
+  "labels.project.settings.restart-project.confirm.ok": [
+    {
+      "type": 0,
+      "value": "是的，"
+    },
+    {
+      "type": 1,
+      "value": "task"
+    },
+    {
+      "type": 0,
+      "value": " 项目"
+    }
+  ],
+  "labels.project.settings.stop-project.label": [
+    {
+      "type": 0,
+      "value": "停止"
+    },
+    {
+      "options": {
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "项目"
+            }
+          ]
+        },
+        "true": {
+          "value": [
+          ]
+        }
+      },
+      "type": 5,
+      "value": "short"
+    },
+    {
+      "type": 0,
+      "value": "…"
+    }
+  ],
+  "labels.project.settings.stop-project.ok": [
+    {
+      "type": 0,
+      "value": "是，停止项目"
+    }
+  ],
+  "labels.projects": [
+    {
+      "type": 0,
+      "value": "帐户"
+    }
+  ],
+  "labels.published_files": [
+    {
+      "type": 0,
+      "value": "已发布文件"
+    }
+  ],
+  "labels.purchases": [
+    {
+      "type": 0,
+      "value": "购买"
+    }
+  ],
+  "labels.redo": [
+    {
+      "type": 0,
+      "value": "重做"
+    }
+  ],
+  "labels.reload": [
+    {
+      "type": 0,
+      "value": "重新加载"
+    }
+  ],
+  "labels.reload_title": [
+    {
+      "type": 0,
+      "value": "重新加载此文档"
+    }
+  ],
+  "labels.save": [
+    {
+      "type": 0,
+      "value": "保存"
+    }
+  ],
+  "labels.save_title": [
+    {
+      "type": 0,
+      "value": "将此文件保存到磁盘"
+    }
+  ],
+  "labels.settings": [
+    {
+      "type": 0,
+      "value": "设置"
+    }
+  ],
+  "labels.snippets": [
+    {
+      "type": 0,
+      "value": "代码片段"
+    }
+  ],
+  "labels.split_frame_horizontally.title": [
+    {
+      "type": 0,
+      "value": "向下拆分"
+    }
+  ],
+  "labels.split_frame_vertically.title": [
+    {
+      "type": 0,
+      "value": "垂直分割框架为两列"
+    }
+  ],
+  "labels.ssh_keys": [
+    {
+      "type": 0,
+      "value": "SSH 密钥"
+    }
+  ],
+  "labels.statements": [
+    {
+      "type": 0,
+      "value": "声明"
+    }
+  ],
+  "labels.subscriptons": [
+    {
+      "type": 0,
+      "value": "订阅"
+    }
+  ],
+  "labels.support": [
+    {
+      "type": 0,
+      "value": "支持"
+    }
+  ],
+  "labels.terminal": [
+    {
+      "type": 0,
+      "value": "终端"
+    }
+  ],
+  "labels.timetravel": [
+    {
+      "type": 0,
+      "value": "时光旅行"
+    }
+  ],
+  "labels.timetravel_title": [
+    {
+      "type": 0,
+      "value": "显示此文档的完整编辑历史"
+    }
+  ],
+  "labels.undo": [
+    {
+      "type": 0,
+      "value": "撤销"
+    }
+  ],
+  "labels.upgrades": [
+    {
+      "type": 0,
+      "value": "升级"
+    }
+  ],
+  "labels.upload": [
+    {
+      "type": 0,
+      "value": "上传"
+    }
+  ],
+  "labels.zoom_in": [
+    {
+      "type": 0,
+      "value": "放大"
+    }
+  ],
+  "labels.zoom_out": [
+    {
+      "type": 0,
+      "value": "缩小"
+    }
+  ],
+  "menu.generic.close_and_halt.label": [
+    {
+      "type": 0,
+      "value": "关闭并停止"
+    }
+  ],
+  "menu.generic.edit.label": [
+    {
+      "type": 0,
+      "value": "编辑"
+    }
+  ],
+  "menu.generic.file.label": [
+    {
+      "type": 0,
+      "value": "文件"
+    }
+  ],
+  "menu.generic.format.label": [
+    {
+      "type": 0,
+      "value": "格式"
+    }
+  ],
+  "menu.generic.go.label": [
+    {
+      "type": 0,
+      "value": "去"
+    }
+  ],
+  "menu.generic.halt_jupyter.button": [
+    {
+      "type": 0,
+      "value": "停止"
+    }
+  ],
+  "menu.generic.halt_jupyter.title": [
+    {
+      "type": 0,
+      "value": "停止运行的Jupyter内核并关闭此笔记本。"
+    }
+  ],
+  "menu.generic.help.label": [
+    {
+      "type": 0,
+      "value": "帮助"
+    }
+  ],
+  "menu.generic.insert.label": [
+    {
+      "type": 0,
+      "value": "插入"
+    }
+  ],
+  "menu.generic.kernel.label": [
+    {
+      "type": 0,
+      "value": "内核"
+    }
+  ],
+  "menu.generic.kick_other_users_out.button": [
+    {
+      "type": 0,
+      "value": "踢"
+    }
+  ],
+  "menu.generic.kick_other_users_out.label": [
+    {
+      "type": 0,
+      "value": "踢出其他用户"
+    }
+  ],
+  "menu.generic.kick_other_users_out.title": [
+    {
+      "type": 0,
+      "value": "将其他所有用户踢出该文档 它将在所有其他浏览器中关闭"
+    }
+  ],
+  "menu.generic.new_file.label": [
+    {
+      "type": 0,
+      "value": "新建文件"
+    }
+  ],
+  "menu.generic.run.label": [
+    {
+      "type": 0,
+      "value": "运行"
+    }
+  ],
+  "menu.generic.split.button": [
+    {
+      "type": 0,
+      "value": "拆分"
+    }
+  ],
+  "menu.generic.view.label": [
+    {
+      "type": 0,
+      "value": "查看"
+    }
+  ],
+  "page.flyouts.licenses.upgrades_explanation": [
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "此项目在运行时使用以下资源配额。您可以通过添加许可证或应用升级来增加更多资源。"
+        }
+      ],
+      "type": 8,
+      "value": "p"
+    }
+  ],
+  "page.help.label": [
+    {
+      "type": 0,
+      "value": "帮助"
+    }
+  ],
+  "page.sign_in.label": [
+    {
+      "type": 0,
+      "value": "登录"
+    }
+  ],
+  "project.new-file-page.title": [
+    {
+      "type": 0,
+      "value": "创建或"
+    },
+    {
+      "type": 1,
+      "value": "上传"
+    },
+    {
+      "type": 0,
+      "value": "新文件或"
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "文件夹"
+        }
+      ],
+      "type": 8,
+      "value": "folder"
+    }
+  ],
+  "project.new-file-page.title.modal.title": [
+    {
+      "type": 0,
+      "value": "新建文件夹"
+    }
+  ],
+  "project.page.file-tab.search_file.label": [
+    {
+      "type": 0,
+      "value": "查找"
+    }
+  ],
+  "project.page.flyout.log.title": [
+    {
+      "type": 0,
+      "value": "最近文件"
+    }
+  ],
+  "project.page.flyout.new_file.title": [
+    {
+      "type": 0,
+      "value": "创建新文件或文件夹"
+    }
+  ],
+  "project.page.flyout.settings.title": [
+    {
+      "type": 0,
+      "value": "状态和设置"
+    }
+  ],
+  "project.settings.stop-project.explanation": [
+    {
+      "type": 0,
+      "value": "停止專案伺服器將終止所有進程。停止專案後，除非您或協作者重新啟動專案，否則它不會啟動。"
+    }
+  ],
+  "projects.filename-search.placeholder": [
+    {
+      "type": 0,
+      "value": "搜索你编辑过的文件名"
+    }
+  ],
+  "projects.load-all.label": [
+    {
+      "type": 0,
+      "value": "显示所有项目..."
+    }
+  ],
+  "projects.search.placeholder": [
+    {
+      "type": 0,
+      "value": "搜索项目（使用 /re/ 进行正则表达式搜索）…"
+    }
+  ]
+}

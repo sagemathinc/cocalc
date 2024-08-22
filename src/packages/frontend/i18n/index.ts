@@ -49,11 +49,11 @@ export function loadLocaleMessages(locale: Locale): Promise<Messages> {
         // Hence "defaultMessage" messages are used directly.
         return {};
       case "de":
-        return import("@cocalc/frontend/i18n/de_DE.json");
+        return import("@cocalc/frontend/i18n/de_DE.compiled.json");
       case "zh":
-        return import("@cocalc/frontend/i18n/zh_CN.json");
+        return import("@cocalc/frontend/i18n/zh_CN.compiled.json");
       case "es":
-        return import("@cocalc/frontend/i18n/es_ES.json");
+        return import("@cocalc/frontend/i18n/es_ES.compiled.json");
       default:
         unreachable(locale);
         throw new Error(`Unknown locale '${locale}.`);

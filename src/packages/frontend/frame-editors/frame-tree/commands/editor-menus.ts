@@ -16,7 +16,7 @@ import type { Command, Menus } from "./types";
 type Command0 = {
   icon?: string;
   iconRotate?: IconRotation;
-  label?: string | (({ props }: any) => any);
+  label?: string | (({ props }: any) => any) | IntlMessage;
   name?: string;
   children?;
   disabled?: ({ props }: { props: any }) => boolean;

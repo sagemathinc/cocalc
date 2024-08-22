@@ -6,7 +6,7 @@
 import { Alert as AntdAlert, Space } from "antd";
 import { List, Map } from "immutable";
 import { join } from "path";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import {
   Alert,
@@ -475,7 +475,12 @@ export function AccountSettings(props: Readonly<Props>) {
     }
     return (
       <Row style={{ marginBottom: "15px" }}>
-        <Col md={4}>Created</Col>
+        <Col md={4}>
+          <FormattedMessage
+            id="account.settings.created.label"
+            defaultMessage={"Created"}
+          />
+        </Col>
         <Col md={8}>
           <TimeAgo date={props.created} />
         </Col>
@@ -505,7 +510,10 @@ export function AccountSettings(props: Readonly<Props>) {
           disabled={props.is_anonymous && !terms_checkbox}
         />
         <TextSetting
-          label="Username (optional)"
+          label={intl.formatMessage({
+            id: "account.settings.username.label",
+            defaultMessage: "Username (optional)",
+          })}
           value={props.name}
           onChange={(e) => {
             const name = e.target.value?.trim();
@@ -535,16 +543,16 @@ export function AccountSettings(props: Readonly<Props>) {
             showIcon
             style={{ margin: "15px 0" }}
             message={
-              <>
-                Setting a username provides optional nicer URL's for shared
-                public documents. Your username can be between 1 and 39
-                characters, contain upper and lower case letters, numbers, and
-                dashes.
-                <br />
-                WARNING: If you change your username, existing links using the
-                previous username will no longer work (automatic redirects are
-                not implemented), so change with caution.
-              </>
+              <FormattedMessage
+                id="account.settings.username.info"
+                defaultMessage={`Setting a username provides optional nicer URL's for shared
+public documents. Your username can be between 1 and 39 characters,
+contain upper and lower case letters, numbers, and dashes.
+{br}
+WARNING: If you change your username, existing links using the previous username
+will no longer work (automatic redirects are not implemented), so change with caution.`}
+                values={{ br: <br /> }}
+              />
             }
             type="info"
           />
@@ -579,7 +587,12 @@ export function AccountSettings(props: Readonly<Props>) {
           actions().set_account_table({ unlisted: e.target.checked })
         }
       >
-        Unlisted: you can only be found by an exact email address match
+        <FormattedMessage
+          id="account.settings.unlisted.label"
+          defaultMessage={
+            "Unlisted: you can only be found by an exact email address match"
+          }
+        />
       </Checkbox>
     );
   }

@@ -7,7 +7,7 @@ import { ConfigProvider as AntdConfigProvider } from "antd";
 import type { Locale as AntdLocale } from "antd/lib/locale";
 import enUS from "antd/locale/en_US";
 import { isEmpty } from "lodash";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import { IntlProvider } from "react-intl";
 import useAsyncEffect from "use-async-effect";
 
@@ -43,6 +43,14 @@ export function Localize({ children }: { children: React.ReactNode }) {
   const [antdLoc, setAntdLoc] = useState<AntdLocale | undefined>(undefined);
   const [messages, setMessages] = useState<Messages | undefined>(undefined);
   const { antdTheme } = useAntdStyleProvider();
+  const uniqueKey = useRef<{ [tag: string]: number }>({});
+
+  // Note: this is e.g. necessary to render text in a modal, where some caching happens, apparently
+  function getKey(tag: string): number {
+    const n = (uniqueKey.current[tag] ?? 0) + 1;
+    uniqueKey.current[tag] = n;
+    return n;
+  }
 
   useAsyncEffect(async () => {
     setMessages(await loadLocaleMessages(locale));
@@ -92,12 +100,20 @@ export function Localize({ children }: { children: React.ReactNode }) {
           defaultLocale={DEFAULT_LOCALE}
           onError={onError}
           defaultRichTextElements={{
-            b: (ch) => <Text strong>{ch}</Text>,
-            p: (ch) => <Paragraph>{ch}</Paragraph>,
-            code: (ch) => <Text code>{ch}</Text>,
-            ul: (e) => <ul>{e}</ul>,
-            ol: (e) => <ol>{e}</ol>,
-            li: (e) => <li>{e}</li>,
+            b: (ch) => (
+              <Text strong key={getKey("b")}>
+                {ch}
+              </Text>
+            ),
+            p: (ch) => <Paragraph key={getKey("p")}>{ch}</Paragraph>,
+            code: (ch) => (
+              <Text code key={getKey("code")}>
+                {ch}
+              </Text>
+            ),
+            ul: (e) => <ul key={getKey("ul")}>{e}</ul>,
+            ol: (e) => <ol key={getKey("ol")}>{e}</ol>,
+            li: (e) => <li key={getKey("li")}>{e}</li>,
           }}
         >
           {renderApp()}
