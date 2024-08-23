@@ -8,6 +8,7 @@
 import jsonic from "jsonic";
 import { isEqual } from "lodash";
 
+import { LOCALE } from "@cocalc/util/consts/locale";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import {
   DEFAULT_MODEL,
@@ -16,7 +17,6 @@ import {
   getDefaultLLM,
   isValidModel,
 } from "./llm-utils";
-import { LOCALE } from "../consts/locale";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 

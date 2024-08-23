@@ -11,6 +11,8 @@ import Password, {
   PasswordTextArea,
 } from "@cocalc/frontend/components/password";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { LOCALIZATIONS } from "@cocalc/frontend/i18n";
+import { LOCALE } from "@cocalc/util/consts/locale";
 import { USER_SELECTABLE_LANGUAGE_MODELS } from "@cocalc/util/db-schema/llm-utils";
 import {
   ConfigValid,
@@ -18,14 +20,16 @@ import {
   to_list_of_locale,
 } from "@cocalc/util/db-schema/site-defaults";
 import { RowEntryInnerProps } from "./row-entry";
-import { LOCALE } from "@cocalc/util/consts/locale";
-import { LOCALIZATIONS } from "../../i18n";
 
-export function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
-  if (
+export function testIsInvalid(value, valid?: ConfigValid): boolean {
+  return (
     (Array.isArray(valid) && !valid.includes(value)) ||
     (typeof valid == "function" && !valid(value))
-  ) {
+  );
+}
+
+export function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
+  if (testIsInvalid(value, valid)) {
     return { border: "2px solid red" };
   }
   return {};
