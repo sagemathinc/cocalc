@@ -16,6 +16,7 @@ import {
   getDefaultLLM,
   isValidModel,
 } from "./llm-utils";
+import { LOCALE } from "../consts/locale";
 
 export type ConfigValid = Readonly<string[]> | ((val: string) => boolean);
 
@@ -40,6 +41,7 @@ export const TAGS = [
   "AI LLM",
   "Theme",
   "On-Prem",
+  "I18N",
 ] as const;
 
 export type Tag = (typeof TAGS)[number];
@@ -83,6 +85,7 @@ export type SiteSettingsKeys =
   | "unlicensed_project_timetravel_limit"
   | "google_analytics"
   | "kucalc"
+  | "i18n"
   | "dns"
   | "datastore"
   | "ssh_gateway"
@@ -194,6 +197,18 @@ export const onlyNonnegFloat = (val) =>
   ((v) => onlyFloats(v) && v >= 0)(toFloat(val));
 export const onlyPosFloat = (val) =>
   ((v) => onlyFloats(v) && v > 0)(toFloat(val));
+
+export function to_list_of_locale(val?: string, fallbackAll = true): string[] {
+  if (!val?.trim()) {
+    return fallbackAll ? [...LOCALE] : [];
+  }
+  const list = val
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => LOCALE.includes(v as any));
+  return list;
+}
+
 export function to_list_of_llms(val?: string, fallbackAll = true): string[] {
   if (!val?.trim())
     return fallbackAll ? [...USER_SELECTABLE_LANGUAGE_MODELS] : [];
@@ -202,7 +217,6 @@ export function to_list_of_llms(val?: string, fallbackAll = true): string[] {
     .map((s) => s.trim())
     .filter((v) => USER_SELECTABLE_LANGUAGE_MODELS.includes(v as any));
 }
-
 export const is_list_of_llms = (val: string) =>
   val
     .split(",")
@@ -541,6 +555,20 @@ export const site_settings_conf: SiteSettings = {
     default: KUCALC_DISABLED,
     valid: KUCALC_VALID_VALS,
     tags: ["On-Prem"],
+  },
+  i18n: {
+    name: "Internationalization",
+    desc: "Select, which languages the frontend should offer for users to translate to. Only 'English', no dropdown will be shown. No selection, all available translations are available (default).",
+    default: "",
+    valid: LOCALE,
+    to_val: (v) => to_list_of_locale(v), // note: we store this as a comma separated list
+    to_display: (val: string | string[]) => {
+      const list = Array.isArray(val) ? val : to_list_of_locale(val);
+      return isEqual(list, LOCALE)
+        ? "All translations are available."
+        : list.join(", ");
+    },
+    tags: ["I18N"],
   },
   google_analytics: {
     name: "Google Analytics",

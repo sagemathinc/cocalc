@@ -85,6 +85,7 @@ export const AccountPage: React.FC = () => {
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
+  const i18n_enabled = useTypedRedux("customize", "i18n");
 
   // for each exclusive domain, tell the user which strategy to use
   const exclusive_sso_domains = React.useMemo(() => {
@@ -262,16 +263,22 @@ export const AccountPage: React.FC = () => {
     return items;
   }
 
-  function renderI18N(): JSX.Element {
+  function renderI18N(): JSX.Element | null {
+    if (
+      i18n_enabled.isEmpty() ||
+      (i18n_enabled.size === 1 && i18n_enabled.includes("en"))
+    )
+      return null;
+
     const i18n: Locale = getLocale(other_settings);
 
     const items: MenuProps["items"] =
-      Object.entries(LOCALIZATIONS).map(
-        ([key, { name, trans, native, flag }]) => {
+      Object.entries(LOCALIZATIONS)
+        .filter(([key, _]) => i18n_enabled.includes(key as any))
+        .map(([key, { name, trans, native, flag }]) => {
           const other = key === locale ? name : intl.formatMessage(trans);
           return { key, label: `${flag} ${native} (${other})` };
-        },
-      ) ?? [];
+        }) ?? [];
 
     items.push({ type: "divider" });
     items.push({

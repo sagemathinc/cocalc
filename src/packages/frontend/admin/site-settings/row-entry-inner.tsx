@@ -15,8 +15,11 @@ import { USER_SELECTABLE_LANGUAGE_MODELS } from "@cocalc/util/db-schema/llm-util
 import {
   ConfigValid,
   to_list_of_llms,
+  to_list_of_locale,
 } from "@cocalc/util/db-schema/site-defaults";
 import { RowEntryInnerProps } from "./row-entry";
+import { LOCALE } from "@cocalc/util/consts/locale";
+import { LOCALIZATIONS } from "../../i18n";
 
 export function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
   if (
@@ -60,6 +63,29 @@ export function RowEntryInner({
         optionRender={(option) => (
           <>
             <LanguageModelVendorAvatar model={(option.value as string) ?? ""} />{" "}
+            {option.label}
+          </>
+        )}
+      />
+    );
+  } else if (name === "i18n") {
+    return (
+      <Select
+        mode="multiple"
+        style={{ width: "100%" }}
+        placeholder="Select user selectable language locale"
+        optionLabelProp="label"
+        defaultValue={to_list_of_locale(value, false)}
+        onChange={(value: Array<string>) => {
+          onChangeEntry(name, value.join(","));
+          update();
+        }}
+        options={LOCALE.map((l) => {
+          return { label: LOCALIZATIONS[l].name, value: l };
+        })}
+        optionRender={(option) => (
+          <>
+            {option.value ? LOCALIZATIONS[option.value].flag : ""}{" "}
             {option.label}
           </>
         )}

@@ -5,6 +5,7 @@
 
 import { Form, Switch, Tooltip } from "antd";
 import { join } from "path";
+import { FormattedMessage } from "react-intl";
 
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -20,7 +21,6 @@ import { AccountSettings } from "./settings/account-settings";
 import ApiKeys from "./settings/api-keys";
 import TableError from "./table-error";
 import { TerminalSettings } from "./terminal-settings";
-import { FormattedMessage } from "react-intl";
 
 export const AccountPreferences: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
