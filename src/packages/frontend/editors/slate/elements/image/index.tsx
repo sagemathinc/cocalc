@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { register, SlateElement } from "../register";
-import { dict } from "@cocalc/util/misc";
-import $ from "cheerio";
+import { load } from "cheerio";
+
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import { dict } from "@cocalc/util/misc";
+import { register, SlateElement } from "../register";
 
 export interface Image extends SlateElement {
   type: "image";
@@ -28,6 +29,7 @@ export function toSlate({ type, children, token }) {
       // token.content will be a string like this:
       //    <img src='https://wstein.org/bella-and-william.jpg' width=200px title='my pup' />
       // easiest way to parse this is with jquery style api but via cheerio (not by hand).
+      const $ = load("");
       const elt = $(token.content);
       const node = {
         type: "image",
