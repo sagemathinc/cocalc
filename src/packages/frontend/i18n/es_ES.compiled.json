@@ -995,6 +995,12 @@
       "value": "Seleccionar de cualquiera de los kernels disponibles"
     }
   ],
+  "jupyter.commands.interrupt_kernel": [
+    {
+      "type": 0,
+      "value": "Interrumpir Kernel (Detener)"
+    }
+  ],
   "jupyter.commands.restart_kernel.label": [
     {
       "type": 0,
@@ -1011,6 +1017,42 @@
     {
       "type": 0,
       "value": "Ejecutar Todo"
+    }
+  ],
+  "jupyter.commands.run_cell": [
+    {
+      "type": 0,
+      "value": "Ejecutar celdas seleccionadas y no avanzar"
+    }
+  ],
+  "jupyter.commands.run_cell_and_insert_below": [
+    {
+      "type": 0,
+      "value": "Ejecutar celdas seleccionadas e insertar abajo"
+    }
+  ],
+  "jupyter.commands.run_cell_and_insert_below_title": [
+    {
+      "type": 0,
+      "value": "Ejecutar todas las celdas seleccionadas actualmente. Insertar una nueva celda después de la última."
+    }
+  ],
+  "jupyter.commands.run_cell_and_select_next": [
+    {
+      "type": 0,
+      "value": "Ejecutar celdas seleccionadas"
+    }
+  ],
+  "jupyter.commands.run_cell_title": [
+    {
+      "type": 0,
+      "value": "Ejecutar todas las celdas que están actualmente seleccionadas. No mover la selección."
+    }
+  ],
+  "jupyter.commands.run_current_cell": [
+    {
+      "type": 0,
+      "value": "Ejecutar Celda Actual"
     }
   ],
   "jupyter.commands.run_current_cell.label": [
@@ -1031,6 +1073,78 @@
       "value": "Alternar Números de Línea de las Celdas Seleccionadas"
     }
   ],
+  "jupyter.editor.browser_actions.close_and_halt.body": [
+    {
+      "type": 0,
+      "value": "¿Está seguro de que desea cerrar este archivo y detener el kernel? Todo el estado de las variables se perderá."
+    }
+  ],
+  "jupyter.editor.browser_actions.close_and_halt.label": [
+    {
+      "type": 0,
+      "value": "Cerrar y detener"
+    }
+  ],
+  "jupyter.editor.browser_actions.trust.body": [
+    {
+      "type": 0,
+      "value": "Un cuaderno Jupyter de confianza puede ejecutar código Javascript oculto o llevar a cabo otros ataques a través de HTML malicioso. Seleccionar confianza abajo, o evaluar cualquier celda, deshabilitará el código que elimina HTML peligroso de este cuaderno. (NOTA: CoCalc NO implementa el modelo de seguridad oficial de Jupyter para cuadernos de confianza; en particular, asumimos que confías en los colaboradores de tus proyectos en CoCalc. Además, en muchos casos todavía no ejecutamos Javascript en HTML, incluso si el cuaderno es de confianza.)"
+    }
+  ],
+  "jupyter.editor.browser_actions.trust.title": [
+    {
+      "type": 0,
+      "value": "¿Confiar en este cuaderno?"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.body": [
+    {
+      "type": 0,
+      "value": "¿Quieres matar el kernel en ejecución? Se perderán todos los valores de las variables. El kernel solo se iniciará si intentas evaluar algún código."
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.continue": [
+    {
+      "type": 0,
+      "value": "Seguir ejecutando"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.halt": [
+    {
+      "type": 0,
+      "value": "Detener"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.title": [
+    {
+      "type": 0,
+      "value": "¿Detener el kernel?"
+    }
+  ],
+  "jupyter.editor.confirm_restart.body": [
+    {
+      "type": 0,
+      "value": "¿Quieres reiniciar el kernel? Se perderán todos los valores de las variables."
+    }
+  ],
+  "jupyter.editor.confirm_restart.continue_label": [
+    {
+      "type": 0,
+      "value": "Seguir ejecutando"
+    }
+  ],
+  "jupyter.editor.confirm_restart.label": [
+    {
+      "type": 0,
+      "value": "Reiniciar"
+    }
+  ],
+  "jupyter.editor.confirm_restart.title": [
+    {
+      "type": 0,
+      "value": "¿Reiniciar el núcleo?"
+    }
+  ],
   "jupyter.editor.console_label": [
     {
       "type": 0,
@@ -1041,6 +1155,48 @@
     {
       "type": 0,
       "value": "Abre la consola de línea de comandos de Jupyter conectada al kernel en ejecución"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.body": [
+    {
+      "type": 0,
+      "value": "¿Estás seguro de que quieres reiniciar el kernel y ejecutar el cuaderno? Todo el estado de las variables y la salida se restablecerán, aunque la salida pasada está disponible en TimeTravel."
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.nostop": [
+    {
+      "type": 0,
+      "value": "Ejecutar todo (no detener en errores)"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.stop": [
+    {
+      "type": 0,
+      "value": "Ejecutar todo (detener en el primer error)"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.title": [
+    {
+      "type": 0,
+      "value": "Reiniciar kernel y ejecutar cuaderno"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.body": [
+    {
+      "type": 0,
+      "value": "¿Está seguro de que desea reiniciar el kernel y volver a ejecutar todas las celdas? Todo el estado de las variables y la salida se restablecerán, aunque la salida pasada está disponible en TimeTravel."
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.label": [
+    {
+      "type": 0,
+      "value": "Reiniciar y ejecutar todo"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.title": [
+    {
+      "type": 0,
+      "value": "Reiniciar el núcleo y ejecutar todas las celdas (no detenerse en errores)"
     }
   ],
   "jupyter.editor.run_all_cells.label": [
@@ -1239,6 +1395,12 @@
       "value": "Apellido"
     }
   ],
+  "labels.admin": [
+    {
+      "type": 0,
+      "value": "Administrador"
+    }
+  ],
   "labels.ai_generate_label": [
     {
       "type": 0,
@@ -1341,6 +1503,12 @@
     {
       "type": 0,
       "value": "Nuevo"
+    }
+  ],
+  "labels.notifications": [
+    {
+      "type": 0,
+      "value": "Notificaciones"
     }
   ],
   "labels.paste": [
@@ -1501,6 +1669,12 @@
     {
       "type": 0,
       "value": "Declaraciones"
+    }
+  ],
+  "labels.stop": [
+    {
+      "type": 0,
+      "value": "Detener"
     }
   ],
   "labels.subscriptons": [

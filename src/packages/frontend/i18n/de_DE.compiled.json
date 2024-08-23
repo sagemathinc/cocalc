@@ -995,6 +995,12 @@
       "value": "Wählen Sie aus den verfügbaren Kernels."
     }
   ],
+  "jupyter.commands.interrupt_kernel": [
+    {
+      "type": 0,
+      "value": "Kernel unterbrechen (Stoppen)"
+    }
+  ],
   "jupyter.commands.restart_kernel.label": [
     {
       "type": 0,
@@ -1011,6 +1017,42 @@
     {
       "type": 0,
       "value": "Alle ausführen"
+    }
+  ],
+  "jupyter.commands.run_cell": [
+    {
+      "type": 0,
+      "value": "Ausgewählte Zellen ausführen und nicht fortfahren"
+    }
+  ],
+  "jupyter.commands.run_cell_and_insert_below": [
+    {
+      "type": 0,
+      "value": "Ausgewählte Zellen ausführen und eine neue einfügen"
+    }
+  ],
+  "jupyter.commands.run_cell_and_insert_below_title": [
+    {
+      "type": 0,
+      "value": "Führe alle derzeit ausgewählten Zellen aus. Fügen eine neue Zelle nach der letzten ein."
+    }
+  ],
+  "jupyter.commands.run_cell_and_select_next": [
+    {
+      "type": 0,
+      "value": "Ausgewählte Zellen ausführen"
+    }
+  ],
+  "jupyter.commands.run_cell_title": [
+    {
+      "type": 0,
+      "value": "Führe alle derzeit ausgewählten Zellen aus. Verschiebt die Auswahl nicht."
+    }
+  ],
+  "jupyter.commands.run_current_cell": [
+    {
+      "type": 0,
+      "value": "Aktuelle Zelle ausführen"
     }
   ],
   "jupyter.commands.run_current_cell.label": [
@@ -1031,6 +1073,78 @@
       "value": "Zeilennummern der ausgewählten Zellen umschalten"
     }
   ],
+  "jupyter.editor.browser_actions.close_and_halt.body": [
+    {
+      "type": 0,
+      "value": "Sind Sie sicher, dass Sie diese Datei schließen und den Kernel anhalten möchten? Alle Variablenzustände gehen verloren."
+    }
+  ],
+  "jupyter.editor.browser_actions.close_and_halt.label": [
+    {
+      "type": 0,
+      "value": "Schließen und anhalten"
+    }
+  ],
+  "jupyter.editor.browser_actions.trust.body": [
+    {
+      "type": 0,
+      "value": "Ein vertrauenswürdiges Jupyter-Notebook kann versteckten Javascript-Code ausführen oder andere Angriffe über bösartigen HTML-Code durchführen. Wenn Sie unten Vertrauen auswählen oder eine Zelle auswerten, wird der Code deaktiviert, der gefährlichen HTML-Code aus diesem Notebook entfernt. (HINWEIS: CoCalc implementiert NICHT das offizielle Jupyter-Sicherheitsmodell für vertrauenswürdige Notebooks; insbesondere gehen wir davon aus, dass Sie Ihren Mitarbeitern in Ihren CoCalc-Projekten vertrauen. Außerdem führen wir in vielen Fällen Javascript in HTML nicht aus, selbst wenn das Notebook vertrauenswürdig ist.)"
+    }
+  ],
+  "jupyter.editor.browser_actions.trust.title": [
+    {
+      "type": 0,
+      "value": "Diesem Notebook vertrauen?"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.body": [
+    {
+      "type": 0,
+      "value": "Möchten Sie den laufenden Kernel beenden? Alle Variablenwerte gehen verloren. Der Kernel wird nur gestartet, wenn Sie versuchen, Code auszuführen."
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.continue": [
+    {
+      "type": 0,
+      "value": "Weiter ausführen"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.halt": [
+    {
+      "type": 0,
+      "value": "Anhalten"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.title": [
+    {
+      "type": 0,
+      "value": "Kernel anhalten?"
+    }
+  ],
+  "jupyter.editor.confirm_restart.body": [
+    {
+      "type": 0,
+      "value": "Möchten Sie den Kernel neu starten? Alle Variablenwerte gehen verloren."
+    }
+  ],
+  "jupyter.editor.confirm_restart.continue_label": [
+    {
+      "type": 0,
+      "value": "Weiter ausführen"
+    }
+  ],
+  "jupyter.editor.confirm_restart.label": [
+    {
+      "type": 0,
+      "value": "Neustart"
+    }
+  ],
+  "jupyter.editor.confirm_restart.title": [
+    {
+      "type": 0,
+      "value": "Kernel neu starten?"
+    }
+  ],
   "jupyter.editor.console_label": [
     {
       "type": 0,
@@ -1041,6 +1155,48 @@
     {
       "type": 0,
       "value": "Öffnen Sie die Jupyter-Kommandozeilenkonsole, die mit dem laufenden Kernel verbunden ist."
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.body": [
+    {
+      "type": 0,
+      "value": "Sind Sie sicher, dass Sie den Kernel neu starten und das Notebook ausführen möchten? Alle Variablenzustände und Ausgaben werden zurückgesetzt, obwohl vergangene Ausgaben in TimeTravel verfügbar sind."
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.nostop": [
+    {
+      "type": 0,
+      "value": "Alle ausführen (bei Fehlern nicht stoppen)"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.stop": [
+    {
+      "type": 0,
+      "value": "Alle ausführen (beim ersten Fehler stoppen)"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.title": [
+    {
+      "type": 0,
+      "value": "Kernel neu starten und Notebook ausführen"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.body": [
+    {
+      "type": 0,
+      "value": "Sind Sie sicher, dass Sie den Kernel neu starten und alle Zellen erneut ausführen möchten? Der Zustand aller Variablen und Ausgaben wird zurückgesetzt, jedoch ist die frühere Ausgabe in TimeTravel verfügbar."
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.label": [
+    {
+      "type": 0,
+      "value": "Neustarten und alles ausführen"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.title": [
+    {
+      "type": 0,
+      "value": "Kernel neu starten und alle Zellen ausführen (bei Fehlern nicht anhalten)"
     }
   ],
   "jupyter.editor.run_all_cells.label": [
@@ -1239,6 +1395,12 @@
       "value": "Nachname"
     }
   ],
+  "labels.admin": [
+    {
+      "type": 0,
+      "value": "Admin"
+    }
+  ],
   "labels.ai_generate_label": [
     {
       "type": 0,
@@ -1341,6 +1503,12 @@
     {
       "type": 0,
       "value": "Neu"
+    }
+  ],
+  "labels.notifications": [
+    {
+      "type": 0,
+      "value": "Benachrichtigungen"
     }
   ],
   "labels.paste": [
@@ -1505,6 +1673,12 @@
     {
       "type": 0,
       "value": "Belege"
+    }
+  ],
+  "labels.stop": [
+    {
+      "type": 0,
+      "value": "Stop"
     }
   ],
   "labels.subscriptons": [

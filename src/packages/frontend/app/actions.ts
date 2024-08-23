@@ -176,13 +176,13 @@ export class PageActions extends Actions<PageState> {
         if (change_history) {
           set_url("/admin");
         }
-        set_window_title("Admin");
+        set_window_title(intl.formatMessage(labels.admin));
         return;
       case "notifications":
         if (change_history) {
           set_url("/notifications");
         }
-        set_window_title("Notifications");
+        set_window_title(intl.formatMessage(labels.notifications));
         return;
       case undefined:
         return;

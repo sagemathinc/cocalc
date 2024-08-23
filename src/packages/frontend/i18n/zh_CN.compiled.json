@@ -985,6 +985,12 @@
       "value": "从任何可用的内核中选择"
     }
   ],
+  "jupyter.commands.interrupt_kernel": [
+    {
+      "type": 0,
+      "value": "中断内核（停止）"
+    }
+  ],
   "jupyter.commands.restart_kernel.label": [
     {
       "type": 0,
@@ -1001,6 +1007,42 @@
     {
       "type": 0,
       "value": "全部运行"
+    }
+  ],
+  "jupyter.commands.run_cell": [
+    {
+      "type": 0,
+      "value": "运行选中的单元格并且不前进"
+    }
+  ],
+  "jupyter.commands.run_cell_and_insert_below": [
+    {
+      "type": 0,
+      "value": "运行选定单元格并在下方插入"
+    }
+  ],
+  "jupyter.commands.run_cell_and_insert_below_title": [
+    {
+      "type": 0,
+      "value": "运行当前选中的所有单元格。 在最后一个单元格后插入一个新单元格。"
+    }
+  ],
+  "jupyter.commands.run_cell_and_select_next": [
+    {
+      "type": 0,
+      "value": "运行选定的单元格"
+    }
+  ],
+  "jupyter.commands.run_cell_title": [
+    {
+      "type": 0,
+      "value": "运行当前选中的所有单元格。不要移动选择。"
+    }
+  ],
+  "jupyter.commands.run_current_cell": [
+    {
+      "type": 0,
+      "value": "运行当前单元格"
     }
   ],
   "jupyter.commands.run_current_cell.label": [
@@ -1021,6 +1063,78 @@
       "value": "切换选定单元格的行号"
     }
   ],
+  "jupyter.editor.browser_actions.close_and_halt.body": [
+    {
+      "type": 0,
+      "value": "您确定要关闭此文件并停止内核吗？所有变量状态将丢失。"
+    }
+  ],
+  "jupyter.editor.browser_actions.close_and_halt.label": [
+    {
+      "type": 0,
+      "value": "关闭并停止"
+    }
+  ],
+  "jupyter.editor.browser_actions.trust.body": [
+    {
+      "type": 0,
+      "value": "受信任的 Jupyter 笔记本可能会执行隐藏的 Javascript 代码或通过恶意 HTML 进行其他攻击。选择信任或评估任何单元格，将禁用从此笔记本中剥离危险 HTML 的代码。（注意：CoCalc 并未执行官方 Jupyter 受信任笔记本的安全模型；特别是，我们假设您信任 CoCalc 项目中的合作者。此外，即使笔记本受信任，在许多情况下我们仍然不会在 HTML 中执行 Javascript。）"
+    }
+  ],
+  "jupyter.editor.browser_actions.trust.title": [
+    {
+      "type": 0,
+      "value": "信任这个笔记本吗"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.body": [
+    {
+      "type": 0,
+      "value": "你想要终止正在运行的内核吗？所有变量值都会丢失。只有当你尝试运行一些代码时，内核才会启动。"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.continue": [
+    {
+      "type": 0,
+      "value": "继续运行"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.halt": [
+    {
+      "type": 0,
+      "value": "停止"
+    }
+  ],
+  "jupyter.editor.confirm_halt_kernel.title": [
+    {
+      "type": 0,
+      "value": "终止内核？"
+    }
+  ],
+  "jupyter.editor.confirm_restart.body": [
+    {
+      "type": 0,
+      "value": "你要重启内核吗？所有变量值将会丢失。"
+    }
+  ],
+  "jupyter.editor.confirm_restart.continue_label": [
+    {
+      "type": 0,
+      "value": "继续运行"
+    }
+  ],
+  "jupyter.editor.confirm_restart.label": [
+    {
+      "type": 0,
+      "value": "重启"
+    }
+  ],
+  "jupyter.editor.confirm_restart.title": [
+    {
+      "type": 0,
+      "value": "重启内核？"
+    }
+  ],
   "jupyter.editor.console_label": [
     {
       "type": 0,
@@ -1031,6 +1145,48 @@
     {
       "type": 0,
       "value": "打开连接到正在运行的内核的Jupyter命令行控制台"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.body": [
+    {
+      "type": 0,
+      "value": "您确定要重启内核并运行笔记本吗？所有变量状态和输出将被重置，不过过去的输出可以在TimeTravel中查看。"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.nostop": [
+    {
+      "type": 0,
+      "value": "全部运行（遇错不停）"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.stop": [
+    {
+      "type": 0,
+      "value": "全部运行（遇到错误停止）"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all.title": [
+    {
+      "type": 0,
+      "value": "重启内核并运行笔记本"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.body": [
+    {
+      "type": 0,
+      "value": "您确定要重启内核并重新执行所有单元格吗？所有变量状态和输出将被重置，但过去的输出可以在TimeTravel中查看。"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.label": [
+    {
+      "type": 0,
+      "value": "重新启动并全部运行"
+    }
+  ],
+  "jupyter.editor.restart_and_run_all_no_halt.title": [
+    {
+      "type": 0,
+      "value": "重新启动内核并运行所有单元（遇到错误不停止）"
     }
   ],
   "jupyter.editor.run_all_cells.label": [
@@ -1229,6 +1385,12 @@
       "value": "姓氏"
     }
   ],
+  "labels.admin": [
+    {
+      "type": 0,
+      "value": "管理员"
+    }
+  ],
   "labels.ai_generate_label": [
     {
       "type": 0,
@@ -1331,6 +1493,12 @@
     {
       "type": 0,
       "value": "新"
+    }
+  ],
+  "labels.notifications": [
+    {
+      "type": 0,
+      "value": "通知"
     }
   ],
   "labels.paste": [
@@ -1495,6 +1663,12 @@
     {
       "type": 0,
       "value": "声明"
+    }
+  ],
+  "labels.stop": [
+    {
+      "type": 0,
+      "value": "停止"
     }
   ],
   "labels.subscriptons": [

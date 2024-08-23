@@ -7,36 +7,37 @@
 browser-actions: additional actions that are only available in the
 web browser frontend.
 */
+import * as awaiting from "awaiting";
 import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
-import { from_json, to_json, merge_copy, uuid } from "@cocalc/util/misc";
-import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
-import { WidgetManager } from "./widgets/manager";
-import { CursorManager } from "./cursor-manager";
-import { ConfirmDialogOptions } from "./confirm-dialog";
-import { callback2, once } from "@cocalc/util/async-utils";
-import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
-const { instantiate_snippets } = require("../assistant/main");
-import { NBGraderActions } from "./nbgrader/actions";
-import { CellToolbarName } from "@cocalc/jupyter/types";
+
+import { getIntl, jupyter, labels } from "@cocalc/frontend/i18n";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
-import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
-import * as parsing from "./parsing";
-import { Syntax } from "@cocalc/util/code-formatter";
-import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
-import * as awaiting from "awaiting";
-import { cm_options } from "./cm_options";
-import track from "@cocalc/frontend/user-tracking";
 import {
   delete_local_storage,
   get_local_storage,
   set_local_storage,
-} from "../misc/local-storage";
-import { parseHeadings } from "./contents";
+} from "@cocalc/frontend/misc/local-storage";
+import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { bufferToBase64, base64ToBuffer } from "@cocalc/util/base64";
+import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";
+import { CellToolbarName } from "@cocalc/jupyter/types";
+import { callback2, once } from "@cocalc/util/async-utils";
+import { base64ToBuffer, bufferToBase64 } from "@cocalc/util/base64";
+import { Config as FormatterConfig, Syntax } from "@cocalc/util/code-formatter";
+import { from_json, merge_copy, to_json, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
+import type { ImmutableUsageInfo } from "@cocalc/util/types/project-usage-info";
+import { get_usage_info, UsageInfoWS } from "../project/websocket/usage-info";
+import { cm_options } from "./cm_options";
+import { ConfirmDialogOptions } from "./confirm-dialog";
+import { parseHeadings } from "./contents";
+import { CursorManager } from "./cursor-manager";
+import { NBGraderActions } from "./nbgrader/actions";
+import * as parsing from "./parsing";
+import { WidgetManager } from "./widgets/manager";
+const { instantiate_snippets } = require("../assistant/main");
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
@@ -550,19 +551,21 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public async confirm_close_and_halt(): Promise<void> {
+    const intl = await getIntl();
+    const cah = intl.formatMessage(jupyter.editor.close_and_halt_label);
     if (
       (await this.confirm_dialog({
         title: "Close this file and halt the kernel",
-        body: "Are you sure you want to close this file and halt the kernel?  All variable state will be lost.",
+        body: intl.formatMessage(jupyter.editor.close_and_halt_body),
         choices: [
-          { title: "Cancel" },
+          { title: intl.formatMessage(labels.button_cancel) },
           {
-            title: "Close and halt",
+            title: cah,
             style: "danger",
             default: true,
           },
         ],
-      })) === "Close and halt"
+      })) === cah
     ) {
       await this.close_and_halt();
     }
@@ -578,10 +581,11 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public async trust_notebook(): Promise<void> {
+    const intl = await getIntl();
     const choice = await this.confirm_dialog({
       icon: "warning",
-      title: "Trust this Notebook?",
-      body: "A trusted Jupyter notebook may execute hidden Javascript code or carry out other attacks via malicious HTML.  Selecting trust below, or evaluating any cell, will disable the code that strips dangerous HTML from this notebook. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects. Also, in many cases we still do not execute Javascript in HTML, even if the notebook is trusted.)",
+      title: intl.formatMessage(jupyter.editor.browser_actions_trust_title),
+      body: intl.formatMessage(jupyter.editor.browser_actions_trust_body),
       choices: [
         { title: "Trust", style: "danger", default: true },
         { title: "Cancel" },
@@ -673,32 +677,41 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public async restart_and_run_all_no_halt(frame_actions?): Promise<void> {
+    const intl = await getIntl();
+    const rara = intl.formatMessage(
+      jupyter.editor.restart_and_run_all_no_halt_label,
+    );
     const choice = await this.confirm_dialog({
-      title: "Restart kernel and run all cells (do not stop on errors)",
-      body: "Are you sure you want to restart the kernel and re-execute all cells?  All variable state and output will be reset, though past output is available in TimeTravel.",
+      title: intl.formatMessage(
+        jupyter.editor.restart_and_run_all_no_halt_title,
+      ),
+      body: intl.formatMessage(jupyter.editor.restart_and_run_all_no_halt_body),
       choices: [
-        { title: "Cancel" },
+        { title: intl.formatMessage(labels.button_cancel) },
         {
-          title: "Restart and run all",
+          title: rara,
           style: "danger",
           default: true,
         },
       ],
     });
-    if (choice === "Restart and run all") {
+    if (choice === rara) {
       frame_actions?.set_all_md_cells_not_editing();
       await this.restart();
       this.run_all_cells(true);
     }
   }
   public async restart_and_run_all(frame_actions?): Promise<void> {
-    const STOP = "Run all (stop on first error)";
-    const NOSTOP = "Run all (do not stop on errors)";
+    const intl = await getIntl();
+    const STOP = intl.formatMessage(jupyter.editor.restart_and_run_all_stop);
+    const NOSTOP = intl.formatMessage(
+      jupyter.editor.restart_and_run_all_nostop,
+    );
     const choice = await this.confirm_dialog({
-      title: "Restart kernel and run notebook",
-      body: "Are you sure you want to restart the kernel and run the notebook?  All variable state and output will be reset, though past output is available in TimeTravel. ",
+      title: intl.formatMessage(jupyter.editor.restart_and_run_all_title),
+      body: intl.formatMessage(jupyter.editor.restart_and_run_all_body),
       choices: [
-        { title: "Cancel" },
+        { title: intl.formatMessage(labels.button_cancel) },
         {
           title: STOP,
           style: "danger",
@@ -742,29 +755,41 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   public async confirm_restart(): Promise<void> {
+    const intl = await getIntl();
+    const restart = intl.formatMessage(jupyter.editor.confirm_restart_label);
     const choice = await this.confirm_dialog({
-      title: "Restart kernel?",
-      body: "Do you want to restart the kernel?  All variables will be lost.",
+      title: intl.formatMessage(jupyter.editor.confirm_restart_title),
+      body: intl.formatMessage(jupyter.editor.confirm_restart_body),
       choices: [
-        { title: "Continue running" },
-        { title: "Restart", style: "danger", default: true },
+        {
+          title: intl.formatMessage(
+            jupyter.editor.confirm_restart_continue_label,
+          ),
+        },
+        { title: restart, style: "danger", default: true },
       ],
     });
-    if (choice === "Restart") {
+    if (choice === restart) {
       this.restart();
     }
   }
 
   public async confirm_halt_kernel(): Promise<void> {
+    const intl = await getIntl();
+    const halt = intl.formatMessage(jupyter.editor.confirm_halt_kernel_halt);
     const choice = await this.confirm_dialog({
-      title: "Halt kernel?",
-      body: "Do you want to kill the running kernel?  All variables will be lost.  The kernel will only start if you try to evaluate some code.",
+      title: intl.formatMessage(jupyter.editor.confirm_halt_kernel_title),
+      body: intl.formatMessage(jupyter.editor.confirm_halt_kernel_body),
       choices: [
-        { title: "Continue running" },
-        { title: "Halt", style: "danger", default: true },
+        {
+          title: intl.formatMessage(
+            jupyter.editor.confirm_halt_kernel_continue,
+          ),
+        },
+        { title: halt, style: "danger", default: true },
       ],
     });
-    if (choice === "Halt") {
+    if (choice === halt) {
       this.halt();
     }
   }
@@ -773,7 +798,7 @@ export class JupyterActions extends JupyterActions0 {
     const remove = "Remove & Halt";
     const choice = await this.confirm_dialog({
       title: "Remove kernel?",
-      body: "You're about to remove the kernel from the notebook, which will also terminate it. All variables will be lost. Afterwards, you have to select a kernel, in order to be able to run code again.",
+      body: "You're about to remove the kernel from the notebook, which will also terminate it. All variable values will be lost. Afterwards, you have to select a kernel, in order to be able to run code again.",
       choices: [
         { title: "Continue running" },
         { title: remove, style: "danger", default: true },

@@ -171,6 +171,14 @@ export const labels = defineMessages({
     defaultMessage: "Terminal",
     description: "Title of the Linux Terminal frame",
   },
+  admin: {
+    id: "labels.admin",
+    defaultMessage: "Admin",
+  },
+  notifications: {
+    id: "labels.notifications",
+    defaultMessage: "Notifications",
+  },
   snippets: {
     id: "labels.snippets",
     defaultMessage: "Snippets",
@@ -208,6 +216,11 @@ export const labels = defineMessages({
     defaultMessage: "Create a new file with the help of AI",
     description:
       "Tooltip on the menu enty to open the AI Assistant for generating documents",
+  },
+  stop: {
+    id: "labels.stop",
+    defaultMessage: "Stop",
+    description: "Label on a button to stop an ongoing process",
   },
 });
 
@@ -327,6 +340,99 @@ export const jupyter = {
       defaultMessage:
         "Open the Jupyter command line console connected to the running kernel.",
     },
+    browser_actions_trust_title: {
+      id: "jupyter.editor.browser_actions.trust.title",
+      defaultMessage: "Trust this Notebook?",
+      description: "For a specific Jupyter Notebook",
+    },
+    browser_actions_trust_body: {
+      id: "jupyter.editor.browser_actions.trust.body",
+      defaultMessage:
+        "A trusted Jupyter notebook may execute hidden Javascript code or carry out other attacks via malicious HTML.  Selecting trust below, or evaluating any cell, will disable the code that strips dangerous HTML from this notebook. (NOTE: CoCalc does NOT implement the official Jupyter security model for trusted notebooks; in particular, we assume that you do trust collaborators on your CoCalc projects. Also, in many cases we still do not execute Javascript in HTML, even if the notebook is trusted.)",
+    },
+    close_and_halt_label: {
+      id: "jupyter.editor.browser_actions.close_and_halt.label",
+      defaultMessage: "Close and halt",
+    },
+    close_and_halt_body: {
+      id: "jupyter.editor.browser_actions.close_and_halt.body",
+      defaultMessage:
+        "Are you sure you want to close this file and halt the kernel?  All variable state will be lost.",
+    },
+    restart_and_run_all_title: {
+      id: "jupyter.editor.restart_and_run_all.title",
+      defaultMessage: "Restart kernel and run notebook",
+      description: "For a Jupyter Notebook",
+    },
+    restart_and_run_all_body: {
+      id: "jupyter.editor.restart_and_run_all.body",
+      defaultMessage:
+        "Are you sure you want to restart the kernel and run the notebook?  All variable state and output will be reset, though past output is available in TimeTravel.",
+      description: "For a Jupyter Notebook",
+    },
+    restart_and_run_all_stop: {
+      id: "jupyter.editor.restart_and_run_all.stop",
+      defaultMessage: "Run all (stop on first error)",
+      description: "In a Jupyter Notebook, running all cells after a restart",
+    },
+    restart_and_run_all_nostop: {
+      id: "jupyter.editor.restart_and_run_all.nostop",
+      defaultMessage: "Run all (do not stop on errors)",
+      description: "In a Jupyter Notebook, running all cells after a restart",
+    },
+    restart_and_run_all_no_halt_label: {
+      id: "jupyter.editor.restart_and_run_all_no_halt.label",
+      defaultMessage: "Restart and run all",
+      description: "Button label for restarting a Jupyter Notebook",
+    },
+    restart_and_run_all_no_halt_title: {
+      id: "jupyter.editor.restart_and_run_all_no_halt.title",
+      defaultMessage:
+        "Restart kernel and run all cells (do not stop on errors)",
+      description: "Description for restarting a Jupyter Notebook",
+    },
+    restart_and_run_all_no_halt_body: {
+      id: "jupyter.editor.restart_and_run_all_no_halt.body",
+      defaultMessage:
+        "Are you sure you want to restart the kernel and re-execute all cells?  All variable state and output will be reset, though past output is available in TimeTravel.",
+      description: "Description for restarting a Jupyter Notebook",
+    },
+    confirm_restart_label: {
+      id: "jupyter.editor.confirm_restart.label",
+      defaultMessage: "Restart",
+    },
+    confirm_restart_continue_label: {
+      id: "jupyter.editor.confirm_restart.continue_label",
+      defaultMessage: "Continue running",
+      description:
+        "Continue working with the Jupyter Notebook, not restarting Kernel",
+    },
+    confirm_restart_title: {
+      id: "jupyter.editor.confirm_restart.title",
+      defaultMessage: "Restart kernel?",
+    },
+    confirm_restart_body: {
+      id: "jupyter.editor.confirm_restart.body",
+      defaultMessage:
+        "Do you want to restart the kernel? All variable values will be lost.",
+    },
+    confirm_halt_kernel_title: {
+      id: "jupyter.editor.confirm_halt_kernel.title",
+      defaultMessage: "Halt kernel?",
+    },
+    confirm_halt_kernel_body: {
+      id: "jupyter.editor.confirm_halt_kernel.body",
+      defaultMessage:
+        "Do you want to kill the running kernel?  All variable values will be lost.  The kernel will only start if you try to evaluate some code.",
+    },
+    confirm_halt_kernel_continue: {
+      id: "jupyter.editor.confirm_halt_kernel.continue",
+      defaultMessage: "Continue running",
+    },
+    confirm_halt_kernel_halt: {
+      id: "jupyter.editor.confirm_halt_kernel.halt",
+      defaultMessage: "Halt",
+    },
   }),
   commands: defineMessages({
     toggle_all_line_numbers: {
@@ -367,6 +473,42 @@ export const jupyter = {
       id: "jupyter.commands.restart_kernel_run_all_cells_button",
       defaultMessage: "Run All",
       describe: "In a Jupyter Notebook, restart kernel and run all cells",
+    },
+    run_cell_and_insert_below: {
+      id: "jupyter.commands.run_cell_and_insert_below",
+      defaultMessage: "Run Selected Cells and Insert Below",
+      description: "In a Jupyter Notebook",
+    },
+    run_cell_and_insert_below_title: {
+      id: "jupyter.commands.run_cell_and_insert_below_title",
+      defaultMessage:
+        "Run all cells that are currently selected. Insert a new cell after the last one.",
+      description: "In a Jupyter Notebook",
+    },
+    run_cell: {
+      id: "jupyter.commands.run_cell",
+      defaultMessage: "Run Selected Cells and Do Not Advance",
+      description: "In a Jupyter Notebook",
+    },
+    run_cell_title: {
+      id: "jupyter.commands.run_cell_title",
+      defaultMessage:
+        "Run all cells that are currently selected. Do not move the selection.",
+      description: "In a Jupyter Notebook",
+    },
+    run_cell_and_select_next: {
+      id: "jupyter.commands.run_cell_and_select_next",
+      defaultMessage: "Run Selected Cells",
+      description: "In a Jupyter Notebook",
+    },
+    run_current_cell: {
+      id: "jupyter.commands.run_current_cell",
+      defaultMessage: "Run Current Cell",
+    },
+    interrupt_kernel: {
+      id: "jupyter.commands.interrupt_kernel",
+      defaultMessage: "Interrupt Kernel (Stop)",
+      description: "In a Jupyter Notebook, interrup the running kernel",
     },
   }),
 };

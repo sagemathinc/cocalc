@@ -460,8 +460,8 @@ export function commands(actions: AllActions): {
 
     "interrupt kernel": {
       i: "stop",
-      b: "Stop",
-      m: "Interrupt Kernel (Stop)",
+      b: labels.stop,
+      m: jupyter.commands.interrupt_kernel,
       k: [{ mode: "escape", which: 73, twice: true }],
       f: () => actions.jupyter_actions?.signal("SIGINT"),
     },
@@ -796,9 +796,9 @@ export function commands(actions: AllActions): {
 
     "run cell and insert below": {
       i: "step-forward",
-      m: "Run Selected Cells and Insert Below",
+      m: jupyter.commands.run_cell_and_insert_below,
       b: "Run +",
-      t: "Run all cells that are currently selected. Insert a new cell after the last one.",
+      t: jupyter.commands.run_cell_and_insert_below_title,
       k: [{ which: 13, alt: true }],
       f: () =>
         actions.frame_actions?.run_selected_cells_and_insert_new_cell_below(),
@@ -809,9 +809,9 @@ export function commands(actions: AllActions): {
     // on a mac). https://github.com/sagemathinc/cocalc/issues/7000
     "run cell": {
       i: "play",
-      m: "Run Selected Cells and Do Not Advance",
+      m: jupyter.commands.run_cell,
       b: "Stay",
-      t: "Run all cells that are currently selected. Do not move the selection.",
+      t: jupyter.commands.run_cell_title,
       k: [
         { which: 13, ctrl: true },
         { which: 13, meta: true },
@@ -825,7 +825,7 @@ export function commands(actions: AllActions): {
 
     "run cell and select next": {
       i: "step-forward",
-      m: "Run Selected Cells",
+      m: jupyter.commands.run_cell_and_select_next,
       b: "Run",
       k: [{ which: 13, shift: true }],
       f() {
@@ -836,10 +836,7 @@ export function commands(actions: AllActions): {
 
     "run current cell and select next": {
       i: "step-forward",
-      m: defineMessage({
-        id: "jupyter.commands.run_current_cell.label",
-        defaultMessage: "Run Current Cell",
-      }),
+      m: jupyter.commands.run_current_cell,
       b: "Run",
       f() {
         actions.frame_actions?.shift_enter_run_current_cell();
@@ -848,7 +845,7 @@ export function commands(actions: AllActions): {
     },
 
     "save notebook": {
-      m: "Save",
+      m: labels.save,
       k: [
         { which: 83, alt: true },
         { which: 83, ctrl: true },

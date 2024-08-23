@@ -12,6 +12,7 @@ To get a feeling how this works, search in the source code for existing usages. 
 - A `defineMessage({ id: "[...].[...].[label|title|tooltip|...]",  defaultMessage:"..."})` is used when you define a message in a data structure, which will be referenced by a component. That "defined message" is basically a tagged object. You cannot use it directly in a component!
   - To make use of such a `defineMessage`, you have to get a hold of `const intl = useIntl()` and then `intl.formatMessage(the_message_object)`. That will render a string.
 - Note: There is a type `IntlMessage` defiend by us here in `./types.ts`. It requires `id` and `defaultMessage`. Search for `isIntlMessage` in the code base to see, how it is used to check what to do with it.
+- Outside the react context, you use `i18n/index::getIntl`.
 
 Note: The "extract" step parses the source-code of all `*.tsx` files and only a few selected `*.ts` files. You cannot use variables where messages are defined, because the extract tool does not know what to do with them. So, for example, the files that define commands are `*.ts` files, and the messages it uses are referencing the exported messages defined in `i18n/common.ts`. Scanning all files just takes too long.
 
