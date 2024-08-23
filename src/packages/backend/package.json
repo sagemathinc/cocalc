@@ -34,7 +34,7 @@
     "@cocalc/util": "workspace:*",
     "@types/debug": "^4.1.12",
     "awaiting": "^3.0.0",
-    "chokidar": "^3.5.3",
+    "chokidar": "^3.6.0",
     "debug": "^4.3.2",
     "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
