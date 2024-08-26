@@ -3,18 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
 import { Set } from "immutable";
 import { isEqual } from "lodash";
-import { delay } from "awaiting";
+
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
 import {
   CommandDescription,
   commands,
 } from "@cocalc/frontend/jupyter/commands";
 import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
-import { Cell, CellType, Scroll } from "@cocalc/jupyter/types";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import { Cell, CellType, Scroll } from "@cocalc/jupyter/types";
+import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
 import {
   bind_methods,
   close,

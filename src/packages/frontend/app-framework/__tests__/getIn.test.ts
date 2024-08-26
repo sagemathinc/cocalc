@@ -9,10 +9,12 @@
  *
  */
 
-import { expectType } from "tsd";
+
 import * as Immutable from "immutable";
-import { TypedCollectionMethods } from "../immutable-types";
-import { TypedMap } from "../TypedMap";
+import { expectType } from "tsd";
+
+import { TypedCollectionMethods } from "@cocalc/util/types/immutable-types";
+import { TypedMap } from "@cocalc/util/types/typed-map";
 
 // TODO: Iterate through appropriate base types
 type BASE = string;

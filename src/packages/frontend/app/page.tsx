@@ -10,6 +10,8 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
+import { useIntl } from "react-intl";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -25,22 +27,23 @@ import { Loading } from "@cocalc/frontend/components";
 import { IconName } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
+import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsNav } from "@cocalc/frontend/projects/projects-nav";
+import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { COLORS } from "@cocalc/util/theme";
 import { IS_IOS, IS_MOBILE, IS_SAFARI } from "../feature";
 import { ActiveContent } from "./active-content";
 import { ConnectionIndicator } from "./connection-indicator";
 import { ConnectionInfo } from "./connection-info";
-import { useAppState } from "./context";
+import { useAppContext } from "./context";
 import { FullscreenButton } from "./fullscreen-button";
 import { AppLogo } from "./logo";
 import { NavTab } from "./nav-tab";
 import { Notification } from "./notifications";
+import PopconfirmModal from "./popconfirm-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
-import PayAsYouGoModal from "@cocalc/frontend/purchases/pay-as-you-go/modal";
-import PopconfirmModal from "./popconfirm-modal";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -68,8 +71,10 @@ const PAGE_STYLE: CSS = {
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
 
-  const { pageStyle } = useAppState();
+  const { pageStyle } = useAppContext();
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
+
+  const intl = useIntl();
 
   const open_projects = useTypedRedux("projects", "open_projects");
   const [show_label, set_show_label] = useState<boolean>(true);
@@ -152,7 +157,7 @@ export const Page: React.FC = () => {
       */
       setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
     } else {
-      label = "Account";
+      label = intl.formatMessage(labels.account);
       style = undefined;
     }
 
@@ -203,7 +208,10 @@ export const Page: React.FC = () => {
     return (
       <NavTab
         name="account"
-        label="Sign in"
+        label={intl.formatMessage({
+          id: "page.sign_in.label",
+          defaultMessage: "Sign in",
+        })}
         label_class={NAV_CLASS}
         icon="sign-in"
         on_click={sign_in_tab_clicked}
@@ -227,7 +235,10 @@ export const Page: React.FC = () => {
       <NavTab
         name={undefined} // does not open a tab, just a popup
         active_top_tab={active_top_tab} // it's never supposed to be active!
-        label={"Help"}
+        label={intl.formatMessage({
+          id: "page.help.label",
+          defaultMessage: "Help",
+        })}
         label_class={NAV_CLASS}
         icon={"medkit"}
         on_click={openSupportTab}
@@ -302,7 +313,7 @@ export const Page: React.FC = () => {
         active_top_tab={active_top_tab}
         tooltip="Show all the projects on which you collaborate."
         icon="edit"
-        label="Projects"
+        label={intl.formatMessage(labels.projects)}
       />
     );
   }

@@ -4,8 +4,10 @@
  */
 
 import { Button, MenuProps } from "antd";
+import { useIntl } from "react-intl";
 
 import { DropdownMenu, Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { COLORS } from "@cocalc/util/theme";
 import { Configuration } from "./explorer";
@@ -34,6 +36,8 @@ export const NewButton: React.FC<Props> = (props: Props) => {
     disabled,
   } = props;
 
+  const intl = useIntl();
+
   function new_file_button_types() {
     if (configuration != undefined) {
       const { disabled_ext } = configuration.get("main", {
@@ -41,7 +45,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
       });
       if (disabled_ext != undefined) {
         return ALL_FILE_BUTTON_TYPES.filter(
-          (ext) => !disabled_ext.includes(ext)
+          (ext) => !disabled_ext.includes(ext),
         );
       }
     }
@@ -51,7 +55,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
   function file_dropdown_icon(): JSX.Element {
     return (
       <span style={{ whiteSpace: "nowrap" }}>
-        <Icon name="plus-circle" /> New
+        <Icon name="plus-circle" /> {intl.formatMessage(labels.new)}
       </span>
     );
   }

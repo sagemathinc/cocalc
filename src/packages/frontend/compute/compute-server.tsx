@@ -1,7 +1,10 @@
 import { Button, Card, Divider, Modal, Popconfirm, Spin } from "antd";
 import { CSSProperties, useMemo, useState } from "react";
+
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
 import { COLORS } from "@cocalc/util/theme";
@@ -10,18 +13,17 @@ import { deleteServer, undeleteServer } from "./api";
 import Cloud from "./cloud";
 import Color, { randomColor } from "./color";
 import ComputeServerLog from "./compute-server-log";
-import SerialPortOutput from "./serial-port-output";
+import { Docs } from "./compute-servers";
 import Configuration from "./configuration";
 import CurrentCost from "./current-cost";
 import Description from "./description";
 import DetailedState from "./detailed-state";
+import Launcher from "./launcher";
+import Menu from "./menu";
 import { DisplayImage } from "./select-image";
+import SerialPortOutput from "./serial-port-output";
 import State from "./state";
 import Title from "./title";
-import Launcher from "./launcher";
-import { Docs } from "./compute-servers";
-import Menu from "./menu";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 interface Server1 extends Omit<ComputeServerUserInfo, "id"> {
   id?: number;
@@ -279,7 +281,7 @@ export default function ComputeServer({
                 await deleteServer(id);
               }}
               okText="Yes"
-              cancelText="Cancel"
+              cancelText={<CancelText />}
             >
               <Button key="trash" danger>
                 <Icon name="trash" /> Delete

@@ -4,6 +4,8 @@
  */
 
 import { UsergroupAddOutlined } from "@ant-design/icons";
+import { Button, Card, Popconfirm } from "antd";
+
 import {
   AppRedux,
   React,
@@ -11,7 +13,7 @@ import {
   useActions,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { Button, Card, Popconfirm } from "antd";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord } from "../store";
 import { DeleteSharedProjectPanel } from "./delete-shared-project";
@@ -125,7 +127,7 @@ export const SharedProjectPanel: React.FC<SharedProjectPanelProps> = React.memo(
               if (actions != null) actions.shared_project.create();
             }}
             okText="Create Shared Project"
-            cancelText="Cancel"
+            cancelText={<CancelText />}
           >
             <Button size={"large"} icon={<UsergroupAddOutlined />}>
               Create shared project...
@@ -150,5 +152,5 @@ export const SharedProjectPanel: React.FC<SharedProjectPanelProps> = React.memo(
       </div>
     );
   },
-  isSame
+  isSame,
 );

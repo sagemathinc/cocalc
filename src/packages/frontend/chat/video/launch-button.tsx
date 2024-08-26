@@ -1,16 +1,18 @@
+import { Button, Popconfirm, Popover } from "antd";
+import { debounce } from "lodash";
 import type { CSSProperties, ReactNode } from "react";
 import { useInterval } from "react-interval-hook";
-import { debounce } from "lodash";
+
 import {
   React,
+  useRef,
   useState,
   useTypedRedux,
-  useRef,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { VideoChat } from "./video-chat";
-import { Button, Popconfirm, Popover } from "antd";
 
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
 // jit.si doesn't seem to have a limit...?
@@ -130,7 +132,7 @@ export default function VideoChatButton({
       } video chat session about this document?`}
       onConfirm={click_video_button}
       okText={`${num_users_chatting ? "Join" : "Start"} video chat`}
-      cancelText="Cancel"
+      cancelText={<CancelText />}
     >
       <Popover
         mouseEnterDelay={0.8}

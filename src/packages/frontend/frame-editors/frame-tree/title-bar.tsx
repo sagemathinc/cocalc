@@ -11,6 +11,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
+import { useIntl } from "react-intl";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -35,6 +36,9 @@ import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/stand
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
+import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { AIGenerateDocumentModal } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
 import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
@@ -66,7 +70,7 @@ import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 // actions that are not defined in the base code editor actions.
 // In all cases, we check these are actually defined before calling
 // them to avoid a runtime stacktrace.
-interface FrameActions extends Actions {
+export interface FrameActions extends Actions {
   zoom_page_width?: (id: string) => void;
   zoom_page_height?: (id: string) => void;
   sync?: (id: string, editor_actions: EditorActions) => void;
@@ -77,6 +81,10 @@ interface FrameActions extends Actions {
   word_count?: (time: number, force: boolean) => void;
   close_and_halt?: (id: string) => void;
   stop_build?: (id: string) => void;
+
+  // optional, set in frame-editors/jupyter-editor/editor.ts → initMenus
+  jupyter_actions?: JupyterActions;
+  frame_actions?: NotebookFrameActions;
 }
 
 interface EditorActions extends Actions {
@@ -146,7 +154,7 @@ export function ConnectionStatusIcon({ status }: { status: ConnectionStatus }) {
   );
 }
 
-interface Props {
+export interface FrameTitleBarProps {
   actions: FrameActions;
   editor_actions: EditorActions;
   path: string;
@@ -171,7 +179,7 @@ interface Props {
   tab_is_visible?: boolean;
 }
 
-export function FrameTitleBar(props: Props) {
+export function FrameTitleBar(props: FrameTitleBarProps) {
   // Whether this is *the* active currently focused frame:
   const is_active = props.active_id === props.id;
   const track = useMemo(() => {
@@ -185,6 +193,8 @@ export function FrameTitleBar(props: Props) {
       });
     };
   }, [props.project_id, props.path]);
+
+  const intl = useIntl();
 
   const [showMainButtonsPopover, setShowMainButtonsPopover] =
     useState<boolean>(false);
@@ -228,6 +238,7 @@ export function FrameTitleBar(props: Props) {
         setHelpSearch,
         readOnly: read_only,
         editorSettings,
+        intl,
       }),
     [
       props,
@@ -238,6 +249,7 @@ export function FrameTitleBar(props: Props) {
       setShowNewAI,
       read_only,
       editorSettings,
+      intl,
     ],
   );
 
@@ -314,7 +326,11 @@ export function FrameTitleBar(props: Props) {
   function render_x(): Rendered {
     return (
       <Button
-        title={"Close this frame"}
+        title={intl.formatMessage({
+          id: "frame_editors.frame_tree.title_bar.close",
+          defaultMessage: "Close this frame",
+          description: "Click this X button to close the frame",
+        })}
         key={"close"}
         size="small"
         type="text"
@@ -361,7 +377,11 @@ export function FrameTitleBar(props: Props) {
       return (
         <Button
           disabled={props.is_only}
-          title={"Show all frames"}
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.minimize",
+            defaultMessage: "Show all frames",
+            description: "Minimize this frame to show all frames",
+          })}
           key={"full-screen-button"}
           size="small"
           type="text"
@@ -382,7 +402,11 @@ export function FrameTitleBar(props: Props) {
         <Button
           disabled={props.is_only}
           key={"full-screen-button"}
-          title={"Show only this frame"}
+          title={intl.formatMessage({
+            id: "frame_editors.frame_tree.title_bar.maximize",
+            defaultMessage: "Show only this frame",
+            description: "Maximize this frame to show only this one",
+          })}
           size="small"
           type="text"
           onClick={() => {
@@ -400,7 +424,7 @@ export function FrameTitleBar(props: Props) {
     return (
       <Button
         key={"split-row-button"}
-        title={"Split frame horizontally into two rows"}
+        title={intl.formatMessage(labels.split_frame_horizontally_title)}
         size="small"
         type="text"
         onClick={(e) => {
@@ -423,7 +447,7 @@ export function FrameTitleBar(props: Props) {
     return (
       <Button
         key={"split-col-button"}
-        title={"Split frame vertically into two columns"}
+        title={intl.formatMessage(labels.split_frame_vertically_title)}
         size="small"
         type="text"
         onClick={(e) => {
@@ -516,7 +540,9 @@ export function FrameTitleBar(props: Props) {
         <Icon name="history" />
         {noLabel ? undefined : (
           <VisibleMDLG>
-            <span style={{ marginLeft: "5px" }}>TimeTravel</span>
+            <span style={{ marginLeft: "5px" }}>
+              {intl.formatMessage(labels.timetravel)}
+            </span>
           </VisibleMDLG>
         )}
       </Button>
@@ -670,8 +696,10 @@ export function FrameTitleBar(props: Props) {
           key={`menu-${name}`}
           style={MENU_STYLE}
           title={
-            label == APPLICATION_MENU
+            label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
+              : isIntlMessage(label)
+              ? intl.formatMessage(label)
               : label
           }
           items={v}
@@ -904,6 +932,18 @@ export function FrameTitleBar(props: Props) {
     );
   }
 
+  function spec2display(
+    spec: EditorDescription,
+    aspect: "name" | "short",
+  ): string {
+    const label: string | IntlMessage = spec[aspect];
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
+  }
+
   function renderTitle(): Rendered {
     let title: string = "";
     if (props.title !== undefined) {
@@ -914,9 +954,9 @@ export function FrameTitleBar(props: Props) {
       if (spec != null) {
         if (!title) {
           if (spec.name) {
-            title = spec.name;
+            title = spec2display(spec, "name");
           } else if (spec.short) {
-            title = spec.short;
+            title = spec2display(spec, "short");
           }
         }
       }

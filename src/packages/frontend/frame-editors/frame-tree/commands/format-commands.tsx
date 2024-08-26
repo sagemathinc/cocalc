@@ -1,4 +1,5 @@
 import { range } from "lodash";
+import { defineMessage } from "react-intl";
 
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import ColorPicker from "@cocalc/frontend/components/color-picker";
@@ -7,25 +8,53 @@ import {
   FONT_FACES,
   FONT_SIZES,
 } from "@cocalc/frontend/editors/editor-button-bar";
+import { menu } from "@cocalc/frontend/i18n";
 import { addEditorMenus } from "./editor-menus";
 
 const FORMAT_SPEC = {
   equation: {
-    button: "Math",
-    label: "Inline Equation",
-    title: "Insert inline LaTeX math equation.",
+    button: defineMessage({
+      id: "command.format.equation.button",
+      defaultMessage: "Math",
+    }),
+    label: defineMessage({
+      id: "command.format.equation.label",
+      defaultMessage: "Inline Equation",
+    }),
+    title: defineMessage({
+      id: "command.format.equation.title",
+      defaultMessage: "Insert inline LaTeX math equation",
+    }),
     icon: <span>$</span>,
   },
   display_equation: {
-    button: "Display",
-    label: "Displayed Equation",
-    title: "Insert display LaTeX math equation.",
+    button: defineMessage({
+      id: "command.format.display_equation.button",
+      defaultMessage: "Display",
+    }),
+    label: defineMessage({
+      id: "command.format.display_equation.label",
+      defaultMessage: "Displayed Equation",
+    }),
+    title: defineMessage({
+      id: "command.format.display_equation.title",
+      defaultMessage: "Insert display LaTeX math equation",
+    }),
     icon: <span>$$</span>,
   },
   ai_formula: {
-    button: "Formula",
-    label: "AI Generated Formula",
-    title: "Insert AI generated formula.",
+    button: defineMessage({
+      id: "command.format.ai_formula.button",
+      defaultMessage: "Formula",
+    }),
+    label: defineMessage({
+      id: "command.format.ai_formula.label",
+      defaultMessage: "AI Generated Formula",
+    }),
+    title: defineMessage({
+      id: "command.format.ai_formula.title",
+      defaultMessage: "Insert AI generated formula.",
+    }),
     icon: <AIAvatar size={16} />,
   },
   bold: { icon: "bold", title: "Make selected text bold" },
@@ -118,128 +147,132 @@ const FORMAT_SPEC = {
 
 const FORMAT_MENUS = {
   insert: {
-    label: "Insert",
+    label: menu.insert,
     pos: 1.3,
-    math: ["equation", "display_equation", "ai_formula"],
-    lists: ["insertunorderedlist", "insertorderedlist"],
-    objects: [
-      "table",
-      "link",
-      "quote",
-      "image",
-      "horizontalRule",
-      "format_code",
-      "SpecialChar",
-    ],
+    entries: {
+      math: ["equation", "display_equation", "ai_formula"],
+      lists: ["insertunorderedlist", "insertorderedlist"],
+      objects: [
+        "table",
+        "link",
+        "quote",
+        "image",
+        "horizontalRule",
+        "format_code",
+        "SpecialChar",
+      ],
+    },
   },
   format: {
-    label: "Format",
+    label: menu.format,
     pos: 1.5,
-    font_text: [
-      {
-        icon: "bold",
-        isVisible: "format_action",
-        name: "font",
-        label: "Font",
-        children: [
-          "bold",
-          "italic",
-          "underline",
-          "strikethrough",
-          "code",
-          "sub",
-          "sup",
-        ],
-      },
-      {
-        icon: "text-height",
-        isVisible: "format_action", // todo
-        name: "font-size",
-        label: "Size",
-        children: FONT_SIZES.map((size) => {
-          return {
-            name: `${size}`,
-            onClick: ({ props }) =>
-              props.actions.format_action("font_size_new", size),
-            label: (
-              <span style={{ fontSize: size }}>
-                {size} {size === "medium" ? "(default)" : undefined}
-              </span>
-            ),
-            icon: <span style={{ fontSize: size }}>A</span>,
-          };
-        }),
-      },
-      {
-        icon: "font",
-        isVisible: "format_action", // todo
-        name: "font-family",
-        label: "Family",
-        children: FONT_FACES.map((family) => {
-          return {
-            name: family,
-            onClick: ({ props }) =>
-              props.actions.format_action("font_family", family),
-            label: <span style={{ fontFamily: family }}>{family}</span>,
-            icon: <span style={{ fontFamily: family }}>A</span>,
-          };
-        }),
-      },
-      {
-        icon: "header",
-        isVisible: "format_action", // todo
-        name: "header",
-        label: "Heading",
-        children: range(1, 7).map((heading) => {
-          return {
-            name: `heading-${heading}`,
-            onClick: ({ props }) =>
-              props.actions.format_action(`format_heading_${heading}`),
-            label: <HeadingContent heading={heading} />,
-          };
-        }),
-      },
-      {
-        icon: "colors",
-        isVisible: "format_action",
-        name: "color",
-        label: "Color",
-        children: [
-          {
-            stayOpenOnClick: true,
-            label: ({ props }) => (
-              <div
-                onClick={(e) => {
-                  // hack so can select a color without picker closing.
-                  e.stopPropagation();
-                }}
-              >
-                <ColorPicker
-                  radio
-                  onChange={(code) => {
-                    props.actions.format_action("color", code);
+    entries: {
+      font_text: [
+        {
+          icon: "bold",
+          isVisible: "format_action",
+          name: "font",
+          label: "Font",
+          children: [
+            "bold",
+            "italic",
+            "underline",
+            "strikethrough",
+            "code",
+            "sub",
+            "sup",
+          ],
+        },
+        {
+          icon: "text-height",
+          isVisible: "format_action", // todo
+          name: "font-size",
+          label: "Size",
+          children: FONT_SIZES.map((size) => {
+            return {
+              name: `${size}`,
+              onClick: ({ props }) =>
+                props.actions.format_action("font_size_new", size),
+              label: (
+                <span style={{ fontSize: size }}>
+                  {size} {size === "medium" ? "(default)" : undefined}
+                </span>
+              ),
+              icon: <span style={{ fontSize: size }}>A</span>,
+            };
+          }),
+        },
+        {
+          icon: "font",
+          isVisible: "format_action", // todo
+          name: "font-family",
+          label: "Family",
+          children: FONT_FACES.map((family) => {
+            return {
+              name: family,
+              onClick: ({ props }) =>
+                props.actions.format_action("font_family", family),
+              label: <span style={{ fontFamily: family }}>{family}</span>,
+              icon: <span style={{ fontFamily: family }}>A</span>,
+            };
+          }),
+        },
+        {
+          icon: "header",
+          isVisible: "format_action", // todo
+          name: "header",
+          label: "Heading",
+          children: range(1, 7).map((heading) => {
+            return {
+              name: `heading-${heading}`,
+              onClick: ({ props }) =>
+                props.actions.format_action(`format_heading_${heading}`),
+              label: <HeadingContent heading={heading} />,
+            };
+          }),
+        },
+        {
+          icon: "colors",
+          isVisible: "format_action",
+          name: "color",
+          label: "Color",
+          children: [
+            {
+              stayOpenOnClick: true,
+              label: ({ props }) => (
+                <div
+                  onClick={(e) => {
+                    // hack so can select a color without picker closing.
+                    e.stopPropagation();
                   }}
-                />
-              </div>
-            ),
-          },
-        ],
-      },
-      {
-        icon: "text",
-        isVisible: "format_action",
-        name: "text",
-        label: "Text",
-        children: [
-          "justifyleft",
-          "justifycenter",
-          "justifyright",
-          "justifyfull",
-        ],
-      },
-      "comment",
-      "unformat",
-    ],
+                >
+                  <ColorPicker
+                    radio
+                    onChange={(code) => {
+                      props.actions.format_action("color", code);
+                    }}
+                  />
+                </div>
+              ),
+            },
+          ],
+        },
+        {
+          icon: "text",
+          isVisible: "format_action",
+          name: "text",
+          label: "Text",
+          children: [
+            "justifyleft",
+            "justifycenter",
+            "justifyright",
+            "justifyfull",
+          ],
+        },
+        "comment",
+        "unformat",
+      ],
+    },
   },
 };
 

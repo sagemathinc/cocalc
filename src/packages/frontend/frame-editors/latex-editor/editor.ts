@@ -7,8 +7,9 @@
 Spec for editing LaTeX documents.
 */
 
+import { IS_IOS, IS_IPAD } from "@cocalc/frontend/feature";
+import { editor, labels } from "@cocalc/frontend/i18n";
 import { set } from "@cocalc/util/misc";
-import { IS_IOS, IS_IPAD } from "../../feature";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
@@ -150,16 +151,16 @@ const EDITOR_SPEC = {
   } as EditorDescription,
 
   latex_table_of_contents: {
-    short: "Contents",
-    name: "Table of Contents",
+    short: editor.table_of_contents_short,
+    name: editor.table_of_contents_name,
     icon: "align-right",
     component: TableOfContents,
     commands: set(["decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
 
   word_count: {
-    short: "Word Count",
-    name: "Word Count",
+    short: labels.word_count,
+    name: labels.word_count,
     icon: "file-alt",
     commands: set(["word_count"]),
     component: LatexWordCount,

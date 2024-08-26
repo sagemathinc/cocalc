@@ -4,9 +4,9 @@
  */
 
 import { expectType } from "tsd";
-import { Store } from "../Store";
-import { DeepImmutable } from "../immutable-types";
-import { AppRedux } from "../../app-framework";
+
+import { AppRedux, Store } from "@cocalc/frontend/app-framework";
+import { DeepImmutable } from "@cocalc/util/types/immutable-types";
 
 test("Mapping with maybes in state", () => {
   interface State {
@@ -19,7 +19,7 @@ test("Mapping with maybes in state", () => {
   let withMaybeValues1 = one_maybes.getIn(["deep"]);
   withMaybeValues1 = undefined; // Expect Assignable
   expectType<DeepImmutable<{ values: { cake: string } } | undefined>>(
-    withMaybeValues1
+    withMaybeValues1,
   );
 
   let withMaybeValues2 = one_maybes.getIn(["deep", "values"]);

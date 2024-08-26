@@ -15,10 +15,11 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { Project } from "@cocalc/frontend/project/settings/types";
 import { COLORS } from "@cocalc/util/theme";
-import { User } from "../users";
 import { FIX_BORDER } from "../project/page/common";
+import { User } from "../users";
 
 interface Props {
   project: Project;
@@ -71,7 +72,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
         title={text}
         onConfirm={() => remove_collaborator(account_id)}
         okText={"Yes, remove collaborator"}
-        cancelText={"Cancel"}
+        cancelText={<CancelText />}
         disabled={isOwner}
       >
         <Button
@@ -121,7 +122,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
       .toList()
       .toJS();
     return sort_by_activity(users, project.get("project_id")).map((u, i) =>
-      render_user(u, i === users.length - 1)
+      render_user(u, i === users.length - 1),
     );
   }
 

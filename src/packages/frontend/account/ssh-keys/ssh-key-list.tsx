@@ -5,14 +5,18 @@
 
 import { Button, Popconfirm, Typography } from "antd";
 import { Map } from "immutable";
+import { useIntl } from "react-intl";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import {
+  Gap,
   HelpIcon,
   Icon,
   SettingBox,
-  Gap,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { cmp } from "@cocalc/util/misc";
 
 interface SSHKeyListProps {
@@ -28,13 +32,14 @@ interface SSHKeyListProps {
 export const SSHKeyList: React.FC<SSHKeyListProps> = (
   props: SSHKeyListProps,
 ) => {
+  const intl = useIntl();
   const { ssh_keys, project_id, help, children, mode = "project" } = props;
   const isFlyout = mode === "flyout";
 
   function render_header() {
     return (
       <>
-        SSH Keys <Gap />
+        {intl.formatMessage(labels.ssh_keys)} <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
       </>
     );
@@ -169,7 +174,7 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
           }
           onConfirm={() => delete_key()}
           okText={"Yes, delete key"}
-          cancelText={"Cancel"}
+          cancelText={<CancelText />}
         >
           <Button
             size={isFlyout ? "small" : "middle"}
@@ -185,11 +190,7 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
         </Typography.Text>
         <br />
         Added on {new Date(ssh_key.get("creation_date")).toLocaleDateString()}
-        <div>
-          {" "}
-          {render_last_use()}
-          {" "}(NOTE: not all usage is tracked.)
-        </div>
+        <div> {render_last_use()} (NOTE: not all usage is tracked.)</div>
       </div>
     </div>
   );
