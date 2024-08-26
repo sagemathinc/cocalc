@@ -11,18 +11,25 @@ import Password, {
   PasswordTextArea,
 } from "@cocalc/frontend/components/password";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { LOCALIZATIONS } from "@cocalc/frontend/i18n";
+import { LOCALE } from "@cocalc/util/consts/locale";
 import { USER_SELECTABLE_LANGUAGE_MODELS } from "@cocalc/util/db-schema/llm-utils";
 import {
   ConfigValid,
   to_list_of_llms,
+  to_list_of_locale,
 } from "@cocalc/util/db-schema/site-defaults";
 import { RowEntryInnerProps } from "./row-entry";
 
-export function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
-  if (
+export function testIsInvalid(value, valid?: ConfigValid): boolean {
+  return (
     (Array.isArray(valid) && !valid.includes(value)) ||
     (typeof valid == "function" && !valid(value))
-  ) {
+  );
+}
+
+export function rowEntryStyle(value, valid?: ConfigValid): CSSProperties {
+  if (testIsInvalid(value, valid)) {
     return { border: "2px solid red" };
   }
   return {};
@@ -60,6 +67,29 @@ export function RowEntryInner({
         optionRender={(option) => (
           <>
             <LanguageModelVendorAvatar model={(option.value as string) ?? ""} />{" "}
+            {option.label}
+          </>
+        )}
+      />
+    );
+  } else if (name === "i18n") {
+    return (
+      <Select
+        mode="multiple"
+        style={{ width: "100%" }}
+        placeholder="Select user selectable language locale"
+        optionLabelProp="label"
+        defaultValue={to_list_of_locale(value, false)}
+        onChange={(value: Array<string>) => {
+          onChangeEntry(name, value.join(","));
+          update();
+        }}
+        options={LOCALE.map((l) => {
+          return { label: LOCALIZATIONS[l].name, value: l };
+        })}
+        optionRender={(option) => (
+          <>
+            {option.value ? LOCALIZATIONS[option.value].flag : ""}{" "}
             {option.label}
           </>
         )}

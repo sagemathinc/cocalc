@@ -303,7 +303,7 @@ function LayoutSelector({ vbar }) {
     ),
     onClick: () => {
       Modal.info({
-        title: title,
+        title,
         content: VBAR_EXPLANATION,
       });
     },

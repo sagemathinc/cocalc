@@ -1,21 +1,21 @@
 import { Alert, Button, Modal, Popconfirm, Popover, Spin } from "antd";
-import { Icon } from "@cocalc/frontend/components";
+import { useEffect, useState } from "react";
+
+import { redux, useStore } from "@cocalc/frontend/app-framework";
+import { A, CopyToClipBoard, Icon } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
+import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   ACTION_INFO,
   STATE_INFO,
   getTargetState,
 } from "@cocalc/util/db-schema/compute-servers";
-import { useEffect, useState } from "react";
 import { computeServerAction, getApiKey } from "./api";
 import costPerHour from "./cost";
-import confirmStartComputeServer from "@cocalc/frontend/purchases/pay-as-you-go/confirm-start-compute-server";
-import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
-import { CopyToClipBoard } from "@cocalc/frontend/components";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import ShowError from "@cocalc/frontend/components/error";
-import { redux, useStore } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { A } from "@cocalc/frontend/components";
 
 export default function getActions({
   id,
@@ -291,7 +291,7 @@ function ActionButton({
         }
         onConfirm={doAction}
         okText={`Yes, ${label} VM`}
-        cancelText="Cancel"
+        cancelText={<CancelText />}
       >
         {button}
       </Popconfirm>

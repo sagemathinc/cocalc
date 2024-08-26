@@ -3,31 +3,38 @@ Drag'n'Drop file upload area
 */
 
 import "react-dropzone-component/styles/filepicker.css";
+
 import Dropzone from "dropzone";
 Dropzone.autoDiscover = false;
-export { Dropzone };
+
 import {
   DropzoneComponent,
   DropzoneComponentHandlers,
 } from "react-dropzone-component";
+export { Dropzone };
+
 import ReactDOMServer from "react-dom/server"; // for dropzone below
-import { encode_path, defaults, merge, is_array } from "@cocalc/util/misc";
+
+import { Button } from "antd";
+import { join } from "path";
+import { useIntl } from "react-intl";
+
 import {
   React,
   ReactDOM,
   redux,
-  useTypedRedux,
-  useState,
-  useRef,
   useEffect,
+  useRef,
+  useState,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
-import { join } from "path";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { Button } from "antd";
+import { labels } from "@cocalc/frontend/i18n";
 import { BASE_URL } from "@cocalc/frontend/misc";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
+import { defaults, encode_path, is_array, merge } from "@cocalc/util/misc";
 
 // 3GB upload limit --  since that's the default filesystem quota
 // and it should be plenty?
@@ -518,6 +525,8 @@ export function UploadLink({
   onUpload?: Function;
   style?;
 }) {
+  const intl = useIntl();
+
   return (
     <FileUploadWrapper
       project_id={project_id}
@@ -527,7 +536,7 @@ export function UploadLink({
       style={{ display: "inline" }}
     >
       <a style={style} className="cocalc-upload-link">
-        Upload
+        {intl.formatMessage(labels.upload)}
       </a>
     </FileUploadWrapper>
   );

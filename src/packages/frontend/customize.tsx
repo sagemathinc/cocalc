@@ -57,6 +57,7 @@ import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
+import { Locale } from "./i18n";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
@@ -170,6 +171,8 @@ export interface CustomizeState {
   selectable_llms: List<string>;
   default_llm?: string;
   user_defined_llm: boolean;
+
+  i18n?: List<Locale>;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

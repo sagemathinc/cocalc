@@ -3,13 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { FC, CSSProperties, memo, useMemo } from "react";
+import type { ButtonProps } from "antd";
+import { Button } from "antd";
+import { CSSProperties, FC, memo, useMemo } from "react";
+import { useIntl } from "react-intl";
+
 import {
   Icon,
   UncommittedChanges,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
-import { Button } from "antd";
+import { labels } from "@cocalc/frontend/i18n";
 
 interface Props {
   has_unsaved_changes?: boolean;
@@ -18,7 +22,7 @@ interface Props {
   is_public?: boolean;
   is_saving?: boolean;
   no_labels?: boolean;
-  size?;
+  size?: ButtonProps["size"];
   onClick?: (e) => void;
   show_uncommitted_changes?: boolean;
   set_show_uncommitted_changes?: Function;
@@ -41,15 +45,14 @@ export const SaveButton: FC<Props> = memo(
     style,
     type,
   }: Props) => {
+    const intl = useIntl();
+
     const label = useMemo(() => {
       if (!no_labels) {
-        if (is_public) {
-          return " Public";
-        } else if (read_only) {
-          return " Readonly";
-        } else {
-          return " Save";
-        }
+        return intl.formatMessage(
+          labels.frame_editors_title_bar_save_label,
+          { type: is_public ? "is_public" : read_only ? "read_only" : "save" },
+        );
       } else {
         return null;
       }
@@ -59,10 +62,17 @@ export const SaveButton: FC<Props> = memo(
       () => !has_unsaved_changes || !!read_only || !!is_public,
       [has_unsaved_changes, read_only, is_public],
     );
+
     const icon = useMemo(
       () => (is_saving ? "arrow-circle-o-left" : "save"),
       [is_saving],
     );
+
+    function renderLabel() {
+      if (!no_labels && label) {
+        return <VisibleMDLG>{` ${label}`}</VisibleMDLG>;
+      }
+    }
 
     // The funny style in the icon below is because the width changes
     // slightly depending on which icon we are showing.
@@ -82,7 +92,7 @@ export const SaveButton: FC<Props> = memo(
         }}
       >
         <Icon name={icon} style={{ display: "inline-block" }} />
-        {!no_labels && <VisibleMDLG>{label}</VisibleMDLG>}
+        {renderLabel()}
         <UncommittedChanges
           has_uncommitted_changes={has_uncommitted_changes}
           show_uncommitted_changes={show_uncommitted_changes}
