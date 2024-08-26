@@ -141,15 +141,15 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
     case "log":
       return <ProjectLog project_id={project_id} />;
     case "search":
-      return <ProjectSearch project_id={project_id} />;
+      return <ProjectSearch />;
     case "servers":
-      return <ProjectServers project_id={project_id} />;
+      return <ProjectServers />;
     case "settings":
       return <ProjectSettings project_id={project_id} />;
     case "info":
       return <ProjectInfo project_id={project_id} />;
     case "users":
-      return <ProjectCollaboratorsPage project_id={project_id} />;
+      return <ProjectCollaboratorsPage />;
     case "upgrades":
       return <ProjectLicenses project_id={project_id} />;
     default:
