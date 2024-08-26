@@ -23,7 +23,7 @@
     "@types/express": "^4.17.13",
     "@types/formidable": "^3.4.5",
     "@types/primus": "^7.3.6",
-    "@types/react": "^18.0.26",
+    "@types/react": "^18.0.28",
     "@types/uuid": "^8.3.1",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",
@@ -70,14 +70,14 @@
     "validator": "^13.6.0",
     "webpack-dev-middleware": "^6.1.2",
     "webpack-hot-middleware": "^2.25.4",
-    "ws": "^8.13.0"
+    "ws": "^8.18.0"
   },
   "devDependenicesNotes": "For license and size reasons, we make @cocalc/crm a dev dependency so it is NOT installed unless explicitly installed as a separate step.",
   "devDependencies": {
     "@types/http-proxy": "^1.17.9",
     "@types/node": "^18.16.14",
     "@types/passport": "^1.0.9",
-    "@types/react-dom": "^18.0.10",
+    "@types/react-dom": "^18.0.11",
     "coffee-coverage": "^3.0.1",
     "coffeescript": "^2.5.1",
     "expect": "^26.6.2",

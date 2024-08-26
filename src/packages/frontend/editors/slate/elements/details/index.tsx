@@ -4,9 +4,10 @@
  */
 
 import { CSSProperties } from "react";
+import { load } from "cheerio";
+
 import { register, SlateElement } from "../register";
 import { dict } from "@cocalc/util/misc";
-import $ from "cheerio";
 
 export const STYLE = {
   cursor: "pointer",
@@ -42,6 +43,7 @@ register({
 
   toSlate: ({ children, state, token }) => {
     const attrs = dict(state.attrs as any);
+    const $ = load("");
     const x = $(token.content);
     const summary = x.find("summary").text().trim();
     return {
