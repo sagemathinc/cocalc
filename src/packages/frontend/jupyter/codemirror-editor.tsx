@@ -28,6 +28,10 @@ import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import { Position } from "./insert-cell/types";
 import { is_whitespace } from "@cocalc/util/misc";
+import {
+  getFoldedLines,
+  setFoldedLines,
+} from "@cocalc/frontend/codemirror/util";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -153,6 +157,8 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
     return () => {
       if (cm.current != null) {
+        const foldedLines = getFoldedLines(cm.current);
+        console.log({ foldedLines });
         cm_save();
         cm_destroy();
       }
@@ -657,6 +663,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       if (node.parentNode == null) return;
       node.parentNode.replaceChild(elt, node);
     }, options0);
+    window.x = { cm: cm.current, getFoldedLines, setFoldedLines };
 
     // We explicitly re-add all the extraKeys due to weird precedence.
     cm.current.addKeyMap(options0.extraKeys);
