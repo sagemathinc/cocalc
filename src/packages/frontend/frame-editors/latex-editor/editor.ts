@@ -8,7 +8,7 @@ Spec for editing LaTeX documents.
 */
 
 import { IS_IOS, IS_IPAD } from "@cocalc/frontend/feature";
-import { editor } from "@cocalc/frontend/i18n";
+import { editor, labels } from "@cocalc/frontend/i18n";
 import { set } from "@cocalc/util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
@@ -159,8 +159,8 @@ const EDITOR_SPEC = {
   } as EditorDescription,
 
   word_count: {
-    short: "Word Count",
-    name: "Word Count",
+    short: labels.word_count,
+    name: labels.word_count,
     icon: "file-alt",
     commands: set(["word_count"]),
     component: LatexWordCount,

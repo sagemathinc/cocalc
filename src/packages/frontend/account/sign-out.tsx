@@ -93,7 +93,7 @@ export const SignOut: React.FC<Props> = (props: Readonly<Props>) => {
         },
         { everywhere },
       )}
-      cancelText={intl.formatMessage(labels.button_cancel)}
+      cancelText={intl.formatMessage(labels.cancel)}
     >
       <Button
         icon={<LogoutOutlined />}

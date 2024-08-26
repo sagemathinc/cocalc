@@ -67,10 +67,13 @@ CoCalc specific rules for implementing translations, of which I think are good t
 - **Explicit ID**: Technically, the ID is optional. Then it is computed as a hash upon extraction. However, this has two negative sides:
   - If the message changes, it's hash changes, and you have to start over with the translation. This is good from an idealistic standpoint, but if you just tweak a word or correct a typo, the existing translations are still ok. If the meaning changes completely, it's better to create a new ID. (Of course, changes to the `defaultMessage` need to go through the `extract → upload` step, except that the English translation uses the `defaultMessage` directly.)
   - Sorting: All the translations and also online tools like SimpleLocalize sort the translations by their keys. Look at the translated `i18n/de_DE.json` and you'll see that messages that are related are also next to each other. This also makes it possible to filter for a specific
+  - Never reference an ID directly – always reference the object of the "defined message", such that label changes (for updating the translation) or typos do not cause problems.
+  - Extracting the IDs check for duplicates, so, no worries about that.
 - Pitfall **No variables in properties**: I think the extraction process does not know how to deal with variables, when extracting strings from properties. So, either define the message objects elsewhere (like it is done with `labels`) or write a multiline string in place. See the examples below for what works.
 - **No `en` translation**: English is the default. The `defaultMessage` is already in the code. We do not download the supposedly translated `en` file and just let the fallback mechanism kick in. This also means that changes to the `defaultMessage` will show up with the next build, even without touching any of the translations.
 - **richTextElements**: in `app/localize.tsx`, a few default `richTextElements` are defined – just for convenience. Anchor tags must be defined individually, because link text and href can't be wrapped that way.
 - **Query parameter**: A new `?lang=en` (or `=de`, `=zh`, ...) query parameters lets you change the language as well. This also changes the account setting. Hence, a URL with `?lang=en` can be used to reset the account setting to English.
+- **Descriptions**: add descriptions, especially for jupyter notebooks or latex, to add more context. The description is not only shown in the translation tool, but also passed on to the language model doing the automatic translations.
 
 ## Style
 

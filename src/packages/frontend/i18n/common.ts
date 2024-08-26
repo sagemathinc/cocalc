@@ -1,7 +1,7 @@
 import { defineMessages } from "react-intl";
 
 export const labels = defineMessages({
-  button_cancel: {
+  cancel: {
     id: "labels.button.cancel",
     defaultMessage: "Cancel",
     description:
@@ -200,7 +200,7 @@ export const labels = defineMessages({
   copy: { id: "labels.copy", defaultMessage: "Copy" },
   undo: { id: "labels.undo", defaultMessage: "Undo" },
   paste: { id: "labels.paste", defaultMessage: "Paste" },
-  redo: { id: "labels.redo", defaultMessage: "redo" },
+  redo: { id: "labels.redo", defaultMessage: "Redo" },
   reload_title: {
     id: "labels.reload_title",
     defaultMessage: "Reload this document",
@@ -222,6 +222,42 @@ export const labels = defineMessages({
     defaultMessage: "Stop",
     description: "Label on a button to stop an ongoing process",
   },
+  restart: {
+    id: "labels.restart",
+    defaultMessage: "Restart",
+    description:
+      "Label on a button to restart a job, or Jupyter Notebook kernel, etc.",
+  },
+  validate: {
+    id: "labels.validate",
+    defaultMessage: "Validate",
+  },
+  clear: {
+    id: "labels.clear",
+    defaultMessage: "Clear",
+    description: "Clean or clear something out, such that it empty",
+  },
+  word_count: {
+    id: "labels.word_count",
+    defaultMessage: "Word Count",
+    description: "Tool to count words in a document",
+  },
+  latex_document: {
+    id: "labels.latex_document",
+    defaultMessage: "LaTeX Document",
+    description:
+      "Indicating a LaTeX Documents on a button label or frame title",
+  },
+  sagemath_worksheet: {
+    id: "labels.sagemath_worksheet",
+    defaultMessage: "SageMath Worksheet",
+    description: "A SageMath Worksheet label on a button or frame title",
+  },
+  linux_terminal: {
+    id: "labels.linux_terminal",
+    defaultMessage: "Linux Terminal",
+    description: "On a label or frame title describing a Linux Terminal"
+  }
 });
 
 export const menu = defineMessages({
@@ -435,6 +471,22 @@ export const jupyter = {
     },
   }),
   commands: defineMessages({
+    insert_cell_above: {
+      id: "jupyter.commands.insert_cell_above",
+      defaultMessage: "Insert Cell Above",
+    },
+    insert_cell_below: {
+      id: "jupyter.commands.insert_cell_below",
+      defaultMessage: "Insert Cell Below",
+    },
+    enter_command_mode: {
+      id: "jupyter.commands.enter_command_mode",
+      defaultMessage: "Enter command mode",
+    },
+    enter_edit_mode: {
+      id: "jupyter.commands.enter_edit_mode",
+      defaultMessage: "Enter edit mode",
+    },
     toggle_all_line_numbers: {
       id: "jupyter.commands.toggle_all_line_numbers",
       defaultMessage: "Toggle Line Numbers of All Cells",
@@ -447,6 +499,11 @@ export const jupyter = {
       id: "jupyter.commands.change_kernel",
       defaultMessage: "Change Kernel...",
       description: "Change the Kernel in the Jupyter Notebook",
+    },
+    close_and_halt_menu: {
+      id: "jupyter.commands.close_and_halt.menu",
+      defaultMessage: "Close and halt",
+      description: "Close and halt the Kernel and Jupyter Notebook",
     },
     change_kernel_title: {
       id: "jupyter.commands.change_kernel_title",
@@ -464,15 +521,61 @@ export const jupyter = {
       defaultMessage: "None",
       description: "Jupyter Notebook cell toolbar 'None' hides the toolbar",
     },
+
+    restart_kernel_noconf_menu: {
+      id: "jupyter.commands.restart_kernel_noconf.menu",
+      defaultMessage: "Restart kernel",
+      description: "Restart Kernel of a Jupyter Notebook",
+    },
+    restart_kernel_clear_noconf_menu: {
+      id: "jupyter.commands.restart_kernel_clear_noconf.menu",
+      defaultMessage: "Restart kernel and clear output",
+      description: "Restart Kernel of a Jupyter Notebook and clear all output",
+    },
+    restart_kernel_label: {
+      id: "jupyter.commands.restart_kernel.label",
+      defaultMessage: "Restart Kernel...",
+      description: "Restart Kernel of a Jupyter Notebook",
+    },
+    restart_kernel_button: {
+      id: "jupyter.commands.restart_kernel.button",
+      defaultMessage: "Kernel",
+      description: "Restart Kernel of a Jupyter Notebook",
+    },
     restart_kernel_run_all_cells: {
       id: "jupyter.commands.restart_kernel_run_all_cells",
       defaultMessage: "Restart and Run All Cells...",
       describe: "In a Jupyter Notebook, restart kernel and run all cells",
     },
     restart_kernel_run_all_cells_button: {
-      id: "jupyter.commands.restart_kernel_run_all_cells_button",
+      id: "jupyter.commands.restart_kernel_run_all_cells.button",
+      defaultMessage: "Run all...",
+      describe: "In a Jupyter Notebook, restart kernel and run all cells",
+    },
+    restart_kernel_run_all_cells_noconf: {
+      id: "jupyter.commands.restart_kernel_run_all_cells_noconf",
+      defaultMessage: "Restart Kernel and Run All Cells",
+      describe: "In a Jupyter Notebook, restart kernel and run all cells",
+    },
+    restart_kernel_run_all_cells_noconf_button: {
+      id: "jupyter.commands.restart_kernel_run_all_cells_noconf_button",
       defaultMessage: "Run All",
       describe: "In a Jupyter Notebook, restart kernel and run all cells",
+    },
+    restart_kernel_run_all_cells_menu: {
+      id: "jupyter.commands.restart_kernel_run_all_cells_menu",
+      defaultMessage: "Run all...",
+      describe: "In a Jupyter Notebook, restart kernel and run all cells",
+    },
+    restart_kernel_run_all_cells_without_halting: {
+      id: "jupyter.commands.restart_kernel_run_all_cells_without_halting",
+      defaultMessage: "Restart and Run All (do not stop on errors)...",
+      describe: "In a Jupyter Notebook, restart kernel and run all cells",
+    },
+    restart_kernel_clear_output_menu: {
+      id: "jupyter.commands.restart_kernel_clear_output.menu",
+      defaultMessage: "Restart Kernel and Clear All Outputs...",
+      describe: "In a Jupyter Notebook, restart kernel and clear output",
     },
     run_cell_and_insert_below: {
       id: "jupyter.commands.run_cell_and_insert_below",
@@ -508,7 +611,91 @@ export const jupyter = {
     interrupt_kernel: {
       id: "jupyter.commands.interrupt_kernel",
       defaultMessage: "Interrupt Kernel (Stop)",
-      description: "In a Jupyter Notebook, interrup the running kernel",
+      description: "In a Jupyter Notebook, interrupt the running kernel",
+    },
+    shutdown_kernel_button: {
+      id: "jupyter.commands.shutdown_kernel.button",
+      defaultMessage: "Off",
+      description: "In a Jupyter Notebook, turn the running kernel off",
+    },
+    shutdown_kernel_menu: {
+      id: "jupyter.commands.shutdown_kernel.menu",
+      defaultMessage: "Shutdown Kernel...",
+      description: "In a Jupyter Notebook, turn the running kernel off",
+    },
+    shutdown_kernel_confirm_title: {
+      id: "jupyter.commands.shutdown_kernel.title",
+      defaultMessage: "Shutdown kernel?",
+      description: "In a Jupyter Notebook",
+    },
+    shutdown_kernel_confirm_body: {
+      id: "jupyter.commands.shutdown_kernel.body",
+      defaultMessage:
+        "Do you want to shutdown the current kernel? All variable values will be lost.",
+      description: "In a Jupyter Notebook",
+    },
+    shutdown_kernel_confirm_label_shutdown: {
+      id: "jupyter.commands.shutdown_kernel.label.shutdown",
+      defaultMessage: "Shutdown",
+      description: "Shutting down a Kernel of a Jupyter Notebook",
+    },
+    shutdown_kernel_confirm_label_continue: {
+      id: "jupyter.commands.shutdown_kernel.label.continue",
+      defaultMessage: "Continue running",
+      description: "Continue running the Kernel of a Jupyter Notebook",
+    },
+    halt_kernel_menu: {
+      id: "jupyter.commands.halt_kernel_menu.menu",
+      defaultMessage: "Halt kernel...",
+      description: "Halting a Kernel of a Jupyter Notebook",
+    },
+    validate_label: {
+      id: "jupyter.commands.validate.label",
+      defaultMessage: "Validate",
+      description: "Validate a Jupyter Notebook",
+    },
+    validate_tooltip: {
+      id: "jupyter.commands.validate.tooltip",
+      defaultMessage:
+        "Restart Jupyter Notebook and run all cells to validate that it works.",
+      description: "Validate a Jupyter Notebook",
+    },
+    validate_title: {
+      id: "jupyter.commands.validate.title",
+      defaultMessage: "Validate notebook?",
+      description: "Validate a Jupyter Notebook",
+    },
+    validate_body: {
+      id: "jupyter.commands.validate.body",
+      defaultMessage:
+        "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
+      description: "Validate a Jupyter Notebook",
+    },
+    refresh_kernels: {
+      id: "jupyter.commands.refresh_kernels",
+      defaultMessage: "Refresh Kernel List",
+      description: "Reload list of all Kernels for Jupyter Notebooks",
+    },
+    refresh_kernels_tooltip: {
+      id: "jupyter.commands.refresh_kernels.tooltip",
+      defaultMessage:
+        "Reload list of all available Kernels for running Jupyter Notebooks",
+    },
+    run_all_cells_menu: {
+      id: "jupyter.commands.run_all_cells.menu",
+      defaultMessage: "Run All Cells",
+      description: "Run all cells in a Jupyter Notebook",
+    },
+    run_all_cells_above_menu: {
+      id: "jupyter.commands.run_all_cells_above.menu",
+      defaultMessage: "Run All Above Selected Cell",
+      description: "Run all cells above selected cell in a Jupyter Notebook",
+    },
+    run_all_cells_below_menu: {
+      id: "jupyter.commands.run_all_cells_below.menu",
+      defaultMessage: "Run Selected Cell and All Below",
+      description:
+        "Run selected cell and all cells below selected cell in a Jupyter Notebook",
     },
   }),
 };

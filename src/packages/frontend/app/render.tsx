@@ -9,12 +9,11 @@ import { createRoot } from "react-dom/client";
 import {
   redux,
   Redux,
-  useEffect,
+  useAsyncEffect,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
   getLocale,
-  Locale,
   LOCALIZATIONS,
   OTHER_SETTINGS_LOCALE_KEY,
 } from "@cocalc/frontend/i18n";
@@ -28,13 +27,19 @@ function App({ children }) {
   const { setLocale } = useLocalizationCtx();
   const other_settings = useTypedRedux("account", "other_settings");
 
-  useEffect(() => {
+  // setting via ?lang=[locale] takes precedece over account settings
+  useAsyncEffect(async () => {
     const lang = QueryParams.get("lang");
     if (lang != null) {
       if (lang in LOCALIZATIONS) {
         console.warn(
           `URL query parameter 'lang=${lang}' – overriding user configuration.`,
         );
+        const store = redux.getStore("account");
+        // we have to ensure the account store is available, because this code runs very early
+        await store.async_wait({
+          until: () => store.get_account_id() != null,
+        });
         redux
           .getActions("account")
           .set_other_settings(OTHER_SETTINGS_LOCALE_KEY, lang);
@@ -45,11 +50,12 @@ function App({ children }) {
           `Known values: ${Object.keys(LOCALIZATIONS)}`,
         );
       }
+      // removing the parameter, otherwise this conflicts with further changes of account settings
+      QueryParams.remove("lang");
     } else {
-      const i18n: Locale = getLocale(other_settings);
-      setLocale(i18n);
+      setLocale(getLocale(other_settings));
     }
-  }, [other_settings]);
+  }, [getLocale(other_settings)]);
 
   return <AppContext.Provider value={appState}>{children}</AppContext.Provider>;
 }

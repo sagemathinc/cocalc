@@ -172,7 +172,7 @@ export interface CustomizeState {
   default_llm?: string;
   user_defined_llm: boolean;
 
-  i18n: List<Locale>;
+  i18n?: List<Locale>;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

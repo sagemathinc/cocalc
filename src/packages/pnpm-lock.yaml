@@ -195,7 +195,7 @@ importers:
         version: 8.3.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@9.3.1)
+        version: 4.3.4(supports-color@8.1.1)
       immutable:
         specifier: ^4.3.0
         version: 4.3.0
@@ -809,7 +809,7 @@ importers:
         version: 2.8.5
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@9.3.1)
+        version: 4.3.4(supports-color@8.1.1)
       escape-html:
         specifier: ^1.0.3
         version: 1.0.3
@@ -984,7 +984,7 @@ importers:
         version: 8.3.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@9.3.1)
+        version: 4.3.4(supports-color@8.1.1)
       enchannel-zmq-backend:
         specifier: ^9.1.23
         version: 9.1.23(rxjs@7.8.1)
@@ -1253,7 +1253,7 @@ importers:
         version: 3.0.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@9.3.1)
+        version: 4.3.4(supports-color@8.1.1)
       diskusage:
         specifier: ^1.1.3
         version: 1.1.3
@@ -1835,7 +1835,7 @@ importers:
         version: 3.0.0
       debug:
         specifier: ^4.3.4
-        version: 4.3.4(supports-color@9.3.1)
+        version: 4.3.4(supports-color@8.1.1)
       events:
         specifier: 3.3.0
         version: 3.3.0
@@ -1887,7 +1887,7 @@ importers:
         version: 0.5.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@9.3.1)
+        version: 4.3.4(supports-color@8.1.1)
       primus:
         specifier: ^8.0.7
         version: 8.0.7
@@ -1964,7 +1964,7 @@ importers:
         version: 3.0.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@9.3.1)
+        version: 4.3.4(supports-color@8.1.1)
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -2007,7 +2007,7 @@ importers:
         version: 1.11.11
       debug:
         specifier: ^4.3.2
-        version: 4.3.4(supports-color@9.3.1)
+        version: 4.3.4(supports-color@8.1.1)
       events:
         specifier: 3.3.0
         version: 3.3.0
@@ -12275,7 +12275,7 @@ snapshots:
       '@babel/traverse': 7.23.2(supports-color@9.3.1)
       '@babel/types': 7.23.0
       convert-source-map: 1.9.0
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -12289,10 +12289,10 @@ snapshots:
       '@babel/generator': 7.23.0
       '@babel/helper-compilation-targets': 7.22.15
       '@babel/helper-module-transforms': 7.23.3(@babel/core@7.21.8)
-      '@babel/helpers': 7.23.2
+      '@babel/helpers': 7.23.2(supports-color@9.3.1)
       '@babel/parser': 7.23.4
       '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.2
+      '@babel/traverse': 7.23.2(supports-color@9.3.1)
       '@babel/types': 7.23.4
       convert-source-map: 1.9.0
       debug: 4.3.4(supports-color@8.1.1)
@@ -12575,14 +12575,6 @@ snapshots:
 
   '@babel/helper-validator-option@7.24.8':
     optional: true
-
-  '@babel/helpers@7.23.2':
-    dependencies:
-      '@babel/template': 7.22.15
-      '@babel/traverse': 7.23.2
-      '@babel/types': 7.23.4
-    transitivePeerDependencies:
-      - supports-color
 
   '@babel/helpers@7.23.2(supports-color@9.3.1)':
     dependencies:
@@ -12883,21 +12875,6 @@ snapshots:
       '@babel/types': 7.25.2
     optional: true
 
-  '@babel/traverse@7.23.2':
-    dependencies:
-      '@babel/code-frame': 7.24.2
-      '@babel/generator': 7.24.5
-      '@babel/helper-environment-visitor': 7.22.20
-      '@babel/helper-function-name': 7.23.0
-      '@babel/helper-hoist-variables': 7.22.5
-      '@babel/helper-split-export-declaration': 7.22.6
-      '@babel/parser': 7.24.5
-      '@babel/types': 7.24.5
-      debug: 4.3.5
-      globals: 11.12.0
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/traverse@7.23.2(supports-color@9.3.1)':
     dependencies:
       '@babel/code-frame': 7.24.2
@@ -13012,7 +12989,7 @@ snapshots:
 
   '@cocalc/primus-responder@1.0.5':
     dependencies:
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       node-uuid: 1.4.8
     transitivePeerDependencies:
       - supports-color
@@ -13073,7 +13050,7 @@ snapshots:
   '@eslint/eslintrc@2.1.4':
     dependencies:
       ajv: 6.12.6
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       espree: 9.6.1
       globals: 13.19.0
       ignore: 5.2.0
@@ -13261,7 +13238,7 @@ snapshots:
   '@humanwhocodes/config-array@0.11.14':
     dependencies:
       '@humanwhocodes/object-schema': 2.0.2
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       minimatch: 3.1.2
     transitivePeerDependencies:
       - supports-color
@@ -13989,7 +13966,7 @@ snapshots:
       '@types/xml-encryption': 1.2.2
       '@types/xml2js': 0.4.12
       '@xmldom/xmldom': 0.8.10
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       xml-crypto: 3.2.0
       xml-encryption: 3.0.2
       xml2js: 0.5.0
@@ -14913,7 +14890,7 @@ snapshots:
       '@typescript-eslint/type-utils': 6.21.0(eslint@8.56.0)(typescript@5.5.4)
       '@typescript-eslint/utils': 6.21.0(eslint@8.56.0)(typescript@5.5.4)
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       eslint: 8.56.0
       graphemer: 1.4.0
       ignore: 5.3.1
@@ -14931,7 +14908,7 @@ snapshots:
       '@typescript-eslint/types': 6.21.0
       '@typescript-eslint/typescript-estree': 6.21.0(typescript@5.5.4)
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       eslint: 8.56.0
     optionalDependencies:
       typescript: 5.5.4
@@ -14947,7 +14924,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/typescript-estree': 6.21.0(typescript@5.5.4)
       '@typescript-eslint/utils': 6.21.0(eslint@8.56.0)(typescript@5.5.4)
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       eslint: 8.56.0
       ts-api-utils: 1.2.1(typescript@5.5.4)
     optionalDependencies:
@@ -14961,7 +14938,7 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 6.21.0
       '@typescript-eslint/visitor-keys': 6.21.0
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       globby: 11.1.0
       is-glob: 4.0.3
       minimatch: 9.0.3
@@ -15239,13 +15216,13 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -16796,10 +16773,6 @@ snapshots:
     optionalDependencies:
       supports-color: 9.3.1
 
-  debug@4.3.5:
-    dependencies:
-      ms: 2.1.2
-
   debug@4.3.5(supports-color@9.3.1):
     dependencies:
       ms: 2.1.2
@@ -17466,7 +17439,7 @@ snapshots:
       ajv: 6.12.6
       chalk: 4.1.2
       cross-spawn: 7.0.3
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       doctrine: 3.0.0
       escape-string-regexp: 4.0.0
       eslint-scope: 7.2.2
@@ -17801,7 +17774,7 @@ snapshots:
 
   follow-redirects@1.15.6(debug@4.3.4):
     optionalDependencies:
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
 
   font-atlas@2.1.0:
     dependencies:
@@ -18594,7 +18567,7 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -18609,21 +18582,21 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.4:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -19038,14 +19011,6 @@ snapshots:
       istanbul-lib-coverage: 3.2.2
       make-dir: 4.0.0
       supports-color: 7.2.0
-
-  istanbul-lib-source-maps@4.0.1:
-    dependencies:
-      debug: 4.3.5
-      istanbul-lib-coverage: 3.2.2
-      source-map: 0.6.1
-    transitivePeerDependencies:
-      - supports-color
 
   istanbul-lib-source-maps@4.0.1(supports-color@9.3.1):
     dependencies:
@@ -20249,7 +20214,7 @@ snapshots:
   micromark@3.2.0:
     dependencies:
       '@types/debug': 4.1.12
-      debug: 4.3.5
+      debug: 4.3.5(supports-color@9.3.1)
       decode-named-character-reference: 1.0.2
       micromark-core-commonmark: 1.1.0
       micromark-factory-space: 1.1.0
@@ -20747,7 +20712,7 @@ snapshots:
       istanbul-lib-instrument: 4.0.3
       istanbul-lib-processinfo: 2.0.3
       istanbul-lib-report: 3.0.0
-      istanbul-lib-source-maps: 4.0.1
+      istanbul-lib-source-maps: 4.0.1(supports-color@9.3.1)
       istanbul-reports: 3.1.5
       make-dir: 3.1.0
       node-preload: 0.2.1
@@ -22165,7 +22130,7 @@ snapshots:
       '@formatjs/intl-displaynames': 6.6.8
       '@formatjs/intl-listformat': 7.5.7
       '@types/hoist-non-react-statics': 3.3.1
-      '@types/react': 18.0.26
+      '@types/react': 18.0.28
       hoist-non-react-statics: 3.3.2
       intl-messageformat: 10.5.14
       react: 18.2.0
@@ -24029,7 +23994,7 @@ snapshots:
     dependencies:
       '@wwa/statvfs': 1.1.18
       awaiting: 3.0.0
-      debug: 4.3.4(supports-color@9.3.1)
+      debug: 4.3.4(supports-color@8.1.1)
       port-get: 1.0.0
       ws: 8.18.0
     transitivePeerDependencies:

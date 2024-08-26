@@ -995,10 +995,64 @@
       "value": "Seleccionar de cualquiera de los kernels disponibles"
     }
   ],
+  "jupyter.commands.close_and_halt.menu": [
+    {
+      "type": 0,
+      "value": "Cerrar y detener"
+    }
+  ],
+  "jupyter.commands.enter_command_mode": [
+    {
+      "type": 0,
+      "value": "Entrar en modo comando"
+    }
+  ],
+  "jupyter.commands.enter_edit_mode": [
+    {
+      "type": 0,
+      "value": "Entrar en modo de edición"
+    }
+  ],
+  "jupyter.commands.halt_kernel_menu.menu": [
+    {
+      "type": 0,
+      "value": "Detener kernel..."
+    }
+  ],
+  "jupyter.commands.insert_cell_above": [
+    {
+      "type": 0,
+      "value": "Insertar Celda Arriba"
+    }
+  ],
+  "jupyter.commands.insert_cell_below": [
+    {
+      "type": 0,
+      "value": "Insertar celda abajo"
+    }
+  ],
   "jupyter.commands.interrupt_kernel": [
     {
       "type": 0,
       "value": "Interrumpir Kernel (Detener)"
+    }
+  ],
+  "jupyter.commands.refresh_kernels": [
+    {
+      "type": 0,
+      "value": "Actualizar lista de núcleos"
+    }
+  ],
+  "jupyter.commands.refresh_kernels.tooltip": [
+    {
+      "type": 0,
+      "value": "Recargar la lista de todos los Kernels disponibles para ejecutar Jupyter Notebooks"
+    }
+  ],
+  "jupyter.commands.restart_kernel.button": [
+    {
+      "type": 0,
+      "value": "Kernel"
     }
   ],
   "jupyter.commands.restart_kernel.label": [
@@ -1007,16 +1061,82 @@
       "value": "Reiniciar Kernel..."
     }
   ],
+  "jupyter.commands.restart_kernel_clear_noconf.menu": [
+    {
+      "type": 0,
+      "value": "Reiniciar kernel y borrar salida"
+    }
+  ],
+  "jupyter.commands.restart_kernel_clear_output.menu": [
+    {
+      "type": 0,
+      "value": "Reiniciar el Kernel y Borrar Todos los Resultados..."
+    }
+  ],
+  "jupyter.commands.restart_kernel_noconf.menu": [
+    {
+      "type": 0,
+      "value": "Reiniciar kernel"
+    }
+  ],
   "jupyter.commands.restart_kernel_run_all_cells": [
     {
       "type": 0,
       "value": "Reiniciar y Ejecutar Todas las Celdas..."
     }
   ],
+  "jupyter.commands.restart_kernel_run_all_cells.button": [
+    {
+      "type": 0,
+      "value": "Ejecutar todo..."
+    }
+  ],
   "jupyter.commands.restart_kernel_run_all_cells_button": [
     {
       "type": 0,
       "value": "Ejecutar Todo"
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_menu": [
+    {
+      "type": 0,
+      "value": "Ejecutar todo..."
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_noconf": [
+    {
+      "type": 0,
+      "value": "Reiniciar Núcleo y Ejecutar Todas las Celdas"
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_noconf_button": [
+    {
+      "type": 0,
+      "value": "Ejecutar Todo"
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_without_halting": [
+    {
+      "type": 0,
+      "value": "Reiniciar y ejecutar todo (no detenerse en errores)..."
+    }
+  ],
+  "jupyter.commands.run_all_cells.menu": [
+    {
+      "type": 0,
+      "value": "Ejecutar todas las celdas"
+    }
+  ],
+  "jupyter.commands.run_all_cells_above.menu": [
+    {
+      "type": 0,
+      "value": "Ejecutar todo arriba de la celda seleccionada"
+    }
+  ],
+  "jupyter.commands.run_all_cells_below.menu": [
+    {
+      "type": 0,
+      "value": "Ejecutar celda seleccionada y todo lo siguiente"
     }
   ],
   "jupyter.commands.run_cell": [
@@ -1061,6 +1181,42 @@
       "value": "Ejecutar Celda Actual"
     }
   ],
+  "jupyter.commands.shutdown_kernel.body": [
+    {
+      "type": 0,
+      "value": "¿Quieres apagar el kernel actual? Se perderán todos los valores de las variables."
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.button": [
+    {
+      "type": 0,
+      "value": "Apagado"
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.label.continue": [
+    {
+      "type": 0,
+      "value": "Seguir ejecutando"
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.label.shutdown": [
+    {
+      "type": 0,
+      "value": "Apagar"
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.menu": [
+    {
+      "type": 0,
+      "value": "Apagar Kernel..."
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.title": [
+    {
+      "type": 0,
+      "value": "¿Apagar kernel?"
+    }
+  ],
   "jupyter.commands.toggle_all_line_numbers": [
     {
       "type": 0,
@@ -1071,6 +1227,30 @@
     {
       "type": 0,
       "value": "Alternar Números de Línea de las Celdas Seleccionadas"
+    }
+  ],
+  "jupyter.commands.validate.body": [
+    {
+      "type": 0,
+      "value": "La validación del cuaderno reiniciará el kernel y ejecutará todas las celdas en orden, incluidas aquellas con errores. Esto asegurará que toda la salida sea exactamente el resultado de ejecutar todas las celdas en orden."
+    }
+  ],
+  "jupyter.commands.validate.label": [
+    {
+      "type": 0,
+      "value": "Validar"
+    }
+  ],
+  "jupyter.commands.validate.title": [
+    {
+      "type": 0,
+      "value": "¿Validar cuaderno?"
+    }
+  ],
+  "jupyter.commands.validate.tooltip": [
+    {
+      "type": 0,
+      "value": "Reinicia Jupyter Notebook y ejecuta todas las celdas para validar que funcione"
     }
   ],
   "jupyter.editor.browser_actions.close_and_halt.body": [
@@ -1425,6 +1605,12 @@
       "value": "Cancelar"
     }
   ],
+  "labels.clear": [
+    {
+      "type": 0,
+      "value": "Limpiar"
+    }
+  ],
   "labels.cloud_file_system": [
     {
       "type": 0,
@@ -1493,10 +1679,22 @@
       "value": "Ayuda"
     }
   ],
+  "labels.latex_document": [
+    {
+      "type": 0,
+      "value": "Documento LaTeX"
+    }
+  ],
   "labels.licenses": [
     {
       "type": 0,
       "value": "Licencias"
+    }
+  ],
+  "labels.linux_terminal": [
+    {
+      "type": 0,
+      "value": "Terminal de Linux"
     }
   ],
   "labels.new.file": [
@@ -1623,6 +1821,18 @@
       "value": "Recargar este documento"
     }
   ],
+  "labels.restart": [
+    {
+      "type": 0,
+      "value": "Reiniciar"
+    }
+  ],
+  "labels.sagemath_worksheet": [
+    {
+      "type": 0,
+      "value": "Hoja de trabajo de SageMath"
+    }
+  ],
   "labels.save": [
     {
       "type": 0,
@@ -1723,6 +1933,18 @@
     {
       "type": 0,
       "value": "Subir"
+    }
+  ],
+  "labels.validate": [
+    {
+      "type": 0,
+      "value": "Validar"
+    }
+  ],
+  "labels.word_count": [
+    {
+      "type": 0,
+      "value": "Conteo de Palabras"
     }
   ],
   "labels.zoom_in": [
@@ -1837,6 +2059,68 @@
     {
       "type": 0,
       "value": "Ver"
+    }
+  ],
+  "new.file-type-page.header.description": [
+    {
+      "type": 0,
+      "value": "¿Qué te gustaría crear? Los documentos pueden ser editados simultáneamente por varias personas, mantener un historial completo de "
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "TimeTravel"
+        }
+      ],
+      "type": 8,
+      "value": "A"
+    },
+    {
+      "type": 0,
+      "value": " de ediciones y soportar la evaluación de código."
+    }
+  ],
+  "new.file-type-page.header.intro": [
+    {
+      "type": 0,
+      "value": "Nombra tu archivo, carpeta o pega un enlace. Termina el nombre con / para hacer una carpeta."
+    }
+  ],
+  "new.file-type-selector.folder.tooltip": [
+    {
+      "type": 0,
+      "value": "Crea una carpeta (subdirectorio) en la que almacenar y organizar tus archivos. CoCalc proporciona un sistema de archivos completo. También puedes escribir una ruta en el cuadro de entrada de arriba que termine con una barra diagonal / y presionar enter."
+    }
+  ],
+  "new.file-type-selector.latex.tooltip": [
+    {
+      "type": 0,
+      "value": "Cree un documento técnico de calidad profesional que contenga fórmulas matemáticas sofisticadas y pueda ejecutar código Python, R y Sage."
+    }
+  ],
+  "new.file-type-selector.linux.tooltip": [
+    {
+      "type": 0,
+      "value": "Crear un terminal de línea de comandos de Linux. CoCalc incluye un entorno Linux completo. Ejecuta software de línea de comandos, vim, emacs y más."
+    }
+  ],
+  "new.file-type-selector.markdown.tooltip": [
+    {
+      "type": 0,
+      "value": "Crea un documento de texto editable enriquecido respaldado por markdown y código Jupyter que contenga fórmulas matemáticas, listas, encabezados, imágenes y ejecute código."
+    }
+  ],
+  "new.file-type-selector.sagews.tooltip": [
+    {
+      "type": 0,
+      "value": "Crea una hoja de cálculo interactiva para usar el software matemático SageMath, Python, R y muchos otros sistemas. Haz matemáticas sofisticadas, dibuja gráficos, calcula integrales, trabaja con matrices, etc."
+    }
+  ],
+  "new.file-type-selector.x11.tooltip": [
+    {
+      "type": 0,
+      "value": "Crear un escritorio X11 para ejecutar aplicaciones gráficas. CoCalc te permite ejecutar colaborativamente cualquier aplicación gráfica de Linux en tu navegador."
     }
   ],
   "page.flyouts.licenses.upgrades_explanation": [

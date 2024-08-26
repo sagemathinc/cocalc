@@ -985,10 +985,64 @@
       "value": "从任何可用的内核中选择"
     }
   ],
+  "jupyter.commands.close_and_halt.menu": [
+    {
+      "type": 0,
+      "value": "关闭并停止"
+    }
+  ],
+  "jupyter.commands.enter_command_mode": [
+    {
+      "type": 0,
+      "value": "进入命令模式"
+    }
+  ],
+  "jupyter.commands.enter_edit_mode": [
+    {
+      "type": 0,
+      "value": "进入编辑模式"
+    }
+  ],
+  "jupyter.commands.halt_kernel_menu.menu": [
+    {
+      "type": 0,
+      "value": "停止内核..."
+    }
+  ],
+  "jupyter.commands.insert_cell_above": [
+    {
+      "type": 0,
+      "value": "插入上方单元格"
+    }
+  ],
+  "jupyter.commands.insert_cell_below": [
+    {
+      "type": 0,
+      "value": "插入单元格下方"
+    }
+  ],
   "jupyter.commands.interrupt_kernel": [
     {
       "type": 0,
       "value": "中断内核（停止）"
+    }
+  ],
+  "jupyter.commands.refresh_kernels": [
+    {
+      "type": 0,
+      "value": "刷新内核列表"
+    }
+  ],
+  "jupyter.commands.refresh_kernels.tooltip": [
+    {
+      "type": 0,
+      "value": "重新加载所有可用的Jupyter Notebooks内核列表"
+    }
+  ],
+  "jupyter.commands.restart_kernel.button": [
+    {
+      "type": 0,
+      "value": "内核"
     }
   ],
   "jupyter.commands.restart_kernel.label": [
@@ -997,16 +1051,82 @@
       "value": "重启内核..."
     }
   ],
+  "jupyter.commands.restart_kernel_clear_noconf.menu": [
+    {
+      "type": 0,
+      "value": "重新启动内核并清除输出"
+    }
+  ],
+  "jupyter.commands.restart_kernel_clear_output.menu": [
+    {
+      "type": 0,
+      "value": "重新启动内核并清除所有输出..."
+    }
+  ],
+  "jupyter.commands.restart_kernel_noconf.menu": [
+    {
+      "type": 0,
+      "value": "重启内核"
+    }
+  ],
   "jupyter.commands.restart_kernel_run_all_cells": [
     {
       "type": 0,
       "value": "重新启动并运行所有单元格..."
     }
   ],
+  "jupyter.commands.restart_kernel_run_all_cells.button": [
+    {
+      "type": 0,
+      "value": "全部运行..."
+    }
+  ],
   "jupyter.commands.restart_kernel_run_all_cells_button": [
     {
       "type": 0,
       "value": "全部运行"
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_menu": [
+    {
+      "type": 0,
+      "value": "全部运行..."
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_noconf": [
+    {
+      "type": 0,
+      "value": "重启内核并运行所有单元格"
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_noconf_button": [
+    {
+      "type": 0,
+      "value": "全部运行"
+    }
+  ],
+  "jupyter.commands.restart_kernel_run_all_cells_without_halting": [
+    {
+      "type": 0,
+      "value": "重新启动并全部运行（遇到错误不停）..."
+    }
+  ],
+  "jupyter.commands.run_all_cells.menu": [
+    {
+      "type": 0,
+      "value": "运行所有单元格"
+    }
+  ],
+  "jupyter.commands.run_all_cells_above.menu": [
+    {
+      "type": 0,
+      "value": "运行所有以上选定单元格"
+    }
+  ],
+  "jupyter.commands.run_all_cells_below.menu": [
+    {
+      "type": 0,
+      "value": "运行选定单元格及以下所有单元格"
     }
   ],
   "jupyter.commands.run_cell": [
@@ -1051,6 +1171,42 @@
       "value": "运行当前单元格"
     }
   ],
+  "jupyter.commands.shutdown_kernel.body": [
+    {
+      "type": 0,
+      "value": "您要关闭当前内核吗？所有变量值将丢失。"
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.button": [
+    {
+      "type": 0,
+      "value": "关闭"
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.label.continue": [
+    {
+      "type": 0,
+      "value": "继续运行"
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.label.shutdown": [
+    {
+      "type": 0,
+      "value": "关机"
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.menu": [
+    {
+      "type": 0,
+      "value": "关闭内核..."
+    }
+  ],
+  "jupyter.commands.shutdown_kernel.title": [
+    {
+      "type": 0,
+      "value": "关闭内核？"
+    }
+  ],
   "jupyter.commands.toggle_all_line_numbers": [
     {
       "type": 0,
@@ -1061,6 +1217,30 @@
     {
       "type": 0,
       "value": "切换选定单元格的行号"
+    }
+  ],
+  "jupyter.commands.validate.body": [
+    {
+      "type": 0,
+      "value": "验证笔记本将重新启动内核并按顺序运行所有单元格，即使有错误。这样可以确保所有输出都与按顺序运行所有单元格的结果完全一致。"
+    }
+  ],
+  "jupyter.commands.validate.label": [
+    {
+      "type": 0,
+      "value": "验证"
+    }
+  ],
+  "jupyter.commands.validate.title": [
+    {
+      "type": 0,
+      "value": "验证笔记本？"
+    }
+  ],
+  "jupyter.commands.validate.tooltip": [
+    {
+      "type": 0,
+      "value": "重启 Jupyter Notebook 并运行所有单元格以验证其是否正常。"
     }
   ],
   "jupyter.editor.browser_actions.close_and_halt.body": [
@@ -1415,6 +1595,12 @@
       "value": "取消"
     }
   ],
+  "labels.clear": [
+    {
+      "type": 0,
+      "value": "清除"
+    }
+  ],
   "labels.cloud_file_system": [
     {
       "type": 0,
@@ -1483,10 +1669,22 @@
       "value": "幫助"
     }
   ],
+  "labels.latex_document": [
+    {
+      "type": 0,
+      "value": "LaTeX文档"
+    }
+  ],
   "labels.licenses": [
     {
       "type": 0,
       "value": "许可证"
+    }
+  ],
+  "labels.linux_terminal": [
+    {
+      "type": 0,
+      "value": "Linux 终端"
     }
   ],
   "labels.new.file": [
@@ -1617,6 +1815,18 @@
       "value": "重新加载此文档"
     }
   ],
+  "labels.restart": [
+    {
+      "type": 0,
+      "value": "重启"
+    }
+  ],
+  "labels.sagemath_worksheet": [
+    {
+      "type": 0,
+      "value": "SageMath工作表"
+    }
+  ],
   "labels.save": [
     {
       "type": 0,
@@ -1717,6 +1927,18 @@
     {
       "type": 0,
       "value": "上传"
+    }
+  ],
+  "labels.validate": [
+    {
+      "type": 0,
+      "value": "验证"
+    }
+  ],
+  "labels.word_count": [
+    {
+      "type": 0,
+      "value": "字数统计"
     }
   ],
   "labels.zoom_in": [
@@ -1831,6 +2053,68 @@
     {
       "type": 0,
       "value": "查看"
+    }
+  ],
+  "new.file-type-page.header.description": [
+    {
+      "type": 0,
+      "value": "您想创建什么？文档可以由多人同时编辑，保留完整的"
+    },
+    {
+      "children": [
+        {
+          "type": 0,
+          "value": "时间旅行历史"
+        }
+      ],
+      "type": 8,
+      "value": "A"
+    },
+    {
+      "type": 0,
+      "value": "编辑记录，并支持代码评估。"
+    }
+  ],
+  "new.file-type-page.header.intro": [
+    {
+      "type": 0,
+      "value": "命名你的文件、文件夹或粘贴链接。以 / 结尾来创建文件夹。"
+    }
+  ],
+  "new.file-type-selector.folder.tooltip": [
+    {
+      "type": 0,
+      "value": "创建一个文件夹（子目录）来存储和组织你的文件。CoCalc 提供了一个功能齐全的文件系统。你也可以在上面的输入框中输入一个以正斜杠 / 结尾的路径并按回车。"
+    }
+  ],
+  "new.file-type-selector.latex.tooltip": [
+    {
+      "type": 0,
+      "value": "创建一篇包含复杂数学公式并能运行Python、R和Sage代码的专业质量技术论文"
+    }
+  ],
+  "new.file-type-selector.linux.tooltip": [
+    {
+      "type": 0,
+      "value": "创建命令行Linux终端。CoCalc包含完整的Linux环境。运行命令行软件、vim、emacs等。"
+    }
+  ],
+  "new.file-type-selector.markdown.tooltip": [
+    {
+      "type": 0,
+      "value": "创建一个由markdown和Jupyter代码支持的丰富可编辑文本文档，其中包含数学公式、列表、标题、图像和运行代码。"
+    }
+  ],
+  "new.file-type-selector.sagews.tooltip": [
+    {
+      "type": 0,
+      "value": "创建一个交互式工作表来使用SageMath数学软件、Python、R和许多其他系统。进行复杂的数学运算、绘制图表、计算积分、处理矩阵等。"
+    }
+  ],
+  "new.file-type-selector.x11.tooltip": [
+    {
+      "type": 0,
+      "value": "创建一个用于运行图形应用程序的X11桌面。CoCalc允许您在浏览器中协作运行任何图形化的Linux应用程序。"
     }
   ],
   "page.flyouts.licenses.upgrades_explanation": [

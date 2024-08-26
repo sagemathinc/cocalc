@@ -1,24 +1,24 @@
-import { editor, labels, menu } from "./common";
+import { editor, jupyter, labels, menu } from "./common";
+import { IntlMessage } from "./types";
+
+export type Data = { [key in string]: IntlMessage };
 
 describe("i18n", () => {
-  test("comon", () => {
-    for (const k in labels) {
-      const v = labels[k];
-      expect(v.id.startsWith("labels.")).toBe(true);
-    }
-  });
+  const tests: { data: Data; prefix: string }[] = [
+    { data: labels, prefix: "labels." },
+    { data: menu, prefix: "menu." },
+    { data: editor, prefix: "editor." },
+    { data: jupyter.editor, prefix: "jupyter.editor." },
+    { data: jupyter.commands, prefix: "jupyter.commands." },
+  ] as const;
 
-  test("menus", () => {
-    for (const k in menu) {
-      const v = menu[k];
-      expect(v.id.startsWith("menu.")).toBe(true);
-    }
-  });
-
-  test("editor", () => {
-    for (const k in editor) {
-      const v = editor[k];
-      expect(v.id.startsWith("editor.")).toBe(true);
-    }
+  tests.forEach(({ data, prefix }) => {
+    expect(prefix.endsWith(".")).toBe(true);
+    test(`${prefix} should have correct id prefix`, () => {
+      for (const k in data) {
+        const v = data[k];
+        expect(v.id.startsWith(prefix)).toBe(true);
+      }
+    });
   });
 });

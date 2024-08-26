@@ -620,10 +620,7 @@ addCommands({
 
   word_count: {
     group: "get-info",
-    label: defineMessage({
-      id: "command.generic.word_count.label",
-      defaultMessage: "Word Count",
-    }),
+    label: labels.word_count,
     title: defineMessage({
       id: "command.generic.word_count.title",
       defaultMessage:
@@ -1085,7 +1082,7 @@ addCommands({
             })}
           </div>
         ),
-        cancelText: intl.formatMessage(labels.button_cancel),
+        cancelText: intl.formatMessage(labels.cancel),
         okText: intl.formatMessage({
           id: "commands.generic.toggle_button_bar.confirm.ok",
           defaultMessage: "Hide Menu Toolbar",

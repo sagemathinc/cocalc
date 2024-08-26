@@ -265,10 +265,12 @@ export const AccountPage: React.FC = () => {
 
   function renderI18N(): JSX.Element | null {
     if (
+      i18n_enabled == null ||
       i18n_enabled.isEmpty() ||
       (i18n_enabled.size === 1 && i18n_enabled.includes("en"))
-    )
+    ) {
       return null;
+    }
 
     const i18n: Locale = getLocale(other_settings);
 

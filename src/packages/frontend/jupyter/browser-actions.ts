@@ -558,7 +558,7 @@ export class JupyterActions extends JupyterActions0 {
         title: "Close this file and halt the kernel",
         body: intl.formatMessage(jupyter.editor.close_and_halt_body),
         choices: [
-          { title: intl.formatMessage(labels.button_cancel) },
+          { title: intl.formatMessage(labels.cancel) },
           {
             title: cah,
             style: "danger",
@@ -687,7 +687,7 @@ export class JupyterActions extends JupyterActions0 {
       ),
       body: intl.formatMessage(jupyter.editor.restart_and_run_all_no_halt_body),
       choices: [
-        { title: intl.formatMessage(labels.button_cancel) },
+        { title: intl.formatMessage(labels.cancel) },
         {
           title: rara,
           style: "danger",
@@ -711,7 +711,7 @@ export class JupyterActions extends JupyterActions0 {
       title: intl.formatMessage(jupyter.editor.restart_and_run_all_title),
       body: intl.formatMessage(jupyter.editor.restart_and_run_all_body),
       choices: [
-        { title: intl.formatMessage(labels.button_cancel) },
+        { title: intl.formatMessage(labels.cancel) },
         {
           title: STOP,
           style: "danger",

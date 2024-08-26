@@ -380,8 +380,10 @@ export default function NewFilePage(props: Props) {
               fontSize: "16px",
             }}
           >
-            Name your file, folder or paste in a link. End name with / to make a
-            folder.
+            <FormattedMessage
+              id="new.file-type-page.header.intro"
+              defaultMessage="Name your file, folder or paste in a link. End name with / to make a folder."
+            />
           </Paragraph>
           <div
             style={{
@@ -434,12 +436,17 @@ export default function NewFilePage(props: Props) {
               marginTop: "15px",
             }}
           >
-            What would you like to create? Documents can be simultaneously
-            edited by multiple people, maintain a full{" "}
-            <A href="https://doc.cocalc.com/time-travel.html">
-              TimeTravel history
-            </A>{" "}
-            of edits, and support evaluation of code.
+            <FormattedMessage
+              id="new.file-type-page.header.description"
+              defaultMessage={
+                "What would you like to create? Documents can be simultaneously edited by multiple people, maintain a full <A>TimeTravel history</A> of edits, and support evaluation of code."
+              }
+              values={{
+                A: (ch) => (
+                  <A href="https://doc.cocalc.com/time-travel.html">{ch}</A>
+                ),
+              }}
+            />
           </Paragraph>
           <FileTypeSelector
             create_file={submit}
