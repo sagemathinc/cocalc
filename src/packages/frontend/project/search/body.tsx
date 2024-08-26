@@ -13,6 +13,7 @@ be in a single namespace somehow...!
 import { Button, Card, Col, Input, Row, Space, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
 
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -47,10 +48,10 @@ const RESULTS_WELL_STYLE: React.CSSProperties = {
 } as const;
 
 export const ProjectSearchBody: React.FC<{
-  project_id: string;
   mode: "project" | "flyout";
   wrap?: Function;
-}> = ({ project_id, mode = "project", wrap }) => {
+}> = ({ mode = "project", wrap }) => {
+  const { project_id } = useProjectContext();
   const subdirectories = useTypedRedux({ project_id }, "subdirectories");
   const case_sensitive = useTypedRedux({ project_id }, "case_sensitive");
   const hidden_files = useTypedRedux({ project_id }, "hidden_files");
