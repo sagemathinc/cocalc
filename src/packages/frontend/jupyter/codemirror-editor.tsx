@@ -644,13 +644,6 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       options0.extraKeys["Ctrl-Enter"] = () => {};
       options0.extraKeys["Alt-Enter"] = () => {};
       options0.extraKeys["Cmd-Enter"] = () => {};
-      /*
-      Disabled for now since fold state isn't preserved.
-      if (options0.foldGutter) {
-        options0.extraKeys["Ctrl-Q"] = cm => cm.foldCodeSelectionAware();
-        options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
-      }
-      */
     } else {
       options0.readOnly = true;
     }

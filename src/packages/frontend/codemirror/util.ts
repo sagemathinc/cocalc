@@ -2,6 +2,10 @@ import { set, get, del } from "@cocalc/frontend/misc/local-storage-typed";
 import { isEqual } from "lodash";
 
 export function getFoldedLines(cm): number[] {
+  if (cm.foldCode == null) {
+    // not enabled
+    return [];
+  }
   return cm
     .getAllMarks()
     .filter((mark) => mark.__isFold)
@@ -9,6 +13,10 @@ export function getFoldedLines(cm): number[] {
 }
 
 export function setFoldedLines(cm, lines: number[]) {
+  if (cm.foldCode == null) {
+    // not enabled
+    return;
+  }
   lines.reverse();
   for (const n of lines) {
     cm.foldCode(n);
