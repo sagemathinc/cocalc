@@ -54,6 +54,12 @@ export function loadLocaleMessages(locale: Locale): Promise<Messages> {
         return import("@cocalc/frontend/i18n/zh_CN.compiled.json");
       case "es":
         return import("@cocalc/frontend/i18n/es_ES.compiled.json");
+      case "fr":
+        return import("@cocalc/frontend/i18n/fr_FR.compiled.json");
+      case "it":
+        return import("@cocalc/frontend/i18n/it_IT.compiled.json");
+      case "ru":
+        return import("@cocalc/frontend/i18n/ru_RU.compiled.json");
       default:
         unreachable(locale);
         throw new Error(`Unknown locale '${locale}.`);
@@ -118,6 +124,33 @@ export const LOCALIZATIONS: {
     trans: defineMessage({
       id: "i18n.localization.lang.chinese",
       defaultMessage: "Chinese",
+    }),
+  },
+  ru: {
+    name: "Russian",
+    flag: "🇷🇺",
+    native: "Русский",
+    trans: defineMessage({
+      id: "i18n.localization.lang.russian",
+      defaultMessage: "Russian",
+    }),
+  },
+  fr: {
+    name: "French",
+    flag: "🇫🇷",
+    native: "Français",
+    trans: defineMessage({
+      id: "i18n.localization.lang.french",
+      defaultMessage: "French",
+    }),
+  },
+  it: {
+    name: "Italian",
+    flag: "🇮🇹",
+    native: "Italiano",
+    trans: defineMessage({
+      id: "i18n.localization.lang.italian",
+      defaultMessage: "Italian",
     }),
   },
 } as const;

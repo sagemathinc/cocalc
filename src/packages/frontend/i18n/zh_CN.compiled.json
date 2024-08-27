@@ -949,10 +949,28 @@
       "value": "英语"
     }
   ],
+  "i18n.localization.lang.french": [
+    {
+      "type": 0,
+      "value": "法语"
+    }
+  ],
   "i18n.localization.lang.german": [
     {
       "type": 0,
       "value": "德语"
+    }
+  ],
+  "i18n.localization.lang.italian": [
+    {
+      "type": 0,
+      "value": "意大利语"
+    }
+  ],
+  "i18n.localization.lang.russian": [
+    {
+      "type": 0,
+      "value": "俄语"
     }
   ],
   "i18n.localization.lang.spanish": [

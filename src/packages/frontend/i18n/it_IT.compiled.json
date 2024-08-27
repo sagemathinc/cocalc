@@ -2,19 +2,19 @@
   "account.account-button.confirm.ok": [
     {
       "type": 0,
-      "value": "Sí, cerrar sesión"
+      "value": "Sì, esci"
     }
   ],
   "account.account-button.confirm.title": [
     {
       "type": 0,
-      "value": "¿Cerrar sesión de tu cuenta?"
+      "value": "Esci dal tuo account?"
     }
   ],
   "account.account_page.translation.info.content": [
     {
       "type": 0,
-      "value": "¡Estamos emocionados de empezar a ofrecer nuestra aplicación en múltiples idiomas! Esto es lo que necesitas saber: "
+      "value": "Siamo entusiasti di iniziare a offrire la nostra applicazione in più lingue! Ecco cosa devi sapere: "
     },
     {
       "children": [
@@ -28,7 +28,7 @@
               "children": [
                 {
                   "type": 0,
-                  "value": "Trabajo en Progreso"
+                  "value": "In Corso"
                 }
               ],
               "type": 8,
@@ -36,7 +36,7 @@
             },
             {
               "type": 0,
-              "value": ": Nuestro esfuerzo de traducción está comenzando. Muchas partes de la aplicación aún no están traducidas."
+              "value": ": Il nostro sforzo di traduzione è appena iniziato. Molte parti dell'applicazione non sono ancora tradotte."
             }
           ],
           "type": 8,
@@ -52,7 +52,7 @@
               "children": [
                 {
                   "type": 0,
-                  "value": "Mejora Gradual"
+                  "value": "Miglioramento Graduale"
                 }
               ],
               "type": 8,
@@ -60,7 +60,7 @@
             },
             {
               "type": 0,
-              "value": ": Estamos trabajando continuamente para ampliar nuestra cobertura de idiomas. Verás más contenido traducido con el tiempo."
+              "value": ": Stiamo lavorando continuamente per espandere la copertura linguistica. Vedrai più contenuti tradotti nel tempo."
             }
           ],
           "type": 8,
@@ -76,7 +76,7 @@
               "children": [
                 {
                   "type": 0,
-                  "value": "Tu Ayuda es Bienvenida"
+                  "value": "Il Tuo Aiuto è Benvenuto"
                 }
               ],
               "type": 8,
@@ -84,7 +84,7 @@
             },
             {
               "type": 0,
-              "value": ": Valoramos la opinión de nuestra comunidad. Si dominas varios idiomas y te gustaría contribuir a nuestros esfuerzos de traducción, ¡nos encantaría saber de ti!"
+              "value": ": Valorizziamo il contributo della nostra comunità. Se parli fluentemente più lingue e vuoi contribuire ai nostri sforzi di traduzione, ci piacerebbe sentirti!"
             }
           ],
           "type": 8,
@@ -100,7 +100,7 @@
               "children": [
                 {
                   "type": 0,
-                  "value": "Contáctanos"
+                  "value": "Contattaci"
                 }
               ],
               "type": 8,
@@ -108,7 +108,7 @@
             },
             {
               "type": 0,
-              "value": ": Para obtener más información sobre cómo contribuir a las traducciones o para informar de cualquier problema, por favor comunícate con nuestro equipo de soporte."
+              "value": ": Per saperne di più su come contribuire alle traduzioni o per segnalare eventuali problemi, contatta il nostro team di supporto."
             }
           ],
           "type": 8,
@@ -124,31 +124,31 @@
     },
     {
       "type": 0,
-      "value": " ¡Gracias por tu paciencia y comprensión mientras trabajamos para hacer nuestra aplicación accesible a una audiencia global!"
+      "value": " Grazie per la tua pazienza e comprensione mentre lavoriamo per rendere la nostra applicazione accessibile a un pubblico globale!"
     }
   ],
   "account.account_page.translation.info.label": [
     {
       "type": 0,
-      "value": "Información de traducción"
+      "value": "Informazioni sulla traduzione..."
     }
   ],
   "account.account_page.translation.info.title": [
     {
       "type": 0,
-      "value": "Información de traducción"
+      "value": "Informazioni sulla traduzione"
     }
   ],
   "account.account_preferences.title": [
     {
       "type": 0,
-      "value": "Preferencias de la cuenta"
+      "value": "Preferenze Account"
     }
   ],
   "account.settings.created.label": [
     {
       "type": 0,
-      "value": "Creado"
+      "value": "Creato"
     }
   ],
   "account.settings.email_address.button_label": [
@@ -158,7 +158,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Regístrate usando una dirección de correo electrónico y una contraseña"
+              "value": "Registrati utilizzando un indirizzo email e una password"
             }
           ]
         },
@@ -166,7 +166,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Cambiar dirección de correo electrónico"
+              "value": "Cambia indirizzo email"
             }
           ]
         },
@@ -174,7 +174,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Establecer dirección de correo electrónico y contraseña"
+              "value": "Imposta indirizzo email e password"
             }
           ]
         }
@@ -186,7 +186,7 @@
   "account.settings.email_address.new_email_address_label": [
     {
       "type": 0,
-      "value": "Nueva dirección de correo electrónico"
+      "value": "Nuovo indirizzo email"
     }
   ],
   "account.settings.email_address.password_label": [
@@ -196,7 +196,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Elige una contraseña"
+              "value": "Scegli una password"
             }
           ]
         },
@@ -204,7 +204,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Contraseña actual"
+              "value": "Password attuale"
             }
           ]
         }
@@ -216,13 +216,13 @@
   "account.settings.unlisted.label": [
     {
       "type": 0,
-      "value": "No listada: solo se te puede encontrar con una coincidencia exacta de dirección de correo electrónico"
+      "value": "Non in elenco: puoi essere trovato solo con una corrispondenza esatta dell'indirizzo email"
     }
   ],
   "account.settings.username.info": [
     {
       "type": 0,
-      "value": "Configurar un nombre de usuario proporciona URL's opcionales más bonitas para documentos públicos compartidos. Tu nombre de usuario puede tener entre 1 y 39 caracteres, contener letras mayúsculas y minúsculas, números y guiones. "
+      "value": "Impostare un nome utente fornisce URL opzionali più gradevoli per documenti pubblici condivisi. Il tuo nome utente può essere lungo tra 1 e 39 caratteri, contenere lettere maiuscole e minuscole, numeri e trattini. "
     },
     {
       "type": 1,
@@ -230,19 +230,19 @@
     },
     {
       "type": 0,
-      "value": " ADVERTENCIA: Si cambias tu nombre de usuario, los enlaces existentes que usen el nombre de usuario anterior ya no funcionarán (no se implementan redirecciones automáticas), así que cambia con precaución."
+      "value": " AVVERTENZA: Se cambi il tuo nome utente, i collegamenti esistenti che utilizzano il nome utente precedente non funzioneranno più (i reindirizzamenti automatici non sono implementati), quindi cambia con cautela."
     }
   ],
   "account.settings.username.label": [
     {
       "type": 0,
-      "value": "Nombre de usuario (opcional)"
+      "value": "Nome utente (opzionale)"
     }
   ],
   "account.sign-out.button.ok": [
     {
       "type": 0,
-      "value": "Sí, cerrar sesión"
+      "value": "Sì, esci"
     },
     {
       "options": {
@@ -254,7 +254,7 @@
           "value": [
             {
               "type": 0,
-              "value": " en todas partes"
+              "value": " ovunque"
             }
           ]
         }
@@ -266,7 +266,7 @@
   "account.sign-out.button.title": [
     {
       "type": 0,
-      "value": "¿Estás seguro de que quieres cerrar la sesión de "
+      "value": "Sei sicuro di voler disconnettere "
     },
     {
       "type": 1,
@@ -282,7 +282,7 @@
           "value": [
             {
               "type": 0,
-              "value": "en este navegador web?"
+              "value": "da questo browser web?"
             }
           ]
         },
@@ -290,7 +290,7 @@
           "value": [
             {
               "type": 0,
-              "value": "en todos los navegadores web? Cada navegador web tendrá que volver a autenticarse antes de usar esta cuenta nuevamente."
+              "value": "da tutti i browser web? Ogni browser web dovrà riautenticarsi prima di utilizzare nuovamente questo account."
             }
           ]
         }
@@ -312,7 +312,7 @@
           "value": [
             {
               "type": 0,
-              "value": "¡Todo lo que hayas hecho usando esta CUENTA TEMPORAL se eliminará inmediatamente! Si deseas guardar tu trabajo en una nueva cuenta, haz clic en cancelar y regístrate a continuación."
+              "value": "Tutto ciò che hai fatto usando questo ACCOUNT TEMPORANEO sarà immediatamente cancellato! Se desideri salvare il tuo lavoro su un nuovo account, clicca su annulla e registrati qui sotto."
             }
           ]
         }
@@ -324,13 +324,13 @@
   "account.sign_out.body.sign_in": [
     {
       "type": 0,
-      "value": "Inicie sesión en su cuenta"
+      "value": "Accedi al tuo account..."
     }
   ],
   "account.sign_out.body.sign_out": [
     {
       "type": 0,
-      "value": "Cerrar sesión"
+      "value": "Esci"
     },
     {
       "options": {
@@ -342,7 +342,7 @@
           "value": [
             {
               "type": 0,
-              "value": " en todas partes"
+              "value": " ovunque"
             }
           ]
         }
@@ -358,13 +358,13 @@
   "ai-generate-document.loading_kernels.error_message": [
     {
       "type": 0,
-      "value": "No se pueden cargar los núcleos de Jupyter. Asegúrese de que el proyecto esté en ejecución y Jupyter esté instalado."
+      "value": "Impossibile caricare i kernel Jupyter. Assicurati che il progetto sia in esecuzione e che Jupyter sia installato."
     }
   ],
   "ai-generate-document.modal.title": [
     {
       "type": 0,
-      "value": "Generar un documento "
+      "value": "Genera un documento "
     },
     {
       "type": 1,
@@ -372,13 +372,13 @@
     },
     {
       "type": 0,
-      "value": " usando IA"
+      "value": " utilizzando l'IA"
     }
   ],
   "chat.input.placeholder": [
     {
       "type": 0,
-      "value": "Escribe un nuevo mensaje ("
+      "value": "Digita un nuovo messaggio ("
     },
     {
       "options": {
@@ -390,7 +390,7 @@
           "value": [
             {
               "type": 0,
-              "value": "chatea con AI o "
+              "value": "chatta con l'AI o "
             }
           ]
         }
@@ -400,109 +400,109 @@
     },
     {
       "type": 0,
-      "value": "notifica a un colaborador escribiendo @)..."
+      "value": "notifica un collaboratore digitando @)..."
     }
   ],
   "chatroom.chat_input.preview_button.label": [
     {
       "type": 0,
-      "value": "Vista previa"
+      "value": "Anteprima"
     }
   ],
   "chatroom.chat_input.send_button.label": [
     {
       "type": 0,
-      "value": "Enviar"
+      "value": "Invia"
     }
   ],
   "chatroom.chat_input.send_button.tooltip": [
     {
       "type": 0,
-      "value": "Enviar mensaje (shift+enter)"
+      "value": "Invia messaggio (shift+enter)"
     }
   ],
   "chatroom.scroll_bottom.label": [
     {
       "type": 0,
-      "value": "Más reciente"
+      "value": "Più recente"
     }
   ],
   "chatroom.scroll_bottom.tooltip.tip": [
     {
       "type": 0,
-      "value": "Desplaza el chat hacia abajo mostrando los mensajes más recientes"
+      "value": "Scorre la chat in fondo mostrando i messaggi più recenti"
     }
   ],
   "chatroom.scroll_bottom.tooltip.title": [
     {
       "type": 0,
-      "value": "Mensajes más recientes"
+      "value": "Messaggi più recenti"
     }
   ],
   "command.format.ai_formula.button": [
     {
       "type": 0,
-      "value": "Fórmula"
+      "value": "Formula"
     }
   ],
   "command.format.ai_formula.label": [
     {
       "type": 0,
-      "value": "Fórmula Generada por IA"
+      "value": "Formula Generata dall'AI"
     }
   ],
   "command.format.ai_formula.title": [
     {
       "type": 0,
-      "value": "Insertar fórmula generada por IA"
+      "value": "Inserisci formula generata dall'IA"
     }
   ],
   "command.format.display_equation.button": [
     {
       "type": 0,
-      "value": "Mostrar"
+      "value": "Visualizza"
     }
   ],
   "command.format.display_equation.label": [
     {
       "type": 0,
-      "value": "Ecuación Mostrada"
+      "value": "Equazione Visualizzata"
     }
   ],
   "command.format.display_equation.title": [
     {
       "type": 0,
-      "value": "Insertar ecuación matemática LaTeX"
+      "value": "Inserisci l'equazione matematica LaTeX da visualizzare"
     }
   ],
   "command.format.equation.button": [
     {
       "type": 0,
-      "value": "Matemáticas"
+      "value": "Matematica"
     }
   ],
   "command.format.equation.label": [
     {
       "type": 0,
-      "value": "Ecuación en línea"
+      "value": "Equazione in linea"
     }
   ],
   "command.format.equation.title": [
     {
       "type": 0,
-      "value": "Insertar ecuación matemática LaTeX en línea"
+      "value": "Inserisci equazione matematica LaTeX inline"
     }
   ],
   "command.generic.build.label": [
     {
       "type": 0,
-      "value": "Compilar"
+      "value": "Costruisci"
     }
   ],
   "command.generic.build.title": [
     {
       "type": 0,
-      "value": "Construir el documento."
+      "value": "Crea il documento."
     },
     {
       "type": 1,
@@ -510,13 +510,13 @@
     },
     {
       "type": 0,
-      "value": "Para habilitar o deshabilitar compilaciones automáticas, haz clic en el botón 'Build on Save' o en la entrada del menú."
+      "value": "Per abilitare o disabilitare le costruzioni automatiche, fai clic sul pulsante o voce di menu 'Build on Save'."
     }
   ],
   "command.generic.build_on_save.label": [
     {
       "type": 0,
-      "value": "Compilar al Guardar "
+      "value": "Compila al Salvataggio "
     },
     {
       "options": {
@@ -524,7 +524,7 @@
           "value": [
             {
               "type": 0,
-              "value": "(Deshabilitado)"
+              "value": "(Disabilitato)"
             }
           ]
         },
@@ -532,7 +532,7 @@
           "value": [
             {
               "type": 0,
-              "value": "(Habilitado)"
+              "value": "(Abilitato)"
             }
           ]
         }
@@ -544,97 +544,97 @@
   "command.generic.build_on_save.title": [
     {
       "type": 0,
-      "value": "Alternar compilación automática al guardar archivo"
+      "value": "Attiva/disattiva la compilazione automatica al salvataggio del file."
     }
   ],
   "command.generic.chatgpt.label": [
     {
       "type": 0,
-      "value": "Asistente de IA"
+      "value": "Assistente AI"
     }
   ],
   "command.generic.chatgpt.title": [
     {
       "type": 0,
-      "value": "Pide ayuda a un Asistente de Inteligencia Artificial (por ejemplo, ChatGPT) sobre lo que estás haciendo."
+      "value": "Chiedi aiuto a un Assistente di Intelligenza Artificiale (ad esempio, ChatGPT) su ciò che stai facendo."
     }
   ],
   "command.generic.close.button": [
     {
       "type": 0,
-      "value": "Cerrar"
+      "value": "Chiudi"
     }
   ],
   "command.generic.close.label": [
     {
       "type": 0,
-      "value": "Cerrar Marco"
+      "value": "Chiudi Finestra"
     }
   ],
   "command.generic.close.title": [
     {
       "type": 0,
-      "value": "Cerrar este marco. Para restaurar el diseño predeterminado, selecciona la entrada del menú de la aplicación 'Default Layout'."
+      "value": "Chiudi questo riquadro. Per ripristinare il layout predefinito, seleziona la voce del menu dell'applicazione 'Default Layout'."
     }
   ],
   "command.generic.decrease_font_size.button": [
     {
       "type": 0,
-      "value": "Más pequeño"
+      "value": "Più piccolo"
     }
   ],
   "command.generic.decrease_font_size.label": [
     {
       "type": 0,
-      "value": "Alejarse"
+      "value": "Riduci Zoom"
     }
   ],
   "command.generic.decrease_font_size.title": [
     {
       "type": 0,
-      "value": "Disminuir Tamaño de Fuente"
+      "value": "Diminuisci Dimensione Font"
     }
   ],
   "command.generic.edit_init_script.label": [
     {
       "type": 0,
-      "value": "Script de Inicialización"
+      "value": "Script di Inizializzazione"
     }
   ],
   "command.generic.edit_init_script.title": [
     {
       "type": 0,
-      "value": "Edite el script de inicialización que se ejecuta cuando esto comienza"
+      "value": "Modifica lo script di inizializzazione che viene eseguito quando questo inizia"
     }
   ],
   "command.generic.force_build.label": [
     {
       "type": 0,
-      "value": "Forzar Compilación"
+      "value": "Forza Build"
     }
   ],
   "command.generic.force_build.title": [
     {
       "type": 0,
-      "value": "Forzar la reconstrucción de todo el proyecto"
+      "value": "Forza ricostruzione intero progetto"
     }
   ],
   "command.generic.increase_font_size.button": [
     {
       "type": 0,
-      "value": "Más grande"
+      "value": "Più grande"
     }
   ],
   "command.generic.increase_font_size.label": [
     {
       "type": 0,
-      "value": "Acercar"
+      "value": "Ingrandisci"
     }
   ],
   "command.generic.increase_font_size.title": [
     {
       "type": 0,
-      "value": "Aumentar tamaño de fuente"
+      "value": "Aumenta Dimensione Font"
     }
   ],
   "command.generic.maximize.label": [
@@ -644,7 +644,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Maximizar Marco"
+              "value": "Ingrandisci finestra"
             }
           ]
         },
@@ -652,7 +652,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Desmaximizar Marco"
+              "value": "Riduci a finestra"
             }
           ]
         }
@@ -664,139 +664,139 @@
   "command.generic.maximize.title": [
     {
       "type": 0,
-      "value": "Alternar si este marco está maximizado o no"
+      "value": "Attiva o disattiva se questo frame è massimizzato"
     }
   ],
   "command.generic.open.label": [
     {
       "type": 0,
-      "value": "Abrir Archivo"
+      "value": "Apri File"
     }
   ],
   "command.generic.open.title": [
     {
       "type": 0,
-      "value": "Abrir un archivo"
+      "value": "Apri un file"
     }
   ],
   "command.generic.open_recent.label": [
     {
       "type": 0,
-      "value": "Abrir Recientes"
+      "value": "Apri recenti"
     }
   ],
   "command.generic.open_recent.title": [
     {
       "type": 0,
-      "value": "Abrir un archivo que se abrió recientemente"
+      "value": "Apri un file aperto di recente"
     }
   ],
   "command.generic.reset_local_view_state.button": [
     {
       "type": 0,
-      "value": "Predeterminado"
+      "value": "Predefinito"
     }
   ],
   "command.generic.reset_local_view_state.label": [
     {
       "type": 0,
-      "value": "Diseño Predeterminado"
+      "value": "Layout predefinito"
     }
   ],
   "command.generic.reset_local_view_state.title": [
     {
       "type": 0,
-      "value": "Restablecer el diseño de todos los marcos a los valores predeterminados"
+      "value": "Reimposta il layout di tutti i frame al predefinito"
     }
   ],
   "command.generic.show_table_of_contents.button": [
     {
       "type": 0,
-      "value": "Contenidos"
+      "value": "Contenuti"
     }
   ],
   "command.generic.show_table_of_contents.title": [
     {
       "type": 0,
-      "value": "Mostrar la Tabla de Contenidos"
+      "value": "Mostra la Tabella dei Contenuti"
     }
   ],
   "command.generic.split_col.label": [
     {
       "type": 0,
-      "value": "Dividir a la derecha"
+      "value": "Dividi a destra"
     }
   ],
   "command.generic.split_row.title": [
     {
       "type": 0,
-      "value": "Dividir el marco horizontalmente en dos filas"
+      "value": "Dividi la cornice orizzontalmente in due righe"
     }
   ],
   "command.generic.stop_build.label": [
     {
       "type": 0,
-      "value": "Detener"
+      "value": "Ferma"
     }
   ],
   "command.generic.stop_build.title": [
     {
       "type": 0,
-      "value": "Detener todos los trabajos en ejecución."
+      "value": "Ferma tutti i lavori in esecuzione."
     }
   ],
   "command.generic.sync.label": [
     {
       "type": 0,
-      "value": "Sincronizar Vistas"
+      "value": "Sincronizza Visualizzazioni"
     }
   ],
   "command.generic.sync.title": [
     {
       "type": 0,
-      "value": "Sincronizar la vista de origen LaTeX con la salida en PDF."
+      "value": "Sincronizza la vista del sorgente LaTeX con l'output PDF"
     }
   ],
   "command.generic.word_count.label": [
     {
       "type": 0,
-      "value": "Conteo de Palabras"
+      "value": "Conteggio Parole"
     }
   ],
   "command.generic.word_count.title": [
     {
       "type": 0,
-      "value": "Mostrar información sobre el número de palabras en este documento"
+      "value": "Mostra informazioni sul numero di parole in questo documento"
     }
   ],
   "command.generic.zoom_page_height.label": [
     {
       "type": 0,
-      "value": "Zoom a la altura"
+      "value": "Zoom all'altezza"
     }
   ],
   "command.generic.zoom_page_height.title": [
     {
       "type": 0,
-      "value": "Zoom a la altura de la página"
+      "value": "Zoom alla altezza della pagina"
     }
   ],
   "command.generic.zoom_page_width.label": [
     {
       "type": 0,
-      "value": "Zoom a Ancho"
+      "value": "Adatta alla Larghezza"
     }
   ],
   "command.generic.zoom_page_width.title": [
     {
       "type": 0,
-      "value": "Ajustar a ancho de página"
+      "value": "Zoom alla larghezza della pagina"
     }
   ],
   "commands.generic.toggle_button_bar.confirm.description": [
     {
       "type": 0,
-      "value": "La barra de menú es una barra personalizable de accesos directos a elementos del menú. "
+      "value": "La barra dei menu è una barra personalizzabile di scorciatoie per gli elementi del menu. "
     },
     {
       "children": [
@@ -808,7 +808,7 @@
           "children": [
             {
               "type": 0,
-              "value": " Todo en la barra de menú está siempre disponible en los menús de arriba. "
+              "value": " Tutto ciò che si trova nella barra dei menu è sempre disponibile nei menu sopra. "
             }
           ],
           "type": 8,
@@ -822,7 +822,7 @@
           "children": [
             {
               "type": 0,
-              "value": " Muestra la barra de menú seleccionando 'Ver → Mostrar barra de menú'. "
+              "value": " Mostra la barra selezionando 'Visualizza → Mostra Barra dei Menu'. "
             }
           ],
           "type": 8,
@@ -836,7 +836,7 @@
           "children": [
             {
               "type": 0,
-              "value": " Alterna los botones haciendo clic en el ícono junto a cualquier elemento de menú de nivel superior. "
+              "value": " Attiva/disattiva i pulsanti cliccando sull'icona accanto a qualsiasi voce di menu di primo livello. "
             }
           ],
           "type": 8,
@@ -850,7 +850,7 @@
           "children": [
             {
               "type": 0,
-              "value": " Oculta solo la barra de menú de este marco: 'Ver → Barra de menú → Eliminar todos los botones'. "
+              "value": " Nascondi solo la barra dei menu di questo frame: 'Visualizza → Barra dei Menu → Rimuovi Tutti i Pulsanti'. "
             }
           ],
           "type": 8,
@@ -868,13 +868,13 @@
   "commands.generic.toggle_button_bar.confirm.ok": [
     {
       "type": 0,
-      "value": "Ocultar Barra de Herramientas del Menú"
+      "value": "Nascondi Menu Toolbar"
     }
   ],
   "commands.generic.toggle_button_bar.confirm.title": [
     {
       "type": 0,
-      "value": "Alternar si la barra de herramientas del menú se muestra o no para todos los editores."
+      "value": "Nascondi Barra degli Strumenti del Menu per Tutti gli Editor"
     }
   ],
   "commands.generic.toggle_button_bar.label": [
@@ -884,7 +884,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Mostrar"
+              "value": "Mostra"
             }
           ]
         },
@@ -892,7 +892,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Ocultar"
+              "value": "Nascondi"
             }
           ]
         }
@@ -902,73 +902,73 @@
     },
     {
       "type": 0,
-      "value": " Menú Barra de herramientas..."
+      "value": " Menu Barra degli strumenti..."
     }
   ],
   "commands.generic.toggle_button_bar.title": [
     {
       "type": 0,
-      "value": "Alternar si la barra de herramientas del menú se muestra o no para todos los editores."
+      "value": "Attiva o disattiva la visualizzazione della barra dei menu per tutti gli editor."
     }
   ],
   "editor.table_of_contents.name": [
     {
       "type": 0,
-      "value": "Tabla de Contenidos"
+      "value": "Indice"
     }
   ],
   "editor.table_of_contents.short": [
     {
       "type": 0,
-      "value": "Contenido"
+      "value": "Contenuto"
     }
   ],
   "editor.terminal.cmd.help.title": [
     {
       "type": 0,
-      "value": "Mostrar documentación para usar el Terminal de Linux en CoCalc"
+      "value": "Mostra la documentazione per l'utilizzo del Terminale Linux in CoCalc."
     }
   ],
   "frame_editors.frame_tree.title_bar.close": [
     {
       "type": 0,
-      "value": "Cerrar este marco"
+      "value": "Chiudi questo frame"
     }
   ],
   "frame_editors.frame_tree.title_bar.maximize": [
     {
       "type": 0,
-      "value": "Mostrar solo este marco"
+      "value": "Mostra solo questo frame"
     }
   ],
   "frame_editors.frame_tree.title_bar.minimize": [
     {
       "type": 0,
-      "value": "Mostrar todos los marcos"
+      "value": "Mostra tutti i frame"
     }
   ],
   "i18n.localization.lang.chinese": [
     {
       "type": 0,
-      "value": "Chino"
+      "value": "Cinese"
     }
   ],
   "i18n.localization.lang.english": [
     {
       "type": 0,
-      "value": "Inglés"
+      "value": "Inglese"
     }
   ],
   "i18n.localization.lang.french": [
     {
       "type": 0,
-      "value": "Francés"
+      "value": "Francese"
     }
   ],
   "i18n.localization.lang.german": [
     {
       "type": 0,
-      "value": "Alemán"
+      "value": "Tedesco"
     }
   ],
   "i18n.localization.lang.italian": [
@@ -980,91 +980,91 @@
   "i18n.localization.lang.russian": [
     {
       "type": 0,
-      "value": "Ruso"
+      "value": "Russo"
     }
   ],
   "i18n.localization.lang.spanish": [
     {
       "type": 0,
-      "value": "Español"
+      "value": "Spagnolo"
     }
   ],
   "jupyter.commands.cell_toolbar_none": [
     {
       "type": 0,
-      "value": "Sin barra de herramientas de celda"
+      "value": "Nessuna barra degli strumenti delle celle"
     }
   ],
   "jupyter.commands.cell_toolbar_none_menu": [
     {
       "type": 0,
-      "value": "Ninguno"
+      "value": "Nessuno"
     }
   ],
   "jupyter.commands.change_kernel": [
     {
       "type": 0,
-      "value": "Cambiar Kernel..."
+      "value": "Cambia Kernel..."
     }
   ],
   "jupyter.commands.change_kernel_title": [
     {
       "type": 0,
-      "value": "Seleccionar de cualquiera de los kernels disponibles"
+      "value": "Seleziona da uno dei kernel disponibili."
     }
   ],
   "jupyter.commands.close_and_halt.menu": [
     {
       "type": 0,
-      "value": "Cerrar y detener"
+      "value": "Chiudi e arresta"
     }
   ],
   "jupyter.commands.enter_command_mode": [
     {
       "type": 0,
-      "value": "Entrar en modo comando"
+      "value": "Entra in modalità comando"
     }
   ],
   "jupyter.commands.enter_edit_mode": [
     {
       "type": 0,
-      "value": "Entrar en modo de edición"
+      "value": "Entra in modalità di modifica"
     }
   ],
   "jupyter.commands.halt_kernel_menu.menu": [
     {
       "type": 0,
-      "value": "Detener kernel..."
+      "value": "Arresta kernel..."
     }
   ],
   "jupyter.commands.insert_cell_above": [
     {
       "type": 0,
-      "value": "Insertar Celda Arriba"
+      "value": "Inserisci Cella Sopra"
     }
   ],
   "jupyter.commands.insert_cell_below": [
     {
       "type": 0,
-      "value": "Insertar celda abajo"
+      "value": "Inserisci cella sotto"
     }
   ],
   "jupyter.commands.interrupt_kernel": [
     {
       "type": 0,
-      "value": "Interrumpir Kernel (Detener)"
+      "value": "Interrompi Kernel (Ferma)"
     }
   ],
   "jupyter.commands.refresh_kernels": [
     {
       "type": 0,
-      "value": "Actualizar lista de núcleos"
+      "value": "Aggiorna elenco dei Kernel"
     }
   ],
   "jupyter.commands.refresh_kernels.tooltip": [
     {
       "type": 0,
-      "value": "Recargar la lista de todos los Kernels disponibles para ejecutar Jupyter Notebooks"
+      "value": "Ricarica l'elenco di tutti i Kernel disponibili per eseguire Jupyter Notebooks"
     }
   ],
   "jupyter.commands.restart_kernel.button": [
@@ -1076,397 +1076,397 @@
   "jupyter.commands.restart_kernel.label": [
     {
       "type": 0,
-      "value": "Reiniciar Kernel..."
+      "value": "Riavvia Kernel..."
     }
   ],
   "jupyter.commands.restart_kernel_clear_noconf.menu": [
     {
       "type": 0,
-      "value": "Reiniciar kernel y borrar salida"
+      "value": "Riavvia kernel e cancella l'output"
     }
   ],
   "jupyter.commands.restart_kernel_clear_output.menu": [
     {
       "type": 0,
-      "value": "Reiniciar el Kernel y Borrar Todos los Resultados..."
+      "value": "Riavvia Kernel e Cancella Tutti gli Output..."
     }
   ],
   "jupyter.commands.restart_kernel_noconf.menu": [
     {
       "type": 0,
-      "value": "Reiniciar kernel"
+      "value": "Riavvia kernel"
     }
   ],
   "jupyter.commands.restart_kernel_run_all_cells": [
     {
       "type": 0,
-      "value": "Reiniciar y Ejecutar Todas las Celdas..."
+      "value": "Riavvia e Esegui Tutte le Celle..."
     }
   ],
   "jupyter.commands.restart_kernel_run_all_cells.button": [
     {
       "type": 0,
-      "value": "Ejecutar todo..."
+      "value": "Esegui tutto..."
     }
   ],
   "jupyter.commands.restart_kernel_run_all_cells_button": [
     {
       "type": 0,
-      "value": "Ejecutar Todo"
+      "value": "Esegui tutto"
     }
   ],
   "jupyter.commands.restart_kernel_run_all_cells_menu": [
     {
       "type": 0,
-      "value": "Ejecutar todo..."
+      "value": "Esegui tutto..."
     }
   ],
   "jupyter.commands.restart_kernel_run_all_cells_noconf": [
     {
       "type": 0,
-      "value": "Reiniciar Núcleo y Ejecutar Todas las Celdas"
+      "value": "Riavvia Kernel ed Esegui Tutte le Celle"
     }
   ],
   "jupyter.commands.restart_kernel_run_all_cells_noconf_button": [
     {
       "type": 0,
-      "value": "Ejecutar Todo"
+      "value": "Esegui tutto"
     }
   ],
   "jupyter.commands.restart_kernel_run_all_cells_without_halting": [
     {
       "type": 0,
-      "value": "Reiniciar y ejecutar todo (no detenerse en errores)..."
+      "value": "Riavvia e Esegui Tutto (non fermarti sugli errori)..."
     }
   ],
   "jupyter.commands.run_all_cells.menu": [
     {
       "type": 0,
-      "value": "Ejecutar todas las celdas"
+      "value": "Esegui tutte le celle"
     }
   ],
   "jupyter.commands.run_all_cells_above.menu": [
     {
       "type": 0,
-      "value": "Ejecutar todo arriba de la celda seleccionada"
+      "value": "Esegui tutto sopra la cella selezionata"
     }
   ],
   "jupyter.commands.run_all_cells_below.menu": [
     {
       "type": 0,
-      "value": "Ejecutar celda seleccionada y todo lo siguiente"
+      "value": "Esegui la cella selezionata e tutte quelle sotto"
     }
   ],
   "jupyter.commands.run_cell": [
     {
       "type": 0,
-      "value": "Ejecutar celdas seleccionadas y no avanzar"
+      "value": "Esegui le celle selezionate senza avanzare"
     }
   ],
   "jupyter.commands.run_cell_and_insert_below": [
     {
       "type": 0,
-      "value": "Ejecutar celdas seleccionadas e insertar abajo"
+      "value": "Esegui celle selezionate e inserisci sotto"
     }
   ],
   "jupyter.commands.run_cell_and_insert_below_title": [
     {
       "type": 0,
-      "value": "Ejecutar todas las celdas seleccionadas actualmente. Insertar una nueva celda después de la última."
+      "value": "Esegui tutte le celle attualmente selezionate. Inserisci una nuova cella dopo l'ultima."
     }
   ],
   "jupyter.commands.run_cell_and_select_next": [
     {
       "type": 0,
-      "value": "Ejecutar celdas seleccionadas"
+      "value": "Esegui celle selezionate"
     }
   ],
   "jupyter.commands.run_cell_title": [
     {
       "type": 0,
-      "value": "Ejecutar todas las celdas que están actualmente seleccionadas. No mover la selección."
+      "value": "Esegui tutte le celle attualmente selezionate. Non spostare la selezione."
     }
   ],
   "jupyter.commands.run_current_cell": [
     {
       "type": 0,
-      "value": "Ejecutar Celda Actual"
+      "value": "Esegui la cella corrente"
     }
   ],
   "jupyter.commands.run_current_cell.label": [
     {
       "type": 0,
-      "value": "Ejecutar Celda Actual"
+      "value": "Esegui la cella corrente"
     }
   ],
   "jupyter.commands.shutdown_kernel.body": [
     {
       "type": 0,
-      "value": "¿Quieres apagar el kernel actual? Se perderán todos los valores de las variables."
+      "value": "Vuoi arrestare il kernel corrente? Tutti i valori delle variabili andranno persi."
     }
   ],
   "jupyter.commands.shutdown_kernel.button": [
     {
       "type": 0,
-      "value": "Apagado"
+      "value": "Spento"
     }
   ],
   "jupyter.commands.shutdown_kernel.label.continue": [
     {
       "type": 0,
-      "value": "Seguir ejecutando"
+      "value": "Continua a eseguire"
     }
   ],
   "jupyter.commands.shutdown_kernel.label.shutdown": [
     {
       "type": 0,
-      "value": "Apagar"
+      "value": "Arresto"
     }
   ],
   "jupyter.commands.shutdown_kernel.menu": [
     {
       "type": 0,
-      "value": "Apagar Kernel..."
+      "value": "Arresta Kernel..."
     }
   ],
   "jupyter.commands.shutdown_kernel.title": [
     {
       "type": 0,
-      "value": "¿Apagar kernel?"
+      "value": "Arrestare il kernel?"
     }
   ],
   "jupyter.commands.toggle_all_line_numbers": [
     {
       "type": 0,
-      "value": "Alternar Números de Línea de Todas las Celdas"
+      "value": "Attiva/Disattiva Numeri di Riga di Tutte le Celle"
     }
   ],
   "jupyter.commands.toggle_cell_line_numbers": [
     {
       "type": 0,
-      "value": "Alternar Números de Línea de las Celdas Seleccionadas"
+      "value": "Attiva/Disattiva Numeri di Riga delle Celle Selezionate"
     }
   ],
   "jupyter.commands.validate.body": [
     {
       "type": 0,
-      "value": "La validación del cuaderno reiniciará el kernel y ejecutará todas las celdas en orden, incluidas aquellas con errores. Esto asegurará que toda la salida sea exactamente el resultado de ejecutar todas las celdas en orden."
+      "value": "La convalida del notebook riavvierà il kernel ed eseguirà tutte le celle in ordine, anche quelle con errori. Questo garantirà che tutti i risultati siano esattamente quelli derivanti dall'esecuzione di tutte le celle in ordine."
     }
   ],
   "jupyter.commands.validate.label": [
     {
       "type": 0,
-      "value": "Validar"
+      "value": "Convalida"
     }
   ],
   "jupyter.commands.validate.title": [
     {
       "type": 0,
-      "value": "¿Validar cuaderno?"
+      "value": "Convalidare il notebook?"
     }
   ],
   "jupyter.commands.validate.tooltip": [
     {
       "type": 0,
-      "value": "Reinicia Jupyter Notebook y ejecuta todas las celdas para validar que funcione"
+      "value": "Riavvia Jupyter Notebook ed esegui tutte le celle per verificare che funzioni."
     }
   ],
   "jupyter.editor.browser_actions.close_and_halt.body": [
     {
       "type": 0,
-      "value": "¿Está seguro de que desea cerrar este archivo y detener el kernel? Todo el estado de las variables se perderá."
+      "value": "Sei sicuro di voler chiudere questo file e fermare il kernel? Tutto lo stato delle variabili andrà perso."
     }
   ],
   "jupyter.editor.browser_actions.close_and_halt.label": [
     {
       "type": 0,
-      "value": "Cerrar y detener"
+      "value": "Chiudi e arresta"
     }
   ],
   "jupyter.editor.browser_actions.trust.body": [
     {
       "type": 0,
-      "value": "Un cuaderno Jupyter de confianza puede ejecutar código Javascript oculto o llevar a cabo otros ataques a través de HTML malicioso. Seleccionar confianza abajo, o evaluar cualquier celda, deshabilitará el código que elimina HTML peligroso de este cuaderno. (NOTA: CoCalc NO implementa el modelo de seguridad oficial de Jupyter para cuadernos de confianza; en particular, asumimos que confías en los colaboradores de tus proyectos en CoCalc. Además, en muchos casos todavía no ejecutamos Javascript en HTML, incluso si el cuaderno es de confianza.)"
+      "value": "Un notebook Jupyter fidato può eseguire codice Javascript nascosto o effettuare altri attacchi tramite HTML dannoso. Selezionando fiducia qui sotto, o valutando qualsiasi cella, verrà disabilitato il codice che rimuove l'HTML pericoloso da questo notebook. (NOTA: CoCalc NON implementa il modello di sicurezza ufficiale di Jupyter per i notebook fidati; in particolare, assumiamo che tu ti fidi dei collaboratori sui tuoi progetti CoCalc. Inoltre, in molti casi non eseguiamo comunque Javascript in HTML, anche se il notebook è fidato.)"
     }
   ],
   "jupyter.editor.browser_actions.trust.title": [
     {
       "type": 0,
-      "value": "¿Confiar en este cuaderno?"
+      "value": "Si fida di questo Notebook?"
     }
   ],
   "jupyter.editor.confirm_halt_kernel.body": [
     {
       "type": 0,
-      "value": "¿Quieres matar el kernel en ejecución? Se perderán todos los valores de las variables. El kernel solo se iniciará si intentas evaluar algún código."
+      "value": "Vuoi terminare il kernel in esecuzione? Tutti i valori delle variabili andranno persi. Il kernel si avvierà solo se provi a valutare del codice."
     }
   ],
   "jupyter.editor.confirm_halt_kernel.continue": [
     {
       "type": 0,
-      "value": "Seguir ejecutando"
+      "value": "Continua a eseguire"
     }
   ],
   "jupyter.editor.confirm_halt_kernel.halt": [
     {
       "type": 0,
-      "value": "Detener"
+      "value": "Arresta"
     }
   ],
   "jupyter.editor.confirm_halt_kernel.title": [
     {
       "type": 0,
-      "value": "¿Detener el kernel?"
+      "value": "Interrompere il kernel?"
     }
   ],
   "jupyter.editor.confirm_restart.body": [
     {
       "type": 0,
-      "value": "¿Quieres reiniciar el kernel? Se perderán todos los valores de las variables."
+      "value": "Vuoi riavviare il kernel? Tutti i valori delle variabili andranno persi."
     }
   ],
   "jupyter.editor.confirm_restart.continue_label": [
     {
       "type": 0,
-      "value": "Seguir ejecutando"
+      "value": "Continua a eseguire"
     }
   ],
   "jupyter.editor.confirm_restart.label": [
     {
       "type": 0,
-      "value": "Reiniciar"
+      "value": "Riavvia"
     }
   ],
   "jupyter.editor.confirm_restart.title": [
     {
       "type": 0,
-      "value": "¿Reiniciar el núcleo?"
+      "value": "Riavviare il kernel?"
     }
   ],
   "jupyter.editor.console_label": [
     {
       "type": 0,
-      "value": "Consola Jupyter"
+      "value": "Console Jupyter"
     }
   ],
   "jupyter.editor.console_title": [
     {
       "type": 0,
-      "value": "Abre la consola de línea de comandos de Jupyter conectada al kernel en ejecución"
+      "value": "Apri la console della linea di comando Jupyter collegata al kernel in esecuzione."
     }
   ],
   "jupyter.editor.restart_and_run_all.body": [
     {
       "type": 0,
-      "value": "¿Estás seguro de que quieres reiniciar el kernel y ejecutar el cuaderno? Todo el estado de las variables y la salida se restablecerán, aunque la salida pasada está disponible en TimeTravel."
+      "value": "Sei sicuro di voler riavviare il kernel ed eseguire il notebook? Tutto lo stato delle variabili e l'output verranno reimpostati, anche se l'output passato è disponibile in TimeTravel."
     }
   ],
   "jupyter.editor.restart_and_run_all.nostop": [
     {
       "type": 0,
-      "value": "Ejecutar todo (no detener en errores)"
+      "value": "Esegui tutto (non fermarti sugli errori)"
     }
   ],
   "jupyter.editor.restart_and_run_all.stop": [
     {
       "type": 0,
-      "value": "Ejecutar todo (detener en el primer error)"
+      "value": "Esegui tutto (ferma al primo errore)"
     }
   ],
   "jupyter.editor.restart_and_run_all.title": [
     {
       "type": 0,
-      "value": "Reiniciar kernel y ejecutar cuaderno"
+      "value": "Riavvia kernel e esegui notebook"
     }
   ],
   "jupyter.editor.restart_and_run_all_no_halt.body": [
     {
       "type": 0,
-      "value": "¿Está seguro de que desea reiniciar el kernel y volver a ejecutar todas las celdas? Todo el estado de las variables y la salida se restablecerán, aunque la salida pasada está disponible en TimeTravel."
+      "value": "Sei sicuro di voler riavviare il kernel e rieseguire tutte le celle? Tutto lo stato delle variabili e l'output verranno reimpostati, anche se l'output passato è disponibile in TimeTravel."
     }
   ],
   "jupyter.editor.restart_and_run_all_no_halt.label": [
     {
       "type": 0,
-      "value": "Reiniciar y ejecutar todo"
+      "value": "Riavvia e esegui tutto"
     }
   ],
   "jupyter.editor.restart_and_run_all_no_halt.title": [
     {
       "type": 0,
-      "value": "Reiniciar el núcleo y ejecutar todas las celdas (no detenerse en errores)"
+      "value": "Riavvia il kernel ed esegui tutte le celle (non fermarti sugli errori)"
     }
   ],
   "jupyter.editor.run_all_cells.label": [
     {
       "type": 0,
-      "value": "Ejecutar todas las celdas"
+      "value": "Esegui tutte le celle"
     }
   ],
   "jupyter.editor.run_selected_cells.label": [
     {
       "type": 0,
-      "value": "Ejecutar celdas seleccionadas"
+      "value": "Esegui celle selezionate"
     }
   ],
   "jupyter.llm.cell-tool.assistant.title": [
     {
       "type": 0,
-      "value": "Usar asistente de IA en esta celda"
+      "value": "Usa l'assistente AI su questa cella"
     }
   ],
   "jupyter.llm.cell-tool.explanation.bugfix": [
     {
       "type": 0,
-      "value": "Explica el problema del código en la celda y el modelo de lenguaje seleccionado intentará solucionarlo. Normalmente, te dirá si encontró un problema y te lo explicará."
+      "value": "Spiega il problema del codice nella cella e il modello linguistico selezionato tenterà di risolverlo. Solitamente, ti dirà se ha trovato un problema e te lo spiegherà."
     }
   ],
   "jupyter.llm.cell-tool.explanation.document": [
     {
       "type": 0,
-      "value": "El modelo de lenguaje añadirá líneas de documentación al código en la celda"
+      "value": "Il modello linguistico aggiungerà linee di documentazione al codice nella cella."
     }
   ],
   "jupyter.llm.cell-tool.explanation.explain": [
     {
       "type": 0,
-      "value": "El código en la celda se enviará al modelo de lenguaje seleccionado. Te explicará el código en lenguaje sencillo."
+      "value": "Il codice nella cella verrà inviato al modello linguistico selezionato. Ti spiegherà il codice in linguaggio semplice."
     }
   ],
   "jupyter.llm.cell-tool.explanation.improve": [
     {
       "type": 0,
-      "value": "El modelo de lenguaje seleccionado analizará el código y sugerirá mejoras. Cuidado, los resultados no están garantizados de ser correctos, ni podrían causar problemas sutiles – revíselos cuidadosamente."
+      "value": "Il modello linguistico selezionato analizzerà il codice e suggerirà miglioramenti. Attenzione, i risultati non sono garantiti corretti e potrebbero causare problemi sottili – rivederli con attenzione."
     }
   ],
   "jupyter.llm.cell-tool.explanation.modify": [
     {
       "type": 0,
-      "value": "El modelo de lenguaje modificará el código según las instrucciones dadas. Elige una de las plantillas y modifícala, ¡o crea tus propias instrucciones!"
+      "value": "Il modello linguistico modificherà il codice secondo le istruzioni fornite. Scegli uno dei modelli e modificalo, oppure inventa delle istruzioni tue!"
     }
   ],
   "jupyter.llm.cell-tool.explanation.translate": [
     {
       "type": 0,
-      "value": "El modelo de lenguaje intentará traducir el código en la celda a otro lenguaje de programación. El resultado podría no funcionar en absoluto, pero si estás más familiarizado con el lenguaje de destino seleccionado, ¡podrías encontrarlo más fácil de entender lo que está pasando!"
+      "value": "Il modello linguistico tenterà di tradurre il codice nella cella in un altro linguaggio di programmazione. Il risultato potrebbe non funzionare affatto, ma se hai più familiarità con il linguaggio di destinazione selezionato, potresti trovare più facile capire cosa sta succedendo!"
     }
   ],
   "jupyter.llm.dell-tool.actions.bugfix.descr": [
     {
       "type": 0,
-      "value": "Describe el problema de esa celda para obtener una versión corregida."
+      "value": "Descrivi il problema di quella cella per ottenere una versione corretta del bug."
     }
   ],
   "jupyter.llm.dell-tool.actions.bugfix.label": [
     {
       "type": 0,
-      "value": "Explicar"
+      "value": "Spiega"
     }
   ],
   "jupyter.llm.dell-tool.actions.document.descr": [
     {
       "type": 0,
-      "value": "Añadir documentación"
+      "value": "Aggiungi documentazione"
     }
   ],
   "jupyter.llm.dell-tool.actions.document.label": [
@@ -1478,61 +1478,61 @@
   "jupyter.llm.dell-tool.actions.explain.descr": [
     {
       "type": 0,
-      "value": "Obtén una idea del código en esa celda"
+      "value": "Ottieni informazioni sul codice in quella cella."
     }
   ],
   "jupyter.llm.dell-tool.actions.explain.label": [
     {
       "type": 0,
-      "value": "Explicar"
+      "value": "Spiega"
     }
   ],
   "jupyter.llm.dell-tool.actions.improve.descr": [
     {
       "type": 0,
-      "value": "Mejora el código en esa celda"
+      "value": "Migliora il codice in quella cella"
     }
   ],
   "jupyter.llm.dell-tool.actions.improve.label": [
     {
       "type": 0,
-      "value": "Mejorar"
+      "value": "Migliora"
     }
   ],
   "jupyter.llm.dell-tool.actions.modify.descr": [
     {
       "type": 0,
-      "value": "Modificar el código en la celda"
+      "value": "Modifica il codice nella cella"
     }
   ],
   "jupyter.llm.dell-tool.actions.modify.label": [
     {
       "type": 0,
-      "value": "Modificar"
+      "value": "Modifica"
     }
   ],
   "jupyter.llm.dell-tool.actions.translate.descr": [
     {
       "type": 0,
-      "value": "Traduce el código en esa celda a otro idioma usando IA"
+      "value": "Traduci il codice in quella cella in un'altra lingua usando l'IA."
     }
   ],
   "jupyter.llm.dell-tool.actions.translate.label": [
     {
       "type": 0,
-      "value": "Traducir"
+      "value": "Traduci"
     }
   ],
   "jupyter.run_all_cells.label": [
     {
       "type": 0,
-      "value": "Ejecutar todas las celdas"
+      "value": "Esegui tutte le celle"
     }
   ],
   "jupyter.run_selected_cells.label": [
     {
       "type": 0,
-      "value": "Ejecutar celdas seleccionadas"
+      "value": "Esegui celle selezionate"
     }
   ],
   "jupyter.select_kernel.footer": [
@@ -1548,115 +1548,115 @@
     },
     {
       "type": 0,
-      "value": " Siempre puedes cambiar el núcleo seleccionado más tarde en el menú Núcleo o haciendo clic en el logotipo de estado del núcleo en la parte superior izquierda."
+      "value": " Puoi sempre cambiare il kernel selezionato successivamente nel menu Kernel o cliccando sul logo di stato del kernel in alto a sinistra."
     }
   ],
   "labels.acconut.password": [
     {
       "type": 0,
-      "value": "Contraseña"
+      "value": "Password"
     }
   ],
   "labels.acconut.password.change": [
     {
       "type": 0,
-      "value": "Cambiar Contraseña"
+      "value": "Cambia Password"
     }
   ],
   "labels.acconut.password.forgot": [
     {
       "type": 0,
-      "value": "¿Olvidaste la Contraseña?"
+      "value": "Hai dimenticato la password?"
     }
   ],
   "labels.account": [
     {
       "type": 0,
-      "value": "Cuenta"
+      "value": "Account"
     }
   ],
   "labels.account.first_name": [
     {
       "type": 0,
-      "value": "Nombre"
+      "value": "Nome"
     }
   ],
   "labels.account.language_tooltip": [
     {
       "type": 0,
-      "value": "Cambiar el idioma de la interfaz de usuario"
+      "value": "Cambia la lingua dell'interfaccia utente."
     }
   ],
   "labels.account.last_name": [
     {
       "type": 0,
-      "value": "Apellido"
+      "value": "Cognome"
     }
   ],
   "labels.admin": [
     {
       "type": 0,
-      "value": "Administrador"
+      "value": "Admin"
     }
   ],
   "labels.ai_generate_label": [
     {
       "type": 0,
-      "value": "Ayúdame a escribir..."
+      "value": "Aiutami a scrivere..."
     }
   ],
   "labels.ai_generate_title": [
     {
       "type": 0,
-      "value": "Crear un nuevo archivo con la ayuda de AI"
+      "value": "Crea un nuovo file con l'aiuto dell'AI"
     }
   ],
   "labels.assistant": [
     {
       "type": 0,
-      "value": "Asistente"
+      "value": "Assistente"
     }
   ],
   "labels.button.cancel": [
     {
       "type": 0,
-      "value": "Cancelar"
+      "value": "Annulla"
     }
   ],
   "labels.clear": [
     {
       "type": 0,
-      "value": "Limpiar"
+      "value": "Cancella"
     }
   ],
   "labels.cloud_file_system": [
     {
       "type": 0,
-      "value": "Sistemas de Archivos en la Nube"
+      "value": "Sistemi di File Cloud"
     }
   ],
   "labels.copy": [
     {
       "type": 0,
-      "value": "Copiar"
+      "value": "Copia"
     }
   ],
   "labels.create_project": [
     {
       "type": 0,
-      "value": "Crear Proyecto..."
+      "value": "Crea Progetto..."
     }
   ],
   "labels.cut": [
     {
       "type": 0,
-      "value": "Cortar"
+      "value": "Taglia"
     }
   ],
   "labels.email_address": [
     {
       "type": 0,
-      "value": "Dirección de correo electrónico"
+      "value": "Indirizzo email"
     }
   ],
   "labels.frame-editors.title-bar.save_label": [
@@ -1666,7 +1666,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Público"
+              "value": "Pubblico"
             }
           ]
         },
@@ -1674,7 +1674,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Guardar"
+              "value": "Salva"
             }
           ]
         },
@@ -1682,7 +1682,7 @@
           "value": [
             {
               "type": 0,
-              "value": "Solo lectura"
+              "value": "Sola lettura"
             }
           ]
         }
@@ -1694,7 +1694,7 @@
   "labels.help": [
     {
       "type": 0,
-      "value": "Ayuda"
+      "value": "Aiuto"
     }
   ],
   "labels.latex_document": [
@@ -1706,49 +1706,49 @@
   "labels.licenses": [
     {
       "type": 0,
-      "value": "Licencias"
+      "value": "Licenze"
     }
   ],
   "labels.linux_terminal": [
     {
       "type": 0,
-      "value": "Terminal de Linux"
+      "value": "Terminale Linux"
     }
   ],
   "labels.new.file": [
     {
       "type": 0,
-      "value": "Nuevo"
+      "value": "Nuovo"
     }
   ],
   "labels.notifications": [
     {
       "type": 0,
-      "value": "Notificaciones"
+      "value": "Notifiche"
     }
   ],
   "labels.paste": [
     {
       "type": 0,
-      "value": "Pegar"
+      "value": "Incolla"
     }
   ],
   "labels.preferences": [
     {
       "type": 0,
-      "value": "Preferencias"
+      "value": "Preferenze"
     }
   ],
   "labels.project.settings.restart-project.confirm.explanation": [
     {
       "type": 0,
-      "value": "Reiniciar el servidor del proyecto finalizará todos los procesos en el proyecto, actualizará el código del proyecto y volverá a iniciar el proyecto. Los "
+      "value": "Riavviare il server del progetto terminerà tutti i processi nel progetto, aggiornerà il codice del progetto e riavvierà il progetto. I "
     },
     {
       "children": [
         {
           "type": 0,
-          "value": "servidores de cómputo"
+          "value": "server di calcolo"
         }
       ],
       "type": 8,
@@ -1756,13 +1756,13 @@
     },
     {
       "type": 0,
-      "value": " en ejecución no se verán afectados. Toma unos segundos y puede solucionar algunos problemas si algo no funciona correctamente. No perderá ningún archivo, pero tendrá que reiniciar sus cuadernos y hojas de trabajo."
+      "value": " in esecuzione non sono interessati. Ci vuole qualche secondo e può risolvere alcuni problemi nel caso in cui le cose non funzionino correttamente. Non perderai alcun file, ma dovrai riavviare i tuoi notebook e fogli di lavoro."
     }
   ],
   "labels.project.settings.restart-project.confirm.ok": [
     {
       "type": 0,
-      "value": "Sí, proyecto "
+      "value": "Sì, progetto "
     },
     {
       "type": 1,
@@ -1772,7 +1772,7 @@
   "labels.project.settings.stop-project.label": [
     {
       "type": 0,
-      "value": "Detener"
+      "value": "Stop"
     },
     {
       "options": {
@@ -1780,7 +1780,7 @@
           "value": [
             {
               "type": 0,
-              "value": " Proyecto"
+              "value": " Progetto"
             }
           ]
         },
@@ -1800,199 +1800,199 @@
   "labels.project.settings.stop-project.ok": [
     {
       "type": 0,
-      "value": "Sí, detener proyecto"
+      "value": "Sì, ferma progetto"
     }
   ],
   "labels.projects": [
     {
       "type": 0,
-      "value": "Proyectos"
+      "value": "Progetti"
     }
   ],
   "labels.published_files": [
     {
       "type": 0,
-      "value": "Archivos Publicados"
+      "value": "File Pubblicati"
     }
   ],
   "labels.purchases": [
     {
       "type": 0,
-      "value": "Compras"
+      "value": "Acquisti"
     }
   ],
   "labels.redo": [
     {
       "type": 0,
-      "value": "rehacer"
+      "value": "Ripeti"
     }
   ],
   "labels.reload": [
     {
       "type": 0,
-      "value": "Recargar"
+      "value": "Ricarica"
     }
   ],
   "labels.reload_title": [
     {
       "type": 0,
-      "value": "Recargar este documento"
+      "value": "Ricarica questo documento"
     }
   ],
   "labels.restart": [
     {
       "type": 0,
-      "value": "Reiniciar"
+      "value": "Riavvia"
     }
   ],
   "labels.sagemath_worksheet": [
     {
       "type": 0,
-      "value": "Hoja de trabajo de SageMath"
+      "value": "Foglio di lavoro SageMath"
     }
   ],
   "labels.save": [
     {
       "type": 0,
-      "value": "Guardar"
+      "value": "Salva"
     }
   ],
   "labels.save_title": [
     {
       "type": 0,
-      "value": "Guardar este archivo en el disco"
+      "value": "Salva questo file su disco"
     }
   ],
   "labels.settings": [
     {
       "type": 0,
-      "value": "Configuración"
+      "value": "Impostazioni"
     }
   ],
   "labels.snippets": [
     {
       "type": 0,
-      "value": "Fragmentos"
+      "value": "Snippet"
     }
   ],
   "labels.split_frame_horizontally.title": [
     {
       "type": 0,
-      "value": "Dividir abajo"
+      "value": "Dividi in basso"
     }
   ],
   "labels.split_frame_vertically.title": [
     {
       "type": 0,
-      "value": "Dividir marco verticalmente en dos columnas"
+      "value": "Dividi il frame verticalmente in due colonne"
     }
   ],
   "labels.ssh_keys": [
     {
       "type": 0,
-      "value": "Claves SSH"
+      "value": "Chiavi SSH"
     }
   ],
   "labels.statements": [
     {
       "type": 0,
-      "value": "Declaraciones"
+      "value": "Dichiarazioni"
     }
   ],
   "labels.stop": [
     {
       "type": 0,
-      "value": "Detener"
+      "value": "Ferma"
     }
   ],
   "labels.subscriptons": [
     {
       "type": 0,
-      "value": "Suscripciones"
+      "value": "Abbonamenti"
     }
   ],
   "labels.support": [
     {
       "type": 0,
-      "value": "Soporte"
+      "value": "Supporto"
     }
   ],
   "labels.terminal": [
     {
       "type": 0,
-      "value": "Terminal"
+      "value": "Terminale"
     }
   ],
   "labels.timetravel": [
     {
       "type": 0,
-      "value": "ViajeEnElTiempo"
+      "value": "ViaggioNelTempo"
     }
   ],
   "labels.timetravel_title": [
     {
       "type": 0,
-      "value": "Mostrar el historial completo de edición de este documento"
+      "value": "Mostra la cronologia completa delle modifiche di questo documento"
     }
   ],
   "labels.undo": [
     {
       "type": 0,
-      "value": "Deshacer"
+      "value": "Annulla"
     }
   ],
   "labels.upgrades": [
     {
       "type": 0,
-      "value": "Actualizaciones"
+      "value": "Aggiornamenti"
     }
   ],
   "labels.upload": [
     {
       "type": 0,
-      "value": "Subir"
+      "value": "Carica"
     }
   ],
   "labels.validate": [
     {
       "type": 0,
-      "value": "Validar"
+      "value": "Convalida"
     }
   ],
   "labels.word_count": [
     {
       "type": 0,
-      "value": "Conteo de Palabras"
+      "value": "Conteggio Parole"
     }
   ],
   "labels.zoom_in": [
     {
       "type": 0,
-      "value": "Acercar"
+      "value": "Ingrandisci"
     }
   ],
   "labels.zoom_out": [
     {
       "type": 0,
-      "value": "Disminuir zoom"
+      "value": "Rimpicciolisci"
     }
   ],
   "menu.generic.close_and_halt.label": [
     {
       "type": 0,
-      "value": "Cerrar y Detener"
+      "value": "Chiudi e Interrompi..."
     }
   ],
   "menu.generic.edit.label": [
     {
       "type": 0,
-      "value": "Editar"
+      "value": "Modifica"
     }
   ],
   "menu.generic.file.label": [
     {
       "type": 0,
-      "value": "Archivo"
+      "value": "File"
     }
   ],
   "menu.generic.format.label": [
@@ -2004,91 +2004,91 @@
   "menu.generic.go.label": [
     {
       "type": 0,
-      "value": "Ir"
+      "value": "Vai"
     }
   ],
   "menu.generic.halt_jupyter.button": [
     {
       "type": 0,
-      "value": "Detener"
+      "value": "Arresta"
     }
   ],
   "menu.generic.halt_jupyter.title": [
     {
       "type": 0,
-      "value": "Detener el núcleo de Jupyter en ejecución y cerrar este cuaderno."
+      "value": "Arresta il kernel Jupyter in esecuzione e chiudi questo notebook."
     }
   ],
   "menu.generic.help.label": [
     {
       "type": 0,
-      "value": "Ayuda"
+      "value": "Aiuto"
     }
   ],
   "menu.generic.insert.label": [
     {
       "type": 0,
-      "value": "Insertar"
+      "value": "Inserisci"
     }
   ],
   "menu.generic.kernel.label": [
     {
       "type": 0,
-      "value": "Núcleo"
+      "value": "Kernel"
     }
   ],
   "menu.generic.kick_other_users_out.button": [
     {
       "type": 0,
-      "value": "Expulsar"
+      "value": "Calcio"
     }
   ],
   "menu.generic.kick_other_users_out.label": [
     {
       "type": 0,
-      "value": "Expulsar a Otros Usuarios"
+      "value": "Espelli altri utenti"
     }
   ],
   "menu.generic.kick_other_users_out.title": [
     {
       "type": 0,
-      "value": "Expulsar a todos los demás usuarios de este documento. Se cerrará en todos los demás navegadores."
+      "value": "Espelli tutti gli altri utenti da questo documento. Si chiuderà in tutti gli altri browser."
     }
   ],
   "menu.generic.new_file.label": [
     {
       "type": 0,
-      "value": "Nuevo Archivo"
+      "value": "Nuovo File"
     }
   ],
   "menu.generic.run.label": [
     {
       "type": 0,
-      "value": "Ejecutar"
+      "value": "Esegui"
     }
   ],
   "menu.generic.split.button": [
     {
       "type": 0,
-      "value": "Dividir"
+      "value": "Dividi"
     }
   ],
   "menu.generic.view.label": [
     {
       "type": 0,
-      "value": "Ver"
+      "value": "Visualizza"
     }
   ],
   "new.file-type-page.header.description": [
     {
       "type": 0,
-      "value": "¿Qué te gustaría crear? Los documentos pueden ser editados simultáneamente por varias personas, mantener un historial completo de "
+      "value": "Cosa vorresti creare? I documenti possono essere modificati simultaneamente da più persone, mantenere una completa "
     },
     {
       "children": [
         {
           "type": 0,
-          "value": "TimeTravel"
+          "value": "cronologia TimeTravel"
         }
       ],
       "type": 8,
@@ -2096,49 +2096,49 @@
     },
     {
       "type": 0,
-      "value": " de ediciones y soportar la evaluación de código."
+      "value": " delle modifiche e supportare la valutazione del codice."
     }
   ],
   "new.file-type-page.header.intro": [
     {
       "type": 0,
-      "value": "Nombra tu archivo, carpeta o pega un enlace. Termina el nombre con / para hacer una carpeta."
+      "value": "Assegna un nome al tuo file, cartella o incolla un link. Termina il nome con / per creare una cartella."
     }
   ],
   "new.file-type-selector.folder.tooltip": [
     {
       "type": 0,
-      "value": "Crea una carpeta (subdirectorio) en la que almacenar y organizar tus archivos. CoCalc proporciona un sistema de archivos completo. También puedes escribir una ruta en el cuadro de entrada de arriba que termine con una barra diagonal / y presionar enter."
+      "value": "Crea una cartella (sottodirectory) in cui archiviare e organizzare i tuoi file. CoCalc fornisce un file system completo di tutte le funzionalità. Puoi anche digitare un percorso nella casella di input sopra che termina con una barra / e premere invio."
     }
   ],
   "new.file-type-selector.latex.tooltip": [
     {
       "type": 0,
-      "value": "Cree un documento técnico de calidad profesional que contenga fórmulas matemáticas sofisticadas y pueda ejecutar código Python, R y Sage."
+      "value": "Crea un documento tecnico di qualità professionale che contenga formule matematiche sofisticate e possa eseguire codice Python, R e Sage."
     }
   ],
   "new.file-type-selector.linux.tooltip": [
     {
       "type": 0,
-      "value": "Crear un terminal de línea de comandos de Linux. CoCalc incluye un entorno Linux completo. Ejecuta software de línea de comandos, vim, emacs y más."
+      "value": "Crea un terminale Linux a riga di comando. CoCalc include un ambiente Linux completo. Esegui software a riga di comando, vim, emacs e altro."
     }
   ],
   "new.file-type-selector.markdown.tooltip": [
     {
       "type": 0,
-      "value": "Crea un documento de texto editable enriquecido respaldado por markdown y código Jupyter que contenga fórmulas matemáticas, listas, encabezados, imágenes y ejecute código."
+      "value": "Crea un documento di testo ricco e modificabile supportato da markdown e codice Jupyter che contiene formule matematiche, elenchi, intestazioni, immagini ed esegui codice."
     }
   ],
   "new.file-type-selector.sagews.tooltip": [
     {
       "type": 0,
-      "value": "Crea una hoja de cálculo interactiva para usar el software matemático SageMath, Python, R y muchos otros sistemas. Haz matemáticas sofisticadas, dibuja gráficos, calcula integrales, trabaja con matrices, etc."
+      "value": "Crea un foglio di lavoro interattivo per utilizzare il software matematico SageMath, Python, R e molti altri sistemi. Fai matematica avanzata, disegna grafici, calcola integrali, lavora con matrici, ecc."
     }
   ],
   "new.file-type-selector.x11.tooltip": [
     {
       "type": 0,
-      "value": "Crear un escritorio X11 para ejecutar aplicaciones gráficas. CoCalc te permite ejecutar colaborativamente cualquier aplicación gráfica de Linux en tu navegador."
+      "value": "Crea un desktop X11 per eseguire applicazioni grafiche. CoCalc ti permette di eseguire collaborativamente qualsiasi applicazione grafica Linux nel tuo browser."
     }
   ],
   "page.flyouts.licenses.upgrades_explanation": [
@@ -2146,7 +2146,7 @@
       "children": [
         {
           "type": 0,
-          "value": "Este proyecto está utilizando las siguientes cuotas de recursos al ejecutarse. Puedes añadir más recursos agregando licencias o aplicando actualizaciones."
+          "value": "Questo progetto utilizza le seguenti quote di risorse durante l'esecuzione. Puoi aggiungere più risorse aggiungendo licenze o applicando aggiornamenti."
         }
       ],
       "type": 8,
@@ -2156,33 +2156,33 @@
   "page.help.label": [
     {
       "type": 0,
-      "value": "Ayuda"
+      "value": "Aiuto"
     }
   ],
   "page.sign_in.label": [
     {
       "type": 0,
-      "value": "Iniciar sesión"
+      "value": "Accedi"
     }
   ],
   "project.new-file-page.title": [
     {
       "type": 0,
-      "value": "Crear o "
+      "value": "Crea o "
     },
     {
       "type": 1,
-      "value": "subir"
+      "value": "upload"
     },
     {
       "type": 0,
-      "value": " Nuevo Archivo o "
+      "value": " Nuovo File o "
     },
     {
       "children": [
         {
           "type": 0,
-          "value": "Carpeta"
+          "value": "Cartella"
         }
       ],
       "type": 8,
@@ -2192,55 +2192,55 @@
   "project.new-file-page.title.modal.title": [
     {
       "type": 0,
-      "value": "Crear nueva carpeta"
+      "value": "Crea Nuova Cartella"
     }
   ],
   "project.page.file-tab.search_file.label": [
     {
       "type": 0,
-      "value": "Buscar"
+      "value": "Trova"
     }
   ],
   "project.page.flyout.log.title": [
     {
       "type": 0,
-      "value": "Archivos Recientes"
+      "value": "File Recenti"
     }
   ],
   "project.page.flyout.new_file.title": [
     {
       "type": 0,
-      "value": "Crear nuevo archivo o carpeta"
+      "value": "Crea Nuovo File o Cartella"
     }
   ],
   "project.page.flyout.settings.title": [
     {
       "type": 0,
-      "value": "Estado y Configuración"
+      "value": "Stato e Impostazioni"
     }
   ],
   "project.settings.stop-project.explanation": [
     {
       "type": 0,
-      "value": "Detener el servidor del proyecto finalizará todos los procesos. Después de detener un proyecto, no se reiniciará hasta que usted o un colaborador reinicie el proyecto."
+      "value": "Arrestare il server del progetto terminerà tutti i processi. Dopo aver fermato un progetto, non si avvierà fino a quando tu o un collaboratore non riavvierete il progetto."
     }
   ],
   "projects.filename-search.placeholder": [
     {
       "type": 0,
-      "value": "Buscar nombres de archivos que editaste"
+      "value": "Cerca i nomi dei file che hai modificato..."
     }
   ],
   "projects.load-all.label": [
     {
       "type": 0,
-      "value": "Mostrar todos los proyectos..."
+      "value": "Mostra tutti i progetti..."
     }
   ],
   "projects.search.placeholder": [
     {
       "type": 0,
-      "value": "Buscar proyectos (use /re/ para regexp)..."
+      "value": "Cerca progetti (usa /re/ per regexp)..."
     }
   ]
 }

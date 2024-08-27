@@ -959,10 +959,28 @@
       "value": "Englisch"
     }
   ],
+  "i18n.localization.lang.french": [
+    {
+      "type": 0,
+      "value": "Französisch"
+    }
+  ],
   "i18n.localization.lang.german": [
     {
       "type": 0,
       "value": "Deutsch"
+    }
+  ],
+  "i18n.localization.lang.italian": [
+    {
+      "type": 0,
+      "value": "Italienisch"
+    }
+  ],
+  "i18n.localization.lang.russian": [
+    {
+      "type": 0,
+      "value": "Russisch"
     }
   ],
   "i18n.localization.lang.spanish": [
@@ -2074,7 +2092,7 @@
       "children": [
         {
           "type": 0,
-          "value": "TimeTravel-Historie"
+          "value": "ZeitReise-Historie"
         }
       ],
       "type": 8,

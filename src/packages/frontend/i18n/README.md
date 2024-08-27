@@ -82,6 +82,31 @@ We discussed this internally on 2024-08-19 and came to the conclusion that we sh
 - Example: translating the "Run" button in Jupyter to German or Russian, which both have more or less the meaning of "running in the street", is extremely awkward. It's also a well recognizable element, which users are used to, even without knowing what it really means. Same holds for "Kernel", which is even in English a pretty weird choice. Therefore, we do not translate elements like the "Run" button or "Kernel" for Jupyter Kernels. A "Run" menu however, in general, could be translated (e.g. in German it is called "Ausführen").
 - However, what we should translate (or add) are hover text explanations. So, in the case of the "Run" button, there should be a tooltip, which explains in the current language, what this button really does.
 
+## SimpleLocalize configuration
+
+This is about auto-translations, in "Settings → Auto-translation":
+
+- To start: when you add a new language, set its full code, e.g. "fr_FR", name "French" and language "French". Translation provider: OpenAI.
+- You need the API key, it's in Integrations → REST API. See notes above.
+- In the Auto-translate configuration, OpenAI → Configure:
+
+  - API key: a separate one to track usage, it's fine to restrict its capabilities to list and use models.
+  - GPT-4o
+  - System prompt: here, the key point is to give some context and to instruct it to retain those ICU messages. That's what I came up with after a few tests and iterations:
+
+        Translation of strings in the user-interface of the online platform "CoCalc".
+
+        Stay close to the original meaning of the source text and match the length and style. In particular, short labels of commands must stay short.
+
+        If a label ends with "...", keep those dots in the translation.
+
+        Retain the syntax of ICU formatted messages. They could contain variables like `some text {variable} more text` or conditionals like `{variable, select, option1 {...} other {...}}`.
+
+  - add description as context: Yes. (I assume this uses the "code description")
+
+- Exclusion dialect: ICU messages
+- Excluded words or phrases: CoCalc
+
 ## Examples
 
 Here are examples of how to use this:
@@ -134,6 +159,7 @@ other {}
   - Ref: ICU Messages: https://unicode-org.github.io/icu/userguide/format_parse/messages/
 - **okText**: That's a simple string, where the English variant is defined right here. Note, that the ID of the OK text and the title are very similar.
 - **cancelText**: That references a common message, which is used in many places. It's the "Cancel" text on the button. The `labels` object comes from `import { labels } from "@cocalc/frontend/i18n"`.
+  - There is also a tiny component as an example, for how to translate a bit via a component: `i18n/components.tsx` → `<CancelText />`
 
 ## Menu entries
 
@@ -163,3 +189,5 @@ build_on_save: {
   label: ({ intl }) => intl.formatMessage({ id: "...",  defaultMessage: "..."}, { ...values })
 }
 ```
+
+Many of those messages are actually defined in `i18n/common.ts`. There are groups of messages, e.g. `jupyter.commands`. Messages are only extracted from `*.tsx` and some `*.ts` files – check the code of `i18n/bin/extract.sh` to see what's going on. This file is accompanied by `i18n.test.ts`, which checks the prefixes of all IDs!

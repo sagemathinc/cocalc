@@ -284,8 +284,17 @@
   "i18n.localization.lang.english": {
     "defaultMessage": "English"
   },
+  "i18n.localization.lang.french": {
+    "defaultMessage": "French"
+  },
   "i18n.localization.lang.german": {
     "defaultMessage": "German"
+  },
+  "i18n.localization.lang.italian": {
+    "defaultMessage": "Italian"
+  },
+  "i18n.localization.lang.russian": {
+    "defaultMessage": "Russian"
   },
   "i18n.localization.lang.spanish": {
     "defaultMessage": "Spanish"
