@@ -13,13 +13,13 @@ const log = getLogger("server:accounts:creation-actions");
 export default async function accountCreationActions(
   email_address: string,
   account_id: string,
-  tags?: string[]
+  tags?: string[],
 ): Promise<void> {
   log.debug({ account_id, email_address, tags });
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT action FROM account_creation_actions WHERE email_address=$1 AND expire > NOW()",
-    [email_address]
+    [email_address],
   );
   let numProjects = 0;
   for (const { action } of rows) {
@@ -32,17 +32,12 @@ export default async function accountCreationActions(
     }
   }
   log.debug("added user to", numProjects, "projects");
-  if (numProjects == 0 && tags != null && tags.length > 0) {
-    // didn't get added to any projects, but there are some explicit tags.
+  if (numProjects == 0) {
+    // didn't get added to any projects
     // You're a new user with no known "reason"
     // to use CoCalc, except that you found the page and signed up.  You are
-    // VERY likely to create a project next, or you wouldn't be here.  The only
-    // exception I can think of is accounting people (e.g., in the store) making
-    // an enterprise purchase, and that is probably 0.01% of users, and likely
-    // that sign in flow won't have tags set anyways, so won't end up here.
-    // Also directly creating accounts via the api wouldn't have tags set.
-    // So we create an account for you now to increase your chance of success,
-    // since you tagged some things.
+    // VERY likely to create a project next, or you wouldn't be here.
+    // So we create a project for you now to increase your chance of success.
     // NOTE -- wrapped in closure, since do NOT block on this:
     (async () => {
       try {
@@ -70,6 +65,6 @@ export async function creationActionsDone(account_id: string): Promise<void> {
   const pool = getPool();
   await pool.query(
     "UPDATE accounts SET creation_actions_done=true WHERE account_id=$1::UUID",
-    [account_id]
+    [account_id],
   );
 }
