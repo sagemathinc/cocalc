@@ -158,7 +158,7 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
     icon: "clean-outlined",
     label: defineMessage({
       id: "jupyter.llm.dell-tool.actions.bugfix.label",
-      defaultMessage: "Explain",
+      defaultMessage: "Fix Bugs",
     }),
     descr: defineMessage({
       id: "jupyter.llm.dell-tool.actions.bugfix.descr",
