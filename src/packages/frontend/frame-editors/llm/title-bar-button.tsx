@@ -21,6 +21,7 @@ import {
   Tooltip,
 } from "antd";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 import { useDebouncedCallback } from "use-debounce";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -42,6 +43,7 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { labels } from "@cocalc/frontend/i18n";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import track from "@cocalc/frontend/user-tracking";
@@ -54,6 +56,7 @@ import Context from "./context";
 import { Options, createChatMessage } from "./create-chat";
 import LLMSelector, { modelToName } from "./llm-selector";
 import TitleBarButtonTour from "./title-bar-button-tour";
+
 import type { Scope } from "./types";
 
 const TAG_TMPL = `${AI_ASSIST_TAG}-template`;
@@ -170,6 +173,7 @@ export default function LanguageModelTitleBarButton({
   setShowDialog,
   noLabel,
 }: Props) {
+  const intl = useIntl();
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [error, setError] = useState<string>("");
   const [command, setCommandVal] = useState<string>("");
@@ -383,7 +387,7 @@ export default function LanguageModelTitleBarButton({
           />
         </div>
         <Title level={4}>
-          <AIAvatar size={22} /> Assistant
+          <AIAvatar size={22} /> {intl.formatMessage(labels.assistant)}
         </Title>
         Select model:{" "}
         <LLMSelector
@@ -642,7 +646,9 @@ export default function LanguageModelTitleBarButton({
             ""
           ) : (
             <VisibleMDLG>
-              <span style={{ marginLeft: "5px" }}>Assistant</span>
+              <span style={{ marginLeft: "5px" }}>
+                {intl.formatMessage(labels.assistant)}
+              </span>
             </VisibleMDLG>
           )}
         </span>

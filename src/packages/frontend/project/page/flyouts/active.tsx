@@ -19,6 +19,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useAppContext } from "@cocalc/frontend/app/context";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -117,6 +118,7 @@ interface Props {
 
 export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   const { wrap, flyoutWidth } = props;
+  const { formatIntl } = useAppContext();
   const { project_id, flipTabs } = useProjectContext();
   const flipTab = flipTabs[0];
   const flipTabPrevious = usePrevious(flipTab);
@@ -385,7 +387,7 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
                     actions?.toggleFlyout("files");
                   }}
                 >
-                  {FIXED_PROJECT_TABS.files.label}
+                  {formatIntl(FIXED_PROJECT_TABS.files.label)}
                 </Button>{" "}
                 to open a file{renderEmptyStarredInfo()}.
               </Paragraph>

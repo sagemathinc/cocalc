@@ -2,8 +2,10 @@
 Search for any file you've edited in the last year.
 */
 
-import { useState } from "../app-framework";
 import { Input, Tooltip } from "antd";
+import { useIntl } from "react-intl";
+
+import { useState } from "@cocalc/frontend/app-framework";
 import api from "@cocalc/frontend/client/api";
 import ShowError from "@cocalc/frontend/components/error";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -16,6 +18,7 @@ const { Search } = Input;
 interface Props {}
 
 export function FilenameSearch({}: Props) {
+  const intl = useIntl();
   const [search, setSearch] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -57,7 +60,10 @@ export function FilenameSearch({}: Props) {
               setResult(null);
             }
           }}
-          placeholder="Search for filenames you edited..."
+          placeholder={intl.formatMessage({
+            id: "projects.filename-search.placeholder",
+            defaultMessage: "Search for filenames you edited...",
+          })}
           enterButton
           onSearch={doSearch}
         />

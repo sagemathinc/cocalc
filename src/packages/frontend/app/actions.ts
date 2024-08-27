@@ -3,18 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux, Actions } from "../app-framework";
-import { set_window_title } from "../browser";
-import { update_params, set_url } from "../history";
-import { disconnect_from_project } from "../project/websocket/connect";
-import { session_manager } from "../session";
-import { PageState } from "./store";
+import { Actions, redux } from "@cocalc/frontend/app-framework";
+import { set_window_title } from "@cocalc/frontend/browser";
+import { set_url, update_params } from "@cocalc/frontend/history";
+import { getIntl, labels } from "@cocalc/frontend/i18n";
 import {
   exitFullscreen,
   isFullscreen,
   requestFullscreen,
 } from "@cocalc/frontend/misc/fullscreen";
+import { disconnect_from_project } from "@cocalc/frontend/project/websocket/connect";
+import { session_manager } from "@cocalc/frontend/session";
 import { once } from "@cocalc/util/async-utils";
+import { PageState } from "./store";
 
 export class PageActions extends Actions<PageState> {
   private session_manager?: any;
@@ -150,18 +151,20 @@ export class PageActions extends Actions<PageState> {
       redux.getProjectActions(key)?.show();
     }
 
+    const intl = await getIntl();
+
     switch (key) {
       case "projects":
         if (change_history) {
           set_url("/projects");
         }
-        set_window_title("Projects");
+        set_window_title(intl.formatMessage(labels.projects));
         return;
       case "account":
         if (change_history) {
           redux.getActions("account").push_state();
         }
-        set_window_title("Account");
+        set_window_title(intl.formatMessage(labels.account));
         return;
       case "file-use": // this doesn't actually get used currently
         if (change_history) {
@@ -173,13 +176,13 @@ export class PageActions extends Actions<PageState> {
         if (change_history) {
           set_url("/admin");
         }
-        set_window_title("Admin");
+        set_window_title(intl.formatMessage(labels.admin));
         return;
       case "notifications":
         if (change_history) {
           set_url("/notifications");
         }
-        set_window_title("Notifications");
+        set_window_title(intl.formatMessage(labels.notifications));
         return;
       case undefined:
         return;

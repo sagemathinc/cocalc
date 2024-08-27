@@ -4,7 +4,9 @@
  */
 
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 import { useDebouncedCallback } from "use-debounce";
+
 import {
   CSS,
   redux,
@@ -60,6 +62,7 @@ export default function ChatInput({
   submitMentionsRef,
   syncdb,
 }: Props) {
+  const intl = useIntl();
   const onSendRef = useRef<Function>(on_send);
   useEffect(() => {
     onSendRef.current = on_send;
@@ -193,6 +196,23 @@ export default function ChatInput({
     };
   }, [syncdb]);
 
+  function getPlaceholder(): string {
+    if (placeholder != null) return placeholder;
+    const have_llm = redux
+      .getStore("projects")
+      .hasLanguageModelEnabled(project_id);
+    return intl.formatMessage(
+      {
+        id: "chat.input.placeholder",
+        defaultMessage:
+          "Type a new message ({have_llm, select, true {chat with AI or } other {}}notify a collaborator by typing @)...",
+      },
+      {
+        have_llm,
+      },
+    );
+  }
+
   return (
     <MarkdownInput
       autoFocus={autoFocus}
@@ -222,7 +242,7 @@ export default function ChatInput({
         on_send(input);
       }}
       height={height}
-      placeholder={getPlaceholder(project_id, placeholder)}
+      placeholder={getPlaceholder()}
       extraHelp={
         IS_MOBILE
           ? "Click the date to edit chats."
@@ -243,12 +263,4 @@ export default function ChatInput({
       overflowEllipsis={true}
     />
   );
-}
-
-function getPlaceholder(project_id, placeholder?: string): string {
-  if (placeholder != null) return placeholder;
-  if (redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
-    return "Type a new message (chat with AI or notify a collaborator by typing @)...";
-  }
-  return "Type a new message  (notify a collaborator by typing @)...";
 }

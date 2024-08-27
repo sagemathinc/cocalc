@@ -4,7 +4,9 @@
  */
 
 import { Map } from "immutable";
+
 import { IconName } from "@cocalc/frontend/components/icon";
+import { IntlMessage } from "@cocalc/frontend/i18n";
 import type { Command } from "./commands";
 
 export type FrameDirection = "row" | "col";
@@ -35,8 +37,8 @@ export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 
 // Editor spec
 export interface EditorDescription {
-  short: string; // short description of the editor
-  name: string; // slightly longer description
+  short: string | IntlMessage; // short description of the editor
+  name: string | IntlMessage; // slightly longer description
   icon: IconName;
   component: any; // React component
 

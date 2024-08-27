@@ -57,6 +57,7 @@ import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
+import { Locale } from "./i18n";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
@@ -125,11 +126,16 @@ export interface CustomizeState {
   logo_rectangular: string;
   logo_square: string;
   max_upgrades: TypedMap<Partial<Upgrades>>;
+
+  // Commercialization parameters.
+  // Be sure to also update disableCommercializationParameters
+  // below if you change these:
   nonfree_countries?: List<string>;
   limit_free_project_uptime: number; // minutes
   require_license_to_create_project?: boolean;
   unlicensed_project_collaborator_limit?: number;
   unlicensed_project_timetravel_limit?: number;
+
   onprem_quota_heading: string;
   organization_email: string;
   organization_name: string;
@@ -170,6 +176,8 @@ export interface CustomizeState {
   selectable_llms: List<string>;
   default_llm?: string;
   user_defined_llm: boolean;
+
+  i18n?: List<Locale>;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {
@@ -217,6 +225,7 @@ export class CustomizeActions extends Actions<CustomizeState> {
       this.setState({ compute_servers_images: `${err}` });
     }
   });
+
   updateComputeServerImagesGoogle = reuseInFlight(async (reload?) => {
     if (!store.get("compute_servers_google-cloud_enabled")) {
       this.setState({ compute_servers_images_google: fromJS({}) as any });
@@ -232,6 +241,16 @@ export class CustomizeActions extends Actions<CustomizeState> {
       this.setState({ compute_servers_images_google: `${err}` });
     }
   });
+
+  // this is used for accounts that have legacy upgrades
+  disableCommercializationParameters = () => {
+    this.setState({
+      limit_free_project_uptime: undefined,
+      require_license_to_create_project: undefined,
+      unlicensed_project_collaborator_limit: undefined,
+      unlicensed_project_timetravel_limit: undefined,
+    });
+  };
 }
 
 export const store = redux.createStore("customize", CustomizeStore, defaults);
@@ -314,6 +333,7 @@ function process_customize(obj) {
   }
   // the llm markup special case
   obj.llm_markup = obj_orig._llm_markup ?? 30;
+
   // always set time, so other code can know for sure that customize was loaded.
   // it also might be helpful to know when
   obj["time"] = Date.now();

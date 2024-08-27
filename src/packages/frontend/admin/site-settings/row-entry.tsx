@@ -12,7 +12,7 @@ import { ConfigValid, RowType } from "@cocalc/util/db-schema/site-defaults";
 import { version } from "@cocalc/util/smc-version";
 import { ON_PREM_DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
 import { JsonEditor } from "../json-editor";
-import { RowEntryInner } from "./row-entry-inner";
+import { RowEntryInner, testIsInvalid } from "./row-entry-inner";
 import { IsReadonly } from "./types";
 
 const MAX_UPGRADES = upgrades.max_per_project;
@@ -94,6 +94,7 @@ export function RowEntry({
           </>
         );
       default:
+        const is_valid = !testIsInvalid(value, valid);
         return (
           <FormGroup>
             <RowEntryInner
@@ -117,7 +118,7 @@ export function RowEntry({
               {displayed_val != null && (
                 <span>
                   {" "}
-                  {valid ? "Interpreted as" : "Invalid:"}{" "}
+                  {is_valid ? "Interpreted as" : "Invalid:"}{" "}
                   <code>{displayed_val}</code>.{" "}
                 </span>
               )}

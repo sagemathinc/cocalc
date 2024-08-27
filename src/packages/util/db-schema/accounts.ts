@@ -15,6 +15,8 @@ import {
   OTHER_SETTINGS_USERDEFINED_LLM,
 } from "./defaults";
 
+import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
+
 Table({
   name: "accounts",
   fields: {
@@ -342,6 +344,7 @@ Table({
             hide_file_popovers: false,
             hide_button_tooltips: false,
             [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
+            i18n: DEFAULT_LOCALE,
           },
           name: null,
           first_name: "",

@@ -11,6 +11,7 @@
 import { Button, Modal } from "antd";
 import { Map } from "immutable";
 import json from "json-stable-stringify";
+import { useIntl } from "react-intl";
 
 import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, Rendered, useState } from "@cocalc/frontend/app-framework";
@@ -26,6 +27,7 @@ import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-edi
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { ShowSupportLink } from "@cocalc/frontend/support";
 import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
+import { isIntlMessage } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import {
   CommandDescription,
@@ -388,6 +390,7 @@ function should_memoize(prev, next) {
 const CommandList: React.FC<CommandListProps> = React.memo(
   (props: CommandListProps) => {
     const { actions, editor_actions, taken, search } = props;
+    const intl = useIntl();
     const frameActions = useNotebookFrameActions();
 
     function render_commands(): Rendered[] {
@@ -411,7 +414,13 @@ const CommandList: React.FC<CommandListProps> = React.memo(
         if (x.val.f == null) {
           continue;
         }
-        const desc = x.val.m != null ? x.val.m : capitalize_each_word(x.name);
+        const m = x.val.m;
+        const desc: string =
+          m == null
+            ? capitalize_each_word(x.name)
+            : isIntlMessage(m)
+            ? intl.formatMessage(m)
+            : m;
         if (desc == null) {
           continue;
         }
@@ -450,6 +459,7 @@ interface KeyboardShortcutsProps {
 export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
   (props: KeyboardShortcutsProps) => {
     const { actions, editor_actions, keyboard_shortcuts } = props;
+    const intl = useIntl();
     const frameActions = useNotebookFrameActions();
     const [search, set_search] = useState<string>("");
     const allActions = {
@@ -469,7 +479,13 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
             // TODO: remove this when we switch from using event.which to event.key!
             s = copy_without(s, ["key"]) as any;
           }
-          taken[json(s)] = val.m || name;
+          const { m } = val;
+          const title = !m
+            ? name
+            : isIntlMessage(m)
+            ? intl.formatMessage(m)
+            : m;
+          taken[json(s)] = title;
         }
       }
     }

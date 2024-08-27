@@ -1,8 +1,10 @@
 import { Button, Popconfirm, Tooltip } from "antd";
-import { Element } from "../types";
+
 import { Icon } from "@cocalc/frontend/components/icon";
-import { BUTTON_STYLE } from "./edit-bar";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { useFrameContext } from "../hooks";
+import { Element } from "../types";
+import { BUTTON_STYLE } from "./edit-bar";
 
 interface Props {
   elements: Element[];
@@ -35,7 +37,7 @@ export default function LockButton({ elements }: Props) {
         title={"Unlock this?"}
         onConfirm={click}
         okText="Unlock"
-        cancelText="Cancel"
+        cancelText={<CancelText />}
       >
         {btn}
       </Popconfirm>
