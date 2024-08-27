@@ -60,7 +60,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     // work, but should probably also add some throttling (TODO).
     expect(-(await getBalance(account_id))).toBeCloseTo(
       balanceBeforeCancel + creditToCancel,
-      0.001,
+      0.1,
     );
     const license = await getLicense(license_id);
     // fully refunded (since starts in future) -- license is not active for nonzero period

@@ -8,11 +8,13 @@
 import { Button, Space } from "antd";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useAppContext } from "@cocalc/frontend/app/context";
 import { Icon } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { FIXED_PROJECT_TABS } from "@cocalc/frontend/project/page/file-tab";
 
 export function ActiveHeader() {
+  const { formatIntl } = useAppContext();
   const { flipTabs, project_id } = useProjectContext();
   const [flipVal, setFlipVal] = flipTabs;
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
@@ -42,7 +44,7 @@ export function ActiveHeader() {
   return (
     <div style={{ flex: 1, fontWeight: "bold" }}>
       <Icon name={FIXED_PROJECT_TABS.active.icon} />{" "}
-      {FIXED_PROJECT_TABS.active.label} {renderScroll()}
+      {formatIntl(FIXED_PROJECT_TABS.active.label)} {renderScroll()}
     </div>
   );
 }

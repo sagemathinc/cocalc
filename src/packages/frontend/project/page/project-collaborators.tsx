@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -21,7 +22,8 @@ import { ICON_USERS, ROOT_STYLE, TITLE_USERS } from "../servers/consts";
 import { useProject } from "./common";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 
-export function ProjectCollaboratorsPage({ project_id }): JSX.Element {
+export function ProjectCollaboratorsPage(): JSX.Element {
+  const { project_id } = useProjectContext();
   const user_map = useTypedRedux("users", "user_map");
   const student = getStudentProjectFunctionality(project_id);
   const { project, group } = useProject(project_id);

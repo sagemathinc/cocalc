@@ -5,6 +5,8 @@
 
 import { Col, Divider, Modal, Row, Tabs, TabsProps } from "antd";
 import { Gutter } from "antd/es/grid/row";
+
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import {
@@ -35,12 +37,8 @@ const y: Gutter = 30;
 const gutter: [Gutter, Gutter] = [20, y / 2];
 const newRowStyle = { marginTop: `${y}px` };
 
-interface Props {
-  project_id: string;
-}
-
-export function ProjectServers(props: Props) {
-  const { project_id } = props;
+export function ProjectServers() {
+  const { project_id } = useProjectContext();
 
   const available = useAvailableFeatures(project_id);
 

@@ -21,6 +21,7 @@ import Search from "../whiteboard-editor/search";
 import Pages from "../whiteboard-editor/pages";
 import Overview from "../whiteboard-editor/overview";
 import Slideshow from "./slideshow";
+import { editor } from "@cocalc/frontend/i18n";
 
 export const slidesCommands = set([
   "decrease_font_size",
@@ -115,8 +116,8 @@ export const EDITOR_SPEC = {
   } as EditorDescription,
   table_of_contents: {
     // name = "table_of_contents" must be same name as for whiteboard, since otherwise show_table_of_contents action in whiteboard breaks.
-    short: "Contents",
-    name: "Table of Contents",
+    short: editor.table_of_contents_short,
+    name: editor.table_of_contents_name,
     icon: "align-right",
     component: TableOfContents,
     commands: set([

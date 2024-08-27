@@ -1,4 +1,11 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Button, Tooltip } from "antd";
+import { ReactNode } from "react";
+import { IntlShape } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -6,7 +13,10 @@ import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
+// import { FrameTitleBarProps } from "../title-bar";
+import { EditorDescription } from "../types";
 import { COMMANDS } from "./commands";
 import { APPLICATION_MENU, SEARCH_COMMANDS } from "./const";
 import { GROUPS, MENUS } from "./menus";
@@ -17,7 +27,9 @@ const MAX_SEARCH_RESULTS = 10;
 const ICON_WIDTH = "24px";
 
 export class ManageCommands {
-  readonly props;
+  // TODO: setting this to FrameTitleBarProps causes type issues in frame-editors/jupyter-editor/editor.ts
+  // So, there is probably a fundamental problem with that mapping into "AllActions"
+  readonly props; // FrameTitleBarProps;
   readonly studentProjectFunctionality;
   readonly setShowAI: (val: boolean) => void;
   readonly setShowNewAI: (val: boolean) => void;
@@ -25,6 +37,8 @@ export class ManageCommands {
   readonly setHelpSearch;
   readonly readOnly: boolean;
   readonly editorSettings;
+  readonly intl: IntlShape;
+  readonly formatMessageValues: Parameters<typeof this.intl.formatMessage>[1];
 
   static allCommandPositions: { [name: string]: number } | null = null;
 
@@ -37,6 +51,7 @@ export class ManageCommands {
     setHelpSearch,
     readOnly,
     editorSettings,
+    intl,
   }) {
     this.props = props;
     this.studentProjectFunctionality = studentProjectFunctionality;
@@ -46,6 +61,8 @@ export class ManageCommands {
     this.setHelpSearch = setHelpSearch;
     this.readOnly = readOnly;
     this.editorSettings = editorSettings;
+    this.intl = intl;
+    this.formatMessageValues = { br: <br /> };
     //window.x = { manage: this };
   }
 
@@ -70,7 +87,7 @@ export class ManageCommands {
     }
     if (cmd?.isVisible != null) {
       const { isVisible } = cmd;
-      if (typeof isVisible == "string") {
+      if (typeof isVisible === "string") {
         return !!this.props.spec.commands?.[isVisible];
       } else {
         return isVisible(this);
@@ -158,6 +175,19 @@ export class ManageCommands {
     return v;
   };
 
+  spec2display = (
+    spec: EditorDescription,
+    aspect: "name" | "short",
+  ): string => {
+    const label: string | IntlMessage | undefined = spec[aspect];
+    if (isIntlMessage(label)) {
+      return this.intl.formatMessage(label);
+    } else if (typeof label === "string") {
+      return label;
+    }
+    return "";
+  };
+
   applicationMenuTitle = () => {
     let title: string = "Application";
     let icon: IconName | undefined = undefined;
@@ -166,9 +196,9 @@ export class ManageCommands {
       if (spec != null) {
         icon = spec.icon;
         if (spec.short) {
-          title = spec.short;
+          title = this.spec2display(spec, "short");
         } else if (spec.name) {
-          title = spec.name;
+          title = this.spec2display(spec, "name");
         }
       }
     }
@@ -191,6 +221,11 @@ export class ManageCommands {
         if (label == APPLICATION_MENU) {
           return this.applicationMenuTitle();
         }
+
+        if (isIntlMessage(label)) {
+          return this.intl.formatMessage(label);
+        }
+
         return label;
       }
     }
@@ -225,11 +260,11 @@ export class ManageCommands {
           `BUG -- ${type} must be defined by the editor_spec, but is not`,
         );
       }
-      const search = spec.name?.toLowerCase();
-      let label = spec.name;
+      const label = this.spec2display(spec, "name");
+      const search = label.toLowerCase();
       items.push({
         search,
-        label: selected_type == type ? <b>{label}</b> : label,
+        label: selected_type === type ? <b>{label}</b> : label,
         icon: spec.icon ? spec.icon : "file",
         onClick: () => {
           if (createNew) {
@@ -245,7 +280,7 @@ export class ManageCommands {
 
   getCommandChildren = (cmd) => {
     if (cmd.children != null) {
-      if (typeof cmd.children == "function") {
+      if (typeof cmd.children === "function") {
         return cmd.children(this);
       } else {
         return cmd.children;
@@ -261,7 +296,7 @@ export class ManageCommands {
     if (!icon) {
       return undefined;
     }
-    if (typeof icon == "function") {
+    if (typeof icon === "function") {
       icon = icon(this);
     }
     return (
@@ -277,16 +312,46 @@ export class ManageCommands {
     );
   };
 
+  private cmd2display = (
+    cmd: Partial<Command>,
+    aspect: "label" | "title" | "button",
+  ): string | null | undefined | ReactNode => {
+    if (cmd == null) return;
+    const data = cmd[aspect];
+    if (data == null) return;
+
+    if (typeof data === "string") {
+      return data;
+    }
+
+    if (typeof data === "function") {
+      return data(this);
+    }
+
+    // react-intl defineMessage object
+    if (isIntlMessage(data)) {
+      return this.intl.formatMessage(data, this.formatMessageValues);
+    }
+
+    if (typeof data === "boolean" || typeof data === "number") {
+      return `${data}`;
+    }
+
+    // what's left should be a ReactNode
+    return data;
+  };
+
   private getCommandLabel = (
     cmd: Partial<Command>,
     name: string,
     tip: boolean,
   ) => {
     const width = ICON_WIDTH;
-    let lbl = typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+    let lbl = this.cmd2display(cmd, "label");
     if (tip && cmd.title) {
+      const title = this.cmd2display(cmd, "title");
       lbl = (
-        <Tooltip mouseEnterDelay={0.9} title={cmd.title} placement={"left"}>
+        <Tooltip mouseEnterDelay={0.9} title={title} placement={"left"}>
           {lbl}
         </Tooltip>
       );
@@ -403,11 +468,9 @@ export class ManageCommands {
       const icon = this.getCommandIcon(cmd);
       let buttonLabel;
       if (cmd.button != null) {
-        buttonLabel =
-          typeof cmd.button == "function" ? cmd.button(this) : cmd.button;
+        buttonLabel = this.cmd2display(cmd, "button");
       } else {
-        buttonLabel =
-          typeof cmd.label == "function" ? cmd.label(this) : cmd.label;
+        buttonLabel = this.cmd2display(cmd, "label");
       }
       label = (
         <>
@@ -447,7 +510,9 @@ export class ManageCommands {
             return (
               <>
                 {this.getCommandLabel(cmd, name, false)}
-                {cmd.title ? <div>{cmd.title}</div> : undefined}
+                {cmd.title ? (
+                  <div>{this.cmd2display(cmd, "title")}</div>
+                ) : undefined}
               </>
             );
           }}
@@ -459,7 +524,7 @@ export class ManageCommands {
     const onClick = async (event) => {
       let { popconfirm } = cmd;
       if (popconfirm != null) {
-        if (typeof popconfirm == "function") {
+        if (typeof popconfirm === "function") {
           popconfirm = popconfirm(this);
         }
         if (popconfirm != null) {
@@ -656,8 +721,8 @@ function allChildrenAreDisabled(children) {
   if (children == null || children.length == 0) {
     return false;
   }
-  for(const child of children) {
-    if(!child.disabled) {
+  for (const child of children) {
+    if (!child.disabled) {
       return false;
     }
   }

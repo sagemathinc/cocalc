@@ -17,7 +17,9 @@ import {
   Tooltip,
 } from "antd";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 import { Entries } from "type-fest";
+
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { A, Paragraph, RawPrompt, Text } from "@cocalc/frontend/components";
@@ -29,6 +31,7 @@ import LLMSelector, {
   modelToMention,
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { IntlMessage, labels } from "@cocalc/frontend/i18n";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -98,7 +101,8 @@ type PromptGen = ({
 
 interface LLMTool {
   icon: string;
-  descr: string;
+  label: IntlMessage;
+  descr: IntlMessage;
   prompt: PromptGen;
 }
 
@@ -137,7 +141,14 @@ const jupytercell = ({ language, kernel_display }) =>
 const ACTIONS: { [mode in Mode]: LLMTool } = {
   explain: {
     icon: "sound-outlined",
-    descr: "Gain some insight into the code in that cell.",
+    label: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.explain.label",
+      defaultMessage: "Explain",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.explain.descr",
+      defaultMessage: "Gain some insight into the code in that cell.",
+    }),
     prompt: ({ language, stepByStep, kernel_display }) =>
       `Your task is to give a ${
         stepByStep ? `step-by-step explanation` : `short high-level summary`
@@ -145,8 +156,15 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   },
   bugfix: {
     icon: "clean-outlined",
-    descr:
-      "Describe the problem of that cell in order to get a bugfixed version.",
+    label: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.bugfix.label",
+      defaultMessage: "Explain",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.bugfix.descr",
+      defaultMessage:
+        "Describe the problem of that cell in order to get a bugfixed version.",
+    }),
     prompt: ({ language, extra, kernel_display }) =>
       `Your task is to analyze the ${jupytercell({
         language,
@@ -159,7 +177,14 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   },
   modify: {
     icon: "edit",
-    descr: "Modify the code in the cell",
+    label: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.modify.label",
+      defaultMessage: "Modify",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.modify.descr",
+      defaultMessage: "Modify the code in the cell",
+    }),
     prompt: ({ language, extra, kernel_display }) =>
       `Your task is to modify the ${jupytercell({
         language,
@@ -168,7 +193,14 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   },
   improve: {
     icon: "rise-outlined",
-    descr: "Improve the code in that cell.",
+    label: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.improve.label",
+      defaultMessage: "Improve",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.improve.descr",
+      defaultMessage: "Improve the code in that cell.",
+    }),
     prompt: ({ language, extra, kernel_display }) =>
       `Your task is to analyze the ${jupytercell({
         language,
@@ -179,7 +211,14 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   },
   document: {
     icon: "book",
-    descr: "Add documentation",
+    label: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.document.label",
+      defaultMessage: "Document",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.document.descr",
+      defaultMessage: "Add documentation",
+    }),
     prompt: ({ language, kernel_display }) =>
       `Your task is to add documentation to the ${jupytercell({
         language,
@@ -188,7 +227,15 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   },
   translate: {
     icon: "translation-outlined",
-    descr: "Translate the code in that cell to another language using AI.",
+    label: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.translate.label",
+      defaultMessage: "Translate",
+    }),
+    descr: defineMessage({
+      id: "jupyter.llm.dell-tool.actions.translate.descr",
+      defaultMessage:
+        "Translate the code in that cell to another language using AI.",
+    }),
     prompt: ({ language, target = "R" }) => {
       let detail = "";
       if (target.startsWith("LaTeX")) {
@@ -205,13 +252,9 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   },
 } as const;
 
-export function LLMCellTool({
-  actions,
-  id,
-  style,
-  llmTools,
-}: Props) {
+export function LLMCellTool({ actions, id, style, llmTools }: Props) {
   const { actions: project_actions, onCoCalcCom } = useProjectContext();
+  const intl = useIntl();
   const { project_id, path } = useFrameContext();
   const [isQuerying, setIsQuerying] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -394,9 +437,12 @@ export function LLMCellTool({
               return {
                 key: mode,
                 label: (
-                  <Tooltip title={action.descr} placement={"left"}>
+                  <Tooltip
+                    title={intl.formatMessage(action.descr)}
+                    placement={"left"}
+                  >
                     <Icon name={action.icon} style={{ marginRight: "5px" }} />{" "}
-                    {capitalize(mode)}
+                    {intl.formatMessage(action.label)}
                   </Tooltip>
                 ),
                 onClick: () => setMode(mode as Mode),
@@ -405,7 +451,12 @@ export function LLMCellTool({
           ),
         }}
       >
-        <Tooltip title="Use AI assitant on this cell">
+        <Tooltip
+          title={intl.formatMessage({
+            id: "jupyter.llm.cell-tool.assistant.title",
+            defaultMessage: "Use AI assitant on this cell",
+          })}
+        >
           <Button
             disabled={isQuerying}
             type="text"
@@ -414,7 +465,7 @@ export function LLMCellTool({
             icon={<AIAvatar size={14} style={{ top: "1px" }} />}
           >
             <Space size="small">
-              Assistant
+              {intl.formatMessage(labels.assistant)}
               <Icon name="angle-down" />
             </Space>
           </Button>
@@ -429,48 +480,66 @@ export function LLMCellTool({
       case "improve":
         return (
           <Paragraph type="secondary">
-            The selected language model will analyze the code and suggest
-            improvements. Beware, that the results are not guaranteed to be
-            correct, nor could cause subtle problmes – review them carefully.
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.improve"
+              defaultMessage={`The selected language model will analyze the code and suggest
+                              improvements. Beware, that the results are not guaranteed to be
+                              correct, nor could cause subtle problmes – review them carefully.`}
+            />
           </Paragraph>
         );
       case "bugfix":
         return (
           <Paragraph type="secondary">
-            Explain the problem of the code in the cell and the selected
-            language model will attempt to fix it. Usually, it will tell you if
-            it found a problem and explain it to you.
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.bugfix"
+              defaultMessage={`Explain the problem of the code in the cell and the selected
+                              language model will attempt to fix it. Usually, it will tell you if
+                              it found a problem and explain it to you.`}
+            />
           </Paragraph>
         );
       case "explain":
         return (
           <Paragraph type="secondary">
-            The code in the cell will be sent to the selected language model. It
-            will explain the code to you in plain language.
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.explain"
+              defaultMessage={`The code in the cell will be sent to the selected language model.
+                               It will explain the code to you in plain language.`}
+            />
           </Paragraph>
         );
       case "modify":
         return (
           <Paragraph type="secondary">
-            The language model will modify the code according to the given
-            instructions. Pick one of the templates and modify it, or come up
-            with some instructions of your own!
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.modify"
+              defaultMessage={`The language model will modify the code according to the given
+                              instructions. Pick one of the templates and modify it, or come up
+                              with some instructions of your own!`}
+            />
           </Paragraph>
         );
       case "document":
         return (
           <Paragraph type="secondary">
-            The language model will add documentation lines to the code in the
-            cell.
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.document"
+              defaultMessage={`The language model will add documentation lines to the code in the
+            cell.`}
+            />
           </Paragraph>
         );
       case "translate":
         return (
           <Paragraph>
-            The language model will attempt to translate the code in the cell to
-            another programming language. The result might not work at all – but
-            if you're more familiar with the selected target language, you might
-            find it easier to understand what's going on!
+            <FormattedMessage
+              id="jupyter.llm.cell-tool.explanation.translate"
+              defaultMessage={`The language model will attempt to translate the code in the cell to
+                            another programming language. The result might not work at all – but
+                            if you're more familiar with the selected target language, you might
+                            find it easier to understand what's going on!`}
+            />
           </Paragraph>
         );
       default:

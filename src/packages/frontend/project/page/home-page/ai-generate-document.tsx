@@ -24,6 +24,7 @@ import {
 import { delay } from "awaiting";
 import { debounce, isEmpty, throttle } from "lodash";
 import { useEffect, useRef, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
@@ -49,7 +50,6 @@ import SelectKernel from "@cocalc/frontend/components/run-button/select-kernel";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
-import { AI_GEN_TEXT } from "@cocalc/frontend/frame-editors/frame-tree/commands/const";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { Actions as LatexActions } from "@cocalc/frontend/frame-editors/latex-editor/actions";
 import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
@@ -57,6 +57,7 @@ import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { Actions as RmdActions } from "@cocalc/frontend/frame-editors/rmd-editor/actions";
+import { labels } from "@cocalc/frontend/i18n";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
@@ -143,6 +144,7 @@ function AIGenerateDocument({
   docName,
   filename: filename0,
 }: Props) {
+  const intl = useIntl();
   const projectActions = useActions({ project_id });
   const current_path = useTypedRedux({ project_id }, "current_path");
 
@@ -202,7 +204,11 @@ function AIGenerateDocument({
         }
       } catch (err) {
         setKernelSpecs(
-          "Unable to load Jupyter kernels. Make sure the project is running and Jupyter is installed.",
+          intl.formatMessage({
+            id: "ai-generate-document.loading_kernels.error_message",
+            defaultMessage:
+              "Unable to load Jupyter kernels. Make sure the project is running and Jupyter is installed.",
+          }),
         );
       }
     })();
@@ -990,7 +996,12 @@ export function AIGenerateDocumentModal({
     <Modal
       title={
         <>
-          <AIAvatar size={18} /> Generate a {docName} Document using AI
+          <AIAvatar size={18} />{" "}
+          <FormattedMessage
+            id="ai-generate-document.modal.title"
+            defaultMessage="Generate a {docName} Document using AI"
+            values={{ docName }}
+          />
         </>
       }
       width={750}
@@ -1023,6 +1034,7 @@ export function AIGenerateDocumentButton({
   ext: Props["ext"];
   filename?: string;
 }) {
+  const intl = useIntl();
   const [show, setShow] = useState<boolean>(false);
 
   if (!redux.getStore("projects").hasLanguageModelEnabled(project_id, TAG)) {
@@ -1058,7 +1070,9 @@ export function AIGenerateDocumentButton({
         >
           <Space>
             <AIAvatar size={15} />
-            {mode === "full" ? ` ${AI_GEN_TEXT}` : ""}
+            {mode === "full"
+              ? ` ${intl.formatMessage(labels.ai_generate_label)}`
+              : ""}
           </Space>
         </Button>
       </Tip>

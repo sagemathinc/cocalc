@@ -3,30 +3,32 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import ShowError from "@cocalc/frontend/components/error";
-import { Button, Checkbox, Spin, Table } from "antd";
+import { Alert, Button, Checkbox, Spin, Table } from "antd";
+import { join } from "path";
+import { useIntl } from "react-intl";
+
 import {
-  redux,
   React,
+  redux,
   useActions,
-  useState,
   useEffect,
   useIsMountedRef,
   useMemo,
+  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
-import { trunc, trunc_middle } from "@cocalc/util/misc";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Icon, Loading, Gap, TimeAgo, A } from "@cocalc/frontend/components";
-import { UnpublishEverything } from "./unpublish-everything";
-import { LICENSES } from "@cocalc/frontend/share/licenses";
+import { A, Gap, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
 import { Footer } from "@cocalc/frontend/customize";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { Alert } from "antd";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
+import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
+import { LICENSES } from "@cocalc/frontend/share/licenses";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { PublicPath as PublicPath0 } from "@cocalc/util/db-schema/public-paths";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { trunc, trunc_middle } from "@cocalc/util/misc";
+import { UnpublishEverything } from "./unpublish-everything";
 
 interface PublicPath extends PublicPath0 {
   status?: string;
@@ -36,6 +38,7 @@ type filters = "Listed" | "Unlisted" | "Unpublished" | "Authenticated";
 const DEFAULT_CHECKED: filters[] = ["Listed", "Unlisted", "Authenticated"];
 
 export const PublicPaths: React.FC = () => {
+  const intl = useIntl();
   const account_id = useTypedRedux("account", "account_id");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const showAuthenticatedOption = customize_kucalc !== KUCALC_COCALC_COM;
@@ -252,7 +255,9 @@ export const PublicPaths: React.FC = () => {
         <Icon name="redo" />
         <Gap /> <Gap /> {loading ? "Loading..." : "Refresh"}
       </Button>
-      <h2>Public files ({paths?.length ?? "?"})</h2>
+      <h2>
+        {intl.formatMessage(labels.published_files)} ({paths?.length ?? "?"})
+      </h2>
       Files that have been published in any project that you have actively used.
       <br />
       <br />

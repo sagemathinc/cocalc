@@ -40,6 +40,7 @@ import {
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import type { Client } from "@cocalc/sync/client/types";
 import { once } from "@cocalc/util/async-utils";
+import latexEnvs from "@cocalc/util/latex-envs";
 
 const { close, required, defaults } = misc;
 
@@ -74,6 +75,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public _complete_request?: number;
   public store: JupyterStore;
   public syncdb: SyncDB;
+  private labels?: { [label: string]: { tag: string; id: string } };
 
   public _init(
     project_id: string,
@@ -380,7 +382,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // Might throw a CellWriteProtectedException
   public set_cell_input(id: string, input: string, save = true): void {
     if (!this.store) return;
-    if (this.store.getIn(["cells", id, "input"]) == input) {
+    if (this.store.getIn(["this.st", id, "input"]) == input) {
       // nothing changed.   Note, I tested doing the above check using
       // both this.syncdb and this.store, and this.store is orders of magnitude faster.
       return;
@@ -2726,6 +2728,67 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     // [ ] TODO: we also need to do this on compute servers, but
     // they don't yet have the listings table.
   };
+
+  processRenderedMarkdown = ({ value, id }: { value: string; id: string }) => {
+    value = latexEnvs(value);
+
+    const labelRegExp = /\s*\\label\{.*?\}\s*/g;
+    if (this.labels == null) {
+      const labels = (this.labels = {});
+      // do initial full document scan
+      if (this.store == null) {
+        return;
+      }
+      const cells = this.store.get("cells");
+      if (cells == null) {
+        return;
+      }
+      let n = 0;
+      for (const id of this.store.get_cell_ids_list()) {
+        const cell = cells.get(id);
+        if (cell?.get("cell_type") == "markdown") {
+          const value = cell.get("input") ?? "";
+          value.replace(labelRegExp, (labelContent) => {
+            const label = extractLabel(labelContent);
+            n += 1;
+            labels[label] = { tag: `${n}`, id };
+          });
+        }
+      }
+    }
+    const labels = this.labels;
+    if (labels == null) {
+      throw Error("bug");
+    }
+    const noLabels = value.replace(labelRegExp, (labelContent) => {
+      const label = extractLabel(labelContent);
+      if (labels[label] == null) {
+        labels[label] = { tag: `${misc.len(labels) + 1}`, id };
+      } else {
+        // in case it moved to a different cell due to cut/paste
+        labels[label].id = id;
+      }
+      return `\\tag{${labels[label].tag}}`;
+    });
+    const refRegExp = /\\ref\{.*?\}/g;
+    const noRefs = noLabels.replace(refRegExp, (refContent) => {
+      const label = extractLabel(refContent);
+      if (labels[label] == null) {
+        // nothing to do but strip it
+        return "";
+      }
+      const { tag, id } = labels[label];
+      return `[${tag}](#id=${id})`;
+    });
+
+    return noRefs;
+  };
+}
+
+function extractLabel(content: string): string {
+  const i = content.indexOf("{");
+  const j = content.lastIndexOf("}");
+  return content.slice(i + 1, j);
 }
 
 function bounded_integer(n: any, min: any, max: any, def: any) {

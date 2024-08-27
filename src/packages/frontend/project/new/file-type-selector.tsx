@@ -6,19 +6,21 @@
 import { Col, Flex, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
 
 import { Available } from "@cocalc/comm/project-configuration";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
+import { Ext } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { AIGenerateDocumentButton } from "../page/home-page/ai-generate-document";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { JupyterNotebookButtons } from "./jupyter-buttons";
 import { NewFileButton } from "./new-file-button";
-import { Ext } from "../page/home-page/ai-generate-examples";
 
 interface DisabledFeatures {
   linux?: boolean;
@@ -59,6 +61,7 @@ export function FileTypeSelector({
   filenameChanged,
 }: Props) {
   const { project_id } = useProjectContext();
+  const intl = useIntl();
 
   if (!create_file) {
     return null;
@@ -128,12 +131,16 @@ export function FileTypeSelector({
           <Col sm={sm} md={md}>
             <Tip
               delayShow={DELAY_SHOW_MS}
-              title="Linux Terminal"
+              title={intl.formatMessage(labels.linux_terminal)}
               icon={NEW_FILETYPE_ICONS.term}
-              tip="Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more."
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.linux.tooltip",
+                defaultMessage:
+                  "Create a command line Linux terminal.  CoCalc includes a full Linux environment.  Run command line software, vim, emacs and more.",
+              })}
             >
               <NewFileButton
-                name="Linux Terminal"
+                name={intl.formatMessage(labels.linux_terminal)}
                 on_click={create_file}
                 ext="term"
                 size={btnSize}
@@ -147,7 +154,11 @@ export function FileTypeSelector({
                 delayShow={DELAY_SHOW_MS}
                 title="Graphical X11 Desktop"
                 icon={NEW_FILETYPE_ICONS.x11}
-                tip="Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser."
+                tip={intl.formatMessage({
+                  id: "new.file-type-selector.x11.tooltip",
+                  defaultMessage:
+                    "Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser.",
+                })}
               >
                 <NewFileButton
                   name="Graphical X11 Desktop"
@@ -166,9 +177,11 @@ export function FileTypeSelector({
                 title={"Create New Folder"}
                 placement="left"
                 icon={NEW_FILETYPE_ICONS["/"]}
-                tip={
-                  "Create a folder (subdirectory) in which to store and organize your files.  CoCalc provides a full featured filesystem.  You can also type a path in the input box above that ends with a forward slash / and press enter."
-                }
+                tip={intl.formatMessage({
+                  id: "new.file-type-selector.folder.tooltip",
+                  defaultMessage:
+                    "Create a folder (subdirectory) in which to store and organize your files.  CoCalc provides a full featured filesystem.  You can also type a path in the input box above that ends with a forward slash / and press enter.",
+                })}
               >
                 <NewFileButton
                   ext="/"
@@ -339,11 +352,15 @@ export function FileTypeSelector({
         <Tip
           delayShow={DELAY_SHOW_MS}
           icon={NEW_FILETYPE_ICONS.sagews}
-          title="SageMath Worksheet"
-          tip="Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
+          title={intl.formatMessage(labels.sagemath_worksheet)}
+          tip={intl.formatMessage({
+            id: "new.file-type-selector.sagews.tooltip",
+            defaultMessage:
+              "Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems.  Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc.",
+          })}
         >
           <NewFileButton
-            name="SageMath Worksheet"
+            name={intl.formatMessage(labels.sagemath_worksheet)}
             on_click={create_file}
             ext="sagews"
             size={btnSize}
@@ -417,13 +434,17 @@ export function FileTypeSelector({
     const btn = (
       <Tip
         delayShow={DELAY_SHOW_MS}
-        title="LaTeX Document"
+        title={intl.formatMessage(labels.latex_document)}
         icon={NEW_FILETYPE_ICONS.tex}
-        tip="Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python and Sage code."
+        tip={intl.formatMessage({
+          id: "new.file-type-selector.latex.tooltip",
+          defaultMessage:
+            "Create a professional quality technical paper that contains sophisticated mathematical formulas and can run Python, R and Sage code.",
+        })}
         style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
       >
         <NewFileButton
-          name="LaTeX Document"
+          name={intl.formatMessage(labels.latex_document)}
           on_click={create_file}
           ext="tex"
           size={btnSize}
@@ -440,7 +461,11 @@ export function FileTypeSelector({
         delayShow={DELAY_SHOW_MS}
         title="Computational Markdown Document"
         icon={NEW_FILETYPE_ICONS.md}
-        tip="Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
+        tip={intl.formatMessage({
+          id: "new.file-type-selector.markdown.tooltip",
+          defaultMessage:
+            "Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code.",
+        })}
         style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
       >
         <NewFileButton

@@ -233,6 +233,9 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
         value = "";
       }
       value = value.trim();
+      if (props.actions?.processRenderedMarkdown != null) {
+        value = props.actions.processRenderedMarkdown({ value, id: props.id });
+      }
       return (
         <div
           onDoubleClick={handle_md_double_click}

@@ -7,38 +7,42 @@
 Functionality that mainly involves working with a specific project.
 */
 
+import computeServers from "@cocalc/frontend/compute/manager";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
+import { HOME_ROOT } from "@cocalc/util/consts/files";
+import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import {
+  isExecOptsBlocking,
+  type ExecOpts,
+  type ExecOutput,
+} from "@cocalc/util/db-schema/projects";
+import * as message from "@cocalc/util/message";
+import {
+  coerce_codomain_to_numbers,
   copy_without,
+  defaults,
   encode_path,
   is_valid_uuid_string,
   required,
-  defaults,
-  coerce_codomain_to_numbers,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import * as message from "@cocalc/util/message";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import { connection_to_project } from "../project/websocket/connect";
-import { API } from "../project/websocket/api";
-import httpApi from "./api";
+import { join } from "path";
 import { redux } from "../app-framework";
-import { WebappClient } from "./client";
 import { allow_project_to_run } from "../project/client-side-throttle";
+import { ensure_project_running } from "../project/project-start-warning";
+import { API } from "../project/websocket/api";
+import { connection_to_project } from "../project/websocket/connect";
 import { ProjectInfo, project_info } from "../project/websocket/project-info";
 import {
   ProjectStatus,
   project_status,
 } from "../project/websocket/project-status";
 import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
-import { ensure_project_running } from "../project/project-start-warning";
 import { Configuration, ConfigurationAspect } from "../project_configuration";
-import { join } from "path";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
-import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
-import computeServers from "@cocalc/frontend/compute/manager";
-import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
-import { HOME_ROOT } from "@cocalc/util/consts/files";
+import httpApi from "./api";
+import { WebappClient } from "./client";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -187,30 +191,43 @@ export class ProjectClient {
     for operations like "run rst2html on this file whenever it is saved."
     */
   public async exec(opts: ExecOpts & { post?: boolean }): Promise<ExecOutput> {
-    opts = defaults(opts, {
-      project_id: required,
-      compute_server_id: undefined,
-      filesystem: undefined,
-      path: "",
-      command: required,
-      args: [],
-      timeout: 30,
-      max_output: undefined,
-      bash: false,
-      aggregate: undefined,
-      err_on_exit: true,
-      env: undefined,
-      post: false, // if true, uses the POST api through nextjs instead of the websocket api.
-      cb: undefined, // if given use a callback interface instead of async
-    });
+    if ("async_get" in opts) {
+      opts = defaults(opts, {
+        project_id: required,
+        compute_server_id: undefined,
+        async_get: required,
+        async_stats: undefined,
+        async_await: undefined,
+        post: false, // if true, uses the POST api through nextjs instead of the websocket api.
+        timeout: 30,
+        cb: undefined,
+      });
+    } else {
+      opts = defaults(opts, {
+        project_id: required,
+        compute_server_id: undefined,
+        filesystem: undefined,
+        path: "",
+        command: required,
+        args: [],
+        max_output: undefined,
+        bash: false,
+        aggregate: undefined,
+        err_on_exit: true,
+        env: undefined,
+        post: false, // if true, uses the POST api through nextjs instead of the websocket api.
+        async_call: undefined, // if given use a callback interface instead of async
+        timeout: 30,
+        cb: undefined,
+      });
+    }
 
-    if (
-      !(await ensure_project_running(
-        opts.project_id,
-        `execute the command ${opts.command}`,
-      ))
-    ) {
+    const msg = isExecOptsBlocking(opts)
+      ? `execute the command ${opts.command}`
+      : `getting job ${opts.async_get}`;
+    if (!(await ensure_project_running(opts.project_id, msg))) {
       return {
+        type: "blocking",
         stdout: "",
         stderr: "You must start the project first",
         exit_code: 1,
@@ -234,7 +251,9 @@ export class ProjectClient {
       if (msg.status && msg.status == "error") {
         throw new Error(msg.error);
       }
-      delete msg.status;
+      if (msg.type === "blocking") {
+        delete msg.status;
+      }
       delete msg.error;
       if (opts.cb == null) {
         return msg;
@@ -252,7 +271,13 @@ export class ProjectClient {
         } else {
           opts.cb(err.message);
         }
-        return { stdout: "", stderr: err.message, exit_code: 1, time: 0 }; // should be ignored; this is just to make typescript happy.
+        return {
+          type: "blocking",
+          stdout: "",
+          stderr: err.message,
+          exit_code: 1,
+          time: 0, // should be ignored; this is just to make typescript happy.
+        };
       }
     }
   }

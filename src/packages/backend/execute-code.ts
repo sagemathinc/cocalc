@@ -15,6 +15,7 @@ import {
 import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { EventEmitter } from "node:stream";
 import shellEscape from "shell-escape";
 
 import getLogger from "@cocalc/backend/logger";
@@ -56,6 +57,11 @@ log.debug("configuration:", {
   MONITOR_STATS_LENGTH_MAX,
 });
 
+type AsyncAwait = "finished";
+const updates = new EventEmitter();
+const eventKey = (type: AsyncAwait, job_id: string): string =>
+  `${type}-${job_id}`;
+
 const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
   max: ASYNC_CACHE_MAX,
   ttl: 1000 * ASYNC_CACHE_TTL_S,
@@ -70,13 +76,18 @@ function truncStats(obj?: ExecuteCodeOutputAsync) {
   }
 }
 
-function asyncCacheUpdate(job_id: string, upd) {
+function asyncCacheUpdate(job_id: string, upd): ExecuteCodeOutputAsync {
   const obj = asyncCache.get(job_id);
   if (Array.isArray(obj?.stats) && Array.isArray(upd.stats)) {
     obj.stats.push(...upd.stats);
     truncStats(obj);
   }
-  asyncCache.set(job_id, { ...obj, ...upd });
+  const next: ExecuteCodeOutputAsync = { ...obj, ...upd };
+  asyncCache.set(job_id, next);
+  if (next.status !== "running") {
+    updates.emit(eventKey("finished", next.job_id), next);
+  }
+  return next;
 }
 
 // Async/await interface to executing code.
@@ -118,11 +129,19 @@ async function executeCodeNoAggregate(
   opts: ExecuteCodeOptions | ExecuteCodeOptionsAsyncGet,
 ): Promise<ExecuteCodeOutput> {
   if (isExecuteCodeOptionsAsyncGet(opts)) {
-    const cached = asyncCache.get(opts.async_get);
+    const key = opts.async_get;
+    const cached = asyncCache.get(key);
     if (cached != null) {
-      return cached;
+      const { async_await } = opts;
+      if (cached.status === "running" && async_await === true) {
+        return new Promise((done) =>
+          updates.once(eventKey("finished", key), (data) => done(data)),
+        );
+      } else {
+        return cached;
+      }
     } else {
-      throw new Error(`Async operation '${opts.async_get}' does not exist.`);
+      throw new Error(`Async operation '${key}' does not exist.`);
     }
   }
 
@@ -206,9 +225,10 @@ async function executeCodeNoAggregate(
       };
       asyncCache.set(job_id, job_config);
 
-      doSpawn(
+      const pid: number | undefined = doSpawn(
         { ...opts, origCommand, job_id, job_config },
         async (err, result) => {
+          log.debug("async/doSpawn returned", { err, result });
           try {
             const info: Omit<
               ExecuteCodeOutputAsync,
@@ -247,7 +267,8 @@ async function executeCodeNoAggregate(
         },
       );
 
-      return job_config;
+      // pid could be undefined, this means it wasn't possible to spawn a child
+      return { ...job_config, pid };
     } else {
       // This is the blocking variant
       return await callback(doSpawn, { ...opts, origCommand });
@@ -258,33 +279,22 @@ async function executeCodeNoAggregate(
   }
 }
 
-function update_async(
-  job_id: string | undefined,
-  aspect: "stdout" | "stderr",
-  data: string,
-) {
-  if (!job_id) return;
-  const obj = asyncCache.get(job_id);
-  if (obj != null) {
-    obj[aspect] = data;
-  }
-}
-
 function sumChildren(
   procs: Processes,
   children: { [pid: number]: number[] },
   pid: number,
-): { rss: number; pct_cpu: number; cpu_secs: number } {
+): { rss: number; pct_cpu: number; cpu_secs: number } | null {
   const proc = procs[`${pid}`];
   if (proc == null) {
     log.debug(`sumChildren: no process ${pid} in proc`);
-    return { rss: 0, pct_cpu: 0, cpu_secs: 0 };
+    return null;
   }
   let rss = proc.stat.mem.rss;
   let pct_cpu = proc.cpu.pct;
   let cpu_secs = proc.cpu.secs;
   for (const ch of children[pid] ?? []) {
     const sc = sumChildren(procs, children, ch);
+    if (sc == null) return null;
     rss += sc.rss;
     pct_cpu += sc.pct_cpu;
     cpu_secs += sc.cpu_secs;
@@ -299,7 +309,7 @@ function doSpawn(
     job_config?: ExecuteCodeOutputAsync;
   },
   cb: (err: string | undefined, result?: ExecuteCodeOutputBlocking) => void,
-) {
+): number | undefined {
   const start_time = walltime();
 
   if (opts.verbose) {
@@ -350,6 +360,7 @@ function doSpawn(
     if (callback_done) return;
 
     while (true) {
+      if (callback_done) return;
       const { procs } = await monitor.processes(Date.now());
       // reconstruct process tree
       const children: { [pid: number]: number[] } = {};
@@ -359,8 +370,13 @@ function doSpawn(
         children[ppid].push(pid);
       }
       // we only consider those, which are the pid itself or one of its children
-      const { rss, pct_cpu, cpu_secs } = sumChildren(procs, children, pid);
-
+      const sc = sumChildren(procs, children, pid);
+      if (sc == null) {
+        // If the process by PID is no longer known, either the process was killed or there are too many running.
+        // in any case, stop monitoring and do not update any data.
+        return;
+      }
+      const { rss, pct_cpu, cpu_secs } = sc;
       // ?? fallback, in case the cache "forgot" about it
       const obj = asyncCache.get(job_id) ?? job_config;
       obj.pid = pid;
@@ -380,8 +396,6 @@ function doSpawn(
       const next_s = Math.max(1, Math.floor(elapsed_s / 6));
       const wait_s = Math.min(next_s, MONITOR_INTERVAL_S);
       await new Promise((done) => setTimeout(done, wait_s * 1000));
-
-      if (callback_done) return;
     }
   }
 
@@ -406,6 +420,27 @@ function doSpawn(
 
   if (opts.verbose) {
     log.debug("listening for stdout, stderr and exit_code...");
+  }
+
+  function update_async(
+    job_id: string | undefined,
+    aspect: "stdout" | "stderr" | "pid",
+    data: string | number,
+  ): ExecuteCodeOutputAsync | undefined {
+    if (!job_id) return;
+    // job_config fallback, in case the cache forgot about it
+    const obj = asyncCache.get(job_id) ?? opts.job_config;
+    if (obj != null) {
+      if (aspect === "pid") {
+        if (typeof data === "number") {
+          obj.pid = data;
+        }
+      } else if (typeof data === "string") {
+        obj[aspect] = data;
+      }
+      asyncCache.set(job_id, obj);
+    }
+    return obj;
   }
 
   child.stdout.on("data", (data) => {
@@ -442,8 +477,14 @@ function doSpawn(
     finish();
   });
 
+  // Doc: https://nodejs.org/api/child_process.html#event-exit – read it!
+  // TODO: This is not 100% correct, because in case the process is killed (signal TERM),
+  // the $code is "null" and a second argument gives the signal (as a string). Hence, after a kill,
+  // this code below changes the exit code to 0. This could be a special case, though.
+  // It cannot be null, though, because the "finish" callback assumes that stdout, err and exit are set.
+  // The local $killed var is only true, if the process has been killed by the timeout – not by another kill.
   child.on("exit", (code) => {
-    exit_code = code != null ? code : undefined;
+    exit_code = code ?? 0;
     finish();
   });
 
@@ -462,13 +503,14 @@ function doSpawn(
 
   if (opts.job_id && child.pid) {
     // we don't await it, it runs until $callback_done is true
+    update_async(opts.job_id, "pid", child.pid);
     startMonitor();
   }
 
   const finish = (err?) => {
     if (!killed && (!stdout_is_done || !stderr_is_done || exit_code == null)) {
-      // it wasn't killed and one of stdout, stderr, and exit_code hasn't been
-      // set, so we let the rest of them get set before actually finishing up.
+      // it wasn't killed and none of stdout, stderr, and exit_code hasn't been set.
+      // so we let the rest of them get set before actually finishing up.
       return;
     }
     if (callback_done) {
@@ -482,6 +524,7 @@ function doSpawn(
       clearTimeout(timer);
       timer = undefined;
     }
+
     if (opts.verbose && log.isEnabled("debug")) {
       log.debug(
         "finished exec of",
@@ -496,6 +539,7 @@ function doSpawn(
         exit_code,
       });
     }
+
     if (err) {
       cb(err);
     } else if (opts.err_on_exit && exit_code != 0) {
@@ -560,11 +604,13 @@ function doSpawn(
       } catch (err) {
         // Exceptions can happen, which left uncaught messes up calling code big time.
         if (opts.verbose) {
-          log.debug("r.kill raised an exception", err);
+          log.debug("process.kill raised an exception", err);
         }
       }
       finish(`killed command '${opts.command} ${opts.args?.join(" ")}'`);
     };
     timer = setTimeout(f, opts.timeout * 1000);
   }
+
+  return child.pid;
 }

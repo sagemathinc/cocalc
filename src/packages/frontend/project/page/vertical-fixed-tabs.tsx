@@ -8,7 +8,7 @@ Tabs in a particular project.
 */
 
 import type { MenuProps } from "antd";
-import { Button, Dropdown, Modal, Switch, Tooltip } from "antd";
+import { Button, Dropdown, Modal, Tooltip } from "antd";
 import { debounce, throttle } from "lodash";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
@@ -101,31 +101,31 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
   const vbar = getValidVBAROption(other_settings.get(VBAR_KEY));
   const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
-  const tabs = useRef<HTMLDivElement>(null);
+  const gap = useRef<HTMLDivElement>(null);
   const breakPoint = useRef<number>(0);
   const refCondensed = useRef<boolean>(false);
   const [condensed, setCondensed] = useState(false);
 
   const calcCondensed = throttle(
     () => {
-      if (tabs.current == null) return;
+      if (gap.current == null) return;
       if (parent.current == null) return;
 
-      const th = tabs.current.clientHeight;
+      const gh = gap.current.clientHeight;
       const ph = parent.current.clientHeight;
 
       if (refCondensed.current) {
         // 5px slack to avoid flickering
-        if (ph > breakPoint.current + 5) {
+        if (gh > 0 && ph > breakPoint.current + 5) {
           setCondensed(false);
           refCondensed.current = false;
         }
       } else {
-        if (ph < th) {
+        if (gh < 1) {
           setCondensed(true);
           refCondensed.current = true;
           // max? because when we start with a thin window, the ph is already smaller than th
-          breakPoint.current = Math.max(th, ph);
+          breakPoint.current = ph;
         }
       }
     },
@@ -211,6 +211,24 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
     if (tab != null) items.push(tab);
   }
 
+  function renderToggleSidebar() {
+    return (
+      <Tooltip title="Hide the action bar" placement="rightTop">
+        <Button
+          size="small"
+          type="text"
+          block
+          onClick={() => {
+            track("action-bar", { action: "hide" });
+            actions?.toggleActionButtons();
+          }}
+        >
+          <Icon name="vertical-right-outlined" />
+        </Button>
+      </Tooltip>
+    );
+  }
+
   return (
     <div
       ref={parent}
@@ -222,27 +240,15 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
         // also, the scrollbar is intentionally only active in condensed mode, to avoid it to show up briefly.
         overflowY: condensed ? "auto" : "hidden",
         overflowX: "hidden",
+        flex: "1 1 0",
       }}
     >
-      <div
-        ref={tabs}
-        style={{ display: "flex", flexDirection: "column", flex: "1 1 0" }}
-      >
-        {items}
-        <div style={{ flex: 1 }}></div> {/* moves hide switch to the bottom */}
-        <LayoutSelector vbar={vbar} />
-        <Tooltip title="Hide the action bar" placement="right">
-          <Switch
-            style={{ margin: "10px" }}
-            size="small"
-            checked
-            onChange={() => {
-              actions?.toggleActionButtons();
-              track("action-bar", { action: "hide" });
-            }}
-          />
-        </Tooltip>
-      </div>
+      {items}
+      {/* moves the layout selector to the bottom */}
+      <div ref={gap} style={{ flex: 1 }}></div>{" "}
+      {/* moves hide switch to the bottom */}
+      <LayoutSelector vbar={vbar} />
+      {renderToggleSidebar()}
     </div>
   );
 }
@@ -297,7 +303,7 @@ function LayoutSelector({ vbar }) {
     ),
     onClick: () => {
       Modal.info({
-        title: title,
+        title,
         content: VBAR_EXPLANATION,
       });
     },
@@ -306,7 +312,11 @@ function LayoutSelector({ vbar }) {
   return (
     <div style={{ textAlign: "center" }}>
       <Dropdown menu={{ items }} trigger={["click"]} placement="topLeft">
-        <Button icon={<Icon name="layout" />} style={{ margin: "5px" }} />
+        <Button
+          icon={<Icon name="layout" />}
+          style={{ margin: "5px" }}
+          type="text"
+        />
       </Dropdown>
     </div>
   );

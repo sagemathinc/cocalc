@@ -6,6 +6,7 @@ import { delay } from "awaiting";
 import * as immutable from "immutable";
 
 import { STUDENT_SUBDIR } from "@cocalc/frontend/course/assignments/consts";
+import { getIntl, jupyter, labels } from "@cocalc/frontend/i18n";
 import { close, path_split } from "@cocalc/util/misc";
 
 import { JupyterActions } from "../browser-actions";
@@ -115,15 +116,17 @@ export class NBGraderActions {
   }
 
   public async confirm_validate(frame_actions): Promise<void> {
+    const intl = await getIntl();
+    const validate = intl.formatMessage(labels.validate);
     const choice = await this.jupyter_actions.confirm_dialog({
-      title: "Validate notebook?",
-      body: "Validating the notebook will restart the kernel and run all cells in order, even those with errors.  This will ensure that all output is exactly what results from running all cells in order.",
+      title: intl.formatMessage(jupyter.commands.validate_title),
+      body: intl.formatMessage(jupyter.commands.validate_body),
       choices: [
-        { title: "Cancel" },
-        { title: "Validate", style: "danger", default: true },
+        { title: intl.formatMessage(labels.cancel) },
+        { title: validate, style: "danger", default: true },
       ],
     });
-    if (choice === "Validate") {
+    if (choice === validate) {
       await this.validate(frame_actions);
     }
   }

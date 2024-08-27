@@ -9,7 +9,8 @@ Create a new project
 
 import { Button, Card, Col, Form, Input, Row } from "antd";
 import { delay } from "awaiting";
-import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
+import { useIntl } from "react-intl";
+
 import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -22,20 +23,22 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, ErrorDisplay, Icon, Gap } from "@cocalc/frontend/components";
+import { A, ErrorDisplay, Gap, Icon } from "@cocalc/frontend/components";
 import {
   derive_project_img_name,
   SoftwareEnvironment,
   SoftwareEnvironmentState,
 } from "@cocalc/frontend/custom-software/selector";
+import { labels } from "@cocalc/frontend/i18n";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
+import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
+import track from "@cocalc/frontend/user-tracking";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import track from "@cocalc/frontend/user-tracking";
 
 const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
 const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
@@ -52,6 +55,7 @@ export const NewProjectCreator: React.FC<Props> = ({
   start_in_edit_mode,
   default_value,
 }: Props) => {
+  const intl = useIntl();
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(
     start_in_edit_mode ? "edit" : "view",
@@ -215,7 +219,8 @@ export const NewProjectCreator: React.FC<Props> = ({
             onClick={toggle_editing}
             style={{ width: "100%" }}
           >
-            <Icon name="plus-circle" /> Create Project...
+            <Icon name="plus-circle" />{" "}
+            {intl.formatMessage(labels.create_project)}
           </Button>
         </Col>
       </Row>

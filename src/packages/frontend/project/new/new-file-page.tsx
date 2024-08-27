@@ -5,6 +5,8 @@
 
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -23,6 +25,7 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
+import ComputeServer from "@cocalc/frontend/compute/inline";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
@@ -33,13 +36,13 @@ import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
   project_id: string;
 }
 
 export default function NewFilePage(props: Props) {
+  const intl = useIntl();
   const [createFolderModal, setCreateFolderModal] = useState<boolean>(false);
   const createFolderModalRef = useRef<any>(null);
   useEffect(() => {
@@ -286,23 +289,36 @@ export default function NewFilePage(props: Props) {
       icon={"plus-circle"}
       title={
         <>
-          Create or{" "}
-          <UploadLink
-            project_id={project_id}
-            path={current_path}
-            onUpload={() => getActions().fetch_directory_listing()}
-          />{" "}
-          New File or{" "}
-          <a
-            onClick={() => {
-              setCreateFolderModal(true);
+          <FormattedMessage
+            id="project.new-file-page.title"
+            defaultMessage={
+              "Create or {upload} New File or <folder>Folder</folder>"
+            }
+            values={{
+              upload: (
+                <UploadLink
+                  project_id={project_id}
+                  path={current_path}
+                  onUpload={() => getActions().fetch_directory_listing()}
+                />
+              ),
+              folder: (txt) => (
+                <a
+                  onClick={() => {
+                    setCreateFolderModal(true);
+                  }}
+                >
+                  {txt}
+                </a>
+              ),
             }}
-          >
-            Folder
-          </a>
+          />
           <Modal
             open={createFolderModal}
-            title={"Create New Folder"}
+            title={intl.formatMessage({
+              id: "project.new-file-page.title.modal.title",
+              defaultMessage: "Create New Folder",
+            })}
             onCancel={() => setCreateFolderModal(false)}
             onOk={() => {
               setCreateFolderModal(false);
@@ -364,8 +380,10 @@ export default function NewFilePage(props: Props) {
               fontSize: "16px",
             }}
           >
-            Name your file, folder or paste in a link. End name with / to make a
-            folder.
+            <FormattedMessage
+              id="new.file-type-page.header.intro"
+              defaultMessage="Name your file, folder or paste in a link. End name with / to make a folder."
+            />
           </Paragraph>
           <div
             style={{
@@ -418,12 +436,17 @@ export default function NewFilePage(props: Props) {
               marginTop: "15px",
             }}
           >
-            What would you like to create? Documents can be simultaneously
-            edited by multiple people, maintain a full{" "}
-            <A href="https://doc.cocalc.com/time-travel.html">
-              TimeTravel history
-            </A>{" "}
-            of edits, and support evaluation of code.
+            <FormattedMessage
+              id="new.file-type-page.header.description"
+              defaultMessage={
+                "What would you like to create? Documents can be simultaneously edited by multiple people, maintain a full <A>TimeTravel history</A> of edits, and support evaluation of code."
+              }
+              values={{
+                A: (ch) => (
+                  <A href="https://doc.cocalc.com/time-travel.html">{ch}</A>
+                ),
+              }}
+            />
           </Paragraph>
           <FileTypeSelector
             create_file={submit}
