@@ -290,7 +290,8 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       let name_leaf = name;
       let actions_leaf = actions;
       if (
-        spec.name === "TimeTravel" &&
+        typeof spec.name != "string" &&
+        spec.name?.id === "labels.timetravel" &&
         !(actions instanceof TimeTravelActions)
       ) {
         if (path_leaf.slice(path_leaf.length - 12) != ".time-travel") {
