@@ -3,12 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Component, Rendered } from "@cocalc/frontend/app-framework";
-import { Loading } from "@cocalc/frontend/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { join } from "path";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { Alert } from "antd";
+import { join } from "path";
+
+import { Rendered, useEffect, useState } from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   account_id: string;
@@ -16,42 +17,40 @@ interface Props {
   last_name: string;
 }
 
-interface State {
-  auth_token?: string;
-  err?: string;
-}
+export function Impersonate(props: Readonly<Props>) {
+  const { first_name, last_name, account_id } = props;
 
-export class Impersonate extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = {};
-  }
+  const [auth_token, set_auth_token] = useState<string | null>(null);
+  const [err, set_err] = useState<string | null>(null);
 
-  async get_token(): Promise<void> {
+  async function get_token(): Promise<void> {
     try {
       const auth_token = await webapp_client.admin_client.get_user_auth_token(
-        this.props.account_id
+        account_id,
       );
-      this.setState({ auth_token });
+      set_auth_token(auth_token);
+      set_err(null);
     } catch (err) {
-      this.setState({ err: err.toString() });
+      set_err(err.toString());
+      set_auth_token(null);
     }
   }
 
-  componentDidMount(): void {
-    this.get_token();
-  }
+  useEffect(() => {
+    get_token();
+  }, []);
 
-  render_link(): Rendered {
-    if (this.state.auth_token == null) {
+  function render_link(): Rendered {
+    if (auth_token == null) {
       return <Loading />;
     }
-    const link = join(appBasePath, `app?auth_token=${this.state.auth_token}`);
+    // lang_temp: https://github.com/sagemathinc/cocalc/issues/7782
+    const link = join(appBasePath, `app?auth_token=${auth_token}&lang_temp=en`);
     return (
       <div>
         <a href={link} target="_blank" rel="noopener noreferrer">
           Right click and open this link in a new incognito window, where you
-          will be signed in as {this.props.first_name} {this.props.last_name}...
+          will be signed in as {first_name} {last_name}...
         </a>
         <br />
         The actual link:
@@ -64,35 +63,31 @@ export class Impersonate extends Component<Props, State> {
     );
   }
 
-  render_err(): Rendered {
-    if (this.state.err != null) {
+  function render_err(): Rendered {
+    if (err != null) {
       return (
         <div>
-          <b>ERROR</b> {this.state.err}
+          <b>ERROR</b> {err}
         </div>
       );
     }
   }
 
-  render(): Rendered {
-    return (
-      <Alert
-        type="warning"
-        style={{
-          margin: "15px",
-        }}
-        message={
-          <b>
-            Impersonate user "{this.props.first_name} {this.props.last_name}"
-          </b>
-        }
-        description={
-          <>
-            {this.render_err()}
-            {this.render_link()}
-          </>
-        }
-      />
-    );
-  }
+  return (
+    <Alert
+      type="warning"
+      style={{ margin: "15px" }}
+      message={
+        <b>
+          Impersonate user "{first_name} {last_name}"
+        </b>
+      }
+      description={
+        <>
+          {render_err()}
+          {render_link()}
+        </>
+      }
+    />
+  );
 }

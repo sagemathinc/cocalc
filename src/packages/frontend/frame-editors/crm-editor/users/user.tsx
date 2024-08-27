@@ -1,10 +1,11 @@
+import { Card, Space, Tag } from "antd";
+
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { Tag, Card, Space } from "antd";
 import { TimeAgo } from "@cocalc/frontend/components";
-import Projects from "./projects";
+import { PurchasesButton } from "@cocalc/frontend/purchases/purchases";
 import Impersonate from "./impersonate";
 import PayAsYouGoMinBalance from "./pay-as-you-go-min-balance";
-import { PurchasesButton } from "@cocalc/frontend/purchases/purchases";
+import Projects from "./projects";
 
 export default function User({
   account_id,

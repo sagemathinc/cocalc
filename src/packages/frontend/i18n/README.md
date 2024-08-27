@@ -82,7 +82,9 @@ We discussed this internally on 2024-08-19 and came to the conclusion that we sh
 - Example: translating the "Run" button in Jupyter to German or Russian, which both have more or less the meaning of "running in the street", is extremely awkward. It's also a well recognizable element, which users are used to, even without knowing what it really means. Same holds for "Kernel", which is even in English a pretty weird choice. Therefore, we do not translate elements like the "Run" button or "Kernel" for Jupyter Kernels. A "Run" menu however, in general, could be translated (e.g. in German it is called "Ausführen").
 - However, what we should translate (or add) are hover text explanations. So, in the case of the "Run" button, there should be a tooltip, which explains in the current language, what this button really does.
 
-## SimpleLocalize configuration
+## SimpleLocalize
+
+### Configuration
 
 This is about auto-translations, in "Settings → Auto-translation":
 
@@ -106,6 +108,21 @@ This is about auto-translations, in "Settings → Auto-translation":
 
 - Exclusion dialect: ICU messages
 - Excluded words or phrases: CoCalc
+
+### Translating
+
+To actually do the translations, the first tab is "Translations" (the second one is to trigger auto-translations for all new keys. E.g. to catch up with new messages, open the "Languages" tab, and at the top of the list of languages, there is "Auto translate all" → click on it, and confirm, then wait a minute or two.).
+
+For the "Translations" tab, you have a few controls what you can do and see in the interface:
+
+- Configure the "Translations" tab (in the row at the top, beneath the tabs) to show English and e.g. German.
+- At the top right is "Settings" to either show them as a grid or in rows:
+  - At the top, I recommend to click on "Show translations keys" and "Show **code** description column": both give you additional context (IDs are hierarchical keys).
+  - You can obviously tweak this as you like :-)
+- Then you can go through the translations (e.g. sort by ID, then similar ones are close by … or sort by "newest keys first" to work on the newest stuff).
+- Click on "Accept" to signal that the translation is fine.
+- You can also click on the little "Fork" icon at the bottom right of a text box, which gives you interesting tools. A text editor for larger text, an AI-Tool, where you can fix the grammar, shrink or expand the text, etc. … or just check the history of that particular string.
+- What ends up in CoCalc during the `i18n:download` step is what is saved there for each language in each box. As of writing this, there is no setup for approved translations.
 
 ## Examples
 
