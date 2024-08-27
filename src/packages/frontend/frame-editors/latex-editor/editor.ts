@@ -37,8 +37,8 @@ export const pdfjsCommands = set([
 
 const EDITOR_SPEC = {
   cm: {
-    short: "Source",
-    name: "LaTeX Source Code",
+    short: editor.latex_cm_title_short,
+    name: editor.latex_cm_title,
     icon: "code",
     component: CodemirrorEditor,
     commands: set([
@@ -83,9 +83,8 @@ const EDITOR_SPEC = {
     ]),
     customizeCommands: {
       print: {
-        label: "Print LaTeX Source",
-        title:
-          "Print the source code of this document.  Use Print from the PDF Preview frame to print the rendered document.",
+        label: editor.latex_command_print_label,
+        title: editor.latex_command_print_tooltip,
       },
     },
 
@@ -93,8 +92,8 @@ const EDITOR_SPEC = {
   } as EditorDescription,
 
   pdfjs_canvas: {
-    short: "PDF (preview)",
-    name: "PDF - Preview",
+    short: editor.pdfjs_canvas_title_short,
+    name: editor.pdfjs_canvas_title,
     icon: "file-pdf",
     component: PDFJS,
     commands: {
@@ -119,16 +118,16 @@ const EDITOR_SPEC = {
   } as EditorDescription,
 
   error: {
-    short: "Errors",
-    name: "Errors and Warnings",
+    short: editor.errors_and_warnings_title_short,
+    name: editor.errors_and_warnings_title,
     icon: "bug",
     component: ErrorsAndWarnings,
     commands: set(["build", "force_build", "clean"]),
   } as EditorDescription,
 
   build: {
-    short: "Build",
-    name: "Build Control and Log",
+    short: editor.build_control_and_log_title_short,
+    name: editor.build_control_and_log_title,
     icon: "terminal",
     component: Build,
     commands: set([
@@ -176,8 +175,8 @@ const EDITOR_SPEC = {
 // See https://github.com/sagemathinc/cocalc/issues/5114
 if (!IS_IPAD && !IS_IOS) {
   (EDITOR_SPEC as any).pdf_embed = {
-    short: "PDF (native)",
-    name: "PDF - Native",
+    short: editor.pdf_embed_title_short,
+    name: editor.pdf_embed_title,
     icon: "file-pdf",
     commands: set(["print", "save", "download"]),
     component: PDFEmbed,

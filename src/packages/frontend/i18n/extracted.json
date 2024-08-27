@@ -256,6 +256,48 @@
   "commands.generic.toggle_button_bar.title": {
     "defaultMessage": "Toggle whether or not the menu toolbar is displayed for all editors."
   },
+  "editor.build_control_and_log.title": {
+    "defaultMessage": "Build Control and Log"
+  },
+  "editor.build_control_and_log.title.short": {
+    "defaultMessage": "Build"
+  },
+  "editor.errors_and_warning.title": {
+    "defaultMessage": "Errors and Warnings"
+  },
+  "editor.errors_and_warning.title.short": {
+    "defaultMessage": "Errors"
+  },
+  "editor.latex.cm.title": {
+    "defaultMessage": "LaTeX Source Code"
+  },
+  "editor.latex.cm.title.short": {
+    "defaultMessage": "Source"
+  },
+  "editor.latex.command.print.label": {
+    "defaultMessage": "Print LaTeX Source"
+  },
+  "editor.latex.command.print.tooltip": {
+    "defaultMessage": "Print the source code of this document. Use Print from the PDF Preview frame to print the rendered document."
+  },
+  "editor.latex.pdf_embed.title": {
+    "defaultMessage": "PDF - Native"
+  },
+  "editor.latex.pdf_embed.title.short": {
+    "defaultMessage": "PDF (native)"
+  },
+  "editor.pdfjs_canvas.title": {
+    "defaultMessage": "PDF - Preview"
+  },
+  "editor.pdfjs_canvas.title.short": {
+    "defaultMessage": "PDF (preview)"
+  },
+  "editor.snippets.label": {
+    "defaultMessage": "Snippets"
+  },
+  "editor.snippets.tooltip": {
+    "defaultMessage": "Open a panel containing code snippets."
+  },
   "editor.table_of_contents.name": {
     "defaultMessage": "Table of Contents"
   },
@@ -307,6 +349,30 @@
     "defaultMessage": "None",
     "description": "Jupyter Notebook cell toolbar 'None' hides the toolbar"
   },
+  "jupyter.commands.cell_type.menu": {
+    "defaultMessage": "Cell Type",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_collapse.menu": {
+    "defaultMessage": "Collapse",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_expand.menu": {
+    "defaultMessage": "Expand",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_protect.menu": {
+    "defaultMessage": "Protect",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_unlock.menu": {
+    "defaultMessage": "Remove Protection",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.cells_unlock.menu.button": {
+    "defaultMessage": "Unlock",
+    "description": "Cells in a Jupyter Notebook"
+  },
   "jupyter.commands.change_kernel": {
     "defaultMessage": "Change Kernel...",
     "description": "Change the Kernel in the Jupyter Notebook"
@@ -315,15 +381,40 @@
     "defaultMessage": "Select from any of the available kernels.",
     "description": "Tooltip description for changing the Kernel in the Jupyter Notebook"
   },
+  "jupyter.commands.clear_output.menu": {
+    "defaultMessage": "Clear Output",
+    "description": "Cells in a Jupyter Notebook"
+  },
   "jupyter.commands.close_and_halt.menu": {
     "defaultMessage": "Close and halt",
     "description": "Close and halt the Kernel and Jupyter Notebook"
+  },
+  "jupyter.commands.delete_cells.menu": {
+    "defaultMessage": "Delete Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.download_as_html": {
+    "defaultMessage": "Save and Export As HTML"
+  },
+  "jupyter.commands.download_as_pdf": {
+    "defaultMessage": "Save and Export As PDF"
   },
   "jupyter.commands.enter_command_mode": {
     "defaultMessage": "Enter command mode"
   },
   "jupyter.commands.enter_edit_mode": {
     "defaultMessage": "Enter edit mode"
+  },
+  "jupyter.commands.export.menu": {
+    "defaultMessage": "Save and Export..."
+  },
+  "jupyter.commands.format_cells.menu": {
+    "defaultMessage": "Format Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.format_cells.menu.button": {
+    "defaultMessage": "Format",
+    "description": "Cells in a Jupyter Notebook"
   },
   "jupyter.commands.halt_kernel_menu.menu": {
     "defaultMessage": "Halt kernel...",
@@ -335,9 +426,39 @@
   "jupyter.commands.insert_cell_below": {
     "defaultMessage": "Insert Cell Below"
   },
+  "jupyter.commands.insert_cells.menu": {
+    "defaultMessage": "Insert Cell",
+    "description": "Cells in a Jupyter Notebook"
+  },
   "jupyter.commands.interrupt_kernel": {
     "defaultMessage": "Interrupt Kernel (Stop)",
     "description": "In a Jupyter Notebook, interrupt the running kernel"
+  },
+  "jupyter.commands.move_cells.menu": {
+    "defaultMessage": "Move Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.nbgrader_assign.buton": {
+    "defaultMessage": "Generate"
+  },
+  "jupyter.commands.nbgrader_assign.menu": {
+    "defaultMessage": "Generate student version..."
+  },
+  "jupyter.commands.paste_cells.menu": {
+    "defaultMessage": "Paste Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.paste_cells_above.menu": {
+    "defaultMessage": "Paste Cells Above",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.paste_cells_below.menu": {
+    "defaultMessage": "Paste Cells Below",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.paste_cells_replace.menu": {
+    "defaultMessage": "Paste Cells and Replace",
+    "description": "Cells in a Jupyter Notebook"
   },
   "jupyter.commands.refresh_kernels": {
     "defaultMessage": "Refresh Kernel List",
@@ -418,6 +539,10 @@
   "jupyter.commands.run_current_cell": {
     "defaultMessage": "Run Current Cell"
   },
+  "jupyter.commands.select_cells.menu": {
+    "defaultMessage": "Select Cells",
+    "description": "Cells in a Jupyter Notebook"
+  },
   "jupyter.commands.shutdown_kernel.body": {
     "defaultMessage": "Do you want to shutdown the current kernel? All variable values will be lost.",
     "description": "In a Jupyter Notebook"
@@ -442,6 +567,10 @@
     "defaultMessage": "Shutdown kernel?",
     "description": "In a Jupyter Notebook"
   },
+  "jupyter.commands.split_and_merge.menu": {
+    "defaultMessage": "Split and Merge",
+    "description": "Cells in a Jupyter Notebook"
+  },
   "jupyter.commands.toggle_all_line_numbers": {
     "defaultMessage": "Toggle Line Numbers of All Cells"
   },
@@ -463,6 +592,13 @@
   "jupyter.commands.validate.tooltip": {
     "defaultMessage": "Restart Jupyter Notebook and run all cells to validate that it works.",
     "description": "Validate a Jupyter Notebook"
+  },
+  "jupyter.commands.view_toolbars.menu": {
+    "defaultMessage": "Cell Toolbar",
+    "description": "Cells in a Jupyter Notebook"
+  },
+  "jupyter.commands.view_toolbars.menu.button": {
+    "defaultMessage": "Toolbars"
   },
   "jupyter.editor.browser_actions.close_and_halt.body": {
     "defaultMessage": "Are you sure you want to close this file and halt the kernel? All variable state will be lost."
@@ -507,6 +643,24 @@
   },
   "jupyter.editor.console_title": {
     "defaultMessage": "Open the Jupyter command line console connected to the running kernel."
+  },
+  "jupyter.editor.introspect.short": {
+    "defaultMessage": "Introspect"
+  },
+  "jupyter.editor.introspect.title": {
+    "defaultMessage": "Introspection"
+  },
+  "jupyter.editor.raw_json_editor.short": {
+    "defaultMessage": "JSON edit"
+  },
+  "jupyter.editor.raw_json_editor.title": {
+    "defaultMessage": "Raw JSON editor"
+  },
+  "jupyter.editor.raw_json_view.short": {
+    "defaultMessage": "JSON view"
+  },
+  "jupyter.editor.raw_json_view.title": {
+    "defaultMessage": "Raw JSON viewer"
   },
   "jupyter.editor.restart_and_run_all.body": {
     "defaultMessage": "Are you sure you want to restart the kernel and run the notebook? All variable state and output will be reset, though past output is available in TimeTravel.",
@@ -659,6 +813,10 @@
   "labels.cloud_file_system": {
     "defaultMessage": "Cloud File Systems"
   },
+  "labels.code_folding": {
+    "defaultMessage": "Code Folding",
+    "description": "Hide sections in a source code file"
+  },
   "labels.copy": {
     "defaultMessage": "Copy"
   },
@@ -681,6 +839,9 @@
     "defaultMessage": "Help",
     "description": "Help entry in a menu or label on a button"
   },
+  "labels.insert": {
+    "defaultMessage": "Insert"
+  },
   "labels.latex_document": {
     "defaultMessage": "LaTeX Document",
     "description": "Indicating a LaTeX Documents on a button label or frame title"
@@ -688,6 +849,10 @@
   "labels.licenses": {
     "defaultMessage": "Licenses",
     "description": "A license is part of a subscription or a one-time purchase to upgrade projects"
+  },
+  "labels.line_numbers": {
+    "defaultMessage": "Line Numbers",
+    "description": "Show or toggle line numbers in a code file"
   },
   "labels.linux_terminal": {
     "defaultMessage": "Linux Terminal",
@@ -756,6 +921,9 @@
   "labels.settings": {
     "defaultMessage": "Settings",
     "description": "On a button to show project settings"
+  },
+  "labels.slideshow": {
+    "defaultMessage": "Slideshow"
   },
   "labels.snippets": {
     "defaultMessage": "Snippets",
@@ -864,6 +1032,9 @@
   },
   "menu.generic.new_file.label": {
     "defaultMessage": "New File"
+  },
+  "menu.generic.open_file.label": {
+    "defaultMessage": "Open..."
   },
   "menu.generic.run.label": {
     "defaultMessage": "Run"

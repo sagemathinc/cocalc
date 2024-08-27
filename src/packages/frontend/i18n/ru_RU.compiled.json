@@ -911,6 +911,90 @@
       "value": "Переключить отображение панели меню для всех редакторов."
     }
   ],
+  "editor.build_control_and_log.title": [
+    {
+      "type": 0,
+      "value": "Управление сборкой и журнал"
+    }
+  ],
+  "editor.build_control_and_log.title.short": [
+    {
+      "type": 0,
+      "value": "Построить"
+    }
+  ],
+  "editor.errors_and_warning.title": [
+    {
+      "type": 0,
+      "value": "Ошибки и Предупреждения"
+    }
+  ],
+  "editor.errors_and_warning.title.short": [
+    {
+      "type": 0,
+      "value": "Ошибки"
+    }
+  ],
+  "editor.latex.cm.title": [
+    {
+      "type": 0,
+      "value": "Исходный код LaTeX"
+    }
+  ],
+  "editor.latex.cm.title.short": [
+    {
+      "type": 0,
+      "value": "Источник"
+    }
+  ],
+  "editor.latex.command.print.label": [
+    {
+      "type": 0,
+      "value": "Печать исходного кода LaTeX"
+    }
+  ],
+  "editor.latex.command.print.tooltip": [
+    {
+      "type": 0,
+      "value": "Распечатать исходный код этого документа. Используйте Печать из окна предварительного просмотра PDF для печати отрендеренного документа."
+    }
+  ],
+  "editor.latex.pdf_embed.title": [
+    {
+      "type": 0,
+      "value": "PDF - Оригинал"
+    }
+  ],
+  "editor.latex.pdf_embed.title.short": [
+    {
+      "type": 0,
+      "value": "PDF (родной)"
+    }
+  ],
+  "editor.pdfjs_canvas.title": [
+    {
+      "type": 0,
+      "value": "PDF - Просмотр"
+    }
+  ],
+  "editor.pdfjs_canvas.title.short": [
+    {
+      "type": 0,
+      "value": "PDF (предпросмотр)"
+    }
+  ],
+  "editor.snippets.label": [
+    {
+      "type": 0,
+      "value": "Фрагменты"
+    }
+  ],
+  "editor.snippets.tooltip": [
+    {
+      "type": 0,
+      "value": "Открыть панель с фрагментами кода."
+    }
+  ],
   "editor.table_of_contents.name": [
     {
       "type": 0,
@@ -1001,6 +1085,42 @@
       "value": "Нет"
     }
   ],
+  "jupyter.commands.cell_type.menu": [
+    {
+      "type": 0,
+      "value": "Тип ячейки"
+    }
+  ],
+  "jupyter.commands.cells_collapse.menu": [
+    {
+      "type": 0,
+      "value": "Свернуть"
+    }
+  ],
+  "jupyter.commands.cells_expand.menu": [
+    {
+      "type": 0,
+      "value": "Развернуть"
+    }
+  ],
+  "jupyter.commands.cells_protect.menu": [
+    {
+      "type": 0,
+      "value": "Защитить"
+    }
+  ],
+  "jupyter.commands.cells_unlock.menu": [
+    {
+      "type": 0,
+      "value": "Удалить защиту"
+    }
+  ],
+  "jupyter.commands.cells_unlock.menu.button": [
+    {
+      "type": 0,
+      "value": "Разблокировать"
+    }
+  ],
   "jupyter.commands.change_kernel": [
     {
       "type": 0,
@@ -1013,10 +1133,34 @@
       "value": "Выберите любой из доступных ядер."
     }
   ],
+  "jupyter.commands.clear_output.menu": [
+    {
+      "type": 0,
+      "value": "Очистить вывод"
+    }
+  ],
   "jupyter.commands.close_and_halt.menu": [
     {
       "type": 0,
       "value": "Закрыть и остановить"
+    }
+  ],
+  "jupyter.commands.delete_cells.menu": [
+    {
+      "type": 0,
+      "value": "Удалить ячейки"
+    }
+  ],
+  "jupyter.commands.download_as_html": [
+    {
+      "type": 0,
+      "value": "Сохранить и экспортировать как HTML"
+    }
+  ],
+  "jupyter.commands.download_as_pdf": [
+    {
+      "type": 0,
+      "value": "Сохранить и экспортировать в PDF"
     }
   ],
   "jupyter.commands.enter_command_mode": [
@@ -1029,6 +1173,24 @@
     {
       "type": 0,
       "value": "Войти в режим редактирования"
+    }
+  ],
+  "jupyter.commands.export.menu": [
+    {
+      "type": 0,
+      "value": "Сохранить и экспортировать..."
+    }
+  ],
+  "jupyter.commands.format_cells.menu": [
+    {
+      "type": 0,
+      "value": "Форматировать ячейки"
+    }
+  ],
+  "jupyter.commands.format_cells.menu.button": [
+    {
+      "type": 0,
+      "value": "Формат"
     }
   ],
   "jupyter.commands.halt_kernel_menu.menu": [
@@ -1049,10 +1211,58 @@
       "value": "Вставить ячейку ниже"
     }
   ],
+  "jupyter.commands.insert_cells.menu": [
+    {
+      "type": 0,
+      "value": "Вставить ячейку"
+    }
+  ],
   "jupyter.commands.interrupt_kernel": [
     {
       "type": 0,
       "value": "Прервать ядро (Остановить)"
+    }
+  ],
+  "jupyter.commands.move_cells.menu": [
+    {
+      "type": 0,
+      "value": "Переместить ячейки"
+    }
+  ],
+  "jupyter.commands.nbgrader_assign.buton": [
+    {
+      "type": 0,
+      "value": "Сгенерировать"
+    }
+  ],
+  "jupyter.commands.nbgrader_assign.menu": [
+    {
+      "type": 0,
+      "value": "Создать версию для студента..."
+    }
+  ],
+  "jupyter.commands.paste_cells.menu": [
+    {
+      "type": 0,
+      "value": "Вставить ячейки"
+    }
+  ],
+  "jupyter.commands.paste_cells_above.menu": [
+    {
+      "type": 0,
+      "value": "Вставить ячейки выше"
+    }
+  ],
+  "jupyter.commands.paste_cells_below.menu": [
+    {
+      "type": 0,
+      "value": "Вставить ячейки ниже"
+    }
+  ],
+  "jupyter.commands.paste_cells_replace.menu": [
+    {
+      "type": 0,
+      "value": "Вставить ячейки и заменить"
     }
   ],
   "jupyter.commands.refresh_kernels": [
@@ -1199,6 +1409,12 @@
       "value": "Выполнить текущую ячейку"
     }
   ],
+  "jupyter.commands.select_cells.menu": [
+    {
+      "type": 0,
+      "value": "Выбрать ячейки"
+    }
+  ],
   "jupyter.commands.shutdown_kernel.body": [
     {
       "type": 0,
@@ -1235,6 +1451,12 @@
       "value": "Выключить ядро?"
     }
   ],
+  "jupyter.commands.split_and_merge.menu": [
+    {
+      "type": 0,
+      "value": "Разделить и Объединить"
+    }
+  ],
   "jupyter.commands.toggle_all_line_numbers": [
     {
       "type": 0,
@@ -1269,6 +1491,18 @@
     {
       "type": 0,
       "value": "Перезапустите Jupyter Notebook и выполните все ячейки, чтобы проверить, что он работает."
+    }
+  ],
+  "jupyter.commands.view_toolbars.menu": [
+    {
+      "type": 0,
+      "value": "Панель инструментов ячейки"
+    }
+  ],
+  "jupyter.commands.view_toolbars.menu.button": [
+    {
+      "type": 0,
+      "value": "Панели инструментов"
     }
   ],
   "jupyter.editor.browser_actions.close_and_halt.body": [
@@ -1353,6 +1587,42 @@
     {
       "type": 0,
       "value": "Открыть командную строку Jupyter, подключенную к работающему ядру."
+    }
+  ],
+  "jupyter.editor.introspect.short": [
+    {
+      "type": 0,
+      "value": "Интроспекция"
+    }
+  ],
+  "jupyter.editor.introspect.title": [
+    {
+      "type": 0,
+      "value": "Интроспекция"
+    }
+  ],
+  "jupyter.editor.raw_json_editor.short": [
+    {
+      "type": 0,
+      "value": "Редактирование JSON"
+    }
+  ],
+  "jupyter.editor.raw_json_editor.title": [
+    {
+      "type": 0,
+      "value": "Редактор сырого JSON"
+    }
+  ],
+  "jupyter.editor.raw_json_view.short": [
+    {
+      "type": 0,
+      "value": "Просмотр JSON"
+    }
+  ],
+  "jupyter.editor.raw_json_view.title": [
+    {
+      "type": 0,
+      "value": "Просмотр необработанного JSON"
     }
   ],
   "jupyter.editor.restart_and_run_all.body": [
@@ -1635,6 +1905,12 @@
       "value": "Облачные файловые системы"
     }
   ],
+  "labels.code_folding": [
+    {
+      "type": 0,
+      "value": "Сворачивание кода"
+    }
+  ],
   "labels.copy": [
     {
       "type": 0,
@@ -1697,6 +1973,12 @@
       "value": "Помощь"
     }
   ],
+  "labels.insert": [
+    {
+      "type": 0,
+      "value": "Вставить"
+    }
+  ],
   "labels.latex_document": [
     {
       "type": 0,
@@ -1707,6 +1989,12 @@
     {
       "type": 0,
       "value": "Лицензии"
+    }
+  ],
+  "labels.line_numbers": [
+    {
+      "type": 0,
+      "value": "Номера строк"
     }
   ],
   "labels.linux_terminal": [
@@ -1871,6 +2159,12 @@
     {
       "type": 0,
       "value": "Настройки"
+    }
+  ],
+  "labels.slideshow": [
+    {
+      "type": 0,
+      "value": "Слайд-шоу"
     }
   ],
   "labels.snippets": [
@@ -2063,6 +2357,12 @@
     {
       "type": 0,
       "value": "Новый файл"
+    }
+  ],
+  "menu.generic.open_file.label": [
+    {
+      "type": 0,
+      "value": "Открыть..."
     }
   ],
   "menu.generic.run.label": [

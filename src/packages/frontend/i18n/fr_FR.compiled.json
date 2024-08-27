@@ -911,6 +911,90 @@
       "value": "Basculer l'affichage de la barre d'outils du menu pour tous les éditeurs."
     }
   ],
+  "editor.build_control_and_log.title": [
+    {
+      "type": 0,
+      "value": "Contrôle de construction et journal"
+    }
+  ],
+  "editor.build_control_and_log.title.short": [
+    {
+      "type": 0,
+      "value": "Construire"
+    }
+  ],
+  "editor.errors_and_warning.title": [
+    {
+      "type": 0,
+      "value": "Erreurs et Avertissements"
+    }
+  ],
+  "editor.errors_and_warning.title.short": [
+    {
+      "type": 0,
+      "value": "Erreurs"
+    }
+  ],
+  "editor.latex.cm.title": [
+    {
+      "type": 0,
+      "value": "Code source LaTeX"
+    }
+  ],
+  "editor.latex.cm.title.short": [
+    {
+      "type": 0,
+      "value": "Source"
+    }
+  ],
+  "editor.latex.command.print.label": [
+    {
+      "type": 0,
+      "value": "Imprimer la source LaTeX"
+    }
+  ],
+  "editor.latex.command.print.tooltip": [
+    {
+      "type": 0,
+      "value": "Imprimer le code source de ce document. Utilisez Imprimer depuis le cadre d'aperçu PDF pour imprimer le document rendu."
+    }
+  ],
+  "editor.latex.pdf_embed.title": [
+    {
+      "type": 0,
+      "value": "PDF - Natif"
+    }
+  ],
+  "editor.latex.pdf_embed.title.short": [
+    {
+      "type": 0,
+      "value": "PDF (natif)"
+    }
+  ],
+  "editor.pdfjs_canvas.title": [
+    {
+      "type": 0,
+      "value": "PDF - Aperçu"
+    }
+  ],
+  "editor.pdfjs_canvas.title.short": [
+    {
+      "type": 0,
+      "value": "PDF (aperçu)"
+    }
+  ],
+  "editor.snippets.label": [
+    {
+      "type": 0,
+      "value": "Extraits"
+    }
+  ],
+  "editor.snippets.tooltip": [
+    {
+      "type": 0,
+      "value": "Ouvrir un panneau contenant des extraits de code."
+    }
+  ],
   "editor.table_of_contents.name": [
     {
       "type": 0,
@@ -1001,6 +1085,42 @@
       "value": "Aucun"
     }
   ],
+  "jupyter.commands.cell_type.menu": [
+    {
+      "type": 0,
+      "value": "Type de cellule"
+    }
+  ],
+  "jupyter.commands.cells_collapse.menu": [
+    {
+      "type": 0,
+      "value": "Réduire"
+    }
+  ],
+  "jupyter.commands.cells_expand.menu": [
+    {
+      "type": 0,
+      "value": "Développer"
+    }
+  ],
+  "jupyter.commands.cells_protect.menu": [
+    {
+      "type": 0,
+      "value": "Protéger"
+    }
+  ],
+  "jupyter.commands.cells_unlock.menu": [
+    {
+      "type": 0,
+      "value": "Supprimer la protection"
+    }
+  ],
+  "jupyter.commands.cells_unlock.menu.button": [
+    {
+      "type": 0,
+      "value": "Déverrouiller"
+    }
+  ],
   "jupyter.commands.change_kernel": [
     {
       "type": 0,
@@ -1013,10 +1133,34 @@
       "value": "Sélectionnez parmi les noyaux disponibles."
     }
   ],
+  "jupyter.commands.clear_output.menu": [
+    {
+      "type": 0,
+      "value": "Effacer la sortie"
+    }
+  ],
   "jupyter.commands.close_and_halt.menu": [
     {
       "type": 0,
       "value": "Fermer et arrêter"
+    }
+  ],
+  "jupyter.commands.delete_cells.menu": [
+    {
+      "type": 0,
+      "value": "Supprimer les cellules"
+    }
+  ],
+  "jupyter.commands.download_as_html": [
+    {
+      "type": 0,
+      "value": "Enregistrer et Exporter en HTML"
+    }
+  ],
+  "jupyter.commands.download_as_pdf": [
+    {
+      "type": 0,
+      "value": "Enregistrer et Exporter en PDF"
     }
   ],
   "jupyter.commands.enter_command_mode": [
@@ -1029,6 +1173,24 @@
     {
       "type": 0,
       "value": "Passer en mode édition"
+    }
+  ],
+  "jupyter.commands.export.menu": [
+    {
+      "type": 0,
+      "value": "Enregistrer et Exporter..."
+    }
+  ],
+  "jupyter.commands.format_cells.menu": [
+    {
+      "type": 0,
+      "value": "Formater les cellules"
+    }
+  ],
+  "jupyter.commands.format_cells.menu.button": [
+    {
+      "type": 0,
+      "value": "Format"
     }
   ],
   "jupyter.commands.halt_kernel_menu.menu": [
@@ -1049,10 +1211,58 @@
       "value": "Insérer une cellule en dessous"
     }
   ],
+  "jupyter.commands.insert_cells.menu": [
+    {
+      "type": 0,
+      "value": "Insérer cellule"
+    }
+  ],
   "jupyter.commands.interrupt_kernel": [
     {
       "type": 0,
       "value": "Interrompre le noyau (Arrêter)"
+    }
+  ],
+  "jupyter.commands.move_cells.menu": [
+    {
+      "type": 0,
+      "value": "Déplacer les cellules"
+    }
+  ],
+  "jupyter.commands.nbgrader_assign.buton": [
+    {
+      "type": 0,
+      "value": "Générer"
+    }
+  ],
+  "jupyter.commands.nbgrader_assign.menu": [
+    {
+      "type": 0,
+      "value": "Générer la version étudiant..."
+    }
+  ],
+  "jupyter.commands.paste_cells.menu": [
+    {
+      "type": 0,
+      "value": "Coller les cellules"
+    }
+  ],
+  "jupyter.commands.paste_cells_above.menu": [
+    {
+      "type": 0,
+      "value": "Coller les cellules au-dessus"
+    }
+  ],
+  "jupyter.commands.paste_cells_below.menu": [
+    {
+      "type": 0,
+      "value": "Coller les cellules ci-dessous"
+    }
+  ],
+  "jupyter.commands.paste_cells_replace.menu": [
+    {
+      "type": 0,
+      "value": "Coller les cellules et remplacer"
     }
   ],
   "jupyter.commands.refresh_kernels": [
@@ -1199,6 +1409,12 @@
       "value": "Exécuter la cellule actuelle"
     }
   ],
+  "jupyter.commands.select_cells.menu": [
+    {
+      "type": 0,
+      "value": "Sélectionner des cellules"
+    }
+  ],
   "jupyter.commands.shutdown_kernel.body": [
     {
       "type": 0,
@@ -1235,6 +1451,12 @@
       "value": "Arrêter le noyau ?"
     }
   ],
+  "jupyter.commands.split_and_merge.menu": [
+    {
+      "type": 0,
+      "value": "Diviser et Fusionner"
+    }
+  ],
   "jupyter.commands.toggle_all_line_numbers": [
     {
       "type": 0,
@@ -1269,6 +1491,18 @@
     {
       "type": 0,
       "value": "Redémarrez Jupyter Notebook et exécutez toutes les cellules pour valider que cela fonctionne"
+    }
+  ],
+  "jupyter.commands.view_toolbars.menu": [
+    {
+      "type": 0,
+      "value": "Barre d'outils des cellules"
+    }
+  ],
+  "jupyter.commands.view_toolbars.menu.button": [
+    {
+      "type": 0,
+      "value": "Barres d'outils"
     }
   ],
   "jupyter.editor.browser_actions.close_and_halt.body": [
@@ -1353,6 +1587,42 @@
     {
       "type": 0,
       "value": "Ouvrir la console de ligne de commande Jupyter connectée au noyau en cours d'exécution."
+    }
+  ],
+  "jupyter.editor.introspect.short": [
+    {
+      "type": 0,
+      "value": "Observer"
+    }
+  ],
+  "jupyter.editor.introspect.title": [
+    {
+      "type": 0,
+      "value": "Introspection"
+    }
+  ],
+  "jupyter.editor.raw_json_editor.short": [
+    {
+      "type": 0,
+      "value": "Édition JSON"
+    }
+  ],
+  "jupyter.editor.raw_json_editor.title": [
+    {
+      "type": 0,
+      "value": "Éditeur JSON brut"
+    }
+  ],
+  "jupyter.editor.raw_json_view.short": [
+    {
+      "type": 0,
+      "value": "Vue JSON"
+    }
+  ],
+  "jupyter.editor.raw_json_view.title": [
+    {
+      "type": 0,
+      "value": "Visionneuse JSON brute"
     }
   ],
   "jupyter.editor.restart_and_run_all.body": [
@@ -1635,6 +1905,12 @@
       "value": "Systèmes de fichiers en cloud"
     }
   ],
+  "labels.code_folding": [
+    {
+      "type": 0,
+      "value": "Repliage de code"
+    }
+  ],
   "labels.copy": [
     {
       "type": 0,
@@ -1697,6 +1973,12 @@
       "value": "Aide"
     }
   ],
+  "labels.insert": [
+    {
+      "type": 0,
+      "value": "Insérer"
+    }
+  ],
   "labels.latex_document": [
     {
       "type": 0,
@@ -1707,6 +1989,12 @@
     {
       "type": 0,
       "value": "Licences"
+    }
+  ],
+  "labels.line_numbers": [
+    {
+      "type": 0,
+      "value": "Numéros de ligne"
     }
   ],
   "labels.linux_terminal": [
@@ -1867,6 +2155,12 @@
     {
       "type": 0,
       "value": "Paramètres"
+    }
+  ],
+  "labels.slideshow": [
+    {
+      "type": 0,
+      "value": "Diaporama"
     }
   ],
   "labels.snippets": [
@@ -2059,6 +2353,12 @@
     {
       "type": 0,
       "value": "Nouveau fichier"
+    }
+  ],
+  "menu.generic.open_file.label": [
+    {
+      "type": 0,
+      "value": "Ouvrir..."
     }
   ],
   "menu.generic.run.label": [
