@@ -258,8 +258,8 @@ export const labels = defineMessages({
   linux_terminal: {
     id: "labels.linux_terminal",
     defaultMessage: "Linux Terminal",
-    description: "On a label or frame title describing a Linux Terminal"
-  }
+    description: "On a label or frame title describing a Linux Terminal",
+  },
 });
 
 export const menu = defineMessages({
@@ -354,6 +354,11 @@ export const editor = defineMessages({
     id: "editor.terminal.cmd.help.title",
     defaultMessage:
       "Show documentation for using the Linux Terminal in CoCalc.",
+  },
+  editor_settings: {
+    id: "labels.editor_settings",
+    defaultMessage: "Editor Settings",
+    description: "The name of the editor settings frame",
   },
 });
 

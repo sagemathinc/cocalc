@@ -35,8 +35,28 @@ export type ErrorStyles = undefined | "monospace";
 
 export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 
+// Each editor gets its own unique type. This is useful to check which editor it is.
+// e.g. #7787 was caused by merely checking on the name, which had changed.
+type EditorType =
+  | "settings"
+  | "maarkdown-toc"
+  | "markdown"
+  | "introspect"
+  | "jupyter_json_view"
+  | "jupyter_json_edit"
+  | "jupyter-toc"
+  | "timetravel"
+  | "slate"
+  | "jupyter"
+  | "latex"
+  | "wiki"
+  | "cm"
+  | "snippets"
+  | "slideshow-revealjs";
+
 // Editor spec
 export interface EditorDescription {
+  type: EditorType;
   short: string | IntlMessage; // short description of the editor
   name: string | IntlMessage; // slightly longer description
   icon: IconName;
