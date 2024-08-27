@@ -165,12 +165,18 @@ export default function Canvas({
 }: Props) {
   const isMountedRef = useIsMountedRef();
   const frame = useFrameContext();
+  // note -- if a whiteboard is embedded for view purposes, e.g., in TimeTravel,
+  // then this is how we know, and in this case the frame.actions are NOT whiteboard
+  // actions but something else.
+  const isBoard =
+    frame.path.endsWith(".board") || frame.path.endsWith(".slides");
   const editFocus = frame.desc.get("editFocus");
   const canvasScale = scale0 ?? fontSizeToZoom(font_size);
   if (!margin) {
     margin = getMargin(mainFrameType, presentation);
   }
-  const RenderElt = readOnly ? RenderReadOnlyElement : RenderElement;
+  const RenderElt =
+    readOnly || !isBoard ? RenderReadOnlyElement : RenderElement;
 
   const backgroundDivRef = useRef<any>(null);
 
@@ -260,11 +266,11 @@ export default function Canvas({
         // ensure values are in valid range, if possible.
         left = Math.min(
           0,
-          Math.max(x, -e.offsetWidth * scaleRef.current + rect.width)
+          Math.max(x, -e.offsetWidth * scaleRef.current + rect.width),
         );
         top = Math.min(
           0,
-          Math.max(y, -e.offsetHeight * scaleRef.current + rect.height)
+          Math.max(y, -e.offsetHeight * scaleRef.current + rect.height),
         );
       } else {
         // don't bother with ensuring values in valid range; this happens,
@@ -337,13 +343,13 @@ export default function Canvas({
     {
       target: canvasRef,
       disabled: isNavigator,
-    }
+    },
   );
 
   const innerCanvasRef = useRef<any>(null);
 
   const transformsRef = useRef<Transforms>(
-    getTransforms(elements, margin, presentation)
+    getTransforms(elements, margin, presentation),
   );
 
   // This must happen before the render, hence the useLayoutEffect
@@ -400,6 +406,7 @@ export default function Canvas({
   } | null>(null);
 
   useEffect(() => {
+    if (!isBoard) return;
     // clear selection rect when changing pages.
     setSelectRect(null);
     frame.actions.clearSelection(frame.id);
@@ -427,12 +434,12 @@ export default function Canvas({
       penCanvasParamsRef.current = {
         scale: getMaxCanvasSizeScale(
           penDPIFactor * rect.width,
-          penDPIFactor * rect.height
+          penDPIFactor * rect.height,
         ),
         rect,
       };
     }
-    if (presentation) {
+    if (presentation && isBoard) {
       // always re-fit to screen on resize in presentation mode.
       frame.actions.fitToScreen(frame.id, true);
     }
@@ -460,8 +467,8 @@ export default function Canvas({
 
   // If no set viewport, fit to screen.
   useEffect(() => {
-    if (isNavigator) return;
-    if (frame.desc.get("viewport") == null) {
+    if (isNavigator || !isBoard) return;
+    if (frame.desc.get("viewport") == null && isBoard) {
       // document was never opened before in this browser,
       // so fit to screen.
       frame.actions.fitToScreen(frame.id, true);
@@ -514,7 +521,7 @@ export default function Canvas({
   // on the page; also set fitToScreen back to false in
   // frame tree data.
   useLayoutEffect(() => {
-    if (isNavigator || !frame.desc.get("fitToScreen")) return;
+    if (isNavigator || !frame.desc.get("fitToScreen") || !isBoard) return;
     try {
       const viewport = getViewportData();
       if (viewport == null) return;
@@ -537,7 +544,7 @@ export default function Canvas({
       const s =
         Math.min(
           2 / factor,
-          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale)
+          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale),
         ) * factor;
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
@@ -556,7 +563,9 @@ export default function Canvas({
   }, [frame.desc.get("fitToScreen")]);
 
   const edgeStart =
-    selectedTool == "edge" ? (frame.desc.getIn(["edgeStart", "id"]) as string | undefined) : undefined;
+    selectedTool == "edge"
+      ? (frame.desc.getIn(["edgeStart", "id"]) as string | undefined)
+      : undefined;
 
   let selectionHandled = false;
   function processElement(element, isNavRectangle = false) {
@@ -586,10 +595,11 @@ export default function Canvas({
           selected={selection?.has(element.id)}
           previewMode={previewMode}
           onClick={(e) => {
+            if (!isBoard) return;
             frame.actions.setSelection(
               frame.id,
               element.id,
-              e.altKey || e.shiftKey || e.metaKey ? "add" : "only"
+              e.altKey || e.shiftKey || e.metaKey ? "add" : "only",
             );
           }}
         />
@@ -751,7 +761,7 @@ export default function Canvas({
     // in the selection.
     // TODO: This could be optimized with better data structures...
     const selectedElements = elements.filter((element) =>
-      selection.has(element.id)
+      selection.has(element.id),
     );
     const selectedRects: Element[] = [];
     let multi: undefined | boolean = undefined;
@@ -796,7 +806,7 @@ export default function Canvas({
         {!isAllEdges && (
           <RenderElt element={element} canvasScale={canvasScale} focused />
         )}
-      </Focused>
+      </Focused>,
     );
   }
 
@@ -817,7 +827,7 @@ export default function Canvas({
         elementsMap={elementsMap}
         transforms={transformsRef.current}
         zIndex={0}
-      />
+      />,
     );
   }
 
@@ -836,6 +846,7 @@ export default function Canvas({
           onStop={(_, data) => {
             if (visible == null) return;
             const { x, y } = centerOfRect(visible);
+            if (!isBoard) return;
             frame.actions.setViewportCenter(frame.id, {
               x: x + data.x,
               y: y + data.y,
@@ -860,10 +871,10 @@ export default function Canvas({
                   background: "rgba(200,200,200,0.2)",
                 },
               },
-              true
+              true,
             )}
           </div>
-        </Draggable>
+        </Draggable>,
       );
     }
   }
@@ -890,7 +901,7 @@ export default function Canvas({
   function windowToData({ x, y }: Point): Point {
     return transformsRef.current.windowToDataNoScale(
       x / scaleRef.current,
-      y / scaleRef.current
+      y / scaleRef.current,
     );
   }
   function dataToWindow({ x, y }: Point): Point {
@@ -991,6 +1002,7 @@ export default function Canvas({
   const saveViewport = isNavigator
     ? () => {}
     : useMemo(() => {
+        if (!isBoard) return () => {};
         return throttle(() => {
           const viewport = getViewportData();
           if (viewport) {
@@ -1069,7 +1081,7 @@ export default function Canvas({
         const p1 = mousePath.current[1];
         const rect = pointsToRect(
           transformsRef.current.windowToDataNoScale(p0.x, p0.y),
-          transformsRef.current.windowToDataNoScale(p1.x, p1.y)
+          transformsRef.current.windowToDataNoScale(p1.x, p1.y),
         );
         if (selectedTool == "frame") {
           // make a frame at the selection.
@@ -1085,7 +1097,7 @@ export default function Canvas({
           frame.actions.createElement(
             frame.id,
             { ...elt, ...rect, z: transformsRef.current.zMin - 1 },
-            true
+            true,
           );
           frame.actions.setSelectedTool(frame.id, "select");
           // NOTE: we do NOT do "frame.actions.setSelection(frame.id, id);"
@@ -1176,7 +1188,7 @@ export default function Canvas({
             data: { path: compressPath(path), ...getToolElement("pen").data },
             type: "pen",
           },
-          true
+          true,
         );
 
         return;
@@ -1204,7 +1216,7 @@ export default function Canvas({
     e: {
       clientX: number;
       clientY: number;
-    } | null
+    } | null,
   ): { x: number; y: number } | undefined {
     if (e == null) return;
     const c = canvasRef.current;
@@ -1291,7 +1303,7 @@ export default function Canvas({
       const path: Point[] = [];
       const { rect } = penCanvasParamsRef.current;
       for (const point of penPreviewPath.current.slice(
-        penPreviewPath.current.length - 2
+        penPreviewPath.current.length - 2,
       )) {
         path.push({
           x: (point.x - rect.left) / penDPIFactor,
@@ -1328,7 +1340,7 @@ export default function Canvas({
       if (point == null) return;
       const { x, y } = transformsRef.current.windowToDataNoScale(
         point.x,
-        point.y
+        point.y,
       );
       const size = Math.max(2, ERASE_SIZE / scaleRef.current);
       const rect = {
@@ -1340,6 +1352,10 @@ export default function Canvas({
       frame.actions.deleteElements(getOverlappingElements(elements, rect));
     }
   };
+
+  if (isNavigator && !isBoard) {
+    return null;
+  }
 
   //   if (!isNavigator) {
   //     window.x = {
@@ -1419,7 +1435,7 @@ export default function Canvas({
               const encoded = encodeForCopy(selectedElements);
               event.clipboardData.setData(
                 "application/x-cocalc-whiteboard",
-                encoded
+                encoded,
               );
             }
       }
@@ -1437,7 +1453,7 @@ export default function Canvas({
               const encoded = encodeForCopy(selectedElements);
               event.clipboardData.setData(
                 "application/x-cocalc-whiteboard",
-                encoded
+                encoded,
               );
               frame.actions.deleteElements(selectedElements);
               frame.actions.clearSelection(frame.id);
@@ -1449,7 +1465,7 @@ export default function Canvas({
           : (event: ClipboardEvent<HTMLDivElement>) => {
               if (editFocus) return;
               const encoded = event.clipboardData.getData(
-                "application/x-cocalc-whiteboard"
+                "application/x-cocalc-whiteboard",
               );
               if (encoded) {
                 // copy/paste between whiteboards of their own structured data
@@ -1470,7 +1486,7 @@ export default function Canvas({
                 const ids = frame.actions.insertElements(
                   frame.id,
                   pastedElements,
-                  target
+                  target,
                 );
                 frame.actions.setSelectionMulti(frame.id, ids);
               } else {
@@ -1584,7 +1600,7 @@ function getSelectedElements({
 
 function getMargin(
   mainFrameType: MainFrameType,
-  presentation?: boolean
+  presentation?: boolean,
 ): number {
   if (presentation) {
     return 0;

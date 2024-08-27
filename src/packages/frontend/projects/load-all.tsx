@@ -3,17 +3,20 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useIntl } from "react-intl";
+
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   useActions,
-  useTypedRedux,
-  useState,
   useIsMountedRef,
-} from "../app-framework";
-import { Loading } from "../components";
-import { Button } from "../antd-bootstrap";
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Loading } from "@cocalc/frontend/components";
 
 export const LoadAllProjects: React.FC = React.memo(() => {
+  const intl = useIntl();
   const done = useTypedRedux("projects", "all_projects_have_been_loaded");
   const [loading, set_loading] = useState<boolean>(false);
   const is_mounted_ref = useIsMountedRef();
@@ -44,7 +47,14 @@ export const LoadAllProjects: React.FC = React.memo(() => {
         }}
       >
         <Button disabled={loading} onClick={load} bsSize="large">
-          {loading ? <Loading /> : "Show all projects..."}
+          {loading ? (
+            <Loading />
+          ) : (
+            intl.formatMessage({
+              id: "projects.load-all.label",
+              defaultMessage: "Show all projects...",
+            })
+          )}
         </Button>
       </div>
     );

@@ -14,15 +14,14 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { CompressedPatch } from "@cocalc/sync/editor/generic/types";
 import { callback2 } from "@cocalc/util/async-utils";
 import { Config as FormatterConfig } from "@cocalc/util/code-formatter";
-import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 import { FakeSyncstring } from "./syncstring-fake";
 
+import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 export type { ExecOpts, ExecOutput };
 
-const schema = require("@cocalc/util/schema");
+import * as schema from "@cocalc/util/schema";
 
-const DEFAULT_FONT_SIZE: number =
-  require("@cocalc/util/db-schema").DEFAULT_FONT_SIZE;
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/db-schema";
 
 export function server_time(): Date {
   return webapp_client.time_client.server_time();

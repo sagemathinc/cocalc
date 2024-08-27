@@ -12,13 +12,14 @@ import { EditorDescription } from "../frame-tree/types";
 import { TerminalFrame } from "./terminal";
 import { CommandsGuide } from "./commands-guide";
 import { set } from "@cocalc/util/misc";
+import { editor, labels } from "@cocalc/frontend/i18n";
 
 const CLEAR =
   "Clearing this terminal frame terminates any running programs, respawns the shell, and cleans up the display buffer.";
 
 export const terminal = {
-  short: "Terminal",
-  name: "Terminal",
+  short: labels.terminal,
+  name: labels.terminal,
   icon: "terminal",
   component: TerminalFrame,
   commands: set([
@@ -56,7 +57,7 @@ export const terminal = {
         "Tool for creating, testing, and learning about terminal commands.",
     },
     help: {
-      title: "Show documentation for using the Linux Terminal in CoCalc.",
+      title: editor.terminal_cmd_help_title,
     },
     clear: {
       title: CLEAR,

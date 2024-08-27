@@ -7,7 +7,7 @@
 Add collaborators to a project
 */
 
-import { Alert, Button, Card, Input, Select } from "antd";
+import { Alert, Button, Input, Select } from "antd";
 import {
   React,
   redux,
@@ -39,9 +39,7 @@ import { alert_message } from "../alerts";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import Sandbox from "./sandbox";
 import track from "@cocalc/frontend/user-tracking";
-import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
-import { applyLicense } from "@cocalc/frontend/project/settings/site-license";
-import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
+import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
 
 interface RegisteredUser {
   sort?: string;
@@ -692,28 +690,10 @@ export const AddCollaborators: React.FC<Props> = ({
       style={isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined}
     >
       {limitExceeded && (
-        <Card
-          size="small"
-          title={
-            <h4>
-              <div style={{ float: "right" }}>
-                <BuyLicenseForProject project_id={project_id} />
-              </div>
-              <Icon name="key" /> Select License
-            </h4>
-          }
-          style={{ margin: "10px 0" }}
-        >
-          <SiteLicenseInput
-            requireValid
-            confirmLabel={"Add this license"}
-            onChange={(license_id) => {
-              applyLicense({ project_id, license_id });
-            }}
-            requireLicense
-            requireMessage={`A license is required to have more than ${unlicensedLimit} collaborators on this project.`}
-          />
-        </Card>
+        <RequireLicense
+          project_id={project_id}
+          message={`A license is required to have more than ${unlicensedLimit} collaborators on this project.`}
+        />
       )}
       {err && <ErrorDisplay error={err} onClose={() => set_err("")} />}
       {state == "searching" && <Loading />}

@@ -8,23 +8,24 @@ Jupyter Frame Editor Actions
 */
 
 import { delay } from "awaiting";
-import { FrameTree } from "../frame-tree/types";
+
+import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
+import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
+import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
-import {
-  create_jupyter_actions,
-  close_jupyter_actions,
-} from "./jupyter-actions";
-import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
-import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
-import { JupyterActions } from "../../jupyter/browser-actions";
+import { FrameTree } from "../frame-tree/types";
 import { NotebookFrameActions } from "./cell-notebook/actions";
-import { open_new_tab } from "../../misc";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
+import {
+  close_jupyter_actions,
+  create_jupyter_actions,
+} from "./jupyter-actions";
+import { revealjs_slideshow_html } from "./slideshow-revealjs/nbconvert";
 
 export interface JupyterEditorState extends CodeEditorState {
   slideshow?: {
@@ -90,11 +91,11 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       this.setState({ has_unsaved_changes });
     });
 
-    this.watch_for_introspect();
-    this.watch_for_connection_file_change();
+    this.watchFrameEditorStore();
+    this.watchJupyterStore();
   }
 
-  private watch_for_introspect(): void {
+  private watchFrameEditorStore = (): void => {
     const store = this.store;
     let introspect = store.get("introspect");
     store.on("change", () => {
@@ -108,14 +109,22 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
         introspect = i;
       }
     });
-  }
+  };
 
-  private watch_for_connection_file_change(): void {
+  private watchJupyterStore = (): void => {
     const store = this.jupyter_actions.store;
     let connection_file = store.get("connection_file");
-    this.jupyter_actions.store.on("change", () => {
+    store.on("change", () => {
+      // sync read only state -- source of true is jupyter_actions.store.get('read_only')
+      const read_only = store.get("read_only");
+      if (read_only != this.store.get("read_only")) {
+        this.setState({ read_only });
+      }
+      // sync connection file
       const c = store.get("connection_file");
-      if (c == connection_file) return;
+      if (c == connection_file) {
+        return;
+      }
       connection_file = c;
       const id = this._get_most_recent_shell_id("jupyter");
       if (id == null) {
@@ -125,7 +134,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       // This will update the connection file
       this.shell(id, true);
     });
-  }
+  };
 
   public focus(id?: string): void {
     const actions = this.get_frame_actions(id);

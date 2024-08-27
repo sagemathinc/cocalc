@@ -3,18 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
 import { Set } from "immutable";
 import { isEqual } from "lodash";
-import { delay } from "awaiting";
+
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
-import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
 import {
   CommandDescription,
   commands,
 } from "@cocalc/frontend/jupyter/commands";
 import { create_key_handler } from "@cocalc/frontend/jupyter/keyboard";
-import { Cell, CellType, Scroll } from "@cocalc/jupyter/types";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import { Cell, CellType, Scroll } from "@cocalc/jupyter/types";
+import { move_selected_cells } from "@cocalc/jupyter/util/cell-utils";
 import {
   bind_methods,
   close,
@@ -356,6 +357,9 @@ export class NotebookFrameActions {
    ***/
 
   set_mode(mode: "escape" | "edit"): void {
+    if (this.jupyter_actions.store.get("read_only") && mode == "edit") {
+      return;
+    }
     if (mode == "edit") {
       // If we're changing to edit mode and current cell is a markdown
       // cell, switch it to the codemirror editor view.
@@ -981,15 +985,6 @@ export class NotebookFrameActions {
       // moved onto a not-selected cell
       this.select_cell(cur_id);
       this.select_cell(target_id);
-    }
-  }
-
-  public insert_image(): void {
-    const cur_id = this.store.get("cur_id");
-    if (this.jupyter_actions.store.get_cell_type(cur_id) === "markdown") {
-      this.jupyter_actions.insert_image(cur_id); // causes a modal dialog to appear.
-    } else {
-      throw Error(`insert_image -- cell must be a markdown cell`);
     }
   }
 

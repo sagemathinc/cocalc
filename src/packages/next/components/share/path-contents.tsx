@@ -3,9 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { FileInfo } from "lib/share/get-contents";
 import DirectoryListing from "./directory-listing";
 import FileContents from "./file-contents";
-import { FileInfo } from "lib/share/get-contents";
 import Loading from "./loading";
 
 interface Props {

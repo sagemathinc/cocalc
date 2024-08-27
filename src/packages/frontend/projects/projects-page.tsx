@@ -5,6 +5,7 @@
 
 import { Map, Set } from "immutable";
 import { useRef } from "react";
+import { useIntl } from "react-intl";
 
 // ensure redux stuff (actions and store) are initialized:
 import "./actions";
@@ -20,8 +21,11 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
+import { labels } from "@cocalc/frontend/i18n";
+import { COLORS } from "@cocalc/util/theme";
 import { UsersViewing } from "../account/avatar/users-viewing";
 import { NewProjectCreator } from "./create-project";
+import { FilenameSearch } from "./filename-search";
 import { Hashtags } from "./hashtags";
 import ProjectList from "./project-list";
 import { ProjectsListingDescription } from "./project-list-desc";
@@ -29,7 +33,6 @@ import { ProjectsFilterButtons } from "./projects-filter-buttons";
 import { ProjectsSearch } from "./search";
 import ProjectsPageTour from "./tour";
 import { get_visible_hashtags, get_visible_projects } from "./util";
-import { COLORS } from "@cocalc/util/theme";
 
 const PROJECTS_TITLE_STYLE: React.CSSProperties = {
   color: COLORS.GRAY_D,
@@ -45,6 +48,7 @@ const LOADING_STYLE: React.CSSProperties = {
 } as const;
 
 export const ProjectsPage: React.FC = () => {
+  const intl = useIntl();
   const searchRef = useRef<any>(null);
   const filtersRef = useRef<any>(null);
   const createNewRef = useRef<any>(null);
@@ -56,7 +60,7 @@ export const ProjectsPage: React.FC = () => {
 
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
   const hidden = !!useTypedRedux("projects", "hidden");
   const deleted = !!useTypedRedux("projects", "deleted");
@@ -68,7 +72,7 @@ export const ProjectsPage: React.FC = () => {
 
   const selected_hashtags: Map<string, Set<string>> = useTypedRedux(
     "projects",
-    "selected_hashtags"
+    "selected_hashtags",
   );
 
   const project_map = useTypedRedux("projects", "project_map");
@@ -82,18 +86,18 @@ export const ProjectsPage: React.FC = () => {
         search,
         deleted,
         hidden,
-        "last_edited" /* "user_last_active" was confusing */
+        "last_edited" /* "user_last_active" was confusing */,
       ),
-    [project_map, user_map, deleted, hidden, filter, selected_hashtags, search]
+    [project_map, user_map, deleted, hidden, filter, selected_hashtags, search],
   );
   const all_projects: string[] = useMemo(
     () => project_map?.keySeq().toJS() ?? [],
-    [project_map?.size]
+    [project_map?.size],
   );
 
   const visible_hashtags: string[] = useMemo(
     () => get_visible_hashtags(project_map, visible_projects),
-    [visible_projects, project_map]
+    [visible_projects, project_map],
   );
 
   function clear_filters_and_focus_search_input(): void {
@@ -160,7 +164,7 @@ export const ProjectsPage: React.FC = () => {
         <Row>
           <Col md={4}>
             <div style={PROJECTS_TITLE_STYLE}>
-              <Icon name="edit" /> Projects{" "}
+              <Icon name="edit" /> {intl.formatMessage(labels.projects)}
             </div>
           </Col>
           <Col md={3}>
@@ -189,12 +193,17 @@ export const ProjectsPage: React.FC = () => {
               />
             </div>
           </Col>
-          <Col sm={8}>
+          <Col sm={4}>
             <Hashtags
               hashtags={visible_hashtags}
               selected_hashtags={selected_hashtags?.get(filter)}
               toggle_hashtag={(tag) => actions.toggle_hashtag(filter, tag)}
             />
+          </Col>
+          <Col sm={4}>
+            <div ref={searchRef}>
+              <FilenameSearch />
+            </div>
           </Col>
         </Row>
         <Row>

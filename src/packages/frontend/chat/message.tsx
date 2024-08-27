@@ -5,8 +5,7 @@
 
 import { Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { Map } from "immutable";
-import { CSSProperties, useLayoutEffect } from "react";
-
+import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -113,7 +112,7 @@ interface Props {
   mode: Mode;
   selectedHashtags?: Set<string>;
 
-  scroll_into_view: () => void; // call to scroll this message into view
+  scroll_into_view?: () => void; // call to scroll this message into view
 
   // if true, include a reply button - this should only be for messages
   // that don't have an existing reply to them already.
@@ -187,10 +186,14 @@ export default function Message(props: Readonly<Props>) {
   const submitMentionsRef = useRef<SubmitMentionsFn>();
 
   const [replying, setReplying] = useState<boolean>(() => {
+    if (!props.allowReply) {
+      return false;
+    }
+    const replyDate = -(props.actions?.store?.getThreadRootDate(date) ?? 0);
     const draft = props.actions?.syncdb?.get_one({
       event: "draft",
       sender_id: props.account_id,
-      date: -date,
+      date: replyDate,
     });
     if (draft == null) {
       return false;
@@ -202,6 +205,12 @@ export default function Message(props: Readonly<Props>) {
     }
     return true;
   });
+  useEffect(() => {
+    if (!props.allowReply) {
+      setReplying(false);
+    }
+  }, [props.allowReply]);
+
   const [autoFocusReply, setAutoFocusReply] = useState<boolean>(false);
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
 
@@ -223,7 +232,7 @@ export default function Message(props: Readonly<Props>) {
 
   useLayoutEffect(() => {
     if (replying) {
-      props.scroll_into_view();
+      props.scroll_into_view?.();
     }
   }, [replying]);
 
@@ -328,7 +337,7 @@ export default function Message(props: Readonly<Props>) {
     }
     props.actions.set_editing(message, true);
     setAutoFocusEdit(true);
-    props.scroll_into_view();
+    props.scroll_into_view?.();
   }
 
   function avatar_column() {
@@ -601,15 +610,9 @@ export default function Message(props: Readonly<Props>) {
             edited_message_ref.current = value;
           }}
         />
-        <div style={{ marginTop: "10px" }}>
+        <div style={{ marginTop: "10px", display: "flex" }}>
           <Button
-            type="primary"
             style={{ marginRight: "5px" }}
-            onClick={saveEditedMessage}
-          >
-            <Icon name="save" /> Save Edited Message
-          </Button>
-          <Button
             onClick={() => {
               props.actions?.set_editing(message, false);
               props.actions?.delete_draft(date);
@@ -617,18 +620,22 @@ export default function Message(props: Readonly<Props>) {
           >
             Cancel
           </Button>
+          <Button type="primary" onClick={saveEditedMessage}>
+            <Icon name="save" /> Save Edited Message
+          </Button>
         </div>
       </div>
     );
   }
 
-  function sendReply() {
+  function sendReply(reply?: string) {
     if (props.actions == null) return;
-    const reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
-    props.actions.send_reply({ message: message.toJS(), reply });
-    props.actions.delete_draft(date);
-    props.actions.scrollToBottom(props.index);
     setReplying(false);
+    if (!reply) {
+      reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
+    }
+    props.actions.send_reply({ message: message.toJS(), reply });
+    props.actions.scrollToBottom(props.index);
   }
 
   function renderComposeReply() {
@@ -641,6 +648,7 @@ export default function Message(props: Readonly<Props>) {
       // when null.
       return;
     }
+    const replyDate = -(props.actions.store?.getThreadRootDate(date) ?? 0);
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
@@ -655,7 +663,7 @@ export default function Message(props: Readonly<Props>) {
           on_send={sendReply}
           height={"auto"}
           syncdb={props.actions.syncdb}
-          date={-date}
+          date={replyDate}
           onChange={(value) => {
             replyMessageRef.current = value;
             // replyMentionsRef does not submit mentions, only gives us the value
@@ -664,17 +672,22 @@ export default function Message(props: Readonly<Props>) {
           }}
           placeholder={"Reply to the above message..."}
         />
-        <div style={{ margin: "5px 0" }}>
+        <div style={{ margin: "5px 0", display: "flex" }}>
           <Button
             style={{ marginRight: "5px" }}
             onClick={() => {
               setReplying(false);
-              props.actions?.delete_draft(date);
+              props.actions?.delete_draft(replyDate);
             }}
           >
             Cancel
           </Button>
-          <Button onClick={sendReply} type="primary">
+          <Button
+            onClick={() => {
+              sendReply();
+            }}
+            type="primary"
+          >
             <Icon name="paper-plane" /> Send
           </Button>
           <LLMCostEstimationChat
@@ -723,7 +736,14 @@ export default function Message(props: Readonly<Props>) {
   }
 
   function renderReplyRow() {
-    if (replying || generating || !props.allowReply || is_folded) return;
+    if (
+      replying ||
+      generating ||
+      !props.allowReply ||
+      is_folded ||
+      props.actions == null
+    )
+      return;
 
     return (
       <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>

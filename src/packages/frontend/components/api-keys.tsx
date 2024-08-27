@@ -25,10 +25,12 @@ import { useEffect, useState } from "react";
 import TimeAgo from "react-timeago"; // so can use from nextjs
 const { Text, Paragraph } = Typography; // so can use from nextjs
 
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import { A } from "./A";
 import CopyToClipBoard from "./copy-to-clipboard";
 import { Icon } from "./icon";
+
 const { useForm } = Form;
 
 interface Props {
@@ -270,7 +272,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
             editingKey != null ? "Edit API Key Name" : "Create a New API Key"
           }
           okText={editingKey != null ? "Save" : "Create"}
-          cancelText="Cancel"
+          cancelText={<CancelText />}
           onCancel={handleModalCancel}
           onOk={handleModalOK}
         >

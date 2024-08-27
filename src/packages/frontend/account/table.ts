@@ -59,11 +59,18 @@ export class AccountTable extends Table {
     const changes = table.get_one();
     if (!changes) return;
     const actions = this.redux.getActions("account");
-    actions.setState(changes.toJS());
+    const obj = changes.toJS();
+    actions.setState(obj);
     if (this.first_set) {
       this.first_set = false;
       actions.setState({ is_ready: true });
       this.redux.getStore("account").emit("is_ready");
+      if (obj.stripe_customer?.subscriptions?.data != null) {
+        // exclude legacy customers from commercialization requirements.
+        (
+          this.redux.getActions("customize") as any
+        ).disableCommercializationParameters();
+      }
     }
   }
 }

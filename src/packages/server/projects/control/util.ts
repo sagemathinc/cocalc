@@ -281,7 +281,7 @@ export async function getState(HOME: string): Promise<ProjectState> {
   logger.debug(`getState("${HOME}")`);
   try {
     return {
-      ip: "localhost",
+      ip: "127.0.0.1",
       state: (await isProjectRunning(HOME)) ? "running" : "opened",
       time: new Date(),
     };

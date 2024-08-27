@@ -7,39 +7,44 @@
 Run Knitr on rnw/rtex files
 */
 
-import { exec, ExecOutput } from "../generic/client";
-import { parse_path } from "../frame-tree/util";
-import { ProcessedLatexLog, Error } from "./latex-log-parser";
-import { BuildLog } from "./actions";
+import { parse_path } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import {
+  exec,
+  ExecOutput,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { Error as ErrorLog, ProcessedLatexLog } from "./latex-log-parser";
+import { BuildLog } from "./types";
+import { runJob } from "./util";
 
 // this still respects the environment variables and init files
 const R_CMD = "R";
-const R_ARGS: ReadonlyArray<string> = [
+const R_ARGS: readonly string[] = [
   "--no-save",
   "--no-restore",
   "--quiet",
   "--no-readline",
   "-e",
-];
+] as const;
 
 export async function knitr(
   project_id: string,
   path: string, // pass in this.filename_knitr
   time: number | undefined,
-  status: Function
+  status: Function,
+  set_job_info: (info: ExecuteCodeOutputAsync) => void,
 ): Promise<ExecOutput> {
   const { directory, filename } = parse_path(path);
   const expr = `require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")`;
   status(`${expr}`);
-  return exec({
-    timeout: 360,
+
+  return runJob({
+    project_id,
     command: R_CMD,
     args: [...R_ARGS, expr],
-    bash: true, // so timeout is enforced by ulimit
-    project_id: project_id,
-    path: directory,
-    err_on_exit: false,
-    aggregate: time ? { value: time } : undefined, // one might think to aggregate on hash, but the output could be random!
+    rundir: directory,
+    aggregate: time ? { value: time } : undefined,
+    set_job_info,
   });
 }
 
@@ -70,7 +75,7 @@ export function knitr_errors(output: BuildLog): ProcessedLatexLog {
   const pll = new ProcessedLatexLog();
 
   let file: string = "";
-  let err: Error | undefined = undefined;
+  let err: ErrorLog | undefined = undefined;
 
   const warnmsg = "Warning message:";
   const errline = "Quitting from lines ";
@@ -128,7 +133,7 @@ export async function patch_synctex(
   project_id: string,
   path: string, // pass in the actual .tex file path
   time: number | undefined,
-  status: Function
+  status: Function,
 ) {
   const { directory, filename } = parse_path(path);
   const expr = `require(patchSynctex); patchSynctex("${filename}")`;

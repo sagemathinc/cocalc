@@ -10,7 +10,6 @@ Jupyter notebook server is running, then pops it up in a new tab.
 
 import { join } from "path";
 import React from "react";
-
 import {
   Icon,
   IconName,
@@ -67,13 +66,14 @@ code completion, snippets, code refactoring, and embedded Git.`,
   },
   pluto: {
     longName: "Julia Pluto.jl",
-    description: "Reactive notebooks for Julia.",
+    description:
+      "Reactive notebooks for Julia.  NOTE: This can take a long time to start, so be patient.",
     usesBasePath: false,
     icon: "julia",
   },
   rserver: {
     longName: R_IDE,
-    description: `This is an integrated development environment (IDE) for R. It is provided without any modifications. DISCLAIMER: Posit Software, PBC (formerly RStudio, PBC) IS IN NO WAY ASSOCIATED WITH COCALC.`,
+    description: `This is an integrated development environment (IDE) for R, sometimes called "R Studio". It is provided without any modifications. DISCLAIMER: Posit Software, PBC (formerly RStudio, PBC) IS IN NO WAY ASSOCIATED WITH COCALC.`,
     usesBasePath: false,
     icon: "r",
   },
@@ -144,14 +144,15 @@ export const NamedServerPanel: React.FC<Props> = ({
           {description}
           <br />
           <br />
-          Click the link below to start your {longName} server. It will then
-          attempt to open in a new browser tab. If this doesn't work, check for
-          a popup blocker warning!
+          Starting your {longName} server. It will then attempt to open in a new
+          browser tab. If this doesn't work, check for a popup blocker warning!
         </Paragraph>
         <Paragraph
           style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}
         >
           <LinkRetry
+            maxTime={1000 * 60 * 5}
+            autoStart
             href={serverURL(project_id, name)}
             loadingText="Launching server..."
             onClick={() => {
@@ -226,6 +227,7 @@ export function ServerLink({
     const { icon, longName, description } = getServerInfo(name);
     return (
       <LinkRetry
+        maxTime={1000 * 60 * 5}
         href={serverURL(project_id, name)}
         loadingText="Launching server..."
         tooltip={mode === "flyout" ? description : undefined}

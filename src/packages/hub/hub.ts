@@ -7,18 +7,23 @@
 // middle of the action, connected to potentially thousands of clients,
 // many Sage sessions, and PostgreSQL database.
 
+import TTLCache from "@isaacs/ttlcache";
 import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
 import { program as commander, Option } from "commander";
+
 import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
   pgdatabase as DEFAULT_DB_NAME,
   pguser as DEFAULT_DB_USER,
 } from "@cocalc/backend/data";
+import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
 import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
+import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
+import { init_passport } from "@cocalc/server/hub/auth";
 import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
 import initHandleMentions from "@cocalc/server/mentions/handle";
 import initProjectControl, {
@@ -28,23 +33,20 @@ import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects"
 import initNewProjectPoolMaintenanceLoop from "@cocalc/server/projects/pool/maintain";
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
-import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
 import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
-import { init_passport } from "@cocalc/server/hub/auth";
 import { getClients } from "./clients";
 import { set_agent_endpoint } from "./health-checks";
 import { start as startHubRegister } from "./hub_register";
 import { getLogger } from "./logger";
-import { trimLogFileSize } from "@cocalc/backend/logger";
 import initDatabase, { database } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
+
 const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
-import TTLCache from "@isaacs/ttlcache";
 
 // Logger tagged with 'hub' for this file.
 const winston = getLogger("hub");
@@ -274,10 +276,9 @@ async function startServer(): Promise<void> {
     });
 
     const protocol = program.httpsKey ? "https" : "http";
+    const target = `${protocol}://${program.hostname}:${port}${basePath}`;
 
-    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${protocol}://${
-      program.hostname
-    }:${port}${basePath}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
+    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${target}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
       basePath.length <= 1
         ? ""
         : "If you are developing cocalc inside of cocalc, take the URL of the host cocalc\nand append " +
@@ -286,6 +287,26 @@ async function startServer(): Promise<void> {
     }\n\n-----------\n\n`;
     winston.info(msg);
     console.log(msg);
+
+    if (
+      program.websocketServer &&
+      program.nextServer &&
+      process.env["NODE_ENV"] != "production"
+    ) {
+      // This is entirely to deal with conflicts between both nextjs and webpack when doing
+      // hot module reloading.  They fight with each other, and the we -- the developers --
+      // win only AFTER the fight is done. So we force the fight automatically, rather than
+      // manually, which is confusing.
+      console.log(
+        `launch get of ${target} so that webpack and nextjs websockets can fight things out`,
+      );
+      const process = spawn(
+        "chromium-browser",
+        ["--no-sandbox", "--headless", target],
+        { detached: true, stdio: "ignore" },
+      );
+      process.unref();
+    }
   }
 
   if (program.all || program.mentions) {

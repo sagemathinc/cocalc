@@ -7,6 +7,7 @@ import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { MessageInfo } from "@cocalc/frontend/client/hub";
+import type { Locale } from "@cocalc/frontend/i18n";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
@@ -93,4 +94,5 @@ export interface AccountState {
   purchase_closing_day?: number;
   email_daily_statements?: boolean;
   [SETTINGS_LANGUAGE_MODEL_KEY]?: LanguageModel;
+  i18n: Locale;
 }

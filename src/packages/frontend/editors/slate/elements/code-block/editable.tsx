@@ -18,6 +18,7 @@ import { getHistory, isPreviousSiblingCodeBlock } from "./history";
 import InsertBar from "./insert-bar";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { isEqual } from "lodash";
+import Mermaid from "./mermaid";
 
 function Element({ attributes, children, element }: RenderElementProps) {
   if (element.type != "code_block") {
@@ -29,9 +30,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
   const [info, setInfo] = useState<string>(element.info ?? "");
   const infoFocusedRef = useRef<boolean>(false);
   const [output, setOutput] = useState<null | ReactNode>(null);
-
   const runRef = useRef<RunFunction | null>(null);
-
   const setElement = useSetElement(editor, element);
   // textIndent: 0 is needed due to task lists -- see https://github.com/sagemathinc/cocalc/issues/6074
   const { change } = useChange();
@@ -64,108 +63,115 @@ function Element({ attributes, children, element }: RenderElementProps) {
             above={true}
           />
         )}
-        <SlateCodeMirror
-          options={{ lineWrapping: true }}
-          value={element.value}
-          info={infoToMode(element.info, { value: element.value })}
-          onChange={(value) => {
-            setElement({ value });
-          }}
-          onFocus={async () => {
-            await delay(1); // must be a little longer than the onBlur below.
-            if (!isMountedRef.current) return;
-          }}
-          onBlur={async () => {
-            await delay(0);
-            if (!isMountedRef.current) return;
-          }}
-          onShiftEnter={() => {
-            runRef.current?.();
-          }}
-          addonBefore={
-            <div
-              style={{
-                borderBottom: "1px solid #ccc",
-                padding: "3px",
-                display: "flex",
-                background: "#f8f8f8",
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ flex: 1 }}>
+            <SlateCodeMirror
+              options={{ lineWrapping: true }}
+              value={element.value}
+              info={infoToMode(element.info, { value: element.value })}
+              onChange={(value) => {
+                setElement({ value });
               }}
-            >
-              <div style={{ flex: 1 }}></div>
-              {element.fence && (
-                <Input
-                  size="small"
-                  onKeyDown={(e) => {
-                    if (e.keyCode == 13 && e.shiftKey) {
-                      runRef.current?.();
-                    } else if (e.keyCode == 40) {
-                      // down arrow and 38 is up.  TODO
-                    }
-                  }}
+              onFocus={async () => {
+                await delay(1); // must be a little longer than the onBlur below.
+                if (!isMountedRef.current) return;
+              }}
+              onBlur={async () => {
+                await delay(0);
+                if (!isMountedRef.current) return;
+              }}
+              onShiftEnter={() => {
+                runRef.current?.();
+              }}
+              addonBefore={
+                <div
                   style={{
-                    flex: 1,
-                    color: "#666",
-                    minWidth: "100px",
-                    maxWidth: "300px",
-                    margin: "0 5px",
+                    borderBottom: "1px solid #ccc",
+                    padding: "3px",
+                    display: "flex",
+                    background: "#f8f8f8",
                   }}
-                  placeholder="Info string (py, r, jl, tex, md, etc.)..."
-                  value={info}
-                  onFocus={() => {
-                    infoFocusedRef.current = true;
-                    editor.setIgnoreSelection(true);
-                  }}
-                  onBlur={() => {
-                    infoFocusedRef.current = false;
-                    editor.setIgnoreSelection(false);
-                  }}
-                  onChange={(e) => {
-                    const info = e.target.value;
-                    setInfo(info);
-                    setElement({ info });
-                  }}
-                />
-              )}
-              {!disableMarkdownCodebar && (
-                <ActionButtons
-                  auto
-                  size="small"
-                  input={element.value}
-                  history={history}
-                  setOutput={setOutput}
-                  output={output}
-                  info={info}
-                  runRef={runRef}
-                  setInfo={(info) => {
-                    setElement({ info });
-                  }}
-                />
-              )}
-            </div>
-          }
-          addonAfter={
-            disableMarkdownCodebar || output == null ? null : (
-              <div
-                onMouseDown={() => {
-                  editor.setIgnoreSelection(true);
-                }}
-                onMouseUp={() => {
-                  // Re-enable slate listing for selection changes again in next render loop.
-                  setTimeout(() => {
-                    editor.setIgnoreSelection(false);
-                  }, 0);
-                }}
-                style={{
-                  borderTop: "1px dashed #ccc",
-                  background: "white",
-                  padding: "5px 0 5px 30px",
-                }}
-              >
-                {output}
-              </div>
-            )
-          }
-        />
+                >
+                  <div style={{ flex: 1 }}></div>
+                  {element.fence && (
+                    <Input
+                      size="small"
+                      onKeyDown={(e) => {
+                        if (e.keyCode == 13 && e.shiftKey) {
+                          runRef.current?.();
+                        } else if (e.keyCode == 40) {
+                          // down arrow and 38 is up.  TODO
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        color: "#666",
+                        minWidth: "100px",
+                        maxWidth: "300px",
+                        margin: "0 5px",
+                      }}
+                      placeholder="Info string (py, r, jl, tex, md, etc.)..."
+                      value={info}
+                      onFocus={() => {
+                        infoFocusedRef.current = true;
+                        editor.setIgnoreSelection(true);
+                      }}
+                      onBlur={() => {
+                        infoFocusedRef.current = false;
+                        editor.setIgnoreSelection(false);
+                      }}
+                      onChange={(e) => {
+                        const info = e.target.value;
+                        setInfo(info);
+                        setElement({ info });
+                      }}
+                    />
+                  )}
+                  {!disableMarkdownCodebar && (
+                    <ActionButtons
+                      auto
+                      size="small"
+                      input={element.value}
+                      history={history}
+                      setOutput={setOutput}
+                      output={output}
+                      info={info}
+                      runRef={runRef}
+                      setInfo={(info) => {
+                        setElement({ info });
+                      }}
+                    />
+                  )}
+                </div>
+              }
+              addonAfter={
+                disableMarkdownCodebar || output == null ? null : (
+                  <div
+                    onMouseDown={() => {
+                      editor.setIgnoreSelection(true);
+                    }}
+                    onMouseUp={() => {
+                      // Re-enable slate listing for selection changes again in next render loop.
+                      setTimeout(() => {
+                        editor.setIgnoreSelection(false);
+                      }, 0);
+                    }}
+                    style={{
+                      borderTop: "1px dashed #ccc",
+                      background: "white",
+                      padding: "5px 0 5px 30px",
+                    }}
+                  >
+                    {output}
+                  </div>
+                )
+              }
+            />
+          </div>
+          {element.info == "mermaid" && (
+            <Mermaid style={{ flex: 1 }} value={element.value} />
+          )}
+        </div>
         <InsertBar
           editor={editor}
           element={element}

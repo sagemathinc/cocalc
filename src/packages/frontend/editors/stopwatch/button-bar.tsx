@@ -8,9 +8,11 @@ Some buttons
 */
 import { HistoryOutlined, RedoOutlined, UndoOutlined } from "@ant-design/icons";
 import { Button } from "antd";
+import { useIntl } from "react-intl";
 
 import { Rendered } from "@cocalc/frontend/app-framework";
 import { Gap } from "@cocalc/frontend/components/gap";
+import { labels } from "@cocalc/frontend/i18n";
 import { TimeActions } from "./actions";
 
 export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
@@ -24,13 +26,15 @@ export function ButtonBar({ actions }: { actions: TimeActions }): JSX.Element {
 }
 
 function timeTravelButton(actions: TimeActions): Rendered {
+  const intl = useIntl();
+
   return (
     <Button
       key={"time-travel"}
       onClick={() => actions.time_travel()}
       icon={<HistoryOutlined />}
     >
-      TimeTravel
+      {intl.formatMessage(labels.timetravel)}
     </Button>
   );
 }

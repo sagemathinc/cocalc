@@ -97,7 +97,7 @@ export default function getConfig({ middleware }: Options = {}) {
   function registerPlugin(
     desc: string,
     plugin: WebpackPluginInstance,
-    disable?: boolean
+    disable?: boolean,
   ) {
     if (disable) {
       console.log("Disabling plugin:  ", desc);
@@ -136,7 +136,7 @@ export default function getConfig({ middleware }: Options = {}) {
     "define React",
     new ProvidePlugin({
       React: "react",
-    })
+    }),
   );
 
   if (MEASURE) {
@@ -220,25 +220,8 @@ export default function getConfig({ middleware }: Options = {}) {
         // anywhere in that library:
         "@cocalc/frontend": resolve("node_modules", "@cocalc/frontend"),
         // This entities/maps alias is needed due to a weird markdown-it import
-        // that webpack 5 won't resolve:
+        // that webpack5 won't resolve:
         "entities/maps": resolve("node_modules/entities/lib/maps"),
-        // This is needed due to k3d's snapshot.js making assumptions
-        // about how npm (and now pnpm!) works, which are violated for us, about where fflate
-        // ends up getting installed. Due to hoisting they aren't right.
-        // We don't even actually use snapshot.js, since we disable that
-        // functionality in k3d. This workaround should be robust due to
-        // our use of total hoisting via links that pnpm uses (as configured
-        // in .npmrc).
-        "../../../../node_modules/requirejs/require": resolve(
-          "..",
-          "node_modules",
-          ".pnpm/requirejs@2.3.6/node_modules/requirejs/require"
-        ),
-        "../../../../node_modules/fflate/umd/index": resolve(
-          "..",
-          "node_modules",
-          ".pnpm/fflate@0.7.3/node_modules/fflate/umd/index"
-        ),
       },
       // So we can "import 'file'" instead of "import 'file.tsx'"
       extensions: [

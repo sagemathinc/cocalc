@@ -25,7 +25,7 @@ interface Props {
   on_change?: (value: string, opts: { ctrl_down: boolean }) => void;
   on_clear?: () => void;
   on_submit?: (value: string, opts: { ctrl_down: boolean }) => void;
-  buttonAfter?: JSX.Element;
+  buttonAfter?;
   disabled?: boolean;
   clear_on_submit?: boolean;
   on_down?: () => void;

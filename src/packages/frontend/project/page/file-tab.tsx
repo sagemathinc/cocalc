@@ -10,6 +10,7 @@ A single tab in a project.
 */
 import { Popover, Tag } from "antd";
 import { CSSProperties, ReactNode } from "react";
+import { defineMessage, useIntl } from "react-intl";
 
 import { getAlertName } from "@cocalc/comm/project-status/types";
 import {
@@ -21,6 +22,7 @@ import {
 import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import {
   ICON_UPGRADES,
   ICON_USERS,
@@ -31,6 +33,7 @@ import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/p
 import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../context";
 import { PROJECT_INFO_TITLE } from "../info";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import {
@@ -45,9 +48,8 @@ import {
   SettingsFlyout,
 } from "./flyouts";
 import { ActiveFlyout } from "./flyouts/active";
-import { VBAR_KEY, getValidVBAROption } from "./vbar";
 import { shouldOpenFileInNewWindow } from "./utils";
-import { useProjectContext } from "../context";
+import { getValidVBAROption, VBAR_KEY } from "./vbar";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -69,14 +71,14 @@ export function isFixedTab(tab?: any): tab is FixedTab {
 
 type FixedTabs = {
   [name in FixedTab]: {
-    label: string | ReactNode;
+    label: string | ReactNode | IntlMessage;
     icon: IconName;
     flyout: (props: {
       project_id: string;
       wrap: (content: JSX.Element, style?: CSS) => JSX.Element;
       flyoutWidth: number;
     }) => JSX.Element;
-    flyoutTitle?: string | ReactNode;
+    flyoutTitle?: string | ReactNode | IntlMessage;
     noAnonymous?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page
   };
@@ -101,8 +103,11 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   new: {
-    label: "New",
-    flyoutTitle: "Create New File or Folder",
+    label: labels.new,
+    flyoutTitle: defineMessage({
+      id: "project.page.flyout.new_file.title",
+      defaultMessage: "Create New File or Folder",
+    }),
     icon: "plus-circle",
     flyout: NewFlyout,
     noAnonymous: false,
@@ -111,11 +116,17 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: "Log",
     icon: "history",
     flyout: LogFlyout,
-    flyoutTitle: "Recent Files",
+    flyoutTitle: defineMessage({
+      id: "project.page.flyout.log.title",
+      defaultMessage: "Recent Files",
+    }),
     noAnonymous: false,
   },
   search: {
-    label: "Find",
+    label: defineMessage({
+      id: "project.page.file-tab.search_file.label",
+      defaultMessage: "Find",
+    }),
     icon: "search",
     flyout: SearchFlyout,
     noAnonymous: false,
@@ -133,7 +144,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   upgrades: {
-    label: "Upgrades",
+    label: labels.upgrades,
     icon: ICON_UPGRADES,
     flyout: LicensesFlyout,
     flyoutTitle: `Project ${TITLE_UPGRADES}`,
@@ -146,11 +157,14 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   settings: {
-    label: "Settings",
+    label: labels.settings,
     icon: "wrench",
     flyout: SettingsFlyout,
     noAnonymous: false,
-    flyoutTitle: "Status and Settings",
+    flyoutTitle: defineMessage({
+      id: "project.page.flyout.settings.title",
+      defaultMessage: "Status and Settings",
+    }),
   },
 } as const;
 
@@ -188,6 +202,7 @@ export function FileTab(props: Readonly<Props>) {
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
 
+  const intl = useIntl();
   const { onCoCalcDocker } = useProjectContext();
   // this is @cocalc/comm/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
@@ -330,6 +345,9 @@ export function FileTab(props: Readonly<Props>) {
   if (label == null) {
     if (name != null) {
       label = FIXED_PROJECT_TABS[name].label;
+      if (isIntlMessage(label)) {
+        label = intl.formatMessage(label);
+      }
     } else if (path != null) {
       label = path_split(path).tail;
     }

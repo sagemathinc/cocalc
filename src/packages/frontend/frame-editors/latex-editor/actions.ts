@@ -18,72 +18,71 @@ const MINIMAL = `\\documentclass{article}
 const HELP_URL = "https://doc.cocalc.com/latex.html";
 
 const VIEWERS = ["pdfjs_canvas", "pdf_embed", "build"] as const;
+
 import { delay } from "awaiting";
 import * as CodeMirror from "codemirror";
-import { normalize as path_normalize } from "path";
-import { debounce, union } from "lodash";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { fromJS, List, Map } from "immutable";
-import { once } from "@cocalc/util/async-utils";
-import { project_api } from "../generic/client";
+import { debounce, union } from "lodash";
+import { normalize as path_normalize } from "path";
+
+import { Store, TypedMap } from "@cocalc/frontend/app-framework";
+import {
+  TableOfContentsEntry,
+  TableOfContentsEntryList,
+} from "@cocalc/frontend/components";
 import {
   Actions as BaseActions,
   CodeEditorState,
-} from "../code-editor/actions";
+} from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { print_html } from "@cocalc/frontend/frame-editors/frame-tree/print";
+import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import {
-  latexmk,
+  exec,
+  project_api,
+  server_time,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { once } from "@cocalc/util/async-utils";
+import { ExecOutput } from "@cocalc/util/db-schema/projects";
+import {
+  change_filename_extension,
+  path_split,
+  separate_file_extension,
+  sha1,
+  splitlines,
+  startswith,
+} from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+// import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
+import { bibtex } from "./bibtex";
+import { clean } from "./clean";
+import { KNITR_EXTS } from "./constants";
+import { count_words } from "./count_words";
+import { update_gutters } from "./gutters";
+import { knitr, knitr_errors, patch_synctex } from "./knitr";
+import { IProcessedLatexLog, LatexParser } from "./latex-log-parser";
+import {
   build_command,
   Engine,
   get_engine_from_config,
+  latexmk,
 } from "./latexmk";
-import { sagetex, sagetex_hash, sagetex_errors } from "./sagetex";
-import { pythontex, pythontex_errors } from "./pythontex";
-import { knitr, patch_synctex, knitr_errors } from "./knitr";
-import * as synctex from "./synctex";
-import { bibtex } from "./bibtex";
-import { count_words } from "./count_words";
-import { server_time, ExecOutput } from "../generic/client";
-import { clean } from "./clean";
-import { LatexParser, IProcessedLatexLog } from "./latex-log-parser";
-import { update_gutters } from "./gutters";
-import { ensureTargetPathIsCorrect, pdf_path } from "./util";
-import { KNITR_EXTS } from "./constants";
 import { forgetDocument, url_to_pdf } from "./pdfjs-doc-cache";
-import { FrameTree } from "../frame-tree/types";
-import { Store } from "../../app-framework";
-import { createTypedMap, TypedMap } from "../../app-framework";
-import { print_html } from "../frame-tree/print";
-import { raw_url } from "../frame-tree/util";
-import {
-  path_split,
-  separate_file_extension,
-  splitlines,
-  startswith,
-  change_filename_extension,
-  sha1,
-} from "@cocalc/util/misc";
-import { IBuildSpecs } from "./build";
-import { open_new_tab } from "@cocalc/frontend/misc";
+import { pythontex, pythontex_errors } from "./pythontex";
+import { sagetex, sagetex_errors, sagetex_hash } from "./sagetex";
+import * as synctex from "./synctex";
 import { parseTableOfContents } from "./table-of-contents";
 import {
-  TableOfContentsEntryList,
-  TableOfContentsEntry,
-} from "@cocalc/frontend/components";
-
-export interface BuildLog extends ExecOutput {
-  parse?: IProcessedLatexLog;
-}
-
-export type BuildLogs = Map<string, Map<string, any>>;
-
-interface ScrollIntoViewParams {
-  page: number;
-  y: number;
-  id: string;
-}
-
-export const ScrollIntoViewRecord = createTypedMap<ScrollIntoViewParams>();
-export type ScrollIntoViewMap = TypedMap<ScrollIntoViewParams>;
+  BuildLog,
+  BuildLogs,
+  BuildSpecName,
+  IBuildSpecs,
+  // JobInfos,
+  ScrollIntoViewMap,
+  ScrollIntoViewRecord,
+} from "./types";
+import { ensureTargetPathIsCorrect, pdf_path } from "./util";
 
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
@@ -99,6 +98,7 @@ interface LatexEditorState extends CodeEditorState {
   includeError?: string;
   build_command_hardcoded?: boolean; // if true, an % !TeX cocalc = ... directive sets the command via the document itself
   contents?: TableOfContentsEntryList; // table of contents data.
+  // job_infos: JobInfos;
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -107,6 +107,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   private _last_sagetex_hash: string;
   private _last_syncstring_hash: number | undefined;
   private is_building: boolean = false;
+  private is_stopping: boolean = false; // if true, do not continue running any compile jobs
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -674,32 +675,85 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build(); // kicks off a save of all relevant files
   }
 
-  // used by generic framework.
-  async build(id?: string, force: boolean = false): Promise<void> {
+  // used by generic framework – this is bound to the instance, otherwise "this" is undefined
+  build = async (id?: string, force: boolean = false): Promise<void> => {
+    this.set_error("");
+    this.set_status("");
     if (id) {
       const cm = this._get_cm(id);
       if (cm) {
         cm.focus();
       }
     }
+    // initiating a build. if one is running & forced, we stop the build
     if (this.is_building) {
-      return;
+      if (force) {
+        await this.stop_build();
+      } else {
+        return;
+      }
     }
     this.is_building = true;
     try {
       await this.save_all(false);
       await this.run_build(this.last_save_time(), force);
+    } catch (err) {
+      // if there is an error, we issue a stop, but keep the build logs
+      await this.stop_build();
     } finally {
       this.is_building = false;
     }
-  }
+  };
 
   async clean(): Promise<void> {
     await this.build_action("clean");
   }
 
-  async run_build(time: number, force: boolean): Promise<void> {
-    (this as unknown as any).setState({ build_logs: Map() });
+  private async kill(job: ExecOutput): Promise<ExecOutput> {
+    if (job.type !== "async") return job;
+    const { pid, status } = job;
+    if (status === "running" && typeof pid === "number") {
+      try {
+        await exec({
+          project_id: this.project_id,
+          // negative PID, to kill the entire process group
+          command: `kill -9 -${pid}`,
+          // bash:true is necessary. kill + array does not work. IDK why.
+          bash: true,
+          err_on_exit: false,
+        });
+      } catch (err) {
+        // likely "No such process", we just ignore it
+      } finally {
+        // set this build log to be no longer running
+        job.status = "killed";
+      }
+    }
+    return job;
+  }
+
+  // This stops all known jobs with a status "running" and resets the state.
+  async stop_build(_id?: string) {
+    const build_logs = this.store.get("build_logs");
+    try {
+      this.is_stopping = true;
+      if (build_logs) {
+        for (const [name, job] of build_logs) {
+          // this.kill returns the job with a modified status, it's not the kill exec itself
+          this.set_build_logs({ [name]: await this.kill(job.toJS()) });
+        }
+      }
+    } finally {
+      this.set_status("");
+      this.is_building = false;
+      this.is_stopping = false;
+    }
+  }
+
+  private async run_build(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
+    // reset state of build_logs, since it is a fresh start
+    this.setState({ build_logs: Map() });
 
     if (this.bad_filename) {
       const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
@@ -759,9 +813,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_knitr(time: number, force: boolean): Promise<void> {
+  private async run_knitr(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     const status = (s) => this.set_status(`Running Knitr... ${s}`);
+    const set_job_info = (job) => this.set_build_logs({ knitr: job });
     status("");
 
     try {
@@ -770,6 +826,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.filename_knitr,
         this.make_timestamp(time, force),
         status,
+        set_job_info,
       );
     } catch (err) {
       this.set_error(err);
@@ -836,11 +893,12 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  async run_latex(
+  private async run_latex(
     time: number,
     force: boolean,
     update_pdf: boolean = true,
   ): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     let build_command: string | string[];
     const timestamp = this.make_timestamp(time, force);
@@ -851,12 +909,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     this.set_error("");
     this.set_build_logs({ latex: undefined });
+    // this.set_job_infos({ latex: undefined });
     if (typeof s == "string") {
       build_command = s;
     } else {
       build_command = s.toJS();
     }
     const status = (s) => this.set_status(`Running Latex... ${s}`);
+    const set_job_info = (job) => this.set_build_logs({ latex: job });
+
     status("");
     try {
       output = await latexmk(
@@ -866,12 +927,17 @@ export class Actions extends BaseActions<LatexEditorState> {
         timestamp,
         status,
         this.get_output_directory(),
+        set_job_info,
       );
+      // console.log(output);
     } catch (err) {
+      //console.info("LaTeX Editor/actions/run_latex error=", err);
       this.set_error(err);
       return;
+    } finally {
+      // In all cases, we want the status info to clear
+      this.set_status("");
     }
-    this.set_status("");
     // resetting parsed_output_log is ok, even if we do two passes.
     // the reason is that in pythontex or sagetex there is a merge *after* this step.
     // therefore, resetting this here will get rid of then stale errors related to
@@ -1048,7 +1114,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_sagetex(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     const status = (s) => this.set_status(`Running SageTeX... ${s}`);
+    const set_job_info = (job) => this.set_build_logs({ sagetex: job });
     status("");
     // First compute hash of sagetex file.
     let hash: string = "";
@@ -1084,7 +1152,9 @@ export class Actions extends BaseActions<LatexEditorState> {
         hash,
         status,
         this.get_output_directory(),
+        set_job_info,
       );
+      if (!output) throw new Error("Unable to run SageTeX.");
       if (output.stderr.indexOf("sagetex.VersionError") != -1) {
         // See https://github.com/sagemathinc/cocalc/issues/4432
         throw Error(
@@ -1114,8 +1184,10 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   async run_pythontex(time: number, force: boolean): Promise<void> {
+    if (this.is_stopping) return;
     let output: BuildLog;
     const status = (s) => this.set_status(`Running PythonTeX... ${s}`);
+    const set_job_info = (job) => this.set_build_logs({ pythontex: job });
     status("");
 
     try {
@@ -1127,6 +1199,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         force,
         status,
         this.get_output_directory(),
+        set_job_info,
       );
       // Now run latex again, since we had to run pythontex, which changes
       // the inserted snippets. This +2 forces re-running latex... but still dedups
@@ -1279,16 +1352,16 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
-    let build_logs: BuildLogs = this.store.get("build_logs");
-    if (!build_logs) {
-      // may have already been closed.
-      return;
-    }
-    let k: string;
+  private set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
+    let build_logs: BuildLogs = this.store.get("build_logs") ?? Map();
+    let k: BuildSpecName;
     for (k in obj) {
-      const v: BuildLog = obj[k];
-      build_logs = build_logs.set(k, fromJS(v));
+      const v: BuildLog | undefined = obj[k];
+      if (v) {
+        build_logs = build_logs.set(k, fromJS(v) as any as TypedMap<BuildLog>);
+      } else {
+        build_logs = build_logs.delete(k);
+      }
     }
     this.setState({ build_logs });
   }
@@ -1301,7 +1374,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       log += s + "\n";
       const build_logs: BuildLogs = this.store.get("build_logs");
       this.setState({
-        build_logs: build_logs.set("clean", fromJS({ output: log })),
+        build_logs: build_logs.set(
+          "clean",
+          fromJS({ output: log }) as any as TypedMap<BuildLog>,
+        ),
       });
     };
 
@@ -1320,7 +1396,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.set_status("");
   }
 
-  async build_action(action: string, force?: boolean): Promise<void> {
+  // TODO: is this used in any way besides build_action("clean") ?
+  private async build_action(action: string, force?: boolean): Promise<void> {
     if (force === undefined) {
       force = false;
     }

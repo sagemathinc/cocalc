@@ -6,7 +6,6 @@
 import { List, Map, Seq, fromJS, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
-
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { History as LanguageModelHistory } from "@cocalc/frontend/client/types";
@@ -53,12 +52,13 @@ import {
   MessageHistory,
 } from "./types";
 import { getSelectedHashtagsSearch } from "./utils";
+import { history_path } from "@cocalc/util/misc";
 
 const MAX_CHATSTREAM = 10;
 
 export class ChatActions extends Actions<ChatState> {
   public syncdb?: SyncDB;
-  private store?: ChatStore;
+  public store?: ChatStore;
   // We use this to ensure at most once chatgpt output is streaming
   // at a time in a given chatroom.  I saw a bug where hundreds started
   // at once and it really did send them all to openai at once, and
@@ -287,14 +287,21 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.set(message);
     if (!reply_to) {
       this.delete_draft(0);
+      // NOTE: we also clear search, since it's confusing to send a message and not
+      // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
+      // since by default the message you are sending has those tags.
+      // Also, only do this clearing when not replying.
+      // For replies search find full threads not individual messages.
+      this.setState({
+        input: "",
+        search: "",
+      });
+    } else {
+      // TODO: but until we fix search, do this:
+      this.setState({
+        search: "",
+      });
     }
-    // NOTE: we also clear search, since it's confusing to send a message and not
-    // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
-    // since by default the message you are sending has those tags.
-    this.setState({
-      input: "",
-      search: "",
-    });
     this.ensureDraftStartsWithHashtags(false);
 
     if (this.store) {
@@ -355,8 +362,9 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   // Used to edit sent messages.
-  // TODO: this is **Extremely** shockingly inefficient; it assumes
-  //       the number of edits is small.
+  // NOTE: this is inefficient; it assumes
+  //       the number of edits is small, which is reasonable -- nobody makes hundreds of distinct
+  //       edits of a single message.
   public send_edit(message: ChatMessageTyped, content: string): void {
     if (this.syncdb == null) {
       // WARNING: give an error or try again later?
@@ -423,25 +431,29 @@ export class ChatActions extends Actions<ChatState> {
     noNotification?: boolean;
     reply_to?: Date;
   }): string {
+    const store = this.store;
+    if (store == null) {
+      return "";
+    }
     // the reply_to field of the message is *always* the root.
     // the order of the replies is by timestamp.  This is meant
     // to make sure chat is just 1 layer deep, rather than a
     // full tree structure, which is powerful but too confusing.
-    reply_to ??= getReplyToRoot(
-      message,
-      this.store?.get("messages") ?? (fromJS({}) as ChatMessages),
-    );
-    const time = reply_to?.valueOf() ?? 0;
-    this.delete_draft(-time);
-    return this.send_chat({
+    const reply_to_value =
+      reply_to != null
+        ? reply_to.valueOf()
+        : store.getThreadRootDate(new Date(message.date).valueOf());
+    const time_stamp_str = this.send_chat({
       input: reply,
       sender_id: from ?? this.redux.getStore("account").get_account_id(),
-      reply_to,
+      reply_to: new Date(reply_to_value),
       noNotification,
     });
+    // negative date of reply_to root is used for replies.
+    this.delete_draft(-reply_to_value);
+    return time_stamp_str;
   }
 
-  // negative date is used for replies.
   public delete_draft(
     date: number,
     commit: boolean = true,
@@ -449,17 +461,10 @@ export class ChatActions extends Actions<ChatState> {
   ) {
     if (!this.syncdb) return;
     sender_id = sender_id ?? this.redux.getStore("account").get_account_id();
-    // date should always be negative for drafts (stupid, but that's the code),
-    // so I'm just deleting both for now.
     this.syncdb.delete({
       event: "draft",
       sender_id,
       date,
-    });
-    this.syncdb.delete({
-      event: "draft",
-      sender_id,
-      date: -date,
     });
     if (commit) {
       this.syncdb.commit();
@@ -560,11 +565,12 @@ export class ChatActions extends Actions<ChatState> {
   public scrollToBottom(index: number = -1) {
     if (this.syncdb == null) return;
     // this triggers scroll behavior in the chat-log component.
-    this.setState({ scrollToBottom: null }); // noop, but necessary to trigger a change
+    this.setState({ scrollToBottom: null }); // no-op, but necessary to trigger a change
     this.setState({ scrollToBottom: index });
   }
 
   public set_uploading(is_uploading: boolean): void {
+    console.log("set_uploading", is_uploading);
     this.setState({ is_uploading });
   }
 
@@ -1116,6 +1122,16 @@ export class ChatActions extends Actions<ChatState> {
       setDefaultLLM(llm);
     }
   }
+
+  showTimeTravelInNewTab = () => {
+    const store = this.store;
+    if (store == null) return;
+    redux.getProjectActions(store.get("project_id")!).open_file({
+      path: history_path(store.get("path")!),
+      foreground: true,
+      foreground_project: true,
+    });
+  };
 }
 
 export function getRootMessage(
@@ -1133,7 +1149,7 @@ export function getRootMessage(
   }
 }
 
-function getReplyToRoot(
+export function getReplyToRoot(
   message: ChatMessage,
   messages: ChatMessages,
 ): Date | undefined {

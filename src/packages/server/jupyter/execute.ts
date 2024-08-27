@@ -132,7 +132,7 @@ export async function execute({
         "account_id must be specified -- make sure you are signed in",
       );
     }
-    if (!isCollaborator({ project_id, account_id })) {
+    if (!(await isCollaborator({ project_id, account_id }))) {
       throw Error("permission denied -- user must be collaborator on project");
     }
     request_account_id = account_id;

@@ -17,6 +17,7 @@ import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { editor } from "../../i18n";
 
 const EDITOR_SPEC = {
   slate: {
@@ -31,6 +32,7 @@ const EDITOR_SPEC = {
       //"print",
       "decrease_font_size",
       "increase_font_size",
+      "set_zoom",
       "save",
       "time_travel",
       "show_table_of_contents",
@@ -51,6 +53,7 @@ const EDITOR_SPEC = {
       "readonly_view",
       "decrease_font_size",
       "increase_font_size",
+      "set_zoom",
       "sync",
       "show_table_of_contents",
     ]),
@@ -105,6 +108,7 @@ const EDITOR_SPEC = {
       "print",
       "decrease_font_size",
       "increase_font_size",
+      "set_zoom",
       "show_table_of_contents",
       "time_travel",
       "undo", // need these because button bars at top let you do something even in rendered only view.
@@ -115,8 +119,8 @@ const EDITOR_SPEC = {
     buttons: set(["edit", "decrease_font_size", "increase_font_size"]),
   } as EditorDescription,
   markdown_table_of_contents: {
-    short: "Contents",
-    name: "Table of Contents",
+    short: editor.table_of_contents_short,
+    name: editor.table_of_contents_name,
     icon: "align-right",
     component: TableOfContents,
     commands: set(["decrease_font_size", "increase_font_size"]),

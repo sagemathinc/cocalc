@@ -60,6 +60,10 @@ import {
   syntax2tool,
 } from "@cocalc/util/code-formatter";
 import {
+  TIMEOUT_CALLING_PROJECT,
+  TIMEOUT_CALLING_PROJECT_MSG,
+} from "@cocalc/util/consts/project";
+import {
   aux_file,
   filename_extension,
   history_path,
@@ -67,6 +71,7 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { set_account_table } from "../../account/util";
 import { default_opts } from "../codemirror/cm-options";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
@@ -99,7 +104,6 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
-import { set_account_table } from "../../account/util";
 
 interface gutterMarkerParams {
   line: number;
@@ -1853,13 +1857,12 @@ export class Actions<
   public set_error(
     error?: object | string,
     style?: ErrorStyles,
-    id?: string,
+    _id?: string, // id - not currently used, but would be for frame-specific error.
   ): void {
-    id = id; // id - not currently used, but would be for frame-specific error.
     if (error === undefined) {
       this.setState({ error });
     } else {
-      if (typeof error == "object") {
+      if (typeof error === "object") {
         const e = (error as any).message;
         if (e === undefined) {
           let e = JSON.stringify(error);
@@ -1869,6 +1872,9 @@ export class Actions<
         }
         if (typeof e != "string") throw Error("bug"); // make typescript happy
         error = e;
+      }
+      if (error === TIMEOUT_CALLING_PROJECT) {
+        error = TIMEOUT_CALLING_PROJECT_MSG;
       }
       this.setState({ error });
     }
@@ -1988,7 +1994,7 @@ export class Actions<
   // Do a formatting action to whatever code editor
   // is currently active, or the main document if none is
   // focused or force_main is true.
-  async format_action(cmd, args, force_main: boolean = false): Promise<void> {
+  async format_action(cmd, args?, force_main: boolean = false): Promise<void> {
     if (!force_main) {
       const id = this._get_active_id();
       const editor = this.get_code_editor(id);

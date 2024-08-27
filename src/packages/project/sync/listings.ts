@@ -27,8 +27,8 @@ export function registerListingsTable(table, query): void {
     await close_all_syncdocs_in_tree(path);
   };
 
-  const createWatcher = (path: string, debounceMs: number) =>
-    new Watcher(path, debounceMs);
+  const createWatcher = (path: string, debounce: number) =>
+    new Watcher(path, { debounce });
 
   const { project_id, compute_server_id } = query.listings[0];
 

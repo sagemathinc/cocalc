@@ -5,6 +5,8 @@
 
 import { Col, Divider, Modal, Row, Tabs, TabsProps } from "antd";
 import { Gutter } from "antd/es/grid/row";
+
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import {
@@ -22,7 +24,11 @@ import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
-import { getServerTab, setServerTab } from "@cocalc/frontend/compute/tab";
+import {
+  getServerTab,
+  setServerTab,
+  TabName,
+} from "@cocalc/frontend/compute/tab";
 
 // Antd's 24 grid system
 const md = 6;
@@ -31,12 +37,8 @@ const y: Gutter = 30;
 const gutter: [Gutter, Gutter] = [20, y / 2];
 const newRowStyle = { marginTop: `${y}px` };
 
-interface Props {
-  project_id: string;
-}
-
-export function ProjectServers(props: Props) {
-  const { project_id } = props;
+export function ProjectServers() {
+  const { project_id } = useProjectContext();
 
   const available = useAvailableFeatures(project_id);
 
@@ -163,6 +165,30 @@ export function ProjectServers(props: Props) {
   }
 
   const items: TabsProps["items"] = [];
+  items.push({
+    key: "notebooks",
+    label: (
+      <span style={{ fontSize: "14pt" }}>
+        <Icon name="jupyter" /> Notebook Servers
+      </span>
+    ),
+    children: (
+      <>
+        <Paragraph>
+          You can run various servers inside this project. They run in the same
+          environment, have access to the same files, and stop when the project
+          stops. You can also{" "}
+          <A href={"https://doc.cocalc.com/howto/webserver.html"}>
+            run your own servers
+          </A>
+          .
+        </Paragraph>
+        {renderNamedServers()}
+        <Divider plain />
+        {renderSageServerControl()}
+      </>
+    ),
+  });
   if (computeServersEnabled()) {
     items.push({
       key: "compute-servers",
@@ -193,30 +219,6 @@ export function ProjectServers(props: Props) {
       children: <CloudFilesystems project_id={project_id} />,
     });
   }
-  items.push({
-    key: "notebooks",
-    label: (
-      <span style={{ fontSize: "14pt" }}>
-        <Icon name="jupyter" /> Notebook Servers
-      </span>
-    ),
-    children: (
-      <>
-        <Paragraph>
-          You can run various servers inside this project. They run in the same
-          environment, have access to the same files, and stop when the project
-          stops. You can also{" "}
-          <A href={"https://doc.cocalc.com/howto/webserver.html"}>
-            run your own servers
-          </A>
-          .
-        </Paragraph>
-        {renderNamedServers()}
-        <Divider plain />
-        {renderSageServerControl()}
-      </>
-    ),
-  });
 
   return (
     <div style={{ ...ROOT_STYLE, margin: "0 auto" }}>
@@ -226,7 +228,7 @@ export function ProjectServers(props: Props) {
       <Tabs
         items={items}
         defaultActiveKey={getServerTab(project_id)}
-        onChange={(tab) => setServerTab(project_id, tab)}
+        onChange={(tab) => setServerTab(project_id, tab as TabName)}
       />
     </div>
   );

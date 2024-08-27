@@ -33,9 +33,11 @@ import {
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { sanitize_html_safe } from "@cocalc/frontend/misc";
-import { history_path, hoursToTimeIntervalHuman } from "@cocalc/util/misc";
+import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
+import { FormattedMessage } from "react-intl";
 import { ChatActions } from "./actions";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
@@ -75,9 +77,10 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
 interface Props {
   project_id: string;
   path: string;
+  is_visible?: boolean;
 }
 
-export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
+export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
   const actions: ChatActions = useActions(project_id, path);
 
   const is_uploading = useRedux(["is_uploading"], project_id, path);
@@ -129,11 +132,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   }
 
   function show_timetravel(): void {
-    redux.getProjectActions(project_id).open_file({
-      path: history_path(path),
-      foreground: true,
-      foreground_project: true,
-    });
+    actions.showTimeTravelInNewTab();
   }
 
   function render_preview_message(): JSX.Element | undefined {
@@ -189,15 +188,32 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
     return (
       <Button onClick={button_scroll_to_bottom}>
         <Tip
-          title="Newest Messages"
+          title={
+            <FormattedMessage
+              id="chatroom.scroll_bottom.tooltip.title"
+              defaultMessage={"Newest Messages"}
+            />
+          }
           tip={
             <span>
-              Scrolls the chat to the bottom showing the newest messages
+              <FormattedMessage
+                id="chatroom.scroll_bottom.tooltip.tip"
+                defaultMessage={
+                  "Scrolls the chat to the bottom showing the newest messages"
+                }
+              />
             </span>
           }
           placement="left"
         >
-          <Icon name="arrow-down" /> <VisibleMDLG>New</VisibleMDLG>
+          <Icon name="arrow-down" />{" "}
+          <VisibleMDLG>
+            {" "}
+            <FormattedMessage
+              id="chatroom.scroll_bottom.label"
+              defaultMessage={"Newest"}
+            />
+          </VisibleMDLG>
         </Tip>
       </Button>
     );
@@ -523,14 +539,25 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
                 margin: "0 0 5px 0",
               }}
             />
-            <Tooltip title={"Send message (shift+enter)"}>
+            <Tooltip
+              title={
+                <FormattedMessage
+                  id="chatroom.chat_input.send_button.tooltip"
+                  defaultMessage={"Send message (shift+enter)"}
+                />
+              }
+            >
               <Button
                 onClick={on_send_button_click}
                 disabled={input.trim() === "" || is_uploading}
                 type="primary"
                 style={{ height: "47.5px" }}
+                icon={<Icon name="paper-plane" />}
               >
-                <Icon name="paper-plane" /> Send
+                <FormattedMessage
+                  id="chatroom.chat_input.send_button.label"
+                  defaultMessage={"Send"}
+                />
               </Button>
             </Tooltip>
             <div style={{ height: "5px" }} />
@@ -539,7 +566,10 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
               style={{ height: "47.5px" }}
               disabled={is_preview}
             >
-              Preview
+              <FormattedMessage
+                id="chatroom.chat_input.preview_button.label"
+                defaultMessage={"Preview"}
+              />
             </Button>
           </div>
         </div>
@@ -550,13 +580,28 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path }) => {
   if (messages == null || input == null) {
     return <Loading theme={"medium"} />;
   }
+  // remove frameContext once the chatroom is part of a frame tree.
+  // we need this now, e.g., since some markdown editing components
+  // for input assume in a frame tree, e.g., to fix
+  //  https://github.com/sagemathinc/cocalc/issues/7554
   return (
-    <div
-      onMouseMove={mark_as_read}
-      onClick={mark_as_read}
-      className="smc-vfill"
+    <FrameContext.Provider
+      value={
+        {
+          project_id,
+          path,
+          isVisible: !!is_visible,
+          redux,
+        } as any
+      }
     >
-      {render_body()}
-    </div>
+      <div
+        onMouseMove={mark_as_read}
+        onClick={mark_as_read}
+        className="smc-vfill"
+      >
+        {render_body()}
+      </div>
+    </FrameContext.Provider>
   );
 };

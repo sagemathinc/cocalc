@@ -241,13 +241,9 @@ export default function SelectServer({
           label: (
             <div
               onClick={() => {
-                const actions = redux.getProjectActions(project_id);
-                if (actions != null) {
-                  actions.setState({ create_compute_server: true });
-                  actions.set_active_tab("servers", {
-                    change_history: true,
-                  });
-                }
+                redux
+                  .getProjectActions(project_id)
+                  ?.createComputeServerDialog();
               }}
             >
               <Icon name="plus-circle" /> New Compute Server...

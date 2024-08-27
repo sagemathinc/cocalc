@@ -348,7 +348,10 @@ VBox([s1, s2])
     const { message, buffers } = x;
     log("handleMessageChange: ", model_id, message, buffers);
     const model = await this.manager.get_model(model_id);
-    model.trigger("msg:custom", message, buffers);
+    // Sending DataViews is critical, e.g., it's assumed by ipycanvas
+    //    https://github.com/sagemathinc/cocalc/issues/5159
+    const views = buffers.map((buffer) => new DataView(buffer));
+    model.trigger("msg:custom", message, views);
   };
 
   // [ ] TODO: maybe have to keep trying for a while until model exists!

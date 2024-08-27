@@ -33,7 +33,7 @@ export function server() {
 }
 
 export function client() {
-  const ws = new WebSocket("ws://localhost:8080");
+  const ws = new WebSocket("ws://127.0.0.1:8080");
   ws.onmessage = (event) => {
     console.log(`Client Received message: ${event.data}`);
   };

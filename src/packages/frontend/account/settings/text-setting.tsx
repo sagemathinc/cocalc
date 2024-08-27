@@ -19,6 +19,10 @@ interface Props {
   disabled?: boolean;
 }
 
+
+// Note -- we disable all password manager autocomplete, since this is a component
+// that's used internally in the app for configuration. See https://github.com/sagemathinc/cocalc/issues/6868
+
 export function TextSetting(props: Props): JSX.Element {
   return (
     <LabeledRow
@@ -33,6 +37,9 @@ export function TextSetting(props: Props): JSX.Element {
         onPressEnter={props.onPressEnter}
         maxLength={props.maxLength}
         disabled={props.disabled}
+        autoComplete={"off"}
+        data-lpignore="true"
+        data-1p-ignore
       />
     </LabeledRow>
   );

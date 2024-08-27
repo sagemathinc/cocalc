@@ -11,19 +11,19 @@ Components in this directory may also be used to provide a frame in other editor
 TimeTravel for them.
 */
 
+import { labels } from "@cocalc/frontend/i18n";
+import { AsyncComponent } from "@cocalc/frontend/misc/async-component";
+import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
-import { AsyncComponent } from "@cocalc/frontend/misc/async-component";
 
 const TimeTravel = AsyncComponent(
-  async () => (await import("./time-travel")).TimeTravel
+  async () => (await import("./time-travel")).TimeTravel,
 );
 
-import { set } from "@cocalc/util/misc";
-
 export const time_travel = {
-  short: "TimeTravel",
-  name: "TimeTravel",
+  short: labels.timetravel,
+  name: labels.timetravel,
   icon: "history",
   component: TimeTravel,
   commands: set([

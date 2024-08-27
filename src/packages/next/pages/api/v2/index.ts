@@ -1,6 +1,8 @@
 import { docsApiRoute } from "next-rest-framework";
+import { join } from "node:path";
+
 import basePath from "lib/base-path";
-import { join } from "path";
+
 
 export default docsApiRoute({
   // deniedPaths: [...] // Ignore endpoints from the generated OpenAPI spec.
@@ -9,9 +11,10 @@ export default docsApiRoute({
     info: {
       title: "CoCalc API",
       version: "1.0.0",
-      summary: `This is the CoCalc HTTP API. To get started, you'll need to 
+      summary: `This is the CoCalc HTTP API. To get started, you'll need to
                 [create an API key](https://doc.cocalc.com/apikeys.html).`,
-      description: "foo bar",
+      description: `This is the CoCalc HTTP API. To get started, you'll need to
+                [create an API key](https://doc.cocalc.com/apikeys.html).`,
     },
     externalDocs: {
       url: "https://doc.cocalc.com",
@@ -22,7 +25,7 @@ export default docsApiRoute({
         BasicAuth: {
           type: "http",
           scheme: "basic",
-          description: `The \`password\` field should be left blank, and the \`username\` 
+          description: `The \`password\` field should be left blank, and the \`username\`
                         field should contain the client's API key.`,
         },
       },
@@ -39,7 +42,7 @@ export default docsApiRoute({
         variables: {
           apiKey: {
             default: "",
-            description: `API key to use for the request. An account-wide key may be 
+            description: `API key to use for the request. An account-wide key may be
             obtained by visiting https://cocalc.com/settings/account`,
           },
         },
@@ -50,7 +53,7 @@ export default docsApiRoute({
         variables: {
           apiKey: {
             default: "",
-            description: `API key to use for the request. An account-wide key may be 
+            description: `API key to use for the request. An account-wide key may be
             obtained by visiting http://localhost:5000/settings/account`,
           },
         },
@@ -63,5 +66,11 @@ export default docsApiRoute({
     title: "CoCalc API",
     description: "",
     logoUrl: "https://cocalc.com/_next/static/media/full.0a70e50d.svg",
+    ogConfig: {
+      title: "CoCalc HTTP API (v2)",
+      type: "website",
+      url: "https://cocalc.com/api/v2",
+      imageUrl: "https://cocalc.com/webapp/favicon.ico",
+    },
   },
 });

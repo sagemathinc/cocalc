@@ -1,6 +1,12 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
+import { defineMessage, IntlShape } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -13,6 +19,8 @@ import {
   undo as chatUndo,
 } from "@cocalc/frontend/frame-editors/generic/chat";
 import { get_default_font_size } from "@cocalc/frontend/frame-editors/generic/client";
+import { labels, menu } from "@cocalc/frontend/i18n";
+import { editor } from "@cocalc/frontend/i18n/common";
 import { open_new_tab as openNewTab } from "@cocalc/frontend/misc/open-browser-tab";
 import { isSupportedExtension } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
 import { AI_GENERATE_DOC_TAG } from "@cocalc/frontend/project/page/home-page/ai-generate-utils";
@@ -20,14 +28,17 @@ import openSupportTab from "@cocalc/frontend/support/open";
 import userTracking from "@cocalc/frontend/user-tracking";
 import { filename_extension } from "@cocalc/util/misc";
 import { addCommands } from "./commands";
-import { AI_GEN_TEXT, SEARCH_COMMANDS } from "./const";
+import { SEARCH_COMMANDS } from "./const";
 
 addCommands({
   "split-row": {
     group: "frame-control",
     alwaysShow: true,
     pos: 1,
-    title: "Split frame horizontally into two rows",
+    title: defineMessage({
+      id: "command.generic.split_row.title",
+      defaultMessage: "Split frame horizontally into two rows",
+    }),
     onClick: ({ props }) => {
       if (props.is_full) {
         return props.actions.unset_frame_full();
@@ -36,14 +47,14 @@ addCommands({
       }
     },
     icon: "horizontal-split",
-    label: "Split Down",
-    button: "Split",
+    label: labels.split_frame_horizontally_title,
+    button: menu.split,
   },
   "split-col": {
     group: "frame-control",
     alwaysShow: true,
     pos: 2,
-    title: "Split frame vertically into two columns",
+    title: labels.split_frame_vertically_title,
     onClick: ({ props }) => {
       if (props.is_full) {
         return props.actions.unset_frame_full();
@@ -52,14 +63,21 @@ addCommands({
       }
     },
     icon: "vertical-split",
-    label: "Split Right",
-    button: "Split",
+    label: defineMessage({
+      id: "command.generic.split_col.label",
+      defaultMessage: "Split Right",
+      description: "Split a frame vertically",
+    }),
+    button: menu.split,
   },
   maximize: {
     group: "frame-control",
     alwaysShow: true,
     pos: 3,
-    title: "Toggle whether or not this frame is maximized",
+    title: defineMessage({
+      id: "command.generic.maximize.title",
+      defaultMessage: "Toggle whether or not this frame is maximized",
+    }),
     onClick: ({ props }) => {
       if (props.is_full) {
         props.actions.unset_frame_full();
@@ -67,33 +85,55 @@ addCommands({
         props.actions.set_frame_full(props.id);
       }
     },
-    label: ({ props }) => {
-      if (props.is_full) {
-        return <span>Demaximize Frame</span>;
-      } else {
-        return <span>Maximize Frame</span>;
-      }
-    },
+    label: ({ props, intl }) =>
+      intl.formatMessage(
+        {
+          id: "command.generic.maximize.label",
+          defaultMessage:
+            "{is_full, select, true {Demaximize Frame} other {Maximize Frame}}",
+          description:
+            "Depending on is_full, say maximize or de-maximize frame.",
+        },
+        {
+          is_full: props.is_full,
+        },
+      ),
     icon: "expand",
   },
   close: {
     group: "frame-control",
     alwaysShow: true,
     pos: 4,
-    title: "Close this frame. Close all frames to restore the default layout.",
+    title: defineMessage({
+      id: "command.generic.close.title",
+      defaultMessage:
+        "Close this frame. To restore the default layout, select the application menu entry 'Default Layout'.",
+    }),
     onClick: ({ props }) => {
       props.actions.close_frame(props.id);
     },
-    label: "Close Frame",
-    button: "Close",
+    label: defineMessage({
+      id: "command.generic.close.label",
+      defaultMessage: "Close Frame",
+    }),
+    button: defineMessage({
+      id: "command.generic.close.button",
+      defaultMessage: "Close",
+    }),
     icon: "times",
   },
   show_table_of_contents: {
     group: "show-frames",
-    title: "Show the Table of Contents",
+    title: defineMessage({
+      id: "command.generic.show_table_of_contents.title",
+      defaultMessage: "Show the Table of Contents",
+    }),
     icon: "align-right",
-    label: "Table of Contents",
-    button: "Contents",
+    label: editor.table_of_contents_name,
+    button: defineMessage({
+      id: "command.generic.show_table_of_contents.button",
+      defaultMessage: "Contents",
+    }),
   },
   guide: {
     group: "show-frames",
@@ -153,34 +193,64 @@ addCommands({
     stayOpenOnClick: true,
     pos: 1,
     group: "zoom",
-    title: "Decrease Font Size",
+    title: defineMessage({
+      id: "command.generic.decrease_font_size.title",
+      defaultMessage: "Decrease Font Size",
+    }),
     icon: "search-minus",
-    label: "Zoom Out",
+    label: defineMessage({
+      id: "command.generic.decrease_font_size.label",
+      defaultMessage: "Zoom Out",
+    }),
     keyboard: "control + <",
-    button: "Smaller",
+    button: defineMessage({
+      id: "command.generic.decrease_font_size.button",
+      defaultMessage: "Smaller",
+    }),
   },
   increase_font_size: {
     stayOpenOnClick: true,
     pos: 0,
     group: "zoom",
-    title: "Increase Font Size",
+    title: defineMessage({
+      id: "command.generic.increase_font_size.title",
+      defaultMessage: "Increase Font Size",
+    }),
     icon: "search-plus",
-    label: "Zoom In",
+    label: defineMessage({
+      id: "command.generic.increase_font_size.label",
+      defaultMessage: "Zoom In",
+    }),
     keyboard: "control + >",
-    button: "Bigger",
+    button: defineMessage({
+      id: "command.generic.increase_font_size.button",
+      defaultMessage: "Bigger",
+    }),
   },
   zoom_page_width: {
     pos: 3,
     group: "zoom",
-    title: "Zoom to page width",
-    label: "Zoom to Width",
+    title: defineMessage({
+      id: "command.generic.zoom_page_width.title",
+      defaultMessage: "Zoom to page width",
+    }),
+    label: defineMessage({
+      id: "command.generic.zoom_page_width.label",
+      defaultMessage: "Zoom to Width",
+    }),
     icon: "ColumnWidthOutlined",
   },
   zoom_page_height: {
     pos: 4,
     group: "zoom",
-    title: "Zoom to page height",
-    label: "Zoom to Height",
+    title: defineMessage({
+      id: "command.generic.zoom_page_height.title",
+      defaultMessage: "Zoom to page height",
+    }),
+    label: defineMessage({
+      id: "command.generic.zoom_page_height.label",
+      defaultMessage: "Zoom to Height",
+    }),
     icon: "ColumnHeightOutlined",
   },
   set_zoom: {
@@ -208,11 +278,12 @@ addCommands({
     }),
   },
   undo: {
+    disabled: ({ readOnly }) => readOnly,
     stayOpenOnClick: true,
     group: "undo-redo",
     pos: 0,
     icon: "undo",
-    label: "Undo",
+    label: labels.undo,
     keyboard: `${IS_MACOS ? "⌘" : "control"} + Z`,
     onClick: ({ props }) => {
       if (props.type == "chat") {
@@ -225,11 +296,12 @@ addCommands({
     },
   },
   redo: {
+    disabled: ({ readOnly }) => readOnly,
     stayOpenOnClick: true,
     group: "undo-redo",
     pos: 1,
     icon: "redo",
-    label: "Redo",
+    label: labels.redo,
     keyboard: `${IS_MACOS ? "⌘" : "control"} + shift + Z`,
     onClick: ({ props }) => {
       if (props.type == "chat") {
@@ -243,7 +315,7 @@ addCommands({
   cut: {
     group: "copy",
     pos: 0,
-    label: "Cut",
+    label: labels.cut,
     title: "Cut selection",
     icon: "scissors",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + X`,
@@ -252,7 +324,7 @@ addCommands({
   copy: {
     group: "copy",
     pos: 1,
-    label: "Copy",
+    label: labels.copy,
     title: "Copy selection",
     icon: "copy",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + C`,
@@ -260,7 +332,7 @@ addCommands({
   paste: {
     group: "copy",
     pos: 2,
-    label: "Paste",
+    label: labels.paste,
     title: "Paste buffer",
     icon: "paste",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + V`,
@@ -277,8 +349,15 @@ addCommands({
 
   edit_init_script: {
     group: "config",
-    label: "Initialization Script",
-    title: "Edit the initialization script that is run when this starts",
+    label: defineMessage({
+      id: "command.generic.edit_init_script.label",
+      defaultMessage: "Initialization Script",
+    }),
+    title: defineMessage({
+      id: "command.generic.edit_init_script.title",
+      defaultMessage:
+        "Edit the initialization script that is run when this starts",
+    }),
     icon: "rocket",
     tour: "edit_init_script",
   },
@@ -343,41 +422,40 @@ addCommands({
   kick_other_users_out: {
     group: "other-users",
     icon: "skull-crossbones",
-    title:
-      "Kick all other users out from this document. It will close in all other browsers.",
+    title: menu.kick_other_users_out_title,
     tour: "kick_other_users_out",
-    label: "Kick Other Users Out",
-    button: "Kick",
+    label: menu.kick_other_users_out_label,
+    button: menu.kick_other_users_out_button,
   },
 
   halt_jupyter: {
     group: "quit",
     icon: "PoweroffOutlined",
-    label: "Close and Halt...",
-    button: "Halt",
-    title: "Halt the running Jupyter kernel and close this notebook.",
+    label: menu.close_and_halt,
+    button: menu.halt_jupyter_button,
+    title: menu.halt_jupyter_title,
   },
 
   close_and_halt: {
     group: "quit",
     icon: "PoweroffOutlined",
-    label: "Close and Halt...",
+    label: menu.close_and_halt,
     title: "Halt backend server and close this file.",
   },
 
   reload: {
     group: "reload",
     icon: "reload",
-    label: "Reload",
-    title: "Reload this document",
+    label: labels.reload,
+    title: labels.reload_title,
   },
 
   time_travel: {
     group: "show-frames",
     pos: 3,
     icon: "history",
-    label: "TimeTravel",
-    title: "Show complete editing history of this document",
+    label: labels.timetravel,
+    title: labels.timetravel_title,
     onClick: ({ props, event }) => {
       if (props.actions.name != props.editor_actions.name) {
         // a subframe editor -- always open time travel in a name tab.
@@ -434,28 +512,36 @@ addCommands({
 
   build: {
     group: "build",
-    label: "Build",
-    title: (
-      <>
-        Build the document.
-        <br />
-        To enable or disable automatic builds, click on the 'Build on Save'
-        button or menu entry.
-      </>
-    ),
+    label: defineMessage({
+      id: "command.generic.build.label",
+      defaultMessage: "Build",
+    }),
+    title: defineMessage({
+      id: "command.generic.build.title",
+      defaultMessage:
+        "Build the document.{br}To enable or disable automatic builds, click on the 'Build on Save' button or menu entry.",
+    }),
     icon: "play-circle",
   },
   build_on_save: {
     group: "build",
-    label: () => (
-      <>
-        Build on Save{" "}
-        {redux.getStore("account").getIn(["editor_settings", "build_on_save"])
-          ? "(Enabled)"
-          : "(Disabled)"}
-      </>
-    ),
-    title: "Toggle automatic build on file save.",
+    label: ({ intl }) =>
+      intl.formatMessage(
+        {
+          id: "command.generic.build_on_save.label",
+          defaultMessage:
+            "Build on Save {enabled, select, true {(Enabled)} other {(Disabled)}}",
+        },
+        {
+          enabled: redux
+            .getStore("account")
+            .getIn(["editor_settings", "build_on_save"]),
+        },
+      ),
+    title: defineMessage({
+      id: "command.generic.build_on_save.title",
+      defaultMessage: "Toggle automatic build on file save.",
+    }),
     icon: () =>
       redux.getStore("account").getIn(["editor_settings", "build_on_save"])
         ? "delivered-procedure-outlined"
@@ -463,11 +549,30 @@ addCommands({
   },
   force_build: {
     group: "build",
-    label: "Force Build",
-    title: "Force rebuild entire project.",
+    label: defineMessage({
+      id: "command.generic.force_build.label",
+      defaultMessage: "Force Build",
+    }),
+    title: defineMessage({
+      id: "command.generic.force_build.title",
+      defaultMessage: "Force rebuild entire project.",
+    }),
     icon: "play",
   },
-
+  stop_build: {
+    group: "build",
+    // TODO does not react to changes
+    // disabled: ({ props }) => props.editor_actions.is_running !== true,
+    label: defineMessage({
+      id: "command.generic.stop_build.label",
+      defaultMessage: "Stop",
+    }),
+    title: defineMessage({
+      id: "command.generic.stop_build.title",
+      defaultMessage: "Stop all running jobs.",
+    }),
+    icon: "stop",
+  },
   clean: {
     group: "build",
     label: "Delete Aux Files",
@@ -490,9 +595,16 @@ addCommands({
   sync: {
     group: "show-frames",
     button: "Sync",
-    label: "Synchronize Views",
+    label: defineMessage({
+      id: "command.generic.sync.label",
+      defaultMessage: "Synchronize Views",
+      description: "Synchronize the LaTeX source view with the PDF output",
+    }),
     keyboard: `${IS_MACOS ? "⌘" : "alt"} + enter`,
-    title: "Synchronize the latex source view with the PDF output",
+    title: defineMessage({
+      id: "command.generic.sync.title",
+      defaultMessage: "Synchronize the LaTeX source view with the PDF output.",
+    }),
     icon: "sync",
     onClick: ({ props }) => {
       props.actions.sync?.(props.id, props.editor_actions);
@@ -508,8 +620,13 @@ addCommands({
 
   word_count: {
     group: "get-info",
-    label: "Word Count",
-    title: "Show information about the number of words in this document.",
+    label: labels.word_count,
+    title: defineMessage({
+      id: "command.generic.word_count.title",
+      defaultMessage:
+        "Show information about the number of words in this document.",
+      description: "Tooltip for 'Word Count'",
+    }),
     icon: "file-alt",
     onClick: ({ props }) => {
       props.actions.word_count?.(0, true);
@@ -560,6 +677,7 @@ addCommands({
   },
 
   delete: {
+    disabled: ({ readOnly }) => readOnly,
     group: "delete",
     icon: "trash",
     title: "Delete this file",
@@ -568,6 +686,7 @@ addCommands({
   },
 
   rename: {
+    disabled: ({ readOnly }) => readOnly,
     pos: 0,
     group: "misc-file-actions",
     icon: "swap",
@@ -600,6 +719,7 @@ addCommands({
     ...fileAction("copy"),
   },
   move_file: {
+    disabled: ({ readOnly }) => readOnly,
     pos: 4,
     group: "misc-file-actions",
     icon: "move",
@@ -625,7 +745,7 @@ addCommands({
     group: "misc-file-actions",
     icon: "upload",
     title: "Upload a file or directory from your compute to the server",
-    label: "Upload",
+    label: labels.upload,
     ...fileAction("upload"),
   },
   share: {
@@ -650,15 +770,15 @@ addCommands({
     group: "new-open",
     icon: "plus-circle",
     title: "Create a new file",
-    label: "New File",
+    label: menu.new_file,
     ...fileAction("new"),
   },
   new_ai: {
     pos: 0.5,
     group: "new-open",
     icon: <AIAvatar size={16} />,
-    title: "Create a new file with the help of AI",
-    label: AI_GEN_TEXT,
+    title: labels.ai_generate_title,
+    label: labels.ai_generate_label,
     onClick: ({ setShowNewAI }) => setShowNewAI?.(true),
     isVisible: ({ props }) => {
       const { path, project_id } = props;
@@ -673,33 +793,56 @@ addCommands({
     pos: 1,
     group: "new-open",
     icon: "files",
-    title: "Open a file",
-    label: "Open File",
+    title: defineMessage({
+      id: "command.generic.open.title",
+      defaultMessage: "Open a file",
+      description: "Tooltip on menu item",
+    }),
+    label: defineMessage({
+      id: "command.generic.open.label",
+      defaultMessage: "Open File",
+      description: "Label on menu item",
+    }),
     ...fileAction("open"),
   },
   open_recent: {
     pos: 2,
     group: "new-open",
     icon: "history",
-    title: "Open a file that was recently opened",
-    label: "Open Recent",
+    title: defineMessage({
+      id: "command.generic.open_recent.title",
+      defaultMessage: "Open a file that was recently opened",
+      description: "Tooltip on menu item",
+    }),
+    label: defineMessage({
+      id: "command.generic.open_recent.label",
+      defaultMessage: "Open Recent",
+      description: "Label on menu item",
+    }),
     ...fileAction("open_recent"),
   },
   save: {
     pos: 0,
+    disabled: ({ readOnly }) => readOnly,
     group: "save",
     icon: "save",
-    title: "Save this file to disk",
-    label: "Save",
+    title: labels.save_title,
+    label: labels.save,
     keyboard: `${IS_MACOS ? "⌘" : "control"} + S`,
   },
   chatgpt: {
     pos: 1,
     group: "show-frames",
     icon: <AIAvatar size={16} />,
-    title:
-      "Ask an Artificial Intelligence Assistant (e.g., ChatGPT) for help on what you're doing.",
-    label: "AI Assistant",
+    title: defineMessage({
+      id: "command.generic.chatgpt.title",
+      defaultMessage:
+        "Ask an Artificial Intelligence Assistant (e.g., ChatGPT) for help on what you're doing.",
+    }),
+    label: defineMessage({
+      id: "command.generic.chatgpt.label",
+      defaultMessage: "AI Assistant",
+    }),
     onClick: ({ setShowAI }) => setShowAI?.(true),
     isVisible: ({ props }) =>
       redux.getStore("projects").hasLanguageModelEnabled(props.project_id),
@@ -709,7 +852,7 @@ addCommands({
     pos: 5,
     group: "help-link",
     icon: "comment",
-    label: "Chat With People or AI",
+    label: "Chat With Collaborators or AI",
     button: "Chat",
     title:
       "Open chat on the side of this file for chatting with project collaborators or AI about this file.",
@@ -723,7 +866,7 @@ addCommands({
     group: "help-link",
     icon: "medkit",
     label: "Support Ticket",
-    button: "Support",
+    button: labels.support,
     title:
       "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
     onClick: () => {
@@ -804,9 +947,18 @@ addCommands({
     alwaysShow: true,
     icon: "layout",
     group: "frame_types",
-    title: "Reset the layout of all frames to the default",
-    label: "Default Layout",
-    button: "Default",
+    title: defineMessage({
+      id: "command.generic.reset_local_view_state.title",
+      defaultMessage: "Reset the layout of all frames to the default",
+    }),
+    label: defineMessage({
+      id: "command.generic.reset_local_view_state.label",
+      defaultMessage: "Default Layout",
+    }),
+    button: defineMessage({
+      id: "command.generic.reset_local_view_state.button",
+      defaultMessage: "Default",
+    }),
   },
   button_bar: {
     alwaysShow: true,
@@ -872,19 +1024,24 @@ addCommands({
         ? "eye-slash"
         : "eye",
     group: "button-bar",
-    title:
-      "Toggle whether or not the menu toolbar is displayed for all editors.",
-    label: () => (
-      <>
-        {redux
-          .getStore("account")
-          .getIn(["editor_settings", "extra_button_bar"])
-          ? "Hide"
-          : "Show"}{" "}
-        Menu Toolbar...
-      </>
-    ),
-    popconfirm: () => {
+    title: defineMessage({
+      id: "commands.generic.toggle_button_bar.title",
+      defaultMessage:
+        "Toggle whether or not the menu toolbar is displayed for all editors.",
+    }),
+    label: ({ intl }: { intl: IntlShape }) => {
+      const show = redux
+        .getStore("account")
+        .getIn(["editor_settings", "extra_button_bar"]);
+      return intl.formatMessage(
+        {
+          id: "commands.generic.toggle_button_bar.label",
+          defaultMessage: `{show, select, true {Hide} other {Show}} Menu Toolbar...`,
+        },
+        { show },
+      );
+    },
+    popconfirm: ({ intl }: { intl: IntlShape }) => {
       const visible = redux
         .getStore("account")
         .getIn(["editor_settings", "extra_button_bar"]);
@@ -894,33 +1051,42 @@ addCommands({
       return {
         title: (
           <>
-            <Icon name="eye-slash" /> Hide Menu Toolbar For All Editors
+            <Icon name="eye-slash" />{" "}
+            {intl.formatMessage({
+              id: "commands.generic.toggle_button_bar.confirm.title",
+              defaultMessage: "Hide Menu Toolbar For All Editors",
+            })}
           </>
         ),
         description: (
           <div>
-            The menu toolbar is a customizable bar of shortcuts to menu items.
-            <ul>
-              <li key="1">
+            {intl.formatMessage({
+              id: "commands.generic.toggle_button_bar.confirm.description",
+              defaultMessage: `The menu toolbar is a customizable bar of shortcuts to menu items.
+              <ul>
+              <li>
                 Everything in the menu toolbar is always available in the menus
                 above.
               </li>
-              <li key="2">
-                Show the toolbar by selecting 'View -&gt; Show Menu Toolbar'.
+              <li>
+                Show the toolbar by selecting 'View → Show Menu Toolbar'.
               </li>
-              <li key="3">
+              <li>
                 Toggle buttons by clicking the icon next to any top level menu
                 item.
               </li>
-              <li key="4">
-                Hide only this frame's toolbar: 'View -&gt; Menu Toolbar -&gt;
-                Remove All Buttons'.
+              <li>
+                Hide only this frame's toolbar: 'View → Menu Toolbar → Remove All Buttons'.
               </li>
-            </ul>
+              </ul>`,
+            })}
           </div>
         ),
-        cancelText: "Cancel",
-        okText: "Hide Menu Toolbar",
+        cancelText: intl.formatMessage(labels.cancel),
+        okText: intl.formatMessage({
+          id: "commands.generic.toggle_button_bar.confirm.ok",
+          defaultMessage: "Hide Menu Toolbar",
+        }),
       };
     },
     onClick: async () => {

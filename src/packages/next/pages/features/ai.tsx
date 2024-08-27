@@ -208,7 +208,7 @@ export default function AI({ customize }) {
           <ChatGPTFixError />
 
           <Info
-            title={"Mention @chatgpt in any Chatroom in CoCalc"}
+            title={"Mention AI models in any Chatroom in CoCalc"}
             icon="comment"
             image={ChatGptGenerateCode}
             anchor="a-mention"
@@ -220,7 +220,7 @@ export default function AI({ customize }) {
               <A href={`${DOC_AI}#chatgpt-in-chat-rooms-and-side-chat`}>
                 mentioning
               </A>{" "}
-              <Text code>@chatgpt</Text> in a{" "}
+              <Text code>@</Text> in a{" "}
               <A href="https://doc.cocalc.com/chat.html#side-chat">Side Chat</A>
               . The prompt is:
             </Paragraph>
@@ -240,8 +240,7 @@ export default function AI({ customize }) {
             </Paragraph>
             {googleVertexaiEnabled ? (
               <Paragraph>
-                Note: Mention <Text code>@gemini</Text> to talk to Google's
-                Gemini model.
+                Note: Use @ also to talk to Google's Gemini model.
               </Paragraph>
             ) : undefined}
           </Info>

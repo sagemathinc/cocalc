@@ -26,6 +26,7 @@ export interface InputPromptProps {
   id?: string;
   style?: CSSProperties;
   dragHandle?: JSX.Element;
+  read_only?: boolean;
 }
 
 export const OUTPUT_STYLE: React.CSSProperties = {

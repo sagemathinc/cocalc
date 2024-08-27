@@ -12,7 +12,6 @@ being virtualized with react-virtuoso.
 
 import { CSSProperties, ReactNode, useState } from "react";
 import { Icon } from "./icon";
-
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,

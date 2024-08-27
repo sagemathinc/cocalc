@@ -10,10 +10,13 @@ we support and how they work.
 See frontend/frame-editors/jupyter-editor/editor.ts for how these are organized into menus.
 */
 
+import { redux } from "@cocalc/frontend/app-framework";
 import { IconName } from "@cocalc/frontend/components";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
+import { editor, getIntl, IntlMessage, labels } from "@cocalc/frontend/i18n";
+import { jupyter } from "@cocalc/frontend/i18n/common";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { NotebookMode } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
@@ -24,7 +27,6 @@ import {
   RUN_ALL_CELLS_BELOW_ICON,
   SPLIT_CELL_ICON,
 } from "./consts";
-import { redux } from "@cocalc/frontend/app-framework";
 
 export interface KeyboardCommand {
   mode?: NotebookMode;
@@ -43,15 +45,16 @@ export interface KeyboardCommand {
 }
 
 export interface CommandDescription {
-  m: string; // m=menu = fuller description for use in menus and commands
+  m: string | IntlMessage; // m=menu = fuller description for use in menus and commands
   f: Function; // function that implements command.
-  b?: string; // very short label; use for a button
+  b?: string | IntlMessage; // very short label; use for a button
   i?: IconName;
   ir?: "90"; // rotate icon
   k?: KeyboardCommand[]; // keyboard commands
-  t?: string; // t=title = much longer description for tooltip
-  menu?: string; // alternative to m just for dropdown menu
+  t?: string | IntlMessage; // t=title = much longer description for tooltip
+  menu?: string | IntlMessage; // alternative to m just for dropdown menu
   d?: string; // even more extensive description (e.g., for a tooltip).
+  r?: boolean; // if set, this is a read only safe command
 }
 
 export interface AllActions {
@@ -70,9 +73,10 @@ export function commands(actions: AllActions): {
   return {
     "cell toolbar none": {
       i: "ban",
-      m: "No cell toolbar",
-      menu: "None",
+      m: jupyter.commands.cell_toolbar_none,
+      menu: jupyter.commands.cell_toolbar_none_menu,
       f: () => actions.jupyter_actions?.cell_toolbar(),
+      r: true,
     },
 
     "cell toolbar attachments": {
@@ -80,6 +84,7 @@ export function commands(actions: AllActions): {
       i: "image",
       menu: "Attachments",
       f: () => actions.jupyter_actions?.cell_toolbar("attachments"),
+      r: true,
     },
 
     "cell toolbar tags": {
@@ -87,6 +92,7 @@ export function commands(actions: AllActions): {
       m: "Edit cell tags toolbar",
       menu: "Tags",
       f: () => actions.jupyter_actions?.cell_toolbar("tags"),
+      r: true,
     },
 
     "cell toolbar metadata": {
@@ -94,6 +100,7 @@ export function commands(actions: AllActions): {
       i: "tags-outlined",
       menu: "Metadata",
       f: () => actions.jupyter_actions?.cell_toolbar("metadata"),
+      r: true,
     },
 
     "cell toolbar create_assignment": {
@@ -101,6 +108,7 @@ export function commands(actions: AllActions): {
       m: "Create Assignment Using NBgrader",
       menu: "Create assignment (nbgrader)",
       f: () => actions.jupyter_actions?.cell_toolbar("create_assignment"),
+      r: true,
     },
 
     "cell toolbar slideshow": {
@@ -108,6 +116,7 @@ export function commands(actions: AllActions): {
       m: "Slideshow toolbar",
       menu: "Slideshow",
       f: () => actions.jupyter_actions?.cell_toolbar("slideshow"),
+      r: true,
     },
 
     "change cell to code": {
@@ -181,8 +190,9 @@ export function commands(actions: AllActions): {
 
     "close and halt": {
       i: "PoweroffOutlined",
-      m: "Close and halt",
+      m: jupyter.commands.close_and_halt_menu,
       f: () => actions.jupyter_actions?.confirm_close_and_halt(),
+      r: true,
     },
 
     "close pager": {
@@ -191,34 +201,35 @@ export function commands(actions: AllActions): {
       f: () => {
         actions.editor_actions?.close_introspect();
       },
+      r: true,
     },
 
     "confirm restart kernel": {
-      m: "Restart Kernel...",
-      b: "Kernel",
+      m: jupyter.commands.restart_kernel_label,
+      b: jupyter.commands.restart_kernel_button,
       i: "reload",
       k: [{ mode: "escape", which: 48, twice: true }],
       f: () => actions.jupyter_actions?.confirm_restart(),
     },
 
     "confirm halt kernel": {
-      m: "Halt kernel...",
+      m: jupyter.commands.halt_kernel_menu,
       i: "stop",
       f: () => actions.jupyter_actions?.confirm_halt_kernel(),
     },
 
     "confirm restart kernel and clear output": {
       i: "retweet",
-      b: "Clear",
-      m: "Restart Kernel and Clear All Outputs...",
+      b: labels.clear,
+      m: jupyter.commands.restart_kernel_clear_output_menu,
       menu: "Clear output...",
       f: () => actions.jupyter_actions?.restart_clear_all_output(),
     },
 
     "confirm restart kernel and run all cells": {
-      m: "Restart and Run All Cells...",
-      b: "Run All",
-      menu: "Run all...",
+      m: jupyter.commands.restart_kernel_run_all_cells,
+      b: jupyter.commands.restart_kernel_run_all_cells_button,
+      menu: jupyter.commands.restart_kernel_run_all_cells_menu,
       i: "forward",
       f: () => {
         if (actions.frame_actions != null) {
@@ -228,8 +239,8 @@ export function commands(actions: AllActions): {
     },
 
     "confirm restart kernel and run all cells without halting on error": {
-      m: "Restart and Run All (do not stop on errors)...",
-      menu: "Restart and run all (do not stop on errors)...",
+      m: jupyter.commands.restart_kernel_run_all_cells_without_halting,
+      menu: jupyter.commands.restart_kernel_run_all_cells_without_halting,
       i: "run",
       k: [{ which: 13, ctrl: true, shift: true }],
       f: () => {
@@ -243,18 +254,29 @@ export function commands(actions: AllActions): {
 
     "confirm shutdown kernel": {
       i: "PoweroffOutlined",
-      b: "Off",
-      m: "Shutdown Kernel...",
+      b: jupyter.commands.shutdown_kernel_button,
+      m: jupyter.commands.shutdown_kernel_menu,
       async f(): Promise<void> {
+        const intl = await getIntl();
+        const shutdown = intl.formatMessage(
+          jupyter.commands.shutdown_kernel_confirm_label_shutdown,
+        );
+        const cont = intl.formatMessage(
+          jupyter.commands.shutdown_kernel_confirm_label_continue,
+        );
         const choice = await actions.jupyter_actions?.confirm_dialog({
-          title: "Shutdown kernel?",
-          body: "Do you want to shutdown the current kernel?  All variables will be lost.",
+          title: intl.formatMessage(
+            jupyter.commands.shutdown_kernel_confirm_title,
+          ),
+          body: intl.formatMessage(
+            jupyter.commands.shutdown_kernel_confirm_body,
+          ),
           choices: [
-            { title: "Continue running" },
-            { title: "Shutdown", style: "danger", default: true },
+            { title: cont },
+            { title: shutdown, style: "danger", default: true },
           ],
         });
-        if (choice === "Shutdown") {
+        if (choice === shutdown) {
           actions.jupyter_actions?.shutdown();
         }
       },
@@ -265,6 +287,7 @@ export function commands(actions: AllActions): {
       m: "Copy Cells",
       k: [{ mode: "escape", which: 67 }],
       f: () => actions.frame_actions?.copy_selected_cells(),
+      r: true,
     },
 
     //"copy cell attachments": undefined, // no clue what this means or is for... but I can guess...
@@ -301,6 +324,7 @@ export function commands(actions: AllActions): {
     "duplicate notebook": {
       m: "Make a copy...",
       f: () => actions.jupyter_actions?.file_action("duplicate"),
+      r: true,
     },
 
     "edit keyboard shortcuts": {
@@ -308,10 +332,11 @@ export function commands(actions: AllActions): {
       b: "Commands",
       m: "All Keyboard Shortcuts and Commands...",
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
+      r: true,
     },
 
     "enter command mode": {
-      m: "Enter command mode",
+      m: jupyter.commands.enter_command_mode,
       k: [
         { which: 27, mode: "edit" },
         { ctrl: true, mode: "edit", which: 77 },
@@ -342,10 +367,11 @@ export function commands(actions: AllActions): {
         }
         actions.frame_actions?.set_mode("escape");
       },
+      r: true,
     },
 
     "enter edit mode": {
-      m: "Enter edit mode",
+      m: jupyter.commands.enter_edit_mode,
       k: [{ which: 13, mode: "escape" }],
       f: () => {
         actions.frame_actions?.unhide_current_input();
@@ -360,6 +386,7 @@ export function commands(actions: AllActions): {
         { mode: "escape", shift: true, which: 38 },
       ],
       f: () => actions.frame_actions?.extend_selection(-1),
+      r: true,
     },
 
     "extend selection below": {
@@ -369,6 +396,7 @@ export function commands(actions: AllActions): {
         { mode: "escape", shift: true, which: 40 },
       ],
       f: () => actions.frame_actions?.extend_selection(1),
+      r: true,
     },
 
     "find and replace": {
@@ -382,7 +410,7 @@ export function commands(actions: AllActions): {
     },
 
     "global undo": {
-      m: "Undo",
+      m: labels.undo,
       i: "undo",
       d: "Global user-aware undo.  Undo the last change *you* made to the notebook.",
       k: [
@@ -393,7 +421,7 @@ export function commands(actions: AllActions): {
     },
 
     "global redo": {
-      m: "Redo",
+      m: labels.redo,
       i: "repeat",
       d: "Global user-aware redo.  Redo the last change *you* made to the notebook.",
       k: [
@@ -409,15 +437,17 @@ export function commands(actions: AllActions): {
       i: "list-ol",
       m: "Hide Line Numbers for All Cells",
       f: () => actions.jupyter_actions?.set_line_numbers(false),
+      r: true,
     },
 
     "hide header": {
       m: "Hide header",
       f: () => actions.jupyter_actions?.set_header_state(true),
+      r: true,
     },
 
     "insert cell above": {
-      m: "Insert Cell Above",
+      m: jupyter.commands.insert_cell_above,
       i: "arrow-circle-up",
       k: [{ mode: "escape", which: 65 }],
       f: () => {
@@ -426,25 +456,18 @@ export function commands(actions: AllActions): {
     },
 
     "insert cell below": {
+      m: jupyter.commands.insert_cell_below,
       i: "arrow-circle-down",
-      m: "Insert Cell Below",
       k: [{ mode: "escape", which: 66 }],
       f: () => {
         actions.frame_actions?.insert_cell(1);
       },
     },
 
-    "insert image": {
-      i: "image",
-      b: "Image",
-      m: "Insert Images in Markdown Cell",
-      f: () => actions.frame_actions?.insert_image(),
-    },
-
     "interrupt kernel": {
       i: "stop",
-      b: "Stop",
-      m: "Interrupt Kernel (Stop)",
+      b: labels.stop,
+      m: jupyter.commands.interrupt_kernel,
       k: [{ mode: "escape", which: 73, twice: true }],
       f: () => actions.jupyter_actions?.signal("SIGINT"),
     },
@@ -496,16 +519,19 @@ export function commands(actions: AllActions): {
     "move cursor down": {
       m: "Move cursor down",
       f: () => actions.frame_actions?.move_edit_cursor(1),
+      r: true,
     },
 
     "move cursor up": {
       m: "Move cursor up",
       f: () => actions.frame_actions?.move_edit_cursor(-1),
+      r: true,
     },
 
     "new notebook": {
       m: "New...",
       f: () => actions.jupyter_actions?.file_new(),
+      r: true,
     },
 
     "nbconvert ipynb": {
@@ -515,114 +541,132 @@ export function commands(actions: AllActions): {
         actions.jupyter_actions?.save();
         actions.jupyter_actions?.file_action("download");
       },
+      r: true,
     },
 
     "nbconvert asciidoc": {
       i: "file-code",
       m: "AsciiDoc (.asciidoc)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("asciidoc"),
+      r: true,
     },
 
     "nbconvert python": {
       i: "python",
       m: "Python (.py)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("python"),
+      r: true,
     },
 
     "nbconvert classic html": {
       i: "html5",
       m: "HTML via Classic nbconvert (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("classic-html"),
+      r: true,
     },
 
     "nbconvert classic pdf": {
       i: "file-pdf",
       m: "PDF via Classic nbconvert and Chrome (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("classic-pdf"),
+      r: true,
     },
 
     "nbconvert lab html": {
       i: "html5",
       m: "HTML via JupyterLab nbconvert (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("lab-html"),
+      r: true,
     },
 
     "nbconvert lab pdf": {
       i: "file-pdf",
       m: "PDF via JupyterLab nbconvert and Chrome (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("lab-pdf"),
+      r: true,
     },
 
     "nbconvert cocalc html": {
       i: "html5",
       m: "HTML (.html)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("cocalc-html"),
+      r: true,
     },
 
     "nbconvert markdown": {
       i: "markdown",
       m: "Markdown (.md)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("markdown"),
+      r: true,
     },
 
     "nbconvert rst": {
       i: "code",
       m: "reST (.rst)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("rst"),
+      r: true,
     },
 
     "nbconvert slides": {
       i: "slides",
       m: "Slideshow server via nbconvert",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("slides"),
+      r: true,
     },
 
     slideshow: {
       i: "slides",
       m: "Slideshow",
       f: () => actions.editor_actions?.show_revealjs_slideshow(),
+      r: true,
     },
 
     "table of contents": {
-      m: "Table of Contents",
+      m: editor.table_of_contents_name,
       f: () => actions.editor_actions?.show_table_of_contents(),
+      r: true,
     },
 
     "nbconvert tex": {
       i: "tex",
       m: "LaTeX (.tex)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("latex"),
+      r: true,
     },
 
     "nbconvert cocalc pdf": {
       i: "file-pdf",
       m: "PDF (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("cocalc-pdf"),
+      r: true,
     },
 
     "nbconvert latex pdf": {
       i: "tex",
-      m: "PDF via LaTeX (.pdf)",
+      m: "PDF via LaTeX and nbconvert (minimal image support) (.pdf)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("pdf"),
+      r: true,
     },
 
     "nbconvert script": {
       i: "code-outlined",
       m: "Executable Script",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("script"),
+      r: true,
     },
 
     "nbconvert sagews": {
       i: "sagemath",
       m: "Sage Worksheet (.sagews)",
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("sagews"),
+      r: true,
     },
 
     "nbgrader validate": {
       i: "graduation-cap",
-      t: "Restart notebook and run all cells to validate that it works.",
-      m: "Validate",
-      menu: "Validate",
+      t: jupyter.commands.validate_tooltip,
+      m: jupyter.commands.validate_label,
+      menu: jupyter.commands.validate_label,
       f: () => {
         if (actions.frame_actions != null) {
           actions.jupyter_actions?.nbgrader_actions.confirm_validate(
@@ -644,6 +688,7 @@ export function commands(actions: AllActions): {
     "open file": {
       m: "Open...",
       f: () => actions.jupyter_actions?.file_open(),
+      r: true,
     },
 
     "paste cell above": {
@@ -691,7 +736,8 @@ export function commands(actions: AllActions): {
 
     "refresh kernels": {
       i: "refresh",
-      m: "Refresh Kernel List",
+      m: jupyter.commands.refresh_kernels,
+      t: jupyter.commands.refresh_kernels_tooltip,
       f: () => actions.jupyter_actions?.fetch_jupyter_kernels(),
     },
 
@@ -700,6 +746,7 @@ export function commands(actions: AllActions): {
       m: "How to Create a Custom Kernel...",
       t: "Show tutorial for how to create your own custom Jupyter kernel and use it here.",
       f: () => actions.jupyter_actions?.custom_jupyter_kernel_docs(),
+      r: true,
     },
 
     "rename notebook": {
@@ -708,13 +755,13 @@ export function commands(actions: AllActions): {
     },
 
     "restart kernel": {
-      m: "Restart kernel",
-      b: "Restart",
+      m: jupyter.commands.restart_kernel_noconf_menu,
+      b: labels.restart,
       f: () => actions.jupyter_actions?.restart(),
     },
 
     "restart kernel and clear output": {
-      m: "Restart kernel and clear output",
+      m: jupyter.commands.restart_kernel_clear_noconf_menu,
       f() {
         actions.jupyter_actions?.restart();
         actions.jupyter_actions?.clear_all_outputs();
@@ -722,9 +769,9 @@ export function commands(actions: AllActions): {
     },
 
     "restart kernel and run all cells": {
-      m: "Restart Kernel and Run All Cells",
+      m: jupyter.commands.restart_kernel_run_all_cells_noconf,
       i: "forward",
-      b: "Run All",
+      b: jupyter.commands.restart_kernel_run_all_cells_noconf_button,
       async f() {
         actions.frame_actions?.set_all_md_cells_not_editing();
         await actions.jupyter_actions?.restart();
@@ -733,7 +780,7 @@ export function commands(actions: AllActions): {
     },
 
     "run all cells": {
-      m: "Run All Cells",
+      m: jupyter.commands.run_all_cells_menu,
       i: "forward",
       f: () => {
         actions.frame_actions?.set_all_md_cells_not_editing();
@@ -743,22 +790,22 @@ export function commands(actions: AllActions): {
 
     "run all cells above": {
       i: RUN_ALL_CELLS_ABOVE_ICON,
-      m: "Run All Above Selected Cell",
+      m: jupyter.commands.run_all_cells_above_menu,
       f: () => actions.frame_actions?.run_all_above(),
     },
 
     "run all cells below": {
       i: RUN_ALL_CELLS_BELOW_ICON,
       ir: "90",
-      m: "Run Selected Cell and All Below",
+      m: jupyter.commands.run_all_cells_below_menu,
       f: () => actions.frame_actions?.run_all_below(),
     },
 
     "run cell and insert below": {
       i: "step-forward",
-      m: "Run Selected Cells and Insert Below",
+      m: jupyter.commands.run_cell_and_insert_below,
       b: "Run +",
-      t: "Run all cells that are currently selected. Insert a new cell after the last one.",
+      t: jupyter.commands.run_cell_and_insert_below_title,
       k: [{ which: 13, alt: true }],
       f: () =>
         actions.frame_actions?.run_selected_cells_and_insert_new_cell_below(),
@@ -769,9 +816,9 @@ export function commands(actions: AllActions): {
     // on a mac). https://github.com/sagemathinc/cocalc/issues/7000
     "run cell": {
       i: "play",
-      m: "Run Selected Cells and Do Not Advance",
+      m: jupyter.commands.run_cell,
       b: "Stay",
-      t: "Run all cells that are currently selected. Do not move the selection.",
+      t: jupyter.commands.run_cell_title,
       k: [
         { which: 13, ctrl: true },
         { which: 13, meta: true },
@@ -785,7 +832,7 @@ export function commands(actions: AllActions): {
 
     "run cell and select next": {
       i: "step-forward",
-      m: "Run Selected Cells",
+      m: jupyter.commands.run_cell_and_select_next,
       b: "Run",
       k: [{ which: 13, shift: true }],
       f() {
@@ -796,7 +843,7 @@ export function commands(actions: AllActions): {
 
     "run current cell and select next": {
       i: "step-forward",
-      m: "Run Current Cell",
+      m: jupyter.commands.run_current_cell,
       b: "Run",
       f() {
         actions.frame_actions?.shift_enter_run_current_cell();
@@ -805,7 +852,7 @@ export function commands(actions: AllActions): {
     },
 
     "save notebook": {
-      m: "Save",
+      m: labels.save,
       k: [
         { which: 83, alt: true },
         { which: 83, ctrl: true },
@@ -816,18 +863,21 @@ export function commands(actions: AllActions): {
     "scroll cell visible": {
       m: "Scroll Selected Cell Into View",
       f: () => actions.frame_actions?.scroll("cell visible"),
+      r: true,
     },
 
     "scroll notebook down": {
       m: "Scroll Notebook Down",
       k: [{ mode: "escape", which: 32 }],
       f: () => actions.frame_actions?.scroll("list down"),
+      r: true,
     },
 
     "scroll notebook up": {
       m: "Scroll Notebook Up",
       k: [{ mode: "escape", shift: true, which: 32 }],
       f: () => actions.frame_actions?.scroll("list up"),
+      r: true,
     },
 
     "select all cells": {
@@ -838,12 +888,14 @@ export function commands(actions: AllActions): {
         { ctrl: true, mode: "escape", which: 65 },
       ],
       f: () => actions.frame_actions?.select_all_cells(),
+      r: true,
     },
 
     "deselect all cells": {
       i: "ban",
       m: "Deselect All Cells",
       f: () => actions.frame_actions?.unselect_all_cells(),
+      r: true,
     },
 
     "select next cell": {
@@ -857,6 +909,7 @@ export function commands(actions: AllActions): {
         actions.frame_actions?.unselect_all_cells();
         actions.frame_actions?.scroll("cell visible");
       },
+      r: true,
     },
 
     "select previous cell": {
@@ -870,12 +923,14 @@ export function commands(actions: AllActions): {
         actions.frame_actions?.unselect_all_cells();
         actions.frame_actions?.scroll("cell visible");
       },
+      r: true,
     },
 
     "show all line numbers": {
       i: "list-ol",
       m: "Show Line Numbers for All Cells",
       f: () => actions.jupyter_actions?.set_line_numbers(true),
+      r: true,
     },
 
     "show code folding": {
@@ -883,6 +938,7 @@ export function commands(actions: AllActions): {
       m: "Enable Code Folding",
       f: () =>
         redux.getActions("account").set_editor_settings("code_folding", true),
+      r: true,
     },
 
     "hide code folding": {
@@ -890,6 +946,7 @@ export function commands(actions: AllActions): {
       m: "Disable Code Folding",
       f: () =>
         redux.getActions("account").set_editor_settings("code_folding", false),
+      r: true,
     },
 
     "show command palette": {
@@ -899,11 +956,13 @@ export function commands(actions: AllActions): {
         { ctrl: true, shift: true, which: 80 },
       ],
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
+      r: true,
     },
 
     "show header": {
       m: "Show header",
       f: () => actions.jupyter_actions?.set_header_state(false),
+      r: true,
     },
 
     "show keyboard shortcuts": {
@@ -911,6 +970,7 @@ export function commands(actions: AllActions): {
       m: "Show keyboard shortcuts...",
       k: [{ mode: "escape", which: 72 }],
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
+      r: true,
     },
 
     "shutdown kernel": {
@@ -935,6 +995,7 @@ export function commands(actions: AllActions): {
     "switch to classical notebook": {
       m: "Switch to classical notebook...",
       f: () => actions.jupyter_actions?.switch_to_classical_notebook(),
+      r: true,
     },
 
     "tab key": {
@@ -953,8 +1014,9 @@ export function commands(actions: AllActions): {
     },
 
     "time travel": {
-      m: "TimeTravel",
+      m: labels.timetravel,
       f: () => actions.jupyter_actions?.show_history_viewer(),
+      r: true,
     },
 
     "toggle all cells output collapsed": {
@@ -964,16 +1026,18 @@ export function commands(actions: AllActions): {
 
     "toggle all line numbers": {
       i: "list-ol",
-      m: "Toggle Line Numbers of All Cells",
+      m: jupyter.commands.toggle_all_line_numbers,
       k: [{ mode: "escape", shift: true, which: 76 }],
       f: () => actions.jupyter_actions?.toggle_line_numbers(),
+      r: true,
     },
 
     "toggle cell line numbers": {
       i: "list-ol",
-      m: "Toggle Line Numbers of Selected Cells",
+      m: jupyter.commands.toggle_cell_line_numbers,
       k: [{ mode: "escape", which: 76 }],
       f: () => actions.jupyter_actions?.toggle_cell_line_numbers(id()),
+      r: true,
     },
 
     "toggle cell output collapsed": {
@@ -1039,6 +1103,7 @@ export function commands(actions: AllActions): {
     "toggle header": {
       m: "Toggle header",
       f: () => actions.jupyter_actions?.toggle_header(),
+      r: true,
     },
 
     /* "toggle rtl layout": {
@@ -1049,11 +1114,13 @@ export function commands(actions: AllActions): {
     "toggle toolbar": {
       m: "Toggle toolbar",
       f: () => actions.jupyter_actions?.toggle_toolbar(),
+      r: true,
     },
 
     "trust notebook": {
       m: "Trust notebook",
       f: () => actions.jupyter_actions?.trust_notebook(),
+      r: true,
     },
 
     //     "undo cell deletion": {
@@ -1063,15 +1130,17 @@ export function commands(actions: AllActions): {
     //     },
 
     "zoom in": {
-      m: "Zoom in",
+      m: labels.zoom_in,
       k: [{ ctrl: true, shift: true, which: 190 }],
       f: () => actions.frame_actions?.zoom(1),
+      r: true,
     },
 
     "zoom out": {
-      m: "Zoom out",
+      m: labels.zoom_out,
       k: [{ ctrl: true, shift: true, which: 188 }],
       f: () => actions.frame_actions?.zoom(-1),
+      r: true,
     },
 
     "write protect": {
@@ -1147,8 +1216,8 @@ export function commands(actions: AllActions): {
 
     "change kernel": {
       i: "jupyter",
-      m: "Change Kernel...",
-      t: "Select from any of the available kernels.",
+      m: jupyter.commands.change_kernel,
+      t: jupyter.commands.change_kernel_title,
       f: () => {
         actions.jupyter_actions?.show_select_kernel("user request");
       },
@@ -1160,6 +1229,7 @@ export function commands(actions: AllActions): {
       f: () => {
         open_new_tab("https://doc.cocalc.com/jupyter.html");
       },
+      r: true,
     },
 
     "help - nbgrader in cocalc": {
@@ -1168,6 +1238,7 @@ export function commands(actions: AllActions): {
       f: () => {
         open_new_tab("https://doc.cocalc.com/teaching-nbgrader.html");
       },
+      r: true,
     },
     "help - markdown": {
       i: "external-link",
@@ -1175,8 +1246,8 @@ export function commands(actions: AllActions): {
       f: () => {
         open_new_tab("https://doc.cocalc.com/markdown.html");
       },
+      r: true,
     },
-
     "hide input": {
       i: "compress",
       m: "Collapse Selected Input",

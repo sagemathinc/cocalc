@@ -52,8 +52,8 @@ export async function initListings({
     project_id,
     compute_server_id,
     getListing,
-    createWatcher: (path: string, debounceMs: number) =>
-      new Watcher(path, debounceMs),
+    createWatcher: (path: string, debounce: number) =>
+      new Watcher(path, { debounce }),
     onDeletePath: (path) => {
       logger.debug("onDeletePath -- TODO:", { path });
     },

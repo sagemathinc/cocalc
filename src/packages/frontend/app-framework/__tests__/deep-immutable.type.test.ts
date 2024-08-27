@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { expectType } from "tsd";
 import * as immutable from "immutable";
-import { TypedMap } from "../TypedMap";
-import { DeepImmutable } from "../immutable-types";
+import { expectType } from "tsd";
+
+import { DeepImmutable } from "@cocalc/util/types/immutable-types";
+import { TypedMap } from "@cocalc/util/types/typed-map";
 
 test("Successfully converts a complex object", () => {
   interface State {

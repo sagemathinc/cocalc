@@ -235,12 +235,13 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         <div>
           <br />
           <Button
+            type="primary"
             onClick={() => {
               actions.file_action("open_file", target_path);
               close();
             }}
           >
-            Edit exported file...
+            Open Exported File
           </Button>
         </div>
       );

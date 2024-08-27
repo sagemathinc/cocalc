@@ -8,6 +8,7 @@
 import jsonic from "jsonic";
 import { isEqual } from "lodash";
 
+import { LOCALE } from "@cocalc/util/consts/locale";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import {
   DEFAULT_MODEL,
@@ -40,6 +41,7 @@ export const TAGS = [
   "AI LLM",
   "Theme",
   "On-Prem",
+  "I18N",
 ] as const;
 
 export type Tag = (typeof TAGS)[number];
@@ -80,8 +82,10 @@ export type SiteSettingsKeys =
   | "limit_free_project_uptime"
   | "require_license_to_create_project"
   | "unlicensed_project_collaborator_limit"
+  | "unlicensed_project_timetravel_limit"
   | "google_analytics"
   | "kucalc"
+  | "i18n"
   | "dns"
   | "datastore"
   | "ssh_gateway"
@@ -193,6 +197,18 @@ export const onlyNonnegFloat = (val) =>
   ((v) => onlyFloats(v) && v >= 0)(toFloat(val));
 export const onlyPosFloat = (val) =>
   ((v) => onlyFloats(v) && v > 0)(toFloat(val));
+
+export function to_list_of_locale(val?: string, fallbackAll = true): string[] {
+  if (!val?.trim()) {
+    return fallbackAll ? [...LOCALE] : [];
+  }
+  const list = val
+    .split(",")
+    .map((s) => s.trim())
+    .filter((v) => LOCALE.includes(v as any));
+  return list;
+}
+
 export function to_list_of_llms(val?: string, fallbackAll = true): string[] {
   if (!val?.trim())
     return fallbackAll ? [...USER_SELECTABLE_LANGUAGE_MODELS] : [];
@@ -201,7 +217,6 @@ export function to_list_of_llms(val?: string, fallbackAll = true): string[] {
     .map((s) => s.trim())
     .filter((v) => USER_SELECTABLE_LANGUAGE_MODELS.includes(v as any));
 }
-
 export const is_list_of_llms = (val: string) =>
   val
     .split(",")
@@ -541,6 +556,20 @@ export const site_settings_conf: SiteSettings = {
     valid: KUCALC_VALID_VALS,
     tags: ["On-Prem"],
   },
+  i18n: {
+    name: "Internationalization",
+    desc: "Select, which languages the frontend should offer for users to translate to. Only 'English', no dropdown will be shown. No selection, all available translations are available (default).",
+    default: "",
+    valid: LOCALE,
+    to_val: (v) => to_list_of_locale(v), // note: we store this as a comma separated list
+    to_display: (val: string | string[]) => {
+      const list = Array.isArray(val) ? val : to_list_of_locale(val);
+      return isEqual(list, LOCALE)
+        ? "All translations are available."
+        : list.join(", ");
+    },
+    tags: ["I18N"],
+  },
   google_analytics: {
     name: "Google Analytics",
     desc: `A Google Analytics GA4 tag for tracking usage of your site ("G-...").`,
@@ -600,6 +629,16 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: only_cocalc_com,
     to_display: (val) => `${val} users`,
+    tags: ["Commercialization"],
+  },
+  unlicensed_project_timetravel_limit: {
+    name: "Require License to View Unlimited TimeTravel History",
+    desc: "If this number is positive, then projects without a valid license can view at most this many past versions of a file via TimeTravel.  Set this to 200 to allow up to 200 past versions.",
+    default: "0",
+    to_val: to_int,
+    valid: only_nonneg_int,
+    show: only_cocalc_com,
+    to_display: (val) => `${val} versions`,
     tags: ["Commercialization"],
   },
   datastore: {
