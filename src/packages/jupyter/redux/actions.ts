@@ -75,7 +75,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   public _complete_request?: number;
   public store: JupyterStore;
   public syncdb: SyncDB;
-  private labels?: { [label: string]: { tag: string; id: string } };
+  private labels?: {
+    math: { [label: string]: { tag: string; id: string } };
+    fig: { [label: string]: { tag: string; id: string } };
+  };
 
   public _init(
     project_id: string,
@@ -2733,8 +2736,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     value = latexEnvs(value);
 
     const labelRegExp = /\s*\\label\{.*?\}\s*/g;
+    const figLabelRegExp = /\s*\\figlabel\{.*?\}\s*/g;
     if (this.labels == null) {
-      const labels = (this.labels = {});
+      const labels = (this.labels = { math: {}, fig: {} });
       // do initial full document scan
       if (this.store == null) {
         return;
@@ -2743,15 +2747,23 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       if (cells == null) {
         return;
       }
-      let n = 0;
+      let mathN = 0;
+      let figN = 0;
       for (const id of this.store.get_cell_ids_list()) {
         const cell = cells.get(id);
         if (cell?.get("cell_type") == "markdown") {
-          const value = cell.get("input") ?? "";
+          const value = latexEnvs(cell.get("input") ?? "");
           value.replace(labelRegExp, (labelContent) => {
             const label = extractLabel(labelContent);
-            n += 1;
-            labels[label] = { tag: `${n}`, id };
+            mathN += 1;
+            labels.math[label] = { tag: `${mathN}`, id };
+            return "";
+          });
+          value.replace(figLabelRegExp, (labelContent) => {
+            const label = extractLabel(labelContent);
+            figN += 1;
+            labels.fig[label] = { tag: `${figN}`, id };
+            return "";
           });
         }
       }
@@ -2760,28 +2772,38 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     if (labels == null) {
       throw Error("bug");
     }
-    const noLabels = value.replace(labelRegExp, (labelContent) => {
+    value = value.replace(labelRegExp, (labelContent) => {
       const label = extractLabel(labelContent);
-      if (labels[label] == null) {
-        labels[label] = { tag: `${misc.len(labels) + 1}`, id };
+      if (labels.math[label] == null) {
+        labels.math[label] = { tag: `${misc.len(labels.math) + 1}`, id };
       } else {
         // in case it moved to a different cell due to cut/paste
-        labels[label].id = id;
+        labels.math[label].id = id;
       }
-      return `\\tag{${labels[label].tag}}`;
+      return `\\tag{${labels.math[label].tag}}`;
+    });
+    value = value.replace(figLabelRegExp, (labelContent) => {
+      const label = extractLabel(labelContent);
+      if (labels.fig[label] == null) {
+        labels.fig[label] = { tag: `${misc.len(labels.fig) + 1}`, id };
+      } else {
+        // in case it moved to a different cell due to cut/paste
+        labels.fig[label].id = id;
+      }
+      return ` ${labels.fig[label].tag ?? "?"}`;
     });
     const refRegExp = /\\ref\{.*?\}/g;
-    const noRefs = noLabels.replace(refRegExp, (refContent) => {
+    value = value.replace(refRegExp, (refContent) => {
       const label = extractLabel(refContent);
-      if (labels[label] == null) {
-        // nothing to do but strip it
-        return "";
+      if (labels.fig[label] == null && labels.math[label] == null) {
+        // do not know the label
+        return "?";
       }
-      const { tag, id } = labels[label];
+      const { tag, id } = labels.fig[label] ?? labels.math[label];
       return `[${tag}](#id=${id})`;
     });
 
-    return noRefs;
+    return value;
   };
 }
 
