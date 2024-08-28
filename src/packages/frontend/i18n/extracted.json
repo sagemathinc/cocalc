@@ -256,6 +256,10 @@
   "commands.generic.toggle_button_bar.title": {
     "defaultMessage": "Toggle whether or not the menu toolbar is displayed for all editors."
   },
+  "editor.editor_settings": {
+    "defaultMessage": "Editor Settings",
+    "description": "The name of the editor settings frame"
+  },
   "editor.table_of_contents.name": {
     "defaultMessage": "Table of Contents"
   },
@@ -535,6 +539,42 @@
     "defaultMessage": "Run Selected Cells",
     "description": "Run selected cells in a Jupyter Notebook"
   },
+  "jupyter.llm.cell-tool.actions.bugfix.descr": {
+    "defaultMessage": "Describe the problem of that cell in order to get a bugfixed version."
+  },
+  "jupyter.llm.cell-tool.actions.bugfix.label": {
+    "defaultMessage": "Fix Bugs"
+  },
+  "jupyter.llm.cell-tool.actions.document.descr": {
+    "defaultMessage": "Add documentation"
+  },
+  "jupyter.llm.cell-tool.actions.document.label": {
+    "defaultMessage": "Document"
+  },
+  "jupyter.llm.cell-tool.actions.explain.descr": {
+    "defaultMessage": "Gain some insight into the code in that cell."
+  },
+  "jupyter.llm.cell-tool.actions.explain.label": {
+    "defaultMessage": "Explain"
+  },
+  "jupyter.llm.cell-tool.actions.improve.descr": {
+    "defaultMessage": "Improve the code in that cell."
+  },
+  "jupyter.llm.cell-tool.actions.improve.label": {
+    "defaultMessage": "Improve"
+  },
+  "jupyter.llm.cell-tool.actions.modify.descr": {
+    "defaultMessage": "Modify the code in the cell"
+  },
+  "jupyter.llm.cell-tool.actions.modify.label": {
+    "defaultMessage": "Modify"
+  },
+  "jupyter.llm.cell-tool.actions.translate.descr": {
+    "defaultMessage": "Translate the code in that cell to another language using AI."
+  },
+  "jupyter.llm.cell-tool.actions.translate.label": {
+    "defaultMessage": "Translate"
+  },
   "jupyter.llm.cell-tool.assistant.title": {
     "defaultMessage": "Use AI assitant on this cell"
   },
@@ -555,42 +595,6 @@
   },
   "jupyter.llm.cell-tool.explanation.translate": {
     "defaultMessage": "The language model will attempt to translate the code in the cell to another programming language. The result might not work at all – but if you're more familiar with the selected target language, you might find it easier to understand what's going on!"
-  },
-  "jupyter.llm.dell-tool.actions.bugfix.descr": {
-    "defaultMessage": "Describe the problem of that cell in order to get a bugfixed version."
-  },
-  "jupyter.llm.dell-tool.actions.bugfix.label": {
-    "defaultMessage": "Fix Bugs"
-  },
-  "jupyter.llm.dell-tool.actions.document.descr": {
-    "defaultMessage": "Add documentation"
-  },
-  "jupyter.llm.dell-tool.actions.document.label": {
-    "defaultMessage": "Document"
-  },
-  "jupyter.llm.dell-tool.actions.explain.descr": {
-    "defaultMessage": "Gain some insight into the code in that cell."
-  },
-  "jupyter.llm.dell-tool.actions.explain.label": {
-    "defaultMessage": "Explain"
-  },
-  "jupyter.llm.dell-tool.actions.improve.descr": {
-    "defaultMessage": "Improve the code in that cell."
-  },
-  "jupyter.llm.dell-tool.actions.improve.label": {
-    "defaultMessage": "Improve"
-  },
-  "jupyter.llm.dell-tool.actions.modify.descr": {
-    "defaultMessage": "Modify the code in the cell"
-  },
-  "jupyter.llm.dell-tool.actions.modify.label": {
-    "defaultMessage": "Modify"
-  },
-  "jupyter.llm.dell-tool.actions.translate.descr": {
-    "defaultMessage": "Translate the code in that cell to another language using AI."
-  },
-  "jupyter.llm.dell-tool.actions.translate.label": {
-    "defaultMessage": "Translate"
   },
   "jupyter.select_kernel.footer": {
     "defaultMessage": "<strong>Note:</strong> You can always change the selected kernel later in the Kernel menu or by clicking on the kernel status logo in the top left.",

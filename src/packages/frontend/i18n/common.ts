@@ -354,7 +354,7 @@ export const editor = defineMessages({
       "Show documentation for using the Linux Terminal in CoCalc.",
   },
   editor_settings: {
-    id: "labels.editor_settings",
+    id: "editor.editor_settings",
     defaultMessage: "Editor Settings",
     description: "The name of the editor settings frame",
   },
