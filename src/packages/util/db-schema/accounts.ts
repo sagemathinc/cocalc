@@ -15,7 +15,9 @@ import {
   OTHER_SETTINGS_USERDEFINED_LLM,
 } from "./defaults";
 
+import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
+import { Strategy } from "@cocalc/util/types/sso";
 
 Table({
   name: "accounts",
@@ -399,6 +401,7 @@ Table({
           // obviously min_balance can't be set!
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
+          // db is of type PostgreSQL defined in @cocalc/database/postgres/types
           if (obj["name"] != null) {
             // NOTE: there is no way to unset/remove a username after one is set...
             try {
@@ -415,6 +418,7 @@ Table({
               return;
             }
           }
+
           // Hook to truncate some text fields to at most 254 characters, to avoid
           // further trouble down the line.
           for (const field of ["first_name", "last_name", "email_address"]) {
@@ -427,10 +431,38 @@ Table({
               }
             }
           }
-          // check, if account is exclusively controlled by SSO and its update_on_login config is true
-          const {email_address}  = obj
-          if (email_address != null) {
-            // TODO
+
+          // if account is exclusively controlled by SSO, you're maybe prohibited from changing account details
+          const current_email_address =
+            await db.get_email_address_for_account_id(account_id);
+          console.log({ current_email_address });
+          if (typeof current_email_address === "string") {
+            const strategies: Strategy[] = await db.getStrategiesSSO();
+            const strategy = checkRequiredSSO({
+              strategies,
+              email: current_email_address,
+            });
+            console.log({ strategy });
+            console.log(obj);
+            // we got a required exclusive SSO for the given account_id
+            if (strategy != null) {
+              // if user tries to change email_address
+              if (typeof obj.email_address === "string") {
+                cb(`You are not allowed to change your email address.`);
+                return;
+              }
+              // ... or tries to change first or last name, but strategy has update_on_login set
+              if (
+                strategy.updateOnLogin &&
+                (typeof obj.first_name === "string" ||
+                  obj.last_name === "string")
+              ) {
+                cb(
+                  `You are not allowed to change your first or last name. You have to change it at your single-sign-on provider: ${strategy.display}.`,
+                );
+                return;
+              }
+            }
           }
           cb();
         },

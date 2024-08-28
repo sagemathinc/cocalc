@@ -47,7 +47,7 @@ export async function is_paying_customer(
 // this is like set_account_info_if_different, but only sets the fields if they're not set
 export async function set_account_info_if_not_set(
   opts: SetAccountFields,
-): Promise<void> {
+): Promise<{ email_changed: boolean }> {
   return await set_account_info_if_different(opts, false);
 }
 
@@ -55,7 +55,7 @@ export async function set_account_info_if_not_set(
 export async function set_account_info_if_different(
   opts: SetAccountFields,
   overwrite = true,
-): Promise<void> {
+): Promise<{ email_changed: boolean }> {
   const columns = ["email_address", "first_name", "last_name"];
 
   // this could throw an error for "no such account"
@@ -93,6 +93,8 @@ export async function set_account_info_if_different(
       account_id: opts.account_id,
     });
   }
+
+  return { email_changed: !!do_email };
 }
 
 export async function set_account(

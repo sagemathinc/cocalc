@@ -21,7 +21,7 @@ import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
 import getPool from "@cocalc/database/pool";
-import { checkRequiredSSO } from "@cocalc/server/auth/sso/check-required-sso";
+import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 import getStrategies from "@cocalc/database/settings/get-sso-strategies";
 import {
   isValidUUID,

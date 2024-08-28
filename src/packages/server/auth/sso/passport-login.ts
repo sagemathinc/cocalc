@@ -13,8 +13,9 @@
  * via an SSO strategy, we link this passport to your exsiting account. There is just one exception,
  * which are SSO strategies which "exclusively" manage a domain.
  * 2. If you're not signed in and try to sign in, this checks if there is already an account – and creates it if not.
- * 3. If you sign in and the SSO strategy is set to "update_on_login", it will reset the name of the user to the
- * data from the SSO provider. However, the user can still modify the name.
+ * 3. If you sign in and the SSO strategy is set to "update_on_login",
+ * it will reset the name of the user to the data from the SSO provider.
+ * Users can only modify their first and last name, if that SSO mechanism isn't exclusive!
  * 4. If you already have an email address belonging to a newly introduced exclusive domain, it will start to be controlled by it.
  */
 
@@ -45,8 +46,9 @@ import { sanitizeProfile } from "@cocalc/server/auth/sso/sanitize-profile";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import { HELP_EMAIL } from "@cocalc/util/theme";
-import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
+import { emailBelongsToDomain } from "@cocalc/util/auth-check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
+import { getEmailDomain } from "@cocalc/util/auth-check-required-sso";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -240,7 +242,7 @@ export class PassportLogin {
     const exclusiveDomains = strategy.info?.exclusive_domains ?? [];
     if (!isEmpty(exclusiveDomains)) {
       for (const email of opts.emails ?? []) {
-        const emailDomain = getEmailDomain(email.toLocaleLowerCase());
+        const emailDomain = getEmailDomain(email.toLowerCase());
         for (const ssoDomain of exclusiveDomains) {
           if (emailBelongsToDomain(emailDomain, ssoDomain)) {
             return true;
@@ -253,7 +255,7 @@ export class PassportLogin {
 
   // similar to the above, for a specific email address
   private checkEmailExclusiveSSO(email_address: string): boolean {
-    const emailDomain = getEmailDomain(email_address.toLocaleLowerCase());
+    const emailDomain = getEmailDomain(email_address.toLowerCase());
     for (const strategyName in this.opts.passports) {
       const strategy = this.opts.passports[strategyName];
       for (const ssoDomain of strategy.info?.exclusive_domains ?? []) {
@@ -510,7 +512,7 @@ export class PassportLogin {
     }
 
     // We update the email address, if it does not belong to another account.
-  
+
     if (is_valid_email_address(locals.email_address)) {
       upd.email_address = locals.email_address;
     }

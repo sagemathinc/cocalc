@@ -7,7 +7,7 @@ the database.
 import LRU from "lru-cache";
 
 import getStrategies from "@cocalc/database/settings/get-sso-strategies";
-import { checkRequiredSSO } from "./sso/check-required-sso";
+import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 
 const emailShortCache = new LRU<string, number>({
   max: 10000, // avoid memory issues

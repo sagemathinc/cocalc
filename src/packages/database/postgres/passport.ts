@@ -178,6 +178,7 @@ export async function passport_exists(
   }
 }
 
+// this is only used in passport-login/maybeUpdateAccountAndPassport!
 export async function update_account_and_passport(
   db: PostgreSQL,
   opts: UpdateAccountInfoAndPassportOpts,
@@ -205,6 +206,7 @@ export async function update_account_and_passport(
   const existing_account_id = await cb2(db.account_exists, {
     email_address: opts.email_address,
   });
+
   if (!existing_account_id) {
     // There is no account with the new email address, hence we can update the email address as well
     upd.email_address = opts.email_address;
@@ -214,7 +216,7 @@ export async function update_account_and_passport(
   }
 
   // this set_account_info_if_different checks again if the email exists on another account, but it would throw an error.
-  await set_account_info_if_different(upd);
+  const { email_changed } = await set_account_info_if_different(upd);
   const key = _passport_key(opts);
   dbg(`updating passport ${to_json({ key, profile: opts.profile })}`);
   await db.async_query({
@@ -226,4 +228,14 @@ export async function update_account_and_passport(
       "account_id = $::UUID": opts.account_id,
     },
   });
+
+  // since we update the email address of an account based on a change from the SSO mechanism
+  // we can assume the new email address is also "verified"
+  if (email_changed && typeof upd.email_address === "string") {
+    await set_email_address_verified({
+      db,
+      account_id: opts.account_id,
+      email_address: upd.email_address,
+    });
+  }
 }
