@@ -157,8 +157,6 @@ export const labels = defineMessages({
     description: "The button to engage with the AI Assistant dialog",
   },
   timetravel: {
-    // DO NOT CHANGE THIS labels.timetravel ID!!!! It is explcitly used in frontend/frame-editors/frame-tree/frame-tree.tsx
-    // This caused a massive bug when i18n was first merged.
     id: "labels.timetravel",
     defaultMessage: "TimeTravel",
     description:
@@ -258,8 +256,8 @@ export const labels = defineMessages({
   linux_terminal: {
     id: "labels.linux_terminal",
     defaultMessage: "Linux Terminal",
-    description: "On a label or frame title describing a Linux Terminal"
-  }
+    description: "On a label or frame title describing a Linux Terminal",
+  },
 });
 
 export const menu = defineMessages({
@@ -354,6 +352,11 @@ export const editor = defineMessages({
     id: "editor.terminal.cmd.help.title",
     defaultMessage:
       "Show documentation for using the Linux Terminal in CoCalc.",
+  },
+  editor_settings: {
+    id: "editor.editor_settings",
+    defaultMessage: "Editor Settings",
+    description: "The name of the editor settings frame",
   },
 });
 

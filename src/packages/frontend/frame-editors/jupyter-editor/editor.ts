@@ -54,81 +54,102 @@ const jupyterCommands = set([
   "compute_server",
 ]);
 
-export const EDITOR_SPEC = {
-  jupyter_cell_notebook: {
-    short: "Jupyter",
-    name: "Jupyter Notebook",
-    icon: "ipynb",
-    component: CellNotebook,
-    commands: jupyterCommands,
-    buttons: set([
-      "jupyter-insert-cell",
-      "jupyter-run current cell and select next",
-      "jupyter-interrupt kernel",
-      "jupyter-restart",
-      "jupyter-cell-type",
-      "jupyter-cell-format",
-      "jupyter-cell-toolbar",
-      "jupyter-nbgrader validate",
-    ]),
-    customizeCommands: {
-      guide: {
-        label: "Snippets",
-        icon: SNIPPET_ICON_NAME,
-        title: "Open a panel containing code snippets.",
-      },
-      shell: {
-        label: jupyter.editor.console_label,
-        icon: "ipynb",
-        title: jupyter.editor.console_title,
-      },
+const jupyter_cell_notebook: EditorDescription = {
+  type: "jupyter",
+  short: "Jupyter",
+  name: "Jupyter Notebook",
+  icon: "ipynb",
+  component: CellNotebook,
+  commands: jupyterCommands,
+  buttons: set([
+    "jupyter-insert-cell",
+    "jupyter-run current cell and select next",
+    "jupyter-interrupt kernel",
+    "jupyter-restart",
+    "jupyter-cell-type",
+    "jupyter-cell-format",
+    "jupyter-cell-toolbar",
+    "jupyter-nbgrader validate",
+  ]),
+  customizeCommands: {
+    guide: {
+      label: "Snippets",
+      icon: SNIPPET_ICON_NAME,
+      title: "Open a panel containing code snippets.",
     },
-  } as EditorDescription,
-  commands_guide: {
-    short: labels.snippets,
-    name: labels.snippets,
-    icon: SNIPPET_ICON_NAME,
-    component: JupyterSnippets,
-    commands: set(["decrease_font_size", "increase_font_size"]),
-  } as EditorDescription,
-  jupyter_slideshow_revealjs: {
-    short: "Slideshow",
-    name: "Slideshow (Reveal.js)",
-    icon: "slides",
-    component: Slideshow,
-    commands: set(["build"]),
-  } as EditorDescription,
-  jupyter_table_of_contents: {
-    short: editor.table_of_contents_short,
-    name: editor.table_of_contents_name,
-    icon: "align-right",
-    component: TableOfContents,
-    commands: set(["decrease_font_size", "increase_font_size"]),
-  } as EditorDescription,
-  introspect: {
-    short: "Introspect",
-    name: "Introspection",
-    icon: "info",
-    component: Introspect,
-    commands: set(["decrease_font_size", "increase_font_size"]),
-  } as EditorDescription,
+    shell: {
+      label: jupyter.editor.console_label,
+      icon: "ipynb",
+      title: jupyter.editor.console_title,
+    },
+  },
+} as const;
+
+const commands_guide: EditorDescription = {
+  type: "snippets",
+  short: labels.snippets,
+  name: labels.snippets,
+  icon: SNIPPET_ICON_NAME,
+  component: JupyterSnippets,
+  commands: set(["decrease_font_size", "increase_font_size"]),
+} as const;
+
+const jupyter_slideshow_revealjs: EditorDescription = {
+  type: "slideshow-revealjs",
+  short: "Slideshow",
+  name: "Slideshow (Reveal.js)",
+  icon: "slides",
+  component: Slideshow,
+  commands: set(["build"]),
+} as const;
+
+const jupyter_table_of_contents: EditorDescription = {
+  type: "jupyter-toc",
+  short: editor.table_of_contents_short,
+  name: editor.table_of_contents_name,
+  icon: "align-right",
+  component: TableOfContents,
+  commands: set(["decrease_font_size", "increase_font_size"]),
+} as const;
+
+const introspect: EditorDescription = {
+  type: "jupyter-introspect",
+  short: "Introspect",
+  name: "Introspection",
+  icon: "info",
+  component: Introspect,
+  commands: set(["decrease_font_size", "increase_font_size"]),
+} as const;
+
+const jupyter_json: EditorDescription = {
+  type: "jupyter_json_view",
+  short: "JSON view",
+  name: "Raw JSON viewer",
+  icon: "js-square",
+  component: JSONIPynb,
+  commands: set(["decrease_font_size", "increase_font_size"]),
+} as const;
+
+const jupyter_raw: EditorDescription = {
+  type: "jupyter_json_edit",
+  short: "JSON edit",
+  name: "Raw JSON editor",
+  icon: "markdown",
+  component: RawIPynb,
+  commands: set(["decrease_font_size", "increase_font_size"]),
+} as const;
+
+export const EDITOR_SPEC = {
+  jupyter_cell_notebook,
+  commands_guide,
+  jupyter_slideshow_revealjs,
+  jupyter_table_of_contents,
+  introspect,
   terminal,
   time_travel,
-  jupyter_json: {
-    short: "JSON view",
-    name: "Raw JSON viewer",
-    icon: "js-square",
-    component: JSONIPynb,
-    commands: set(["decrease_font_size", "increase_font_size"]),
-  } as EditorDescription,
-  jupyter_raw: {
-    short: "JSON edit",
-    name: "Raw JSON editor",
-    icon: "markdown",
-    component: RawIPynb,
-    commands: set(["decrease_font_size", "increase_font_size"]),
-  } as EditorDescription,
-};
+  jupyter_json,
+  jupyter_raw,
+} as const;
 
 const JUPYTER_MENUS = {
   file: {

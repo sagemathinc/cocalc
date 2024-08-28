@@ -21,7 +21,8 @@ const TimeTravel = AsyncComponent(
   async () => (await import("./time-travel")).TimeTravel,
 );
 
-export const time_travel = {
+export const time_travel: EditorDescription = {
+  type: "timetravel",
   short: labels.timetravel,
   name: labels.timetravel,
   icon: "history",
@@ -36,11 +37,11 @@ export const time_travel = {
   ]),
   hide_file_menu: true,
   hide_public: true,
-} as EditorDescription;
+} as const;
 
 const EDITOR_SPEC = {
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: false,
