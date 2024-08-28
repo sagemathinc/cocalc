@@ -3,15 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux } from "@cocalc/frontend/app-framework";
 import { useEffect, useState } from "react";
-import SideChat from "@cocalc/frontend/chat/side-chat";
-import { EditorDescription } from "../frame-tree/types";
-import { initChat } from "@cocalc/frontend/chat/register";
-import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { hidden_meta_file } from "@cocalc/util/misc";
-import { set } from "@cocalc/util/misc";
+
+import { redux } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
+import { initChat } from "@cocalc/frontend/chat/register";
+import SideChat from "@cocalc/frontend/chat/side-chat";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { hidden_meta_file, set } from "@cocalc/util/misc";
+import { EditorDescription } from "../frame-tree/types";
 
 export function chatFile(path: string): string {
   return hidden_meta_file(path, "sage-chat");
@@ -46,7 +46,8 @@ function Chat({ font_size }: Props) {
   return <SideChat project_id={project_id} path={path} />;
 }
 
-export const chat = {
+export const chat: EditorDescription = {
+  type: "chat",
   short: "Chat",
   name: "Chat",
   icon: "comment",
@@ -59,7 +60,7 @@ export const chat = {
     "-actions",
   ]),
   component: Chat,
-} as EditorDescription;
+} as const;
 
 // TODO: this is an ugly special case for now to make the title bar buttons work.
 export function undo(project_id, path0) {

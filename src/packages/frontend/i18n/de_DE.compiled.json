@@ -911,6 +911,96 @@
       "value": "Umschalten, ob die Menü-Symbolleiste für alle Editoren angezeigt wird oder nicht."
     }
   ],
+  "editor.build_control_and_log.title": [
+    {
+      "type": 0,
+      "value": "Kompiler-Steuerung und Protokoll"
+    }
+  ],
+  "editor.build_control_and_log.title.short": [
+    {
+      "type": 0,
+      "value": "Kompilieren"
+    }
+  ],
+  "editor.editor_settings": [
+    {
+      "type": 0,
+      "value": "Editor-Einstellungen"
+    }
+  ],
+  "editor.errors_and_warning.title": [
+    {
+      "type": 0,
+      "value": "Fehler und Warnungen"
+    }
+  ],
+  "editor.errors_and_warning.title.short": [
+    {
+      "type": 0,
+      "value": "Fehler"
+    }
+  ],
+  "editor.latex.cm.title": [
+    {
+      "type": 0,
+      "value": "LaTeX-Quellcode"
+    }
+  ],
+  "editor.latex.cm.title.short": [
+    {
+      "type": 0,
+      "value": "Quellcode"
+    }
+  ],
+  "editor.latex.command.print.label": [
+    {
+      "type": 0,
+      "value": "LaTeX-Code drucken"
+    }
+  ],
+  "editor.latex.command.print.tooltip": [
+    {
+      "type": 0,
+      "value": "Drucken Sie den Quellcode dieses Dokuments. Verwenden Sie Drucken aus dem PDF-Vorschau-Fenster, um das gerenderte Dokument zu drucken."
+    }
+  ],
+  "editor.latex.pdf_embed.title": [
+    {
+      "type": 0,
+      "value": "PDF - Native"
+    }
+  ],
+  "editor.latex.pdf_embed.title.short": [
+    {
+      "type": 0,
+      "value": "PDF (nativ)"
+    }
+  ],
+  "editor.pdfjs_canvas.title": [
+    {
+      "type": 0,
+      "value": "PDF - Vorschau"
+    }
+  ],
+  "editor.pdfjs_canvas.title.short": [
+    {
+      "type": 0,
+      "value": "PDF (Vorschau)"
+    }
+  ],
+  "editor.snippets.label": [
+    {
+      "type": 0,
+      "value": "Schnipsel"
+    }
+  ],
+  "editor.snippets.tooltip": [
+    {
+      "type": 0,
+      "value": "Öffnen Sie ein Panel mit Code-Schnipsel."
+    }
+  ],
   "editor.table_of_contents.name": [
     {
       "type": 0,
@@ -959,10 +1049,28 @@
       "value": "Englisch"
     }
   ],
+  "i18n.localization.lang.french": [
+    {
+      "type": 0,
+      "value": "Französisch"
+    }
+  ],
   "i18n.localization.lang.german": [
     {
       "type": 0,
       "value": "Deutsch"
+    }
+  ],
+  "i18n.localization.lang.italian": [
+    {
+      "type": 0,
+      "value": "Italienisch"
+    }
+  ],
+  "i18n.localization.lang.russian": [
+    {
+      "type": 0,
+      "value": "Russisch"
     }
   ],
   "i18n.localization.lang.spanish": [
@@ -983,6 +1091,42 @@
       "value": "Keine"
     }
   ],
+  "jupyter.commands.cell_type.menu": [
+    {
+      "type": 0,
+      "value": "Zelltyp"
+    }
+  ],
+  "jupyter.commands.cells_collapse.menu": [
+    {
+      "type": 0,
+      "value": "Einklappen"
+    }
+  ],
+  "jupyter.commands.cells_expand.menu": [
+    {
+      "type": 0,
+      "value": "Erweitern"
+    }
+  ],
+  "jupyter.commands.cells_protect.menu": [
+    {
+      "type": 0,
+      "value": "Schützen"
+    }
+  ],
+  "jupyter.commands.cells_unlock.menu": [
+    {
+      "type": 0,
+      "value": "Schutz entfernen"
+    }
+  ],
+  "jupyter.commands.cells_unlock.menu.button": [
+    {
+      "type": 0,
+      "value": "Entsperren"
+    }
+  ],
   "jupyter.commands.change_kernel": [
     {
       "type": 0,
@@ -995,10 +1139,34 @@
       "value": "Wählen Sie aus den verfügbaren Kernels."
     }
   ],
+  "jupyter.commands.clear_output.menu": [
+    {
+      "type": 0,
+      "value": "Ausgabe löschen"
+    }
+  ],
   "jupyter.commands.close_and_halt.menu": [
     {
       "type": 0,
       "value": "Schließen und anhalten"
+    }
+  ],
+  "jupyter.commands.delete_cells.menu": [
+    {
+      "type": 0,
+      "value": "Zellen löschen"
+    }
+  ],
+  "jupyter.commands.download_as_html": [
+    {
+      "type": 0,
+      "value": "Speichern und als HTML Exportieren"
+    }
+  ],
+  "jupyter.commands.download_as_pdf": [
+    {
+      "type": 0,
+      "value": "Speichern und als PDF Exportieren"
     }
   ],
   "jupyter.commands.enter_command_mode": [
@@ -1011,6 +1179,24 @@
     {
       "type": 0,
       "value": "Bearbeitungsmodus aktivieren"
+    }
+  ],
+  "jupyter.commands.export.menu": [
+    {
+      "type": 0,
+      "value": "Speichern und Exportieren..."
+    }
+  ],
+  "jupyter.commands.format_cells.menu": [
+    {
+      "type": 0,
+      "value": "Zellen formatieren"
+    }
+  ],
+  "jupyter.commands.format_cells.menu.button": [
+    {
+      "type": 0,
+      "value": "Formatieren"
     }
   ],
   "jupyter.commands.halt_kernel_menu.menu": [
@@ -1031,10 +1217,58 @@
       "value": "Zelle darunter einfügen"
     }
   ],
+  "jupyter.commands.insert_cells.menu": [
+    {
+      "type": 0,
+      "value": "Zelle einfügen"
+    }
+  ],
   "jupyter.commands.interrupt_kernel": [
     {
       "type": 0,
       "value": "Kernel unterbrechen (Stoppen)"
+    }
+  ],
+  "jupyter.commands.move_cells.menu": [
+    {
+      "type": 0,
+      "value": "Zellen verschieben"
+    }
+  ],
+  "jupyter.commands.nbgrader_assign.buton": [
+    {
+      "type": 0,
+      "value": "Erstellen"
+    }
+  ],
+  "jupyter.commands.nbgrader_assign.menu": [
+    {
+      "type": 0,
+      "value": "Erzeuge Studierendenversion..."
+    }
+  ],
+  "jupyter.commands.paste_cells.menu": [
+    {
+      "type": 0,
+      "value": "Zellen einfügen"
+    }
+  ],
+  "jupyter.commands.paste_cells_above.menu": [
+    {
+      "type": 0,
+      "value": "Zellen oben einfügen"
+    }
+  ],
+  "jupyter.commands.paste_cells_below.menu": [
+    {
+      "type": 0,
+      "value": "Zellen unten einfügen"
+    }
+  ],
+  "jupyter.commands.paste_cells_replace.menu": [
+    {
+      "type": 0,
+      "value": "Zellen Einfügen und Ersetzen"
     }
   ],
   "jupyter.commands.refresh_kernels": [
@@ -1181,6 +1415,12 @@
       "value": "Aktuelle Zelle ausführen"
     }
   ],
+  "jupyter.commands.select_cells.menu": [
+    {
+      "type": 0,
+      "value": "Zellen auswählen"
+    }
+  ],
   "jupyter.commands.shutdown_kernel.body": [
     {
       "type": 0,
@@ -1217,6 +1457,12 @@
       "value": "Kernel herunterfahren?"
     }
   ],
+  "jupyter.commands.split_and_merge.menu": [
+    {
+      "type": 0,
+      "value": "Teilen und Zusammenführen"
+    }
+  ],
   "jupyter.commands.toggle_all_line_numbers": [
     {
       "type": 0,
@@ -1251,6 +1497,18 @@
     {
       "type": 0,
       "value": "Starten Sie Jupyter Notebook neu und führen Sie alle Zellen aus, um zu überprüfen, ob es funktioniert."
+    }
+  ],
+  "jupyter.commands.view_toolbars.menu": [
+    {
+      "type": 0,
+      "value": "Zellen-Werkzeugleiste"
+    }
+  ],
+  "jupyter.commands.view_toolbars.menu.button": [
+    {
+      "type": 0,
+      "value": "Werkzeugleisten"
     }
   ],
   "jupyter.editor.browser_actions.close_and_halt.body": [
@@ -1337,6 +1595,42 @@
       "value": "Öffnen Sie die Jupyter-Kommandozeilenkonsole, die mit dem laufenden Kernel verbunden ist."
     }
   ],
+  "jupyter.editor.introspect.short": [
+    {
+      "type": 0,
+      "value": "Introspektieren"
+    }
+  ],
+  "jupyter.editor.introspect.title": [
+    {
+      "type": 0,
+      "value": "Introspektion"
+    }
+  ],
+  "jupyter.editor.raw_json_editor.short": [
+    {
+      "type": 0,
+      "value": "JSON bearbeiten"
+    }
+  ],
+  "jupyter.editor.raw_json_editor.title": [
+    {
+      "type": 0,
+      "value": "Roh-JSON-Editor"
+    }
+  ],
+  "jupyter.editor.raw_json_view.short": [
+    {
+      "type": 0,
+      "value": "JSON-Ansicht"
+    }
+  ],
+  "jupyter.editor.raw_json_view.title": [
+    {
+      "type": 0,
+      "value": "Raw JSON-Ansicht"
+    }
+  ],
   "jupyter.editor.restart_and_run_all.body": [
     {
       "type": 0,
@@ -1391,6 +1685,78 @@
       "value": "Ausgewählte Zellen ausführen"
     }
   ],
+  "jupyter.llm.cell-tool.actions.bugfix.descr": [
+    {
+      "type": 0,
+      "value": "Beschreibe das Problem dieser Zelle, um eine fehlerbereinigte Version zu erhalten."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.bugfix.label": [
+    {
+      "type": 0,
+      "value": "Fehler beheben"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.document.descr": [
+    {
+      "type": 0,
+      "value": "Dokumentation hinzufügen"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.document.label": [
+    {
+      "type": 0,
+      "value": "Dokument"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.explain.descr": [
+    {
+      "type": 0,
+      "value": "Gewinne Einblicke in den Code in dieser Zelle."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.explain.label": [
+    {
+      "type": 0,
+      "value": "Erklären"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.improve.descr": [
+    {
+      "type": 0,
+      "value": "Verbessern des Codes in dieser Zelle."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.improve.label": [
+    {
+      "type": 0,
+      "value": "Verbessern"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.modify.descr": [
+    {
+      "type": 0,
+      "value": "Ändern des Codes in der Zelle"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.modify.label": [
+    {
+      "type": 0,
+      "value": "Ändern"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.translate.descr": [
+    {
+      "type": 0,
+      "value": "Übersetze den Code in dieser Zelle in eine andere Sprache mit KI."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.translate.label": [
+    {
+      "type": 0,
+      "value": "Übersetzen"
+    }
+  ],
   "jupyter.llm.cell-tool.assistant.title": [
     {
       "type": 0,
@@ -1431,78 +1797,6 @@
     {
       "type": 0,
       "value": "Das Sprachmodell wird versuchen, den Code in der Zelle in eine andere Programmiersprache zu übersetzen. Das Ergebnis könnte überhaupt nicht funktionieren – aber wenn du mit der ausgewählten Zielsprache vertrauter bist, findest du es vielleicht einfacher zu verstehen, was vor sich geht!"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.bugfix.descr": [
-    {
-      "type": 0,
-      "value": "Beschreiben Sie das Problem dieser Zelle, um eine fehlerbereinigte Version zu erhalten."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.bugfix.label": [
-    {
-      "type": 0,
-      "value": "Erklären"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.document.descr": [
-    {
-      "type": 0,
-      "value": "Dokumentieren"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.document.label": [
-    {
-      "type": 0,
-      "value": "Dokument"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.explain.descr": [
-    {
-      "type": 0,
-      "value": "Gewinnen Sie Einblick in den Code in dieser Zelle."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.explain.label": [
-    {
-      "type": 0,
-      "value": "Erklären"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.improve.descr": [
-    {
-      "type": 0,
-      "value": "Verbessern Sie den Code in dieser Zelle."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.improve.label": [
-    {
-      "type": 0,
-      "value": "Verbessern"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.modify.descr": [
-    {
-      "type": 0,
-      "value": "Ändere den Code in der Zelle"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.modify.label": [
-    {
-      "type": 0,
-      "value": "Ändern"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.translate.descr": [
-    {
-      "type": 0,
-      "value": "Übersetze den Code in dieser Zelle in eine andere Sprache mithilfe von KI."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.translate.label": [
-    {
-      "type": 0,
-      "value": "Übersetzen"
     }
   ],
   "jupyter.run_all_cells.label": [
@@ -1617,6 +1911,12 @@
       "value": "Cloud Dateisystem"
     }
   ],
+  "labels.code_folding": [
+    {
+      "type": 0,
+      "value": "Code-Faltung"
+    }
+  ],
   "labels.copy": [
     {
       "type": 0,
@@ -1679,6 +1979,12 @@
       "value": "Hilfe"
     }
   ],
+  "labels.insert": [
+    {
+      "type": 0,
+      "value": "Einfügen"
+    }
+  ],
   "labels.latex_document": [
     {
       "type": 0,
@@ -1689,6 +1995,12 @@
     {
       "type": 0,
       "value": "Lizenzen"
+    }
+  ],
+  "labels.line_numbers": [
+    {
+      "type": 0,
+      "value": "Zeilennummern"
     }
   ],
   "labels.linux_terminal": [
@@ -1853,6 +2165,12 @@
     {
       "type": 0,
       "value": "Einstellungen"
+    }
+  ],
+  "labels.slideshow": [
+    {
+      "type": 0,
+      "value": "Diashow"
     }
   ],
   "labels.snippets": [
@@ -2047,6 +2365,12 @@
       "value": "Neue Datei"
     }
   ],
+  "menu.generic.open_file.label": [
+    {
+      "type": 0,
+      "value": "Öffnen..."
+    }
+  ],
   "menu.generic.run.label": [
     {
       "type": 0,
@@ -2074,7 +2398,7 @@
       "children": [
         {
           "type": 0,
-          "value": "TimeTravel-Historie"
+          "value": "ZeitReise-Historie"
         }
       ],
       "type": 8,

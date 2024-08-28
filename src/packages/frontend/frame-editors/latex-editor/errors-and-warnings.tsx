@@ -61,7 +61,7 @@ export const SPEC: SpecDesc = {
     icon: "exclamation-triangle",
     color: "#fdb600",
   },
-};
+} as const;
 
 const ITEM_STYLES: { [name: string]: CSS } = {
   warning: {
@@ -79,7 +79,7 @@ const ITEM_STYLES: { [name: string]: CSS } = {
     padding: "15px",
     margin: "5px 0",
   },
-};
+} as const;
 
 interface item {
   line: number;

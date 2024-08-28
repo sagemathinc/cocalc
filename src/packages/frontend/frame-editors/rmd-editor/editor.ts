@@ -23,127 +23,125 @@ import { time_travel } from "../time-travel-editor/editor";
 import { BuildLog } from "./build-log";
 import { derive_rmd_output_filename } from "./utils";
 
+const cm: EditorDescription = {
+  type: "cm",
+  short: "Code",
+  name: "Source Code",
+  icon: "code",
+  component: CodemirrorEditor,
+  commands: set([
+    "help",
+    "format_action",
+    "chatgpt",
+    "print",
+    "decrease_font_size",
+    "increase_font_size",
+    "save",
+    "time_travel",
+    "replace",
+    "find",
+    "goto_line",
+    "cut",
+    "paste",
+    "copy",
+    "undo",
+    "redo",
+    "format",
+    "build",
+    "build_on_save",
+  ]),
+  buttons: set([
+    "format-ai_formula",
+    "decrease_font_size",
+    "increase_font_size",
+    "build",
+    "build_on_save",
+  ]),
+} as const;
+
+const iframe: EditorDescription = {
+  type: "preview-html",
+  short: "HTML",
+  name: "HTML (Converted)",
+  icon: "compass",
+  component: IFrameHTML,
+  mode: "rmd",
+  path(path) {
+    return derive_rmd_output_filename(path, "html");
+  },
+  commands: set([
+    "print",
+    "save",
+    "time_travel",
+    "reload",
+    "decrease_font_size",
+    "increase_font_size",
+    "build",
+  ]),
+  buttons: set(["reload", "decrease_font_size", "increase_font_size", "build"]),
+} as const;
+
+// By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
+
+const pdfjs_canvas: EditorDescription = {
+  type: "pdfjs-canvas",
+  short: "PDF",
+  name: "PDF (Converted)",
+  icon: "file-pdf",
+  component: PDFJS,
+  mode: "rmd",
+  commands: pdfjsCommands,
+  buttons: set([
+    "decrease_font_size",
+    "increase_font_size",
+    "zoom_page_width",
+    "zoom_page_height",
+    "set_zoom",
+    "build",
+  ]),
+  renderer: "canvas",
+  path(path) {
+    return derive_rmd_output_filename(path, "pdf");
+  },
+} as const;
+
+const markdown: EditorDescription = {
+  type: "markdown-rendered",
+  short: "Markdown",
+  name: "Markdown (only rendered)",
+  icon: "eye",
+  component: RenderedMarkdown,
+  reload_images: true,
+  commands: set([
+    "print",
+    "decrease_font_size",
+    "increase_font_size",
+    "reload",
+    "build",
+  ]),
+  buttons: set(["decrease_font_size", "increase_font_size", "reload", "build"]),
+} as const;
+
+const build: EditorDescription = {
+  type: "rmd-build",
+  short: "Build Log",
+  name: "Build Log",
+  icon: "gears",
+  component: BuildLog,
+  commands: set(["build", "decrease_font_size", "increase_font_size"]),
+  buttons: set(["build"]),
+} as const;
+
 const EDITOR_SPEC = {
-  cm: {
-    short: "Code",
-    name: "Source Code",
-    icon: "code",
-    component: CodemirrorEditor,
-    commands: set([
-      "help",
-      "format_action",
-      "chatgpt",
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel",
-      "replace",
-      "find",
-      "goto_line",
-      "cut",
-      "paste",
-      "copy",
-      "undo",
-      "redo",
-      "format",
-      "build",
-      "build_on_save",
-    ]),
-    buttons: set([
-      "format-ai_formula",
-      "decrease_font_size",
-      "increase_font_size",
-      "build",
-      "build_on_save",
-    ]),
-  } as EditorDescription,
-
-  iframe: {
-    short: "HTML",
-    name: "HTML (Converted)",
-    icon: "compass",
-    component: IFrameHTML,
-    mode: "rmd",
-    path(path) {
-      return derive_rmd_output_filename(path, "html");
-    },
-    commands: set([
-      "print",
-      "save",
-      "time_travel",
-      "reload",
-      "decrease_font_size",
-      "increase_font_size",
-      "build",
-    ]),
-    buttons: set([
-      "reload",
-      "decrease_font_size",
-      "increase_font_size",
-      "build",
-    ]),
-  } as EditorDescription,
-
-  // By default, only html is generated. This viewer is still there in case the user explicitly tells RMarkdown to generate a PDF
-
-  pdfjs_canvas: {
-    short: "PDF",
-    name: "PDF (Converted)",
-    icon: "file-pdf",
-    component: PDFJS,
-    mode: "rmd",
-    commands: pdfjsCommands,
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "zoom_page_width",
-      "zoom_page_height",
-      "set_zoom",
-      "build",
-    ]),
-    renderer: "canvas",
-    path(path) {
-      return derive_rmd_output_filename(path, "pdf");
-    },
-  } as EditorDescription,
-
-  markdown: {
-    short: "Markdown",
-    name: "Markdown (only rendered)",
-    icon: "eye",
-    component: RenderedMarkdown,
-    reload_images: true,
-    commands: set([
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "reload",
-      "build",
-    ]),
-    buttons: set([
-      "decrease_font_size",
-      "increase_font_size",
-      "reload",
-      "build",
-    ]),
-  } as EditorDescription,
-
-  build: {
-    short: "Build Log",
-    name: "Build Log",
-    icon: "gears",
-    component: BuildLog,
-    commands: set(["build", "decrease_font_size", "increase_font_size"]),
-    buttons: set(["build"]),
-  } as EditorDescription,
-
+  cm,
+  iframe,
+  pdfjs_canvas,
+  markdown,
+  build,
   terminal,
-
   time_travel,
-
   settings: SETTINGS_SPEC,
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: true,
