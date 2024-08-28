@@ -9,7 +9,6 @@ import {
   GoogleReCaptchaProvider,
   useGoogleReCaptcha,
 } from "react-google-recaptcha-v3";
-
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import {
   CONTACT_TAG,
