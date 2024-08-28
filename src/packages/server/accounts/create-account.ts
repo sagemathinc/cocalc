@@ -55,7 +55,7 @@ export default async function createAccount({
       ],
     );
     if (email) {
-      await accountCreationActions(email, account_id, tags);
+      await accountCreationActions({ email_address: email, account_id, tags });
     }
     await creationActionsDone(account_id);
   } catch (error) {

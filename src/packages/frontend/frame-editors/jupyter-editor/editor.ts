@@ -114,8 +114,8 @@ const jupyter_table_of_contents: EditorDescription = {
 
 const introspect: EditorDescription = {
   type: "jupyter-introspect",
-  short: "Introspect",
-  name: "Introspection",
+  short: jupyter.editor.introspect_short,
+  name: jupyter.editor.introspect_title,
   icon: "info",
   component: Introspect,
   commands: set(["decrease_font_size", "increase_font_size"]),
@@ -123,8 +123,8 @@ const introspect: EditorDescription = {
 
 const jupyter_json: EditorDescription = {
   type: "jupyter_json_view",
-  short: "JSON view",
-  name: "Raw JSON viewer",
+  short: jupyter.editor.raw_json_view_short,
+  name: jupyter.editor.raw_json_view_title,
   icon: "js-square",
   component: JSONIPynb,
   commands: set(["decrease_font_size", "increase_font_size"]),
@@ -132,8 +132,8 @@ const jupyter_json: EditorDescription = {
 
 const jupyter_raw: EditorDescription = {
   type: "jupyter_json_edit",
-  short: "JSON edit",
-  name: "Raw JSON editor",
+  short: jupyter.editor.raw_json_editor_short,
+  name: jupyter.editor.raw_json_editor_title,
   icon: "markdown",
   component: RawIPynb,
   commands: set(["decrease_font_size", "increase_font_size"]),
@@ -159,7 +159,7 @@ const JUPYTER_MENUS = {
       download: [
         {
           icon: "file-export",
-          label: "Save and Export As PDF",
+          label: jupyter.commands.download_as_pdf,
           name: "save-and-download-as-pdf",
           children: [
             "nbconvert cocalc pdf",
@@ -170,7 +170,7 @@ const JUPYTER_MENUS = {
         },
         {
           icon: "file-export",
-          label: "Save and Export As HTML",
+          label: jupyter.commands.download_as_html,
           name: "save-and-download-as-html",
           children: [
             "nbconvert cocalc html",
@@ -180,7 +180,7 @@ const JUPYTER_MENUS = {
         },
         {
           icon: "file-export",
-          label: "Save and Export...",
+          label: jupyter.commands.export_menu,
           name: "save-and-download-as-other",
           children: [
             "nbconvert script",
@@ -221,7 +221,7 @@ const JUPYTER_MENUS = {
         {
           icon: "paste",
           name: "paste-cells",
-          label: "Paste Cells",
+          label: jupyter.commands.paste_cells_menu,
           children: [
             "paste cell and replace",
             "paste cell above",
@@ -231,28 +231,28 @@ const JUPYTER_MENUS = {
       ],
       "insert-delete": [
         {
-          label: "Insert Cell",
-          button: "Insert",
+          label: jupyter.commands.insert_cells_menu,
+          button: labels.insert,
           name: "insert-cell",
           icon: "plus",
           children: ["insert cell above", "insert cell below"],
         },
         {
-          label: "Delete Cells",
+          label: jupyter.commands.delete_cells_menu,
           icon: "trash",
           name: "delete-cell",
           children: ["delete cell", "delete all blank code cells"],
         },
         {
           name: "move-cell",
-          label: "Move Cells",
+          label: jupyter.commands.move_cells_menu,
           icon: "arrow-up",
           children: ["move cell up", "move cell down"],
         },
         {
           icon: "horizontal-split",
           name: "split-merge-cells",
-          label: "Split and Merge",
+          label: jupyter.commands.split_and_merge_menu,
           children: [
             "split cell at cursor",
             "merge cell with previous cell",
@@ -264,7 +264,7 @@ const JUPYTER_MENUS = {
       "cell-selection": [
         {
           icon: "menu-outlined",
-          label: "Select Cells",
+          label: jupyter.commands.select_cells_menu,
           name: "select",
           children: ["select all cells", "deselect all cells"],
         },
@@ -272,7 +272,7 @@ const JUPYTER_MENUS = {
       "cell-type": [
         {
           name: "cell-type",
-          label: "Cell Type",
+          label: jupyter.commands.cell_type_menu,
           icon: "code-outlined",
           children: [
             "change cell to code",
@@ -286,7 +286,7 @@ const JUPYTER_MENUS = {
         {
           icon: "battery-empty",
           name: "clear",
-          label: "Clear Output",
+          label: jupyter.commands.clear_output_menu,
           children: [
             "clear cell output",
             "clear all cells output",
@@ -298,7 +298,7 @@ const JUPYTER_MENUS = {
       "collapse-expand-protect": [
         {
           icon: "compress",
-          label: "Collapse",
+          label: jupyter.commands.cells_collapse_menu,
           name: "cell-collapse",
           children: [
             "hide input",
@@ -311,7 +311,7 @@ const JUPYTER_MENUS = {
         },
         {
           icon: "expand-arrows",
-          label: "Expand",
+          label: jupyter.commands.cells_expand_menu,
           name: "cell-expand",
           children: [
             "show input",
@@ -324,14 +324,14 @@ const JUPYTER_MENUS = {
         },
         {
           icon: "lock",
-          label: "Protect",
+          label: jupyter.commands.cells_protect_menu,
           name: "cell-protect",
           children: ["write protect", "delete protect"],
         },
         {
           icon: "lock-open",
-          label: "Remove Protection",
-          button: "Unlock",
+          label: jupyter.commands.cells_unlock_menu,
+          button: jupyter.commands.cells_unlock_menu_button,
           name: "cell-remove-protect",
           children: ["remove write protect", "remove delete protect"],
         },
@@ -339,8 +339,8 @@ const JUPYTER_MENUS = {
       "format-cells": [
         {
           icon: FORMAT_SOURCE_ICON,
-          label: "Format Cells",
-          button: "Format",
+          label: jupyter.commands.format_cells_menu,
+          button: jupyter.commands.format_cells_menu_button,
           name: "cell-format",
           children: ["format cells", "format all cells"],
         },
@@ -354,8 +354,8 @@ const JUPYTER_MENUS = {
       components: [
         {
           icon: "tool",
-          button: "Toolbars",
-          label: "Cell Toolbar",
+          button: jupyter.commands.view_toolbars_menu_button,
+          label: jupyter.commands.view_toolbars_menu,
           name: "cell-toolbar",
           children: [
             "cell toolbar none",
@@ -367,7 +367,7 @@ const JUPYTER_MENUS = {
           ],
         },
         {
-          label: "Line Numbers",
+          label: labels.line_numbers,
           name: "line-numbers",
           icon: "list-ol",
           children: [
@@ -377,7 +377,7 @@ const JUPYTER_MENUS = {
           ],
         },
         {
-          label: "Code Folding",
+          label: labels.code_folding,
           name: "code-folding",
           icon: "angle-right",
           children: ["show code folding", "hide code folding"],
@@ -393,7 +393,7 @@ const JUPYTER_MENUS = {
         "run current cell and select next",
         {
           label: jupyter.editor.run_selected_cells,
-          button: "Run",
+          button: menu.run,
           name: "run-selected-cells",
           icon: "play-square",
           children: [
@@ -404,7 +404,7 @@ const JUPYTER_MENUS = {
         },
         {
           label: jupyter.editor.run_all_cells,
-          button: "Run",
+          button: menu.run,
           name: "run-all-cells",
           icon: "forward",
           children: [
@@ -426,8 +426,8 @@ const JUPYTER_MENUS = {
       "kernel-control": ["interrupt kernel"],
       "restart-kernel": [
         {
-          label: "Restart Kernel",
-          button: "Kernel",
+          label: jupyter.commands.restart_kernel_noconf_menu,
+          button: menu.kernel,
           name: "restart",
           icon: "reload",
           children: [

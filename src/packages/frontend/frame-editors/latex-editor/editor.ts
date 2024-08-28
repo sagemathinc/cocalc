@@ -83,9 +83,8 @@ const cm: EditorDescription = {
   ]),
   customizeCommands: {
     print: {
-      label: "Print LaTeX Source",
-      title:
-        "Print the source code of this document.  Use Print from the PDF Preview frame to print the rendered document.",
+      label: editor.latex_command_print_label,
+      title: editor.latex_command_print_tooltip,
     },
   },
 
@@ -94,8 +93,8 @@ const cm: EditorDescription = {
 
 const pdfjs_canvas: EditorDescription = {
   type: "preview-pdf-canvas",
-  short: "PDF (preview)",
-  name: "PDF - Preview",
+  short: editor.pdfjs_canvas_title_short,
+  name: editor.pdfjs_canvas_title,
   icon: "file-pdf",
   component: PDFJS,
   commands: {
@@ -121,8 +120,8 @@ const pdfjs_canvas: EditorDescription = {
 
 const error: EditorDescription = {
   type: "errors",
-  short: "Errors",
-  name: "Errors and Warnings",
+  short: editor.errors_and_warnings_title_short,
+  name: editor.errors_and_warnings_title,
   icon: "bug",
   component: ErrorsAndWarnings,
   commands: set(["build", "force_build", "clean"]),
@@ -130,8 +129,8 @@ const error: EditorDescription = {
 
 const build: EditorDescription = {
   type: "latex-build",
-  short: "Build",
-  name: "Build Control and Log",
+  short: editor.build_control_and_log_title_short,
+  name: editor.build_control_and_log_title,
   icon: "terminal",
   component: Build,
   commands: set([
@@ -173,8 +172,8 @@ const word_count: EditorDescription = {
 
 const pdf_embed: EditorDescription = {
   type: "preview-pdf-native",
-  short: "PDF (native)",
-  name: "PDF - Native",
+  short: editor.pdf_embed_title_short,
+  name: editor.pdf_embed_title,
   icon: "file-pdf",
   commands: set(["print", "save", "download"]),
   component: PDFEmbed,
@@ -193,7 +192,7 @@ const EDITOR_SPEC = {
   time_travel,
   // See https://github.com/sagemathinc/cocalc/issues/5114
   ...(!IS_IPAD && !IS_IOS ? { pdf_embed } : undefined),
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: true,

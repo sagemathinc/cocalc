@@ -16,7 +16,7 @@ import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/co
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import { editor, getIntl, IntlMessage, labels } from "@cocalc/frontend/i18n";
-import { jupyter } from "@cocalc/frontend/i18n/common";
+import { jupyter, menu } from "@cocalc/frontend/i18n";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { NotebookMode } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
@@ -616,7 +616,7 @@ export function commands(actions: AllActions): {
 
     slideshow: {
       i: "slides",
-      m: "Slideshow",
+      m: labels.slideshow,
       f: () => actions.editor_actions?.show_revealjs_slideshow(),
       r: true,
     },
@@ -679,20 +679,20 @@ export function commands(actions: AllActions): {
     "nbgrader assign": {
       i: "graduation-cap",
       t: "Generate the student version of this document, which strips out the extra instructor tests and cells.",
-      m: "Generate student version...",
-      menu: "Generate student version...",
-      b: "Generate",
+      m: jupyter.commands.nbgrader_assign_menu,
+      menu: jupyter.commands.nbgrader_assign_menu,
+      b: jupyter.commands.nbgrader_assign_button,
       f: () => actions.jupyter_actions?.nbgrader_actions.confirm_assign(),
     },
 
     "open file": {
-      m: "Open...",
+      m: menu.open,
       f: () => actions.jupyter_actions?.file_open(),
       r: true,
     },
 
     "paste cell above": {
-      m: "Paste Cells Above",
+      m: jupyter.commands.paste_cells_above_menu,
       k: [
         { mode: "escape", shift: true, which: 86 },
         { mode: "escape", shift: true, ctrl: true, which: 86 },
@@ -705,14 +705,14 @@ export function commands(actions: AllActions): {
 
     "paste cell below": {
       k: [{ mode: "escape", which: 86 }],
-      m: "Paste Cells Below",
+      m: jupyter.commands.paste_cells_below_menu,
       f: () => actions.frame_actions?.paste_cells(1),
     },
 
     "paste cell and replace": {
       // jupyter doesn't have this but it's normal paste behavior!
       i: "paste",
-      m: "Paste Cells and Replace",
+      m: jupyter.commands.paste_cells_replace_menu,
       k: [
         { mode: "escape", alt: true, which: 86 },
         { mode: "escape", ctrl: true, which: 86 },
