@@ -34,7 +34,7 @@ export const SHELLS = {
 } as const;
 
 export const cm: EditorDescription = {
-  type: "code",
+  type: "cm",
   short: "Code",
   name: "Source Code",
   icon: "code",

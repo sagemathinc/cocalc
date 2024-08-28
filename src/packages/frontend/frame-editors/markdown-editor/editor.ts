@@ -126,7 +126,7 @@ const markdown:EditorDescription= {
 
 
 const markdown_table_of_contents: EditorDescription = {
-  type: "maarkdown-toc",
+  type: "markdown-toc",
   short: editor.table_of_contents_short,
   name: editor.table_of_contents_name,
   icon: "align-right",

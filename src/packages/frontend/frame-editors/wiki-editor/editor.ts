@@ -17,7 +17,7 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 
 const cm: EditorDescription = {
-  type: "code",
+  type: "cm",
   short: "Code",
   name: "Source Code",
   icon: "code",

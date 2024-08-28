@@ -113,7 +113,7 @@ const jupyter_table_of_contents: EditorDescription = {
 } as const;
 
 const introspect: EditorDescription = {
-  type: "introspect",
+  type: "jupyter-introspect",
   short: "Introspect",
   name: "Introspection",
   icon: "info",

@@ -157,8 +157,6 @@ export const labels = defineMessages({
     description: "The button to engage with the AI Assistant dialog",
   },
   timetravel: {
-    // DO NOT CHANGE THIS labels.timetravel ID!!!! It is explcitly used in frontend/frame-editors/frame-tree/frame-tree.tsx
-    // This caused a massive bug when i18n was first merged.
     id: "labels.timetravel",
     defaultMessage: "TimeTravel",
     description:
