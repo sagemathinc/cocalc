@@ -923,6 +923,12 @@
       "value": "Construire"
     }
   ],
+  "editor.editor_settings": [
+    {
+      "type": 0,
+      "value": "Paramètres de l'éditeur"
+    }
+  ],
   "editor.errors_and_warning.title": [
     {
       "type": 0,
@@ -1679,6 +1685,78 @@
       "value": "Exécuter les cellules sélectionnées"
     }
   ],
+  "jupyter.llm.cell-tool.actions.bugfix.descr": [
+    {
+      "type": 0,
+      "value": "Décrivez le problème de cette cellule afin d'obtenir une version corrigée."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.bugfix.label": [
+    {
+      "type": 0,
+      "value": "Corriger les bugs"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.document.descr": [
+    {
+      "type": 0,
+      "value": "Ajouter la documentation"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.document.label": [
+    {
+      "type": 0,
+      "value": "Document"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.explain.descr": [
+    {
+      "type": 0,
+      "value": "Obtenez des informations sur le code dans cette cellule."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.explain.label": [
+    {
+      "type": 0,
+      "value": "Expliquer"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.improve.descr": [
+    {
+      "type": 0,
+      "value": "Améliorez le code dans cette cellule."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.improve.label": [
+    {
+      "type": 0,
+      "value": "Améliorer"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.modify.descr": [
+    {
+      "type": 0,
+      "value": "Modifier le code dans la cellule"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.modify.label": [
+    {
+      "type": 0,
+      "value": "Modifier"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.translate.descr": [
+    {
+      "type": 0,
+      "value": "Traduire le code de cette cellule dans une autre langue en utilisant l'IA."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.translate.label": [
+    {
+      "type": 0,
+      "value": "Traduire"
+    }
+  ],
   "jupyter.llm.cell-tool.assistant.title": [
     {
       "type": 0,
@@ -1719,78 +1797,6 @@
     {
       "type": 0,
       "value": "Le modèle linguistique tentera de traduire le code dans la cellule vers un autre langage de programmation. Le résultat pourrait ne pas fonctionner du tout - mais si vous êtes plus familier avec le langage cible sélectionné, vous pourriez trouver plus facile de comprendre ce qui se passe!"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.bugfix.descr": [
-    {
-      "type": 0,
-      "value": "Décrivez le problème de cette cellule afin d'obtenir une version corrigée."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.bugfix.label": [
-    {
-      "type": 0,
-      "value": "Expliquer"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.document.descr": [
-    {
-      "type": 0,
-      "value": "Ajouter la documentation"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.document.label": [
-    {
-      "type": 0,
-      "value": "Document"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.explain.descr": [
-    {
-      "type": 0,
-      "value": "Obtenez des informations sur le code dans cette cellule."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.explain.label": [
-    {
-      "type": 0,
-      "value": "Expliquer"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.improve.descr": [
-    {
-      "type": 0,
-      "value": "Améliorez le code dans cette cellule."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.improve.label": [
-    {
-      "type": 0,
-      "value": "Améliorer"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.modify.descr": [
-    {
-      "type": 0,
-      "value": "Modifier le code dans la cellule"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.modify.label": [
-    {
-      "type": 0,
-      "value": "Modifier"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.translate.descr": [
-    {
-      "type": 0,
-      "value": "Traduire le code de cette cellule dans une autre langue en utilisant l'IA."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.translate.label": [
-    {
-      "type": 0,
-      "value": "Traduire"
     }
   ],
   "jupyter.run_all_cells.label": [

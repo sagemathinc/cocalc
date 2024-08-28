@@ -923,6 +923,12 @@
       "value": "Costruisci"
     }
   ],
+  "editor.editor_settings": [
+    {
+      "type": 0,
+      "value": "Impostazioni dell'Editor"
+    }
+  ],
   "editor.errors_and_warning.title": [
     {
       "type": 0,
@@ -1679,6 +1685,78 @@
       "value": "Esegui celle selezionate"
     }
   ],
+  "jupyter.llm.cell-tool.actions.bugfix.descr": [
+    {
+      "type": 0,
+      "value": "Descrivi il problema di quella cella per ottenere una versione corretta del bug."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.bugfix.label": [
+    {
+      "type": 0,
+      "value": "Correggi bug"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.document.descr": [
+    {
+      "type": 0,
+      "value": "Aggiungi documentazione"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.document.label": [
+    {
+      "type": 0,
+      "value": "Documento"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.explain.descr": [
+    {
+      "type": 0,
+      "value": "Ottieni informazioni sul codice in quella cella."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.explain.label": [
+    {
+      "type": 0,
+      "value": "Spiega"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.improve.descr": [
+    {
+      "type": 0,
+      "value": "Migliora il codice in quella cella"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.improve.label": [
+    {
+      "type": 0,
+      "value": "Migliora"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.modify.descr": [
+    {
+      "type": 0,
+      "value": "Modifica il codice nella cella"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.modify.label": [
+    {
+      "type": 0,
+      "value": "Modifica"
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.translate.descr": [
+    {
+      "type": 0,
+      "value": "Traduci il codice in quella cella in un'altra lingua usando l'IA."
+    }
+  ],
+  "jupyter.llm.cell-tool.actions.translate.label": [
+    {
+      "type": 0,
+      "value": "Traduci"
+    }
+  ],
   "jupyter.llm.cell-tool.assistant.title": [
     {
       "type": 0,
@@ -1719,78 +1797,6 @@
     {
       "type": 0,
       "value": "Il modello linguistico tenterà di tradurre il codice nella cella in un altro linguaggio di programmazione. Il risultato potrebbe non funzionare affatto, ma se hai più familiarità con il linguaggio di destinazione selezionato, potresti trovare più facile capire cosa sta succedendo!"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.bugfix.descr": [
-    {
-      "type": 0,
-      "value": "Descrivi il problema di quella cella per ottenere una versione corretta del bug."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.bugfix.label": [
-    {
-      "type": 0,
-      "value": "Spiega"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.document.descr": [
-    {
-      "type": 0,
-      "value": "Aggiungi documentazione"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.document.label": [
-    {
-      "type": 0,
-      "value": "Documento"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.explain.descr": [
-    {
-      "type": 0,
-      "value": "Ottieni informazioni sul codice in quella cella."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.explain.label": [
-    {
-      "type": 0,
-      "value": "Spiega"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.improve.descr": [
-    {
-      "type": 0,
-      "value": "Migliora il codice in quella cella"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.improve.label": [
-    {
-      "type": 0,
-      "value": "Migliora"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.modify.descr": [
-    {
-      "type": 0,
-      "value": "Modifica il codice nella cella"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.modify.label": [
-    {
-      "type": 0,
-      "value": "Modifica"
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.translate.descr": [
-    {
-      "type": 0,
-      "value": "Traduci il codice in quella cella in un'altra lingua usando l'IA."
-    }
-  ],
-  "jupyter.llm.dell-tool.actions.translate.label": [
-    {
-      "type": 0,
-      "value": "Traduci"
     }
   ],
   "jupyter.run_all_cells.label": [

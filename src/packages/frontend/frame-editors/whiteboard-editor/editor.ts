@@ -41,60 +41,78 @@ export const whiteboardCommands = set([
   "chatgpt",
 ]);
 
+const whiteboard: EditorDescription = {
+  type: "whiteboard",
+  short: "Whiteboard",
+  name: "Whiteboard",
+  icon: "file-image",
+  component: Whiteboard,
+  commands: whiteboardCommands,
+  buttons: set([
+    "show_table_of_contents",
+    "show_pages",
+    "show_search",
+    "show_overview",
+  ]),
+} as const;
+
+const search: EditorDescription = {
+  type: "whiteboard-search",
+  short: "Search",
+  name: "Search",
+  icon: "search" as IconName,
+  component: Search,
+  commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+  buttons: set(["decrease_font_size", "increase_font_size"]),
+} as const;
+
+const pages: EditorDescription = {
+  type: "whiteboard-pages",
+  short: "Pages",
+  name: "Pages",
+  icon: "pic-centered" as IconName,
+  component: Pages,
+} as const;
+
+const overview: EditorDescription = {
+  type: "whiteboard-overview",
+  short: "Overview",
+  name: "Overview",
+  icon: "overview" as IconName,
+  commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+  buttons: set(["decrease_font_size", "increase_font_size"]),
+  component: Overview,
+} as const;
+
+const introspect: EditorDescription = {
+  type: "jupyter-introspect",
+  short: "Introspect",
+  name: "Introspection",
+  icon: "info",
+  component: Introspect,
+  commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
+} as const;
+
+const table_of_contents: EditorDescription = {
+  type: "markdown-toc",
+  short: "Contents",
+  name: editor.table_of_contents_name,
+  icon: "align-right",
+  component: TableOfContents,
+  commands: set(["decrease_font_size", "increase_font_size"]),
+  buttons: set(["decrease_font_size", "increase_font_size"]),
+} as const;
+
 export const EDITOR_SPEC = {
-  whiteboard: {
-    short: "Whiteboard",
-    name: "Whiteboard",
-    icon: "file-image",
-    component: Whiteboard,
-    commands: whiteboardCommands,
-    buttons: set([
-      "show_table_of_contents",
-      "show_pages",
-      "show_search",
-      "show_overview",
-    ]),
-  } as EditorDescription,
-  search: {
-    short: "Search",
-    name: "Search",
-    icon: "search" as IconName,
-    component: Search,
-    commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
-    buttons: set(["decrease_font_size", "increase_font_size"]),
-  },
-  pages: {
-    short: "Pages",
-    name: "Pages",
-    icon: "pic-centered" as IconName,
-    component: Pages,
-  },
-  overview: {
-    short: "Overview",
-    name: "Overview",
-    icon: "overview" as IconName,
-    commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
-    buttons: set(["decrease_font_size", "increase_font_size"]),
-    component: Overview,
-  },
+  whiteboard,
+  search,
+  pages,
+  overview,
   terminal,
   time_travel,
-  introspect: {
-    short: "Introspect",
-    name: "Introspection",
-    icon: "info",
-    component: Introspect,
-    commands: set(["decrease_font_size", "increase_font_size", "set_zoom"]),
-  } as EditorDescription,
-  table_of_contents: {
-    short: "Contents",
-    name: editor.table_of_contents_name,
-    icon: "align-right",
-    component: TableOfContents,
-    commands: set(["decrease_font_size", "increase_font_size"]),
-    buttons: set(["decrease_font_size", "increase_font_size"]),
-  } as EditorDescription,
-};
+  introspect,
+  table_of_contents,
+} as const;
 
 export const Editor = createEditor({
   format_bar: false,

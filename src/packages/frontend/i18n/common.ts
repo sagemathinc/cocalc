@@ -157,8 +157,6 @@ export const labels = defineMessages({
     description: "The button to engage with the AI Assistant dialog",
   },
   timetravel: {
-    // DO NOT CHANGE THIS labels.timetravel ID!!!! It is explcitly used in frontend/frame-editors/frame-tree/frame-tree.tsx
-    // This caused a massive bug when i18n was first merged.
     id: "labels.timetravel",
     defaultMessage: "TimeTravel",
     description:
@@ -433,6 +431,11 @@ export const editor = defineMessages({
   latex_cm_title: {
     id: "editor.latex.cm.title",
     defaultMessage: "LaTeX Source Code",
+  },
+  editor_settings: {
+    id: "editor.editor_settings",
+    defaultMessage: "Editor Settings",
+    description: "The name of the editor settings frame",
   },
 });
 

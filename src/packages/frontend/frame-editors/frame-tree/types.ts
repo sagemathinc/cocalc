@@ -35,8 +35,68 @@ export type ErrorStyles = undefined | "monospace";
 
 export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 
+// Each editor gets its own unique type. This is useful to check which editor it is.
+// e.g. #7787 was caused by merely checking on the name, which had changed.
+type EditorType =
+  | "chat"
+  | "cm-lean"
+  | "cm"
+  | "course-assignments"
+  | "course-configuration"
+  | "course-handouts"
+  | "course-shared_project"
+  | "course-students"
+  | "crm-account"
+  | "crm-tables"
+  | "csv-grid"
+  | "errors"
+  | "iframe"
+  | "jupyter_json_edit"
+  | "jupyter_json_view"
+  | "jupyter-introspect"
+  | "jupyter-toc"
+  | "jupyter"
+  | "latex-build"
+  | "latex-toc"
+  | "latex-word_count"
+  | "latex"
+  | "lean-help"
+  | "lean-info"
+  | "lean-messages"
+  | "markdown-rendered"
+  | "markdown-toc"
+  | "markdown"
+  | "pdfjs-canvas"
+  | "preview-html"
+  | "preview-pdf-canvas"
+  | "preview-pdf-native"
+  | "qmd-log"
+  | "rmd-build"
+  | "rst-view"
+  | "sagews-cells"
+  | "sagews-document"
+  | "settings"
+  | "slate"
+  | "slides-notes"
+  | "slides-slideshow"
+  | "slides"
+  | "slideshow-revealjs"
+  | "snippets"
+  | "tasks"
+  | "terminal-guide"
+  | "terminal"
+  | "timetravel"
+  | "whiteboard-overview"
+  | "whiteboard-pages"
+  | "whiteboard-search"
+  | "whiteboard"
+  | "wiki"
+  | "x11-apps"
+  | "x11"
+
 // Editor spec
 export interface EditorDescription {
+  type: EditorType;
   short: string | IntlMessage; // short description of the editor
   name: string | IntlMessage; // slightly longer description
   icon: IconName;
@@ -67,6 +127,7 @@ export interface EditorDescription {
   hide_public?: boolean; // if true, do not show this editor option (in title bar dropdown) when viewing file publicly.
   clear_info?: { text: string; confirm: string };
   placeholder?: string; // placeholder text to use when empty.
+  renderer?: "canvas"; // TODO: is this used at all?
 }
 
 export interface EditorSpec {

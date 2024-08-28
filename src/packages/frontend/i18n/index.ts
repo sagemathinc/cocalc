@@ -99,15 +99,6 @@ export const LOCALIZATIONS: {
       defaultMessage: "English",
     }),
   },
-  es: {
-    name: "Spanish",
-    flag: "🇪🇸",
-    native: "Español",
-    trans: defineMessage({
-      id: "i18n.localization.lang.spanish",
-      defaultMessage: "Spanish",
-    }),
-  },
   de: {
     name: "German",
     flag: "🇩🇪",
@@ -117,22 +108,13 @@ export const LOCALIZATIONS: {
       defaultMessage: "German",
     }),
   },
-  zh: {
-    name: "Chinese",
-    flag: "🇨🇳",
-    native: "中文",
+  es: {
+    name: "Spanish",
+    flag: "🇪🇸",
+    native: "Español",
     trans: defineMessage({
-      id: "i18n.localization.lang.chinese",
-      defaultMessage: "Chinese",
-    }),
-  },
-  ru: {
-    name: "Russian",
-    flag: "🇷🇺",
-    native: "Русский",
-    trans: defineMessage({
-      id: "i18n.localization.lang.russian",
-      defaultMessage: "Russian",
+      id: "i18n.localization.lang.spanish",
+      defaultMessage: "Spanish",
     }),
   },
   fr: {
@@ -151,6 +133,24 @@ export const LOCALIZATIONS: {
     trans: defineMessage({
       id: "i18n.localization.lang.italian",
       defaultMessage: "Italian",
+    }),
+  },
+  zh: {
+    name: "Chinese",
+    flag: "🇨🇳",
+    native: "中文",
+    trans: defineMessage({
+      id: "i18n.localization.lang.chinese",
+      defaultMessage: "Chinese",
+    }),
+  },
+  ru: {
+    name: "Russian",
+    flag: "🇷🇺",
+    native: "Русский",
+    trans: defineMessage({
+      id: "i18n.localization.lang.russian",
+      defaultMessage: "Russian",
     }),
   },
 } as const;
