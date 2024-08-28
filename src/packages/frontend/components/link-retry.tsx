@@ -24,7 +24,7 @@ interface Props {
   onClick?: () => void;
   autoStart?: boolean;
   maxTime?: number;
-  tooltip?: string;
+  tooltip?: React.ReactNode;
 }
 
 const LinkRetry: React.FC<Props> = ({
