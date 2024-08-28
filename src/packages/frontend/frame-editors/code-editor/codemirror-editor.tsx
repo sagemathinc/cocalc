@@ -36,6 +36,7 @@ import { GutterMarkers } from "./codemirror-gutter-markers";
 import { Actions } from "./actions";
 import { EditorState } from "../frame-tree/types";
 import { Path } from "../frame-tree/path";
+import { initFold, saveFold } from "@cocalc/frontend/codemirror/util";
 
 const STYLE = {
   width: "100%",
@@ -290,6 +291,16 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     }
     cmRef.current.setOption("readOnly", props.read_only);
     cm_refresh();
+
+    const foldKey = `${props.path}\\${props.id}`;
+    const saveFoldState = () => {
+      if (cmRef.current != null) {
+        saveFold(cmRef.current,foldKey);
+      }
+    };
+    cmRef.current.on("fold" as any, saveFoldState);
+    cmRef.current.on("unfold" as any, saveFoldState);
+    initFold(cmRef.current, foldKey);
   }
 
   function init_new_codemirror(): void {

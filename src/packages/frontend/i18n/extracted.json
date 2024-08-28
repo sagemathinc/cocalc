@@ -723,7 +723,7 @@
     "defaultMessage": "Describe the problem of that cell in order to get a bugfixed version."
   },
   "jupyter.llm.dell-tool.actions.bugfix.label": {
-    "defaultMessage": "Explain"
+    "defaultMessage": "Fix Bugs"
   },
   "jupyter.llm.dell-tool.actions.document.descr": {
     "defaultMessage": "Add documentation"
