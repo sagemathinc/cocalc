@@ -29,29 +29,43 @@ function App({ children }) {
 
   // setting via ?lang=[locale] takes precedece over account settings
   useAsyncEffect(async () => {
-    const lang = QueryParams.get("lang");
+    const lang_set = QueryParams.get("lang");
+    // lang_temp sets the language *temporarily*, i.e. without changing the account settings and it is sticky
+    // this is useful for impersonation – https://github.com/sagemathinc/cocalc/issues/7782
+    const lang_temp = QueryParams.get("lang_temp");
+    const temp = lang_temp != null;
+    const lang = temp ? lang_temp : lang_set;
     if (lang != null) {
       if (lang in LOCALIZATIONS) {
         console.warn(
-          `URL query parameter 'lang=${lang}' – overriding user configuration.`,
+          `URL query parameter 'lang=${lang}' – overriding user configuration ${
+            temp ? "temporary" : "permanent"
+          }.`,
         );
-        const store = redux.getStore("account");
-        // we have to ensure the account store is available, because this code runs very early
-        await store.async_wait({
-          until: () => store.get_account_id() != null,
-        });
-        redux
-          .getActions("account")
-          .set_other_settings(OTHER_SETTINGS_LOCALE_KEY, lang);
+        if (!temp) {
+          const store = redux.getStore("account");
+          // we have to ensure the account store is available, because this code runs very early
+          await store.async_wait({
+            until: () => store.get_account_id() != null,
+          });
+          redux
+            .getActions("account")
+            .set_other_settings(OTHER_SETTINGS_LOCALE_KEY, lang);
+        }
         setLocale(lang);
       } else {
         console.warn(
-          `URL query parameter 'lang=${lang}' provided, but not a valid locale.`,
+          `URL query parameter '${JSON.stringify({
+            lang_set,
+            lang_temp,
+          })}' provided, but not a valid locale.`,
           `Known values: ${Object.keys(LOCALIZATIONS)}`,
         );
       }
-      // removing the parameter, otherwise this conflicts with further changes of account settings
-      QueryParams.remove("lang");
+      if (!temp) {
+        // removing the parameter, otherwise this conflicts with further changes of account settings
+        QueryParams.remove("lang");
+      }
     } else {
       setLocale(getLocale(other_settings));
     }
