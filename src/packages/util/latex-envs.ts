@@ -18,7 +18,7 @@ transformFigures -- dumb parser to turn this:
 \begin{figure}
 \centering
 \centerline{\includegraphics[width=WIDTH]{URL}}
-\caption{CAPTION}
+\caption{\label{foo}CAPTION}
 \end{figure}
 
 ...
@@ -31,10 +31,8 @@ into this:
 
 ...
 
-<div style="text-align:center"><img src="URL" style="width:WIDTH"/></div>
-\begin{equation}
-\text{CAPTION}
-\end{equation}
+<div style="text-align:center"><img src="URL" style="width:WIDTH"/><br/><br/>\figlabel{foo}CAPTION</div>
+
 
 ...
 
@@ -77,13 +75,18 @@ function transformFigures(content: string): string {
       style = `width:${content.slice(w + "width=".length, w2 - 1)}`;
     }
     const url = content.slice(w2 + 1, w3);
-    const caption = content.slice(c + "\\caption{".length, c2);
+    let caption = content.slice(c + "\\caption{".length, c2);
+    const x = caption.indexOf("\\label{");
+    let figlabel;
+    if (x != -1) {
+      const y = caption.indexOf("}", x);
+      figlabel = `\\figlabel{${caption.slice(x + "\\label{".length, y)}}`;
+      caption = caption.slice(0, x) + caption.slice(y + 1);
+    } else {
+      figlabel = "";
+    }
 
-    const md = `\n\n<div style="text-align:center"><img src="${url}" style="${style}"/></div>\n\n
-\\begin{equation}
-\\text{${caption}}
-\\end{equation}\n\n`;
-
+    const md = `\n\n<div style="text-align:center;margin:20px auto;max-width:750px"><img src="${url}" style="${style}"/><br/><br/><b>Figure${figlabel}:</b> ${caption}</div>\n\n`;
     content =
       content.slice(0, i) + md + content.slice(j + "\\end{figure}".length);
   }
