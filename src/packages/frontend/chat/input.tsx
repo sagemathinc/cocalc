@@ -183,8 +183,8 @@ export default function ChatInput({
         sender_id,
         date,
       });
-      const input = x?.get("input");
-      if (input != null && input != lastSavedRef.current) {
+      const input = x?.get("input") ?? "";
+      if (input != lastSavedRef.current) {
         setInput(input);
         currentInputRef.current = input;
         lastSavedRef.current = input;
@@ -237,8 +237,8 @@ export default function ChatInput({
         saveChat(input);
       }}
       onShiftEnter={(input) => {
-        setInput(input);
-        saveChat(input);
+        setInput("");
+        saveChat("");
         on_send(input);
       }}
       height={height}
