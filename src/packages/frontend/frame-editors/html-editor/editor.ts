@@ -17,70 +17,74 @@ import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 
+const cm: EditorDescription = {
+  type: "cm",
+  short: "Code",
+  name: "Source Code",
+  icon: "code",
+  component: CodemirrorEditor,
+  commands: set([
+    "format_action",
+    "print",
+    "chatgpt",
+    "decrease_font_size",
+    "increase_font_size",
+    "save",
+    "time_travel",
+    "replace",
+    "find",
+    "goto_line",
+    "cut",
+    "paste",
+    "copy",
+    "undo",
+    "redo",
+    "format",
+  ]),
+} as const;
+
+const iframe: EditorDescription = {
+  type: "iframe",
+  short: "HTML",
+  name: "HTML IFrame",
+  icon: "compass",
+  component: IFrameHTML,
+  commands: set([
+    "print",
+    "save",
+    "time_travel",
+    "reload",
+    "decrease_font_size",
+    "increase_font_size",
+    "set_zoom",
+  ]),
+} as const;
+
+const preview: EditorDescription = {
+  type: "preview-html",
+  short: "Preview",
+  name: "Sanitized Preview",
+  icon: "html5",
+  component: SanitizedPreview,
+  commands: set([
+    "print",
+    "decrease_font_size",
+    "increase_font_size",
+    "set_zoom",
+    "save",
+    "time_travel",
+    "reload",
+  ]),
+} as const;
+
 const EDITOR_SPEC = {
-  cm: {
-    short: "Code",
-    name: "Source Code",
-    icon: "code",
-    component: CodemirrorEditor,
-    commands: set([
-      "format_action",
-      "print",
-      "chatgpt",
-      "decrease_font_size",
-      "increase_font_size",
-      "save",
-      "time_travel",
-      "replace",
-      "find",
-      "goto_line",
-      "cut",
-      "paste",
-      "copy",
-      "undo",
-      "redo",
-      "format",
-    ]),
-  } as EditorDescription,
-
-  iframe: {
-    short: "HTML",
-    name: "HTML IFrame",
-    icon: "compass",
-    component: IFrameHTML,
-    commands: set([
-      "print",
-      "save",
-      "time_travel",
-      "reload",
-      "decrease_font_size",
-      "increase_font_size",
-      "set_zoom",
-    ]),
-  } as EditorDescription,
-
-  preview: {
-    short: "Preview",
-    name: "Sanitized Preview",
-    icon: "html5",
-    component: SanitizedPreview,
-    commands: set([
-      "print",
-      "decrease_font_size",
-      "increase_font_size",
-      "set_zoom",
-      "save",
-      "time_travel",
-      "reload",
-    ]),
-  } as EditorDescription,
-
+  cm,
+  iframe,
+  preview,
   terminal,
-
   settings: SETTINGS_SPEC,
-
   time_travel,
-};
+} as const;
 
 export const Editor = createEditor({
   format_bar: true,

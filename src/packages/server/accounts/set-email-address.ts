@@ -36,7 +36,7 @@ import sendEmailVerification from "./send-email-verification";
 export default async function setEmailAddress(
   account_id: string,
   email_address: string,
-  password: string
+  password: string,
 ): Promise<void> {
   if (!isValidUUID(account_id)) {
     throw Error("account_id is not valid");
@@ -52,7 +52,7 @@ export default async function setEmailAddress(
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT email_address, password_hash, email_address_verified, stripe_customer_id FROM accounts WHERE account_id=$1",
-    [account_id]
+    [account_id],
   );
   if (rows.length == 0) {
     throw Error("no such account");
@@ -73,7 +73,7 @@ export default async function setEmailAddress(
     if (!password_hash) {
       await pool.query(
         "UPDATE accounts SET password_hash=$1,  WHERE account_id=$2",
-        [passwordHash(password), account_id]
+        [passwordHash(password), account_id],
       );
     }
     throw new Error(`You are not allowed to change your email address`);
@@ -82,7 +82,7 @@ export default async function setEmailAddress(
   // you're also not allowed to change your email address to one that's covered by an exclusive strategy
   if (checkRequiredSSO({ strategies, email: email_address }) != null) {
     throw new Error(
-      `You are not allowed to change your email address to this one`
+      `You are not allowed to change your email address to this one`,
     );
   }
 
@@ -90,7 +90,7 @@ export default async function setEmailAddress(
     // setting both the email_address *and* password at once.
     await pool.query(
       "UPDATE accounts SET password_hash=$1, email_address=$2 WHERE account_id=$3",
-      [passwordHash(password), email_address, account_id]
+      [passwordHash(password), email_address, account_id],
     );
     return;
   }
@@ -104,12 +104,12 @@ export default async function setEmailAddress(
     (
       await pool.query(
         "SELECT COUNT(*)::INT FROM accounts WHERE email_address=$1",
-        [email_address]
+        [email_address],
       )
     ).rows[0].count > 0
   ) {
     throw Error(
-      `email address "${email_address}" is already in use by another account`
+      `email address "${email_address}" is already in use by another account`,
     );
   }
 
@@ -120,7 +120,7 @@ export default async function setEmailAddress(
   ]);
 
   // Do any pending account creation actions for this email.
-  await accountCreationActions(email_address, account_id);
+  await accountCreationActions({ email_address, account_id });
   await creationActionsDone(account_id);
 
   // sync new email address with stripe
@@ -130,7 +130,7 @@ export default async function setEmailAddress(
       await stripe.update_database();
     } catch (err) {
       console.warn(
-        `ERROR syncing new email address with stripe: ${err} – ignoring`
+        `ERROR syncing new email address with stripe: ${err} – ignoring`,
       );
     }
   }

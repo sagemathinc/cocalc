@@ -157,8 +157,6 @@ export const labels = defineMessages({
     description: "The button to engage with the AI Assistant dialog",
   },
   timetravel: {
-    // DO NOT CHANGE THIS labels.timetravel ID!!!! It is explcitly used in frontend/frame-editors/frame-tree/frame-tree.tsx
-    // This caused a massive bug when i18n was first merged.
     id: "labels.timetravel",
     defaultMessage: "TimeTravel",
     description:
@@ -258,14 +256,36 @@ export const labels = defineMessages({
   linux_terminal: {
     id: "labels.linux_terminal",
     defaultMessage: "Linux Terminal",
-    description: "On a label or frame title describing a Linux Terminal"
-  }
+    description: "On a label or frame title describing a Linux Terminal",
+  },
+  line_numbers: {
+    id: "labels.line_numbers",
+    defaultMessage: "Line Numbers",
+    description: "Show or toggle line numbers in a code file",
+  },
+  code_folding: {
+    id: "labels.code_folding",
+    defaultMessage: "Code Folding",
+    description: "Hide sections in a source code file",
+  },
+  slideshow: {
+    id: "labels.slideshow",
+    defaultMessage: "Slideshow",
+  },
+  insert: {
+    id: "labels.insert",
+    defaultMessage: "Insert",
+  },
 });
 
 export const menu = defineMessages({
   file: {
     id: "menu.generic.file.label",
     defaultMessage: "File",
+  },
+  open: {
+    id: "menu.generic.open_file.label",
+    defaultMessage: "Open...",
   },
   edit: {
     id: "menu.generic.edit.label",
@@ -341,6 +361,14 @@ export const menu = defineMessages({
 });
 
 export const editor = defineMessages({
+  snippets_label: {
+    id: "editor.snippets.label",
+    defaultMessage: "Snippets",
+  },
+  snippets_tooltip: {
+    id: "editor.snippets.tooltip",
+    defaultMessage: "Open a panel containing code snippets.",
+  },
   table_of_contents_short: {
     id: "editor.table_of_contents.short",
     defaultMessage: "Content",
@@ -354,6 +382,60 @@ export const editor = defineMessages({
     id: "editor.terminal.cmd.help.title",
     defaultMessage:
       "Show documentation for using the Linux Terminal in CoCalc.",
+  },
+  build_control_and_log_title: {
+    id: "editor.build_control_and_log.title",
+    defaultMessage: "Build Control and Log",
+  },
+  build_control_and_log_title_short: {
+    id: "editor.build_control_and_log.title.short",
+    defaultMessage: "Build",
+  },
+  errors_and_warnings_title_short: {
+    id: "editor.errors_and_warning.title.short",
+    defaultMessage: "Errors",
+  },
+  errors_and_warnings_title: {
+    id: "editor.errors_and_warning.title",
+    defaultMessage: "Errors and Warnings",
+  },
+  pdfjs_canvas_title_short: {
+    id: "editor.pdfjs_canvas.title.short",
+    defaultMessage: "PDF (preview)",
+  },
+  pdfjs_canvas_title: {
+    id: "editor.pdfjs_canvas.title",
+    defaultMessage: "PDF - Preview",
+  },
+  pdf_embed_title_short: {
+    id: "editor.latex.pdf_embed.title.short",
+    defaultMessage: "PDF (native)",
+  },
+  pdf_embed_title: {
+    id: "editor.latex.pdf_embed.title",
+    defaultMessage: "PDF - Native",
+  },
+  latex_command_print_label: {
+    id: "editor.latex.command.print.label",
+    defaultMessage: "Print LaTeX Source",
+  },
+  latex_command_print_tooltip: {
+    id: "editor.latex.command.print.tooltip",
+    defaultMessage:
+      "Print the source code of this document.  Use Print from the PDF Preview frame to print the rendered document.",
+  },
+  latex_cm_title_short: {
+    id: "editor.latex.cm.title.short",
+    defaultMessage: "Source",
+  },
+  latex_cm_title: {
+    id: "editor.latex.cm.title",
+    defaultMessage: "LaTeX Source Code",
+  },
+  editor_settings: {
+    id: "editor.editor_settings",
+    defaultMessage: "Editor Settings",
+    description: "The name of the editor settings frame",
   },
 });
 
@@ -471,6 +553,30 @@ export const jupyter = {
       id: "jupyter.editor.confirm_halt_kernel.halt",
       defaultMessage: "Halt",
     },
+    raw_json_editor_title: {
+      id: "jupyter.editor.raw_json_editor.title",
+      defaultMessage: "Raw JSON editor",
+    },
+    raw_json_editor_short: {
+      id: "jupyter.editor.raw_json_editor.short",
+      defaultMessage: "JSON edit",
+    },
+    raw_json_view_title: {
+      id: "jupyter.editor.raw_json_view.title",
+      defaultMessage: "Raw JSON viewer",
+    },
+    raw_json_view_short: {
+      id: "jupyter.editor.raw_json_view.short",
+      defaultMessage: "JSON view",
+    },
+    introspect_short: {
+      id: "jupyter.editor.introspect.short",
+      defaultMessage: "Introspect",
+    },
+    introspect_title: {
+      id: "jupyter.editor.introspect.title",
+      defaultMessage: "Introspection",
+    },
   }),
   commands: defineMessages({
     insert_cell_above: {
@@ -523,7 +629,6 @@ export const jupyter = {
       defaultMessage: "None",
       description: "Jupyter Notebook cell toolbar 'None' hides the toolbar",
     },
-
     restart_kernel_noconf_menu: {
       id: "jupyter.commands.restart_kernel_noconf.menu",
       defaultMessage: "Restart kernel",
@@ -698,6 +803,125 @@ export const jupyter = {
       defaultMessage: "Run Selected Cell and All Below",
       description:
         "Run selected cell and all cells below selected cell in a Jupyter Notebook",
+    },
+    paste_cells_menu: {
+      id: "jupyter.commands.paste_cells.menu",
+      defaultMessage: "Paste Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    paste_cells_above_menu: {
+      id: "jupyter.commands.paste_cells_above.menu",
+      defaultMessage: "Paste Cells Above",
+      description: "Cells in a Jupyter Notebook",
+    },
+    paste_cells_below_menu: {
+      id: "jupyter.commands.paste_cells_below.menu",
+      defaultMessage: "Paste Cells Below",
+      description: "Cells in a Jupyter Notebook",
+    },
+    paste_cells_replace_menu: {
+      id: "jupyter.commands.paste_cells_replace.menu",
+      defaultMessage: "Paste Cells and Replace",
+      description: "Cells in a Jupyter Notebook",
+    },
+    insert_cells_menu: {
+      id: "jupyter.commands.insert_cells.menu",
+      defaultMessage: "Insert Cell",
+      description: "Cells in a Jupyter Notebook",
+    },
+    delete_cells_menu: {
+      id: "jupyter.commands.delete_cells.menu",
+      defaultMessage: "Delete Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    move_cells_menu: {
+      id: "jupyter.commands.move_cells.menu",
+      defaultMessage: "Move Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    split_and_merge_menu: {
+      id: "jupyter.commands.split_and_merge.menu",
+      defaultMessage: "Split and Merge",
+      description: "Cells in a Jupyter Notebook",
+    },
+    select_cells_menu: {
+      id: "jupyter.commands.select_cells.menu",
+      defaultMessage: "Select Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    cell_type_menu: {
+      id: "jupyter.commands.cell_type.menu",
+      defaultMessage: "Cell Type",
+      description: "Cells in a Jupyter Notebook",
+    },
+    clear_output_menu: {
+      id: "jupyter.commands.clear_output.menu",
+      defaultMessage: "Clear Output",
+      description: "Cells in a Jupyter Notebook",
+    },
+    format_cells_menu: {
+      id: "jupyter.commands.format_cells.menu",
+      defaultMessage: "Format Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    format_cells_menu_button: {
+      id: "jupyter.commands.format_cells.menu.button",
+      defaultMessage: "Format",
+      description: "Cells in a Jupyter Notebook",
+    },
+    cells_collapse_menu: {
+      id: "jupyter.commands.cells_collapse.menu",
+      defaultMessage: "Collapse",
+      description: "Cells in a Jupyter Notebook",
+    },
+    cells_expand_menu: {
+      id: "jupyter.commands.cells_expand.menu",
+      defaultMessage: "Expand",
+      description: "Cells in a Jupyter Notebook",
+    },
+    cells_protect_menu: {
+      id: "jupyter.commands.cells_protect.menu",
+      defaultMessage: "Protect",
+      description: "Cells in a Jupyter Notebook",
+    },
+    cells_unlock_menu: {
+      id: "jupyter.commands.cells_unlock.menu",
+      defaultMessage: "Remove Protection",
+      description: "Cells in a Jupyter Notebook",
+    },
+    cells_unlock_menu_button: {
+      id: "jupyter.commands.cells_unlock.menu.button",
+      defaultMessage: "Unlock",
+      description: "Cells in a Jupyter Notebook",
+    },
+    view_toolbars_menu_button: {
+      id: "jupyter.commands.view_toolbars.menu.button",
+      defaultMessage: "Toolbars",
+    },
+    view_toolbars_menu: {
+      id: "jupyter.commands.view_toolbars.menu",
+      defaultMessage: "Cell Toolbar",
+      description: "Cells in a Jupyter Notebook",
+    },
+    download_as_pdf: {
+      id: "jupyter.commands.download_as_pdf",
+      defaultMessage: "Save and Export As PDF",
+    },
+    download_as_html: {
+      id: "jupyter.commands.download_as_html",
+      defaultMessage: "Save and Export As HTML",
+    },
+    export_menu: {
+      id: "jupyter.commands.export.menu",
+      defaultMessage: "Save and Export...",
+    },
+    nbgrader_assign_menu: {
+      id: "jupyter.commands.nbgrader_assign.menu",
+      defaultMessage: "Generate student version...",
+    },
+    nbgrader_assign_button: {
+      id: "jupyter.commands.nbgrader_assign.buton",
+      defaultMessage: "Generate",
     },
   }),
 };

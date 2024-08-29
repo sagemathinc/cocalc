@@ -32,6 +32,7 @@ import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import React from "react";
+
 import {
   ReactDOM,
   redux,
@@ -290,8 +291,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       let name_leaf = name;
       let actions_leaf = actions;
       if (
-        typeof spec.name != "string" &&
-        spec.name?.id === "labels.timetravel" &&
+        spec.type === "timetravel" &&
         !(actions instanceof TimeTravelActions)
       ) {
         if (path_leaf.slice(path_leaf.length - 12) != ".time-travel") {

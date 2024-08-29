@@ -43,8 +43,7 @@ import ms from "ms";
 import passport, { AuthenticateOptions } from "passport";
 import { join as path_join } from "path";
 import { v4 as uuidv4, v4 } from "uuid";
-const safeJsonStringify = require("safe-json-stringify");
-
+import safeJsonStringify from "safe-json-stringify";
 import passwordHash, {
   verifyPassword,
 } from "@cocalc/backend/auth/password-hash";
@@ -99,7 +98,7 @@ import {
   GoogleStrategyConf,
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
-const sign_in = require("./sign-in");
+import { record_sign_in } from "./sign-in";
 
 const logger = getLogger("server:hub:auth");
 
@@ -615,7 +614,7 @@ export class PassportManager {
         passports: this.passports ?? {},
         database: this.database,
         host: this.host,
-        record_sign_in: sign_in.record_sign_in,
+        record_sign_in,
         id: profile.id, // ATTN: not all strategies have an ID → you have to derive the ID from the profile below via the "login_info" mapping (e.g. {id: "email"})
         strategyName: name,
         profile, // will just get saved in database

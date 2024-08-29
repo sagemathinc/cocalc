@@ -8,9 +8,7 @@
 // https://github.com/passport-next/passport-oauth2/blob/master/lib/strategy.js#L276
 
 import jwt_decode from "jwt-decode";
-
-const safeJsonStringify = require("safe-json-stringify");
-
+import safeJsonStringify from "safe-json-stringify";
 import { parseOpenIdProfile } from "@cocalc/server/auth/sso/openid-parser";
 import { UserProfileCallbackOpts } from "@cocalc/database/settings/auth-sso-types";
 
