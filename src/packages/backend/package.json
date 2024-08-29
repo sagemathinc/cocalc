@@ -34,7 +34,6 @@
     "@cocalc/util": "workspace:*",
     "@types/debug": "^4.1.12",
     "awaiting": "^3.0.0",
-    "chokidar": "^3.6.0",
     "debug": "^4.3.2",
     "fs-extra": "^11.2.0",
     "lodash": "^4.17.21",
@@ -44,7 +43,8 @@
     "rimraf": "^5.0.5",
     "shell-escape": "^0.2.0",
     "supports-color": "^9.0.2",
-    "underscore": "^1.12.1"
+    "underscore": "^1.12.1",
+    "watchpack": "^2.4.2"
   },
   "repository": {
     "type": "git",

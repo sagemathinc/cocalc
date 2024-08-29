@@ -32,13 +32,12 @@ we are only ever watching a relatively small number of directories
 with a long interval, so polling is not so bad.
 */
 
-import { watch, WatchOptions } from "chokidar";
+import Watchpack from "watchpack";
 import { FSWatcher } from "fs";
 import { join } from "path";
 import { EventEmitter } from "events";
-import { debounce } from "lodash";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { close, path_split } from "@cocalc/util/misc";
+import { close } from "@cocalc/util/misc";
 import { getLogger } from "./logger";
 
 const logger = getLogger("backend:path-watcher");
@@ -57,21 +56,10 @@ const DEFAULT_POLL_MS = parseInt(
   process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "1500",
 );
 
-const ChokidarOpts: WatchOptions = {
-  persistent: true, // otherwise won't work
+const WatchpackOptions = {
+  aggregateTimeout: 1000,
+  poll: DEFAULT_POLL_MS,
   followSymlinks: false, // don't wander about
-  disableGlobbing: true, // watch the path as it is, that's it
-  usePolling: POLLING,
-  interval: DEFAULT_POLL_MS,
-  binaryInterval: DEFAULT_POLL_MS,
-  depth: 0, // we only care about the explicitly mentioned path – there could be a lot of files and sub-dirs!
-  // maybe some day we want this:
-  // awaitWriteFinish: {
-  //   stabilityThreshold: 100,
-  //   pollInterval: 50,
-  // },
-  ignorePermissionErrors: true,
-  alwaysStat: false,
 } as const;
 
 export class Watcher extends EventEmitter {
@@ -81,7 +69,6 @@ export class Watcher extends EventEmitter {
   private watchExistence?: FSWatcher;
   private interval_ms: number;
   private debounce_ms: number;
-  private debouncedChange: any;
   private log: Function;
 
   constructor(
@@ -100,12 +87,6 @@ export class Watcher extends EventEmitter {
     this.path = path.startsWith("/") ? path : join(process.env.HOME, path);
     this.debounce_ms = debounce_ms;
     this.interval_ms = interval_ms ?? DEFAULT_POLL_MS;
-    this.debouncedChange = this.debounce_ms
-      ? debounce(this.change, this.debounce_ms, {
-          leading: true,
-          trailing: true,
-        }).bind(this)
-      : this.change;
     this.init();
   }
 
@@ -122,51 +103,33 @@ export class Watcher extends EventEmitter {
     }
   }
 
-  private chokidarOptions = () => {
+  private watchpackOptions = () => {
     return {
-      ...ChokidarOpts,
-      interval: this.interval_ms,
-      binaryInterval: this.interval_ms,
+      ...WatchpackOptions,
+      poll: this.interval_ms ?? WatchpackOptions.poll,
+      aggregateTimeout: this.debounce_ms ?? WatchpackOptions.aggregateTimeout,
     };
   };
 
   private initWatchContents(): void {
-    this.watchContents = watch(this.path, this.chokidarOptions());
-    this.watchContents.on("all", this.debouncedChange);
-    this.watchContents.on("error", (err) => {
+    const w = new Watchpack(this.watchpackOptions());
+    this.watchContents = w;
+    w.watch({ directories: [this.path] });
+    w.on("aggregated", this.change);
+    w.on("error", (err) => {
       this.log(`error watching listings -- ${err}`);
     });
   }
 
   private async initWatchExistence(): Promise<void> {
-    const containing_path = path_split(this.path).head;
-    this.watchExistence = watch(containing_path, this.chokidarOptions());
-    this.watchExistence.on("all", this.watchExistenceChange(containing_path));
-    this.watchExistence.on("error", (err) => {
-      this.log(`error watching for existence of ${this.path} -- ${err}`);
+    const w = new Watchpack(this.watchpackOptions());
+    this.watchContents = w;
+    w.watch({ missing: [this.path] });
+    w.on("aggregated", this.change);
+    w.on("error", (err) => {
+      this.log(`error watching listings -- ${err}`);
     });
   }
-
-  private watchExistenceChange = (containing_path) => async (_, filename) => {
-    const path = join(containing_path, filename);
-    if (path != this.path) return;
-    const e = await exists(this.path);
-    if (!this.exists && e) {
-      // it sprung into existence
-      this.exists = e;
-      this.initWatchContents();
-      this.change();
-    } else if (this.exists && !e) {
-      // it got deleted
-      this.exists = e;
-      if (this.watchContents != null) {
-        this.watchContents.close();
-        delete this.watchContents;
-      }
-
-      this.change();
-    }
-  };
 
   private change = (): void => {
     this.emit("change");
