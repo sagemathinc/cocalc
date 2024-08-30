@@ -302,7 +302,6 @@ export class ChatActions extends Actions<ChatState> {
         search: "",
       });
     }
-    return time_stamp_str;
     this.ensureDraftStartsWithHashtags(false);
 
     if (this.store != null) {
