@@ -15,70 +15,67 @@ is an event emitter with events:
 
 and a method .close().
 
+Only fires after the file definitely has not had its
+ctime changed for at least debounce ms.  Does NOT
+fire when the file first has ctime changed.
+
+NOTE: for directories we use chokidar in path-watcher.  However,
+for a single file using polling, chokidar is horribly buggy and
+lacking in functionality (e.g., https://github.com/paulmillr/chokidar/issues/1132),
+and declared all bugs fixed, so we steer clear.  It had a lot of issues
+with just noticing actual file changes.
+
 We *always* use polling to fully support networked filesystems.
-
-For testing something like this:
-
-a = require('./dist/watcher'); w = new a.Watcher('/projects/3fa218e5-7196-4020-8b30-e2127847cc4f/cocalc/src/packages/backend/x.txt'); w.on('change', console.log); w.on('delete',()=>console.log("delete"))
 */
 
 import { EventEmitter } from "node:events";
-import Watchpack from "watchpack";
+import { unwatchFile, watchFile } from "node:fs";
 import { getLogger } from "./logger";
-import { stat } from "fs/promises";
-import { join } from "path";
-import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { close } from "@cocalc/util/misc";
+import { debounce as lodashDebounce } from "lodash";
 
 const logger = getLogger("backend:watcher");
 
-const DEFAULT_POLL_MS = parseInt(
-  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "750",
-);
-
 export class Watcher extends EventEmitter {
   private path: string;
-  private watchContents?: Watchpack;
-  private log: Function;
 
-  constructor(path: string, { debounce = 0 }: { debounce?: number } = {}) {
+  constructor(
+    path: string,
+    { debounce, interval = 750 }: { debounce?: number; interval?: number } = {},
+  ) {
     super();
-    this.log = logger.extend(path).debug;
-    if (process.env.HOME == null) {
-      throw Error("bug -- HOME must be defined");
+    this.path = path;
+
+    logger.debug("watchFile", { path, debounce, interval });
+    watchFile(this.path, { persistent: false, interval }, this.handleChange);
+
+    if (debounce) {
+      this.emitChange = lodashDebounce(this.emitChange, debounce);
     }
-    this.path = path.startsWith("/") ? path : join(process.env.HOME, path);
-    this.log("init file watcher:", { path: this.path });
-    this.init({ debounce });
   }
 
-  private init = async ({ debounce }) => {
-    const w = new Watchpack({
-      followSymlinks: true,
-      poll: DEFAULT_POLL_MS,
-      aggregateTimeout: debounce,
-    });
-    this.watchContents = w;
-    if (await exists(this.path)) {
-      this.log("watch", { files: [this.path] });
-      w.watch({ files: [this.path] });
-    } else {
-      this.log("watch", { missing: [this.path] });
-      w.watch({ missing: [this.path] });
-    }
-    w.on("aggregated", async () => {
-      try {
-        const stats = await stat(this.path);
-        this.emit("change", stats.ctime, stats);
-      } catch (_) {
-        this.emit("delete");
-      }
-    });
+  private emitChange = (stats) => {
+    this.emit("change", stats.ctime, stats);
   };
 
-  public close(): void {
-    this.watchContents?.close();
-    close(this);
-  }
-}
+  private handleChange = (curr, prev) => {
+    const path = this.path;
+    if (!curr.dev) {
+      logger.debug("handleChange: delete", { path });
+      this.emit("delete");
+      return;
+    }
+    if (curr.mtimeMs == prev.mtimeMs && curr.mode == prev.mode) {
+      logger.debug("handleChange: access but no change", { path });
+      // just *accessing* triggers watchFile (really StatWatcher), of course.
+      return;
+    }
+    logger.debug("handleChange: change", { path });
+    this.emitChange(curr);
+  };
 
+  close = () => {
+    logger.debug("close", this.path);
+    this.removeAllListeners();
+    unwatchFile(this.path, this.handleChange);
+  };
+}

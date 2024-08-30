@@ -116,9 +116,6 @@ importers:
       underscore:
         specifier: ^1.12.1
         version: 1.13.4
-      watchpack:
-        specifier: ^2.4.2
-        version: 2.4.2
     devDependencies:
       '@types/node':
         specifier: ^18.16.14
