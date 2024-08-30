@@ -4,8 +4,8 @@
  */
 
 /*
-Watch A DIRECTORY for changes.  Use ./watcher.ts for a single file.
-
+Watch A DIRECTORY for changes of the files in *that* directory only (not recursive). 
+Use ./watcher.ts for a single file.
 
 Slightly generalized fs.watch that works even when the directory doesn't exist,
 but also doesn't provide any information about what changed.

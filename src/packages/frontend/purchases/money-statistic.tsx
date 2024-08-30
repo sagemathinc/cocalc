@@ -1,11 +1,5 @@
 import type { ReactNode } from "react";
-import {
-  currency,
-  round2,
-  round3,
-  round4,
-  round2down,
-} from "@cocalc/util/misc";
+import { currency, round2down, round4 } from "@cocalc/util/misc";
 import { Tooltip, Statistic } from "antd";
 import { zIndexTip } from "./zindex";
 
@@ -25,35 +19,6 @@ export default function MoneyStatistic({
   if (roundDown) {
     value = round2down(value);
   }
-  let body;
-  if (value >= 0.0095) {
-    body = (
-      <Statistic
-        title={<>{title} (USD)</>}
-        value={round2(value)}
-        precision={2}
-        prefix={"$"}
-      />
-    );
-  } else if (Math.abs(value) <= 0.0001) {
-    body = (
-      <Statistic
-        title={<>{title} (USD)</>}
-        value={0}
-        precision={0}
-        prefix={"$"}
-      />
-    );
-  } else {
-    body = (
-      <Statistic
-        title={<>{title} (USD)</>}
-        value={round3(value)}
-        precision={3}
-        prefix={"$"}
-      />
-    );
-  }
 
   return (
     <Tooltip
@@ -72,7 +37,12 @@ export default function MoneyStatistic({
         </>
       )}
     >
-      {body}
+      <Statistic
+        title={<>{title} (USD)</>}
+        value={value}
+        precision={2}
+        prefix={"$"}
+      />
     </Tooltip>
   );
 }
