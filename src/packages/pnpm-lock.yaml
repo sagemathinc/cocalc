@@ -77,6 +77,9 @@ importers:
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
+      '@types/watchpack':
+        specifier: ^2.4.4
+        version: 2.4.4
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
@@ -4393,6 +4396,9 @@ packages:
 
   '@types/uuid@9.0.8':
     resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
+
+  '@types/watchpack@2.4.4':
+    resolution: {integrity: sha512-SbuSavsPxfOPZwVHBgQUVuzYBe6+8KL7dwiJLXaj5rmv3DxktOMwX5WP1J6UontwUbewjVoc7pCgZvqy6rPn+A==}
 
   '@types/xml-crypto@1.4.3':
     resolution: {integrity: sha512-pnvKYb7vUsUIMc+C6JM/j779YWQgOMcwjnqHJ9cdaWXwWEBE1hAqthzeszRx62V5RWMvS+XS9w9tXMOYyUc8zg==}
@@ -14859,6 +14865,11 @@ snapshots:
 
   '@types/uuid@9.0.8': {}
 
+  '@types/watchpack@2.4.4':
+    dependencies:
+      '@types/graceful-fs': 4.1.9
+      '@types/node': 18.19.31
+
   '@types/xml-crypto@1.4.3':
     dependencies:
       '@types/node': 18.19.31
@@ -21524,7 +21535,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 18.16.14
+      '@types/node': 18.19.31
       long: 5.2.3
 
   protocol-buffers-schema@3.6.0: {}
@@ -23952,7 +23963,7 @@ snapshots:
       schema-utils: 3.3.0
       tapable: 2.2.1
       terser-webpack-plugin: 5.3.10(webpack@5.93.0)
-      watchpack: 2.4.1
+      watchpack: 2.4.2
       webpack-sources: 3.2.3
     transitivePeerDependencies:
       - '@swc/core'
@@ -23983,7 +23994,7 @@ snapshots:
       schema-utils: 3.3.0
       tapable: 2.2.1
       terser-webpack-plugin: 5.3.10(uglify-js@3.17.4)(webpack@5.93.0(uglify-js@3.17.4))
-      watchpack: 2.4.1
+      watchpack: 2.4.2
       webpack-sources: 3.2.3
     transitivePeerDependencies:
       - '@swc/core'

@@ -6,7 +6,6 @@
 /*
 Watch A DIRECTORY for changes.  Use ./watcher.ts for a single file.
 
-
 Slightly generalized fs.watch that works even when the directory doesn't exist,
 but also doesn't provide any information about what changed.
 
@@ -33,7 +32,6 @@ with a long interval, so polling is not so bad.
 */
 
 import Watchpack from "watchpack";
-import { FSWatcher } from "fs";
 import { join } from "path";
 import { EventEmitter } from "events";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
@@ -42,101 +40,46 @@ import { getLogger } from "./logger";
 
 const logger = getLogger("backend:path-watcher");
 
-// const COCALC_FS_WATCHER = process.env.COCALC_FS_WATCHER ?? "inotify";
-// if (!["inotify", "poll"].includes(COCALC_FS_WATCHER)) {
-//   throw new Error(
-//     `$COCALC_FS_WATCHER=${COCALC_FS_WATCHER} -- must be "inotify" or "poll"`,
-//   );
-// }
-// const POLLING = COCALC_FS_WATCHER === "poll";
-
-const POLLING = true;
-
 const DEFAULT_POLL_MS = parseInt(
-  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "1500",
+  process.env.COCALC_FS_WATCHER_POLL_INTERVAL_MS ?? "750",
 );
-
-const WatchpackOptions = {
-  aggregateTimeout: 1000,
-  poll: DEFAULT_POLL_MS,
-  followSymlinks: false, // don't wander about
-} as const;
 
 export class Watcher extends EventEmitter {
   private path: string;
-  private exists: boolean;
-  private watchContents?: FSWatcher;
-  private watchExistence?: FSWatcher;
-  private interval_ms: number;
-  private debounce_ms: number;
+  private watchContents?: Watchpack;
   private log: Function;
 
-  constructor(
-    path: string,
-    {
-      debounce: debounce_ms = 0,
-      interval: interval_ms,
-    }: { debounce?: number; interval?: number } = {},
-  ) {
+  constructor(path: string, { debounce = 0 }: { debounce?: number } = {}) {
     super();
     this.log = logger.extend(path).debug;
-    this.log(`initializing: poll=${POLLING}`);
     if (process.env.HOME == null) {
       throw Error("bug -- HOME must be defined");
     }
     this.path = path.startsWith("/") ? path : join(process.env.HOME, path);
-    this.debounce_ms = debounce_ms;
-    this.interval_ms = interval_ms ?? DEFAULT_POLL_MS;
-    this.init();
+    this.log("init path watcher:", { path: this.path });
+    this.init({ debounce });
   }
 
-  private async init(): Promise<void> {
-    this.log("init watching", this.path);
-    this.exists = await exists(this.path);
-    if (this.path != "") {
-      this.log("init watching", this.path, " for existence");
-      this.initWatchExistence();
-    }
-    if (this.exists) {
-      this.log("init watching", this.path, " contents");
-      this.initWatchContents();
-    }
-  }
-
-  private watchpackOptions = () => {
-    return {
-      ...WatchpackOptions,
-      poll: this.interval_ms ?? WatchpackOptions.poll,
-      aggregateTimeout: this.debounce_ms ?? WatchpackOptions.aggregateTimeout,
-    };
-  };
-
-  private initWatchContents(): void {
-    const w = new Watchpack(this.watchpackOptions());
-    this.watchContents = w;
-    w.watch({ directories: [this.path] });
-    w.on("aggregated", this.change);
-    w.on("error", (err) => {
-      this.log(`error watching listings -- ${err}`);
+  private init = async ({ debounce }) => {
+    const w = new Watchpack({
+      followSymlinks: false,
+      poll: DEFAULT_POLL_MS,
+      aggregateTimeout: debounce,
     });
-  }
-
-  private async initWatchExistence(): Promise<void> {
-    const w = new Watchpack(this.watchpackOptions());
     this.watchContents = w;
-    w.watch({ missing: [this.path] });
-    w.on("aggregated", this.change);
-    w.on("error", (err) => {
-      this.log(`error watching listings -- ${err}`);
+    if (this.path == "" || (await exists(this.path))) {
+      console.log("watch", { directories: [this.path] });
+      w.watch({ directories: [this.path] });
+    } else {
+      console.log("watch", { missing: [this.path] });
+      w.watch({ missing: [this.path] });
+    }
+    w.on("aggregated", () => {
+      this.emit("change");
     });
-  }
-
-  private change = (): void => {
-    this.emit("change");
   };
 
   public close(): void {
-    this.watchExistence?.close();
     this.watchContents?.close();
     close(this);
   }
