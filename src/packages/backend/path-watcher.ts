@@ -12,23 +12,11 @@ but also doesn't provide any information about what changed.
 NOTE: We could maintain the directory listing and just try to update info about the filename,
 taking into account the type.  That's probably really hard to get right, and just
 debouncing and computing the whole listing is going to be vastly easier and good
-enough at least for first round of this.
+enough, unless the directory has a bazillion files.
 
-We assume path is relative to HOME and contained inside of HOME.
+We assume path is relative to HOME or is absolute.
 
-The code below deals with two very different cases:
- - when that path doesn't exist: use fs.watch on the parent directory.
-        NOTE: this case can't happen when path='', which exists, so we can assume to have read perms on parent.
- - when the path does exist: use fs.watch (hence inotify) on the path itself to report when it changes
-
-NOTE: if you are running on a file system like NFS, inotify won't work well or not at all.
-In that case, set the env variable COCALC_FS_WATCHER=poll to use polling instead.
-You can configure the poll interval by setting COCALC_FS_WATCHER_POLL_INTERVAL_MS.
-
-UPDATE: We are using polling in ALL cases.  We have subtle bugs
-with adding and removing directories otherwise, and also
-we are only ever watching a relatively small number of directories
-with a long interval, so polling is not so bad.
+NOTE: We always use polling so that network file systems like NFS just work by default.
 */
 
 import Watchpack from "watchpack";
@@ -68,10 +56,10 @@ export class Watcher extends EventEmitter {
     });
     this.watchContents = w;
     if (this.path == "" || (await exists(this.path))) {
-      console.log("watch", { directories: [this.path] });
+      this.log("watch", { directories: [this.path] });
       w.watch({ directories: [this.path] });
     } else {
-      console.log("watch", { missing: [this.path] });
+      this.log("watch", { missing: [this.path] });
       w.watch({ missing: [this.path] });
     }
     w.on("aggregated", () => {

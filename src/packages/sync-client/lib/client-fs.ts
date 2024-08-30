@@ -212,16 +212,15 @@ export class FileSystemClient {
 
   watch_file = ({
     path: relPath,
-    interval = 1500, // polling interval in ms
-    debounce = 500, // don't fire until at least this many ms after the file has REMAINED UNCHANGED
+    // don't fire until at least this many ms after the file has REMAINED UNCHANGED
+    debounce,
   }: {
     path: string;
-    interval?: number;
     debounce?: number;
   }): Watcher => {
     const path = join(this.home, relPath);
-    logger.debug("watching file", { path, interval, debounce });
-    return new Watcher(path, { interval, debounce });
+    logger.debug("watching file", { path, debounce });
+    return new Watcher(path, { debounce });
   };
 
   is_deleted = (_path: string, _project_id: string) => {
