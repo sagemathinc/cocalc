@@ -83,6 +83,9 @@ importers:
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
+      chokidar:
+        specifier: ^3.6.0
+        version: 3.6.0
       debug:
         specifier: ^4.3.2
         version: 4.3.4(supports-color@9.3.1)
