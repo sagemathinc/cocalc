@@ -10,7 +10,7 @@ export default function ServiceTag({
 }) {
   const spec = QUOTA_SPEC[service];
   return (
-    <Tag style={style} color={spec?.color}>
+    <Tag style={{ whiteSpace: "pre-wrap", ...style }} color={spec?.color}>
       {spec?.display ?? service}
     </Tag>
   );
