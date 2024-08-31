@@ -25,6 +25,7 @@ import { realpath } from "fs/promises";
 import { promisify } from "util";
 import which from "which";
 const exec = promisify(child_process_exec);
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
 // they can't be set as defaults for projects since this could break it from starting up
@@ -320,31 +321,36 @@ async function capabilities(): Promise<MainCapabilities> {
 // "main": everything that's needed throughout the project
 // "x11": additional checks which are queried when an X11 editor opens up
 // TODO similarly, query available "shells" to use for the corresponding code editor button
-export async function get_configuration(
-  aspect: ConfigurationAspect,
-  no_cache = false,
-): Promise<Configuration> {
-  const cached = conf[aspect];
-  if (cached != null && !no_cache) return cached;
-  const t0 = new Date().getTime();
-  const new_conf: any = (async function () {
-    switch (aspect) {
-      case "main":
-        return {
-          timestamp: new Date(),
-          capabilities: await capabilities(),
-        };
-      case "x11":
-        return {
-          timestamp: new Date(),
-          capabilities: await x11_apps(),
-        };
-    }
-  })();
-  new_conf.timing_s = (new Date().getTime() - t0) / 1000;
-  conf[aspect] = await new_conf;
-  return new_conf;
-}
+
+// This is expensive, so put in a reuseInFlight to make it cheap in case a frontend
+// annoyingly calls this dozens of times at once -- https://github.com/sagemathinc/cocalc/issues/7806
+export const get_configuration = reuseInFlight(
+  async (
+    aspect: ConfigurationAspect,
+    no_cache = false,
+  ): Promise<Configuration> => {
+    const cached = conf[aspect];
+    if (cached != null && !no_cache) return cached;
+    const t0 = new Date().getTime();
+    const new_conf: any = (async function () {
+      switch (aspect) {
+        case "main":
+          return {
+            timestamp: new Date(),
+            capabilities: await capabilities(),
+          };
+        case "x11":
+          return {
+            timestamp: new Date(),
+            capabilities: await x11_apps(),
+          };
+      }
+    })();
+    new_conf.timing_s = (new Date().getTime() - t0) / 1000;
+    conf[aspect] = await new_conf;
+    return new_conf;
+  },
+);
 
 // testing: uncomment, and run $ ts-node configuration.ts
 // (async () => {
