@@ -26,6 +26,8 @@ import { promisify } from "util";
 import which from "which";
 const exec = promisify(child_process_exec);
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { getLogger } from "@cocalc/backend/logger";
+const logger = getLogger("configuration");
 
 // we prefix the environment PATH by default bin paths pointing into it in order to pick up locally installed binaries.
 // they can't be set as defaults for projects since this could break it from starting up
@@ -252,70 +254,105 @@ async function get_homeDirectory(): Promise<string | null> {
 }
 
 // assemble capabilities object
-async function capabilities(): Promise<MainCapabilities> {
-  const sage_info_future = get_sage_info();
-  const hashsums = await get_hashsums();
-  const [
-    formatting,
-    latex,
-    jupyter,
-    spellcheck,
-    html2pdf,
-    pandoc,
-    sshd,
-    library,
-    x11,
-    rmd,
-    qmd,
-    vscode,
-    julia,
-    homeDirectory,
-    rserver,
-  ] = await Promise.all([
-    get_formatting(),
-    get_latex(hashsums),
-    get_jupyter(),
-    get_spellcheck(),
-    get_html2pdf(),
-    get_pandoc(),
-    get_sshd(),
-    get_library(),
-    get_x11(),
-    get_rmd(),
-    get_quarto(),
-    get_vscode(),
-    get_julia(),
-    get_homeDirectory(),
-    get_rserver(),
-  ]);
-  const caps: MainCapabilities = {
-    jupyter,
-    rserver,
-    formatting,
-    hashsums,
-    latex,
-    sage: false,
-    sage_version: undefined,
-    x11,
-    rmd,
-    qmd,
-    jq: await get_jq(), // don't know why, but it doesn't compile when inside the Promise.all
-    spellcheck,
-    library,
-    sshd,
-    html2pdf,
-    pandoc,
-    vscode,
-    julia,
-    homeDirectory,
-  };
-  const sage = await sage_info_future;
-  caps.sage = sage.exists;
-  if (caps.sage) {
-    caps.sage_version = sage.version;
+// no matter what, never run this more than once very this many MS.
+// I have at least one project in production that gets DOS'd due to
+// calls to capabilities, even with the reuseInFlight stuff.
+const SHORT_CAPABILITIES_CACHE_MS = 15000;
+let shortCapabilitiesCache = {
+  time: 0,
+  caps: null as null | MainCapabilities,
+  error: null as any,
+};
+
+const capabilities = reuseInFlight(async (): Promise<MainCapabilities> => {
+  const time = Date.now();
+  if (time - shortCapabilitiesCache.time <= SHORT_CAPABILITIES_CACHE_MS) {
+    if (shortCapabilitiesCache.error != null) {
+      logger.debug("capabilities: using cache for error");
+      throw shortCapabilitiesCache.error;
+    }
+    if (shortCapabilitiesCache.caps != null) {
+      logger.debug("capabilities: using cache for caps");
+      return shortCapabilitiesCache.caps as MainCapabilities;
+    }
+    logger.debug("capabilities: BUG -- want to use cache but no data");
   }
-  return caps;
-}
+  logger.debug("capabilities: running");
+  try {
+    const sage_info_future = get_sage_info();
+    const hashsums = await get_hashsums();
+    const [
+      formatting,
+      latex,
+      jupyter,
+      spellcheck,
+      html2pdf,
+      pandoc,
+      sshd,
+      library,
+      x11,
+      rmd,
+      qmd,
+      vscode,
+      julia,
+      homeDirectory,
+      rserver,
+    ] = await Promise.all([
+      get_formatting(),
+      get_latex(hashsums),
+      get_jupyter(),
+      get_spellcheck(),
+      get_html2pdf(),
+      get_pandoc(),
+      get_sshd(),
+      get_library(),
+      get_x11(),
+      get_rmd(),
+      get_quarto(),
+      get_vscode(),
+      get_julia(),
+      get_homeDirectory(),
+      get_rserver(),
+    ]);
+    const caps: MainCapabilities = {
+      jupyter,
+      rserver,
+      formatting,
+      hashsums,
+      latex,
+      sage: false,
+      sage_version: undefined,
+      x11,
+      rmd,
+      qmd,
+      jq: await get_jq(), // don't know why, but it doesn't compile when inside the Promise.all
+      spellcheck,
+      library,
+      sshd,
+      html2pdf,
+      pandoc,
+      vscode,
+      julia,
+      homeDirectory,
+    };
+    const sage = await sage_info_future;
+    caps.sage = sage.exists;
+    if (caps.sage) {
+      caps.sage_version = sage.version;
+    }
+    logger.debug("capabilities: saving caps");
+    shortCapabilitiesCache.time = time;
+    shortCapabilitiesCache.error = null;
+    shortCapabilitiesCache.caps = caps;
+    return caps as MainCapabilities;
+  } catch (err) {
+    logger.debug("capabilities: saving error", err);
+    shortCapabilitiesCache.time = time;
+    shortCapabilitiesCache.error = err;
+    shortCapabilitiesCache.caps = null;
+    throw err;
+  }
+});
 
 // this is the entry point for the API call
 // "main": everything that's needed throughout the project
