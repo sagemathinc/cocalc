@@ -909,7 +909,12 @@ ${details}
     // in parallel, two will launch at about the same time and
     // the *condition* to know if it is done depends on the store,
     // which defers when it gets updated.  Anyway, this line is critical:
-    this.update_peer_assignment(assignment_id);
+    try {
+      this.update_peer_assignment(assignment_id);
+    } catch (err) {
+      this.course_actions.set_error(`${short_desc} -- ${err}`);
+      return;
+    }
     await this.start_all_for_peer_grading();
     // OK, now do the assignment... in parallel.
     await this.assignment_action_all_students(
@@ -1037,7 +1042,15 @@ ${details}
       desc: `Copying peer grading to ${student_name}`,
     });
 
-    const peer_map = this.update_peer_assignment(assignment_id); // synchronous
+    let peer_map;
+    try {
+      // synchronous, but could fail, e.g., not enough students
+      peer_map = this.update_peer_assignment(assignment_id);
+    } catch (err) {
+      this.course_actions.set_error(`peer copy to student: ${err}`);
+      finish();
+      return;
+    }
 
     if (peer_map == null) {
       finish();

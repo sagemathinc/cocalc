@@ -19,7 +19,8 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Loading, ActivityDisplay, ErrorDisplay } from "../../components";
+import { Loading, ActivityDisplay } from "../../components";
+import ShowError from "@cocalc/frontend/components/error";
 import {
   AssignmentsMap,
   CourseSettingsRecord,
@@ -73,20 +74,20 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
     const students: StudentsMap | undefined = useRedux(name, "students");
     const assignments: AssignmentsMap | undefined = useRedux(
       name,
-      "assignments"
+      "assignments",
     );
     const handouts: HandoutsMap | undefined = useRedux(name, "handouts");
     const settings: CourseSettingsRecord | undefined = useRedux(
       name,
-      "settings"
+      "settings",
     );
     const configuring_projects: boolean | undefined = useRedux(
       name,
-      "configuring_projects"
+      "configuring_projects",
     );
     const reinviting_students: boolean | undefined = useRedux(
       name,
-      "reinviting_students"
+      "reinviting_students",
     );
     const activity: Map<string, any> | undefined = useRedux(name, "activity");
     const error: string | undefined = useRedux(name, "error");
@@ -188,12 +189,11 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
     }
 
     function render_error(): Rendered {
-      if (!error) return;
       return (
-        <ErrorDisplay
-          banner={true}
+        <ShowError
+          style={{ margin: "15px" }}
           error={error}
-          onClose={() => {
+          setError={(error) => {
             const actions = redux.getActions(name) as CourseActions;
             if (actions != null) actions.set_error("");
           }}
@@ -213,7 +213,7 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
         {render_panel()}
       </div>
     );
-  }
+  },
 );
 
 export function wrap(Panel) {
