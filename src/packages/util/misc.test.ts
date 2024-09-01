@@ -321,3 +321,25 @@ test 123`;
     expect(t).toEqual("foo");
   });
 });
+
+describe("suggest_duplicate_filename", () => {
+  const dup = misc.suggest_duplicate_filename;
+  it("works with numbers", () => {
+    expect(dup("filename-1.test")).toBe("filename-2.test");
+    expect(dup("filename-99.test")).toBe("filename-100.test");
+    expect(dup("filename_99.test")).toBe("filename_100.test");
+  });
+  it("handles leading zeros", () => {
+    // handles leading 0's properly: https://github.com/sagemathinc/cocalc/issues/2973
+    expect(dup("filename_001.test")).toBe("filename_002.test");
+  });
+  it("works also without", () => {
+    expect(dup("filename-test")).toBe("filename-test-1");
+    expect(dup("filename-xxx.test")).toBe("filename-xxx-1.test");
+    expect(dup("bla")).toBe("bla-1");
+    expect(dup("foo.bar")).toBe("foo-1.bar");
+  });
+  it("also works with weird corner cases", () => {
+    expect(dup("asdf-")).toBe("asdf--1");
+  });
+});

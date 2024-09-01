@@ -2047,6 +2047,7 @@ export function tab_to_path(name: string): string | undefined {
 // suggest a new filename when duplicating it as follows:
 // strip extension, split at '_' or '-' if it exists
 // try to parse a number, if it works, increment it, etc.
+// Handle leading zeros for the number (see https://github.com/sagemathinc/cocalc/issues/2973)
 export function suggest_duplicate_filename(name: string): string {
   let ext;
   ({ name, ext } = separate_file_extension(name));
@@ -2059,9 +2060,13 @@ export function suggest_duplicate_filename(name: string): string {
       name.slice(0, idx + 1),
       name.slice(idx + 1),
     ]);
-    const num = parseInt(ending);
+    // Pad the number with leading zeros to maintain the original length
+    const paddedEnding = ending.padStart(ending.length, "0");
+    const num = parseInt(paddedEnding);
     if (!Number.isNaN(num)) {
-      new_name = `${prefix}${num + 1}`;
+      // Increment the number and pad it back to the original length
+      const newNum = (num + 1).toString().padStart(ending.length, "0");
+      new_name = `${prefix}${newNum}`;
     }
   }
   if (new_name == null) {
