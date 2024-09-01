@@ -51,7 +51,7 @@ export const labels = defineMessages({
   },
   account_language_tooltip: {
     id: "labels.account.language_tooltip",
-    defaultMessage: "Change the language of the user-interface.",
+    defaultMessage: "Change the language of the user interface.",
     description: "Tooltip text of dropdown to change the UI language",
   },
   email_address: {
