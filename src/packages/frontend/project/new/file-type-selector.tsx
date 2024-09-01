@@ -224,10 +224,7 @@ export function FileTypeSelector({
                   name={"Compute Server: GPUs and VM's"}
                   icon="servers"
                   on_click={() => {
-                    projectActions?.setState({ create_compute_server: true });
-                    projectActions?.set_active_tab("servers", {
-                      change_history: true,
-                    });
+                    projectActions?.setServerTab("compute-servers");
                   }}
                   size={btnSize}
                 />
@@ -239,12 +236,10 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <NewFileButton
                 size={btnSize}
-                name={`Jupyter, VS Code, Pluto, RStudio, etc....`}
+                name={`JupyterLab, VS Code, Pluto, RStudio, etc....`}
                 ext="server"
                 on_click={() => {
-                  projectActions.set_active_tab("servers", {
-                    change_history: true,
-                  });
+                  projectActions?.setServerTab("notebooks");
                 }}
                 active={false}
               />
