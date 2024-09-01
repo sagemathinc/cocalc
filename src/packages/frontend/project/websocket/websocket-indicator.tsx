@@ -29,6 +29,7 @@ export class WebsocketIndicator extends Component<Props, {}> {
         <Icon
           style={{
             color: color(this.props.state),
+            marginRight: "5px",
           }}
           name={"wifi"}
         />
