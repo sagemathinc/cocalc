@@ -195,7 +195,7 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
           error={error}
           setError={(error) => {
             const actions = redux.getActions(name) as CourseActions;
-            if (actions != null) actions.set_error("");
+            actions?.set_error(error);
           }}
         />
       );
