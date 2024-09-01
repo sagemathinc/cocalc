@@ -77,7 +77,7 @@ export function MultipleAddSearch({
             ? "Select one or more directories"
             : `Add ${selectedItems.size} ${plural(
                 selectedItems.size,
-                capitalize(itemName)
+                capitalize(itemName),
               )}`}
         </Button>
       )}

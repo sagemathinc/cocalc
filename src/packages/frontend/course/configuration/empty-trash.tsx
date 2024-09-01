@@ -47,7 +47,7 @@ export default function EmptyTrash() {
     num.total = num.students + num.assignments + num.handouts;
     num.desc = `Purge ${num.students} deleted ${plural(
       num.students,
-      "student"
+      "student",
     )}, ${num.assignments} ${plural(num.assignments, "assignment")}, and ${
       num.handouts
     } ${plural(num.handouts, "handout")}`;

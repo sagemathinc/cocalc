@@ -12,14 +12,14 @@ import {
   Rendered,
   useActions,
   useRef,
-  useState
+  useState,
 } from "@cocalc/frontend/app-framework";
 import {
   ErrorDisplay,
   Icon,
   Markdown,
   Gap,
-  Tip
+  Tip,
 } from "@cocalc/frontend/components";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
@@ -31,7 +31,7 @@ import {
   AssignmentRecord,
   LastCopyInfo,
   NBgraderRunInfo,
-  StudentRecord
+  StudentRecord,
 } from "../store";
 import { AssignmentCopyType } from "../types";
 import { useButtonSize } from "../util";
@@ -67,7 +67,7 @@ const STEPS = [
   "Peer Collect",
   "Return",
 ] as const;
-type Steps = typeof STEPS[number];
+type Steps = (typeof STEPS)[number];
 
 interface RenderLastProps {
   step: Steps;
@@ -89,7 +89,7 @@ const RECOPY_INIT: Record<Steps, false> = {
 
 function useRecopy(): [
   typeof RECOPY_INIT,
-  (key: keyof typeof RECOPY_INIT, value: boolean) => void
+  (key: keyof typeof RECOPY_INIT, value: boolean) => void,
 ] {
   const [recopy, set_recopy] = useState<typeof RECOPY_INIT>(RECOPY_INIT);
   function set(key: keyof typeof RECOPY_INIT, value: boolean) {
@@ -122,50 +122,50 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
     function open(
       type: AssignmentCopyType,
       assignment_id: string,
-      student_id: string
+      student_id: string,
     ) {
       return actions.assignments.open_assignment(
         type,
         assignment_id,
-        student_id
+        student_id,
       );
     }
 
     function copy(
       type: AssignmentCopyType,
       assignment_id: string,
-      student_id: string
+      student_id: string,
     ) {
       return actions.assignments.copy_assignment(
         type,
         assignment_id,
-        student_id
+        student_id,
       );
     }
 
     function stop(
       type: AssignmentCopyType,
       assignment_id: string,
-      student_id: string
+      student_id: string,
     ) {
       actions.assignments.stop_copying_assignment(
         assignment_id,
         student_id,
-        type
+        type,
       );
     }
 
     function set_edited_feedback() {
       actions.assignments.update_edited_feedback(
         assignment.get("assignment_id"),
-        student.get("student_id")
+        student.get("student_id"),
       );
     }
 
     function stop_editing() {
       actions.assignments.clear_edited_feedback(
         assignment.get("assignment_id"),
-        student.get("student_id")
+        student.get("student_id"),
       );
     }
 
@@ -179,7 +179,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
               actions.assignments.set_grade(
                 assignment.get("assignment_id"),
                 student.get("student_id"),
-                grade
+                grade,
               );
             }}
             onShiftEnter={() => stop_editing()}
@@ -237,7 +237,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
               actions.assignments.set_comment(
                 assignment.get("assignment_id"),
                 student.get("student_id"),
-                comment
+                comment,
               );
             }}
             onShiftEnter={() => stop_editing()}
@@ -270,7 +270,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       let running = false;
       if (nbgrader_run_info != null) {
         const t = nbgrader_run_info.get(
-          assignment.get("assignment_id") + "-" + student.get("student_id")
+          assignment.get("assignment_id") + "-" + student.get("student_id"),
         );
         if (t && Date.now() - t <= 1000 * 60 * 10) {
           // Time starting is set and it's also within the last few minutes.
@@ -309,7 +309,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
               clicked_nbgrader.current = new Date();
               actions.assignments.run_nbgrader_for_one_student(
                 assignment.get("assignment_id"),
-                student.get("student_id")
+                student.get("student_id"),
               );
             }}
           >
@@ -354,7 +354,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       name: Steps,
       copy: Function,
       copy_tip: string,
-      placement
+      placement,
     ): Rendered | Rendered[] {
       if (recopy[name]) {
         const v: Rendered[] = [];
@@ -373,7 +373,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
               rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
             />{" "}
             Yes, {name.toLowerCase()} again
-          </Button>
+          </Button>,
         );
         v.push(
           <Button
@@ -382,7 +382,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
             onClick={() => set_recopy(name, false)}
           >
             Cancel
-          </Button>
+          </Button>,
         );
         if (name.toLowerCase() === "assign") {
           // inline-block because buttons above are float:left
@@ -397,7 +397,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
               >
                 What happens when I assign again?
               </a>
-            </div>
+            </div>,
           );
         }
         return v;
@@ -430,7 +430,7 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
       open,
       copy,
       copy_tip: string,
-      open_tip: string
+      open_tip: string,
     ): Rendered {
       const placement = name === "Return" ? "left" : "right";
       return (
@@ -528,8 +528,8 @@ export const StudentAssignmentInfo: React.FC<StudentAssignmentInfoProps> =
               do_open,
               do_copy,
               copy_tip as string,
-              open_tip as string
-            )
+              open_tip as string,
+            ),
           );
         } else {
           v.push(render_copy(step, do_copy, copy_tip as string));

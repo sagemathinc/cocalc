@@ -38,7 +38,11 @@ export function available_upgrades(opts: {
       // do not count projects in course
       return;
     }
-    const upgrades = project.getIn(["users", opts.account_id, "upgrades"]) as any;
+    const upgrades = project.getIn([
+      "users",
+      opts.account_id,
+      "upgrades",
+    ]) as any;
     if (upgrades != null) {
       available = map_diff(available as any, upgrades.toJS());
     }

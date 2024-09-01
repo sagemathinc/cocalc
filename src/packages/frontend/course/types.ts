@@ -127,7 +127,7 @@ export type AssignmentCopyType =
   | "peer-collected";
 
 export function copy_type_to_last(
-  type: AssignmentCopyType
+  type: AssignmentCopyType,
 ): LastAssignmentCopyType {
   switch (type) {
     case "assigned":

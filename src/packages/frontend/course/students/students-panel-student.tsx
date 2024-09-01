@@ -114,13 +114,13 @@ export const Student: React.FC<StudentProps> = React.memo(
     const [confirm_delete, set_confirm_delete] = useState<boolean>(false);
     const [editing_student, set_editing_student] = useState<boolean>(false);
     const [edited_first_name, set_edited_first_name] = useState<string>(
-      student_name.first || ""
+      student_name.first || "",
     );
     const [edited_last_name, set_edited_last_name] = useState<string>(
-      student_name.last || ""
+      student_name.last || "",
     );
     const [edited_email_address, set_edited_email_address] = useState<string>(
-      student.get("email_address") || ""
+      student.get("email_address") || "",
     );
     const [more, set_more] = useState<boolean>(false);
     const [assignment_search, set_assignment_search] = useState<string>("");
@@ -251,7 +251,7 @@ export const Student: React.FC<StudentProps> = React.memo(
     function render_hosting() {
       const { description, tip, state, icon } = util.projectStatus(
         student.get("project_id"),
-        redux
+        redux,
       );
       return (
         <Tip
@@ -446,7 +446,7 @@ export const Student: React.FC<StudentProps> = React.memo(
       const when =
         last_email_invite != null
           ? `Last invitation sent on ${new Date(
-              last_email_invite
+              last_email_invite,
             ).toLocaleString()}`
           : "never";
 
@@ -500,19 +500,19 @@ export const Student: React.FC<StudentProps> = React.memo(
         }
         const grade = store.get_grade(
           assignment.get("assignment_id"),
-          student.get("student_id")
+          student.get("student_id"),
         );
         const comments = store.get_comments(
           assignment.get("assignment_id"),
-          student.get("student_id")
+          student.get("student_id"),
         );
         const info = store.student_assignment_info(
           student.get("student_id"),
-          assignment.get("assignment_id")
+          assignment.get("assignment_id"),
         );
         const key = util.assignment_identifier(
           assignment.get("assignment_id"),
-          student.get("student_id")
+          student.get("student_id"),
         );
         const edited_feedback = active_feedback_edits.get(key);
         result.push(
@@ -526,12 +526,12 @@ export const Student: React.FC<StudentProps> = React.memo(
             comments={comments}
             nbgrader_scores={store.get_nbgrader_scores(
               assignment.get("assignment_id"),
-              student.get("student_id")
+              student.get("student_id"),
             )}
             info={info}
             is_editing={!!edited_feedback}
             nbgrader_run_info={nbgrader_run_info}
-          />
+          />,
         );
       }
       return result;
@@ -570,7 +570,7 @@ export const Student: React.FC<StudentProps> = React.memo(
               on_save={(value) =>
                 actions.students.set_student_note(
                   student.get("student_id"),
-                  value
+                  value,
                 )
               }
             />
@@ -631,7 +631,7 @@ export const Student: React.FC<StudentProps> = React.memo(
             <Button
               onClick={() =>
                 actions.students.push_missing_handouts_and_assignments(
-                  student.get("student_id")
+                  student.get("student_id"),
                 )
               }
             >
@@ -761,5 +761,5 @@ export const Student: React.FC<StudentProps> = React.memo(
       </div>
     );
   },
-  isSameStudent
+  isSameStudent,
 );

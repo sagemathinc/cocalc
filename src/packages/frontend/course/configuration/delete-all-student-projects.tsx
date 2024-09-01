@@ -13,9 +13,8 @@ interface Props {
 }
 
 export function DeleteAllStudentProjects({ delete_projects }: Props) {
-  const [is_opened, confirm, open_confirmation, cancel] = useConfirmation(
-    delete_projects
-  );
+  const [is_opened, confirm, open_confirmation, cancel] =
+    useConfirmation(delete_projects);
   return (
     <Card
       title={

@@ -103,7 +103,7 @@ export const NbgraderButton: React.FC<Props> = React.memo(
                     onClick={() => {
                       actions?.assignments.run_nbgrader_for_all_students(
                         assignment_id,
-                        true
+                        true,
                       );
                     }}
                   >
@@ -117,11 +117,11 @@ export const NbgraderButton: React.FC<Props> = React.memo(
                   <Popconfirm
                     title={`Are you sure you want to autograde ALL ${total} ${plural(
                       total,
-                      "student"
+                      "student",
                     )}?`}
                     onConfirm={() => {
                       actions?.assignments.run_nbgrader_for_all_students(
-                        assignment_id
+                        assignment_id,
                       );
                     }}
                   >
@@ -173,7 +173,7 @@ export const NbgraderButton: React.FC<Props> = React.memo(
         {show_more_info && render_more_info()}
       </div>
     );
-  }
+  },
 );
 
 interface SyncGradesProps {

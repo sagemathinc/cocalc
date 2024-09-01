@@ -43,7 +43,7 @@ export function STEPS(peer: boolean): AssignmentCopyStep[] {
 
 export function previous_step(
   step: AssignmentCopyStep,
-  peer: boolean
+  peer: boolean,
 ): AssignmentCopyStep {
   let prev: AssignmentCopyStep | undefined;
   for (const s of STEPS(peer)) {
@@ -165,12 +165,12 @@ export function parse_students(student_map: StudentsMap, user_map, redux) {
 export function immutable_to_list(x: undefined): undefined;
 export function immutable_to_list<T, P>(
   x: Map<string, T>,
-  primary_key: P
+  primary_key: P,
 ): T extends TypedMap<infer S>
   ? S[]
   : T extends Map<string, infer S>
-  ? S[]
-  : any;
+    ? S[]
+    : any;
 export function immutable_to_list(x: any, primary_key?): any {
   if (x == null || x == undefined) {
     return;
@@ -257,7 +257,7 @@ export enum StudentField {
 }
 
 export function pick_student_sorter<T extends { column_name: StudentField }>(
-  sort: T
+  sort: T,
 ) {
   switch (sort.column_name) {
     case "email":
@@ -275,7 +275,7 @@ export function pick_student_sorter<T extends { column_name: StudentField }>(
 
 export function assignment_identifier(
   assignment_id: string,
-  student_id: string
+  student_id: string,
 ): string {
   return assignment_id + student_id;
 }
@@ -294,7 +294,7 @@ interface ProjectStatus {
 
 export function projectStatus(
   project_id: string | undefined,
-  redux
+  redux,
 ): ProjectStatus {
   if (!project_id) {
     return { description: "(not created)", icon: "hourglass-half", state: "" };

@@ -21,7 +21,7 @@ interface StudentHandoutInfoProps {
 }
 
 export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
-  props: StudentHandoutInfoProps
+  props: StudentHandoutInfoProps,
 ) => {
   const { actions, info, title } = props;
 
@@ -60,12 +60,12 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
           }}
         >
           <Icon name="share-square" /> Yes, {name.toLowerCase()} again
-        </Button>
+        </Button>,
       );
       v.push(
         <Button key="copy_cancel" onClick={() => setRecopy(false)}>
           Cancel
-        </Button>
+        </Button>,
       );
       return v;
     } else {
@@ -183,7 +183,7 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
                 info,
                 true,
                 "Copy the handout from your project to this student's project.",
-                "Open the student's copy of this handout directly in their project.  You will be able to see them type, chat with them, answer questions, etc."
+                "Open the student's copy of this handout directly in their project.  You will be able to see them type, chat with them, answer questions, etc.",
               )}
             </Col>
           </Row>

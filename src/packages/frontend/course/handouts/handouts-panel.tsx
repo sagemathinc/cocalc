@@ -56,7 +56,7 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
 
     const expanded_handouts: Set<string> | undefined = useRedux(
       name,
-      "expanded_handouts"
+      "expanded_handouts",
     );
 
     const [show_deleted, set_show_deleted] = useState<boolean>(false);
@@ -244,13 +244,13 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
         {num_deleted > 0
           ? render_show_deleted_button(
               num_deleted,
-              shown_handouts.length != null ? shown_handouts.length : 0
+              shown_handouts.length != null ? shown_handouts.length : 0,
             )
           : undefined}
       </div>
     );
   },
-  isSame
+  isSame,
 );
 
 export function HandoutsPanelHeader(props: { n: number }) {

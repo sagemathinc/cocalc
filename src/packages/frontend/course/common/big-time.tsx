@@ -24,5 +24,5 @@ export const BigTime: React.FC<BigTimeProps> = React.memo(
     }
     return <TimeAgo date={date} />;
   },
-  isSame
+  isSame,
 );

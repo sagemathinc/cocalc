@@ -20,7 +20,7 @@ export function create_sync_db(
   redux: AppRedux,
   actions: CourseActions,
   store: CourseStore,
-  filename: string
+  filename: string,
 ): SyncDB {
   if (redux == null || actions == null || store == null) {
     // just in case non-typescript code uses this...
@@ -84,7 +84,7 @@ export function create_sync_db(
     });
 
     syncdb.on("after-change", () =>
-      redux.getProjectActions(project_id).flag_file_activity(filename)
+      redux.getProjectActions(project_id).flag_file_activity(filename),
     );
 
     const course_project_id = store.get("course_project_id");
@@ -142,7 +142,7 @@ export function create_sync_db(
     // Also
     projects_store.on(
       "change",
-      actions.handle_projects_store_update.bind(actions)
+      actions.handle_projects_store_update.bind(actions),
     );
     actions.handle_projects_store_update(projects_store);
 

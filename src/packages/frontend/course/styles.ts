@@ -16,7 +16,7 @@ export const selected_entry: CSSProperties = merge(
     borderRadius: "3px",
     marginBottom: "10px",
   },
-  entry_style
+  entry_style,
 );
 
 export const note: CSSProperties = {

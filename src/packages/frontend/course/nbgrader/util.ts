@@ -5,9 +5,7 @@
 
 import { Map } from "immutable";
 
-export function nbgrader_status(
-  assignment: Map<string, any>
-): {
+export function nbgrader_status(assignment: Map<string, any>): {
   succeeded: number;
   failed: number;
   not_attempted: number;
@@ -32,7 +30,7 @@ type GradingState = "succeeded" | "failed" | "not_attempted";
 
 export function grading_state(
   student_id: string,
-  nbgrader_scores
+  nbgrader_scores,
 ): GradingState {
   const x = nbgrader_scores?.get(student_id);
   if (x == null) {

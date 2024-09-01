@@ -83,7 +83,7 @@ export class HandoutsActions {
   private handout_finish_copy(
     handout_id: string,
     student_id: string,
-    err: string
+    err: string,
   ): void {
     const { student, handout } = this.course_actions.resolve({
       handout_id,
@@ -165,7 +165,7 @@ export class HandoutsActions {
   public async copy_handout_to_student(
     handout_id: string,
     student_id: string,
-    overwrite: boolean
+    overwrite: boolean,
   ): Promise<void> {
     if (this.handout_start_copy(handout_id, student_id)) {
       return;
@@ -201,9 +201,10 @@ export class HandoutsActions {
           id,
           desc: `${student_name}'s project doesn't exist, so creating it.`,
         });
-        student_project_id = await this.course_actions.student_projects.create_student_project(
-          student_id
-        );
+        student_project_id =
+          await this.course_actions.student_projects.create_student_project(
+            student_id,
+          );
       }
 
       if (student_project_id == null) {
@@ -234,7 +235,7 @@ export class HandoutsActions {
   public async copy_handout_to_all_students(
     handout_id: string,
     new_only: boolean,
-    overwrite: boolean
+    overwrite: boolean,
   ): Promise<void> {
     const desc: string =
       "Copying handouts to all students " +
@@ -267,7 +268,11 @@ export class HandoutsActions {
       }
     };
 
-    await map(store.get_student_ids({ deleted: false }), store.get_copy_parallel(), f);
+    await map(
+      store.get_student_ids({ deleted: false }),
+      store.get_copy_parallel(),
+      f,
+    );
 
     finish(errors);
   }
@@ -281,7 +286,7 @@ export class HandoutsActions {
     const student_project_id = student.get("project_id");
     if (student_project_id == null) {
       this.course_actions.set_error(
-        "open_handout: student project not yet created"
+        "open_handout: student project not yet created",
       );
       return;
     }
@@ -297,7 +302,7 @@ export class HandoutsActions {
 
   public async export_file_use_times(
     handout_id: string,
-    json_filename: string
+    json_filename: string,
   ): Promise<void> {
     // Get the path of the handout
     const { handout, store } = this.course_actions.resolve({
@@ -313,7 +318,7 @@ export class HandoutsActions {
       path,
       store.get("students"),
       json_filename,
-      store.get_student_name.bind(store)
+      store.get_student_name.bind(store),
     );
   }
 }

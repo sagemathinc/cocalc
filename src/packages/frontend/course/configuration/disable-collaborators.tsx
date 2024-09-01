@@ -49,5 +49,5 @@ export const DisableStudentCollaboratorsPanel: React.FC<Props> = React.memo(
         </span>
       </Card>
     );
-  }
+  },
 );

@@ -26,7 +26,7 @@ export const SkipCopy: React.FC<SkipCopyProps> = (props: SkipCopyProps) => {
     actions.assignments.set_skip(
       assignment.get("assignment_id"),
       step,
-      !assignment.get(`skip_${step}` as any)
+      !assignment.get(`skip_${step}` as any),
     );
   }
 

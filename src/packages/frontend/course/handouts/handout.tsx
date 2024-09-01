@@ -29,7 +29,7 @@ import { StudentListForHandout } from "./handout-student-list";
 // Probably not a good idea mixing the two.
 // Could also be coded into the components below but steps could be added in the future?
 const STEPS = ["handout"] as const;
-type STEP_TYPES = typeof STEPS[number];
+type STEP_TYPES = (typeof STEPS)[number];
 
 function step_direction(step: STEP_TYPES): string {
   switch (step) {
@@ -122,7 +122,13 @@ export const Handout: React.FC<HandoutProps> = React.memo(
     function render_more_header() {
       return (
         <div style={{ display: "flex" }}>
-          <div style={{ fontSize: "15pt", marginBottom: "5px", marginRight:'30px' }}>
+          <div
+            style={{
+              fontSize: "15pt",
+              marginBottom: "5px",
+              marginRight: "30px",
+            }}
+          >
             {handout.get("path")}
           </div>
           <Button onClick={open_handout_path}>
@@ -157,7 +163,7 @@ export const Handout: React.FC<HandoutProps> = React.memo(
               on_save={(value) =>
                 actions.handouts.set_handout_note(
                   handout.get("handout_id"),
-                  value
+                  value,
                 )
               }
             />
@@ -276,7 +282,7 @@ export const Handout: React.FC<HandoutProps> = React.memo(
           actions.handouts.copy_handout_to_all_students(
             handout.get("handout_id"),
             new_only,
-            overwrite
+            overwrite,
           );
           break;
         default:
@@ -551,7 +557,7 @@ export const Handout: React.FC<HandoutProps> = React.memo(
               e.preventDefault();
               return actions.toggle_item_expansion(
                 "handout",
-                handout.get("handout_id")
+                handout.get("handout_id"),
               );
             }}
           >
@@ -617,5 +623,5 @@ export const Handout: React.FC<HandoutProps> = React.memo(
         </Row>
       </div>
     );
-  }
+  },
 );

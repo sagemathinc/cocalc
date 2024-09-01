@@ -74,5 +74,5 @@ export const Progress: React.FC<ProgressProps> = React.memo(
         </div>
       );
     }
-  }
+  },
 );
