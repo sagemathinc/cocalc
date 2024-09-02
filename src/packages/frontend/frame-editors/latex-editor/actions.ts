@@ -140,7 +140,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._init_syncstring_value();
       this.init_ext_path(); // must come after syncstring init
       this.init_latexmk();
-      this._init_spellcheck();
+      // This breaks browser spellcheck.
+      // this._init_spellcheck();
       this.init_config();
       if (!this.knitr) {
         this.output_directory = this.output_directory_path();

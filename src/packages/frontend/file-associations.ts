@@ -202,7 +202,7 @@ file_associations["noext-dockerfile"] = {
 file_associations["tex"] = {
   editor: "latex",
   icon: "tex-file",
-  opts: { mode: "stex2", indent_unit: 2, tab_size: 2 },
+  opts: { mode: "stex2", indent_unit: 2, tab_size: 2, spellcheck: true },
   name: "LaTeX",
   exclude_from_compute_server: true,
 };
