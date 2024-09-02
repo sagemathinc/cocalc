@@ -56,7 +56,7 @@ async function get(req) {
 }
 
 export default apiRoute({
-  update: apiRouteOperation({
+  updateProject: apiRouteOperation({
     method: "POST",
     openApiOperation: {
       tags: ["Projects", "Admin"],
