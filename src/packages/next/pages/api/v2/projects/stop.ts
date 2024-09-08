@@ -39,7 +39,7 @@ async function handle(req, res) {
 }
 
 export default apiRoute({
-  stop: apiRouteOperation({
+  stopProject: apiRouteOperation({
     method: "POST",
     openApiOperation: {
       tags: ["Projects"],

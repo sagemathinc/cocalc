@@ -40,7 +40,7 @@ async function handle(req, res) {
 }
 
 export default apiRoute({
-  get: apiRouteOperation({
+  getProject: apiRouteOperation({
     method: "POST",
     openApiOperation: {
       tags: ["Projects", "Admin"],
