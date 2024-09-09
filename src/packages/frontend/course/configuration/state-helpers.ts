@@ -7,7 +7,7 @@ import { useState } from "react";
 
 export function useConfirmation<T extends any[], U>(
   confirmation: (...args: T) => U,
-  init = false
+  init = false,
 ): [boolean, (...args: T) => U, () => void, () => void] {
   const [confirmation_is_open, set_confirmation] = useState(init);
   function confirm(...args: T): U {

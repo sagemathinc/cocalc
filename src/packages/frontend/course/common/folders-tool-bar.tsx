@@ -33,7 +33,7 @@ interface FoldersToolbarProps {
 }
 
 export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
-  props: FoldersToolbarProps
+  props: FoldersToolbarProps,
 ) => {
   const {
     search_change,
@@ -87,7 +87,7 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
 
       return false;
     },
-    [pathsToOmit]
+    [pathsToOmit],
   );
 
   return (

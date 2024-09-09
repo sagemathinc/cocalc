@@ -21,7 +21,7 @@ export class ActivityActions {
   }
 
   public set_activity(
-    opts: { id: number; desc?: string } | { id?: number; desc: string }
+    opts: { id: number; desc?: string } | { id?: number; desc: string },
   ): number {
     if (this.actions.is_closed()) return -1;
     if (opts.id == null) {

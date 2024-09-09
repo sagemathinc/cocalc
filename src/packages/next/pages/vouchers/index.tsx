@@ -35,9 +35,8 @@ export default function Overview({ customize }) {
             <div style={{ fontSize: "12pt" }}>
               <div style={{ maxWidth: "700px", margin: "auto" }}>
                 <A href="https://doc.cocalc.com/vouchers.html">Vouchers</A> are
-                a convenient way to send <A href="/settings/purchases">money</A>{" "}
-                to somebody or to resell <SiteName />{" "}
-                <A href="/settings/licenses">licenses</A>.
+                like a digital gift card, which can be used to purchase anything
+                on <SiteName />.
               </div>
             </div>
             <OverviewRow>

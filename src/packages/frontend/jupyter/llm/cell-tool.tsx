@@ -83,6 +83,7 @@ const MODES = [
   "document",
   "translate",
 ] as const;
+
 export type Mode = (typeof MODES)[number];
 
 type PromptGen = ({
@@ -142,11 +143,11 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   explain: {
     icon: "sound-outlined",
     label: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.explain.label",
+      id: "jupyter.llm.cell-tool.actions.explain.label",
       defaultMessage: "Explain",
     }),
     descr: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.explain.descr",
+      id: "jupyter.llm.cell-tool.actions.explain.descr",
       defaultMessage: "Gain some insight into the code in that cell.",
     }),
     prompt: ({ language, stepByStep, kernel_display }) =>
@@ -157,11 +158,11 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   bugfix: {
     icon: "clean-outlined",
     label: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.bugfix.label",
-      defaultMessage: "Explain",
+      id: "jupyter.llm.cell-tool.actions.bugfix.label",
+      defaultMessage: "Fix Bugs",
     }),
     descr: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.bugfix.descr",
+      id: "jupyter.llm.cell-tool.actions.bugfix.descr",
       defaultMessage:
         "Describe the problem of that cell in order to get a bugfixed version.",
     }),
@@ -178,11 +179,11 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   modify: {
     icon: "edit",
     label: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.modify.label",
+      id: "jupyter.llm.cell-tool.actions.modify.label",
       defaultMessage: "Modify",
     }),
     descr: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.modify.descr",
+      id: "jupyter.llm.cell-tool.actions.modify.descr",
       defaultMessage: "Modify the code in the cell",
     }),
     prompt: ({ language, extra, kernel_display }) =>
@@ -194,11 +195,11 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   improve: {
     icon: "rise-outlined",
     label: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.improve.label",
+      id: "jupyter.llm.cell-tool.actions.improve.label",
       defaultMessage: "Improve",
     }),
     descr: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.improve.descr",
+      id: "jupyter.llm.cell-tool.actions.improve.descr",
       defaultMessage: "Improve the code in that cell.",
     }),
     prompt: ({ language, extra, kernel_display }) =>
@@ -212,11 +213,11 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   document: {
     icon: "book",
     label: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.document.label",
+      id: "jupyter.llm.cell-tool.actions.document.label",
       defaultMessage: "Document",
     }),
     descr: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.document.descr",
+      id: "jupyter.llm.cell-tool.actions.document.descr",
       defaultMessage: "Add documentation",
     }),
     prompt: ({ language, kernel_display }) =>
@@ -228,11 +229,11 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
   translate: {
     icon: "translation-outlined",
     label: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.translate.label",
+      id: "jupyter.llm.cell-tool.actions.translate.label",
       defaultMessage: "Translate",
     }),
     descr: defineMessage({
-      id: "jupyter.llm.dell-tool.actions.translate.descr",
+      id: "jupyter.llm.cell-tool.actions.translate.descr",
       defaultMessage:
         "Translate the code in that cell to another language using AI.",
     }),

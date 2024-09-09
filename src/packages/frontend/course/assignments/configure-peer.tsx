@@ -61,7 +61,7 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
     function set_peer_grade(config) {
       actions.assignments.set_peer_grade(
         assignment.get("assignment_id"),
-        config
+        config,
       );
     }
 
@@ -195,7 +195,7 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
             onClick={() =>
               actions.toggle_item_expansion(
                 "peer_config",
-                assignment.get("assignment_id")
+                assignment.get("assignment_id"),
               )
             }
           >
@@ -204,5 +204,5 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
         </div>
       </Card>
     );
-  }
+  },
 );

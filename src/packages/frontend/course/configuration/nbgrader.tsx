@@ -64,7 +64,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
               actions.configuration.set_nbgrader_grade_project("");
             } else {
               actions.configuration.set_nbgrader_grade_project(
-                course_project_id
+                course_project_id,
               );
             }
           }}
@@ -135,7 +135,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
           checked={settings?.get("nbgrader_include_hidden_tests")}
           onChange={(e) =>
             actions.configuration.set_nbgrader_include_hidden_tests(
-              (e.target as any).checked
+              (e.target as any).checked,
             )
           }
         >
@@ -150,10 +150,10 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
 
   function render_timeouts(): JSX.Element {
     const timeout = Math.round(
-      settings.get("nbgrader_timeout_ms", NBGRADER_TIMEOUT_MS) / 1000
+      settings.get("nbgrader_timeout_ms", NBGRADER_TIMEOUT_MS) / 1000,
     );
     const cell_timeout = Math.round(
-      settings.get("nbgrader_cell_timeout_ms", NBGRADER_CELL_TIMEOUT_MS) / 1000
+      settings.get("nbgrader_cell_timeout_ms", NBGRADER_CELL_TIMEOUT_MS) / 1000,
     );
     return (
       <div
@@ -182,7 +182,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
         <NumberInput
           on_change={(n) =>
             actions.configuration.set_nbgrader_cell_timeout_ms(
-              Math.min(n * 1000, timeout * 1000)
+              Math.min(n * 1000, timeout * 1000),
             )
           }
           min={5}
@@ -195,10 +195,13 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
 
   function render_limits(): JSX.Element {
     const max_output = Math.round(
-      settings.get("nbgrader_max_output", NBGRADER_MAX_OUTPUT)
+      settings.get("nbgrader_max_output", NBGRADER_MAX_OUTPUT),
     );
     const max_output_per_cell = Math.round(
-      settings.get("nbgrader_max_output_per_cell", NBGRADER_MAX_OUTPUT_PER_CELL)
+      settings.get(
+        "nbgrader_max_output_per_cell",
+        NBGRADER_MAX_OUTPUT_PER_CELL,
+      ),
     );
     return (
       <div
@@ -238,7 +241,7 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
   function render_parallel(): JSX.Element {
     const parallel = Math.round(
       settings.get("nbgrader_parallel") ??
-        actions.get_store().get_nbgrader_parallel()
+        actions.get_store().get_nbgrader_parallel(),
     );
     return (
       <div

@@ -20,12 +20,10 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
     name,
     "action_all_projects_state",
   ]);
-  const [confirm_stop_all_projects, set_confirm_stop_all_projects] = useState<
-    boolean
-  >(false);
-  const [confirm_start_all_projects, set_confirm_start_all_projects] = useState<
-    boolean
-  >(false);
+  const [confirm_stop_all_projects, set_confirm_stop_all_projects] =
+    useState<boolean>(false);
+  const [confirm_start_all_projects, set_confirm_start_all_projects] =
+    useState<boolean>(false);
 
   const actions: CourseActions = useActions(name);
 

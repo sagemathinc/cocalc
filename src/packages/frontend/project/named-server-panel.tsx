@@ -28,7 +28,7 @@ import { useAvailableFeatures } from "./use-available-features";
 
 interface Server {
   longName: string;
-  description: string;
+  description: React.ReactNode;
   usesBasePath: boolean;
   icon: IconName;
 }
@@ -66,8 +66,12 @@ code completion, snippets, code refactoring, and embedded Git.`,
   },
   pluto: {
     longName: "Julia Pluto.jl",
-    description:
-      "Reactive notebooks for Julia.  NOTE: This can take a long time to start, so be patient.",
+    description: (
+      <>
+        Reactive notebooks for Julia.{" "}
+        <b>NOTE: Pluto may take a long time to start, so be patient.</b>
+      </>
+    ),
     usesBasePath: false,
     icon: "julia",
   },

@@ -619,12 +619,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 'account_id = $::UUID' : opts.account_id
             cb     : opts.cb
 
+    # DEPRECATED: use import accountCreationActions from "@cocalc/server/accounts/account-creation-actions"; instead!!!!
     do_account_creation_actions: (opts) =>
         opts = defaults opts,
             email_address : required
             account_id    : required
             cb            : required
         dbg = @_dbg("do_account_creation_actions(email_address='#{opts.email_address}')")
+        dbg("**DEPRECATED!**  This will miss doing important things, e.g., creating initial project.")
         @account_creation_actions
             email_address : opts.email_address
             cb            : (err, actions) =>

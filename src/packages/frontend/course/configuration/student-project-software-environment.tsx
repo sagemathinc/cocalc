@@ -65,7 +65,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
 
   const custom_images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
-    "images"
+    "images",
   );
 
   function on_inherit_change(inherit: boolean) {

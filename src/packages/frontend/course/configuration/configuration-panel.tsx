@@ -187,14 +187,14 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
           .allow_urls_in_emails(project_id);
         if (!allow_urls && contains_url(value)) {
           set_email_body_error(
-            "URLs in emails are not allowed for free trial projects.  Please upgrade or delete the URL. This is an anti-spam measure."
+            "URLs in emails are not allowed for free trial projects.  Please upgrade or delete the URL. This is an anti-spam measure.",
           );
         } else {
           set_email_body_error(undefined);
         }
       },
       500,
-      { leading: true, trailing: true }
+      { leading: true, trailing: true },
     );
 
     function render_email_body_error() {
@@ -440,7 +440,9 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
-            {is_commercial && <StudentPay actions={actions} settings={settings} />}
+            {is_commercial && (
+              <StudentPay actions={actions} settings={settings} />
+            )}
             {render_require_institute_pay()}
             {render_onprem_upgrade_projects()}
             {render_export_grades()}
@@ -497,5 +499,5 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
         </Row>
       </div>
     );
-  }
+  },
 );

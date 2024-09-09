@@ -21,7 +21,6 @@
 import Cookies from "cookies";
 import * as _ from "lodash";
 import { isEmpty } from "lodash";
-
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
@@ -43,6 +42,7 @@ import getEmailAddress from "../../accounts/get-email-address";
 import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
 import isBanned from "@cocalc/server/accounts/is-banned";
+import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -423,17 +423,18 @@ export class PassportLogin {
 
     // if we know the email address provided by the SSO strategy,
     // we execute the account creation actions and set the address to be verified
+    await accountCreationActions({
+      email_address: locals.email_address,
+      account_id: locals.account_id,
+      // TODO: tags should be encoded in URL and passed here, but that's
+      // not implemented
+    });
     if (locals.email_address != null) {
-      const actions = cb2(this.database.do_account_creation_actions, {
-        email_address: locals.email_address,
-        account_id: locals.account_id,
-      });
-      const verify = set_email_address_verified({
+      await set_email_address_verified({
         db: this.database,
         account_id: locals.account_id,
         email_address: locals.email_address,
       });
-      await Promise.all([actions, verify]);
     }
 
     // log the newly created account

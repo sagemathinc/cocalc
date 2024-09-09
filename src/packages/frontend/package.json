@@ -198,9 +198,9 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "rm -rf dist && NODE_OPTIONS=--max-old-space-size=8192 tsc  --build && coffee  -m -c -o dist/ .",
+    "build": "rm -rf dist && pnpm i18n:compile && NODE_OPTIONS=--max-old-space-size=8192 tsc --build && coffee  -m -c -o dist/ .",
     "build-coffee": "pnpm exec coffee -m -c -o dist/ .",
-    "tsc": "NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc  --watch  --pretty --preserveWatchOutput ",
+    "tsc": "NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput ",
     "test": "npx jest i18n/ misc/",
     "prepublishOnly": "pnpm test",
     "update-color-scheme": "node ./update-color-scheme.js",

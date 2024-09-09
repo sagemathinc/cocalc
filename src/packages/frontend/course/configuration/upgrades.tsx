@@ -108,7 +108,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
   const [upgrade_quotas, set_upgrade_quotas] = useState<boolean>(false); // true if display the quota upgrade panel
   const [upgrades, set_upgrades] = useState<object>({});
   const [upgrade_plan, set_upgrade_plan] = useState<object | undefined>(
-    undefined
+    undefined,
   );
   const [loading_all_projects, set_loading_all_projects] =
     useState<boolean>(false);
@@ -116,7 +116,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
 
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
 
   function get_store(): CourseStore {
@@ -173,7 +173,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     input_type,
     yours,
     num_projects,
-    limit
+    limit,
   ) {
     let label, val;
     if (input_type === "number") {
@@ -247,7 +247,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     } else {
       console.warn(
         "Invalid input type in render_upgrade_row_input: ",
-        input_type
+        input_type,
       );
       return;
     }
@@ -284,7 +284,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     }
 
     const remaining = round2(
-      (available - (input / display_factor) * num_projects) * display_factor
+      (available - (input / display_factor) * num_projects) * display_factor,
     );
     const limit = (available / num_projects) * display_factor;
 
@@ -315,7 +315,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
             input_type,
             yours,
             num_projects,
-            limit
+            limit,
           )}
         </Col>
         <Col md={2} style={{ marginTop: "8px" }}>
@@ -330,7 +330,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     applied_upgrades,
     num_projects,
     total_upgrades,
-    your_upgrades
+    your_upgrades,
   ) {
     // purchased_upgrades - how much of each quota this user has purchased
     // applied_upgrades   - how much of each quota user has already applied to projects total
@@ -345,7 +345,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
       const available = total - (applied_upgrades[quota] ?? 0) + yours;
       const current = total_upgrades[quota] ?? 0;
       result.push(
-        render_upgrade_row(quota, available, current, yours, num_projects)
+        render_upgrade_row(quota, available, current, yours, num_projects),
       );
     }
     return result;
@@ -415,11 +415,11 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     for (const project_id of project_ids) {
       your_upgrades = map_sum(
         your_upgrades,
-        projects_store.get_upgrades_you_applied_to_project(project_id) as any
+        projects_store.get_upgrades_you_applied_to_project(project_id) as any,
       );
       total_upgrades = map_sum(
         total_upgrades,
-        projects_store.get_total_project_upgrades(project_id) as any
+        projects_store.get_total_project_upgrades(project_id) as any,
       );
     }
 
@@ -440,7 +440,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
               applied_upgrades,
               num_projects,
               total_upgrades,
-              your_upgrades
+              your_upgrades,
             )}
             <UpgradeRestartWarning />
             <br />
@@ -619,7 +619,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
           style={{ marginLeft: "15px", marginTop: "15px" }}
           onChange={(e) => {
             course_actions.configuration.set_site_license_strategy(
-              e.target.value
+              e.target.value,
             );
             course_actions.configuration.configure_all_projects(true);
           }}

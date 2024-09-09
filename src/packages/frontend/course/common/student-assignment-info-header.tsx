@@ -64,7 +64,7 @@ export const StudentAssignmentInfoHeader: React.FC<StudentAssignmentInfoHeaderPr
     function render_col(
       number: number,
       key: AssignmentCopyStep | "grade",
-      width: 4 | 6
+      width: 4 | 6,
     ): Rendered {
       const { tip, title } = tip_title(key);
 

@@ -43,7 +43,7 @@ export function STEPS(peer: boolean): AssignmentCopyStep[] {
 
 export function previous_step(
   step: AssignmentCopyStep,
-  peer: boolean
+  peer: boolean,
 ): AssignmentCopyStep {
   let prev: AssignmentCopyStep | undefined;
   for (const s of STEPS(peer)) {
@@ -165,7 +165,7 @@ export function parse_students(student_map: StudentsMap, user_map, redux) {
 export function immutable_to_list(x: undefined): undefined;
 export function immutable_to_list<T, P>(
   x: Map<string, T>,
-  primary_key: P
+  primary_key: P,
 ): T extends TypedMap<infer S>
   ? S[]
   : T extends Map<string, infer S>
@@ -242,40 +242,62 @@ export function order_list<T extends { deleted: boolean }>(opts: {
   return { list, deleted: x, num_deleted: sorted_deleted.length };
 }
 
-const sort_on_string_field = (field) => (a, b) =>
-  cmp(a[field].toLowerCase(), b[field].toLowerCase());
+const cmp_strings = (a, b, field) => {
+  return cmp(a[field]?.toLowerCase() ?? "", b[field]?.toLowerCase() ?? "");
+};
 
-const sort_on_numerical_field = (field) => (a, b) =>
-  cmp(a[field] * -1, b[field] * -1);
+// first sort by domain, then address at that domain... since there will be many students
+// at same domain, and 'a@b.c' > 'a3@b.c' > 'a2@b.c' is true but not helpful
+const cmp_email = (a, b) => {
+  const v = a.split("@");
+  const w = b.split("@");
+  const c = cmp(v[1], w[1]);
+  if (c) {
+    return c;
+  }
+  return cmp(v[0], w[0]);
+};
 
-export enum StudentField {
-  email = "email",
-  first_name = "first_name",
-  last_name = "last_name",
-  last_active = "last_active",
-  hosting = "hosting",
-}
+const sort_on_string_field = (field, field2) => (a, b) => {
+  const c =
+    field == "email_address"
+      ? cmp_email(a[field], b[field])
+      : cmp_strings(a, b, field);
+  return c != 0 ? c : cmp_strings(a, b, field2);
+};
+
+const sort_on_numerical_field = (field, field2) => (a, b) => {
+  const c = cmp((a[field] ?? 0) * -1, (b[field] ?? 0) * -1);
+  return c != 0 ? c : cmp_strings(a, b, field2);
+};
+
+type StudentField =
+  | "email"
+  | "first_name"
+  | "last_name"
+  | "last_active"
+  | "hosting";
 
 export function pick_student_sorter<T extends { column_name: StudentField }>(
-  sort: T
+  sort: T,
 ) {
   switch (sort.column_name) {
     case "email":
-      return sort_on_string_field("email_address");
+      return sort_on_string_field("email_address", "last_name");
     case "first_name":
-      return sort_on_string_field("first_name");
+      return sort_on_string_field("first_name", "last_name");
     case "last_name":
-      return sort_on_string_field("last_name");
+      return sort_on_string_field("last_name", "first_name");
     case "last_active":
-      return sort_on_numerical_field("last_active");
+      return sort_on_numerical_field("last_active", "last_name");
     case "hosting":
-      return sort_on_string_field("hosting");
+      return sort_on_string_field("hosting", "email_address");
   }
 }
 
 export function assignment_identifier(
   assignment_id: string,
-  student_id: string
+  student_id: string,
 ): string {
   return assignment_id + student_id;
 }
@@ -294,7 +316,7 @@ interface ProjectStatus {
 
 export function projectStatus(
   project_id: string | undefined,
-  redux
+  redux,
 ): ProjectStatus {
   if (!project_id) {
     return { description: "(not created)", icon: "hourglass-half", state: "" };

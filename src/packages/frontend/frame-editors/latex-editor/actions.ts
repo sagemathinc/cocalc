@@ -140,7 +140,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       this._init_syncstring_value();
       this.init_ext_path(); // must come after syncstring init
       this.init_latexmk();
-      this._init_spellcheck();
+      // This breaks browser spellcheck.
+      // this._init_spellcheck();
       this.init_config();
       if (!this.knitr) {
         this.output_directory = this.output_directory_path();
@@ -1493,9 +1494,18 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   download_pdf(): void {
     const path: string = pdf_path(this.path);
+
+    // we use auto false and true, since the pdf may not exist, and we don't want
+    // a **silent failure**.  With auto:false, the pdf appears in a new tab
+    // and user has to click again to actually get it on their computer, but
+    // auto:true makes it so it downloads automatically to avoid that click.
+    // If there is an error, that is clear too.
     this.redux
       .getProjectActions(this.project_id)
-      .download_file({ path: path, log: true });
+      .download_file({ path, log: true, auto: false });
+    this.redux
+      .getProjectActions(this.project_id)
+      .download_file({ path, log: false, auto: true });
   }
 
   print(id: string): void {

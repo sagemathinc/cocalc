@@ -99,5 +99,5 @@ export const PayBanner: React.FC<PayBannerProps> = React.memo(
         }
       />
     );
-  }
+  },
 );

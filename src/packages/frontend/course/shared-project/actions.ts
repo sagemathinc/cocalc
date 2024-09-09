@@ -94,7 +94,7 @@ export class SharedProjectActions {
         return;
       }
       const course_project_users = projects.get_users(
-        store.get("course_project_id")
+        store.get("course_project_id"),
       );
       if (course_project_users == null) {
         return;
@@ -148,7 +148,7 @@ export class SharedProjectActions {
         try {
           await actions.add_site_license_to_project(
             shared_project_id,
-            site_license_id
+            site_license_id,
           );
         } catch (err) {
           console.warn(`error adding site license to shared project -- ${err}`);
@@ -197,7 +197,7 @@ export class SharedProjectActions {
       datastore,
       "shared", // type of project
       undefined, // student_project_functionality (not used for shared projects)
-      envvars
+      envvars,
     );
   }
 
@@ -258,7 +258,7 @@ export class SharedProjectActions {
       if (student_account_id) {
         await project_actions.remove_collaborator(
           shared_id,
-          student_account_id
+          student_account_id,
         );
       }
     }

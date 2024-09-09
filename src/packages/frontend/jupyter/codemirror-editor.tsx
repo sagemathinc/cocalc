@@ -28,6 +28,7 @@ import { Complete, Actions as CompleteActions } from "./complete";
 import { Cursors } from "./cursors";
 import { Position } from "./insert-cell/types";
 import { is_whitespace } from "@cocalc/util/misc";
+import { initFold, saveFold } from "@cocalc/frontend/codemirror/util";
 
 // We cache a little info about each Codemirror editor we make here,
 // so we can restore it when we make the same one again.  Due to
@@ -147,12 +148,17 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
   useEffect(() => {
     if (frameActions.current?.frame_id != null) {
-      key.current = `${frameActions.current.frame_id}${id}`;
+      key.current = `${(actions as any)?.path}${
+        frameActions.current.frame_id
+      }${id}`;
     }
     init_codemirror(options, value);
 
     return () => {
       if (cm.current != null) {
+        if (key.current != null) {
+          saveFold(cm.current, key.current);
+        }
         cm_save();
         cm_destroy();
       }
@@ -638,13 +644,6 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       options0.extraKeys["Ctrl-Enter"] = () => {};
       options0.extraKeys["Alt-Enter"] = () => {};
       options0.extraKeys["Cmd-Enter"] = () => {};
-      /*
-      Disabled for now since fold state isn't preserved.
-      if (options0.foldGutter) {
-        options0.extraKeys["Ctrl-Q"] = cm => cm.foldCodeSelectionAware();
-        options0.gutters = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"];
-      }
-      */
     } else {
       options0.readOnly = true;
     }
@@ -761,6 +760,17 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
     if (is_focused) {
       focus_cm();
+    }
+
+    if (key.current != null) {
+      initFold(cm.current, key.current);
+      const save = () => {
+        if (cm.current != null && key.current != null) {
+          saveFold(cm.current, key.current);
+        }
+      };
+      cm.current.on("fold", save);
+      cm.current.on("unfold", save);
     }
   }
 

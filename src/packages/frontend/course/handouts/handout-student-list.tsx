@@ -81,7 +81,7 @@ export const StudentListForHandout: React.FC<StudentListForHandoutProps> =
     function render_student_info(student_id: string): Rendered {
       const info = get_store().student_handout_info(
         student_id,
-        handout.get("handout_id")
+        handout.get("handout_id"),
       );
       return (
         <StudentHandoutInfo

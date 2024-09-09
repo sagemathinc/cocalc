@@ -81,7 +81,7 @@ import {
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
 import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { setServerTab } from "@cocalc/frontend/compute/tab";
+import { setServerTab, TabName } from "@cocalc/frontend/compute/tab";
 
 const { defaults, required } = misc;
 
@@ -3460,14 +3460,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   showComputeServers = () => {
-    setServerTab(this.project_id, "compute-servers");
-    this.set_active_tab("servers", {
-      change_history: true,
-    });
+    this.setServerTab("compute-servers");
   };
 
   createComputeServerDialog = () => {
     this.setState({ create_compute_server: true });
     this.showComputeServers();
+  };
+
+  setServerTab = (name: TabName) => {
+    setServerTab(this.project_id, name);
+    this.set_active_tab("servers", {
+      change_history: true,
+    });
   };
 }

@@ -246,7 +246,7 @@ export class CourseActions extends Actions<CourseState> {
 
   // ACTIVITY ACTIONS
   public set_activity(
-    opts: { id: number; desc?: string } | { id?: number; desc: string }
+    opts: { id: number; desc?: string } | { id?: number; desc: string },
   ): number {
     return this.activity.set_activity(opts);
   }
@@ -349,7 +349,7 @@ export class CourseActions extends Actions<CourseState> {
       | "peer_config"
       | "handout"
       | "skip_grading",
-    item_id
+    item_id,
   ): void {
     let adjusted;
     const store = this.get_store();
