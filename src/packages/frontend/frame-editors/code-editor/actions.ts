@@ -1281,11 +1281,29 @@ export class Actions<
   }
 
   time_travel(opts: { path?: string; frame?: boolean }): void {
+    const path = opts?.path ?? this.path;
+    if (path.startsWith(".snapshots/")) {
+      // see https://github.com/sagemathinc/cocalc/issues/2588
+      let file = path.slice(".snapshots/".length);
+      // if file's first path segment starts with an iso timestamp like, '2023-06-03-153543', remove that:
+      const parts = file.split("/");
+      if (parts.length > 0 && /^\d{4}-\d{2}-\d{2}-\d{6}$/.test(parts[0])) {
+        parts.shift();
+        file = parts.join("/");
+      }
+      const hist = history_path(file);
+      this._get_project_actions().open_file({
+        path: hist,
+        foreground: true,
+      });
+      return;
+    }
+
     if (opts.frame) {
       this.show_focused_frame_of_type("time_travel");
     } else {
       this._get_project_actions().open_file({
-        path: history_path(opts.path || this.path),
+        path: history_path(path),
         foreground: true,
       });
     }

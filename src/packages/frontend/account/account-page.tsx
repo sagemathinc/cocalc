@@ -10,10 +10,10 @@ for different account related information
 and configuration.
 */
 
+import { useState } from "react";
 import { DownOutlined } from "@ant-design/icons";
 import { Button, Dropdown, MenuProps, Modal, Space, Tooltip } from "antd";
 import { useIntl } from "react-intl";
-
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -86,6 +86,7 @@ export const AccountPage: React.FC = () => {
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
   const i18n_enabled = useTypedRedux("customize", "i18n");
+  const [langOpen, setLangOpen] = useState<boolean>(false);
 
   // for each exclusive domain, tell the user which strategy to use
   const exclusive_sso_domains = React.useMemo(() => {
@@ -351,13 +352,21 @@ Thank you for your patience and understanding as we work to make our application
         {cur}
         <br />
         {msg}
-        <br />({labels.account_language_tooltip.defaultMessage})
+        {labels.account_language_tooltip.defaultMessage != msg ? (
+          <>
+            <br />({labels.account_language_tooltip.defaultMessage})
+          </>
+        ) : undefined}
       </>
     );
 
     return (
-      <Tooltip title={tooltip} trigger={["hover"]}>
-        <Dropdown menu={menu} trigger={["click"]}>
+      <Tooltip title={langOpen ? undefined : tooltip} trigger={["hover"]}>
+        <Dropdown
+          menu={menu}
+          trigger={["click"]}
+          onOpenChange={(open) => setLangOpen(open)}
+        >
           <Button>
             <Space>
               {lang_icon}

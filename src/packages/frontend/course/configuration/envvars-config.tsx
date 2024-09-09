@@ -27,7 +27,7 @@ interface Props {
 }
 
 function normalizeTypeAndValue(
-  envvars: EnvVars | TypedMap<EnvVarsRecord>
+  envvars: EnvVars | TypedMap<EnvVarsRecord>,
 ): NonNullable<EnvVars> {
   if (typeof (envvars as any)?.inherit === "boolean") {
     return envvars as NonNullable<EnvVars>;

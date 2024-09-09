@@ -83,7 +83,7 @@ export const StudentListForAssignment: React.FC<StudentListForAssignmentProps> =
           terms.length > 0 &&
           !search_match(
             store.get_student_name(x.student_id).toLowerCase(),
-            terms
+            terms,
           )
         ) {
           continue;
@@ -124,7 +124,7 @@ export const StudentListForAssignment: React.FC<StudentListForAssignmentProps> =
       if (student == null) return; // no such student
       const key = util.assignment_identifier(
         assignment.get("assignment_id"),
-        student_id
+        student_id,
       );
       const edited_feedback = active_feedback_edits.get(key);
       return (
@@ -137,18 +137,18 @@ export const StudentListForAssignment: React.FC<StudentListForAssignmentProps> =
           grade={store.get_grade(assignment.get("assignment_id"), student_id)}
           nbgrader_scores={store.get_nbgrader_scores(
             assignment.get("assignment_id"),
-            student_id
+            student_id,
           )}
           nbgrader_score_ids={store.get_nbgrader_score_ids(
-            assignment.get("assignment_id")
+            assignment.get("assignment_id"),
           )}
           comments={store.get_comments(
             assignment.get("assignment_id"),
-            student_id
+            student_id,
           )}
           info={store.student_assignment_info(
             student_id,
-            assignment.get("assignment_id")
+            assignment.get("assignment_id"),
           )}
           is_editing={!!edited_feedback}
           nbgrader_run_info={nbgrader_run_info}
@@ -163,7 +163,7 @@ export const StudentListForAssignment: React.FC<StudentListForAssignmentProps> =
           rowRenderer={({ key }) => render_student_info(key)}
           rowKey={(index) => student_list[index]}
           cacheId={`course-assignment-${assignment.get(
-            "assignment_id"
+            "assignment_id",
           )}-${name}-${frame_id}`}
         />
       );

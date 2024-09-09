@@ -297,16 +297,16 @@ export class ChatActions extends Actions<ChatState> {
         search: "",
       });
     } else {
-      // TODO: but until we fix search, do this:
+      // TODO: but until we improve search to be by thread (instead of by message), do this:
       this.setState({
         search: "",
       });
     }
     this.ensureDraftStartsWithHashtags(false);
 
-    if (this.store) {
-      const project_id = this.store.get("project_id");
-      const path = this.store.get("path");
+    if (this.store != null) {
+      const project_id = this.store?.get("project_id");
+      const path = this.store?.get("path");
       // set notification saying that we sent an actual chat
       let action;
       if (
@@ -570,7 +570,6 @@ export class ChatActions extends Actions<ChatState> {
   }
 
   public set_uploading(is_uploading: boolean): void {
-    console.log("set_uploading", is_uploading);
     this.setState({ is_uploading });
   }
 

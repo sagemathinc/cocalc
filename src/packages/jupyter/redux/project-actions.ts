@@ -952,8 +952,7 @@ export class JupyterActions extends JupyterActions0 {
     dbg();
     this._file_watcher = this._client.watch_file({
       path: this.store.get("path"),
-      interval: 3000,
-      debounce: 1500,
+      debounce: 1000,
     });
 
     this._file_watcher.on("change", async () => {

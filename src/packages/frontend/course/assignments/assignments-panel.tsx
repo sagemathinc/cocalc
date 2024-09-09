@@ -51,27 +51,27 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
 
   const expanded_assignments: Set<string> = useRedux(
     name,
-    "expanded_assignments"
+    "expanded_assignments",
   );
   const active_assignment_sort: SortDescription = useRedux(
     name,
-    "active_assignment_sort"
+    "active_assignment_sort",
   );
   const active_student_sort: SortDescription = useRedux(
     name,
-    "active_student_sort"
+    "active_student_sort",
   );
   const expanded_peer_configs: Set<string> = useRedux(
     name,
-    "expanded_peer_configs"
+    "expanded_peer_configs",
   );
   const active_feedback_edits: IsGradingMap = useRedux(
     name,
-    "active_feedback_edits"
+    "active_feedback_edits",
   );
   const nbgrader_run_info: NBgraderRunInfo | undefined = useRedux(
     name,
-    "nbgrader_run_info"
+    "nbgrader_run_info",
   );
 
   // search query to restrict which assignments are shown.
@@ -132,7 +132,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
 
   function render_sort_link(
     column_name: string,
-    display_name: string
+    display_name: string,
   ): Rendered {
     return (
       <a
@@ -140,7 +140,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
         onClick={(e) => {
           e.preventDefault();
           return course_actions.assignments.set_active_assignment_sort(
-            column_name
+            column_name,
           );
         }}
       >
@@ -193,7 +193,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_assignments(
-    assignments: { assignment_id: string }[]
+    assignments: { assignment_id: string }[],
   ): Rendered {
     if (assignments.length == 0) {
       return render_no_assignments();
@@ -249,7 +249,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
 
   function render_show_deleted(
     num_deleted: number,
-    num_shown: number
+    num_shown: number,
   ): Rendered {
     if (show_deleted) {
       return (

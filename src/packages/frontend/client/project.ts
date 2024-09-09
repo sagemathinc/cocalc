@@ -50,9 +50,6 @@ export class ProjectClient {
 
   constructor(client: WebappClient) {
     this.client = client;
-    this.ipywidgetsGetBuffer = reuseInFlight(
-      this.ipywidgetsGetBuffer.bind(this),
-    );
   }
 
   private async call(message: object): Promise<any> {
@@ -380,16 +377,19 @@ export class ProjectClient {
   }
 
   // This is async, so do "await smc_webapp.configuration(...project_id...)".
-  public async configuration(
-    project_id: string,
-    aspect: ConfigurationAspect,
-    no_cache: boolean,
-  ): Promise<Configuration> {
-    if (!is_valid_uuid_string(project_id)) {
-      throw Error("project_id must be a valid uuid");
-    }
-    return (await this.api(project_id)).configuration(aspect, no_cache);
-  }
+  // for reuseInFlight, see https://github.com/sagemathinc/cocalc/issues/7806
+  public configuration = reuseInFlight(
+    async (
+      project_id: string,
+      aspect: ConfigurationAspect,
+      no_cache: boolean,
+    ): Promise<Configuration> => {
+      if (!is_valid_uuid_string(project_id)) {
+        throw Error("project_id must be a valid uuid");
+      }
+      return (await this.api(project_id)).configuration(aspect, no_cache);
+    },
+  );
 
   // Remove all upgrades from all projects that this user collaborates on.
   public async remove_all_upgrades(projects?: string[]): Promise<void> {
@@ -543,29 +543,30 @@ export class ProjectClient {
     return get_usage_info(project_id);
   }
 
-  // NOTE: we reuseInFlight this in the constructor.
-  public async ipywidgetsGetBuffer(
-    project_id: string,
-    path: string,
-    model_id: string,
-    buffer_path: string,
-    useHttp?: boolean, // ONLY works for home base, NOT compute servers!
-  ): Promise<ArrayBuffer> {
-    if (useHttp) {
-      const url = ipywidgetsGetBufferUrl(
-        project_id,
-        path,
+  public ipywidgetsGetBuffer = reuseInFlight(
+    async (
+      project_id: string,
+      path: string,
+      model_id: string,
+      buffer_path: string,
+      useHttp?: boolean, // ONLY works for home base, NOT compute servers!
+    ): Promise<ArrayBuffer> => {
+      if (useHttp) {
+        const url = ipywidgetsGetBufferUrl(
+          project_id,
+          path,
+          model_id,
+          buffer_path,
+        );
+        return await (await fetch(url)).arrayBuffer();
+      }
+      const actions = redux.getEditorActions(project_id, path);
+      return await actions.jupyter_actions.ipywidgetsGetBuffer(
         model_id,
         buffer_path,
       );
-      return await (await fetch(url)).arrayBuffer();
-    }
-    const actions = redux.getEditorActions(project_id, path);
-    return await actions.jupyter_actions.ipywidgetsGetBuffer(
-      model_id,
-      buffer_path,
-    );
-  }
+    },
+  );
 
   // getting, setting, editing, deleting, etc., the  api keys for a project
   public async api_keys(opts: {

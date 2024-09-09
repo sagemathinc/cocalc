@@ -40,7 +40,7 @@ export class Watcher extends EventEmitter {
 
   constructor(
     path: string,
-    { debounce, interval = 300 }: { debounce?: number; interval?: number } = {},
+    { debounce, interval = 750 }: { debounce?: number; interval?: number } = {},
   ) {
     super();
     this.path = path;

@@ -509,7 +509,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
               height={INPUT_HEIGHT}
               onChange={(value) => {
                 actions.set_input(value);
-                // submitMentionsRef will not acutally submit mentions, we're only interested in the reply value
+                // submitMentionsRef will not actually submit mentions; we're only interested in the reply value
                 const reply =
                   submitMentionsRef.current?.(undefined, true) ?? value;
                 actions?.llm_estimate_cost(reply, "room");

@@ -183,7 +183,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     function date_change(date): void {
       actions.assignments.set_due_date(
         assignment.get("assignment_id"),
-        date != null ? date.toISOString() : undefined
+        date != null ? date.toISOString() : undefined,
       );
     }
 
@@ -214,7 +214,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
               on_save={(value) =>
                 actions.assignments.set_assignment_note(
                   assignment.get("assignment_id"),
-                  value
+                  value,
                 )
               }
             />
@@ -266,7 +266,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             <Button
               onClick={() =>
                 actions.assignments.export_collected(
-                  assignment.get("assignment_id")
+                  assignment.get("assignment_id"),
                 )
               }
             >
@@ -324,7 +324,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
               </Col>
             </Row>
           </Col>
-        </Row>
+        </Row>,
       );
 
       if (expand_peer_config) {
@@ -333,7 +333,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             <Col md={20} offset={4}>
               {render_configure_peer()}
             </Col>
-          </Row>
+          </Row>,
         );
       }
       if (confirm_delete) {
@@ -342,7 +342,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             <Col md={20} offset={4}>
               {render_confirm_delete()}
             </Col>
-          </Row>
+          </Row>,
         );
       }
 
@@ -361,7 +361,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             <Col md={width} key={key}>
               {render_nbgrader_button(status)}
               {b2}
-            </Col>
+            </Col>,
           );
         };
 
@@ -375,7 +375,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             buttons.push(
               <Col md={width} key={name}>
                 {b}
-              </Col>
+              </Col>,
             );
             if (peer && name === "peer_collect") {
               insert_grade_button("skip_peer_collect");
@@ -397,7 +397,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             <Col md={20} key="buttons">
               <Row>{buttons}</Row>
             </Col>
-          </Row>
+          </Row>,
         );
 
         v.push(
@@ -405,7 +405,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             <Col md={20} offset={4}>
               {render_copy_confirms(status)}
             </Col>
-          </Row>
+          </Row>,
         );
       }
       /* The whiteSpace:'normal' here is because we put this in an
@@ -463,7 +463,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
         // a lot more work to properly implement.
         actions.toggle_item_expansion(
           "assignment",
-          assignment.get("assignment_id")
+          assignment.get("assignment_id"),
         );
       }
       return redux
@@ -601,7 +601,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
               type="text"
               onChange={(e) =>
                 set_copy_assignment_confirm_overwrite_text(
-                  (e.target as any).value
+                  (e.target as any).value,
                 )
               }
               style={{ marginTop: "1ex" }}
@@ -624,7 +624,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     function copy_assignment(
       step,
       new_only: boolean,
-      overwrite: boolean = false
+      overwrite: boolean = false,
     ) {
       // assign assignment to all (non-deleted) students
       const assignment_id: string | undefined = assignment.get("assignment_id");
@@ -634,31 +634,31 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           actions.assignments.copy_assignment_to_all_students(
             assignment_id,
             new_only,
-            overwrite
+            overwrite,
           );
           break;
         case "collect":
           actions.assignments.copy_assignment_from_all_students(
             assignment_id,
-            new_only
+            new_only,
           );
           break;
         case "peer_assignment":
           actions.assignments.peer_copy_to_all_students(
             assignment_id,
-            new_only
+            new_only,
           );
           break;
         case "peer_collect":
           actions.assignments.peer_collect_from_all_students(
             assignment_id,
-            new_only
+            new_only,
           );
           break;
         case "return_graded":
           actions.assignments.return_assignment_to_all_students(
             assignment_id,
-            new_only
+            new_only,
           );
           break;
         default:
@@ -707,7 +707,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
 
     function render_copy_confirm_to_all(
       step: AssignmentCopyStep,
-      status
+      status,
     ): Rendered {
       const n = status[`not_${step}`];
       const message = (
@@ -743,7 +743,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     }
 
     function copy_confirm_all_caution(
-      step: AssignmentCopyStep
+      step: AssignmentCopyStep,
     ): Rendered | string {
       switch (step) {
         case "assignment":
@@ -777,7 +777,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
     }
 
     function render_copy_confirm_overwrite_all(
-      step: AssignmentCopyStep
+      step: AssignmentCopyStep,
     ): Rendered {
       return (
         <div key={"copy_confirm_overwrite_all"} style={{ marginTop: "15px" }}>
@@ -812,7 +812,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
 
     function render_copy_confirm_to_all_or_new(
       step: AssignmentCopyStep,
-      status
+      status,
     ): Rendered {
       const n = status[`not_${step}`];
       const m = n + status[step];
@@ -1077,7 +1077,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
       actions.assignments.set_skip(
         assignment.get("assignment_id"),
         "grading",
-        !assignment.get("skip_grading")
+        !assignment.get("skip_grading"),
       );
     }
 
@@ -1182,7 +1182,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
 
     function undelete_assignment() {
       return actions.assignments.undelete_assignment(
-        assignment.get("assignment_id")
+        assignment.get("assignment_id"),
       );
     }
 
@@ -1264,7 +1264,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
           onClick={() =>
             actions.toggle_item_expansion(
               "peer_config",
-              assignment.get("assignment_id")
+              assignment.get("assignment_id"),
             )
           }
         >
@@ -1303,7 +1303,7 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
             e.preventDefault();
             actions.toggle_item_expansion(
               "assignment",
-              assignment.get("assignment_id")
+              assignment.get("assignment_id"),
             );
           }}
         >
@@ -1338,5 +1338,5 @@ export const Assignment: React.FC<AssignmentProps> = React.memo(
       </div>
     );
   },
-  isSame
+  isSame,
 );

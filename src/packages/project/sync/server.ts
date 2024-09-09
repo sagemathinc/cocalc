@@ -393,7 +393,15 @@ class SyncTableChannel {
       return;
     }
     this.log("check_if_should_save_or_close: save to disk if possible");
-    await this.save_if_possible();
+    try {
+      await this.save_if_possible();
+    } catch (err) {
+      // the name "save if possible" suggests this should be non-fatal.
+      this.log(
+        "check_if_should_save_or_close: WARNING: unable to save -- ",
+        err,
+      );
+    }
     const { n } = this.num_connections ?? {};
     this.log("check_if_should_save_or_close", { n });
     if (!this.persistent && n === 0) {
