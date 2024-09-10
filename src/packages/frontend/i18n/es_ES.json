@@ -250,7 +250,7 @@
   "labels.copy": "Copiar",
   "labels.create_project": "Crear Proyecto...",
   "labels.cut": "Cortar",
-  "labels.email_address": "Dirección de correo electrónico",
+  "labels.email_address": "Correo electrónico",
   "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Público} read_only {Solo lectura} other {Guardar}}",
   "labels.help": "Ayuda",
   "labels.insert": "Insertar",

@@ -146,6 +146,18 @@ function loadAntdLocale(locale: Locale): Promise<AntdLocale> {
         return import("antd/locale/fr_FR");
       case "it":
         return import("antd/locale/it_IT");
+      case "ja":
+        return import("antd/locale/ja_JP");
+      case "pt":
+        return import("antd/locale/pt_PT");
+      case "ko":
+        return import("antd/locale/ko_KR");
+      case "pl":
+        return import("antd/locale/pl_PL");
+      case "tr":
+        return import("antd/locale/tr_TR");
+      case "he":
+        return import("antd/locale/he_IL");
       default:
         unreachable(locale);
         throw new Error(`Unknown locale '${locale}.`);
