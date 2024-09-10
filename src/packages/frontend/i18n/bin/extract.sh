@@ -5,4 +5,4 @@ pnpm exec formatjs extract $(git ls-files '**/*.tsx') i18n/*.ts jupyter/commands
 		   --ignore='dist/*' \
 		   --out-file i18n/extracted.json \
 		   --throws \
-		   --id-interpolation-pattern '[sha512:contenthash:base64:6]'
+		   --id-interpolation-pattern 'UNIQUE_ID_IS_MISSING'

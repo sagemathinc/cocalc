@@ -4,20 +4,22 @@
  */
 
 import { Map } from "immutable";
+import { FormattedMessage } from "react-intl";
+
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
+import { Component, redux } from "@cocalc/frontend/app-framework";
+import { Icon, Loading } from "@cocalc/frontend/components";
+import { KEYBOARD_VARIANTS } from "@cocalc/frontend/frame-editors/x11-editor/xpra/keyboards";
 import { deep_copy } from "@cocalc/util/misc";
-import { redux, Component } from "../../app-framework";
-import { Panel } from "../../antd-bootstrap";
-import { Icon, Loading } from "../../components";
-import { EditorSettingsCheckboxes } from "./checkboxes";
 import { EditorSettingsAutosaveInterval } from "./autosave-interval";
+import { EditorSettingsCheckboxes } from "./checkboxes";
 import { EditorSettingsColorScheme } from "./color-schemes";
 import { EditorSettingsFontSize } from "./font-size";
 import { EditorSettingsIndentSize } from "./indent-size";
 import { EditorSettingsKeyboardBindings } from "./keyboard-bindings";
-import { KEYBOARD_VARIANTS } from "../../frame-editors/x11-editor/xpra/keyboards";
 import {
-  EditorSettingsPhysicalKeyboard,
   EditorSettingsKeyboardVariant,
+  EditorSettingsPhysicalKeyboard,
 } from "./x11-keyboard";
 
 import { set_account_table } from "../util";
@@ -76,7 +78,11 @@ export class EditorSettings extends Component<Props> {
       <Panel
         header={
           <>
-            <Icon name="edit" /> Editor
+            <Icon name="edit" />{" "}
+            <FormattedMessage
+              id="account.editor-settings.title"
+              defaultMessage="Editor"
+            />
           </>
         }
       >
@@ -105,7 +111,7 @@ export class EditorSettings extends Component<Props> {
         <EditorSettingsPhysicalKeyboard
           on_change={(value) => this.on_change("physical_keyboard", value)}
           physical_keyboard={this.props.editor_settings.get(
-            "physical_keyboard"
+            "physical_keyboard",
           )}
         />
         <EditorSettingsKeyboardVariant

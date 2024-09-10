@@ -135,10 +135,15 @@ export const AccountPreferences: React.FC = () => {
           />
         </h2>
         <div style={{ fontSize: "14pt" }}>
-          Adjust account preferences below.{" "}
-          <A href={join(appBasePath, "config")}>
-            Visit your account configuration for more...
-          </A>
+          <FormattedMessage
+            id="accountaccount.account_preferences.subtitle"
+            defaultMessage={
+              "Adjust account preferences below. <A>Visit your account configuration for more...</A>"
+            }
+            values={{
+              A: (ch) => <A href={join(appBasePath, "config")}>{ch}</A>,
+            }}
+          />
         </div>
         <br />
         <br />

@@ -1,6 +1,11 @@
 import { defineMessages } from "react-intl";
 
 export const labels = defineMessages({
+  unique_id_is_missing: {
+    defaultMessage: "unique id missing",
+    description:
+      "This is just an internal message to trigger ID collisions. If you hit this, your i18n message has no ID. Please consult the README in this directory for more information. The usual pattern is something like [dir].[subdir/filename].[section].[label|message|...]. Messages in this file however are prefixed with their purpose.",
+  },
   cancel: {
     id: "labels.button.cancel",
     defaultMessage: "Cancel",
@@ -275,6 +280,10 @@ export const labels = defineMessages({
   insert: {
     id: "labels.insert",
     defaultMessage: "Insert",
+  },
+  refresh: {
+    id: "labels.refresh",
+    defaultMessage: "Refresh",
   },
 });
 
