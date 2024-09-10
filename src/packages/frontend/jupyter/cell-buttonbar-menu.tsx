@@ -6,9 +6,11 @@
 import type { MenuProps } from "antd";
 import { Button, Dropdown } from "antd";
 import copy from "copy-to-clipboard";
+import { useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   CODE_BAR_BTN_STYLE,
   COPY_CELL_ICON,
@@ -17,6 +19,8 @@ import {
 } from "./consts";
 
 export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
+  const intl = useIntl();
+
   function cut_cell(): void {
     if (id == null) return;
     frameActions.current?.unselect_all_cells();
@@ -54,45 +58,63 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
   const items: MenuProps["items"] = [
     {
       key: "copy",
-      label: "Copy to Clipboard",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.copy-clipboard",
+        defaultMessage: "Copy to Clipboard",
+      }),
       icon: <Icon name="copy" />,
       onClick: copyToClipboard,
     },
     {
       key: "paste",
-      label: "Paste from Clipboard",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.paste-clipboard",
+        defaultMessage: "Paste from Clipboard",
+      }),
       icon: <Icon name="paste" />,
       onClick: pasteFromClipboard,
     },
     { key: "divider3", type: "divider" },
     {
       key: "undo",
-      label: "Undo",
+      label: intl.formatMessage(labels.undo),
       icon: <Icon name="undo" />,
       onClick: () => actions.undo(),
     },
     {
       key: "redo",
-      label: "Redo",
+      label: intl.formatMessage(labels.redo),
       icon: <Icon name="redo" />,
       onClick: () => actions.redo(),
     },
     { key: "divider4", type: "divider" },
     {
       key: "copy-cell",
-      label: "Copy Cell",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.copy-cell",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Copy Cell",
+      }),
       icon: <Icon name={COPY_CELL_ICON} />,
       onClick: () => frameActions.current?.copy_selected_cells(),
     },
     {
       key: "cut",
-      label: "Cut Cell",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.cut-cell",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Cut Cell",
+      }),
       icon: <Icon name="cut" />,
       onClick: cut_cell,
     },
     {
       key: "paste-cell-above",
-      label: "Paste Cell Above",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.paste-cell-above",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Paste Cell Above",
+      }),
       icon: (
         <>
           <Icon name={"paste"} />
@@ -103,7 +125,11 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
     },
     {
       key: "paste-cell-below",
-      label: "Paste Cell Below",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.paste-cell-below",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Paste Cell Below",
+      }),
       icon: (
         <>
           <Icon name={"paste"} />
@@ -114,7 +140,11 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
     },
     {
       key: "duplicate",
-      label: "Duplicate Cell",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.duplicate",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Duplicate Cell",
+      }),
       icon: <Icon name="fork-outlined" rotate="90" />,
       onClick: async () => {
         frameActions.current?.copy_selected_cells();
@@ -125,14 +155,22 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
     },
     {
       key: "delete-cell",
-      label: "Delete Cell",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.delete-cell",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Delete Cell",
+      }),
       icon: <Icon name={DELETE_CELL_ICON} />,
       onClick: () => frameActions.current?.delete_selected_cells(),
     },
     { key: "divider5", type: "divider" },
     {
       key: "split-cell",
-      label: "Split Cell at Cursor",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.split-cell",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Split Cell at Cursor",
+      }),
       icon: <Icon name={SPLIT_CELL_ICON} />,
       onClick: () => {
         frameActions.current?.set_mode("escape");
@@ -141,7 +179,11 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
     },
     {
       key: "merge-above",
-      label: "Merge with Cell Above",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.merge-above",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Merge with Cell Above",
+      }),
       icon: (
         <>
           <Icon name="merge-cells-outlined" rotate="90" />
@@ -152,7 +194,11 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
     },
     {
       key: "merge-below",
-      label: "Merge with Cell Below",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.merge-below",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Merge with Cell Below",
+      }),
       icon: (
         <>
           <Icon name="merge-cells-outlined" rotate="90" />
@@ -164,13 +210,21 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
     { key: "divider6", type: "divider" },
     {
       key: "move-cell-up",
-      label: "Move Cell Up",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.move-cell-up",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Move Cell Up",
+      }),
       icon: <Icon name="arrow-up" />,
       onClick: () => move_cell(-1),
     },
     {
       key: "move-cell-down",
-      label: "Move Cell Down",
+      label: intl.formatMessage({
+        id: "jupyter.cell-buttonbar-menu.move-cell-down",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Move Cell Down",
+      }),
       icon: <Icon name="arrow-down" />,
       onClick: () => move_cell(1),
     },

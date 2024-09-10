@@ -18,6 +18,7 @@ import ComputeServer from "@cocalc/frontend/compute/inline";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import track from "@cocalc/frontend/user-tracking";
 import { LLMTools } from "@cocalc/jupyter/types";
+import { FormattedMessage, useIntl } from "react-intl";
 import { JupyterActions } from "./browser-actions";
 import { CodeBarDropdownMenu } from "./cell-buttonbar-menu";
 import { CellIndexNumber } from "./cell-index-number";
@@ -68,6 +69,8 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     is_readonly,
     haveLLMCellTools,
   }: Props) => {
+    const intl = useIntl();
+
     const { project_id, path } = useFrameContext();
     const frameActions = useNotebookFrameActions();
     const [formatting, setFormatting] = useState<boolean>(false);
@@ -163,20 +166,21 @@ export const CellButtonBar: React.FC<Props> = React.memo(
 
     function renderCodeBarLLMButtons() {
       if (!llmTools || !haveLLMCellTools) return;
-      return (
-        <LLMCellTool
-          id={id}
-          actions={actions}
-          llmTools={llmTools}
-        />
-      );
+      return <LLMCellTool id={id} actions={actions} llmTools={llmTools} />;
     }
 
     function renderCodeBarFormatButton() {
       // Should only show formatter button if there is a way to format this code.
       if (is_readonly || actions == null) return;
       return (
-        <Tooltip title="Format this code to look nice" placement="top">
+        <Tooltip
+          title={intl.formatMessage({
+            id: "jupyter.cell-buttonbr.format-button.tooltip",
+            defaultMessage: "Format this code to look nice",
+            description: "Code cell in a Jupyter Notebook",
+          })}
+          placement="top"
+        >
           <Button
             disabled={formatting}
             type="text"
@@ -196,7 +200,11 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             }}
           >
             <Icon name={formatting ? "spinner" : "sitemap"} spin={formatting} />{" "}
-            Format
+            <FormattedMessage
+              id="jupyter.cell-buttonbr.format-button.label"
+              defaultMessage={"Format"}
+              description={"Code cell in a Jupyter Notebook"}
+            />
           </Button>
         </Tooltip>
       );

@@ -680,8 +680,14 @@ addCommands({
     disabled: ({ readOnly }) => readOnly,
     group: "delete",
     icon: "trash",
-    title: "Delete this file",
-    label: "Delete File",
+    title: defineMessage({
+      id: "menu.generic.delete.tooltip",
+      defaultMessage: "Delete this file",
+    }),
+    label: defineMessage({
+      id: "menu.generic.delete.label",
+      defaultMessage: "Delete File",
+    }),
     ...fileAction("delete"),
   },
 
@@ -691,7 +697,10 @@ addCommands({
     group: "misc-file-actions",
     icon: "swap",
     title: "Rename this file",
-    label: "Rename File",
+    label: defineMessage({
+      id: "menu.generic.rename.label",
+      defaultMessage: "Rename File",
+    }),
     ...fileAction("rename"),
   },
   compress: {
@@ -699,7 +708,10 @@ addCommands({
     group: "misc-file-actions",
     icon: "compress",
     title: "Compress this file",
-    label: "Compress File",
+    label: defineMessage({
+      id: "menu.generic.compress.label",
+      defaultMessage: "Compress File",
+    }),
     ...fileAction("compress"),
   },
   duplicate: {
@@ -707,15 +719,24 @@ addCommands({
     group: "misc-file-actions",
     icon: "clone",
     title: "Duplicate this file",
-    label: "Duplicate File",
+    label: defineMessage({
+      id: "menu.generic.duplicate.label",
+      defaultMessage: "Duplicate File",
+    }),
     ...fileAction("duplicate"),
   },
   copy_file: {
     pos: 3,
     group: "misc-file-actions",
     icon: "files",
-    title: "Copy this file to another directory or project",
-    label: "Copy File",
+    title: defineMessage({
+      id: "menu.generic.copy_file.tooltip",
+      defaultMessage: "Copy this file to another directory or project",
+    }),
+    label: defineMessage({
+      id: "menu.generic.copy_file.label",
+      defaultMessage: "Copy File",
+    }),
     ...fileAction("copy"),
   },
   move_file: {
@@ -723,14 +744,26 @@ addCommands({
     pos: 4,
     group: "misc-file-actions",
     icon: "move",
-    title: "Move this file to another directory",
-    label: "Move File",
+    title: defineMessage({
+      id: "menu.generic.move_file.tooltip",
+      defaultMessage: "Move this file to another directory",
+    }),
+    label: defineMessage({
+      id: "menu.generic.move_file.label",
+      defaultMessage: "Move File",
+    }),
     ...fileAction("move"),
   },
   download: {
     group: "export",
-    label: "Download File",
-    title: "Download this file",
+    label: defineMessage({
+      id: "menu.generic.download.label",
+      defaultMessage: "Download File",
+    }),
+    title: defineMessage({
+      id: "menu.generic.download.tooltip",
+      defaultMessage: "Download this file",
+    }),
     icon: "cloud-download",
     ...fileAction("download"),
   },
@@ -752,18 +785,32 @@ addCommands({
     pos: 10,
     group: "export",
     icon: "share-square",
-    title:
-      "Make this file available to be easily copies by other people, either publicly or for people who know the link.",
-    button: "Publish",
-    label: "Publish File",
+    title: defineMessage({
+      id: "menu.generic.publish_file.tooltip",
+      defaultMessage:
+        "Make this file available to be easily copies by other people, either publicly or for people who know the link.",
+    }),
+    button: defineMessage({
+      id: "menu.generic.publish_file.button",
+      defaultMessage: "Publish",
+    }),
+    label: defineMessage({
+      id: "menu.generic.publish_file.label",
+      defaultMessage: "Publish File",
+    }),
     ...fileAction("share"),
   },
   print: {
     pos: 2,
     group: "export",
     icon: "print",
-    title: "Show a printable version of this document in a popup window.",
-    label: "Print",
+    title: defineMessage({
+      id: "menu.generic.print.tooltip",
+      defaultMessage:
+        "Show a printable version of this document in a popup window.",
+    }),
+
+    label: labels.print,
   },
   new: {
     pos: 0,
