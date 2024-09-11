@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { delay } from "awaiting";
 import { isEqual } from "lodash";
 import {
   BaseRange,
@@ -16,7 +15,6 @@ import {
   Text,
   Transforms,
 } from "slate";
-
 import { commands } from "@cocalc/frontend/editors/editor-button-bar";
 import { is_array, startswith } from "@cocalc/util/misc";
 import { getMarks } from "../edit-bar/marks";
@@ -29,6 +27,7 @@ import { insertAIFormula } from "./insert-ai-formula";
 import { insertImage } from "./insert-image";
 import { insertLink } from "./insert-link";
 import { insertSpecialChar } from "./insert-special-char";
+import { delay } from "awaiting";
 
 // currentWord:
 //
@@ -327,11 +326,7 @@ export async function formatAction(
   project_id?: string,
 ) {
   const isFocused = ReactEditor.isFocused(editor);
-  if (!isFocused) {
-    ReactEditor.focus(editor);
-    restoreSelectionAndFocus(editor);
-    await delay(1);
-  }
+  const { selection, lastSelection } = editor;
   try {
     if (
       cmd === "bold" ||
@@ -449,10 +444,16 @@ export async function formatAction(
       return;
     }
   } finally {
-    ReactEditor.focus(editor);
+    if (!isFocused) {
+      ReactEditor.focus(editor);
+      setSelectionAndFocus(editor, selection ?? lastSelection);
+      await delay(1);
+      ReactEditor.focus(editor);
+      setSelectionAndFocus(editor, selection ?? lastSelection);
+    }
   }
 
-  console.log("WARNING -- slate.format_action not implemented", {
+  console.warn("WARNING -- slate.format_action not implemented", {
     cmd,
     args,
     editor,
