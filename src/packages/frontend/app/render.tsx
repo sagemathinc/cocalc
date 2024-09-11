@@ -28,6 +28,7 @@ function App({ children }) {
   const other_settings = useTypedRedux("account", "other_settings");
 
   // setting via ?lang=[locale] takes precedece over account settings
+  // additionally ?lang_temp=[locale] temporarily changes it, used by these impersonation admin links
   useAsyncEffect(async () => {
     const lang_set = QueryParams.get("lang");
     // lang_temp sets the language *temporarily*, i.e. without changing the account settings and it is sticky

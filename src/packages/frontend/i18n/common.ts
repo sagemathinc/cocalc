@@ -1,11 +1,21 @@
 import { defineMessages } from "react-intl";
 
 export const labels = defineMessages({
+  unique_id_is_missing: {
+    defaultMessage: "unique id missing",
+    description:
+      "This is just an internal message to trigger ID collisions. If you hit this, your i18n message has no ID. Please consult the README in this directory for more information. The usual pattern is something like [dir].[subdir/filename].[section].[label|message|...]. Messages in this file however are prefixed with their purpose.",
+  },
   cancel: {
     id: "labels.button.cancel",
     defaultMessage: "Cancel",
     description:
       "'Cancel' button on all those small confirmation modals (other one is 'Ok' or 'Yes')",
+  },
+  reset: {
+    id: "labels.reset",
+    defaultMessage: "Reset",
+    description: "A 'Reset' button on a small confirmation modal dialog",
   },
   projects: {
     id: "labels.projects",
@@ -184,6 +194,10 @@ export const labels = defineMessages({
     defaultMessage: "Snippets",
     description: "Short label for opening the 'Snippets' frame",
   },
+  overview: {
+    id: "labels.overview",
+    defaultMessage: "Overview",
+  },
   zoom_in: {
     id: "labels.zoom_in",
     defaultMessage: "Zoom in",
@@ -276,6 +290,26 @@ export const labels = defineMessages({
     id: "labels.insert",
     defaultMessage: "Insert",
   },
+  refresh: {
+    id: "labels.refresh",
+    defaultMessage: "Refresh",
+  },
+  print: {
+    id: "labels.print",
+    defaultMessage: "Print",
+  },
+  new_dots: {
+    id: "labels.new_dots",
+    defaultMessage: "New...",
+  },
+  documentation: {
+    id: "labels.documentation",
+    defaultMessage: "Documentation",
+  },
+  buttons: {
+    id: "labels.buttons",
+    defaultMessage: "Buttons",
+  },
 });
 
 export const menu = defineMessages({
@@ -330,6 +364,11 @@ export const menu = defineMessages({
     defaultMessage: "Close and Halt...",
     description: "Close and halt the editor for Jupyter, a server, etc.",
   },
+  close_and_halt_title: {
+    id: "menu.generic.close_and_halt.title",
+    defaultMessage: "Halt backend server and close this file.",
+    description: "Close and halt the editor for Jupyter, a server, etc.",
+  },
   halt_jupyter_button: {
     id: "menu.generic.halt_jupyter.button",
     defaultMessage: "Halt",
@@ -357,6 +396,14 @@ export const menu = defineMessages({
     defaultMessage: "Split",
     description:
       "Split a frame horizontally or vertically (short single word on button)",
+  },
+  remove_all_buttons: {
+    id: "command.generic.button_bar.disable.label",
+    defaultMessage: "Remove All Buttons",
+  },
+  reset_toolbar_button_default: {
+    id: "labels.reset_toolbar_button_default",
+    defaultMessage: "Reset Toolbar to Default",
   },
 });
 
@@ -726,7 +773,7 @@ export const jupyter = {
       description: "In a Jupyter Notebook, turn the running kernel off",
     },
     shutdown_kernel_menu: {
-      id: "jupyter.commands.shutdown_kernel.menu",
+      id: "jupyter.commands.shutdown_kernel.menu.dots",
       defaultMessage: "Shutdown Kernel...",
       description: "In a Jupyter Notebook, turn the running kernel off",
     },
@@ -920,8 +967,46 @@ export const jupyter = {
       defaultMessage: "Generate student version...",
     },
     nbgrader_assign_button: {
-      id: "jupyter.commands.nbgrader_assign.buton",
+      id: "jupyter.commands.nbgrader_assign.button",
       defaultMessage: "Generate",
+    },
+    nbgrader_assign_tooltip: {
+      id: "jupyter.commands.nbgrader_assign.tooltip",
+      defaultMessage:
+        "Generate the student version of this document, which strips out the extra instructor tests and cells.",
+    },
+    nbconvert_slides: {
+      id: "jupyter.commands.nbconvert_slides.label",
+      defaultMessage: "Slideshow server via nbconvert",
+      description: "do not translate 'nbconvert'",
+    },
+    cut_cells: {
+      id: "jupyter.commands.cut_cells.label",
+      defaultMessage: "Cut Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    copy_cells: {
+      id: "jupyter.commands.copy_cells.label",
+      defaultMessage: "Copy Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    delete_cells: {
+      id: "jupyter.commands.delete_cells.label",
+      defaultMessage: "Delete Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    find_and_replace: {
+      id: "jupyter.commands.find_and_replace.label",
+      defaultMessage: "Find and Replace",
+    },
+    delete_all_blank_code_cells: {
+      id: "jupyter.commands.delete_all_blank_code_cells.label",
+      defaultMessage: "Delete All Blank Code Cells",
+    },
+    merge_selected_cells_menu: {
+      id: "jupyter.commands.merge_cells.menu",
+      description: "Cells in a Jupyter Notebook",
+      defaultMessage: "Merge Selected Cells",
     },
   }),
 };

@@ -49,17 +49,29 @@ export function loadLocaleMessages(locale: Locale): Promise<Messages> {
         // Hence "defaultMessage" messages are used directly.
         return {};
       case "de":
-        return import("@cocalc/frontend/i18n/de_DE.compiled.json");
+        return import("@cocalc/frontend/i18n/trans/de_DE.compiled.json");
       case "zh":
-        return import("@cocalc/frontend/i18n/zh_CN.compiled.json");
+        return import("@cocalc/frontend/i18n/trans/zh_CN.compiled.json");
       case "es":
-        return import("@cocalc/frontend/i18n/es_ES.compiled.json");
+        return import("@cocalc/frontend/i18n/trans/es_ES.compiled.json");
       case "fr":
-        return import("@cocalc/frontend/i18n/fr_FR.compiled.json");
+        return import("@cocalc/frontend/i18n/trans/fr_FR.compiled.json");
       case "it":
-        return import("@cocalc/frontend/i18n/it_IT.compiled.json");
+        return import("@cocalc/frontend/i18n/trans/it_IT.compiled.json");
       case "ru":
-        return import("@cocalc/frontend/i18n/ru_RU.compiled.json");
+        return import("@cocalc/frontend/i18n/trans/ru_RU.compiled.json");
+      case "ja":
+        return import("@cocalc/frontend/i18n/trans/ja_JP.compiled.json");
+      case "pt":
+        return import("@cocalc/frontend/i18n/trans/pt_PT.compiled.json");
+      case "ko":
+        return import("@cocalc/frontend/i18n/trans/ko_KR.compiled.json");
+      case "pl":
+        return import("@cocalc/frontend/i18n/trans/pl_PL.compiled.json");
+      case "tr":
+        return import("@cocalc/frontend/i18n/trans/tr_TR.compiled.json");
+      case "he":
+        return import("@cocalc/frontend/i18n/trans/he_IL.compiled.json");
       default:
         unreachable(locale);
         throw new Error(`Unknown locale '${locale}.`);
@@ -82,6 +94,9 @@ export async function getIntl(): Promise<IntlShape> {
   return createIntl({ locale, messages }, cache);
 }
 
+// The ordering is a bit "opinionated". The top languages are European ones, and German has the best quality translations.
+// Then come other European languges, kind of alphabetical.
+// Then, the Asian group starts with Chinese, as the largest group.
 export const LOCALIZATIONS: {
   [key in Locale]: {
     name: string;
@@ -135,6 +150,33 @@ export const LOCALIZATIONS: {
       defaultMessage: "Italian",
     }),
   },
+  pl: {
+    name: "Polish",
+    flag: "🇵🇱",
+    native: "Polski",
+    trans: defineMessage({
+      id: "i18n.localization.lang.polish",
+      defaultMessage: "Polish",
+    }),
+  },
+  pt: {
+    name: "Portuguese",
+    flag: "🇵🇹",
+    native: "Português",
+    trans: defineMessage({
+      id: "i18n.localization.lang.portuguese",
+      defaultMessage: "Portuguese",
+    }),
+  },
+  tr: {
+    name: "Turkish",
+    flag: "🇹🇷",
+    native: "Türkçe",
+    trans: defineMessage({
+      id: "i18n.localization.lang.turkish",
+      defaultMessage: "Turkish",
+    }),
+  },
   zh: {
     name: "Chinese",
     flag: "🇨🇳",
@@ -142,6 +184,33 @@ export const LOCALIZATIONS: {
     trans: defineMessage({
       id: "i18n.localization.lang.chinese",
       defaultMessage: "Chinese",
+    }),
+  },
+  ja: {
+    name: "Japanese",
+    flag: "🇯🇵",
+    native: "日本語",
+    trans: defineMessage({
+      id: "i18n.localization.lang.japanese",
+      defaultMessage: "Japanese",
+    }),
+  },
+  ko: {
+    name: "Korean",
+    flag: "🇰🇷",
+    native: "한국어",
+    trans: defineMessage({
+      id: "i18n.localization.lang.korean",
+      defaultMessage: "Korean",
+    }),
+  },
+  he: {
+    name: "Hebrew",
+    flag: "🇮🇱",
+    native: "עִבְרִית",
+    trans: defineMessage({
+      id: "i18n.localization.lang.hebrew",
+      defaultMessage: "Hebrew",
     }),
   },
   ru: {
