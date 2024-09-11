@@ -382,13 +382,17 @@ export function commands(actions: AllActions): {
     //"cut cell attachments": undefined, // no clue
 
     "delete cell": {
-      // jupyter has this but with d,d as shortcut, since they have no undo.
+      // jupyter has this but ONLY with d,d as shortcut, since they have no undo.
+      // Actually, it turns out after extensive testing that even with undo, users don't
+      // realize to use it if they accidentally delete a cell, so we are removing the standard
+      // keyboard shortcuts for delete:
+      //.   https://github.com/sagemathinc/cocalc/issues/7831
       m: jupyter.commands.delete_cells,
       i: DELETE_CELL_ICON,
       k: [
         { mode: "escape", which: 68, twice: true },
-        { mode: "escape", which: 8 },
-        { mode: "escape", which: 46 },
+        // { mode: "escape", which: 8 },
+        // { mode: "escape", which: 46 },
       ],
       f: () => actions.frame_actions?.delete_selected_cells(),
     },
