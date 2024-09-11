@@ -12,6 +12,11 @@ export const labels = defineMessages({
     description:
       "'Cancel' button on all those small confirmation modals (other one is 'Ok' or 'Yes')",
   },
+  reset: {
+    id: "labels.reset",
+    defaultMessage: "Reset",
+    description: "A 'Reset' button on a small confirmation modal dialog",
+  },
   projects: {
     id: "labels.projects",
     defaultMessage: "Projects",
@@ -189,6 +194,10 @@ export const labels = defineMessages({
     defaultMessage: "Snippets",
     description: "Short label for opening the 'Snippets' frame",
   },
+  overview: {
+    id: "labels.overview",
+    defaultMessage: "Overview",
+  },
   zoom_in: {
     id: "labels.zoom_in",
     defaultMessage: "Zoom in",
@@ -293,6 +302,14 @@ export const labels = defineMessages({
     id: "labels.new_dots",
     defaultMessage: "New...",
   },
+  documentation: {
+    id: "labels.documentation",
+    defaultMessage: "Documentation",
+  },
+  buttons: {
+    id: "labels.buttons",
+    defaultMessage: "Buttons",
+  },
 });
 
 export const menu = defineMessages({
@@ -347,6 +364,11 @@ export const menu = defineMessages({
     defaultMessage: "Close and Halt...",
     description: "Close and halt the editor for Jupyter, a server, etc.",
   },
+  close_and_halt_title: {
+    id: "menu.generic.close_and_halt.title",
+    defaultMessage: "Halt backend server and close this file.",
+    description: "Close and halt the editor for Jupyter, a server, etc.",
+  },
   halt_jupyter_button: {
     id: "menu.generic.halt_jupyter.button",
     defaultMessage: "Halt",
@@ -374,6 +396,14 @@ export const menu = defineMessages({
     defaultMessage: "Split",
     description:
       "Split a frame horizontally or vertically (short single word on button)",
+  },
+  remove_all_buttons: {
+    id: "command.generic.button_bar.disable.label",
+    defaultMessage: "Remove All Buttons",
+  },
+  reset_toolbar_button_default: {
+    id: "labels.reset_toolbar_button_default",
+    defaultMessage: "Reset Toolbar to Default",
   },
 });
 

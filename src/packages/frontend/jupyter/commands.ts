@@ -843,8 +843,17 @@ export function commands(actions: AllActions): {
 
     "no kernel": {
       i: "ban",
-      m: "Set Kernel to None...",
-      t: "Set the notebook so that it doesn't have any kernel set at all.",
+      m: defineMessage({
+        id: "jupyter.commands.no_kernel.menu",
+        defaultMessage: "Set Kernel to None...",
+        description: "Kernel of a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.no_kernel.tooltip",
+        defaultMessage:
+          "Set the notebook so that it doesn't have any kernel set at all.",
+        description: "Kernel of a Jupyter Notebook",
+      }),
       f: () => actions.jupyter_actions?.confirm_remove_kernel(),
     },
 
@@ -1130,7 +1139,10 @@ export function commands(actions: AllActions): {
 
     "show keyboard shortcuts": {
       i: "keyboard",
-      m: "Show keyboard shortcuts...",
+      m: defineMessage({
+        id: "jupyter.commands.show_keyboard_shortcuts.menu",
+        defaultMessage: "Show keyboard shortcuts...",
+      }),
       k: [{ mode: "escape", which: 72 }],
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
       r: true,
@@ -1148,7 +1160,11 @@ export function commands(actions: AllActions): {
 
     "split cell at cursor": {
       i: SPLIT_CELL_ICON,
-      m: "Split Cell",
+      m: defineMessage({
+        id: "jupyter.commands.split_cell_at_cursor.menu",
+        defaultMessage: "Split Cell",
+        description: "Cell in a Jupyter Notebook",
+      }),
       k: [
         { ctrl: true, shift: true, which: 189 },
         { ctrl: true, key: ";", which: 186 },
@@ -1167,8 +1183,16 @@ export function commands(actions: AllActions): {
 
     "tab key": {
       k: [{ mode: "escape", which: 9 }],
-      m: "Tab Key (completion)",
-      b: "Tab",
+      m: defineMessage({
+        id: "jupyter.commands.tab_key.menu",
+        defaultMessage: "Tab Key (completion)",
+        description: "Tab Key of a computer keyboard",
+      }),
+      b: defineMessage({
+        id: "jupyter.commands.tab_key.button",
+        defaultMessage: "Tab",
+        description: "Tab Key of a computer keyboard",
+      }),
       i: "tab",
       f: () => actions.frame_actions?.tab_key(),
     },
@@ -1312,31 +1336,72 @@ export function commands(actions: AllActions): {
 
     "write protect": {
       i: "lock",
-      m: "Write Protect",
-      b: "Protect",
-      t: "Make it so selected cells cannot be edited or deleted.",
+      m: defineMessage({
+        id: "jupyter.commands.write_project.menu",
+        defaultMessage: "Write Protect",
+        description: "write protect a cell in a Jupyter Notebook",
+      }),
+      b: defineMessage({
+        id: "jupyter.commands.write_project.button",
+        defaultMessage: "Protect",
+        description: "write protect a cell in a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.write_project.tooltip",
+        defaultMessage:
+          "Make it so selected cells cannot be edited or deleted.",
+        description: "write protect a cell in a Jupyter Notebook",
+      }),
       f: () => actions.frame_actions?.write_protect_selected_cells(true),
     },
 
     "delete protect": {
       i: "ban",
-      m: "Delete Protect",
-      b: "Protect",
-      t: "Make it so selected cells cannot be deleted.",
+      m: defineMessage({
+        id: "jupyter.commands.delete_project.menu",
+        defaultMessage: "Delete Protect",
+        description: "delete protect a cell in a Jupyter Notebook",
+      }),
+      b: defineMessage({
+        id: "jupyter.commands.delete_project.button",
+        defaultMessage: "Protect",
+        description: "delete protect a cell in a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.delete_project.tooltip",
+        defaultMessage: "Make it so selected cells cannot be deleted.",
+        description: "delete protect a cell in a Jupyter Notebook",
+      }),
       f: () => actions.frame_actions?.delete_protect_selected_cells(true),
     },
 
     "remove write protect": {
       i: "lock-open",
-      m: "Remove Write Protect",
-      t: "Remove write protection from selected cells.",
+      m: defineMessage({
+        id: "jupyter.commands.remove_write_project.menu",
+        defaultMessage: "Remove Write Protect",
+        description: "write protection of a cell in a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.remove_write_project.tooltip",
+        defaultMessage: "Remove write protection from selected cells.",
+        description: "write protection of a cell in a Jupyter Notebook",
+      }),
       f: () => actions.frame_actions?.write_protect_selected_cells(false),
     },
 
     "remove delete protect": {
       i: "check-circle",
-      m: "Remove Delete Protect",
-      t: "Remove delete protection from selected cells.",
+      m: defineMessage({
+        id: "jupyter.commands.remove_delete_project.menu",
+        defaultMessage: "Remove Delete Protect",
+        description: "delete protection of a cell in a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.remove_delete_project.tooltip",
+        defaultMessage: "Remove delete protection from selected cells.",
+        description: "delete protection of a cell in a Jupyter Notebook",
+      }),
       f: () => actions.frame_actions?.delete_protect_selected_cells(false),
     },
 

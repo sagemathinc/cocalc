@@ -154,7 +154,7 @@ addCommands({
   show_overview: {
     group: "show-frames",
     title: "Show overview of all pages",
-    label: "Overview",
+    label: labels.overview,
     icon: "overview",
   },
   show_pages: {
@@ -166,7 +166,7 @@ addCommands({
   show_slideshow: {
     group: "show-frames",
     title: "Display Slideshow Presentation",
-    label: "Slideshow",
+    label: labels.slideshow,
     icon: "play-square",
   },
   show_speaker_notes: {
@@ -187,7 +187,7 @@ addCommands({
     title: "Open a command line terminal for interacting with the Linux prompt",
     icon: "terminal",
     disable: "disableTerminals",
-    label: "Terminal",
+    label: labels.terminal,
   },
   decrease_font_size: {
     stayOpenOnClick: true,
@@ -365,9 +365,12 @@ addCommands({
   help: {
     pos: 0,
     group: "help-link",
-    label: "Documentation",
+    label: labels.documentation,
     icon: "question-circle",
-    title: "Show documentation for working with this editor",
+    title: defineMessage({
+      id: "command.generic.help.title",
+      defaultMessage: "Show documentation for working with this editor",
+    }),
     tour: "help",
   },
 
@@ -440,7 +443,7 @@ addCommands({
     group: "quit",
     icon: "PoweroffOutlined",
     label: menu.close_and_halt,
-    title: "Halt backend server and close this file.",
+    title: menu.close_and_halt_title,
   },
 
   reload: {
@@ -656,10 +659,20 @@ addCommands({
     pos: -1,
     group: "show-frames",
     icon: "lock",
-    title:
-      "This is an editable view of the document. You can edit it directly.  Select this option to switch to a read only view.",
-    label: "Switch to Readonly View",
-    button: "Lock",
+    title: defineMessage({
+      id: "menu.generic.readonly_view.tooltip",
+      defaultMessage:
+        "This is an editable view of the document. You can edit it directly.  Select this option to switch to a read only view.",
+    }),
+
+    label: defineMessage({
+      id: "menu.generic.readonly_view.label",
+      defaultMessage: "Switch to Readonly View",
+    }),
+    button: defineMessage({
+      id: "menu.generic.readonly_view.button",
+      defaultMessage: "Lock",
+    }),
     onClick: ({ props }) => {
       props.actions["readonly_view"]?.(props.id);
     },
@@ -669,10 +682,19 @@ addCommands({
     pos: -1,
     group: "show-frames",
     icon: "pencil",
-    title:
-      "This is a readonly view of the document.  Select this option to switch to a directly editable view.",
-    label: "Switch to Editable View",
-    button: "Edit",
+    title: defineMessage({
+      id: "menu.generic.editable_view.tooltip",
+      defaultMessage:
+        "This is a readonly view of the document. Select this option to switch to a directly editable view.",
+    }),
+    label: defineMessage({
+      id: "menu.generic.editable_view.label",
+      defaultMessage: "Switch to Editable View",
+    }),
+    button: defineMessage({
+      id: "menu.generic.editable_view.button",
+      defaultMessage: "Edit",
+    }),
     onClick: ({ props }) => props.actions["edit"]?.(props.id),
   },
 
@@ -696,7 +718,10 @@ addCommands({
     pos: 0,
     group: "misc-file-actions",
     icon: "swap",
-    title: "Rename this file",
+    title: defineMessage({
+      id: "menu.generic.rename.tooltip",
+      defaultMessage: "Rename this file",
+    }),
     label: defineMessage({
       id: "menu.generic.rename.label",
       defaultMessage: "Rename File",
@@ -707,7 +732,10 @@ addCommands({
     pos: 1,
     group: "misc-file-actions",
     icon: "compress",
-    title: "Compress this file",
+    title: defineMessage({
+      id: "menu.generic.compress.tooltip",
+      defaultMessage: "Compress this file",
+    }),
     label: defineMessage({
       id: "menu.generic.compress.label",
       defaultMessage: "Compress File",
@@ -718,7 +746,10 @@ addCommands({
     pos: 2,
     group: "misc-file-actions",
     icon: "clone",
-    title: "Duplicate this file",
+    title: defineMessage({
+      id: "menu.generic.duplicate.tooltip",
+      defaultMessage: "Duplicate this file",
+    }),
     label: defineMessage({
       id: "menu.generic.duplicate.label",
       defaultMessage: "Duplicate File",
@@ -950,8 +981,18 @@ addCommands({
   about: {
     group: "about",
     icon: "info-circle",
-    title: "About this application",
-    label: "About",
+    title: defineMessage({
+      id: "command.generic.about.title",
+      defaultMessage: "About this application",
+      description:
+        "About information for an editor application in a user interface",
+    }),
+    label: defineMessage({
+      id: "command.generic.about.label",
+      defaultMessage: "About",
+      description:
+        "About information for an editor application in a user interface",
+    }),
   },
   //   quit: {
   //     pos: 10,
@@ -965,18 +1006,42 @@ addCommands({
     pos: 9,
     group: "quit",
     icon: "times-circle",
-    title: "Close this editor",
-    label: "Close File",
-    button: "Close",
+    title: defineMessage({
+      id: "command.generic.close_tab.title",
+      defaultMessage: "Close this editor",
+      description: "Editor for a file in a user interface",
+    }),
+    label: defineMessage({
+      id: "command.generic.close_tab.label",
+      defaultMessage: "Close File",
+      description: "Editor for a file in a user interface",
+    }),
+    button: defineMessage({
+      id: "command.generic.close_tab.button",
+      defaultMessage: "Close",
+      description: "Editor for a file in a user interface",
+    }),
     ...fileAction("close"),
   },
   new_frame_of_type: {
     alwaysShow: true,
     icon: "plus-square",
     group: "frame_types",
-    title: "Create a new frame with an editor of the given type",
-    label: "New Frame",
-    button: "Frame",
+    title: defineMessage({
+      id: "command.generic.new_frame_of_type.title",
+      defaultMessage: "Create a new frame with an editor of the given type",
+      description: "Frame of a window manager, in a user interface",
+    }),
+    label: defineMessage({
+      id: "command.generic.new_frame_of_type.label",
+      defaultMessage: "New Frame",
+      description: "Frame of a window manager, in a user interface",
+    }),
+    button: defineMessage({
+      id: "command.generic.new_frame_of_type.button",
+      defaultMessage: "Frame",
+      description: "Frame of a window manager, in a user interface",
+    }),
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(true),
   },
@@ -984,9 +1049,21 @@ addCommands({
     alwaysShow: true,
     icon: "frame",
     group: "frame_types",
-    title: "Change the type of editor to show in this frame",
-    label: "Change Type",
-    button: "Type",
+    title: defineMessage({
+      id: "command.generic.frame_type.title",
+      defaultMessage: "Change the type of editor to show in this frame",
+      description: "Type of a frame in a window manager, in a user interface",
+    }),
+    label: defineMessage({
+      id: "command.generic.frame_type.label",
+      defaultMessage: "Change Type",
+      description: "Type of a frame in a window manager, in a user interface",
+    }),
+    button: defineMessage({
+      id: "command.generic.frame_type.button",
+      defaultMessage: "Type",
+      description: "Type of a frame in a window manager, in a user interface",
+    }),
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(false),
   },
@@ -1011,27 +1088,38 @@ addCommands({
     alwaysShow: true,
     icon: "tool",
     group: "button-bar",
-    label: "Menu Toolbar",
+    label: defineMessage({
+      id: "command.generic.button_bar.label",
+      defaultMessage: "Menu Toolbar",
+    }),
     button: "Toolbar",
     children: [
       {
         name: "disable-button-toolbar",
         icon: "trash",
         group: "button-bar",
-        title:
-          "Disable all buttons just for this editor. This hides the toolbar for this editor only.",
-        label: "Remove All Buttons",
-        popconfirm: {
-          title: "Remove All Buttons",
-          description: (
-            <div>
-              If you disable all buttons just for this editor, then you won't
-              see the button toolbar for this editor unless you enable some
-              buttons. This does not impact any other editor.
-            </div>
-          ),
-          cancelText: "Cancel",
-          okText: "Remove All",
+        title: defineMessage({
+          id: "command.generic.button_bar.disable.toolbar",
+          defaultMessage:
+            "Disable all buttons just for this editor. This hides the toolbar for this editor only.",
+        }),
+        label: menu.remove_all_buttons,
+        popconfirm: ({ intl }: { intl: IntlShape }) => {
+          return {
+            title: intl.formatMessage(menu.remove_all_buttons),
+            description: (
+              <div>
+                {intl.formatMessage({
+                  id: "command.generic.button_bar.disable.popconfirm.message",
+                  defaultMessage: `If you disable all buttons just for this editor,
+                  then you won't see the button toolbar for this editor
+                  unless you enable some buttons. This does not impact any other editor.`,
+                })}
+              </div>
+            ),
+            cancelText: intl.formatMessage(labels.cancel),
+            okText: intl.formatMessage(menu.remove_all_buttons),
+          };
         },
         onClick: (manage) => {
           manage.removeAllToolbarButtons();
@@ -1041,20 +1129,28 @@ addCommands({
         name: "reset-button-toolbar",
         icon: "undo",
         group: "button-bar",
-        title:
-          "Reset the toolbar for this editor to its default state, removing any buttons you added or removed.",
-        label: "Reset to Default",
-        popconfirm: {
-          title: "Reset Toolbar to Default",
-          description: (
-            <div>
-              If you reset the button toolbar the choice of commands in the
-              toolbar for this specific type of editor will revert to the
-              default state.
-            </div>
-          ),
-          cancelText: "Cancel",
-          okText: "Reset",
+        title: defineMessage({
+          id: "command.generic.button_bar.reset.toolbar",
+          defaultMessage:
+            "Reset the toolbar for this editor to its default state, removing any buttons you added or removed.",
+        }),
+        label: menu.reset_toolbar_button_default,
+        popconfirm: ({ intl }: { intl: IntlShape }) => {
+          return {
+            title: intl.formatMessage(menu.reset_toolbar_button_default),
+            description: (
+              <div>
+                {intl.formatMessage({
+                  id: "command.generic.button_bar.reset.popconfirm.message",
+                  defaultMessage: `If you reset the button toolbar the choice of commands in the
+                                  toolbar for this specific type of editor will revert to the
+                                  default state.`,
+                })}
+              </div>
+            ),
+            cancelText: intl.formatMessage(labels.cancel),
+            okText: intl.formatMessage(labels.reset),
+          };
         },
         onClick: (manage) => {
           manage.resetToolbar();
@@ -1064,7 +1160,7 @@ addCommands({
   },
 
   toggle_button_bar: {
-    button: "Buttons",
+    button: labels.buttons,
     alwaysShow: true,
     icon: () =>
       redux.getStore("account").getIn(["editor_settings", "extra_button_bar"])
