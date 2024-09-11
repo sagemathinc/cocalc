@@ -266,7 +266,12 @@ const JUPYTER_MENUS = {
           icon: "menu-outlined",
           label: jupyter.commands.select_cells_menu,
           name: "select",
-          children: ["select all cells", "deselect all cells"],
+          children: [
+            "select all cells",
+            "deselect all cells",
+            "select all code cells",
+            "select all markdown cells",
+          ],
         },
       ],
       "cell-type": [

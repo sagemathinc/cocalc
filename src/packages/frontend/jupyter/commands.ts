@@ -1041,6 +1041,20 @@ export function commands(actions: AllActions): {
       r: true,
     },
 
+    "select all code cells": {
+      i: "code-outlined",
+      m: "Select all Code Cells",
+      f: () => actions.frame_actions?.select_all_cells("code"),
+      r: true,
+    },
+
+    "select all markdown cells": {
+      i: "markdown",
+      m: "Select all Markdown Cells",
+      f: () => actions.frame_actions?.select_all_cells("markdown"),
+      r: true,
+    },
+
     "deselect all cells": {
       i: "ban",
       m: defineMessage({
