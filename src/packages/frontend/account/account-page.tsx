@@ -328,6 +328,7 @@ Thank you for your patience and understanding as we work to make our application
 
     const menu: MenuProps = {
       items,
+      style: { maxHeight: "75vh", overflow: "auto" },
       onClick: ({ key }) => {
         if (key in LOCALIZATIONS) {
           redux
