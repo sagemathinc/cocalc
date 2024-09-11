@@ -398,11 +398,11 @@ export const menu = defineMessages({
       "Split a frame horizontally or vertically (short single word on button)",
   },
   remove_all_buttons: {
-    id: "command.generic.button_bar.disable.label",
+    id: "menu.generic.button_bar.disable.label",
     defaultMessage: "Remove All Buttons",
   },
   reset_toolbar_button_default: {
-    id: "labels.reset_toolbar_button_default",
+    id: "menu.generic.reset_toolbar_button_default",
     defaultMessage: "Reset Toolbar to Default",
   },
 });
