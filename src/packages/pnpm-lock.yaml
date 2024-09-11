@@ -814,7 +814,7 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3
       express:
-        specifier: 4.20.0
+        specifier: ^4.20.0
         version: 4.20.0
       formidable:
         specifier: ^3.5.1
@@ -917,7 +917,7 @@ importers:
         version: 8.18.0
     devDependencies:
       '@types/express':
-        specifier: 4.17.21
+        specifier: ^4.17.21
         version: 4.17.21
       '@types/http-proxy':
         specifier: ^1.17.9
@@ -1107,7 +1107,7 @@ importers:
         specifier: ^1.11.11
         version: 1.11.11
       express:
-        specifier: 4.20.0
+        specifier: ^4.20.0
         version: 4.20.0
       lodash:
         specifier: ^4.17.21
@@ -1177,7 +1177,7 @@ importers:
         specifier: ^7.23.3
         version: 7.23.3(@babel/core@7.21.4)
       '@types/express':
-        specifier: 4.17.21
+        specifier: ^4.17.21
         version: 4.17.21
       '@types/node':
         specifier: ^18.16.14
@@ -1264,7 +1264,7 @@ importers:
         specifier: ^26.6.2
         version: 26.6.2
       express:
-        specifier: 4.20.0
+        specifier: ^4.20.0
         version: 4.20.0
       express-rate-limit:
         specifier: ^7.4.0
@@ -1337,7 +1337,7 @@ importers:
         specifier: ^1.19.5
         version: 1.19.5
       '@types/express':
-        specifier: 4.17.21
+        specifier: ^4.17.21
         version: 4.17.21
       '@types/jquery':
         specifier: ^3.5.5
@@ -1593,10 +1593,10 @@ importers:
         version: 8.3.2
     devDependencies:
       '@types/express':
-        specifier: 4.17.21
+        specifier: ^4.17.21
         version: 4.17.21
       '@types/express-session':
-        specifier: 1.18.0
+        specifier: ^1.18.0
         version: 1.18.0
       '@types/node':
         specifier: ^18.16.14

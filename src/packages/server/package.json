@@ -124,8 +124,8 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
-    "@types/express": "4.17.21",
-    "@types/express-session": "1.18.0",
+    "@types/express": "^4.17.21",
+    "@types/express-session": "^1.18.0",
     "@types/node": "^18.16.14",
     "expect": "^26.6.2"
   }
