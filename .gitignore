@@ -154,5 +154,5 @@ venv
 
 # frontend/i18n files, which are created during build or updating the languages
 src/packages/frontend/i18n/extracted.json
-src/packages/frontend/i18n/*.compiled.json
+src/packages/frontend/i18n/trans/*.compiled.json
 

@@ -6,7 +6,21 @@
 // ATTN: these languages have to match the frontend/package.json script "i18n:download",
 //       be valid for Antd (<AntdConfigProvider localize.../>),
 //       and also harmonize with localize::loadLocaleData
-export const LOCALE = ["en", "es", "de", "zh", "ru", "fr", "it"] as const;
+export const LOCALE = [
+  "en",
+  "es",
+  "de",
+  "zh",
+  "ru",
+  "fr",
+  "it",
+  "ja",
+  "pt",
+  "ko",
+  "pl",
+  "tr",
+  "he",
+] as const;
 
 export type Locale = (typeof LOCALE)[number];
 

@@ -3,8 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-
-import { LabeledRow, NumberInput } from "../../components";
+import { LabeledRow, NumberInput } from "@cocalc/frontend/components";
+import { useIntl } from "react-intl";
 
 interface Props {
   font_size: number;
@@ -12,8 +12,16 @@ interface Props {
 }
 
 export function EditorSettingsFontSize(props: Props): JSX.Element {
+  const intl = useIntl();
+
   return (
-    <LabeledRow label="Default global font size" className="cc-account-prefs-font-size">
+    <LabeledRow
+      label={intl.formatMessage({
+        id: "account.editor-settings.font-size.label",
+        defaultMessage: "Default global font size",
+      })}
+      className="cc-account-prefs-font-size"
+    >
       <NumberInput
         on_change={(n) => props.on_change("font_size", n)}
         min={5}

@@ -73,7 +73,7 @@ const jupyter_cell_notebook: EditorDescription = {
   ]),
   customizeCommands: {
     guide: {
-      label: "Snippets",
+      label: labels.snippets,
       icon: SNIPPET_ICON_NAME,
       title: "Open a panel containing code snippets.",
     },

@@ -15,10 +15,17 @@ import { IconName } from "@cocalc/frontend/components";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
-import { editor, getIntl, IntlMessage, labels } from "@cocalc/frontend/i18n";
-import { jupyter, menu } from "@cocalc/frontend/i18n";
+import {
+  editor,
+  getIntl,
+  IntlMessage,
+  jupyter,
+  labels,
+  menu,
+} from "@cocalc/frontend/i18n";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { NotebookMode } from "@cocalc/jupyter/types";
+import { defineMessage } from "react-intl";
 import { JupyterActions } from "./browser-actions";
 import {
   COPY_CELL_ICON,
@@ -80,111 +87,184 @@ export function commands(actions: AllActions): {
     },
 
     "cell toolbar attachments": {
-      m: "Attachments toolbar",
+      m: defineMessage({
+        id: "jupyter.commands.cell_toolbar_attachments.label",
+        defaultMessage: "Attachments toolbar",
+      }),
       i: "image",
-      menu: "Attachments",
+      menu: defineMessage({
+        id: "jupyter.commands.cell_toolbar_attachments.menu",
+        defaultMessage: "Attachments",
+      }),
       f: () => actions.jupyter_actions?.cell_toolbar("attachments"),
       r: true,
     },
 
     "cell toolbar tags": {
       i: "tags-outlined",
-      m: "Edit cell tags toolbar",
-      menu: "Tags",
+      m: defineMessage({
+        id: "jupyter.commands.cell_toolbar_tags.label",
+        defaultMessage: "Edit cell tags toolbar",
+      }),
+      menu: defineMessage({
+        id: "jupyter.commands.cell_toolbar_tags.menu",
+        defaultMessage: "Tags",
+      }),
       f: () => actions.jupyter_actions?.cell_toolbar("tags"),
       r: true,
     },
 
     "cell toolbar metadata": {
-      m: "Edit custom metadata toolbar",
+      m: defineMessage({
+        id: "jupyter.commands.cell_toolbar_metadata.label",
+        defaultMessage: "Edit custom metadata toolbar",
+      }),
       i: "tags-outlined",
-      menu: "Metadata",
+      menu: defineMessage({
+        id: "jupyter.commands.cell_toolbar_metadata.menu",
+        defaultMessage: "Metadata",
+      }),
       f: () => actions.jupyter_actions?.cell_toolbar("metadata"),
       r: true,
     },
 
     "cell toolbar create_assignment": {
       i: "graduation-cap",
-      m: "Create Assignment Using NBgrader",
-      menu: "Create assignment (nbgrader)",
+      m: defineMessage({
+        id: "jupyter.commands.cell_toolbar_create_assignment.label",
+        defaultMessage: "Create Assignment Using NBgrader",
+        description: "Do not translate 'NBGrader'",
+      }),
+      menu: defineMessage({
+        id: "jupyter.commands.cell_toolbar_create_assignment.menu",
+        defaultMessage: "Create assignment (nbgrader)",
+        description: "Do not translate 'nbgrader'",
+      }),
       f: () => actions.jupyter_actions?.cell_toolbar("create_assignment"),
       r: true,
     },
 
     "cell toolbar slideshow": {
       i: "slides",
-      m: "Slideshow toolbar",
-      menu: "Slideshow",
+      m: defineMessage({
+        id: "jupyter.commands.cell_toolbar_slideshow.label",
+        defaultMessage: "Slideshow toolbar",
+      }),
+      menu: defineMessage({
+        id: "jupyter.commands.cell_toolbar_slideshow.menu",
+        defaultMessage: "Slideshow",
+      }),
       f: () => actions.jupyter_actions?.cell_toolbar("slideshow"),
       r: true,
     },
 
     "change cell to code": {
       i: "code-outlined",
-      m: "Change Cell to Code",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_code.label",
+        defaultMessage: "Change Cell to Code",
+      }),
       k: [{ which: 89, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("code"),
     },
 
     "change cell to heading 1": {
       i: "header",
-      m: "Change Markdown to Heading 1",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_heading_1.label",
+        defaultMessage: "Change Markdown to Heading 1",
+      }),
       k: [{ which: 49, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 1),
     },
     "change cell to heading 2": {
       i: "header",
-      m: "Change Markdown to Heading 2",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_heading_2.label",
+        defaultMessage: "Change Markdown to Heading 2",
+      }),
       k: [{ which: 50, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 2),
     },
     "change cell to heading 3": {
       i: "header",
-      m: "Change Markdown to Heading 3",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_heading_3.label",
+        defaultMessage: "Change Markdown to Heading 3",
+      }),
       k: [{ which: 51, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 3),
     },
     "change cell to heading 4": {
       i: "header",
-      m: "Change Markdown to Heading 4",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_heading_4.label",
+        defaultMessage: "Change Markdown to Heading 4",
+      }),
       k: [{ which: 52, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 4),
     },
     "change cell to heading 5": {
       i: "header",
-      m: "Change Markdown to Heading 5",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_heading_5.label",
+        defaultMessage: "Change Markdown to Heading 5",
+      }),
       k: [{ which: 53, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 5),
     },
     "change cell to heading 6": {
       i: "header",
-      m: "Change Markdown to Heading 6",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_heading_6.label",
+        defaultMessage: "Change Markdown to Heading 6",
+      }),
       k: [{ which: 54, mode: "escape" }],
       f: () => actions.frame_actions?.change_cell_to_heading(id(), 6),
     },
 
     "change cell to markdown": {
-      m: "Change Cell to Markdown",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_markdown.label",
+        defaultMessage: "Change Cell to Markdown",
+        description: "Cell in a Jupyter Notebook",
+      }),
       k: [{ which: 77, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("markdown"),
     },
 
     "change cell to raw": {
-      m: "Change Cell to Raw",
+      m: defineMessage({
+        id: "jupyter.commands.change_cell_to_row.label",
+        defaultMessage: "Change Cell to Raw",
+        description: "Cell in a Jupyter Notebook",
+      }),
       k: [{ which: 82, mode: "escape" }],
       f: () => actions.frame_actions?.set_selected_cell_type("raw"),
     },
 
     "clear all cells output": {
-      m: "Clear All Cell Outputs",
-      t: "Clear the output of all cells in the notebook",
+      m: defineMessage({
+        id: "jupyter.commands.clear_all_cells_output.label",
+        defaultMessage: "Clear All Cell Outputs",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.clear_all_cells_output.tooltip",
+        defaultMessage: "Clear the output of all cells in the notebook",
+      }),
       f: () => actions.jupyter_actions?.clear_all_outputs(),
     },
 
     "clear cell output": {
       i: "battery-empty",
-      m: "Clear Output of Selected Cells",
-      t: "Clear the output of the selected cells",
+      m: defineMessage({
+        id: "jupyter.commands.clear_cells_output.label",
+        defaultMessage: "Clear Output of Selected Cells",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.clear_cells_output.tooltip",
+        defaultMessage: "Clear the output of the selected cells",
+      }),
       f: () => actions.frame_actions?.clear_selected_outputs(),
     },
 
@@ -284,7 +364,7 @@ export function commands(actions: AllActions): {
 
     "copy cell": {
       i: COPY_CELL_ICON,
-      m: "Copy Cells",
+      m: jupyter.commands.copy_cells,
       k: [{ mode: "escape", which: 67 }],
       f: () => actions.frame_actions?.copy_selected_cells(),
       r: true,
@@ -294,7 +374,7 @@ export function commands(actions: AllActions): {
 
     "cut cell": {
       i: "scissors",
-      m: "Cut Cells",
+      m: jupyter.commands.cut_cells,
       k: [{ mode: "escape", which: 88 }],
       f: () => actions.frame_actions?.cut_selected_cells(),
     },
@@ -303,7 +383,7 @@ export function commands(actions: AllActions): {
 
     "delete cell": {
       // jupyter has this but with d,d as shortcut, since they have no undo.
-      m: "Delete Cells",
+      m: jupyter.commands.delete_cells,
       i: DELETE_CELL_ICON,
       k: [
         { mode: "escape", which: 68, twice: true },
@@ -317,20 +397,29 @@ export function commands(actions: AllActions): {
       // Requested by a user; not in upstream jupyter or any known extension
       // https://github.com/sagemathinc/cocalc/issues/6194
       i: "trash",
-      m: "Delete All Blank Code Cells",
+      m: jupyter.commands.delete_all_blank_code_cells,
       f: () => actions.jupyter_actions?.delete_all_blank_code_cells(),
     },
 
     "duplicate notebook": {
-      m: "Make a copy...",
+      m: defineMessage({
+        id: "jupyter.commands.duplicate_notebook.menu",
+        defaultMessage: "Make a copy...",
+      }),
       f: () => actions.jupyter_actions?.file_action("duplicate"),
       r: true,
     },
 
     "edit keyboard shortcuts": {
       i: "keyboard",
-      b: "Commands",
-      m: "All Keyboard Shortcuts and Commands...",
+      b: defineMessage({
+        id: "jupyter.commands.edit_keyboard_shortcuts.button",
+        defaultMessage: "Commands",
+      }),
+      m: defineMessage({
+        id: "jupyter.commands.edit_keyboard_shortcuts.label",
+        defaultMessage: "All Keyboard Shortcuts and Commands...",
+      }),
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
       r: true,
     },
@@ -401,7 +490,7 @@ export function commands(actions: AllActions): {
 
     "find and replace": {
       i: "replace",
-      m: "Find and Replace",
+      m: jupyter.commands.find_and_replace,
       k: [
         { mode: "escape", which: 70 },
         { alt: true, mode: "escape", which: 70 },
@@ -441,7 +530,10 @@ export function commands(actions: AllActions): {
     },
 
     "hide header": {
-      m: "Hide header",
+      m: defineMessage({
+        id: "jupyter.commands.hide_header.menu",
+        defaultMessage: "Hide header",
+      }),
       f: () => actions.jupyter_actions?.set_header_state(true),
       r: true,
     },
@@ -475,21 +567,29 @@ export function commands(actions: AllActions): {
     "merge cell with next cell": {
       i: "merge-cells-outlined",
       ir: "90",
-      m: "Merge Cell Below",
+      m: defineMessage({
+        id: "jupyter.commands.merge_cell_below.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Merge Cell Below",
+      }),
       f: () => actions.frame_actions?.merge_cell_below(),
     },
 
     "merge cell with previous cell": {
       i: "merge-cells-outlined",
       ir: "90",
-      m: "Merge Cell Above",
+      m: defineMessage({
+        id: "jupyter.commands.merge_cell_above.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Merge Cell Above",
+      }),
       f: () => actions.frame_actions?.merge_cell_above(),
     },
 
     "merge cells": {
       i: "merge-cells-outlined",
       ir: "90",
-      m: "Merge Selected Cells",
+      m: jupyter.commands.merge_selected_cells_menu,
       k: [{ mode: "escape", shift: true, which: 77 }],
       f: () => actions.frame_actions?.merge_selected_cells(),
     },
@@ -498,38 +598,52 @@ export function commands(actions: AllActions): {
       // why is this in jupyter; it's the same as the above?
       i: "merge-cells-outlined",
       ir: "90",
-      m: "Merge selected cells",
+      m: jupyter.commands.merge_selected_cells_menu,
       f: () => actions.frame_actions?.merge_selected_cells(),
     },
 
     "move cell down": {
       i: "arrow-down",
-      m: "Move Selected Cells Down",
+      m: defineMessage({
+        id: "jupyter.commands.move_cells_down.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Move Selected Cells Down",
+      }),
       k: [{ alt: true, mode: "escape", which: 40 }],
       f: () => actions.frame_actions?.move_selected_cells(1),
     },
 
     "move cell up": {
       i: "arrow-up",
-      m: "Move Selected Cells Up",
+      m: defineMessage({
+        id: "jupyter.commands.move_cells_up.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Move Selected Cells Up",
+      }),
       k: [{ alt: true, mode: "escape", which: 38 }],
       f: () => actions.frame_actions?.move_selected_cells(-1),
     },
 
     "move cursor down": {
-      m: "Move cursor down",
+      m: defineMessage({
+        id: "jupyter.commands.move_cursor_down.menu",
+        defaultMessage: "Move cursor down",
+      }),
       f: () => actions.frame_actions?.move_edit_cursor(1),
       r: true,
     },
 
     "move cursor up": {
-      m: "Move cursor up",
+      m: defineMessage({
+        id: "jupyter.commands.move_cursor_up.menu",
+        defaultMessage: "Move cursor up",
+      }),
       f: () => actions.frame_actions?.move_edit_cursor(-1),
       r: true,
     },
 
     "new notebook": {
-      m: "New...",
+      m: labels.new_dots,
       f: () => actions.jupyter_actions?.file_new(),
       r: true,
     },
@@ -609,7 +723,7 @@ export function commands(actions: AllActions): {
 
     "nbconvert slides": {
       i: "slides",
-      m: "Slideshow server via nbconvert",
+      m: jupyter.commands.nbconvert_slides,
       f: () => actions.jupyter_actions?.show_nbconvert_dialog("slides"),
       r: true,
     },
@@ -678,7 +792,7 @@ export function commands(actions: AllActions): {
 
     "nbgrader assign": {
       i: "graduation-cap",
-      t: "Generate the student version of this document, which strips out the extra instructor tests and cells.",
+      t: jupyter.commands.nbgrader_assign_tooltip,
       m: jupyter.commands.nbgrader_assign_menu,
       menu: jupyter.commands.nbgrader_assign_menu,
       b: jupyter.commands.nbgrader_assign_button,
@@ -729,8 +843,17 @@ export function commands(actions: AllActions): {
 
     "no kernel": {
       i: "ban",
-      m: "Set Kernel to None...",
-      t: "Set the notebook so that it doesn't have any kernel set at all.",
+      m: defineMessage({
+        id: "jupyter.commands.no_kernel.menu",
+        defaultMessage: "Set Kernel to None...",
+        description: "Kernel of a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.no_kernel.tooltip",
+        defaultMessage:
+          "Set the notebook so that it doesn't have any kernel set at all.",
+        description: "Kernel of a Jupyter Notebook",
+      }),
       f: () => actions.jupyter_actions?.confirm_remove_kernel(),
     },
 
@@ -743,8 +866,15 @@ export function commands(actions: AllActions): {
 
     "custom kernel": {
       i: "external-link",
-      m: "How to Create a Custom Kernel...",
-      t: "Show tutorial for how to create your own custom Jupyter kernel and use it here.",
+      m: defineMessage({
+        id: "jupyter.commands.custom_kernel.menu.menu",
+        defaultMessage: "How to Create a Custom Kernel...",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.custom_kernel.menu.tooltip",
+        defaultMessage:
+          "Show tutorial for how to create your own custom Jupyter kernel and use it here.",
+      }),
       f: () => actions.jupyter_actions?.custom_jupyter_kernel_docs(),
       r: true,
     },
@@ -861,20 +991,32 @@ export function commands(actions: AllActions): {
     },
 
     "scroll cell visible": {
-      m: "Scroll Selected Cell Into View",
+      m: defineMessage({
+        id: "jupyter.commands.scroll_cell_visible.menu",
+        description: "Cell in a Jupyter Notebook",
+        defaultMessage: "Scroll Selected Cell Into View",
+      }),
       f: () => actions.frame_actions?.scroll("cell visible"),
       r: true,
     },
 
     "scroll notebook down": {
-      m: "Scroll Notebook Down",
+      m: defineMessage({
+        id: "jupyter.commands.scroll_notebook_down.menu",
+        description: "A Jupyter Notebook",
+        defaultMessage: "Scroll Notebook Down",
+      }),
       k: [{ mode: "escape", which: 32 }],
       f: () => actions.frame_actions?.scroll("list down"),
       r: true,
     },
 
     "scroll notebook up": {
-      m: "Scroll Notebook Up",
+      m: defineMessage({
+        id: "jupyter.commands.scroll_notebook_up.menu",
+        description: "A Jupyter Notebook",
+        defaultMessage: "Scroll Notebook Up",
+      }),
       k: [{ mode: "escape", shift: true, which: 32 }],
       f: () => actions.frame_actions?.scroll("list up"),
       r: true,
@@ -882,7 +1024,11 @@ export function commands(actions: AllActions): {
 
     "select all cells": {
       i: "menu-outlined",
-      m: "Select All Cells",
+      m: defineMessage({
+        id: "jupyter.commands.select_all_cells.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Select All Cells",
+      }),
       k: [
         { alt: true, mode: "escape", which: 65 },
         { ctrl: true, mode: "escape", which: 65 },
@@ -893,13 +1039,21 @@ export function commands(actions: AllActions): {
 
     "deselect all cells": {
       i: "ban",
-      m: "Deselect All Cells",
+      m: defineMessage({
+        id: "jupyter.commands.deselect_all_cells.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Deselect All Cells",
+      }),
       f: () => actions.frame_actions?.unselect_all_cells(),
       r: true,
     },
 
     "select next cell": {
-      m: "Select Next Cell",
+      m: defineMessage({
+        id: "jupyter.commands.select_next_cell.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Select Next Cell",
+      }),
       k: [
         { which: 40, mode: "escape" },
         { which: 74, mode: "escape" },
@@ -913,7 +1067,11 @@ export function commands(actions: AllActions): {
     },
 
     "select previous cell": {
-      m: "Select Previous Cell",
+      m: defineMessage({
+        id: "jupyter.commands.select_previous_cell.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Select Previous Cell",
+      }),
       k: [
         { which: 38, mode: "escape" },
         { which: 75, mode: "escape" },
@@ -928,14 +1086,22 @@ export function commands(actions: AllActions): {
 
     "show all line numbers": {
       i: "list-ol",
-      m: "Show Line Numbers for All Cells",
+      m: defineMessage({
+        id: "jupyter.commands.show_all_line_numbers.menu",
+        description: "Cells in a Jupyter Notebook",
+        defaultMessage: "Show Line Numbers for All Cells",
+      }),
       f: () => actions.jupyter_actions?.set_line_numbers(true),
       r: true,
     },
 
     "show code folding": {
       i: "list-ol",
-      m: "Enable Code Folding",
+      m: defineMessage({
+        id: "jupyter.commands.show_code_folding.menu",
+        defaultMessage: "Enable Code Folding",
+      }),
+
       f: () =>
         redux.getActions("account").set_editor_settings("code_folding", true),
       r: true,
@@ -943,7 +1109,10 @@ export function commands(actions: AllActions): {
 
     "hide code folding": {
       i: "list-ol",
-      m: "Disable Code Folding",
+      m: defineMessage({
+        id: "jupyter.commands.hide_code_folding.menu",
+        defaultMessage: "Disable Code Folding",
+      }),
       f: () =>
         redux.getActions("account").set_editor_settings("code_folding", false),
       r: true,
@@ -960,14 +1129,20 @@ export function commands(actions: AllActions): {
     },
 
     "show header": {
-      m: "Show header",
+      m: defineMessage({
+        id: "jupyter.commands.show_header.menu",
+        defaultMessage: "Show header",
+      }),
       f: () => actions.jupyter_actions?.set_header_state(false),
       r: true,
     },
 
     "show keyboard shortcuts": {
       i: "keyboard",
-      m: "Show keyboard shortcuts...",
+      m: defineMessage({
+        id: "jupyter.commands.show_keyboard_shortcuts.menu",
+        defaultMessage: "Show keyboard shortcuts...",
+      }),
       k: [{ mode: "escape", which: 72 }],
       f: () => actions.jupyter_actions?.show_keyboard_shortcuts(),
       r: true,
@@ -975,13 +1150,21 @@ export function commands(actions: AllActions): {
 
     "shutdown kernel": {
       i: "PoweroffOutlined",
-      m: "Shutdown kernel",
+      m: defineMessage({
+        id: "jupyter.commands.shutdown_kernel.menu",
+        description: "Kernel of a Jupyter Notebook",
+        defaultMessage: "Shutdown kernel",
+      }),
       f: () => actions.jupyter_actions?.shutdown(),
     },
 
     "split cell at cursor": {
       i: SPLIT_CELL_ICON,
-      m: "Split Cell",
+      m: defineMessage({
+        id: "jupyter.commands.split_cell_at_cursor.menu",
+        defaultMessage: "Split Cell",
+        description: "Cell in a Jupyter Notebook",
+      }),
       k: [
         { ctrl: true, shift: true, which: 189 },
         { ctrl: true, key: ";", which: 186 },
@@ -1000,8 +1183,16 @@ export function commands(actions: AllActions): {
 
     "tab key": {
       k: [{ mode: "escape", which: 9 }],
-      m: "Tab Key (completion)",
-      b: "Tab",
+      m: defineMessage({
+        id: "jupyter.commands.tab_key.menu",
+        defaultMessage: "Tab Key (completion)",
+        description: "Tab Key of a computer keyboard",
+      }),
+      b: defineMessage({
+        id: "jupyter.commands.tab_key.button",
+        defaultMessage: "Tab",
+        description: "Tab Key of a computer keyboard",
+      }),
       i: "tab",
       f: () => actions.frame_actions?.tab_key(),
     },
@@ -1145,31 +1336,72 @@ export function commands(actions: AllActions): {
 
     "write protect": {
       i: "lock",
-      m: "Write Protect",
-      b: "Protect",
-      t: "Make it so selected cells cannot be edited or deleted.",
+      m: defineMessage({
+        id: "jupyter.commands.write_project.menu",
+        defaultMessage: "Write Protect",
+        description: "write protect a cell in a Jupyter Notebook",
+      }),
+      b: defineMessage({
+        id: "jupyter.commands.write_project.button",
+        defaultMessage: "Protect",
+        description: "write protect a cell in a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.write_project.tooltip",
+        defaultMessage:
+          "Make it so selected cells cannot be edited or deleted.",
+        description: "write protect a cell in a Jupyter Notebook",
+      }),
       f: () => actions.frame_actions?.write_protect_selected_cells(true),
     },
 
     "delete protect": {
       i: "ban",
-      m: "Delete Protect",
-      b: "Protect",
-      t: "Make it so selected cells cannot be deleted.",
+      m: defineMessage({
+        id: "jupyter.commands.delete_project.menu",
+        defaultMessage: "Delete Protect",
+        description: "delete protect a cell in a Jupyter Notebook",
+      }),
+      b: defineMessage({
+        id: "jupyter.commands.delete_project.button",
+        defaultMessage: "Protect",
+        description: "delete protect a cell in a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.delete_project.tooltip",
+        defaultMessage: "Make it so selected cells cannot be deleted.",
+        description: "delete protect a cell in a Jupyter Notebook",
+      }),
       f: () => actions.frame_actions?.delete_protect_selected_cells(true),
     },
 
     "remove write protect": {
       i: "lock-open",
-      m: "Remove Write Protect",
-      t: "Remove write protection from selected cells.",
+      m: defineMessage({
+        id: "jupyter.commands.remove_write_project.menu",
+        defaultMessage: "Remove Write Protect",
+        description: "write protection of a cell in a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.remove_write_project.tooltip",
+        defaultMessage: "Remove write protection from selected cells.",
+        description: "write protection of a cell in a Jupyter Notebook",
+      }),
       f: () => actions.frame_actions?.write_protect_selected_cells(false),
     },
 
     "remove delete protect": {
       i: "check-circle",
-      m: "Remove Delete Protect",
-      t: "Remove delete protection from selected cells.",
+      m: defineMessage({
+        id: "jupyter.commands.remove_delete_project.menu",
+        defaultMessage: "Remove Delete Protect",
+        description: "delete protection of a cell in a Jupyter Notebook",
+      }),
+      t: defineMessage({
+        id: "jupyter.commands.remove_delete_project.tooltip",
+        defaultMessage: "Remove delete protection from selected cells.",
+        description: "delete protection of a cell in a Jupyter Notebook",
+      }),
       f: () => actions.frame_actions?.delete_protect_selected_cells(false),
     },
 
