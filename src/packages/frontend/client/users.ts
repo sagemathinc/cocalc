@@ -29,7 +29,7 @@ const get_username = aggregate(
         }
       },
     });
-  }
+  },
 );
 
 export class UsersClient {
@@ -65,7 +65,7 @@ export class UsersClient {
   // makes it so this never calls to the backend more than once at a time
   // (per minute) for a given account_id.
   public async get_username(
-    account_id: string
+    account_id: string,
   ): Promise<{ first_name: string; last_name: string }> {
     if (isChatBot(account_id)) {
       return { first_name: chatBotName(account_id), last_name: "" };
@@ -88,4 +88,11 @@ export class UsersClient {
     }
     return u;
   }
+
+  getUsernames = async (account_ids: string[]) => {
+    return await this.async_call({
+      message: message.get_usernames({ account_ids }),
+      error_event: true,
+    });
+  };
 }
