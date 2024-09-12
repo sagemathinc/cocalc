@@ -107,6 +107,7 @@ export const Student: React.FC<StudentProps> = React.memo(
     const store = actions.get_store();
     if (store == null) throw Error("store must be defined");
 
+    const deletedAccount = !!student.get("deleted_account");
     const hasAccount = student.get("account_id") != null;
 
     const { bsSize, antdSize } = useButtonSize();
@@ -213,6 +214,11 @@ export const Student: React.FC<StudentProps> = React.memo(
     }
 
     function render_last_active() {
+      if (deletedAccount) {
+        return (
+          <span style={{ color: "#666" }}>(student deleted their account)</span>
+        );
+      }
       if (!hasAccount) {
         return (
           <span style={{ color: "#666" }}>(has not created account yet)</span>
