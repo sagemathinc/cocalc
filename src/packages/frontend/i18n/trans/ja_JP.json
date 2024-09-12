@@ -443,7 +443,7 @@
   "labels.cut": "切り取り",
   "labels.documentation": "ドキュメント",
   "labels.email_address": "メールアドレス",
-  "labels.explorer": "エクスプローラー",
+  "labels.explorer": "書類",
   "labels.frame-editors.title-bar.save_label": "{type, select, is_public {公開} read_only {読み取り専用} other {保存}}",
   "labels.help": "ヘルプ",
   "labels.insert": "挿入",

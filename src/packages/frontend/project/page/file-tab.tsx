@@ -514,6 +514,9 @@ function DisplayedLabel({ path, label, inline = true, project_id, condensed }) {
     const style: CSS = {
       fontSize: condensed ? "10px" : "12px",
       textAlign: "center",
+      maxWidth: "65px",
+      overflow: "hidden",
+      textOverflow: "ellipsis", // important for i18n, since sometimes the words are long
     };
     return (
       <>

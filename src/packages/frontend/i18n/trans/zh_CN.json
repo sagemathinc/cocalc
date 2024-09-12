@@ -443,7 +443,7 @@
   "labels.cut": "剪切",
   "labels.documentation": "文档",
   "labels.email_address": "电子邮件地址",
-  "labels.explorer": "资源管理器",
+  "labels.explorer": "文件",
   "labels.frame-editors.title-bar.save_label": "{type, select, is_public {公开} read_only {只读} other {保存}}",
   "labels.help": "幫助",
   "labels.insert": "插入",
