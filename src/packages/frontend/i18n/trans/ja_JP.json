@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "コラボレーターはこのプロジェクトにアクセスできる他のユーザーです。彼らはあなたと同じファイルを表示および編集できます。",
   "project.page.project-licenses.header": "クォータと{upgrades}",
   "project.page.project-licenses.intro": "ライセンスおよび従量制アップグレードは、プロジェクトに利用可能なクォータと機能を変更します",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "アクションバーを表示",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "アクションバーを隠す",
   "project.settings.site-license.button.label": "ライセンスキーを使用してアップグレード...",
   "project.settings.stop-project.explanation": "プロジェクトサーバーを停止すると、すべてのプロセスが終了します。プロジェクトを停止した後は、あなたまたは共同作業者がプロジェクトを再起動するまで開始されません。",
   "project.settings.upgrade-usage.header": "使用量とクォータ",

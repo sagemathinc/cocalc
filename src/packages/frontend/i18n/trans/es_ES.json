@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "Colaboradores son otros usuarios, que pueden acceder a este proyecto. Pueden ver y editar los mismos archivos que tú.",
   "project.page.project-licenses.header": "Cuotas y {upgrades}",
   "project.page.project-licenses.intro": "Las licencias y las actualizaciones de pago por uso cambian las cuotas y características disponibles para un proyecto",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Mostrar la barra de acciones",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Ocultar la barra de acciones",
   "project.settings.site-license.button.label": "Actualizar con una clave de licencia...",
   "project.settings.stop-project.explanation": "Detener el servidor del proyecto finalizará todos los procesos. Después de detener un proyecto, no se reiniciará hasta que usted o un colaborador reinicie el proyecto.",
   "project.settings.upgrade-usage.header": "Uso y Cuotas",

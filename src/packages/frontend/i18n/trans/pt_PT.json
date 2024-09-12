@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "Os colaboradores são outros utilizadores, que podem aceder a este projeto. Podem ver e editar os mesmos ficheiros que tu.",
   "project.page.project-licenses.header": "Quotas e {upgrades}",
   "project.page.project-licenses.intro": "Licenças e atualizações pagas conforme o uso alteram as quotas e funcionalidades disponíveis para um projeto.",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Mostrar a barra de ações",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Ocultar a barra de ações",
   "project.settings.site-license.button.label": "Atualizar usando uma chave de licença...",
   "project.settings.stop-project.explanation": "Parar o servidor do projeto irá matar todos os processos. Após parar um projeto, ele não iniciará até que você ou um colaborador reinicie o projeto.",
   "project.settings.upgrade-usage.header": "Utilização e Quotas",

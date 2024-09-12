@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "İşbirlikçiler, bu projeye erişebilen diğer kullanıcılardır. Sizinle aynı dosyaları görüntüleyebilir ve düzenleyebilirler.",
   "project.page.project-licenses.header": "Kotalar ve {upgrades}",
   "project.page.project-licenses.intro": "Lisanslar ve kullanıldıkça öde yükseltmeleri, bir projeye sunulan kotaları ve özellikleri değiştirir.",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Eylem çubuğunu göster",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Eylem çubuğunu gizle",
   "project.settings.site-license.button.label": "Lisans anahtarı kullanarak yükselt...",
   "project.settings.stop-project.explanation": "Proje sunucusunu durdurmak tüm süreçleri sonlandıracaktır. Bir projeyi durdurduktan sonra, siz veya bir işbirlikçi projeyi yeniden başlatana kadar başlamayacaktır.",
   "project.settings.upgrade-usage.header": "Kullanım ve Kotalar",

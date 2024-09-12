@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "משתפי פעולה הם משתמשים אחרים שיכולים לגשת לפרויקט זה הם יכולים לצפות ולערוך את אותם קבצים כמוך",
   "project.page.project-licenses.header": "מכסה ושדרוגים",
   "project.page.project-licenses.intro": "רישיונות ושדרוגים לפי שימוש משנים את המכסות והתכונות הזמינות לפרויקט",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "הצג את סרגל הפעולות",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "הסתר את סרגל הפעולות",
   "project.settings.site-license.button.label": "שדרג באמצעות מפתח רישיון...",
   "project.settings.stop-project.explanation": "עצירת שרת הפרויקט תהרוג את כל התהליכים. לאחר עצירת פרויקט, הוא לא יתחיל עד שאתה או שותף ישחזרו את הפרויקט.",
   "project.settings.upgrade-usage.header": "שימוש ומכסות",

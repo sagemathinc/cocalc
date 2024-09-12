@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "Kollaboratoren sind andere Benutzer, die auf dieses Projekt zugreifen können. Sie können die gleichen Dateien wie Sie anzeigen und bearbeiten.",
   "project.page.project-licenses.header": "Quoten und {upgrades}",
   "project.page.project-licenses.intro": "Lizenzen und Pay-as-you-go-Upgrades ändern die Quoten und Funktionen, die einem Projekt zur Verfügung stehen.",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Aktionsleiste anzeigen",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Aktionsleiste ausblenden",
   "project.settings.site-license.button.label": "Upgrade mit einem Lizenzschlüssel...",
   "project.settings.stop-project.explanation": "Das Stoppen des Projektservers wird alle Prozesse beenden. Nach dem Stoppen eines Projekts wird es nicht neu gestartet, bis Sie oder ein Mitarbeiter das Projekt neu starten.",
   "project.settings.upgrade-usage.header": "Nutzung und Quoten",

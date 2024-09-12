@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "Współpracownicy to inni użytkownicy, którzy mogą uzyskać dostęp do tego projektu. Mogą przeglądać i edytować te same pliki co Ty.",
   "project.page.project-licenses.header": "Limity i {upgrades}",
   "project.page.project-licenses.intro": "Licencje i ulepszenia pay as you go zmieniają limity i funkcje dostępne dla projektu.",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Pokaż pasek akcji",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Ukryj pasek akcji",
   "project.settings.site-license.button.label": "Uaktualnij za pomocą klucza licencyjnego...",
   "project.settings.stop-project.explanation": "Zatrzymanie serwera projektu zakończy wszystkie procesy. Po zatrzymaniu projektu, nie uruchomi się on ponownie, dopóki ty lub współpracownik nie uruchomicie projektu ponownie.",
   "project.settings.upgrade-usage.header": "Użycie i Limity",

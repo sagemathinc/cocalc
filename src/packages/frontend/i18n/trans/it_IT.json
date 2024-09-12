@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "I collaboratori sono altri utenti, che possono accedere a questo progetto. Possono visualizzare e modificare gli stessi file che usi tu.",
   "project.page.project-licenses.header": "Quote e {upgrades}",
   "project.page.project-licenses.intro": "Le licenze e gli aggiornamenti pay as you go cambiano le quote e le funzionalità disponibili per un progetto.",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Mostra la barra delle azioni",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Nascondi la barra delle azioni",
   "project.settings.site-license.button.label": "Aggiorna utilizzando una chiave di licenza...",
   "project.settings.stop-project.explanation": "Arrestare il server del progetto terminerà tutti i processi. Dopo aver fermato un progetto, non si avvierà fino a quando tu o un collaboratore non riavvierete il progetto.",
   "project.settings.upgrade-usage.header": "Utilizzo e Quote",

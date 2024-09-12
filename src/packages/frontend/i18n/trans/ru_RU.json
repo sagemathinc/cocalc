@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "Сотрудники - это другие пользователи, которые могут получить доступ к этому проекту. Они могут просматривать и редактировать те же файлы, что и вы.",
   "project.page.project-licenses.header": "Квоты и {upgrades}",
   "project.page.project-licenses.intro": "Лицензии и улучшения по мере использования изменяют квоты и функции, доступные для проекта.",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Показать панель действий",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Скрыть панель действий",
   "project.settings.site-license.button.label": "Обновить с помощью лицензионного ключа...",
   "project.settings.stop-project.explanation": "Остановка сервера проекта завершит все процессы. После остановки проекта он не запустится, пока вы или ваш сотрудник не перезапустит проект.",
   "project.settings.upgrade-usage.header": "Использование и квоты",

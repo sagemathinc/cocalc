@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "合作者是可以访问此项目的其他用户。他们可以查看和编辑与您相同的文件。",
   "project.page.project-licenses.header": "配额和{upgrades}",
   "project.page.project-licenses.intro": "许可证和按需付费升级更改项目的配额和可用功能",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "显示操作栏",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "隐藏操作栏",
   "project.settings.site-license.button.label": "使用许可证密钥升级...",
   "project.settings.stop-project.explanation": "停止项目服务器将终止所有进程。停止项目后，除非您或协作者重新启动项目，否则它不会启动。",
   "project.settings.upgrade-usage.header": "使用情况和配额",

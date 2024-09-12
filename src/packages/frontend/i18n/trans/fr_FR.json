@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "Les collaborateurs sont d'autres utilisateurs qui peuvent accéder à ce projet. Ils peuvent voir et éditer les mêmes fichiers que vous.",
   "project.page.project-licenses.header": "Quotas et {upgrades}",
   "project.page.project-licenses.intro": "Les licences et les mises à niveau à la carte modifient les quotas et les fonctionnalités disponibles pour un projet.",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "Afficher la barre d'action",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "Masquer la barre d'action",
   "project.settings.site-license.button.label": "Mettre à niveau avec une clé de licence...",
   "project.settings.stop-project.explanation": "Arrêter le serveur du projet tuera tous les processus. Après avoir arrêté un projet, il ne redémarrera pas tant que vous ou un collaborateur ne redémarrez le projet.",
   "project.settings.upgrade-usage.header": "Utilisation et Quotas",

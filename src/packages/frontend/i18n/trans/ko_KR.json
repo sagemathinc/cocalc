@@ -565,6 +565,8 @@
   "project.page.project-collaborators.info": "협력자는 이 프로젝트에 접근할 수 있는 다른 사용자입니다. 그들은 당신과 같은 파일을 보고 편집할 수 있습니다.",
   "project.page.project-licenses.header": "할당량 및 {upgrades}",
   "project.page.project-licenses.intro": "라이선스와 사용량에 따른 업그레이드는 프로젝트에 이용 가능한 할당량과 기능을 변경합니다.",
+  "project.page.vertical-fixed-tabs.show-sidebar.tooltip": "작업 표시줄 표시",
+  "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip": "작업 표시줄 숨기기",
   "project.settings.site-license.button.label": "라이선스 키를 사용하여 업그레이드...",
   "project.settings.stop-project.explanation": "프로젝트 서버를 중지하면 모든 프로세스가 종료됩니다. 프로젝트를 중지한 후, 당신이나 협력자가 프로젝트를 다시 시작할 때까지 시작되지 않습니다.",
   "project.settings.upgrade-usage.header": "사용량 및 할당량",
