@@ -1122,6 +1122,7 @@ class exports.Client extends EventEmitter
                     limit  : mesg.limit
                     admin  : mesg.admin
                     active : mesg.active
+                    only_email: mesg.only_email
                 try
                     locals.results = await user_search(opts)
                     cb(undefined)

@@ -41,6 +41,7 @@ import {
 import * as util from "../util";
 import { Student, StudentNameDescription } from "./students-panel-student";
 import { HelpBox } from "../configuration/help-box";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
@@ -253,6 +254,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         select = await webapp_client.users_client.user_search({
           query: add_search,
           limit: 150,
+          only_email: true,
         });
       } catch (err) {
         if (!isMounted) return;
@@ -315,7 +317,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     }
 
     function student_add_button() {
-      const disabled = add_search?.trim().length === 0;
+      const disabled = add_search?.trim().length === 0 || !isValidEmailAddress(add_search?.trim() ?? "");
       const icon = add_searching ? (
         <Icon name="cocalc-ring" spin />
       ) : (
@@ -608,7 +610,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
                     <Form.Item style={{ margin: "0 0 5px 0" }}>
                       <Input.TextArea
                         ref={studentAddInputRef}
-                        placeholder="Add new students by email addresses or names..."
+                        placeholder="Add students by email address..."
                         value={add_search}
                         rows={rows}
                         onChange={() => student_add_input_onChange()}

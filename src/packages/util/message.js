@@ -1051,6 +1051,10 @@ API(
         init: 20,
         desc: "maximum number of results returned",
       },
+      only_email: {
+        init: false,
+        desc: "only search using email addresses"
+      },
     },
     desc: `\
 There are two possible item types in the query list: email addresses
