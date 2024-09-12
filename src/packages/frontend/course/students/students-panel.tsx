@@ -591,7 +591,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           <Row>
             <Col md={6}>
               <SearchInput
-                placeholder="Find students..."
+                placeholder="Filter existing students..."
                 default_value={search}
                 on_change={(value) => set_search(value)}
               />
@@ -608,7 +608,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
                     <Form.Item style={{ margin: "0 0 5px 0" }}>
                       <Input.TextArea
                         ref={studentAddInputRef}
-                        placeholder="Add students by name or email address..."
+                        placeholder="Add new students by email addresses or names..."
                         value={add_search}
                         rows={rows}
                         onChange={() => student_add_input_onChange()}

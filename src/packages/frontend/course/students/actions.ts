@@ -18,13 +18,21 @@ import { CourseActions } from "../actions";
 import { CourseStore, StudentRecord } from "../store";
 import { SyncDBRecordStudent } from "../types";
 
+const STUDENT_STATUS_UPDATE_MS = 60 * 1000;
+
 export class StudentsActions {
   private course_actions: CourseActions;
+  private updateInterval?;
 
   constructor(course_actions: CourseActions) {
     this.course_actions = course_actions;
     this.push_missing_handouts_and_assignments = reuseInFlight(
       this.push_missing_handouts_and_assignments.bind(this),
+    );
+    setTimeout(this.updateStudentStatus, 5000);
+    this.updateInterval = setInterval(
+      this.updateStudentStatus,
+      STUDENT_STATUS_UPDATE_MS,
     );
   }
 
@@ -126,7 +134,7 @@ export class StudentsActions {
   // Some students might *only* have been added using their email address, but they
   // subsequently signed up for an CoCalc account.  We check for any of these and if
   // we find any, we add in the account_id information about that student.
-  public async lookup_nonregistered_students(): Promise<void> {
+  lookupNonregisteredStudents = async (): Promise<void> => {
     const store = this.get_store();
     const v: { [email: string]: string } = {};
     const s: string[] = [];
@@ -152,16 +160,16 @@ export class StudentsActions {
           continue;
         }
         this.course_actions.set({
+          student_id: v[x.email_address],
           account_id: x.account_id,
           table: "students",
-          student_id: v[x.email_address],
         });
       }
     } catch (err) {
-      // Non-fatal, will try again next time lookup_nonregistered_students gets called.
-      console.warn(`lookup_nonregistered_students: search error -- ${err}`);
+      // Non-fatal, will try again next time lookupNonregisteredStudents gets called.
+      console.warn(`lookupNonregisteredStudents: search error -- ${err}`);
     }
-  }
+  };
 
   // For every student with a known account_id, verify that their
   // account still exists, and if not, mark it as deleted.  This is rare, but happens
@@ -169,9 +177,12 @@ export class StudentsActions {
   updateDeletedAccounts = async () => {
     const store = this.get_store();
     const account_ids: string[] = [];
+    const student_ids: { [account_id: string]: string } = {};
     store.get_students().map((student: StudentRecord) => {
-      if (student.get("account_id") && !student.get("deleted_account")) {
-        account_ids.push(student.get("account_id")!);
+      const account_id = student.get("account_id");
+      if (account_id && !student.get("deleted_account")) {
+        account_ids.push(account_id);
+        student_ids[account_id] = student.get("student_id");
       }
     });
     if (account_ids.length == 0) {
@@ -182,12 +193,27 @@ export class StudentsActions {
     for (const account_id of account_ids) {
       if (users[account_id] == null) {
         this.course_actions.set({
+          student_id: student_ids[account_id],
           account_id,
           table: "students",
           deleted_account: true,
         });
       }
     }
+  };
+
+  updateStudentStatus = async () => {
+    const state = this.course_actions.syncdb?.get_state();
+    if (state == "init") {
+      return;
+    }
+    if (state != "ready") {
+      clearInterval(this.updateInterval);
+      delete this.updateInterval;
+      return;
+    }
+    await this.lookupNonregisteredStudents();
+    await this.updateDeletedAccounts();
   };
 
   // columns: first_name, last_name, email, last_active, hosting

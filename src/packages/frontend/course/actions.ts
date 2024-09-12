@@ -117,6 +117,10 @@ export class CourseActions extends Actions<CourseState> {
     ) {
       return;
     }
+    // put in similar checks for other tables?
+    if (obj.table == "students" && obj.student_id == null) {
+      console.warn("course: setting student without primary key", obj);
+    }
     this.syncdb.set(obj);
     if (commit) {
       this.syncdb.commit();

@@ -49,7 +49,7 @@ function rowsToNames(rows): Names {
 export async function getNames(account_ids: string[]): Promise<Names> {
   const pool = getPool("long");
   const { rows } = await pool.query(
-    "SELECT account_id, first_name, last_name FROM accounts WHERE account_id=ANY($1::UUID[])",
+    "SELECT account_id, first_name, last_name FROM accounts WHERE account_id=ANY($1::UUID[]) AND deleted IS NULL OR deleted = false",
     [account_ids],
   );
   return rowsToNames(rows);
