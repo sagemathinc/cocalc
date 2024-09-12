@@ -1768,18 +1768,6 @@ class exports.Client extends EventEmitter
                         mesg.resp = resp
                         @push_to_client(mesg)
 
-    mesg_get_usernames: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        @database.get_usernames
-            account_ids : mesg.account_ids
-            use_cache   : true
-            cb          : (err, usernames) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.usernames(usernames:usernames, id:mesg.id))
 
     ###
     Support Tickets → Zendesk

@@ -853,39 +853,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             v[id] = {first_name:undefined, last_name:undefined}
                     opts.cb(err, v)
 
-    get_usernames: (opts) =>
-        opts = defaults opts,
-            account_ids  : required
-            use_cache    : true
-            cache_time_s : 60*60        # one hour
-            cb           : required     # cb(err, map from account_id to object (user name))
-        if not @_validate_opts(opts) then return
-        usernames = {}
-        for account_id in opts.account_ids
-            usernames[account_id] = false
-        if opts.use_cache
-            if not @_account_username_cache?
-                @_account_username_cache = {}
-            for account_id, done of usernames
-                if not done and @_account_username_cache[account_id]?
-                    usernames[account_id] = @_account_username_cache[account_id]
-        @account_ids_to_usernames
-            account_ids : (account_id for account_id,done of usernames when not done)
-            cb          : (err, results) =>
-                if err
-                    opts.cb(err)
-                else
-                    # use a closure so that the cache clear timeout below works
-                    # with the correct account_id!
-                    f = (account_id, username) =>
-                        usernames[account_id] = username
-                        @_account_username_cache[account_id] = username
-                        setTimeout((()=>delete @_account_username_cache[account_id]),
-                                   1000*opts.cache_time_s)
-                    for account_id, username of results
-                        f(account_id, username)
-                    opts.cb(undefined, usernames)
-
     _account_where: (opts) =>
         # account_id > email_address > lti_id
         if opts.account_id
