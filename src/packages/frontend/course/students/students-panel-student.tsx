@@ -143,7 +143,7 @@ export const Student: React.FC<StudentProps> = React.memo(
       set_edited_last_name(student_name.last);
     }, [student_name.last]);
     useEffect(() => {
-      set_edited_email_address(student.get("email_address"));
+      set_edited_email_address(student.get("email_address") ?? "");
     }, [props.student.get("email_address")]);
 
     function on_key_down(e) {
@@ -460,13 +460,16 @@ export const Student: React.FC<StudentProps> = React.memo(
         <Tooltip placement="bottom" title={when}>
           <AntdButton
             size={antdSize}
-            onClick={() =>
-              actions.student_projects.invite_student_to_project({
-                student: student.get("email_address"), // we use email address to trigger sending an actual email!
-                student_project_id: student.get("project_id"),
-                student_id: student.get("student_id"),
-              })
-            }
+            onClick={() => {
+              const email = student.get("email_address");
+              if (email) {
+                actions.student_projects.invite_student_to_project({
+                  student: email, // we use email address to trigger sending an actual email!
+                  student_project_id: student.get("project_id"),
+                  student_id: student.get("student_id"),
+                });
+              }
+            }}
             disabled={!allowResending}
           >
             <Icon name="mail" /> {msg}

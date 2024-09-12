@@ -254,19 +254,18 @@ export class ConfigurationActions {
         .get_course_info(project_id)
         ?.toJS();
       if (course_info?.type == null || course_info.type == "nbgrader") {
-        await projects_actions.set_project_course_info(
+        await projects_actions.set_project_course_info({
           project_id,
-          store.get("course_project_id"),
-          store.get("course_filename"),
-          "", // pay
-          null, // payInfo
-          null, // account_id
-          null, // email_address
+          course_project_id: store.get("course_project_id"),
+          path: store.get("course_filename"),
+          pay: "", // pay
+          payInfo: null,
+          account_id: null,
+          email_address: null,
           datastore,
-          "nbgrader", // type of project
-          undefined, // student_project_functionality
+          type: "nbgrader",
           envvars,
-        );
+        });
       }
 
       // we also make sure all teachers have access to that project – otherwise NBGrader can't work, etc.

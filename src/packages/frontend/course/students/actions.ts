@@ -133,18 +133,24 @@ export class StudentsActions {
     store.get_students().map((student: StudentRecord, student_id: string) => {
       if (!student.get("account_id") && !student.get("deleted")) {
         const email = student.get("email_address");
-        v[email] = student_id;
-        s.push(email);
+        if (email) {
+          v[email] = student_id;
+          s.push(email);
+        }
       }
     });
-    if (s.length == 0) return;
+    if (s.length == 0) {
+      return;
+    }
     try {
       const result = await webapp_client.users_client.user_search({
         query: s.join(","),
         limit: s.length,
       });
       for (const x of result) {
-        if (x.email_address == null) continue;
+        if (x.email_address == null) {
+          continue;
+        }
         this.course_actions.set({
           account_id: x.account_id,
           table: "students",
@@ -156,6 +162,33 @@ export class StudentsActions {
       console.warn(`lookup_nonregistered_students: search error -- ${err}`);
     }
   }
+
+  // For every student with a known account_id, verify that their
+  // account still exists, and if not, mark it as deleted.  This is rare, but happens
+  // despite all attempts otherwise: https://github.com/sagemathinc/cocalc/issues/3243
+  updateDeletedAccounts = async () => {
+    const store = this.get_store();
+    const account_ids: string[] = [];
+    store.get_students().map((student: StudentRecord) => {
+      if (student.get("account_id") && !student.get("deleted_account")) {
+        account_ids.push(student.get("account_id")!);
+      }
+    });
+    if (account_ids.length == 0) {
+      return;
+    }
+    // note: there is no notion of undeleting an account in cocalc
+    const users = await webapp_client.users_client.getNames(account_ids);
+    for (const account_id of account_ids) {
+      if (users[account_id] == null) {
+        this.course_actions.set({
+          account_id,
+          table: "students",
+          deleted_account: true,
+        });
+      }
+    }
+  };
 
   // columns: first_name, last_name, email, last_active, hosting
   // Toggles ascending/decending order
