@@ -30,6 +30,7 @@ import {
 } from "@cocalc/util/upgrades/quota";
 import { isBoostLicense } from "@cocalc/util/upgrades/utils";
 import { SiteLicense as SiteLicenseT } from "./types";
+import { FormattedMessage } from "react-intl";
 
 interface Props {
   project_id: string;
@@ -222,7 +223,11 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
             onClick={() => set_show_site_license(true)}
             disabled={show_site_license}
           >
-            <Icon name="key" /> Upgrade using a license key...
+            <Icon name="key" />{" "}
+            <FormattedMessage
+              id="project.settings.site-license.button.label"
+              defaultMessage="Upgrade using a license key..."
+            />
           </Button>
           {render_site_license_text()}
           <br />

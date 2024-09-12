@@ -21,12 +21,13 @@ import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { PROJECT_INFO_TITLE } from "../project/info";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
 import ProgressEstimate from "../components/progress-estimate";
+import { FormattedMessage, useIntl } from "react-intl";
+import { labels } from "../i18n";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -88,6 +89,7 @@ export function Kernel({
   computeServerId,
   is_fullscreen,
 }: KernelProps) {
+  const intl = useIntl();
   const name = actions.name;
 
   // redux section
@@ -389,30 +391,37 @@ export function Kernel({
     const kernel_tip = kernelState();
 
     const usage_tip = computeServerId ? null : (
-      <>
+      <FormattedMessage
+        id="jupyter.status.usage_tip"
+        defaultMessage={`
         <p>
           This shows this kernel's resource usage. The memory limit is
-          determined by the remaining "free" memory of this project. Open the "
-          {PROJECT_INFO_TITLE}" tab see all activities of this project.
+          determined by the remaining "free" memory of this project.
+          Open the "{processes}" tab see all activities of this project.
         </p>
         <p>
-          <Typography.Text type="secondary">
+          <secondary>
             Keep in mind that "shared memory" could compete with other projects
-            on the same machine and hence you might not be able to use all of
-            it.
-          </Typography.Text>
+            on the same machine and hence you might not be able to use all of it.
+          </secondary>
         </p>
         <p>
-          <Typography.Text type="secondary">
-            You can clear all cpu and memory usage by{" "}
-            <em>restarting your kernel</em>. Learn more about{" "}
-            <A href={"https://doc.cocalc.com/howto/low-memory.html"}>
-              Low Memory
-            </A>{" "}
-            mitigations.
-          </Typography.Text>
-        </p>
-      </>
+          <secondary>
+            You can clear all cpu and memory usage by <em>restarting your kernel</em>.
+            Learn more about <A>Low Memory</A> mitigations.
+          </secondary>
+        </p>`}
+        values={{
+          processes: intl.formatMessage(labels.project_info_title),
+          em: (ch) => <em>{ch}</em>,
+          A: (ch) => (
+            <A href={"https://doc.cocalc.com/howto/low-memory.html"}>{ch}</A>
+          ),
+          secondary: (ch) => (
+            <Typography.Text type="secondary">{ch}</Typography.Text>
+          ),
+        }}
+      />
     );
 
     const description = kernel_info?.getIn([

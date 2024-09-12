@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { defineMessages } from "react-intl";
 
 export const labels = defineMessages({
@@ -119,6 +124,12 @@ export const labels = defineMessages({
     id: "labels.upgrades",
     defaultMessage: "Upgrades",
     description: "Upgrades for specific projects",
+  },
+  loading: {
+    id: "labels.loading",
+    defaultMessage: "Loading...",
+    description:
+      "The UI tells the user to wait, until a some information is available",
   },
   cloud_file_system: {
     id: "labels.cloud_file_system",
@@ -310,6 +321,31 @@ export const labels = defineMessages({
     id: "labels.buttons",
     defaultMessage: "Buttons",
   },
+  explorer: {
+    id: "labels.explorer",
+    defaultMessage: "Explorer",
+    description: "a short label for showing a file explorer",
+  },
+  log: {
+    id: "labels.log",
+    defaultMessage: "Log",
+    description: "a short label for showing a chronological log of activities",
+  },
+  tabs: {
+    id: "labels.tabs",
+    defaultMessage: "Tabs",
+    description: "a short label to show tabs of open files in the UI",
+  },
+  users: {
+    id: "labels.users",
+    defaultMessage: "Users",
+    description: "Short label of a table, which shows the list of users having access"
+  },
+  project_info_title: {
+    id: "labels.project_info_title",
+    defaultMessage: "Processes",
+    description: "Short label of the panel, to show running processes in this project"
+  }
 });
 
 export const menu = defineMessages({
