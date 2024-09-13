@@ -401,7 +401,6 @@ export class ConfigurationActions {
         for (const table in primary_key) {
           const key = primary_key[table];
           if (record.get(key)) {
-            console.log("deleting ", record.toJS());
             syncdb.delete({ [key]: record.get(key) });
             break;
           }

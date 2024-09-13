@@ -38,6 +38,7 @@ import { RESEND_INVITE_BEFORE } from "../student-projects/actions";
 import * as styles from "../styles";
 import * as util from "../util";
 import { useButtonSize } from "../util";
+import DeletedAccount from "./deleted-account";
 
 export interface StudentNameDescription {
   full: string;
@@ -216,7 +217,12 @@ export const Student: React.FC<StudentProps> = React.memo(
     function render_last_active() {
       if (deletedAccount) {
         return (
-          <span style={{ color: "#666" }}>(student deleted their account)</span>
+          <DeletedAccount
+            actions={actions}
+            student_id={student_id}
+            name={render_student_name()}
+            email_address={student.get("email_address")}
+          />
         );
       }
       if (!hasAccount) {

@@ -8,7 +8,7 @@ Actions specific to manipulating the students in a course
 */
 
 import { map } from "awaiting";
-
+import { delay } from "awaiting";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -93,12 +93,17 @@ export class StudentsActions {
     }
   }
 
-  public async delete_student(student_id: string): Promise<void> {
+  public async delete_student(
+    student_id: string,
+    noTrash = false,
+  ): Promise<void> {
     const store = this.get_store();
     const student = store.get_student(student_id);
     if (student == null) return;
-    await this.do_delete_student(student);
-    await this.course_actions.student_projects.configure_all_projects(); // since they may get removed from shared project, etc.
+    this.do_delete_student(student, noTrash);
+    // since they may get removed from shared project, etc.
+    await delay(1);  // so store is updated, since it is used by configure
+    await this.course_actions.student_projects.configure_all_projects();
   }
 
   public async undelete_student(student_id: string): Promise<void> {
@@ -108,6 +113,7 @@ export class StudentsActions {
       table: "students",
     });
     // configure, since they may get added back to shared project, etc.
+    await delay(1);  // so store is updated, since it is used by configure
     await this.course_actions.student_projects.configure_all_projects();
   }
 
@@ -115,20 +121,28 @@ export class StudentsActions {
     const store = this.get_store();
     const students = store.get_students().valueSeq().toArray();
     await map(students, store.get_copy_parallel(), this.do_delete_student);
+    await delay(1); // so store is updated, since it is used by configure
     await this.course_actions.student_projects.configure_all_projects();
   }
 
-  private async do_delete_student(student: StudentRecord): Promise<void> {
+  private do_delete_student(student: StudentRecord, noTrash = false): void {
     const project_id = student.get("project_id");
     if (project_id != null) {
       // The student's project was created so let's clear any upgrades from it.
       redux.getActions("projects").clear_project_upgrades(project_id);
     }
-    this.course_actions.set({
-      deleted: true,
-      student_id: student.get("student_id"),
-      table: "students",
-    });
+    if (noTrash) {
+      this.course_actions.delete({
+        student_id: student.get("student_id"),
+        table: "students",
+      });
+    } else {
+      this.course_actions.set({
+        deleted: true,
+        student_id: student.get("student_id"),
+        table: "students",
+      });
+    }
   }
 
   // Some students might *only* have been added using their email address, but they
