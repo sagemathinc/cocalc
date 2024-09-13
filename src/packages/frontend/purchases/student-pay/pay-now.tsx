@@ -1,4 +1,4 @@
-import { Alert, Button, Divider, Modal, Spin } from "antd";
+import { Alert, Button, Divider, Modal, Space, Spin } from "antd";
 import { useEffect, useState } from "react";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import dayjs from "dayjs";
@@ -9,6 +9,7 @@ import { isPurchaseAllowed, studentPay } from "../api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
 import PayLink from "./pay-link";
+import Transfer from "./transfer";
 import { currency } from "@cocalc/util/misc";
 
 interface Props {
@@ -146,8 +147,10 @@ export default function PayNow({
           )}
         </>
       )}
-      <hr />
-      <div style={{ float: "right" }}>
+      <Divider>Other Options</Divider>
+      <Space direction="vertical">
+        <PayLink project_id={project_id} />
+        <Transfer project_id={project_id} />
         <Button
           onClick={() => {
             const actions = redux.getActions("page");
@@ -158,8 +161,7 @@ export default function PayNow({
         >
           Close Project
         </Button>
-      </div>
-      <PayLink project_id={project_id} />
+      </Space>
     </Modal>
   );
 }

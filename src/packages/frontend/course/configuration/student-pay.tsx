@@ -1,4 +1,13 @@
-import { Alert, Button, Card, Checkbox, DatePicker, Divider, Spin } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  DatePicker,
+  Divider,
+  Space,
+  Spin,
+} from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
@@ -126,9 +135,8 @@ export default function StudentPay({ actions, settings }) {
       </Checkbox>
       {settings?.get("student_pay") && (
         <div>
-          <div style={{ margin: "10px 0" }}>
+          <Space style={{ margin: "10px 0" }}>
             <Button
-              style={{ marginTop: "5px" }}
               disabled={showStudentPay}
               onClick={() => {
                 setShowStudentPay(true);
@@ -138,18 +146,15 @@ export default function StudentPay({ actions, settings }) {
             </Button>
             {showStudentPay && (
               <>
-                {" "}
                 <Button
-                  style={{ marginTop: "5px" }}
                   onClick={() => {
                     setShowStudentPay(false);
                     reset();
                   }}
                 >
                   Cancel
-                </Button>{" "}
+                </Button>
                 <Button
-                  style={{ marginTop: "5px" }}
                   disabled={
                     isEqual(info, settings.get("payInfo")?.toJS()) &&
                     when.isSame(dayjs(settings.get("pay")))
@@ -164,7 +169,7 @@ export default function StudentPay({ actions, settings }) {
                 </Button>
               </>
             )}
-          </div>
+          </Space>
           <div>
             {showStudentPay && (
               <Alert
