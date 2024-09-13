@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { FormattedMessage, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -84,14 +84,7 @@ export function ProjectCollaboratorsPage(): JSX.Element {
       <Title level={2}>
         <Icon name={ICON_USERS} /> {intl.formatMessage(labels.users)}
       </Title>
-      <Paragraph>
-        <FormattedMessage
-          id="project.page.project-collaborators.info"
-          defaultMessage={
-            "Collaborators are other users, who can access this project. They can view and edit the same files as you."
-          }
-        />
-      </Paragraph>
+      <Paragraph>{intl.formatMessage(labels.collabs_info)}</Paragraph>
       {renderAdmin()}
       {renderSettings()}
     </div>

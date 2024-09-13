@@ -6,7 +6,7 @@
 import { Col, Flex, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { Available } from "@cocalc/comm/project-configuration";
 import { A } from "@cocalc/frontend/components/A";
@@ -152,16 +152,16 @@ export function FileTypeSelector({
             <Col sm={sm} md={md}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title="Graphical X11 Desktop"
+                title={intl.formatMessage(labels.x11_desktop)}
                 icon={NEW_FILETYPE_ICONS.x11}
                 tip={intl.formatMessage({
                   id: "new.file-type-selector.x11.tooltip",
                   defaultMessage:
-                    "Create an X11 desktop for running graphical applications.  CoCalc lets you collaboratively run any graphical Linux application in your browser.",
+                    "Create an X11 desktop for running graphical applications. CoCalc lets you collaboratively run any graphical Linux application in your browser.",
                 })}
               >
                 <NewFileButton
-                  name="Graphical X11 Desktop"
+                  name={intl.formatMessage(labels.x11_desktop)}
                   on_click={create_file}
                   ext="x11"
                   size={btnSize}
@@ -174,7 +174,10 @@ export function FileTypeSelector({
             <Col sm={sm} md={md}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title={"Create New Folder"}
+                title={intl.formatMessage({
+                  id: "new.file-type-selector.folder.title",
+                  defaultMessage: "Create New Folder",
+                })}
                 placement="left"
                 icon={NEW_FILETYPE_ICONS["/"]}
                 tip={intl.formatMessage({
@@ -185,7 +188,12 @@ export function FileTypeSelector({
               >
                 <NewFileButton
                   ext="/"
-                  name={"New Folder"}
+                  name={intl.formatMessage({
+                    id: "project.new.file-type-selector.new.label",
+                    defaultMessage: "New Folder",
+                    description:
+                      "short label of a button to create a new folder in a file-system",
+                  })}
                   on_click={create_folder}
                   size={btnSize}
                   active={btnActive("/")}
@@ -253,6 +261,13 @@ export function FileTypeSelector({
   function renderTeachingSocial() {
     if (disabledFeatures?.course && disabledFeatures?.chat) return;
 
+    const label = intl.formatMessage({
+      id: "project.new.file-type-selector.course.label",
+      defaultMessage: "Manage a Course",
+      description:
+        "short label on a button to create a course management environment",
+    });
+
     return (
       <>
         <Section color="purple" icon="graduation-cap" isFlyout={isFlyout}>
@@ -264,24 +279,28 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title="Manage a Course"
+                title={label}
                 placement="bottom"
                 icon={NEW_FILETYPE_ICONS.course}
                 tip={
-                  <>
-                    If you are a teacher, click here to create a new course. You
-                    can add students and assignments to, and use to
-                    automatically create projects for everybody, send
-                    assignments to students, collect them, grade them, etc. See{" "}
-                    <A href="https://doc.cocalc.com/teaching-instructors.html">
-                      the docs
-                    </A>
-                    .
-                  </>
+                  <FormattedMessage
+                    id="project.new.file-type-selector.course.tooltip"
+                    defaultMessage={`If you are a teacher, click here to create a new course.
+                    You can add students and assignments to, and use to automatically create projects for everybody,
+                    send assignments to students, collect them, grade them, etc.
+                    See <A>documentation</A> to learn more.`}
+                    values={{
+                      A: (c) => (
+                        <A href="https://doc.cocalc.com/teaching-instructors.html">
+                          {c}
+                        </A>
+                      ),
+                    }}
+                  />
                 }
               >
                 <NewFileButton
-                  name="Manage a Course"
+                  name={label}
                   on_click={create_file}
                   ext="course"
                   size={btnSize}
@@ -294,19 +313,28 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title="Create a Chatroom"
+                title={intl.formatMessage({
+                  id: "project.new.file-type-selector.chatroom.title",
+                  defaultMessage: "Create a Chatroom",
+                })}
                 placement="bottom"
                 icon={NEW_FILETYPE_ICONS["sage-chat"]}
                 tip={
-                  <>
-                    Create a chatroom for chatting with collaborators on this
-                    project. You can also embed and run computations in chat
-                    messages.
-                  </>
+                  <FormattedMessage
+                    id="project.new.file-type-selector.chatroom.tooltip"
+                    defaultMessage={`Create a chatroom for chatting with collaborators on this project.
+                      You can also embed and run computations in chat messages.
+                      See <A>documentation</A> to learn more.`}
+                    values={{
+                      A: (c) => (
+                        <A href="https://doc.cocalc.com/chat.html">{c}</A>
+                      ),
+                    }}
+                  />
                 }
               >
                 <NewFileButton
-                  name={"Chatroom"}
+                  name={intl.formatMessage(labels.chatroom)}
                   on_click={create_file}
                   ext="sage-chat"
                   size={btnSize}
@@ -508,8 +536,17 @@ export function FileTypeSelector({
           <Col sm={sm} md={md}>
             <Tip
               icon={NEW_FILETYPE_ICONS.board}
-              title="Computational Whiteboard"
-              tip="Create a computational whiteboard with mathematical formulas, lists, headings, images and Jupyter code cells."
+              title={intl.formatMessage({
+                id: "new.file-type-selector.whiteboard.title",
+                defaultMessage: "Computational Whiteboard",
+                description:
+                  "Short label on a buton to create a new whiteboard file",
+              })}
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.whiteboard.tooltip",
+                defaultMessage:
+                  "Create a computational whiteboard with mathematical formulas, lists, headings, images and Jupyter code cells.",
+              })}
             >
               <NewFileButton
                 name="Whiteboard"
@@ -525,8 +562,17 @@ export function FileTypeSelector({
             <Tip
               delayShow={DELAY_SHOW_MS}
               icon={NEW_FILETYPE_ICONS.slides}
-              title="Slides"
-              tip="Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells."
+              title={intl.formatMessage({
+                id: "new.file-type-selector.slides.title",
+                defaultMessage: "Slides",
+                description:
+                  "Short label on a buton to create a new slideshow file",
+              })}
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.slides.tooltip",
+                defaultMessage:
+                  "Create a slideshow presentation with mathematical formulas, lists, headings, images and code cells.",
+              })}
             >
               <NewFileButton
                 name="Slides"
