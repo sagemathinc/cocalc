@@ -10,6 +10,7 @@ import {
   FormGroup,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
+import { Popconfirm } from "antd";
 import { Rendered } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -396,8 +397,8 @@ export const Student: React.FC<StudentProps> = React.memo(
       set_editing_student(true);
     }
 
-    function delete_student() {
-      actions.students.delete_student(student.get("student_id"));
+    function delete_student(noTrash: boolean) {
+      actions.students.delete_student(student.get("student_id"), noTrash);
       set_confirm_delete(false);
     }
 
@@ -409,16 +410,25 @@ export const Student: React.FC<StudentProps> = React.memo(
       if (confirm_delete) {
         return (
           <div>
-            Are you sure you want to delete this student?
+            Are you sure you want to delete this student? All grades and other
+            data about them will be removed.
             <Gap />
-            <ButtonGroup>
-              <Button onClick={delete_student} bsStyle="danger" bsSize={bsSize}>
-                <Icon name="trash" /> YES, Delete
-              </Button>
-              <Button onClick={() => set_confirm_delete(false)} bsSize={bsSize}>
+            <div style={{ display: "flex" }}>
+              <Button
+                style={{ marginRight: "5px" }}
+                onClick={() => set_confirm_delete(false)}
+                bsSize={bsSize}
+              >
                 Cancel
               </Button>
-            </ButtonGroup>
+              <Button
+                onClick={() => delete_student(true)}
+                bsStyle="danger"
+                bsSize={bsSize}
+              >
+                <Icon name="trash" /> Delete
+              </Button>
+            </div>
           </div>
         );
       }
