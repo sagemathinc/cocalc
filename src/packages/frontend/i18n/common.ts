@@ -359,7 +359,7 @@ export const labels = defineMessages({
     description: "a short label to show tabs of open files in the UI",
   },
   collabs_info: {
-    id: "project.page.project-collaborators.info",
+    id: "labels.project.page.project-collaborators.info",
     defaultMessage:
       "Collaborators are other users, who can access this project. They can view and edit the same files as you.",
   },
