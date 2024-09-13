@@ -186,19 +186,19 @@ export class SharedProjectActions {
     const datastore: Datastore = store.get_datastore();
     const envvars: EnvVars = store.get_envvars();
     const actions = redux.getActions("projects");
-    await actions.set_project_course_info(
-      shared_project_id,
-      store.get("course_project_id"),
-      store.get("course_filename"),
-      "", // pay
-      null, // payInfo
-      null, // account_id
-      null, // email_address
+    await actions.set_project_course_info({
+      project_id: shared_project_id,
+      course_project_id: store.get("course_project_id"),
+      path: store.get("course_filename"),
+      pay: "", // pay
+      payInfo: null, // payInfo
+      account_id: null, // account_id
+      email_address: null, // email_address
       datastore,
-      "shared", // type of project
-      undefined, // student_project_functionality (not used for shared projects)
+      type: "shared", // type of project
+      student_project_functionality: null, // student_project_functionality (not used for shared projects)
       envvars,
-    );
+    });
   }
 
   // set the shared project id in our syncdb

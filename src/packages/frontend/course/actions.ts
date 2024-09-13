@@ -110,18 +110,39 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // Set one object in the syncdb
-  public set(obj: SyncDBRecord, commit: boolean = true): void {
+  set = (obj: SyncDBRecord, commit: boolean = true): void => {
     if (
       !this.is_loaded() ||
       (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
     ) {
       return;
     }
+    // put in similar checks for other tables?
+    if (obj.table == "students" && obj.student_id == null) {
+      console.warn("course: setting student without primary key", obj);
+    }
     this.syncdb.set(obj);
     if (commit) {
       this.syncdb.commit();
     }
-  }
+  };
+
+  delete = (obj: SyncDBRecord, commit: boolean = true): void => {
+    if (
+      !this.is_loaded() ||
+      (this.syncdb != null ? this.syncdb.get_state() === "closed" : undefined)
+    ) {
+      return;
+    }
+    // put in similar checks for other tables?
+    if (obj.table == "students" && obj.student_id == null) {
+      console.warn("course: deleting student without primary key", obj);
+    }
+    this.syncdb.delete(obj);
+    if (commit) {
+      this.syncdb.commit();
+    }
+  };
 
   // Get one object from this.syncdb as a Javascript object (or undefined)
   public get_one(obj: SyncDBRecord): SyncDBRecord | undefined {
@@ -301,6 +322,7 @@ export class CourseActions extends Actions<CourseState> {
       }) as StudentRecord | undefined;
       if (student == null) {
         if (opts.finish != null) {
+          console.trace();
           opts.finish("no student " + opts.student_id);
           return r;
         }

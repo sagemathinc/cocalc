@@ -171,16 +171,19 @@ export class StudentProjectsActions {
       // This is done once and then on demand by the teacher – only limited to once per day or less
       const last_email_invite = student.get("last_email_invite");
       if (force_send_invite_by_email || !last_email_invite) {
-        await this.invite_student_to_project({
-          student_id,
-          student: student.get("email_address"),
-          student_project_id,
-        });
-        this.course_actions.set({
-          table: "students",
-          student_id,
-          last_email_invite: Date.now(),
-        });
+        const email_address = student.get("email_address");
+        if (email_address) {
+          await this.invite_student_to_project({
+            student_id,
+            student: email_address,
+            student_project_id,
+          });
+          this.course_actions.set({
+            table: "students",
+            student_id,
+            last_email_invite: Date.now(),
+          });
+        }
       }
     } else if (
       (users != null ? users.get(student_account_id) : undefined) == null
@@ -538,19 +541,19 @@ export class StudentProjectsActions {
         // hasn't joined cocalc yet, so there is no account_id for them.
         const student_account_id = student.get("account_id");
         const student_email_address = student.get("email_address"); // will be known if account_id isn't known.
-        await actions.set_project_course_info(
-          student_project_id,
-          store.get("course_project_id"),
-          store.get("course_filename"),
+        await actions.set_project_course_info({
+          project_id: student_project_id,
+          course_project_id: store.get("course_project_id"),
+          path: store.get("course_filename"),
           pay,
           payInfo,
-          student_account_id,
-          student_email_address,
+          account_id: student_account_id,
+          email_address: student_email_address,
           datastore,
-          "student", // type of project
+          type: "student",
           student_project_functionality,
           envvars,
-        );
+        });
       }
     } finally {
       this.course_actions.set_activity({ id });
@@ -662,11 +665,14 @@ export class StudentProjectsActions {
           !last_email_invite ||
           new Date(last_email_invite) < RESEND_INVITE_BEFORE
         ) {
-          await this.invite_student_to_project({
-            student_id,
-            student: student.get("email_address"),
-            student_project_id: store.get_student_project_id(student_id),
-          });
+          const email_address = student.get("email_address");
+          if (email_address) {
+            await this.invite_student_to_project({
+              student_id,
+              student: email_address,
+              student_project_id: store.get_student_project_id(student_id),
+            });
+          }
         }
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render

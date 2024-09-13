@@ -244,12 +244,6 @@ class Actions implements EditorActions {
     this.set_cell_input(this.id, new_input);
   }
 
-  complete_handle_key(_: string, keyCode: number) {
-    if (this.jupyter_actions == null) return;
-    this.jupyter_actions.complete_handle_key(_, keyCode);
-    // TODO -- need to implement this.jupyter_actions.complete_cell somehow..
-  }
-
   clear_complete() {
     this.setComplete(undefined);
   }

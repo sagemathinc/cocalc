@@ -1325,13 +1325,13 @@ function GPU({
               (state ?? "deprovisioned") == "deprovisioned" && (
                 <Alert
                   showIcon
-                  style={{ margin: "5px 0" }}
-                  type="info"
+                  style={{ margin: "10px 0 5px 0" }}
+                  type="warning"
                   description={
                     <div>
-                      Hyperstack cloud offers non-spot NVIDIA H100, A100, L40,
-                      and RTX-A4/5/6000 GPUs at about half the price of Google
-                      cloud.{" "}
+                      We have partnered with Hyperstack cloud to provide NVIDIA
+                      H100, A100, L40, and RTX-A4/5/6000 GPUs at a{" "}
+                      <b>much cheaper price</b> than Google cloud.{" "}
                       <Popconfirm
                         title="Switch to Hyperstack"
                         description={

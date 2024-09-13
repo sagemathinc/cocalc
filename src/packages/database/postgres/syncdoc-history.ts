@@ -37,10 +37,12 @@ async function get_users(db: PostgreSQL, where): Promise<User[]> {
         project_id,
       })
     ).title,
-    80
+    80,
   );
 
   // get the names of the users
+  // TODO: this whole file should be in @cocalc/server, be an api endpoint for api/v2,
+  // and this code below should instead use @cocalc/server/accounts/get-name:getNames.
   const names = await callback2(db.account_ids_to_usernames, { account_ids });
   const users: User[] = [];
   for (const account_id of account_ids) {
@@ -59,7 +61,7 @@ async function get_users(db: PostgreSQL, where): Promise<User[]> {
 export async function syncdoc_history(
   db: PostgreSQL,
   string_id: string,
-  include_patches: boolean = false
+  include_patches: boolean = false,
 ): Promise<Patch[]> {
   const where = { "string_id = $::CHAR(40)": string_id };
   const users: User[] = await get_users(db, where);

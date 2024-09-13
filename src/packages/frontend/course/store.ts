@@ -54,18 +54,20 @@ export type TerminalCommand = TypedMap<{
 }>;
 
 export type StudentRecord = TypedMap<{
-  create_project: number; // Time the student project was created
-  account_id: string;
+  create_project?: number; // Time the student project was created
+  account_id?: string;
   student_id: string;
-  first_name: string;
-  last_name: string;
-  last_active: number;
-  hosting: string;
-  email_address: string;
-  project_id: string;
-  deleted: boolean;
-  note: string;
-  last_email_invite: number;
+  first_name?: string;
+  last_name?: string;
+  last_active?: number;
+  hosting?: string;
+  email_address?: string;
+  project_id?: string;
+  deleted?: boolean;
+  // deleted_account: true if the account_id is known to have been deleted
+  deleted_account?: boolean;
+  note?: string;
+  last_email_invite?: number;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>;
@@ -326,7 +328,7 @@ export class CourseStore extends Store<CourseState> {
       // Student doesn't have an account yet on CoCalc (that we know about).
       // Email address:
       if (student.has("email_address")) {
-        return student.get("email_address");
+        return student.get("email_address")!;
       }
       // One of the above had to work, since we add students by email or account.
       // But put this in anyways:
@@ -342,7 +344,7 @@ export class CourseStore extends Store<CourseState> {
     // This situation usually shouldn't happen, but maybe could in case the user was known but
     // then removed themselves as a collaborator, or something else odd.
     if (student.has("email_address")) {
-      return student.get("email_address");
+      return student.get("email_address")!;
     }
     // OK, now there is really no way to identify this student.  I suppose this could
     // happen if the student was added by searching for their name, then they removed
@@ -399,7 +401,7 @@ export class CourseStore extends Store<CourseState> {
     const account_id = student.get("account_id");
     if (account_id == null) {
       if (student.has("email_address")) {
-        return student.get("email_address");
+        return student.get("email_address")!;
       }
       return student_id;
     }
@@ -440,7 +442,10 @@ export class CourseStore extends Store<CourseState> {
     let v: string[] = [];
 
     for (const [, val] of this.get("students")) {
-      const project_id: string = val.get("project_id");
+      const project_id = val.get("project_id");
+      if (!project_id) {
+        continue;
+      }
       if (deleted_only) {
         if (include_deleted && val.get("deleted")) {
           v.push(project_id);

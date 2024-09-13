@@ -3,14 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, ButtonToolbar, Well } from "@cocalc/frontend/antd-bootstrap";
+import { Alert, Button, Input } from "antd";
 import {
   Component,
   React,
   Rendered,
   rtypes,
 } from "@cocalc/frontend/app-framework";
-import { A, ErrorDisplay, Icon } from "@cocalc/frontend/components";
+import { ErrorDisplay, Icon } from "@cocalc/frontend/components";
 
 interface Props {
   initial_click: () => void;
@@ -87,57 +87,60 @@ class DeleteAccountConfirmation extends Component<
 
   public render(): Rendered {
     return (
-      <Well
+      <Alert
+        showIcon
+        type="warning"
         style={{
           marginTop: "26px",
-          textAlign: "center",
-          fontSize: "15pt",
-          backgroundColor: "darkred",
-          color: "white",
         }}
-      >
-        Are you sure you want to DELETE YOUR ACCOUNT?
-        <br />
-        You will <span style={{ fontWeight: "bold" }}>immediately</span> lose
-        access to <span style={{ fontWeight: "bold" }}>all</span> of your
-        projects, and any subscriptions will be canceled.
-        <br />
-        <hr style={{ marginTop: "10px", marginBottom: "10px" }} />
-        Do NOT delete your account if you are a current student in a course on
-        CoCalc!{" "}
-        <A href="https://github.com/sagemathinc/cocalc/issues/3243">Why?</A>
-        <hr style={{ marginTop: "10px", marginBottom: "10px" }} />
-        To DELETE YOUR ACCOUNT, enter "{this.props.required_text}" below:
-        <br />
-        <input
-          autoFocus
-          value={this.state.confirmation_text}
-          placeholder="Full name"
-          type="text"
-          onChange={(e) => {
-            this.setState({ confirmation_text: (e.target as any).value });
-          }}
-          style={{
-            marginTop: "1ex",
-            padding: "5px",
-            color: "black",
-            width: "90%",
-          }}
-        />
-        <ButtonToolbar style={{ textAlign: "center", marginTop: "15px" }}>
-          <Button
-            disabled={this.state.confirmation_text !== this.props.required_text}
-            bsStyle="danger"
-            onClick={() => this.props.confirm_click()}
-          >
-            <Icon name="trash" /> Yes, DELETE MY ACCOUNT
-          </Button>
-          <Button bsStyle="primary" onClick={this.props.cancel_click}>
-            Cancel
-          </Button>
-        </ButtonToolbar>
-        {this.render_error()}
-      </Well>
+        message="Are you sure you want to DELETE YOUR ACCOUNT?"
+        description={
+          <div>
+            <br />
+            You will <span style={{ fontWeight: "bold" }}>
+              immediately
+            </span>{" "}
+            lose access to <span style={{ fontWeight: "bold" }}>all</span> of
+            your projects, any subscriptions will be canceled, and all unspent
+            credit will be lost.
+            <br />
+            <hr style={{ marginTop: "10px", marginBottom: "10px" }} />
+            To DELETE YOUR ACCOUNT, first enter "{this.props.required_text}" below:
+            <br />
+            <Input
+              autoFocus
+              value={this.state.confirmation_text}
+              placeholder="Full name"
+              type="text"
+              onChange={(e) => {
+                this.setState({ confirmation_text: (e.target as any).value });
+              }}
+              style={{
+                margin: "15px",
+                width: "90%",
+              }}
+            />
+            <div style={{ display: "flex" }}>
+              <Button
+                type="primary"
+                onClick={this.props.cancel_click}
+                style={{ marginRight: "15px" }}
+              >
+                Cancel
+              </Button>
+              <Button
+                disabled={
+                  this.state.confirmation_text !== this.props.required_text
+                }
+                onClick={() => this.props.confirm_click()}
+              >
+                <Icon name="trash" /> Yes, DELETE MY ACCOUNT
+              </Button>
+            </div>
+            {this.render_error()}
+          </div>
+        }
+      />
     );
   }
 }

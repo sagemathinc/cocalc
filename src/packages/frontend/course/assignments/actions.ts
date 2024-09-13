@@ -1066,6 +1066,10 @@ ${details}
     }
 
     const student_project_id = student.get("project_id");
+    if (!student_project_id) {
+      finish();
+      return;
+    }
 
     let guidelines: string = assignment.getIn(
       ["peer_grade", "guidelines"],
@@ -1083,7 +1087,9 @@ ${details}
 
     const target_base_path = assignment.get("path") + "-peer-grade";
     const f = async (peer_student_id: string) => {
-      if (this.course_actions.is_closed()) return;
+      if (this.course_actions.is_closed()) {
+        return;
+      }
       const src_path = assignment.get("collect_path") + "/" + peer_student_id;
       const target_path = target_base_path + "/" + peer_student_id;
       // In the copy below, we exclude the student's name so that
@@ -1177,9 +1183,14 @@ ${details}
         "collect_path",
       )}-peer-grade/${our_student_id}/${student_id}`;
 
+      const src_project_id = s.get("project_id");
+      if (!src_project_id) {
+        return;
+      }
+
       // copy the files over from the student who did the peer grading
       await webapp_client.project_client.copy_path_between_projects({
-        src_project_id: s.get("project_id"),
+        src_project_id,
         src_path,
         target_project_id: store.get("course_project_id"),
         target_path,

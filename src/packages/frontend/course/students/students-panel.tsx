@@ -121,18 +121,19 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     // the type is copy/paste from what TS infers in the util.parse_students function
     const [students_unordered, set_students_unordered] = useState<
       {
-        create_project: number;
-        account_id: string;
+        create_project?: number;
+        account_id?: string;
         student_id: string;
-        first_name: string;
-        last_name: string;
-        last_active: number;
-        hosting: string;
-        email_address: string;
-        project_id: string;
-        deleted: boolean;
-        note: string;
-        last_email_invite: number;
+        first_name?: string;
+        last_name?: string;
+        last_active?: number;
+        hosting?: string;
+        email_address?: string;
+        project_id?: string;
+        deleted?: boolean;
+        deleted_account?: boolean;
+        note?: string;
+        last_email_invite?: number;
       }[]
     >([]);
     const [selected_option_num, set_selected_option_num] = useState<number>(0);
@@ -276,8 +277,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       // For each student in course add account_id and/or email_address:
       students.map((val) => {
         for (const n of ["account_id", "email_address"] as const) {
-          if (val.get(n) != null) {
-            already_added[val.get(n)] = true;
+          const k = val.get(n);
+          if (k != null) {
+            already_added[k] = true;
           }
         }
       });
@@ -589,7 +591,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           <Row>
             <Col md={6}>
               <SearchInput
-                placeholder="Find students..."
+                placeholder="Filter existing students..."
                 default_value={search}
                 on_change={(value) => set_search(value)}
               />
@@ -606,7 +608,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
                     <Form.Item style={{ margin: "0 0 5px 0" }}>
                       <Input.TextArea
                         ref={studentAddInputRef}
-                        placeholder="Add students by name or email address..."
+                        placeholder="Add new students by email addresses or names..."
                         value={add_search}
                         rows={rows}
                         onChange={() => student_add_input_onChange()}

@@ -290,19 +290,31 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   }
 
-  public async set_project_course_info(
-    project_id: string,
-    course_project_id: string,
-    path: string,
-    pay: Date | "",
-    payInfo: PurchaseInfo | null | undefined,
-    account_id: string | null,
-    email_address: string | null,
-    datastore: Datastore,
-    type: "student" | "shared" | "nbgrader",
-    student_project_functionality?: StudentProjectFunctionality,
-    envvars?: EnvVars,
-  ): Promise<void | { course: null | CourseInfo }> {
+  public async set_project_course_info({
+    project_id,
+    course_project_id,
+    path,
+    pay,
+    payInfo,
+    account_id,
+    email_address,
+    datastore,
+    type,
+    student_project_functionality,
+    envvars,
+  }: {
+    project_id: string;
+    course_project_id: string;
+    path: string;
+    pay: Date | string;
+    payInfo?: PurchaseInfo | null;
+    account_id?: string | null;
+    email_address?: string | null;
+    datastore: Datastore;
+    type: "student" | "shared" | "nbgrader";
+    student_project_functionality?: StudentProjectFunctionality | null;
+    envvars?: EnvVars;
+  }): Promise<void | { course: null | CourseInfo }> {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
       console.warn(msg);

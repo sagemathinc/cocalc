@@ -38,6 +38,7 @@ import { RESEND_INVITE_BEFORE } from "../student-projects/actions";
 import * as styles from "../styles";
 import * as util from "../util";
 import { useButtonSize } from "../util";
+import DeletedAccount from "./deleted-account";
 
 export interface StudentNameDescription {
   full: string;
@@ -107,6 +108,7 @@ export const Student: React.FC<StudentProps> = React.memo(
     const store = actions.get_store();
     if (store == null) throw Error("store must be defined");
 
+    const deletedAccount = !!student.get("deleted_account");
     const hasAccount = student.get("account_id") != null;
 
     const { bsSize, antdSize } = useButtonSize();
@@ -142,7 +144,7 @@ export const Student: React.FC<StudentProps> = React.memo(
       set_edited_last_name(student_name.last);
     }, [student_name.last]);
     useEffect(() => {
-      set_edited_email_address(student.get("email_address"));
+      set_edited_email_address(student.get("email_address") ?? "");
     }, [props.student.get("email_address")]);
 
     function on_key_down(e) {
@@ -213,6 +215,16 @@ export const Student: React.FC<StudentProps> = React.memo(
     }
 
     function render_last_active() {
+      if (deletedAccount) {
+        return (
+          <DeletedAccount
+            actions={actions}
+            student_id={student_id}
+            name={render_student_name()}
+            email_address={student.get("email_address")}
+          />
+        );
+      }
       if (!hasAccount) {
         return (
           <span style={{ color: "#666" }}>(has not created account yet)</span>
@@ -384,8 +396,8 @@ export const Student: React.FC<StudentProps> = React.memo(
       set_editing_student(true);
     }
 
-    function delete_student() {
-      actions.students.delete_student(student.get("student_id"));
+    function delete_student(noTrash: boolean) {
+      actions.students.delete_student(student.get("student_id"), noTrash);
       set_confirm_delete(false);
     }
 
@@ -397,16 +409,25 @@ export const Student: React.FC<StudentProps> = React.memo(
       if (confirm_delete) {
         return (
           <div>
-            Are you sure you want to delete this student?
+            Are you sure you want to delete this student? All grades and other
+            data about them will be removed.
             <Gap />
-            <ButtonGroup>
-              <Button onClick={delete_student} bsStyle="danger" bsSize={bsSize}>
-                <Icon name="trash" /> YES, Delete
-              </Button>
-              <Button onClick={() => set_confirm_delete(false)} bsSize={bsSize}>
+            <div style={{ display: "flex" }}>
+              <Button
+                style={{ marginRight: "5px" }}
+                onClick={() => set_confirm_delete(false)}
+                bsSize={bsSize}
+              >
                 Cancel
               </Button>
-            </ButtonGroup>
+              <Button
+                onClick={() => delete_student(true)}
+                bsStyle="danger"
+                bsSize={bsSize}
+              >
+                <Icon name="trash" /> Delete
+              </Button>
+            </div>
           </div>
         );
       }
@@ -454,13 +475,16 @@ export const Student: React.FC<StudentProps> = React.memo(
         <Tooltip placement="bottom" title={when}>
           <AntdButton
             size={antdSize}
-            onClick={() =>
-              actions.student_projects.invite_student_to_project({
-                student: student.get("email_address"), // we use email address to trigger sending an actual email!
-                student_project_id: student.get("project_id"),
-                student_id: student.get("student_id"),
-              })
-            }
+            onClick={() => {
+              const email = student.get("email_address");
+              if (email) {
+                actions.student_projects.invite_student_to_project({
+                  student: email, // we use email address to trigger sending an actual email!
+                  student_project_id: student.get("project_id"),
+                  student_id: student.get("student_id"),
+                });
+              }
+            }}
             disabled={!allowResending}
           >
             <Icon name="mail" /> {msg}

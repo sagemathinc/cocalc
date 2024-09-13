@@ -49,7 +49,7 @@ const MAX_INTERVAL_MS = 5000;
 
 export class Watcher extends EventEmitter {
   private path?: string;
-  private prev: any = null;
+  private prev: any = undefined;
   private interval: number;
   private minInterval: number;
   private maxInterval: number;
@@ -71,8 +71,23 @@ export class Watcher extends EventEmitter {
     this.minInterval = interval;
     this.maxInterval = maxInterval;
     this.interval = interval;
-    setTimeout(this.update, interval);
+    this.init();
   }
+
+  private init = async () => {
+    if (this.path == null) {
+      // closed
+      return;
+    }
+    // first time, so initialize it
+    try {
+      this.prev = await stat(this.path);
+    } catch (_) {
+      // doesn't exist
+      this.prev = null;
+    }
+    setTimeout(this.update, this.interval);
+  };
 
   private update = async () => {
     if (this.path == null) {
