@@ -181,3 +181,11 @@ export async function studentPayLink({
     ),
   );
 }
+
+export async function studentPayTransfer({
+  account_id,
+  project_id,
+  paid_project_id,
+}) {
+  throw Error("not done");
+}

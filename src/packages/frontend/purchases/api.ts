@@ -434,3 +434,10 @@ export async function studentPayLink(
 ): Promise<{ url: string }> {
   return await api("purchases/student-pay-link", { project_id });
 }
+
+export async function studentPayTransfer(opts: {
+  project_id: string;
+  paid_project_id: string;
+}): Promise<{ url: string }> {
+  return await api("purchases/student-pay-transfer", opts);
+}

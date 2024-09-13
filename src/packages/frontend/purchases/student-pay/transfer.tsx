@@ -22,6 +22,8 @@ import { useMemo, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
 import { redux } from "@cocalc/frontend/app-framework";
 import { getCost } from "./cost";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { studentPayTransfer } from "@cocalc/frontend/purchases/api";
 
 interface Props {
   project_id: string;
@@ -39,6 +41,23 @@ export default function Transfer({ project_id }: Props) {
     return null;
   }
 
+  const transferLicense = async (paid_project_id) => {
+    console.log(
+      "transfering license from ",
+      paid_project_id,
+      " to ",
+      project_id,
+    );
+    try {
+      setLoading(true);
+      await studentPayTransfer({ project_id, paid_project_id });
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       <Button disabled={loading} onClick={() => setOpen(true)}>
@@ -50,14 +69,32 @@ export default function Transfer({ project_id }: Props) {
           title={
             <>
               Transfer License
-              <Button style={{ float: "right" }} onClick={() => setOpen(false)}>
+              <Button
+                style={{ float: "right", marginLeft: "30px" }}
+                onClick={() => setOpen(false)}
+              >
                 Close
               </Button>
             </>
           }
           style={{ maxWidth: "650px", margin: "30px auto" }}
         >
-          {JSON.stringify(available)}
+          You have paid for each of the comparable course projects listed below.
+          Select one of them to transfer the license from that project to{" "}
+          <ProjectTitle project_id={project_id} noClick />:
+          <br />
+          <br />
+          {available.map((project_id) => (
+            <Button
+              key={project_id}
+              disabled={loading}
+              onClick={() => {
+                transferLicense(project_id);
+              }}
+            >
+              <ProjectTitle noClick project_id={project_id} />
+            </Button>
+          ))}
         </Card>
       )}
       <ShowError error={error} setError={setError} />
