@@ -111,7 +111,8 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     const [search, set_search] = useState<string>("");
     const [add_search, set_add_search] = useState<string>("");
     const [add_searching, set_add_searching] = useState<boolean>(false);
-    const [include_name_search, set_include_name_search] = useState<boolean>(false);
+    const [include_name_search, set_include_name_search] =
+      useState<boolean>(false);
     const [add_select, set_add_select] = useState<any>(undefined);
     const [existing_students, set_existing_students] = useState<
       any | undefined
@@ -332,7 +333,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           {!disabled && (
             <Checkbox
               checked={include_name_search}
-              onChange={() => {set_include_name_search(!include_name_search)}}
+              onChange={() => {
+                set_include_name_search(!include_name_search);
+              }}
             >
               Search by name too
             </Checkbox>
@@ -620,7 +623,9 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
                     <Form.Item style={{ margin: "0 0 5px 0" }}>
                       <Input.TextArea
                         ref={studentAddInputRef}
-                        placeholder="Add students by name or email address..."
+                        placeholder={`Add students by ${
+                          include_name_search ? "names or " : ""
+                        } email addresses...`}
                         value={add_search}
                         rows={rows}
                         onChange={() => student_add_input_onChange()}
