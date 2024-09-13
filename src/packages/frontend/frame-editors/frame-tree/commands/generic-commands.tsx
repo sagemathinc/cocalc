@@ -477,38 +477,78 @@ addCommands({
   find: {
     group: "find",
     pos: 0,
-    label: "Find",
+    label: defineMessage({
+      id: "command.generic.find.label",
+      defaultMessage: "Find",
+      description: "Find (or Search) for a string in a document",
+    }),
     icon: "search",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + F`,
   },
   replace: {
     group: "find",
     pos: 0,
-    label: "Replace",
+    label: defineMessage({
+      id: "command.generic.replace.label",
+      defaultMessage: "Replace",
+      description: "Replace a string with another string in a document",
+    }),
     icon: "replace",
     disabled: ({ readOnly }) => readOnly,
   },
   goto_line: {
     group: "find",
     pos: 3,
-    label: "Goto Line",
-    button: "Line",
+    label: defineMessage({
+      id: "command.generic.goto_line.label",
+      defaultMessage: "Goto Line",
+      description: "Goto a specific line in a document",
+    }),
+    button: defineMessage({
+      id: "command.generic.goto_line.button",
+      defaultMessage: "Line",
+      description: "Goto a specific line in a document",
+    }),
     icon: "bolt",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + L`,
   },
   auto_indent: {
     group: "code-format",
-    label: "Auto Indent",
-    button: "Indent",
-    title: "Automatically indent selected code",
+    label: defineMessage({
+      id: "command.generic.auto_indent.label",
+      defaultMessage: "Auto Indent",
+      description: "Automatic indentation of code in a text document",
+    }),
+    button: defineMessage({
+      id: "command.generic.auto_indent.button",
+      defaultMessage: "Indent",
+      description: "Automatic indentation of code in a text document",
+    }),
+    title: defineMessage({
+      id: "command.generic.auto_indent.tooltip",
+      defaultMessage: "Automatically indent selected code",
+      description: "Automatic indentation of code in a text document",
+    }),
     disabled: ({ readOnly }) => readOnly,
     icon: "indent",
   },
   format: {
     group: "code-format",
-    label: "Format Source Code",
-    button: "Format",
-    title: "Syntactically format using a parser such as prettier.",
+    label: defineMessage({
+      id: "command.generic.format.label",
+      defaultMessage: "Format Source Code",
+      description: "Automatic formatting of code in a code file",
+    }),
+    button: defineMessage({
+      id: "command.generic.format.button",
+      defaultMessage: "Format",
+      description: "Automatic formatting of code in a code file",
+    }),
+    title: defineMessage({
+      id: "command.generic.format.tooltip",
+      defaultMessage: "Syntactically format using a parser such as prettier.",
+      description: "Automatic formatting of code in a code file",
+    }),
     icon: FORMAT_SOURCE_ICON,
     keyboard: `${IS_MACOS ? "⌘" : "control"} + shift + F`,
   },
@@ -597,7 +637,12 @@ addCommands({
   },
   sync: {
     group: "show-frames",
-    button: "Sync",
+    button: defineMessage({
+      id: "command.generic.sync.button",
+      defaultMessage: "Sync",
+      description:
+        "Short button label for synchronizing the LaTeX source view with the PDF output",
+    }),
     label: defineMessage({
       id: "command.generic.sync.label",
       defaultMessage: "Synchronize Views",

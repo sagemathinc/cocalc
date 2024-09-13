@@ -4,6 +4,7 @@
  */
 
 import { Alert } from "antd";
+import { useIntl } from "react-intl";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -12,8 +13,8 @@ import {
 } from "@cocalc/frontend/collaborators";
 import { Icon, Loading, Paragraph, Title } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProject } from "../common";
-import { COLLABS_INFO_TEXT } from "../project-collaborators";
 
 interface CollabsProps {
   project_id: string;
@@ -21,6 +22,7 @@ interface CollabsProps {
 }
 
 export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
+  const intl = useIntl();
   const user_map = useTypedRedux("users", "user_map");
   const student = getStudentProjectFunctionality(project_id);
   const { project, group } = useProject(project_id);
@@ -50,7 +52,7 @@ export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
             />
           </>
         )}
-      </>
+      </>,
     );
   }
 
@@ -79,7 +81,7 @@ export function CollabsFlyout({ project_id, wrap }: CollabsProps): JSX.Element {
         type="secondary"
         ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
       >
-        {COLLABS_INFO_TEXT}
+        {intl.formatMessage(labels.collabs_info)}
       </Paragraph>
       {renderAdmin()}
       {renderSettings()}

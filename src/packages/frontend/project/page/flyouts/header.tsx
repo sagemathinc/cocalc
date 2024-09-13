@@ -52,7 +52,9 @@ export function FlyoutHeader(_: Readonly<Props>) {
   }, [is_active]);
 
   function renderDefaultTitle() {
-    const title = FIXED_PROJECT_TABS[flyout].flyoutTitle;
+    const title =
+      FIXED_PROJECT_TABS[flyout].flyoutTitle ??
+      FIXED_PROJECT_TABS[flyout].label;
     if (title != null) {
       return isIntlMessage(title) ? intl.formatMessage(title) : title;
     } else {

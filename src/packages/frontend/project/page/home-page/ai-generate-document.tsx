@@ -1058,10 +1058,21 @@ export function AIGenerateDocumentButton({
         delayShow={DELAY_SHOW_MS}
         title={
           <>
-            <AIAvatar size={16} /> Generator
+            <AIAvatar size={16} />{" "}
+            <FormattedMessage
+              id="project.page.ai-generate-document.info.title"
+              defaultMessage={"Generator"}
+              description={
+                "Title of a dialog for generating documents automatically"
+              }
+            />
           </>
         }
-        tip="Open the AI Generator to automatically create a document."
+        tip={intl.formatMessage({
+          id: "project.page.ai-generate-document.info.tooltip",
+          defaultMessage:
+            "Open the AI Generator to automatically create a document.",
+        })}
       >
         <Button
           onClick={() => setShow(true)}

@@ -26,15 +26,12 @@ import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import {
   ICON_UPGRADES,
   ICON_USERS,
-  TITLE_UPGRADES,
-  TITLE_USERS,
 } from "@cocalc/frontend/project/servers/consts";
 import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
 import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
-import { PROJECT_INFO_TITLE } from "../info";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import {
   CollabsFlyout,
@@ -89,7 +86,7 @@ type FixedTabs = {
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   active: {
-    label: "Tabs",
+    label: labels.tabs,
     flyoutTitle: "File Tabs",
     icon: "edit",
     flyout: ActiveFlyout,
@@ -97,7 +94,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noFullPage: true,
   },
   files: {
-    label: "Explorer",
+    label: labels.explorer,
     icon: "folder-open",
     flyout: FilesFlyout,
     noAnonymous: false,
@@ -113,7 +110,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   log: {
-    label: "Log",
+    label: labels.log,
     icon: "history",
     flyout: LogFlyout,
     flyoutTitle: defineMessage({
@@ -138,7 +135,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   users: {
-    label: TITLE_USERS,
+    label: labels.users,
     icon: ICON_USERS,
     flyout: CollabsFlyout,
     noAnonymous: false,
@@ -147,11 +144,14 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: labels.upgrades,
     icon: ICON_UPGRADES,
     flyout: LicensesFlyout,
-    flyoutTitle: `Project ${TITLE_UPGRADES}`,
+    flyoutTitle: defineMessage({
+      id: "project.page.file-tab.upgrades.flyoutTitle",
+      defaultMessage: `Project Upgrades`,
+    }),
     noAnonymous: false,
   },
   info: {
-    label: PROJECT_INFO_TITLE,
+    label: labels.project_info_title,
     icon: "microchip",
     flyout: ProjectInfoFlyout,
     noAnonymous: false,
@@ -514,6 +514,9 @@ function DisplayedLabel({ path, label, inline = true, project_id, condensed }) {
     const style: CSS = {
       fontSize: condensed ? "10px" : "12px",
       textAlign: "center",
+      maxWidth: "65px",
+      overflow: "hidden",
+      textOverflow: "ellipsis", // important for i18n, since sometimes the words are long
     };
     return (
       <>

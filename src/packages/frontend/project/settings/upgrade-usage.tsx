@@ -3,6 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Button, Card, Typography } from "antd";
+import { List } from "immutable";
+import { join } from "path";
+import { FormattedMessage } from "react-intl";
+
 import {
   CSS,
   React,
@@ -32,9 +37,6 @@ import { process_gpu_quota } from "@cocalc/util/types/gpu";
 import { GPU } from "@cocalc/util/types/site-licenses";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
-import { Button, Card, Typography } from "antd";
-import { List } from "immutable";
-import { join } from "path";
 import AdminQuotas from "./quota-editor/admin-quotas";
 import PayAsYouGoQuotaEditor from "./quota-editor/pay-as-you-go";
 import { RunQuota } from "./run-quota";
@@ -161,8 +163,17 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         <div style={{ ...UPGRADE_BUTTON_STYLE, marginTop: "15px" }}>
           {noUpgrades ? (
             <Typography.Text type="secondary">
-              <Typography.Text strong>Note:</Typography.Text> You can increase
-              the above limits via Licenses or Pay As You Go below:
+              <FormattedMessage
+                id="project.settings.upgrade-usage.how_upgrade_info_note"
+                defaultMessage={
+                  "<strong>Note:</strong> You can increase the above limits via Licenses or Pay As You Go below:"
+                }
+                values={{
+                  strong: (ch) => (
+                    <Typography.Text strong>{ch}</Typography.Text>
+                  ),
+                }}
+              />
             </Typography.Text>
           ) : (
             <>{render_contributions()}</>
@@ -371,14 +382,22 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     }
     return (
       <div style={{ maxWidth: "1000px" }}>
-        <Title level={4}>Usage and Quotas</Title>
+        <Title level={4}>
+          <FormattedMessage
+            id="project.settings.upgrade-usage.header"
+            defaultMessage={"Usage and Quotas"}
+          />
+        </Title>
         <Paragraph
           type="secondary"
           ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
         >
-          This table lists project quotas, their current usage, and their
-          value/limit. Click on a row to show more details about it. If the
-          project is not running, you see the last known quota values.
+          <FormattedMessage
+            id="project.settings.upgrade-usage.intro"
+            defaultMessage={`This table lists project quotas, their current usage,
+              and their value/limit. Click on a row to show more details about it.
+              If the project is not running, you see the last known quota values.`}
+          />
         </Paragraph>
         {render_run_quota()}
         {render_upgrades_button()}
