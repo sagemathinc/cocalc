@@ -26,7 +26,7 @@ import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as misc from "@cocalc/util/misc";
 import { is_different, search_match, search_split } from "@cocalc/util/misc";
-import { Alert, Button, Col, Form, Input, Row } from "antd";
+import { Alert, Button, Col, Form, Input, Row, Checkbox, Flex } from "antd";
 import { Set } from "immutable";
 import { concat, isEqual, keys, sortBy } from "lodash";
 import { CourseActions } from "../actions";
@@ -111,6 +111,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     const [search, set_search] = useState<string>("");
     const [add_search, set_add_search] = useState<string>("");
     const [add_searching, set_add_searching] = useState<boolean>(false);
+    const [include_name_search, set_include_name_search] = useState<boolean>(false);
     const [add_select, set_add_select] = useState<any>(undefined);
     const [existing_students, set_existing_students] = useState<
       any | undefined
@@ -253,6 +254,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         select = await webapp_client.users_client.user_search({
           query: add_search,
           limit: 150,
+          only_email: !include_name_search,
         });
       } catch (err) {
         if (!isMounted) return;
@@ -323,9 +325,19 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       );
 
       return (
-        <Button onClick={do_add_search} icon={icon} disabled={disabled}>
-          Search (shift+enter)
-        </Button>
+        <Flex vertical={true} align="start" gap={5}>
+          <Button onClick={do_add_search} icon={icon} disabled={disabled}>
+            Search (shift+enter)
+          </Button>
+          {!disabled && (
+            <Checkbox
+              checked={include_name_search}
+              onChange={() => {set_include_name_search(!include_name_search)}}
+            >
+              Search by name too
+            </Checkbox>
+          )}
+        </Flex>
       );
     }
 
@@ -608,7 +620,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
                     <Form.Item style={{ margin: "0 0 5px 0" }}>
                       <Input.TextArea
                         ref={studentAddInputRef}
-                        placeholder="Add new students by email addresses or names..."
+                        placeholder="Add students by name or email address..."
                         value={add_search}
                         rows={rows}
                         onChange={() => student_add_input_onChange()}

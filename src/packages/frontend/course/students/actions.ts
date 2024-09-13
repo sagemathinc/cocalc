@@ -168,6 +168,7 @@ export class StudentsActions {
       const result = await webapp_client.users_client.user_search({
         query: s.join(","),
         limit: s.length,
+        only_email: true,
       });
       for (const x of result) {
         if (x.email_address == null) {

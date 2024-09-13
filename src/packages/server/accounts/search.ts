@@ -60,6 +60,8 @@ interface Options {
   // Also, admins get unlisted users, whereas non-admins never find them except by
   // exact email address search.
   admin?: boolean;
+  // If true, we only search using the email address
+  only_email?: boolean;
 }
 
 export default async function search({
@@ -67,6 +69,7 @@ export default async function search({
   query,
   limit,
   admin,
+  only_email,
 }: Options): Promise<User[]> {
   limit = limit ?? 20;
   admin = !!admin;
@@ -104,15 +107,17 @@ export default async function search({
     }
   }
 
-  matches = await getUsersByStringQueries(
-    string_queries,
-    admin,
-    limit - matches.length
-  );
-  for (const user of matches) {
-    const x = process(user, admin, false);
-    if (x) {
-      results.push(x);
+  if (!only_email) {
+    matches = await getUsersByStringQueries(
+      string_queries,
+      admin,
+      limit - matches.length
+    );
+    for (const user of matches) {
+      const x = process(user, admin, false);
+      if (x) {
+        results.push(x);
+      }
     }
   }
 
