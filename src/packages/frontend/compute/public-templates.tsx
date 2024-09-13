@@ -493,7 +493,6 @@ function TemplateLabel({ template, data }) {
           lineHeight: "normal",
           marginTop: "5px",
           textAlign: "center",
-          overflow: "auto",
           maxHeight: "1.2em",
           textOverflow: "ellipsis",
           color: "#666",
