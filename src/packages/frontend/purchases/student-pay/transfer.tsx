@@ -14,6 +14,10 @@ prorated refund and making a new purchase isn't fair.
 
 NOTE: the api call just allows for transfering and doesn't do much of a check, at least for
 the first release. That's another way a malicious user could cheat.
+
+NOTE: a concern is that this assumes the student has not been removed from the original
+section. If that happens, they would have a license but no longer have the project,
+which breaks the logic below.  There's always a problem no matter what you do...
 */
 
 import { Button, Card, Spin } from "antd";
@@ -24,6 +28,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { getCost } from "./cost";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { studentPayTransfer } from "@cocalc/frontend/purchases/api";
+import { len } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string;
@@ -51,6 +56,14 @@ export default function Transfer({ project_id }: Props) {
     try {
       setLoading(true);
       await studentPayTransfer({ project_id, paid_project_id });
+      // success - restart projects so that they have the proper license setup.
+      const actions = redux.getActions("projects");
+      const store = redux.getStore("projects");
+      for (const id of [project_id, paid_project_id]) {
+        if (store.get_state(id) === "running") {
+          actions.restart_project(id);
+        }
+      }
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -136,8 +149,8 @@ function getAvailable(project_id): string[] {
     if (id == project_id) {
       continue;
     }
-    const { course } = projects[id] ?? {};
-    if (course == null) {
+    const { course, site_license } = projects[id] ?? {};
+    if (course == null || site_license == null || len(site_license) == 0) {
       continue;
     }
     if (!course.paid) {
