@@ -3,7 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useProjectContext } from "@cocalc/frontend/project/context";
+import { useIntl } from "react-intl";
+
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -18,11 +19,14 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { ICON_USERS, ROOT_STYLE, TITLE_USERS } from "../servers/consts";
-import { useProject } from "./common";
+import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { ICON_USERS, ROOT_STYLE } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
+import { useProject } from "./common";
 
 export function ProjectCollaboratorsPage(): JSX.Element {
+  const intl = useIntl();
   const { project_id } = useProjectContext();
   const user_map = useTypedRedux("users", "user_map");
   const student = getStudentProjectFunctionality(project_id);
@@ -78,14 +82,11 @@ export function ProjectCollaboratorsPage(): JSX.Element {
       }}
     >
       <Title level={2}>
-        <Icon name={ICON_USERS} /> {TITLE_USERS}
+        <Icon name={ICON_USERS} /> {intl.formatMessage(labels.users)}
       </Title>
-      <Paragraph>{COLLABS_INFO_TEXT}</Paragraph>
+      <Paragraph>{intl.formatMessage(labels.collabs_info)}</Paragraph>
       {renderAdmin()}
       {renderSettings()}
     </div>
   );
 }
-
-export const COLLABS_INFO_TEXT =
-  "Collaborators are people who can access this project. They can view and edit the same files as you.";

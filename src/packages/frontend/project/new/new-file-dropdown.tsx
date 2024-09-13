@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Button } from "antd";
+
 import { React } from "@cocalc/frontend/app-framework";
 import {
   DropdownMenu,
@@ -13,7 +15,7 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 import { EXTs } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { keys } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Button } from "antd";
+import { useIntl } from "react-intl";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { file_options } = require("@cocalc/frontend/editor");
@@ -43,11 +45,20 @@ function makeList(mode: "project" | "flyout") {
 export function NewFileDropdown({
   create_file,
   mode = "project",
-  title = "More file types...",
   showDown = true,
+  title,
   button = true,
   cacheKey = "",
 }: Props) {
+  const intl = useIntl();
+
+  title ??= intl.formatMessage({
+    id: "project.new.new-file-dropdown.label",
+    defaultMessage: "More file types...",
+    description:
+      "Label on a button to create one of several additional file types",
+  });
+
   // TODO maybe filter by configuration.get("main", {disabled_ext: undefined}) ?
   const items = React.useMemo((): MenuItems => {
     const list = makeList(mode);

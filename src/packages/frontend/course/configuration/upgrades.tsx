@@ -6,6 +6,7 @@
 // Upgrading quotas for all student projects
 
 import { Alert, Card, Divider, Form, Radio, Switch, Typography } from "antd";
+import { delay } from "awaiting";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -37,8 +38,8 @@ import {
   Tip,
   UPGRADE_ERROR_STYLE,
 } from "@cocalc/frontend/components";
-import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import Next from "@cocalc/frontend/components/next";
+import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 import { ShowSupportLink } from "@cocalc/frontend/support";
@@ -61,7 +62,6 @@ import {
 } from "../store";
 import { SiteLicenseStrategy, UpgradeGoal } from "../types";
 import { ConfigurationActions } from "./actions";
-import { delay } from "awaiting";
 
 const radioStyle: CSS = {
   display: "block",

@@ -11,6 +11,7 @@ import type { MenuProps } from "antd";
 import { Button, Dropdown, Modal, Tooltip } from "antd";
 import { debounce, throttle } from "lodash";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
@@ -90,6 +91,7 @@ interface FVTProps {
 }
 
 export function VerticalFixedTabs(props: Readonly<FVTProps>) {
+  const intl = useIntl();
   const { setHomePageButtonWidth } = props;
   const {
     actions,
@@ -213,7 +215,14 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
 
   function renderToggleSidebar() {
     return (
-      <Tooltip title="Hide the action bar" placement="rightTop">
+      <Tooltip
+        title={intl.formatMessage({
+          id: "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip",
+          defaultMessage: "Hide the action bar",
+          description: "This hides the vertical action bar in the UI",
+        })}
+        placement="rightTop"
+      >
         <Button
           size="small"
           type="text"
