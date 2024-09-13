@@ -17,7 +17,6 @@ export interface Actions {
     item: string,
     complete?: Map<string, any>,
   ) => void;
-  complete_handle_key: (_: string, keyCode: number) => void;
   clear_complete: () => void;
 }
 
@@ -36,15 +35,14 @@ export function Complete({ actions, id, complete }: Props) {
   const nodeRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    $(window).on("keypress", keypress);
     $(nodeRef.current).find("a:first").focus();
     return () => {
-      $(window).off("keypress", keypress);
       // No matter what, when the complete dialog goes away, restore focus
       // and edit mode to the cell.
       frameActions.current?.set_mode("edit");
     };
   }, []);
+
   const typeInfo = useMemo(() => {
     const types = complete?.getIn(["metadata", "_jupyter_types_experimental"]);
     if (types == null) {
@@ -82,6 +80,7 @@ export function Complete({ actions, id, complete }: Props) {
           style={{ display: "flex", fontSize: "13px" }}
           tabIndex={-1}
           onClick={() => select(item)}
+          data-item={item}
         >
           {item}
           {typeInfo[item]?.type ? (
@@ -107,10 +106,6 @@ export function Complete({ actions, id, complete }: Props) {
     );
   }
 
-  function keypress(evt: any) {
-    actions.complete_handle_key(id, evt.keyCode);
-  }
-
   function key(e: any): void {
     if (e.keyCode === 27) {
       actions.clear_complete();
@@ -120,7 +115,7 @@ export function Complete({ actions, id, complete }: Props) {
     }
     e.preventDefault();
     e.stopPropagation();
-    const item = $(nodeRef.current).find("a:focus").text();
+    const item = $(nodeRef.current).find("a:focus").data("item");
     select(item);
   }
 
