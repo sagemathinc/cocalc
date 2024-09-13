@@ -100,6 +100,7 @@ export default function NewFilePage(props: Props) {
   const [creatingFile, setCreatingFile] = useState<string>("");
 
   async function createFile(ext?: string) {
+    const filename = inputRef.current?.input.value;
     if (!filename) {
       return;
     }
@@ -123,6 +124,7 @@ export default function NewFilePage(props: Props) {
   }
 
   function submit(ext?: string) {
+    const filename = inputRef.current?.input.value;
     if (!filename) {
       // empty filename
       return;
