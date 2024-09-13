@@ -10,7 +10,6 @@ import {
   FormGroup,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
-import { Popconfirm } from "antd";
 import { Rendered } from "@cocalc/frontend/app-framework";
 import {
   Icon,
