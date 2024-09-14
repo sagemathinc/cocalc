@@ -26,7 +26,7 @@ export function SSHPanel({ project, mode = "project" }: Props) {
   const ssh_gateway_dns = useTypedRedux("customize", "ssh_gateway_dns");
   const ssh_gateway_fingerprint = useTypedRedux(
     "customize",
-    "ssh_gateway_fingerprint"
+    "ssh_gateway_fingerprint",
   );
 
   const project_id = project.get("project_id");
@@ -90,13 +90,15 @@ export function SSHPanel({ project, mode = "project" }: Props) {
     >
       <>
         <p>
-          Easily access this project directly via SSH by adding an ssh public
-          key here.
+          Easily access this project or any compute server directly via SSH by
+          adding an ssh public key here.
         </p>
         <p>
-          The project <Text strong>must be running</Text> in order to be able to
-          connect and any changes take <Text strong>about 30 seconds</Text> to
-          take effect.
+          The project or compute server <Text strong>must be running</Text> in
+          order to be able to connect and any changes take{" "}
+          <Text strong>about 30 seconds</Text> to take effect. It is not
+          necessary to restart the project or compute server after you add or
+          remove an ssh key.
         </p>
       </>
       <SSHKeyAdder
@@ -105,9 +107,10 @@ export function SSHPanel({ project, mode = "project" }: Props) {
         style={{ marginBottom: "10px" }}
         extra={
           <p>
-            If you want to use the same SSH key for all your projects, add it
-            using the "SSH Keys" tab under Account Settings. If you have done
-            that, there is no need to also configure an SSH key here.
+            If you want to use the same SSH key for all your projects and
+            compute servers, add it using the "SSH Keys" tab under Account
+            Settings. If you have done that, there is no need to also configure
+            an SSH key here.
           </p>
         }
       />
