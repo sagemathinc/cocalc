@@ -3454,6 +3454,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       just_closed_files: List([]),
     });
   }
+
   getComputeServerId = (id?: number): number => {
     const store = this.get_store();
     return id ?? store?.get("compute_server_id") ?? 0;
