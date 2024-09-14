@@ -424,9 +424,10 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           x.account_id != null
             ? x.first_name + " " + x.last_name
             : x.email_address;
+        const email = !include_name_search && (x.account_id != null) && x.email_address ? " (" + x.email_address + ")": "";
         v.push(
-          <option key={key} value={key} label={student_name}>
-            {student_name}
+          <option key={key} value={key} label={student_name + email}>
+            {student_name + email}
           </option>,
         );
       }
