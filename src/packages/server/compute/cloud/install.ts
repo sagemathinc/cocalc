@@ -372,7 +372,7 @@ apt-get -y install $NVIDIA_KERNEL_OPEN $CUDA_DRIVERS
 `;
 }
 
-async function authorizedKeys(project_id: string) {
+export async function authorizedKeys(project_id: string) {
   const sshKeys = await getSshKeys(project_id);
   return (
     "# This file is managed by CoCalc.  Add keys in account prefs and project settings.\n# See https://doc.cocalc.com/account/ssh.html\n\n" +
