@@ -14,7 +14,7 @@ import {
 } from "fs/promises";
 import { basename, dirname, join } from "path";
 import type { FilesystemState /*FilesystemStatePatch*/ } from "./types";
-import { execa, mtimeDirTree, parseCommonPrefixes, remove } from "./util";
+import { execa, ctimeDirTree, parseCommonPrefixes, remove } from "./util";
 import { toCompressedJSON } from "./compressed-json";
 import SyncClient from "@cocalc/sync-client/lib/index";
 import { encodeIntToUUID } from "@cocalc/util/compute/manager";
@@ -651,28 +651,28 @@ class SyncFS {
     whiteouts: string[];
   }> => {
     // Create the map from all paths in upper (both directories and files and whiteouts),
-    // except ones excluded from sync, to the ctime for the path (or negative mtime
-    // for deleted paths):  {[path:string]:mtime of last change to file metadata}
+    // except ones excluded from sync, to the ctime for the path (or negative ctime
+    // for deleted paths):  {[path:string]:ctime of last change to file}
     const whiteLen = "_HIDDEN~".length;
-    const computeState = await mtimeDirTree({
+    const computeState = await ctimeDirTree({
       path: this.upper,
       exclude: this.exclude,
     });
     const whiteouts: string[] = [];
     const unionfs = join(this.upper, UNIONFS);
-    const mtimes = await mtimeDirTree({
+    const ctimes = await ctimeDirTree({
       path: unionfs,
       exclude: [],
     });
-    for (const path in mtimes) {
-      const mtime = mtimes[path];
+    for (const path in ctimes) {
+      const ctime = ctimes[path];
       if (path.endsWith("_HIDDEN~")) {
         const p = path.slice(0, -whiteLen);
         whiteouts.push(path);
         if ((await stat(join(unionfs, path))).isDirectory()) {
           whiteouts.push(p);
         }
-        computeState[p] = -mtime;
+        computeState[p] = -ctime;
       }
     }
 
