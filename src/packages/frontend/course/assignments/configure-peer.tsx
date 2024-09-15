@@ -19,6 +19,25 @@ import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
 import { PEER_GRADING_GUIDE_FN } from "./consts";
 
+// everything from GRADING_GUIDELINES_GRADE_MARKER to GRADING_GUIDELINES_COMMENT_MARKER
+// is parsed as a numerical grade, if possible.  i18n's don't mess this up!  Also,
+// changing this would break outstanding assignments, so change with caution.
+const GRADING_GUIDELINES_GRADE_MARKER = "OVERALL GRADE (A SINGLE NUMBER):";
+const GRADING_GUIDELINES_COMMENT_MARKER = "COMMENTS ABOUT GRADE:";
+
+const DEFAULT_GUIDELINES = `
+Put your final overall score below after "${GRADING_GUIDELINES_GRADE_MARKER}"
+
+
+
+${GRADING_GUIDELINES_GRADE_MARKER}
+
+
+
+${GRADING_GUIDELINES_COMMENT_MARKER}
+
+`;
+
 interface Props {
   assignment: AssignmentRecord;
   actions: CourseActions;
@@ -59,6 +78,9 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
     }
 
     function set_peer_grade(config) {
+      if (config.enabled && !config.guidelines) {
+        config.guidelines = DEFAULT_GUIDELINES;
+      }
       actions.assignments.set_peer_grade(
         assignment.get("assignment_id"),
         config,
@@ -133,7 +155,12 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
                 folder in a file <code>{PEER_GRADING_GUIDE_FN}</code>. Tell your
                 students how to grade each problem. Since this is a markdown
                 file, you might also provide a link to a publicly shared file or
-                directory with guidelines.
+                directory with additional guidelines. If you keep the default "
+                {GRADING_GUIDELINES_GRADE_MARKER}" text, then the grade the
+                student puts after that will be parsed from the file and made
+                available to you in the user interface, and it can impact the
+                default grade assigned to the student (e.g., if it is numerical,
+                then the average is assigned).
               </Typography.Text>
             </Typography.Paragraph>
           </Col>
