@@ -451,7 +451,7 @@ export class AssignmentsActions {
       content += `\
 \n\n\n# Peer graded\n\n
 Your assignment was peer graded by other students.
-You can find the comments they made in the folders below.\
+You can find the comments they made above and any directly to your work in the folders below.\
 `;
     }
 
@@ -1043,7 +1043,7 @@ ${details}
         if (!allComments[student_id]) {
           const studentComments = comments
             .filter((x) => x.trim())
-            .map((x) => `- ${x}`)
+            .map((x) => `- ${x.trim()}`)
             .join("\n\n");
           allComments[student_id] = `Grades: ${grades.join(", ")}\n\n${
             studentComments ? "Student Comments:\n" + studentComments : ""
