@@ -9,6 +9,12 @@
 # conf directory, based, e.g., on the on prem run script.  The api_server can be
 # especially tricky to untangle when doing dev.
 
+# NOTE: this doesn't work with the new openapi validation, so you have to do
+#
+#  export COCALC_DISABLE_API_VALIDATION=yes
+#
+# before running your hub dev server to disable that.
+
 set -v
 
 export api_server=`cat conf/api_server`
