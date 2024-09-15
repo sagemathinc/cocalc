@@ -35,7 +35,7 @@ export const StudentAssignmentInfoHeader: React.FC<StudentAssignmentInfoHeaderPr
           };
         case "grade":
           return {
-            title: "Record homework grade.",
+            title: "Record Homework Grade",
             tip: "Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Configuration tab.  Enter anything here; it does not have to be a number.",
           };
         case "peer_assignment":

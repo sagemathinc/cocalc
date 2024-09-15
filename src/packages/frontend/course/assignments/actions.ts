@@ -9,6 +9,7 @@ Actions involving working with assignments:
 */
 
 import { redux } from "@cocalc/frontend/app-framework";
+import { join } from "path";
 import {
   exec,
   start_project,
@@ -335,8 +336,10 @@ export class AssignmentsActions {
       this.course_actions.clear_activity(id);
       return;
     }
-    const target_path =
-      assignment.get("collect_path") + "/" + student.get("student_id");
+    const target_path = join(
+      assignment.get("collect_path"),
+      student.get("student_id"),
+    );
     this.course_actions.set_activity({
       id,
       desc: `Copying assignment from ${student_name}`,
@@ -422,7 +425,7 @@ export class AssignmentsActions {
     } else {
       peer_graded = false;
     }
-    src_path += `/${student.get("student_id")}`;
+    src_path = join(src_path, student.get("student_id"));
     let content;
     if (skip_grading && !peer_graded) {
       content =
@@ -752,7 +755,7 @@ ${details}
   private assignment_src_path(assignment): string {
     let path = assignment.get("path");
     if (assignment.get("has_student_subdir")) {
-      path += "/" + STUDENT_SUBDIR;
+      path = join(path, STUDENT_SUBDIR);
     }
     return path;
   }
@@ -776,7 +779,7 @@ ${details}
       desc: `Creating ${due_date_fn} file...`,
     });
     const content = `This assignment is due\n\n   ${due_date.toLocaleString()}`;
-    const path = src_path + "/" + due_date_fn;
+    const path = join(src_path, due_date_fn);
 
     try {
       await this.write_text_file_to_course_project({
@@ -1082,16 +1085,19 @@ ${details}
         guidelines;
     }
 
-    const peer_grading_guidelines_file =
-      assignment.get("collect_path") + `/${PEER_GRADING_GUIDE_FN}`;
-
     const target_base_path = assignment.get("path") + "-peer-grade";
     const f = async (peer_student_id: string) => {
       if (this.course_actions.is_closed()) {
         return;
       }
-      const src_path = assignment.get("collect_path") + "/" + peer_student_id;
-      const target_path = target_base_path + "/" + peer_student_id;
+      const src_path = join(assignment.get("collect_path"), peer_student_id);
+      // write instructions file for the student, where they enter the grade,
+      // and also it tells them what to do.
+      await this.write_text_file_to_course_project({
+        path: join(src_path, PEER_GRADING_GUIDE_FN),
+        content: guidelines,
+      });
+      const target_path = join(target_base_path, peer_student_id);
       // In the copy below, we exclude the student's name so that
       // peer grading is anonymous; also, remove original
       // due date to avoid confusion.
@@ -1108,18 +1114,6 @@ ${details}
     };
 
     try {
-      // write instructions file to the student
-      await this.write_text_file_to_course_project({
-        path: peer_grading_guidelines_file,
-        content: guidelines,
-      });
-      // copy it over
-      await webapp_client.project_client.copy_path_between_projects({
-        src_project_id: store.get("course_project_id"),
-        src_path: peer_grading_guidelines_file,
-        target_project_id: student_project_id,
-        target_path: target_base_path + `/${PEER_GRADING_GUIDE_FN}`,
-      });
       // now copy actual stuff to grade
       await map(peers, store.get_copy_parallel(), f);
       finish();
@@ -1178,10 +1172,12 @@ ${details}
       if (s == null || s.get("deleted")) return;
 
       const path = assignment.get("path");
-      const src_path = `${path}-peer-grade/${our_student_id}`;
-      const target_path = `${assignment.get(
-        "collect_path",
-      )}-peer-grade/${our_student_id}/${student_id}`;
+      const src_path = join(`${path}-peer-grade`, our_student_id);
+      const target_path = join(
+        `${assignment.get("collect_path")}-peer-grade`,
+        our_student_id,
+        student_id,
+      );
 
       const src_project_id = s.get("project_id");
       if (!src_project_id) {
@@ -1256,7 +1252,7 @@ ${details}
         proj = student_project_id;
         break;
       case "collected": // where collected locally
-        path = assignment.get("collect_path") + "/" + student.get("student_id"); // TODO: refactor
+        path = join(assignment.get("collect_path"), student.get("student_id")); // TODO: refactor
         proj = store.get("course_project_id");
         break;
       case "peer-assigned": // where peer-assigned (in student's project)
@@ -1395,7 +1391,7 @@ ${details}
 
     const f: (file: string) => Promise<void> = async (file) => {
       if (this.course_actions.is_closed()) return;
-      const fullpath = path != "" ? path + "/" + file : file;
+      const fullpath = path != "" ? join(path, file) : file;
       try {
         const content = await jupyter_strip_notebook(project_id, fullpath);
         const { cells } = JSON.parse(content);
@@ -1645,8 +1641,10 @@ ${details}
       grade_project_id = nbgrader_grade_project;
 
       // grade in the path where we collected their work.
-      student_path =
-        assignment.get("collect_path") + "/" + student.get("student_id");
+      student_path = join(
+        assignment.get("collect_path"),
+        student.get("student_id"),
+      );
 
       this.course_actions.configuration.configure_nbgrader_grade_project(
         grade_project_id,
@@ -1700,12 +1698,11 @@ ${details}
       }
       try {
         // fullpath = where their collected work is.
-        const fullpath =
-          assignment.get("collect_path") +
-          "/" +
-          student.get("student_id") +
-          "/" +
-          file;
+        const fullpath = join(
+          assignment.get("collect_path"),
+          student.get("student_id"),
+          file,
+        );
         const student_ipynb: string = await jupyter_strip_notebook(
           course_project_id,
           fullpath,
@@ -1880,7 +1877,7 @@ ${details}
     filename: string,
   ): string {
     return autograded_filename(
-      assignment.get("collect_path") + "/" + student_id + "/" + filename,
+      join(assignment.get("collect_path"), student_id, filename),
     );
   }
 
@@ -1907,12 +1904,11 @@ ${details}
       throw Error("no such student or assignment");
     }
     const course_project_id = store.get("course_project_id");
-    const fullpath =
-      assignment.get("collect_path") +
-      "/" +
-      student.get("student_id") +
-      "/" +
-      file;
+    const fullpath = join(
+      assignment.get("collect_path"),
+      student.get("student_id"),
+      file,
+    );
 
     await redux
       .getProjectActions(course_project_id)
@@ -1988,7 +1984,7 @@ ${details}
       const i = store.get("course_filename").lastIndexOf(".");
       const base_export_path =
         store.get("course_filename").slice(0, i) + "-export";
-      const export_path = base_export_path + "/" + src_path;
+      const export_path = join(base_export_path, src_path);
 
       const student_name = function (student_id: string): string {
         const v = split(store.get_student_name(student_id));
