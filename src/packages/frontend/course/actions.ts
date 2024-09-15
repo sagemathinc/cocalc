@@ -266,11 +266,11 @@ export class CourseActions extends Actions<CourseState> {
   }
 
   // ACTIVITY ACTIONS
-  public set_activity(
+  public set_activity = (
     opts: { id: number; desc?: string } | { id?: number; desc: string },
-  ): number {
+  ): number => {
     return this.activity.set_activity(opts);
-  }
+  };
 
   public clear_activity(id?: number): void {
     this.activity.clear_activity(id);

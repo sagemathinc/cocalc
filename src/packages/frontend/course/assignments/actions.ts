@@ -65,8 +65,10 @@ import {
   NBGRADER_MAX_OUTPUT,
   NBGRADER_MAX_OUTPUT_PER_CELL,
   NBGRADER_TIMEOUT_MS,
-  PEER_GRADING_GUIDE_FN,
+  PEER_GRADING_GUIDE_FILENAME,
   STUDENT_SUBDIR,
+  PEER_GRADING_GUIDELINES_GRADE_MARKER,
+  PEER_GRADING_GUIDELINES_COMMENT_MARKER,
 } from "./consts";
 
 export class AssignmentsActions {
@@ -891,10 +893,10 @@ ${details}
     });
     this.course_actions.student_projects.action_all_student_projects("start");
     // We request to start all projects simultaneously, and the system
-    // will start doing that.  I think it's no so much important that
+    // will start doing that.  I think it's not so much important that
     // the projects are actually running, but that they were started
     // before the copy operations started.
-    await delay(15 * 1000);
+    await delay(5 * 1000);
     this.course_actions.clear_activity(id);
   }
 
@@ -948,7 +950,119 @@ ${details}
       desc,
       short_desc,
     );
+    await this.peerParseStudentGrading(assignment_id);
   }
+
+  private peerParseStudentGrading = async (assignment_id: string) => {
+    // For each student do the following:
+    //   If they already have a recorded grade, do nothing further.
+    //   If they do not have a recorded grade, load all of the
+    //   PEER_GRADING_GUIDE_FILENAME files that were collected
+    //   from the students, then create a grade from that (if possible), along
+    //   with a comment that explains how that grade was obtained, without
+    //   saying which student did what.
+    const { store, assignment } = this.course_actions.resolve({
+      assignment_id,
+    });
+    if (assignment == null) {
+      throw Error("no such assignment");
+    }
+    const id = this.course_actions.set_activity({
+      desc: "Parsing peer grading",
+    });
+    const allGrades = assignment.get("grades", Map()).toJS() as {
+      [student_id: string]: string;
+    };
+    const allComments = assignment.get("comments", Map()).toJS() as {
+      [student_id: string]: string;
+    };
+    // compute missing grades
+    for (const student_id of store.get_student_ids()) {
+      if (allGrades[student_id]) {
+        // a grade is already set
+        continue;
+      }
+      // attempt to compute a grade
+      const peer_student_ids: string[] = store.get_peers_that_graded_student(
+        assignment_id,
+        student_id,
+      );
+      const course_project_id = store.get("course_project_id");
+      const grades: number[] = [];
+      let comments: string[] = [];
+      const student_name = store.get_student_name(student_id);
+      this.course_actions.set_activity({
+        id,
+        desc: `Parsing peer grading of ${student_name}`,
+      });
+      for (const peer_student_id of peer_student_ids) {
+        const path = join(
+          `${assignment.get("collect_path")}-peer-grade`,
+          student_id,
+          peer_student_id,
+          PEER_GRADING_GUIDE_FILENAME,
+        );
+        try {
+          const contents = await webapp_client.project_client.read_text_file({
+            project_id: course_project_id,
+            path,
+          });
+          const i = contents.lastIndexOf(PEER_GRADING_GUIDELINES_GRADE_MARKER);
+          if (i == -1) {
+            continue;
+          }
+          let j = contents.lastIndexOf(PEER_GRADING_GUIDELINES_COMMENT_MARKER);
+          if (j == -1) {
+            j = contents.length;
+          }
+          const grade = parseFloat(
+            contents
+              .slice(i + PEER_GRADING_GUIDELINES_GRADE_MARKER.length, j)
+              .trim(),
+          );
+          if (!isFinite(grade) && isNaN(grade)) {
+            continue;
+          }
+          const comment = contents.slice(
+            j + PEER_GRADING_GUIDELINES_COMMENT_MARKER.length,
+          );
+          grades.push(grade);
+          comments.push(comment);
+        } catch (err) {
+          // grade not available for some reason
+          console.warn("issue reading peer grading file", {
+            path,
+            err,
+            student_name,
+          });
+        }
+      }
+      if (grades.length > 0) {
+        const grade = grades.reduce((a, b) => a + b) / grades.length;
+        allGrades[student_id] = `${grade}`;
+        if (!allComments[student_id]) {
+          const studentComments = comments
+            .filter((x) => x.trim())
+            .map((x) => `- ${x}`)
+            .join("\n\n");
+          allComments[student_id] = `Grades: ${grades.join(", ")}\n\n${
+            studentComments ? "Student Comments:\n" + studentComments : ""
+          }`;
+        }
+      }
+    }
+    // set them in the course data
+    this.course_actions.set(
+      {
+        table: "assignments",
+        assignment_id,
+        grades: allGrades,
+        comments: allComments,
+      },
+      true,
+    );
+    this.course_actions.clear_activity(id);
+  };
 
   private async assignment_action_all_students(
     assignment_id: string,
@@ -1094,7 +1208,7 @@ ${details}
       // write instructions file for the student, where they enter the grade,
       // and also it tells them what to do.
       await this.write_text_file_to_course_project({
-        path: join(src_path, PEER_GRADING_GUIDE_FN),
+        path: join(src_path, PEER_GRADING_GUIDE_FILENAME),
         content: guidelines,
       });
       const target_path = join(target_base_path, peer_student_id);
@@ -1125,10 +1239,10 @@ ${details}
 
   // Collect all the peer graading of the given student (not the work the student did, but
   // the grading about the student!).
-  private async peer_collect_from_student(
+  private peer_collect_from_student = async (
     assignment_id: string,
     student_id: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     if (this.start_copy(assignment_id, student_id, "last_peer_collect")) {
       return;
     }
@@ -1215,7 +1329,7 @@ ${details}
     } catch (err) {
       finish(err);
     }
-  }
+  };
 
   // This doesn't really stop it yet, since that's not supported by the backend.
   // It does stop the spinner and let the user try to restart the copy.

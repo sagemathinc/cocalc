@@ -182,7 +182,9 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
           trunc={80}
           on_clear={() => {
             const actions = redux.getActions(name) as CourseActions;
-            if (actions != null) actions.clear_activity();
+            if (actions != null) {
+              actions.clear_activity();
+            }
           }}
         />
       );

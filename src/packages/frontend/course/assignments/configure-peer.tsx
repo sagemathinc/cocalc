@@ -17,26 +17,11 @@ import { server_days_ago } from "@cocalc/util/misc";
 import { Button, Card, Col, InputNumber, Row, Switch, Typography } from "antd";
 import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
-import { PEER_GRADING_GUIDE_FN } from "./consts";
-
-// everything from GRADING_GUIDELINES_GRADE_MARKER to GRADING_GUIDELINES_COMMENT_MARKER
-// is parsed as a numerical grade, if possible.  i18n's don't mess this up!  Also,
-// changing this would break outstanding assignments, so change with caution.
-const GRADING_GUIDELINES_GRADE_MARKER = "OVERALL GRADE (A SINGLE NUMBER):";
-const GRADING_GUIDELINES_COMMENT_MARKER = "COMMENTS ABOUT GRADE:";
-
-const DEFAULT_GUIDELINES = `
-Put your final overall score below after "${GRADING_GUIDELINES_GRADE_MARKER}"
-
-
-
-${GRADING_GUIDELINES_GRADE_MARKER}
-
-
-
-${GRADING_GUIDELINES_COMMENT_MARKER}
-
-`;
+import {
+  PEER_GRADING_GUIDE_FILENAME,
+  PEER_GRADING_GUIDELINES_GRADE_MARKER,
+  PEER_GRADING_DEFAULT_GUIDELINES,
+} from "./consts";
 
 interface Props {
   assignment: AssignmentRecord;
@@ -78,8 +63,8 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
     }
 
     function set_peer_grade(config) {
-      if (config.enabled && !config.guidelines) {
-        config.guidelines = DEFAULT_GUIDELINES;
+      if (config.enabled && !config.guidelines?.trim()) {
+        config.guidelines = PEER_GRADING_DEFAULT_GUIDELINES;
       }
       actions.assignments.set_peer_grade(
         assignment.get("assignment_id"),
@@ -152,15 +137,15 @@ export const ConfigurePeerGrading: React.FC<Props> = React.memo(
               Grading guidelines:{" "}
               <Typography.Text type={"secondary"}>
                 This text will be made available to students in their grading
-                folder in a file <code>{PEER_GRADING_GUIDE_FN}</code>. Tell your
-                students how to grade each problem. Since this is a markdown
-                file, you might also provide a link to a publicly shared file or
-                directory with additional guidelines. If you keep the default "
-                {GRADING_GUIDELINES_GRADE_MARKER}" text, then the grade the
-                student puts after that will be parsed from the file and made
-                available to you in the user interface, and it can impact the
-                default grade assigned to the student (e.g., if it is numerical,
-                then the average is assigned).
+                folder in a file <code>{PEER_GRADING_GUIDE_FILENAME}</code>.
+                Tell your students how to grade each problem. Since this is a
+                markdown file, you might also provide a link to a publicly
+                shared file or directory with additional guidelines. If you keep
+                the default "{PEER_GRADING_GUIDELINES_GRADE_MARKER}" text, then
+                the grade the student puts after that will be parsed from the
+                file and the default grade assigned to the student will be the
+                average of the peer grades. You can edit the grade before
+                returning the graded assignment to the student.
               </Typography.Text>
             </Typography.Paragraph>
           </Col>
