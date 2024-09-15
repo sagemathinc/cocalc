@@ -6,9 +6,8 @@
 /*
 Watch one SINGLE FILE for changes.   Use ./path-watcher.ts for a directory.
 
-Watch for changes to the given file, which means the mtime changes or the
-mode changes (e.g., readonly versus readwrite).  Returns obj, which
-is an event emitter with events:
+Watch for changes to the given file, which means the ctime or mode changes (atime is ignored).  
+Returns obj, which is an event emitter with events:
 
    - 'change', ctime, stats - when file changes or is created
    - 'delete' - when file is deleted
@@ -97,7 +96,11 @@ export class Watcher extends EventEmitter {
     try {
       const prev = this.prev;
       const curr = await stat(this.path);
-      if (curr.mtimeMs != prev?.mtimeMs || curr.mode != prev?.mode) {
+      if (
+        curr.ctimeMs != prev?.ctimeMs ||
+        curr.mtimeMs != prev?.mtimeMs ||
+        curr.mode != prev?.mode
+      ) {
         this.prev = curr;
         this.interval = this.minInterval;
         this.emitChange(curr);
