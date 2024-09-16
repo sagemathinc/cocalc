@@ -17,6 +17,7 @@ import {
   SharedProject,
   Students,
   Handouts,
+  Actions,
 } from "./course-panels";
 import { EditorDescription } from "../frame-tree/types";
 
@@ -71,6 +72,16 @@ const course_configuration: EditorDescription = {
   buttons,
 } as const;
 
+const course_actions: EditorDescription = {
+  type: "course-actions",
+  short: "Actions",
+  name: "Actions",
+  icon: "bolt",
+  component: Actions,
+  commands,
+  buttons,
+} as const;
+
 const course_shared_project: EditorDescription = {
   type: "course-shared_project",
   short: "Shared",
@@ -86,6 +97,7 @@ export const EDITOR_SPEC = {
   course_assignments,
   course_handouts,
   course_configuration,
+  course_actions,
   course_shared_project,
   terminal,
   time_travel,

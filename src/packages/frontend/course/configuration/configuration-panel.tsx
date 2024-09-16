@@ -5,19 +5,16 @@
 
 import { debounce } from "lodash";
 import { Card, Row, Col } from "antd";
-
 // React libraries and Components
 import {
   React,
   redux,
-  Rendered,
-  useState,
   useActions,
+  useState,
   useStore,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import { contains_url, plural } from "@cocalc/util/misc";
+import { contains_url } from "@cocalc/util/misc";
 import {
   Icon,
   LabeledRow,
@@ -28,24 +25,16 @@ import {
 } from "@cocalc/frontend/components";
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "../actions";
-import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { CourseSettingsRecord, CourseStore } from "../store";
 import { HelpBox } from "./help-box";
-import { DeleteAllStudentProjects } from "./delete-all-student-projects";
-import { DeleteAllStudents } from "./delete-all-students";
-import { DeleteSharedProjectPanel } from "../shared-project/delete-shared-project";
-import { TerminalCommandPanel } from "./terminal-command";
 import { Nbgrader } from "./nbgrader";
 import { Parallel } from "./parallel";
-import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
 import { CustomizeStudentProjectFunctionality } from "./customize-student-project-functionality";
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
 import { DatastoreConfig } from "./datastore-config";
-import EmptyTrash from "./empty-trash";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
-import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 import StudentPay from "./student-pay";
 import Mirror from "./mirror";
 
@@ -53,9 +42,7 @@ interface Props {
   name: string;
   project_id: string;
   settings: CourseSettingsRecord;
-  project_map: ProjectMap;
   configuring_projects?: boolean;
-  reinviting_students?: boolean;
 }
 
 export const ConfigurationPanel: React.FC<Props> = React.memo(
@@ -63,9 +50,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     name,
     project_id,
     settings,
-    project_map,
     configuring_projects,
-    reinviting_students,
   }) => {
     const [email_body_error, set_email_body_error] = useState<
       string | undefined
@@ -117,62 +102,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             this title. Use the description to provide additional information
             about the course, e.g., a link to the main course website.
           </span>
-        </Card>
-      );
-    }
-
-    /*
-     * Grade export
-     */
-    function render_grades_header() {
-      return (
-        <>
-          <Icon name="table" /> Export Grades
-        </>
-      );
-    }
-
-    async function save_grades_to_csv() {
-      await actions.export.to_csv();
-    }
-
-    async function save_grades_to_py() {
-      await actions.export.to_py();
-    }
-
-    async function save_grades_to_json() {
-      await actions.export.to_json();
-    }
-
-    function render_export_grades() {
-      return (
-        <Card title={render_grades_header()}>
-          <div style={{ marginBottom: "10px" }}>Save grades to... </div>
-          <ButtonGroup>
-            <Button onClick={save_grades_to_csv}>
-              <Icon name="csv" /> CSV file...
-            </Button>
-            <Button onClick={save_grades_to_json}>
-              <Icon name="file-code" /> JSON file...
-            </Button>
-            <Button onClick={save_grades_to_py}>
-              <Icon name="file-code" /> Python file...
-            </Button>
-          </ButtonGroup>
-          <hr />
-          <div style={{ color: "#666" }}>
-            Export all the grades you have recorded for students in your course
-            to a csv or Python file.
-            <br />
-            In Microsoft Excel, you can{" "}
-            <a
-              target="_blank"
-              href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba"
-            >
-              import the CSV file
-            </a>
-            .
-          </div>
         </Card>
       );
     }
@@ -243,96 +172,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       );
     }
 
-    function render_configure_all_projects(): Rendered {
-      return (
-        <Card
-          title={
-            <>
-              <Icon name="envelope" /> Reconfigure all Projects
-            </>
-          }
-        >
-          Ensure all projects have the correct students and TA's, titles and
-          descriptions set, etc. This will also resend any outstanding email
-          invitations.
-          <hr />
-          <Button
-            disabled={configuring_projects}
-            onClick={() => {
-              actions.configuration.configure_all_projects();
-            }}
-          >
-            {configuring_projects ? (
-              <Icon name="cocalc-ring" spin />
-            ) : undefined}{" "}
-            Reconfigure all Projects
-          </Button>
-        </Card>
-      );
-    }
-
-    function render_resend_outstanding_email_invites(): Rendered {
-      return (
-        <Card
-          title={
-            <>
-              <Icon name="envelope" /> Resend Outstanding Email Invites
-            </>
-          }
-        >
-          Send another email to every student who didn't sign up yet. This sends
-          a maximum of one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
-          {plural(RESEND_INVITE_INTERVAL_DAYS, "day")}.
-          <hr />
-          <Button
-            disabled={reinviting_students}
-            onClick={() => {
-              actions.student_projects.reinvite_oustanding_students();
-            }}
-          >
-            {reinviting_students ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
-            Reinvite students
-          </Button>
-        </Card>
-      );
-    }
-
-    function render_push_missing_handouts_and_assignments(): Rendered {
-      return (
-        <Card
-          title={
-            <>
-              <Icon name="share-square" /> Copy Missing Handouts and Assignments
-            </>
-          }
-        >
-          If you <b>add new students</b> to your course, you can click this
-          button to ensure they have all the assignments and handouts that you
-          have already assigned to other students in the course.
-          <hr />
-          <Button
-            onClick={() => {
-              actions.configuration.push_missing_handouts_and_assignments();
-            }}
-          >
-            <Icon name="share-square" /> Copy Missing Handouts and Assignments
-          </Button>
-        </Card>
-      );
-    }
-
-    function render_start_all_projects() {
-      const r = store.num_running_projects(project_map);
-      const n = store.num_students();
-      return (
-        <StudentProjectsStartStopPanel
-          name={name}
-          num_running_projects={r}
-          num_students={n}
-        />
-      );
-    }
-
     function render_require_institute_pay() {
       if (!is_commercial) return;
       return (
@@ -379,38 +218,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       );
     }
 
-    function render_delete_shared_project() {
-      if (settings.get("shared_project_id")) {
-        return (
-          <DeleteSharedProjectPanel
-            delete={() => actions.shared_project.delete()}
-          />
-        );
-      }
-    }
-
-    function render_delete_student_projects() {
-      return (
-        <DeleteAllStudentProjects
-          delete_projects={() =>
-            actions.student_projects.delete_all_student_projects()
-          }
-        />
-      );
-    }
-
-    function render_delete_all_students() {
-      return (
-        <DeleteAllStudents
-          delete_all_students={() => actions.students.delete_all_students()}
-        />
-      );
-    }
-
-    function render_terminal_command() {
-      return <TerminalCommandPanel name={name} />;
-    }
-
     function render_disable_students() {
       return (
         <DisableStudentCollaboratorsPanel
@@ -446,36 +253,19 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             )}
             {render_require_institute_pay()}
             {render_onprem_upgrade_projects()}
-            {render_export_grades()}
             <br />
-            {render_start_all_projects()}
+            {render_title_description()}
             <br />
-            {render_terminal_command()}
-            <br />
-            {render_delete_student_projects()}
-            <br />
-            {render_delete_all_students()}
-            <br />
-            {render_delete_shared_project()}
+            {render_email_invite_body()}
             <br />
             {render_nbgrader()}
           </Col>
           <Col md={12} style={{ padding: "15px" }}>
             <HelpBox />
             <br />
-            {render_title_description()}
-            <br />
-            {render_email_invite_body()}
-            <br />
             {render_disable_students()}
             <br />
             {render_student_project_functionality()}
-            <br />
-            {render_configure_all_projects()}
-            <br />
-            {render_resend_outstanding_email_invites()}
-            <br />
-            {render_push_missing_handouts_and_assignments()}
             <br />
             <StudentProjectSoftwareEnvironment
               actions={actions.configuration}
@@ -494,8 +284,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               actions={actions.configuration}
               envvars={settings.get("envvars")}
             />
-            <br />
-            <EmptyTrash />
             <br />
             <Mirror
               checked={!!settings.get("mirror_config")}

@@ -136,10 +136,9 @@ export default function Mirror({
           <hr />
           <span style={{ color: "#666" }}>
             If this box is checked and you fill in the filename of another
-            course (in this project), then any time you make configuration
-            changes to <i>that course</i>, those changes will automatically be
-            reflected in this course (assuming this course file is opened). The
-            configuration parameters that are mirrored are:
+            course (in this project), then when you make configuration changes
+            to <i>that course</i>, those changes can be easily copied to this
+            course. The configuration parameters that are mirrored are:
             <ul>
               <li>Payment and licensing configuration</li>
               <li>Email Invitation -- the email invitation template</li>
