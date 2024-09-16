@@ -17,13 +17,7 @@ export const DisableStudentCollaboratorsPanel: React.FC<Props> = React.memo(
           </>
         }
       >
-        <div
-          style={{
-            border: "1px solid lightgrey",
-            padding: "10px",
-            borderRadius: "5px",
-          }}
-        >
+        <div>
           <Checkbox
             checked={checked}
             onChange={(e) => on_change((e.target as any).checked)}

@@ -1,5 +1,6 @@
-import { Card, Checkbox, Input } from "antd";
+import { Button, Card, Checkbox, Input, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
+import { useState } from "react";
 
 interface Props {
   checked?: boolean;
@@ -9,6 +10,12 @@ interface Props {
 }
 
 export default function Mirror({ checked, setChecked, path, setPath }: Props) {
+  const [path0, setPath0] = useState<string>(path ?? "");
+
+  const save = async () => {
+    setPath(path0);
+  };
+
   return (
     <Card
       title={
@@ -17,13 +24,7 @@ export default function Mirror({ checked, setChecked, path, setPath }: Props) {
         </>
       }
     >
-      <div
-        style={{
-          border: "1px solid lightgrey",
-          padding: "10px",
-          borderRadius: "5px",
-        }}
-      >
+      <div style={{ width: "100%" }}>
         <Checkbox
           checked={checked}
           onChange={(e) => setChecked((e.target as any).checked)}
@@ -33,12 +34,23 @@ export default function Mirror({ checked, setChecked, path, setPath }: Props) {
       </div>
       {checked && (
         <>
-          <Input
-            placeholder="Path to master .course file relative to HOME directory..."
-            onChange={(e) => setPath(e.target.value)}
-            value={path}
-            style={{ marginTop: "15px" }}
-          />
+          <Space.Compact block style={{ marginTop: "15px", width: "100%" }}>
+            <Input
+              style={{ width: "100%" }}
+              allowClear
+              placeholder="Path to master .course file relative to HOME directory..."
+              onChange={(e) => setPath0(e.target.value)}
+              value={path0}
+              onPressEnter={save}
+            />
+            <Button
+              type="primary"
+              onClick={save}
+              disabled={path0 == path || !(path0.endsWith(".course") || !path0)}
+            >
+              <Icon name="save" /> Save
+            </Button>
+          </Space.Compact>
           <hr />
           <span style={{ color: "#666" }}>
             If this box is checked and you fill in the filename of another
