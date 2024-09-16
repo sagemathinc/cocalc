@@ -2,7 +2,7 @@ import { Alert, Button, Card, Checkbox, Input, Space, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { useEffect, useState } from "react";
 import { pathExists } from "@cocalc/frontend/project/directory-selector";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 interface Props {
   checked?: boolean;
   setChecked: (checked: boolean) => void;
@@ -38,7 +38,8 @@ export default function Mirror({
         return;
       }
       try {
-        setExists(await pathExists(project_id, path, directoryListings));
+        const exists = await pathExists(project_id, path, directoryListings);
+        setExists(exists);
       } catch (_err) {
         console.warn("checking for path -- ", _err);
       }
@@ -91,20 +92,45 @@ export default function Mirror({
               {loading && <Spin style={{ marginLeft: "5px" }} />}
             </Button>
           </Space.Compact>
-          {exists === true && (
+          {exists === true && path && (
             <Alert
               style={{ marginTop: "15px" }}
               showIcon
               type="success"
-              message={<>File exists</>}
+              message={
+                <>
+                  <a
+                    onClick={() => {
+                      redux.getProjectActions(project_id).open_file({ path });
+                    }}
+                  >
+                    {path}
+                  </a>{" "}
+                  exists
+                </>
+              }
             />
           )}
-          {exists === false && (
+          {exists === false && path && (
             <Alert
               style={{ marginTop: "15px" }}
               type="warning"
               showIcon
-              message={<>WARNING: File does not exist</>}
+              message={
+                <>
+                  WARNING:{" "}
+                  <a
+                    onClick={() => {
+                      redux.getProjectActions(project_id).open_file({ path });
+                      // above creates the file
+                      setExists(true);
+                    }}
+                  >
+                    {path}
+                  </a>{" "}
+                  does not exist
+                </>
+              }
             />
           )}
           <hr />
