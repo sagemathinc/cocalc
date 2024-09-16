@@ -506,6 +506,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               setPath={(mirror_config_path) => {
                 actions.set({ mirror_config_path, table: "settings" });
               }}
+              project_id={project_id}
             />
           </Col>
         </Row>

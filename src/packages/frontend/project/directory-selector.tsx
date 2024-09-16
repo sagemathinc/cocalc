@@ -582,11 +582,11 @@ function CreateDirectory({
   );
 }
 
-async function pathExists(
+export async function pathExists(
   project_id: string,
   path: string,
-  directoryListings,
-  computeServerId,
+  directoryListings?,
+  computeServerId?,
 ): Promise<boolean> {
   const { head, tail } = path_split(path);
   let known = directoryListings?.get(head);

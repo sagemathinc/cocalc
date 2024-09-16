@@ -1,20 +1,55 @@
-import { Button, Card, Checkbox, Input, Space } from "antd";
+import { Alert, Button, Card, Checkbox, Input, Space, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
-import { useState } from "react";
-
+import { useEffect, useState } from "react";
+import { pathExists } from "@cocalc/frontend/project/directory-selector";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 interface Props {
   checked?: boolean;
   setChecked: (checked: boolean) => void;
   path?: string;
   setPath: (path: string) => void;
+  project_id: string;
 }
 
-export default function Mirror({ checked, setChecked, path, setPath }: Props) {
+export default function Mirror({
+  checked,
+  setChecked,
+  path,
+  setPath,
+  project_id,
+}: Props) {
   const [path0, setPath0] = useState<string>(path ?? "");
+  const [exists, setExists] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const directoryListings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  )?.get(0);
 
   const save = async () => {
     setPath(path0);
   };
+
+  const updateExists = async (path) => {
+    setLoading(true);
+    try {
+      if (!path) {
+        setExists(null);
+        return;
+      }
+      try {
+        setExists(await pathExists(project_id, path, directoryListings));
+      } catch (_err) {
+        console.warn("checking for path -- ", _err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    updateExists(path);
+  }, [path]);
 
   return (
     <Card
@@ -46,11 +81,32 @@ export default function Mirror({ checked, setChecked, path, setPath }: Props) {
             <Button
               type="primary"
               onClick={save}
-              disabled={path0 == path || !(path0.endsWith(".course") || !path0)}
+              disabled={
+                loading ||
+                path0 == path ||
+                !(path0.endsWith(".course") || !path0)
+              }
             >
               <Icon name="save" /> Save
+              {loading && <Spin style={{ marginLeft: "5px" }} />}
             </Button>
           </Space.Compact>
+          {exists === true && (
+            <Alert
+              style={{ marginTop: "15px" }}
+              showIcon
+              type="success"
+              message={<>File exists</>}
+            />
+          )}
+          {exists === false && (
+            <Alert
+              style={{ marginTop: "15px" }}
+              type="warning"
+              showIcon
+              message={<>WARNING: File does not exist</>}
+            />
+          )}
           <hr />
           <span style={{ color: "#666" }}>
             If this box is checked and you fill in the filename of another
