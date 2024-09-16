@@ -226,17 +226,11 @@ export const ActionsPanel: React.FC<Props> = React.memo(
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
-            {render_export_grades()}
-            <br />
             {render_start_all_projects()}
             <br />
             {render_terminal_command()}
             <br />
-            {render_delete_student_projects()}
-            <br />
-            {render_delete_all_students()}
-            <br />
-            {render_delete_shared_project()}
+            {render_export_grades()}
           </Col>
           <Col md={12} style={{ padding: "15px" }}>
             {render_configure_all_projects()}
@@ -246,6 +240,12 @@ export const ActionsPanel: React.FC<Props> = React.memo(
             {render_push_missing_handouts_and_assignments()}
             <br />
             <EmptyTrash />
+            <br />
+            {render_delete_student_projects()}
+            <br />
+            {render_delete_all_students()}
+            <br />
+            {render_delete_shared_project()}
           </Col>
         </Row>
       </div>
