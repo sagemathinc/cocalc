@@ -19,6 +19,8 @@ export interface SyncDBRecordSettings {
   table: string;
   upgrade_goal?: UpgradeGoal;
   allow_collabs?: boolean;
+  mirror_config?: boolean;
+  mirror_config_path?: string;
   student_project_functionality?: StudentProjectFunctionality;
   shared_project_id?: string;
   pay?: string;

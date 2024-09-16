@@ -44,8 +44,8 @@ export const DisableStudentCollaboratorsPanel: React.FC<Props> = React.memo(
           excluded are removed when opening the course file or upon clicking
           "Reconfigure all projects".
           <br />
-          <b>NEW:</b> There is a new "Disable adding or removing collaborators"
-          option below, which you should also consider using.
+          <b>NOTE:</b> There is also a new "Disable adding or removing
+          collaborators" option below, which you should also consider using.
         </span>
       </Card>
     );

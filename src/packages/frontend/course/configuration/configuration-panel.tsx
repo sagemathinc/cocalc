@@ -47,6 +47,7 @@ import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 import StudentPay from "./student-pay";
+import Mirror from "./mirror";
 
 interface Props {
   name: string;
@@ -495,6 +496,17 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             />
             <br />
             <EmptyTrash />
+            <br />
+            <Mirror
+              checked={!!settings.get("mirror_config")}
+              setChecked={(mirror_config: boolean) => {
+                actions.set({ mirror_config, table: "settings" });
+              }}
+              path={settings.get("mirror_config_path")}
+              setPath={(mirror_config_path) => {
+                actions.set({ mirror_config_path, table: "settings" });
+              }}
+            />
           </Col>
         </Row>
       </div>
