@@ -203,8 +203,8 @@ export const ActionsPanel: React.FC<Props> = React.memo(
     function render_delete_student_projects() {
       return (
         <DeleteAllStudentProjects
-          delete_projects={() =>
-            actions.student_projects.delete_all_student_projects()
+          deleteAllStudentProjects={
+            actions.student_projects.deleteAllStudentProjects
           }
         />
       );
@@ -213,7 +213,7 @@ export const ActionsPanel: React.FC<Props> = React.memo(
     function render_delete_all_students() {
       return (
         <DeleteAllStudents
-          deleteAllStudents={() => actions.students.deleteAllStudents()}
+          deleteAllStudents={actions.students.deleteAllStudents}
         />
       );
     }

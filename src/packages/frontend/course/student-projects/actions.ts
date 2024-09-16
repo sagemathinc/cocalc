@@ -823,7 +823,7 @@ export class StudentProjectsActions {
   }
 
   // Deletes student projects and removes students from those projects
-  public async delete_all_student_projects(): Promise<void> {
+  deleteAllStudentProjects = async (): Promise<void> => {
     const store = this.get_store();
 
     const id = this.course_actions.set_activity({
@@ -844,7 +844,7 @@ export class StudentProjectsActions {
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
 
   // upgrade_goal is a map from the quota type to the goal quota the instructor wishes
   // to get all the students to.
