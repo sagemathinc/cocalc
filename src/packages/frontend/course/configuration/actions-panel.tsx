@@ -213,7 +213,7 @@ export const ActionsPanel: React.FC<Props> = React.memo(
     function render_delete_all_students() {
       return (
         <DeleteAllStudents
-          delete_all_students={() => actions.students.delete_all_students()}
+          deleteAllStudents={() => actions.students.deleteAllStudents()}
         />
       );
     }
