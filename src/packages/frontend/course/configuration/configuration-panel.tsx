@@ -34,7 +34,7 @@ import { DatastoreConfig } from "./datastore-config";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
 import StudentPay from "./student-pay";
-import Mirror from "./mirror";
+//import Mirror from "./mirror";
 
 interface Props {
   name: string;
@@ -44,12 +44,7 @@ interface Props {
 }
 
 export const ConfigurationPanel: React.FC<Props> = React.memo(
-  ({
-    name,
-    project_id,
-    settings,
-    configuring_projects,
-  }) => {
+  ({ name, project_id, settings, configuring_projects }) => {
     const [email_body_error, set_email_body_error] = useState<
       string | undefined
     >(undefined);
@@ -280,7 +275,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               actions={actions.configuration}
               envvars={settings.get("envvars")}
             />
-            <br />
+            {/*<br />
             <Mirror
               checked={!!settings.get("mirror_config")}
               setChecked={(mirror_config: boolean) => {
@@ -291,7 +286,7 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
                 actions.set({ mirror_config_path, table: "settings" });
               }}
               project_id={project_id}
-            />
+            />*/}
           </Col>
         </Row>
       </div>
