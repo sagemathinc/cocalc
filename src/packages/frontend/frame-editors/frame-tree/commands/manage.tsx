@@ -370,11 +370,15 @@ export class ManageCommands {
       const isOnButtonBar = this.isOnButtonBar(name);
       icon = cmd.icon ? (
         <Tooltip
-          title={
-            isOnButtonBar
-              ? "Click icon to remove from toolbar"
-              : "Click icon to add to toolbar"
-          }
+          title={this.intl.formatMessage(
+            {
+              id: "frame-editors.frame-tree.add_remove_icon_button_bar.tooltip",
+              defaultMessage: `{isOnButtonBar, select,
+                true {Click icon to remove from toolbar}
+                other {Click icon to add to toolbar}}`,
+            },
+            { isOnButtonBar },
+          )}
           placement="top"
         >
           <Button

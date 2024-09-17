@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import type { MessageDescriptor } from "react-intl";
 
 import { IconRotation } from "@cocalc/frontend/components/icon";
 import { IntlMessage } from "@cocalc/frontend/i18n";
@@ -20,13 +19,20 @@ export type Group = (typeof MENUS)[keyof typeof MENUS]["groups"][number];
 
 export type OnClick = (opts: ManageCommands & { event? }) => void;
 
+interface PopconfirmOpts {
+  title?: string | IntlMessage | JSX.Element;
+  description?: string | IntlMessage | JSX.Element;
+  okText?: string | IntlMessage;
+  cancelText?: string | IntlMessage;
+}
+
 export interface Command {
   // group -- inside of a menu
   group: Group;
   name?: string; //not used
   // position, for sorting
   pos?: number;
-  title?: ReactNode | (MessageDescriptor & { id: string });
+  title?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
   icon?: ReactNode | ((opts: ManageCommands) => ReactNode);
   iconRotate?: IconRotation;
   button?: ReactNode | ((opts: ManageCommands) => ReactNode) | IntlMessage;
@@ -49,7 +55,9 @@ export interface Command {
   // do modal popconfirm first -- takes options to antd
   // Popconfirm, or a function that returns Popconfirm options.
   // See frontend/app/popconfirm-modal.tsx for subtleties.
-  popconfirm?: any | ((opts: ManageCommands) => any);
+  popconfirm?:
+    | PopconfirmOpts
+    | ((opts: ManageCommands) => PopconfirmOpts | undefined);
   // if true, never show this on mobile
   neverVisibleOnMobile?: boolean;
   // if true, always show this (unless neverVisibleOnMobile set, obviously).

@@ -22,6 +22,11 @@ export const labels = defineMessages({
     defaultMessage: "Reset",
     description: "A 'Reset' button on a small confirmation modal dialog",
   },
+  project: {
+    id: "labels.project",
+    defaultMessage: "Project",
+    description: "Label for a single project, label on a button, title, etc.",
+  },
   projects: {
     id: "labels.projects",
     defaultMessage: "Projects",
@@ -116,11 +121,21 @@ export const labels = defineMessages({
     defaultMessage: "Statements",
     description: "Billing statements",
   },
+  license: {
+    id: "labels.license",
+    defaultMessage: "License",
+    description:
+      "A license is part of a subscription or a one-time purchase to upgrade projects",
+  },
   licenses: {
     id: "labels.licenses",
     defaultMessage: "Licenses",
     description:
       "A license is part of a subscription or a one-time purchase to upgrade projects",
+  },
+  status: {
+    id: "labels.status",
+    defaultMessage: "Status",
   },
   published_files: {
     id: "labels.published_files",
@@ -363,6 +378,22 @@ export const labels = defineMessages({
     defaultMessage:
       "Collaborators are other users, who can access this project. They can view and edit the same files as you.",
   },
+  chat: {
+    id: "labels.chat",
+    defaultMessage: "Chat",
+    description: "Short label on a button to open a chatroom",
+  },
+  created: {
+    id: "labels.created",
+    defaultMessage: "Created",
+    description: "Short label for a field, which shows the creation date",
+  },
+  about: {
+    id: "labels.about",
+    defaultMessage: "About",
+    description:
+      "Title on a section or label on a button to show information 'about' something.",
+  },
   users: {
     id: "labels.users",
     defaultMessage: "Users",
@@ -412,9 +443,29 @@ export const labels = defineMessages({
     defaultMessage: "download",
     description: "download a file from the web",
   },
+  videos: {
+    id: "labels.videos",
+    defaultMessage: "Videos",
+  },
+  search: {
+    id: "labels.search",
+    defaultMessage: "Search",
+  },
+  close: {
+    id: "labels.close",
+    defaultMessage: "Close",
+  },
+  guide: {
+    id: "labels.guide",
+    defaultMessage: "Guide",
+  },
 });
 
 export const menu = defineMessages({
+  pause_resume: {
+    id: "menu.terminal.pause_resume",
+    defaultMessage: "{pause, select, true {Resume} other {Pause}}",
+  },
   file: {
     id: "menu.generic.file.label",
     defaultMessage: "File",
@@ -564,6 +615,16 @@ export const editor = defineMessages({
     id: "editor.latex.pdf_embed.title",
     defaultMessage: "PDF - Native",
   },
+  latex_source_code_label_name: {
+    id: "editor.latex.source_code.name",
+    defaultMessage: "LaTeX Source Code",
+    description: "Name of a LaTeX document editor",
+  },
+  latex_source_code_label_short: {
+    id: "editor.latex.source_code.short",
+    defaultMessage: "Source",
+    description: "Name of a LaTeX source document editor",
+  },
   latex_command_print_label: {
     id: "editor.latex.command.print.label",
     defaultMessage: "Print LaTeX Source",
@@ -586,10 +647,32 @@ export const editor = defineMessages({
     defaultMessage: "Editor Settings",
     description: "The name of the editor settings frame",
   },
+  guide_tooltip: {
+    id: "editor.guide_tooltip",
+    defaultMessage:
+      "Tool for creating, testing, and learning about Linux Terminal commands.",
+  },
+  clear_terminal_popconfirm_title: {
+    id: "editor.clear_terminal_popconfirm_title",
+    defaultMessage: "Clear this Terminal?",
+  },
+  clear_terminal_tooltip: {
+    id: "editor.clear_terminal_tooltip",
+    defaultMessage:
+      "Clearing this Linux Terminal frame terminates running programs, respawns the shell, and cleans up the display buffer.",
+  },
+  clear_terminal_popconfirm_confirm: {
+    id: "editor.clear_terminal_popconfirm_confirm",
+    defaultMessage: "Yes, clean up!",
+  },
 });
 
 export const jupyter = {
   editor: defineMessages({
+    snippets_tooltip: {
+      id: "jupyter.editor.snippets_tooltip",
+      defaultMessage: "Open a panel containing code snippets.",
+    },
     run_all_cells: {
       id: "jupyter.editor.run_all_cells.label",
       defaultMessage: "Run All Cells",

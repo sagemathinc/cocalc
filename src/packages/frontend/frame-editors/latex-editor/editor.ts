@@ -37,8 +37,8 @@ export const pdfjsCommands = set([
 
 const cm: EditorDescription = {
   type: "cm",
-  short: "Source",
-  name: "LaTeX Source Code",
+  short: editor.latex_source_code_label_short,
+  name: editor.latex_source_code_label_name,
   icon: "code",
   component: CodemirrorEditor,
   commands: set([
