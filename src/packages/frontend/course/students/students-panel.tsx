@@ -40,7 +40,6 @@ import {
 } from "../store";
 import * as util from "../util";
 import { Student, StudentNameDescription } from "./students-panel-student";
-import { HelpBox } from "../configuration/help-box";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
@@ -424,7 +423,10 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
           x.account_id != null
             ? x.first_name + " " + x.last_name
             : x.email_address;
-        const email = !include_name_search && (x.account_id != null) && x.email_address ? " (" + x.email_address + ")": "";
+        const email =
+          !include_name_search && x.account_id != null && x.email_address
+            ? " (" + x.email_address + ")"
+            : "";
         v.push(
           <option key={key} value={key} label={student_name + email}>
             {student_name + email}
@@ -772,15 +774,6 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
     function render_no_students(): Rendered {
       return (
         <div>
-          <div
-            style={{
-              margin: "30px auto",
-              fontSize: "12pt",
-              maxWidth: "800px",
-            }}
-          >
-            <HelpBox />
-          </div>
           <Alert
             type="info"
             style={{

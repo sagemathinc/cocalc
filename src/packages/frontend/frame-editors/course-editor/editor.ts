@@ -27,9 +27,9 @@ const commands = set([
   //"increase_font_size",
   "save",
   "time_travel",
+  "help",
 ]);
 
-//const buttons = set(["decrease_font_size", "increase_font_size"]);
 const buttons = undefined;
 
 const course_students: EditorDescription = {

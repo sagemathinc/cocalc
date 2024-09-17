@@ -25,7 +25,6 @@ import * as styles from "../styles";
 // CoCalc and course components
 import * as util from "../util";
 import { Handout } from "./handout";
-import { HelpBox } from "../configuration/help-box";
 
 interface HandoutsPanelReactProps {
   frame_id?: string;
@@ -184,15 +183,6 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
     function render_no_handouts(): Rendered {
       return (
         <div>
-          <div
-            style={{
-              margin: "30px auto",
-              fontSize: "12pt",
-              maxWidth: "800px",
-            }}
-          >
-            <HelpBox />
-          </div>
           <Alert
             type="info"
             style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}

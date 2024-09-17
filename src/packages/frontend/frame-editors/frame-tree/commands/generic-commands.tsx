@@ -986,9 +986,9 @@ addCommands({
   support: {
     alwaysShow: true,
     pos: 6,
-    group: "help-link",
+    group: "usergroup-add",
     icon: "medkit",
-    label: "Support Ticket",
+    label: "Contact Us!",
     button: labels.support,
     title:
       "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
@@ -1001,13 +1001,11 @@ addCommands({
     pos: 10,
     group: "help-link",
     icon: "youtube",
-    label: "Videos",
+    label: "YouTube Videos",
     button: "Videos",
     title: "Browse videos about CoCalc.",
     onClick: () => {
-      openNewTab(
-        "https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ",
-      );
+      openNewTab("https://www.youtube.com/@cocalc-cloud");
     },
   },
   [SEARCH_COMMANDS]: {

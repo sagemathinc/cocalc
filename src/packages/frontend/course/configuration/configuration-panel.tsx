@@ -5,7 +5,6 @@
 
 import { debounce } from "lodash";
 import { Card, Row, Col } from "antd";
-// React libraries and Components
 import {
   React,
   redux,
@@ -26,7 +25,6 @@ import {
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord, CourseStore } from "../store";
-import { HelpBox } from "./help-box";
 import { Nbgrader } from "./nbgrader";
 import { Parallel } from "./parallel";
 import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
@@ -261,8 +259,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             {render_nbgrader()}
           </Col>
           <Col md={12} style={{ padding: "15px" }}>
-            <HelpBox />
-            <br />
             {render_disable_students()}
             <br />
             {render_student_project_functionality()}

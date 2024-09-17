@@ -9,6 +9,7 @@ Course Frame Editor Actions
 
 import { FrameTree } from "../frame-tree/types";
 import { Actions, CodeEditorState } from "../code-editor/actions";
+import { open_new_tab } from "@cocalc/frontend/misc";
 
 interface CourseEditorState extends CodeEditorState {}
 
@@ -42,7 +43,7 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
   private init_changes_state(): void {
     const syncdb = this.course_actions.syncdb;
     syncdb.on("has-uncommitted-changes", (has_uncommitted_changes) =>
-      this.setState({ has_uncommitted_changes })
+      this.setState({ has_uncommitted_changes }),
     );
     syncdb.on("has-unsaved-changes", (has_unsaved_changes) => {
       this.setState({ has_unsaved_changes });
@@ -105,6 +106,10 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
     this.course_actions.syncdb.redo();
     this.course_actions.syncdb.commit();
   }
+
+  help = (): void => {
+    open_new_tab("https://doc.cocalc.com/teaching-instructors.html");
+  };
 }
 
 export { CourseEditorActions as Actions };
