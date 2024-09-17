@@ -6,7 +6,7 @@
 import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
-import { defineMessage, IntlShape } from "react-intl";
+import { defineMessage, IntlShape, useIntl } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -376,8 +376,11 @@ addCommands({
 
   clear: {
     group: "action",
-    button: "Clear",
-    label: "Clear Frame",
+    button: labels.clear,
+    label: defineMessage({
+      id: "command.generic.clear.label",
+      defaultMessage: "Clear Frame",
+    }),
     icon: <Icon unicode={0x2620} />,
     popconfirm: {
       title: "Clear this frame?",
@@ -386,9 +389,16 @@ addCommands({
 
   pause: {
     group: "action",
-    button: "Pause",
-    icon: "pause",
-    label: ({ props }) => {
+    button: ({ props, intl }) => (
+      <span>
+        {intl.formatMessage(menu.pause_resume, { pause: props.is_paused })}
+      </span>
+    ),
+    icon: ({ props }) => (props.is_paused ? "play" : "pause"),
+    label: ({ props, intl }) => {
+      const label = intl.formatMessage(menu.pause_resume, {
+        pause: props.is_paused,
+      });
       if (props.is_paused) {
         return (
           <div
@@ -399,13 +409,17 @@ addCommands({
               padding: "0 20px",
             }}
           >
-            Resume
+            {label}
           </div>
         );
+      } else {
+        return <span>{label}</span>;
       }
-      return <span>Pause</span>;
     },
-    title: "Pause this frame temporarily",
+    title: defineMessage({
+      id: "command.generic.pause.tooltip",
+      defaultMessage: "Temporarily pause output in this terminal.",
+    }),
     onClick: ({ props }) => {
       if (props.is_paused) {
         props.actions.unpause(props.id);
@@ -618,21 +632,37 @@ addCommands({
   },
   clean: {
     group: "build",
-    label: "Delete Aux Files",
-    title: "Delete all temporary files left around from builds",
+    label: defineMessage({
+      id: "command.generic.clean.label",
+      defaultMessage: "Delete Aux Files",
+      description: "Clean up auxiliary build files",
+    }),
+    title: defineMessage({
+      id: "command.generic.clean.title",
+      defaultMessage: "Delete all temporary files left around from builds",
+      description: "Clean up auxiliary build files",
+    }),
     icon: "trash",
   },
 
   rescan_latex_directive: {
     group: "scan",
-    label: "Scan for Build Directives",
-    title: (
-      <>
-        Rescan the document for build directives, starting{" "}
-        <code>'% !TeX program = xelatex, pdflatex, etc'</code> or{" "}
-        <code>'% !TeX cocalc = exact command line'</code>
-      </>
-    ),
+    label: defineMessage({
+      id: "command.generic.rescan_latex_directive.label",
+      defaultMessage: "Scan for Build Directives",
+    }),
+    title: ({ intl }) =>
+      intl.formatMessage(
+        {
+          id: "command.generic.rescan_latex_directive.title",
+          defaultMessage: `Rescan the LaTeX document for build directives.
+          This looks for lines starting with {code1} or {code2}.`,
+        },
+        {
+          code1: <code>'% !TeX program = xelatex, pdflatex, etc'</code>,
+          code2: <code>'% !TeX cocalc = exact command line'</code>,
+        },
+      ),
     icon: "reload",
   },
   sync: {
@@ -845,8 +875,14 @@ addCommands({
   },
   download_pdf: {
     group: "export",
-    label: "Download PDF",
-    title: "Download the PDF file",
+    label: defineMessage({
+      id: "menu.generic.download_pdf.label",
+      defaultMessage: "Download PDF",
+    }),
+    title: defineMessage({
+      id: "menu.generic.download_pdf.tooltip",
+      defaultMessage: "Download the PDF file",
+    }),
     icon: "cloud-download",
   },
   upload: {
@@ -975,8 +1011,13 @@ addCommands({
     pos: 5,
     group: "help-link",
     icon: "comment",
-    label: "Chat With Collaborators or AI",
-    button: "Chat",
+    label: defineMessage({
+      id: "command.generic.chat.label",
+      defaultMessage: "Chat with Collaborators or AI",
+      description:
+        "Opens a chatroom next to the document to chat with other users (collaborators) or an AI chatbot",
+    }),
+    button: labels.chat,
     title:
       "Open chat on the side of this file for chatting with project collaborators or AI about this file.",
     onClick: ({ props }) => {
@@ -988,10 +1029,18 @@ addCommands({
     pos: 6,
     group: "help-link",
     icon: "users",
-    label: "Contact Us!",
+    label: defineMessage({
+      id: "command.generic.support.label",
+      defaultMessage: "Contact Us!",
+      description: "Contact support by creating a support ticket to get help",
+    }),
     button: labels.support,
-    title:
-      "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
+    title: defineMessage({
+      id: "command.generic.support.tooltip",
+      defaultMessage:
+        "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
+      description: "Contact support by creating a support ticket to get help",
+    }),
     onClick: () => {
       openSupportTab();
     },
@@ -1001,9 +1050,12 @@ addCommands({
     pos: 10,
     group: "help-link",
     icon: "youtube",
-    label: "YouTube Videos",
-    button: "Videos",
-    title: "Browse videos about CoCalc.",
+    label: labels.videos,
+    button: labels.videos,
+    title: defineMessage({
+      id: "command.generic.videos.tooltip",
+      defaultMessage: "Browse videos about CoCalc.",
+    }),
     onClick: () => {
       openNewTab("https://www.youtube.com/@cocalc-cloud");
     },
@@ -1013,7 +1065,12 @@ addCommands({
     alwaysShow: true,
     pos: 0,
     group: "search-commands",
-    title: "Search through all commands for this document frame.",
+    title: defineMessage({
+      id: "command.generic.search_commands.tooltip",
+      defaultMessage: "Search through all commands for this document frame.",
+      description:
+        "Menu entry, where users can search through all available menu commands",
+    }),
     label: ({ helpSearch, setHelpSearch }) => {
       return (
         <SearchBox helpSearch={helpSearch} setHelpSearch={setHelpSearch} />
@@ -1298,7 +1355,9 @@ function fileAction(action) {
 }
 
 function SearchBox({ setHelpSearch, helpSearch }) {
+  const intl = useIntl();
   const didFocus = useRef<boolean>(false);
+
   useEffect(() => {
     return () => {
       if (didFocus.current) {
@@ -1307,10 +1366,11 @@ function SearchBox({ setHelpSearch, helpSearch }) {
       }
     };
   }, []);
+
   return (
     <Input.Search
       autoFocus
-      placeholder="Search"
+      placeholder={intl.formatMessage(labels.search)}
       allowClear
       value={helpSearch}
       onChange={(e) => setHelpSearch(e.target.value)}

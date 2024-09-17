@@ -37,6 +37,10 @@ export async function computeServerAction(opts: {
   await api("compute/compute-server-action", opts);
 }
 
+export async function getServers(opts: { id?: number; project_id: string }) {
+  return await api("compute/get-servers", opts);
+}
+
 export async function getServerState(id: number) {
   return await api("compute/get-server-state", { id });
 }
