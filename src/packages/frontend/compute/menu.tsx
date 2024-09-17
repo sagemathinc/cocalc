@@ -17,6 +17,7 @@ import { setServerConfiguration } from "@cocalc/frontend/compute/api";
 import ShowError from "@cocalc/frontend/components/error";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { setTemplate } from "@cocalc/frontend/compute/api";
+import CloneModal from "./clone";
 
 function getServer({ id, project_id }) {
   return redux
@@ -259,6 +260,12 @@ function getItems({
     label: is_owner ? "Settings" : "Details...",
   };
 
+  const clone = {
+    key: "clone",
+    icon: <Icon name="copy" />,
+    label: "Clone...",
+  };
+
   return [
     titleAndColor,
     //     {
@@ -287,6 +294,7 @@ function getItems({
     },
     settings,
     options,
+    clone,
     {
       type: "divider",
     },
@@ -436,6 +444,12 @@ export default function Menu({
           case "settings":
             setModal(
               <EditModal id={id} project_id={project_id} close={close} />,
+            );
+            break;
+
+          case "clone":
+            setModal(
+              <CloneModal id={id} project_id={project_id} close={close} />,
             );
             break;
 
