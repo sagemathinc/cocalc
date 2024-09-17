@@ -38,6 +38,12 @@ export function getApps(image) {
   if (IMAGES.getIn([image, "jupyterKernels"]) === false) {
     apps = { ...apps, jupyterlab: undefined };
   }
+  if (apps["xpra"]) {
+    if (!apps["xpra"].tip) {
+      apps["xpra"].tip =
+        "Launch an X11 Linux Graphical Desktop environment running directly on the compute server.";
+    }
+  }
   return apps;
 }
 
@@ -103,7 +109,7 @@ function getItems({
   };
   const xpra = {
     key: "xpra",
-    label: "X11 Desktop",
+    label: "Desktop",
     icon: <Icon name="desktop" />,
     disabled:
       apps["xpra"] == null ||
