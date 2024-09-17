@@ -986,8 +986,8 @@ addCommands({
   support: {
     alwaysShow: true,
     pos: 6,
-    group: "usergroup-add",
-    icon: "medkit",
+    group: "help-link",
+    icon: "users",
     label: "Contact Us!",
     button: labels.support,
     title:

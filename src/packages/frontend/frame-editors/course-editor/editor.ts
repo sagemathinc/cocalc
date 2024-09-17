@@ -20,6 +20,8 @@ import {
   Actions,
 } from "./course-panels";
 import { EditorDescription } from "../frame-tree/types";
+import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import { menu } from "@cocalc/frontend/i18n";
 
 const commands = set([
   // commented out for now since broken: See https://github.com/sagemathinc/cocalc/issues/7235
@@ -31,6 +33,45 @@ const commands = set([
 ]);
 
 const buttons = undefined;
+
+const COURSE_MENUS = {
+  edit: {
+    label: menu.edit,
+    pos: 1,
+    entries: {
+      students: ["course-add-student"],
+    },
+  },
+};
+
+const COMMANDS = {
+  "course-add-student": {
+    pos: 1,
+    icon: "users",
+    label: "Add Students",
+    button: "+Student",
+    title: "Add one or more students to this course.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_students");
+    },
+  },
+};
+
+function initMenus() {
+  const names = addEditorMenus({
+    prefix: "course",
+    editorMenus: COURSE_MENUS,
+    getCommand: (name) => {
+      return COMMANDS[name];
+    },
+  });
+  for (const name of names) {
+    commands[name] = true;
+  }
+}
+
+initMenus();
 
 const course_students: EditorDescription = {
   type: "course-students",

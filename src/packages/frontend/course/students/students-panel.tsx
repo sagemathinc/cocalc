@@ -8,27 +8,17 @@ import {
   React,
   Rendered,
   useActions,
-  useEffect,
-  useIsMountedRef,
   useRedux,
-  useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import {
-  ErrorDisplay,
-  Icon,
-  SearchInput,
-  Gap,
-  Tip,
-} from "@cocalc/frontend/components";
+import { Icon, SearchInput, Gap, Tip } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as misc from "@cocalc/util/misc";
 import { is_different, search_match, search_split } from "@cocalc/util/misc";
-import { Alert, Button, Col, Form, Input, Row, Checkbox, Flex } from "antd";
+import { Alert, Col, Row } from "antd";
 import { Set } from "immutable";
-import { concat, isEqual, keys, sortBy } from "lodash";
+import { isEqual } from "lodash";
 import { CourseActions } from "../actions";
 import {
   AssignmentsMap,
@@ -40,6 +30,7 @@ import {
 } from "../store";
 import * as util from "../util";
 import { Student, StudentNameDescription } from "./students-panel-student";
+import AddStudents from "./add-students";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
@@ -70,21 +61,16 @@ function isSame(prev, next) {
 }
 
 export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
-  (props: StudentsPanelReactProps) => {
-    const {
-      frame_id,
-      name,
-      redux,
-      project_id,
-      students,
-      user_map,
-      project_map,
-      assignments,
-    } = props;
-
-    const addSelectRef = useRef<HTMLSelectElement>(null);
-    const studentAddInputRef = useRef(null);
-
+  ({
+    frame_id,
+    name,
+    redux,
+    project_id,
+    students,
+    user_map,
+    project_map,
+    assignments,
+  }: StudentsPanelReactProps) => {
     const actions = useActions<CourseActions>({ name });
 
     const expanded_students: Set<string> | undefined = useRedux(
@@ -104,21 +90,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       "nbgrader_run_info",
     );
 
-    const isMounted = useIsMountedRef();
-
-    const [err, set_err] = useState<string | undefined>(undefined);
     const [search, set_search] = useState<string>("");
-    const [add_search, set_add_search] = useState<string>("");
-    const [add_searching, set_add_searching] = useState<boolean>(false);
-    const [include_name_search, set_include_name_search] =
-      useState<boolean>(false);
-    const [add_select, set_add_select] = useState<any>(undefined);
-    const [existing_students, set_existing_students] = useState<
-      any | undefined
-    >(undefined);
-    const [selected_option_nodes, set_selected_option_nodes] = useState<
-      any | undefined
-    >(undefined);
     // the type is copy/paste from what TS infers in the util.parse_students function
     const [students_unordered, set_students_unordered] = useState<
       {
@@ -137,14 +109,7 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
         last_email_invite?: number;
       }[]
     >([]);
-    const [selected_option_num, set_selected_option_num] = useState<number>(0);
     const [show_deleted, set_show_deleted] = useState<boolean>(false);
-    const [studentInputFocused, setStudentInputFocused] =
-      useState<boolean>(false);
-
-    useEffect(() => {
-      set_selected_option_num(selected_option_nodes?.length ?? 0);
-    }, [selected_option_nodes]);
 
     // this updates a JS list from the ever changing user_map immutableMap
     React.useEffect(() => {
@@ -229,380 +194,10 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
       active_student_sort,
     ]);
 
-    async function do_add_search(e): Promise<void> {
-      // Search for people to add to the course
-      if (e != null) {
-        e.preventDefault();
-      }
-      if (students == null) return;
-      // already searching
-      if (add_searching) return;
-      const search = add_search.trim();
-      if (search.length === 0) {
-        set_err(undefined);
-        set_add_select(undefined);
-        set_existing_students(undefined);
-        set_selected_option_nodes(undefined);
-        return;
-      }
-      set_add_searching(true);
-      set_add_select(undefined);
-      set_existing_students(undefined);
-      set_selected_option_nodes(undefined);
-      let select;
-      try {
-        select = await webapp_client.users_client.user_search({
-          query: add_search,
-          limit: 150,
-          only_email: !include_name_search,
-        });
-      } catch (err) {
-        if (!isMounted) return;
-        set_add_searching(false);
-        set_err(err);
-        set_add_select(undefined);
-        set_existing_students(undefined);
-        return;
-      }
-      if (!isMounted) return;
-
-      // Get the current collaborators/owners of the project that
-      // contains the course.
-      const users = redux.getStore("projects").get_users(project_id);
-      // Make a map with keys the email or account_id is already part of the course.
-      const already_added: { [key: string]: boolean } = (users?.toJS() ??
-        {}) as any; // start with collabs on project
-      // also track **which** students are already part of the course
-      const existing_students: any = {};
-      existing_students.account = {};
-      existing_students.email = {};
-      // For each student in course add account_id and/or email_address:
-      students.map((val) => {
-        for (const n of ["account_id", "email_address"] as const) {
-          const k = val.get(n);
-          if (k != null) {
-            already_added[k] = true;
-          }
-        }
-      });
-      // This function returns true if we shouldn't list the given account_id or email_address
-      // in the search selector for adding to the class.
-      const exclude_add = (account_id, email_address): boolean => {
-        const aa = already_added[account_id] || already_added[email_address];
-        if (aa) {
-          if (account_id != null) {
-            existing_students.account[account_id] = true;
-          }
-          if (email_address != null) {
-            existing_students.email[email_address] = true;
-          }
-        }
-        return aa;
-      };
-      const select2 = select.filter(
-        (x) => !exclude_add(x.account_id, x.email_address),
-      );
-      // Put at the front of the list any email addresses not known to CoCalc (sorted in order) and also not invited to course.
-      // NOTE (see comment on https://github.com/sagemathinc/cocalc/issues/677): it is very important to pass in
-      // the original select list to nonclude_emails below, **NOT** select2 above.  Otherwise, we end up
-      // bringing back everything in the search, which is a bug.
-      const unknown = noncloud_emails(select, add_search).filter(
-        (x) => !exclude_add(null, x.email_address),
-      );
-      const select3 = concat(unknown, select2);
-      // We are no longer searching, but now show an options selector.
-      set_add_searching(false);
-      set_add_select(select3);
-      set_existing_students(existing_students);
-    }
-
-    function student_add_button() {
-      const disabled = add_search?.trim().length === 0;
-      const icon = add_searching ? (
-        <Icon name="cocalc-ring" spin />
-      ) : (
-        <Icon name="search" />
-      );
-
-      return (
-        <Flex vertical={true} align="start" gap={5}>
-          <Button onClick={do_add_search} icon={icon} disabled={disabled}>
-            Search (shift+enter)
-          </Button>
-          {!disabled && (
-            <Checkbox
-              checked={include_name_search}
-              onChange={() => {
-                set_include_name_search(!include_name_search);
-              }}
-            >
-              Search by name too
-            </Checkbox>
-          )}
-        </Flex>
-      );
-    }
-
-    function add_selector_changed(e): void {
-      const opts = e.target.selectedOptions;
-      // It's important to make a shallow copy, because somehow this array is modified in-place
-      // and hence this call to set the array doesn't register a change (e.g. selected_option_num stays in sync)
-      set_selected_option_nodes([...opts]);
-    }
-
-    function add_selected_students(options) {
-      const emails = {};
-      for (const x of add_select) {
-        if (x.account_id != null) {
-          emails[x.account_id] = x.email_address;
-        }
-      }
-      const students: any[] = [];
-      const selections: any[] = [];
-
-      // first check, if no student is selected and there is just one in the list
-      if (
-        (selected_option_nodes == null ||
-          selected_option_nodes?.length === 0) &&
-        options?.length === 1
-      ) {
-        selections.push(options[0].key);
-      } else {
-        for (const option of selected_option_nodes) {
-          selections.push(option.getAttribute("value"));
-        }
-      }
-
-      for (const y of selections) {
-        if (misc.is_valid_uuid_string(y)) {
-          students.push({
-            account_id: y,
-            email_address: emails[y],
-          });
-        } else {
-          students.push({ email_address: y });
-        }
-      }
-      actions.students.add_students(students);
-      clear();
-    }
-
-    function add_all_students() {
-      const students: any[] = [];
-      for (const entry of add_select) {
-        const { account_id } = entry;
-        if (misc.is_valid_uuid_string(account_id)) {
-          students.push({
-            account_id,
-            email_address: entry.email_address,
-          });
-        } else {
-          students.push({ email_address: entry.email_address });
-        }
-      }
-      actions.students.add_students(students);
-      clear();
-    }
-
-    function clear(): void {
-      set_err(undefined);
-      set_add_select(undefined);
-      set_selected_option_nodes(undefined);
-      set_add_search("");
-      set_existing_students(undefined);
-    }
-
-    function get_add_selector_options() {
-      const v: any[] = [];
-      const seen = {};
-      for (const x of add_select) {
-        const key = x.account_id != null ? x.account_id : x.email_address;
-        if (seen[key]) continue;
-        seen[key] = true;
-        const student_name =
-          x.account_id != null
-            ? x.first_name + " " + x.last_name
-            : x.email_address;
-        const email =
-          !include_name_search && x.account_id != null && x.email_address
-            ? " (" + x.email_address + ")"
-            : "";
-        v.push(
-          <option key={key} value={key} label={student_name + email}>
-            {student_name + email}
-          </option>,
-        );
-      }
-      return v;
-    }
-
-    function render_add_selector() {
-      if (add_select == null) return;
-      const options = get_add_selector_options();
-      return (
-        <>
-          <Form.Item style={{ margin: "5px 0 15px 0" }}>
-            <select
-              style={{
-                width: "100%",
-                border: "1px solid lightgray",
-                padding: "4px 11px",
-              }}
-              multiple
-              ref={addSelectRef}
-              size={8}
-              onChange={add_selector_changed}
-            >
-              {options}
-            </select>
-          </Form.Item>
-          <Form.Item>
-            {render_cancel()}
-            <Gap />
-            {render_add_selector_button(options)}
-            <Gap />
-            {render_add_all_students_button(options)}
-          </Form.Item>
-        </>
-      );
-    }
-
-    function get_add_selector_button_text(existing) {
-      switch (selected_option_num) {
-        case 0:
-          if (existing) {
-            return "Student already added";
-          } else {
-            return "Select student(s)";
-          }
-        case 1:
-          return "Add student";
-        default:
-          switch (selected_option_num) {
-            case 0:
-              return "Select student above";
-            case 1:
-              return "Add selected student";
-            default:
-              return `Add ${selected_option_num} students`;
-          }
-      }
-    }
-
-    function render_add_selector_button(options) {
-      let existing;
-      const es = existing_students;
-      if (es != null) {
-        existing = keys(es.email).length + keys(es.account).length > 0;
-      } else {
-        // es not defined when user clicks the close button on the warning.
-        existing = 0;
-      }
-      const btn_text = get_add_selector_button_text(existing);
-      const disabled =
-        options.length === 0 ||
-        (options.length >= 1 && selected_option_num === 0);
-      return (
-        <Button
-          onClick={() => add_selected_students(options)}
-          disabled={disabled}
-        >
-          <Icon name="user-plus" /> {btn_text}
-        </Button>
-      );
-    }
-
-    function render_add_all_students_button(options) {
-      return (
-        <Button
-          onClick={() => add_all_students()}
-          disabled={options.length === 0}
-        >
-          <Icon name={"user-plus"} /> Add all students
-        </Button>
-      );
-    }
-
-    function render_cancel(): Rendered {
-      return <Button onClick={() => clear()}>Cancel</Button>;
-    }
-
-    function render_error_display() {
-      if (err) {
-        return (
-          <ErrorDisplay
-            error={misc.trunc(err, 1024)}
-            onClose={() => set_err(undefined)}
-          />
-        );
-      } else if (existing_students != null) {
-        const existing: any[] = [];
-        for (const email in existing_students.email) {
-          existing.push(email);
-        }
-        for (const account_id in existing_students.account) {
-          const user = user_map.get(account_id);
-          // user could be null, since there is no guaranteee about what is in user_map.
-          if (user != null) {
-            existing.push(`${user.get("first_name")} ${user.get("last_name")}`);
-          } else {
-            existing.push(`Student with account ${account_id}`);
-          }
-        }
-        if (existing.length > 0) {
-          const existingStr = existing.join(", ");
-          const msg = `Already added (or deleted) students or project collaborators: ${existingStr}`;
-          return (
-            <ErrorDisplay
-              bsStyle="info"
-              error={msg}
-              onClose={() => set_existing_students(undefined)}
-            />
-          );
-        }
-      }
-    }
-
-    function render_error() {
-      const ed = render_error_display();
-      if (ed != null) {
-        return (
-          <Col md={24} style={{ marginBottom: "20px" }}>
-            {ed}
-          </Col>
-        );
-      }
-    }
-
-    function student_add_input_onChange() {
-      const value =
-        (studentAddInputRef?.current as any).resizableTextArea?.textArea
-          .value ?? "";
-      set_add_select(undefined);
-      set_add_search(value);
-    }
-
-    function student_add_input_onKeyDown(e) {
-      // ESC key
-      if (e.keyCode === 27) {
-        set_add_search("");
-        set_add_select(undefined);
-
-        // Shift+Return
-      } else if (e.keyCode === 13 && e.shiftKey) {
-        e.preventDefault();
-        student_add_input_onChange();
-        do_add_search(e);
-      }
-    }
-
     function render_header(num_omitted) {
       // TODO: get rid of all of the bootstrap form crap below.  I'm basically
       // using inline styles to undo the spacing screwups they cause, so it doesn't
       // look like total crap.
-
-      const rows =
-        add_search.trim().length == 0 && !studentInputFocused ? 1 : 4;
 
       return (
         <div>
@@ -620,33 +215,12 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
               ) : undefined}
             </Col>
             <Col md={11}>
-              <Form onFinish={do_add_search} style={{ marginLeft: "15px" }}>
-                <Row>
-                  <Col md={18}>
-                    <Form.Item style={{ margin: "0 0 5px 0" }}>
-                      <Input.TextArea
-                        ref={studentAddInputRef}
-                        placeholder={`Add students by ${
-                          include_name_search ? "names or " : ""
-                        } email addresses...`}
-                        value={add_search}
-                        rows={rows}
-                        onChange={() => student_add_input_onChange()}
-                        onKeyDown={(e) => student_add_input_onKeyDown(e)}
-                        onFocus={() => setStudentInputFocused(true)}
-                        onBlur={() => setStudentInputFocused(false)}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col md={6}>
-                    <div style={{ marginLeft: "15px", width: "100%" }}>
-                      {student_add_button()}
-                    </div>
-                  </Col>
-                  <Col md={24}>{render_add_selector()}</Col>
-                  {render_error()}
-                </Row>
-              </Form>
+              <AddStudents
+                name={name}
+                students={students}
+                user_map={user_map}
+                project_id={project_id}
+              />
             </Col>
           </Row>
         </div>
@@ -853,24 +427,3 @@ export const StudentsPanel: React.FC<StudentsPanelReactProps> = React.memo(
   },
   isSame,
 );
-
-// Given a list v of user_search results, and a search string s,
-// return entries for each email address not in v, in order.
-function noncloud_emails(v, s) {
-  const { email_queries } = misc.parse_user_search(s);
-
-  const result_emails = misc.dict(
-    v
-      .filter((r) => r.email_address != null)
-      .map((r) => [r.email_address, true]),
-  );
-
-  return sortBy(
-    email_queries
-      .filter((r) => !result_emails[r])
-      .map((r) => {
-        return { email_address: r };
-      }),
-    "email_address",
-  );
-}
