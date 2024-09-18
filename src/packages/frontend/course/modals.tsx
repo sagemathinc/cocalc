@@ -3,14 +3,18 @@ import type { StudentsMap } from "./store";
 import type { UserMap } from "@cocalc/frontend/todo-types";
 import AddStudents from "@cocalc/frontend/course/students/add-students";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { ReconfigureAllProjects } from "@cocalc/frontend/course/configuration/actions-panel";
 
 interface Props {
+  frameActions;
   actions;
   modal?: string;
   name: string;
   students?: StudentsMap;
   user_map?: UserMap;
   project_id;
+  configuring_projects?: boolean;
+  reinviting_students?: boolean;
 }
 
 export default function Modals(props: Props) {
@@ -19,30 +23,47 @@ export default function Modals(props: Props) {
     return null;
   }
   const close = () => {
-    props.actions.setState({ modal: "" });
+    props.frameActions.setState({ modal: "" });
   };
-  if (modal == "add-students") {
-    return (
-      <Modal
-        onCancel={close}
-        onOk={close}
-        cancelButtonProps={{ style: { display: "none" } }}
-        okText="Close"
-        open
-        title={
+  const { title, Body, icon } = getModal(modal);
+
+  return (
+    <Modal
+      onCancel={close}
+      onOk={close}
+      cancelButtonProps={{ style: { display: "none" } }}
+      okText="Close"
+      open
+      title={
+        title ? (
           <>
-            <Icon name="users" /> Add Students
+            {icon && <Icon name={icon} />} {title}
           </>
-        }
-        width={800}
-      >
-        <AddStudents {...props} students={students} user_map={user_map} />
-      </Modal>
-    );
-  } else {
-    return (
-      <Alert type="warning" message={<>BUG -- Unknown modal: {modal}</>} />
-    );
-  }
+        ) : undefined
+      }
+      width={800}
+    >
+      <Body {...props} students={students} user_map={user_map} />
+    </Modal>
+  );
   return null;
+}
+
+function getModal(modal: string) {
+  switch (modal) {
+    case "add-students":
+      return { Body: AddStudents, title: "Add Students", icon: "users" };
+    case "reconfigure-all-projects":
+      return {
+        Body: ReconfigureAllProjects,
+      };
+    default:
+      return {
+        Body: () => (
+          <Alert type="warning" message={<>BUG -- Unknown modal: {modal}</>} />
+        ),
+        title: "Error",
+        icon: "bug",
+      };
+  }
 }

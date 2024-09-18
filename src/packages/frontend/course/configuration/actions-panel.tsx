@@ -100,34 +100,6 @@ export const ActionsPanel: React.FC<Props> = React.memo(
       );
     }
 
-    function render_configure_all_projects(): Rendered {
-      return (
-        <Card
-          title={
-            <>
-              <Icon name="envelope" /> Reconfigure all Projects
-            </>
-          }
-        >
-          Ensure all projects have the correct students and TA's, titles and
-          descriptions set, etc. This will also resend any outstanding email
-          invitations.
-          <hr />
-          <Button
-            disabled={configuring_projects}
-            onClick={() => {
-              actions.configuration.configure_all_projects();
-            }}
-          >
-            {configuring_projects ? (
-              <Icon name="cocalc-ring" spin />
-            ) : undefined}{" "}
-            Reconfigure all Projects
-          </Button>
-        </Card>
-      );
-    }
-
     function render_resend_outstanding_email_invites(): Rendered {
       return (
         <Card
@@ -233,7 +205,10 @@ export const ActionsPanel: React.FC<Props> = React.memo(
             {render_export_grades()}
           </Col>
           <Col md={12} style={{ padding: "15px" }}>
-            {render_configure_all_projects()}
+            <ReconfigureAllProjects
+              configuring_projects={configuring_projects}
+              actions={actions}
+            />
             <br />
             {render_resend_outstanding_email_invites()}
             <br />
@@ -252,3 +227,35 @@ export const ActionsPanel: React.FC<Props> = React.memo(
     );
   },
 );
+
+export function ReconfigureAllProjects({
+  actions,
+  configuring_projects,
+}: {
+  actions;
+  configuring_projects?: boolean;
+}) {
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="envelope" /> Reconfigure all Projects
+        </>
+      }
+    >
+      Ensure all projects have the correct students and TA's, titles and
+      descriptions set, etc. This will also resend any outstanding email
+      invitations.
+      <hr />
+      <Button
+        disabled={configuring_projects}
+        onClick={() => {
+          actions.configuration.configure_all_projects();
+        }}
+      >
+        {configuring_projects ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
+        Reconfigure all Projects
+      </Button>
+    </Card>
+  );
+}

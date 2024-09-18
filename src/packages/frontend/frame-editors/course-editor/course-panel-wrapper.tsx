@@ -216,12 +216,15 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
         className="smc-vfill"
       >
         <Modals
-          actions={actions}
+          frameActions={actions}
+          actions={redux.getActions(name)}
           modal={modal}
           name={name}
           students={students}
           user_map={user_map}
           project_id={project_id}
+          configuring_projects={configuring_projects}
+          reinviting_students={reinviting_students}
         />
         {render_panel()}
       </div>

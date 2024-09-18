@@ -42,6 +42,13 @@ const COURSE_MENUS = {
       students: ["course-add-student"],
     },
   },
+  action: {
+    label: "Actions",
+    pos: 1.2,
+    entries: {
+      projects: ["course-reconfigure-all-projects"],
+    },
+  },
 };
 
 const COMMANDS = {
@@ -55,6 +62,17 @@ const COMMANDS = {
       const { id, actions } = props;
       actions.set_frame_type(id, "course_students");
       actions.setModal("add-students");
+    },
+  },
+  "course-reconfigure-all-projects": {
+    icon: "mail",
+    label: "Reconfigure all Projects",
+    button: "Reconfigure",
+    title: "Update all projects with correct students, descriptions, etc.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("reconfigure-all-projects");
     },
   },
 };
