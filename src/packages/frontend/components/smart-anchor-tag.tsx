@@ -20,7 +20,11 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 import { isCoCalcURL, parseCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { filename_extension, path_split } from "@cocalc/util/misc";
+import {
+  containingPath,
+  filename_extension,
+  path_split,
+} from "@cocalc/util/misc";
 import { TITLE as SERVERS_TITLE } from "../project/servers";
 import { alert_message } from "@cocalc/frontend/alerts";
 
@@ -345,7 +349,8 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        const url = new URL("http://dummy/" + href);
+        const dir = containingPath(path);
+        const url = new URL("http://dummy/" + join(dir, href));
         const fragmentId = Fragment.decode(url.hash);
         const hrefPlain = url.pathname.slice(1);
         let target;
@@ -355,11 +360,7 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
         } else {
           // different file in the same project, with link being relative
           // to current path.
-          target = join(
-            "files",
-            path ? path_split(path).head : "",
-            decodeURI(hrefPlain),
-          );
+          target = join("files", decodeURI(hrefPlain));
         }
         loadTarget(
           "projects",
