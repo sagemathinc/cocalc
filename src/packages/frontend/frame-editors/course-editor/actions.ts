@@ -11,7 +11,9 @@ import { FrameTree } from "../frame-tree/types";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { open_new_tab } from "@cocalc/frontend/misc";
 
-interface CourseEditorState extends CodeEditorState {}
+export interface CourseEditorState extends CodeEditorState {
+  modal?: string;
+}
 
 import {
   CourseActions,
@@ -109,6 +111,10 @@ export class CourseEditorActions extends Actions<CourseEditorState> {
 
   help = (): void => {
     open_new_tab("https://doc.cocalc.com/teaching-instructors.html");
+  };
+
+  setModal = (modal: string) => {
+    this.setState({ modal });
   };
 }
 

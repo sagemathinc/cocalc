@@ -54,6 +54,7 @@ const COMMANDS = {
     onClick: ({ props }) => {
       const { id, actions } = props;
       actions.set_frame_type(id, "course_students");
+      actions.setModal("add-students");
     },
   },
 };

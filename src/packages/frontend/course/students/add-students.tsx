@@ -9,8 +9,8 @@ import {
   useActions,
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
-import { Button, Col, Form, Input, Row, Checkbox, Flex } from "antd";
-import { ErrorDisplay, Icon, Gap } from "@cocalc/frontend/components";
+import { Button, Col, Form, Input, Row, Checkbox, Flex, Space } from "antd";
+import { ErrorDisplay, Icon } from "@cocalc/frontend/components";
 import type { StudentsMap } from "../store";
 import type { UserMap } from "@cocalc/frontend/todo-types";
 import {
@@ -286,13 +286,11 @@ export default function AddStudents({
             {options}
           </select>
         </Form.Item>
-        <Form.Item>
+        <Space>
           {render_cancel()}
-          <Gap />
           {render_add_selector_button(options)}
-          <Gap />
           {render_add_all_students_button(options)}
-        </Form.Item>
+        </Space>
       </>
     );
   }
