@@ -848,7 +848,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
                   style={{ float: "right" }}
                   onClick={() => setShowMainButtonsPopover(false)}
                 >
-                  Close
+                  {intl.formatMessage(labels.close)}
                 </Button>
               </div>
               {renderButtonBar(true)}

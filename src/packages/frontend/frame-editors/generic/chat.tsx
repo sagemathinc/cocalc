@@ -10,6 +10,7 @@ import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { initChat } from "@cocalc/frontend/chat/register";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { labels } from "@cocalc/frontend/i18n";
 import { hidden_meta_file, set } from "@cocalc/util/misc";
 import { EditorDescription } from "../frame-tree/types";
 
@@ -48,8 +49,8 @@ function Chat({ font_size }: Props) {
 
 export const chat: EditorDescription = {
   type: "chat",
-  short: "Chat",
-  name: "Chat",
+  short: labels.chat,
+  name: labels.chat,
   icon: "comment",
   commands: set([
     "decrease_font_size",

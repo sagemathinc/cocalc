@@ -220,7 +220,19 @@ const FORMAT_SPEC = {
       description: "a quoted text in a text document",
     }),
   },
-  table: { icon: "table", label: "Table", title: "Insert a table" },
+  table: {
+    icon: "table",
+    label: defineMessage({
+      id: "command.format.table.label",
+      defaultMessage: "Table",
+      description: "a table text in a text document",
+    }),
+    title: defineMessage({
+      id: "command.format.table.tooltip",
+      defaultMessage: "Insert a table",
+      description: "a table text in a text document",
+    }),
+  },
   horizontalRule: {
     label: defineMessage({
       id: "command.format.horizontalRule.label",
@@ -388,7 +400,11 @@ const FORMAT_MENUS = {
           icon: "text-height",
           isVisible: "format_action", // todo
           name: "font-size",
-          label: "Size",
+          label: defineMessage({
+            id: "command.format.font_size.label",
+            defaultMessage: "Size",
+            description: "change the font size in a text document",
+          }),
           children: FONT_SIZES.map((size) => {
             return {
               name: `${size}`,
@@ -407,7 +423,11 @@ const FORMAT_MENUS = {
           icon: "font",
           isVisible: "format_action", // todo
           name: "font-family",
-          label: "Family",
+          label: defineMessage({
+            id: "command.format.font_family.label",
+            defaultMessage: "Family",
+            description: "change the font family in a text document",
+          }),
           children: FONT_FACES.map((family) => {
             return {
               name: family,
@@ -422,7 +442,11 @@ const FORMAT_MENUS = {
           icon: "header",
           isVisible: "format_action", // todo
           name: "header",
-          label: "Heading",
+          label: defineMessage({
+            id: "command.format.font_heading.label",
+            defaultMessage: "Heading",
+            description: "change the heading in a text document",
+          }),
           children: range(1, 7).map((heading) => {
             return {
               name: `heading-${heading}`,
@@ -436,7 +460,11 @@ const FORMAT_MENUS = {
           icon: "colors",
           isVisible: "format_action",
           name: "color",
-          label: "Color",
+          label: defineMessage({
+            id: "command.format.font_color.label",
+            defaultMessage: "Color",
+            description: "change the font color in a text document",
+          }),
           children: [
             {
               stayOpenOnClick: true,
@@ -462,7 +490,11 @@ const FORMAT_MENUS = {
           icon: "text",
           isVisible: "format_action",
           name: "text",
-          label: "Text",
+          label: defineMessage({
+            id: "command.format.font_alignment.label",
+            defaultMessage: "Alignment",
+            description: "change the paragraph alignment in a text document",
+          }),
           children: [
             "justifyleft",
             "justifycenter",
