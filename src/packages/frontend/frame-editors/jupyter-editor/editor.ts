@@ -369,6 +369,7 @@ const JUPYTER_MENUS = {
             "cell toolbar metadata",
             "cell toolbar attachments",
             "cell toolbar tags",
+            "cell toolbar ids",
           ],
         },
         {

@@ -418,6 +418,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
+  setCellId = (id: string, newId: string, save = true) => {
+    let cell = this.store.getIn(["cells", id])?.toJS();
+    if (cell == null) {
+      return;
+    }
+    cell.id = newId;
+    this.syncdb.delete({ type: "cell", id });
+    this.syncdb.set(cell);
+    if (save) {
+      this.syncdb.commit();
+    }
+  };
+
   clear_selected_outputs = () => {
     this.deprecated("clear_selected_outputs");
   };
