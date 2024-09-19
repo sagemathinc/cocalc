@@ -5,15 +5,13 @@
 
 // 3rd Party Libraries
 import { markdown_to_html } from "../index";
-import { Button, ButtonToolbar, FormControl, FormGroup } from "react-bootstrap";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { Icon } from "@cocalc/frontend/components/icon";
-
+import { Button, Input, Space } from "antd";
 // Internal Libraries
 import {
   Component,
   React,
-  ReactDOM,
   rclass,
   redux,
   rtypes,
@@ -30,11 +28,11 @@ export function init(): void {
   }
   redux.createStore<MarkdownWidgetStoreState, MarkdownWidgetStore>(
     info.name,
-    MarkdownWidgetStore
+    MarkdownWidgetStore,
   );
   redux.createActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(
     info.name,
-    MarkdownWidgetActions
+    MarkdownWidgetActions,
   );
 }
 
@@ -109,7 +107,7 @@ class MarkdownInput0 extends Component<
 
   getActions() {
     return redux.getActions<MarkdownWidgetStoreState, MarkdownWidgetActions>(
-      info.name
+      info.name,
     );
   }
 
@@ -137,7 +135,7 @@ class MarkdownInput0 extends Component<
     if (this.props.persist_id != null) {
       this.getActions().set_value(
         this.props.persist_id,
-        value ?? this.state.value
+        value ?? this.state.value,
       );
     }
   };
@@ -189,8 +187,10 @@ class MarkdownInput0 extends Component<
   keydown = (e) => {
     if (e.keyCode === 27) {
       this.cancel();
-    } else if (e.keyCode === 13 && e.shiftKey) {
-      this.save();
+    } else if (e.keyCode === 13) {
+      if (this.props.rows == 1 || e.shiftKey) {
+        this.save();
+      }
     }
   };
 
@@ -208,24 +208,16 @@ class MarkdownInput0 extends Component<
       const tip = <span>{TIP_TEXT}</span>;
       return (
         <div>
-          <form onSubmit={this.save} style={{ marginBottom: "-20px" }}>
-            <FormGroup>
-              <FormControl
-                autoFocus={this.props.autoFocus ?? true}
-                ref="input"
-                componentClass="textarea"
-                rows={this.props.rows ?? 4}
-                placeholder={this.props.placeholder}
-                value={this.state.value}
-                onChange={() => {
-                  const value = ReactDOM.findDOMNode(this.refs.input)?.value;
-                  if (value == null) return;
-                  this.set_value(value);
-                }}
-                onKeyDown={this.keydown}
-              />
-            </FormGroup>
-          </form>
+          <Input.TextArea
+            autoFocus={this.props.autoFocus ?? true}
+            rows={this.props.rows ?? 4}
+            placeholder={this.props.placeholder}
+            value={this.state.value}
+            onChange={(e) => {
+              this.set_value(e.target.value);
+            }}
+            onKeyDown={this.keydown}
+          />
           <div style={{ paddingTop: "8px", color: "#666" }}>
             <Tip title="Use Markdown" tip={tip}>
               Format using{" "}
@@ -234,10 +226,13 @@ class MarkdownInput0 extends Component<
               </a>
             </Tip>
           </div>
-          <ButtonToolbar style={{ paddingBottom: "5px" }}>
+          <Space style={{ paddingBottom: "5px" }}>
+            <Button key="cancel" onClick={this.cancel}>
+              Cancel
+            </Button>
             <Button
               key="save"
-              bsStyle="success"
+              type="primary"
               onClick={this.save}
               disabled={
                 this.props.save_disabled ??
@@ -246,10 +241,7 @@ class MarkdownInput0 extends Component<
             >
               <Icon name="edit" /> Save
             </Button>
-            <Button key="cancel" onClick={this.cancel}>
-              Cancel
-            </Button>
-          </ButtonToolbar>
+          </Space>
         </div>
       );
     } else {

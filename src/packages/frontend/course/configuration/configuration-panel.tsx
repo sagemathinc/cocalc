@@ -4,7 +4,7 @@
  */
 
 import { debounce } from "lodash";
-import { Card, Row, Col } from "antd";
+import { Card, Row, Col, Spin } from "antd";
 import {
   React,
   redux,
@@ -17,7 +17,6 @@ import { contains_url } from "@cocalc/util/misc";
 import {
   Icon,
   LabeledRow,
-  Loading,
   MarkdownInput,
   TextInput,
   ErrorDisplay,
@@ -53,51 +52,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     const store = useStore<CourseStore>({ name });
     const is_commercial = useTypedRedux("customize", "is_commercial");
     const kucalc = useTypedRedux("customize", "kucalc");
-
-    /*
-     * Editing title/description
-     */
-    function render_title_desc_header() {
-      return (
-        <>
-          <Icon name="header" /> Title and Description
-        </>
-      );
-    }
-
-    function render_title_description() {
-      if (settings == null) {
-        return <Loading />;
-      }
-      return (
-        <Card title={render_title_desc_header()}>
-          <LabeledRow label="Title">
-            <TextInput
-              text={settings.get("title") ?? ""}
-              on_change={(title) => actions.configuration.set_title(title)}
-            />
-          </LabeledRow>
-          <LabeledRow label="Description">
-            <MarkdownInput
-              persist_id={name + "course-description"}
-              attach_to={name}
-              rows={6}
-              default_value={settings.get("description")}
-              on_save={(desc) => actions.configuration.set_description(desc)}
-            />
-          </LabeledRow>
-          <hr />
-          <span style={{ color: "#666" }}>
-            Set the course title and description here. When you change the title
-            or description, the corresponding title and description of each
-            student project will be updated. The description is set to this
-            description, and the title is set to the student name followed by
-            this title. Use the description to provide additional information
-            about the course, e.g., a link to the main course website.
-          </span>
-        </Card>
-      );
-    }
 
     /*
      * Custom invitation email body
@@ -247,7 +201,11 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             {render_require_institute_pay()}
             {render_onprem_upgrade_projects()}
             <br />
-            {render_title_description()}
+            <TitleAndDescription
+              actions={actions}
+              settings={settings}
+              name={name}
+            />
             <br />
             {render_email_invite_body()}
             <br />
@@ -293,3 +251,43 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     );
   },
 );
+
+export function TitleAndDescription({ actions, settings, name }) {
+  if (settings == null) {
+    return <Spin />;
+  }
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="header" /> Course Title and Description
+        </>
+      }
+    >
+      <LabeledRow label="Title">
+        <TextInput
+          text={settings.get("title") ?? ""}
+          on_change={(title) => actions.configuration.set_title(title)}
+        />
+      </LabeledRow>
+      <LabeledRow label="Description">
+        <MarkdownInput
+          persist_id={name + "course-description"}
+          attach_to={name}
+          rows={6}
+          default_value={settings.get("description")}
+          on_save={(desc) => actions.configuration.set_description(desc)}
+        />
+      </LabeledRow>
+      <hr />
+      <span style={{ color: "#666" }}>
+        Set the course title and description here. When you change the title or
+        description, the corresponding title and description of each student
+        project will be updated. The description is set to this description, and
+        the title is set to the student name followed by this title. Use the
+        description to provide additional information about the course, e.g., a
+        link to the main course website.
+      </span>
+    </Card>
+  );
+}

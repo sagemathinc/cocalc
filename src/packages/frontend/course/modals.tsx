@@ -17,6 +17,7 @@ import { DeleteAllStudentProjects } from "@cocalc/frontend/course/configuration/
 import { DeleteAllStudents } from "@cocalc/frontend/course/configuration//delete-all-students";
 import { DeleteSharedProjectPanel } from "@cocalc/frontend/course/shared-project/delete-shared-project";
 import { SharedProjectPanel } from "@cocalc/frontend/course/shared-project/shared-project-panel";
+import { TitleAndDescription } from "@cocalc/frontend/course/configuration/configuration-panel";
 
 interface Props {
   frameActions;
@@ -112,6 +113,9 @@ function getModal(modal: string) {
 
     case "create-shared-project":
       return { Body: SharedProjectPanel };
+
+    case "title-and-description":
+      return { Body: TitleAndDescription };
 
     default:
       return {

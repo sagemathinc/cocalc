@@ -39,6 +39,7 @@ const COURSE_MENUS = {
     label: menu.edit,
     pos: 1,
     entries: {
+      config: ["course-title-and-description"],
       students: ["course-add-student"],
     },
   },
@@ -68,7 +69,6 @@ const COURSE_MENUS = {
 
 const COMMANDS = {
   "course-add-student": {
-    pos: 1,
     icon: "users",
     label: "Add Students",
     button: "+Student",
@@ -78,6 +78,16 @@ const COMMANDS = {
       // actions.set_frame_type(id, "course_students");
       const { actions } = props;
       actions.setModal("add-students");
+    },
+  },
+  "course-title-and-description": {
+    icon: "header",
+    label: "Course Title and Description...",
+    button: "Title",
+    title: "Set the course title and description.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("title-and-description");
     },
   },
   "course-start-all-projects": {
