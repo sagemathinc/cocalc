@@ -100,6 +100,20 @@ export function commands(actions: AllActions): {
       r: true,
     },
 
+    "cell toolbar ids": {
+      i: "tags-filled",
+      m: defineMessage({
+        id: "jupyter.commands.cell_toolbar_ids.label",
+        defaultMessage: "Edit cell IDs toolbar",
+      }),
+      menu: defineMessage({
+        id: "jupyter.commands.cell_toolbar_ids.menu",
+        defaultMessage: "Id's",
+      }),
+      f: () => actions.jupyter_actions?.cell_toolbar("ids"),
+      r: true,
+    },
+
     "cell toolbar tags": {
       i: "tags-outlined",
       m: defineMessage({

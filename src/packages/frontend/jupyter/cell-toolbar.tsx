@@ -15,7 +15,8 @@ import { JupyterActions } from "./browser-actions";
 import { Attachments } from "./cell-toolbar-attachments";
 import { Metadata } from "./cell-toolbar-metadata";
 import { Slideshow } from "./cell-toolbar-slideshow";
-import { TagsToolbar } from "./cell-toolbar-tags";
+import TagsToolbar from "./cell-toolbar-tags";
+import IdsToolbar from "./cell-toolbar-ids";
 import { CreateAssignmentToolbar } from "./nbgrader/cell-toolbar-create-assignment";
 import { PROMPT_MIN_WIDTH } from "./prompt/base";
 
@@ -36,6 +37,7 @@ const TOOLBARS = {
   slideshow: Slideshow,
   attachments: Attachments,
   tags: TagsToolbar,
+  ids: IdsToolbar,
   metadata: Metadata,
   create_assignment: CreateAssignmentToolbar,
 } as const;
