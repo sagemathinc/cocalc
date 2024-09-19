@@ -459,6 +459,20 @@ export const labels = defineMessages({
     id: "labels.guide",
     defaultMessage: "Guide",
   },
+  select: {
+    id: "labels.select",
+    defaultMessage: "select",
+  },
+  select_a_kernel: {
+    id: "labels.select_a_kernel",
+    defaultMessage: "Select a kernel",
+    description: "A kernel in a Jupyter Notebook",
+  },
+  halt: {
+    id: "labels.halt",
+    defaultMessage: "Halt",
+    description: "Short label on a button to halt or stop something",
+  },
 });
 
 export const menu = defineMessages({
@@ -1195,3 +1209,36 @@ export const jupyter = {
     },
   }),
 };
+
+export const dialogs = defineMessages({
+  project_start_warning_title: {
+    id: "project-start-warning.title",
+    defaultMessage: "Start this project?",
+  },
+  project_start_warning_content: {
+    id: "project-start-warning.content",
+    defaultMessage: `You must start the project "{project_title}" before you can {what}. {title}`,
+  },
+  project_actions_rename_file: {
+    id: "project_actions.rename_file.what",
+    defaultMessage: `rename {src}`,
+  },
+  project_open_file_what: {
+    id: "project.open_file.what",
+    defaultMessage: `open the file "{path}"`,
+  },
+  project_actions_create_file_what: {
+    id: "project_actions.create_file.what",
+    defaultMessage: `create the file "{path}"`,
+  },
+  client_project_exec_msg: {
+    id: "client.project.exec.msg",
+    defaultMessage: `{blocking, select,
+    true {execute the command {arg}}
+    other {getting job {arg}}}`,
+  },
+  client_project_exec_start_first: {
+    id: "client.project.exec.start_first",
+    defaultMessage: "You must start the project first",
+  },
+});

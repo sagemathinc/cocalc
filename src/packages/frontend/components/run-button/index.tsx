@@ -19,6 +19,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 //import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import { Icon } from "@cocalc/frontend/components/icon";
 import infoToMode from "@cocalc/frontend/editors/slate/elements/code-block/info-to-mode";
+import { labels } from "@cocalc/frontend/i18n";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import Logo from "@cocalc/frontend/jupyter/logo";
 import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
@@ -32,6 +33,7 @@ import getKernel from "./get-kernel";
 import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import Output from "./output";
 import SelectKernel from "./select-kernel";
+import { useIntl } from "react-intl";
 
 export type RunFunction = () => Promise<void>;
 type RunRef = MutableRefObject<RunFunction | null>;
@@ -85,6 +87,7 @@ export default function RunButton({
   const mode = infoToMode(info);
   const noRun = NO_RUN.has(mode);
 
+  const intl = useIntl();
   const {
     jupyterApiEnabled,
     project_id,
@@ -235,7 +238,7 @@ export default function RunButton({
       let resp;
       try {
         if (!kernel) {
-          setOutput({ error: "Select a kernel" });
+          setOutput({ error: intl.formatMessage(labels.select_a_kernel) });
           return;
         }
         resp = await api("execute", {

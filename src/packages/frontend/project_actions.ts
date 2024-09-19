@@ -11,11 +11,16 @@ import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
-import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
+
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { initChat } from "@cocalc/frontend/chat/register";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
+import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
+import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
+import { dialogs, getIntl } from "@cocalc/frontend/i18n";
+import { set_local_storage } from "@cocalc/frontend/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import fetchDirectoryListing from "@cocalc/frontend/project/fetch-directory-listing";
 import track from "@cocalc/frontend/user-tracking";
@@ -25,47 +30,64 @@ import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
-import { default_filename } from "./account";
-import { alert_message } from "./alerts";
-import { Actions, project_redux_name, redux } from "./app-framework";
-import { IconName } from "./components";
-import { local_storage } from "./editor-local-storage";
-import { set_local_storage } from "@cocalc/frontend/misc";
+import { default_filename } from "@cocalc/frontend/account";
+import { alert_message } from "@cocalc/frontend/alerts";
+import {
+  Actions,
+  project_redux_name,
+  redux,
+} from "@cocalc/frontend/app-framework";
+import { IconName } from "@cocalc/frontend/components";
+import { local_storage } from "@cocalc/frontend/editor-local-storage";
 import { get_editor } from "./editors/react-wrapper";
-import { query as client_query, exec } from "./frame-editors/generic/client";
-import { set_url } from "./history";
-import { download_file, open_new_tab, open_popup_window } from "./misc";
-import * as project_file from "./project-file";
-import { delete_files } from "./project/delete-files";
+import {
+  query as client_query,
+  exec,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { set_url } from "@cocalc/frontend/history";
+import {
+  download_file,
+  open_new_tab,
+  open_popup_window,
+} from "@cocalc/frontend/misc";
+import * as project_file from "@cocalc/frontend/project-file";
+import { delete_files } from "@cocalc/frontend/project/delete-files";
 import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
-} from "./project/history/types";
+} from "@cocalc/frontend/project/history/types";
 import {
   OpenFileOpts,
   log_file_open,
   log_opened_time,
   open_file,
-} from "./project/open-file";
-import { OpenFiles } from "./project/open-files";
-import { FixedTab } from "./project/page/file-tab";
+} from "@cocalc/frontend/project/open-file";
+import { OpenFiles } from "@cocalc/frontend/project/open-files";
+import { FixedTab } from "@cocalc/frontend/project/page/file-tab";
 import {
   FlyoutActiveMode,
   FlyoutLogDeduplicate,
   FlyoutLogMode,
   storeFlyoutState,
-} from "./project/page/flyouts/state";
-import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
-import { ensure_project_running } from "./project/project-start-warning";
-import { transform_get_url } from "./project/transform-get-url";
+} from "@cocalc/frontend/project/page/flyouts/state";
+import {
+  FLYOUT_LOG_FILTER_DEFAULT,
+  FlyoutLogFilter,
+} from "@cocalc/frontend/project/page/flyouts/utils";
+import {
+  VBAR_KEY,
+  getValidVBAROption,
+} from "@cocalc/frontend/project/page/vbar";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
+import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
   NewFilenames,
   download_href,
   in_snapshot_path,
   normalize,
   url_href,
-} from "./project/utils";
-import { API } from "./project/websocket/api";
+} from "@cocalc/frontend/project/utils";
+import { API } from "@cocalc/frontend/project/websocket/api";
 import {
   Configuration,
   ConfigurationAspect,
@@ -73,15 +95,13 @@ import {
   ProjectConfiguration,
   is_available as feature_is_available,
   get_configuration,
-} from "./project_configuration";
-import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
-import { webapp_client } from "./webapp-client";
+} from "@cocalc/frontend/project_configuration";
 import {
-  FLYOUT_LOG_FILTER_DEFAULT,
-  FlyoutLogFilter,
-} from "./project/page/flyouts/utils";
-import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { setServerTab, TabName } from "@cocalc/frontend/compute/tab";
+  ModalInfo,
+  ProjectStore,
+  ProjectStoreState,
+} from "@cocalc/frontend/project_store";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 const { defaults, required } = misc;
 
@@ -1360,8 +1380,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId =
-      await computeServerAssociations.getServerIdForPath(sidePath);
+    const currentId = await computeServerAssociations.getServerIdForPath(
+      sidePath,
+    );
     if (currentId != null) {
       // already set
       return;
@@ -2375,9 +2396,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = misc.uuid();
     const status = `Renaming ${opts.src} to ${opts.dest}`;
     let error: any = undefined;
-    if (
-      !(await ensure_project_running(this.project_id, `rename ${opts.src}`))
-    ) {
+    const intl = await getIntl();
+    const what = intl.formatMessage(dialogs.project_actions_rename_file, {
+      src: opts.src,
+    });
+    if (!(await ensure_project_running(this.project_id, what))) {
       return;
     }
 
@@ -2707,9 +2730,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.setState({ file_creation_error: e.message });
       return;
     }
-    if (
-      !(await ensure_project_running(this.project_id, `create the file '${p}'`))
-    ) {
+
+    const intl = await getIntl();
+    const what = intl.formatMessage(dialogs.project_actions_create_file_what, {
+      path: p,
+    });
+    if (!(await ensure_project_running(this.project_id, what))) {
       return;
     }
     const ext = misc.filename_extension(p);
