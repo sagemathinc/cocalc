@@ -41,6 +41,7 @@ const COURSE_MENUS = {
     pos: 1,
     entries: {
       editStudents: ["course-add-student"],
+      courseUpgrades: ["course-upgrades"],
       configCourse: [
         "course-title-and-description",
         "course-email-invitation",
@@ -51,7 +52,10 @@ const COURSE_MENUS = {
         "course-restrict-student-projects",
       ],
       nbgraderConfig: ["course-nbgrader"],
-      environmentConfig: ["course-network-file-systems", "course-env-variables"],
+      environmentConfig: [
+        "course-network-file-systems",
+        "course-env-variables",
+      ],
     },
   },
   action: {
@@ -73,7 +77,10 @@ const COURSE_MENUS = {
         "course-delete-student-projects",
         "course-delete-students",
       ],
-      sharedProject: ["course-create-shared-project", "course-delete-shared-project"],
+      sharedProject: [
+        "course-create-shared-project",
+        "course-delete-shared-project",
+      ],
     },
   },
 };
@@ -175,6 +182,18 @@ const COMMANDS = {
       actions.setModal("env-variables");
     },
   },
+  "course-upgrades": {
+    icon: "gears",
+    label: "Configure Upgrades (Student or Instructor Pay)",
+    button: "Upgrades",
+    title:
+      "Use a license to upgrade all projects, or require your students to purchase a specific license.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("upgrades");
+    },
+  },
+
   "course-start-all-projects": {
     icon: "bolt",
     label: "Start all Student Projects",

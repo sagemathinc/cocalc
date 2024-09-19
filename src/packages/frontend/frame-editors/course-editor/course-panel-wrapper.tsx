@@ -168,11 +168,10 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
       return (
         <PayBanner
           show_config={() => {
-            actions.set_frame_type(id, "course_configuration");
+            actions.setModal("upgrades");
           }}
           settings={settings}
           num_students={students.size}
-          tab={desc.get("type", "").slice("course_".length)}
         />
       );
     }

@@ -45,64 +45,17 @@ interface Props {
 export const ConfigurationPanel: React.FC<Props> = React.memo(
   ({ name, project_id, settings, configuring_projects }) => {
     const actions = useActions<CourseActions>({ name });
-    const is_commercial = useTypedRedux("customize", "is_commercial");
-    const kucalc = useTypedRedux("customize", "kucalc");
-
-    function render_require_institute_pay() {
-      if (!is_commercial) return;
-      return (
-        <>
-          <StudentProjectUpgrades
-            name={name}
-            is_onprem={false}
-            is_commercial={is_commercial}
-            upgrade_goal={settings?.get("upgrade_goal")}
-            institute_pay={settings?.get("institute_pay")}
-            student_pay={settings?.get("student_pay")}
-            site_license_id={settings?.get("site_license_id")}
-            site_license_strategy={settings?.get("site_license_strategy")}
-            shared_project_id={settings?.get("shared_project_id")}
-            disabled={configuring_projects}
-            settings={settings}
-            actions={actions.configuration}
-          />
-          <br />
-        </>
-      );
-    }
-
-    /**
-     * OnPrem instances support licenses to be distributed to all student projects.
-     */
-    function render_onprem_upgrade_projects(): React.ReactNode {
-      if (is_commercial || kucalc !== KUCALC_ON_PREMISES) return;
-      return (
-        <>
-          <StudentProjectUpgrades
-            name={name}
-            is_onprem={true}
-            is_commercial={false}
-            site_license_id={settings?.get("site_license_id")}
-            site_license_strategy={settings?.get("site_license_strategy")}
-            shared_project_id={settings?.get("shared_project_id")}
-            disabled={configuring_projects}
-            settings={settings}
-            actions={actions.configuration}
-          />
-          <br />
-        </>
-      );
-    }
 
     return (
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
-            {is_commercial && (
-              <StudentPay actions={actions} settings={settings} />
-            )}
-            {render_require_institute_pay()}
-            {render_onprem_upgrade_projects()}
+            <UpgradeConfiguration
+              name={name}
+              settings={settings}
+              configuring_projects={configuring_projects}
+              actions={actions}
+            />
             <br />
             <TitleAndDescription
               actions={actions}
@@ -161,6 +114,76 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
     );
   },
 );
+
+export function UpgradeConfiguration({
+  name,
+  settings,
+  configuring_projects,
+  actions,
+}) {
+  const is_commercial = useTypedRedux("customize", "is_commercial");
+  const kucalc = useTypedRedux("customize", "kucalc");
+
+  function render_require_institute_pay() {
+    if (!is_commercial) return;
+    return (
+      <>
+        <StudentProjectUpgrades
+          name={name}
+          is_onprem={false}
+          is_commercial={is_commercial}
+          upgrade_goal={settings?.get("upgrade_goal")}
+          institute_pay={settings?.get("institute_pay")}
+          student_pay={settings?.get("student_pay")}
+          site_license_id={settings?.get("site_license_id")}
+          site_license_strategy={settings?.get("site_license_strategy")}
+          shared_project_id={settings?.get("shared_project_id")}
+          disabled={configuring_projects}
+          settings={settings}
+          actions={actions.configuration}
+        />
+        <br />
+      </>
+    );
+  }
+
+  /**
+   * OnPrem instances support licenses to be distributed to all student projects.
+   */
+  function render_onprem_upgrade_projects(): React.ReactNode {
+    if (is_commercial || kucalc !== KUCALC_ON_PREMISES) return;
+    return (
+      <>
+        <StudentProjectUpgrades
+          name={name}
+          is_onprem={true}
+          is_commercial={false}
+          site_license_id={settings?.get("site_license_id")}
+          site_license_strategy={settings?.get("site_license_strategy")}
+          shared_project_id={settings?.get("shared_project_id")}
+          disabled={configuring_projects}
+          settings={settings}
+          actions={actions.configuration}
+        />
+        <br />
+      </>
+    );
+  }
+
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="gears" /> Configure Upgrades
+        </>
+      }
+    >
+      {is_commercial && <StudentPay actions={actions} settings={settings} />}
+      {render_require_institute_pay()}
+      {render_onprem_upgrade_projects()}
+    </Card>
+  );
+}
 
 export function TitleAndDescription({ actions, settings, name }) {
   if (settings == null) {

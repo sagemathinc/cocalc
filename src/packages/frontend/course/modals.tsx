@@ -24,6 +24,7 @@ import {
   NetworkFilesystem,
   RestrictStudentProjects,
   TitleAndDescription,
+  UpgradeConfiguration,
 } from "@cocalc/frontend/course/configuration/configuration-panel";
 import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
 import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
@@ -69,6 +70,7 @@ export default function Modals(props: Props) {
       }
       width={800}
     >
+      <br />
       <Body
         {...props}
         students={students}
@@ -140,6 +142,8 @@ function getModal(modal: string) {
       return { Body: NetworkFilesystem };
     case "env-variables":
       return { Body: EnvVariables };
+    case "upgrades":
+      return { Body: UpgradeConfiguration };
 
     default:
       return {
