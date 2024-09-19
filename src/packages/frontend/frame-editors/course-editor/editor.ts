@@ -74,8 +74,9 @@ const COMMANDS = {
     button: "+Student",
     title: "Add one or more students to this course.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_students");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_students");
+      const { actions } = props;
       actions.setModal("add-students");
     },
   },
@@ -86,8 +87,9 @@ const COMMANDS = {
     title:
       "You can start all projects associated with this course so they are immediately ready for your students to use.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("start-all-projects");
     },
   },
@@ -98,8 +100,9 @@ const COMMANDS = {
     title:
       "Run a bash terminal command in the home directory of all student projects. Up to 30 commands run in parallel, with a timeout of 1 minutes.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("terminal-command");
     },
   },
@@ -109,8 +112,9 @@ const COMMANDS = {
     button: "Reconfigure",
     title: "Update all projects with correct students, descriptions, etc.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("reconfigure-all-projects");
     },
   },
@@ -121,8 +125,9 @@ const COMMANDS = {
     title:
       "Export all the grades you have recorded for students in your course to a csv or Python file.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("export-grades");
     },
   },
@@ -133,8 +138,9 @@ const COMMANDS = {
     title:
       "Send another email to every student who didn't sign up yet. This sends a maximum of one email every 1 day.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("resend-invites");
     },
   },
@@ -145,8 +151,9 @@ const COMMANDS = {
     title:
       "If you add new students to your course, you can ensure they have all the assignments and handouts that you have already assigned to other students in the course.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("copy-missing-handouts-and-assignments");
     },
   },
@@ -157,8 +164,9 @@ const COMMANDS = {
     title:
       "Empty trash by purging deleted students, assignments, and handouts.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("empty-trash");
     },
   },
@@ -169,8 +177,9 @@ const COMMANDS = {
     title:
       "If for some reason you would like to delete all the student projects created for this course, you may do so by clicking above.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("delete-student-projects");
     },
   },
@@ -181,8 +190,9 @@ const COMMANDS = {
     title:
       "Student projects will not be deleted. If you make a mistake, students can still be undeleted from the Student tab or using TimeTravel.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_actions");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_actions");
+      const { actions } = props;
       actions.setModal("delete-students");
     },
   },
@@ -193,8 +203,9 @@ const COMMANDS = {
     title:
       "Student projects will not be deleted. If you make a mistake, students can still be undeleted from the Student tab or using TimeTravel.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_shared_project");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_shared_project");
+      const { actions } = props;
       actions.setModal("delete-shared-project");
     },
   },
@@ -205,8 +216,9 @@ const COMMANDS = {
     title:
       "Create a single common shared project, which everybody -- students and all collaborators on this project (your TAs and other instructors) -- have write access to.",
     onClick: ({ props }) => {
-      const { id, actions } = props;
-      actions.set_frame_type(id, "course_shared_project");
+      // const { id, actions } = props;
+      // actions.set_frame_type(id, "course_shared_project");
+      const { actions } = props;
       actions.setModal("create-shared-project");
     },
   },
