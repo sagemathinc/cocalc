@@ -52,6 +52,16 @@ const COURSE_MENUS = {
         "course-reconfigure-all-projects",
       ],
       export: ["course-export-grades"],
+      students: [
+        "course-resend-invites",
+        "course-copy-missing-handouts-and-assignments",
+      ],
+      delete: [
+        "course-empty-trash",
+        "course-delete-student-projects",
+        "course-delete-students",
+      ],
+      shared: ["course-create-shared-project", "course-delete-shared-project"],
     },
   },
 };
@@ -114,6 +124,90 @@ const COMMANDS = {
       const { id, actions } = props;
       actions.set_frame_type(id, "course_actions");
       actions.setModal("export-grades");
+    },
+  },
+  "course-resend-invites": {
+    icon: "mail",
+    label: "Resend Outstanding Invites",
+    button: "Invites",
+    title:
+      "Send another email to every student who didn't sign up yet. This sends a maximum of one email every 1 day.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("resend-invites");
+    },
+  },
+  "course-copy-missing-handouts-and-assignments": {
+    icon: "graph",
+    label: "Copy Missing Handouts and Assignments",
+    button: "Copy Missing",
+    title:
+      "If you add new students to your course, you can ensure they have all the assignments and handouts that you have already assigned to other students in the course.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("copy-missing-handouts-and-assignments");
+    },
+  },
+  "course-empty-trash": {
+    icon: "trash",
+    label: "Empty Trash",
+    button: "Trash",
+    title:
+      "Empty trash by purging deleted students, assignments, and handouts.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("empty-trash");
+    },
+  },
+  "course-delete-student-projects": {
+    icon: "trash",
+    label: "Delete Student Projects",
+    button: "Delete",
+    title:
+      "If for some reason you would like to delete all the student projects created for this course, you may do so by clicking above.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("delete-student-projects");
+    },
+  },
+  "course-delete-students": {
+    icon: "trash",
+    label: "Delete Students",
+    button: "Delete",
+    title:
+      "Student projects will not be deleted. If you make a mistake, students can still be undeleted from the Student tab or using TimeTravel.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("delete-students");
+    },
+  },
+  "course-delete-shared-project": {
+    icon: "trash",
+    label: "Delete Shared Project",
+    button: "Delete",
+    title:
+      "Student projects will not be deleted. If you make a mistake, students can still be undeleted from the Student tab or using TimeTravel.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_shared_project");
+      actions.setModal("delete-shared-project");
+    },
+  },
+  "course-create-shared-project": {
+    icon: "users",
+    label: "Create Shared Project",
+    button: "Shared",
+    title:
+      "Create a single common shared project, which everybody -- students and all collaborators on this project (your TAs and other instructors) -- have write access to.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_shared_project");
+      actions.setModal("create-shared-project");
     },
   },
 };

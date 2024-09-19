@@ -7,9 +7,16 @@ import {
   ReconfigureAllProjects,
   StartAllProjects,
   ExportGrades,
+  ResendInvites,
+  CopyMissingHandoutsAndAssignments,
 } from "@cocalc/frontend/course/configuration/actions-panel";
 import type { ProjectMap } from "@cocalc/frontend/todo-types";
 import { TerminalCommandPanel } from "@cocalc/frontend/course/configuration/terminal-command";
+import EmptyTrash from "@cocalc/frontend/course/configuration/empty-trash";
+import { DeleteAllStudentProjects } from "@cocalc/frontend/course/configuration//delete-all-student-projects";
+import { DeleteAllStudents } from "@cocalc/frontend/course/configuration//delete-all-students";
+import { DeleteSharedProjectPanel } from "@cocalc/frontend/course/shared-project/delete-shared-project";
+import { SharedProjectPanel } from "@cocalc/frontend/course/shared-project/shared-project-panel";
 
 interface Props {
   frameActions;
@@ -22,6 +29,8 @@ interface Props {
   project_id;
   configuring_projects?: boolean;
   reinviting_students?: boolean;
+  settings;
+  redux;
 }
 
 export default function Modals(props: Props) {
@@ -82,6 +91,27 @@ function getModal(modal: string) {
 
     case "export-grades":
       return { Body: ExportGrades };
+
+    case "resend-invites":
+      return { Body: ResendInvites };
+
+    case "copy-missing-handouts-and-assignments":
+      return { Body: CopyMissingHandoutsAndAssignments };
+
+    case "empty-trash":
+      return { Body: EmptyTrash };
+
+    case "delete-student-projects":
+      return { Body: DeleteAllStudentProjects };
+
+    case "delete-students":
+      return { Body: DeleteAllStudents };
+
+    case "delete-shared-project":
+      return { Body: DeleteSharedProjectPanel };
+
+    case "create-shared-project":
+      return { Body: SharedProjectPanel };
 
     default:
       return {

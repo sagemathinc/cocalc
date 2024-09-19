@@ -5,20 +5,14 @@
 
 import { Button, Card, Row, Col, Space } from "antd";
 // React libraries and Components
-import {
-  React,
-  Rendered,
-  useActions,
-  useStore,
-} from "@cocalc/frontend/app-framework";
+import { React, useActions, useStore } from "@cocalc/frontend/app-framework";
 import { plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
 import { CourseActions } from "../actions";
 import type { ProjectMap } from "@cocalc/frontend/todo-types";
-import { CourseSettingsRecord, CourseStore } from "../store";
+import { CourseStore } from "../store";
 import { DeleteAllStudentProjects } from "./delete-all-student-projects";
 import { DeleteAllStudents } from "./delete-all-students";
-import { DeleteSharedProjectPanel } from "../shared-project/delete-shared-project";
 import { TerminalCommandPanel } from "./terminal-command";
 import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import EmptyTrash from "./empty-trash";
@@ -26,99 +20,14 @@ import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 
 interface Props {
   name: string;
-  settings: CourseSettingsRecord;
   project_map: ProjectMap;
   configuring_projects?: boolean;
   reinviting_students?: boolean;
 }
 
 export const ActionsPanel: React.FC<Props> = React.memo(
-  ({
-    name,
-    settings,
-    project_map,
-    configuring_projects,
-    reinviting_students,
-  }) => {
+  ({ name, project_map, configuring_projects, reinviting_students }) => {
     const actions = useActions<CourseActions>({ name });
-
-    function render_resend_outstanding_email_invites(): Rendered {
-      return (
-        <Card
-          title={
-            <>
-              <Icon name="envelope" /> Resend Outstanding Email Invites
-            </>
-          }
-        >
-          Send another email to every student who didn't sign up yet. This sends
-          a maximum of one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
-          {plural(RESEND_INVITE_INTERVAL_DAYS, "day")}.
-          <hr />
-          <Button
-            disabled={reinviting_students}
-            onClick={() => {
-              actions.student_projects.reinvite_oustanding_students();
-            }}
-          >
-            {reinviting_students ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
-            Reinvite students
-          </Button>
-        </Card>
-      );
-    }
-
-    function render_push_missing_handouts_and_assignments(): Rendered {
-      return (
-        <Card
-          title={
-            <>
-              <Icon name="share-square" /> Copy Missing Handouts and Assignments
-            </>
-          }
-        >
-          If you <b>add new students</b> to your course, you can click this
-          button to ensure they have all the assignments and handouts that you
-          have already assigned to other students in the course.
-          <hr />
-          <Button
-            onClick={() => {
-              actions.configuration.push_missing_handouts_and_assignments();
-            }}
-          >
-            <Icon name="share-square" /> Copy Missing Handouts and Assignments
-          </Button>
-        </Card>
-      );
-    }
-
-    function render_delete_shared_project() {
-      if (settings.get("shared_project_id")) {
-        return (
-          <DeleteSharedProjectPanel
-            delete={() => actions.shared_project.delete()}
-          />
-        );
-      }
-    }
-
-    function render_delete_student_projects() {
-      return (
-        <DeleteAllStudentProjects
-          deleteAllStudentProjects={
-            actions.student_projects.deleteAllStudentProjects
-          }
-        />
-      );
-    }
-
-    function render_delete_all_students() {
-      return (
-        <DeleteAllStudents
-          deleteAllStudents={actions.students.deleteAllStudents}
-        />
-      );
-    }
 
     return (
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
@@ -136,17 +45,18 @@ export const ActionsPanel: React.FC<Props> = React.memo(
               actions={actions}
             />
             <br />
-            {render_resend_outstanding_email_invites()}
+            <ResendInvites
+              actions={actions}
+              reinviting_students={reinviting_students}
+            />
             <br />
-            {render_push_missing_handouts_and_assignments()}
+            <CopyMissingHandoutsAndAssignments actions={actions} />
             <br />
             <EmptyTrash />
             <br />
-            {render_delete_student_projects()}
+            <DeleteAllStudentProjects actions={actions} />
             <br />
-            {render_delete_all_students()}
-            <br />
-            {render_delete_shared_project()}
+            <DeleteAllStudents actions={actions} />
           </Col>
         </Row>
       </div>
@@ -248,6 +158,62 @@ export function ReconfigureAllProjects({
       >
         {configuring_projects ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
         Reconfigure all Projects
+      </Button>
+    </Card>
+  );
+}
+
+export function ResendInvites({
+  actions,
+  reinviting_students,
+}: {
+  actions;
+  reinviting_students?;
+}) {
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="envelope" /> Resend Outstanding Email Invites
+        </>
+      }
+    >
+      Send another email to every student who didn't sign up yet. This sends a
+      maximum of one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
+      {plural(RESEND_INVITE_INTERVAL_DAYS, "day")}.
+      <hr />
+      <Button
+        disabled={reinviting_students}
+        onClick={() => {
+          actions.student_projects.reinvite_oustanding_students();
+        }}
+      >
+        {reinviting_students ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
+        Reinvite students
+      </Button>
+    </Card>
+  );
+}
+
+export function CopyMissingHandoutsAndAssignments({ actions }) {
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="share-square" /> Copy Missing Handouts and Assignments
+        </>
+      }
+    >
+      If you <b>add new students</b> to your course, you can click this button
+      to ensure they have all the assignments and handouts that you have already
+      assigned to other students in the course.
+      <hr />
+      <Button
+        onClick={() => {
+          actions.configuration.push_missing_handouts_and_assignments();
+        }}
+      >
+        <Icon name="share-square" /> Copy Missing Handouts and Assignments
       </Button>
     </Card>
   );

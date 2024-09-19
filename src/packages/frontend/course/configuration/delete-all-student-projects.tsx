@@ -6,11 +6,7 @@
 import { Icon } from "../../components";
 import { Button, Card, Popconfirm } from "antd";
 
-interface Props {
-  deleteAllStudentProjects: () => void;
-}
-
-export function DeleteAllStudentProjects({ deleteAllStudentProjects }: Props) {
+export function DeleteAllStudentProjects({ actions }) {
   return (
     <Card
       title={
@@ -28,7 +24,7 @@ export function DeleteAllStudentProjects({ deleteAllStudentProjects }: Props) {
             be removed from the deleted projects immediately.
           </div>
         }
-        onConfirm={deleteAllStudentProjects}
+        onConfirm={() => actions.student_projects.deleteAllStudentProjects()}
         okText={"YES, DELETE all Student Projects"}
       >
         <Button danger>

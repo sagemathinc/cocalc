@@ -226,6 +226,8 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
           project_id={project_id}
           configuring_projects={configuring_projects}
           reinviting_students={reinviting_students}
+          settings={settings}
+          redux={redux}
         />
         {render_panel()}
       </div>
