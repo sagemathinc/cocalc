@@ -15,7 +15,7 @@ import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
 import { CourseActions } from "../actions";
-import { ProjectMap } from "@cocalc/frontend/todo-types";
+import type { ProjectMap } from "@cocalc/frontend/todo-types";
 import { CourseSettingsRecord, CourseStore } from "../store";
 import { DeleteAllStudentProjects } from "./delete-all-student-projects";
 import { DeleteAllStudents } from "./delete-all-students";
@@ -42,7 +42,6 @@ export const ActionsPanel: React.FC<Props> = React.memo(
     reinviting_students,
   }) => {
     const actions = useActions<CourseActions>({ name });
-    const store = useStore<CourseStore>({ name });
 
     /*
      * Grade export
@@ -150,18 +149,6 @@ export const ActionsPanel: React.FC<Props> = React.memo(
       );
     }
 
-    function render_start_all_projects() {
-      const r = store.num_running_projects(project_map);
-      const n = store.num_students();
-      return (
-        <StudentProjectsStartStopPanel
-          name={name}
-          num_running_projects={r}
-          num_students={n}
-        />
-      );
-    }
-
     function render_delete_shared_project() {
       if (settings.get("shared_project_id")) {
         return (
@@ -198,7 +185,7 @@ export const ActionsPanel: React.FC<Props> = React.memo(
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
-            {render_start_all_projects()}
+            <StartAllProjects name={name} project_map={project_map} />
             <br />
             {render_terminal_command()}
             <br />
@@ -227,6 +214,19 @@ export const ActionsPanel: React.FC<Props> = React.memo(
     );
   },
 );
+
+export function StartAllProjects({ name, project_map }) {
+  const store = useStore<CourseStore>({ name });
+  const r = store.num_running_projects(project_map);
+  const n = store.num_students();
+  return (
+    <StudentProjectsStartStopPanel
+      name={name}
+      num_running_projects={r}
+      num_students={n}
+    />
+  );
+}
 
 export function ReconfigureAllProjects({
   actions,

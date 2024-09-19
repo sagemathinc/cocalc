@@ -1,5 +1,4 @@
-import { Alert, Card, Row, Col } from "antd";
-import { Button, ButtonGroup } from "../../antd-bootstrap";
+import { Alert, Button, Card, Row, Col, Space, Spin } from "antd";
 import { Icon } from "../../components";
 import { useState, useActions, useRedux } from "../../app-framework";
 import { CourseActions } from "../actions";
@@ -49,8 +48,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
         type={type}
         message={
           <div>
-            {capitalize(state_name)} all projects...{" "}
-            <Icon name="cocalc-ring" spin />
+            {capitalize(state_name)} all projects... <Spin />
             <br />
             <Button
               onClick={() =>
@@ -75,9 +73,13 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
             disruptive)?
             <br />
             <br />
-            <ButtonGroup>
+            <Space>
+              <Button onClick={() => set_confirm_stop_all_projects(false)}>
+                Cancel
+              </Button>
               <Button
-                bsStyle="warning"
+                danger
+                type="primary"
                 onClick={() => {
                   set_confirm_stop_all_projects(false);
                   actions.student_projects.action_all_student_projects("stop");
@@ -85,10 +87,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
               >
                 <Icon name="PoweroffOutlined" /> Stop all
               </Button>
-              <Button onClick={() => set_confirm_stop_all_projects(false)}>
-                Cancel
-              </Button>
-            </ButtonGroup>
+            </Space>
           </div>
         }
       />
@@ -105,9 +104,12 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
             ensure the projects are already running when the students open them.
             <br />
             <br />
-            <ButtonGroup>
+            <Space>
+              <Button onClick={() => set_confirm_start_all_projects(false)}>
+                Cancel
+              </Button>{" "}
               <Button
-                bsStyle="primary"
+                type="primary"
                 onClick={() => {
                   set_confirm_start_all_projects(false);
                   actions.student_projects.action_all_student_projects("start");
@@ -115,10 +117,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
               >
                 <Icon name="bolt" /> Start all
               </Button>
-              <Button onClick={() => set_confirm_start_all_projects(false)}>
-                Cancel
-              </Button>
-            </ButtonGroup>
+            </Space>
           </div>
         }
       />
@@ -142,7 +141,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
       </Row>
       <Row style={{ marginTop: "10px" }}>
         <Col md={24}>
-          <ButtonGroup>
+          <Space>
             <Button
               onClick={() => set_confirm_start_all_projects(true)}
               disabled={
@@ -165,7 +164,7 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
             >
               <Icon name="PoweroffOutlined" /> Stop all...
             </Button>
-          </ButtonGroup>
+          </Space>
         </Col>
       </Row>
       <Row style={{ marginTop: "10px" }}>

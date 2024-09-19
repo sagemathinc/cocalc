@@ -222,6 +222,7 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
           name={name}
           students={students}
           user_map={user_map}
+          project_map={project_map}
           project_id={project_id}
           configuring_projects={configuring_projects}
           reinviting_students={reinviting_students}

@@ -4,7 +4,7 @@
  */
 
 /*
-Spec for editing Jupyter notebooks via a frame tree.
+Spec for editing courses via a frame tree.
 */
 
 import { set } from "@cocalc/util/misc";
@@ -46,7 +46,10 @@ const COURSE_MENUS = {
     label: "Actions",
     pos: 1.2,
     entries: {
-      projects: ["course-reconfigure-all-projects"],
+      projects: [
+        "course-start-all-projects",
+        "course-reconfigure-all-projects",
+      ],
     },
   },
 };
@@ -62,6 +65,18 @@ const COMMANDS = {
       const { id, actions } = props;
       actions.set_frame_type(id, "course_students");
       actions.setModal("add-students");
+    },
+  },
+  "course-start-all-projects": {
+    icon: "bolt",
+    label: "Start all Student Projects",
+    button: "Start All",
+    title:
+      "You can start all projects associated with this course so they are immediately ready for your students to use.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("start-all-projects");
     },
   },
   "course-reconfigure-all-projects": {

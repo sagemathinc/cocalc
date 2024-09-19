@@ -3,7 +3,11 @@ import type { StudentsMap } from "./store";
 import type { UserMap } from "@cocalc/frontend/todo-types";
 import AddStudents from "@cocalc/frontend/course/students/add-students";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { ReconfigureAllProjects } from "@cocalc/frontend/course/configuration/actions-panel";
+import {
+  ReconfigureAllProjects,
+  StartAllProjects,
+} from "@cocalc/frontend/course/configuration/actions-panel";
+import type { ProjectMap } from "@cocalc/frontend/todo-types";
 
 interface Props {
   frameActions;
@@ -12,14 +16,15 @@ interface Props {
   name: string;
   students?: StudentsMap;
   user_map?: UserMap;
+  project_map?: ProjectMap;
   project_id;
   configuring_projects?: boolean;
   reinviting_students?: boolean;
 }
 
 export default function Modals(props: Props) {
-  const { students, user_map, modal } = props;
-  if (students == null || user_map == null || !modal) {
+  const { students, user_map, project_map, modal } = props;
+  if (students == null || user_map == null || project_map == null || !modal) {
     return null;
   }
   const close = () => {
@@ -43,7 +48,12 @@ export default function Modals(props: Props) {
       }
       width={800}
     >
-      <Body {...props} students={students} user_map={user_map} />
+      <Body
+        {...props}
+        students={students}
+        user_map={user_map}
+        project_map={project_map}
+      />
     </Modal>
   );
   return null;
@@ -53,6 +63,10 @@ function getModal(modal: string) {
   switch (modal) {
     case "add-students":
       return { Body: AddStudents, title: "Add Students", icon: "users" };
+    case "start-all-projects":
+      return {
+        Body: StartAllProjects,
+      };
     case "reconfigure-all-projects":
       return {
         Body: ReconfigureAllProjects,
