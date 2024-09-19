@@ -48,8 +48,10 @@ const COURSE_MENUS = {
     entries: {
       projects: [
         "course-start-all-projects",
+        "course-terminal-command",
         "course-reconfigure-all-projects",
       ],
+      export: ["course-export-grades"],
     },
   },
 };
@@ -79,6 +81,18 @@ const COMMANDS = {
       actions.setModal("start-all-projects");
     },
   },
+  "course-terminal-command": {
+    icon: "terminal",
+    label: "Run Terminal Command in all Student Projects",
+    button: "Terminal",
+    title:
+      "Run a bash terminal command in the home directory of all student projects. Up to 30 commands run in parallel, with a timeout of 1 minutes.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("terminal-command");
+    },
+  },
   "course-reconfigure-all-projects": {
     icon: "mail",
     label: "Reconfigure all Projects",
@@ -88,6 +102,18 @@ const COMMANDS = {
       const { id, actions } = props;
       actions.set_frame_type(id, "course_actions");
       actions.setModal("reconfigure-all-projects");
+    },
+  },
+  "course-export-grades": {
+    icon: "table",
+    label: "Export Grades",
+    button: "Grades",
+    title:
+      "Export all the grades you have recorded for students in your course to a csv or Python file.",
+    onClick: ({ props }) => {
+      const { id, actions } = props;
+      actions.set_frame_type(id, "course_actions");
+      actions.setModal("export-grades");
     },
   },
 };

@@ -6,8 +6,10 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import {
   ReconfigureAllProjects,
   StartAllProjects,
+  ExportGrades,
 } from "@cocalc/frontend/course/configuration/actions-panel";
 import type { ProjectMap } from "@cocalc/frontend/todo-types";
+import { TerminalCommandPanel } from "@cocalc/frontend/course/configuration/terminal-command";
 
 interface Props {
   frameActions;
@@ -53,6 +55,7 @@ export default function Modals(props: Props) {
         students={students}
         user_map={user_map}
         project_map={project_map}
+        close={close}
       />
     </Modal>
   );
@@ -63,14 +66,23 @@ function getModal(modal: string) {
   switch (modal) {
     case "add-students":
       return { Body: AddStudents, title: "Add Students", icon: "users" };
+
     case "start-all-projects":
       return {
         Body: StartAllProjects,
       };
+
+    case "terminal-command":
+      return { Body: TerminalCommandPanel };
+
     case "reconfigure-all-projects":
       return {
         Body: ReconfigureAllProjects,
       };
+
+    case "export-grades":
+      return { Body: ExportGrades };
+
     default:
       return {
         Body: () => (

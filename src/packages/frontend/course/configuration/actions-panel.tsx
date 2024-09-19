@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Card, Row, Col } from "antd";
+import { Button, Card, Row, Col, Space } from "antd";
 // React libraries and Components
 import {
   React,
@@ -11,7 +11,6 @@ import {
   useActions,
   useStore,
 } from "@cocalc/frontend/app-framework";
-import { Button, ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
 import { CourseActions } from "../actions";
@@ -42,62 +41,6 @@ export const ActionsPanel: React.FC<Props> = React.memo(
     reinviting_students,
   }) => {
     const actions = useActions<CourseActions>({ name });
-
-    /*
-     * Grade export
-     */
-    function render_grades_header() {
-      return (
-        <>
-          <Icon name="table" /> Export Grades
-        </>
-      );
-    }
-
-    async function save_grades_to_csv() {
-      await actions.export.to_csv();
-    }
-
-    async function save_grades_to_py() {
-      await actions.export.to_py();
-    }
-
-    async function save_grades_to_json() {
-      await actions.export.to_json();
-    }
-
-    function render_export_grades() {
-      return (
-        <Card title={render_grades_header()}>
-          <div style={{ marginBottom: "10px" }}>Save grades to... </div>
-          <ButtonGroup>
-            <Button onClick={save_grades_to_csv}>
-              <Icon name="csv" /> CSV file...
-            </Button>
-            <Button onClick={save_grades_to_json}>
-              <Icon name="file-code" /> JSON file...
-            </Button>
-            <Button onClick={save_grades_to_py}>
-              <Icon name="file-code" /> Python file...
-            </Button>
-          </ButtonGroup>
-          <hr />
-          <div style={{ color: "#666" }}>
-            Export all the grades you have recorded for students in your course
-            to a csv or Python file.
-            <br />
-            In Microsoft Excel, you can{" "}
-            <a
-              target="_blank"
-              href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba"
-            >
-              import the CSV file
-            </a>
-            .
-          </div>
-        </Card>
-      );
-    }
 
     function render_resend_outstanding_email_invites(): Rendered {
       return (
@@ -177,19 +120,15 @@ export const ActionsPanel: React.FC<Props> = React.memo(
       );
     }
 
-    function render_terminal_command() {
-      return <TerminalCommandPanel name={name} />;
-    }
-
     return (
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
             <StartAllProjects name={name} project_map={project_map} />
             <br />
-            {render_terminal_command()}
+            <TerminalCommandPanel name={name} />
             <br />
-            {render_export_grades()}
+            <ExportGrades actions={actions} />
           </Col>
           <Col md={12} style={{ padding: "15px" }}>
             <ReconfigureAllProjects
@@ -225,6 +164,60 @@ export function StartAllProjects({ name, project_map }) {
       num_running_projects={r}
       num_students={n}
     />
+  );
+}
+
+export function ExportGrades({ actions, close }: { actions; close? }) {
+  async function save_grades_to_csv() {
+    await actions.export.to_csv();
+    close?.();
+  }
+
+  async function save_grades_to_py() {
+    await actions.export.to_py();
+    close?.();
+  }
+
+  async function save_grades_to_json() {
+    await actions.export.to_json();
+    close?.();
+  }
+
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="table" /> Export Grades
+        </>
+      }
+    >
+      <div style={{ marginBottom: "10px" }}>Save grades to... </div>
+      <Space>
+        <Button onClick={save_grades_to_csv}>
+          <Icon name="csv" /> CSV file...
+        </Button>
+        <Button onClick={save_grades_to_json}>
+          <Icon name="file-code" /> JSON file...
+        </Button>
+        <Button onClick={save_grades_to_py}>
+          <Icon name="file-code" /> Python file...
+        </Button>
+      </Space>
+      <hr />
+      <div style={{ color: "#666" }}>
+        Export all the grades you have recorded for students in your course to a
+        csv or Python file.
+        <br />
+        In Microsoft Excel, you can{" "}
+        <a
+          target="_blank"
+          href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba"
+        >
+          import the CSV file
+        </a>
+        .
+      </div>
+    </Card>
   );
 }
 
