@@ -19,7 +19,6 @@ import {
   LabeledRow,
   MarkdownInput,
   TextInput,
-  ErrorDisplay,
 } from "@cocalc/frontend/components";
 import { StudentProjectUpgrades } from "./upgrades";
 import { CourseActions } from "../actions";
@@ -34,6 +33,7 @@ import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
 import StudentPay from "./student-pay";
 //import Mirror from "./mirror";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface Props {
   name: string;
@@ -44,80 +44,9 @@ interface Props {
 
 export const ConfigurationPanel: React.FC<Props> = React.memo(
   ({ name, project_id, settings, configuring_projects }) => {
-    const [email_body_error, set_email_body_error] = useState<
-      string | undefined
-    >(undefined);
-
     const actions = useActions<CourseActions>({ name });
-    const store = useStore<CourseStore>({ name });
     const is_commercial = useTypedRedux("customize", "is_commercial");
     const kucalc = useTypedRedux("customize", "kucalc");
-
-    /*
-     * Custom invitation email body
-     */
-
-    const check_email_body = debounce(
-      (value) => {
-        const allow_urls: boolean = redux
-          .getStore("projects")
-          .allow_urls_in_emails(project_id);
-        if (!allow_urls && contains_url(value)) {
-          set_email_body_error(
-            "URLs in emails are not allowed for free trial projects.  Please upgrade or delete the URL. This is an anti-spam measure.",
-          );
-        } else {
-          set_email_body_error(undefined);
-        }
-      },
-      500,
-      { leading: true, trailing: true },
-    );
-
-    function render_email_body_error() {
-      if (email_body_error == null) return;
-      return <ErrorDisplay error={email_body_error} />;
-    }
-
-    function render_email_invite_body() {
-      const template_instr =
-        " Also, {title} will be replaced by the title of the course and {name} by your name.";
-      return (
-        <Card
-          title={
-            <>
-              <Icon name="envelope" /> Email Invitation
-            </>
-          }
-        >
-          <div
-            style={{
-              border: "1px solid lightgrey",
-              padding: "10px",
-              borderRadius: "5px",
-            }}
-          >
-            {render_email_body_error()}
-            <MarkdownInput
-              persist_id={name + "email-invite-body"}
-              attach_to={name}
-              rows={6}
-              default_value={store.get_email_invite()}
-              on_save={(body) => actions.configuration.set_email_invite(body)}
-              save_disabled={email_body_error != null}
-              on_change={check_email_body}
-              on_cancel={() => set_email_body_error(undefined)}
-            />
-          </div>
-          <hr />
-          <span style={{ color: "#666" }}>
-            If you add a student to this course using their email address, and
-            they do not have a CoCalc account, then they will receive this email
-            invitation. {template_instr}
-          </span>
-        </Card>
-      );
-    }
 
     function render_require_institute_pay() {
       if (!is_commercial) return;
@@ -165,32 +94,6 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
       );
     }
 
-    function render_disable_students() {
-      return (
-        <DisableStudentCollaboratorsPanel
-          checked={!!settings.get("allow_collabs")}
-          on_change={(val) => actions.configuration.set_allow_collabs(val)}
-        />
-      );
-    }
-
-    function render_student_project_functionality() {
-      const functionality =
-        settings.get("student_project_functionality")?.toJS() ?? {};
-      return (
-        <CustomizeStudentProjectFunctionality
-          functionality={functionality}
-          onChange={async (opts) =>
-            await actions.configuration.set_student_project_functionality(opts)
-          }
-        />
-      );
-    }
-
-    function render_nbgrader() {
-      return <Nbgrader name={name} />;
-    }
-
     return (
       <div className="smc-vfill" style={{ overflowY: "scroll" }}>
         <Row>
@@ -207,14 +110,19 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               name={name}
             />
             <br />
-            {render_email_invite_body()}
+            <EmailInvitation
+              actions={actions}
+              redux={redux}
+              project_id={project_id}
+              name={name}
+            />
             <br />
-            {render_nbgrader()}
+            <Nbgrader name={name} />
           </Col>
           <Col md={12} style={{ padding: "15px" }}>
-            {render_disable_students()}
+            <CollaboratorPolicy settings={settings} actions={actions} />
             <br />
-            {render_student_project_functionality()}
+            <RestrictStudentProjects settings={settings} actions={actions} />
             <br />
             <StudentProjectSoftwareEnvironment
               actions={actions.configuration}
@@ -224,14 +132,16 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
             />
             <br />
             <Parallel name={name} />
-            <DatastoreConfig
-              actions={actions.configuration}
-              datastore={settings.get("datastore")}
+            <NetworkFilesystem
+              actions={actions}
+              settings={settings}
+              project_id={project_id}
             />
             <br />
-            <EnvironmentVariablesConfig
-              actions={actions.configuration}
-              envvars={settings.get("envvars")}
+            <EnvVariables
+              actions={actions}
+              settings={settings}
+              project_id={project_id}
             />
             {/*<br />
             <Mirror
@@ -289,5 +199,129 @@ export function TitleAndDescription({ actions, settings, name }) {
         link to the main course website.
       </span>
     </Card>
+  );
+}
+
+export function EmailInvitation({ actions, redux, project_id, name }) {
+  const [error, setError] = useState<string>("");
+  const store = useStore<CourseStore>({ name });
+
+  const check_email_body = debounce(
+    (value) => {
+      const allow_urls: boolean = redux
+        .getStore("projects")
+        .allow_urls_in_emails(project_id);
+      if (!allow_urls && contains_url(value)) {
+        setError(
+          "URLs in emails are not allowed for free trial projects.  Please upgrade or delete the URL. This is an anti-spam measure.",
+        );
+      } else {
+        setError("");
+      }
+    },
+    500,
+    { leading: true, trailing: true },
+  );
+
+  const template_instr =
+    " Also, {title} will be replaced by the title of the course and {name} by your name.";
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="envelope" /> Email Invitation
+        </>
+      }
+    >
+      <div
+        style={{
+          border: "1px solid lightgrey",
+          padding: "10px",
+          borderRadius: "5px",
+        }}
+      >
+        <ShowError error={error} />
+        <MarkdownInput
+          persist_id={name + "email-invite-body"}
+          attach_to={name}
+          rows={6}
+          default_value={store.get_email_invite()}
+          on_save={(body) => actions.configuration.set_email_invite(body)}
+          save_disabled={!!error}
+          on_change={check_email_body}
+          on_cancel={() => setError("")}
+        />
+      </div>
+      <hr />
+      <span style={{ color: "#666" }}>
+        If you add a student to this course using their email address, and they
+        do not have a CoCalc account, then they will receive this email
+        invitation. {template_instr}
+      </span>
+    </Card>
+  );
+}
+
+export function CollaboratorPolicy({ settings, actions }) {
+  return (
+    <DisableStudentCollaboratorsPanel
+      checked={!!settings.get("allow_collabs")}
+      on_change={(val) => actions.configuration.set_allow_collabs(val)}
+    />
+  );
+}
+
+export function RestrictStudentProjects({ settings, actions }) {
+  const functionality =
+    settings.get("student_project_functionality")?.toJS() ?? {};
+  return (
+    <CustomizeStudentProjectFunctionality
+      functionality={functionality}
+      onChange={async (opts) =>
+        await actions.configuration.set_student_project_functionality(opts)
+      }
+    />
+  );
+}
+
+export function NetworkFilesystem({
+  settings,
+  actions,
+  project_id,
+  close,
+}: {
+  settings;
+  actions;
+  project_id;
+  close?;
+}) {
+  return (
+    <DatastoreConfig
+      actions={actions.configuration}
+      datastore={settings.get("datastore")}
+      project_id={project_id}
+      close={close}
+    />
+  );
+}
+
+export function EnvVariables({
+  settings,
+  actions,
+  project_id,
+  close,
+}: {
+  settings;
+  actions;
+  project_id;
+  close?;
+}) {
+  return (
+    <EnvironmentVariablesConfig
+      actions={actions.configuration}
+      envvars={settings.get("envvars")}
+      project_id={project_id}
+      close={close}
+    />
   );
 }

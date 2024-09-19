@@ -35,16 +35,16 @@ export const ActionsPanel: React.FC<Props> = React.memo(
           <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
             <StartAllProjects name={name} project_map={project_map} />
             <br />
-            <TerminalCommandPanel name={name} />
-            <br />
-            <ExportGrades actions={actions} />
-          </Col>
-          <Col md={12} style={{ padding: "15px" }}>
             <ReconfigureAllProjects
               configuring_projects={configuring_projects}
               actions={actions}
             />
             <br />
+            <TerminalCommandPanel name={name} />
+            <br />
+            <ExportGrades actions={actions} />
+          </Col>
+          <Col md={12} style={{ padding: "15px" }}>
             <ResendInvites
               actions={actions}
               reinviting_students={reinviting_students}

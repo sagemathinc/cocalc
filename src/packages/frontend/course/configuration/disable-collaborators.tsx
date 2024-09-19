@@ -13,7 +13,7 @@ export const DisableStudentCollaboratorsPanel: React.FC<Props> = React.memo(
       <Card
         title={
           <>
-            <Icon name="envelope" /> Collaborator policy
+            <Icon name="envelope" /> Collaborator Policy
           </>
         }
       >

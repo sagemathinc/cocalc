@@ -22,6 +22,7 @@ import {
 import { EditorDescription } from "../frame-tree/types";
 import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { menu } from "@cocalc/frontend/i18n";
+import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
 
 const commands = set([
   // commented out for now since broken: See https://github.com/sagemathinc/cocalc/issues/7235
@@ -39,30 +40,40 @@ const COURSE_MENUS = {
     label: menu.edit,
     pos: 1,
     entries: {
-      config: ["course-title-and-description"],
-      students: ["course-add-student"],
+      editStudents: ["course-add-student"],
+      configCourse: [
+        "course-title-and-description",
+        "course-email-invitation",
+        "course-copy-limit",
+      ],
+      restrictCourse: [
+        "course-collaborator-policy",
+        "course-restrict-student-projects",
+      ],
+      nbgraderConfig: ["course-nbgrader"],
+      environmentConfig: ["course-network-file-systems", "course-env-variables"],
     },
   },
   action: {
     label: "Actions",
     pos: 1.2,
     entries: {
-      projects: [
+      projectsActions: [
         "course-start-all-projects",
         "course-terminal-command",
         "course-reconfigure-all-projects",
       ],
-      export: ["course-export-grades"],
-      students: [
+      exportGrades: ["course-export-grades"],
+      constrolStudents: [
         "course-resend-invites",
         "course-copy-missing-handouts-and-assignments",
       ],
-      delete: [
+      courseDelete: [
         "course-empty-trash",
         "course-delete-student-projects",
         "course-delete-students",
       ],
-      shared: ["course-create-shared-project", "course-delete-shared-project"],
+      sharedProject: ["course-create-shared-project", "course-delete-shared-project"],
     },
   },
 };
@@ -82,12 +93,86 @@ const COMMANDS = {
   },
   "course-title-and-description": {
     icon: "header",
-    label: "Course Title and Description...",
+    label: "Course Title and Description",
     button: "Title",
     title: "Set the course title and description.",
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("title-and-description");
+    },
+  },
+  "course-email-invitation": {
+    icon: "mail",
+    label: "Email Invitation",
+    button: "Invite",
+    title:
+      "If you add a student to this course using their email address, and they do not have a CoCalc account, then they will receive this email invitation.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("email-invitation");
+    },
+  },
+  "course-copy-limit": {
+    icon: "users",
+    label: "Parallel Copy Limit",
+    button: "Limit",
+    title: "Max number of students to copy and collect files from in parallel.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("copy-limit");
+    },
+  },
+  "course-collaborator-policy": {
+    icon: "mail",
+    label: "Collaborator Policy",
+    button: "Collab",
+    title:
+      "Control if the owner and any collaborator on this student project may add collaborators to this project.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("collaborator-policy");
+    },
+  },
+  "course-restrict-student-projects": {
+    icon: "lock",
+    label: "Restrict Student Projects",
+    button: "Restrict",
+    title: "Remove functionality from student projects",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("restrict-student-projects");
+    },
+  },
+  "course-nbgrader": {
+    icon: "graduation-cap",
+    label: "Configure Nbgrader",
+    button: "Nbgrader",
+    title: "Configure how nbgrader works.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("nbgrader");
+    },
+  },
+  "course-network-file-systems": {
+    icon: "database",
+    label: "Cloud Storage & Remote File Systems",
+    button: "Nbgrader",
+    title:
+      "Give all student projects read-only access to the same cloud stores and remote file systems as this instructor project.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("network-file-systems");
+    },
+  },
+  "course-env-variables": {
+    icon: ENV_VARS_ICON,
+    label: "Configure Environment Variables",
+    button: "Environment",
+    title:
+      "Configure whether or not student projects inherit the environment variables of this instructor project.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("env-variables");
     },
   },
   "course-start-all-projects": {

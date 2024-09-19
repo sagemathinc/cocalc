@@ -10,8 +10,13 @@
 
 import { Button, Card, Form, Switch, Typography } from "antd";
 import { List } from "immutable";
-
-import { React, useState, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useEffect } from "react";
+import {
+  redux,
+  React,
+  useState,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { Datastore } from "@cocalc/frontend/projects/actions";
 import {
@@ -23,6 +28,8 @@ import { ConfigurationActions } from "./actions";
 interface Props {
   actions: ConfigurationActions;
   datastore?: Datastore | List<string>; // List<string> is not used yet
+  project_id: string;
+  close?: Function;
 }
 
 export const DatastoreConfig: React.FC<Props> = (props: Props) => {
@@ -36,16 +43,22 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
   const inherit = typeof datastore === "boolean" ? datastore : true;
   const [next_val, set_next_val] = useState<boolean>(inherit);
 
+  useEffect(() => {
+    // needed because of realtime collaboration, multiple frames, modal, etc!
+    set_next_val(inherit);
+  }, [inherit]);
+
   function on_inherit_change(inherit: boolean) {
     set_next_val(inherit);
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     set_need_save(next_val != inherit);
   }, [next_val, inherit]);
 
   function save() {
     actions.set_datastore(next_val);
+    props.close?.();
   }
 
   // this selector only make sense for cocalc.com or onprem with datastore enabled
@@ -91,9 +104,19 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
           If enabled, all student projects will have{" "}
           <Typography.Text strong>read-only</Typography.Text> access to the same
           cloud stores and remote file systems as this instructor project. To
-          configure them, please check this project's settings for more details.
-          Any changes to the configuration of this project will be reflected
-          after the next start of a student project.
+          configure them, please check{" "}
+          <a
+            onClick={() => {
+              redux
+                .getProjectActions(props.project_id)
+                .set_active_tab("settings");
+              props.close?.();
+            }}
+          >
+            this project's settings
+          </a>{" "}
+          for more details. Any changes to the configuration of this project
+          will be reflected after the next start of a student project.
         </p>
         {render_control()}
       </Card>

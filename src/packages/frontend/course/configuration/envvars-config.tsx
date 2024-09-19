@@ -8,22 +8,30 @@
 // and used to configure it in read-only mode. In the future, a natural extension is to explicitly list the datastores
 // that should be inherited, or configure the readonly property. but for now, it's just true or false.
 
-import { React, useTypedRedux, useState, TypedMap } from "../../app-framework";
+import {
+  redux,
+  React,
+  useTypedRedux,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
+import { useEffect, useState } from "react";
 import { ConfigurationActions } from "./actions";
 import { Card, Typography, Switch, Form, Button } from "antd";
-import { EnvVars, EnvVarsRecord } from "../../projects/actions";
+import { EnvVars, EnvVarsRecord } from "@cocalc/frontend/projects/actions";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { Icon } from "../../components";
-import { ENV_VARS_ICON } from "../../project/settings/environment";
+import { Icon } from "@cocalc/frontend/components";
+import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
 
 const ENVVARS_DEFAULT = true;
 
 interface Props {
+  project_id: string;
   actions: ConfigurationActions;
   envvars?: EnvVars | TypedMap<EnvVarsRecord>;
+  close?: Function;
 }
 
 function normalizeTypeAndValue(
@@ -49,9 +57,14 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
   const inherit = envvars.inherit ?? ENVVARS_DEFAULT;
   const [nextVal, setNextVal] = useState<boolean>(inherit);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setNeedSave(nextVal != inherit);
   }, [nextVal, inherit]);
+
+  useEffect(() => {
+    // needed because of realtime collaboration, multiple frames, modal, etc!
+    setNextVal(inherit);
+  }, [inherit]);
 
   // this selector only make sense for cocalc.com and cocalc-onprem
   if (
@@ -70,7 +83,10 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
           <Button
             disabled={!needSave}
             type={needSave ? "primary" : "default"}
-            onClick={() => actions.set_envvars(nextVal)}
+            onClick={() => {
+              actions.set_envvars(nextVal);
+              props.close?.();
+            }}
           >
             Save
           </Button>
@@ -93,9 +109,19 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
         instructor project.
       </p>
       <p>
-        To configure them, please check this project's settings for more
-        details. Any changes to the configuration of this project will be
-        reflected after the next start of a student project.
+        To configure them, please check{" "}
+        <a
+          onClick={() => {
+            redux
+              .getProjectActions(props.project_id)
+              .set_active_tab("settings");
+            props.close?.();
+          }}
+        >
+          this project's settings
+        </a>{" "}
+        for more details. Any changes to the configuration of this project will
+        be reflected after the next start of a student project.
       </p>
       <p>
         Note: inherited variables will take precedence over the ones defined in

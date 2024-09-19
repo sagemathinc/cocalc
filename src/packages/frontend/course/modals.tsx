@@ -17,7 +17,16 @@ import { DeleteAllStudentProjects } from "@cocalc/frontend/course/configuration/
 import { DeleteAllStudents } from "@cocalc/frontend/course/configuration//delete-all-students";
 import { DeleteSharedProjectPanel } from "@cocalc/frontend/course/shared-project/delete-shared-project";
 import { SharedProjectPanel } from "@cocalc/frontend/course/shared-project/shared-project-panel";
-import { TitleAndDescription } from "@cocalc/frontend/course/configuration/configuration-panel";
+import {
+  CollaboratorPolicy,
+  EmailInvitation,
+  EnvVariables,
+  NetworkFilesystem,
+  RestrictStudentProjects,
+  TitleAndDescription,
+} from "@cocalc/frontend/course/configuration/configuration-panel";
+import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
+import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
 
 interface Props {
   frameActions;
@@ -116,6 +125,21 @@ function getModal(modal: string) {
 
     case "title-and-description":
       return { Body: TitleAndDescription };
+
+    case "email-invitation":
+      return { Body: EmailInvitation };
+    case "copy-limit":
+      return { Body: Parallel };
+    case "collaborator-policy":
+      return { Body: CollaboratorPolicy };
+    case "restrict-student-projects":
+      return { Body: RestrictStudentProjects };
+    case "nbgrader":
+      return { Body: Nbgrader };
+    case "network-file-systems":
+      return { Body: NetworkFilesystem };
+    case "env-variables":
+      return { Body: EnvVariables };
 
     default:
       return {
