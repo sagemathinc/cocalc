@@ -91,9 +91,43 @@ export class AssignmentsActions {
     return store.get("course_filename").slice(0, i) + "-collect/" + path;
   }
 
-  public async add_assignment(path: string): Promise<void> {
-    // Add an assignment to the course, which is defined by giving a directory in the project.
-    // Where we collect homework that students have done (in teacher project)
+  // slight warning -- this is linear in the number of assignments (so do not overuse)
+  // Returns
+  private getAssignmentWithPath = (
+    path: string,
+  ): AssignmentRecord | undefined => {
+    const store = this.get_store();
+    if (store == null) return;
+    return store
+      .get("assignments")
+      .valueSeq()
+      .filter((x) => x.get("path") == path)
+      .get(0);
+  };
+
+  addAssignment = async (path: string | string[]): Promise<void> => {
+    // Add one or more assignment to the course, which is defined by giving a directory in the project.
+    // Where we collect homework that students have done (in teacher project).
+    // If the assignment was previously deleted, this undeletes it.
+    if (typeof path != "string") {
+      // handle case of array of inputs
+      for (const p of path) {
+        await this.addAssignment(p);
+      }
+      return;
+    }
+    const cur = this.getAssignmentWithPath(path);
+    if (cur != null) {
+      // either undelete or nothing to do.
+      if (cur.get("deleted")) {
+        // undelete
+        this.undelete_assignment(cur.get("assignment_id"));
+      } else {
+        // nothing to do
+      }
+      return;
+    }
+
     const collect_path = this.collect_path(path);
     const path_parts = path_split(path);
     // folder that we return graded homework to (in student project)
@@ -122,7 +156,7 @@ export class AssignmentsActions {
       table: "assignments",
       assignment_id: uuid(),
     });
-  }
+  };
 
   public delete_assignment(assignment_id: string): void {
     this.course_actions.set({

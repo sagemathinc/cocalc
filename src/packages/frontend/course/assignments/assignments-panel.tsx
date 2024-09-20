@@ -86,48 +86,45 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     return assignment as any;
   }
 
-  const { shown_assignments, deleted_assignments, num_omitted, num_deleted } =
-    useMemo((): {
-      shown_assignments: any[];
-      deleted_assignments: any[];
-      num_omitted: number;
-      num_deleted: number;
-    } => {
-      let deleted, f, num_deleted, num_omitted;
-      let list = util.immutable_to_list(assignments, "assignment_id");
+  const { shown_assignments, num_omitted, num_deleted } = useMemo((): {
+    shown_assignments: any[];
+    num_omitted: number;
+    num_deleted: number;
+  } => {
+    let f, num_deleted, num_omitted;
+    let list = util.immutable_to_list(assignments, "assignment_id");
 
-      ({ list, num_omitted } = util.compute_match_list({
-        list,
-        search_key: "path",
-        search: search.trim(),
-      }));
+    ({ list, num_omitted } = util.compute_match_list({
+      list,
+      search_key: "path",
+      search: search.trim(),
+    }));
 
-      if (active_assignment_sort.get("column_name") === "due_date") {
-        f = (a) => [
-          a.due_date != null ? a.due_date : 0,
-          a.path != null ? a.path.toLowerCase() : undefined,
-        ];
-      } else if (active_assignment_sort.get("column_name") === "dir_name") {
-        f = (a) => [
-          a.path != null ? a.path.toLowerCase() : undefined,
-          a.due_date != null ? a.due_date : 0,
-        ];
-      }
+    if (active_assignment_sort.get("column_name") === "due_date") {
+      f = (a) => [
+        a.due_date != null ? a.due_date : 0,
+        a.path != null ? a.path.toLowerCase() : undefined,
+      ];
+    } else if (active_assignment_sort.get("column_name") === "dir_name") {
+      f = (a) => [
+        a.path != null ? a.path.toLowerCase() : undefined,
+        a.due_date != null ? a.due_date : 0,
+      ];
+    }
 
-      ({ list, deleted, num_deleted } = util.order_list({
-        list,
-        compare_function: (a, b) => cmp_array(f(a), f(b)),
-        reverse: active_assignment_sort.get("is_descending"),
-        include_deleted: show_deleted,
-      }));
+    ({ list, num_deleted } = util.order_list({
+      list,
+      compare_function: (a, b) => cmp_array(f(a), f(b)),
+      reverse: active_assignment_sort.get("is_descending"),
+      include_deleted: show_deleted,
+    }));
 
-      return {
-        shown_assignments: list,
-        deleted_assignments: deleted,
-        num_omitted,
-        num_deleted,
-      };
-    }, [assignments, active_assignment_sort, show_deleted, search]);
+    return {
+      shown_assignments: list,
+      num_omitted,
+      num_deleted,
+    };
+  }, [assignments, active_assignment_sort, show_deleted, search]);
 
   function render_sort_link(
     column_name: string,
@@ -277,25 +274,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     }
   }
 
-  function yield_adder(deleted_assignments): (string) => void {
-    const deleted_paths = {};
-    deleted_assignments.map((obj) => {
-      if (obj.path) {
-        deleted_paths[obj.path] = obj.assignment_id;
-      }
-    });
-
-    return (path) => {
-      if (deleted_paths[path] != null) {
-        course_actions.assignments.undelete_assignment(deleted_paths[path]);
-      } else {
-        course_actions.assignments.add_assignment(path);
-      }
-    };
-  }
-
   function header() {
-    const add_assignment = yield_adder(deleted_assignments);
     return (
       <div style={{ marginBottom: "15px" }}>
         <FoldersToolbar
@@ -304,7 +283,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
           num_omitted={num_omitted}
           project_id={project_id}
           items={assignments}
-          add_folders={(paths) => paths.map(add_assignment)}
+          add_folders={course_actions.assignments.addAssignment}
           item_name={"assignment"}
           plural_item_name={"assignments"}
         />
