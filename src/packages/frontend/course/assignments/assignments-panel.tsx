@@ -19,7 +19,7 @@ import { cmp_array } from "@cocalc/util/misc";
 import { Alert, Col, Row } from "antd";
 import { Map, Set } from "immutable";
 import { CourseActions } from "../actions";
-import { FoldersToolbar } from "../common";
+import { AddItems, FoldersToolbar } from "../common/folders-tool-bar";
 import {
   AssignmentRecord,
   IsGradingMap,
@@ -306,3 +306,24 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     </div>
   );
 });
+
+// used for adding assignments outside of the above component.
+export function AddAssignments({ name, actions }) {
+  const assignments = useRedux(name, "assignments");
+  return (
+    <AddItems
+      itemName="assignment"
+      items={assignments}
+      addItems={actions.assignments.addAssignment}
+      selectorStyle={{
+        position: null,
+        width: "100%",
+        boxShadow: null,
+        zIndex: null,
+        backgroundColor: null,
+      }}
+      defaultOpen
+      closable={false}
+    />
+  );
+}

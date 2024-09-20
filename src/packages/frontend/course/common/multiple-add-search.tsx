@@ -14,6 +14,9 @@ interface MultipleAddSearchProps {
   itemName: string;
   err?: string;
   isExcluded: (path: string) => boolean;
+  defaultOpen?;
+  selectorStyle?;
+  closable: boolean;
 }
 
 // Multiple result selector
@@ -23,8 +26,11 @@ export function MultipleAddSearch({
   addSelected,
   itemName = "result",
   isExcluded,
+  defaultOpen,
+  selectorStyle,
+  closable,
 }: MultipleAddSearchProps) {
-  const [selecting, setSelecting] = useState<boolean>(false);
+  const [selecting, setSelecting] = useState<boolean>(defaultOpen);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set([]));
 
   function clear() {
@@ -44,12 +50,14 @@ export function MultipleAddSearch({
       {selecting && (
         <DirectorySelector
           multi
+          closable={closable}
           style={{
             width: "500px",
             margin: "10px 0",
             position: "absolute",
             zIndex: 1,
             boxShadow: "8px 8px 4px #888",
+            ...selectorStyle,
           }}
           title={`Select one or more ${itemName} directories`}
           onMultiSelect={setSelectedItems}

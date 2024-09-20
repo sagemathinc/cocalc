@@ -45,51 +45,6 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
     plural_item_name = "item",
   } = props;
 
-  function submit_selected(path_list) {
-    if (path_list != null) {
-      // If nothing is selected and the user clicks the button to "Add handout (etc)" then
-      // path_list is undefined, hence don't do
-      // (NOTE: I'm also going to make it so that button is disabled, which fits our
-      // UI guidelines, so there's two reasons that path_list is defined here.)
-      add_folders(path_list);
-    }
-  }
-
-  // Omit any -collect directory (unless explicitly searched for).
-  // Omit any currently assigned directory or subdirectories.
-  const pathsToOmit = useMemo(() => {
-    const omit: Set<string> = new Set([]);
-    items
-      .filter((val) => !val.get("deleted"))
-      .map((val) => {
-        const path = val.get("path");
-        if (path != null) {
-          // path might not be set in case something went wrong
-          // (this has been hit in production)
-          omit.add(path);
-        }
-      });
-    return omit;
-  }, [items]);
-
-  const isExcluded = useCallback(
-    (path) => {
-      if (!path) return true;
-      if (path.includes("-collect")) return true;
-      if (pathsToOmit.has(path)) {
-        return true;
-      }
-      // finally check if path is contained in any ommited path.
-      for (const omit of pathsToOmit) {
-        if (path.startsWith(omit + "/")) return true;
-        if (omit.startsWith(path + "/")) return true;
-      }
-
-      return false;
-    },
-    [pathsToOmit],
-  );
-
   return (
     <Space>
       <SearchInput
@@ -110,11 +65,75 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
           {num_omitted > 1 ? plural_item_name : item_name})
         </h5>
       ) : undefined}
-      <MultipleAddSearch
-        isExcluded={isExcluded}
-        addSelected={submit_selected}
-        itemName={item_name}
-      />
+      <AddItems addItems={add_folders} itemName={item_name} items={items} />
     </Space>
   );
 };
+
+export function AddItems({
+  addItems,
+  itemName,
+  items,
+  defaultOpen,
+  selectorStyle,
+  closable = true,
+}: {
+  addItems;
+  itemName: string;
+  items;
+  defaultOpen?;
+  selectorStyle?;
+  closable?;
+}) {
+  // Omits any -collect directory (unless explicitly searched for).
+  // Omits any currently assigned directory or subdirectories.
+  const pathsToOmit = useMemo(() => {
+    const omit: Set<string> = new Set([]);
+    items
+      .filter((val) => !val.get("deleted"))
+      .map((val) => {
+        const path = val.get("path");
+        if (path != null) {
+          // path might not be set in case something went wrong
+          // (this has been hit in production)
+          omit.add(path);
+        }
+      });
+    return omit;
+  }, [items]);
+
+  const isExcluded = useCallback(
+    (path) => {
+      if (!path) return true;
+      if (path.includes("-collect")) {
+        return true;
+      }
+      if (pathsToOmit.has(path)) {
+        return true;
+      }
+      // finally check if path is contained in any ommited path.
+      for (const omit of pathsToOmit) {
+        if (path.startsWith(omit + "/")) return true;
+        if (omit.startsWith(path + "/")) return true;
+      }
+
+      return false;
+    },
+    [pathsToOmit],
+  );
+
+  return (
+    <MultipleAddSearch
+      isExcluded={isExcluded}
+      addSelected={(paths) => {
+        if (paths != null) {
+          addItems(paths);
+        }
+      }}
+      itemName={itemName}
+      defaultOpen={defaultOpen}
+      selectorStyle={selectorStyle}
+      closable={closable}
+    />
+  );
+}

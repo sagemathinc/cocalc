@@ -49,6 +49,7 @@ interface Props {
   showHidden?: boolean;
   title?: ReactNode;
   multi?: boolean; // if true enables multiple select
+  closable?: boolean;
 }
 
 export default function DirectorySelector({
@@ -64,6 +65,7 @@ export default function DirectorySelector({
   showHidden: defaultShowHidden,
   title,
   multi,
+  closable = true,
 }: Props) {
   const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
   if (project_id == null) project_id = frameContext.project_id;
@@ -196,7 +198,7 @@ export default function DirectorySelector({
     <Card
       title={
         <>
-          {onClose != null && (
+          {closable && onClose != null && (
             <Icon
               name="times"
               style={{ float: "right", cursor: "pointer", marginTop: "5px" }}

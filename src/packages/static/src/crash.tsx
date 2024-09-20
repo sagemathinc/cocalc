@@ -65,7 +65,7 @@ export default function Crash() {
         Sorry to interrupt your work. An error happened in CoCalc's web
         application.
         <br />
-        Don't worry, all your files are securely stored on its servers!
+        Don't worry, your CoCalc files are securely stored on our servers!
       </div>
 
       <hr />

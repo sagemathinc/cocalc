@@ -28,6 +28,7 @@ import {
 } from "@cocalc/frontend/course/configuration/configuration-panel";
 import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
 import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
+import { AddAssignments } from "@cocalc/frontend/course/assignments/assignments-panel";
 
 interface Props {
   frameActions;
@@ -87,6 +88,8 @@ function getModal(modal: string) {
   switch (modal) {
     case "add-students":
       return { Body: AddStudents, title: "Add Students", icon: "users" };
+    case "add-assignments":
+      return { Body: AddAssignments, title: "Add Assignemtns", icon: "share-square" };
 
     case "start-all-projects":
       return {
