@@ -11,13 +11,7 @@ import {
   CSS,
 } from "@cocalc/frontend/app-framework";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
-import { Alert, Card, Col, Row } from "antd";
-import {
-  Button,
-  ButtonGroup,
-  FormControl,
-  FormGroup,
-} from "../../antd-bootstrap";
+import { Alert, Button, Input, Card, Col, Row, Space } from "antd";
 import { Icon, MarkdownInput, Tip } from "../../components";
 import { UserMap } from "../../todo-types";
 import { CourseActions } from "../actions";
@@ -251,26 +245,23 @@ export const Handout: React.FC<HandoutProps> = React.memo(
         <div style={{ marginTop: "15px" }}>
           Type in "OVERWRITE" if you are certain to replace the handout files of
           all students.
-          <FormGroup>
-            <FormControl
-              autoFocus
-              type="text"
-              onChange={(e) =>
-                set_copy_handout_confirm_overwrite_text((e.target as any).value)
-              }
-              style={{ marginTop: "1ex" }}
-            />
-          </FormGroup>
-          <ButtonGroup style={{ textAlign: "center", marginTop: "15px" }}>
+          <Input
+            autoFocus
+            onChange={(e) =>
+              set_copy_handout_confirm_overwrite_text(e.target.value)
+            }
+            style={{ marginTop: "1ex" }}
+          />
+          <Space style={{ textAlign: "center", marginTop: "15px" }}>
+            {render_copy_cancel()}
             <Button
               disabled={copy_handout_confirm_overwrite_text !== "OVERWRITE"}
-              bsStyle="danger"
+              danger
               onClick={do_it}
             >
               <Icon name="exclamation-triangle" /> Confirm replacing files
             </Button>
-            {render_copy_cancel()}
-          </ButtonGroup>
+          </Space>
         </div>
       );
     }
@@ -307,16 +298,16 @@ export const Handout: React.FC<HandoutProps> = React.memo(
                 {step_direction(step)} the {n} student{n > 1 ? "s" : ""}
                 {step_ready(step)}?
               </div>
-              <ButtonGroup>
+              <Space>
+                {render_copy_cancel()}
                 <Button
                   key="yes"
-                  bsStyle="primary"
+                  type="primary"
                   onClick={() => copy_handout(step, false)}
                 >
                   Yes
                 </Button>
-                {render_copy_cancel()}
-              </ButtonGroup>
+              </Space>
             </div>
           }
         />
@@ -340,23 +331,19 @@ export const Handout: React.FC<HandoutProps> = React.memo(
           <div style={{ marginBottom: "15px" }}>
             {copy_confirm_all_caution(step)}
           </div>
-          <ButtonGroup>
-            <Button
-              key="all"
-              bsStyle="warning"
-              onClick={() => copy_handout(step, false)}
-            >
+          <Space>
+            {render_copy_cancel()}
+            <Button key="all" onClick={() => copy_handout(step, false)}>
               Yes, do it
             </Button>
             <Button
               key="all-overwrite"
-              bsStyle="danger"
+              danger
               onClick={() => set_copy_handout_confirm_overwrite(true)}
             >
               Replace student files!
             </Button>
-            {render_copy_cancel()}
-          </ButtonGroup>
+          </Space>
           {render_copy_handout_confirm_overwrite(step)}
         </div>
       );
@@ -377,10 +364,11 @@ export const Handout: React.FC<HandoutProps> = React.memo(
                 {step_direction(step)}
                 ...
               </div>
-              <ButtonGroup>
+              <Space>
+                {render_copy_cancel()}
                 <Button
                   key="all"
-                  bsStyle="danger"
+                  danger
                   onClick={() => {
                     set_copy_confirm_all_handout(true);
                     set_copy_confirm(true);
@@ -394,15 +382,14 @@ export const Handout: React.FC<HandoutProps> = React.memo(
                 {n ? (
                   <Button
                     key="new"
-                    bsStyle="primary"
+                    type="primary"
                     onClick={() => copy_handout(step, true)}
                   >
                     The {n} student{n > 1 ? "s" : ""} not already{" "}
                     {past_tense(step_verb(step))} {step_direction(step)}
                   </Button>
                 ) : undefined}
-                {render_copy_cancel()}
-              </ButtonGroup>
+              </Space>
               {copy_confirm_all_handout
                 ? render_copy_confirm_overwrite_all(step)
                 : undefined}
@@ -413,22 +400,11 @@ export const Handout: React.FC<HandoutProps> = React.memo(
     }
 
     function render_handout_button(status): Rendered {
-      let bsStyle;
       const handout_count = status.handout;
-      const { not_handout } = status;
-      if (handout_count === 0) {
-        bsStyle = "primary";
-      } else {
-        if (not_handout === 0) {
-          bsStyle = "success";
-        } else {
-          bsStyle = "warning";
-        }
-      }
       return (
         <Button
           key="handout"
-          bsStyle={bsStyle}
+          type={handout_count === 0 ? "primary" : undefined}
           onClick={() => {
             set_copy_confirm_handout(true);
             set_copy_confirm(true);
@@ -469,14 +445,14 @@ export const Handout: React.FC<HandoutProps> = React.memo(
             <div>
               Are you sure you want to delete this handout?
               <br /> <br />
-              <ButtonGroup>
-                <Button key="yes" onClick={delete_handout} bsStyle="danger">
-                  <Icon name="trash" /> Delete
-                </Button>
+              <Space>
                 <Button key="no" onClick={() => set_confirm_delete(false)}>
                   Cancel
                 </Button>
-              </ButtonGroup>
+                <Button key="yes" onClick={delete_handout} danger>
+                  <Icon name="trash" /> Delete
+                </Button>
+              </Space>
             </div>
           }
         />
@@ -590,13 +566,15 @@ export const Handout: React.FC<HandoutProps> = React.memo(
       }
       return (
         <Row key="summary" style={{ backgroundColor: backgroundColor }}>
-          <Col md={4} style={{ paddingRight: "0px" }}>
+          <Col md={8} style={{ paddingRight: "0px" }}>
             {render_handout_name()}
           </Col>
-          <Col md={12}>
+          <Col md={8}>
             <Row style={{ marginLeft: "8px" }}>
               {render_handout_button(status)}
-              <span style={{ color: "#666", marginLeft: "5px" }}>
+              <span
+                style={{ color: "#666", marginLeft: "5px", marginTop: "10px" }}
+              >
                 ({status.handout}/{status.handout + status.not_handout}{" "}
                 transferred)
               </span>

@@ -13,9 +13,8 @@ import {
 } from "@cocalc/frontend/app-framework";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 import { cmp } from "@cocalc/util/misc";
-import { Alert } from "antd";
+import { Alert, Button } from "antd";
 import { Set } from "immutable";
-import { Button } from "../../antd-bootstrap";
 import { Icon, Tip } from "../../components";
 import { UserMap } from "../../todo-types";
 import { CourseActions } from "../actions";
