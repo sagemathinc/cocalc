@@ -40,7 +40,11 @@ const COURSE_MENUS = {
     label: menu.edit,
     pos: 1,
     entries: {
-      editStudents: ["course-add-students", "course-add-assignments"],
+      editStudents: [
+        "course-add-students",
+        "course-add-assignments",
+        "course-add-handouts",
+      ],
       courseUpgrades: ["course-upgrades"],
       configCourse: [
         "course-title-and-description",
@@ -104,6 +108,16 @@ const COMMANDS = {
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("add-assignments");
+    },
+  },
+  "course-add-handouts": {
+    icon: "text1",
+    label: "Add Handouts",
+    button: "+Handouts",
+    title: "Add one or more handouts to this course.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("add-handouts");
     },
   },
   "course-title-and-description": {

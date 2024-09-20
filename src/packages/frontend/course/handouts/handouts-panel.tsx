@@ -19,7 +19,7 @@ import { Button } from "../../antd-bootstrap";
 import { Icon, Tip } from "../../components";
 import { UserMap } from "../../todo-types";
 import { CourseActions } from "../actions";
-import { FoldersToolbar } from "../common";
+import { AddItems, FoldersToolbar } from "../common/folders-tool-bar";
 import { HandoutRecord, HandoutsMap, StudentsMap } from "../store";
 import * as styles from "../styles";
 // CoCalc and course components
@@ -235,5 +235,26 @@ export function HandoutsPanelHeader(props: { n: number }) {
         <Icon name="files" /> Handouts {props.n != null ? ` (${props.n})` : ""}
       </span>
     </Tip>
+  );
+}
+
+// used for adding assignments outside of the above component.
+export function AddHandouts({ name, actions }) {
+  const handouts = useRedux(name, "handouts");
+  return (
+    <AddItems
+      itemName="handout"
+      items={handouts}
+      addItems={actions.assignments.addHandout}
+      selectorStyle={{
+        position: null,
+        width: "100%",
+        boxShadow: null,
+        zIndex: null,
+        backgroundColor: null,
+      }}
+      defaultOpen
+      closable={false}
+    />
   );
 }
