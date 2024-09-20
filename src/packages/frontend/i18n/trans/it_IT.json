@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "Cambiare lingua in {lang}?",
   "account.account_page.translation.info.content": "Siamo entusiasti di iniziare a offrire la nostra applicazione in più lingue! Ecco cosa devi sapere: <ul> <li><b>In Corso</b>: Il nostro sforzo di traduzione è appena iniziato. Molte parti dell'applicazione non sono ancora tradotte.</li> <li><b>Miglioramento Graduale</b>: Stiamo lavorando continuamente per espandere la copertura linguistica. Vedrai più contenuti tradotti nel tempo.</li> <li><b>Il Tuo Aiuto è Benvenuto</b>: Valorizziamo il contributo della nostra comunità. Se parli fluentemente più lingue e vuoi contribuire ai nostri sforzi di traduzione, ci piacerebbe sentirti!</li> <li><b>Contattaci</b>: Per saperne di più su come contribuire alle traduzioni o per segnalare eventuali problemi, contatta il nostro team di supporto.</li> </ul> Grazie per la tua pazienza e comprensione mentre lavoriamo per rendere la nostra applicazione accessibile a un pubblico globale!",
   "account.account_page.translation.info.label": "Informazioni sulla traduzione...",
   "account.account_page.translation.info.title": "Informazioni sulla traduzione",
@@ -504,6 +505,7 @@
   "labels.help": "Aiuto",
   "labels.hidden_files": "{hidden, select, true {Nascondi file nascosti} other {Mostra file nascosti}}. I file nascosti in Linux iniziano con un '.' nel loro nome. Di solito non sono destinati ad essere modificati.",
   "labels.insert": "Inserisci",
+  "labels.language": "Lingua",
   "labels.latex_document": "Documento LaTeX",
   "labels.license": "Licenza",
   "labels.licenses": "Licenze",

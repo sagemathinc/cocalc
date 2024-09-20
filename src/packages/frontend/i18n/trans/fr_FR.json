@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "Changer la langue en {lang} ?",
   "account.account_page.translation.info.content": "Nous sommes ravis de commencer à proposer notre application en plusieurs langues ! Voici ce que vous devez savoir : <ul> <li><b>Travail en cours</b> : Nos efforts de traduction viennent de commencer. De nombreuses parties de l'application ne sont pas encore traduites.</li> <li><b>Amélioration progressive</b> : Nous travaillons continuellement à étendre notre couverture linguistique. Vous verrez plus de contenu traduit au fil du temps.</li> <li><b>Votre aide est la bienvenue</b> : Nous apprécions les contributions de notre communauté. Si vous parlez plusieurs langues et souhaitez contribuer à nos efforts de traduction, nous serions ravis de vous entendre !</li> <li><b>Contactez-nous</b> : Pour en savoir plus sur la contribution aux traductions ou pour signaler tout problème, veuillez contacter notre équipe de support.</li> </ul> Merci pour votre patience et votre compréhension pendant que nous travaillons à rendre notre application accessible à un public mondial !",
   "account.account_page.translation.info.label": "Informations de traduction...",
   "account.account_page.translation.info.title": "Informations de traduction",
@@ -504,6 +505,7 @@
   "labels.help": "Aide",
   "labels.hidden_files": "{hidden, select, true {Masquer les fichiers cachés} other {Afficher les fichiers cachés}}. Les fichiers cachés sous Linux commencent par un '.' dans leur nom de fichier. Ils ne sont généralement pas destinés à être modifiés.",
   "labels.insert": "Insérer",
+  "labels.language": "Langue",
   "labels.latex_document": "Document LaTeX",
   "labels.license": "Licence",
   "labels.licenses": "Licences",

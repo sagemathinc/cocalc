@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "¿Cambiar el idioma a {lang}?",
   "account.account_page.translation.info.content": "¡Estamos emocionados de empezar a ofrecer nuestra aplicación en múltiples idiomas! Esto es lo que necesitas saber: <ul> <li><b>Trabajo en Progreso</b>: Nuestro esfuerzo de traducción está comenzando. Muchas partes de la aplicación aún no están traducidas.</li> <li><b>Mejora Gradual</b>: Estamos trabajando continuamente para ampliar nuestra cobertura de idiomas. Verás más contenido traducido con el tiempo.</li> <li><b>Tu Ayuda es Bienvenida</b>: Valoramos la opinión de nuestra comunidad. Si dominas varios idiomas y te gustaría contribuir a nuestros esfuerzos de traducción, ¡nos encantaría saber de ti!</li> <li><b>Contáctanos</b>: Para obtener más información sobre cómo contribuir a las traducciones o para informar de cualquier problema, por favor comunícate con nuestro equipo de soporte.</li> </ul> ¡Gracias por tu paciencia y comprensión mientras trabajamos para hacer nuestra aplicación accesible a una audiencia global!",
   "account.account_page.translation.info.label": "Información de traducción",
   "account.account_page.translation.info.title": "Información de traducción",
@@ -504,6 +505,7 @@
   "labels.help": "Ayuda",
   "labels.hidden_files": "{hidden, select, true {Ocultar archivos ocultos} other {Mostrar archivos ocultos}}. Los archivos ocultos en Linux comienzan con un '.' en su nombre de archivo. Generalmente, no están destinados a ser editados.",
   "labels.insert": "Insertar",
+  "labels.language": "Idioma",
   "labels.latex_document": "Documento LaTeX",
   "labels.license": "Licencia",
   "labels.licenses": "Licencias",

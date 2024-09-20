@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "Zmień język na {lang}?",
   "account.account_page.translation.info.content": "Jesteśmy podekscytowani możliwością oferowania naszej aplikacji w wielu językach! Oto, co musisz wiedzieć: <ul> <li><b>Prace w toku</b>: Nasze wysiłki tłumaczeniowe dopiero się zaczynają. Wiele części aplikacji nie jest jeszcze przetłumaczonych.</li> <li><b>Stopniowa poprawa</b>: Ciągle pracujemy nad rozszerzaniem zasięgu językowego. Z czasem zobaczysz więcej przetłumaczonej treści.</li> <li><b>Twoja pomoc jest mile widziana</b>: Cenimy sobie wkład naszej społeczności. Jeśli biegle posługujesz się kilkoma językami i chciałbyś przyczynić się do naszych wysiłków tłumaczeniowych, chętnie od Ciebie usłyszymy!</li> <li><b>Skontaktuj się z nami</b>: Aby dowiedzieć się więcej o wkładzie w tłumaczenia lub zgłosić jakiekolwiek problemy, skontaktuj się z naszym zespołem wsparcia.</li> </ul> Dziękujemy za cierpliwość i zrozumienie, gdy pracujemy nad uczynieniem naszej aplikacji dostępną dla globalnej publiczności!",
   "account.account_page.translation.info.label": "Informacje o tłumaczeniu...",
   "account.account_page.translation.info.title": "Informacje o tłumaczeniu",
@@ -504,6 +505,7 @@
   "labels.help": "Pomoc",
   "labels.hidden_files": "{hidden, select, true {Ukryj ukryte pliki} other {Pokaż ukryte pliki}}. Ukryte pliki w Linuxie zaczynają się od '.' w nazwie pliku. Zazwyczaj nie są przeznaczone do edycji.",
   "labels.insert": "Wstaw",
+  "labels.language": "Język",
   "labels.latex_document": "Dokument LaTeX",
   "labels.license": "Licencja",
   "labels.licenses": "Licencje",

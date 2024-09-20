@@ -5,10 +5,13 @@
 
 import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
+import { useIntl } from "react-intl";
+
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
+  HelpIcon,
   Icon,
   LabeledRow,
   Loading,
@@ -19,6 +22,7 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
@@ -30,6 +34,7 @@ import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
+import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
@@ -54,6 +59,7 @@ interface Props {
 }
 
 export function OtherSettings(props: Readonly<Props>): JSX.Element {
+  const intl = useIntl();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
 
@@ -360,6 +366,19 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     );
   }
 
+  function render_i18n_selector(): Rendered {
+    return (
+      <LabeledRow label={intl.formatMessage(labels.language)}>
+        <div>
+          <I18NSelector />{" "}
+          <HelpIcon title={intl.formatMessage(I18N_TITLE)}>
+            {intl.formatMessage(I18N_MESSAGE)}
+          </HelpIcon>
+        </div>
+      </LabeledRow>
+    );
+  }
+
   function render_vertical_fixed_bar_options(): Rendered {
     const selected = getValidVBAROption(props.other_settings.get(VBAR_KEY));
     return (
@@ -479,6 +498,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           documents. Checking this hides the extra run, copy, and explain
           buttons in fenced code blocks.
         </Checkbox>
+        {render_i18n_selector()}
         {render_vertical_fixed_bar_options()}
         {render_new_filenames()}
         {render_default_file_sort()}

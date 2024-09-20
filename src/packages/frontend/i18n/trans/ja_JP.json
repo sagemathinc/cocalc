@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "{lang} に言語を変更しますか?",
   "account.account_page.translation.info.content": "私たちは、CoCalcアプリケーションを多言語で提供し始めることに興奮しています！知っておくべきことは次のとおりです： <ul> <li><b>進行中の作業</b>: 翻訳作業はまだ始まったばかりです。アプリケーションの多くの部分はまだ翻訳されていません。</li> <li><b>徐々に改善</b>: 言語対応を拡大するために継続的に取り組んでいます。時間が経つにつれて、より多くのコンテンツが翻訳されていくでしょう。</li> <li><b>あなたの助けが必要です</b>: 私たちはコミュニティの意見を大切にしています。複数の言語に堪能で、翻訳作業に貢献したい方は、ぜひご連絡ください！</li> <li><b>お問い合わせ</b>: 翻訳への貢献について詳しく知りたい場合や問題を報告したい場合は、サポートチームにご連絡ください。</li> </ul> 私たちのアプリケーションをグローバルなオーディエンスにアクセス可能にするために取り組んでいる間、忍耐とご理解をいただきありがとうございます！",
   "account.account_page.translation.info.label": "翻訳情報...",
   "account.account_page.translation.info.title": "翻訳情報",
@@ -504,6 +505,7 @@
   "labels.help": "ヘルプ",
   "labels.hidden_files": "{hidden, select, true {隠しファイルを非表示} other {隠しファイルを表示}}。Linuxの隠しファイルはファイル名の先頭に'.'が付きます。通常、これらは編集しないことを意図しています。",
   "labels.insert": "挿入",
+  "labels.language": "言語",
   "labels.latex_document": "LaTeXドキュメント",
   "labels.license": "ライセンス",
   "labels.licenses": "ライセンス",

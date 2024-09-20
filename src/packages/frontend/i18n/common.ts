@@ -525,6 +525,10 @@ export const labels = defineMessages({
     description:
       "Short label/placeholder for entering a Linux Terminal command in a text box",
   },
+  language: {
+    id: "labels.language",
+    defaultMessage: "Language",
+  },
 });
 
 export const menu = defineMessages({

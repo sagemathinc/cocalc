@@ -10,10 +10,9 @@ for different account related information
 and configuration.
 */
 
-import { useState } from "react";
-import { DownOutlined } from "@ant-design/icons";
-import { Button, Dropdown, MenuProps, Modal, Space, Tooltip } from "antd";
+import { Space } from "antd";
 import { useIntl } from "react-intl";
+
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -22,17 +21,10 @@ import {
   useTypedRedux,
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
-import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
-import { Icon, Loading, Paragraph } from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
-import {
-  getLocale,
-  labels,
-  Locale,
-  LOCALIZATIONS,
-  OTHER_SETTINGS_LOCALE_KEY,
-} from "@cocalc/frontend/i18n";
+import { labels } from "@cocalc/frontend/i18n";
 import { LandingPage } from "@cocalc/frontend/landing-page/landing-page";
 import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
@@ -44,6 +36,7 @@ import {
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import { AccountPreferences } from "./account-preferences";
+import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
@@ -51,12 +44,10 @@ import { UpgradesPage } from "./upgrades/upgrades-page";
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
-  const { setLocale, locale } = useLocalizationCtx();
 
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
 
-  const other_settings = useTypedRedux("account", "other_settings");
   const active_page = useTypedRedux("account", "active_page");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
@@ -85,8 +76,6 @@ export const AccountPage: React.FC = () => {
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
-  const i18n_enabled = useTypedRedux("customize", "i18n");
-  const [langOpen, setLangOpen] = useState<boolean>(false);
 
   // for each exclusive domain, tell the user which strategy to use
   const exclusive_sso_domains = React.useMemo(() => {
@@ -264,126 +253,10 @@ export const AccountPage: React.FC = () => {
     return items;
   }
 
-  function renderI18N(): JSX.Element | null {
-    if (
-      i18n_enabled == null ||
-      i18n_enabled.isEmpty() ||
-      (i18n_enabled.size === 1 && i18n_enabled.includes("en"))
-    ) {
-      return null;
-    }
-
-    const i18n: Locale = getLocale(other_settings);
-
-    const items: MenuProps["items"] =
-      Object.entries(LOCALIZATIONS)
-        .filter(([key, _]) => i18n_enabled.includes(key as any))
-        .map(([key, { name, trans, native, flag }]) => {
-          const other = key === locale ? name : intl.formatMessage(trans);
-          return { key, label: `${flag} ${native} (${other})` };
-        }) ?? [];
-
-    items.push({ type: "divider" });
-    items.push({
-      key: "help",
-      label: (
-        <Space>
-          <Icon name="translation-outlined" />
-          {intl.formatMessage({
-            id: "account.account_page.translation.info.label",
-            defaultMessage: "Translation Info...",
-            description: "Label of translation information modal in dropdown",
-          })}
-        </Space>
-      ),
-      onClick: () =>
-        Modal.info({
-          width: "min(90vw, 600px)",
-          title: intl.formatMessage({
-            id: "account.account_page.translation.info.title",
-            defaultMessage: "Translation Information",
-            description: "Title of translation information modal",
-          }),
-          content: (
-            <Paragraph>
-              {intl.formatMessage({
-                id: "account.account_page.translation.info.content",
-                defaultMessage: `
-We're excited to start offering our application in multiple languages! Here's what you need to know:
-
-<ul>
-<li><b>Work in Progress</b>: Our translation effort is just beginning. Many parts of the application are not yet translated.</li>
-<li><b>Gradual Improvement</b>: We're continuously working to expand our language coverage. You'll see more content translated over time.</li>
-<li><b>Your Help is Welcome</b>: We value our community's input. If you're fluent in multiple languages and would like to contribute to our translation efforts, we'd love to hear from you!</li>
-<li><b>Contact Us</b>: To learn more about contributing to translations or to report any issues, please reach out to our support team.</li>
-</ul>
-
-Thank you for your patience and understanding as we work to make our application accessible to a global audience!`,
-                description: "Content of translation information modal",
-              })}
-            </Paragraph>
-          ),
-        }),
-    });
-
-    const menu: MenuProps = {
-      items,
-      style: { maxHeight: "75vh", overflow: "auto" },
-      onClick: ({ key }) => {
-        if (key in LOCALIZATIONS) {
-          redux
-            .getActions("account")
-            .set_other_settings(OTHER_SETTINGS_LOCALE_KEY, key);
-          setLocale(key);
-        }
-      },
-    };
-
-    const lang_icon = LOCALIZATIONS[i18n]?.flag;
-
-    const title =
-      i18n in LOCALIZATIONS
-        ? intl.formatMessage(LOCALIZATIONS[i18n].trans)
-        : i18n;
-
-    const cur = `${title} (${LOCALIZATIONS[i18n]?.name ?? i18n})`;
-    const msg = intl.formatMessage(labels.account_language_tooltip);
-    const tooltip = (
-      <>
-        {cur}
-        <br />
-        {msg}
-        {labels.account_language_tooltip.defaultMessage != msg ? (
-          <>
-            <br />({labels.account_language_tooltip.defaultMessage})
-          </>
-        ) : undefined}
-      </>
-    );
-
-    return (
-      <Tooltip title={langOpen ? undefined : tooltip} trigger={["hover"]}>
-        <Dropdown
-          menu={menu}
-          trigger={["click"]}
-          onOpenChange={(open) => setLangOpen(open)}
-        >
-          <Button>
-            <Space>
-              {lang_icon}
-              {isWide ? title : undefined}
-              <DownOutlined />
-            </Space>
-          </Button>
-        </Dropdown>
-      </Tooltip>
-    );
-  }
-
   function renderExtraContent() {
     return (
       <Space>
-        {renderI18N()}
+        <I18NSelector isWide={isWide} />
         <SignOut everywhere={false} highlight={true} narrow={!isWide} />
       </Space>
     );

@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "Sprache zu {lang} ändern?",
   "account.account_page.translation.info.content": "Wir freuen uns, dass wir unsere Anwendung jetzt in mehreren Sprachen anbieten können! Hier ist, was Sie wissen müssen: <ul> <li><b>Work in Progress</b>: Unsere Übersetzungsbemühungen stehen erst am Anfang. Viele Teile der Anwendung sind noch nicht übersetzt.</li> <li><b>Stetige Verbesserung</b>: Wir arbeiten kontinuierlich daran, unsere Sprachabdeckung zu erweitern. Mit der Zeit werden Sie mehr übersetzte Inhalte sehen.</li> <li><b>Ihre Hilfe ist willkommen</b>: Wir schätzen den Beitrag unserer Community. Wenn Sie mehrere Sprachen fließend beherrschen und zu unseren Übersetzungsbemühungen beitragen möchten, würden wir uns freuen, von Ihnen zu hören!</li> <li><b>Kontaktieren Sie uns</b>: Wenn Sie mehr darüber erfahren möchten, wie Sie zu den Übersetzungen beitragen oder Probleme melden können, wenden Sie sich bitte an unser Support-Team.</li> </ul> Vielen Dank für Ihre Geduld und Ihr Verständnis, während wir daran arbeiten, unsere Anwendung einem globalen Publikum zugänglich zu machen!",
   "account.account_page.translation.info.label": "Über Übersetzungen...",
   "account.account_page.translation.info.title": "Informationen zur Übersetzung",
@@ -504,6 +505,7 @@
   "labels.help": "Hilfe",
   "labels.hidden_files": "{hidden, select, true {Versteckte Dateien verbergen} other {Versteckte Dateien anzeigen}}. Versteckte Dateien in Linux beginnen mit einem '.' im Dateinamen. Sie sind normalerweise nicht zur Bearbeitung gedacht.",
   "labels.insert": "Einfügen",
+  "labels.language": "Sprache",
   "labels.latex_document": "LaTeX-Dokument",
   "labels.license": "Lizenz",
   "labels.licenses": "Lizenzen",

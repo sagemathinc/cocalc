@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "Dili {lang} olarak değiştir?",
   "account.account_page.translation.info.content": "Uygulamamızı birden fazla dilde sunmaya başlamak için heyecanlıyız! İşte bilmeniz gerekenler: <ul> <li><b>Devam Eden Çalışma</b>: Çeviri çabamız yeni başlıyor. Uygulamanın birçok kısmı henüz çevrilmedi.</li> <li><b>Kademeli İyileştirme</b>: Dil kapsamımızı genişletmek için sürekli çalışıyoruz. Zamanla daha fazla içeriğin çevrildiğini göreceksiniz.</li> <li><b>Yardımınız Hoş Geldi</b>: Topluluğumuzun görüşlerine değer veriyoruz. Birden fazla dile hakimseniz ve çeviri çabalarımıza katkıda bulunmak isterseniz, sizden haber almak isteriz!</li> <li><b>Bize Ulaşın</b>: Çevirilere katkıda bulunma veya herhangi bir sorunu bildirme hakkında daha fazla bilgi edinmek için lütfen destek ekibimize ulaşın.</li> </ul> Uygulamamızı küresel bir kitleye erişilebilir hale getirmek için çalışırken sabrınız ve anlayışınız için teşekkür ederiz!",
   "account.account_page.translation.info.label": "Çeviri Bilgisi...",
   "account.account_page.translation.info.title": "Çeviri Bilgisi",
@@ -504,6 +505,7 @@
   "labels.help": "Yardım",
   "labels.hidden_files": "{hidden, select, true {Gizli dosyaları gizle} other {Gizli dosyaları göster}}. Linux'ta gizli dosyalar dosya adında '.' ile başlar. Genellikle düzenlenmeleri amaçlanmamıştır.",
   "labels.insert": "Ekle",
+  "labels.language": "Dil",
   "labels.latex_document": "LaTeX Belgesi",
   "labels.license": "Lisans",
   "labels.licenses": "Lisanslar",

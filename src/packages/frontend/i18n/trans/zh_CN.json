@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "将语言更改为{lang}？",
   "account.account_page.translation.info.content": "我们很高兴能开始提供多语言版本的应用程序！以下是您需要了解的信息：<ul> <li><b>工作进行中</b>：我们的翻译工作才刚刚开始。应用程序的许多部分尚未翻译。</li> <li><b>逐步完善</b>：我们正在不断努力扩大语言覆盖范围。随着时间的推移，您将看到更多的翻译内容。</li> <li><b>欢迎您的帮助</b>：我们重视社区的意见。</li> <li><b>联系我们</b>：要了解更多有关翻译的信息或报告任何问题，请联系我们的支持团队。</li> </ul> 在我们努力使全球受众都能使用我们的应用程序的过程中，感谢您的耐心和理解！",
   "account.account_page.translation.info.label": "翻译信息...",
   "account.account_page.translation.info.title": "翻译信息",
@@ -504,6 +505,7 @@
   "labels.help": "幫助",
   "labels.hidden_files": "{hidden, select, true {隐藏隐藏文件} other {显示隐藏文件}}。在 Linux 中，隐藏文件的文件名以 '.' 开头。它们通常不应被编辑。",
   "labels.insert": "插入",
+  "labels.language": "语言",
   "labels.latex_document": "LaTeX文档",
   "labels.license": "许可证",
   "labels.licenses": "许可证",

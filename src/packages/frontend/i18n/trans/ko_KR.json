@@ -1,4 +1,5 @@
 {
+  "account.account_page.translation.change.title": "언어를 {lang}(으)로 변경하시겠습니까?",
   "account.account_page.translation.info.content": "우리는 여러 언어로 애플리케이션을 제공하기 시작하게 되어 매우 기쁩니다! 다음은 알아야 할 사항입니다: <ul> <li><b>진행 중인 작업</b>: 번역 작업이 이제 막 시작되었습니다. 애플리케이션의 많은 부분이 아직 번역되지 않았습니다.</li> <li><b>점진적 개선</b>: 우리는 지속적으로 언어 범위를 확장하기 위해 노력하고 있습니다. 시간이 지남에 따라 더 많은 내용이 번역될 것입니다.</li> <li><b>도움이 필요합니다</b>: 우리는 커뮤니티의 의견을 소중히 여깁니다. 여러 언어에 능통하고 번역 작업에 기여하고 싶다면, 연락해 주세요!</li> <li><b>문의하기</b>: 번역 기여에 대해 더 알고 싶거나 문제를 보고하려면 지원팀에 문의해 주세요.</li> </ul> 애플리케이션을 전 세계 사용자가 이용할 수 있도록 노력하는 동안 인내와 이해에 감사드립니다!",
   "account.account_page.translation.info.label": "번역 정보...",
   "account.account_page.translation.info.title": "번역 정보",
@@ -504,6 +505,7 @@
   "labels.help": "도움말",
   "labels.hidden_files": "{hidden, select, true {숨김 파일 숨기기} other {숨김 파일 표시}}\nLinux의 숨김 파일은 파일 이름에 '.'으로 시작합니다. 이 파일들은 보통 편집되지 않도록 설정되어 있습니다.",
   "labels.insert": "삽입",
+  "labels.language": "언어",
   "labels.latex_document": "LaTeX 문서",
   "labels.license": "라이선스",
   "labels.licenses": "라이선스",
