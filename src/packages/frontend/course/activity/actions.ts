@@ -20,9 +20,9 @@ export class ActivityActions {
     this.actions = actions;
   }
 
-  public set_activity(
+  set_activity = (
     opts: { id: number; desc?: string } | { id?: number; desc: string },
-  ): number {
+  ): number => {
     if (this.actions.is_closed()) return -1;
     if (opts.id == null) {
       this.activity_id += 1;
@@ -41,14 +41,14 @@ export class ActivityActions {
     }
     this.actions.setState({ activity });
     return opts.id;
-  }
+  };
 
-  public clear_activity(id?: number): void {
+  clear_activity = (id?: number): void => {
     if (this.actions.is_closed()) return;
     if (id != null) {
       this.set_activity({ id }); // clears for this id since desc not provided
     } else {
       this.actions.setState({ activity: Map() }); // clear all activity
     }
-  }
+  };
 }
