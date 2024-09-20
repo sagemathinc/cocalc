@@ -6,8 +6,6 @@
 import { Button } from "antd";
 import {
   AppRedux,
-  React,
-  Rendered,
   useActions,
   useMemo,
   useRedux,
@@ -42,7 +40,7 @@ interface Props {
   user_map: object;
 }
 
-export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
+export function AssignmentsPanel(props: Props) {
   const { frame_id, name, project_id, redux, assignments, students, user_map } =
     props;
 
@@ -126,10 +124,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     };
   }, [assignments, active_assignment_sort, show_deleted, search]);
 
-  function render_sort_link(
-    column_name: string,
-    display_name: string,
-  ): Rendered {
+  function render_sort_link(column_name: string, display_name: string) {
     return (
       <a
         href=""
@@ -156,7 +151,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_assignment_table_header(): Rendered {
+  function render_assignment_table_header() {
     return (
       <div style={{ borderBottom: "1px solid #e5e5e5" }}>
         <Row style={{ marginRight: "0px" }}>
@@ -167,7 +162,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_assignment(assignment_id: string, index: number): Rendered {
+  function render_assignment(assignment_id: string, index: number) {
     return (
       <Assignment
         key={assignment_id}
@@ -188,9 +183,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_assignments(
-    assignments: { assignment_id: string }[],
-  ): Rendered {
+  function render_assignments(assignments: { assignment_id: string }[]) {
     if (assignments.length == 0) {
       return render_no_assignments();
     }
@@ -204,7 +197,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_no_assignments(): Rendered {
+  function render_no_assignments() {
     const message = (
       <div>
         <h3>Add an Assignment to your Course</h3>
@@ -234,10 +227,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  function render_show_deleted(
-    num_deleted: number,
-    num_shown: number,
-  ): Rendered {
+  function render_show_deleted(num_deleted: number, num_shown: number) {
     if (show_deleted) {
       return (
         <Button
@@ -305,7 +295,7 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
       </div>
     </div>
   );
-});
+}
 
 // used for adding assignments outside of the above component.
 export function AddAssignments({ name, actions, close }) {

@@ -10,11 +10,11 @@ interface Props {
   num_students?: number;
 }
 
-export const StudentProjectsStartStopPanel: React.FC<Props> = ({
+export function StudentProjectsStartStopPanel({
   name,
   num_running_projects,
   num_students,
-}) => {
+}: Props) {
   const action_all_projects_state: string = useRedux([
     name,
     "action_all_projects_state",
@@ -184,4 +184,4 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
       </span>
     </Card>
   );
-};
+}

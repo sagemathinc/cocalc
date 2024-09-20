@@ -5,13 +5,10 @@
 
 import { Button, Card, Checkbox } from "antd";
 import { isEqual } from "lodash";
-
+import { useEffect, useState } from "react";
 import {
-  React,
   redux,
-  useEffect,
   useIsMountedRef,
-  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
@@ -138,97 +135,98 @@ interface Props {
   onChange: (StudentProjectFunctionality) => Promise<void>;
 }
 
-export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
-  ({ functionality, onChange }) => {
-    const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
-    const [state, setState] =
-      useState<StudentProjectFunctionality>(functionality);
-    const [saving, setSaving] = useState<boolean>(false);
-    function onChangeState(obj: StudentProjectFunctionality) {
-      const newState = { ...state };
-      for (const key in obj) {
-        newState[key] = obj[key];
-      }
-      setState(newState);
+export function CustomizeStudentProjectFunctionality({
+  functionality,
+  onChange,
+}: Props) {
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+  const [state, setState] =
+    useState<StudentProjectFunctionality>(functionality);
+  const [saving, setSaving] = useState<boolean>(false);
+  function onChangeState(obj: StudentProjectFunctionality) {
+    const newState = { ...state };
+    for (const key in obj) {
+      newState[key] = obj[key];
     }
-    const isMountedRef = useIsMountedRef();
+    setState(newState);
+  }
+  const isMountedRef = useIsMountedRef();
 
-    function renderOption(option) {
-      let { title } = option;
-      if (option.notImplemented) {
-        title += " (NOT IMPLEMENTED)";
-      }
-      return (
-        <Tip key={title} title={`Disable ${title}`} tip={option.description}>
-          <Checkbox
-            disabled={saving}
-            defaultChecked={state[option.name]}
-            onChange={(e) =>
-              onChangeState({
-                [option.name]: (e.target as any).checked,
-              })
-            }
-          >
-            Disable {title}
-          </Checkbox>
-          <br />
-        </Tip>
-      );
+  function renderOption(option) {
+    let { title } = option;
+    if (option.notImplemented) {
+      title += " (NOT IMPLEMENTED)";
     }
-
-    const options: JSX.Element[] = [];
-    for (const option of OPTIONS) {
-      if (option.isCoCalcCom && !isCoCalcCom) continue;
-      options.push(renderOption(option));
-    }
-
     return (
-      <Card
-        title={
-          <>
-            <Icon name="lock" /> Restrict Student Projects
-          </>
-        }
-      >
-        <span style={{ color: "#666" }}>
-          Check any of the boxes below to remove the corresponding functionality
-          from student projects. Hover over an option for more information about
-          what it disables. This is useful to reduce student confusion and keep
-          the students more focused, e.g., during an exam.{" "}
-          <i>
-            Do not gain a false sense of security and expect these to prevent
-            all forms of cheating.
-          </i>
-        </span>
-        <hr />
-        <div
-          style={{
-            border: "1px solid lightgrey",
-            padding: "10px",
-            borderRadius: "5px",
-          }}
+      <Tip key={title} title={`Disable ${title}`} tip={option.description}>
+        <Checkbox
+          disabled={saving}
+          defaultChecked={state[option.name]}
+          onChange={(e) =>
+            onChangeState({
+              [option.name]: (e.target as any).checked,
+            })
+          }
         >
-          {options}
-          <div style={{ marginTop: "8px" }}>
-            <Button
-              type="primary"
-              disabled={saving || isEqual(functionality, state)}
-              onClick={async () => {
-                setSaving(true);
-                await onChange(state);
-                if (isMountedRef.current) {
-                  setSaving(false);
-                }
-              }}
-            >
-              Save changes
-            </Button>
-          </div>
-        </div>
-      </Card>
+          Disable {title}
+        </Checkbox>
+        <br />
+      </Tip>
     );
-  },
-);
+  }
+
+  const options: JSX.Element[] = [];
+  for (const option of OPTIONS) {
+    if (option.isCoCalcCom && !isCoCalcCom) continue;
+    options.push(renderOption(option));
+  }
+
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="lock" /> Restrict Student Projects
+        </>
+      }
+    >
+      <span style={{ color: "#666" }}>
+        Check any of the boxes below to remove the corresponding functionality
+        from student projects. Hover over an option for more information about
+        what it disables. This is useful to reduce student confusion and keep
+        the students more focused, e.g., during an exam.{" "}
+        <i>
+          Do not gain a false sense of security and expect these to prevent all
+          forms of cheating.
+        </i>
+      </span>
+      <hr />
+      <div
+        style={{
+          border: "1px solid lightgrey",
+          padding: "10px",
+          borderRadius: "5px",
+        }}
+      >
+        {options}
+        <div style={{ marginTop: "8px" }}>
+          <Button
+            type="primary"
+            disabled={saving || isEqual(functionality, state)}
+            onClick={async () => {
+              setSaving(true);
+              await onChange(state);
+              if (isMountedRef.current) {
+                setSaving(false);
+              }
+            }}
+          >
+            Save changes
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
 
 // NOTE: we allow project_id to be undefined for convenience since some clients
 // were written with that unlikely assumption on their knowledge of project_id.

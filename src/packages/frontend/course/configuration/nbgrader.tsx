@@ -6,7 +6,6 @@
 import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
-  React,
   redux,
   useActions,
   useRedux,
@@ -32,7 +31,7 @@ interface Props {
   name: string;
 }
 
-export const Nbgrader: React.FC<Props> = ({ name }) => {
+export function Nbgrader({ name }: Props) {
   const settings = useRedux([name, "settings"]);
   const course_project_id = useRedux([name, "course_project_id"]);
   const actions: CourseActions = useActions({ name });
@@ -290,4 +289,4 @@ export const Nbgrader: React.FC<Props> = ({ name }) => {
       {render_parallel()}
     </Card>
   );
-};
+}

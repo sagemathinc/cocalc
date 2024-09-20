@@ -20,16 +20,13 @@ import {
 } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
-  React,
   redux,
-  Rendered,
   TypedMap,
   useActions,
   useIsMountedRef,
-  useRef,
-  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useEffect, useRef, useState } from "react";
 import {
   A,
   Icon,
@@ -84,22 +81,20 @@ interface Props {
   actions: ConfigurationActions;
 }
 
-export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
-  const {
-    name,
-    is_onprem,
-    is_commercial,
-    upgrade_goal,
-    institute_pay,
-    student_pay,
-    site_license_id,
-    site_license_strategy,
-    shared_project_id,
-    disabled,
-    settings,
-    actions,
-  } = props;
-
+export function StudentProjectUpgrades({
+  name,
+  is_onprem,
+  is_commercial,
+  upgrade_goal,
+  institute_pay,
+  student_pay,
+  site_license_id,
+  site_license_strategy,
+  shared_project_id,
+  disabled,
+  settings,
+  actions,
+}: Props) {
   const is_mounted_ref = useIsMountedRef();
   const upgrade_is_invalid = useRef<boolean>(false);
 
@@ -551,7 +546,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     course_actions.configuration.configure_all_projects();
   }
 
-  function render_site_license_text(): Rendered {
+  function render_site_license_text() {
     if (!show_site_license) return;
     return (
       <div>
@@ -652,7 +647,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_current_licenses(): Rendered {
+  function render_current_licenses() {
     if (!site_license_id) return;
     const licenses = site_license_id.split(",");
 
@@ -791,7 +786,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     return <div>{render_site_license()}</div>;
   }
 
-  function render_title(): React.ReactNode {
+  function render_title() {
     if (is_onprem) {
       return <div>Upgrade Student Projects</div>;
     } else {
@@ -829,22 +824,23 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
       {render_body()}
     </Card>
   );
-};
+}
 
 interface ToggleUpgradingHostProjectProps {
   actions: ConfigurationActions;
   settings: CourseSettingsRecord;
 }
 
-const ToggleUpgradingHostProject = (props: ToggleUpgradingHostProjectProps) => {
-  const { actions, settings } = props;
-
+const ToggleUpgradingHostProject = ({
+  actions,
+  settings,
+}: ToggleUpgradingHostProjectProps) => {
   const [needSave, setNeedSave] = useState<boolean>(false);
   const upgradeHostProject = settings.get("license_upgrade_host_project");
   const upgrade = upgradeHostProject ?? DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
   const [nextVal, setNextVal] = useState<boolean>(upgrade);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setNeedSave(nextVal != upgrade);
   }, [nextVal, upgrade]);
 

@@ -8,12 +8,7 @@
 // and used to configure it in read-only mode. In the future, a natural extension is to explicitly list the datastores
 // that should be inherited, or configure the readonly property. but for now, it's just true or false.
 
-import {
-  redux,
-  React,
-  useTypedRedux,
-  TypedMap,
-} from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux, TypedMap } from "@cocalc/frontend/app-framework";
 import { useEffect, useState } from "react";
 import { ConfigurationActions } from "./actions";
 import { Card, Typography, Switch, Form, Button } from "antd";
@@ -46,15 +41,19 @@ function normalizeTypeAndValue(
   return { inherit: ENVVARS_DEFAULT };
 }
 
-export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
-  const { actions } = props;
-  const envvars = normalizeTypeAndValue(props.envvars);
+export function EnvironmentVariablesConfig({
+  actions,
+  envvars,
+  close,
+  project_id,
+}: Props) {
+  const envvars1 = normalizeTypeAndValue(envvars);
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const [needSave, setNeedSave] = useState<boolean>(false);
 
-  // by default, we inherit the environment variables
-  // as of this, we only support true/false
-  const inherit = envvars.inherit ?? ENVVARS_DEFAULT;
+  // By default, we inherit the environment variables.
+  // As of this, we only support true/false.
+  const inherit = envvars1.inherit ?? ENVVARS_DEFAULT;
   const [nextVal, setNextVal] = useState<boolean>(inherit);
 
   useEffect(() => {
@@ -85,7 +84,7 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
             type={needSave ? "primary" : "default"}
             onClick={() => {
               actions.set_envvars(nextVal);
-              props.close?.();
+              close?.();
             }}
           >
             Save
@@ -112,10 +111,8 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
         To configure them, please check{" "}
         <a
           onClick={() => {
-            redux
-              .getProjectActions(props.project_id)
-              .set_active_tab("settings");
-            props.close?.();
+            redux.getProjectActions(project_id).set_active_tab("settings");
+            close?.();
           }}
         >
           this project's settings
@@ -130,4 +127,4 @@ export const EnvironmentVariablesConfig: React.FC<Props> = (props: Props) => {
       {toggle()}
     </Card>
   );
-};
+}

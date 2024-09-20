@@ -6,7 +6,6 @@
 import { debounce } from "lodash";
 import { Card, Row, Col, Spin } from "antd";
 import {
-  React,
   redux,
   useActions,
   useState,
@@ -42,61 +41,65 @@ interface Props {
   configuring_projects?: boolean;
 }
 
-export const ConfigurationPanel: React.FC<Props> = React.memo(
-  ({ name, project_id, settings, configuring_projects }) => {
-    const actions = useActions<CourseActions>({ name });
+export function ConfigurationPanel({
+  name,
+  project_id,
+  settings,
+  configuring_projects,
+}: Props) {
+  const actions = useActions<CourseActions>({ name });
 
-    return (
-      <div className="smc-vfill" style={{ overflowY: "scroll" }}>
-        <Row>
-          <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
-            <UpgradeConfiguration
-              name={name}
-              settings={settings}
-              configuring_projects={configuring_projects}
-              actions={actions}
-            />
-            <br />
-            <TitleAndDescription
-              actions={actions}
-              settings={settings}
-              name={name}
-            />
-            <br />
-            <EmailInvitation
-              actions={actions}
-              redux={redux}
-              project_id={project_id}
-              name={name}
-            />
-            <br />
-            <Nbgrader name={name} />
-          </Col>
-          <Col md={12} style={{ padding: "15px" }}>
-            <CollaboratorPolicy settings={settings} actions={actions} />
-            <br />
-            <RestrictStudentProjects settings={settings} actions={actions} />
-            <br />
-            <StudentProjectSoftwareEnvironment
-              actions={actions.configuration}
-              software_image={settings.get("custom_image")}
-              course_project_id={project_id}
-              inherit_compute_image={settings.get("inherit_compute_image")}
-            />
-            <br />
-            <Parallel name={name} />
-            <NetworkFilesystem
-              actions={actions}
-              settings={settings}
-              project_id={project_id}
-            />
-            <br />
-            <EnvVariables
-              actions={actions}
-              settings={settings}
-              project_id={project_id}
-            />
-            {/*<br />
+  return (
+    <div className="smc-vfill" style={{ overflowY: "scroll" }}>
+      <Row>
+        <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
+          <UpgradeConfiguration
+            name={name}
+            settings={settings}
+            configuring_projects={configuring_projects}
+            actions={actions}
+          />
+          <br />
+          <TitleAndDescription
+            actions={actions}
+            settings={settings}
+            name={name}
+          />
+          <br />
+          <EmailInvitation
+            actions={actions}
+            redux={redux}
+            project_id={project_id}
+            name={name}
+          />
+          <br />
+          <Nbgrader name={name} />
+        </Col>
+        <Col md={12} style={{ padding: "15px" }}>
+          <CollaboratorPolicy settings={settings} actions={actions} />
+          <br />
+          <RestrictStudentProjects settings={settings} actions={actions} />
+          <br />
+          <StudentProjectSoftwareEnvironment
+            actions={actions.configuration}
+            software_image={settings.get("custom_image")}
+            course_project_id={project_id}
+            inherit_compute_image={settings.get("inherit_compute_image")}
+          />
+          <br />
+          <Parallel name={name} />
+          <NetworkFilesystem
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
+          />
+          <br />
+          <EnvVariables
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
+          />
+          {/*<br />
             <Mirror
               checked={!!settings.get("mirror_config")}
               setChecked={(mirror_config: boolean) => {
@@ -108,12 +111,11 @@ export const ConfigurationPanel: React.FC<Props> = React.memo(
               }}
               project_id={project_id}
             />*/}
-          </Col>
-        </Row>
-      </div>
-    );
-  },
-);
+        </Col>
+      </Row>
+    </div>
+  );
+}
 
 export function UpgradeConfiguration({
   name,
@@ -150,8 +152,10 @@ export function UpgradeConfiguration({
   /**
    * OnPrem instances support licenses to be distributed to all student projects.
    */
-  function render_onprem_upgrade_projects(): React.ReactNode {
-    if (is_commercial || kucalc !== KUCALC_ON_PREMISES) return;
+  function render_onprem_upgrade_projects() {
+    if (is_commercial || kucalc !== KUCALC_ON_PREMISES) {
+      return;
+    }
     return (
       <>
         <StudentProjectUpgrades

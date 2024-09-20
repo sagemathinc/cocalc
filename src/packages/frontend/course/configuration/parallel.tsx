@@ -13,7 +13,7 @@ import { MAX_COPY_PARALLEL } from "../store";
 interface Props {
   name: string;
 }
-export const Parallel: React.FC<Props> = ({ name }) => {
+export function Parallel({ name }: Props) {
   const settings = useRedux([name, "settings"]);
   const actions: CourseActions = useActions({ name });
 
@@ -67,4 +67,4 @@ export const Parallel: React.FC<Props> = ({ name }) => {
       {render_parallel()}
     </Card>
   );
-};
+}

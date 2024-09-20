@@ -32,19 +32,15 @@ interface FoldersToolbarProps {
   plural_item_name: string;
 }
 
-export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
-  props: FoldersToolbarProps,
-) => {
-  const {
-    search_change,
-    num_omitted,
-    items,
-    add_folders,
-    search: propsSearch,
-    item_name = "item",
-    plural_item_name = "item",
-  } = props;
-
+export function FoldersToolbar({
+  search_change,
+  num_omitted,
+  items,
+  add_folders,
+  search: propsSearch,
+  item_name = "item",
+  plural_item_name = "item",
+}: FoldersToolbarProps) {
   return (
     <Space>
       <SearchInput
@@ -68,7 +64,7 @@ export const FoldersToolbar: React.FC<FoldersToolbarProps> = (
       <AddItems addItems={add_folders} itemName={item_name} items={items} />
     </Space>
   );
-};
+}
 
 export function AddItems({
   addItems,

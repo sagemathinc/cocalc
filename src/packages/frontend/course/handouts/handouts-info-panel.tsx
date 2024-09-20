@@ -5,7 +5,7 @@
 
 // CoCalc libraries
 // React Libraries
-import { React, useState } from "@cocalc/frontend/app-framework";
+import { useState } from "react";
 import { to_json } from "@cocalc/util/misc";
 import { Button, Space, Col, Row } from "antd";
 import { ErrorDisplay, Icon, Tip } from "../../components";
@@ -19,11 +19,11 @@ interface StudentHandoutInfoProps {
   title: string;
 }
 
-export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
-  props: StudentHandoutInfoProps,
-) => {
-  const { actions, info, title } = props;
-
+export function StudentHandoutInfo({
+  actions,
+  info,
+  title,
+}: StudentHandoutInfoProps) {
   const [recopy, setRecopy] = useState<boolean>(false);
 
   function open(handout_id: string, student_id: string): void {
@@ -190,4 +190,4 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
       </Row>
     </div>
   );
-};
+}
