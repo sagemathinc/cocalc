@@ -70,7 +70,7 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
     }
 
     function compute_handouts_list() {
-      let deleted, num_deleted, num_omitted;
+      let num_deleted, num_omitted;
       let list = util.immutable_to_list(handouts, "handout_id");
 
       ({ list, num_omitted } = util.compute_match_list({
@@ -79,7 +79,7 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
         search: search.trim(),
       }));
 
-      ({ list, deleted, num_deleted } = util.order_list({
+      ({ list, num_deleted } = util.order_list({
         list,
         compare_function: (a, b) =>
           cmp(a.path?.toLowerCase(), b.path?.toLowerCase()),
@@ -89,7 +89,6 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
 
       return {
         shown_handouts: list,
-        deleted_handouts: deleted,
         num_omitted,
         num_deleted,
       };
@@ -130,23 +129,6 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
           </Button>
         );
       }
-    }
-
-    function yield_adder(deleted_handouts) {
-      const deleted_paths = {};
-      deleted_handouts.map((obj) => {
-        if (obj.path) {
-          return (deleted_paths[obj.path] = obj.handout_id);
-        }
-      });
-
-      return (path) => {
-        if (deleted_paths[path] != null) {
-          return actions.handouts.undelete_handout(deleted_paths[path]);
-        } else {
-          return actions.handouts.add_handout(path);
-        }
-      };
     }
 
     function render_handout(handout_id: string, index: number): Rendered {
@@ -209,9 +191,8 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
     }
 
     // Computed data from state changes have to go in render
-    const { shown_handouts, deleted_handouts, num_omitted, num_deleted } =
+    const { shown_handouts, num_omitted, num_deleted } =
       compute_handouts_list();
-    const add_handout = yield_adder(deleted_handouts);
 
     const header = (
       <FoldersToolbar
@@ -220,7 +201,7 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
         num_omitted={num_omitted}
         project_id={project_id}
         items={handouts}
-        add_folders={(paths) => paths.map(add_handout)}
+        add_folders={actions.handouts.addHandout}
         item_name={"handout"}
         plural_item_name={"handouts"}
       />
