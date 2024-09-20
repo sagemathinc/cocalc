@@ -239,13 +239,16 @@ export function HandoutsPanelHeader(props: { n: number }) {
 }
 
 // used for adding assignments outside of the above component.
-export function AddHandouts({ name, actions }) {
+export function AddHandouts({ name, actions, close }) {
   const handouts = useRedux(name, "handouts");
   return (
     <AddItems
       itemName="handout"
       items={handouts}
-      addItems={actions.assignments.addHandout}
+      addItems={(paths) => {
+        actions.handouts.addHandout(paths);
+        close?.();
+      }}
       selectorStyle={{
         position: null,
         width: "100%",

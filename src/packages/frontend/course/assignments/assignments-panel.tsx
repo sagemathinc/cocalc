@@ -308,13 +308,16 @@ export const AssignmentsPanel: React.FC<Props> = React.memo((props: Props) => {
 });
 
 // used for adding assignments outside of the above component.
-export function AddAssignments({ name, actions }) {
+export function AddAssignments({ name, actions, close }) {
   const assignments = useRedux(name, "assignments");
   return (
     <AddItems
       itemName="assignment"
       items={assignments}
-      addItems={actions.assignments.addAssignment}
+      addItems={(paths) => {
+        actions.assignments.addAssignment(paths);
+        close?.();
+      }}
       selectorStyle={{
         position: null,
         width: "100%",
