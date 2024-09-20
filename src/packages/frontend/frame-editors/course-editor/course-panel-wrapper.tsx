@@ -16,25 +16,27 @@ import {
   Rendered,
   redux,
   AppRedux,
+  useEditorRedux,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Loading, ActivityDisplay } from "../../components";
+import { Loading, ActivityDisplay } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import {
   AssignmentsMap,
   CourseSettingsRecord,
   StudentsMap,
   HandoutsMap,
-} from "../../course/store";
+} from "@cocalc/frontend/course/store";
 import { Map } from "immutable";
 import { ProjectMap, UserMap } from "../../todo-types";
 import { CourseActions, course_redux_name } from "./course-actions";
 import { values } from "@cocalc/util/misc";
 import { CourseTabBar } from "./course-tab-bar";
-import { CourseEditorActions } from "./actions";
-import { CourseStore } from "../../course/store";
-import { PayBanner } from "../../course/pay-banner";
+import type { CourseEditorActions, CourseEditorState } from "./actions";
+import { CourseStore } from "@cocalc/frontend/course/store";
+import { PayBanner } from "@cocalc/frontend/course/pay-banner";
+import Modals from "@cocalc/frontend/course/modals";
 
 export interface FrameProps {
   id: string;
@@ -68,7 +70,8 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
   (props: FrameProps) => {
     const { id, project_id, path, font_size, course_panel, actions, desc } =
       props;
-
+    const useEditor = useEditorRedux<CourseEditorState>({ project_id, path });
+    const modal = useEditor("modal");
     const name = course_redux_name(project_id, path);
 
     const students: StudentsMap | undefined = useRedux(name, "students");
@@ -165,11 +168,10 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
       return (
         <PayBanner
           show_config={() => {
-            actions.set_frame_type(id, "course_configuration");
+            actions.setModal("upgrades");
           }}
           settings={settings}
           num_students={students.size}
-          tab={desc.get("type", "").slice("course_".length)}
         />
       );
     }
@@ -212,6 +214,20 @@ const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
         }}
         className="smc-vfill"
       >
+        <Modals
+          frameActions={actions}
+          actions={redux.getActions(name)}
+          modal={modal}
+          name={name}
+          students={students}
+          user_map={user_map}
+          project_map={project_map}
+          project_id={project_id}
+          configuring_projects={configuring_projects}
+          reinviting_students={reinviting_students}
+          settings={settings}
+          redux={redux}
+        />
         {render_panel()}
       </div>
     );

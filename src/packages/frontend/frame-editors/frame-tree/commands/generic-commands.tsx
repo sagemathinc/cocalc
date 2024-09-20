@@ -1028,10 +1028,10 @@ addCommands({
     alwaysShow: true,
     pos: 6,
     group: "help-link",
-    icon: "medkit",
+    icon: "users",
     label: defineMessage({
       id: "command.generic.support.label",
-      defaultMessage: "Support Ticket",
+      defaultMessage: "Contact Us!",
       description: "Contact support by creating a support ticket to get help",
     }),
     button: labels.support,
@@ -1057,9 +1057,7 @@ addCommands({
       defaultMessage: "Browse videos about CoCalc.",
     }),
     onClick: () => {
-      openNewTab(
-        "https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ",
-      );
+      openNewTab("https://www.youtube.com/@cocalc-cloud");
     },
   },
   [SEARCH_COMMANDS]: {

@@ -1,6 +1,5 @@
 import { Carousel } from "antd";
 import { useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
@@ -70,7 +69,7 @@ function VideoItem({
         ></iframe>
         <A
           style={{ color: "white", float: "right", marginRight: "10px" }}
-          href="https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ"
+          href="https://www.youtube.com/@cocalc-cloud"
         >
           <Icon name="youtube" style={{ color: "red" }} /> More Videos
         </A>

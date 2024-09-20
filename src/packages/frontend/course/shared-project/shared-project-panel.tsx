@@ -82,7 +82,8 @@ export const SharedProjectPanel: React.FC<SharedProjectPanelProps> = React.memo(
           </div>
           <hr />
           <DeleteSharedProjectPanel
-            delete={() => actions.shared_project.delete()}
+            settings={settings}
+            actions={actions}
           />
         </div>
       );

@@ -7,8 +7,7 @@
 Actions specific to manipulating the students in a course
 */
 
-import { map } from "awaiting";
-import { delay } from "awaiting";
+import { delay, map } from "awaiting";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -100,50 +99,63 @@ export class StudentsActions {
     const store = this.get_store();
     const student = store.get_student(student_id);
     if (student == null) return;
-    this.do_delete_student(student, noTrash);
+    this.doDeleteStudent(student, noTrash);
     // since they may get removed from shared project, etc.
-    await delay(1);  // so store is updated, since it is used by configure
+    await delay(1); // so store is updated, since it is used by configure
     await this.course_actions.student_projects.configure_all_projects();
   }
 
-  public async undelete_student(student_id: string): Promise<void> {
+  undelete_student = async (student_id: string): Promise<void> => {
     this.course_actions.set({
       deleted: false,
       student_id,
       table: "students",
     });
     // configure, since they may get added back to shared project, etc.
-    await delay(1);  // so store is updated, since it is used by configure
-    await this.course_actions.student_projects.configure_all_projects();
-  }
-
-  public async delete_all_students(): Promise<void> {
-    const store = this.get_store();
-    const students = store.get_students().valueSeq().toArray();
-    await map(students, store.get_copy_parallel(), this.do_delete_student);
     await delay(1); // so store is updated, since it is used by configure
     await this.course_actions.student_projects.configure_all_projects();
-  }
+  };
 
-  private do_delete_student(student: StudentRecord, noTrash = false): void {
+  deleteAllStudents = async (noTrash = false): Promise<void> => {
+    const store = this.get_store();
+    const students = store.get_students().valueSeq().toArray();
+    for (const student of students) {
+      this.doDeleteStudent(student, noTrash, false);
+    }
+    this.course_actions.syncdb.commit();
+    await delay(1); // so store is updated, since it is used by configure
+    await this.course_actions.student_projects.configure_all_projects();
+  };
+
+  private doDeleteStudent = (
+    student: StudentRecord,
+    noTrash = false,
+    commit = true,
+  ): void => {
     const project_id = student.get("project_id");
     if (project_id != null) {
       // The student's project was created so let's clear any upgrades from it.
       redux.getActions("projects").clear_project_upgrades(project_id);
     }
     if (noTrash) {
-      this.course_actions.delete({
-        student_id: student.get("student_id"),
-        table: "students",
-      });
+      this.course_actions.delete(
+        {
+          student_id: student.get("student_id"),
+          table: "students",
+        },
+        commit,
+      );
     } else {
-      this.course_actions.set({
-        deleted: true,
-        student_id: student.get("student_id"),
-        table: "students",
-      });
+      this.course_actions.set(
+        {
+          deleted: true,
+          student_id: student.get("student_id"),
+          table: "students",
+        },
+        commit,
+      );
     }
-  }
+  };
 
   // Some students might *only* have been added using their email address, but they
   // subsequently signed up for an CoCalc account.  We check for any of these and if

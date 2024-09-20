@@ -11,20 +11,18 @@ This banner only shows up if commerical is set for hub configuration.
 */
 
 import { CSS, React, useTypedRedux } from "../app-framework";
-
 import { Alert } from "antd";
 import { CourseSettingsRecord } from "./store";
-import { Icon, Gap } from "../components";
+import { Icon } from "../components";
 
 interface PayBannerProps {
   settings: CourseSettingsRecord;
   num_students: number;
-  tab: string;
   show_config: () => void;
 }
 
 export const PayBanner: React.FC<PayBannerProps> = React.memo(
-  ({ settings, num_students, tab, show_config }) => {
+  ({ settings, num_students, show_config }) => {
     const is_commercial = useTypedRedux("customize", "is_commercial");
 
     if (!is_commercial) {
@@ -49,7 +47,7 @@ export const PayBanner: React.FC<PayBannerProps> = React.memo(
       return <span />;
     }
 
-    let mesg: JSX.Element, style: CSS;
+    let style: CSS;
     if ((num_students != null ? num_students : 0) >= 20) {
       // Show a harsh error.
       style = {
@@ -57,29 +55,14 @@ export const PayBanner: React.FC<PayBannerProps> = React.memo(
         color: "white",
         fontSize: "16pt",
         fontWeight: "bold",
-        margin: "5px 15px",
+        margin: "15px",
       };
     } else {
       style = {
         fontSize: "12pt",
         color: "#666",
-        margin: "5px 15px",
+        margin: "15px",
       };
-    }
-
-    if (tab === "configuration") {
-      mesg = (
-        <span>
-          Please select either the student pay or institute pay option below.
-        </span>
-      );
-    } else {
-      mesg = (
-        <span>
-          Please open the <a onClick={show_config}>Configuration page</a> for
-          this course and select a pay option.
-        </span>
-      );
     }
 
     return (
@@ -87,14 +70,14 @@ export const PayBanner: React.FC<PayBannerProps> = React.memo(
         type="warning"
         style={style}
         message={
-          <div>
-            <Icon
-              name="exclamation-triangle"
-              style={{ float: "right", marginTop: "3px" }}
-            />
+          <div style={{ display: "flex" }}>
             <Icon name="exclamation-triangle" />
-            <Gap />
-            {mesg}
+            <div style={{ flex: 1, textAlign: "center" }}>
+              <a onClick={show_config}>
+                Configure either the student or institute pay option...
+              </a>
+            </div>
+            <Icon name="exclamation-triangle" />
           </div>
         }
       />

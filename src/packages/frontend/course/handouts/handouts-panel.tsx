@@ -19,13 +19,12 @@ import { Button } from "../../antd-bootstrap";
 import { Icon, Tip } from "../../components";
 import { UserMap } from "../../todo-types";
 import { CourseActions } from "../actions";
-import { FoldersToolbar } from "../common";
+import { AddItems, FoldersToolbar } from "../common/folders-tool-bar";
 import { HandoutRecord, HandoutsMap, StudentsMap } from "../store";
 import * as styles from "../styles";
 // CoCalc and course components
 import * as util from "../util";
 import { Handout } from "./handout";
-import { HelpBox } from "../configuration/help-box";
 
 interface HandoutsPanelReactProps {
   frame_id?: string;
@@ -71,7 +70,7 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
     }
 
     function compute_handouts_list() {
-      let deleted, num_deleted, num_omitted;
+      let num_deleted, num_omitted;
       let list = util.immutable_to_list(handouts, "handout_id");
 
       ({ list, num_omitted } = util.compute_match_list({
@@ -80,7 +79,7 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
         search: search.trim(),
       }));
 
-      ({ list, deleted, num_deleted } = util.order_list({
+      ({ list, num_deleted } = util.order_list({
         list,
         compare_function: (a, b) =>
           cmp(a.path?.toLowerCase(), b.path?.toLowerCase()),
@@ -90,7 +89,6 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
 
       return {
         shown_handouts: list,
-        deleted_handouts: deleted,
         num_omitted,
         num_deleted,
       };
@@ -133,23 +131,6 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
       }
     }
 
-    function yield_adder(deleted_handouts) {
-      const deleted_paths = {};
-      deleted_handouts.map((obj) => {
-        if (obj.path) {
-          return (deleted_paths[obj.path] = obj.handout_id);
-        }
-      });
-
-      return (path) => {
-        if (deleted_paths[path] != null) {
-          return actions.handouts.undelete_handout(deleted_paths[path]);
-        } else {
-          return actions.handouts.add_handout(path);
-        }
-      };
-    }
-
     function render_handout(handout_id: string, index: number): Rendered {
       return (
         <Handout
@@ -184,15 +165,6 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
     function render_no_handouts(): Rendered {
       return (
         <div>
-          <div
-            style={{
-              margin: "30px auto",
-              fontSize: "12pt",
-              maxWidth: "800px",
-            }}
-          >
-            <HelpBox />
-          </div>
           <Alert
             type="info"
             style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
@@ -219,9 +191,8 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
     }
 
     // Computed data from state changes have to go in render
-    const { shown_handouts, deleted_handouts, num_omitted, num_deleted } =
+    const { shown_handouts, num_omitted, num_deleted } =
       compute_handouts_list();
-    const add_handout = yield_adder(deleted_handouts);
 
     const header = (
       <FoldersToolbar
@@ -230,7 +201,7 @@ export const HandoutsPanel: React.FC<HandoutsPanelReactProps> = React.memo(
         num_omitted={num_omitted}
         project_id={project_id}
         items={handouts}
-        add_folders={(paths) => paths.map(add_handout)}
+        add_folders={actions.handouts.addHandout}
         item_name={"handout"}
         plural_item_name={"handouts"}
       />
@@ -264,5 +235,29 @@ export function HandoutsPanelHeader(props: { n: number }) {
         <Icon name="files" /> Handouts {props.n != null ? ` (${props.n})` : ""}
       </span>
     </Tip>
+  );
+}
+
+// used for adding assignments outside of the above component.
+export function AddHandouts({ name, actions, close }) {
+  const handouts = useRedux(name, "handouts");
+  return (
+    <AddItems
+      itemName="handout"
+      items={handouts}
+      addItems={(paths) => {
+        actions.handouts.addHandout(paths);
+        close?.();
+      }}
+      selectorStyle={{
+        position: null,
+        width: "100%",
+        boxShadow: null,
+        zIndex: null,
+        backgroundColor: null,
+      }}
+      defaultOpen
+      closable={false}
+    />
   );
 }

@@ -13,17 +13,11 @@ export const DisableStudentCollaboratorsPanel: React.FC<Props> = React.memo(
       <Card
         title={
           <>
-            <Icon name="envelope" /> Collaborator policy
+            <Icon name="envelope" /> Collaborator Policy
           </>
         }
       >
-        <div
-          style={{
-            border: "1px solid lightgrey",
-            padding: "10px",
-            borderRadius: "5px",
-          }}
-        >
+        <div>
           <Checkbox
             checked={checked}
             onChange={(e) => on_change((e.target as any).checked)}
@@ -44,8 +38,8 @@ export const DisableStudentCollaboratorsPanel: React.FC<Props> = React.memo(
           excluded are removed when opening the course file or upon clicking
           "Reconfigure all projects".
           <br />
-          <b>NEW:</b> There is a new "Disable adding or removing collaborators"
-          option below, which you should also consider using.
+          <b>NOTE:</b> There is also a new "Disable adding or removing
+          collaborators" option below, which you should also consider using.
         </span>
       </Card>
     );
