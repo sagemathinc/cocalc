@@ -3,18 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import {
-  Icon,
-  MarkdownInput,
-  Gap,
-  TimeAgo,
-  Tip,
-} from "@cocalc/frontend/components";
+import { Icon, MarkdownInput, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
 import { User } from "@cocalc/frontend/users";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { trunc_middle, search_split, search_match } from "@cocalc/util/misc";
-import { Button, Card, Col, Input, Row, Space, Tooltip } from "antd";
+import {
+  Button,
+  Card,
+  Col,
+  Input,
+  Popconfirm,
+  Row,
+  Space,
+  Tooltip,
+} from "antd";
 import { useEffect, useState } from "react";
 import { DebounceInput } from "react-debounce-input";
 import { CourseActions } from "../actions";
@@ -84,7 +87,6 @@ export function Student({
 
   const size = useButtonSize();
 
-  const [confirm_delete, set_confirm_delete] = useState<boolean>(false);
   const [editing_student, set_editing_student] = useState<boolean>(false);
   const [edited_first_name, set_edited_first_name] = useState<string>(
     student_name.first || "",
@@ -99,7 +101,6 @@ export function Student({
   const [assignment_search, set_assignment_search] = useState<string>("");
 
   function reset_initial_state() {
-    set_confirm_delete(false);
     set_editing_student(false);
     set_edited_first_name(student_name.first || "");
     set_edited_last_name(student_name.last || "");
@@ -369,43 +370,15 @@ export function Student({
 
   function delete_student(noTrash: boolean) {
     actions.students.delete_student(student.get("student_id"), noTrash);
-    set_confirm_delete(false);
   }
 
   function undelete_student() {
     actions.students.undelete_student(student.get("student_id"));
   }
 
-  function render_confirm_delete() {
-    if (confirm_delete) {
-      return (
-        <div>
-          Are you sure you want to delete this student? All grades and other
-          data about them will be removed.
-          <Gap />
-          <div style={{ display: "flex" }}>
-            <Button
-              style={{ marginRight: "5px" }}
-              onClick={() => set_confirm_delete(false)}
-              size={size}
-            >
-              Cancel
-            </Button>
-            <Button onClick={() => delete_student(true)} danger size={size}>
-              <Icon name="trash" /> Delete
-            </Button>
-          </div>
-        </div>
-      );
-    }
-  }
-
   function render_delete_button() {
     if (!is_expanded) {
       return;
-    }
-    if (confirm_delete) {
-      return render_confirm_delete();
     }
     if (student.get("deleted")) {
       return (
@@ -415,9 +388,20 @@ export function Student({
       );
     } else {
       return (
-        <Button onClick={() => set_confirm_delete(true)} size={size}>
-          <Icon name="trash" /> Delete...
-        </Button>
+        <Popconfirm
+          title={
+            <div style={{ maxWidth: "400px" }}>
+              Are you sure you want to delete "{render_student_name()}"? All
+              grades and other data about them will be removed, but you can
+              still undelete them.
+            </div>
+          }
+          onConfirm={() => delete_student(false)}
+        >
+          <Button size={size}>
+            <Icon name="trash" /> Delete...
+          </Button>
+        </Popconfirm>
       );
     }
   }

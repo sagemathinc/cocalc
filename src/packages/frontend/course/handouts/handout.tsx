@@ -6,7 +6,7 @@
 import { redux, CSS } from "@cocalc/frontend/app-framework";
 import { useState } from "react";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
-import { Alert, Button, Input, Card, Col, Row, Space } from "antd";
+import { Alert, Button, Input, Card, Col, Popconfirm, Row, Space } from "antd";
 import { Icon, MarkdownInput, Tip } from "../../components";
 import { UserMap } from "../../todo-types";
 import { CourseActions } from "../actions";
@@ -65,14 +65,6 @@ interface HandoutProps {
   project_id: string;
 }
 
-// interface HandoutState {
-//   confirm_delete: boolean;
-//   copy_confirm: boolean;
-//   copy_confirm_handout: boolean;
-//   copy_handout_confirm_overwrite: boolean;
-//   copy_handout_confirm_overwrite_text: string;
-// }
-
 export function Handout({
   frame_id,
   name,
@@ -84,7 +76,6 @@ export function Handout({
   user_map,
   project_id,
 }: HandoutProps) {
-  const [confirm_delete, set_confirm_delete] = useState<boolean>(false);
   const [copy_confirm, set_copy_confirm] = useState<boolean>(false);
   const [copy_confirm_handout, set_copy_confirm_handout] =
     useState<boolean>(false);
@@ -420,34 +411,10 @@ export function Handout({
 
   function delete_handout(): void {
     actions.handouts.delete_handout(handout.get("handout_id"));
-    set_confirm_delete(false);
   }
 
   function undelete_handout(): void {
     actions.handouts.undelete_handout(handout.get("handout_id"));
-  }
-
-  function render_confirm_delete() {
-    return (
-      <Alert
-        type="warning"
-        key="confirm_delete"
-        message={
-          <div>
-            Are you sure you want to delete this handout?
-            <br /> <br />
-            <Space>
-              <Button key="no" onClick={() => set_confirm_delete(false)}>
-                Cancel
-              </Button>
-              <Button key="yes" onClick={delete_handout} danger>
-                <Icon name="trash" /> Delete
-              </Button>
-            </Space>
-          </div>
-        }
-      />
-    );
   }
 
   function render_delete_button() {
@@ -466,20 +433,27 @@ export function Handout({
       );
     } else {
       return (
-        <Tip
+        <Popconfirm
           key="delete"
-          placement="left"
-          title="Delete handout"
-          tip="Deleting this handout removes it from the handout list and student grade lists, but does not delete any files off of disk.  You can always undelete an handout later by showing it using the 'show deleted handouts' button."
+          onConfirm={delete_handout}
+          title={
+            <div style={{ maxWidth: "400px" }}>
+              <b>
+                Are you sure you want to delete "
+                {trunc_middle(handout.get("path"), 24)}"?
+              </b>
+              <br />
+              This removes it from the handout list and student grade lists, but
+              does not delete any files off of disk. You can always undelete an
+              handout later by showing it using the 'show deleted handouts'
+              button.
+            </div>
+          }
         >
-          <Button
-            onClick={() => set_confirm_delete(true)}
-            disabled={confirm_delete}
-            style={outside_button_style}
-          >
+          <Button style={outside_button_style}>
             <Icon name="trash" /> Delete...
           </Button>
-        </Tip>
+        </Popconfirm>
       );
     }
   }
@@ -576,7 +550,6 @@ export function Handout({
           <Row>
             <span className="pull-right">{render_delete_button()}</span>
           </Row>
-          <Row>{confirm_delete ? render_confirm_delete() : undefined}</Row>
         </Col>
       </Row>
     );

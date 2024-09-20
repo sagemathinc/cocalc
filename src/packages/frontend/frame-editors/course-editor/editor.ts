@@ -218,7 +218,7 @@ const COMMANDS = {
 
   "course-start-all-projects": {
     icon: "bolt",
-    label: "Start all Student Projects",
+    label: "Start or Stop all Student Projects",
     button: "Start All",
     title:
       "You can start all projects associated with this course so they are immediately ready for your students to use.",

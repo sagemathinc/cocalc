@@ -13,7 +13,7 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
-import { Alert, Button, Card, Col, Input, Row, Space } from "antd";
+import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
 import { ReactElement, useState } from "react";
 import { DebounceInput } from "react-debounce-input";
 import { CourseActions } from "../actions";
@@ -92,7 +92,6 @@ export function Assignment({
 }: AssignmentProps) {
   const size = useButtonSize();
 
-  const [confirm_delete, set_confirm_delete] = useState<boolean>(false);
   const [
     copy_assignment_confirm_overwrite,
     set_copy_assignment_confirm_overwrite,
@@ -239,6 +238,10 @@ export function Assignment({
   }
 
   function render_no_content() {
+    if (assignment.get("deleted")) {
+      // no point
+      return null;
+    }
     return (
       <div style={{ margin: "15px auto", maxWidth: "800px", fontSize: "12pt" }}>
         There are no files in this assignment yet. Please{" "}
@@ -289,15 +292,6 @@ export function Assignment({
         <Row key="header2-peer" style={bottom}>
           <Col md={20} offset={4}>
             {render_configure_peer()}
-          </Col>
-        </Row>,
-      );
-    }
-    if (confirm_delete) {
-      v.push(
-        <Row key="header2-delete" style={bottom}>
-          <Col md={20} offset={4}>
-            {render_confirm_delete()}
           </Col>
         </Row>,
       );
@@ -1112,35 +1106,12 @@ export function Assignment({
 
   function delete_assignment() {
     actions.assignments.delete_assignment(assignment.get("assignment_id"));
-    return set_confirm_delete(false);
   }
 
   function undelete_assignment() {
     return actions.assignments.undelete_assignment(
       assignment.get("assignment_id"),
     );
-  }
-
-  function render_confirm_delete() {
-    const message = (
-      <div>
-        Are you sure you want to delete this assignment?
-        <br /> <br />
-        <Space>
-          <Button
-            key="no"
-            onClick={() => set_confirm_delete(false)}
-            size={size}
-          >
-            Cancel
-          </Button>
-          <Button key="yes" onClick={delete_assignment} danger size={size}>
-            <Icon name="trash" /> Delete
-          </Button>
-        </Space>
-      </div>
-    );
-    return <Alert type="warning" key="confirm_delete" message={message} />;
   }
 
   function render_delete_button() {
@@ -1159,20 +1130,25 @@ export function Assignment({
       );
     } else {
       return (
-        <Tip
-          key="delete"
-          placement="left"
-          title="Delete assignment"
-          tip="Deleting this assignment removes it from the assignment list and student grade lists, but does not delete any files off of disk.  You can always undelete an assignment later by showing it using the 'show deleted assignments' button."
+        <Popconfirm
+          title={
+            <div style={{ maxWidth: "400px" }}>
+              <b>
+                Are you sure you want to delete "
+                {trunc_middle(assignment.get("path"), 24)}"?
+              </b>
+              <br /> This removes it from the assignment list and student grade
+              lists, but does not delete any files off of disk. You can undelete
+              an assignment later by showing it using the 'Show deleted
+              assignments' button.
+            </div>
+          }
+          onConfirm={delete_assignment}
         >
-          <Button
-            onClick={() => set_confirm_delete(true)}
-            disabled={confirm_delete}
-            size={size}
-          >
-            <Icon name="trash" /> Delete
+          <Button size={size}>
+            <Icon name="trash" /> Delete...
           </Button>
-        </Tip>
+        </Popconfirm>
       );
     }
   }

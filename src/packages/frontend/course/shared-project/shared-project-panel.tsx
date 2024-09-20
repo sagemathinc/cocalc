@@ -105,7 +105,12 @@ export function SharedProjectPanel({
         </div>
         <br />
         <Popconfirm
-          title="Are you sure you want to create a shared project and add all students in this course as collaborators?"
+          title={
+            <div style={{ maxWidth: "400px" }}>
+              Are you sure you want to create a shared project and add all
+              students in this course as collaborators?
+            </div>
+          }
           onConfirm={() => {
             const actions = redux.getActions(name) as CourseActions;
             if (actions != null) actions.shared_project.create();

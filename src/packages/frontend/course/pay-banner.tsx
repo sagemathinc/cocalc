@@ -50,7 +50,7 @@ export function PayBanner({
     return <span />;
   }
 
-  let style: CSS;
+  let style, linkStyle: CSS;
   if ((num_students != null ? num_students : 0) >= 20) {
     // Show a harsh error.
     style = {
@@ -60,12 +60,14 @@ export function PayBanner({
       fontWeight: "bold",
       margin: "15px",
     };
+    linkStyle = { color: "white" };
   } else {
     style = {
       fontSize: "12pt",
       color: "#666",
       margin: "15px",
     };
+    linkStyle = {};
   }
 
   return (
@@ -76,7 +78,7 @@ export function PayBanner({
         <div style={{ display: "flex" }}>
           <Icon name="exclamation-triangle" />
           <div style={{ flex: 1, textAlign: "center" }}>
-            <a onClick={show_config}>
+            <a onClick={show_config} style={linkStyle}>
               Configure either the student or institute pay option...
             </a>
           </div>
