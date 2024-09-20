@@ -560,6 +560,7 @@
   "labels.support": "Wsparcie",
   "labels.tabs": "Karty",
   "labels.terminal": "Terminal",
+  "labels.terminal_command": "Polecenie terminala",
   "labels.timetravel": "Podróże w czasie",
   "labels.timetravel_title": "Pokaż pełną historię edycji tego dokumentu",
   "labels.undo": "Cofnij",

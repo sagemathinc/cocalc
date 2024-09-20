@@ -560,6 +560,7 @@
   "labels.support": "지원",
   "labels.tabs": "탭",
   "labels.terminal": "터미널",
+  "labels.terminal_command": "터미널 명령",
   "labels.timetravel": "타임트래블",
   "labels.timetravel_title": "이 문서의 전체 편집 기록 보기",
   "labels.undo": "실행 취소",

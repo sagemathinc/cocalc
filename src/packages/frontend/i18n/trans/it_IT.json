@@ -560,6 +560,7 @@
   "labels.support": "Supporto",
   "labels.tabs": "Schede",
   "labels.terminal": "Terminale",
+  "labels.terminal_command": "Comando terminale",
   "labels.timetravel": "ViaggioNelTempo",
   "labels.timetravel_title": "Mostra la cronologia completa delle modifiche di questo documento",
   "labels.undo": "Annulla",

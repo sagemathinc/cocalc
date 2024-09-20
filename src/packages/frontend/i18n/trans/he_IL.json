@@ -560,6 +560,7 @@
   "labels.support": "תמיכה",
   "labels.tabs": "כרטיסיות",
   "labels.terminal": "טרמינל",
+  "labels.terminal_command": "פקודת מסוף",
   "labels.timetravel": "מסע בזמן",
   "labels.timetravel_title": "הצג היסטוריית עריכה מלאה של מסמך זה",
   "labels.undo": "בטל",

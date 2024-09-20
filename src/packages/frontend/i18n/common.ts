@@ -516,8 +516,15 @@ export const labels = defineMessages({
   connecting: {
     id: "labels.connecting",
     defaultMessage: "Connecting",
-    description: "Short label, telling the user a connecting is about to be established."
-  }
+    description:
+      "Short label, telling the user a connecting is about to be established.",
+  },
+  terminal_command: {
+    id: "labels.terminal_command",
+    defaultMessage: "Terminal command",
+    description:
+      "Short label/placeholder for entering a Linux Terminal command in a text box",
+  },
 });
 
 export const menu = defineMessages({

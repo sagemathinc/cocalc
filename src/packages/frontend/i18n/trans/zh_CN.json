@@ -560,6 +560,7 @@
   "labels.support": "支持",
   "labels.tabs": "标签",
   "labels.terminal": "终端",
+  "labels.terminal_command": "终端命令",
   "labels.timetravel": "过去版本",
   "labels.timetravel_title": "显示此文档的完整编辑历史",
   "labels.undo": "撤销",

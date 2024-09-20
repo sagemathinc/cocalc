@@ -560,6 +560,7 @@
   "labels.support": "サポート",
   "labels.tabs": "タブ",
   "labels.terminal": "ターミナル",
+  "labels.terminal_command": "ターミナルコマンド",
   "labels.timetravel": "タイムトラベル",
   "labels.timetravel_title": "このドキュメントの編集履歴をすべて表示",
   "labels.undo": "元に戻す",

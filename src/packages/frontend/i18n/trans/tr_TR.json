@@ -560,6 +560,7 @@
   "labels.support": "Destek",
   "labels.tabs": "Sekmeler",
   "labels.terminal": "Terminal",
+  "labels.terminal_command": "Terminal komutu",
   "labels.timetravel": "ZamanYolculuğu",
   "labels.timetravel_title": "Bu belgenin tüm düzenleme geçmişini göster",
   "labels.undo": "Geri Al",

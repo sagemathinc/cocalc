@@ -560,6 +560,7 @@
   "labels.support": "Soporte",
   "labels.tabs": "Pestañas",
   "labels.terminal": "Terminal",
+  "labels.terminal_command": "Comando de terminal",
   "labels.timetravel": "ViajeEnElTiempo",
   "labels.timetravel_title": "Mostrar el historial completo de edición de este documento",
   "labels.undo": "Deshacer",

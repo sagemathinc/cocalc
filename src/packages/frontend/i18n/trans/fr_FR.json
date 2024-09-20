@@ -560,6 +560,7 @@
   "labels.support": "Support",
   "labels.tabs": "Onglets",
   "labels.terminal": "Terminal",
+  "labels.terminal_command": "Commande terminal",
   "labels.timetravel": "VoyageDansLeTemps",
   "labels.timetravel_title": "Afficher l'historique complet des modifications de ce document",
   "labels.undo": "Annuler",

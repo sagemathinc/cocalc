@@ -560,6 +560,7 @@
   "labels.support": "Unterstützung",
   "labels.tabs": "Tabs",
   "labels.terminal": "Terminal",
+  "labels.terminal_command": "Terminalbefehl",
   "labels.timetravel": "ZeitReise",
   "labels.timetravel_title": "Vollständige Bearbeitungshistorie dieses Dokuments anzeigen",
   "labels.undo": "Rückgängig",

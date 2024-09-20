@@ -560,6 +560,7 @@
   "labels.support": "Поддержка",
   "labels.tabs": "Вкладки",
   "labels.terminal": "Терминал",
+  "labels.terminal_command": "Команда терминала",
   "labels.timetravel": "Путешествие во времени",
   "labels.timetravel_title": "Показать полную историю редактирования этого документа",
   "labels.undo": "Отменить",
