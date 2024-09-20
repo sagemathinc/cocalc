@@ -1,7 +1,8 @@
 import { Alert, Typography } from "antd";
+import { join } from "path";
+
 import { A } from "@cocalc/frontend/components/A";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { join } from "path";
 
 const { Paragraph, Text } = Typography;
 export const BUY_A_LICENSE_URL = join(appBasePath, "/store/site-license");

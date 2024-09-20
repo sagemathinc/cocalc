@@ -5,7 +5,7 @@
 
 import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import immutable from "immutable";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
@@ -307,21 +307,31 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
         style={{ padding: FLYOUT_PADDING, margin: 0 }}
         message={
           <>
-            <Icon name="warning" /> Stale directory listing
+            <Icon name="warning" />{" "}
+            <FormattedMessage
+              id="page.flyouts.files.stale-directory.message"
+              defaultMessage={"stale directory listing"}
+              description={"outdated information in a file directory listing"}
+            />
           </>
         }
         description={
-          <>
-            To update,{" "}
-            <a
-              onClick={() => {
-                redux.getActions("projects").start_project(project_id);
-              }}
-            >
-              start this project
-            </a>
-            .
-          </>
+          <FormattedMessage
+            id="page.flyouts.files.stale-directory.description"
+            defaultMessage={"To update, <A>start this project</A>."}
+            description={"to update the outdated information in a file directory listing of a project"}
+            values={{
+              A: (c) => (
+                <a
+                  onClick={() => {
+                    redux.getActions("projects").start_project(project_id);
+                  }}
+                >
+                  {c}
+                </a>
+              ),
+            }}
+          />
         }
       />
     );
@@ -441,7 +451,9 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
               <Icon name={hidden ? "eye" : "eye-slash"} />
             </BootstrapButton>
             <BootstrapButton
-              title={intl.formatMessage(labels.masked_files, {masked: show_masked})}
+              title={intl.formatMessage(labels.masked_files, {
+                masked: show_masked,
+              })}
               bsSize="xsmall"
               style={{ flex: "0" }}
               active={!show_masked}

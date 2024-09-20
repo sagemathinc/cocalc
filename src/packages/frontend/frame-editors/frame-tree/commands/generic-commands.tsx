@@ -1030,7 +1030,7 @@ addCommands({
     group: "help-link",
     icon: "users",
     label: defineMessage({
-      id: "command.generic.support.label",
+      id: "command.generic.support.label.2",
       defaultMessage: "Contact Us!",
       description: "Contact support by creating a support ticket to get help",
     }),

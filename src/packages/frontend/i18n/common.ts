@@ -473,6 +473,51 @@ export const labels = defineMessages({
     defaultMessage: "Halt",
     description: "Short label on a button to halt or stop something",
   },
+  deleted: {
+    id: "labels.deleted",
+    defaultMessage: "deleted",
+    description: "a file has been deleted",
+  },
+  downloaded: {
+    id: "labels.downloaded",
+    defaultMessage: "downloaded",
+    description: "a file has been downloaded",
+  },
+  moved: {
+    id: "labels.moved",
+    defaultMessage: "moved",
+    description: "a file has been moved",
+  },
+  renamed: {
+    id: "labels.renamed",
+    defaultMessage: "renamed",
+    description: "a file has been renamed",
+  },
+  copied: {
+    id: "labels.copied",
+    defaultMessage: "copied",
+    description: "a file has been copied",
+  },
+  shared: {
+    id: "labels.shared",
+    defaultMessage: "shared",
+    description: "a file has been shared",
+  },
+  uploaded: {
+    id: "labels.uploaded",
+    defaultMessage: "uploaded",
+    description: "a file has been uploaded",
+  },
+  created_file: {
+    id: "labels.created_file",
+    defaultMessage: "created",
+    description: "a file has been created",
+  },
+  connecting: {
+    id: "labels.connecting",
+    defaultMessage: "Connecting",
+    description: "Short label, telling the user a connecting is about to be established."
+  }
 });
 
 export const menu = defineMessages({
