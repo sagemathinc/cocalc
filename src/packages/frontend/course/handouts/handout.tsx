@@ -383,10 +383,21 @@ export function Handout({
 
   function render_handout_button(status) {
     const handout_count = status.handout;
+    const { not_handout } = status;
+    let type;
+    if (handout_count === 0) {
+      type = "primary";
+    } else {
+      if (not_handout === 0) {
+        type = "dashed";
+      } else {
+        type = "default";
+      }
+    }
     return (
       <Button
         key="handout"
-        type={handout_count === 0 ? "primary" : undefined}
+        type={type}
         onClick={() => {
           set_copy_confirm_handout(true);
           set_copy_confirm(true);

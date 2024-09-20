@@ -69,7 +69,7 @@ export function StudentHandoutInfo({
       return <Space>{v}</Space>;
     } else {
       return (
-        <Button key="copy" onClick={() => setRecopy(true)}>
+        <Button type="dashed" key="copy" onClick={() => setRecopy(true)}>
           <Tip title={name} tip={<span>{copy_tip}</span>}>
             <Icon name="share-square" /> {name}...
           </Tip>

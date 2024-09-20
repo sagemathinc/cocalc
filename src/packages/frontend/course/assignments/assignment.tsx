@@ -457,10 +457,10 @@ export function Assignment({
     ) {
       type = "primary";
     } else {
-      type = "dashed";
+      type = "default";
     }
     if (status.assignment > 0 && status.not_assignment === 0) {
-      type = "default";
+      type = "dashed";
     }
 
     return [
@@ -831,12 +831,12 @@ export function Assignment({
     if (status.collect > 0) {
       // Have already collected something
       if (status.not_collect === 0) {
-        type = "primary";
-      } else {
         type = "dashed";
+      } else {
+        type = "default";
       }
     } else {
-      type = "default";
+      type = "primary";
     }
     return [
       <Button
@@ -898,13 +898,12 @@ export function Assignment({
     if (status.peer_assignment > 0) {
       // haven't peer-assigned anything yet
       if (status.not_peer_assignment === 0) {
-        type = "primary";
+        type = "dashed";
       } else {
         type = "default";
       }
     } else {
-      // we have assigned already and this may overwrite
-      type = "dashed";
+      type = "primary";
     }
     return [
       <Button
@@ -962,13 +961,13 @@ export function Assignment({
     if (status.peer_collect > 0) {
       // haven't peer-collected anything yet
       if (status.not_peer_collect === 0) {
-        type = "primary";
+        type = "dashed";
       } else {
         type = "default";
       }
     } else {
       // warning, since we have already collected and this may overwrite
-      type = "dashed";
+      type = "primary";
     }
     return [
       <Button
@@ -1065,12 +1064,12 @@ export function Assignment({
     if (status.return_graded > 0) {
       // Have already returned some
       if (status.not_return_graded === 0) {
-        type = "primary";
-      } else {
         type = "dashed";
+      } else {
+        type = "default";
       }
     } else {
-      type = "default";
+      type = "primary";
     }
     return [
       <Button
