@@ -3,21 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// BUG:
-//
-//  - this code is buggy since the SearchInput component below is NOT controlled,
-//    but some of the code assumes it is, which makes no sense.
-//    E.g., there is a clear_search prop that is passed in, which is
-//    nonsense, because the state of the search is local to the
-//    SearchInput. That's why the calls to clear
-//    the search in all the code below are all broken.
-//
-
 import { useCallback, useMemo } from "react";
-import { SearchInput } from "@cocalc/frontend/components";
-import { Space } from "antd";
-import * as immutable from "immutable";
-import { COLORS } from "@cocalc/util/theme";
+import { Input, Space } from "antd";
+import type { Map as iMap } from "immutable";
 import { SEARCH_STYLE } from "./consts";
 import { MultipleAddSearch } from "./multiple-add-search";
 
@@ -26,7 +14,7 @@ interface FoldersToolbarProps {
   search_change: (search_value: string) => void; // search_change(current_search_value)
   num_omitted?: number;
   project_id: string;
-  items: immutable.Map<string, any>;
+  items: iMap<string, any>;
   add_folders: (folders: string[]) => void; // add_folders (Iterable<T>)
   item_name: string;
   plural_item_name: string;
@@ -43,17 +31,17 @@ export function FoldersToolbar({
 }: FoldersToolbarProps) {
   return (
     <Space>
-      <SearchInput
-        placeholder={`Find ${plural_item_name}...`}
-        default_value={propsSearch}
-        on_change={search_change}
+      <Input.Search
+        allowClear
+        placeholder={`Filter ${plural_item_name}...`}
+        value={propsSearch}
+        onChange={(e) => search_change(e.target.value)}
         style={SEARCH_STYLE}
       />
       {num_omitted ? (
         <h5
           style={{
             textAlign: "center",
-            color: COLORS.GRAY_L,
             marginTop: "5px",
           }}
         >

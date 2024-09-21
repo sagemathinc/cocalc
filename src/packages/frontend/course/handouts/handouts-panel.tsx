@@ -44,7 +44,12 @@ export function HandoutsPanel({
   );
 
   const [show_deleted, set_show_deleted] = useState<boolean>(false);
-  const [search, set_search] = useState<string>("");
+  
+  const pageFilter = useRedux(name, "pageFilter");
+  const filter = pageFilter?.get("handouts") ?? "";
+  const setFilter = (filter: string) => {
+    actions.setPageFilter("handouts", filter);
+  };
 
   function get_handout(id: string): HandoutRecord {
     const handout = handouts.get(id);
@@ -61,7 +66,7 @@ export function HandoutsPanel({
     ({ list, num_omitted } = util.compute_match_list({
       list,
       search_key: "path",
-      search: search.trim(),
+      search: filter.trim(),
     }));
 
     ({ list, num_deleted } = util.order_list({
@@ -101,7 +106,7 @@ export function HandoutsPanel({
           style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
           onClick={() => {
             set_show_deleted(true);
-            set_search("");
+            setFilter("");
           }}
         >
           <Tip
@@ -139,6 +144,7 @@ export function HandoutsPanel({
     }
     return (
       <ScrollableList
+        virtualize
         rowCount={handouts.length}
         rowRenderer={({ key, index }) => render_handout(key, index)}
         rowKey={(index) => handouts[index]?.handout_id ?? ""}
@@ -180,8 +186,8 @@ export function HandoutsPanel({
 
   const header = (
     <FoldersToolbar
-      search={search}
-      search_change={(value) => set_search(value)}
+      search={filter}
+      search_change={setFilter}
       num_omitted={num_omitted}
       project_id={project_id}
       items={handouts}

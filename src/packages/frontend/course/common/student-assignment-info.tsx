@@ -375,7 +375,7 @@ export function StudentAssignmentInfo({
           </div>,
         );
       }
-      return v;
+      return <Space>{v}</Space>;
     } else {
       return (
         <Button

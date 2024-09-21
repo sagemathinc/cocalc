@@ -340,7 +340,7 @@ export function Assignment({
             <DebounceInput
               debounceTimeout={500}
               element={Input as any}
-              placeholder={"Find students..."}
+              placeholder={"Filter students..."}
               value={student_search}
               onChange={(e) => set_student_search(e.target.value)}
             />

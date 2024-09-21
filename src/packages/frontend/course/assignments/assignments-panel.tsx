@@ -72,7 +72,12 @@ export function AssignmentsPanel(props: Props) {
   );
 
   // search query to restrict which assignments are shown.
-  const [search, set_search] = useState<string>("");
+  const pageFilter = useRedux(name, "pageFilter");
+  const filter = pageFilter?.get("assignments") ?? "";
+  const setFilter = (filter: string) => {
+    course_actions.setPageFilter("assignments", filter);
+  };
+
   // whether or not to show deleted assignments on the bottom
   const [show_deleted, set_show_deleted] = useState<boolean>(false);
 
@@ -95,7 +100,7 @@ export function AssignmentsPanel(props: Props) {
     ({ list, num_omitted } = util.compute_match_list({
       list,
       search_key: "path",
-      search: search.trim(),
+      search: filter.trim(),
     }));
 
     if (active_assignment_sort.get("column_name") === "due_date") {
@@ -122,7 +127,7 @@ export function AssignmentsPanel(props: Props) {
       num_omitted,
       num_deleted,
     };
-  }, [assignments, active_assignment_sort, show_deleted, search]);
+  }, [assignments, active_assignment_sort, show_deleted, filter]);
 
   function render_sort_link(column_name: string, display_name: string) {
     return (
@@ -189,6 +194,7 @@ export function AssignmentsPanel(props: Props) {
     }
     return (
       <ScrollableList
+        virtualize
         rowCount={assignments.length}
         rowRenderer={({ key, index }) => render_assignment(key, index)}
         rowKey={(index) => assignments[index]?.assignment_id ?? ""}
@@ -249,7 +255,7 @@ export function AssignmentsPanel(props: Props) {
           style={styles.show_hide_deleted({ needs_margin: num_shown > 0 })}
           onClick={() => {
             set_show_deleted(true);
-            set_search("");
+            setFilter("");
           }}
         >
           <Tip
@@ -268,8 +274,8 @@ export function AssignmentsPanel(props: Props) {
     return (
       <div style={{ marginBottom: "15px" }}>
         <FoldersToolbar
-          search={search}
-          search_change={(value) => set_search(value)}
+          search={filter}
+          search_change={setFilter}
           num_omitted={num_omitted}
           project_id={project_id}
           items={assignments}

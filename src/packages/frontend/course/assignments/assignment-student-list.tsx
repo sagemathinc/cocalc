@@ -130,6 +130,7 @@ export function StudentListForAssignment({
   function render_students() {
     return (
       <ScrollableList
+        virtualize
         rowCount={student_list.length}
         rowRenderer={({ key }) => render_student_info(key)}
         rowKey={(index) => student_list[index]}
