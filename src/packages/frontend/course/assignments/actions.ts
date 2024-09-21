@@ -1979,59 +1979,73 @@ ${details}
           this.course_actions.clear_activity(id);
         }
 
-        if (
-          grade_project_id != course_project_id &&
-          grade_project_id != student_project_id
-        ) {
-          // Make a fresh copy of the assignment files to the grade project.
-          // This is necessary because grading the assignment may depend on
-          // data files that are sent as part of the assignment.  Also,
-          // student's might have some code in text files next to the ipynb.
-          await webapp_client.project_client.copy_path_between_projects({
-            src_project_id: course_project_id,
-            src_path: student_path,
-            target_project_id: grade_project_id,
-            target_path: student_path,
-            overwrite_newer: true,
-            delete_missing: true,
-            backup: false,
-          });
-        }
+        let ephemeralGradePath;
+        try {
+          if (
+            grade_project_id != course_project_id &&
+            grade_project_id != student_project_id
+          ) {
+            ephemeralGradePath = true;
+            // Make a fresh copy of the assignment files to the grade project.
+            // This is necessary because grading the assignment may depend on
+            // data files that are sent as part of the assignment.  Also,
+            // student's might have some code in text files next to the ipynb.
+            await webapp_client.project_client.copy_path_between_projects({
+              src_project_id: course_project_id,
+              src_path: student_path,
+              target_project_id: grade_project_id,
+              target_path: student_path,
+              overwrite_newer: true,
+              delete_missing: true,
+              backup: false,
+            });
+          } else {
+            ephemeralGradePath = false;
+          }
 
-        const opts = {
-          timeout_ms: store.getIn(
-            ["settings", "nbgrader_timeout_ms"],
-            NBGRADER_TIMEOUT_MS,
-          ),
-          cell_timeout_ms: store.getIn(
-            ["settings", "nbgrader_cell_timeout_ms"],
-            NBGRADER_CELL_TIMEOUT_MS,
-          ),
-          max_output: store.getIn(
-            ["settings", "nbgrader_max_output"],
-            NBGRADER_MAX_OUTPUT,
-          ),
-          max_output_per_cell: store.getIn(
-            ["settings", "nbgrader_max_output_per_cell"],
-            NBGRADER_MAX_OUTPUT_PER_CELL,
-          ),
-          student_ipynb,
-          instructor_ipynb,
-          path: student_path,
-          project_id: grade_project_id,
-        };
-        /*console.log(
+          const opts = {
+            timeout_ms: store.getIn(
+              ["settings", "nbgrader_timeout_ms"],
+              NBGRADER_TIMEOUT_MS,
+            ),
+            cell_timeout_ms: store.getIn(
+              ["settings", "nbgrader_cell_timeout_ms"],
+              NBGRADER_CELL_TIMEOUT_MS,
+            ),
+            max_output: store.getIn(
+              ["settings", "nbgrader_max_output"],
+              NBGRADER_MAX_OUTPUT,
+            ),
+            max_output_per_cell: store.getIn(
+              ["settings", "nbgrader_max_output_per_cell"],
+              NBGRADER_MAX_OUTPUT_PER_CELL,
+            ),
+            student_ipynb,
+            instructor_ipynb,
+            path: student_path,
+            project_id: grade_project_id,
+          };
+          /*console.log(
           student_id,
           file,
           "about to launch autograding with input ",
           opts
         );*/
-        const r = await nbgrader(opts);
-        /* console.log(student_id, "autograding finished successfully", {
+          const r = await nbgrader(opts);
+          /* console.log(student_id, "autograding finished successfully", {
           file,
           r,
         });*/
-        result[file] = r;
+          result[file] = r;
+        } finally {
+          if (ephemeralGradePath) {
+            await webapp_client.project_client.exec({
+              project_id: grade_project_id,
+              command: "rm",
+              args: ["-rf", student_path],
+            });
+          }
+        }
 
         if (!nbgrader_grade_project && stop_student_project) {
           const idstop = this.course_actions.set_activity({
