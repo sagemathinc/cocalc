@@ -25,6 +25,7 @@ import {
   RestrictStudentProjects,
   TitleAndDescription,
   UpgradeConfiguration,
+  ConfigureSoftwareEnvironment,
 } from "@cocalc/frontend/course/configuration/configuration-panel";
 import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
 import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
@@ -154,6 +155,8 @@ function getModal(modal: string) {
       return { Body: EnvVariables };
     case "upgrades":
       return { Body: UpgradeConfiguration };
+    case "software-environment":
+      return { Body: ConfigureSoftwareEnvironment };
 
     default:
       return {

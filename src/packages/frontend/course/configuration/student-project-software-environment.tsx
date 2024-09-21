@@ -24,7 +24,7 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { Alert, Button, Card, Divider, Radio } from "antd";
+import { Alert, Button, Card, Divider, Radio, Space } from "antd";
 import { ConfigurationActions } from "./actions";
 
 const CSI_HELP =
@@ -35,6 +35,7 @@ interface Props {
   course_project_id: string;
   software_image?: string;
   inherit_compute_image?: boolean;
+  close?;
 }
 
 export function StudentProjectSoftwareEnvironment({
@@ -42,6 +43,7 @@ export function StudentProjectSoftwareEnvironment({
   course_project_id,
   software_image,
   inherit_compute_image,
+  close,
 }: Props) {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
@@ -110,27 +112,36 @@ export function StudentProjectSoftwareEnvironment({
       );
     } else {
       return (
-        <>
-          <Button onClick={() => set_changing(false)}>Cancel</Button>
-          <Button
-            disabled={
-              state.image_type === "custom" && state.image_selected == null
-            }
-            type="primary"
-            onClick={async () => {
-              set_changing(false);
-              await actions.set_software_environment(state);
-            }}
-          >
-            Save
-          </Button>
-          <br />
+        <div>
           <SoftwareEnvironment
             onChange={handleChange}
             default_image={software_image}
           />
           {state.image_type === "custom" && csi_warning()}
-        </>
+          <br />
+          <Space>
+            <Button
+              onClick={() => {
+                set_changing(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                state.image_type === "custom" && state.image_selected == null
+              }
+              type="primary"
+              onClick={async () => {
+                set_changing(false);
+                await actions.set_software_environment(state);
+                close?.();
+              }}
+            >
+              Save
+            </Button>
+          </Space>
+        </div>
       );
     }
   }
@@ -139,9 +150,7 @@ export function StudentProjectSoftwareEnvironment({
     if (inherit) return;
     return (
       <>
-        <Divider orientation="left" plain>
-          Configure
-        </Divider>
+        <Divider orientation="left">Configure</Divider>
         {render_controls_body()}
       </>
     );
@@ -226,7 +235,7 @@ export function StudentProjectSoftwareEnvironment({
       }
     >
       <p>
-        Student projects will be using the software environment:{" "}
+        Student projects will use the following software environment:{" "}
         <em>{current_environment}</em>
       </p>
       {render_description()}

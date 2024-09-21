@@ -57,6 +57,7 @@ const COURSE_MENUS = {
       ],
       nbgraderConfig: ["course-nbgrader"],
       environmentConfig: [
+        "course-software-environment",
         "course-network-file-systems",
         "course-env-variables",
       ],
@@ -180,6 +181,17 @@ const COMMANDS = {
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("nbgrader");
+    },
+  },
+  "course-software-environment": {
+    icon: "laptop",
+    label: "Software Environment",
+    button: "Software",
+    title:
+      "Configure the software environment that all student projects will use.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("software-environment");
     },
   },
   "course-network-file-systems": {

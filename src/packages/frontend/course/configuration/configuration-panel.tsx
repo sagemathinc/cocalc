@@ -85,11 +85,10 @@ export function ConfigurationPanel({
           <br />
           <RestrictStudentProjects settings={settings} actions={actions} />
           <br />
-          <StudentProjectSoftwareEnvironment
-            actions={actions.configuration}
-            software_image={settings.get("custom_image")}
-            course_project_id={project_id}
-            inherit_compute_image={settings.get("inherit_compute_image")}
+          <ConfigureSoftwareEnvironment
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
           />
           <br />
           <Parallel name={name} />
@@ -353,6 +352,28 @@ export function EnvVariables({
       actions={actions.configuration}
       envvars={settings.get("envvars")}
       project_id={project_id}
+      close={close}
+    />
+  );
+}
+
+export function ConfigureSoftwareEnvironment({
+  actions,
+  settings,
+  project_id,
+  close,
+}: {
+  actions;
+  settings;
+  project_id;
+  close?;
+}) {
+  return (
+    <StudentProjectSoftwareEnvironment
+      actions={actions.configuration}
+      software_image={settings.get("custom_image")}
+      course_project_id={project_id}
+      inherit_compute_image={settings.get("inherit_compute_image")}
       close={close}
     />
   );
