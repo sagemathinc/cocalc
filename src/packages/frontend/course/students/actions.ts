@@ -15,7 +15,7 @@ import { defaults, required, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions } from "../actions";
 import { CourseStore, StudentRecord } from "../store";
-import { SyncDBRecordStudent } from "../types";
+import type { SyncDBRecordStudent } from "../types";
 import { Map as iMap } from "immutable";
 
 const STUDENT_STATUS_UPDATE_MS = 60 * 1000;
@@ -99,11 +99,16 @@ export class StudentsActions {
   ): Promise<void> {
     const store = this.get_store();
     const student = store.get_student(student_id);
-    if (student == null) return;
+    if (student == null) {
+      return;
+    }
     this.doDeleteStudent(student, noTrash);
-    // since they may get removed from shared project, etc.
-    await delay(1); // so store is updated, since it is used by configure
-    await this.course_actions.student_projects.configure_all_projects();
+    // We always remove any deleted student from all student projects and the
+    // shared project when they are deleted, since this best aligns with
+    // user expectations.  We do this, even if "allow collaborators" is enabled.
+    await this.course_actions.student_projects.removeFromAllStudentProjects(
+      student,
+    );
   }
 
   undelete_student = async (student_id: string): Promise<void> => {
