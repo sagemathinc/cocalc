@@ -583,9 +583,12 @@ export function StudentProjectUpgrades({
           remove_site_license_id(license_id);
         }}
         warn_if={(info, _) => {
+          const upgradeHostProject = settings.get(
+            "license_upgrade_host_project",
+          );
           const n =
             get_store().get_student_ids().length +
-            1 +
+            (upgradeHostProject ? 1 : 0) +
             (shared_project_id ? 1 : 0);
           if (info.run_limit < n) {
             return `NOTE: This license can only upgrade ${info.run_limit} simultaneous running projects, but there are ${n} projects associated to this course.`;
