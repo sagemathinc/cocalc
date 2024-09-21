@@ -37,6 +37,7 @@ import {
   uuid,
 } from "@cocalc/util/misc";
 import { delay, map } from "awaiting";
+import { debounce } from "lodash";
 import { Map } from "immutable";
 import { CourseActions } from "../actions";
 import { export_assignment } from "../export/export-assignment";
@@ -69,7 +70,10 @@ import {
   STUDENT_SUBDIR,
   PEER_GRADING_GUIDELINES_GRADE_MARKER,
   PEER_GRADING_GUIDELINES_COMMENT_MARKER,
+  DUE_DATE_FILENAME,
 } from "./consts";
+
+const UPDATE_DUE_DATE_FILENAME_DEBOUNCE_MS = 3000;
 
 export class AssignmentsActions {
   private course_actions: CourseActions;
@@ -282,18 +286,89 @@ export class AssignmentsActions {
     });
   };
 
-  set_due_date = (
+  set_due_date = async (
     assignment_id: string,
     due_date: Date | string | undefined | null,
-  ): void => {
-    if (due_date == null) {
-      this.set_assignment_field(assignment_id, "due_date", null);
+  ): Promise<void> => {
+    const { assignment } = this.course_actions.resolve({
+      assignment_id,
+    });
+    if (assignment == null) {
       return;
     }
+    const prev_due_date = assignment.get("due_date");
+
+    if (!due_date) {
+      // deleting it
+      if (prev_due_date) {
+        // not deleted so delete it
+        this.set_assignment_field(assignment_id, "due_date", null);
+        this.updateDueDateFile(assignment_id);
+      }
+      return;
+    }
+
     if (typeof due_date !== "string") {
       due_date = due_date.toISOString(); // using strings instead of ms for backward compatibility.
     }
+
+    if (prev_due_date == due_date) {
+      // nothing to do.
+      return;
+    }
+
     this.set_assignment_field(assignment_id, "due_date", due_date);
+    // it changed, so update the file in all student projects that have already been assigned
+    // https://github.com/sagemathinc/cocalc/issues/2929
+    // NOTE: updateDueDate is debounced, so if set_due_date is called a lot, then the
+    // actual update only happens after it stabilizes for a while.  Also, we can be
+    // sure the store has updated the assignment.
+    this.updateDueDateFile(assignment_id);
+  };
+
+  private updateDueDateFile = debounce(async (assignment_id: string) => {
+    // important to check actions due to debounce.
+    if (this.course_actions.is_closed()) return;
+    await this.copy_assignment_create_due_date_file(assignment_id);
+    if (this.course_actions.is_closed()) return;
+
+    const desc = `Copying modified ${DUE_DATE_FILENAME} to all students who have already received it`;
+    const short_desc = `copy ${DUE_DATE_FILENAME}`;
+
+    // by default, doesn't create the due file
+    await this.assignment_action_all_students({
+      assignment_id,
+      old_only: true,
+      action: this.writeDueDateFile,
+      step: "assignment",
+      desc,
+      short_desc,
+    });
+  }, UPDATE_DUE_DATE_FILENAME_DEBOUNCE_MS);
+
+  private writeDueDateFile = async (
+    assignment_id: string,
+    student_id: string,
+  ) => {
+    const { student, assignment } = this.course_actions.resolve({
+      assignment_id,
+      student_id,
+    });
+    if (!student || !assignment) return;
+    const content = this.dueDateFileContent(assignment_id);
+    const project_id = student.get("project_id");
+    if (!project_id) return;
+    const path = join(assignment.get("target_path"), DUE_DATE_FILENAME);
+    console.log({
+      project_id,
+      path,
+      content,
+    });
+    await webapp_client.project_client.write_text_file({
+      project_id,
+      path,
+      content,
+    });
   };
 
   set_assignment_note = (assignment_id: string, note: string): void => {
@@ -800,22 +875,17 @@ ${details}
   private copy_assignment_create_due_date_file = async (
     assignment_id: string,
   ): Promise<void> => {
-    const { assignment, store } = this.course_actions.resolve({
+    const { assignment } = this.course_actions.resolve({
       assignment_id,
     });
     if (!assignment) return;
     // write the due date to a file
-    const due_date = store.get_due_date(assignment_id);
     const src_path = this.assignment_src_path(assignment);
-    const due_date_fn = "DUE_DATE.txt";
-    if (due_date == null) {
-      return;
-    }
     const due_id = this.course_actions.set_activity({
-      desc: `Creating ${due_date_fn} file...`,
+      desc: `Creating ${DUE_DATE_FILENAME} file...`,
     });
-    const content = `This assignment is due\n\n   ${due_date.toLocaleString()}`;
-    const path = join(src_path, due_date_fn);
+    const content = this.dueDateFileContent(assignment_id);
+    const path = join(src_path, DUE_DATE_FILENAME);
 
     try {
       await this.write_text_file_to_course_project({
@@ -824,10 +894,19 @@ ${details}
       });
     } catch (err) {
       throw Error(
-        `Problem writing ${due_date_fn} file ('${err}'). Try again...`,
+        `Problem writing ${DUE_DATE_FILENAME} file ('${err}'). Try again...`,
       );
     } finally {
       this.course_actions.clear_activity(due_id);
+    }
+  };
+
+  private dueDateFileContent = (assignment_id) => {
+    const due_date = this.get_store()?.get_due_date(assignment_id);
+    if (due_date) {
+      return `This assignment is due\n\n   ${due_date.toLocaleString()}`;
+    } else {
+      return "No due date has been set.";
     }
   };
 
@@ -881,15 +960,15 @@ ${details}
     await this.copy_assignment_create_due_date_file(assignment_id);
     if (this.course_actions.is_closed()) return;
     // by default, doesn't create the due file
-    await this.assignment_action_all_students(
+    await this.assignment_action_all_students({
       assignment_id,
       new_only,
-      this.copy_assignment_to_student,
-      "assignment",
+      action: this.copy_assignment_to_student,
+      step: "assignment",
       desc,
       short_desc,
       overwrite,
-    );
+    });
   };
 
   // Copy the given assignment to from all non-deleted students, doing several copies in parallel at once.
@@ -902,14 +981,14 @@ ${details}
       desc += " from whom we have not already copied it";
     }
     const short_desc = "copy from student";
-    await this.assignment_action_all_students(
+    await this.assignment_action_all_students({
       assignment_id,
       new_only,
-      this.copy_assignment_from_student,
-      "collect",
+      action: this.copy_assignment_from_student,
+      step: "collect",
       desc,
       short_desc,
-    );
+    });
   };
 
   private start_all_for_peer_grading = async (): Promise<void> => {
@@ -956,14 +1035,14 @@ ${details}
     }
     await this.start_all_for_peer_grading();
     // OK, now do the assignment... in parallel.
-    await this.assignment_action_all_students(
+    await this.assignment_action_all_students({
       assignment_id,
       new_only,
-      this.peer_copy_to_student,
-      "peer_assignment",
+      action: this.peer_copy_to_student,
+      step: "peer_assignment",
       desc,
       short_desc,
-    );
+    });
   }
 
   async peer_collect_from_all_students(
@@ -976,14 +1055,14 @@ ${details}
     }
     const short_desc = "copy peer grading from students";
     await this.start_all_for_peer_grading();
-    await this.assignment_action_all_students(
+    await this.assignment_action_all_students({
       assignment_id,
       new_only,
-      this.peer_collect_from_student,
-      "peer_collect",
+      action: this.peer_collect_from_student,
+      step: "peer_collect",
       desc,
       short_desc,
-    );
+    });
     await this.peerParseStudentGrading(assignment_id);
   }
 
@@ -1098,19 +1177,36 @@ ${details}
     this.course_actions.clear_activity(id);
   };
 
-  private assignment_action_all_students = async (
-    assignment_id: string,
-    new_only: boolean,
+  private assignment_action_all_students = async ({
+    assignment_id,
+    new_only,
+    old_only,
+    action,
+    step,
+    desc,
+    short_desc,
+    overwrite,
+  }: {
+    assignment_id: string;
+    // only do the action when it hasn't been done already
+    new_only?: boolean;
+    // only do the action when it HAS been done already
+    old_only?: boolean;
     action: (
       assignment_id: string,
       student_id: string,
       opts: any,
-    ) => Promise<void>,
-    step,
-    desc,
-    short_desc: string,
-    overwrite?: boolean,
-  ): Promise<void> => {
+    ) => Promise<void>;
+    step;
+    desc;
+    short_desc: string;
+    overwrite?: boolean;
+  }): Promise<void> => {
+    if (new_only && old_only) {
+      // no matter what, this means the empty set, so nothing to do.
+      // Of course no code shouild actually call this.
+      return;
+    }
     const id = this.course_actions.set_activity({ desc });
     const finish = (err) => {
       this.course_actions.clear_activity(id);
@@ -1135,14 +1231,22 @@ ${details}
       ) {
         return;
       }
-      if (
-        new_only &&
-        store.last_copied(step, assignment_id, student_id, true)
-      ) {
+      const alreadyCopied = !!store.last_copied(
+        step,
+        assignment_id,
+        student_id,
+        true,
+      );
+      if (new_only && alreadyCopied) {
+        // only for the ones that haven't already been copied
+        return;
+      }
+      if (old_only && !alreadyCopied) {
+        // only for the ones that *HAVE* already been copied.
         return;
       }
       try {
-        await action.bind(this)(assignment_id, student_id, { overwrite });
+        await action(assignment_id, student_id, { overwrite });
       } catch (err) {
         errors += `\n ${err}`;
       }
@@ -1257,7 +1361,7 @@ ${details}
         target_path,
         overwrite_newer: false,
         delete_missing: false,
-        exclude: ["*STUDENT*.txt", "*DUE_DATE.txt*"],
+        exclude: ["*STUDENT*.txt", "*" + DUE_DATE_FILENAME + "*"],
       });
     };
 

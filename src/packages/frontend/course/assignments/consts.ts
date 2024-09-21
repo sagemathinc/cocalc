@@ -20,7 +20,7 @@ export const PEER_GRADING_GUIDE_FILENAME = "GRADING-GUIDE.md";
 
 // Everything from GRADING_GUIDELINES_GRADE_MARKER to GRADING_GUIDELINES_COMMENT_MARKER
 // is parsed as a numerical grade, if possible.  i18n's don't mess this up!  Also,
-// changing this would break outstanding assignments, so change with caution.  
+// changing this would break outstanding assignments, so change with caution.
 // A fix
 // would be to store these strings somewhere when pushing the assignment out, so that
 // the same ones are used when collecting and parsing.    But that will take a few hours
@@ -43,3 +43,7 @@ ${PEER_GRADING_GUIDELINES_GRADE_MARKER}
 ${PEER_GRADING_GUIDELINES_COMMENT_MARKER}
 
 `;
+
+// this could get translated somehow...
+export const DUE_DATE_FILENAME = "DUE_DATE.txt";
+

@@ -81,7 +81,7 @@ export type LastCopyInfo = {
 export type AssignmentRecord = TypedMap<{
   assignment_id: string;
   deleted: boolean;
-  due_date: Date;
+  due_date: string; // iso string
   path: string;
   peer_grade?: {
     enabled: boolean;
