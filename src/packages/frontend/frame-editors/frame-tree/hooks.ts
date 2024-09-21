@@ -24,6 +24,9 @@ export function baseFontSize() {
 //    transform: `scale(${scaling})`,
 //    transformOrigin: "center 0", // or "0 0"
 //  }
+// And yet, I'm using zoom and testing it on safari, firefox and chrome
+// and it works well now-a-days.
+
 export function use_font_size_scaling(font_size: number): number {
   return getScale(font_size);
 }

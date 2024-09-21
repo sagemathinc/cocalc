@@ -50,7 +50,12 @@ export function ConfigurationPanel({
   const actions = useActions<CourseActions>({ name });
 
   return (
-    <div className="smc-vfill" style={{ overflowY: "scroll" }}>
+    <div
+      className="smc-vfill"
+      style={{
+        overflowY: "scroll",
+      }}
+    >
       <Row>
         <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
           <UpgradeConfiguration

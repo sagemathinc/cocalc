@@ -25,9 +25,9 @@ import { menu } from "@cocalc/frontend/i18n";
 import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
 
 const commands = set([
-  // commented out for now since broken: See https://github.com/sagemathinc/cocalc/issues/7235
-  //"decrease_font_size",
-  //"increase_font_size",
+  "decrease_font_size",
+  "increase_font_size",
+  "set_zoom",
   "save",
   "time_travel",
   "help",

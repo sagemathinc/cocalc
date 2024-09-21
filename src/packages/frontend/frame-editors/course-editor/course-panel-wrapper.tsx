@@ -37,6 +37,7 @@ import type { CourseEditorActions, CourseEditorState } from "./actions";
 import { CourseStore } from "@cocalc/frontend/course/store";
 import { PayBanner } from "@cocalc/frontend/course/pay-banner";
 import Modals from "@cocalc/frontend/course/modals";
+import { getScale } from "@cocalc/frontend/frame-editors/frame-tree/hooks";
 
 export interface FrameProps {
   id: string;
@@ -127,7 +128,9 @@ function CoursePanelWrapper(props: FrameProps) {
         {render_error()}
         {render_pay_banner()}
         {render_tab_bar()}
-        {React.createElement(course_panel, props)}
+        <div style={{ zoom: getScale(font_size) }} className="smc-vfill">
+          {React.createElement(course_panel, props)}
+        </div>
       </>
     );
   }
@@ -203,7 +206,6 @@ function CoursePanelWrapper(props: FrameProps) {
   return (
     <div
       style={{
-        fontSize: `${font_size}px`,
         padding: "0 15px",
         background: "#fafafa",
       }}
