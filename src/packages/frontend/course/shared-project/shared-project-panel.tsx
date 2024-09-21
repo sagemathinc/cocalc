@@ -16,12 +16,14 @@ interface SharedProjectPanelProps {
   settings: CourseSettingsRecord;
   redux: AppRedux;
   name: string;
+  close?: Function;
 }
 
 export function SharedProjectPanel({
   settings,
   redux,
   name,
+  close,
 }: SharedProjectPanelProps) {
   const actions = useActions<CourseActions>({ name });
 
@@ -67,7 +69,11 @@ export function SharedProjectPanel({
           </Button>
         </div>
         <hr />
-        <DeleteSharedProjectPanel settings={settings} actions={actions} />
+        <DeleteSharedProjectPanel
+          settings={settings}
+          actions={actions}
+          close={close}
+        />
       </div>
     );
   }
@@ -76,6 +82,7 @@ export function SharedProjectPanel({
     redux.getActions("projects").open_project({
       project_id: settings.get("shared_project_id"),
     });
+    close?.();
   }
 
   function render_no_shared_project() {
@@ -113,7 +120,10 @@ export function SharedProjectPanel({
           }
           onConfirm={() => {
             const actions = redux.getActions(name) as CourseActions;
-            if (actions != null) actions.shared_project.create();
+            if (actions != null) {
+              actions.shared_project.create();
+              close?.();
+            }
           }}
           okText="Create Shared Project"
           cancelText={<CancelText />}
