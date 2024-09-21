@@ -7,7 +7,7 @@ import { Button } from "antd";
 import { List } from "immutable";
 import { FormattedMessage } from "react-intl";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
+import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import {
   React,
   redux,
@@ -21,7 +21,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
-import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { rowBackground, search_match, search_split } from "@cocalc/util/misc";
 import { LogEntry } from "./log-entry";
 import { LogSearch } from "./search";

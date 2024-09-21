@@ -202,6 +202,10 @@ export interface CourseState {
   unsaved?: boolean;
   terminal_command?: TerminalCommand;
   nbgrader_run_info?: NBgraderRunInfo;
+  // map from student_id to a filter string.
+  assignmentFilter?: Map<string, string>;
+  // each page -- students, assignments, handouts (etc.?) has a filter.  This is the state of that filter.
+  pageFilter?: Map<string, string>;
 }
 
 export class CourseStore extends Store<CourseState> {

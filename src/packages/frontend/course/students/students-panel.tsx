@@ -3,17 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { AppRedux, useActions, useRedux } from "@cocalc/frontend/app-framework";
+import { AppRedux, useRedux } from "@cocalc/frontend/app-framework";
 import { useEffect, useMemo, useState } from "react";
-import { Icon, SearchInput, Gap, Tip } from "@cocalc/frontend/components";
+import { Icon, Gap, Tip } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
 import * as misc from "@cocalc/util/misc";
 import { search_match, search_split } from "@cocalc/util/misc";
-import { Alert, Col, Row } from "antd";
+import { Alert, Col, Input, Row } from "antd";
 import { Set } from "immutable";
 import { isEqual } from "lodash";
-import { CourseActions } from "../actions";
+import type { CourseActions } from "../actions";
 import {
   AssignmentsMap,
   IsGradingMap,
@@ -28,6 +28,7 @@ import AddStudents from "./add-students";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
+  actions: CourseActions;
   name: string;
   redux: AppRedux;
   project_id: string;
@@ -35,6 +36,7 @@ interface StudentsPanelReactProps {
   user_map: UserMap;
   project_map: ProjectMap;
   assignments: AssignmentsMap;
+  frameActions;
 }
 
 interface StudentList {
@@ -44,6 +46,7 @@ interface StudentList {
 }
 
 export function StudentsPanel({
+  actions,
   frame_id,
   name,
   redux,
@@ -52,9 +55,8 @@ export function StudentsPanel({
   user_map,
   project_map,
   assignments,
+  frameActions,
 }: StudentsPanelReactProps) {
-  const actions = useActions<CourseActions>({ name });
-
   const expanded_students: Set<string> | undefined = useRedux(
     name,
     "expanded_students",
@@ -71,8 +73,13 @@ export function StudentsPanel({
     name,
     "nbgrader_run_info",
   );
+  const assignmentFilter = useRedux(name, "assignmentFilter");
+  const pageFilter = useRedux(name, "pageFilter");
+  const filter = pageFilter?.get("students") ?? "";
+  const setFilter = (filter: string) => {
+    actions.setPageFilter("students", filter);
+  };
 
-  const [search, set_search] = useState<string>("");
   // the type is copy/paste from what TS infers in the util.parse_students function
   const [students_unordered, set_students_unordered] = useState<
     {
@@ -144,8 +151,8 @@ export function StudentsPanel({
 
     let num_omitted = 0;
     const students_next = (function () {
-      if (search) {
-        const words = search_split(search.toLowerCase());
+      if (filter) {
+        const words = search_split(filter.toLowerCase());
         const students_filtered: any[] = [];
         for (const x of students_shown) {
           const target = [
@@ -168,7 +175,7 @@ export function StudentsPanel({
     })();
 
     return { students: students_next, num_omitted, num_deleted };
-  }, [students, students_unordered, show_deleted, search, active_student_sort]);
+  }, [students, students_unordered, show_deleted, filter, active_student_sort]);
 
   function render_header(num_omitted) {
     // TODO: get rid of all of the bootstrap form crap below.  I'm basically
@@ -179,15 +186,18 @@ export function StudentsPanel({
       <div>
         <Row>
           <Col md={6}>
-            <SearchInput
+            <Input.Search
+              allowClear
               placeholder="Filter existing students..."
-              default_value={search}
-              on_change={(value) => set_search(value)}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
             />
           </Col>
           <Col md={6}>
             {num_omitted ? (
-              <h5>(Omitting {num_omitted} students)</h5>
+              <h5 style={{ marginLeft: "15px" }}>
+                (Omitting {num_omitted} students)
+              </h5>
             ) : undefined}
           </Col>
           <Col md={11}>
@@ -219,10 +229,7 @@ export function StudentsPanel({
     );
   }
 
-  function render_sort_link(
-    column_name: string,
-    display_name: string,
-  ) {
+  function render_sort_link(column_name: string, display_name: string) {
     return (
       <a
         href=""
@@ -301,6 +308,7 @@ export function StudentsPanel({
         display_account_name={true}
         active_feedback_edits={active_feedback_edits}
         nbgrader_run_info={nbgrader_run_info}
+        assignmentFilter={assignmentFilter?.get(student_id)}
       />
     );
   }
@@ -311,6 +319,7 @@ export function StudentsPanel({
     }
     return (
       <ScrollableList
+        virtualize
         rowCount={students.length}
         rowRenderer={({ key, index }) => render_student(key, index)}
         rowKey={(index) =>
@@ -327,15 +336,18 @@ export function StudentsPanel({
         <Alert
           type="info"
           style={{
-            margin: "auto",
+            margin: "15px auto",
             fontSize: "12pt",
             maxWidth: "800px",
           }}
-          message={
+          message={<b>Add Students to your Course</b>}
+          description={
             <div>
-              <h3>Add Students to your Course</h3>
-              Add some students to your course by entering their email addresses
-              in the box in the upper right, then click on Search.
+              <a onClick={() => frameActions.setModal("add-students")}>
+                Add some students
+              </a>{" "}
+              to your course by entering their email addresses in the box in the
+              upper right, then click on Search.
             </div>
           }
         />
@@ -361,7 +373,7 @@ export function StudentsPanel({
         <a
           onClick={() => {
             set_show_deleted(true);
-            set_search("");
+            setFilter("");
           }}
         >
           <Tip

@@ -19,7 +19,6 @@ import {
   Tooltip,
 } from "antd";
 import { useEffect, useState } from "react";
-import { DebounceInput } from "react-debounce-input";
 import { CourseActions } from "../actions";
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
 import {
@@ -61,6 +60,7 @@ interface StudentProps {
   display_account_name?: boolean;
   active_feedback_edits: IsGradingMap;
   nbgrader_run_info?: NBgraderRunInfo;
+  assignmentFilter?;
 }
 
 export function Student({
@@ -77,6 +77,7 @@ export function Student({
   display_account_name,
   active_feedback_edits,
   nbgrader_run_info,
+  assignmentFilter,
 }: StudentProps) {
   const actions: CourseActions = redux.getActions(name);
   const store = actions.get_store();
@@ -98,15 +99,13 @@ export function Student({
     student.get("email_address") || "",
   );
   const [more, set_more] = useState<boolean>(false);
-  const [assignment_search, set_assignment_search] = useState<string>("");
-
   function reset_initial_state() {
     set_editing_student(false);
     set_edited_first_name(student_name.first || "");
     set_edited_last_name(student_name.last || "");
     set_edited_email_address(student.get("email_address") || "");
     set_more(false);
-    set_assignment_search("");
+    actions.students.setAssignmentFilter(student_id, "");
   }
 
   useEffect(() => {
@@ -339,13 +338,14 @@ export function Student({
 
   function render_search_assignment() {
     return (
-      <DebounceInput
+      <Input.Search
+        allowClear
         style={{ width: "100%" }}
-        debounceTimeout={500}
-        element={Input as any}
-        placeholder={"Find assignments..."}
-        value={assignment_search}
-        onChange={(e) => set_assignment_search(e.target.value)}
+        placeholder={"Filter assignments..."}
+        value={assignmentFilter ?? ""}
+        onChange={(e) =>
+          actions.students.setAssignmentFilter(student_id, e.target.value)
+        }
       />
     );
   }
@@ -465,7 +465,7 @@ export function Student({
 
   function render_assignments_info_rows() {
     const result: any[] = [];
-    const terms = search_split(assignment_search);
+    const terms = search_split(assignmentFilter ?? "");
     // TODO instead of accessing the store, use the state to react to data changes -- that's why we chech in "isSame" above.
     for (const assignment of store.get_sorted_assignments()) {
       if (terms.length > 0) {

@@ -64,175 +64,169 @@ export interface PanelProps {
   actions: CourseActions;
   configuring_projects?: boolean;
   reinviting_students?: boolean;
+  frameActions: CourseEditorActions;
 }
 
-const CoursePanelWrapper: React.FC<FrameProps> = React.memo(
-  (props: FrameProps) => {
-    const { id, project_id, path, font_size, course_panel, actions, desc } =
-      props;
-    const useEditor = useEditorRedux<CourseEditorState>({ project_id, path });
-    const modal = useEditor("modal");
-    const name = course_redux_name(project_id, path);
+function CoursePanelWrapper(props: FrameProps) {
+  const { id, project_id, path, font_size, course_panel, actions, desc } =
+    props;
+  const useEditor = useEditorRedux<CourseEditorState>({ project_id, path });
+  const modal = useEditor("modal");
+  const name = course_redux_name(project_id, path);
 
-    const students: StudentsMap | undefined = useRedux(name, "students");
-    const assignments: AssignmentsMap | undefined = useRedux(
+  const students: StudentsMap | undefined = useRedux(name, "students");
+  const assignments: AssignmentsMap | undefined = useRedux(name, "assignments");
+  const handouts: HandoutsMap | undefined = useRedux(name, "handouts");
+  const settings: CourseSettingsRecord | undefined = useRedux(name, "settings");
+  const configuring_projects: boolean | undefined = useRedux(
+    name,
+    "configuring_projects",
+  );
+  const reinviting_students: boolean | undefined = useRedux(
+    name,
+    "reinviting_students",
+  );
+  const activity: Map<string, any> | undefined = useRedux(name, "activity");
+  const error: string | undefined = useRedux(name, "error");
+  const user_map = useTypedRedux("users", "user_map");
+  const project_map = useTypedRedux("projects", "project_map");
+
+  function render_panel(): Rendered {
+    if (
+      students == null ||
+      user_map == null ||
+      project_map == null ||
+      assignments == null ||
+      handouts == null ||
+      settings == null
+    ) {
+      return <Loading theme={"medium"} />;
+    }
+
+    const props: PanelProps = {
+      frame_id: id,
       name,
-      "assignments",
-    );
-    const handouts: HandoutsMap | undefined = useRedux(name, "handouts");
-    const settings: CourseSettingsRecord | undefined = useRedux(
-      name,
-      "settings",
-    );
-    const configuring_projects: boolean | undefined = useRedux(
-      name,
-      "configuring_projects",
-    );
-    const reinviting_students: boolean | undefined = useRedux(
-      name,
-      "reinviting_students",
-    );
-    const activity: Map<string, any> | undefined = useRedux(name, "activity");
-    const error: string | undefined = useRedux(name, "error");
-    const user_map = useTypedRedux("users", "user_map");
-    const project_map = useTypedRedux("projects", "project_map");
-
-    function render_panel(): Rendered {
-      if (
-        students == null ||
-        user_map == null ||
-        project_map == null ||
-        assignments == null ||
-        handouts == null ||
-        settings == null
-      ) {
-        return <Loading theme={"medium"} />;
-      }
-
-      const props: PanelProps = {
-        frame_id: id,
-        name,
-        project_id,
-        path,
-        students,
-        user_map,
-        project_map,
-        assignments,
-        handouts,
-        configuring_projects,
-        reinviting_students,
-        settings,
-        redux,
-        actions: redux.getActions(name),
-      };
-
-      return (
-        <>
-          {render_activity()}
-          {render_error()}
-          {render_pay_banner()}
-          {render_tab_bar()}
-          {React.createElement(course_panel, props)}
-        </>
-      );
-    }
-
-    function counts(): {
-      students: number;
-      assignments: number;
-      handouts: number;
-    } {
-      const store: CourseStore = redux.getStore(name) as CourseStore;
-      if (store == null) return { students: 0, assignments: 0, handouts: 0 }; // shouldn't happen?
-      // have to use these functions on the store since only count non-deleted ones
-      return {
-        students: store.num_students(),
-        assignments: store.num_assignments(),
-        handouts: store.num_handouts(),
-      };
-    }
-
-    function render_tab_bar(): Rendered {
-      return (
-        <CourseTabBar
-          actions={actions}
-          frame_id={id}
-          type={desc.get("type")}
-          counts={counts()}
-        />
-      );
-    }
-
-    function render_pay_banner(): Rendered {
-      if (students == null || settings == null) return;
-      return (
-        <PayBanner
-          show_config={() => {
-            actions.setModal("upgrades");
-          }}
-          settings={settings}
-          num_students={students.size}
-        />
-      );
-    }
-
-    function render_activity(): Rendered {
-      if (activity == null) return;
-      return (
-        <ActivityDisplay
-          activity={values(activity.toJS()) as any}
-          trunc={80}
-          on_clear={() => {
-            const actions = redux.getActions(name) as CourseActions;
-            if (actions != null) {
-              actions.clear_activity();
-            }
-          }}
-        />
-      );
-    }
-
-    function render_error(): Rendered {
-      return (
-        <ShowError
-          style={{ margin: "15px" }}
-          error={error}
-          setError={(error) => {
-            const actions = redux.getActions(name) as CourseActions;
-            actions?.set_error(error);
-          }}
-        />
-      );
-    }
+      project_id,
+      path,
+      students,
+      user_map,
+      project_map,
+      assignments,
+      handouts,
+      configuring_projects,
+      reinviting_students,
+      settings,
+      redux,
+      actions: redux.getActions(name),
+      frameActions: actions,
+    };
 
     return (
-      <div
-        style={{
-          fontSize: `${font_size}px`,
-          padding: "0 15px",
-          background: "#fafafa",
-        }}
-        className="smc-vfill"
-      >
-        <Modals
-          frameActions={actions}
-          actions={redux.getActions(name)}
-          modal={modal}
-          name={name}
-          students={students}
-          user_map={user_map}
-          project_map={project_map}
-          project_id={project_id}
-          configuring_projects={configuring_projects}
-          reinviting_students={reinviting_students}
-          settings={settings}
-          redux={redux}
-        />
-        {render_panel()}
-      </div>
+      <>
+        {render_activity()}
+        {render_error()}
+        {render_pay_banner()}
+        {render_tab_bar()}
+        {React.createElement(course_panel, props)}
+      </>
     );
-  },
-);
+  }
+
+  function counts(): {
+    students: number;
+    assignments: number;
+    handouts: number;
+  } {
+    const store: CourseStore = redux.getStore(name) as CourseStore;
+    if (store == null) return { students: 0, assignments: 0, handouts: 0 }; // shouldn't happen?
+    // have to use these functions on the store since only count non-deleted ones
+    return {
+      students: store.num_students(),
+      assignments: store.num_assignments(),
+      handouts: store.num_handouts(),
+    };
+  }
+
+  function render_tab_bar(): Rendered {
+    return (
+      <CourseTabBar
+        actions={actions}
+        frame_id={id}
+        type={desc.get("type")}
+        counts={counts()}
+      />
+    );
+  }
+
+  function render_pay_banner(): Rendered {
+    if (students == null || settings == null) return;
+    return (
+      <PayBanner
+        show_config={() => {
+          actions.setModal("upgrades");
+        }}
+        settings={settings}
+        num_students={students.size}
+      />
+    );
+  }
+
+  function render_activity(): Rendered {
+    if (activity == null) return;
+    return (
+      <ActivityDisplay
+        activity={values(activity.toJS()) as any}
+        trunc={80}
+        on_clear={() => {
+          const actions = redux.getActions(name) as CourseActions;
+          if (actions != null) {
+            actions.clear_activity();
+          }
+        }}
+      />
+    );
+  }
+
+  function render_error(): Rendered {
+    return (
+      <ShowError
+        style={{ margin: "15px" }}
+        error={error}
+        setError={(error) => {
+          const actions = redux.getActions(name) as CourseActions;
+          actions?.set_error(error);
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        fontSize: `${font_size}px`,
+        padding: "0 15px",
+        background: "#fafafa",
+      }}
+      className="smc-vfill"
+    >
+      <Modals
+        frameActions={actions}
+        actions={redux.getActions(name)}
+        modal={modal}
+        name={name}
+        students={students}
+        user_map={user_map}
+        project_map={project_map}
+        project_id={project_id}
+        configuring_projects={configuring_projects}
+        reinviting_students={reinviting_students}
+        settings={settings}
+        redux={redux}
+      />
+      {render_panel()}
+    </div>
+  );
+}
 
 export function wrap(Panel) {
   const course_panel = (props) => React.createElement(Panel, props);
