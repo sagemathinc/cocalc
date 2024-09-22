@@ -1,24 +1,37 @@
+/*
+Configuration copying.
+
+- List one or more other course files (TODO: also support other projects that you have access to).
+- Select which configuration to share (and parameters)
+- Click a button to copy the configuration from this course 
+  to the target courses.
+*/
+
 import { Alert, Button, Card, Checkbox, Input, Space, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { useEffect, useState } from "react";
 import { pathExists } from "@cocalc/frontend/project/directory-selector";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 interface Props {
-  checked?: boolean;
-  setChecked: (checked: boolean) => void;
-  path?: string;
-  setPath: (path: string) => void;
-  project_id: string;
+  settings;
+  project_id;
+  actions;
 }
 
-export default function Mirror({
-  checked,
-  setChecked,
-  path,
-  setPath,
+export default function ConfigurationCopying({
+  settings,
   project_id,
+  actions,
 }: Props) {
-  const [path0, setPath0] = useState<string>(path ?? "");
+  const checked = !!settings.get("mirror_config");
+  const setChecked = (mirror_config: boolean) => {
+    actions.set({ mirror_config, table: "settings" });
+  };
+  const path = settings.get("mirror_config_path") ?? "";
+  const [path0, setPath0] = useState<string>(path);
+  const setPath = (mirror_config_path) => {
+    actions.set({ mirror_config_path, table: "settings" });
+  };
   const [exists, setExists] = useState<boolean | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const directoryListings = useTypedRedux(
@@ -56,7 +69,7 @@ export default function Mirror({
     <Card
       title={
         <>
-          <Icon name="envelope" /> Configuration Mirroring
+          <Icon name="envelope" /> Configuration Copying
         </>
       }
     >
@@ -65,7 +78,7 @@ export default function Mirror({
           checked={checked}
           onChange={(e) => setChecked((e.target as any).checked)}
         >
-          Mirror Configuration From Another Course
+          Copying Configuration to Other Courses
         </Checkbox>
       </div>
       {checked && (
@@ -137,7 +150,7 @@ export default function Mirror({
           <span style={{ color: "#666" }}>
             If this box is checked and you fill in the filename of another
             course (in this project), then when you make configuration changes
-            to <i>that course</i>, those changes can be easily copied to this
+            to <i>this course</i>, they can be easily copied to this other
             course. The configuration parameters that are mirrored are:
             <ul>
               <li>Payment and licensing configuration</li>

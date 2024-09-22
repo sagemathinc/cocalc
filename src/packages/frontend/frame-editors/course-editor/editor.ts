@@ -61,6 +61,7 @@ const COURSE_MENUS = {
         "course-network-file-systems",
         "course-env-variables",
       ],
+      courseSharing: ["course-configuration-copying"],
     },
   },
   action: {
@@ -214,6 +215,16 @@ const COMMANDS = {
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("env-variables");
+    },
+  },
+  "course-configuration-copying": {
+    icon: "clone",
+    label: "Copy Course Configuration",
+    button: "Copy Conf",
+    title: "Easily copy configuration from this course to other courses.",
+    onClick: ({ props }) => {
+      const { actions } = props;
+      actions.setModal("configuration-copying");
     },
   },
   "course-upgrades": {

@@ -27,6 +27,7 @@ import {
   UpgradeConfiguration,
   ConfigureSoftwareEnvironment,
 } from "@cocalc/frontend/course/configuration/configuration-panel";
+import ConfigurationCopying from "@cocalc/frontend/course/configuration/configuration-copying";
 import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
 import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
 import { AddAssignments } from "@cocalc/frontend/course/assignments/assignments-panel";
@@ -157,6 +158,8 @@ function getModal(modal: string) {
       return { Body: UpgradeConfiguration };
     case "software-environment":
       return { Body: ConfigureSoftwareEnvironment };
+    case "configuration-copying":
+      return { Body: ConfigurationCopying };
 
     default:
       return {
