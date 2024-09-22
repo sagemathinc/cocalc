@@ -17,25 +17,18 @@ import { store as projects_store } from "@cocalc/frontend/projects/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions, primary_key } from "../actions";
-import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
+import {
+  DEFAULT_LICENSE_UPGRADE_HOST_PROJECT,
+  CourseSettingsRecord,
+  PARALLEL_DEFAULT,
+} from "../store";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
-import { StudentProjectFunctionality } from "./customize-student-project-functionality";
+import {
+  StudentProjectFunctionality,
+  completeStudentProjectFunctionality,
+} from "./customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { delay } from "awaiting";
-
-export const CONFIGURATION_GROUPS = [
-  "collaborator-policy",
-  "email-invitation",
-  "copy-limit",
-  "restrict-student-projects",
-  "nbgrader",
-  "network-file-systems",
-  "env-variables",
-  "upgrades",
-  "software-environment",
-] as const;
-
-export type ConfigurationGroup = (typeof CONFIGURATION_GROUPS)[number];
 
 interface ConfigurationTarget {
   project_id: string;
@@ -130,6 +123,10 @@ export class ConfigurationActions {
   set_student_project_functionality = async (
     student_project_functionality: StudentProjectFunctionality,
   ): Promise<void> => {
+    console.log(
+      "set_student_project_functionalit",
+      student_project_functionality,
+    );
     this.set({ student_project_functionality, table: "settings" });
     await this.course_actions.student_projects.configure_all_projects();
   };
@@ -234,7 +231,7 @@ export class ConfigurationActions {
     }
   };
 
-  set_copy_parallel = (copy_parallel: number): void => {
+  set_copy_parallel = (copy_parallel: number = PARALLEL_DEFAULT): void => {
     this.set({
       copy_parallel,
       table: "settings",
@@ -437,7 +434,6 @@ export class ConfigurationActions {
     groups: ConfigurationGroup[];
     targets: ConfigurationTarget[];
   }) => {
-    console.log("copyConfiguration", { groups, targets });
     const store = this.course_actions.get_store();
     if (groups.length == 0 || targets.length == 0 || store == null) {
       return;
@@ -449,17 +445,11 @@ export class ConfigurationActions {
         maxTimeMs: 30000,
       });
       for (const group of groups) {
-        console.log("copyConfiguration: copy ", target, {
-          allow_collabs: !!settings.get("allow_collabs"),
-          table: "settings",
+        await configureGroup({
+          group,
+          settings,
+          actions: targetActions.course_actions,
         });
-        if (group == "collaborator-policy") {
-          const allow_colabs = !!settings.get("allow_collabs");
-          targetActions.course_actions.configuration.set_allow_collabs(
-            allow_colabs,
-          );
-        }
-        targetActions.course_actions.syncdb.save();
       }
     }
     // switch back
@@ -483,4 +473,51 @@ async function openCourseFileAndGetActions({ project_id, path, maxTimeMs }) {
     d *= 1.1;
   }
   throw Error(`unable to open '${path}'`);
+}
+
+export const CONFIGURATION_GROUPS = [
+  "collaborator-policy",
+  "email-invitation",
+  "copy-limit",
+  "restrict-student-projects",
+  "nbgrader",
+  "network-file-systems",
+  "env-variables",
+  "upgrades",
+  "software-environment",
+] as const;
+
+export type ConfigurationGroup = (typeof CONFIGURATION_GROUPS)[number];
+
+async function configureGroup({
+  group,
+  settings,
+  actions,
+}: {
+  group: ConfigurationGroup;
+  settings: CourseSettingsRecord;
+  actions: CourseActions;
+}) {
+  console.log("configureGroup:", group);
+  switch (group) {
+    case "collaborator-policy":
+      const allow_colabs = !!settings.get("allow_collabs");
+      actions.configuration.set_allow_collabs(allow_colabs);
+      return;
+    case "email-invitation":
+      actions.configuration.set_email_invite(settings.get("email_invite"));
+      return;
+    case "copy-limit":
+      actions.configuration.set_copy_parallel(settings.get("copy_parallel"));
+      return;
+    case "restrict-student-projects":
+      actions.configuration.set_student_project_functionality(
+        completeStudentProjectFunctionality(
+          settings.get("student_project_functionality")?.toJS() ?? {},
+        ),
+      );
+      return;
+    default:
+      throw Error(`configuring group ${group} not implemented`);
+  }
 }
