@@ -42,7 +42,8 @@ interface Props {
   students?: StudentsMap;
   user_map?: UserMap;
   project_map?: ProjectMap;
-  project_id;
+  project_id: string;
+  path: string;
   configuring_projects?: boolean;
   reinviting_students?: boolean;
   settings;

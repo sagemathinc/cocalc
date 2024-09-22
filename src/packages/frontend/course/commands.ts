@@ -127,10 +127,10 @@ export const COMMANDS = {
     },
   },
   "configuration-copying": {
-    icon: "clone",
+    icon: "copy",
     label: "Copy Course Configuration",
     button: "Config",
-    title: "Easily copy configuration from this course to other courses.",
+    title: "Copy configuration from this course to other courses.",
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("configuration-copying");
