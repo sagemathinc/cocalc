@@ -29,7 +29,6 @@ import {
   defaults,
   endswith,
   len,
-  mswalltime,
   path_split,
   peer_grading,
   split,
@@ -72,6 +71,7 @@ import {
   PEER_GRADING_GUIDELINES_COMMENT_MARKER,
   DUE_DATE_FILENAME,
 } from "./consts";
+import { COPY_TIMEOUT_MS } from "../consts";
 
 const UPDATE_DUE_DATE_FILENAME_DEBOUNCE_MS = 3000;
 
@@ -464,6 +464,7 @@ export class AssignmentsActions {
         overwrite_newer: true,
         backup: true,
         delete_missing: false,
+        timeout: COPY_TIMEOUT_MS / 1000,
       });
       // write their name to a file
       const name = store.get_student_name_extra(student_id);
@@ -623,6 +624,7 @@ ${details}
         backup: true,
         delete_missing: false,
         exclude: peer_graded ? ["*GRADER*.txt"] : undefined,
+        timeout: COPY_TIMEOUT_MS / 1000,
       });
       finish("");
     } catch (err) {
@@ -712,7 +714,7 @@ ${details}
     const a = this.course_actions.get_one(obj);
     if (a == null) return;
     const x = a[type] ? a[type] : {};
-    x[student_id] = { time: mswalltime() };
+    x[student_id] = { time: webapp_client.server_time() };
     if (err) {
       x[student_id].error = err;
     }
@@ -741,7 +743,7 @@ ${details}
     if (y.start != null && webapp_client.server_time() - y.start <= 15000) {
       return true; // never retry a copy until at least 15 seconds later.
     }
-    y.start = mswalltime();
+    y.start = webapp_client.server_time();
     x[student_id] = y;
     obj[type] = x;
     this.course_actions.set(obj);
@@ -853,6 +855,7 @@ ${details}
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
+        timeout: COPY_TIMEOUT_MS / 1000,
       });
 
       // successful finish
@@ -1362,6 +1365,7 @@ ${details}
         overwrite_newer: false,
         delete_missing: false,
         exclude: ["*STUDENT*.txt", "*" + DUE_DATE_FILENAME + "*"],
+        timeout: COPY_TIMEOUT_MS / 1000,
       });
     };
 
@@ -1444,6 +1448,7 @@ ${details}
         target_path,
         overwrite_newer: false,
         delete_missing: false,
+        timeout: COPY_TIMEOUT_MS / 1000,
       });
 
       // write local file identifying the grader
@@ -1998,6 +2003,7 @@ ${details}
               overwrite_newer: true,
               delete_missing: true,
               backup: false,
+              timeout: COPY_TIMEOUT_MS / 1000,
             });
           } else {
             ephemeralGradePath = false;
@@ -2193,7 +2199,7 @@ ${details}
       Map(),
     );
     const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
-    nbgrader_run_info = nbgrader_run_info.set(key, Date.now());
+    nbgrader_run_info = nbgrader_run_info.set(key, webapp_client.server_time());
     this.course_actions.setState({ nbgrader_run_info });
   };
 

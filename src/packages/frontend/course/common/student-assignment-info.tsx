@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Col, Row, Space } from "antd";
+import { Button, Col, Row, Space, Spin } from "antd";
 import { ReactNode, useRef, useState } from "react";
 import { useActions } from "@cocalc/frontend/app-framework";
 import {
@@ -27,6 +27,8 @@ import {
 } from "../store";
 import { AssignmentCopyType } from "../types";
 import { useButtonSize } from "../util";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 
 interface StudentAssignmentInfoProps {
   name: string;
@@ -252,7 +254,7 @@ export function StudentAssignmentInfo({
       const t = nbgrader_run_info.get(
         assignment.get("assignment_id") + "-" + student.get("student_id"),
       );
-      if (t && Date.now() - t <= 1000 * 60 * 10) {
+      if (t && webapp_client.server_time() - t <= 1000 * 60 * 10) {
         // Time starting is set and it's also within the last few minutes.
         // This "few minutes" is just in case -- we probably shouldn't need
         // that at all ever, but it could make cocalc state usable in case of
@@ -264,7 +266,7 @@ export function StudentAssignmentInfo({
     label = running ? (
       <span>
         {" "}
-        <Icon name="cocalc-ring" spin /> Running nbgrader
+        <Spin /> Running nbgrader
       </span>
     ) : (
       <span>{label}</span>
@@ -279,7 +281,7 @@ export function StudentAssignmentInfo({
           onClick={() => {
             if (
               clicked_nbgrader.current != null &&
-              Date.now() - clicked_nbgrader.current.valueOf() <= 3000
+              webapp_client.server_time() - clicked_nbgrader.current.valueOf() <= 3000
             ) {
               // User *just* clicked, and we want to avoid double click
               // running nbgrader twice.
@@ -375,7 +377,7 @@ export function StudentAssignmentInfo({
           </div>,
         );
       }
-      return <Space>{v}</Space>;
+      return <Space wrap>{v}</Space>;
     } else {
       return (
         <Button
@@ -419,9 +421,9 @@ export function StudentAssignmentInfo({
 
   function render_open_copying(name: Steps, open, stop) {
     return (
-      <Space key="open_copying">
+      <Space key="open_copying" wrap>
         <Button key="copy" disabled={true} size={size}>
-          <Icon name="cocalc-ring" spin /> {name}ing
+          <Spin /> {name}ing
         </Button>
         <Button key="stop" danger onClick={stop} size={size}>
           Cancel <Icon name="times" />
@@ -488,7 +490,7 @@ export function StudentAssignmentInfo({
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
     const v: JSX.Element[] = [];
     if (enable_copy) {
-      if (data.start) {
+      if (webapp_client.server_time() - (data.start ?? 0) < COPY_TIMEOUT_MS) {
         v.push(render_open_copying(step, do_open, do_stop));
       } else if (data.time) {
         v.push(

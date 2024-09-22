@@ -314,7 +314,7 @@ export function Handout({
         <div style={{ marginBottom: "15px" }}>
           {copy_confirm_all_caution(step)}
         </div>
-        <Space>
+        <Space wrap>
           {render_copy_cancel()}
           <Button key="all" onClick={() => copy_handout(step, false)}>
             Yes, do it
@@ -346,7 +346,7 @@ export function Handout({
               {capitalize(step_verb(step))} this handout {step_direction(step)}
               ...
             </div>
-            <Space>
+            <Space wrap>
               {render_copy_cancel()}
               <Button
                 key="all"
