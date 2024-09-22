@@ -27,6 +27,7 @@ interface HandoutsPanelReactProps {
   handouts: HandoutsMap; // handout_id -> handout
   students: StudentsMap; // student_id -> student
   user_map: UserMap;
+  frameActions;
 }
 
 export function HandoutsPanel({
@@ -37,6 +38,7 @@ export function HandoutsPanel({
   handouts,
   students,
   user_map,
+  frameActions,
 }: HandoutsPanelReactProps) {
   const expanded_handouts: Set<string> | undefined = useRedux(
     name,
@@ -44,7 +46,7 @@ export function HandoutsPanel({
   );
 
   const [show_deleted, set_show_deleted] = useState<boolean>(false);
-  
+
   const pageFilter = useRedux(name, "pageFilter");
   const filter = pageFilter?.get("handouts") ?? "";
   const setFilter = (filter: string) => {
@@ -158,21 +160,32 @@ export function HandoutsPanel({
       <div>
         <Alert
           type="info"
-          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
+          style={{
+            margin: "15px auto",
+            fontSize: "12pt",
+            maxWidth: "800px",
+          }}
           message={
+            <b>
+              <a onClick={() => frameActions.setModal("add-handouts")}>
+                Add Handouts to your Course
+              </a>
+            </b>
+          }
+          description={
             <div>
-              <h3>Add a Handout to your Course</h3>
               <p>
                 A handout is a <i>directory</i> of files somewhere in your
                 CoCalc project, which you copy to all of your students. They can
                 then do anything they want with that handout.
               </p>
-
               <p>
-                Add handouts to your course by clicking "Add Handout..." above.
-                You can create or select one or more directories and they will
-                become handouts that you can then customize and distribute to
-                your students.
+                <a onClick={() => frameActions.setModal("add-handouts")}>
+                  Add handouts to your course
+                </a>{" "}
+                by clicking "Add Handout..." above. You can create or select one
+                or more directories and they will become handouts that you can
+                then customize and distribute to your students.
               </p>
             </div>
           }

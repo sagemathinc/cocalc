@@ -93,7 +93,7 @@ function getModal(modal: string) {
     case "add-assignments":
       return {
         Body: AddAssignments,
-        title: "Add Assignmetns",
+        title: "Add Assignments",
         icon: "share-square",
       };
     case "add-handouts":

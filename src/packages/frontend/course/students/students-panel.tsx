@@ -340,7 +340,13 @@ export function StudentsPanel({
             fontSize: "12pt",
             maxWidth: "800px",
           }}
-          message={<b>Add Students to your Course</b>}
+          message={
+            <b>
+              <a onClick={() => frameActions.setModal("add-students")}>
+                Add Students to your Course
+              </a>
+            </b>
+          }
           description={
             <div>
               <a onClick={() => frameActions.setModal("add-students")}>
