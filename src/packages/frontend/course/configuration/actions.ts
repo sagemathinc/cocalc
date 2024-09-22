@@ -29,6 +29,12 @@ import {
 } from "./customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { delay } from "awaiting";
+import {
+  NBGRADER_CELL_TIMEOUT_MS,
+  NBGRADER_MAX_OUTPUT,
+  NBGRADER_MAX_OUTPUT_PER_CELL,
+  NBGRADER_TIMEOUT_MS,
+} from "../assignments/consts";
 
 interface ConfigurationTarget {
   project_id: string;
@@ -123,10 +129,6 @@ export class ConfigurationActions {
   set_student_project_functionality = async (
     student_project_functionality: StudentProjectFunctionality,
   ): Promise<void> => {
-    console.log(
-      "set_student_project_functionalit",
-      student_project_functionality,
-    );
     this.set({ student_project_functionality, table: "settings" });
     await this.course_actions.student_projects.configure_all_projects();
   };
@@ -310,7 +312,9 @@ export class ConfigurationActions {
   };
 
   // project_id is a uuid *or* empty string.
-  set_nbgrader_grade_project = async (project_id: string): Promise<void> => {
+  set_nbgrader_grade_project = async (
+    project_id: string = "",
+  ): Promise<void> => {
     this.set({
       nbgrader_grade_project: project_id,
       table: "settings",
@@ -322,21 +326,27 @@ export class ConfigurationActions {
     }
   };
 
-  set_nbgrader_cell_timeout_ms = (nbgrader_cell_timeout_ms: number): void => {
+  set_nbgrader_cell_timeout_ms = (
+    nbgrader_cell_timeout_ms: number = NBGRADER_CELL_TIMEOUT_MS,
+  ): void => {
     this.set({
       nbgrader_cell_timeout_ms,
       table: "settings",
     });
   };
 
-  set_nbgrader_timeout_ms = (nbgrader_timeout_ms: number): void => {
+  set_nbgrader_timeout_ms = (
+    nbgrader_timeout_ms: number = NBGRADER_TIMEOUT_MS,
+  ): void => {
     this.set({
       nbgrader_timeout_ms,
       table: "settings",
     });
   };
 
-  set_nbgrader_max_output = (nbgrader_max_output: number): void => {
+  set_nbgrader_max_output = (
+    nbgrader_max_output: number = NBGRADER_MAX_OUTPUT,
+  ): void => {
     this.set({
       nbgrader_max_output,
       table: "settings",
@@ -344,7 +354,7 @@ export class ConfigurationActions {
   };
 
   set_nbgrader_max_output_per_cell = (
-    nbgrader_max_output_per_cell: number,
+    nbgrader_max_output_per_cell: number = NBGRADER_MAX_OUTPUT_PER_CELL,
   ): void => {
     this.set({
       nbgrader_max_output_per_cell,
@@ -382,7 +392,7 @@ export class ConfigurationActions {
     this.set_compute_image(image);
   };
 
-  set_nbgrader_parallel = (nbgrader_parallel: number): void => {
+  set_nbgrader_parallel = (nbgrader_parallel: number=PARALLEL_DEFAULT): void => {
     this.set({
       nbgrader_parallel,
       table: "settings",
@@ -498,7 +508,6 @@ async function configureGroup({
   settings: CourseSettingsRecord;
   actions: CourseActions;
 }) {
-  console.log("configureGroup:", group);
   switch (group) {
     case "collaborator-policy":
       const allow_colabs = !!settings.get("allow_collabs");
@@ -517,6 +526,31 @@ async function configureGroup({
         ),
       );
       return;
+    case "nbgrader":
+      await actions.configuration.set_nbgrader_grade_project(
+        settings.get("nbgrader_grade_project"),
+      );
+      await actions.configuration.set_nbgrader_cell_timeout_ms(
+        settings.get("nbgrader_cell_timeout_ms"),
+      );
+      await actions.configuration.set_nbgrader_timeout_ms(
+        settings.get("nbgrader_timeout_ms"),
+      );
+      await actions.configuration.set_nbgrader_max_output(
+        settings.get("nbgrader_max_output"),
+      );
+      await actions.configuration.set_nbgrader_max_output_per_cell(
+        settings.get("nbgrader_max_output_per_cell"),
+      );
+      await actions.configuration.set_nbgrader_include_hidden_tests(
+        !!settings.get("nbgrader_include_hidden_tests"),
+      );
+      return;
+
+    case "network-file-systems":
+    case "env-variables":
+    case "upgrades":
+    case "software-environment":
     default:
       throw Error(`configuring group ${group} not implemented`);
   }

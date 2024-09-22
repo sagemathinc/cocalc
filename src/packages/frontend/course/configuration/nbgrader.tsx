@@ -10,7 +10,8 @@ import {
   useActions,
   useRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Icon, NumberInput } from "@cocalc/frontend/components";
+import { A, Icon } from "@cocalc/frontend/components";
+import { InputNumber } from "antd";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { Card, Radio } from "antd";
 import { CourseActions } from "../actions";
@@ -166,27 +167,29 @@ export function Nbgrader({ name }: Props) {
         <i>Grading timeout in seconds:</i> if grading a student notebook takes
         longer than <i>{timeout} seconds</i>, then it is terminated with a
         timeout error.
-        <NumberInput
-          on_change={(n) =>
-            actions.configuration.set_nbgrader_timeout_ms(n * 1000)
+        <InputNumber
+          onChange={(n) =>
+            actions.configuration.set_nbgrader_timeout_ms(
+              n ? n * 1000 : undefined,
+            )
           }
           min={30}
           max={3600}
-          number={timeout}
+          value={timeout}
         />
         <br />
         <i>Cell grading timeout in seconds:</i> if grading a cell in a student
         notebook takes longer than <i>{cell_timeout} seconds</i>, then that cell
         is terminated with a timeout error.
-        <NumberInput
-          on_change={(n) =>
+        <InputNumber
+          onChange={(n) =>
             actions.configuration.set_nbgrader_cell_timeout_ms(
-              Math.min(n * 1000, timeout * 1000),
+              n ? Math.min(n * 1000, timeout * 1000) : undefined,
             )
           }
           min={5}
           max={3600}
-          number={cell_timeout}
+          value={cell_timeout}
         />
       </div>
     );
@@ -213,25 +216,29 @@ export function Nbgrader({ name }: Props) {
         <h6>Nbgrader output limits: {Math.round(max_output / 1000)} KB</h6>
         <i>Max output:</i> if total output from all cells exceeds{" "}
         {Math.round(max_output / 1000)} KB, then further output is truncated.
-        <NumberInput
-          on_change={(n) =>
-            actions.configuration.set_nbgrader_max_output(n * 1000)
+        <InputNumber
+          onChange={(n) =>
+            actions.configuration.set_nbgrader_max_output(
+              n ? n * 1000 : undefined,
+            )
           }
           min={1}
           max={10000}
-          number={Math.round(max_output / 1000)}
+          value={Math.round(max_output / 1000)}
         />
         <br />
         <i>Max output per cell:</i> if output from a cell exceeds{" "}
         {Math.round(max_output_per_cell / 1000)} KB, then further output is
         truncated.
-        <NumberInput
-          on_change={(n) =>
-            actions.configuration.set_nbgrader_max_output_per_cell(n * 1000)
+        <InputNumber
+          onChange={(n) =>
+            actions.configuration.set_nbgrader_max_output_per_cell(
+              n ? n * 1000 : undefined,
+            )
           }
           min={1}
           max={10000}
-          number={Math.round(max_output_per_cell / 1000)}
+          value={Math.round(max_output_per_cell / 1000)}
         />
       </div>
     );
@@ -260,11 +267,13 @@ export function Nbgrader({ name }: Props) {
         could depend on where grading is happening (see "Where to autograde
         assignments" above), and compute resources you or your students have
         bought.
-        <NumberInput
-          on_change={(n) => actions.configuration.set_nbgrader_parallel(n)}
+        <InputNumber
+          onChange={(n) =>
+            actions.configuration.set_nbgrader_parallel(n ? n : undefined)
+          }
           min={1}
           max={50}
-          number={parallel}
+          value={parallel}
         />
       </div>
     );
