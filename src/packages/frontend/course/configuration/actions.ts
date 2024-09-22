@@ -21,6 +21,26 @@ import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
 import { StudentProjectFunctionality } from "./customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { delay } from "awaiting";
+
+export const CONFIGURATION_GROUPS = [
+  "collaborator-policy",
+  "email-invitation",
+  "copy-limit",
+  "restrict-student-projects",
+  "nbgrader",
+  "network-file-systems",
+  "env-variables",
+  "upgrades",
+  "software-environment",
+] as const;
+
+export type ConfigurationGroup = (typeof CONFIGURATION_GROUPS)[number];
+
+interface ConfigurationTarget {
+  project_id: string;
+  path: string;
+}
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -409,4 +429,58 @@ export class ConfigurationActions {
     }
     syncdb.commit();
   };
+
+  copyConfiguration = async ({
+    groups,
+    targets,
+  }: {
+    groups: ConfigurationGroup[];
+    targets: ConfigurationTarget[];
+  }) => {
+    console.log("copyConfiguration", { groups, targets });
+    const store = this.course_actions.get_store();
+    if (groups.length == 0 || targets.length == 0 || store == null) {
+      return;
+    }
+    const settings = store.get("settings");
+    for (const target of targets) {
+      const targetActions = await openCourseFileAndGetActions({
+        ...target,
+        maxTimeMs: 30000,
+      });
+      for (const group of groups) {
+        console.log("copyConfiguration: copy ", target, {
+          allow_collabs: !!settings.get("allow_collabs"),
+          table: "settings",
+        });
+        if (group == "collaborator-policy") {
+          const allow_colabs = !!settings.get("allow_collabs");
+          targetActions.course_actions.configuration.set_allow_collabs(
+            allow_colabs,
+          );
+        }
+        targetActions.course_actions.syncdb.save();
+      }
+    }
+    // switch back
+    const { project_id, path } = this.course_actions.syncdb;
+    redux.getProjectActions(project_id).open_file({ path, foreground: true });
+  };
+}
+
+async function openCourseFileAndGetActions({ project_id, path, maxTimeMs }) {
+  await redux
+    .getProjectActions(project_id)
+    .open_file({ path, foreground: true });
+  const t = Date.now();
+  let d = 250;
+  while (Date.now() + d - t <= maxTimeMs) {
+    await delay(d);
+    const targetActions = redux.getEditorActions(project_id, path);
+    if (targetActions?.course_actions?.syncdb.get_state() == "ready") {
+      return targetActions;
+    }
+    d *= 1.1;
+  }
+  throw Error(`unable to open '${path}'`);
 }

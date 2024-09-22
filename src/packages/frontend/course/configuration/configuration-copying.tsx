@@ -37,24 +37,11 @@ import { COMMANDS } from "@cocalc/frontend/course/commands";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { plural } from "@cocalc/util/misc";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
-
-const COPY_OPTIONS = [
-  "collaborator-policy",
-  "email-invitation",
-  "copy-limit",
-  "restrict-student-projects",
-  "nbgrader",
-  "network-file-systems",
-  "env-variables",
-  "upgrades",
-  "software-environment",
-] as const;
+import { CONFIGURATION_GROUPS, ConfigurationGroup } from "./actions";
 import { useFrameContext } from "@cocalc/frontend/app-framework";
 
-type CopyOptionKeys = (typeof COPY_OPTIONS)[number];
-
 export type CopyConfigurationOptions = {
-  [K in CopyOptionKeys]?: boolean;
+  [K in ConfigurationGroup]?: boolean;
 };
 
 export interface CopyConfigurationTargets {
@@ -74,13 +61,42 @@ export default function ConfigurationCopying({
   actions,
   close,
 }: Props) {
+  const [error, setError] = useState<string>("");
   const { numTargets, numOptions } = useMemo(() => {
-    const targets = (settings.get("copy_config_targets")?.toJS() ??
-      {}) as CopyConfigurationTargets;
-    const options = (settings.get("copy_config_options")?.toJS() ??
-      {}) as CopyConfigurationOptions;
+    const targets = getTargets(settings);
+    const options = getOptions(settings);
     return { numTargets: numTrue(targets), numOptions: numTrue(options) };
   }, [settings]);
+  const [copying, setCopying] = useState<boolean>(false);
+
+  const copyConfiguration = async () => {
+    try {
+      setCopying(true);
+      setError("");
+      const targets = getTargets(settings);
+      const options = getOptions(settings);
+      const t: { project_id: string; path: string }[] = [];
+      for (const key in targets) {
+        if (targets[key] === true) {
+          t.push(parseKey(key));
+        }
+      }
+      const g: ConfigurationGroup[] = [];
+      for (const key in options) {
+        if (options[key] === true) {
+          g.push(key as ConfigurationGroup);
+        }
+      }
+      await actions.configuration.copyConfiguration({
+        groups: g,
+        targets: t,
+      });
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setCopying(false);
+    }
+  };
 
   return (
     <Card
@@ -94,12 +110,18 @@ export default function ConfigurationCopying({
         Copy configuration from this course to other courses.
       </div>
       <div style={{ textAlign: "center", margin: "15px 0" }}>
-        <Button size="large" disabled={numTargets == 0 || numOptions == 0}>
+        <Button
+          size="large"
+          disabled={numTargets == 0 || numOptions == 0 || copying}
+          onClick={copyConfiguration}
+        >
           <Icon name="copy" />
-          Copy {numOptions} {plural(numOptions, "configuration item")} to{" "}
-          {numTargets} {plural(numTargets, "target course")}
+          Copy{copying ? "ing" : ""} {numOptions}{" "}
+          {plural(numOptions, "configuration item")} to {numTargets}{" "}
+          {plural(numTargets, "target course")} {copying && <Spin />}
         </Button>
       </div>
+      <ShowError style={{ margin: "15px" }} error={error} setError={setError} />
       <ConfigTargets
         actions={actions}
         project_id={project_id}
@@ -170,7 +192,8 @@ function ConfigTargets({
               </>
             ) : undefined}
           </Checkbox>
-          <Tooltip mouseEnterDelay={1}
+          <Tooltip
+            mouseEnterDelay={1}
             title={
               <>Open {path} in a new tab. (Use shift to open in background.)</>
             }
@@ -184,7 +207,9 @@ function ConfigTargets({
                 redux
                   .getProjectActions(project_id)
                   .open_file({ path, foreground });
-                close?.();
+                if (foreground) {
+                  close?.();
+                }
               }}
             >
               <Icon name="external-link" />
@@ -202,7 +227,10 @@ function ConfigTargets({
               actions.set({ copy_config_targets, table: "settings" });
             }}
           >
-            <Tooltip mouseEnterDelay={1} title={<>Remove {path} from copy targets?</>}>
+            <Tooltip
+              mouseEnterDelay={1}
+              title={<>Remove {path} from copy targets?</>}
+            >
               <Button size="small" type="link">
                 <Icon name="trash" />
               </Button>
@@ -232,7 +260,6 @@ function ConfigTargets({
         .getProjectActions(project_id)
         .open_file({ path, foreground: false });
     }
-    close?.();
   };
 
   return (
@@ -241,7 +268,10 @@ function ConfigTargets({
         <div style={{ flex: 1 }}>
           <Divider>
             Target Courses{" "}
-            <Tooltip mouseEnterDelay={1} title="Open all selected targets in background tabs.">
+            <Tooltip
+              mouseEnterDelay={1}
+              title="Open all selected targets in background tabs."
+            >
               <a onClick={openAll}>(open all)</a>
             </Tooltip>
           </Divider>
@@ -258,7 +288,7 @@ function ConfigTargets({
               actions.set({ copy_config_targets, table: "settings" });
             }}
           >
-            Clear
+            None
           </Button>
           <Button
             disabled={numFalse(targets) == 0}
@@ -288,7 +318,7 @@ function getOptions(settings) {
 function ConfigOptions({ settings, actions, numOptions }) {
   const options = getOptions(settings);
   const v: JSX.Element[] = [];
-  for (const option of COPY_OPTIONS) {
+  for (const option of CONFIGURATION_GROUPS) {
     const { title, label, icon } = COMMANDS[option] ?? {};
     v.push(
       <Tooltip key={option} title={title} mouseEnterDelay={1}>
@@ -319,20 +349,20 @@ function ConfigOptions({ settings, actions, numOptions }) {
             size="small"
             onClick={() => {
               const copy_config_options = {} as CopyConfigurationOptions;
-              for (const option of COPY_OPTIONS) {
+              for (const option of CONFIGURATION_GROUPS) {
                 copy_config_options[option] = false;
               }
               actions.set({ copy_config_options, table: "settings" });
             }}
           >
-            Clear
+            None
           </Button>
           <Button
-            disabled={numOptions == COPY_OPTIONS.length}
+            disabled={numOptions == CONFIGURATION_GROUPS.length}
             size="small"
             onClick={() => {
               const copy_config_options = {} as CopyConfigurationOptions;
-              for (const option of COPY_OPTIONS) {
+              for (const option of CONFIGURATION_GROUPS) {
                 copy_config_options[option] = true;
               }
               actions.set({ copy_config_options, table: "settings" });
