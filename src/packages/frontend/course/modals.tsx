@@ -32,6 +32,7 @@ import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
 import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
 import { AddAssignments } from "@cocalc/frontend/course/assignments/assignments-panel";
 import { AddHandouts } from "@cocalc/frontend/course/handouts/handouts-panel";
+import { COMMANDS } from "@cocalc/frontend/course/commands";
 
 interface Props {
   frameActions;
@@ -88,9 +89,10 @@ export default function Modals(props: Props) {
 }
 
 function getModal(modal: string) {
+  const { label: title, icon } = COMMANDS[modal] ?? {};
   switch (modal) {
     case "add-students":
-      return { Body: AddStudents, title: "Add Students", icon: "users" };
+      return { Body: AddStudents, title, icon };
     case "add-assignments":
       return {
         Body: AddAssignments,
@@ -98,7 +100,7 @@ function getModal(modal: string) {
         icon: "share-square",
       };
     case "add-handouts":
-      return { Body: AddHandouts, title: "Add Handouts", icon: "text1" };
+      return { Body: AddHandouts, title, icon };
 
     case "start-all-projects":
       return {

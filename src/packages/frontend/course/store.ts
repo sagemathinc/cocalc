@@ -23,6 +23,10 @@ import {
 } from "@cocalc/frontend/projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type {
+  CopyConfigurationOptions,
+  CopyConfigurationTargets,
+} from "./configuration/configuration-copying";
 
 export const PARALLEL_DEFAULT = 5;
 export const MAX_COPY_PARALLEL = 25;
@@ -158,6 +162,8 @@ export type CourseSettingsRecord = TypedMap<{
   nbgrader_parallel?: number;
   datastore?: Datastore;
   envvars?: EnvVarsRecord;
+  copy_config_targets: CopyConfigurationTargets;
+  copy_config_options: CopyConfigurationOptions;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
