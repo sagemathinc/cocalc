@@ -215,6 +215,7 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
     label: defineMessage({
       id: "jupyter.llm.cell-tool.actions.document.label",
       defaultMessage: "Document",
+      description: "Label on a button to write a documentation, i.e. to 'document' this",
     }),
     descr: defineMessage({
       id: "jupyter.llm.cell-tool.actions.document.descr",
@@ -572,23 +573,30 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
 
   function renderControls() {
     switch (mode) {
-      case "bugfix":
-        return renderInput(
-          "Bug",
-          "Describe the problem to fix…",
-          extraBug,
-          setExtraBug,
-        );
+      case "bugfix": {
+        const label = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.bugfix.label",
+          defaultMessage: "Bug",
+        });
+        const placeholder = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.bugfix.placeholder",
+          defaultMessage: "Describe the problem to fix…",
+        });
+        return renderInput(label, placeholder, extraBug, setExtraBug);
+      }
 
-      case "improve":
+      case "improve": {
+        const label = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.improve.label",
+          defaultMessage: "Improvement",
+        });
+        const placeholder = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.improve.placeholder",
+          defaultMessage: "execution speed, readability, …",
+        });
         return (
           <>
-            {renderInput(
-              "Improvement",
-              "execution speed, readability, …",
-              extraImprove,
-              setExtraImprove,
-            )}
+            {renderInput(label, placeholder, extraImprove, setExtraImprove)}
             <Paragraph
               style={{ display: "flex", alignItems: "center", gap: "10px" }}
             >
@@ -608,16 +616,20 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
             </Paragraph>
           </>
         );
+      }
 
-      case "modify":
+      case "modify": {
+        const label = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.modify.label",
+          defaultMessage: "Modification",
+        });
+        const placeholder = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.modify.placeholder",
+          defaultMessage: "Describe what to change…",
+        });
         return (
           <>
-            {renderInput(
-              "Modification",
-              "Describe what to change…",
-              extraModify,
-              setExtraModify,
-            )}
+            {renderInput(label, placeholder, extraModify, setExtraModify)}
             <Paragraph>
               {MODIFICATIONS.map(({ label, value }) => (
                 <Tag
@@ -634,8 +646,17 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
             </Paragraph>
           </>
         );
+      }
 
       case "explain":
+        const summary = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.explain.summary",
+          defaultMessage: "Summary",
+        });
+        const step_by_step = intl.formatMessage({
+          id: "jupyter.llm.cell-tool.explain.step-by-step",
+          defaultMessage: "Step-by-step",
+        });
         return (
           <Paragraph>
             <Flex align="center" gap="10px">
@@ -643,14 +664,18 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
                 <Switch
                   defaultChecked={stepByStep}
                   onChange={(val) => setStepByStep(val)}
-                  unCheckedChildren={"Summary"}
-                  checkedChildren={"Step-by-step"}
+                  unCheckedChildren={summary}
+                  checkedChildren={step_by_step}
                 />
               </Flex>
               <Flex flex={1}>
                 <Text type="secondary">
-                  How to explain the code? Either a high-level summary or
-                  step-by-step explanations.
+                  <FormattedMessage
+                    id="jupyter.llm.cell-tool.explain.description"
+                    defaultMessage={`How to explain the code? Either a high-level {summary}
+                      or {step_by_step} explanations.`}
+                    values={{ summary, step_by_step }}
+                  />
                 </Text>
               </Flex>
             </Flex>
@@ -676,7 +701,7 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
               />
               {targetLangauge === OTHER_LANG ? (
                 <>
-                  Other:
+                  {intl.formatMessage(labels.other)}:
                   <Input
                     defaultValue={otherLanguage}
                     onChange={(e) => setOtherLanguage(e.target.value)}
@@ -717,20 +742,32 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
 
   function renderIncludeOutput(model) {
     if (llmTools == null) return;
+    const output_label = defineMessage({
+      id: "jupyter.llm.cell-tool.include-output.label",
+      defaultMessage: `{include, select, true {Include output} other {No output}}`,
+    });
     return (
       <>
         <Flex align="center" gap="10px">
           <Flex flex={0}>
             <Switch
               onChange={(val) => setIncludeOutput(val)}
-              unCheckedChildren={"No output"}
-              checkedChildren={"Include output"}
+              unCheckedChildren={intl.formatMessage(output_label, {
+                include: false,
+              })}
+              checkedChildren={intl.formatMessage(output_label, {
+                include: true,
+              })}
             />
           </Flex>
           <Flex flex={1}>
             <Text type="secondary">
-              Including the cell's output helps {modelToName(llmTools.model)} to
-              better understand the code, but makes the prompt larger!
+              <FormattedMessage
+                id="jupyter.llm.cell-tool.include-output.description"
+                defaultMessage={`Including the cell's output helps {name} to
+                                better understand the code, but makes the prompt larger!`}
+                values={{ name: modelToName(llmTools.model) }}
+              />
             </Text>
           </Flex>
         </Flex>
@@ -739,7 +776,11 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
             {
               key: "1",
               label: (
-                <>Click to see what will be sent to {modelToName(model)}.</>
+                <FormattedMessage
+                  id="jupyter.llm.cell-tool.preview"
+                  defaultMessage={`Click to see what will be sent to {model}.`}
+                  values={{ model: modelToName(model) }}
+                />
               ),
               children: (
                 <RawPrompt
@@ -758,13 +799,17 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     return (
       <>
         <Paragraph type="secondary">
-          Submitting this message to {modelToName(model)} will initiate a chat
-          in the{" "}
-          <A href={"https://doc.cocalc.com/chat.html#side-chat"}>
-            side-chat frame
-          </A>
-          . The language model replies and you can continue the conversation in
-          the same thread.
+          <FormattedMessage
+            id="jupyter.llm.cell-tool.footer.info"
+            defaultMessage={`Submitting this message to {model} will initiate a chat in the <A>side-chat frame</A>.
+            The language model replies and you can continue the conversation in the same thread.`}
+            values={{
+              model: modelToName(model),
+              A: (c) => (
+                <A href={"https://doc.cocalc.com/chat.html#side-chat"}>{c}</A>
+              ),
+            }}
+          />
         </Paragraph>
         {onCoCalcCom ? (
           <LLMCostEstimation
@@ -822,7 +867,15 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     if (llmTools == null) return;
     return (
       <Paragraph strong>
-        <AIAvatar size={20} /> {capitalize(mode)} this cell using{" "}
+        <AIAvatar size={20} />{" "}
+        <FormattedMessage
+          id="jupyter.llm.cell-tool.title"
+          defaultMessage={`{task} this cell using`}
+          description={
+            "Operate on a specific cell in a Jupyter Notebook. task are words like 'Explain', 'Fix', 'Document', 'Describe', ..."
+          }
+          values={{ task: intl.formatMessage(ACTIONS[mode].label) }}
+        />{" "}
         <LLMSelector
           model={llmTools.model}
           setModel={llmTools.setModel}

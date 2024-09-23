@@ -7,7 +7,7 @@
 //       be valid for Antd (<AntdConfigProvider localize.../>),
 //       and also harmonize with localize::loadLocaleData
 export const LOCALE = [
-  "en",
+  "en", // that's the default, i.e. user never explicitly selected a language
   "es",
   "de",
   "zh",
@@ -25,3 +25,7 @@ export const LOCALE = [
 export type Locale = (typeof LOCALE)[number];
 
 export const DEFAULT_LOCALE: Locale = "en";
+
+// user's browser is not english, but user wants to keep english
+// this is only for the account's other_settings and maps to "en"
+export const KEEP_EN_LOCALE = "en-keep";

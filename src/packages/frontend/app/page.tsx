@@ -44,6 +44,7 @@ import { Notification } from "./notifications";
 import PopconfirmModal from "./popconfirm-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
+import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -109,6 +110,7 @@ export const Page: React.FC = () => {
   );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
+  const show_i18n = useShowI18NBanner()
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
@@ -378,6 +380,7 @@ export const Page: React.FC = () => {
       {new_version && <VersionWarning new_version={new_version} />}
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
+      {show_i18n && <I18NBanner />}
       {!fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />

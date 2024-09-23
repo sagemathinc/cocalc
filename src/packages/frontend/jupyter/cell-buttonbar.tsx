@@ -16,6 +16,7 @@ import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { jupyter } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { LLMTools } from "@cocalc/jupyter/types";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -128,13 +129,17 @@ export const CellButtonBar: React.FC<Props> = React.memo(
                 {
                   key: "all-above",
                   icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
-                  label: "Run All Above Selected Cell",
+                  label: intl.formatMessage(
+                    jupyter.commands.run_all_cells_above_menu,
+                  ),
                   onClick: () => actions?.run_all_above_cell(id),
                 },
                 {
                   key: "all-below",
                   icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
-                  label: "Run Selected Cell and All Below",
+                  label: intl.formatMessage(
+                    jupyter.commands.run_all_cells_below_menu,
+                  ),
                   onClick: () => actions?.run_all_below_cell(id),
                 },
               ],

@@ -54,6 +54,7 @@ import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import { FormattedMessage } from "react-intl";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -521,17 +522,23 @@ const Explorer0 = rclass(
               showIcon
               description={
                 <Paragraph>
-                  In order to see the files in this directory, you have to{" "}
-                  <a
-                    onClick={() => {
-                      redux
-                        .getActions("projects")
-                        .start_project(this.props.project_id);
+                  <FormattedMessage
+                    id="project.explorer.start_project.warning"
+                    defaultMessage={`In order to see the files in this directory, you have to <a>start this project</a>.`}
+                    values={{
+                      a: (c) => (
+                        <a
+                          onClick={() => {
+                            redux
+                              .getActions("projects")
+                              .start_project(this.props.project_id);
+                          }}
+                        >
+                          {c}
+                        </a>
+                      ),
                     }}
-                  >
-                    start this project
-                  </a>
-                  .
+                  />
                 </Paragraph>
               }
             />

@@ -3,11 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React, useActions, useTypedRedux } from "../app-framework";
-import { Icon } from "../components";
 import { Modal } from "antd";
-import { Button, Row, Col } from "../antd-bootstrap";
-import { webapp_client } from "../webapp-client";
+
+import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import {
+  React,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { plural } from "@cocalc/util/misc";
 
 export const ConnectionInfo: React.FC = React.memo(() => {

@@ -3,11 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useTypedRedux } from "../app-framework";
-import { set_account_table } from "./util";
-import { Icon, LabeledRow, SelectorInput, Loading } from "../components";
-import { Panel } from "../antd-bootstrap";
+import { useIntl } from "react-intl";
+
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  Icon,
+  LabeledRow,
+  Loading,
+  SelectorInput,
+} from "@cocalc/frontend/components";
 import { theme_desc } from "@cocalc/frontend/frame-editors/terminal-editor/theme-data";
+import { labels } from "@cocalc/frontend/i18n";
+import { set_account_table } from "./util";
 
 declare global {
   interface Window {
@@ -16,22 +24,28 @@ declare global {
 }
 
 export const TerminalSettings: React.FC = () => {
+  const intl = useIntl();
+
   const terminal = useTypedRedux("account", "terminal");
 
   if (terminal == null) {
     return <Loading />;
   }
 
+  const label = intl.formatMessage({
+    id: "account.terminal-settings.label-row.label",
+    defaultMessage: "Terminal color scheme",
+  });
+
   return (
     <Panel
       header={
         <>
-          {" "}
-          <Icon name="terminal" /> Terminal
+          <Icon name="terminal" /> {intl.formatMessage(labels.terminal)}
         </>
       }
     >
-      <LabeledRow label="Terminal color scheme">
+      <LabeledRow label={label}>
         <SelectorInput
           selected={terminal?.get("color_scheme")}
           options={theme_desc}
