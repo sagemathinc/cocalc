@@ -39,7 +39,8 @@ function get_search_info(project_id, project, user_map): string {
     s += " " + desc;
   }
   s +=
-    " " + COMPUTE_STATES[project.getIn(["state", "state"], "")]?.display ?? "";
+    " " +
+    (COMPUTE_STATES[project.getIn(["state", "state"], "")]?.display ?? "");
   s = s.toLowerCase();
   s = s + " " + hashtags_to_string(parse_tags(s));
   if (user_map != null) {
@@ -67,7 +68,7 @@ export function get_visible_projects(
   search: string,
   deleted: boolean,
   hidden: boolean,
-  sort_by: "user_last_active" | "last_edited" | "title" | "state"
+  sort_by: "user_last_active" | "last_edited" | "title" | "state",
 ): string[] {
   const visible_projects: string[] = [];
   if (project_map == null) return visible_projects;
@@ -77,7 +78,7 @@ export function get_visible_projects(
   last_project_map = project_map;
   last_user_map = user_map;
   const words = search_split(
-    search + " " + hashtags_to_string(hashtags?.toJS())
+    search + " " + hashtags_to_string(hashtags?.toJS()),
   );
   project_map.forEach((project, project_id) => {
     if (
@@ -111,7 +112,7 @@ function sort_projects(project_ids: string[], project_map, sort_by): void {
         }
         return -cmp_Date(
           project_map.getIn([p1, "last_edited"]),
-          project_map.getIn([p2, "last_edited"])
+          project_map.getIn([p2, "last_edited"]),
         );
       };
       break;
@@ -120,7 +121,7 @@ function sort_projects(project_ids: string[], project_map, sort_by): void {
       f = (p1, p2) => {
         return -cmp_Date(
           project_map.getIn([p1, "last_edited"]),
-          project_map.getIn([p2, "last_edited"])
+          project_map.getIn([p2, "last_edited"]),
         );
       };
       break;
@@ -129,7 +130,7 @@ function sort_projects(project_ids: string[], project_map, sort_by): void {
       f = (p1, p2) => {
         return cmp(
           project_map.getIn([p1, "title"])?.toLowerCase(),
-          project_map.getIn([p2, "title"])?.toLowerCase()
+          project_map.getIn([p2, "title"])?.toLowerCase(),
         );
       };
       break;
@@ -138,7 +139,7 @@ function sort_projects(project_ids: string[], project_map, sort_by): void {
       f = (p1, p2) => {
         return cmp(
           project_map.getIn([p1, "state", "state"], "z"),
-          project_map.getIn([p2, "state", "state"], "z")
+          project_map.getIn([p2, "state", "state"], "z"),
         );
       };
       break;
@@ -160,7 +161,7 @@ export function get_visible_hashtags(project_map, visible_projects): string[] {
         project.get("title", "") +
         " " +
         project.get("description", "")
-      ).toLowerCase()
+      ).toLowerCase(),
     )) {
       tags.add(tag);
     }
@@ -172,7 +173,7 @@ export function get_visible_hashtags(project_map, visible_projects): string[] {
 function project_is_in_filter(
   project: immutableMap<string, any>,
   deleted: boolean,
-  hidden: boolean
+  hidden: boolean,
 ): boolean {
   const { account_id } = webapp_client;
   if (account_id == null) return true;

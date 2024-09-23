@@ -51,7 +51,7 @@
     "jupyter-paths": "^2.0.3",
     "lean-client-js-node": "^1.2.12",
     "lodash": "^4.17.21",
-    "lru-cache": "^7.14.1",
+    "lru-cache": "^7.18.3",
     "pidusage": "^1.2.0",
     "prettier": "^3.0.2",
     "primus": "^8.0.7",

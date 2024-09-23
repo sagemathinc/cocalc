@@ -68,7 +68,7 @@ export async function save({
   // Fetch all points in the collection in blocks, inserting them
   // into our database.
   let offset: string | undefined = undefined;
-  for (let n = 0; n < vectors_count; n += batchSize) {
+  for (let n = 0; n < (vectors_count ?? 0); n += batchSize) {
     log("save: from ", n, " to ", n + batchSize);
     const { points } = await client.scroll(collection, {
       limit: batchSize + (offset ? 1 : 0),
@@ -84,7 +84,7 @@ export async function save({
     offset = points[points.length - 1].id as string;
     // insert points into the sqlite3 table collection efficiently:
     const insertStmt = db.prepare(
-      `INSERT INTO ${collection} (id, payload, vector) VALUES (?, ?, ?)`
+      `INSERT INTO ${collection} (id, payload, vector) VALUES (?, ?, ?)`,
     );
 
     db.transaction(() => {
