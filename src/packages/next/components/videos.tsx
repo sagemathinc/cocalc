@@ -44,8 +44,8 @@ export function VideoItem({
 }: {
   id: string;
   title?: string;
-  number: number;
-  current: number;
+  number?: number;
+  current?: number;
   style?;
   width?: number;
 }) {
