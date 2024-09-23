@@ -12,7 +12,7 @@ import {
   estimateCost,
 } from "@cocalc/util/compute/cloud/google-cloud/storage-costs";
 import { useGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
-import { currency } from "@cocalc/util//misc";
+import { currency } from "@cocalc/util/misc";
 import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 const GiB = 1024 * 1024 * 1024;

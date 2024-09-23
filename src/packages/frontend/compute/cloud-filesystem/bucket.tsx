@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
 import { EXTERNAL, NO_CHANGE } from "./create";
 import { getRecentRegions } from "./regions";
-import { currency } from "@cocalc/util//misc";
+import { currency } from "@cocalc/util/misc";
 import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import { useGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
 import { filterOption } from "@cocalc/frontend/compute/util";

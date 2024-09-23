@@ -1,4 +1,4 @@
-import { capitalize } from "@cocalc/util//misc";
+import { capitalize } from "@cocalc/util/misc";
 import { markup } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 
 export function editModalStyle(cloudFilesystem) {
