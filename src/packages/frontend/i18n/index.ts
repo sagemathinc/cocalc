@@ -13,11 +13,15 @@ import {
 
 import { AccountState } from "@cocalc/frontend/account/types";
 import { redux } from "@cocalc/frontend/app-framework";
-import { DEFAULT_LOCALE, Locale } from "@cocalc/util/consts/locale";
+import {
+  DEFAULT_LOCALE,
+  KEEP_EN_LOCALE,
+  Locale,
+} from "@cocalc/util/consts/locale";
 import { unreachable } from "@cocalc/util/misc";
 import { IntlMessage, isIntlMessage } from "./types";
 
-export { editor, labels, menu, jupyter } from "./common";
+export { dialogs, editor, jupyter, labels, menu } from "./common";
 
 export { DEFAULT_LOCALE, isIntlMessage };
 
@@ -31,6 +35,7 @@ export type Messages =
 
 export function sanitizeLocale(l: unknown): Locale {
   if (typeof l !== "string") return DEFAULT_LOCALE;
+  if (l === KEEP_EN_LOCALE) return "en";
   return l in LOCALIZATIONS ? (l as Locale) : DEFAULT_LOCALE;
 }
 

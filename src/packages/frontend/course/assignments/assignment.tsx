@@ -659,7 +659,7 @@ export function Assignment({
         </div>
         {render_has_student_subdir(step)}
         {render_skip(step)}
-        <Space>
+        <Space wrap>
           {render_copy_cancel(step)}
           <Button
             key="yes"
@@ -719,7 +719,7 @@ export function Assignment({
         <div style={{ marginBottom: "15px" }}>
           {copy_confirm_all_caution(step)}
         </div>
-        <Space>
+        <Space wrap>
           {render_copy_cancel(step)}
           <Button
             key={"all"}
@@ -756,7 +756,7 @@ export function Assignment({
         </div>
         {render_has_student_subdir(step)}
         {render_skip(step)}
-        <Space>
+        <Space wrap>
           {render_copy_cancel(step)}
           <Button
             key="all"

@@ -1,8 +1,13 @@
-import { redux, React, TypedMap } from "../app-framework";
-import { webapp_client } from "../webapp-client";
-import { Icon, Gap } from "../components";
-import { SiteName } from "../customize";
-import { get_browser } from "../feature";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+import { React, redux, TypedMap } from "@cocalc/frontend/app-framework";
+import { Gap, Icon } from "@cocalc/frontend/components";
+import { SiteName } from "@cocalc/frontend/customize";
+import { get_browser } from "@cocalc/frontend/feature";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface VersionWarningProps {
   new_version: TypedMap<{ min_version: number; version: number }>;
@@ -21,7 +26,7 @@ const VERSION_WARNING_STYLE: React.CSSProperties = {
   boxShadow: "8px 8px 4px #888",
   width: "70%",
   marginTop: "1em",
-};
+} as const;
 
 export const VersionWarning: React.FC<VersionWarningProps> = React.memo(
   ({ new_version }) => {
@@ -86,7 +91,7 @@ export const VersionWarning: React.FC<VersionWarningProps> = React.memo(
         {render_critical()}
       </div>
     );
-  }
+  },
 );
 
 const WARNING_STYLE: React.CSSProperties = {
@@ -102,7 +107,7 @@ const WARNING_STYLE: React.CSSProperties = {
   zIndex: 100000,
   boxShadow: "8px 8px 4px #888",
   width: "70%",
-};
+} as const;
 
 export const CookieWarning: React.FC = React.memo(() => {
   return (

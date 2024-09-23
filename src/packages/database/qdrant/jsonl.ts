@@ -57,7 +57,7 @@ export async function save({
     "vectors to save in",
     collection,
     "to",
-    file
+    file,
   );
 
   // Create a write stream for the output file
@@ -66,7 +66,7 @@ export async function save({
   // Fetch all points in the collection in blocks, compressing and
   // writing them to the output file
   let offset: string | undefined = undefined;
-  for (let n = 0; n < vectors_count; n += batchSize) {
+  for (let n = 0; n < (vectors_count ?? 0); n += batchSize) {
     log("save: from ", n, " to ", n + batchSize);
     const { points } = await client.scroll(collection, {
       limit: batchSize + (offset ? 1 : 0),
@@ -79,7 +79,7 @@ export async function save({
       // delete first point since it was the offset.
       points.shift();
     }
-    offset = points[points.length-1].id as string;
+    offset = points[points.length - 1].id as string;
     for (const point of points) {
       const compressedLine = JSON.stringify(point) + "\n";
       compressedStream.write(compressedLine);

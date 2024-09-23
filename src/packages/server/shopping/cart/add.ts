@@ -39,7 +39,7 @@ export default async function addToCart(
     VALUES($1, NOW(), $2, $3, true, $4)`,
     [account_id, product, description, project_id]
   );
-  return rowCount;
+  return rowCount ?? 0;
 }
 
 // Puts an item back in the cart that was removed.
@@ -56,7 +56,7 @@ export async function putBackInCart(
     "UPDATE shopping_cart_items SET removed=NULL, checked=TRUE WHERE account_id=$1 AND id=$2 AND removed IS NOT NULL AND purchased IS NULL",
     [account_id, id]
   );
-  return rowCount;
+  return rowCount ?? 0;
 }
 
 // Makes copy of item that was purchased and puts it in the cart.

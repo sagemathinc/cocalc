@@ -15,6 +15,7 @@ import { CourseStore, NBgraderRunInfo, PARALLEL_DEFAULT } from "../store";
 import { CourseActions } from "../actions";
 import { nbgrader_status } from "./util";
 import { plural } from "@cocalc/util/misc";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   name: string;
@@ -40,7 +41,7 @@ export function NbgraderButton({ name, assignment_id }: Props) {
   const running = useMemo(() => {
     if (nbgrader_run_info == null) return false;
     const t = nbgrader_run_info.get(assignment_id);
-    if (t && Date.now() - t <= 1000 * 60 * 10) {
+    if (webapp_client.server_time() - (t ?? 0) <= 1000 * 60 * 10) {
       // Time starting is set and it's also within the last few minutes.
       // This "few minutes" is just in case -- we probably shouldn't need
       // that at all ever, but it could make cocalc state usable in case of

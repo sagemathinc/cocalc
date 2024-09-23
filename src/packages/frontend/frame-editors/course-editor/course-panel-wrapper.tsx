@@ -220,6 +220,7 @@ function CoursePanelWrapper(props: FrameProps) {
         user_map={user_map}
         project_map={project_map}
         project_id={project_id}
+        path={path}
         configuring_projects={configuring_projects}
         reinviting_students={reinviting_students}
         settings={settings}

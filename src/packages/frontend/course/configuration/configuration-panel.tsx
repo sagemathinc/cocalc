@@ -31,7 +31,7 @@ import { DatastoreConfig } from "./datastore-config";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
 import StudentPay from "./student-pay";
-//import Mirror from "./mirror";
+import ConfigurationCopying from "./configuration-copying";
 import ShowError from "@cocalc/frontend/components/error";
 
 interface Props {
@@ -103,18 +103,12 @@ export function ConfigurationPanel({
             settings={settings}
             project_id={project_id}
           />
-          {/*<br />
-            <Mirror
-              checked={!!settings.get("mirror_config")}
-              setChecked={(mirror_config: boolean) => {
-                actions.set({ mirror_config, table: "settings" });
-              }}
-              path={settings.get("mirror_config_path")}
-              setPath={(mirror_config_path) => {
-                actions.set({ mirror_config_path, table: "settings" });
-              }}
-              project_id={project_id}
-            />*/}
+          <br />
+          <ConfigurationCopying
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
+          />
         </Col>
       </Row>
     </div>

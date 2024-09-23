@@ -119,14 +119,14 @@ describe("creates account, project, test compute server, and purchase, then clos
       throw Error("fail");
     }
     expect(
-      Math.abs(Date.now() - purchaseAfter.period_end.valueOf() ?? 0),
+      Math.abs(Date.now() - (purchaseAfter.period_end.valueOf() ?? 0)),
     ).toBeLessThan(30 * 1000);
     const newPurchase = await getPurchase(newPurchaseId);
     if (newPurchase.period_start == null) {
       throw Error("fail");
     }
     expect(
-      Math.abs(Date.now() - newPurchase.period_start.valueOf() ?? 0),
+      Math.abs(Date.now() - (newPurchase.period_start.valueOf() ?? 0)),
     ).toBeLessThan(30 * 1000);
   });
 

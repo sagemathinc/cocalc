@@ -105,10 +105,14 @@ export const ComputeImageSelector: React.FC<ComputeImageSelectorProps> = (
         const tag = img.get("tag");
         const labelStr = img.get("short") ?? img.get("title") ?? key;
         const label =
-          key === defaultComputeImg ? <Text strong>{labelStr}</Text> : labelStr;
+          key === defaultComputeImg ? (
+            <Text strong>{labelStr}</Text>
+          ) : (
+            <>{labelStr}</>
+          );
         const extra = registry && tag ? ` (${registry}:${tag})` : "";
         const title = `${img.get("descr")}${extra}`;
-        return { key, title, label };
+        return { key, title, label: label as any };
       })
       .valueSeq()
       .toJS();

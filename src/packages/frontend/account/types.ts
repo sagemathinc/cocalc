@@ -7,7 +7,7 @@ import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { MessageInfo } from "@cocalc/frontend/client/hub";
-import type { Locale } from "@cocalc/frontend/i18n";
+import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
@@ -49,6 +49,7 @@ export interface AccountState {
     dark_mode_grayscale: number;
     news_read_until: number; // JavaScript timestamp in milliseconds
     [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
+    [OTHER_SETTINGS_LOCALE_KEY]?: string;
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

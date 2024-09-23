@@ -94,7 +94,7 @@
     "lambda-cloud-node-api": "^1.0.1",
     "libsodium-wrappers": "^0.7.13",
     "lodash": "^4.17.21",
-    "lru-cache": "^7.14.1",
+    "lru-cache": "^7.18.3",
     "ms": "2.1.2",
     "node-zendesk": "^5.0.13",
     "nodemailer": "^6.9.14",

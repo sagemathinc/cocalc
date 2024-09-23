@@ -5,7 +5,7 @@
 
 import { Button, Card, Checkbox } from "antd";
 import { isEqual } from "lodash";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   redux,
   useIsMountedRef,
@@ -152,6 +152,17 @@ export function CustomizeStudentProjectFunctionality({
   }
   const isMountedRef = useIsMountedRef();
 
+  const lastFunctionalityRef =
+    useRef<StudentProjectFunctionality>(functionality);
+  useEffect(() => {
+    if (isEqual(functionality, lastFunctionalityRef.current)) {
+      return;
+    }
+    // some sort of upstream change
+    lastFunctionalityRef.current = functionality;
+    setState(functionality);
+  }, [functionality]);
+
   function renderOption(option) {
     let { title } = option;
     if (option.notImplemented) {
@@ -161,7 +172,7 @@ export function CustomizeStudentProjectFunctionality({
       <Tip key={title} title={`Disable ${title}`} tip={option.description}>
         <Checkbox
           disabled={saving}
-          defaultChecked={state[option.name]}
+          checked={state[option.name]}
           onChange={(e) =>
             onChangeState({
               [option.name]: (e.target as any).checked,
@@ -226,6 +237,18 @@ export function CustomizeStudentProjectFunctionality({
       </div>
     </Card>
   );
+}
+
+export function completeStudentProjectFunctionality(
+  x: StudentProjectFunctionality,
+) {
+  const y = { ...x };
+  for (const { name } of OPTIONS) {
+    if (y[name] == null) {
+      y[name] = false;
+    }
+  }
+  return y;
 }
 
 // NOTE: we allow project_id to be undefined for convenience since some clients

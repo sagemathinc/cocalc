@@ -6,6 +6,17 @@
 // Implement the open_file actions for opening one single file in a project.
 
 import { callback } from "awaiting";
+
+import { alert_message } from "@cocalc/frontend/alerts";
+import { redux } from "@cocalc/frontend/app-framework";
+import { local_storage } from "@cocalc/frontend/editor-local-storage";
+import { termPath } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
+import { dialogs, getIntl } from "@cocalc/frontend/i18n";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { remove } from "@cocalc/frontend/project-file";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { retry_until_success } from "@cocalc/util/async-utils";
 import {
   defaults,
   filename_extension,
@@ -14,18 +25,9 @@ import {
   required,
   uuid,
 } from "@cocalc/util/misc";
-import { retry_until_success } from "@cocalc/util/async-utils";
-import { ProjectActions } from "../project_actions";
 import { SITE_NAME } from "@cocalc/util/theme";
-import { redux } from "../app-framework";
-import { alert_message } from "@cocalc/frontend/alerts";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { normalize } from "./utils";
 import { ensure_project_running } from "./project-start-warning";
-import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import { local_storage } from "../editor-local-storage";
-import { remove } from "../project-file";
-import { termPath } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
+import { normalize } from "./utils";
 
 export interface OpenFileOpts {
   path: string;
@@ -138,12 +140,12 @@ export async function open_file(
     opts.fragmentId = Fragment.decode(location.hash);
   }
 
-  if (
-    !(await ensure_project_running(
-      actions.project_id,
-      `open the file '${opts.path}'`,
-    ))
-  ) {
+  const intl = await getIntl();
+  const what = intl.formatMessage(dialogs.project_open_file_what, {
+    path: opts.path,
+  });
+
+  if (!(await ensure_project_running(actions.project_id, what))) {
     if (!actions.open_files) return; // closed
     actions.open_files.delete(opts.path);
     return;

@@ -186,7 +186,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     // to choose from multiple matches).
     const x = await user_search({
       query,
-      limit: info.managers.length + 1 ?? 1,
+      limit: (info?.managers?.length ?? 1) + 1,
     });
     if (!isMountedRef.current || !info?.managers) return;
     for (const y of x) {

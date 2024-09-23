@@ -38,11 +38,20 @@ interface Props {
   assignments: Map<string, AssignmentRecord>;
   students: Map<string, StudentRecord>;
   user_map: object;
+  frameActions;
 }
 
 export function AssignmentsPanel(props: Props) {
-  const { frame_id, name, project_id, redux, assignments, students, user_map } =
-    props;
+  const {
+    frame_id,
+    name,
+    project_id,
+    redux,
+    assignments,
+    students,
+    user_map,
+    frameActions,
+  } = props;
 
   const course_actions = useActions<CourseActions>({ name });
 
@@ -204,30 +213,40 @@ export function AssignmentsPanel(props: Props) {
   }
 
   function render_no_assignments() {
-    const message = (
-      <div>
-        <h3>Add an Assignment to your Course</h3>
-        <p>
-          An assignment is a <i>directory</i> of files somewhere in your CoCalc
-          project. You copy the assignment to your students and they work on it;
-          later, you collect it, grade it, and return the graded version to
-          them.
-        </p>
-        <p>
-          Add assignments to your course by clicking "Add Assignment..." above.
-          You can create and select one or more directories and they will become
-          assignments that you can then customize and distribute to your
-          students.
-        </p>
-      </div>
-    );
-
     return (
       <div>
         <Alert
           type="info"
-          style={{ margin: "auto", fontSize: "12pt", maxWidth: "800px" }}
-          message={message}
+          style={{
+            margin: "15px auto",
+            fontSize: "12pt",
+            maxWidth: "800px",
+          }}
+          message={
+            <b>
+              <a onClick={() => frameActions.setModal("add-assignments")}>
+                Add Assignments to your Course
+              </a>
+            </b>
+          }
+          description={
+            <div>
+              <p>
+                An assignment is a <i>directory</i> of files somewhere in your
+                CoCalc project. You copy the assignment to your students and
+                they work on it; later, you collect it, grade it, and return the
+                graded version to them.
+              </p>
+              <p>
+                <a onClick={() => frameActions.setModal("add-assignments")}>
+                  Add assignments to your course
+                </a>{" "}
+                by clicking "Add Assignment..." above. You can create and select
+                one or more directories and they will become assignments that
+                you can then customize and distribute to your students.
+              </p>
+            </div>
+          }
         />
       </div>
     );

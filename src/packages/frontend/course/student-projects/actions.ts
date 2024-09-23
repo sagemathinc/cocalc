@@ -135,7 +135,7 @@ export class StudentProjectsActions {
       this.course_actions.set({
         table: "students",
         student_id,
-        last_email_invite: Date.now(),
+        last_email_invite: webapp_client.server_time(),
       });
     } else {
       await redux
@@ -182,7 +182,7 @@ export class StudentProjectsActions {
           this.course_actions.set({
             table: "students",
             student_id,
-            last_email_invite: Date.now(),
+            last_email_invite: webapp_client.server_time(),
           });
         }
       }

@@ -12,6 +12,8 @@ import { ErrorDisplay, Icon, Tip } from "../../components";
 import { CourseActions } from "../actions";
 import { BigTime } from "../common";
 import { LastCopyInfo } from "../store";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 
 interface StudentHandoutInfoProps {
   actions: CourseActions;
@@ -66,7 +68,7 @@ export function StudentHandoutInfo({
           <Icon name="share-square" /> Yes, {name.toLowerCase()} again
         </Button>,
       );
-      return <Space>{v}</Space>;
+      return <Space wrap>{v}</Space>;
     } else {
       return (
         <Button type="dashed" key="copy" onClick={() => setRecopy(true)}>
@@ -144,7 +146,7 @@ export function StudentHandoutInfo({
     }
     const v: any[] = [];
     if (enable_copy) {
-      if (obj.start) {
+      if (webapp_client.server_time() - (obj.start ?? 0) < COPY_TIMEOUT_MS) {
         v.push(render_open_copying(do_open, do_stop));
       } else if (obj.time) {
         v.push(render_open_recopy(name, do_open, do_copy, copy_tip, open_tip));
