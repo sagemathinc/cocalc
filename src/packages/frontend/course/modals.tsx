@@ -25,11 +25,14 @@ import {
   RestrictStudentProjects,
   TitleAndDescription,
   UpgradeConfiguration,
+  ConfigureSoftwareEnvironment,
 } from "@cocalc/frontend/course/configuration/configuration-panel";
+import ConfigurationCopying from "@cocalc/frontend/course/configuration/configuration-copying";
 import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
 import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
 import { AddAssignments } from "@cocalc/frontend/course/assignments/assignments-panel";
 import { AddHandouts } from "@cocalc/frontend/course/handouts/handouts-panel";
+import { COMMANDS } from "@cocalc/frontend/course/commands";
 
 interface Props {
   frameActions;
@@ -39,7 +42,8 @@ interface Props {
   students?: StudentsMap;
   user_map?: UserMap;
   project_map?: ProjectMap;
-  project_id;
+  project_id: string;
+  path: string;
   configuring_projects?: boolean;
   reinviting_students?: boolean;
   settings;
@@ -86,17 +90,18 @@ export default function Modals(props: Props) {
 }
 
 function getModal(modal: string) {
+  const { label: title, icon } = COMMANDS[modal] ?? {};
   switch (modal) {
     case "add-students":
-      return { Body: AddStudents, title: "Add Students", icon: "users" };
+      return { Body: AddStudents, title, icon };
     case "add-assignments":
       return {
         Body: AddAssignments,
-        title: "Add Assignmetns",
+        title: "Add Assignments",
         icon: "share-square",
       };
     case "add-handouts":
-      return { Body: AddHandouts, title: "Add Handouts", icon: "text1" };
+      return { Body: AddHandouts, title, icon };
 
     case "start-all-projects":
       return {
@@ -154,6 +159,10 @@ function getModal(modal: string) {
       return { Body: EnvVariables };
     case "upgrades":
       return { Body: UpgradeConfiguration };
+    case "software-environment":
+      return { Body: ConfigureSoftwareEnvironment };
+    case "configuration-copying":
+      return { Body: ConfigurationCopying };
 
     default:
       return {

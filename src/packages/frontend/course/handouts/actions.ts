@@ -11,11 +11,12 @@ import type { CourseActions } from "../actions";
 import type { CourseStore, HandoutRecord } from "../store";
 import { webapp_client } from "../../webapp-client";
 import { redux } from "../../app-framework";
-import { uuid, mswalltime } from "@cocalc/util/misc";
+import { uuid } from "@cocalc/util/misc";
 import { map } from "awaiting";
 import type { SyncDBRecordHandout } from "../types";
 import { exec } from "../../frame-editors/generic/client";
 import { export_student_file_use_times } from "../export/file-use-times";
+import { COPY_TIMEOUT_MS } from "../consts";
 
 export class HandoutsActions {
   private course_actions: CourseActions;
@@ -131,7 +132,7 @@ export class HandoutsActions {
     const status_map: {
       [student_id: string]: { time?: number; error?: string };
     } = h.status ? h.status : {};
-    status_map[student_id] = { time: mswalltime() };
+    status_map[student_id] = { time: webapp_client.server_time() };
     if (err) {
       status_map[student_id].error = err;
     }
@@ -163,7 +164,7 @@ export class HandoutsActions {
     ) {
       return true; // never retry a copy until at least 15 seconds later.
     }
-    student_status.start = mswalltime();
+    student_status.start = webapp_client.server_time();
     status_map[student_id] = student_status;
     obj.status = status_map;
     this.course_actions.set(obj);
@@ -259,6 +260,7 @@ export class HandoutsActions {
         overwrite_newer: !!overwrite, // default is "false"
         delete_missing: !!overwrite, // default is "false"
         backup: !!!overwrite, // default is "true"
+        timeout: COPY_TIMEOUT_MS / 1000,
       });
       finish();
     } catch (err) {

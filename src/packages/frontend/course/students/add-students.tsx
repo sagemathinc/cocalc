@@ -28,6 +28,7 @@ interface Props {
   students: StudentsMap;
   user_map: UserMap;
   project_id;
+  close?: Function;
 }
 
 export default function AddStudents({
@@ -35,6 +36,7 @@ export default function AddStudents({
   students,
   user_map,
   project_id,
+  close,
 }: Props) {
   const addSelectRef = useRef<HTMLSelectElement>(null);
   const studentAddInputRef = useRef(null);
@@ -215,6 +217,7 @@ export default function AddStudents({
     }
     actions.students.add_students(students);
     clear();
+    close?.();
   }
 
   function add_all_students() {
@@ -232,6 +235,7 @@ export default function AddStudents({
     }
     actions.students.add_students(students);
     clear();
+    close?.();
   }
 
   function clear(): void {

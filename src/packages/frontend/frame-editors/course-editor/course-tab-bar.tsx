@@ -10,7 +10,6 @@ so they can mostly ignore the frame editor if they want to.
 */
 
 import { Tabs } from "antd";
-
 import { Tab } from "@cocalc/frontend/antd-bootstrap";
 import { CourseEditorActions } from "./actions";
 

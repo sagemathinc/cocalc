@@ -4,8 +4,7 @@
  */
 
 import { Button, Card, Row, Col, Space } from "antd";
-// React libraries and Components
-import { React, useActions, useStore } from "@cocalc/frontend/app-framework";
+import { useActions, useStore } from "@cocalc/frontend/app-framework";
 import { plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
 import { CourseActions } from "../actions";
@@ -25,44 +24,47 @@ interface Props {
   reinviting_students?: boolean;
 }
 
-export const ActionsPanel: React.FC<Props> = React.memo(
-  ({ name, project_map, configuring_projects, reinviting_students }) => {
-    const actions = useActions<CourseActions>({ name });
+export function ActionsPanel({
+  name,
+  project_map,
+  configuring_projects,
+  reinviting_students,
+}: Props) {
+  const actions = useActions<CourseActions>({ name });
 
-    return (
-      <div className="smc-vfill" style={{ overflowY: "scroll" }}>
-        <Row>
-          <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
-            <StartAllProjects name={name} project_map={project_map} />
-            <br />
-            <ReconfigureAllProjects
-              configuring_projects={configuring_projects}
-              actions={actions}
-            />
-            <br />
-            <TerminalCommandPanel name={name} />
-            <br />
-            <ExportGrades actions={actions} />
-          </Col>
-          <Col md={12} style={{ padding: "15px" }}>
-            <ResendInvites
-              actions={actions}
-              reinviting_students={reinviting_students}
-            />
-            <br />
-            <CopyMissingHandoutsAndAssignments actions={actions} />
-            <br />
-            <EmptyTrash />
-            <br />
-            <DeleteAllStudentProjects actions={actions} />
-            <br />
-            <DeleteAllStudents actions={actions} />
-          </Col>
-        </Row>
-      </div>
-    );
-  },
-);
+  return (
+    <div className="smc-vfill" style={{ overflowY: "scroll" }}>
+      <Row>
+        <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
+          <StartAllProjects name={name} project_map={project_map} />
+          <br />
+          <ReconfigureAllProjects
+            configuring_projects={configuring_projects}
+            actions={actions}
+          />
+          <br />
+          <TerminalCommandPanel name={name} />
+          <br />
+          <ExportGrades actions={actions} />
+        </Col>
+        <Col md={12} style={{ padding: "15px" }}>
+          <ResendInvites
+            actions={actions}
+            reinviting_students={reinviting_students}
+          />
+          <br />
+          <CopyMissingHandoutsAndAssignments actions={actions} />
+          <br />
+          <EmptyTrash />
+          <br />
+          <DeleteAllStudentProjects actions={actions} />
+          <br />
+          <DeleteAllStudents actions={actions} />
+        </Col>
+      </Row>
+    </div>
+  );
+}
 
 export function StartAllProjects({ name, project_map }) {
   const store = useStore<CourseStore>({ name });

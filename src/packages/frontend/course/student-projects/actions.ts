@@ -20,6 +20,7 @@ import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { UpgradeGoal } from "../types";
 import { Result, run_in_all_projects } from "./run-in-all-projects";
+import type { StudentRecord } from "../store";
 
 // for tasks that are "easy" to run in parallel, e.g. starting projects
 export const MAX_PARALLEL_TASKS = 30;
@@ -134,7 +135,7 @@ export class StudentProjectsActions {
       this.course_actions.set({
         table: "students",
         student_id,
-        last_email_invite: Date.now(),
+        last_email_invite: webapp_client.server_time(),
       });
     } else {
       await redux
@@ -181,7 +182,7 @@ export class StudentProjectsActions {
           this.course_actions.set({
             table: "students",
             student_id,
-            last_email_invite: Date.now(),
+            last_email_invite: webapp_client.server_time(),
           });
         }
       }
@@ -892,6 +893,33 @@ export class StudentProjectsActions {
       const x = copy(quotas);
       x.project_id = project_id;
       await webapp_client.project_client.set_quotas(x);
+    }
+  };
+
+  removeFromAllStudentProjects = async (student: StudentRecord) => {
+    /*
+    - Remove student from their project
+    - Remove student from shared project
+    - TODO: Cancel any outstanding invite, in case they haven't even created their account yet.
+      This isn't even implemented yet as an api endpoint... but will cause confusion.
+    */
+    const shared_id = this.get_store()?.get_shared_project_id();
+    const account_id = student.get("account_id");
+    const project_id = student.get("project_id");
+    if (account_id) {
+      if (project_id) {
+        // remove them from their project
+        await redux
+          .getActions("projects")
+          .remove_collaborator(project_id, account_id);
+      }
+
+      if (shared_id) {
+        // remove them from shared project
+        await redux
+          .getActions("projects")
+          .remove_collaborator(shared_id, account_id);
+      }
     }
   };
 }

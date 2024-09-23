@@ -7,7 +7,6 @@
 Skip assigning or collecting an assignment, so next step can be attempted.
 */
 
-import { React, Rendered } from "@cocalc/frontend/app-framework";
 import { CourseActions } from "../actions";
 import { AssignmentRecord } from "../store";
 import { Icon, Gap, Tip } from "../../components";
@@ -19,9 +18,7 @@ interface SkipCopyProps {
   actions: CourseActions;
 }
 
-export const SkipCopy: React.FC<SkipCopyProps> = (props: SkipCopyProps) => {
-  const { assignment, step, actions } = props;
-
+export function SkipCopy({ assignment, step, actions }: SkipCopyProps) {
   function click() {
     actions.assignments.set_skip(
       assignment.get("assignment_id"),
@@ -32,7 +29,7 @@ export const SkipCopy: React.FC<SkipCopyProps> = (props: SkipCopyProps) => {
 
   function icon_extra() {
     let icon;
-    let extra: Rendered = undefined;
+    let extra: JSX.Element | undefined = undefined;
     if (assignment.get(`skip_${step}` as any)) {
       icon = "check-square-o";
       if (assignment.getIn(["peer_grade", "enabled"])) {
@@ -62,4 +59,4 @@ export const SkipCopy: React.FC<SkipCopyProps> = (props: SkipCopyProps) => {
       </Button>
     </Tip>
   );
-};
+}

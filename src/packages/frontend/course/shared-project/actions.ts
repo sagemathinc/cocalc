@@ -11,6 +11,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
+import { delay } from "awaiting";
 
 export class SharedProjectActions {
   private actions: CourseActions;
@@ -234,6 +235,9 @@ export class SharedProjectActions {
       this.actions.set_activity({ id });
     }
     this.set_project_id(project_id);
+    // wait for any changes to syncdb to update store, before
+    // calling configure (which relies on the store being updated).
+    await delay(10);
     await this.configure();
   };
 

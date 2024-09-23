@@ -6,7 +6,7 @@
 import { Popconfirm, Button, Card } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 
-export function DeleteSharedProjectPanel({ actions, settings }) {
+export function DeleteSharedProjectPanel({ actions, settings, close }) {
   if (!settings.get("shared_project_id")) {
     return <Card title={"No Shared Project"}></Card>;
   }
@@ -17,7 +17,10 @@ export function DeleteSharedProjectPanel({ actions, settings }) {
           title="Are you sure you want to delete the shared project?"
           okText="Yes"
           cancelText="No"
-          onConfirm={() => actions.shared_project.delete()}
+          onConfirm={() => {
+            actions.shared_project.delete();
+            close?.();
+          }}
         >
           <Button danger>
             <Icon name="trash" /> Delete Shared Project...

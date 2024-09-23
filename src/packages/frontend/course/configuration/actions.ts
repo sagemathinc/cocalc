@@ -17,10 +17,29 @@ import { store as projects_store } from "@cocalc/frontend/projects/store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions, primary_key } from "../actions";
-import { DEFAULT_LICENSE_UPGRADE_HOST_PROJECT } from "../store";
+import {
+  DEFAULT_LICENSE_UPGRADE_HOST_PROJECT,
+  CourseSettingsRecord,
+  PARALLEL_DEFAULT,
+} from "../store";
 import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
-import { StudentProjectFunctionality } from "./customize-student-project-functionality";
+import {
+  StudentProjectFunctionality,
+  completeStudentProjectFunctionality,
+} from "./customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { delay } from "awaiting";
+import {
+  NBGRADER_CELL_TIMEOUT_MS,
+  NBGRADER_MAX_OUTPUT,
+  NBGRADER_MAX_OUTPUT_PER_CELL,
+  NBGRADER_TIMEOUT_MS,
+} from "../assignments/consts";
+
+interface ConfigurationTarget {
+  project_id: string;
+  path: string;
+}
 
 export class ConfigurationActions {
   private course_actions: CourseActions;
@@ -214,7 +233,7 @@ export class ConfigurationActions {
     }
   };
 
-  set_copy_parallel = (copy_parallel: number): void => {
+  set_copy_parallel = (copy_parallel: number = PARALLEL_DEFAULT): void => {
     this.set({
       copy_parallel,
       table: "settings",
@@ -293,7 +312,9 @@ export class ConfigurationActions {
   };
 
   // project_id is a uuid *or* empty string.
-  set_nbgrader_grade_project = async (project_id: string): Promise<void> => {
+  set_nbgrader_grade_project = async (
+    project_id: string = "",
+  ): Promise<void> => {
     this.set({
       nbgrader_grade_project: project_id,
       table: "settings",
@@ -305,21 +326,27 @@ export class ConfigurationActions {
     }
   };
 
-  set_nbgrader_cell_timeout_ms = (nbgrader_cell_timeout_ms: number): void => {
+  set_nbgrader_cell_timeout_ms = (
+    nbgrader_cell_timeout_ms: number = NBGRADER_CELL_TIMEOUT_MS,
+  ): void => {
     this.set({
       nbgrader_cell_timeout_ms,
       table: "settings",
     });
   };
 
-  set_nbgrader_timeout_ms = (nbgrader_timeout_ms: number): void => {
+  set_nbgrader_timeout_ms = (
+    nbgrader_timeout_ms: number = NBGRADER_TIMEOUT_MS,
+  ): void => {
     this.set({
       nbgrader_timeout_ms,
       table: "settings",
     });
   };
 
-  set_nbgrader_max_output = (nbgrader_max_output: number): void => {
+  set_nbgrader_max_output = (
+    nbgrader_max_output: number = NBGRADER_MAX_OUTPUT,
+  ): void => {
     this.set({
       nbgrader_max_output,
       table: "settings",
@@ -327,7 +354,7 @@ export class ConfigurationActions {
   };
 
   set_nbgrader_max_output_per_cell = (
-    nbgrader_max_output_per_cell: number,
+    nbgrader_max_output_per_cell: number = NBGRADER_MAX_OUTPUT_PER_CELL,
   ): void => {
     this.set({
       nbgrader_max_output_per_cell,
@@ -365,7 +392,9 @@ export class ConfigurationActions {
     this.set_compute_image(image);
   };
 
-  set_nbgrader_parallel = (nbgrader_parallel: number): void => {
+  set_nbgrader_parallel = (
+    nbgrader_parallel: number = PARALLEL_DEFAULT,
+  ): void => {
     this.set({
       nbgrader_parallel,
       table: "settings",
@@ -409,4 +438,146 @@ export class ConfigurationActions {
     }
     syncdb.commit();
   };
+
+  copyConfiguration = async ({
+    groups,
+    targets,
+  }: {
+    groups: ConfigurationGroup[];
+    targets: ConfigurationTarget[];
+  }) => {
+    const store = this.course_actions.get_store();
+    if (groups.length == 0 || targets.length == 0 || store == null) {
+      return;
+    }
+    const settings = store.get("settings");
+    for (const target of targets) {
+      const targetActions = await openCourseFileAndGetActions({
+        ...target,
+        maxTimeMs: 30000,
+      });
+      for (const group of groups) {
+        await configureGroup({
+          group,
+          settings,
+          actions: targetActions.course_actions,
+        });
+      }
+    }
+    // switch back
+    const { project_id, path } = this.course_actions.syncdb;
+    redux.getProjectActions(project_id).open_file({ path, foreground: true });
+  };
+}
+
+async function openCourseFileAndGetActions({ project_id, path, maxTimeMs }) {
+  await redux
+    .getProjectActions(project_id)
+    .open_file({ path, foreground: true });
+  const t = Date.now();
+  let d = 250;
+  while (Date.now() + d - t <= maxTimeMs) {
+    await delay(d);
+    const targetActions = redux.getEditorActions(project_id, path);
+    if (targetActions?.course_actions?.syncdb.get_state() == "ready") {
+      return targetActions;
+    }
+    d *= 1.1;
+  }
+  throw Error(`unable to open '${path}'`);
+}
+
+export const CONFIGURATION_GROUPS = [
+  "collaborator-policy",
+  "email-invitation",
+  "copy-limit",
+  "restrict-student-projects",
+  "nbgrader",
+  "upgrades",
+  //   "network-file-systems",
+  //   "env-variables",
+  //   "software-environment",
+] as const;
+
+export type ConfigurationGroup = (typeof CONFIGURATION_GROUPS)[number];
+
+async function configureGroup({
+  group,
+  settings,
+  actions,
+}: {
+  group: ConfigurationGroup;
+  settings: CourseSettingsRecord;
+  actions: CourseActions;
+}) {
+  switch (group) {
+    case "collaborator-policy":
+      const allow_colabs = !!settings.get("allow_collabs");
+      actions.configuration.set_allow_collabs(allow_colabs);
+      return;
+    case "email-invitation":
+      actions.configuration.set_email_invite(settings.get("email_invite"));
+      return;
+    case "copy-limit":
+      actions.configuration.set_copy_parallel(settings.get("copy_parallel"));
+      return;
+    case "restrict-student-projects":
+      actions.configuration.set_student_project_functionality(
+        completeStudentProjectFunctionality(
+          settings.get("student_project_functionality")?.toJS() ?? {},
+        ),
+      );
+      return;
+    case "nbgrader":
+      await actions.configuration.set_nbgrader_grade_project(
+        settings.get("nbgrader_grade_project"),
+      );
+      await actions.configuration.set_nbgrader_cell_timeout_ms(
+        settings.get("nbgrader_cell_timeout_ms"),
+      );
+      await actions.configuration.set_nbgrader_timeout_ms(
+        settings.get("nbgrader_timeout_ms"),
+      );
+      await actions.configuration.set_nbgrader_max_output(
+        settings.get("nbgrader_max_output"),
+      );
+      await actions.configuration.set_nbgrader_max_output_per_cell(
+        settings.get("nbgrader_max_output_per_cell"),
+      );
+      await actions.configuration.set_nbgrader_include_hidden_tests(
+        !!settings.get("nbgrader_include_hidden_tests"),
+      );
+      return;
+
+    case "upgrades":
+      if (settings.get("student_pay")) {
+        actions.configuration.set_pay_choice("student", true);
+        await actions.configuration.setStudentPay({
+          when: settings.get("pay"),
+          info: settings.get("payInfo")?.toJS(),
+          cost: settings.get("payCost"),
+        });
+        await actions.configuration.configure_all_projects();
+      } else {
+        actions.configuration.set_pay_choice("student", false);
+      }
+      if (settings.get("institute_pay")) {
+        actions.configuration.set_pay_choice("institute", true);
+        const strategy = settings.get("set_site_license_strategy");
+        if (strategy != null) {
+          actions.configuration.set_site_license_strategy(strategy);
+        }
+        const site_license_id = settings.get("site_license_id");
+        actions.configuration.set({ site_license_id, table: "settings" });
+      } else {
+        actions.configuration.set_pay_choice("institute", false);
+      }
+      return;
+
+    //     case "network-file-systems":
+    //     case "env-variables":
+    //     case "software-environment":
+    default:
+      throw Error(`configuring group ${group} not implemented`);
+  }
 }

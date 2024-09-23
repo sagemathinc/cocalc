@@ -15,7 +15,8 @@ import { defaults, required, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions } from "../actions";
 import { CourseStore, StudentRecord } from "../store";
-import { SyncDBRecordStudent } from "../types";
+import type { SyncDBRecordStudent } from "../types";
+import { Map as iMap } from "immutable";
 
 const STUDENT_STATUS_UPDATE_MS = 60 * 1000;
 
@@ -98,11 +99,16 @@ export class StudentsActions {
   ): Promise<void> {
     const store = this.get_store();
     const student = store.get_student(student_id);
-    if (student == null) return;
+    if (student == null) {
+      return;
+    }
     this.doDeleteStudent(student, noTrash);
-    // since they may get removed from shared project, etc.
-    await delay(1); // so store is updated, since it is used by configure
-    await this.course_actions.student_projects.configure_all_projects();
+    // We always remove any deleted student from all student projects and the
+    // shared project when they are deleted, since this best aligns with
+    // user expectations.  We do this, even if "allow collaborators" is enabled.
+    await this.course_actions.student_projects.removeFromAllStudentProjects(
+      student,
+    );
   }
 
   undelete_student = async (student_id: string): Promise<void> => {
@@ -245,7 +251,7 @@ export class StudentsActions {
 
   // columns: first_name, last_name, email, last_active, hosting
   // Toggles ascending/decending order
-  public set_active_student_sort(column_name: string): void {
+  set_active_student_sort = (column_name: string): void => {
     let is_descending: boolean;
     const store = this.get_store();
     const current_column = store.getIn(["active_student_sort", "column_name"]);
@@ -257,12 +263,12 @@ export class StudentsActions {
     this.course_actions.setState({
       active_student_sort: { column_name, is_descending },
     });
-  }
+  };
 
-  public async set_internal_student_info(
+  set_internal_student_info = async (
     student_id: string,
     info: { first_name: string; last_name: string; email_address?: string },
-  ): Promise<void> {
+  ): Promise<void> => {
     const { student } = this.course_actions.resolve({ student_id });
     if (student == null) return;
 
@@ -282,23 +288,23 @@ export class StudentsActions {
 
     // since they may get removed from shared project, etc.
     await this.course_actions.student_projects.configure_all_projects();
-  }
+  };
 
-  public set_student_note(student_id: string, note: string): void {
+  set_student_note = (student_id: string, note: string): void => {
     this.course_actions.set({
       note,
       table: "students",
       student_id,
     });
-  }
+  };
 
   /*
   Function to "catch up a student" by pushing out all (non-deleted) handouts and assignments to
   this student that have been pushed to at least one student so far.
   */
-  public async push_missing_handouts_and_assignments(
+  push_missing_handouts_and_assignments = async (
     student_id: string,
-  ): Promise<void> {
+  ): Promise<void> => {
     const { student, store } = this.course_actions.resolve({ student_id });
     if (student == null) {
       throw Error("no such student");
@@ -334,5 +340,22 @@ export class StudentsActions {
     } finally {
       this.course_actions.set_activity({ id });
     }
-  }
+  };
+
+  setAssignmentFilter = (student_id: string, filter: string) => {
+    const store = this.get_store();
+    if (!store) return;
+    let assignmentFilter = store.get("assignmentFilter");
+    if (assignmentFilter == null) {
+      if (filter) {
+        assignmentFilter = iMap({ [student_id]: filter });
+        this.course_actions.setState({
+          assignmentFilter,
+        });
+      }
+      return;
+    }
+    assignmentFilter = assignmentFilter.set(student_id, filter);
+    this.course_actions.setState({ assignmentFilter });
+  };
 }

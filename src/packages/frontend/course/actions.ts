@@ -26,6 +26,7 @@ import { ProjectsStore } from "../projects/store";
 import { bind_methods } from "@cocalc/util/misc";
 // React libraries
 import { Actions, TypedMap } from "../app-framework";
+import { Map as iMap } from "immutable";
 
 export const primary_key = {
   students: "student_id",
@@ -391,5 +392,22 @@ export class CourseActions extends Actions<CourseState> {
       }
     }
     this.setState({ [field_name]: adjusted });
+  };
+
+  setPageFilter = (page: string, filter: string) => {
+    const store = this.get_store();
+    if (!store) return;
+    let pageFilter = store.get("pageFilter");
+    if (pageFilter == null) {
+      if (filter) {
+        pageFilter = iMap({ [page]: filter });
+        this.setState({
+          pageFilter,
+        });
+      }
+      return;
+    }
+    pageFilter = pageFilter.set(page, filter);
+    this.setState({ pageFilter });
   };
 }

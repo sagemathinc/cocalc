@@ -1,7 +1,7 @@
-import { Alert, Button, Card, Row, Col, Space, Spin } from "antd";
-import { Icon } from "../../components";
-import { useState, useActions, useRedux } from "../../app-framework";
-import { CourseActions } from "../actions";
+import { Alert, Button, Card, Row, Col, Popconfirm, Space, Spin } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { useActions, useRedux } from "@cocalc/frontend/app-framework";
+import type { CourseActions } from "../actions";
 import { capitalize } from "@cocalc/util/misc";
 
 interface Props {
@@ -10,20 +10,15 @@ interface Props {
   num_students?: number;
 }
 
-export const StudentProjectsStartStopPanel: React.FC<Props> = ({
+export function StudentProjectsStartStopPanel({
   name,
   num_running_projects,
   num_students,
-}) => {
+}: Props) {
   const action_all_projects_state: string = useRedux([
     name,
     "action_all_projects_state",
   ]);
-  const [confirm_stop_all_projects, set_confirm_stop_all_projects] =
-    useState<boolean>(false);
-  const [confirm_start_all_projects, set_confirm_start_all_projects] =
-    useState<boolean>(false);
-
   const actions: CourseActions = useActions(name);
 
   function render_in_progress_action() {
@@ -63,67 +58,6 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
     );
   }
 
-  function render_confirm_stop_all_projects() {
-    return (
-      <Alert
-        type="warning"
-        message={
-          <div>
-            Are you sure you want to stop all student projects (this might be
-            disruptive)?
-            <br />
-            <br />
-            <Space>
-              <Button onClick={() => set_confirm_stop_all_projects(false)}>
-                Cancel
-              </Button>
-              <Button
-                danger
-                type="primary"
-                onClick={() => {
-                  set_confirm_stop_all_projects(false);
-                  actions.student_projects.action_all_student_projects("stop");
-                }}
-              >
-                <Icon name="PoweroffOutlined" /> Stop all
-              </Button>
-            </Space>
-          </div>
-        }
-      />
-    );
-  }
-
-  function render_confirm_start_all_projects() {
-    return (
-      <Alert
-        type="info"
-        message={
-          <div>
-            Are you sure you want to start all student projects? This will
-            ensure the projects are already running when the students open them.
-            <br />
-            <br />
-            <Space>
-              <Button onClick={() => set_confirm_start_all_projects(false)}>
-                Cancel
-              </Button>{" "}
-              <Button
-                type="primary"
-                onClick={() => {
-                  set_confirm_start_all_projects(false);
-                  actions.student_projects.action_all_student_projects("start");
-                }}
-              >
-                <Icon name="bolt" /> Start all
-              </Button>
-            </Space>
-          </div>
-        }
-      />
-    );
-  }
-
   const r = num_running_projects;
   const n = num_students;
   return (
@@ -142,35 +76,51 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
       <Row style={{ marginTop: "10px" }}>
         <Col md={24}>
           <Space>
-            <Button
-              onClick={() => set_confirm_start_all_projects(true)}
-              disabled={
-                n === 0 ||
-                n === r ||
-                confirm_start_all_projects ||
-                action_all_projects_state === "starting"
+            <Popconfirm
+              title={
+                <div style={{ maxWidth: "400px" }}>
+                  <b>Are you sure you want to start all student projects?</b>
+                  <br /> This will ensure the projects are already running when
+                  the students open them, and can make assigning and collecting
+                  homework more robust.
+                </div>
               }
+              onConfirm={() => {
+                actions.student_projects.action_all_student_projects("start");
+              }}
             >
-              <Icon name="bolt" /> Start all...
-            </Button>
-            <Button
-              onClick={() => set_confirm_stop_all_projects(true)}
-              disabled={
-                n === 0 ||
-                r === 0 ||
-                confirm_stop_all_projects ||
-                action_all_projects_state === "stopping"
+              <Button
+                disabled={
+                  n === 0 || n === r || action_all_projects_state === "starting"
+                }
+              >
+                <Icon name="bolt" /> Start all...
+              </Button>
+            </Popconfirm>
+            <Popconfirm
+              title={
+                <div style={{ maxWidth: "400px" }}>
+                  Are you sure you want to stop all student projects (this might
+                  be disruptive)?
+                </div>
               }
+              onConfirm={() => {
+                actions.student_projects.action_all_student_projects("stop");
+              }}
             >
-              <Icon name="PoweroffOutlined" /> Stop all...
-            </Button>
+              <Button
+                disabled={
+                  n === 0 || r === 0 || action_all_projects_state === "stopping"
+                }
+              >
+                <Icon name="PoweroffOutlined" /> Stop all...
+              </Button>
+            </Popconfirm>
           </Space>
         </Col>
       </Row>
       <Row style={{ marginTop: "10px" }}>
         <Col md={24}>
-          {confirm_start_all_projects && render_confirm_start_all_projects()}
-          {confirm_stop_all_projects && render_confirm_stop_all_projects()}
           {action_all_projects_state !== "any" && render_in_progress_action()}
         </Col>
       </Row>
@@ -184,4 +134,4 @@ export const StudentProjectsStartStopPanel: React.FC<Props> = ({
       </span>
     </Card>
   );
-};
+}

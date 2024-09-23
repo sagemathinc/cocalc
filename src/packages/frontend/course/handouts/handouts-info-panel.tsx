@@ -5,14 +5,15 @@
 
 // CoCalc libraries
 // React Libraries
-import { React, useState } from "@cocalc/frontend/app-framework";
+import { useState } from "react";
 import { to_json } from "@cocalc/util/misc";
-import { Col, Row } from "antd";
-import { Button, ButtonGroup } from "../../antd-bootstrap";
+import { Button, Space, Col, Row } from "antd";
 import { ErrorDisplay, Icon, Tip } from "../../components";
 import { CourseActions } from "../actions";
 import { BigTime } from "../common";
 import { LastCopyInfo } from "../store";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 
 interface StudentHandoutInfoProps {
   actions: CourseActions;
@@ -20,11 +21,11 @@ interface StudentHandoutInfoProps {
   title: string;
 }
 
-export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
-  props: StudentHandoutInfoProps,
-) => {
-  const { actions, info, title } = props;
-
+export function StudentHandoutInfo({
+  actions,
+  info,
+  title,
+}: StudentHandoutInfoProps) {
   const [recopy, setRecopy] = useState<boolean>(false);
 
   function open(handout_id: string, student_id: string): void {
@@ -51,9 +52,14 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
     if (recopy) {
       const v: any[] = [];
       v.push(
+        <Button key="copy_cancel" onClick={() => setRecopy(false)}>
+          Cancel
+        </Button>,
+      );
+      v.push(
         <Button
           key="copy_confirm"
-          bsStyle="danger"
+          danger
           onClick={() => {
             setRecopy(false);
             return copy();
@@ -62,15 +68,10 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
           <Icon name="share-square" /> Yes, {name.toLowerCase()} again
         </Button>,
       );
-      v.push(
-        <Button key="copy_cancel" onClick={() => setRecopy(false)}>
-          Cancel
-        </Button>,
-      );
-      return v;
+      return <Space wrap>{v}</Space>;
     } else {
       return (
-        <Button key="copy" bsStyle="warning" onClick={() => setRecopy(true)}>
+        <Button type="dashed" key="copy" onClick={() => setRecopy(true)}>
           <Tip title={name} tip={<span>{copy_tip}</span>}>
             <Icon name="share-square" /> {name}...
           </Tip>
@@ -81,37 +82,37 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
 
   function render_open_recopy(name, open, copy, copy_tip, open_tip) {
     return (
-      <ButtonGroup key="open_recopy">
+      <Space key="open_recopy">
         {render_open_recopy_confirm(name, copy, copy_tip)}
         <Button key="open" onClick={open}>
           <Tip title="Open Folder" tip={open_tip}>
             <Icon name="folder-open" /> Open directory...
           </Tip>
         </Button>
-      </ButtonGroup>
+      </Space>
     );
   }
 
   function render_open_copying(open, stop) {
     return (
-      <ButtonGroup key="open_copying">
-        <Button key="copy" bsStyle="success" disabled={true}>
+      <Space key="open_copying">
+        <Button key="copy" type="primary" disabled={true}>
           <Icon name="cocalc-ring" spin /> Working...
         </Button>
-        <Button key="stop" bsStyle="danger" onClick={stop}>
+        <Button key="stop" danger onClick={stop}>
           <Icon name="times" />
         </Button>
         <Button key="open" onClick={open}>
           <Icon name="folder-open" /> Open
         </Button>
-      </ButtonGroup>
+      </Space>
     );
   }
 
   function render_copy(name, copy, copy_tip) {
     return (
       <Tip key="copy" title={name} tip={copy_tip}>
-        <Button onClick={copy} bsStyle={"primary"}>
+        <Button onClick={copy} type="primary">
           <Icon name="share-square" /> {name}
         </Button>
       </Tip>
@@ -145,7 +146,7 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
     }
     const v: any[] = [];
     if (enable_copy) {
-      if (obj.start) {
+      if (webapp_client.server_time() - (obj.start ?? 0) < COPY_TIMEOUT_MS) {
         v.push(render_open_copying(do_open, do_stop));
       } else if (obj.time) {
         v.push(render_open_recopy(name, do_open, do_copy, copy_tip, open_tip));
@@ -191,4 +192,4 @@ export const StudentHandoutInfo: React.FC<StudentHandoutInfoProps> = (
       </Row>
     </div>
   );
-};
+}

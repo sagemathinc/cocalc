@@ -6,7 +6,6 @@
 import { debounce } from "lodash";
 import { Card, Row, Col, Spin } from "antd";
 import {
-  React,
   redux,
   useActions,
   useState,
@@ -32,7 +31,7 @@ import { DatastoreConfig } from "./datastore-config";
 import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { EnvironmentVariablesConfig } from "./envvars-config";
 import StudentPay from "./student-pay";
-//import Mirror from "./mirror";
+import ConfigurationCopying from "./configuration-copying";
 import ShowError from "@cocalc/frontend/components/error";
 
 interface Props {
@@ -42,78 +41,79 @@ interface Props {
   configuring_projects?: boolean;
 }
 
-export const ConfigurationPanel: React.FC<Props> = React.memo(
-  ({ name, project_id, settings, configuring_projects }) => {
-    const actions = useActions<CourseActions>({ name });
+export function ConfigurationPanel({
+  name,
+  project_id,
+  settings,
+  configuring_projects,
+}: Props) {
+  const actions = useActions<CourseActions>({ name });
 
-    return (
-      <div className="smc-vfill" style={{ overflowY: "scroll" }}>
-        <Row>
-          <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
-            <UpgradeConfiguration
-              name={name}
-              settings={settings}
-              configuring_projects={configuring_projects}
-              actions={actions}
-            />
-            <br />
-            <TitleAndDescription
-              actions={actions}
-              settings={settings}
-              name={name}
-            />
-            <br />
-            <EmailInvitation
-              actions={actions}
-              redux={redux}
-              project_id={project_id}
-              name={name}
-            />
-            <br />
-            <Nbgrader name={name} />
-          </Col>
-          <Col md={12} style={{ padding: "15px" }}>
-            <CollaboratorPolicy settings={settings} actions={actions} />
-            <br />
-            <RestrictStudentProjects settings={settings} actions={actions} />
-            <br />
-            <StudentProjectSoftwareEnvironment
-              actions={actions.configuration}
-              software_image={settings.get("custom_image")}
-              course_project_id={project_id}
-              inherit_compute_image={settings.get("inherit_compute_image")}
-            />
-            <br />
-            <Parallel name={name} />
-            <NetworkFilesystem
-              actions={actions}
-              settings={settings}
-              project_id={project_id}
-            />
-            <br />
-            <EnvVariables
-              actions={actions}
-              settings={settings}
-              project_id={project_id}
-            />
-            {/*<br />
-            <Mirror
-              checked={!!settings.get("mirror_config")}
-              setChecked={(mirror_config: boolean) => {
-                actions.set({ mirror_config, table: "settings" });
-              }}
-              path={settings.get("mirror_config_path")}
-              setPath={(mirror_config_path) => {
-                actions.set({ mirror_config_path, table: "settings" });
-              }}
-              project_id={project_id}
-            />*/}
-          </Col>
-        </Row>
-      </div>
-    );
-  },
-);
+  return (
+    <div
+      className="smc-vfill"
+      style={{
+        overflowY: "scroll",
+      }}
+    >
+      <Row>
+        <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
+          <UpgradeConfiguration
+            name={name}
+            settings={settings}
+            configuring_projects={configuring_projects}
+            actions={actions}
+          />
+          <br />
+          <TitleAndDescription
+            actions={actions}
+            settings={settings}
+            name={name}
+          />
+          <br />
+          <EmailInvitation
+            actions={actions}
+            redux={redux}
+            project_id={project_id}
+            name={name}
+          />
+          <br />
+          <Nbgrader name={name} />
+        </Col>
+        <Col md={12} style={{ padding: "15px" }}>
+          <CollaboratorPolicy settings={settings} actions={actions} />
+          <br />
+          <RestrictStudentProjects settings={settings} actions={actions} />
+          <br />
+          <ConfigureSoftwareEnvironment
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
+          />
+          <br />
+          <Parallel name={name} />
+          <NetworkFilesystem
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
+          />
+          <br />
+          <EnvVariables
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
+          />
+          <br />
+          <ConfigurationCopying
+            actions={actions}
+            settings={settings}
+            project_id={project_id}
+          />
+        </Col>
+      </Row>
+    </div>
+  );
+}
 
 export function UpgradeConfiguration({
   name,
@@ -150,8 +150,10 @@ export function UpgradeConfiguration({
   /**
    * OnPrem instances support licenses to be distributed to all student projects.
    */
-  function render_onprem_upgrade_projects(): React.ReactNode {
-    if (is_commercial || kucalc !== KUCALC_ON_PREMISES) return;
+  function render_onprem_upgrade_projects() {
+    if (is_commercial || kucalc !== KUCALC_ON_PREMISES) {
+      return;
+    }
     return (
       <>
         <StudentProjectUpgrades
@@ -344,6 +346,28 @@ export function EnvVariables({
       actions={actions.configuration}
       envvars={settings.get("envvars")}
       project_id={project_id}
+      close={close}
+    />
+  );
+}
+
+export function ConfigureSoftwareEnvironment({
+  actions,
+  settings,
+  project_id,
+  close,
+}: {
+  actions;
+  settings;
+  project_id;
+  close?;
+}) {
+  return (
+    <StudentProjectSoftwareEnvironment
+      actions={actions.configuration}
+      software_image={settings.get("custom_image")}
+      course_project_id={project_id}
+      inherit_compute_image={settings.get("inherit_compute_image")}
       close={close}
     />
   );

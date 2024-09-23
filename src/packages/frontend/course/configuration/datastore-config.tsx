@@ -10,13 +10,8 @@
 
 import { Button, Card, Form, Switch, Typography } from "antd";
 import { List } from "immutable";
-import { useEffect } from "react";
-import {
-  redux,
-  React,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { useEffect, useState } from "react";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { Datastore } from "@cocalc/frontend/projects/actions";
 import {
@@ -32,8 +27,12 @@ interface Props {
   close?: Function;
 }
 
-export const DatastoreConfig: React.FC<Props> = (props: Props) => {
-  const { actions, datastore } = props;
+export function DatastoreConfig({
+  actions,
+  datastore,
+  project_id,
+  close,
+}: Props) {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_datastore = useTypedRedux("customize", "datastore");
   const [need_save, set_need_save] = useState<boolean>(false);
@@ -58,7 +57,7 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
 
   function save() {
     actions.set_datastore(next_val);
-    props.close?.();
+    close?.();
   }
 
   // this selector only make sense for cocalc.com or onprem with datastore enabled
@@ -107,10 +106,8 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
           configure them, please check{" "}
           <a
             onClick={() => {
-              redux
-                .getProjectActions(props.project_id)
-                .set_active_tab("settings");
-              props.close?.();
+              redux.getProjectActions(project_id).set_active_tab("settings");
+              close?.();
             }}
           >
             this project's settings
@@ -122,4 +119,4 @@ export const DatastoreConfig: React.FC<Props> = (props: Props) => {
       </Card>
     </>
   );
-};
+}
