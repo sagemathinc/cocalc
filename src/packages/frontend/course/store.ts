@@ -143,6 +143,8 @@ export type CourseSettingsRecord = TypedMap<{
   email_invite: string;
   institute_pay: boolean;
   pay: string | Date;
+  payInfo?: TypedMap<PurchaseInfo>;
+  payCost?: number;
   shared_project_id: string;
   student_pay: boolean;
   title: string;
@@ -273,7 +275,7 @@ export class CourseStore extends Store<CourseState> {
   public get_payInfo(): PurchaseInfo | null {
     const settings = this.get("settings");
     if (settings == null || !settings.get("student_pay")) return null;
-    const payInfo = settings.get("payInfo");
+    const payInfo = settings.get("payInfo")?.toJS();
     if (!payInfo) return null;
     return payInfo;
   }

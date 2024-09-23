@@ -392,7 +392,9 @@ export class ConfigurationActions {
     this.set_compute_image(image);
   };
 
-  set_nbgrader_parallel = (nbgrader_parallel: number=PARALLEL_DEFAULT): void => {
+  set_nbgrader_parallel = (
+    nbgrader_parallel: number = PARALLEL_DEFAULT,
+  ): void => {
     this.set({
       nbgrader_parallel,
       table: "settings",
@@ -491,10 +493,10 @@ export const CONFIGURATION_GROUPS = [
   "copy-limit",
   "restrict-student-projects",
   "nbgrader",
-  "network-file-systems",
-  "env-variables",
   "upgrades",
-  "software-environment",
+  //   "network-file-systems",
+  //   "env-variables",
+  //   "software-environment",
 ] as const;
 
 export type ConfigurationGroup = (typeof CONFIGURATION_GROUPS)[number];
@@ -547,10 +549,34 @@ async function configureGroup({
       );
       return;
 
-    case "network-file-systems":
-    case "env-variables":
     case "upgrades":
-    case "software-environment":
+      if (settings.get("student_pay")) {
+        actions.configuration.set_pay_choice("student", true);
+        await actions.configuration.setStudentPay({
+          when: settings.get("pay"),
+          info: settings.get("payInfo")?.toJS(),
+          cost: settings.get("payCost"),
+        });
+        await actions.configuration.configure_all_projects();
+      } else {
+        actions.configuration.set_pay_choice("student", false);
+      }
+      if (settings.get("institute_pay")) {
+        actions.configuration.set_pay_choice("institute", true);
+        const strategy = settings.get("set_site_license_strategy");
+        if (strategy != null) {
+          actions.configuration.set_site_license_strategy(strategy);
+        }
+        const site_license_id = settings.get("site_license_id");
+        actions.configuration.set({ site_license_id, table: "settings" });
+      } else {
+        actions.configuration.set_pay_choice("institute", false);
+      }
+      return;
+
+    //     case "network-file-systems":
+    //     case "env-variables":
+    //     case "software-environment":
     default:
       throw Error(`configuring group ${group} not implemented`);
   }

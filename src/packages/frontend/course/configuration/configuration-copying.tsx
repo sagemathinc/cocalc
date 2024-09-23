@@ -107,7 +107,10 @@ export default function ConfigurationCopying({
       }
     >
       <div style={{ color: "#666" }}>
-        Copy configuration from this course to other courses.
+        Copy configuration from this course to other courses. If you divide a
+        large course into multiple smaller sections, you can list each of the
+        other .course files below, then easily open any or all of them, and copy
+        configuration from this course to them.
       </div>
       <div style={{ textAlign: "center", margin: "15px 0" }}>
         <Button
@@ -267,7 +270,7 @@ function ConfigTargets({
       <div style={{ display: "flex" }}>
         <div style={{ flex: 1 }}>
           <Divider>
-            Target Courses{" "}
+            Courses to Configure{" "}
             <Tooltip
               mouseEnterDelay={1}
               title="Open all selected targets in background tabs."
@@ -321,27 +324,29 @@ function ConfigOptions({ settings, actions, numOptions }) {
   for (const option of CONFIGURATION_GROUPS) {
     const { title, label, icon } = COMMANDS[option] ?? {};
     v.push(
-      <Tooltip key={option} title={title} mouseEnterDelay={1}>
-        <Checkbox
-          checked={options[option]}
-          onChange={(e) => {
-            const copy_config_options = {
-              ...options,
-              [option]: e.target.checked,
-            };
-            actions.set({ copy_config_options, table: "settings" });
-          }}
-        >
-          <Icon name={icon} /> {label}
-        </Checkbox>
-      </Tooltip>,
+      <div key={option}>
+        <Tooltip title={title} mouseEnterDelay={1}>
+          <Checkbox
+            checked={options[option]}
+            onChange={(e) => {
+              const copy_config_options = {
+                ...options,
+                [option]: e.target.checked,
+              };
+              actions.set({ copy_config_options, table: "settings" });
+            }}
+          >
+            <Icon name={icon} /> {label}
+          </Checkbox>
+        </Tooltip>
+      </div>,
     );
   }
   return (
     <div>
       <div style={{ display: "flex" }}>
         <div style={{ flex: 1 }}>
-          <Divider>Configuration Items to Copy</Divider>
+          <Divider>Configuration to Copy</Divider>
         </div>
         <Space style={{ margin: "0 15px" }}>
           <Button
@@ -454,7 +459,7 @@ function AddTarget({ settings, actions, project_id }) {
             setPath("");
           }}
         >
-          <Icon name="plus-circle" /> New Target...
+          <Icon name="plus-circle" /> Add Course...
         </Button>
         {adding && (
           <Space.Compact style={{ width: "100%", flex: 1, margin: "0 15px" }}>
