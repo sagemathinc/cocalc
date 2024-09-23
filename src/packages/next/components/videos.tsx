@@ -34,19 +34,23 @@ export default function Videos({ videos }: { videos: Readonly<Video[]> }) {
   );
 }
 
-function VideoItem({
+export function VideoItem({
   id,
   title,
-  number,
-  current,
+  number = 0,
+  current = 0,
+  style,
+  width = 672,
 }: {
   id: string;
-  title: string;
+  title?: string;
   number: number;
   current: number;
+  style?;
+  width?: number;
 }) {
   return (
-    <div>
+    <div style={style}>
       <div
         style={{
           background: "black",
@@ -54,19 +58,23 @@ function VideoItem({
           paddingTop: "5px",
         }}
       >
-        <A style={{ color: "white" }} href={`https://youtu.be/${id}`}>
-          <Icon name="youtube" style={{ color: "red" }} /> {title}
-        </A>
-        <iframe
-          style={{ marginTop: "30px", maxWidth: "100%" }}
-          width="672"
-          height="378"
-          src={`https://www.youtube.com/embed/${current == number ? id : ""}`}
-          title="YouTube video player"
-          frameBorder={0}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
+        {title && (
+          <A style={{ color: "white" }} href={`https://youtu.be/${id}`}>
+            <Icon name="youtube" style={{ color: "red" }} /> {title}
+          </A>
+        )}
+        <div style={{ textAlign: "center" }}>
+          <iframe
+            style={{ marginTop: "30px", maxWidth: "100%" }}
+            width={width}
+            height={(width * 9) / 16}
+            src={`https://www.youtube.com/embed/${current == number ? id : ""}`}
+            title="YouTube video player"
+            frameBorder={0}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
         <A
           style={{ color: "white", float: "right", marginRight: "10px" }}
           href="https://www.youtube.com/@cocalc-cloud"
