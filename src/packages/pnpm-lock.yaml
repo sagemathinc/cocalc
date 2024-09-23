@@ -615,8 +615,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       three-ancient:
-        specifier: npm:three@^0.78.0
-        version: three@0.168.0
+        specifier: npm:three@=0.78.0
+        version: three@0.78.0
       timeago:
         specifier: ^1.6.3
         version: 1.6.7
@@ -10890,8 +10890,8 @@ packages:
   text-table@0.2.0:
     resolution: {integrity: sha512-N+8UisAXDGk8PFXP4HAzVR9nbfmVJ3zYLAWiTIoqC5v5isinhr+r5uaO8+7r3BMfuNIufIsA7RdpVgacC2cSpw==}
 
-  three@0.168.0:
-    resolution: {integrity: sha512-6m6jXtDwMJEK/GGMbAOTSAmxNdzKvvBzgd7q8bE/7Tr6m7PaBh5kKLrN7faWtlglXbzj7sVba48Idwx+NRsZXw==}
+  three@0.78.0:
+    resolution: {integrity: sha512-JIu4XJrBiwN68qb9Vz/0vF1MjhXM5WueBWpRid+wI2gAKlmnseKCNI3srWbBCV7te1bk9X+sw4ASMSMl5Ng98w==}
 
   throttle-debounce@5.0.2:
     resolution: {integrity: sha512-B71/4oyj61iNH0KeCamLuE2rmKuTO5byTOSVwECM5FA7TiAiAW+UqTKZ9ERueC4qvgSttUhdmq1mXC3kJqGX7A==}
@@ -22247,7 +22247,7 @@ snapshots:
 
   text-table@0.2.0: {}
 
-  three@0.168.0: {}
+  three@0.78.0: {}
 
   throttle-debounce@5.0.2: {}
 
