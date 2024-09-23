@@ -28,6 +28,7 @@ import { TerminalModeDisplay } from "./terminal-mode-display";
 import { TERM_MODE_CHAR } from "./utils";
 
 import * as misc from "@cocalc/util/misc";
+import { FormattedMessage } from "react-intl";
 const { Col, Row } = require("react-bootstrap");
 
 interface Props {
@@ -270,19 +271,25 @@ export const FileListing: React.FC<Props> = ({
         <div
           style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
         >
-          <>
-            Showing stale directory listing{" "}
-            {missing > 0 && <b>missing {missing} files</b>}.{" "}
-          </>
-          To update the directory listing,{" "}
-          <a
-            onClick={() => {
-              redux.getActions("projects").start_project(project_id);
+          <FormattedMessage
+            id="project.explorer.file-listing.stale-warning"
+            defaultMessage={`Showing stale directory listing
+              {is_missing, select, true {<b>missing {missing} files</b>} other {}}.
+              To update the directory listing <a>start this project</a>.`}
+            values={{
+              is_missing: missing > 0,
+              missing,
+              a: (c) => (
+                <a
+                  onClick={() => {
+                    redux.getActions("projects").start_project(project_id);
+                  }}
+                >
+                  {c}
+                </a>
+              ),
             }}
-          >
-            start this project
-          </a>
-          .
+          />
         </div>
       )}
       <Col

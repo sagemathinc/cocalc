@@ -22,6 +22,10 @@ export const labels = defineMessages({
     defaultMessage: "Reset",
     description: "A 'Reset' button on a small confirmation modal dialog",
   },
+  other: {
+    id: "labels.other",
+    defaultMessage: "Other",
+  },
   project: {
     id: "labels.project",
     defaultMessage: "Project",
@@ -739,6 +743,27 @@ export const editor = defineMessages({
 
 export const jupyter = {
   editor: defineMessages({
+    nbgrader_minimal_stubs: {
+      id: "jupyter.editor.nbgrader.actions.confirm_assign.minimal_stubs",
+      defaultMessage: "Generate with minimal stubs",
+    },
+    nbgrader_create_title: {
+      id: "jupyter.editor.nbgrader.actions.confirm_assign.title",
+      defaultMessage:
+        "Generate Student Version{full, select, true { of Jupyter Notebook} other {}}",
+    },
+    nbgrader_create_body: {
+      id: "jupyter.editor.nbgrader.actions.confirm_assign.body",
+      defaultMessage: `Generating the student version of the Jupyter Notebook will create a new Jupyter Notebook "{target}"
+        that is ready to distribute to your students.
+        This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted;
+        it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE";
+        and it clears all outputs.
+        Once done, you can easily inspect the resulting notebook to make sure everything looks right.
+        (This is analogous to 'nbgrader assign'.)
+        The CoCalc course management system will *only* copy the {STUDENT_SUBDIR} subdirectory
+        that contains this generated notebook to students.`,
+    },
     snippets_tooltip: {
       id: "jupyter.editor.snippets_tooltip",
       defaultMessage: "Open a panel containing code snippets.",

@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import type { SelectProps } from "antd";
 import { Select, Space, Tag, Tooltip } from "antd";
 import type { ConfigProviderProps } from "antd/lib/config-provider";
@@ -42,6 +47,15 @@ import type { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { getCustomLLMGroup } from "./components";
 
 type SizeType = ConfigProviderProps["componentSize"];
+
+const OPTION_TITLE_STYLE: CSS = {
+  maxWidth: "300px",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  display: "inline-block",
+  verticalAlign: "bottom",
+} as const;
 
 interface Props {
   model: LanguageModel;
@@ -92,12 +106,13 @@ export default function LLMSelector({
     );
     const tooltip = (
       <>
-        <strong>{model}</strong> – {title}
+        <strong>{model}</strong>: {title}
       </>
     );
     const display = (
       <>
-        <LanguageModelVendorAvatar model={btnModel} /> {tooltip}
+        <LanguageModelVendorAvatar model={btnModel} /> <strong>{model}</strong>{" "}
+        – <span style={OPTION_TITLE_STYLE}>{title}</span>
       </>
     );
     return {

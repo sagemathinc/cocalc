@@ -4,10 +4,7 @@
  */
 
 /*
-The account page. This is what you see when you
-click "Account" in the upper right.  It has tabs
-for different account related information
-and configuration.
+Basically a drop-down to change the langauge (i18n localization)
 */
 
 import { DownOutlined } from "@ant-design/icons";
@@ -17,6 +14,7 @@ import { useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { I18N_HINT_ACCOUNT_SETTINGS } from "@cocalc/frontend/app/i18n-banner";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import {
@@ -131,7 +129,7 @@ export function I18NSelector(props: Readonly<Props>) {
                 lang: `${LOCALIZATIONS[key].native} (${LOCALIZATIONS[key].name})`,
               },
             ),
-            content: `You can change the language in "Account" settings as well.`,
+            content: I18N_HINT_ACCOUNT_SETTINGS,
           });
         } else {
           changeLocale(key);

@@ -4,6 +4,7 @@
  */
 
 import { Button } from "antd";
+import { useIntl } from "react-intl";
 
 import {
   I18N_MESSAGE,
@@ -18,7 +19,13 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
-import { CloseX2, HelpIcon, Icon, Text } from "@cocalc/frontend/components";
+import {
+  CloseX2,
+  HelpIcon,
+  HiddenXSSM,
+  Icon,
+  Text,
+} from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import {
   DEFAULT_LOCALE,
@@ -26,9 +33,11 @@ import {
 } from "@cocalc/frontend/i18n";
 import { KEEP_EN_LOCALE } from "@cocalc/util/consts/locale";
 import { COLORS } from "@cocalc/util/theme";
-import { useIntl } from "react-intl";
 
-const VERSION_WARNING_STYLE: CSS = {
+// no need to translate this message, since it only shows up when there is no locale set
+export const I18N_HINT_ACCOUNT_SETTINGS = `You can also change the language in your "Account" settings.`;
+
+const I18N_BANNER_STYLE: CSS = {
   width: "100%",
   padding: "5px",
   borderBottom: `1px solid ${COLORS.GRAY_D}`,
@@ -62,7 +71,7 @@ export const I18NBanner: React.FC<{}> = () => {
   }
 
   return (
-    <div style={VERSION_WARNING_STYLE}>
+    <div style={I18N_BANNER_STYLE}>
       <Text strong>
         <Icon name={"translation-outlined"} /> Use <SiteName /> in a different
         language:
@@ -72,7 +81,7 @@ export const I18NBanner: React.FC<{}> = () => {
         Keep English
       </Button>{" "}
       <Text type="secondary">
-        You can change the language in "Account" settings as well.{" "}
+        <HiddenXSSM>{I18N_HINT_ACCOUNT_SETTINGS}</HiddenXSSM>{" "}
         <HelpIcon title={intl.formatMessage(I18N_TITLE)}>
           {intl.formatMessage(I18N_MESSAGE)}
         </HelpIcon>{" "}
