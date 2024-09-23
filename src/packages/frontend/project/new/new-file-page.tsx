@@ -27,6 +27,7 @@ import {
 import FakeProgress from "@cocalc/frontend/components/fake-progress";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
+import { labels } from "@cocalc/frontend/i18n";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
 import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
@@ -99,6 +100,7 @@ export default function NewFilePage(props: Props) {
   const [creatingFile, setCreatingFile] = useState<string>("");
 
   async function createFile(ext?: string) {
+    const filename = inputRef.current?.input.value;
     if (!filename) {
       return;
     }
@@ -122,6 +124,7 @@ export default function NewFilePage(props: Props) {
   }
 
   function submit(ext?: string) {
+    const filename = inputRef.current?.input.value;
     if (!filename) {
       // empty filename
       return;
@@ -212,17 +215,27 @@ export default function NewFilePage(props: Props) {
         <Row style={{ marginTop: "20px" }}>
           <Col sm={12}>
             <h4>
-              <Icon name="cloud-upload" /> Upload Files Into Your Project
+              <Icon name="cloud-upload" />{" "}
+              <FormattedMessage
+                id="project.new.new-file-page.upload.title"
+                defaultMessage={"Upload Files Into Your Project"}
+              />
             </h4>
           </Col>
         </Row>
         <Row>
           <Col sm={24}>
             <div style={{ color: COLORS.GRAY_M, fontSize: "12pt" }}>
-              You can drop one or more files here or on the Explorer file
-              listing. See{" "}
-              <A href="https://doc.cocalc.com/howto/upload.html">the docs</A>{" "}
-              for more ways to get your files into your project.
+              <FormattedMessage
+                id="project.new.new-file-page.upload.description"
+                defaultMessage={`You can drop one or more files here or on the Explorer file listing.
+                  See <A>documentation</A> for more ways to get your files into your project.`}
+                values={{
+                  A: (c) => (
+                    <A href="https://doc.cocalc.com/howto/upload.html">{c}</A>
+                  ),
+                }}
+              />
             </div>
           </Col>
         </Row>
@@ -247,25 +260,53 @@ export default function NewFilePage(props: Props) {
   const renderCreate = () => {
     let desc: string;
     if (filename.endsWith("/")) {
-      desc = "folder";
+      desc = intl.formatMessage(labels.folder);
     } else if (
       filename.toLowerCase().startsWith("http:") ||
       filename.toLowerCase().startsWith("https:")
     ) {
-      desc = "download";
+      desc = intl.formatMessage(labels.download);
     } else {
       const ext = filename_extension(filename);
       if (ext) {
-        desc = `${ext} file`;
+        desc = intl.formatMessage(
+          {
+            id: "project.new.new-file-page.create.desc_file",
+            defaultMessage: "{ext} file",
+            description: "An extension-nameed file on a button",
+          },
+          { ext },
+        );
       } else {
-        desc = "file with no extension";
+        desc = intl.formatMessage({
+          id: "project.new.new-file-page.create.desc_no_ext",
+          defaultMessage: "file with no extension",
+          description: "A filename without an extension",
+        });
       }
     }
+    const title = intl.formatMessage(
+      {
+        id: "project.new.new-file-page.create.title",
+        defaultMessage: `Create {desc}`,
+        description: "creating a file with the given description",
+      },
+      { desc },
+    );
+
     return (
       <Tip
         icon="file"
-        title={`Create ${desc}`}
-        tip={`Create ${desc}.  You can also press return.`}
+        title={title}
+        tip={intl.formatMessage(
+          {
+            id: "project.new.new-file-page.create.tooltip",
+            defaultMessage: `{title}.  You can also press return.`,
+            description:
+              "Informing the user in this tooltip, that it is also possible to press the return key",
+          },
+          { title },
+        )}
       >
         <Button
           size="large"

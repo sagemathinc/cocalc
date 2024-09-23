@@ -2,7 +2,7 @@
 Launcher buttons shown for a running compute server.
 */
 
-import { Button, Modal, Spin } from "antd";
+import { Button, Modal, Spin, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import { useImages } from "@cocalc/frontend/compute/images-hook";
 import { useMemo, useState } from "react";
@@ -48,29 +48,46 @@ export default function Launcher({
       </Button>*/}
 
       {apps["jupyterlab"] != null && (
-        <Button
-          onClick={() => setAppName("jupyterlab")}
-          type="text"
-          size="small"
-          style={{ color: "#666" }}
-        >
-          <Icon
-            name={apps["jupyterlab"].icon}
-            style={{ marginRight: "-5px" }}
-          />
-          JupyterLab
-        </Button>
+        <Tooltip title={apps["jupyterlab"].tip} placement="left">
+          <Button
+            onClick={() => setAppName("jupyterlab")}
+            type="text"
+            size="small"
+            style={{ color: "#666" }}
+          >
+            <Icon
+              name={apps["jupyterlab"].icon}
+              style={{ marginRight: "-5px" }}
+            />
+            JupyterLab
+          </Button>
+        </Tooltip>
       )}
       {apps["vscode"] != null && (
-        <Button
-          onClick={() => setAppName("vscode")}
-          type="text"
-          size="small"
-          style={{ color: "#666" }}
-        >
-          <Icon name={apps["vscode"].icon} style={{ marginRight: "-5px" }} />
-          VS Code
-        </Button>
+        <Tooltip title={apps["vscode"].tip} placement="left">
+          <Button
+            onClick={() => setAppName("vscode")}
+            type="text"
+            size="small"
+            style={{ color: "#666" }}
+          >
+            <Icon name={apps["vscode"].icon} style={{ marginRight: "-5px" }} />
+            VS Code
+          </Button>
+        </Tooltip>
+      )}
+      {apps["xpra"] != null && (
+        <Tooltip title={apps["xpra"].tip} placement="left">
+          <Button
+            onClick={() => setAppName("xpra")}
+            type="text"
+            size="small"
+            style={{ color: "#666" }}
+          >
+            <Icon name={apps["xpra"].icon} style={{ marginRight: "-5px" }} />
+            Desktop
+          </Button>
+        </Tooltip>
       )}
     </div>
   );
@@ -151,7 +168,7 @@ export function AppLauncherModal({
     return <Spin />;
   }
   const image = server.configuration?.image ?? "defaults";
-  const apps = IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? {};
+  const apps = getApps(image);
 
   return (
     <Modal
@@ -169,6 +186,7 @@ export function AppLauncherModal({
       onCancel={close}
       destroyOnClose
     >
+      {apps[name]?.tip}
       <AppLauncher
         name={name}
         configuration={server.configuration}

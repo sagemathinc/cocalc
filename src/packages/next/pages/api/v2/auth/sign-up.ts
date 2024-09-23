@@ -17,7 +17,6 @@ Sign up for a new account:
 
 import { v4 } from "uuid";
 import { Request, Response } from "express";
-
 import {
   len,
   is_valid_email_address as isValidEmailAddress,
@@ -196,7 +195,7 @@ function checkObviousConditions({ terms, email, password }): Issues {
     issues.email = "You must provide a valid email address.";
   }
   if (!password || password.length < 6) {
-    issues.password = "Your password must not be trivial to guess.";
+    issues.password = "Your password must not be very easy to guess.";
   } else {
     const { score, help } = passwordStrength(password);
     if (score <= 2) {

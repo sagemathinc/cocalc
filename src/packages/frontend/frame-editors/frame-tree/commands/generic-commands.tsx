@@ -6,7 +6,7 @@
 import { Input } from "antd";
 import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
-import { defineMessage, IntlShape } from "react-intl";
+import { defineMessage, IntlShape, useIntl } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -154,7 +154,7 @@ addCommands({
   show_overview: {
     group: "show-frames",
     title: "Show overview of all pages",
-    label: "Overview",
+    label: labels.overview,
     icon: "overview",
   },
   show_pages: {
@@ -166,7 +166,7 @@ addCommands({
   show_slideshow: {
     group: "show-frames",
     title: "Display Slideshow Presentation",
-    label: "Slideshow",
+    label: labels.slideshow,
     icon: "play-square",
   },
   show_speaker_notes: {
@@ -187,7 +187,7 @@ addCommands({
     title: "Open a command line terminal for interacting with the Linux prompt",
     icon: "terminal",
     disable: "disableTerminals",
-    label: "Terminal",
+    label: labels.terminal,
   },
   decrease_font_size: {
     stayOpenOnClick: true,
@@ -365,16 +365,22 @@ addCommands({
   help: {
     pos: 0,
     group: "help-link",
-    label: "Documentation",
+    label: labels.documentation,
     icon: "question-circle",
-    title: "Show documentation for working with this editor",
+    title: defineMessage({
+      id: "command.generic.help.title",
+      defaultMessage: "Show documentation for working with this editor",
+    }),
     tour: "help",
   },
 
   clear: {
     group: "action",
-    button: "Clear",
-    label: "Clear Frame",
+    button: labels.clear,
+    label: defineMessage({
+      id: "command.generic.clear.label",
+      defaultMessage: "Clear Frame",
+    }),
     icon: <Icon unicode={0x2620} />,
     popconfirm: {
       title: "Clear this frame?",
@@ -383,9 +389,16 @@ addCommands({
 
   pause: {
     group: "action",
-    button: "Pause",
-    icon: "pause",
-    label: ({ props }) => {
+    button: ({ props, intl }) => (
+      <span>
+        {intl.formatMessage(menu.pause_resume, { pause: props.is_paused })}
+      </span>
+    ),
+    icon: ({ props }) => (props.is_paused ? "play" : "pause"),
+    label: ({ props, intl }) => {
+      const label = intl.formatMessage(menu.pause_resume, {
+        pause: props.is_paused,
+      });
       if (props.is_paused) {
         return (
           <div
@@ -396,13 +409,17 @@ addCommands({
               padding: "0 20px",
             }}
           >
-            Resume
+            {label}
           </div>
         );
+      } else {
+        return <span>{label}</span>;
       }
-      return <span>Pause</span>;
     },
-    title: "Pause this frame temporarily",
+    title: defineMessage({
+      id: "command.generic.pause.tooltip",
+      defaultMessage: "Temporarily pause output in this terminal.",
+    }),
     onClick: ({ props }) => {
       if (props.is_paused) {
         props.actions.unpause(props.id);
@@ -440,7 +457,7 @@ addCommands({
     group: "quit",
     icon: "PoweroffOutlined",
     label: menu.close_and_halt,
-    title: "Halt backend server and close this file.",
+    title: menu.close_and_halt_title,
   },
 
   reload: {
@@ -474,38 +491,78 @@ addCommands({
   find: {
     group: "find",
     pos: 0,
-    label: "Find",
+    label: defineMessage({
+      id: "command.generic.find.label",
+      defaultMessage: "Find",
+      description: "Find (or Search) for a string in a document",
+    }),
     icon: "search",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + F`,
   },
   replace: {
     group: "find",
     pos: 0,
-    label: "Replace",
+    label: defineMessage({
+      id: "command.generic.replace.label",
+      defaultMessage: "Replace",
+      description: "Replace a string with another string in a document",
+    }),
     icon: "replace",
     disabled: ({ readOnly }) => readOnly,
   },
   goto_line: {
     group: "find",
     pos: 3,
-    label: "Goto Line",
-    button: "Line",
+    label: defineMessage({
+      id: "command.generic.goto_line.label",
+      defaultMessage: "Goto Line",
+      description: "Goto a specific line in a document",
+    }),
+    button: defineMessage({
+      id: "command.generic.goto_line.button",
+      defaultMessage: "Line",
+      description: "Goto a specific line in a document",
+    }),
     icon: "bolt",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + L`,
   },
   auto_indent: {
     group: "code-format",
-    label: "Auto Indent",
-    button: "Indent",
-    title: "Automatically indent selected code",
+    label: defineMessage({
+      id: "command.generic.auto_indent.label",
+      defaultMessage: "Auto Indent",
+      description: "Automatic indentation of code in a text document",
+    }),
+    button: defineMessage({
+      id: "command.generic.auto_indent.button",
+      defaultMessage: "Indent",
+      description: "Automatic indentation of code in a text document",
+    }),
+    title: defineMessage({
+      id: "command.generic.auto_indent.tooltip",
+      defaultMessage: "Automatically indent selected code",
+      description: "Automatic indentation of code in a text document",
+    }),
     disabled: ({ readOnly }) => readOnly,
     icon: "indent",
   },
   format: {
     group: "code-format",
-    label: "Format Source Code",
-    button: "Format",
-    title: "Syntactically format using a parser such as prettier.",
+    label: defineMessage({
+      id: "command.generic.format.label",
+      defaultMessage: "Format Source Code",
+      description: "Automatic formatting of code in a code file",
+    }),
+    button: defineMessage({
+      id: "command.generic.format.button",
+      defaultMessage: "Format",
+      description: "Automatic formatting of code in a code file",
+    }),
+    title: defineMessage({
+      id: "command.generic.format.tooltip",
+      defaultMessage: "Syntactically format using a parser such as prettier.",
+      description: "Automatic formatting of code in a code file",
+    }),
     icon: FORMAT_SOURCE_ICON,
     keyboard: `${IS_MACOS ? "⌘" : "control"} + shift + F`,
   },
@@ -575,26 +632,47 @@ addCommands({
   },
   clean: {
     group: "build",
-    label: "Delete Aux Files",
-    title: "Delete all temporary files left around from builds",
+    label: defineMessage({
+      id: "command.generic.clean.label",
+      defaultMessage: "Delete Aux Files",
+      description: "Clean up auxiliary build files",
+    }),
+    title: defineMessage({
+      id: "command.generic.clean.title",
+      defaultMessage: "Delete all temporary files left around from builds",
+      description: "Clean up auxiliary build files",
+    }),
     icon: "trash",
   },
 
   rescan_latex_directive: {
     group: "scan",
-    label: "Scan for Build Directives",
-    title: (
-      <>
-        Rescan the document for build directives, starting{" "}
-        <code>'% !TeX program = xelatex, pdflatex, etc'</code> or{" "}
-        <code>'% !TeX cocalc = exact command line'</code>
-      </>
-    ),
+    label: defineMessage({
+      id: "command.generic.rescan_latex_directive.label",
+      defaultMessage: "Scan for Build Directives",
+    }),
+    title: ({ intl }) =>
+      intl.formatMessage(
+        {
+          id: "command.generic.rescan_latex_directive.title",
+          defaultMessage: `Rescan the LaTeX document for build directives.
+          This looks for lines starting with {code1} or {code2}.`,
+        },
+        {
+          code1: <code>'% !TeX program = xelatex, pdflatex, etc'</code>,
+          code2: <code>'% !TeX cocalc = exact command line'</code>,
+        },
+      ),
     icon: "reload",
   },
   sync: {
     group: "show-frames",
-    button: "Sync",
+    button: defineMessage({
+      id: "command.generic.sync.button",
+      defaultMessage: "Sync",
+      description:
+        "Short button label for synchronizing the LaTeX source view with the PDF output",
+    }),
     label: defineMessage({
       id: "command.generic.sync.label",
       defaultMessage: "Synchronize Views",
@@ -656,10 +734,20 @@ addCommands({
     pos: -1,
     group: "show-frames",
     icon: "lock",
-    title:
-      "This is an editable view of the document. You can edit it directly.  Select this option to switch to a read only view.",
-    label: "Switch to Readonly View",
-    button: "Lock",
+    title: defineMessage({
+      id: "menu.generic.readonly_view.tooltip",
+      defaultMessage:
+        "This is an editable view of the document. You can edit it directly.  Select this option to switch to a read only view.",
+    }),
+
+    label: defineMessage({
+      id: "menu.generic.readonly_view.label",
+      defaultMessage: "Switch to Readonly View",
+    }),
+    button: defineMessage({
+      id: "menu.generic.readonly_view.button",
+      defaultMessage: "Lock",
+    }),
     onClick: ({ props }) => {
       props.actions["readonly_view"]?.(props.id);
     },
@@ -669,10 +757,19 @@ addCommands({
     pos: -1,
     group: "show-frames",
     icon: "pencil",
-    title:
-      "This is a readonly view of the document.  Select this option to switch to a directly editable view.",
-    label: "Switch to Editable View",
-    button: "Edit",
+    title: defineMessage({
+      id: "menu.generic.editable_view.tooltip",
+      defaultMessage:
+        "This is a readonly view of the document. Select this option to switch to a directly editable view.",
+    }),
+    label: defineMessage({
+      id: "menu.generic.editable_view.label",
+      defaultMessage: "Switch to Editable View",
+    }),
+    button: defineMessage({
+      id: "menu.generic.editable_view.button",
+      defaultMessage: "Edit",
+    }),
     onClick: ({ props }) => props.actions["edit"]?.(props.id),
   },
 
@@ -680,8 +777,14 @@ addCommands({
     disabled: ({ readOnly }) => readOnly,
     group: "delete",
     icon: "trash",
-    title: "Delete this file",
-    label: "Delete File",
+    title: defineMessage({
+      id: "menu.generic.delete.tooltip",
+      defaultMessage: "Delete this file",
+    }),
+    label: defineMessage({
+      id: "menu.generic.delete.label",
+      defaultMessage: "Delete File",
+    }),
     ...fileAction("delete"),
   },
 
@@ -690,32 +793,56 @@ addCommands({
     pos: 0,
     group: "misc-file-actions",
     icon: "swap",
-    title: "Rename this file",
-    label: "Rename File",
+    title: defineMessage({
+      id: "menu.generic.rename.tooltip",
+      defaultMessage: "Rename this file",
+    }),
+    label: defineMessage({
+      id: "menu.generic.rename.label",
+      defaultMessage: "Rename File",
+    }),
     ...fileAction("rename"),
   },
   compress: {
     pos: 1,
     group: "misc-file-actions",
     icon: "compress",
-    title: "Compress this file",
-    label: "Compress File",
+    title: defineMessage({
+      id: "menu.generic.compress.tooltip",
+      defaultMessage: "Compress this file",
+    }),
+    label: defineMessage({
+      id: "menu.generic.compress.label",
+      defaultMessage: "Compress File",
+    }),
     ...fileAction("compress"),
   },
   duplicate: {
     pos: 2,
     group: "misc-file-actions",
     icon: "clone",
-    title: "Duplicate this file",
-    label: "Duplicate File",
+    title: defineMessage({
+      id: "menu.generic.duplicate.tooltip",
+      defaultMessage: "Duplicate this file",
+    }),
+    label: defineMessage({
+      id: "menu.generic.duplicate.label",
+      defaultMessage: "Duplicate File",
+    }),
     ...fileAction("duplicate"),
   },
   copy_file: {
     pos: 3,
     group: "misc-file-actions",
     icon: "files",
-    title: "Copy this file to another directory or project",
-    label: "Copy File",
+    title: defineMessage({
+      id: "menu.generic.copy_file.tooltip",
+      defaultMessage: "Copy this file to another directory or project",
+    }),
+    label: defineMessage({
+      id: "menu.generic.copy_file.label",
+      defaultMessage: "Copy File",
+    }),
     ...fileAction("copy"),
   },
   move_file: {
@@ -723,21 +850,39 @@ addCommands({
     pos: 4,
     group: "misc-file-actions",
     icon: "move",
-    title: "Move this file to another directory",
-    label: "Move File",
+    title: defineMessage({
+      id: "menu.generic.move_file.tooltip",
+      defaultMessage: "Move this file to another directory",
+    }),
+    label: defineMessage({
+      id: "menu.generic.move_file.label",
+      defaultMessage: "Move File",
+    }),
     ...fileAction("move"),
   },
   download: {
     group: "export",
-    label: "Download File",
-    title: "Download this file",
+    label: defineMessage({
+      id: "menu.generic.download.label",
+      defaultMessage: "Download File",
+    }),
+    title: defineMessage({
+      id: "menu.generic.download.tooltip",
+      defaultMessage: "Download this file",
+    }),
     icon: "cloud-download",
     ...fileAction("download"),
   },
   download_pdf: {
     group: "export",
-    label: "Download PDF",
-    title: "Download the PDF file",
+    label: defineMessage({
+      id: "menu.generic.download_pdf.label",
+      defaultMessage: "Download PDF",
+    }),
+    title: defineMessage({
+      id: "menu.generic.download_pdf.tooltip",
+      defaultMessage: "Download the PDF file",
+    }),
     icon: "cloud-download",
   },
   upload: {
@@ -752,18 +897,32 @@ addCommands({
     pos: 10,
     group: "export",
     icon: "share-square",
-    title:
-      "Make this file available to be easily copies by other people, either publicly or for people who know the link.",
-    button: "Publish",
-    label: "Publish File",
+    title: defineMessage({
+      id: "menu.generic.publish_file.tooltip",
+      defaultMessage:
+        "Make this file available to be easily copies by other people, either publicly or for people who know the link.",
+    }),
+    button: defineMessage({
+      id: "menu.generic.publish_file.button",
+      defaultMessage: "Publish",
+    }),
+    label: defineMessage({
+      id: "menu.generic.publish_file.label",
+      defaultMessage: "Publish File",
+    }),
     ...fileAction("share"),
   },
   print: {
     pos: 2,
     group: "export",
     icon: "print",
-    title: "Show a printable version of this document in a popup window.",
-    label: "Print",
+    title: defineMessage({
+      id: "menu.generic.print.tooltip",
+      defaultMessage:
+        "Show a printable version of this document in a popup window.",
+    }),
+
+    label: labels.print,
   },
   new: {
     pos: 0,
@@ -852,8 +1011,13 @@ addCommands({
     pos: 5,
     group: "help-link",
     icon: "comment",
-    label: "Chat With Collaborators or AI",
-    button: "Chat",
+    label: defineMessage({
+      id: "command.generic.chat.label",
+      defaultMessage: "Chat with Collaborators or AI",
+      description:
+        "Opens a chatroom next to the document to chat with other users (collaborators) or an AI chatbot",
+    }),
+    button: labels.chat,
     title:
       "Open chat on the side of this file for chatting with project collaborators or AI about this file.",
     onClick: ({ props }) => {
@@ -864,11 +1028,19 @@ addCommands({
     alwaysShow: true,
     pos: 6,
     group: "help-link",
-    icon: "medkit",
-    label: "Support Ticket",
+    icon: "users",
+    label: defineMessage({
+      id: "command.generic.support.label",
+      defaultMessage: "Contact Us!",
+      description: "Contact support by creating a support ticket to get help",
+    }),
     button: labels.support,
-    title:
-      "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
+    title: defineMessage({
+      id: "command.generic.support.tooltip",
+      defaultMessage:
+        "Create a support ticket.  Ask the people at CoCalc a question, report a bug, etc.",
+      description: "Contact support by creating a support ticket to get help",
+    }),
     onClick: () => {
       openSupportTab();
     },
@@ -878,13 +1050,14 @@ addCommands({
     pos: 10,
     group: "help-link",
     icon: "youtube",
-    label: "Videos",
-    button: "Videos",
-    title: "Browse videos about CoCalc.",
+    label: labels.videos,
+    button: labels.videos,
+    title: defineMessage({
+      id: "command.generic.videos.tooltip",
+      defaultMessage: "Browse videos about CoCalc.",
+    }),
     onClick: () => {
-      openNewTab(
-        "https://www.youtube.com/playlist?list=PLOEk1mo1p5tJmEuAlou4JIWZFH7IVE2PZ",
-      );
+      openNewTab("https://www.youtube.com/@cocalc-cloud");
     },
   },
   [SEARCH_COMMANDS]: {
@@ -892,7 +1065,12 @@ addCommands({
     alwaysShow: true,
     pos: 0,
     group: "search-commands",
-    title: "Search through all commands for this document frame.",
+    title: defineMessage({
+      id: "command.generic.search_commands.tooltip",
+      defaultMessage: "Search through all commands for this document frame.",
+      description:
+        "Menu entry, where users can search through all available menu commands",
+    }),
     label: ({ helpSearch, setHelpSearch }) => {
       return (
         <SearchBox helpSearch={helpSearch} setHelpSearch={setHelpSearch} />
@@ -903,8 +1081,18 @@ addCommands({
   about: {
     group: "about",
     icon: "info-circle",
-    title: "About this application",
-    label: "About",
+    title: defineMessage({
+      id: "command.generic.about.title",
+      defaultMessage: "About this application",
+      description:
+        "About information for an editor application in a user interface",
+    }),
+    label: defineMessage({
+      id: "command.generic.about.label",
+      defaultMessage: "About",
+      description:
+        "About information for an editor application in a user interface",
+    }),
   },
   //   quit: {
   //     pos: 10,
@@ -918,18 +1106,42 @@ addCommands({
     pos: 9,
     group: "quit",
     icon: "times-circle",
-    title: "Close this editor",
-    label: "Close File",
-    button: "Close",
+    title: defineMessage({
+      id: "command.generic.close_tab.title",
+      defaultMessage: "Close this editor",
+      description: "Editor for a file in a user interface",
+    }),
+    label: defineMessage({
+      id: "command.generic.close_tab.label",
+      defaultMessage: "Close File",
+      description: "Editor for a file in a user interface",
+    }),
+    button: defineMessage({
+      id: "command.generic.close_tab.button",
+      defaultMessage: "Close",
+      description: "Editor for a file in a user interface",
+    }),
     ...fileAction("close"),
   },
   new_frame_of_type: {
     alwaysShow: true,
     icon: "plus-square",
     group: "frame_types",
-    title: "Create a new frame with an editor of the given type",
-    label: "New Frame",
-    button: "Frame",
+    title: defineMessage({
+      id: "command.generic.new_frame_of_type.title",
+      defaultMessage: "Create a new frame with an editor of the given type",
+      description: "Frame of a window manager, in a user interface",
+    }),
+    label: defineMessage({
+      id: "command.generic.new_frame_of_type.label",
+      defaultMessage: "New Frame",
+      description: "Frame of a window manager, in a user interface",
+    }),
+    button: defineMessage({
+      id: "command.generic.new_frame_of_type.button",
+      defaultMessage: "Frame",
+      description: "Frame of a window manager, in a user interface",
+    }),
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(true),
   },
@@ -937,9 +1149,21 @@ addCommands({
     alwaysShow: true,
     icon: "frame",
     group: "frame_types",
-    title: "Change the type of editor to show in this frame",
-    label: "Change Type",
-    button: "Type",
+    title: defineMessage({
+      id: "command.generic.frame_type.title",
+      defaultMessage: "Change the type of editor to show in this frame",
+      description: "Type of a frame in a window manager, in a user interface",
+    }),
+    label: defineMessage({
+      id: "command.generic.frame_type.label",
+      defaultMessage: "Change Type",
+      description: "Type of a frame in a window manager, in a user interface",
+    }),
+    button: defineMessage({
+      id: "command.generic.frame_type.button",
+      defaultMessage: "Type",
+      description: "Type of a frame in a window manager, in a user interface",
+    }),
     onClick: ({}) => {},
     children: ({ frameTypeCommands }) => frameTypeCommands(false),
   },
@@ -964,27 +1188,38 @@ addCommands({
     alwaysShow: true,
     icon: "tool",
     group: "button-bar",
-    label: "Menu Toolbar",
+    label: defineMessage({
+      id: "command.generic.button_bar.label",
+      defaultMessage: "Menu Toolbar",
+    }),
     button: "Toolbar",
     children: [
       {
         name: "disable-button-toolbar",
         icon: "trash",
         group: "button-bar",
-        title:
-          "Disable all buttons just for this editor. This hides the toolbar for this editor only.",
-        label: "Remove All Buttons",
-        popconfirm: {
-          title: "Remove All Buttons",
-          description: (
-            <div>
-              If you disable all buttons just for this editor, then you won't
-              see the button toolbar for this editor unless you enable some
-              buttons. This does not impact any other editor.
-            </div>
-          ),
-          cancelText: "Cancel",
-          okText: "Remove All",
+        title: defineMessage({
+          id: "command.generic.button_bar.disable.toolbar",
+          defaultMessage:
+            "Disable all buttons just for this editor. This hides the toolbar for this editor only.",
+        }),
+        label: menu.remove_all_buttons,
+        popconfirm: ({ intl }: { intl: IntlShape }) => {
+          return {
+            title: intl.formatMessage(menu.remove_all_buttons),
+            description: (
+              <div>
+                {intl.formatMessage({
+                  id: "command.generic.button_bar.disable.popconfirm.message",
+                  defaultMessage: `If you disable all buttons just for this editor,
+                  then you won't see the button toolbar for this editor
+                  unless you enable some buttons. This does not impact any other editor.`,
+                })}
+              </div>
+            ),
+            cancelText: intl.formatMessage(labels.cancel),
+            okText: intl.formatMessage(menu.remove_all_buttons),
+          };
         },
         onClick: (manage) => {
           manage.removeAllToolbarButtons();
@@ -994,20 +1229,28 @@ addCommands({
         name: "reset-button-toolbar",
         icon: "undo",
         group: "button-bar",
-        title:
-          "Reset the toolbar for this editor to its default state, removing any buttons you added or removed.",
-        label: "Reset to Default",
-        popconfirm: {
-          title: "Reset Toolbar to Default",
-          description: (
-            <div>
-              If you reset the button toolbar the choice of commands in the
-              toolbar for this specific type of editor will revert to the
-              default state.
-            </div>
-          ),
-          cancelText: "Cancel",
-          okText: "Reset",
+        title: defineMessage({
+          id: "command.generic.button_bar.reset.toolbar",
+          defaultMessage:
+            "Reset the toolbar for this editor to its default state, removing any buttons you added or removed.",
+        }),
+        label: menu.reset_toolbar_button_default,
+        popconfirm: ({ intl }: { intl: IntlShape }) => {
+          return {
+            title: intl.formatMessage(menu.reset_toolbar_button_default),
+            description: (
+              <div>
+                {intl.formatMessage({
+                  id: "command.generic.button_bar.reset.popconfirm.message",
+                  defaultMessage: `If you reset the button toolbar the choice of commands in the
+                                  toolbar for this specific type of editor will revert to the
+                                  default state.`,
+                })}
+              </div>
+            ),
+            cancelText: intl.formatMessage(labels.cancel),
+            okText: intl.formatMessage(labels.reset),
+          };
         },
         onClick: (manage) => {
           manage.resetToolbar();
@@ -1017,7 +1260,7 @@ addCommands({
   },
 
   toggle_button_bar: {
-    button: "Buttons",
+    button: labels.buttons,
     alwaysShow: true,
     icon: () =>
       redux.getStore("account").getIn(["editor_settings", "extra_button_bar"])
@@ -1112,7 +1355,9 @@ function fileAction(action) {
 }
 
 function SearchBox({ setHelpSearch, helpSearch }) {
+  const intl = useIntl();
   const didFocus = useRef<boolean>(false);
+
   useEffect(() => {
     return () => {
       if (didFocus.current) {
@@ -1121,10 +1366,11 @@ function SearchBox({ setHelpSearch, helpSearch }) {
       }
     };
   }, []);
+
   return (
     <Input.Search
       autoFocus
-      placeholder="Search"
+      placeholder={intl.formatMessage(labels.search)}
       allowClear
       value={helpSearch}
       onChange={(e) => setHelpSearch(e.target.value)}

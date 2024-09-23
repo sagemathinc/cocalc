@@ -10,7 +10,6 @@ so they can mostly ignore the frame editor if they want to.
 */
 
 import { Tabs } from "antd";
-
 import { Tab } from "@cocalc/frontend/antd-bootstrap";
 import { CourseEditorActions } from "./actions";
 
@@ -46,6 +45,7 @@ export const CourseTabBar: React.FC<Props> = (props: Props) => {
           eventKey: "course_handouts",
           title: `Handouts (${counts.handouts})`,
         }),
+        Tab({ eventKey: "course_actions", title: `Actions` }),
         Tab({ eventKey: "course_configuration", title: `Configuration` }),
         Tab({ eventKey: "course_shared_project", title: `Shared Project` }),
       ]}

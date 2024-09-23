@@ -418,6 +418,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     );
   };
 
+  setCellId = (id: string, newId: string, save = true) => {
+    let cell = this.store.getIn(["cells", id])?.toJS();
+    if (cell == null) {
+      return;
+    }
+    cell.id = newId;
+    this.syncdb.delete({ type: "cell", id });
+    this.syncdb.set(cell);
+    if (save) {
+      this.syncdb.commit();
+    }
+  };
+
   clear_selected_outputs = () => {
     this.deprecated("clear_selected_outputs");
   };
@@ -1780,42 +1793,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
     this.set_cell_input(id, new_input, save);
   }
-
-  complete_handle_key = (_: string, keyCode: number): void => {
-    // User presses a key while the completions dialog is open.
-    let complete = this.store.get("complete");
-    if (complete == null) {
-      return;
-    }
-    const c = String.fromCharCode(keyCode);
-    complete = complete.toJS(); // code is ugly without just doing this - doesn't matter for speed
-    const { code } = complete;
-    const { pos } = complete;
-    complete.code = code.slice(0, pos) + c + code.slice(pos);
-    complete.cursor_end += 1;
-    complete.pos += 1;
-    const target = complete.code.slice(
-      complete.cursor_start,
-      complete.cursor_end,
-    );
-    complete.matches = (() => {
-      const result: any = [];
-      for (const x of complete.matches) {
-        if (misc.startswith(x, target)) {
-          result.push(x);
-        }
-      }
-      return result;
-    })();
-    if (complete.matches.length === 0) {
-      this.clear_complete();
-    } else {
-      const orig_base = complete.base;
-      complete.base = complete.code;
-      this.setState({ complete: immutable.fromJS(complete) });
-      this.complete_cell(complete.id, orig_base, complete.code);
-    }
-  };
 
   is_introspecting(): boolean {
     const actions = this.getFrameActions() as any;

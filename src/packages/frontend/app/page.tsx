@@ -311,7 +311,10 @@ export const Page: React.FC = () => {
         }}
         name={"projects"}
         active_top_tab={active_top_tab}
-        tooltip="Show all the projects on which you collaborate."
+        tooltip={intl.formatMessage({
+          id: "page.project_nav.tooltip",
+          defaultMessage: "Show all the projects on which you collaborate.",
+        })}
         icon="edit"
         label={intl.formatMessage(labels.projects)}
       />

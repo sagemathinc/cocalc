@@ -5,6 +5,7 @@
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
 import { Button, Modal, Tooltip } from "antd";
+import { useIntl } from "react-intl";
 
 import {
   React,
@@ -71,6 +72,7 @@ interface Props {
 
 export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
+  const intl = useIntl()
   const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
   const flyout = useTypedRedux({ project_id }, "flyout");
   const actions = useActions({ project_id });
@@ -276,7 +278,14 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
     if (hideActionButtons) {
       return (
-        <Tooltip title="Show the action bar" placement="rightTop">
+        <Tooltip title=
+        {intl.formatMessage({
+          id: "project.page.vertical-fixed-tabs.show-sidebar.tooltip",
+          defaultMessage: "Show the action bar",
+          description: "This shows the vertical action bar in the UI",
+        })}
+
+        placement="rightTop">
           <Button
             size="small"
             type="text"

@@ -1,32 +1,36 @@
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { CSSProperties, useState } from "react";
 import { Alert, Button, Popconfirm, Spin } from "antd";
+import { delay } from "awaiting";
+import { CSSProperties, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import {
-  cancelCurrentCheckoutSession,
   cancelAutomaticBilling,
+  cancelCurrentCheckoutSession,
   getCurrentCheckoutSession,
   setupAutomaticBilling,
   syncSubscription,
 } from "./api";
-import ShowError from "@cocalc/frontend/components/error";
-import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
-import { delay } from "awaiting";
 
 interface Props {
   style?: CSSProperties;
 }
 
 export default function AutomaticPayments({ style }: Props) {
+  const intl = useIntl();
+
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const stripe_usage_subscription = useTypedRedux(
     "account",
-    "stripe_usage_subscription"
+    "stripe_usage_subscription",
   );
   const stripe_checkout_session = useTypedRedux(
     "account",
-    "stripe_checkout_session"
+    "stripe_checkout_session",
   )?.toJS();
   const legacyCard = !!stripe_usage_subscription?.startsWith("card");
 
@@ -116,14 +120,72 @@ export default function AutomaticPayments({ style }: Props) {
       showIcon
       style={{ margin: "15px 30px" }}
       type="warning"
-      message="Automatic payments are NOT required to have a subscription"
-      description=<>
-        Automatic payments are much <b>more convenient</b>, will{" "}
-        <b>save you time</b>, and{" "}
-        <b>ensure subscriptions don't get cancelled</b> by accident.
-      </>
+      message={intl.formatMessage({
+        id: "purchases.automatic-payments-warning.title",
+        defaultMessage:
+          "Automatic payments are NOT required to have a subscription",
+      })}
+      description={
+        <FormattedMessage
+          id="purchases.automatic-payments-warning.description"
+          defaultMessage={
+            "Automatic payments are much <b>more convenient</b>, will <b>save you time</b>, and <b>ensure subscriptions don't get cancelled</b> by accident."
+          }
+        />
+      }
     />
   );
+
+  function render_automatic_payments() {
+    if (stripe_usage_subscription) return;
+
+    const enableAutomaticPayments = intl.formatMessage({
+      id: "purchases.automatic-payments.enable-automatic-payments.label",
+      defaultMessage: "Enable Automatic Payments",
+    });
+
+    return (
+      <Popconfirm
+        placement="right"
+        onConfirm={doSetup}
+        title={enableAutomaticPayments}
+        okText={`${enableAutomaticPayments}...`}
+        description={
+          stripe_checkout_session?.url != null ? (
+            <div>
+              There is a current stripe checkout session in progress.
+              <br />
+              <Button onClick={cancelSession}>Cancel Session</Button>
+              <div style={{ marginTop: "15px" }}>
+                If the popup window is blocked,{" "}
+                <a href={stripe_checkout_session?.url}>
+                  click here to complete your payment...
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div style={{ maxWidth: "500px" }}>
+              <FormattedMessage
+                id="purchases.automatic-payments.enable-automatic-payments.message"
+                defaultMessage={`Would you like to enable automatic payments?
+                  You will automatically be charged for any subscriptions, etc., once per month.
+                  {warning}
+                  You can disable automatic payments at any time,
+                  and you can resume a canceled subscription easily later.`}
+                values={{ warning }}
+              />
+            </div>
+          )
+        }
+      >
+        <Button disabled={loading}>
+          <Icon name="credit-card" /> {enableAutomaticPayments}{" "}
+          {loading && <Spin />}
+        </Button>
+      </Popconfirm>
+    );
+  }
+
   return (
     <div style={style}>
       <ShowError error={error} setError={setError} />
@@ -153,17 +215,24 @@ export default function AutomaticPayments({ style }: Props) {
               </div>
             ) : legacyCard ? (
               <div style={{ maxWidth: "400px" }}>
-                You have a credit card on file. Please click "Update" below
-                to enter a new payment method and switch to the new automatic
-                payments systems. After that you can easily cancel or enable
-                automatic payments at any time.
+                <FormattedMessage
+                  id="purchases.automatic-payments.card-on-file.message"
+                  defaultMessage={`You have a credit card on file. Please click "Update" below to
+                    enter a new payment method and switch to the new automatic
+                    payments systems. After that you can easily cancel or enable
+                    automatic payments at any time.`}
+                />
               </div>
             ) : (
               <div style={{ maxWidth: "400px" }}>
-                You have automatic payments enabled. Would you like to disable
-                them? {warning}
-                You can reenable automatic payments at any time, and you can
-                resume a canceled subscription easily later.
+                <FormattedMessage
+                  id="purchases.automatic-payments.have-automatic-payments.message"
+                  defaultMessage={`You have automatic payments enabled. Would you like to disable
+                    them? {warning}
+                    You can reenable automatic payments at any time, and you can
+                    resume a canceled subscription easily later.`}
+                  values={{ warning }}
+                />
               </div>
             )
           }
@@ -176,55 +245,26 @@ export default function AutomaticPayments({ style }: Props) {
           >
             {legacyCard ? (
               <>
-                <Icon name="credit-card" /> Automatic Payments: Update
-                Required
+                <Icon name="credit-card" />{" "}
+                <FormattedMessage
+                  id="purchases.automatic-payments.update-required"
+                  defaultMessage={"Automatic Payments: Update Required"}
+                />
               </>
             ) : (
               <>
-                <Icon name="check" /> Automatic Payments are Enabled
+                <Icon name="check" /> <Icon name="credit-card" />{" "}
+                <FormattedMessage
+                  id="purchases.automatic-payments.are-enabled"
+                  defaultMessage={"Automatic Payments are Enabled"}
+                />
               </>
             )}
             {loading && <Spin />}
           </Button>
         </Popconfirm>
       )}
-      {!stripe_usage_subscription && (
-        <Popconfirm
-          placement="right"
-          onConfirm={doSetup}
-          title="Enable Automatic Payments"
-          okText={"Enable Automatic Payments..."}
-          description={
-            stripe_checkout_session?.url != null ? (
-              <div>
-                There is a current stripe checkout session in progress.
-                <br />
-                <Button onClick={cancelSession}>Cancel Session</Button>
-                <div style={{ marginTop: "15px" }}>
-                  If the popup window is blocked,{" "}
-                  <a href={stripe_checkout_session?.url}>
-                    click here to complete your payment...
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div style={{ maxWidth: "500px" }}>
-                Would you like to enable automatic payments? You will
-                automatically be charged for any subscriptions, etc., once per
-                month.
-                {warning}
-                You can disable automatic payments at any time, and you can
-                resume a canceled subscription easily later.
-              </div>
-            )
-          }
-        >
-          <Button disabled={loading}>
-            <Icon name="credit-card" /> Enable Automatic Payments{" "}
-            {loading && <Spin />}
-          </Button>
-        </Popconfirm>
-      )}
+      {render_automatic_payments()}
     </div>
   );
 }

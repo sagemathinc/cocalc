@@ -3297,11 +3297,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ internet_warning_closed: true });
   }
 
-  async set_compute_image(compute_image: string): Promise<void> {
+  set_compute_image = async (compute_image: string): Promise<void> => {
     const projects_store = this.redux.getStore("projects");
     const previous: string =
       projects_store.getIn(["project_map", this.project_id, "compute_image"]) ??
       "";
+    if (previous == compute_image) {
+      // it is already set to the goal, so nothing to do.
+      // See https://github.com/sagemathinc/cocalc/issues/7304
+      return;
+    }
 
     await client_query({
       query: {
@@ -3319,7 +3324,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       next: compute_image,
     };
     this.log(event);
-  }
+  };
 
   async set_environment(env: object): Promise<void> {
     if (typeof env != "object") {
@@ -3454,6 +3459,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       just_closed_files: List([]),
     });
   }
+
   getComputeServerId = (id?: number): number => {
     const store = this.get_store();
     return id ?? store?.get("compute_server_id") ?? 0;

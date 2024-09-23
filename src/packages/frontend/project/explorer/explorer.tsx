@@ -482,13 +482,7 @@ const Explorer0 = rclass(
             className="smc-vfill"
           >
             <FileListing
-              isRunning={
-                this.props.project_map?.getIn([
-                  this.props.project_id,
-                  "state",
-                  "state",
-                ]) == "running"
-              }
+              isRunning={project_is_running}
               name={this.props.name}
               active_file_sort={this.props.active_file_sort}
               listing={listing}
@@ -732,12 +726,10 @@ const Explorer0 = rclass(
         project_is_running = true;
         // next, we check if this is a common user (not public)
       } else if (my_group !== "public") {
-        if (this.props.project_map != undefined) {
-          project_state = this.props.project_map.getIn([
-            this.props.project_id,
-            "state",
-          ]) as any;
-        }
+        project_state = this.props.project_map?.getIn([
+          this.props.project_id,
+          "state",
+        ]) as any;
         project_is_running = project_state?.get("state") == "running";
       } else {
         project_is_running = false;

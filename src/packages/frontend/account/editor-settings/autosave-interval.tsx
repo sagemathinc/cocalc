@@ -3,8 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useIntl } from "react-intl";
 
-import { LabeledRow, NumberInput } from "../../components";
+import { LabeledRow, NumberInput } from "@cocalc/frontend/components";
 
 interface Props {
   autosave: number;
@@ -12,8 +13,15 @@ interface Props {
 }
 
 export function EditorSettingsAutosaveInterval(props: Props): JSX.Element {
+  const intl = useIntl();
+
   return (
-    <LabeledRow label="Autosave interval">
+    <LabeledRow
+      label={intl.formatMessage({
+        id: "account.editor-settings-autosave-interval.label",
+        defaultMessage: "Autosave interval",
+      })}
+    >
       <NumberInput
         on_change={(n) => props.on_change("autosave", n)}
         min={15}

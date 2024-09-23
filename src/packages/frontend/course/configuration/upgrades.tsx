@@ -6,6 +6,7 @@
 // Upgrading quotas for all student projects
 
 import { Alert, Card, Divider, Form, Radio, Switch, Typography } from "antd";
+import { delay } from "awaiting";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -19,16 +20,13 @@ import {
 } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
-  React,
   redux,
-  Rendered,
   TypedMap,
   useActions,
   useIsMountedRef,
-  useRef,
-  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useEffect, useRef, useState } from "react";
 import {
   A,
   Icon,
@@ -37,8 +35,8 @@ import {
   Tip,
   UPGRADE_ERROR_STYLE,
 } from "@cocalc/frontend/components";
-import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import Next from "@cocalc/frontend/components/next";
+import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 import { ShowSupportLink } from "@cocalc/frontend/support";
@@ -61,7 +59,6 @@ import {
 } from "../store";
 import { SiteLicenseStrategy, UpgradeGoal } from "../types";
 import { ConfigurationActions } from "./actions";
-import { delay } from "awaiting";
 
 const radioStyle: CSS = {
   display: "block",
@@ -84,22 +81,20 @@ interface Props {
   actions: ConfigurationActions;
 }
 
-export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
-  const {
-    name,
-    is_onprem,
-    is_commercial,
-    upgrade_goal,
-    institute_pay,
-    student_pay,
-    site_license_id,
-    site_license_strategy,
-    shared_project_id,
-    disabled,
-    settings,
-    actions,
-  } = props;
-
+export function StudentProjectUpgrades({
+  name,
+  is_onprem,
+  is_commercial,
+  upgrade_goal,
+  institute_pay,
+  student_pay,
+  site_license_id,
+  site_license_strategy,
+  shared_project_id,
+  disabled,
+  settings,
+  actions,
+}: Props) {
   const is_mounted_ref = useIsMountedRef();
   const upgrade_is_invalid = useRef<boolean>(false);
 
@@ -551,7 +546,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     course_actions.configuration.configure_all_projects();
   }
 
-  function render_site_license_text(): Rendered {
+  function render_site_license_text() {
     if (!show_site_license) return;
     return (
       <div>
@@ -588,9 +583,12 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
           remove_site_license_id(license_id);
         }}
         warn_if={(info, _) => {
+          const upgradeHostProject = settings.get(
+            "license_upgrade_host_project",
+          );
           const n =
             get_store().get_student_ids().length +
-            1 +
+            (upgradeHostProject ? 1 : 0) +
             (shared_project_id ? 1 : 0);
           if (info.run_limit < n) {
             return `NOTE: This license can only upgrade ${info.run_limit} simultaneous running projects, but there are ${n} projects associated to this course.`;
@@ -652,7 +650,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_current_licenses(): Rendered {
+  function render_current_licenses() {
     if (!site_license_id) return;
     const licenses = site_license_id.split(",");
 
@@ -791,7 +789,7 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
     return <div>{render_site_license()}</div>;
   }
 
-  function render_title(): React.ReactNode {
+  function render_title() {
     if (is_onprem) {
       return <div>Upgrade Student Projects</div>;
     } else {
@@ -829,22 +827,23 @@ export const StudentProjectUpgrades: React.FC<Props> = (props: Props) => {
       {render_body()}
     </Card>
   );
-};
+}
 
 interface ToggleUpgradingHostProjectProps {
   actions: ConfigurationActions;
   settings: CourseSettingsRecord;
 }
 
-const ToggleUpgradingHostProject = (props: ToggleUpgradingHostProjectProps) => {
-  const { actions, settings } = props;
-
+const ToggleUpgradingHostProject = ({
+  actions,
+  settings,
+}: ToggleUpgradingHostProjectProps) => {
   const [needSave, setNeedSave] = useState<boolean>(false);
   const upgradeHostProject = settings.get("license_upgrade_host_project");
   const upgrade = upgradeHostProject ?? DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
   const [nextVal, setNextVal] = useState<boolean>(upgrade);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setNeedSave(nextVal != upgrade);
   }, [nextVal, upgrade]);
 

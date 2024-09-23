@@ -141,12 +141,15 @@ if ! id -u user >/dev/null 2>&1; then
   # Allow to use FUSE
   sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
 
-  # Add user to the docker group, so that they can
-  # use docker without having to do "sudo".
-
-  sed -i 's/docker:x:999:/docker:x:999:user/' /etc/group
-
 fi
+
+# Add user to the docker group, so that they can
+# use docker without having to do "sudo".  We do this
+# every time since it seems to get removed by
+# other steps.  Also, using usermod instead of sed is
+# more robust.   This is needed, e.g., for our
+# current ssh approach.
+usermod -aG docker user
 `;
 }
 
@@ -369,7 +372,7 @@ apt-get -y install $NVIDIA_KERNEL_OPEN $CUDA_DRIVERS
 `;
 }
 
-async function authorizedKeys(project_id: string) {
+export async function authorizedKeys(project_id: string) {
   const sshKeys = await getSshKeys(project_id);
   return (
     "# This file is managed by CoCalc.  Add keys in account prefs and project settings.\n# See https://doc.cocalc.com/account/ssh.html\n\n" +

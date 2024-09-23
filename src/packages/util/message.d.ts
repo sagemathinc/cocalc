@@ -2,7 +2,6 @@ export const start_session: any;
 export const session_started: any;
 export const output: any;
 export const execute_javascript: any;
-export const get_usernames: any;
 export const usernames: any;
 export const create_account: any;
 export const account_created: any;

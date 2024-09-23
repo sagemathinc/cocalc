@@ -4,21 +4,25 @@
  */
 
 import { Divider } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { redux } from "@cocalc/frontend//app-framework";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Paragraph, Title } from "@cocalc/frontend/components";
-import { ICON_UPGRADES, ROOT_STYLE, TITLE_UPGRADES } from "../servers/consts";
+import { labels } from "@cocalc/frontend/i18n";
+import Purchases from "@cocalc/frontend/purchases/purchases";
+import { ICON_UPGRADES, ROOT_STYLE } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { UpgradeUsage } from "../settings/upgrade-usage";
 import { useProject } from "./common";
-import Purchases from "@cocalc/frontend/purchases/purchases";
 
 export function ProjectLicenses({ project_id }): JSX.Element {
+  const intl = useIntl();
   const { project, group } = useProject(project_id);
   const all_projects_have_been_loaded = useTypedRedux(
     "projects",
-    "all_projects_have_been_loaded"
+    "all_projects_have_been_loaded",
   );
 
   const projects_store = redux.getStore("projects");
@@ -85,11 +89,20 @@ export function ProjectLicenses({ project_id }): JSX.Element {
   return (
     <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
       <Title level={2}>
-        <Icon name={ICON_UPGRADES} /> Quotas and {TITLE_UPGRADES}
+        <Icon name={ICON_UPGRADES} />{" "}
+        <FormattedMessage
+          id="project.page.project-licenses.header"
+          defaultMessage={"Quotas and {upgrades}"}
+          values={{ upgrades: intl.formatMessage(labels.upgrades) }}
+        />
       </Title>
       <Paragraph>
-        Licenses and pay as you go upgrades change the quotas and features
-        available to a project.
+        <FormattedMessage
+          id="project.page.project-licenses.intro"
+          defaultMessage={
+            "Licenses and pay as you go upgrades change the quotas and features available to a project."
+          }
+        />
       </Paragraph>
       {renderAdmin()}
       {renderBody()}

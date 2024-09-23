@@ -1,10 +1,11 @@
-import { Button, Collapse, Divider } from "antd";
+import { Button, Collapse, Divider, Space } from "antd";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import dayjs from "dayjs";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { useState } from "react";
 import Cost from "./cost";
 import PayLink from "./pay-link";
+import Transfer from "./transfer";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -54,8 +55,11 @@ export default function PaySoon({
               <Icon name="credit-card" /> Pay Course Fee...
             </Button>
           </div>
-          <Divider />
-          <PayLink project_id={project_id} />
+          <Divider>Other Options</Divider>
+          <Space align="start">
+            <PayLink project_id={project_id} />
+            <Transfer project_id={project_id} />
+          </Space>
         </Collapse.Panel>
       </Collapse>
     </div>

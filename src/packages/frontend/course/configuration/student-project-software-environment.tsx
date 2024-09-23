@@ -3,13 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import {
-  React,
-  redux,
-  Rendered,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useEffect, useState } from "react";
 import { A, Icon, Markdown } from "@cocalc/frontend/components";
 import {
   ComputeImage,
@@ -29,7 +24,7 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { Alert, Button, Card, Divider, Radio } from "antd";
+import { Alert, Button, Card, Divider, Radio, Space } from "antd";
 import { ConfigurationActions } from "./actions";
 
 const CSI_HELP =
@@ -40,14 +35,16 @@ interface Props {
   course_project_id: string;
   software_image?: string;
   inherit_compute_image?: boolean;
+  close?;
 }
 
-export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
+export function StudentProjectSoftwareEnvironment({
   actions,
   course_project_id,
   software_image,
   inherit_compute_image,
-}) => {
+  close,
+}: Props) {
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
   const software_envs = customize_software.get("environments");
@@ -83,13 +80,13 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     }
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (inherit) {
       set_changing(false);
     }
   }, [inherit]);
 
-  function csi_warning(): Rendered {
+  function csi_warning() {
     return (
       <Alert
         type={"warning"}
@@ -106,7 +103,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     );
   }
 
-  function render_controls_body(): Rendered {
+  function render_controls_body() {
     if (!changing) {
       return (
         <Button onClick={() => set_changing(true)} disabled={changing}>
@@ -115,44 +112,51 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       );
     } else {
       return (
-        <>
-          <Button onClick={() => set_changing(false)}>Cancel</Button>
-          <Button
-            disabled={
-              state.image_type === "custom" && state.image_selected == null
-            }
-            type="primary"
-            onClick={async () => {
-              set_changing(false);
-              await actions.set_software_environment(state);
-            }}
-          >
-            Save
-          </Button>
-          <br />
+        <div>
           <SoftwareEnvironment
             onChange={handleChange}
             default_image={software_image}
           />
           {state.image_type === "custom" && csi_warning()}
-        </>
+          <br />
+          <Space>
+            <Button
+              onClick={() => {
+                set_changing(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                state.image_type === "custom" && state.image_selected == null
+              }
+              type="primary"
+              onClick={async () => {
+                set_changing(false);
+                await actions.set_software_environment(state);
+                close?.();
+              }}
+            >
+              Save
+            </Button>
+          </Space>
+        </div>
       );
     }
   }
 
-  function render_controls(): Rendered {
+  function render_controls() {
     if (inherit) return;
     return (
       <>
-        <Divider orientation="left" plain>
-          Configure
-        </Divider>
+        <Divider orientation="left">Configure</Divider>
         {render_controls_body()}
       </>
     );
   }
 
-  function render_description(): Rendered {
+  function render_description() {
     const img_id = software_image ?? dflt_compute_img;
     let descr: string | undefined;
     if (is_custom_image(img_id)) {
@@ -184,7 +188,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     }
   }
 
-  function render_custom_info(): Rendered {
+  function render_custom_info() {
     if (software_image != null && is_custom_image(software_image)) return;
     return (
       <p>
@@ -195,7 +199,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
     );
   }
 
-  function render_inherit(): Rendered {
+  function render_inherit() {
     // We use fontWeight: "normal" below because otherwise the default
     // of bold for the entire label is a bit much for such a large label.
     return (
@@ -231,7 +235,7 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       }
     >
       <p>
-        Student projects will be using the software environment:{" "}
+        Student projects will use the following software environment:{" "}
         <em>{current_environment}</em>
       </p>
       {render_description()}
@@ -240,4 +244,4 @@ export const StudentProjectSoftwareEnvironment: React.FC<Props> = ({
       {render_controls()}
     </Card>
   );
-};
+}

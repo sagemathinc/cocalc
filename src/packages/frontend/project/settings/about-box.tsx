@@ -4,15 +4,21 @@
  */
 
 import { Alert, Col, Row, Typography } from "antd";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useIntl } from "react-intl";
 
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  useAsyncEffect,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import {
   LabeledRow,
   SettingBox,
   TextInput,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import ProjectImage from "./image";
@@ -38,6 +44,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
     mode = "project",
   } = props;
   const isFlyout = mode === "flyout";
+  const intl = useIntl();
   const [showNameInfo, setShowNameInfo] = useState<boolean>(false);
   const project_map = useTypedRedux("projects", "project_map");
   const courseProjectType = project_map?.getIn([
@@ -49,12 +56,10 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
   const [error, setError] = useState<string>("");
   const [avatarImage, setAvatarImage] = useState<string | undefined>(undefined);
 
-  useEffect(() => {
-    (async () => {
-      setAvatarImage(
-        await redux.getStore("projects").getProjectAvatarImage(project_id)
-      );
-    })();
+  useAsyncEffect(async () => {
+    setAvatarImage(
+      await redux.getStore("projects").getProjectAvatarImage(project_id),
+    );
   }, []);
 
   function renderReadonly() {
@@ -84,7 +89,14 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
           />
         )}
         {renderReadonly()}
-        <LabeledRow label="Title" vertical={isFlyout}>
+        <LabeledRow
+          label={intl.formatMessage({
+            id: "project.settings.about-box.title.label",
+            defaultMessage: "Title",
+            description: "Title of the given project",
+          })}
+          vertical={isFlyout}
+        >
           <TextInput
             style={{ width: "100%" }}
             text={project_title}
@@ -92,7 +104,15 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             on_change={(title) => actions.set_project_title(project_id, title)}
           />
         </LabeledRow>
-        <LabeledRow label="Description (markdown)" vertical={isFlyout}>
+        <LabeledRow
+          label={intl.formatMessage({
+            id: "project.settings.about-box.description.label",
+            defaultMessage: "Description (markdown)",
+            description:
+              "Optional description of that project, which could be markdown formatted text",
+          })}
+          vertical={isFlyout}
+        >
           <TextInput
             style={{ width: "100%" }}
             type="textarea"
@@ -104,7 +124,14 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             }
           />
         </LabeledRow>
-        <LabeledRow label="Name (optional)" vertical={isFlyout}>
+        <LabeledRow
+          label={intl.formatMessage({
+            id: "project.settings.about-box.name.label",
+            defaultMessage: "Name (optional)",
+            description: "Optional name of that project",
+          })}
+          vertical={isFlyout}
+        >
           <TextInput
             style={{ width: "100%" }}
             type="textarea"
@@ -129,7 +156,14 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             type="info"
           />
         ) : undefined}
-        <LabeledRow label="Image (optional)" vertical={isFlyout}>
+        <LabeledRow
+          label={intl.formatMessage({
+            id: "project.settings.about-box.image.label",
+            defaultMessage: "Image (optional)",
+            description: "Optional picture (avatar) related to that project",
+          })}
+          vertical={isFlyout}
+        >
           <ProjectImage
             avatarImage={avatarImage}
             onChange={async (data) => {
@@ -143,7 +177,10 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
           />
         </LabeledRow>
         {created && (
-          <LabeledRow label="Created" vertical={isFlyout}>
+          <LabeledRow
+            label={intl.formatMessage(labels.created)}
+            vertical={isFlyout}
+          >
             <TimeAgo date={created} />
           </LabeledRow>
         )}
@@ -158,7 +195,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
       <SettingBox
         title={
           <>
-            About{" "}
+            {intl.formatMessage(labels.about)}{" "}
             <ProjectTitle
               style={{ float: "right" }}
               project_id={project_id}

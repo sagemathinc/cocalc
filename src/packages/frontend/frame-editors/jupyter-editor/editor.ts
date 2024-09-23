@@ -73,9 +73,9 @@ const jupyter_cell_notebook: EditorDescription = {
   ]),
   customizeCommands: {
     guide: {
-      label: "Snippets",
+      label: labels.snippets,
       icon: SNIPPET_ICON_NAME,
-      title: "Open a panel containing code snippets.",
+      title: jupyter.editor.snippets_tooltip,
     },
     shell: {
       label: jupyter.editor.console_label,
@@ -266,7 +266,12 @@ const JUPYTER_MENUS = {
           icon: "menu-outlined",
           label: jupyter.commands.select_cells_menu,
           name: "select",
-          children: ["select all cells", "deselect all cells"],
+          children: [
+            "select all cells",
+            "deselect all cells",
+            "select all code cells",
+            "select all markdown cells",
+          ],
         },
       ],
       "cell-type": [
@@ -364,6 +369,7 @@ const JUPYTER_MENUS = {
             "cell toolbar metadata",
             "cell toolbar attachments",
             "cell toolbar tags",
+            "cell toolbar ids",
           ],
         },
         {

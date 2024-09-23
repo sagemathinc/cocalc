@@ -10,12 +10,13 @@ Component that allows a user to select a directory in a project.
 */
 
 import { join } from "path";
-import { Button, Card, Checkbox, Input, Tooltip } from "antd";
+import { Button, Card, Checkbox, Input, InputRef, Modal, Tooltip } from "antd";
 import {
   CSSProperties,
   ReactNode,
   useCallback,
   useEffect,
+  useRef,
   useState,
 } from "react";
 import { Icon, Loading } from "@cocalc/frontend/components";
@@ -26,6 +27,7 @@ import { delay } from "awaiting";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import ShowError from "@cocalc/frontend/components/error";
 
 const NEW_FOLDER = "New Folder";
 
@@ -47,6 +49,7 @@ interface Props {
   showHidden?: boolean;
   title?: ReactNode;
   multi?: boolean; // if true enables multiple select
+  closable?: boolean;
 }
 
 export default function DirectorySelector({
@@ -62,6 +65,7 @@ export default function DirectorySelector({
   showHidden: defaultShowHidden,
   title,
   multi,
+  closable = true,
 }: Props) {
   const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
   if (project_id == null) project_id = frameContext.project_id;
@@ -194,7 +198,7 @@ export default function DirectorySelector({
     <Card
       title={
         <>
-          {onClose != null && (
+          {closable && onClose != null && (
             <Icon
               name="times"
               style={{ float: "right", cursor: "pointer", marginTop: "5px" }}
@@ -419,6 +423,7 @@ function Subdirs(props) {
     project_id,
     showHidden,
     style,
+    toggleSelection,
   } = props;
   const x = directoryListings?.get(path);
   const v = x?.toJS?.();
@@ -457,6 +462,7 @@ function Subdirs(props) {
         path={path}
         computeServerId={computeServerId}
         directoryListings={directoryListings}
+        toggleSelection={toggleSelection}
       />,
     );
     return (
@@ -467,71 +473,122 @@ function Subdirs(props) {
   }
 }
 
+async function getValidPath(
+  project_id,
+  target,
+  directoryListings,
+  computeServerId,
+) {
+  if (
+    await pathExists(project_id, target, directoryListings, computeServerId)
+  ) {
+    let i: number = 1;
+    while (
+      await pathExists(
+        project_id,
+        target + ` (${i})`,
+        directoryListings,
+        computeServerId,
+      )
+    ) {
+      i += 1;
+    }
+    target += ` (${i})`;
+  }
+  return target;
+}
+
 function CreateDirectory({
   computeServerId,
   project_id,
   path,
   directoryListings,
+  toggleSelection,
 }) {
-  return (
-    <div
-      style={{ cursor: "pointer", color: "#666" }}
-      key={"...-create-dir"}
-      onClick={async () => {
-        let target = path + (path != "" ? "/" : "") + NEW_FOLDER;
-        if (
-          await pathExists(
+  const [error, setError] = useState<string>("");
+  const [open, setOpen] = useState<boolean>(false);
+  const [value, setValue] = useState<string>(NEW_FOLDER);
+  const input_ref = useRef<InputRef>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const target = path + (path != "" ? "/" : "") + value;
+    (async () => {
+      try {
+        setValue(
+          await getValidPath(
             project_id,
             target,
             directoryListings,
             computeServerId,
-          )
-        ) {
-          let i: number = 1;
-          while (
-            await pathExists(
-              project_id,
-              target + ` (${i})`,
-              directoryListings,
-              computeServerId,
-            )
-          ) {
-            i += 1;
-          }
-          target += ` (${i})`;
-        }
-        try {
-          await exec({
-            command: "mkdir",
-            args: ["-p", target],
-            project_id,
-            compute_server_id: computeServerId,
-            filesystem: true,
-          });
-        } catch (err) {
-          alert_message({ type: "error", message: err.toString() });
-        }
-      }}
-    >
+          ),
+        );
+        input_ref.current?.select();
+      } catch (err) {
+        setError(`${err}`);
+      }
+    })();
+  }, [open]);
+
+  const createFolder = async () => {
+    setOpen(false);
+    try {
+      await exec({
+        command: "mkdir",
+        args: ["-p", value],
+        project_id,
+        compute_server_id: computeServerId,
+        filesystem: true,
+      });
+      toggleSelection(value);
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
+  return (
+    <div style={{ color: "#666" }} key={"...-create-dir"}>
       <Tooltip
         title="Create a new directory (double click to rename)"
         placement="left"
         mouseEnterDelay={0.9}
       >
-        <Button size="small" type="text" style={{ color: "#666" }}>
+        <Modal open={open} onOk={createFolder} onCancel={() => setOpen(false)}>
+          <Input
+            ref={input_ref}
+            title="Create Folder"
+            style={{ marginTop: "30px" }}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            onPressEnter={createFolder}
+            autoFocus
+          />
+        </Modal>
+        <Button
+          size="small"
+          type="text"
+          style={{ color: "#666" }}
+          disabled={open}
+          onClick={() => {
+            setOpen(true);
+          }}
+        >
           <Icon name="plus" style={{ marginRight: "5px" }} /> Create{" "}
-          {NEW_FOLDER}
+          {NEW_FOLDER}...
         </Button>
       </Tooltip>
+      <ShowError error={error} setError={setError} />
     </div>
   );
 }
 
-async function pathExists(
+export async function pathExists(
   project_id: string,
   path: string,
-  directoryListings,
-  computeServerId,
+  directoryListings?,
+  computeServerId?,
 ): Promise<boolean> {
   const { head, tail } = path_split(path);
   let known = directoryListings?.get(head);

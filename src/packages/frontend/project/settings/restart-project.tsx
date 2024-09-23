@@ -7,7 +7,7 @@
 
 import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
 import { Button, ButtonProps, Popconfirm } from "antd";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
@@ -33,11 +33,20 @@ export function RestartProject({
 }: Props) {
   const actions = useActions("projects");
   const state = useProjectState(project_id);
+  const intl = useIntl();
   const is_running = state.get("state") === "running";
-  const task = is_running ? "Restart" : "Start";
+  const task = intl.formatMessage(
+    {
+      id: "project.settings.restart-project.button.label",
+      defaultMessage: "{is_running, select, true {Restart} other {Start}}",
+    },
+    { is_running },
+  );
   const icon = is_running ? <SyncOutlined /> : <PlayCircleOutlined />;
   const description =
-    text != null ? text : `${task}${short ? "" : " Project"}…`;
+    text != null
+      ? text
+      : `${task}${short ? "" : ` ${intl.formatMessage(labels.project)}`}…`;
 
   const explanation = (
     <div style={{ maxWidth: "300px" }}>

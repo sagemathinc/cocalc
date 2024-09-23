@@ -24,6 +24,7 @@ export type CellToolbarName =
   | "slideshow"
   | "attachments"
   | "tags"
+  | "ids"
   | "metadata"
   | "create_assignment";
 

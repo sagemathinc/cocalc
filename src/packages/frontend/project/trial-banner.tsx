@@ -77,10 +77,14 @@ const ALERT_STYLE_EXPIRED: CSS = {
 interface BannerProps {
   project_id: string;
   projectSiteLicenses: string[];
+  // host = true means they do NOT have member hosting
   host: boolean;
+  // internet = true means they do NOT have internet access (yes, this is backwards)
   internet: boolean;
   projectIsRunning: boolean;
   projectCreatedTS?: Date;
+  // true if have a paid for compute server
+  hasComputeServers: boolean;
 }
 
 // string and URLs
@@ -102,6 +106,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       projectCreatedTS,
       projectSiteLicenses,
       projectIsRunning,
+      hasComputeServers,
     } = props;
 
     const [showAddLicense, setShowAddLicense] = useState<boolean>(false);
@@ -168,7 +173,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
           />
           .<br />
-          Price starts at {LICENSE_MIN_PRICE}.{" "}
+          Prices start at {LICENSE_MIN_PRICE}.{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
             Apply your license to this project
           </a>
@@ -195,6 +200,9 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             <br />
             Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
             {"."}
+            {hasComputeServers && (
+              <>&nbsp; NOTE: Compute servers always have internet access.</>
+            )}
           </span>
         );
       } else if (host) {
@@ -221,6 +229,9 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             {"."}
             <br />
             {renderBuyAndUpgrade("Buy a license")}
+            {hasComputeServers && (
+              <>&npsp;NOTE: Compute servers always have internet access.</>
+            )}
           </span>
         );
       }
@@ -246,6 +257,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
 
     // allow users to close the banner, if there is either internet or host upgrade – or if user has licenses (past customer, upgrades by someone else, etc.)
     const closable =
+      hasComputeServers ||
       !host ||
       !internet ||
       !no_licenses ||
@@ -404,7 +416,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
 
   const shutdown_ts = start_ts + 1000 * 60 * limit_min;
   const countdown = shutdown_ts - server_time().getTime();
-  const countdwon0 = countdown > 0 ? countdown : 0;
+  const countdown0 = countdown > 0 ? countdown : 0;
 
   if (countdown < 0 && !triggered.current) {
     triggered.current = true;
@@ -460,10 +472,10 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
         >
           <TimeAmount
             key={"time"}
-            amount={countdwon0}
+            amount={countdown0}
             compact={true}
             showIcon={true}
-            countdown={countdwon0}
+            countdown={countdown0}
             style={{ color: COLORS.ANTD_RED }}
           />
         </Tag>

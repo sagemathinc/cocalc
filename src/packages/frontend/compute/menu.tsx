@@ -17,6 +17,7 @@ import { setServerConfiguration } from "@cocalc/frontend/compute/api";
 import ShowError from "@cocalc/frontend/components/error";
 import openSupportTab from "@cocalc/frontend/support/open";
 import { setTemplate } from "@cocalc/frontend/compute/api";
+import CloneModal from "./clone";
 
 function getServer({ id, project_id }) {
   return redux
@@ -37,6 +38,12 @@ export function getApps(image) {
     {};
   if (IMAGES.getIn([image, "jupyterKernels"]) === false) {
     apps = { ...apps, jupyterlab: undefined };
+  }
+  if (apps["xpra"]) {
+    if (!apps["xpra"].tip) {
+      apps["xpra"].tip =
+        "Launch an X11 Linux Graphical Desktop environment running directly on the compute server.";
+    }
   }
   return apps;
 }
@@ -103,7 +110,7 @@ function getItems({
   };
   const xpra = {
     key: "xpra",
-    label: "X11 Desktop",
+    label: "Desktop",
     icon: <Icon name="desktop" />,
     disabled:
       apps["xpra"] == null ||
@@ -253,6 +260,12 @@ function getItems({
     label: is_owner ? "Settings" : "Details...",
   };
 
+  const clone = {
+    key: "clone",
+    icon: <Icon name="copy" />,
+    label: "Clone...",
+  };
+
   return [
     titleAndColor,
     //     {
@@ -281,6 +294,7 @@ function getItems({
     },
     settings,
     options,
+    clone,
     {
       type: "divider",
     },
@@ -430,6 +444,12 @@ export default function Menu({
           case "settings":
             setModal(
               <EditModal id={id} project_id={project_id} close={close} />,
+            );
+            break;
+
+          case "clone":
+            setModal(
+              <CloneModal id={id} project_id={project_id} close={close} />,
             );
             break;
 

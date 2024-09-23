@@ -22,6 +22,7 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const project_map = useTypedRedux("projects", "project_map");
   const projects_store = useStore("projects");
+  const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const runQuota = useRunQuota(project_id, null);
   const student_pay = useMemo(
     () => projects_store.date_when_course_payment_required(project_id),
@@ -85,6 +86,10 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
       const projectSiteLicenses =
         project_map?.get(project_id)?.get("site_license")?.keySeq().toJS() ??
         [];
+      const hasComputeServers =
+        computeServers != null &&
+        computeServers.filter((x) => x.get("state") != "deprovisioned").size >=
+          1;
 
       return (
         <TrialBanner
@@ -94,6 +99,7 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
           host={host}
           internet={internet}
           projectIsRunning={projectIsRunning}
+          hasComputeServers={hasComputeServers}
         />
       );
 

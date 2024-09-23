@@ -108,8 +108,6 @@ export function create_sync_db(
     if (actions.is_closed()) {
       return;
     }
-    actions.students.lookup_nonregistered_students();
-
     // compute image default setup
     const course_compute_image = store.getIn(["settings", "custom_image"]);
     const inherit_compute_image =
@@ -137,7 +135,7 @@ export function create_sync_db(
       });
     }
 
-    actions.configuration.configure_all_projects();
+    await actions.configuration.configure_all_projects();
 
     // Also
     projects_store.on(

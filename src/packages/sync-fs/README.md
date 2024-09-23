@@ -10,7 +10,7 @@ The code here helps with periodically syncing a compute server and the project,
 where the compute server uses unionfs\-fuse combined with websocketfs, and the
 project uses a non\-FUSE fast local filesystem \(e.g., ext4 or zfs\). This
 algorithm will result in the file systems being equal if there is no activity for
-a few seconds. ItϨ's meant to provide a "last on to change the path wins", BUT
+a few seconds. It's meant to provide a "last one to change the file wins", BUT
 with a tolerance of maybe ~10 seconds, especially for deletes.
 
 This does not use inotify or any other file watching because cocalc runs on
@@ -28,13 +28,13 @@ The actual sync works as follows. For now, we will do this periodically, possibl
 by active usage signals from the user.
 
 **STEP 1:** On the compute server, make a map from all paths in upper \(both directories and files and whiteouts\),
-except ones excluded from sync, to the mtime for the path \(or negative mtime for deleted paths\):
+except ones excluded from sync, to the ctime for the path \(or negative ctime for deleted paths\):
 
 ```javascript {kernel="javascript"}
-computeState = {[path:string]:mtime of last change to file metadata}
+computeState = {[path:string]:ctime of last change to file}
 ```
 
-**IMPORTANT: We use mtimes in integer seconds, rounding down, since that's what tar does.** Also, a 1second resolution is more than enough for our application.
+**IMPORTANT: We use ctimes in integer seconds, rounding down, since that's what tar does.** Also, a 1 second resolution is more than enough for our application.
 
 We store this in memory.
 
@@ -57,12 +57,12 @@ if any of the following apply:
 - copy from project to compute
 - copy from compute to project
 
-The decision about which is based on knowing the `mtime` of that path on compute, in the project,
+The decision about which is based on knowing the `ctime` of that path on compute, in the project,
 and whether or not the file was deleted \(and when\) on both sides. We know all this information
 for each path, so we _can_ make this decision. It is tricky for directories and files in them,
 but the information is all there, so we can make the decision. If there is a conflict, we resolve it
 by "last timestamp wins, with preference to the project in case of a tie". Note also that all
-mtimes are defined and this all happens on local filesystems \(not websocketfs\). It's also possible
+`ctimes` are defined and this all happens on local filesystems \(not websocketfs\). It's also possible
 to just decide not to do anything regarding a given path and wait until later, which is critical
 since we do not have point in time snapshots; if a file is actively being changed, we just wait until
 next time to deal with it.
@@ -120,11 +120,11 @@ This is a sync algorithm that depends on the existence of clocks.  Therefore we 
 
 We amend the above protocol as follows.  The compute server's message to the project also includes $t_c$ which is the number of ms since the epoch as far as the compute server is concerned.   When the project receives the message, it computes its own time $t_p$.  If  $|t_c - t_p|$ is small, e.g., less than maybe 3 seconds, we just assume the clocks are properly sync'd and do nothing different.  Otherwise, we assume the clock on $t_c$ is wrong.  Instead of trying to fix it, we just shift all timestamps _provided by the compute server_  by adding $\delta = t_p - t_c$ to them.  Also, when sending timestamps computed on the project to the compute server, we subtract $\delta$ from them.  In this way everything should work and the compute server should be none the wiser.
 
-Except that all the files in the tarballs have the wrong timestamps, so we would have to adjust the mtimes of all these files.  And of course all the lower layer filesystem timestamps are just going to be wrong no matter what.  This is not something that can reasonably be done.  
+Except that all the files in the tarballs have the wrong timestamps, so we would have to adjust the times of all these files.  And of course all the lower layer filesystem timestamps are just going to be wrong no matter what.  This is not something that can reasonably be done.
 
 OK, so our protocol instead is that if the time is off by at least 10s \(say\), then instead of doing sync, the project responds with an error message.  This can then be surfaced to the user.
 
 ## Notes
 
-- mtime versus ctime.  We do not use ctime at all. We do use mtime, but it is used to decide in which direction to sync files when there is a conflict.  It is NOT used as a threshold for whether or not to copy files at all.  E.g., if you have an old file `a.c` and type `cp -a a.c a2.c` on the compute server, then `a2.c` does still get copied back to the project.
+- [mtime versus ctime](https://github.com/sagemathinc/cocalc/issues/7342):  We do not use mtime at all. We do use ctime since whenever metadata or actual data changes, ctime changes, but mtime only changes when actual data changes \(or touch\). The time is used to decide in which direction to sync files when there is a conflict.  It is NOT used as a threshold for whether or not to copy files at all.  E.g., if you have an old file `a.c` and type `cp -a a.c a2.c` on the compute server, then `a2.c` does still get copied back to the project.
 

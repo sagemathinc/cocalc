@@ -3,10 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Form, Input } from "antd";
+import { Button, Form, Input } from "antd";
 import React, { useEffect } from "react";
-
-import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon } from "./icon";
 
@@ -65,9 +63,9 @@ export const TextInput: React.FC<Props> = React.memo(
           <Form.Item>
             <Button
               style={{ marginBottom: "15px" }}
-              bsStyle="success"
+              type="primary"
               onClick={saveChange}
-              bsSize={size === "small" ? "xsmall" : undefined}
+              size={size}
             >
               <Icon name="save" /> Save
             </Button>

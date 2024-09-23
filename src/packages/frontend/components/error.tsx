@@ -22,7 +22,9 @@ export default function ShowError({
       message={message}
       type="error"
       description={
-        <div style={{ maxHeight: "150px", overflow: "auto" }}>{err}</div>
+        <div style={{ maxHeight: "150px", overflow: "auto", textWrap: "wrap" }}>
+          {err}
+        </div>
       }
       onClose={() => setError?.("")}
       closable={setError != null}

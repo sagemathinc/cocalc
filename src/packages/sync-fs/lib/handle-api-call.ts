@@ -8,7 +8,7 @@ etc.
 import { fromCompressedJSON } from "./compressed-json";
 import getLogger from "@cocalc/backend/logger";
 import type { FilesystemState } from "./types";
-import { metadataFile, mtimeDirTree, remove, writeFileLz4 } from "./util";
+import { metadataFile, ctimeDirTree, remove, writeFileLz4 } from "./util";
 import { join } from "path";
 import { mkdir, rename, readFile, writeFile } from "fs/promises";
 import type { MesgSyncFSOptions } from "@cocalc/comm/websocket/types";
@@ -138,7 +138,7 @@ async function getProjectState(meta, exclude): Promise<FilesystemState> {
   if (!process.env.HOME) {
     throw Error("HOME must be defined");
   }
-  const projectState = await mtimeDirTree({
+  const projectState = await ctimeDirTree({
     path: process.env.HOME,
     exclude,
     metadataFile: meta,

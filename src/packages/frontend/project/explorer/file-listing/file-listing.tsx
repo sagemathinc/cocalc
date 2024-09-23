@@ -9,7 +9,7 @@ import * as immutable from "immutable";
 import React, { useEffect, useRef, useState } from "react";
 import { useInterval } from "react-interval-hook";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
+import { Alert, Spin } from "antd";
 import {
   AppRedux,
   Rendered,
@@ -65,26 +65,26 @@ export function watchFiles({ actions, current_path }): void {
   }
 }
 
-export const FileListing: React.FC<Props> = (props: Props) => {
-  const {
-    actions,
-    redux,
-    name,
-    active_file_sort,
-    listing,
-    file_map,
-    checked_files,
-    current_path,
-    create_folder,
-    create_file,
-    selected_file_index,
-    project_id,
-    shift_is_down,
-    sort_by,
-    configuration_main,
-    file_search = "",
-    isRunning,
-  } = props;
+export const FileListing: React.FC<Props> = ({
+  actions,
+  redux,
+  name,
+  active_file_sort,
+  listing,
+  file_map,
+  checked_files,
+  current_path,
+  create_folder,
+  create_file,
+  selected_file_index,
+  project_id,
+  shift_is_down,
+  sort_by,
+  configuration_main,
+  file_search = "",
+  isRunning,
+}: Props) => {
+  const [starting, setStarting] = useState<boolean>(false);
 
   const prev_current_path = usePrevious(current_path);
 
@@ -227,6 +227,41 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     if (file_search[0] === TERM_MODE_CHAR) {
       return <TerminalModeDisplay />;
     }
+  }
+
+  if (!isRunning && listing.length == 0) {
+    return (
+      <Alert
+        style={{
+          textAlign: "center",
+          margin: "15px auto",
+          maxWidth: "400px",
+        }}
+        showIcon
+        type="warning"
+        message={
+          <div style={{ padding: "30px", fontSize: "14pt" }}>
+            <a
+              onClick={async () => {
+                if (starting) return;
+                try {
+                  setStarting(true);
+                  await actions.fetch_directory_listing_directly(
+                    current_path,
+                    true,
+                  );
+                } finally {
+                  setStarting(false);
+                }
+              }}
+            >
+              Start this project to see your files.
+              {starting && <Spin />}
+            </a>
+          </div>
+        }
+      />
+    );
   }
 
   return (

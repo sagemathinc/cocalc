@@ -589,11 +589,21 @@ export class NotebookFrameActions {
     this.setState({ sel_ids: sel_ids.add(id) });
   }
 
-  public select_all_cells(): void {
-    this.setState({
-      sel_ids: this.jupyter_actions.store.get_cell_list().toSet(),
-    });
-  }
+  // select all cells, possibly of a given type.
+  select_all_cells = (cell_type?: "code" | "markdown" | "raw") => {
+    let sel_ids;
+    if (cell_type) {
+      sel_ids =
+        this.jupyter_actions.store
+          .get("cells")
+          ?.filter((x) => x.get("cell_type", "code") == cell_type)
+          .keySeq()
+          .toJS() ?? [];
+    } else {
+      sel_ids = this.jupyter_actions.store.get_cell_list().toSet();
+    }
+    this.setState({ sel_ids });
+  };
 
   /***
    * Cursor movement, which here means "the selected cell",

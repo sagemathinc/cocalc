@@ -44,7 +44,7 @@ export function failing_to_save(
   hash: number,
   expected_hash?: number
 ): boolean {
-  if (expected_hash == undefined) {
+  if (expected_hash == null) {
     return false;
   }
   if (!state[path]) {

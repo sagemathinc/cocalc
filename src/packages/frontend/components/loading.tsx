@@ -4,8 +4,10 @@
  */
 
 import { CSSProperties } from "react";
+import { useIntl } from "react-intl";
 
 import { TypedMap, useDelayedRender } from "@cocalc/frontend/app-framework";
+import { labels } from "@cocalc/frontend/i18n";
 import { Icon } from "./icon";
 
 export type Estimate = TypedMap<{
@@ -31,7 +33,7 @@ const LOADING_THEMES: { [keys: string]: CSSProperties } = {
     color: "#888",
     background: "white",
   },
-};
+} as const;
 
 export function Loading({
   style,
@@ -41,6 +43,8 @@ export function Loading({
   delay,
   transparent = false,
 }: Props) {
+  const intl = useIntl();
+
   const render = useDelayedRender(delay ?? 0);
   if (!render) {
     return <></>;
@@ -55,7 +59,8 @@ export function Loading({
       }}
     >
       <span>
-        <Icon name="cocalc-ring" spin /> {text ?? "Loading..."}
+        <Icon name="cocalc-ring" spin />{" "}
+        {text ?? intl.formatMessage(labels.loading)}
       </span>
       {estimate != undefined && (
         <div>

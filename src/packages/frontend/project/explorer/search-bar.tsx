@@ -14,6 +14,7 @@ import { Alert } from "antd";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { output_style_searchbox } from "./mini-terminal";
 import { ListingItem } from "./types";
+import { useIntl } from "react-intl";
 
 interface Props {
   project_id: string; // Added by miniterm functionality
@@ -47,6 +48,8 @@ export const SearchBar = React.memo((props: Props) => {
     disabled = false,
     ext_selection,
   } = props;
+
+  const intl = useIntl();
 
   // edit → run → edit
   // TODO use "state" to show a progress spinner while a command is running
@@ -278,7 +281,10 @@ export const SearchBar = React.memo((props: Props) => {
       <SearchInput
         autoFocus
         autoSelect
-        placeholder="Search or create file"
+        placeholder={intl.formatMessage({
+          id: "project.explorer.search-bar.placeholder",
+          defaultMessage: "Search or create file",
+        })}
         value={file_search}
         on_change={on_change}
         on_submit={search_submit}

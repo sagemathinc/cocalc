@@ -7,6 +7,7 @@
 // src/@cocalc/frontend/course/configuration/upgrades.tsx
 
 import { Button, Card, Popover } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -17,6 +18,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
@@ -61,6 +63,8 @@ export async function applyLicense(opts: ALOpts): Promise<void> {
 export const SiteLicense: React.FC<Props> = (props: Props) => {
   const { project_id, site_license, mode = "project" } = props;
   const isFlyout = mode === "flyout";
+
+  const intl = useIntl();
 
   const haveLicenses = useMemo(
     () => (site_license?.size ?? 0) > 0,
@@ -184,7 +188,7 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
           isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined
         }
       >
-        <Icon name="key" /> Licenses
+        <Icon name="key" /> {intl.formatMessage(labels.licenses)}
         {isFlyout ? (
           <span style={{ float: "right" }}>{render_extra()}</span>
         ) : undefined}
@@ -222,7 +226,11 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
             onClick={() => set_show_site_license(true)}
             disabled={show_site_license}
           >
-            <Icon name="key" /> Upgrade using a license key...
+            <Icon name="key" />{" "}
+            <FormattedMessage
+              id="project.settings.site-license.button.label"
+              defaultMessage="Upgrade using a license key..."
+            />
           </Button>
           {render_site_license_text()}
           <br />

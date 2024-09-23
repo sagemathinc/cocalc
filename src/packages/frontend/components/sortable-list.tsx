@@ -132,7 +132,7 @@ export function DragHandle({
     <div
       style={{
         display: "inline-block",
-        cursor: "grab",
+        cursor: "move",
         ...style,
       }}
       {...attributes}

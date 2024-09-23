@@ -42,6 +42,7 @@ type EditorType =
   | "cm-lean"
   | "cm"
   | "course-assignments"
+  | "course-actions"
   | "course-configuration"
   | "course-handouts"
   | "course-shared_project"
@@ -92,7 +93,7 @@ type EditorType =
   | "whiteboard"
   | "wiki"
   | "x11-apps"
-  | "x11"
+  | "x11";
 
 // Editor spec
 export interface EditorDescription {

@@ -3,8 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useIntl } from "react-intl";
 
-import { LabeledRow, NumberInput } from "../../components";
+import { LabeledRow, NumberInput } from "@cocalc/frontend/components";
 
 interface Props {
   tab_size: number;
@@ -12,8 +13,15 @@ interface Props {
 }
 
 export function EditorSettingsIndentSize(props: Props): JSX.Element {
+  const intl = useIntl();
+
   return (
-    <LabeledRow label="Indent size">
+    <LabeledRow
+      label={intl.formatMessage({
+        id: "account.editor-settings.indent-size.label",
+        defaultMessage: "Indent size",
+      })}
+    >
       <NumberInput
         on_change={(n) => props.on_change("tab_size", n)}
         min={2}
