@@ -385,7 +385,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // Might throw a CellWriteProtectedException
   public set_cell_input(id: string, input: string, save = true): void {
     if (!this.store) return;
-    if (this.store.getIn(["this.st", id, "input"]) == input) {
+    if (this.store.getIn(["cells", id, "input"]) == input) {
       // nothing changed.   Note, I tested doing the above check using
       // both this.syncdb and this.store, and this.store is orders of magnitude faster.
       return;
