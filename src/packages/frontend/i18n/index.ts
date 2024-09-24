@@ -11,6 +11,7 @@ import {
   MessageFormatElement,
 } from "react-intl";
 
+import { NAMES, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/util/i18n";
 import { AccountState } from "@cocalc/frontend/account/types";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
@@ -23,11 +24,9 @@ import { IntlMessage, isIntlMessage } from "./types";
 
 export { dialogs, editor, jupyter, labels, menu } from "./common";
 
-export { DEFAULT_LOCALE, isIntlMessage };
+export { DEFAULT_LOCALE, isIntlMessage, OTHER_SETTINGS_LOCALE_KEY };
 
 export type { IntlMessage, Locale };
-
-export const OTHER_SETTINGS_LOCALE_KEY = "i18n";
 
 export type Messages =
   | Record<string, string>
@@ -117,7 +116,7 @@ export const LOCALIZATIONS: {
   };
 } = {
   en: {
-    name: "English",
+    name: NAMES.en,
     flag: "🇺🇸",
     native: "English",
     trans: defineMessage({
@@ -126,7 +125,7 @@ export const LOCALIZATIONS: {
     }),
   },
   de: {
-    name: "German",
+    name: NAMES.de,
     flag: "🇩🇪",
     native: "Deutsch",
     trans: defineMessage({
@@ -135,7 +134,7 @@ export const LOCALIZATIONS: {
     }),
   },
   es: {
-    name: "Spanish",
+    name: NAMES.es,
     flag: "🇪🇸",
     native: "Español",
     trans: defineMessage({
@@ -144,7 +143,7 @@ export const LOCALIZATIONS: {
     }),
   },
   fr: {
-    name: "French",
+    name: NAMES.fr,
     flag: "🇫🇷",
     native: "Français",
     trans: defineMessage({
@@ -153,7 +152,7 @@ export const LOCALIZATIONS: {
     }),
   },
   it: {
-    name: "Italian",
+    name: NAMES.it,
     flag: "🇮🇹",
     native: "Italiano",
     trans: defineMessage({
@@ -162,7 +161,7 @@ export const LOCALIZATIONS: {
     }),
   },
   pl: {
-    name: "Polish",
+    name: NAMES.pl,
     flag: "🇵🇱",
     native: "Polski",
     trans: defineMessage({
@@ -171,7 +170,7 @@ export const LOCALIZATIONS: {
     }),
   },
   hu: {
-    name: "Hungarian",
+    name: NAMES.hu,
     flag: "🇭🇺",
     native: "Magyar",
     trans: defineMessage({
@@ -180,7 +179,7 @@ export const LOCALIZATIONS: {
     }),
   },
   ar: {
-    name: "Arabic",
+    name: NAMES.ar,
     flag: "🇪🇬",
     native: "العربية",
     trans: defineMessage({
@@ -189,7 +188,7 @@ export const LOCALIZATIONS: {
     }),
   },
   pt: {
-    name: "Portuguese",
+    name: NAMES.pt,
     flag: "🇵🇹",
     native: "Português",
     trans: defineMessage({
@@ -198,7 +197,7 @@ export const LOCALIZATIONS: {
     }),
   },
   tr: {
-    name: "Turkish",
+    name: NAMES.tr,
     flag: "🇹🇷",
     native: "Türkçe",
     trans: defineMessage({
@@ -207,7 +206,7 @@ export const LOCALIZATIONS: {
     }),
   },
   he: {
-    name: "Hebrew",
+    name: NAMES.he,
     flag: "🇮🇱",
     native: "עִבְרִית",
     trans: defineMessage({
@@ -216,7 +215,7 @@ export const LOCALIZATIONS: {
     }),
   },
   zh: {
-    name: "Chinese",
+    name: NAMES.zh,
     flag: "🇨🇳",
     native: "中文",
     trans: defineMessage({
@@ -225,7 +224,7 @@ export const LOCALIZATIONS: {
     }),
   },
   ja: {
-    name: "Japanese",
+    name: NAMES.ja,
     flag: "🇯🇵",
     native: "日本語",
     trans: defineMessage({
@@ -234,7 +233,7 @@ export const LOCALIZATIONS: {
     }),
   },
   hi: {
-    name: "Hindi",
+    name: NAMES.hi,
     flag: "🇮🇳",
     native: "हिन्दी",
     trans: defineMessage({
@@ -243,7 +242,7 @@ export const LOCALIZATIONS: {
     }),
   },
   ko: {
-    name: "Korean",
+    name: NAMES.ko,
     flag: "🇰🇷",
     native: "한국어",
     trans: defineMessage({
@@ -252,7 +251,7 @@ export const LOCALIZATIONS: {
     }),
   },
   ru: {
-    name: "Russian",
+    name: NAMES.ru,
     flag: "🇷🇺",
     native: "Русский",
     trans: defineMessage({

@@ -1,16 +1,23 @@
 import { Space } from "antd";
-import Loading from "components/share/loading";
-import register from "../register";
-import useEditTable from "lib/hooks/edit-table";
-import A from "components/misc/A";
 
-const desc = {
+import {
+  KEEP_EN_LOCALE,
+  NAMES,
+  OTHER_SETTINGS_LOCALE_KEY,
+} from "@cocalc/util/i18n";
+import A from "components/misc/A";
+import Loading from "components/share/loading";
+import useEditTable from "lib/hooks/edit-table";
+import register from "../register";
+
+const DESC = {
   time_ago_absolute: `
 You can display timestamps either as absolute points in time or relative to
 the current time.`,
   dark_mode: `Use Dark mode to reduce eye strain and save power by showing light text on a dark background.`,
   extra: "dark reader",
-};
+  i18n: "Change the user-interface language",
+} as const;
 
 interface Data {
   other_settings: {
@@ -28,19 +35,79 @@ register({
   title: "Appearance",
   icon: "calendar-week",
   desc: "Configure dark mode and how times are displayed.",
-  search: desc,
+  search: DESC,
   Component: () => {
-    const { edited, original, Save, EditBoolean, EditNumber } =
+    const { edited, original, Save, EditBoolean, EditNumber, EditSelect } =
       useEditTable<Data>({
         accounts: { other_settings: null },
       });
+
     if (original == null || edited == null) {
       return <Loading />;
     }
 
+    function renderDarkMode() {
+      if (edited == null || !edited.other_settings.dark_mode) return;
+
+      return (
+        <div style={{ width: "100%" }}>
+          <div
+            style={{
+              margin: "15px auto",
+              maxWidth: "700px",
+              border: "1px solid lightgrey",
+              padding: "15px",
+              borderRadius: "5px",
+            }}
+          >
+            <h2 style={{ textAlign: "center" }}>Parameters</h2>
+            <EditNumber
+              path="other_settings.dark_mode_brightness"
+              title="Brightness"
+              min={20}
+              max={100}
+            />
+            <EditNumber
+              path="other_settings.dark_mode_contrast"
+              title="Contrast"
+              min={20}
+              max={100}
+            />
+            <EditNumber
+              path="other_settings.dark_mode_sepia"
+              title="Sepia"
+              min={0}
+              max={100}
+            />
+            <EditNumber
+              path="other_settings.dark_mode_grayscale"
+              title="Grayscale"
+              min={0}
+              max={100}
+            />
+          </div>
+        </div>
+      );
+    }
+
+    // make a copy of NAMES and replace the en with en-keep entry
+    const langs: { [key: string]: string } = { ...NAMES };
+    // add the "keep english" option
+    langs[KEEP_EN_LOCALE] = langs.en;
+    delete langs.en;
+
     return (
       <Space direction="vertical" style={{ width: "100%" }}>
         <Save />
+
+        <EditSelect
+          path={`other_settings.${OTHER_SETTINGS_LOCALE_KEY}`}
+          icon="translation-outlined"
+          title="Language"
+          desc={DESC.i18n}
+          options={langs}
+          defaultValue={KEEP_EN_LOCALE}
+        />
 
         <EditBoolean
           path="other_settings.dark_mode"
@@ -55,7 +122,7 @@ register({
                 borderRadius: "3px",
               }}
             >
-              {desc.dark_mode} Dark mode is implemented using{" "}
+              {DESC.dark_mode} Dark mode is implemented using{" "}
               <A
                 style={{ color: "#e96c4d", fontWeight: 700 }}
                 href="https://darkreader.org/"
@@ -68,50 +135,13 @@ register({
           }
         />
 
-        {edited.other_settings.dark_mode && (
-          <div style={{ width: "100%" }}>
-            <div
-              style={{
-                margin: "15px auto",
-                maxWidth: "700px",
-                border: "1px solid lightgrey",
-                padding: "15px",
-                borderRadius: "5px",
-              }}
-            >
-              <h2 style={{ textAlign: "center" }}>Parameters</h2>
-              <EditNumber
-                path="other_settings.dark_mode_brightness"
-                title="Brightness"
-                min={20}
-                max={100}
-              />
-              <EditNumber
-                path="other_settings.dark_mode_contrast"
-                title="Contrast"
-                min={20}
-                max={100}
-              />
-              <EditNumber
-                path="other_settings.dark_mode_sepia"
-                title="Sepia"
-                min={0}
-                max={100}
-              />
-              <EditNumber
-                path="other_settings.dark_mode_grayscale"
-                title="Grayscale"
-                min={0}
-                max={100}
-              />
-            </div>
-          </div>
-        )}
+        {renderDarkMode()}
+
         <EditBoolean
           path="other_settings.time_ago_absolute"
           icon="clock"
           title="Timestamp Display"
-          desc={desc.time_ago_absolute}
+          desc={DESC.time_ago_absolute}
           label="Display timestamps as absolute points in time"
         />
       </Space>
