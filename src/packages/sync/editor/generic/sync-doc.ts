@@ -2342,9 +2342,12 @@ export class SyncDoc extends EventEmitter {
   };
 
   public set_snapshot_interval = async (n: number): Promise<void> => {
-    this.syncstring_table.set(
-      this.syncstring_table_get_one().set("snapshot_interval", n),
-    );
+    this.syncstring_table.set({
+      string_id: this.string_id,
+      project_id: this.project_id,
+      path: this.path,
+      snapshot_interval: n,
+    });
     await this.syncstring_table.save();
   };
 
@@ -2721,7 +2724,7 @@ export class SyncDoc extends EventEmitter {
     return size;
   };
 
-  private set_save = async (x: {
+  private set_save = async (save: {
     state: string;
     error: string;
     hash?: number;
@@ -2731,18 +2734,23 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
-    x.time = Date.now();
-    this.syncstring_table.set(
-      this.syncstring_table_get_one().set("save", fromJS(x)),
-    );
+    this.syncstring_table.set({
+      string_id: this.string_id,
+      project_id: this.project_id,
+      path: this.path,
+      save,
+    });
     await this.syncstring_table.save();
   };
 
   private set_read_only = async (read_only: boolean): Promise<void> => {
     this.assert_table_is_ready("syncstring");
-    this.syncstring_table.set(
-      this.syncstring_table_get_one().set("read_only", read_only),
-    );
+    this.syncstring_table.set({
+      string_id: this.string_id,
+      project_id: this.project_id,
+      path: this.path,
+      read_only,
+    });
     await this.syncstring_table.save();
   };
 

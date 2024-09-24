@@ -3043,4 +3043,12 @@ export class Actions<
       .getIn(["editor_settings", "build_on_save"]);
     set_account_table({ editor_settings: { build_on_save: !val } });
   }
+
+  getTrust = () => {
+    return this._syncstring.get_settings()?.get("trust");
+  };
+
+  setTrust = async (trust: boolean) => {
+    await this._syncstring.set_settings({ trust });
+  };
 }
