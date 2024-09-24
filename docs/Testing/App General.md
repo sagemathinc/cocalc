@@ -1,6 +1,0 @@
-- Top Nav remains fixed on scrolling.
-- Tabs are draggable along their axis and do not float anywhere else
-- Tabs stay the same size on closing by mouse click until the user is done closing tabs.
-- Tabs shrink appropriately when there are more of them.
-- Text is truncated when tabs get small enough
-- `x`'s highlight to a different color when hovered.
