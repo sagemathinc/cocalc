@@ -77,6 +77,12 @@ export function loadLocaleMessages(locale: Locale): Promise<Messages> {
         return import("@cocalc/frontend/i18n/trans/tr_TR.compiled.json");
       case "he":
         return import("@cocalc/frontend/i18n/trans/he_IL.compiled.json");
+      case "hi":
+        return import("@cocalc/frontend/i18n/trans/hi_IN.compiled.json");
+      case "hu":
+        return import("@cocalc/frontend/i18n/trans/hu_HU.compiled.json");
+      case "ar":
+        return import("@cocalc/frontend/i18n/trans/ar_EG.compiled.json");
       default:
         unreachable(locale);
         throw new Error(`Unknown locale '${locale}.`);
@@ -164,6 +170,24 @@ export const LOCALIZATIONS: {
       defaultMessage: "Polish",
     }),
   },
+  hu: {
+    name: "Hungarian",
+    flag: "🇭🇺",
+    native: "Magyar",
+    trans: defineMessage({
+      id: "i18n.localization.lang.hungarian",
+      defaultMessage: "Hungarian",
+    }),
+  },
+  ar: {
+    name: "Arabic",
+    flag: "🇪🇬",
+    native: "العربية",
+    trans: defineMessage({
+      id: "i18n.localization.lang.arabic",
+      defaultMessage: "Arabic",
+    }),
+  },
   pt: {
     name: "Portuguese",
     flag: "🇵🇹",
@@ -180,6 +204,15 @@ export const LOCALIZATIONS: {
     trans: defineMessage({
       id: "i18n.localization.lang.turkish",
       defaultMessage: "Turkish",
+    }),
+  },
+  he: {
+    name: "Hebrew",
+    flag: "🇮🇱",
+    native: "עִבְרִית",
+    trans: defineMessage({
+      id: "i18n.localization.lang.hebrew",
+      defaultMessage: "Hebrew",
     }),
   },
   zh: {
@@ -200,6 +233,15 @@ export const LOCALIZATIONS: {
       defaultMessage: "Japanese",
     }),
   },
+  hi: {
+    name: "Hindi",
+    flag: "🇮🇳",
+    native: "हिन्दी",
+    trans: defineMessage({
+      id: "i18n.localization.lang.hindi",
+      defaultMessage: "Hindi",
+    }),
+  },
   ko: {
     name: "Korean",
     flag: "🇰🇷",
@@ -207,15 +249,6 @@ export const LOCALIZATIONS: {
     trans: defineMessage({
       id: "i18n.localization.lang.korean",
       defaultMessage: "Korean",
-    }),
-  },
-  he: {
-    name: "Hebrew",
-    flag: "🇮🇱",
-    native: "עִבְרִית",
-    trans: defineMessage({
-      id: "i18n.localization.lang.hebrew",
-      defaultMessage: "Hebrew",
     }),
   },
   ru: {

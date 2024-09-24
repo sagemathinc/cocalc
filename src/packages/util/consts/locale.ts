@@ -15,11 +15,14 @@ export const LOCALE = [
   "fr",
   "it",
   "ja",
+  "hi",
   "pt",
   "ko",
   "pl",
   "tr",
   "he",
+  "hu",
+  "ar",
 ] as const;
 
 export type Locale = (typeof LOCALE)[number];
