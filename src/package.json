@@ -38,5 +38,8 @@
   "bugs": {
     "url": "https://github.com/sagemathinc/cocalc/issues"
   },
-  "homepage": "https://github.com/sagemathinc/cocalc"
+  "homepage": "https://github.com/sagemathinc/cocalc",
+  "dependencies": {
+    "lru-cache": "^7.18.3"
+  }
 }

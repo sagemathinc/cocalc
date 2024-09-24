@@ -26,6 +26,7 @@ import getBrowserInfo from "./browser-info";
 import RecentFiles from "./recent-files";
 import { Type } from "./tickets";
 import { NoZendesk } from "./util";
+import { VideoItem } from "components/videos";
 
 const CHATGPT_DISABLED = true;
 const MIN_BODY_LENGTH = 16;
@@ -140,23 +141,30 @@ export default function Create() {
         </Title>
         {showExtra && (
           <>
-            <p style={{ fontSize: "12pt" }}>
-              Create a new support ticket below or{" "}
-              <A href="/support/tickets">
-                check the status of your support tickets
-              </A>
-              .{" "}
-              {helpEmail ? (
-                <>
-                  You can also email us directly at{" "}
-                  <A href={`mailto:${helpEmail}`}>{helpEmail}</A> or{" "}
-                  <A href="https://calendly.com/cocalc/discovery">
-                    book a demo or discovery call
-                  </A>
-                  .
-                </>
-              ) : undefined}
-            </p>
+            <Space>
+              <p style={{ fontSize: "12pt" }}>
+                Create a new support ticket below or{" "}
+                <A href="/support/tickets">
+                  check the status of your support tickets
+                </A>
+                .{" "}
+                {helpEmail ? (
+                  <>
+                    You can also email us directly at{" "}
+                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A> or{" "}
+                    <A href="https://calendly.com/cocalc/discovery">
+                      book a demo or discovery call
+                    </A>
+                    .
+                  </>
+                ) : undefined}
+              </p>
+              <VideoItem
+                width={600}
+                style={{ margin: "15px 0", width: "600px" }}
+                id={"4Ef9sxX59XM"}
+              />
+            </Space>
             {openaiEnabled && onCoCalcCom && !CHATGPT_DISABLED ? (
               <ChatGPT siteName={siteName} />
             ) : undefined}

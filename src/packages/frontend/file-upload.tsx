@@ -12,22 +12,13 @@ import {
   DropzoneComponentHandlers,
 } from "react-dropzone-component";
 export { Dropzone };
-
 import ReactDOMServer from "react-dom/server"; // for dropzone below
-
 import { Button } from "antd";
 import { join } from "path";
 import { useIntl } from "react-intl";
-
-import {
-  React,
-  ReactDOM,
-  redux,
-  useEffect,
-  useRef,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Icon, Tip } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -80,15 +71,15 @@ const UPLOAD_OPTIONS = {
   // is *per chunk*, so much larger uploads should still work.
 };
 
-const DROPSTYLE: React.CSSProperties = {
+const DROPSTYLE = {
   border: "2px solid #ccc",
   boxShadow: "4px 4px 2px #bbb",
   borderRadius: "5px",
   padding: 0,
   margin: "10px 0",
-};
+} as const;
 
-const Header = ({ close_preview }: { close_preview?: Function }) => {
+function Header({ close_preview }: { close_preview?: Function }) {
   return (
     <Tip
       icon="file"
@@ -110,7 +101,7 @@ const Header = ({ close_preview }: { close_preview?: Function }) => {
       </h4>
     </Tip>
   );
-};
+}
 
 function postUrl(project_id: string, path: string): string {
   const dest_dir = encode_path(path);
@@ -133,10 +124,16 @@ interface FileUploadProps {
   config?: object; // All supported dropzone.js config options
 }
 
-export const FileUpload: React.FC<FileUploadProps> = (props) => {
-  const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id,
-  );
+export function FileUpload({
+  project_id,
+  current_path,
+  dropzone_handler,
+  close_button_onclick,
+  show_header,
+  config,
+}: FileUploadProps) {
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
 
   if (student_project_functionality.disableUploads) {
     return (
@@ -147,7 +144,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
   }
 
   function dropzone_template() {
-    return <DropzonePreview project_id={props.project_id} />;
+    return <DropzonePreview project_id={project_id} />;
   }
 
   function render_close_button() {
@@ -155,7 +152,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
       <div style={{ position: "relative" }}>
         <div className="close-button" style={CLOSE_BUTTON_STYLE}>
           <span
-            onClick={props.close_button_onclick}
+            onClick={close_button_onclick}
             className="close-button-x"
             style={{ cursor: "pointer", fontSize: "18px", color: "gray" }}
           >
@@ -168,15 +165,15 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
 
   return (
     <div>
-      {props.close_button_onclick != null ? render_close_button() : undefined}
-      {props.show_header ? <Header /> : undefined}
+      {close_button_onclick != null ? render_close_button() : undefined}
+      {show_header ? <Header /> : undefined}
       <div style={DROPSTYLE}>
         <DropzoneComponent
           config={{
-            postUrl: postUrl(props.project_id, props.current_path),
-            ...props.config,
+            postUrl: postUrl(project_id, current_path),
+            ...config,
           }}
-          eventHandlers={props.dropzone_handler}
+          eventHandlers={dropzone_handler}
           djsConfig={{
             previewTemplate: ReactDOMServer.renderToStaticMarkup(
               dropzone_template(),
@@ -187,7 +184,7 @@ export const FileUpload: React.FC<FileUploadProps> = (props) => {
       </div>
     </div>
   );
-};
+}
 
 export interface DropzoneRef {
   current: Dropzone | null;
@@ -206,20 +203,33 @@ interface FileUploadWrapperProps {
   show_upload?: boolean; // Whether or not to show upload area
   on_close?: Function;
   disabled?: boolean;
-  style?: React.CSSProperties; // css styles to apply to the containing div
+  style?; // css styles to apply to the containing div
   dropzone_ref?: DropzoneRef; // gets set to underlying Dropzone instance
   close_preview_ref?: { current: Function | null }; // set to function to close the preview
   className?: string;
   trackMouse?: boolean; // if true, report mouse location as second arg to event handlers, so you know where something was dropped.
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
-export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
-  const student_project_functionality = useStudentProjectFunctionality(
-    props.project_id,
-  );
-  const disabled =
-    props.disabled || student_project_functionality.disableUploads;
+export function FileUploadWrapper({
+  project_id,
+  dest_path,
+  config = {},
+  event_handlers,
+  preview_template,
+  show_upload = true,
+  on_close,
+  disabled: disabled0 = false,
+  style,
+  dropzone_ref,
+  close_preview_ref,
+  className,
+  trackMouse,
+  children,
+}: FileUploadWrapperProps) {
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
+  const disabled = disabled0 || student_project_functionality.disableUploads;
   const [files, set_files] = useState<string[]>([]);
   const preview_ref = useRef(null);
   const zone_ref = useRef(null);
@@ -230,22 +240,19 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
     // NOTE: Chunking is absolutely critical to get around hard limits in cloudflare!!
     // See https://github.com/sagemathinc/cocalc/issues/3716
     const with_defaults = defaults(
-      props.config,
+      config,
       {
-        url: postUrl(props.project_id, props.dest_path),
-        previewsContainer:
-          preview_ref.current != null
-            ? ReactDOM.findDOMNode(preview_ref.current)
-            : undefined,
+        url: postUrl(project_id, dest_path),
+        previewsContainer: preview_ref.current,
         previewTemplate: ReactDOMServer.renderToStaticMarkup(
-          preview_template(),
+          preview_template?.() ?? <DropzonePreview project_id={project_id} />,
         ),
-        addRemoveLinks: props.event_handlers.removedfile != null,
+        addRemoveLinks: event_handlers.removedfile != null,
         ...UPLOAD_OPTIONS,
       },
       true,
     );
-    return merge(with_defaults, props.config);
+    return merge(with_defaults, config);
   }
 
   let queueDestroy: boolean = false;
@@ -300,22 +307,14 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
     }
   });
 
-  function preview_template() {
-    if (props.preview_template != null) {
-      return props.preview_template();
-    }
-
-    return <DropzonePreview project_id={props.project_id} />;
-  }
-
   // If remove_all is true, then all files are also removed
   // from the dropzone.  This is true by default if there is
   // no "removedfile" handler, and false otherwise.
   function close_preview(
-    remove_all: boolean = props.event_handlers.removedfile == null,
+    remove_all: boolean = event_handlers.removedfile == null,
   ) {
-    if (typeof props.on_close === "function") {
-      props.on_close();
+    if (typeof on_close === "function") {
+      on_close();
     }
     if (remove_all && dropzone.current != null) {
       try {
@@ -324,13 +323,13 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
     }
     set_files([]);
   }
-  if (props.close_preview_ref != null) {
-    props.close_preview_ref.current = close_preview;
+  if (close_preview_ref != null) {
+    close_preview_ref.current = close_preview;
   }
 
   function render_preview() {
     let style;
-    if (!props.show_upload || files.length === 0) {
+    if (!show_upload || files.length === 0) {
       style = { display: "none" };
     }
     const box_style = {
@@ -373,18 +372,18 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
 
   function create_dropzone(): void {
     if (dropzone.current == null && !disabled && zone_ref.current != null) {
-      const dropzone_node = ReactDOM.findDOMNode(zone_ref.current);
+      const dropzone_node = zone_ref.current;
       const config = get_djs_config();
       dropzone.current = new Dropzone(dropzone_node, config);
-      if (props.dropzone_ref != null) {
-        props.dropzone_ref.current = dropzone.current;
+      if (dropzone_ref != null) {
+        dropzone_ref.current = dropzone.current;
       }
       queueDestroy = false;
     }
   }
 
   function log(entry): void {
-    redux.getProjectActions(props.project_id).log(entry);
+    redux.getProjectActions(project_id).log(entry);
   }
 
   function set_up_events(): void {
@@ -392,9 +391,9 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       return;
     }
 
-    for (const name in props.event_handlers) {
+    for (const name in event_handlers) {
       // Check if there's an array of event handlers
-      let handlers = props.event_handlers[name];
+      let handlers = event_handlers[name];
       if (!is_array(handlers)) {
         handlers = [handlers];
       }
@@ -404,7 +403,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
           handler(dropzone.current);
         } else {
           // Event handler
-          if (props.trackMouse) {
+          if (trackMouse) {
             dropzone.current.on(name, (e) => handler(e, mouseEvt.current));
           } else {
             dropzone.current.on(name, handler);
@@ -427,7 +426,7 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       log({
         event: "file_action",
         action: "uploaded",
-        file: join(props.dest_path, file.name),
+        file: join(dest_path, file.name),
       });
     });
   }
@@ -441,18 +440,18 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
     dropzone.current.off();
     dropzone.current.destroy();
     dropzone.current = null;
-    if (props.dropzone_ref != null) {
-      props.dropzone_ref.current = null;
+    if (dropzone_ref != null) {
+      dropzone_ref.current = null;
     }
   }
 
   return (
     <div
-      style={props.style}
+      style={style}
       ref={zone_ref}
-      className={props.className}
+      className={className}
       onMouseMove={
-        props.trackMouse
+        trackMouse
           ? (evt) => {
               mouseEvt.current = evt;
             }
@@ -460,22 +459,16 @@ export const FileUploadWrapper: React.FC<FileUploadWrapperProps> = (props) => {
       }
     >
       {!disabled ? render_preview() : undefined}
-      {props.children}
+      {children}
     </div>
   );
-};
-
-FileUploadWrapper.defaultProps = {
-  config: {},
-  disabled: false,
-  show_upload: true,
-};
+}
 
 interface DropzonePreviewProps {
   project_id: string;
 }
 
-const DropzonePreview: React.FC<DropzonePreviewProps> = ({ project_id }) => {
+function DropzonePreview({ project_id }: DropzonePreviewProps) {
   const state = useTypedRedux("projects", "project_map")?.getIn([
     project_id,
     "state",
@@ -512,7 +505,7 @@ const DropzonePreview: React.FC<DropzonePreviewProps> = ({ project_id }) => {
       </div>
     </div>
   );
-};
+}
 
 export function UploadLink({
   project_id,

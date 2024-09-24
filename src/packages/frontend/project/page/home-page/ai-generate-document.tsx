@@ -333,12 +333,18 @@ function AIGenerateDocument({
     };
     projectActions?.log(event);
 
-    if (
-      !(await ensure_project_running(
-        project_id,
-        `create the ${docName} document '${path}'`,
-      ))
-    ) {
+    const what = intl.formatMessage(
+      {
+        id: "project.page.ai-generate-document.create_document.what",
+        defaultMessage: `create the {docName} document "{path}"`,
+      },
+      {
+        docName,
+        path,
+      },
+    );
+
+    if (!(await ensure_project_running(project_id, what))) {
       throw new Error(`Unable to create ${docName} document for ${path}`);
     }
 
@@ -693,7 +699,7 @@ function AIGenerateDocument({
           <Paragraph strong>
             Select a Jupyter kernel:{" "}
             <SelectKernel
-              placeholder="Select a kernel..."
+              placeholder={`${intl.formatMessage(labels.select_a_kernel)}...`}
               size="middle"
               disabled={querying}
               project_id={project_id}

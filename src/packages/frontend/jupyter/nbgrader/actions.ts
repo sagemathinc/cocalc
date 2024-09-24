@@ -132,6 +132,7 @@ export class NBGraderActions {
   }
 
   public async confirm_assign(): Promise<void> {
+    const intl = await getIntl();
     const path = this.jupyter_actions.store.get("path");
     let { head, tail } = path_split(path);
     if (head == "") {
@@ -144,14 +145,27 @@ export class NBGraderActions {
       ["metadata", "nbgrader", "cocalc_minimal_stubs"],
       false,
     );
-    const MINIMAL_STUBS = "Generate with minimal stubs";
+    const MINIMAL_STUBS = intl.formatMessage(
+      jupyter.editor.nbgrader_minimal_stubs,
+    );
+    const title = jupyter.editor.nbgrader_create_title;
+    const body = intl.formatMessage(jupyter.editor.nbgrader_create_body, {
+      target,
+      STUDENT_SUBDIR,
+    });
+
+    const cancel = intl.formatMessage(labels.cancel);
     const choice = await this.jupyter_actions.confirm_dialog({
-      title: "Generate Student Version of Notebook",
-      body: `Generating the student version of the notebook will create a new Jupyter notebook "${target}" that is ready to distribute to your students.  This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted; it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE"; and it clears all outputs. Once done, you can easily inspect the resulting notebook to make sure everything looks right.   (This is analogous to 'nbgrader assign'.)  The CoCalc course management system will *only* copy the ${STUDENT_SUBDIR} subdirectory that contains this generated notebook to students.`,
+      title: intl.formatMessage(title, {
+        full: true,
+      }),
+      body,
       choices: [
-        { title: "Cancel" },
+        { title: cancel },
         {
-          title: "Generate student version",
+          title: intl.formatMessage(title, {
+            full: false,
+          }),
           style: !minimal_stubs ? "primary" : undefined,
           default: !minimal_stubs,
         },
@@ -162,7 +176,7 @@ export class NBGraderActions {
         },
       ],
     });
-    if (choice === "Cancel") return;
+    if (choice === cancel) return;
     minimal_stubs = choice == MINIMAL_STUBS;
     this.set_global_metadata({ cocalc_minimal_stubs: minimal_stubs });
     this.ensure_grade_ids_are_unique(); // non-unique ids lead to pain later

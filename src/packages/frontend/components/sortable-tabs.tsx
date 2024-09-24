@@ -98,7 +98,7 @@ export function SortableTabs(props: Props) {
         80,
         Math.min(
           250 + 65,
-          ((resize?.width ?? 500) - 46 ?? 0) / Math.max(1, items.length),
+          ((resize?.width ?? 500) - 46) / Math.max(1, items.length),
         ),
       ) - 55; // the constant accounts for the margin and x for an antd tab.
     lastRef.current = {

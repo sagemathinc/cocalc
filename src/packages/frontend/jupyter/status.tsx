@@ -5,6 +5,13 @@
 
 // Kernel display
 
+import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
+import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
+import ComputeServer from "@cocalc/frontend/compute/inline";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
+import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import {
   Button,
   Popconfirm,
@@ -15,19 +22,12 @@ import {
 } from "antd";
 import * as immutable from "immutable";
 import { ReactNode, useEffect } from "react";
-import ComputeServer from "@cocalc/frontend/compute/inline";
-import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
-import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
-import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
+import { FormattedMessage, useIntl } from "react-intl";
+import ProgressEstimate from "../components/progress-estimate";
+import { labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
-import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
 import { ALERT_COLS } from "./usage";
-import ProgressEstimate from "../components/progress-estimate";
-import { FormattedMessage, useIntl } from "react-intl";
-import { labels } from "../i18n";
 
 const KERNEL_NAME_STYLE: CSS = {
   margin: "0px 5px",
@@ -249,13 +249,23 @@ export function Kernel({
             borderRight: "1px solid gray",
           }}
         >
-          <Tooltip title={"Notebook is not trusted"}>
+          <Tooltip
+            title={intl.formatMessage({
+              id: "jupyter.status.trust.no.tooltip",
+              defaultMessage: "Notebook is not trusted",
+              description: "The Jupyter Notebook content is not trusted",
+            })}
+          >
             <Button
               danger
               onClick={() => actions.trust_notebook()}
               size="small"
             >
-              Not Trusted
+              {intl.formatMessage({
+                id: "jupyter.status.trust.no",
+                defaultMessage: "Not Trusted",
+                description: "Jupyter Notebook content is not trusted",
+              })}
             </Button>
           </Tooltip>
         </div>
@@ -267,14 +277,17 @@ export function Kernel({
     if (kernel === null) {
       return (
         <>
-          No kernel{" "}
-          <Tooltip title={"Select a kernel"}>
+          {intl.formatMessage({
+            id: "jupyter.status.no_kernel",
+            defaultMessage: "No kernel",
+          })}{" "}
+          <Tooltip title={intl.formatMessage(labels.select_a_kernel)}>
             <a
               onClick={() => {
                 actions.show_select_kernel("user request");
               }}
             >
-              (select...)
+              (`${intl.formatMessage(labels.select)}...`)
             </a>
           </Tooltip>
         </>
@@ -287,7 +300,12 @@ export function Kernel({
           return (
             <>
               Kernel is busy{" "}
-              <Tooltip title={"Interrupt the running computation"}>
+              <Tooltip
+                title={intl.formatMessage({
+                  id: "jupyter.status.interrupt_tooltip",
+                  defaultMessage: "Interrupt the running computation",
+                })}
+              >
                 <a
                   onClick={() => {
                     // using actions rather than frame actions, since I want
@@ -301,20 +319,24 @@ export function Kernel({
             </>
           );
         case "idle":
+          const tooltip = intl.formatMessage({
+            id: "jupyter.status.halt_idle_tooltip",
+            defaultMessage:
+              "Terminate the kernel process? All variable state will be lost.",
+            description: "Terminating the kernel of a Jupyter Notebook",
+          });
           return (
             <>
               Kernel is idle{" "}
               <Popconfirm
-                title={
-                  "Terminal the kernel process? All variable state will be lost."
-                }
+                title={tooltip}
                 onConfirm={() => {
                   actions.shutdown();
                 }}
-                okText={"Halt"}
-                cancelText={"Cancel"}
+                okText={intl.formatMessage(labels.halt)}
+                cancelText={intl.formatMessage(labels.cancel)}
               >
-                <Tooltip title={"Terminate the kernel process"}>
+                <Tooltip title={tooltip}>
                   <a>(halt...)</a>
                 </Tooltip>
               </Popconfirm>
@@ -322,7 +344,11 @@ export function Kernel({
           );
       }
     } else if (backendIsStarting) {
-      return "Kernel is starting";
+      return intl.formatMessage({
+        id: "jupyter.status.backend_starting",
+        defaultMessage: "Kernel is starting",
+        description: "The kernel of a Jupyter Notebook is starting",
+      });
     }
     return (
       <>

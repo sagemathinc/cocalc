@@ -13,24 +13,30 @@ import {
   Space,
 } from "antd";
 import { List, Map, fromJS } from "immutable";
+import { useState } from "react";
+import { useIntl } from "react-intl";
+
 import {
   CSS,
   redux,
   useActions,
   useRedux,
 } from "@cocalc/frontend/app-framework";
-import { useState } from "react";
+
 import { Gap, Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
-import { MAX_PARALLEL_TASKS } from "../student-projects/actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
+import { MAX_PARALLEL_TASKS } from "../student-projects/actions";
 import { Result } from "../student-projects/run-in-all-projects";
+
 interface Props {
   name: string;
 }
 
 export function TerminalCommandPanel({ name }: Props) {
+  const intl = useIntl();
   const actions = useActions<CourseActions>({ name });
   const terminal_command: TerminalCommand | undefined = useRedux(
     name,
@@ -73,7 +79,7 @@ export function TerminalCommandPanel({ name }: Props) {
         >
           <Input
             style={{ fontFamily: "monospace" }}
-            placeholder="Terminal command..."
+            placeholder={`${intl.formatMessage(labels.terminal_command)}...`}
             onChange={(e) => {
               set_field("input", e.target.value);
             }}

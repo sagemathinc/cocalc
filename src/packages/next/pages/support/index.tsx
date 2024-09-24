@@ -7,7 +7,7 @@ import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
+import { VideoItem } from "components/videos";
 import IndexList, { DataSource } from "components/landing/index-list";
 import { Title } from "components/misc";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
@@ -26,6 +26,11 @@ const dataSource = [
         </A>
         . You do NOT have to be a paying customer to open a ticket, though we
         prioritize customer requests.
+        <VideoItem
+          width={800}
+          style={{ margin: "15px 0" }}
+          id={"4Ef9sxX59XM"}
+        />
       </>
     ),
   },

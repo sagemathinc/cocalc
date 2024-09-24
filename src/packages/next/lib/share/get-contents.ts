@@ -40,7 +40,7 @@ export interface PathContents {
 
 export default async function getContents(
   project_id: string,
-  path: string
+  path: string,
 ): Promise<PathContents> {
   const fsPath = pathToFiles(project_id, path);
   const obj: PathContents = {};
@@ -60,7 +60,7 @@ export default async function getContents(
     // get actual file content
     const ext = getExtension(fsPath);
     if (hasSpecialViewer(ext)) {
-      if (stats.size >= LIMITS[ext] ?? LIMITS.other) {
+      if (stats.size >= (LIMITS[ext] ?? LIMITS.other)) {
         obj.truncated = "File too big to be displayed; download it instead.";
       } else {
         obj.content = (await fs.readFile(fsPath)).toString();
@@ -72,7 +72,7 @@ export default async function getContents(
 }
 
 async function getDirectoryListing(
-  path: string
+  path: string,
 ): Promise<{ listing: FileInfo[]; truncated?: string }> {
   const listing: FileInfo[] = [];
   let truncated: string | undefined = undefined;

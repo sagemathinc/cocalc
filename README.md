@@ -28,12 +28,6 @@ The name was coined in fall 2016 and changed around spring 2017.
 
 ## Contributors
 
-### YOU?!
-
-New -- Feb 2022:  If you want to work on something at https://github.com/sagemathinc/cocalc/issues, [contact us](email:help@cocalc.com), and we might be able to pay you!
-
-### Contributors
-
 - Greg Bard
 - Rob Beezer
 - Blaec Bejarano
@@ -52,7 +46,7 @@ New -- Feb 2022:  If you want to work on something at https://github.com/sagemat
 - Jonathan Thompson
 - Todd Zimmerman
 
-... and _many_ others: See https://github.com/sagemathinc/cocalc/graphs/contributors
+... and others: See https://github.com/sagemathinc/cocalc/graphs/contributors
 
 ## Copyright/License
 
@@ -92,3 +86,4 @@ We are grateful to BrowserStack for providing infrastructure to test CoCalc.
 ### Google
 
 We thank Google for donating over \$150K in cloud credits since 2014 to support this project.
+

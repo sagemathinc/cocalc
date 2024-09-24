@@ -5,7 +5,6 @@
 
 import { Alert, Button, Popover } from "antd";
 import { CSSProperties } from "react";
-
 import { Icon, LabeledRow, Markdown } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Config, RowType, Tag } from "@cocalc/util/db-schema/site-defaults";
@@ -117,9 +116,6 @@ export function RenderRow({
     return (
       <Button
         type={modified ? "primary" : "default"}
-        style={{
-          backgroundColor: modified ? COLORS.BS_GREEN_BGRND : undefined,
-        }}
         disabled={!modified}
         size="middle"
         icon={<Icon name="save" />}

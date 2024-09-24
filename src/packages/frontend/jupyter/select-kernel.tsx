@@ -38,6 +38,7 @@ import {
 import { useImages } from "@cocalc/frontend/compute/images-hook";
 import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
+import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
 import * as misc from "@cocalc/util/misc";
@@ -577,12 +578,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
             {renderCloseButton()}
             {renderRefreshButton()}
           </div>
-          <h3>
-            <FormattedMessage
-              id="jupyter.select-kernel.title"
-              defaultMessage={"Select a Kernel"}
-            />
-          </h3>
+          <h3>{intl.formatMessage(labels.select_a_kernel)}</h3>
         </div>
       );
     }

@@ -140,7 +140,7 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       html2pdf: capabilities.html2pdf ?? true,
       pandoc: capabilities.pandoc ?? true,
       vscode: capabilities.vscode ?? true,
-      julia: !!capabilities.julia ?? true,
+      julia: capabilities.julia ?? true,
       formatting,
       homeDirectory: capabilities.homeDirectory,
     };
