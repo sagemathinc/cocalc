@@ -582,7 +582,7 @@ importers:
         specifier: ^1.1.3
         version: 1.1.4(react@18.3.1)
       react-intl:
-        specifier: ^6.6.8
+        specifier: ^6.7.0
         version: 6.7.0(react@18.3.1)(typescript@5.6.2)
       react-plotly.js:
         specifier: ^2.6.0
@@ -2035,6 +2035,9 @@ importers:
       prop-types:
         specifier: ^15.7.2
         version: 15.8.1
+      react-intl:
+        specifier: ^6.7.0
+        version: 6.7.0(react@18.3.1)(typescript@5.6.2)
       redux:
         specifier: ^4.2.1
         version: 4.2.1
@@ -11908,7 +11911,7 @@ snapshots:
       '@babel/code-frame': 7.24.7
       '@babel/generator': 7.25.6
       '@babel/helper-compilation-targets': 7.25.2
-      '@babel/helper-module-transforms': 7.25.2(@babel/core@7.25.2(supports-color@9.4.0))(supports-color@9.4.0)
+      '@babel/helper-module-transforms': 7.25.2(@babel/core@7.25.2)(supports-color@9.4.0)
       '@babel/helpers': 7.25.6
       '@babel/parser': 7.25.6
       '@babel/template': 7.25.0
@@ -11975,16 +11978,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/helper-module-transforms@7.25.2(@babel/core@7.25.2(supports-color@9.4.0))(supports-color@9.4.0)':
-    dependencies:
-      '@babel/core': 7.25.2(supports-color@9.4.0)
-      '@babel/helper-module-imports': 7.24.7(supports-color@9.4.0)
-      '@babel/helper-simple-access': 7.24.7(supports-color@9.4.0)
-      '@babel/helper-validator-identifier': 7.24.7
-      '@babel/traverse': 7.25.6(supports-color@9.4.0)
-    transitivePeerDependencies:
-      - supports-color
-
   '@babel/helper-module-transforms@7.25.2(@babel/core@7.25.2)':
     dependencies:
       '@babel/core': 7.25.2
@@ -11992,6 +11985,16 @@ snapshots:
       '@babel/helper-simple-access': 7.24.7
       '@babel/helper-validator-identifier': 7.24.7
       '@babel/traverse': 7.25.6
+    transitivePeerDependencies:
+      - supports-color
+
+  '@babel/helper-module-transforms@7.25.2(@babel/core@7.25.2)(supports-color@9.4.0)':
+    dependencies:
+      '@babel/core': 7.25.2
+      '@babel/helper-module-imports': 7.24.7(supports-color@9.4.0)
+      '@babel/helper-simple-access': 7.24.7(supports-color@9.4.0)
+      '@babel/helper-validator-identifier': 7.24.7
+      '@babel/traverse': 7.25.6(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 

@@ -1,8 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Space } from "antd";
 
 import {
   KEEP_EN_LOCALE,
-  NAMES,
+  LOCALIZATIONS,
   OTHER_SETTINGS_LOCALE_KEY,
 } from "@cocalc/util/i18n";
 import A from "components/misc/A";
@@ -90,16 +95,15 @@ register({
       );
     }
 
-    // make a copy of NAMES and replace the en with en-keep entry
-    const langs: { [key: string]: string } = { ...NAMES };
-    // add the "keep english" option
-    langs[KEEP_EN_LOCALE] = langs.en;
-    delete langs.en;
+    function renderI18N() {
+      // derive {locale:name} from LOCALIZATIONS and replace the en with en-keep entry
+      const langs: { [key: string]: string } = Object.fromEntries(
+        Object.entries(LOCALIZATIONS).map(([key, val]) => [key, val.name]),
+      );
+      langs[KEEP_EN_LOCALE] = langs.en;
+      delete langs.en;
 
-    return (
-      <Space direction="vertical" style={{ width: "100%" }}>
-        <Save />
-
+      return (
         <EditSelect
           path={`other_settings.${OTHER_SETTINGS_LOCALE_KEY}`}
           icon="translation-outlined"
@@ -108,6 +112,14 @@ register({
           options={langs}
           defaultValue={KEEP_EN_LOCALE}
         />
+      );
+    }
+
+    return (
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <Save />
+
+        {renderI18N()}
 
         <EditBoolean
           path="other_settings.dark_mode"

@@ -3,6 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { defineMessage } from "react-intl";
+
+import { IntlMessage } from "./i18n/types";
+
 // Compute related schema stuff (see compute.coffee)
 //
 // Here's a picture of the finite state machine defined below:
@@ -40,20 +44,24 @@ type Operation =
   | "close"
   | "closed";
 
-type ComputeState = Readonly<{
-  [key in State]: {
-    desc: string; // shows up in the UI (default)
-    desc_cocalccom?: string; // if set, use this string instead of desc in "cocalc.com" mode
-    icon: string;
-    display: string;
-    stable?: boolean;
-    to: { [key in Operation]?: State };
-    timeout?: number;
-    commands: Readonly<string[]>;
-  };
+export type ComputeState = {
+  desc: string | IntlMessage; // shows up in the UI (default)
+  desc_cocalccom?: string | IntlMessage; // if set, use this string instead of desc in "cocalc.com" mode
+  icon: string;
+  display: string | IntlMessage;
+  stable?: boolean;
+  to: { [key in Operation]?: State };
+  timeout?: number;
+  commands: Readonly<string[]>;
+};
+
+type ComputeStates = Readonly<{
+  [key in State]: ComputeState;
 }>;
 
-export const COMPUTE_STATES: ComputeState = {
+// ATTN: in the frontend, all "display" and "desc" strings are translated in the components/project-state file.
+
+export const COMPUTE_STATES: ComputeStates = {
   archived: {
     desc: "Project is stored in longterm storage, and will take even longer to start.",
     icon: "file-archive",
@@ -114,9 +122,15 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   opened: {
-    desc: "Project is available and ready to try to run.",
+    desc: defineMessage({
+      id: "util.compute-states.opened.desc",
+      defaultMessage: "Project is available and ready to try to run.",
+    }),
     icon: "stop",
-    display: "Stopped",
+    display: defineMessage({
+      id: "util.compute-states.opened.display",
+      defaultMessage: "Stopped",
+    }),
     stable: true,
     to: {
       start: "starting",
@@ -144,9 +158,16 @@ export const COMPUTE_STATES: ComputeState = {
   pending: {
     desc_cocalccom:
       "Finding a place to run your project.  If nothing becomes available, reduce dedicated RAM or CPU, pay for members only hosting, or contact support.",
-    desc: "Finding a place to run your project. If nothing becomes available, contact support.",
+    desc: defineMessage({
+      id: "util.compute-states.pending.desc",
+      defaultMessage:
+        "Finding a place to run your project. If nothing becomes available, contact your administrator.",
+    }),
     icon: "times-rectangle",
-    display: "Pending",
+    display: defineMessage({
+      id: "util.compute-states.pending.display",
+      defaultMessage: "Pending",
+    }),
     stable: true,
     to: {
       stop: "stopping",
@@ -155,9 +176,15 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   starting: {
-    desc: "Project is starting up.",
+    desc: defineMessage({
+      id: "util.compute-states.starting.desc",
+      defaultMessage: "Project is starting up.",
+    }),
     icon: "flash",
-    display: "Starting",
+    display: defineMessage({
+      id: "util.compute-states.starting.display",
+      defaultMessage: "Starting",
+    }),
     to: {},
     timeout: 60,
     commands: [
@@ -195,9 +222,15 @@ export const COMPUTE_STATES: ComputeState = {
   },
 
   running: {
-    desc: "Project is running.",
+    desc: defineMessage({
+      id: "util.compute-states.running.desc",
+      defaultMessage: "Project is running.",
+    }),
     icon: "run",
-    display: "Running",
+    display: defineMessage({
+      id: "util.compute-states.running.display",
+      defaultMessage: "Running",
+    }),
     stable: true,
     to: {
       stop: "stopping",

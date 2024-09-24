@@ -533,6 +533,23 @@ export const labels = defineMessages({
     id: "labels.language",
     defaultMessage: "Language",
   },
+  always_running: {
+    id: "labels.always_running",
+    defaultMessage: "Always Running",
+  },
+  idle_timeout: {
+    id: "labels.idle_timeout",
+    defaultMessage: "Idle Timeout",
+  },
+  uptime: {
+    id: "labels.uptime",
+    defaultMessage: "Uptime",
+  },
+  more_info: {
+    id: "labels.more_info",
+    defaultMessage: "More info",
+    description: "Short label for showing 'more information' about something",
+  },
 });
 
 export const menu = defineMessages({

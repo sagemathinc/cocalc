@@ -885,7 +885,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     ) {
       return;
     }
-    if (props.connection_status == "connected") {
+    if (props.connection_status === "connected") {
       // To reduce clutter show nothing when connected.
       // NOTE: Keep this consistent with
       // cocalc/src/@cocalc/frontend/project/websocket/websocket-indicator.tsx

@@ -6,12 +6,10 @@
 import {
   createIntl,
   createIntlCache,
-  defineMessage,
   IntlShape,
   MessageFormatElement,
 } from "react-intl";
 
-import { NAMES, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/util/i18n";
 import { AccountState } from "@cocalc/frontend/account/types";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
@@ -19,12 +17,22 @@ import {
   KEEP_EN_LOCALE,
   Locale,
 } from "@cocalc/util/consts/locale";
+import {
+  isIntlMessage,
+  LOCALIZATIONS,
+  OTHER_SETTINGS_LOCALE_KEY,
+} from "@cocalc/util/i18n";
+import type { IntlMessage } from "@cocalc/util/i18n/types";
 import { unreachable } from "@cocalc/util/misc";
-import { IntlMessage, isIntlMessage } from "./types";
 
 export { dialogs, editor, jupyter, labels, menu } from "./common";
 
-export { DEFAULT_LOCALE, isIntlMessage, OTHER_SETTINGS_LOCALE_KEY };
+export {
+  DEFAULT_LOCALE,
+  isIntlMessage,
+  OTHER_SETTINGS_LOCALE_KEY,
+  LOCALIZATIONS,
+};
 
 export type { IntlMessage, Locale };
 
@@ -103,160 +111,3 @@ export async function getIntl(): Promise<IntlShape> {
   const messages: Messages = await loadLocaleMessages(locale);
   return createIntl({ locale, messages }, cache);
 }
-
-// The ordering is a bit "opinionated". The top languages are European ones, and German has the best quality translations.
-// Then come other European languges, kind of alphabetical.
-// Then, the Asian group starts with Chinese, as the largest group.
-export const LOCALIZATIONS: {
-  [key in Locale]: {
-    name: string;
-    flag: string;
-    native: string;
-    trans: IntlMessage;
-  };
-} = {
-  en: {
-    name: NAMES.en,
-    flag: "🇺🇸",
-    native: "English",
-    trans: defineMessage({
-      id: "i18n.localization.lang.english",
-      defaultMessage: "English",
-    }),
-  },
-  de: {
-    name: NAMES.de,
-    flag: "🇩🇪",
-    native: "Deutsch",
-    trans: defineMessage({
-      id: "i18n.localization.lang.german",
-      defaultMessage: "German",
-    }),
-  },
-  es: {
-    name: NAMES.es,
-    flag: "🇪🇸",
-    native: "Español",
-    trans: defineMessage({
-      id: "i18n.localization.lang.spanish",
-      defaultMessage: "Spanish",
-    }),
-  },
-  fr: {
-    name: NAMES.fr,
-    flag: "🇫🇷",
-    native: "Français",
-    trans: defineMessage({
-      id: "i18n.localization.lang.french",
-      defaultMessage: "French",
-    }),
-  },
-  it: {
-    name: NAMES.it,
-    flag: "🇮🇹",
-    native: "Italiano",
-    trans: defineMessage({
-      id: "i18n.localization.lang.italian",
-      defaultMessage: "Italian",
-    }),
-  },
-  pl: {
-    name: NAMES.pl,
-    flag: "🇵🇱",
-    native: "Polski",
-    trans: defineMessage({
-      id: "i18n.localization.lang.polish",
-      defaultMessage: "Polish",
-    }),
-  },
-  hu: {
-    name: NAMES.hu,
-    flag: "🇭🇺",
-    native: "Magyar",
-    trans: defineMessage({
-      id: "i18n.localization.lang.hungarian",
-      defaultMessage: "Hungarian",
-    }),
-  },
-  ar: {
-    name: NAMES.ar,
-    flag: "🇪🇬",
-    native: "العربية",
-    trans: defineMessage({
-      id: "i18n.localization.lang.arabic",
-      defaultMessage: "Arabic",
-    }),
-  },
-  pt: {
-    name: NAMES.pt,
-    flag: "🇵🇹",
-    native: "Português",
-    trans: defineMessage({
-      id: "i18n.localization.lang.portuguese",
-      defaultMessage: "Portuguese",
-    }),
-  },
-  tr: {
-    name: NAMES.tr,
-    flag: "🇹🇷",
-    native: "Türkçe",
-    trans: defineMessage({
-      id: "i18n.localization.lang.turkish",
-      defaultMessage: "Turkish",
-    }),
-  },
-  he: {
-    name: NAMES.he,
-    flag: "🇮🇱",
-    native: "עִבְרִית",
-    trans: defineMessage({
-      id: "i18n.localization.lang.hebrew",
-      defaultMessage: "Hebrew",
-    }),
-  },
-  zh: {
-    name: NAMES.zh,
-    flag: "🇨🇳",
-    native: "中文",
-    trans: defineMessage({
-      id: "i18n.localization.lang.chinese",
-      defaultMessage: "Chinese",
-    }),
-  },
-  ja: {
-    name: NAMES.ja,
-    flag: "🇯🇵",
-    native: "日本語",
-    trans: defineMessage({
-      id: "i18n.localization.lang.japanese",
-      defaultMessage: "Japanese",
-    }),
-  },
-  hi: {
-    name: NAMES.hi,
-    flag: "🇮🇳",
-    native: "हिन्दी",
-    trans: defineMessage({
-      id: "i18n.localization.lang.hindi",
-      defaultMessage: "Hindi",
-    }),
-  },
-  ko: {
-    name: NAMES.ko,
-    flag: "🇰🇷",
-    native: "한국어",
-    trans: defineMessage({
-      id: "i18n.localization.lang.korean",
-      defaultMessage: "Korean",
-    }),
-  },
-  ru: {
-    name: NAMES.ru,
-    flag: "🇷🇺",
-    native: "Русский",
-    trans: defineMessage({
-      id: "i18n.localization.lang.russian",
-      defaultMessage: "Russian",
-    }),
-  },
-} as const;
