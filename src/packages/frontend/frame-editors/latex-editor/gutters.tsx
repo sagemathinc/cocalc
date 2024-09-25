@@ -9,6 +9,7 @@
 // one gets a gutter mark, with pref to errors.  The main error log shows everything, so this should be OK.
 
 import { Popover } from "antd";
+import { IntlProvider } from "react-intl";
 
 import { Icon } from "@cocalc/frontend/components";
 //import { Actions } from "@cocalc/frontend/frame-editors/code-editor/actions";
@@ -17,6 +18,7 @@ import { capitalize } from "@cocalc/util/misc";
 import { Actions } from "./actions";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { Error, IProcessedLatexLog } from "./latex-log-parser";
+import { DEFAULT_LOCALE } from "@cocalc/frontend/i18n";
 
 export function update_gutters(opts: {
   log: IProcessedLatexLog;
@@ -63,42 +65,49 @@ function component(
   }
   // NOTE/BUG: despite allow_touch true below, this still does NOT work on my iPad -- we see the icon, but nothing
   // happens when clicking on it; this may be a codemirror issue.
+  // NOTE: the IntlProvider is necessary, because this is mounted outside the application's overall context.
+  // It's just a default IntlProvider to avoid a crash → TODO: make this part of the application react root.
   return (
-    <Popover
-      title={message}
-      content={
-        <div>
-          {content}
-          {group == "errors" && (
-            <>
-              <br />
-              <HelpMeFix
-                size="small"
-                style={{ marginTop: "5px" }}
-                task={"ran latex"}
-                error={content}
-                input={() => {
-                  const s = actions._syncstring.to_str();
-                  const v = s
-                    .split("\n")
-                    .slice(0, line + 1)
-                    .join("\n");
-                  //line+1 since lines are 1-based
-                  return v + `% this is line number ${line + 1}`;
-                }}
-                language={"latex"}
-                extraFileInfo={actions.languageModelExtraFileInfo()}
-                tag={"latex-error-popover"}
-                prioritize="end"
-              />
-            </>
-          )}
-        </div>
-      }
-      placement={"right"}
-      mouseEnterDelay={0}
-    >
-      <Icon name={spec.icon} style={{ color: spec.color, cursor: "pointer" }} />
-    </Popover>
+    <IntlProvider locale="en" defaultLocale={DEFAULT_LOCALE}>
+      <Popover
+        title={message}
+        content={
+          <div>
+            {content}
+            {group == "errors" && (
+              <>
+                <br />
+                <HelpMeFix
+                  size="small"
+                  style={{ marginTop: "5px" }}
+                  task={"ran latex"}
+                  error={content}
+                  input={() => {
+                    const s = actions._syncstring.to_str();
+                    const v = s
+                      .split("\n")
+                      .slice(0, line + 1)
+                      .join("\n");
+                    //line+1 since lines are 1-based
+                    return v + `% this is line number ${line + 1}`;
+                  }}
+                  language={"latex"}
+                  extraFileInfo={actions.languageModelExtraFileInfo()}
+                  tag={"latex-error-popover"}
+                  prioritize="end"
+                />
+              </>
+            )}
+          </div>
+        }
+        placement={"right"}
+        mouseEnterDelay={0}
+      >
+        <Icon
+          name={spec.icon}
+          style={{ color: spec.color, cursor: "pointer" }}
+        />
+      </Popover>
+    </IntlProvider>
   );
 }
