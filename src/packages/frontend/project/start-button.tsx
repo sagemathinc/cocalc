@@ -50,7 +50,7 @@ export function StartButton() {
     const state = project_map?.get(project_id)?.get("state");
     if (state != null) {
       lastNotRunningRef.current =
-        state.get("state") == "running" ? null : Date.now();
+        state.get("state") === "running" ? null : Date.now();
     }
     return state;
   }, [project_map]);
@@ -60,16 +60,16 @@ export function StartButton() {
   // Making the UI depend on this instead of *just* the state
   // makes things feel more responsive.
   const starting = useMemo(() => {
-    if (state?.get("state") == "starting" || state?.get("state") == "opening")
+    if (state?.get("state") === "starting" || state?.get("state") === "opening")
       return true;
-    if (state?.get("state") == "running") return false;
+    if (state?.get("state") === "running") return false;
     const action_request = (
       project_map?.getIn([project_id, "action_request"]) as any
     )?.toJS() as any;
     if (action_request == null) {
       return false; // no action request at all
     }
-    if (action_request.action != "start") {
+    if (action_request.action !== "start") {
       return false; // a non-start action
     }
     if (action_request.finished >= new Date(action_request.time)) {
@@ -86,7 +86,7 @@ export function StartButton() {
     return true;
   }, [project_map]);
 
-  if (state?.get("state") == "running") {
+  if (state?.get("state") === "running") {
     if (connected) {
       return <></>;
     } else {
@@ -180,7 +180,17 @@ export function StartButton() {
       state == null ||
       (allowed &&
         ["opened", "closed", "archived"].includes(state?.get("state")));
-    const txt = `Start${starting ? "ing" : ""} project`;
+
+    const txt = intl.formatMessage(
+      {
+        id: "project.start-button.button.txt",
+        defaultMessage: `{starting, select, true {Starting} other {Start}} project`,
+        description:
+          "Label on a button, either to start the project or indicating the project is currently starting.",
+      },
+      { starting },
+    );
+
     return (
       <div>
         <Button

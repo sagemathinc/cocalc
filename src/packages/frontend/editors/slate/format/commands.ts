@@ -3,7 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { delay } from "awaiting";
 import { isEqual } from "lodash";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { commands } from "@cocalc/frontend/editors/editor-button-bar";
+import { getLocale } from "@cocalc/frontend/i18n";
+import { is_array, startswith } from "@cocalc/util/misc";
 import {
   BaseRange,
   Editor,
@@ -15,8 +21,6 @@ import {
   Text,
   Transforms,
 } from "slate";
-import { commands } from "@cocalc/frontend/editors/editor-button-bar";
-import { is_array, startswith } from "@cocalc/util/misc";
 import { getMarks } from "../edit-bar/marks";
 import { SlateEditor } from "../editable-markdown";
 import { markdown_to_slate } from "../markdown-to-slate";
@@ -27,7 +31,6 @@ import { insertAIFormula } from "./insert-ai-formula";
 import { insertImage } from "./insert-image";
 import { insertLink } from "./insert-link";
 import { insertSpecialChar } from "./insert-special-char";
-import { delay } from "awaiting";
 
 // currentWord:
 //
@@ -424,7 +427,9 @@ export async function formatAction(
 
     if (cmd === "ai_formula") {
       if (project_id == null) throw new Error("ai_formula requires project_id");
-      const formula = await insertAIFormula(project_id);
+      const account_store = redux.getStore("account")
+      const locale = getLocale(account_store.get("other_settings"))
+      const formula = await insertAIFormula(project_id, locale);
       const value = removeDollars(removeBlankLines(formula.trim()));
       const node: Node = {
         type: "math_inline",

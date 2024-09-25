@@ -3,6 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Button, Space } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -28,19 +31,20 @@ import {
   CUSTOM_IMG_PREFIX,
   CUSTOM_SOFTWARE_HELP_URL,
 } from "@cocalc/frontend/custom-software/util";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
+import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
-import { Button, Space } from "antd";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { RestartProject } from "./restart-project";
+import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 import { SoftwareImageDisplay } from "./software-image-display";
 import { StopProject } from "./stop-project";
 import { Project } from "./types";
-import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 
 interface ReactProps {
   project: Project;
@@ -51,10 +55,11 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   const { project, mode = "project" } = props;
   const isFlyout = mode === "flyout";
   const customize_kucalc = useTypedRedux("customize", "kucalc");
+  const intl = useIntl();
 
   //const    [show_ssh, set_show_ssh] = useState<boolean>(false)
   const [compute_image, set_compute_image] = useState<string>(
-    project.get("compute_image")
+    project.get("compute_image"),
   );
   const [compute_image_changing, set_compute_image_changing] =
     useState<boolean>(false);
@@ -92,10 +97,11 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <span style={{ color: COLORS.GRAY_M }}>
         <Icon name="hourglass-half" />{" "}
-        <b>
-          About <TimeAgo date={date} />
-        </b>{" "}
-        project will stop unless somebody actively edits.
+        <FormattedMessage
+          id="project.settings.control.idle_timeout.info"
+          defaultMessage={`<b>About {ago}</b> project will stop unless somebody actively edits.`}
+          values={{ ago: <TimeAgo date={date} /> }}
+        />
       </span>
     );
   }
@@ -127,7 +133,6 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   }
 
   function render_action_buttons(): Rendered {
-    const { COMPUTE_STATES } = require("@cocalc/util/schema");
     const state = project.getIn(["state", "state"]);
     const commands = (state &&
       COMPUTE_STATES[state] &&
@@ -153,15 +158,21 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       return (
         <LabeledRow
           key="idle-timeout"
-          label="Always Running"
+          label={intl.formatMessage(labels.always_running)}
           style={rowstyle()}
           vertical={isFlyout}
         >
           <Paragraph>
-            Project will be <b>automatically started</b> if it stops for any
-            reason (it will run any{" "}
-            <A href="https://doc.cocalc.com/project-init.html">init scripts</A>
-            ).
+            <FormattedMessage
+              id="project.settings.control.idle_timeout.always_running.info"
+              defaultMessage={`Project will be <b>automatically started</b> if it stops
+                for any reason (it will run any <A>init scripts</A>).`}
+              values={{
+                A: (c) => (
+                  <A href="https://doc.cocalc.com/project-init.html">{c}</A>
+                ),
+              }}
+            />
           </Paragraph>
         </LabeledRow>
       );
@@ -169,7 +180,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <LabeledRow
         key="idle-timeout"
-        label="Idle Timeout"
+        label={intl.formatMessage(labels.idle_timeout)}
         style={rowstyle()}
         vertical={isFlyout}
       >
@@ -189,13 +200,17 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <LabeledRow
         key="uptime"
-        label="Uptime"
+        label={intl.formatMessage(labels.uptime)}
         style={rowstyle()}
         vertical={isFlyout}
       >
         <span style={{ color: COLORS.GRAY_M }}>
-          <Icon name="clock" /> project started{" "}
-          <b>{<TimeElapsed start_ts={start_ts} />}</b> ago
+          <Icon name="clock" />{" "}
+          <FormattedMessage
+            id="project.settings.control.uptime.info"
+            defaultMessage={`project started <b>{ago}</b> ago`}
+            values={{ ago: <TimeElapsed start_ts={start_ts} /> }}
+          />
         </span>
       </LabeledRow>
     );
@@ -213,13 +228,20 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return (
       <LabeledRow
         key="cpu-usage"
-        label="CPU Usage"
+        label={intl.formatMessage({
+          id: "project.settings.control.cpu_usage.label",
+          defaultMessage: "CPU Usage",
+        })}
         style={rowstyle(true)}
         vertical={isFlyout}
       >
         <span style={{ color: COLORS.GRAY_M }}>
-          <Icon name="calculator" /> used <b>{cpu_str}</b> of CPU time since
-          project started
+          <Icon name="calculator" />{" "}
+          <FormattedMessage
+            id="project.settings.control.cpu_usage.info"
+            defaultMessage={`used <b>{cpu_str}</b> of CPU time since project started`}
+            values={{ cpu_str }}
+          />
         </span>
       </LabeledRow>
     );

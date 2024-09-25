@@ -381,13 +381,21 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
 
   function render_vertical_fixed_bar_options(): Rendered {
     const selected = getValidVBAROption(props.other_settings.get(VBAR_KEY));
+    const options = Object.fromEntries(
+      Object.entries(VBAR_OPTIONS).map(([k, v]) => [k, intl.formatMessage(v)]),
+    );
     return (
-      <LabeledRow label="Vertical Project Bar">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.vbar.title",
+          defaultMessage: "Vertical Project Bar",
+        })}
+      >
         <div>
           <SelectorInput
             style={{ marginBottom: "10px" }}
             selected={selected}
-            options={VBAR_OPTIONS}
+            options={options}
             on_change={(value) => {
               on_change(VBAR_KEY, value);
               track("flyout", { aspect: "layout", how: "account", value });
@@ -397,7 +405,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
             type="secondary"
             ellipsis={{ expandable: true, symbol: "more" }}
           >
-            {VBAR_EXPLANATION}
+            {intl.formatMessage(VBAR_EXPLANATION)}
           </Paragraph>
         </div>
       </LabeledRow>

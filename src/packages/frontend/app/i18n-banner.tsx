@@ -15,7 +15,9 @@ import {
   CSS,
   React,
   redux,
+  useAsyncEffect,
   useMemo,
+  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
@@ -31,6 +33,7 @@ import {
   DEFAULT_LOCALE,
   OTHER_SETTINGS_LOCALE_KEY,
 } from "@cocalc/frontend/i18n";
+import { once } from "@cocalc/util/async-utils";
 import { KEEP_EN_LOCALE } from "@cocalc/util/consts/locale";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -63,12 +66,25 @@ export const I18NBanner: React.FC<{}> = () => {
   const intl = useIntl();
   const { setLocale } = useLocalizationCtx();
 
+  const [loaded, setLoaded] = useState<boolean>(false);
+
+  // wait until the account settings are loaded to show the banner
+  useAsyncEffect(async () => {
+    const store = redux.getStore("account");
+    if (!store.get("is_ready")) {
+      await once(store, "is_ready");
+    }
+    setLoaded(true);
+  }, []);
+
   function keep_english() {
     redux
       .getActions("account")
       .set_other_settings(OTHER_SETTINGS_LOCALE_KEY, KEEP_EN_LOCALE);
     setLocale(KEEP_EN_LOCALE);
   }
+
+  if (!loaded) return;
 
   return (
     <div style={I18N_BANNER_STYLE}>
