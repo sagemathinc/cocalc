@@ -83,11 +83,6 @@ code completion, snippets, code refactoring, and embedded Git.`,
   },
 } as const;
 
-interface Props {
-  project_id: string;
-  name: NamedServerName;
-}
-
 function getServerInfo(name: NamedServerName): Server {
   return (
     SPEC[name] ?? {
@@ -102,10 +97,13 @@ function getServerInfo(name: NamedServerName): Server {
   );
 }
 
-export const NamedServerPanel: React.FC<Props> = ({
-  project_id,
-  name,
-}: Props) => {
+interface Props {
+  project_id: string;
+  name: NamedServerName;
+  style?;
+}
+
+export function NamedServerPanel({ project_id, name, style }: Props) {
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
 
@@ -171,11 +169,11 @@ export const NamedServerPanel: React.FC<Props> = ({
   }
 
   return (
-    <SettingBox title={`${longName} Server`} icon={icon}>
+    <SettingBox title={`${longName} Server`} icon={icon} style={style}>
       {body}
     </SettingBox>
   );
-};
+}
 
 export function serverURL(project_id: string, name: NamedServerName): string {
   return (
