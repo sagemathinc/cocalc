@@ -26,6 +26,7 @@ import {
   cmp,
   hoursToTimeIntervalHuman,
   parse_hashtags,
+  plural,
   search_match,
   search_split,
 } from "@cocalc/util/misc";
@@ -41,10 +42,16 @@ interface Props {
   path: string;
   mode: Mode;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
+  setLastVisible?: (x: Date | null) => void;
 }
 
-export function ChatLog(props: Readonly<Props>) {
-  const { project_id, path, scrollToBottomRef, mode } = props;
+export function ChatLog({
+  project_id,
+  path,
+  scrollToBottomRef,
+  mode,
+  setLastVisible,
+}: Props) {
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const fontSize = useRedux(["font_size"], project_id, path);
@@ -92,6 +99,16 @@ export function ChatLog(props: Readonly<Props>) {
       account_id,
       filterRecentH,
     );
+    // TODO: This is an ugly hack because I'm tired and need to finish this.
+    // The right solution would be to move this filtering to the store.
+    // The timeout is because you can't update a component while rendering another one.
+    setTimeout(() => {
+      setLastVisible?.(
+        dates.length == 0
+          ? null
+          : new Date(parseFloat(dates[dates.length - 1])),
+      );
+    }, 1);
     return { dates, numFolded };
   }, [messages, search, project_id, path, filterRecentH]);
 
@@ -366,9 +383,11 @@ function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
       key="not_showing"
       message={
         <b>
-          WARNING: Hiding {num} messages
+          WARNING: Hiding {num} {plural(num, "message")}
           {search.trim()
-            ? ` that do not match search for '${search.trim()}'`
+            ? ` that ${
+                num != 1 ? "do" : "does"
+              } not match search for '${search.trim()}'`
             : ""}
           {timespan
             ? ` ${

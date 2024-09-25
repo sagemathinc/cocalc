@@ -1,7 +1,6 @@
-import { Button, Flex, Tooltip } from "antd";
+import { Button, Flex, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
-import { CSSProperties, useCallback, useEffect, useRef } from "react";
-
+import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import {
   redux,
   useActions,
@@ -31,6 +30,7 @@ interface Props {
 export default function SideChat({ project_id, path, style }: Props) {
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path);
+  const [lastVisible, setLastVisible] = useState<Date | null>(null);
   const input: string = useRedux(["input"], project_id, path);
   const search: string = useRedux(["search"], project_id, path);
   const addCollab: boolean = useRedux(["add_collab"], project_id, path);
@@ -55,11 +55,21 @@ export default function SideChat({ project_id, path, style }: Props) {
     markAsRead();
   }, []);
 
-  const sendChat = useCallback(() => {
-    const input = submitMentionsRef.current?.();
-    actions.send_chat({ input });
-    scrollToBottomRef.current?.(true);
-  }, [actions]);
+  const sendChat = useCallback(
+    (options?) => {
+      const input = submitMentionsRef.current?.();
+      actions.send_chat({ input, ...options });
+      actions.delete_draft(0);
+      scrollToBottomRef.current?.(true);
+      setTimeout(() => {
+        scrollToBottomRef.current?.(true);
+      }, 10);
+      setTimeout(() => {
+        scrollToBottomRef.current?.(true);
+      }, 1000);
+    },
+    [actions],
+  );
 
   if (messages == null) {
     return <Loading />;
@@ -155,6 +165,7 @@ export default function SideChat({ project_id, path, style }: Props) {
           path={path}
           scrollToBottomRef={scrollToBottomRef}
           mode={"sidechat"}
+          setLastVisible={setLastVisible}
         />
       </div>
 
@@ -162,18 +173,30 @@ export default function SideChat({ project_id, path, style }: Props) {
         {input.trim() ? (
           <Flex vertical={false} align="center" justify="space-between">
             <Tooltip title="Send message (shift+enter)">
-              <Button
-                style={{ margin: "5px 0 5px 5px" }}
-                onClick={() => {
-                  sendChat();
-                  user_activity("side_chat", "send_chat", "click");
-                }}
-                disabled={!input?.trim() || is_uploading}
-                type="primary"
-              >
-                <Icon name="paper-plane" />
-                Send
-              </Button>
+              <Space>
+                {lastVisible && (
+                  <Button
+                    type="primary"
+                    onClick={() => {
+                      sendChat({ reply_to: new Date(lastVisible) });
+                    }}
+                  >
+                    Reply (shift+enter)
+                  </Button>
+                )}
+                <Button
+                  type={!lastVisible ? "primary" : undefined}
+                  style={{ margin: "5px 0 5px 5px" }}
+                  onClick={() => {
+                    sendChat();
+                    user_activity("side_chat", "send_chat", "click");
+                  }}
+                  disabled={!input?.trim() || is_uploading}
+                >
+                  <Icon name="paper-plane" />
+                  Start New Conversation
+                </Button>
+              </Space>
             </Tooltip>
             <LLMCostEstimationChat
               compact
@@ -187,7 +210,7 @@ export default function SideChat({ project_id, path, style }: Props) {
           cacheId={`${path}${project_id}-new`}
           input={input}
           on_send={() => {
-            sendChat();
+            sendChat(lastVisible ? { reply_to: lastVisible } : undefined);
             user_activity("side_chat", "send_chat", "keyboard");
           }}
           style={{ height: INPUT_HEIGHT }}
