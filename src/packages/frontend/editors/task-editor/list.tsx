@@ -70,7 +70,7 @@ export default function TaskList({
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const [visible, setVisible] = useState<List<string>>(visible0);
   useEffect(() => {
-    setVisible(visible);
+    setVisible(visible0);
   }, [visible0]);
 
   const selectedHashtags: Set<string> = useMemo(() => {
@@ -174,7 +174,9 @@ export default function TaskList({
         let visible1 = visible.delete(oldIndex);
         visible1 = visible1.insert(newIndex, visible.get(oldIndex)!);
         setVisible(visible1);
-        actions?.reorder_tasks(oldIndex, newIndex);
+        // must set visible0 (in the store) in next render loop, or the above
+        // gets combined with this and there is flicker.
+        setTimeout(() => actions?.reorder_tasks(oldIndex, newIndex), 1);
       }}
     >
       <div
