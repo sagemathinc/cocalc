@@ -604,7 +604,7 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   // Move task that was at position old_index to now be at
-  // position new_index
+  // position new_index.   NOTE: This is NOT a swap.
   public reorder_tasks(old_index: number, new_index: number): void {
     if (old_index === new_index) {
       return;

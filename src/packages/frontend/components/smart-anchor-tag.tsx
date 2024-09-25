@@ -354,7 +354,7 @@ function InternalRelativeLink({ project_id, path, href, title, children }) {
         const fragmentId = Fragment.decode(url.hash);
         const hrefPlain = url.pathname.slice(1);
         let target;
-        if (!hrefPlain) {
+        if (href.startsWith("#") || !hrefPlain) {
           // within the same file
           target = join("files", path);
         } else {

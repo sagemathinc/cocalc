@@ -1559,28 +1559,37 @@ export class SyncDoc extends EventEmitter {
     await Promise.all(v);
   };
 
-  private async file_is_read_only(): Promise<boolean> {
+  private pathExistsAndIsReadOnly = async (path): Promise<boolean> => {
     try {
       await callback2(this.client.path_access, {
-        path: this.path,
+        path,
         mode: "w",
       });
-      // also check on the original file in case of Jupyter:
-      const path = this.getFileServerPath();
-      if (path != this.path) {
-        await callback2(this.client.path_access, {
-          path,
-          mode: "w",
-        });
-      }
-      // no error -- it is NOT read only
+      // clearly exists and is NOT read only:
       return false;
     } catch (err) {
-      this.dbg("file_is_read_only")(err);
-      // error -- it is read only.
+      // either it doesn't exist or it is read only
+      if (await callback2(this.client.path_exists, { path })) {
+        // it exists, so is read only and exists
+        return true;
+      }
+      // doesn't exist
+      return false;
+    }
+  };
+
+  private file_is_read_only = async (): Promise<boolean> => {
+    if (await this.pathExistsAndIsReadOnly(this.path)) {
       return true;
     }
-  }
+    const path = this.getFileServerPath();
+    if (path != this.path) {
+      if (await this.pathExistsAndIsReadOnly(path)) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   private update_if_file_is_read_only = async (): Promise<void> => {
     this.set_read_only(await this.file_is_read_only());

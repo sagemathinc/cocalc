@@ -6,6 +6,25 @@ CoCalc is web-based software that enables collaboration in research, teaching, a
 
 **CoCalc** supports sophisticated calculations that arise in teaching, research, and authoring documents. This includes working with the full data science and scientific Python stack, [SageMath](https://www.sagemath.org), [Julia](https://julialang.org), [R Statistics](https://cocalc.com/doc/r-statistical-software.html), [Octave](https://www.gnu.org/software/octave/), and much more. It also offers capabilities to author documents in [LaTeX](https://cocalc.com/doc/latex-editor.html), R/knitr and Markdown, storing and organizing files, a web-based [Linux Terminal](https://doc.cocalc.com/terminal.html), an [X11 graphical desktop](https://doc.cocalc.com/x11.html), and communication tools like a [chatrooms](https://doc.cocalc.com/chat.html), [course management](https://cocalc.com/doc/teaching.html) and more.  It is the best choice for [teaching remote scientific courses](https://cocalc.com/doc/teaching.html).
 
+## Quick Start
+
+1. Visit https://cocalc.com
+2. Sign up for a free account
+3. Create a new project
+4. Choose a computational environment (e.g., Jupyter Notebook, Sage Worksheet, LaTeX Editor)
+5. Start collaborating with others in real-time
+
+## Key Features
+
+- **Jupyter Notebooks**: Interactive Python, R, and Julia environments
+- **Sage Worksheets**: Powerful mathematical computations
+- **LaTeX Editor**: Collaborative document creation with real-time preview
+- **Linux Terminal**: Full command-line access
+- **Computational Whiteboard**: Visual collaboration and code execution
+- **Course Management**: Tools for teaching and managing classes
+- **Real-time Collaboration**: Work together seamlessly on projects
+- **Version Control**: Built-in time travel and project history
+
 ## Website
 
 - [CoCalc](https://cocalc.com/index.html) -- commercial CoCalc hosting and support
@@ -20,6 +39,24 @@ CoCalc is web-based software that enables collaboration in research, teaching, a
 You can obtain a packaged version of CoCalc for your own on-premises infrastructure: [**CoCalc Cloud**](https://doc-cloud.cocalc.com/).
 It runs on Kubernetes and inherits the security and scalability of the SaaS platform.
 
+### CoCalc Cloud
+
+CoCalc Cloud runs on Kubernetes and inherits the security and scalability of the SaaS platform. To get started:
+
+1. Visit https://cocalc.com/pricing/onprem for pricing information
+2. Contact sales@sagemath.com to discuss deployment options
+3. Prepare your Kubernetes cluster
+4. Follow the deployment guide at https://doc-cloud.cocalc.com/
+5. Configure your instance and start using your self-hosted CoCalc
+
+### CoCalc-Docker (for smaller deployments or personal use)
+
+1. Ensure Docker is installed on your system
+2. Visit the CoCalc-Docker repository: https://github.com/sagemathinc/cocalc-docker
+3. Follow the installation and usage instructions provided in the repository's README
+
+For more detailed information on self-hosting options, please contact help@sagemath.com.
+
 ## History
 
 _CoCalc_ was formerly called _SageMathCloud_.
@@ -27,6 +64,8 @@ It started to offer way more than just SageMath and hence outgrew itself.
 The name was coined in fall 2016 and changed around spring 2017.
 
 ## Contributors
+
+CoCalc is made possible by the hard work of many contributors. Our team includes mathematicians, computer scientists, and software engineers from around the world. Key contributors include:
 
 - Greg Bard
 - Rob Beezer
@@ -47,6 +86,8 @@ The name was coined in fall 2016 and changed around spring 2017.
 - Todd Zimmerman
 
 ... and others: See https://github.com/sagemathinc/cocalc/graphs/contributors
+
+We welcome new contributions! If you're interested in contributing, please see our Contributing Guidelines (link to be added).
 
 ## Copyright/License
 
@@ -76,6 +117,14 @@ In particular, [CoCalc OnPrem](https://cocalc.com/pricing/onprem) is designed fo
 
 The scripts [here](https://github.com/sagemathinc/cocalc/tree/master/src/dev) might be helpful. &nbsp;We do most of our development of CoCalc on https://cocalc.com itself.  CoCalc requires pnpm version at least 9.
 
+## Support and Community
+
+- **User Manual**: https://doc.cocalc.com/
+- **Mailing List**: https://groups.google.com/forum/#!forum/cocalc
+- **Discord Chat**: https://discord.gg/nEHs2GK
+- **Bug Reports**: https://github.com/sagemathinc/cocalc/issues
+- **Commercial Support**: https://cocalc.com/pricing
+
 ## Acknowledgements
 
 ### Browserstack
@@ -86,4 +135,3 @@ We are grateful to BrowserStack for providing infrastructure to test CoCalc.
 ### Google
 
 We thank Google for donating over \$150K in cloud credits since 2014 to support this project.
-
