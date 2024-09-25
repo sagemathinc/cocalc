@@ -102,7 +102,7 @@ export default function ToolPanel<Params>({
       <Button
         style={{
           padding: "5px",
-          height: "35px",
+          height: "50px",
           ...presetStyle,
         }}
         type="text"
