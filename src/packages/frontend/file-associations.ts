@@ -17,7 +17,6 @@ Maybe that could be useful at some point.
 */
 
 import { IconName } from "./components/icon";
-
 import imageExtensions from "image-extensions";
 import videoExtensions from "video-extensions";
 import audioExtensions from "audio-extensions";
@@ -25,6 +24,13 @@ import { filename_extension } from "@cocalc/util/misc";
 
 export function filenameMode(path: string, fallback = "text"): string {
   return file_associations[filename_extension(path)]?.opts?.mode ?? fallback;
+}
+
+export function filenameIcon(
+  path: string,
+  fallback = "file" as IconName,
+): IconName {
+  return file_associations[filename_extension(path)]?.icon ?? fallback;
 }
 
 const codemirror_associations: { [ext: string]: string } = {

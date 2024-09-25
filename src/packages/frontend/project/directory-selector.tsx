@@ -10,7 +10,7 @@ Component that allows a user to select a directory in a project.
 */
 
 import { join } from "path";
-import { Button, Card, Checkbox, Input, InputRef, Modal, Tooltip } from "antd";
+import { Button, Card, Checkbox, Input, InputRef, Modal } from "antd";
 import {
   CSSProperties,
   ReactNode,
@@ -452,19 +452,20 @@ function Subdirs(props) {
     }
     paths.sort();
     newPaths.sort();
+    const createProps = {
+      project_id,
+      path,
+      computeServerId,
+      directoryListings,
+      toggleSelection,
+    };
+    w.push(<CreateDirectory key="create1" {...createProps} />);
     for (const name of paths.concat(newPaths)) {
       w.push(<Directory key={name} {...props} path={join(base, name)} />);
     }
-    w.push(
-      <CreateDirectory
-        key="\\createdirectory\\"
-        project_id={project_id}
-        path={path}
-        computeServerId={computeServerId}
-        directoryListings={directoryListings}
-        toggleSelection={toggleSelection}
-      />,
-    );
+    if (w.length > 10) {
+      w.push(<CreateDirectory key="create2" {...createProps} />);
+    }
     return (
       <div key={path} style={style}>
         {w}
@@ -517,15 +518,16 @@ function CreateDirectory({
     const target = path + (path != "" ? "/" : "") + value;
     (async () => {
       try {
-        setValue(
-          await getValidPath(
-            project_id,
-            target,
-            directoryListings,
-            computeServerId,
-          ),
+        const path1 = await getValidPath(
+          project_id,
+          target,
+          directoryListings,
+          computeServerId,
         );
-        input_ref.current?.select();
+        setValue(path_split(path1).tail);
+        setTimeout(() => {
+          input_ref.current?.select();
+        }, 1);
       } catch (err) {
         setError(`${err}`);
       }
@@ -539,6 +541,7 @@ function CreateDirectory({
         command: "mkdir",
         args: ["-p", value],
         project_id,
+        path,
         compute_server_id: computeServerId,
         filesystem: true,
       });
@@ -550,35 +553,35 @@ function CreateDirectory({
 
   return (
     <div style={{ color: "#666" }} key={"...-create-dir"}>
-      <Tooltip
-        title="Create a new directory (double click to rename)"
-        placement="left"
-        mouseEnterDelay={0.9}
+      <Modal
+        title={
+          <>
+            <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New Folder
+          </>
+        }
+        open={open}
+        onOk={createFolder}
+        onCancel={() => setOpen(false)}
       >
-        <Modal open={open} onOk={createFolder} onCancel={() => setOpen(false)}>
-          <Input
-            ref={input_ref}
-            title="Create Folder"
-            style={{ marginTop: "30px" }}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onPressEnter={createFolder}
-            autoFocus
-          />
-        </Modal>
-        <Button
-          size="small"
-          type="text"
-          style={{ color: "#666" }}
-          disabled={open}
-          onClick={() => {
-            setOpen(true);
-          }}
-        >
-          <Icon name="plus" style={{ marginRight: "5px" }} /> Create{" "}
-          {NEW_FOLDER}...
-        </Button>
-      </Tooltip>
+        <Input
+          ref={input_ref}
+          title="New Folder"
+          style={{ marginTop: "30px" }}
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onPressEnter={createFolder}
+          autoFocus
+        />
+      </Modal>
+      <Button
+        disabled={open}
+        onClick={() => {
+          setOpen(true);
+        }}
+        style={{ margin: "5px 0" }}
+      >
+        <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New Folder ...
+      </Button>
       <ShowError error={error} setError={setError} />
     </div>
   );
