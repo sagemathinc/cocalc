@@ -5,7 +5,6 @@
 
 import { Col, Divider, Modal, Row, Tabs, TabsProps } from "antd";
 import { Gutter } from "antd/es/grid/row";
-
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
@@ -61,56 +60,56 @@ export function ProjectServers() {
     return (
       <>
         <Row gutter={gutter} style={newRowStyle}>
-          {available.jupyter_notebook ? (
+          {available.jupyter_lab && (
             <Col sm={sm} md={md}>
               <NewFileButton
-                name={"Jupyter Classic..."}
-                icon={"ipynb"}
-                active={showNamedServer === "jupyter"}
-                on_click={() => toggleShowNamedServer("jupyter")}
-              />
-            </Col>
-          ) : null}
-          {available.jupyter_lab ? (
-            <Col sm={sm} md={md}>
-              <NewFileButton
-                name={"JupyterLab..."}
+                name={<span style={{ fontSize: "14pt" }}>JupyterLab</span>}
                 icon={"ipynb"}
                 active={showNamedServer === "jupyterlab"}
                 on_click={() => toggleShowNamedServer("jupyterlab")}
               />
             </Col>
-          ) : null}
-          {available.vscode ? (
+          )}
+          {available.vscode && (
             <Col sm={sm} md={md}>
               <NewFileButton
-                name={"VS Code..."}
+                name={<span style={{ fontSize: "14pt" }}>VS Code</span>}
                 icon={"vscode"}
                 active={showNamedServer === "code"}
                 on_click={() => toggleShowNamedServer("code")}
               />
             </Col>
-          ) : null}
-          {available.julia ? (
+          )}
+          {available.julia && (
             <Col sm={sm} md={md}>
               <NewFileButton
-                name={"Pluto..."}
+                name={<span style={{ fontSize: "14pt" }}>Pluto</span>}
                 icon={"julia"}
                 active={showNamedServer === "pluto"}
                 on_click={() => toggleShowNamedServer("pluto")}
               />
             </Col>
-          ) : null}
-          {available.rserver ? (
+          )}
+          {available.rserver && (
             <Col sm={sm} md={md}>
               <NewFileButton
-                name={`${R_IDE}...`}
+                name={<span style={{ fontSize: "14pt" }}>{R_IDE}</span>}
                 icon={"r"}
                 active={showNamedServer === "rserver"}
                 on_click={() => toggleShowNamedServer("rserver")}
               />
             </Col>
-          ) : null}
+          )}
+          {available.jupyter_notebook && (
+            <Col sm={sm} md={md}>
+              <NewFileButton
+                name={<span style={{ fontSize: "14pt" }}>Jupyter Classic</span>}
+                icon={"ipynb"}
+                active={showNamedServer === "jupyter"}
+                on_click={() => toggleShowNamedServer("jupyter")}
+              />
+            </Col>
+          )}
           {noServers && (
             <Col sm={sm} md={md}>
               <NewFileButton
@@ -137,16 +136,15 @@ export function ProjectServers() {
           )}
         </Row>
 
-        <Row gutter={gutter} style={newRowStyle}>
-          <Col sm={18}>
-            {showNamedServer && (
-              <NamedServerPanel
-                project_id={project_id}
-                name={showNamedServer}
-              />
-            )}
-          </Col>
-        </Row>
+        <div>
+          {showNamedServer && (
+            <NamedServerPanel
+              project_id={project_id}
+              name={showNamedServer}
+              style={{ maxWidth: "600px", margin: "30px auto" }}
+            />
+          )}
+        </div>
       </>
     );
   }
@@ -175,9 +173,9 @@ export function ProjectServers() {
     children: (
       <>
         <Paragraph>
-          You can run various servers inside this project. They run in the same
-          environment, have access to the same files, and stop when the project
-          stops. You can also{" "}
+          You can run various notebook servers inside this project with one
+          click. They run in the same environment, have access to the same
+          files, and stop when the project stops. You can also{" "}
           <A href={"https://doc.cocalc.com/howto/webserver.html"}>
             run your own servers
           </A>
@@ -203,6 +201,14 @@ export function ProjectServers() {
             <ComputeServerDocs style={{ float: "right" }} />
             Compute Servers
           </h2>
+          <div style={{ marginBottom: "15px" }}>
+            Compute servers provide powerful computing capabilities, allowing
+            you to scale up to 400+ CPU cores, terabytes of RAM, advanced GPUs,
+            extensive storage options and integration with multiple cloud
+            services for flexible use. The platform features real-time
+            collaboration, pre-configured software, and clear, minute-by-minute
+            billing for efficient project management and cost control.
+          </div>
           <ComputeServers project_id={project_id} />
         </>
       ),
