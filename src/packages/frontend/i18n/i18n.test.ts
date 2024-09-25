@@ -1,5 +1,5 @@
 import { editor, jupyter, labels, menu } from "./common";
-import { IntlMessage } from "./types";
+import type { IntlMessage } from "./index";
 
 export type Data = { [key in string]: IntlMessage };
 

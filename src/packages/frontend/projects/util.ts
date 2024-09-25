@@ -7,7 +7,8 @@ import {
   cmp_Date,
 } from "@cocalc/util/misc";
 import { webapp_client } from "../webapp-client";
-import { COMPUTE_STATES } from "@cocalc/util/compute-states";
+import { COMPUTE_STATES, ComputeState } from "@cocalc/util/compute-states";
+import { isIntlMessage } from "../i18n";
 
 function parse_tags(info): string[] {
   const indices = parse_hashtags(info);
@@ -38,9 +39,10 @@ function get_search_info(project_id, project, user_map): string {
   if (desc != "No description") {
     s += " " + desc;
   }
-  s +=
-    " " +
-    (COMPUTE_STATES[project.getIn(["state", "state"], "")]?.display ?? "");
+  const compute_state: ComputeState =
+    COMPUTE_STATES[project.getIn(["state", "state"], "")];
+  const display = compute_state?.display;
+  s += " " + (isIntlMessage(display) ? display.defaultMessage : display ?? "");
   s = s.toLowerCase();
   s = s + " " + hashtags_to_string(parse_tags(s));
   if (user_map != null) {
