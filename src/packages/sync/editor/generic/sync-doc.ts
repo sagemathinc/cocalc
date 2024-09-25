@@ -987,15 +987,11 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     this.dbg("set_initialized")({ error, read_only, size });
     const init = { time: this.client.server_time(), size, error };
-    this.syncstring_table.set({
-      string_id: this.string_id,
-      project_id: this.project_id,
-      path: this.path,
+    await this.set_syncstring_table({
       init,
       read_only,
       last_active: this.client.server_time(),
     });
-    await this.syncstring_table.save();
   }
 
   /* List of timestamps of the versions of this string in the sync
@@ -1287,13 +1283,9 @@ export class SyncDoc extends EventEmitter {
     dbg("getting table...");
     this.syncstring_table = await this.synctable(query, []);
     if (this.ephemeral && this.client.is_project()) {
-      this.syncstring_table.set({
-        string_id: this.string_id,
-        project_id: this.project_id,
-        path: this.path,
+      await this.set_syncstring_table({
         doctype: JSON.stringify(this.doctype),
       });
-      await this.syncstring_table.save();
     } else {
       dbg("waiting for, then handling the first update...");
       await this.handle_syncstring_update();
@@ -1934,13 +1926,9 @@ export class SyncDoc extends EventEmitter {
    */
   public set_settings = async (obj): Promise<void> => {
     this.assert_is_ready("set_settings");
-    this.syncstring_table.set({
-      string_id: this.string_id,
-      project_id: this.project_id,
-      path: this.path,
+    await this.set_syncstring_table({
       settings: obj,
     });
-    await this.syncstring_table.save();
   };
 
   client_id = () => {
@@ -2179,13 +2167,9 @@ export class SyncDoc extends EventEmitter {
     }
 
     if (this.state != "ready") return;
-    this.syncstring_table.set({
-      string_id: this.string_id,
-      project_id: this.project_id,
-      path: this.path,
+    await this.set_syncstring_table({
       last_snapshot: time,
     });
-    await this.syncstring_table.save();
     this.last_snapshot = time;
   }
 
@@ -2351,10 +2335,7 @@ export class SyncDoc extends EventEmitter {
   };
 
   public set_snapshot_interval = async (n: number): Promise<void> => {
-    this.syncstring_table.set({
-      string_id: this.string_id,
-      project_id: this.project_id,
-      path: this.path,
+    await this.set_syncstring_table({
       snapshot_interval: n,
     });
     await this.syncstring_table.save();
@@ -2558,13 +2539,9 @@ export class SyncDoc extends EventEmitter {
     if (this.my_user_id === -1) {
       this.my_user_id = this.users.length;
       this.users.push(client_id);
-      this.syncstring_table.set({
-        string_id: this.string_id,
-        project_id: this.project_id,
-        path: this.path,
+      await this.set_syncstring_table({
         users: this.users,
       });
-      await this.syncstring_table.save();
     }
 
     this.emit("metadata-change");
@@ -2743,24 +2720,15 @@ export class SyncDoc extends EventEmitter {
     this.assert_table_is_ready("syncstring");
     // set timestamp of when the save happened; this can be useful
     // for coordinating running code, etc.... and is just generally useful.
-    this.syncstring_table.set({
-      string_id: this.string_id,
-      project_id: this.project_id,
-      path: this.path,
-      save,
-    });
-    await this.syncstring_table.save();
+    if (!save.time) {
+      save.time = Date.now();
+    }
+    await this.set_syncstring_table({ save });
   };
 
   private set_read_only = async (read_only: boolean): Promise<void> => {
     this.assert_table_is_ready("syncstring");
-    this.syncstring_table.set({
-      string_id: this.string_id,
-      project_id: this.project_id,
-      path: this.path,
-      read_only,
-    });
-    await this.syncstring_table.save();
+    await this.set_syncstring_table({ read_only });
   };
 
   public is_read_only = (): boolean => {
@@ -3323,4 +3291,19 @@ export class SyncDoc extends EventEmitter {
   // with a nested for loop of sets.  Doing it this way, massively
   // simplifies client code.
   emit_change_debounced = debounce(this.emit_change.bind(this), 0);
+
+  private set_syncstring_table = async (obj, save = true) => {
+    let value = this.syncstring_table_get_one();
+    const value0 = value;
+    for (const key in obj) {
+      value = value.set(key, obj[key]);
+    }
+    if (value0.equals(value)) {
+      return;
+    }
+    this.syncstring_table.set(value);
+    if (save) {
+      await this.syncstring_table.save();
+    }
+  };
 }

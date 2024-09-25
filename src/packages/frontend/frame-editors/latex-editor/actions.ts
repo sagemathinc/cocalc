@@ -676,7 +676,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build(); // kicks off a save of all relevant files
   }
 
-  // used by generic framework – this is bound to the instance, otherwise "this" is undefined
+  // used by generic framework – this is bound to the instance, otherwise "this" is undefined, hence
+  // make sure to use an arrow function!
   build = async (id?: string, force: boolean = false): Promise<void> => {
     this.set_error("");
     this.set_status("");
@@ -699,6 +700,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.save_all(false);
       await this.run_build(this.last_save_time(), force);
     } catch (err) {
+      this.set_error(`${err}`);
       // if there is an error, we issue a stop, but keep the build logs
       await this.stop_build();
     } finally {
