@@ -177,7 +177,6 @@ const ProjectSettings0 = rclass<ReactProps>(
       } else {
         return (
           <div style={{ padding: "15px" }}>
-            {this.render_admin_message()}
             {this.state.admin_project != undefined
               ? this.render_admin_message()
               : undefined}
