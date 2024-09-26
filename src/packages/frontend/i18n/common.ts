@@ -172,10 +172,15 @@ export const labels = defineMessages({
     defaultMessage: "Create a new file",
     description: "A new file in a file-system",
   },
+  pages: {
+    id: "labels.pages",
+    defaultMessage: "Pages",
+    description: "Pages in a document",
+  },
   settings: {
     id: "labels.settings",
     defaultMessage: "Settings",
-    description: "On a button to show project settings",
+    description: "On a button to show the configuration settings",
   },
   help: {
     id: "labels.help",

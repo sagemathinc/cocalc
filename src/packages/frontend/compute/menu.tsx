@@ -2,22 +2,25 @@
 Compute server hamburger menu.
 */
 
-import { Button, Dropdown, Spin } from "antd";
 import type { MenuProps } from "antd";
-import { A, Icon } from "@cocalc/frontend/components";
+import { Button, Dropdown, Spin } from "antd";
 import { useMemo, useState } from "react";
-import getTitle from "./get-title";
+
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { LogModal } from "./compute-server-log";
-import { EditModal } from "./compute-server";
-import { SerialLogModal } from "./serial-port-output";
-import { AppLauncherModal } from "./launcher";
-import { TitleColorModal } from "./title-color";
-import { setServerConfiguration } from "@cocalc/frontend/compute/api";
+import { A, Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
+import {
+  setServerConfiguration,
+  setTemplate,
+} from "@cocalc/frontend/compute/api";
 import openSupportTab from "@cocalc/frontend/support/open";
-import { setTemplate } from "@cocalc/frontend/compute/api";
 import CloneModal from "./clone";
+import { EditModal } from "./compute-server";
+import { LogModal } from "./compute-server-log";
+import getTitle from "./get-title";
+import { AppLauncherModal } from "./launcher";
+import { SerialLogModal } from "./serial-port-output";
+import { TitleColorModal } from "./title-color";
 
 function getServer({ id, project_id }) {
   return redux

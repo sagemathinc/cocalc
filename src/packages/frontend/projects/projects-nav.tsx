@@ -6,7 +6,6 @@
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
 
-import { Icon, Loading } from "@cocalc/frontend//components";
 import {
   redux,
   useActions,
@@ -14,6 +13,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import {
   SortableTabs,
   renderTabBar,
@@ -63,7 +63,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   const status = useProjectState(project_id);
   const isRunning = useMemo(
     () => status.get("state") === "running",
-    [status.get("state")]
+    [status.get("state")],
   );
   const hasInternet = useProjectHasInternetAccess(project_id);
   const showNoInternet = isRunning && !hasInternet;
@@ -75,7 +75,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   const pageActions = useActions("page");
   const public_project_titles = useTypedRedux(
     "projects",
-    "public_project_titles"
+    "public_project_titles",
   );
   const project_websockets = useTypedRedux("projects", "project_websockets");
   const any_alerts = useProjectStatusAlerts(project_id);
