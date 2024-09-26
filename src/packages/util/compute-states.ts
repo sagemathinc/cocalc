@@ -76,7 +76,7 @@ export const COMPUTE_STATES: ComputeStates = {
   unarchiving: {
     desc: "Project is being copied from longterm storage; this may take several minutes depending on how many files you have.",
     icon: "download",
-    display: "Unarchiving",
+    display: "Restoring",
     to: {},
     timeout: 30 * 60,
     commands: ["status", "mintime"],
