@@ -4,8 +4,8 @@
  */
 
 import { useIntl } from "react-intl";
-
-import { LabeledRow, NumberInput } from "@cocalc/frontend/components";
+import { InputNumber } from "antd";
+import { LabeledRow } from "@cocalc/frontend/components";
 
 interface Props {
   tab_size: number;
@@ -22,11 +22,12 @@ export function EditorSettingsIndentSize(props: Props): JSX.Element {
         defaultMessage: "Indent size",
       })}
     >
-      <NumberInput
-        on_change={(n) => props.on_change("tab_size", n)}
+      <InputNumber
+        onChange={(n) => props.on_change("tab_size", n ?? 10)}
         min={2}
         max={32}
-        number={props.tab_size}
+        value={props.tab_size}
+        addonAfter="spaces"
       />
     </LabeledRow>
   );

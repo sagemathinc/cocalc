@@ -39,6 +39,7 @@ const cm: EditorDescription = {
     "undo",
     "redo",
     "reload",
+    "settings",
   ]),
 } as const;
 

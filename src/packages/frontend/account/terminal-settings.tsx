@@ -13,7 +13,6 @@ import {
   SelectorInput,
 } from "@cocalc/frontend/components";
 import { theme_desc } from "@cocalc/frontend/frame-editors/terminal-editor/theme-data";
-import { labels } from "@cocalc/frontend/i18n";
 import { set_account_table } from "./util";
 
 declare global {
@@ -40,7 +39,7 @@ export function TerminalSettings() {
     <Panel
       header={
         <>
-          <Icon name="terminal" /> {intl.formatMessage(labels.terminal)}
+          <Icon name="terminal" /> Terminal Settings
         </>
       }
     >

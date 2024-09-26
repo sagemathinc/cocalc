@@ -52,6 +52,7 @@ const jupyterCommands = set([
   "terminal",
   "help",
   "compute_server",
+  "settings",
 ]);
 
 const jupyter_cell_notebook: EditorDescription = {

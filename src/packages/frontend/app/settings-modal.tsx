@@ -10,8 +10,8 @@ tab could also be accessed this way.
 
 import { Modal } from "antd";
 import { useActions, useRedux } from "@cocalc/frontend/app-framework";
-
 import { TerminalSettings } from "@cocalc/frontend/account/terminal-settings";
+import { EditorSettings } from "@cocalc/frontend/account/editor-settings/editor-settings";
 
 // Ensure the billing Actions and Store are created, which are needed for purchases, etc., to work...
 import "@cocalc/frontend/billing/actions";
@@ -34,7 +34,7 @@ export default function SettingsModal({}) {
   return (
     <Modal
       key="settings-modal"
-      width={"600px"}
+      width={"800px"}
       destroyOnClose
       open
       title={title}
@@ -53,6 +53,8 @@ function getDescription(name: string): { Component?; title? } {
   switch (name) {
     case "terminal-settings":
       return { Component: TerminalSettings };
+    case "editor-settings":
+      return { Component: EditorSettings };
     default:
       return {
         title: <div>Unknown component {name}</div>,

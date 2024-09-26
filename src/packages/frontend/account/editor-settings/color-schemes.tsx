@@ -5,7 +5,6 @@
 
 import { useIntl } from "react-intl";
 import { Map } from "immutable";
-
 import { LabeledRow, SelectorInput } from "@cocalc/frontend/components";
 import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
 import { cm_options } from "@cocalc/frontend/frame-editors/codemirror/cm-options";
@@ -16,7 +15,7 @@ import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
 interface Props {
   theme: string;
   on_change: (selected: string) => void;
-  editor_settings: Map<string, any>;
+  editor_settings;
   font_size?: number;
 }
 

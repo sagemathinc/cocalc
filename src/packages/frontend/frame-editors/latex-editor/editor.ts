@@ -69,6 +69,7 @@ const cm: EditorDescription = {
     "word_count",
     "-format-SpecialChar", // disable this since not properly implemented for latex.  It could be though!
     "download_pdf",
+    "settings",
   ]),
   buttons: set([
     "format-ai_formula",

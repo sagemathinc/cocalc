@@ -3,7 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { LabeledRow, NumberInput } from "@cocalc/frontend/components";
+import { InputNumber } from "antd";
+import { LabeledRow } from "@cocalc/frontend/components";
 import { useIntl } from "react-intl";
 
 interface Props {
@@ -11,7 +12,7 @@ interface Props {
   on_change: (name: string, value: number) => void;
 }
 
-export function EditorSettingsFontSize(props: Props): JSX.Element {
+export function EditorSettingsFontSize(props: Props) {
   const intl = useIntl();
 
   return (
@@ -22,12 +23,12 @@ export function EditorSettingsFontSize(props: Props): JSX.Element {
       })}
       className="cc-account-prefs-font-size"
     >
-      <NumberInput
-        on_change={(n) => props.on_change("font_size", n)}
+      <InputNumber
+        onChange={(n) => props.on_change("font_size", n ?? 14)}
         min={5}
         max={32}
-        number={props.font_size}
-        unit="px"
+        value={props.font_size}
+        addonAfter="px"
       />
     </LabeledRow>
   );

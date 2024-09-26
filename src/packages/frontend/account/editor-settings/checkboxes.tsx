@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
 import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { capitalize, is_different, keys } from "@cocalc/util/misc";
@@ -46,7 +45,7 @@ const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
 } as const;
 
 interface Props {
-  editor_settings: Map<string, any>;
+  editor_settings;
   email_address?: string;
   on_change: Function;
 }

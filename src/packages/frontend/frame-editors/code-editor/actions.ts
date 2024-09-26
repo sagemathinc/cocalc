@@ -3051,4 +3051,8 @@ export class Actions<
   setTrust = async (trust: boolean) => {
     await this._syncstring.set_settings({ trust });
   };
+
+  settings = () => {
+    this.redux.getActions("page").settings("editor-settings");
+  };
 }
