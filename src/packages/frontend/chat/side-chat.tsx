@@ -106,19 +106,20 @@ export default function SideChat({ project_id, path, style }: Props) {
             borderBottom: "1px solid lightgrey",
           }}
         >
-          <Button
-            style={{
-              float: "right",
-              marginTop: "-5px",
-              color: "rgb(51, 51, 51)",
-              background: "rgb(91, 192, 222)",
-            }}
-            onClick={() => {
-              actions.showTimeTravelInNewTab();
-            }}
-          >
-            <Icon name="history" />
-          </Button>
+          <Tooltip title="Show TimeTravel change history of this side chat.">
+            <Button
+              style={{
+                float: "right",
+                marginTop: "-5px",
+                background: "rgb(91, 192, 222)",
+              }}
+              onClick={() => {
+                actions.showTimeTravelInNewTab();
+              }}
+            >
+              <Icon name="history" />
+            </Button>
+          </Tooltip>
           <VideoChatButton
             style={{ float: "right", marginTop: "-5px" }}
             project_id={project_id}
