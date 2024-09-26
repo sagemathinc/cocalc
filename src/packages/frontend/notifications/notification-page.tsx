@@ -5,6 +5,7 @@
 
 import { Col, Row } from "antd";
 import React, { useEffect } from "react";
+import { useIntl } from "react-intl";
 
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -14,6 +15,7 @@ import {
   Paragraph,
   Title,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
@@ -80,6 +82,7 @@ const LIST_STYLE: CSS = {
 } as const;
 
 export const NotificationPage: React.FC<{}> = () => {
+  const intl = useIntl();
   const account_id = useTypedRedux("account", "account_id");
   const mentions = useTypedRedux("mentions", "mentions");
   const news = useTypedRedux("news", "news");
@@ -100,22 +103,31 @@ export const NotificationPage: React.FC<{}> = () => {
         }}
         style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}
       >
-        Global news or someone used @your_name to explicitly mention you as a
-        collaborator. This could have happened in a{" "}
-        <A href="https://doc.cocalc.com/chat.html">Chatroom</A>, in the context
-        of{" "}
-        <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
-          teaching
-        </A>
-        , or{" "}
-        <A href="https://doc.cocalc.com/markdown.html#mentions">
-          when editing files.
-        </A>{" "}
-        For example, when editing text in a Jupyter notebook or whiteboard, type
-        an @ symbol, then select the name of a collaborator, and they will
-        receive an email telling them that you mentioned them. You can also
-        @mention yourself for testing or to make it easy to find something
-        later.
+        {intl.formatMessage(
+          {
+            id: "notifications.page.intro",
+            description:
+              "The @ sign in front of a user name handle is used to notify someone else.",
+            defaultMessage: `Global news or someone used "@your_name" to explicitly mention you as a collaborator.
+            This could have happened in a <A1>Chatroom</A1>,
+            in the context of <A2>teaching</A2>, or <A3>when editing files.</A3>
+            For example, when editing text in a Jupyter notebook or whiteboard,
+            type an @ symbol, then select the name of a collaborator,
+            and they will receive an email telling them that you mentioned them.
+            You can also "@mention" yourself for testing or to make it easy to find something later.`,
+          },
+          {
+            A1: (c) => <A href="https://doc.cocalc.com/chat.html">{c}</A>,
+            A2: (c) => (
+              <A href="https://doc.cocalc.com/teaching-interactions.html#mention-collaborators-in-chat">
+                {c}
+              </A>
+            ),
+            A3: (c) => (
+              <A href="https://doc.cocalc.com/markdown.html#mentions">{c}</A>
+            ),
+          },
+        )}
       </Paragraph>
     );
   }
@@ -153,7 +165,7 @@ export const NotificationPage: React.FC<{}> = () => {
     <div style={OUTER_STYLE}>
       <div style={INNER_STYLE}>
         <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
-          <Icon name="mail" /> Notifications
+          <Icon name="mail" /> {intl.formatMessage(labels.notifications)}
         </Title>
         {renderExplanation()}
         {renderContent()}

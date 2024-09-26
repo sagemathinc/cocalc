@@ -10,6 +10,7 @@ Jupyter notebook server is running, then pops it up in a new tab.
 
 import { join } from "path";
 import React from "react";
+
 import {
   Icon,
   IconName,
