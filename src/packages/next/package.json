@@ -65,7 +65,7 @@
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@vscode/vscode-languagedetection": "^1.0.22",
-    "antd": "^5.18.3",
+    "antd": "^5.21.1",
     "antd-img-crop": "^4.21.0",
     "awaiting": "^3.0.0",
     "base-64": "^1.0.0",
