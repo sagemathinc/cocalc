@@ -115,6 +115,10 @@ export class TerminalActions extends Actions {
   compute_server() {
     // this is here just so the dropdown gets enabled
   }
+
+  settings = () => {
+    this.redux.getActions("page").settings("terminal-settings");
+  };
 }
 
 // Also useful to import as just "Actions" for our editor reg system

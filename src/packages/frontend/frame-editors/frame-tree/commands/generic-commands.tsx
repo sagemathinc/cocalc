@@ -1123,6 +1123,17 @@ addCommands({
     }),
     ...fileAction("close"),
   },
+  settings: {
+    pos: 10,
+    group: "settings",
+    icon: "gear",
+    title: "Settings",
+    label: "Settings",
+    button: "Settings",
+    onClick: ({ props }) => {
+      props.actions.settings?.();
+    },
+  },
   new_frame_of_type: {
     alwaysShow: true,
     icon: "plus-square",

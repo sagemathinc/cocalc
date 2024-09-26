@@ -4,7 +4,6 @@
  */
 
 import { useIntl } from "react-intl";
-
 import { Panel } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -23,7 +22,7 @@ declare global {
   }
 }
 
-export const TerminalSettings: React.FC = () => {
+export function TerminalSettings() {
   const intl = useIntl();
 
   const terminal = useTypedRedux("account", "terminal");
@@ -56,4 +55,4 @@ export const TerminalSettings: React.FC = () => {
       </LabeledRow>
     </Panel>
   );
-};
+}

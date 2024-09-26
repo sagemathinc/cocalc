@@ -38,7 +38,7 @@ export const terminal: EditorDescription = {
     "chatgpt",
     // "tour", -- temporarily disabled until I figure out how to to do editor tours again (fallout from pr 7180)
     "compute_server",
-    /*"reload" */
+    "settings",
   ]),
   buttons: set([
     "decrease_font_size",

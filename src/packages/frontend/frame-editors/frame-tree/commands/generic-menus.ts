@@ -6,7 +6,7 @@ addMenus({
   app: {
     label: APPLICATION_MENU,
     pos: -10,
-    groups: ["about", "frame_types", "quit"],
+    groups: ["about", "frame_types", "quit", "settings"],
   },
   file: {
     label: menu.file,

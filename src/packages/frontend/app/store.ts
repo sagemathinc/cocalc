@@ -50,6 +50,8 @@ export interface PageState {
     cancelText?: string;
     okText?: string;
   };
+
+  settingsModal?: string;
 }
 
 export class PageStore extends Store<PageState> {}

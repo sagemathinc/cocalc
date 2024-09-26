@@ -11,7 +11,6 @@ everything on *desktop*, once the user has signed in.
 declare var DEBUG: boolean;
 
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -45,6 +44,7 @@ import PopconfirmModal from "./popconfirm-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
+import SettingsModal from "./settings-modal";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -110,7 +110,7 @@ export const Page: React.FC = () => {
   );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
-  const show_i18n = useShowI18NBanner()
+  const show_i18n = useShowI18NBanner();
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
@@ -401,6 +401,7 @@ export const Page: React.FC = () => {
       <ActiveContent />
       <PayAsYouGoModal />
       <PopconfirmModal />
+      <SettingsModal />
     </div>
   );
 };
