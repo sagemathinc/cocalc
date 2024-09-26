@@ -36,6 +36,7 @@ export default function VideoChatButton({
   // to know if somebody else has video chat opened for this file
   // @ts-ignore
   const file_use = useTypedRedux("file_use", "file_use");
+  const [open, setOpen] = useState<boolean>(false);
 
   // so we can exclude ourselves
   const account_id: string = useTypedRedux("account", "account_id");
@@ -86,15 +87,14 @@ export default function VideoChatButton({
     if (video_chat.current.we_are_chatting()) {
       return (
         <span>
-          Click to <b>leave</b> this video chatroom.
+          <b>Leave</b> this video chatroom.
         </span>
       );
     } else {
       if (num_users_chatting < VIDEO_CHAT_LIMIT) {
         return (
           <span>
-            Click to{" "}
-            {num_users_chatting == 0 ? "start a new " : "join the current"}{" "}
+            {num_users_chatting == 0 ? "Start a new " : "Join the current"}{" "}
             video chat.
           </span>
         );
@@ -125,8 +125,11 @@ export default function VideoChatButton({
     </>
   );
 
+  const btn = <Button style={{ ...style, ...style0 }}>{body}</Button>;
+
   return (
     <Popconfirm
+      onOpenChange={setOpen}
       title={`${
         num_users_chatting ? "Join the current" : "Start a new"
       } video chat session about this document?`}
@@ -134,17 +137,21 @@ export default function VideoChatButton({
       okText={`${num_users_chatting ? "Join" : "Start"} video chat`}
       cancelText={<CancelText />}
     >
-      <Popover
-        mouseEnterDelay={0.8}
-        title={() => (
-          <span>
-            {render_join(num_users_chatting)}
-            {render_num_chatting(num_users_chatting)}
-          </span>
-        )}
-      >
-        <Button style={{ ...style, ...style0 }}>{body}</Button>
-      </Popover>
+      {open ? (
+        btn
+      ) : (
+        <Popover
+          mouseEnterDelay={0.8}
+          title={() => (
+            <span>
+              {render_join(num_users_chatting)}
+              {render_num_chatting(num_users_chatting)}
+            </span>
+          )}
+        >
+          {btn}
+        </Popover>
+      )}
     </Popconfirm>
   );
 }

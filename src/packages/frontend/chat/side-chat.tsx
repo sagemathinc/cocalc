@@ -106,32 +106,33 @@ export default function SideChat({ project_id, path, style }: Props) {
             borderBottom: "1px solid lightgrey",
           }}
         >
-          <Tooltip title="Show TimeTravel change history of this side chat.">
-            <Button
-              style={{
-                float: "right",
-                marginTop: "-5px",
-                background: "rgb(91, 192, 222)",
-              }}
-              onClick={() => {
-                actions.showTimeTravelInNewTab();
-              }}
-            >
-              <Icon name="history" />
-            </Button>
-          </Tooltip>
-          <VideoChatButton
-            style={{ float: "right", marginTop: "-5px" }}
-            project_id={project_id}
-            path={path}
-            sendChat={(value) => {
-              const actions = redux.getEditorActions(
-                project_id,
-                path,
-              ) as ChatActions;
-              actions.send_chat({ input: value });
+          <Space.Compact
+            style={{
+              float: "right",
+              marginTop: "-5px",
             }}
-          />{" "}
+          >
+            <VideoChatButton
+              project_id={project_id}
+              path={path}
+              sendChat={(value) => {
+                const actions = redux.getEditorActions(
+                  project_id,
+                  path,
+                ) as ChatActions;
+                actions.send_chat({ input: value });
+              }}
+            />
+            <Tooltip title="Show TimeTravel change history of this side chat.">
+              <Button
+                onClick={() => {
+                  actions.showTimeTravelInNewTab();
+                }}
+              >
+                <Icon name="history" />
+              </Button>
+            </Tooltip>
+          </Space.Compact>
           <CollabList
             addCollab={addCollab}
             project={project}
