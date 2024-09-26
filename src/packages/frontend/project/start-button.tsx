@@ -184,7 +184,7 @@ export function StartButton() {
     const txt = intl.formatMessage(
       {
         id: "project.start-button.button.txt",
-        defaultMessage: `{starting, select, true {Starting} other {Start}} project`,
+        defaultMessage: `{starting, select, true {Starting project} other {Start project}}`,
         description:
           "Label on a button, either to start the project or indicating the project is currently starting.",
       },
