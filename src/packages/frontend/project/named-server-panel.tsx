@@ -9,8 +9,9 @@ Jupyter notebook server is running, then pops it up in a new tab.
 */
 
 import { join } from "path";
-import React from "react";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
+import { CSS } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
@@ -20,6 +21,7 @@ import {
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { IntlMessage } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { R_IDE } from "@cocalc/util/consts/ui";
 import { capitalize } from "@cocalc/util/misc";
@@ -27,9 +29,15 @@ import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { useAvailableFeatures } from "./use-available-features";
 
+const LAUNCHING_SERVER = defineMessage({
+  id: "project.named-server-panel.launching_server",
+  defaultMessage: "Launching server...",
+  description: "A web-service is starting.",
+});
+
 interface Server {
   longName: string;
-  description: React.ReactNode;
+  description: IntlMessage;
   usesBasePath: boolean;
   icon: IconName;
 }
@@ -39,46 +47,59 @@ export const SPEC: {
 } = {
   jupyter: {
     longName: "Jupyter Classic Notebook",
-    description: `The Jupyter Classic notebook server runs in your project and provides
-support for classical Jupyter notebooks. You can also use the plain
-classical Jupyter notebook server directly via the link below. This
-does not support multiple users or TimeTravel, but fully supports all
-classical Jupyter notebook features and extensions.`,
+    description: defineMessage({
+      id: "project.named-server-panel.spec.jupyter.description",
+      defaultMessage: `The Jupyter Classic notebook server runs in your project and provides
+      support for classical Jupyter notebooks.
+      You can also use the plain classical Jupyter notebook server directly via the link below.
+      This does not support multiple users or TimeTravel,
+      but fully supports all classical Jupyter notebook features and extensions.`,
+    }),
     usesBasePath: true,
     icon: "ipynb",
   },
   jupyterlab: {
     longName: "JupyterLab Notebook",
-    description: `The JupyterLab server runs from your project and provides support for
-Jupyter notebooks, terminals, drag and drop, with a nice multiwindow
-layout, and much more. JupyterLab does not yet support multiple users
-or TimeTravel, but fully supports most Jupyter notebook features and
-extensions.`,
+    description: defineMessage({
+      id: "project.named-server-panel.spec.jupyterlab.description",
+      defaultMessage: `The JupyterLab server runs from your project and provides support for Jupyter notebooks,
+      terminals, drag and drop, with a nice multiwindow layout, and much more.
+      JupyterLab does not yet support multiple users or TimeTravel,
+      but fully supports most Jupyter notebook features and extensions.`,
+    }),
     usesBasePath: true,
     icon: "ipynb",
   },
   code: {
     longName: "Visual Studio Code",
-    description: `Visual Studio Code is a source-code editor made by Microsoft. Features
-include support for debugging, syntax highlighting, intelligent
-code completion, snippets, code refactoring, and embedded Git.`,
+    description: defineMessage({
+      id: "project.named-server-panel.spec.code.description",
+      defaultMessage: `Visual Studio Code is a source-code editor made by Microsoft.
+      Features include support for debugging, syntax highlighting,
+      intelligent code completion, snippets, code refactoring, and embedded Git.`,
+    }),
     usesBasePath: false,
     icon: "vscode",
   },
   pluto: {
     longName: "Julia Pluto.jl",
-    description: (
-      <>
-        Reactive notebooks for Julia.{" "}
-        <b>NOTE: Pluto may take a long time to start, so be patient.</b>
-      </>
-    ),
+    description: defineMessage({
+      id: "project.named-server-panel.spec.pluto.description",
+      defaultMessage: `Reactive notebooks for Julia.
+      <b>NOTE: Pluto may take a long time to start, so be patient.</b> `,
+    }),
+
     usesBasePath: false,
     icon: "julia",
   },
   rserver: {
     longName: R_IDE,
-    description: `This is an integrated development environment (IDE) for R, sometimes called "R Studio". It is provided without any modifications. DISCLAIMER: Posit Software, PBC (formerly RStudio, PBC) IS IN NO WAY ASSOCIATED WITH COCALC.`,
+    description: defineMessage({
+      id: "project.named-server-panel.spec.rserver.description",
+      defaultMessage: `This is an integrated development environment (IDE) for R, sometimes called "R Studio".
+      It is provided without any modifications.
+      <b>DISCLAIMER: Posit Software, PBC (formerly RStudio, PBC) IS IN NO WAY ASSOCIATED WITH COCALC.</b>`,
+    }),
     usesBasePath: false,
     icon: "r",
   },
@@ -89,57 +110,62 @@ function getServerInfo(name: NamedServerName): Server {
     SPEC[name] ?? {
       icon: "server",
       longName: `${capitalize(name)} Server`,
-      description: `The ${capitalize(
-        name,
-      )} server runs from your project. It does not yet
-          support multiple users or TimeTravel, but fully supports most other
-          features and extensions of ${name}.`,
+      description: defineMessage({
+        id: "project.named-server-panel.spec.server.description",
+        defaultMessage: `The {name} server runs from your project.
+        It does not yet support multiple users or TimeTravel,
+        but fully supports most other features and extensions of {name}.`,
+      }),
     }
   );
 }
 
+const DISABLED = defineMessage({
+  id: "project.named-server-panel.disabled.info",
+  defaultMessage: `"Disabled. Please contact your instructor if you need to use {longName}.`,
+});
+
 interface Props {
   project_id: string;
   name: NamedServerName;
-  style?;
+  style?: CSS;
 }
 
 export function NamedServerPanel({ project_id, name, style }: Props) {
+  const intl = useIntl();
+
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
 
-  const { longName, description, icon } = getServerInfo(name);
+  const { longName, description: descMsg, icon } = getServerInfo(name);
+  const description = intl.formatMessage(descMsg, { name: capitalize(name) });
 
   let body;
   if (
     name === "jupyterlab" &&
     student_project_functionality.disableJupyterLabServer
   ) {
-    body =
-      "Disabled. Please contact your instructor if you need to use Jupyter Lab";
+    body = intl.formatMessage(DISABLED, { longName });
   } else if (
     name === "jupyter" &&
     student_project_functionality.disableJupyterClassicServer
   ) {
-    body =
-      "Disabled. Please contact your instructor if you need to use Jupyter Classic.";
+    body = intl.formatMessage(DISABLED, { longName });
   } else if (
     name === "code" &&
     student_project_functionality.disableVSCodeServer
   ) {
-    body =
-      "Disabled. Please contact your instructor if you need to use VS Code.";
+    body = intl.formatMessage(DISABLED, { longName });
   } else if (
     name === "pluto" &&
     student_project_functionality.disablePlutoServer
   ) {
-    body = "Disabled. Please contact your instructor if you need to use Pluto.";
+    body = intl.formatMessage(DISABLED, { longName });
   } else if (
     name === "rserver" &&
     student_project_functionality.disableRServer
   ) {
-    body =
-      "Disabled. Please contact your instructor if you need to use RStudio.";
+    body = intl.formatMessage(DISABLED, { longName });
   } else {
     body = (
       <>
@@ -147,8 +173,13 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
           {description}
           <br />
           <br />
-          Starting your {longName} server. It will then attempt to open in a new
-          browser tab. If this doesn't work, check for a popup blocker warning!
+          <FormattedMessage
+            id="project.named-server-panel.long_start_info"
+            defaultMessage={`Starting your {longName} server.
+            It will then attempt to open in a new  browser tab.
+            If this doesn't work, check for a popup blocker warning!`}
+            values={{ longName }}
+          />
         </Paragraph>
         <Paragraph
           style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}
@@ -157,7 +188,7 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
             maxTime={1000 * 60 * 5}
             autoStart
             href={serverURL(project_id, name)}
-            loadingText="Launching server..."
+            loadingText={intl.formatMessage(LAUNCHING_SERVER)}
             onClick={() => {
               track("launch-server", { name, project_id });
             }}
@@ -196,6 +227,7 @@ export function ServerLink({
   name: NamedServerName;
   mode: "flyout" | "full";
 }) {
+  const intl = useIntl();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const available = useAvailableFeatures(project_id);
@@ -227,12 +259,13 @@ export function ServerLink({
   ) {
     return null;
   } else {
-    const { icon, longName, description } = getServerInfo(name);
+    const { icon, longName, description: descMsg } = getServerInfo(name);
+    const description = intl.formatMessage(descMsg, { name: capitalize(name) });
     return (
       <LinkRetry
         maxTime={1000 * 60 * 5}
         href={serverURL(project_id, name)}
-        loadingText="Launching server..."
+        loadingText={intl.formatMessage(LAUNCHING_SERVER)}
         tooltip={mode === "flyout" ? description : undefined}
         onClick={() => {
           track("launch-server", { name, project_id });

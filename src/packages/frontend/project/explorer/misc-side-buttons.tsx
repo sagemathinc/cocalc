@@ -5,7 +5,7 @@
 
 import { join } from "path";
 import React from "react";
-import { useIntl } from "react-intl";
+import { defineMessage, useIntl } from "react-intl";
 
 import {
   Button,
@@ -22,6 +22,11 @@ import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { serverURL, SPEC } from "../named-server-panel";
 import TourButton from "./tour/button";
+
+const OPEN_MSG = defineMessage({
+  id: "project.explorer.misc-side-buttons.open_dir.tooltip",
+  defaultMessage: `Opens the current directory in a {name} server instance, running inside this project.`,
+});
 
 interface Props {
   actions: ProjectActions;
@@ -143,12 +148,12 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     const abspath = join(homeDirectory, current_path ?? "");
     // setting ?folder= tells VS Code to open that directory
     const url = `${serverURL(project_id, "code")}?folder=${abspath}`;
+    const values = { name: SPEC.code.longName };
+    const tooltip = intl.formatMessage(OPEN_MSG, values);
+    const description = intl.formatMessage(SPEC.code.description, values);
     return (
       <LinkRetry href={url} mode="button">
-        <Tip
-          title={`Opens the current directory in a Visual Studio Code IDE server instance, running inside this project. ${SPEC.code.description}`}
-          placement="bottom"
-        >
+        <Tip title={`${tooltip} ${description}`} placement="bottom">
           <Icon name={SPEC.code.icon} /> <VisibleLG>VS Code</VisibleLG>
         </Tip>
       </LinkRetry>
@@ -163,12 +168,12 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     // we make sure the url ends wiht a slash, without messing up the full URL
     const s = base.slice(base.length - 1) === "/" ? "" : "/";
     const url = `${base}${s}${current_path ? "lab/tree/" + current_path : ""}`;
+    const values = { name: SPEC.code.longName };
+    const tooltip = intl.formatMessage(OPEN_MSG, values);
+    const description = intl.formatMessage(SPEC.jupyterlab.description, values);
     return (
       <LinkRetry href={url} mode="button">
-        <Tip
-          title={`Opens the current directory in a JupyterLab server instance, running inside this project. ${SPEC.jupyterlab.description}`}
-          placement="bottom"
-        >
+        <Tip title={`${tooltip} ${description}`} placement="bottom">
           <Icon name={SPEC.jupyterlab.icon} /> <VisibleLG>JupyterLab</VisibleLG>
         </Tip>
       </LinkRetry>
