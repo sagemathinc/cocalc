@@ -28,6 +28,7 @@ import {
   setServerTab,
   TabName,
 } from "@cocalc/frontend/compute/tab";
+import { FormattedMessage } from "react-intl";
 
 // Antd's 24 grid system
 const md = 6;
@@ -173,13 +174,18 @@ export function ProjectServers() {
     children: (
       <>
         <Paragraph>
-          You can run various notebook servers inside this project with one
-          click. They run in the same environment, have access to the same
-          files, and stop when the project stops. You can also{" "}
-          <A href={"https://doc.cocalc.com/howto/webserver.html"}>
-            run your own servers
-          </A>
-          .
+          <FormattedMessage
+            id="project.servers.project-servers.description"
+            defaultMessage={`You can run various notebook servers inside this project with one click.
+            They run in the same environment, have access to the same files,
+            and stop when the project stops.
+            You can also <A>run your own servers</A>.`}
+            values={{
+              A: (c) => (
+                <A href={"https://doc.cocalc.com/howto/webserver.html"}>{c}</A>
+              ),
+            }}
+          />
         </Paragraph>
         {renderNamedServers()}
         <Divider plain />
