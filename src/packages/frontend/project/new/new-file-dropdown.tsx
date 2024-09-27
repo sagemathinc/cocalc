@@ -87,6 +87,7 @@ export function NewFileDropdown({
     if (typeof ext !== "string") {
       return ext;
     }
+
     const data =
       ext === "/"
         ? {
@@ -94,6 +95,7 @@ export function NewFileDropdown({
             icon: "folder-open",
           }
         : file_options("x." + ext);
+
     const text = (
       <>
         <span style={{ width: "25px", display: "inline-block" }}>

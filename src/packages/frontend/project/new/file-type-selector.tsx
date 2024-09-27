@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { Available } from "@cocalc/comm/project-configuration";
+import { CSS } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
@@ -507,6 +508,12 @@ export function FileTypeSelector({
   function renderMarkdown() {
     if (disabledFeatures?.md) return;
 
+    const labelSlides = intl.formatMessage({
+      id: "new.file-type-selector.slides.title",
+      defaultMessage: "Slides",
+      description: "Short label on a buton to create a new slideshow file",
+    });
+
     return (
       <>
         <Section color="green" icon="markdown" isFlyout={isFlyout}>
@@ -562,12 +569,7 @@ export function FileTypeSelector({
             <Tip
               delayShow={DELAY_SHOW_MS}
               icon={NEW_FILETYPE_ICONS.slides}
-              title={intl.formatMessage({
-                id: "new.file-type-selector.slides.title",
-                defaultMessage: "Slides",
-                description:
-                  "Short label on a buton to create a new slideshow file",
-              })}
+              title={labelSlides}
               tip={intl.formatMessage({
                 id: "new.file-type-selector.slides.tooltip",
                 defaultMessage:
@@ -575,7 +577,7 @@ export function FileTypeSelector({
               })}
             >
               <NewFileButton
-                name="Slides"
+                name={labelSlides}
                 on_click={create_file}
                 ext="slides"
                 size={btnSize}
@@ -589,6 +591,16 @@ export function FileTypeSelector({
   }
 
   function renderUtilities() {
+    const labelTaskList = intl.formatMessage({
+      id: "new.file-type-selector.tasks.label",
+      defaultMessage: "Task List",
+    });
+
+    const labelStopWatchTimer = intl.formatMessage({
+      id: "project.new.file-type-selector.timers.label",
+      defaultMessage: "Stopwatch and Timer",
+    });
+
     return (
       <>
         <Section color="yellow" icon="wrench" isFlyout={isFlyout}>
@@ -598,12 +610,16 @@ export function FileTypeSelector({
           <Col sm={doubleSm} md={doubleMd}>
             <Tip
               delayShow={DELAY_SHOW_MS}
-              title="Task List"
+              title={labelTaskList}
               icon={NEW_FILETYPE_ICONS.tasks}
-              tip="Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code."
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.tasks.tooltip",
+                defaultMessage:
+                  "Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code.",
+              })}
             >
               <NewFileButton
-                name="Task List"
+                name={labelTaskList}
                 on_click={create_file}
                 ext="tasks"
                 size={btnSize}
@@ -615,12 +631,16 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title="Stopwatches and Timer"
+                title={labelStopWatchTimer}
                 icon={NEW_FILETYPE_ICONS.time}
-                tip="Create collaborative stopwatches and timers to keep track of how long it takes to do something."
+                tip={intl.formatMessage({
+                  id: "project.new.file-type-selector.timers.tooltip",
+                  defaultMessage:
+                    "Create collaborative stopwatches and timers to keep track of how long it takes to do something.",
+                })}
               >
                 <NewFileButton
-                  name="Stopwatch and Timer"
+                  name={labelStopWatchTimer}
                   on_click={create_file}
                   ext="time"
                   size={btnSize}
@@ -655,8 +675,8 @@ function Section({
 }: {
   children;
   color;
-  icon;
-  style?;
+  icon: string;
+  style?: CSS;
   isFlyout: boolean;
 }) {
   return (
