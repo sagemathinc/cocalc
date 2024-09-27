@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Flex, Row, Tag } from "antd";
+import { Col, Flex, Modal, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -97,7 +97,7 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="blue" icon="jupyter" isFlyout={isFlyout}>
-          Jupyter and LaTeX
+          Jupyter and Documents
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
           <JupyterNotebookButtons
@@ -110,10 +110,11 @@ export function FileTypeSelector({
             filename={filename}
             filenameChanged={filenameChanged}
             makeNewFilename={() => makeNewFilename?.("ipynb")}
+            after={
+              /* Those come after the main button, then the additional jupyter notebooks – to avoid jumpyness */
+              [renderLaTeX(), renderQuarto(), renderMD()]
+            }
           />
-          {renderLaTeX()}
-          {renderQuarto()}
-          {renderSageWS()}
         </Row>
       </>
     );
@@ -370,6 +371,30 @@ export function FileTypeSelector({
   function renderSageWS() {
     if (!availableFeatures.sage) return;
 
+    function handleClick(ext) {
+      Modal.confirm({
+        icon: <Icon name="exclamation-circle" />,
+        title: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.title",
+          defaultMessage: "SageMath Worksheets are deprecated.",
+        }),
+        content: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.content",
+          defaultMessage:
+            "Consider working with a Jupyter Notebook and use a SageMath Kernel. You can also convert existing SageWorksheets to Jupyter Notebooks.",
+        }),
+        okText: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.ok",
+          defaultMessage: "Create anyways",
+        }),
+        onOk: (close) => {
+          create_file(ext);
+          close();
+        },
+        closable: true,
+      });
+    }
+
     return (
       <Col sm={sm} md={md}>
         <Tip
@@ -384,12 +409,12 @@ export function FileTypeSelector({
         >
           <NewFileButton
             name={intl.formatMessage(labels.sagemath_worksheet)}
-            on_click={create_file}
+            on_click={handleClick}
             ext="sagews"
             size={btnSize}
             active={btnActive("sagews")}
           />
-        </Tip>{" "}
+        </Tip>
       </Col>
     );
   }
@@ -427,8 +452,8 @@ export function FileTypeSelector({
   }
 
   function renderQuarto() {
-    if (mode !== "flyout") return;
-    if (!availableFeatures.qmd) return;
+    if (mode !== "flyout") return null;
+    if (!availableFeatures.qmd) return null;
 
     const btn = (
       <Tip
@@ -510,10 +535,9 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="green" icon="markdown" isFlyout={isFlyout}>
-          Markdown Document Suite
+          Miscellaneous Documents
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
-          {renderMD()}
           {availableFeatures.rmd &&
             addAiDocGenerate(
               <Tip
@@ -583,6 +607,7 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
+          {renderSageWS()}
         </Row>
       </>
     );
