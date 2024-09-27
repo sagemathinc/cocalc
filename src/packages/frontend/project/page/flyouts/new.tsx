@@ -26,6 +26,7 @@ import {
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { labels } from "@cocalc/frontend/i18n";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project//new/consts";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
@@ -442,10 +443,15 @@ export function NewFlyout({
           delayShow={DELAY_SHOW_MS}
           title="Folder (directory)"
           icon={"folder"}
-          tip="Creating a subdirectory in the current directory instead of a file."
+          tip={intl.formatMessage({
+            id: "project.page.flyouts.new.folder.tooltip",
+            defaultMessage:
+              "Creating a subdirectory in the current directory instead of a file.",
+            description: "A folder in a file-system",
+          })}
         >
           <NewFileButton
-            name="Folder"
+            name={intl.formatMessage(labels.folder)}
             on_click={handleOnClick}
             ext="/"
             size="small"
@@ -454,18 +460,25 @@ export function NewFlyout({
         </Tip>
         <Tip
           delayShow={DELAY_SHOW_MS}
-          title="No file extension"
+          title={intl.formatMessage({
+            id: "project.page.flyouts.new.filename_without_ext.title",
+            defaultMessage: "No file extension",
+            description: "File without an extension in a file-system",
+          })}
           icon={"file"}
-          tip={
-            <>
-              Create a file without a file extension, for example a{" "}
-              <code>Makefile</code>. You can also type{" "}
-              <code>filename.[space]</code> and backspace once.
-            </>
-          }
+          tip={intl.formatMessage({
+            id: "project.page.flyouts.new.filename_without_ext.tooltip",
+            defaultMessage: `Create a file without a file extension,
+              for example a <code>Makefile</code>.
+              You can also type <code>filename.[space]</code> and backspace once.`,
+          })}
         >
           <NewFileButton
-            name="Create file - no extension"
+            name={intl.formatMessage({
+              id: "project.page.flyouts.new.filename_without_ext.label",
+              defaultMessage: "Create file - no extension",
+              description: "File without an extension in a file-system",
+            })}
             on_click={handleOnClick}
             ext=""
             size="small"
