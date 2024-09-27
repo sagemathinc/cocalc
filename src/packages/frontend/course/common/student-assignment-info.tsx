@@ -6,13 +6,7 @@
 import { Button, Col, Row, Space, Spin } from "antd";
 import { ReactNode, useRef, useState } from "react";
 import { useActions } from "@cocalc/frontend/app-framework";
-import {
-  ErrorDisplay,
-  Icon,
-  Markdown,
-  Gap,
-  Tip,
-} from "@cocalc/frontend/components";
+import { Icon, Markdown, Gap, Tip } from "@cocalc/frontend/components";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { to_json } from "@cocalc/util/misc";
@@ -29,6 +23,7 @@ import { AssignmentCopyType } from "../types";
 import { useButtonSize } from "../util";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface StudentAssignmentInfoProps {
   name: string;
@@ -281,7 +276,9 @@ export function StudentAssignmentInfo({
           onClick={() => {
             if (
               clicked_nbgrader.current != null &&
-              webapp_client.server_time() - clicked_nbgrader.current.valueOf() <= 3000
+              webapp_client.server_time() -
+                clicked_nbgrader.current.valueOf() <=
+                3000
             ) {
               // User *just* clicked, and we want to avoid double click
               // running nbgrader twice.
@@ -468,10 +465,15 @@ export function StudentAssignmentInfo({
       error = `Try to ${name.toLowerCase()} again:\n` + error;
     }
     return (
-      <ErrorDisplay
+      <ShowError
         key="error"
         error={error}
-        style={{ maxHeight: "140px", overflow: "auto", display: "block" }}
+        style={{
+          marginTop: "5px",
+          maxHeight: "140px",
+          overflow: "auto",
+          display: "block",
+        }}
       />
     );
   }

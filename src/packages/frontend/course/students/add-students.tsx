@@ -10,7 +10,8 @@ import {
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
 import { Button, Col, Form, Input, Row, Checkbox, Flex, Space } from "antd";
-import { ErrorDisplay, Icon } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
 import type { StudentsMap } from "../store";
 import type { UserMap } from "@cocalc/frontend/todo-types";
 import {
@@ -361,12 +362,7 @@ export default function AddStudents({
 
   function render_error_display() {
     if (err) {
-      return (
-        <ErrorDisplay
-          error={trunc(err, 1024)}
-          onClose={() => set_err(undefined)}
-        />
-      );
+      return <ShowError error={trunc(err, 1024)} setError={set_err} />;
     } else if (existing_students != null) {
       const existing: any[] = [];
       for (const email in existing_students.email) {
@@ -385,10 +381,10 @@ export default function AddStudents({
         const existingStr = existing.join(", ");
         const msg = `Already added (or deleted) students or project collaborators: ${existingStr}`;
         return (
-          <ErrorDisplay
-            bsStyle="info"
+          <ShowError
+            style={{ margin: "15px 0" }}
             error={msg}
-            onClose={() => set_existing_students(undefined)}
+            setError={() => set_existing_students(undefined)}
           />
         );
       }
