@@ -11,6 +11,7 @@ import {
 import { BASIC, getCosts, MAX, STANDARD } from "./consts";
 import { dedicatedPrice } from "./dedicated-price";
 import type { Cost, PurchaseInfo } from "./types";
+import { round2up } from "@cocalc/util/misc";
 
 // NOTE: the PurchaseInfo object optionally has a "version" field in it.
 // If the version is not specified, then it defaults to "1", which is the version
@@ -171,18 +172,24 @@ export function compute_cost(info: PurchaseInfo): Cost {
   // cost_per_unit is important for purchasing upgrades for specific intervals.
   // i.e. above the "cost" is calculated for the total number of projects,
   // note: later on you have to use round2, since this is the price with full precision.
-  const cost_per_unit = base_cost;
-  const cost_total = quantity * cost_per_unit;
+
+  // We round up the per unit cost *before* multiplying by the quantity, because
+  // it's really confusing for the user to see:
+  //     base_cost is $352.52   (but internally it is $352.511, say, which rounds up to 352.52)
+  //     total cost for 2 is $705.03 (because 2*352.511 = 705.022 which roounds up to 705.03).
+  const cost_per_unit = round2up(base_cost);
+
+  const cost_total = round2up(quantity * cost_per_unit);
 
   return {
     cost_per_unit,
     cost: cost_total,
-    cost_per_project_per_month,
+    cost_per_project_per_month: round2up(cost_per_project_per_month),
 
     // The following are the cost for a subscription for ONE unit for
     // the given period of time.
-    cost_sub_month,
-    cost_sub_year,
+    cost_sub_month: round2up(cost_sub_month),
+    cost_sub_year: round2up(cost_sub_year),
     quantity,
     period: subscription == "no" ? "range" : subscription,
   };
