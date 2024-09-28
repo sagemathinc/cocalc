@@ -313,7 +313,7 @@ importers:
         version: 1.37.2(crypto@1.0.1)
       '@microlink/react-json-view':
         specifier: ^1.23.0
-        version: 1.23.2(@types/react@18.3.8)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 1.23.2(@types/react@18.3.10)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@react-hook/mouse-position':
         specifier: ^4.1.3
         version: 4.1.3(react@18.3.1)
@@ -535,7 +535,7 @@ importers:
         version: 7.1.1
       plotly.js:
         specifier: ^2.29.1
-        version: 2.35.2(mapbox-gl@3.6.0)(webpack@5.95.0)
+        version: 2.35.2(mapbox-gl@3.7.0)(webpack@5.95.0)
       project-name-generator:
         specifier: ^2.1.6
         version: 2.1.9
@@ -549,7 +549,7 @@ importers:
         specifier: ^6.9.0
         version: 6.10.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-bootstrap:
         specifier: ^0.31.5
@@ -564,7 +564,7 @@ importers:
         specifier: ^3.2.2
         version: 3.3.0(react@18.3.1)
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       react-draggable:
         specifier: ^4.4.5
@@ -586,10 +586,10 @@ importers:
         version: 6.7.0(react@18.3.1)(typescript@5.6.2)
       react-plotly.js:
         specifier: ^2.6.0
-        version: 2.6.0(plotly.js@2.35.2(mapbox-gl@3.6.0)(webpack@5.95.0))(react@18.3.1)
+        version: 2.6.0(plotly.js@2.35.2(mapbox-gl@3.7.0)(webpack@5.95.0))(react@18.3.1)
       react-redux:
         specifier: ^8.0.5
-        version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1)
+        version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1)
       react-timeago:
         specifier: ^7.2.0
         version: 7.2.0(react@18.3.1)
@@ -697,13 +697,13 @@ importers:
         specifier: ^5.1.3
         version: 5.1.3
       '@types/react':
-        specifier: ^18.0.28
-        version: 18.3.8
+        specifier: ^18.3.10
+        version: 18.3.10
       '@types/react-bootstrap':
         specifier: ^0.32.21
         version: 0.32.37
       '@types/react-dom':
-        specifier: ^18.0.11
+        specifier: ^18.3.0
         version: 18.3.0
       '@types/react-image-crop':
         specifier: ^8.1.3
@@ -772,8 +772,8 @@ importers:
         specifier: ^7.3.6
         version: 7.3.9
       '@types/react':
-        specifier: ^18.0.28
-        version: 18.3.8
+        specifier: ^18.3.10
+        version: 18.3.10
       '@types/uuid':
         specifier: ^8.3.1
         version: 8.3.4
@@ -848,7 +848,7 @@ importers:
         version: 2.1.2
       next:
         specifier: 14.2.13
-        version: 14.2.13(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.79.3)
+        version: 14.2.13(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.79.4)
       nyc:
         specifier: ^15.1.0
         version: 15.1.0
@@ -871,10 +871,10 @@ importers:
         specifier: ^0.3.2
         version: 0.3.2
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       read:
         specifier: ^1.0.7
@@ -929,7 +929,7 @@ importers:
         specifier: ^1.0.9
         version: 1.0.16
       '@types/react-dom':
-        specifier: ^18.0.11
+        specifier: ^18.3.0
         version: 18.3.0
       coffee-coverage:
         specifier: ^3.0.1
@@ -1071,10 +1071,10 @@ importers:
         specifier: ^2.13.4
         version: 2.13.9(encoding@0.1.13)
       '@types/react':
-        specifier: ^18.0.28
-        version: 18.3.8
+        specifier: ^18.3.10
+        version: 18.3.10
       '@types/react-dom':
-        specifier: ^18.0.11
+        specifier: ^18.3.0
         version: 18.3.0
       '@vscode/vscode-languagedetection':
         specifier: ^1.0.22
@@ -1117,7 +1117,7 @@ importers:
         version: 2.1.2
       next:
         specifier: 14.2.13
-        version: 14.2.13(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.79.3)
+        version: 14.2.13(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.79.4)
       next-remove-imports:
         specifier: ^1.0.11
         version: 1.0.12(webpack@5.95.0)
@@ -1131,10 +1131,10 @@ importers:
         specifier: ^8.7.1
         version: 8.13.0
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       react-google-recaptcha:
         specifier: ^2.1.0
@@ -1633,10 +1633,10 @@ importers:
         specifier: ^18.16.14
         version: 18.19.50
       '@types/react':
-        specifier: ^18.0.28
-        version: 18.3.8
+        specifier: ^18.3.10
+        version: 18.3.10
       '@types/react-dom':
-        specifier: ^18.0.11
+        specifier: ^18.3.0
         version: 18.3.0
       '@typescript-eslint/eslint-plugin':
         specifier: ^6.21.0
@@ -1750,10 +1750,10 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2(webpack@5.94.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       react:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1
       react-dom:
-        specifier: ^18.2.0
+        specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       react-helmet:
         specifier: ^6.1.0
@@ -4032,8 +4032,8 @@ packages:
   '@types/prismjs@1.26.4':
     resolution: {integrity: sha512-rlAnzkW2sZOjbqZ743IHUhFcvzaGbqijwOu8QZnZCjfQzBqFE3s4lOTJEsxikImav9uzz/42I+O7YUs1mWgMlg==}
 
-  '@types/prop-types@15.7.5':
-    resolution: {integrity: sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==}
+  '@types/prop-types@15.7.13':
+    resolution: {integrity: sha512-hCZTSvwbzWGvhqxp/RqVqwU999pBf2vp7hzIjiYOsl8wqOmUxkQ6ddw1cV3l8811+kdUFus/q4d1Y3E3SyEifA==}
 
   '@types/qs@6.9.7':
     resolution: {integrity: sha512-FGa1F62FT09qcrueBA6qYTrJPVDzah9a+493+o2PCXsesWHIn27G98TsSMs3WPNbZIEj4+VJf6saSFpvD+3Zsw==}
@@ -4053,8 +4053,8 @@ packages:
   '@types/react-redux@7.1.34':
     resolution: {integrity: sha512-GdFaVjEbYv4Fthm2ZLvj1VSCedV7TqE5y1kNwnjSdBOTXuRSgowux6J8TAct15T3CKBr63UMk+2CO7ilRhyrAQ==}
 
-  '@types/react@18.3.8':
-    resolution: {integrity: sha512-syBUrW3/XpnW4WJ41Pft+I+aPoDVbrBVQGEnbD7NijDGlVC+8gV/XKRY+7vMDlfPpbwYt0l1vd/Sj8bJGMbs9Q==}
+  '@types/react@18.3.10':
+    resolution: {integrity: sha512-02sAAlBnP39JgXwkAq3PeU9DVaaGpZyF3MGcC0MKgQVkZor5IiiDAipVaxQHtDJAmO4GIy/rVBy/LzVj76Cyqg==}
 
   '@types/request@2.48.12':
     resolution: {integrity: sha512-G3sY+NpsA9jnwm0ixhAFQSJ3Q9JkpLZpJbI3GMv0mIAT0y3mRabYeINzal5WOChIiaTEGQYlHOKgkaM9EisWHw==}
@@ -4920,6 +4920,9 @@ packages:
 
   caniuse-lite@1.0.30001663:
     resolution: {integrity: sha512-o9C3X27GLKbLeTYZ6HBOLU1tsAcBZsLis28wrVzddShCS16RujjHp9GDHKZqrB3meE0YjhawvMFsGb/igqiPzA==}
+
+  caniuse-lite@1.0.30001664:
+    resolution: {integrity: sha512-AmE7k4dXiNKQipgn7a2xg558IRqPN3jMQY/rOsbxDhrd0tyChwbITBfiwtnqz8bi2M5mIWbxAYBvk7W7QBUS2g==}
 
   canvas-fit@1.5.0:
     resolution: {integrity: sha512-onIcjRpz69/Hx5bB5HGbYKUF2uC6QT6Gp+pfpGm3A7mPfcluSLV5v4Zu+oflDUwLdUw0rLIBhUbi0v8hM4FJQQ==}
@@ -5984,8 +5987,8 @@ packages:
   electron-to-chromium@1.5.27:
     resolution: {integrity: sha512-o37j1vZqCoEgBuWWXLHQgTN/KDKe7zwpiY5CPeq2RvUqOyJw9xnrULzZAEVQ5p4h+zjMk7hgtOoPdnLxr7m/jw==}
 
-  electron-to-chromium@1.5.28:
-    resolution: {integrity: sha512-VufdJl+rzaKZoYVUijN13QcXVF5dWPZANeFTLNy+OSpHdDL5ynXTF35+60RSBbaQYB1ae723lQXHCrf4pyLsMw==}
+  electron-to-chromium@1.5.29:
+    resolution: {integrity: sha512-PF8n2AlIhCKXQ+gTpiJi0VhcHDb69kYX4MtCiivctc2QD3XuNZ/XIOlbGzt7WAjjEev0TtaH6Cu3arZExm5DOw==}
 
   element-size@1.1.1:
     resolution: {integrity: sha512-eaN+GMOq/Q+BIWy0ybsgpcYImjGIdNLyjLFJU4XsLHXYQao5jCNb36GyN6C2qwmDDYSfIBmKpPpr4VnBdLCsPQ==}
@@ -6417,9 +6420,6 @@ packages:
 
   fflate@0.7.3:
     resolution: {integrity: sha512-0Zz1jOzJWERhyhsimS54VTqOteCNwRtIlh8isdL0AXLo0g7xNTfTL7oWrkmCnPhZGocKIkWHBistBrrpoNH3aw==}
-
-  fflate@0.8.2:
-    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
 
   figures@3.2.0:
     resolution: {integrity: sha512-yaduQFRKLXYOGgEn6AZau90j3ggSOyiqXU0F9JZfeXYhNa+Jk4X+s45A2zg5jns87GAFa34BBm2kXw4XpNcbdg==}
@@ -8293,8 +8293,8 @@ packages:
     resolution: {integrity: sha512-hdN1wVrZbb29eBGiGjJbeP8JbKjq1urkHJ/LIP/NY48MZ1QVXUsQBV1G1zvYFHn1XE06cwjBsOI2K3Ulnj1YXQ==}
     engines: {node: '>=8'}
 
-  mapbox-gl@3.6.0:
-    resolution: {integrity: sha512-xjYHHIJDh6haYcKY+/9jh1eywwYfIOWCgT5Fowj4JriZexx/oOtg2S7BQDMZtpFyg9IN4VLCysmUWxY0pFNRWA==}
+  mapbox-gl@3.7.0:
+    resolution: {integrity: sha512-dCbVyH1uGobwv6f4QKRv2Z2wuVT/RmspsudK3sTxGRFxZi6Pd2P9axdbVyZpmGddCAREy44pHhvzvO0qgpdKAg==}
 
   maplibre-gl@4.7.1:
     resolution: {integrity: sha512-lgL7XpIwsgICiL82ITplfS7IGwrB1OJIw/pCvprDp2dhmSSEBgmPzYRvwYYYvJGJD7fxUv1Tvpih4nZ6VrLuaA==}
@@ -10331,6 +10331,11 @@ packages:
     engines: {node: '>=14.0.0'}
     hasBin: true
 
+  sass@1.79.4:
+    resolution: {integrity: sha512-K0QDSNPXgyqO4GZq2HO5Q70TLxTH6cIT59RdoCHMivrC8rqzaTw5ab9prjz9KUN1El4FLXrBXJhik61JR4HcGg==}
+    engines: {node: '>=14.0.0'}
+    hasBin: true
+
   sax@1.2.4:
     resolution: {integrity: sha512-NqVDv9TpANUjFm0N8uM5GxL36UgKi9/atZw+x7YFnQ8ckwFGKrl4xX4yWtrey3UJm5nP1kUbnYgLopqWNSRhWw==}
 
@@ -11069,9 +11074,6 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
-  tweakpane@4.0.4:
-    resolution: {integrity: sha512-RkWD54zDlEbnN01wQPk0ANHGbdCvlJx/E8A1QxhTfCbX+ROWos1Ws2MnhOm39aUGMOh+36TjUwpDmLfmwTr1Fg==}
-
   type-check@0.4.0:
     resolution: {integrity: sha512-XleUoc9uwGXqjWwXaUTZAmzMcFZ5858QA2vvx1Ur5xIcixXIP+8LnFDgRplU30us6teqdlskFfu+ae4K79Ooew==}
     engines: {node: '>= 0.8.0'}
@@ -11267,6 +11269,12 @@ packages:
 
   update-browserslist-db@1.1.0:
     resolution: {integrity: sha512-EdRAaAyk2cUE1wOf2DkEhzxqOQvFOoRJFNS6NeyJ01Gp2beMRpBAINjM2iDXE3KCuKhwnvHIQCJm6ThL2Z+HzQ==}
+    hasBin: true
+    peerDependencies:
+      browserslist: '>= 4.21.0'
+
+  update-browserslist-db@1.1.1:
+    resolution: {integrity: sha512-R8UzCaa9Az+38REPiJ1tXlImTJXlVfgHZsglwBD/k6nj76ctsH1E3q4doGrukiLQd3sGQYu56r5+lo5r94l29A==}
     hasBin: true
     peerDependencies:
       browserslist: '>= 4.21.0'
@@ -13088,9 +13096,9 @@ snapshots:
 
   '@mapbox/jsonlint-lines-primitives@2.0.2': {}
 
-  '@mapbox/mapbox-gl-supported@1.5.0(mapbox-gl@3.6.0)':
+  '@mapbox/mapbox-gl-supported@1.5.0(mapbox-gl@3.7.0)':
     dependencies:
-      mapbox-gl: 3.6.0
+      mapbox-gl: 3.7.0
 
   '@mapbox/mapbox-gl-supported@3.0.0': {}
 
@@ -13137,14 +13145,14 @@ snapshots:
       sort-object: 3.0.3
       tinyqueue: 3.0.0
 
-  '@microlink/react-json-view@1.23.2(@types/react@18.3.8)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@microlink/react-json-view@1.23.2(@types/react@18.3.10)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       flux: 4.0.3(encoding@0.1.13)(react@18.3.1)
       react: 18.3.1
       react-base16-styling: 0.9.1
       react-dom: 18.3.1(react@18.3.1)
       react-lifecycles-compat: 3.0.4
-      react-textarea-autosize: 8.3.4(@types/react@18.3.8)(react@18.3.1)
+      react-textarea-autosize: 8.3.4(@types/react@18.3.10)(react@18.3.1)
     transitivePeerDependencies:
       - '@types/react'
       - encoding
@@ -13376,12 +13384,12 @@ snapshots:
 
   '@plotly/d3@3.8.2': {}
 
-  '@plotly/mapbox-gl@1.13.4(mapbox-gl@3.6.0)':
+  '@plotly/mapbox-gl@1.13.4(mapbox-gl@3.7.0)':
     dependencies:
       '@mapbox/geojson-rewind': 0.5.2
       '@mapbox/geojson-types': 1.0.2
       '@mapbox/jsonlint-lines-primitives': 2.0.2
-      '@mapbox/mapbox-gl-supported': 1.5.0(mapbox-gl@3.6.0)
+      '@mapbox/mapbox-gl-supported': 1.5.0(mapbox-gl@3.7.0)
       '@mapbox/point-geometry': 0.1.0
       '@mapbox/tiny-sdf': 1.2.5
       '@mapbox/unitbezier': 0.0.0
@@ -13848,7 +13856,7 @@ snapshots:
 
   '@types/hoist-non-react-statics@3.3.1':
     dependencies:
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
       hoist-non-react-statics: 3.3.2
 
   '@types/html-minifier-terser@6.1.0': {}
@@ -14005,7 +14013,7 @@ snapshots:
 
   '@types/prismjs@1.26.4': {}
 
-  '@types/prop-types@15.7.5': {}
+  '@types/prop-types@15.7.13': {}
 
   '@types/qs@6.9.7': {}
 
@@ -14013,26 +14021,26 @@ snapshots:
 
   '@types/react-bootstrap@0.32.37':
     dependencies:
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
 
   '@types/react-dom@18.3.0':
     dependencies:
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
 
   '@types/react-image-crop@8.1.6':
     dependencies:
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
 
   '@types/react-redux@7.1.34':
     dependencies:
       '@types/hoist-non-react-statics': 3.3.1
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
       hoist-non-react-statics: 3.3.2
       redux: 4.2.1
 
-  '@types/react@18.3.8':
+  '@types/react@18.3.10':
     dependencies:
-      '@types/prop-types': 15.7.5
+      '@types/prop-types': 15.7.13
       csstype: 3.1.3
 
   '@types/request@2.48.12':
@@ -14954,10 +14962,10 @@ snapshots:
 
   browserslist@4.24.0:
     dependencies:
-      caniuse-lite: 1.0.30001663
-      electron-to-chromium: 1.5.28
+      caniuse-lite: 1.0.30001664
+      electron-to-chromium: 1.5.29
       node-releases: 2.0.18
-      update-browserslist-db: 1.1.0(browserslist@4.24.0)
+      update-browserslist-db: 1.1.1(browserslist@4.24.0)
 
   bs-logger@0.2.6:
     dependencies:
@@ -15044,6 +15052,8 @@ snapshots:
   camelcase@6.3.0: {}
 
   caniuse-lite@1.0.30001663: {}
+
+  caniuse-lite@1.0.30001664: {}
 
   canvas-fit@1.5.0:
     dependencies:
@@ -16222,7 +16232,7 @@ snapshots:
 
   electron-to-chromium@1.5.27: {}
 
-  electron-to-chromium@1.5.28: {}
+  electron-to-chromium@1.5.29: {}
 
   element-size@1.1.1: {}
 
@@ -16817,8 +16827,6 @@ snapshots:
       - encoding
 
   fflate@0.7.3: {}
-
-  fflate@0.8.2: {}
 
   figures@3.2.0:
     dependencies:
@@ -18992,7 +19000,7 @@ snapshots:
 
   map-obj@4.3.0: {}
 
-  mapbox-gl@3.6.0:
+  mapbox-gl@3.7.0:
     dependencies:
       '@mapbox/jsonlint-lines-primitives': 2.0.2
       '@mapbox/mapbox-gl-supported': 3.0.0
@@ -19002,11 +19010,14 @@ snapshots:
       '@mapbox/vector-tile': 1.3.1
       '@mapbox/whoots-js': 3.1.0
       '@types/geojson': 7946.0.14
+      '@types/geojson-vt': 3.2.5
+      '@types/mapbox__point-geometry': 0.1.4
       '@types/mapbox__vector-tile': 1.3.4
+      '@types/pbf': 3.0.5
+      '@types/supercluster': 7.1.3
       cheap-ruler: 4.0.0
       csscolorparser: 1.0.3
       earcut: 3.0.0
-      fflate: 0.8.2
       geojson-vt: 4.0.2
       gl-matrix: 3.4.3
       grid-index: 1.1.0
@@ -19015,11 +19026,9 @@ snapshots:
       pbf: 3.3.0
       potpack: 2.0.0
       quickselect: 3.0.0
-      rw: 1.3.3
       serialize-to-js: 3.1.2
       supercluster: 8.0.1
       tinyqueue: 3.0.0
-      tweakpane: 4.0.4
       vt-pbf: 3.1.3
 
   maplibre-gl@4.7.1:
@@ -19571,7 +19580,7 @@ snapshots:
 
   next-tick@1.1.0: {}
 
-  next@14.2.13(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.79.3):
+  next@14.2.13(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.79.4):
     dependencies:
       '@next/env': 14.2.13
       '@swc/helpers': 0.5.5
@@ -19593,7 +19602,7 @@ snapshots:
       '@next/swc-win32-ia32-msvc': 14.2.13
       '@next/swc-win32-x64-msvc': 14.2.13
       '@opentelemetry/api': 1.9.0
-      sass: 1.79.3
+      sass: 1.79.4
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
@@ -20297,12 +20306,12 @@ snapshots:
 
   pkginfo@0.4.1: {}
 
-  plotly.js@2.35.2(mapbox-gl@3.6.0)(webpack@5.95.0):
+  plotly.js@2.35.2(mapbox-gl@3.7.0)(webpack@5.95.0):
     dependencies:
       '@plotly/d3': 3.8.2
       '@plotly/d3-sankey': 0.7.2
       '@plotly/d3-sankey-circular': 0.33.1
-      '@plotly/mapbox-gl': 1.13.4(mapbox-gl@3.6.0)
+      '@plotly/mapbox-gl': 1.13.4(mapbox-gl@3.7.0)
       '@turf/area': 7.1.0
       '@turf/bbox': 7.1.0
       '@turf/centroid': 7.1.0
@@ -21164,7 +21173,7 @@ snapshots:
       '@formatjs/intl-displaynames': 6.6.8
       '@formatjs/intl-listformat': 7.5.7
       '@types/hoist-non-react-statics': 3.3.1
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
       hoist-non-react-statics: 3.3.2
       intl-messageformat: 10.5.14
       react: 18.3.1
@@ -21190,15 +21199,15 @@ snapshots:
       react-dom: 18.3.1(react@18.3.1)
       warning: 3.0.0
 
-  react-plotly.js@2.6.0(plotly.js@2.35.2(mapbox-gl@3.6.0)(webpack@5.95.0))(react@18.3.1):
+  react-plotly.js@2.6.0(plotly.js@2.35.2(mapbox-gl@3.7.0)(webpack@5.95.0))(react@18.3.1):
     dependencies:
-      plotly.js: 2.35.2(mapbox-gl@3.6.0)(webpack@5.95.0)
+      plotly.js: 2.35.2(mapbox-gl@3.7.0)(webpack@5.95.0)
       prop-types: 15.8.1
       react: 18.3.1
 
   react-property@2.0.0: {}
 
-  react-redux@8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.8)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1):
+  react-redux@8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1):
     dependencies:
       '@babel/runtime': 7.25.6
       '@types/hoist-non-react-statics': 3.3.1
@@ -21208,7 +21217,7 @@ snapshots:
       react-is: 18.3.1
       use-sync-external-store: 1.2.0(react@18.3.1)
     optionalDependencies:
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
       '@types/react-dom': 18.3.0
       react-dom: 18.3.1(react@18.3.1)
       redux: 5.0.1
@@ -21232,12 +21241,12 @@ snapshots:
       react-shallow-renderer: 16.15.0(react@18.3.1)
       scheduler: 0.23.2
 
-  react-textarea-autosize@8.3.4(@types/react@18.3.8)(react@18.3.1):
+  react-textarea-autosize@8.3.4(@types/react@18.3.10)(react@18.3.1):
     dependencies:
       '@babel/runtime': 7.25.6
       react: 18.3.1
       use-composed-ref: 1.3.0(react@18.3.1)
-      use-latest: 1.2.1(@types/react@18.3.8)(react@18.3.1)
+      use-latest: 1.2.1(@types/react@18.3.10)(react@18.3.1)
     transitivePeerDependencies:
       - '@types/react'
 
@@ -21606,6 +21615,13 @@ snapshots:
       chokidar: 4.0.1
       immutable: 4.3.7
       source-map-js: 1.0.2
+
+  sass@1.79.4:
+    dependencies:
+      chokidar: 4.0.1
+      immutable: 4.3.7
+      source-map-js: 1.2.1
+    optional: true
 
   sax@1.2.4:
     optional: true
@@ -22433,8 +22449,6 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  tweakpane@4.0.4: {}
-
   type-check@0.4.0:
     dependencies:
       prelude-ls: 1.2.1
@@ -22636,7 +22650,7 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.0
 
-  update-browserslist-db@1.1.0(browserslist@4.24.0):
+  update-browserslist-db@1.1.1(browserslist@4.24.0):
     dependencies:
       browserslist: 4.24.0
       escalade: 3.2.0
@@ -22686,18 +22700,18 @@ snapshots:
       dequal: 2.0.3
       react: 18.3.1
 
-  use-isomorphic-layout-effect@1.1.2(@types/react@18.3.8)(react@18.3.1):
+  use-isomorphic-layout-effect@1.1.2(@types/react@18.3.10)(react@18.3.1):
     dependencies:
       react: 18.3.1
     optionalDependencies:
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
 
-  use-latest@1.2.1(@types/react@18.3.8)(react@18.3.1):
+  use-latest@1.2.1(@types/react@18.3.10)(react@18.3.1):
     dependencies:
       react: 18.3.1
-      use-isomorphic-layout-effect: 1.1.2(@types/react@18.3.8)(react@18.3.1)
+      use-isomorphic-layout-effect: 1.1.2(@types/react@18.3.10)(react@18.3.1)
     optionalDependencies:
-      '@types/react': 18.3.8
+      '@types/react': 18.3.10
 
   use-resize-observer@9.1.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
