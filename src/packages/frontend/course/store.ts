@@ -82,6 +82,8 @@ export type LastCopyInfo = {
   start?: number;
 };
 
+export type AssignmentLocation = "individual" | "exam" | "group";
+
 export type AssignmentRecord = TypedMap<{
   assignment_id: string;
   deleted: boolean;
@@ -91,6 +93,12 @@ export type AssignmentRecord = TypedMap<{
     enabled: boolean;
     due_date: number;
     map: { [student_id: string]: string[] }; // map from student_id to *who* will grade that student
+  };
+  location?: AssignmentLocation;
+  groups?: {
+    // Map student to the group they are in for this group assignment.
+    // This is only used when AssignmentLocation is 'group'.
+    [student_id: string]: string;
   };
   note: string;
 

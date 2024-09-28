@@ -47,6 +47,7 @@ import {
   CourseStore,
   get_nbgrader_score,
   NBgraderRunInfo,
+  AssignmentLocation,
 } from "../store";
 import {
   AssignmentCopyType,
@@ -2296,5 +2297,9 @@ ${details}
     } finally {
       set_activity({ id });
     }
+  };
+
+  setLocation = (assignment_id: string, location: AssignmentLocation) => {
+    this.course_actions.set({ table: "assignments", assignment_id, location });
   };
 }
