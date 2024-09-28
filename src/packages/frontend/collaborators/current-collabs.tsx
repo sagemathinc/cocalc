@@ -6,7 +6,6 @@
 import { Button, Card, Popconfirm } from "antd";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { CSS, redux, useRedux } from "@cocalc/frontend/app-framework";
 import {
   Gap,

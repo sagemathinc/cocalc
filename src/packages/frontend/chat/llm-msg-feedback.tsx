@@ -3,11 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Space } from "antd";
-
-import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { Button, Space } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
-import { HelpIcon, Text } from "@cocalc/frontend/components";
+import { HelpIcon, Icon, Text } from "@cocalc/frontend/components";
 import { useProjectContext } from "../project/context";
 import { ChatActions } from "./actions";
 import { ChatMessageTyped, Feedback } from "./types";
@@ -27,7 +25,7 @@ export function FeedbackLLM({ actions, message }: FeedackLLMProps) {
   const val = message.getIn(["feedback", account_id]);
 
   function feedback(what: Feedback) {
-    return `Give a ${what} feedback about this answer written by the language model.`;
+    return `Give ${what} feedback about this answer written by the language model.`;
   }
 
   const isNegative = val === "negative";
@@ -61,30 +59,30 @@ export function FeedbackLLM({ actions, message }: FeedackLLMProps) {
 
   return (
     <Space size="small" wrap>
-      <Space.Compact>
+      <Space>
         <Button
-          bsSize="xsmall"
-          bsStyle="ghost"
-          active={isPositive}
+          style={{ color: "#555" }}
+          size="small"
+          type={isPositive ? "dashed" : "text"}
           onClick={() =>
             actions?.feedback(message, isPositive ? null : "positive")
           }
           title={feedback("positive")}
         >
-          👍
+          <Icon name="thumbs-up" />
         </Button>
         <Button
-          bsSize="xsmall"
-          bsStyle="ghost"
-          active={isNegative}
+          style={{ color: "#555" }}
+          size="small"
+          type={isNegative ? "dashed" : "text"}
           onClick={() =>
             actions?.feedback(message, isNegative ? null : "negative")
           }
           title={feedback("negative")}
         >
-          👎
+          <Icon name="thumbs-down" />
         </Button>
-      </Space.Compact>
+      </Space>
       {renderUnhappy()}
     </Space>
   );
