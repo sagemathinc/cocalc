@@ -63,6 +63,9 @@ export interface SyncDBRecordAssignment {
   description?: string;
   title?: string;
   location?: AssignmentLocation;
+  exam_projects?: { [student_id: string]: string };
+  group_projects?: { [group: string]: string };
+
   groups?: { [student_id: string]: string };
   grades?: { [student_id: string]: string };
   comments?: { [student_id: string]: string };

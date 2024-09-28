@@ -514,8 +514,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
   );
 });
 
-CodemirrorEditor.defaultProps = { value: "" };
-
 // Needed e.g., for vim ":w" support; this is global,
 // so be careful.
 if ((CodeMirror as any).commands.save == null) {

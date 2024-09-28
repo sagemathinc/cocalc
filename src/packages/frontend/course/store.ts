@@ -94,12 +94,16 @@ export type AssignmentRecord = TypedMap<{
     due_date: number;
     map: { [student_id: string]: string[] }; // map from student_id to *who* will grade that student
   };
+
   location?: AssignmentLocation;
   groups?: {
     // Map student to the group they are in for this group assignment.
     // This is only used when AssignmentLocation is 'group'.
     [student_id: string]: string;
   };
+  group_projects?: { [group: string]: string };
+  exam_projects?: { [student_id: string]: string };
+
   note: string;
 
   last_assignment?: { [student_id: string]: LastCopyInfo };

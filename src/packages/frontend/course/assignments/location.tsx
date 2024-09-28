@@ -155,7 +155,7 @@ function EditLocation({ assignment, actions, setOpen }) {
   );
 }
 
-function getLocation(assignment): AssignmentLocation {
+export function getLocation(assignment): AssignmentLocation {
   const location = assignment.get("location") ?? "individual";
   if (location == "individual" || location == "exam" || location == "group") {
     return location;
