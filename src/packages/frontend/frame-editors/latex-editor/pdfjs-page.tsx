@@ -12,7 +12,7 @@ import type {
   PDFDocumentProxy,
   PDFPageProxy,
 } from "pdfjs-dist/webpack.mjs";
-
+import { useRef } from "react";
 import { SyncHighlight } from "./pdfjs-annotation";
 import CanvasPage from "./pdfjs-canvas-page";
 
@@ -38,6 +38,8 @@ export default function Page({
   page,
   syncHighlight,
 }: PageProps) {
+  const divRef = useRef<HTMLDivElement | null>(null);
+
   async function clickAnnotation(
     annotation0: PDFAnnotationData,
   ): Promise<void> {
@@ -78,6 +80,7 @@ export default function Page({
       style={{ height: `${PAGE_GAP + viewport.height}px`, background: BG_COL }}
     >
       <div
+        ref={divRef}
         style={{
           height: `${viewport.height}px`,
           width: `${viewport.width}px`,
@@ -85,12 +88,19 @@ export default function Page({
           margin: "auto",
         }}
         onDoubleClick={(event) => {
-          if (!actions.synctex_pdf_to_tex) {
+          const elt = divRef.current;
+          if (!actions.synctex_pdf_to_tex || !elt) {
             // no support for synctex for whatever is using this.
             return;
           }
-          const x: number = event.nativeEvent.offsetX / scale;
-          const y: number = event.nativeEvent.offsetY / scale;
+          // we cannot directly use event.nativeEvent.offsetX since user may
+          // have double clicked on a span in the text layer, in which case
+          // offset would be relative to that span.
+          const divRect = elt.getBoundingClientRect();
+          const offsetX = event.nativeEvent.clientX - divRect.left;
+          const offsetY = event.nativeEvent.clientY - divRect.top;
+          const x: number = offsetX / scale;
+          const y: number = offsetY / scale;
           actions.synctex_pdf_to_tex(n, x, y);
         }}
       >
