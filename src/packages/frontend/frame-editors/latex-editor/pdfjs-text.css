@@ -1,0 +1,23 @@
+/* See https://github.com/mozilla/pdf.js/blob/a7e1bf64c4c7a42c7577ce9490054faa1c4eda99/test/text_layer_test.css */
+
+.cocalc-pdfjs-text-layer {
+  position: absolute;
+  inset: 0;
+  line-height: 1;
+  opacity: 1;
+
+  :is(span, br) {
+    color: black;
+    position: absolute;
+    white-space: pre;
+    transform-origin: 0% 0%;
+    border: solid 1px rgb(255 0 0 / 0.5);
+    background-color: rgb(255 255 32 / 0.1);
+    box-sizing: border-box;
+  }
+
+  .markedContent {
+    border: none;
+    background-color: transparent;
+  }
+}

@@ -10,8 +10,8 @@ Render a single PDF page using canvas.
 import type { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack.mjs";
 import { useCallback, useEffect, useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
-
 import AnnotationLayer, { SyncHighlight } from "./pdfjs-annotation";
+import TextLayer from "./pdfjs-text";
 
 interface Props {
   page: PDFPageProxy;
@@ -61,7 +61,7 @@ export default function CanvasPage({
     const ctx = canvas.getContext("2d");
     if (ctx == null) {
       console.error(
-        "pdf.js -- unable to get a 2d canvas, so not rendering page"
+        "pdf.js -- unable to get a 2d canvas, so not rendering page",
       );
       return;
     }
@@ -110,6 +110,11 @@ export default function CanvasPage({
         scale={scale}
         clickAnnotation={clickAnnotation}
         syncHighlight={syncHighlight}
+      />
+      <TextLayer
+        page={page}
+        scale={scale}
+        viewport={viewport}
       />
       <div ref={divRef} />
     </div>

@@ -88,67 +88,6 @@ export default function AnnotationLayer({
     }
   }
 
-  function render_annotations() {
-    if (annotations == null) return <div />;
-    const v: JSX.Element[] = [];
-    for (const annotation0 of annotations) {
-      // NOTE: We have to do this ugly cast to any because the @types for pdfjs are
-      // incomplete/wrong for annotations.
-      const annotation: any = annotation0 as any;
-      if (annotation.subtype != "Link") {
-        // We only care about link annotations *right now*, for the purposes of the latex editor.
-        console.log("Annotation not implemented", annotation);
-        continue;
-      }
-      const [x1, y1, x2, y2] = Util.normalizeRect(annotation.rect);
-      const page_height = page.view[3];
-      const left = x1 - 1,
-        top = page_height - y2 - 1,
-        width = x2 - x1 + 2,
-        height = y2 - y1 + 1;
-
-      let border = "";
-      if (annotation.borderStyle.width) {
-        border = `0.5px solid rgb(${annotation.color[0]}, ${annotation.color[1]}, ${annotation.color[2]})`;
-      }
-
-      // Note: this "annotation" in the onClick below is the right one because we use "let"
-      // *inside* the for loop above -- I'm not making the typical closure/scopying mistake.
-      const elt = (
-        <div
-          onClick={() => clickAnnotation(annotation)}
-          key={annotation.id}
-          style={{
-            position: "absolute",
-            left: left * scale,
-            top: top * scale,
-            width: width * scale,
-            height: height * scale,
-            border: border,
-            cursor: "pointer",
-            zIndex: 1, // otherwise, the yellow sync highlight is above url links
-          }}
-        />
-      );
-      v.push(elt);
-    }
-
-    // handle highlight which is used for synctex.
-    if (sync_highlight !== undefined) {
-      v.push(render_sync_highlight(scale, page.view[2], sync_highlight.y));
-    }
-
-    return (
-      <div
-        style={{
-          position: "absolute",
-        }}
-      >
-        {v}
-      </div>
-    );
-  }
-
   function render_sync_highlight(
     scale: number,
     width: number,
@@ -172,5 +111,56 @@ export default function AnnotationLayer({
     );
   }
 
-  return render_annotations();
+  if (annotations == null) {
+    return <div />;
+  }
+  const v: JSX.Element[] = [];
+  for (const annotation0 of annotations) {
+    // NOTE: We have to do this ugly cast to any because the @types for pdfjs are
+    // incomplete/wrong for annotations.
+    const annotation: any = annotation0 as any;
+    if (annotation.subtype != "Link") {
+      // We only care about link annotations *right now*, for the purposes of the latex editor.
+      console.log("Annotation not implemented", annotation);
+      continue;
+    }
+    const [x1, y1, x2, y2] = Util.normalizeRect(annotation.rect);
+    const page_height = page.view[3];
+    const left = x1 - 1,
+      top = page_height - y2 - 1,
+      width = x2 - x1 + 2,
+      height = y2 - y1 + 1;
+
+    let border = "";
+    if (annotation.borderStyle.width) {
+      border = `0.5px solid rgb(${annotation.color[0]}, ${annotation.color[1]}, ${annotation.color[2]})`;
+    }
+
+    // Note: this "annotation" in the onClick below is the right one because we use "let"
+    // *inside* the for loop above -- I'm not making the typical closure/scopying mistake.
+    const elt = (
+      <div
+        onClick={() => clickAnnotation(annotation)}
+        key={annotation.id}
+        style={{
+          position: "absolute",
+          left: left * scale,
+          top: top * scale,
+          width: width * scale,
+          height: height * scale,
+          border: border,
+          cursor: "pointer",
+          zIndex: 1, // otherwise, the yellow sync highlight is above url links
+        }}
+      />
+    );
+    v.push(elt);
+  }
+
+  // handle highlight which is used for synctex.
+  if (sync_highlight !== undefined) {
+    v.push(render_sync_highlight(scale, page.view[2], sync_highlight.y));
+  }
+
+  return <div style={{ position: "absolute" }}>{v}</div>;
 }
