@@ -111,12 +111,8 @@ export default function CanvasPage({
         clickAnnotation={clickAnnotation}
         syncHighlight={syncHighlight}
       />
-      <TextLayer
-        page={page}
-        scale={scale}
-        viewport={viewport}
-      />
       <div ref={divRef} />
+      <TextLayer page={page} scale={scale} viewport={viewport} />
     </div>
   );
 }
