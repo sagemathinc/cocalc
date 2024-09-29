@@ -24,15 +24,23 @@ const explicitly_started: { [project_id: string]: number } = {};
 
 export function is_running_or_starting(project_id: string): boolean {
   const t = explicitly_started[project_id];
-  if (t != null && Date.now() - t <= 15000) return true;
+  if (t != null && Date.now() - t <= 15000) {
+    return true;
+  }
 
   const project_map = redux.getStore("projects")?.get("project_map");
-  if (!project_map) return false;
+  if (!project_map) {
+    return false;
+  }
   const state = project_map.getIn([project_id, "state", "state"]);
-  if (state == null || state == "running" || state == "starting") return true;
+  if (state == null || state == "running" || state == "starting") {
+    return true;
+  }
 
   const x = project_map?.get(project_id)?.get("action_request");
-  if (x == null) return false;
+  if (x == null) {
+    return false;
+  }
   const action = x.get("action");
   const finished = x.get("finished");
   const time = new Date(x.get("time"));
@@ -46,13 +54,22 @@ export async function ensure_project_running(
   project_id: string,
   what: string,
 ): Promise<boolean> {
+  const intl = await getIntl();
+  const project_actions = redux.getProjectActions(project_id);
+  await project_actions.wait_until_no_modals();
   if (is_running_or_starting(project_id)) {
     return true;
   }
-  const project_actions = redux.getProjectActions(project_id);
-  await project_actions.wait_until_no_modals();
 
   let result: string = "";
+
+  const project_title = redux.getStore("projects").get_title(project_id);
+  const title = intl.formatMessage(dialogs.project_start_warning_title);
+  const content = intl.formatMessage(dialogs.project_start_warning_content, {
+    project_title,
+    title,
+    what,
+  });
 
   const interval = setInterval(() => {
     if (result != "") {
@@ -64,15 +81,6 @@ export async function ensure_project_running(
       project_actions.clear_modal();
     }
   }, 1000);
-
-  const intl = await getIntl();
-  const project_title = redux.getStore("projects").get_title(project_id);
-  const title = intl.formatMessage(dialogs.project_start_warning_title);
-  const content = intl.formatMessage(dialogs.project_start_warning_content, {
-    project_title,
-    title,
-    what,
-  });
 
   result = await project_actions.show_modal({ title, content });
   if (result == "ok") {
