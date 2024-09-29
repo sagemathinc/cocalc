@@ -2350,6 +2350,8 @@ ${details}
         "exam_projects",
         exam_projects.set(student_id, project_id),
       );
+    } else if (location == "group") {
+      throw Error("create group project: not implemented");
     }
     if (!project_id) {
       throw Error("failed to create project");
