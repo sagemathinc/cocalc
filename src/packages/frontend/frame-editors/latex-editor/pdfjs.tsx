@@ -582,12 +582,22 @@ export function PDFJS({
   const lastMousePosRef = useRef<null | { x: number; y: number }>(null);
 
   const onMouseDown = useCallback((e) => {
+    if (e.target?.nodeName == "SPAN") {
+      // selection layer text -- allows for selecting instead of dragging around
+      return;
+    }
     lastMousePosRef.current = getClientPos(e);
     setCursor("grabbing");
   }, []);
 
   const onMouseMove = useCallback((e) => {
-    if (!e.buttons || lastMousePosRef.current == null) return;
+    if (
+      !e.buttons ||
+      lastMousePosRef.current == null ||
+      !window.getSelection()?.isCollapsed
+    ) {
+      return;
+    }
     const { x, y } = getClientPos(e);
     const deltaX = lastMousePosRef.current.x - x;
     const deltaY = lastMousePosRef.current.y - y;

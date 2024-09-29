@@ -127,7 +127,7 @@
     "nyc": "^15.1.0",
     "octicons": "^3.5.0",
     "onecolor": "^3.1.0",
-    "pdfjs-dist": "^4.2.67",
+    "pdfjs-dist": "^4.6.82",
     "pegjs": "^0.10.0",
     "pica": "^7.1.0",
     "plotly.js": "^2.29.1",
