@@ -1,5 +1,11 @@
 # Webapp CDN files
 
+These packages
+
+- katex
+- codemirror
+- mathjax
+
 ## Why?
 
 This directory contains additional resources for at least the `/index.html` and `/app` page. Many of these were served directly from CDN's before. However, that introduces a dependency where [CoCalc.com](http://CoCalc.com) can't load unless all these random CDN's also work... and that is unacceptable for two reasons:
@@ -38,3 +44,4 @@ The `setup.py` script \(that `npm run build` uses\) makes sure to include a vers
 Other files in `packages/assets` might not be used any more. At some point we can clean them up.
 
 We have to run a postinstall script to create the versioned symlinks, since -- to be cross platform -- npm itself [doesn't support symlinks](https://npm.community/t/how-can-i-publish-symlink/5599).
+
