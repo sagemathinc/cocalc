@@ -2297,7 +2297,7 @@ ${details}
     this.course_actions.set({ table: "assignments", assignment_id, location });
   };
 
-  private getProjectId = ({
+  getProjectId = ({
     assignment,
     student,
   }: {
@@ -2341,9 +2341,10 @@ ${details}
         );
     } else if (location == "exam") {
       project_id =
-        await this.course_actions.student_projects.createProjectForStudentUse(
+        await this.course_actions.student_projects.createProjectForStudentUse({
           student_id,
-        );
+          type: "exam",
+        });
       const exam_projects = assignment.get("exam_projects") ?? iMap({});
       this.set_assignment_field(
         assignment_id,

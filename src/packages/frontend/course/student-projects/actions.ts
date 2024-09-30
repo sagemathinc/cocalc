@@ -41,9 +41,13 @@ export class StudentProjectsActions {
 
   // create project that will get used by this student, but doesn't actually
   // add student as a collaborator or save the project id anywhere.
-  createProjectForStudentUse = async (
-    student_id: string,
-  ): Promise<string | undefined> => {
+  createProjectForStudentUse = async ({
+    student_id,
+    type,
+  }: {
+    student_id: string;
+    type: "student" | "exam" | "group";
+  }): Promise<string | undefined> => {
     const { store, student } = this.course_actions.resolve({
       student_id,
       finish: this.course_actions.set_error,
@@ -70,6 +74,18 @@ export class StudentProjectsActions {
         noPool: true, // student is unlikely to use the project right *now*
       });
       this.configure_project_visibility(project_id);
+
+      // important to at least set the basics of the course field, since this
+      // modifies security model so any instructor can add colabs to this project,
+      // even if the instructor wasn't added -- that just deals with an edge
+      // case that often causes problems otherwise.
+      const actions = redux.getActions("projects");
+      await actions.set_project_course_info({
+        project_id,
+        course_project_id: store.get("course_project_id"),
+        path: store.get("course_filename"),
+        type,
+      });
     } catch (err) {
       this.course_actions.set_error(
         `error creating student project for ${store.get_student_name(
@@ -103,7 +119,10 @@ export class StudentProjectsActions {
       table: "students",
       student_id,
     });
-    const project_id = await this.createProjectForStudentUse(student_id);
+    const project_id = await this.createProjectForStudentUse({
+      student_id,
+      type: "student",
+    });
     await this.configure_project({
       student_id,
       student_project_id: project_id,
@@ -945,4 +964,32 @@ export class StudentProjectsActions {
       }
     }
   };
+
+  configureExamProject = async ({ assignment, student, mode }) => {
+    /*
+    If the project hasn't already been created, do nothing. Otherwise:
+
+    mode = 'exam':
+      - set collabs on exam project to be exactly the student and all collabs on course project
+      - make project visible only to the student
+      - configure project title and description
+      - configure project image
+      - configure project license
+
+    mode = 'instructor'
+      - remove the student
+    */
+    const project_id = this.course_actions.assignments.getProjectId({
+      assignment,
+      student,
+    });
+    if (project_id == null) {
+      return;
+    }
+    if (mode == "exam") {
+    } else {
+    }
+  };
+
+  //configureGroupProject = async ({ assignment, student }) => {};
 }
