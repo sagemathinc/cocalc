@@ -22,13 +22,7 @@ import {
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import {
-  Icon,
-  Loading,
-  SearchInput,
-  Tip,
-  VisibleMDLG,
-} from "@cocalc/frontend/components";
+import { Icon, Loading, Tip, VisibleMDLG } from "@cocalc/frontend/components";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -43,6 +37,7 @@ import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
+import Filter from "./filter";
 
 const FILTER_RECENT_NONE = { value: 0, label: "All" } as const;
 
@@ -304,30 +299,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
     );
   }
 
-  function render_search() {
-    return (
-      <SearchInput
-        autoFocus={false}
-        placeholder={"Filter messages (use /re/ for regexp)..."}
-        default_value={search}
-        on_change={debounce(
-          (value) => actions.setState({ search: value }),
-          150,
-          { leading: false, trailing: true },
-        )}
-        status={!search ? undefined : "warning"}
-        style={{
-          margin: 0,
-          width: "100%",
-          marginBottom: "5px",
-          ...(messages.size >= 2
-            ? undefined
-            : { visibility: "hidden", height: 0 }),
-        }}
-      />
-    );
-  }
-
   function isValidFilterRecentCustom(): boolean {
     const v = parseFloat(filterRecentHCustom);
     return isFinite(v) && v >= 0;
@@ -466,7 +437,18 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
           }}
         >
           {renderFilterRecent()}
-          {render_search()}
+          <Filter
+            actions={actions}
+            search={search}
+            style={{
+              margin: 0,
+              width: "100%",
+              marginBottom: "5px",
+              ...(messages.size >= 2
+                ? undefined
+                : { visibility: "hidden", height: 0 }),
+            }}
+          />
         </Col>
       </Row>
     );

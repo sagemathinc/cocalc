@@ -294,11 +294,13 @@ export class ChatActions extends Actions<ChatState> {
       this.setState({
         input: "",
         search: "",
+        selectedHashtags: immutableMap(),
       });
     } else {
       // TODO: but until we improve search to be by thread (instead of by message), do this:
       this.setState({
         search: "",
+        selectedHashtags: immutableMap(),
       });
     }
 
