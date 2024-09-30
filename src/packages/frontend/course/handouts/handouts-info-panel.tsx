@@ -8,12 +8,13 @@
 import { useState } from "react";
 import { to_json } from "@cocalc/util/misc";
 import { Button, Space, Col, Row } from "antd";
-import { ErrorDisplay, Icon, Tip } from "../../components";
+import { Icon, Tip } from "../../components";
 import { CourseActions } from "../actions";
 import { BigTime } from "../common";
 import { LastCopyInfo } from "../store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
+import ShowError from "@cocalc/frontend/components/error";
 
 interface StudentHandoutInfoProps {
   actions: CourseActions;
@@ -129,10 +130,10 @@ export function StudentHandoutInfo({
       error = `Try to ${name.toLowerCase()} again:\n` + error;
     }
     return (
-      <ErrorDisplay
+      <ShowError
         key="error"
         error={error}
-        style={{ maxHeight: "140px", overflow: "auto" }}
+        style={{ marginTop: "5px", maxHeight: "140px", overflow: "auto" }}
       />
     );
   }

@@ -714,9 +714,10 @@ ${details}
     const a = this.course_actions.get_one(obj);
     if (a == null) return;
     const x = a[type] ? a[type] : {};
-    x[student_id] = { time: webapp_client.server_time() };
     if (err) {
-      x[student_id].error = err;
+      x[student_id] = { error: err };
+    } else {
+      x[student_id] = { time: webapp_client.server_time() };
     }
     obj[type] = x;
     this.course_actions.set(obj);
@@ -744,6 +745,10 @@ ${details}
       return true; // never retry a copy until at least 15 seconds later.
     }
     y.start = webapp_client.server_time();
+    if (y.error) {
+      // clear error when initiating copy
+      y.error = "";
+    }
     x[student_id] = y;
     obj[type] = x;
     this.course_actions.set(obj);

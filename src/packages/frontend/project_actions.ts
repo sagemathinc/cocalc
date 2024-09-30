@@ -1380,9 +1380,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -2238,8 +2237,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {
@@ -3441,9 +3440,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     title: string;
     content: string;
   }): Promise<"ok" | "cancel"> {
-    if (this.modal != null) {
-      await this.wait_until_no_modals();
-    }
+    await this.wait_until_no_modals();
     let response: "ok" | "cancel" = "cancel";
     const modal = fromJS({
       title,
@@ -3452,17 +3449,25 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       onCancel: () => (response = "cancel"),
     }) as any;
     this.modal = modal;
-    this.setState({
-      modal,
-    });
+    this.setState({ modal });
     await this.wait_until_no_modals();
     return response;
   }
 
   public async wait_until_no_modals(): Promise<void> {
-    if (this.modal == null) return;
-    await this.get_store()?.async_wait({
-      until: (s) => !s.get("modal") && this.modal == null,
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    const noModal = () => {
+      return this.modal == null && !store.get("modal");
+    };
+
+    if (noModal()) {
+      return;
+    }
+    await store.async_wait({
+      until: noModal,
       timeout: 99999,
     });
   }

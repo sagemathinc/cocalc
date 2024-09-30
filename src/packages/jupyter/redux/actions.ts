@@ -1105,7 +1105,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   ): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      throw Error(`can't run cell ${id} since it does not exist`);
+      // it is trivial to run a cell that does not exist -- nothing needs to be done.
+      return;
     }
     const kernel = this.store.get("kernel");
     if (kernel == null || kernel === "") {

@@ -678,7 +678,12 @@ class exports.Client extends EventEmitter
 
         handler = @["mesg_#{mesg.event}"]
         if handler?
-            handler(mesg)
+            try
+                await handler(mesg)
+            catch err
+                # handler *should* handle any possible error, but just in case something
+                # not expected goes wrong... we do this
+                @error_to_client(id:mesg.id, error:"${err}")
             mesg_from_client_total.labels("#{mesg.event}").inc(1)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))

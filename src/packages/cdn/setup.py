@@ -9,12 +9,12 @@ curdir = dirname(abspath(__file__))
 os.chdir(join(curdir, 'dist'))
 
 extra_path = {
-    'bootstrap': 'dist/css/',
     'katex': 'dist/',
 }
 
 deps = json.load(open(join('..', 'package-lock.json')))["dependencies"]
-targets = list(json.load(open(join('..', 'package.json')))["devDependencies"].keys())
+targets = list(
+    json.load(open(join('..', 'package.json')))["devDependencies"].keys())
 BLACKLIST = ["typescript"]
 
 versions = {}
@@ -41,9 +41,6 @@ for path, data in deps.items():
     os.symlink(name, dst)
     versions[name] = version
 
-# TODO: This pix should not be in this package.  Put it somewhere else.
-copytree("../pix", "pix")
-
 # finally, write the version info such that it can be loaded
 with open('index.js', 'w') as out:
     out.write(f"""
@@ -53,4 +50,3 @@ exports.path = exports.versions = void 0;
 exports.versions = {json.dumps(versions)};
 exports.path = __dirname;
 """)
-

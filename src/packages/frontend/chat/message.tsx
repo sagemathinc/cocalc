@@ -23,6 +23,7 @@ import {
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
+import { User } from "@cocalc/frontend/users";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
@@ -413,6 +414,9 @@ export default function Message(props: Readonly<Props>) {
 
     const mainXS = mode === "standalone" ? 20 : 22;
     const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
+    const feedback = message.getIn(["feedback", props.account_id]);
+    const otherFeedback =
+      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
 
     return (
       <Col key={1} xs={mainXS}>
@@ -441,6 +445,27 @@ export default function Message(props: Readonly<Props>) {
           {!isEditing && (
             <span style={lighten}>
               <Time message={message} edit={edit_message} />
+              {!isLLMThread && (
+                <Button
+                  style={{
+                    marginRight: "5px",
+                    float: "right",
+                    marginTop: "-4px",
+                    color: !feedback && is_viewers_message ? "white" : "#888",
+                    fontSize: "12px",
+                  }}
+                  size="small"
+                  type={feedback ? "dashed" : "text"}
+                  onClick={() => {
+                    props.actions?.feedback(
+                      message,
+                      feedback ? null : "positive",
+                    );
+                  }}
+                >
+                  <Icon name="thumbs-up" />
+                </Button>
+              )}{" "}
             </span>
           )}
           {!isEditing && (
@@ -548,6 +573,36 @@ export default function Message(props: Readonly<Props>) {
                   </>
                 ) : undefined}
               </Space>
+              {otherFeedback > 0 && (
+                <div
+                  style={{
+                    float: "right",
+                    color: is_viewers_message ? "white" : "#555",
+                  }}
+                >
+                  <Tooltip
+                    title={() => {
+                      return (
+                        <div>
+                          {Object.keys(
+                            message.get("feedback")?.toJS() ?? {},
+                          ).map((account_id) => (
+                            <div
+                              key={account_id}
+                              style={{ marginBottom: "2px" }}
+                            >
+                              <Avatar size={24} account_id={account_id} />{" "}
+                              <User account_id={account_id} />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }}
+                  >
+                    {otherFeedback} <Icon name="thumbs-up" />
+                  </Tooltip>
+                </div>
+              )}
             </div>
           )}
         </div>
