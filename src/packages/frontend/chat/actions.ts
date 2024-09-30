@@ -39,7 +39,7 @@ import {
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
+import { cmp, isValidUUID, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
@@ -51,7 +51,6 @@ import {
   Feedback,
   MessageHistory,
 } from "./types";
-import { getSelectedHashtagsSearch } from "./utils";
 import { history_path } from "@cocalc/util/misc";
 
 const MAX_CHATSTREAM = 10;
@@ -302,7 +301,6 @@ export class ChatActions extends Actions<ChatState> {
         search: "",
       });
     }
-    this.ensureDraftStartsWithHashtags(false);
 
     if (this.store != null) {
       const project_id = this.store?.get("project_id");
@@ -621,38 +619,6 @@ export class ChatActions extends Actions<ChatState> {
         ? selectedHashtags.delete(tag)
         : selectedHashtags.set(tag, state);
     this.setState({ selectedHashtags });
-    this.ensureDraftStartsWithHashtags(true);
-  }
-
-  private ensureDraftStartsWithHashtags(commit: boolean = false): void {
-    if (this.syncdb == null || this.store == null) return;
-    // set draft input to match selected hashtags, if any.
-    const hashtags = this.store.get("selectedHashtags");
-    if (hashtags == null) return;
-    const { selectedHashtagsSearch } = getSelectedHashtagsSearch(hashtags);
-    let input = this.store.get("input");
-    const prefix = selectedHashtagsSearch.trim() + " ";
-    if (input.startsWith(prefix)) {
-      return;
-    }
-    const v = parse_hashtags(input);
-    if (v.length > 0) {
-      input = input.slice(v[v.length - 1][1]);
-    }
-
-    input = prefix + input;
-    this.setState({ input });
-    const sender_id = this.redux.getStore("account").get_account_id();
-    this.syncdb.set({
-      event: "draft",
-      active: Date.now(),
-      sender_id,
-      input,
-      date: 0,
-    });
-    if (commit) {
-      this.syncdb.commit();
-    }
   }
 
   public help() {
