@@ -458,6 +458,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
     const input = submitMentionsRef.current?.();
     scrollToBottomRef.current?.(true);
     actions.send_chat({ input });
+    setTimeout(() => {
+      scrollToBottomRef.current?.(true);
+    }, 100);
   }
 
   function render_body(): JSX.Element {
