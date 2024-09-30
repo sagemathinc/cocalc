@@ -6,7 +6,6 @@
 import { Button, Divider, Input, Select, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-
 import {
   ButtonGroup,
   Col,
@@ -35,7 +34,6 @@ import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-f
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
-import { sanitize_html_safe } from "@cocalc/frontend/misc";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { FormattedMessage } from "react-intl";
 import { ChatActions } from "./actions";
@@ -138,7 +136,6 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
   function render_preview_message(): JSX.Element | undefined {
     if (!is_preview) return;
     if (input.length === 0 || preview.length === 0) return;
-    const value = sanitize_html_safe(preview);
 
     return (
       <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
@@ -158,7 +155,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
             >
               <Icon name="times" />
             </div>
-            <StaticMarkdown value={value} />
+            <StaticMarkdown value={preview} />
             <div className="small lighten" style={{ marginTop: "15px" }}>
               Preview (press Shift+Enter to send)
             </div>
