@@ -805,9 +805,9 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "undelete_project":
           return <span>undeleted the project</span>;
         case "hide_project":
-          return <span>hid the project from themself</span>;
+          return <span>hid the project from themselves</span>;
         case "unhide_project":
-          return <span>unhid the project from themself</span>;
+          return <span>unhid the project from themselves</span>;
         case "public_path":
           return render_public_path(event);
         case "software_environment":
