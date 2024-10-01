@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Divider, Input, Select, Tooltip } from "antd";
+import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
 import {
@@ -39,7 +39,14 @@ import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 import Filter from "./filter";
 
-const FILTER_RECENT_NONE = { value: 0, label: "All" } as const;
+const FILTER_RECENT_NONE = {
+  value: 0,
+  label: (
+    <>
+      <Icon name="clock" /> All
+    </>
+  ),
+} as const;
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",
@@ -60,7 +67,6 @@ const GRID_STYLE: React.CSSProperties = {
 } as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
-  margin: "5px 0",
   padding: "0",
   background: "white",
   flex: "1 0 auto",
@@ -340,8 +346,8 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
               <Tooltip
                 title={
                   value === 0
-                    ? `All messages.`
-                    : `Only messages sent in the past ${label}.`
+                    ? undefined
+                    : `Only threads with messages sent in the past ${label}.`
                 }
               >
                 {label}
@@ -390,69 +396,56 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
 
   function render_button_row() {
     return (
-      <Row style={{ marginLeft: 0, marginRight: 0 }}>
-        <Col xs={9} md={9} style={{ padding: "2px" }}>
-          <ButtonGroup>
-            {render_save_button()}
-            {render_timetravel_button()}
-            {render_compute_server_button()}
-          </ButtonGroup>
-          <ButtonGroup style={{ marginLeft: "5px" }}>
-            {render_video_chat_button()}
-            {render_bottom_button()}
-          </ButtonGroup>
-          <ButtonGroup style={{ marginLeft: "5px" }}>
-            {render_decrease_font_size()}
-            {render_increase_font_size()}
-          </ButtonGroup>
-          {render_export_button()}
-          {actions.syncdb != null && (
-            <VisibleMDLG>
-              <ButtonGroup style={{ marginLeft: "5px" }}>
-                <Button onClick={() => actions.syncdb?.undo()} title="Undo">
-                  <Icon name="undo" />
-                </Button>
-                <Button onClick={() => actions.syncdb?.redo()} title="Redo">
-                  <Icon name="redo" />
-                </Button>
-              </ButtonGroup>
-            </VisibleMDLG>
-          )}
-          {actions.help != null && (
-            <Button
-              onClick={() => actions.help()}
-              style={{ marginLeft: "5px" }}
-              title="Documentation"
-            >
-              <Icon name="question-circle" />
-            </Button>
-          )}
-        </Col>
-        <Col
-          xs={3}
-          md={3}
+      <Space style={{ width: "100%", marginTop: "3px" }} wrap>
+        <ButtonGroup>
+          {render_save_button()}
+          {render_timetravel_button()}
+          {render_compute_server_button()}
+        </ButtonGroup>
+        <ButtonGroup style={{ marginLeft: "5px" }}>
+          {render_video_chat_button()}
+          {render_bottom_button()}
+        </ButtonGroup>
+        <ButtonGroup style={{ marginLeft: "5px" }}>
+          {render_decrease_font_size()}
+          {render_increase_font_size()}
+        </ButtonGroup>
+        {render_export_button()}
+        {actions.syncdb != null && (
+          <VisibleMDLG>
+            <ButtonGroup style={{ marginLeft: "5px" }}>
+              <Button onClick={() => actions.syncdb?.undo()} title="Undo">
+                <Icon name="undo" />
+              </Button>
+              <Button onClick={() => actions.syncdb?.redo()} title="Redo">
+                <Icon name="redo" />
+              </Button>
+            </ButtonGroup>
+          </VisibleMDLG>
+        )}
+        {actions.help != null && (
+          <Button
+            onClick={() => actions.help()}
+            style={{ marginLeft: "5px" }}
+            title="Documentation"
+          >
+            <Icon name="question-circle" />
+          </Button>
+        )}
+
+        <Filter
+          actions={actions}
+          search={search}
           style={{
-            padding: "2px",
-            display: "flex",
-            verticalAlign: "center",
-            gap: "5px",
+            margin: 0,
+            width: "100%",
+            ...(messages.size >= 2
+              ? undefined
+              : { visibility: "hidden", height: 0 }),
           }}
-        >
-          {renderFilterRecent()}
-          <Filter
-            actions={actions}
-            search={search}
-            style={{
-              margin: 0,
-              width: "100%",
-              marginBottom: "5px",
-              ...(messages.size >= 2
-                ? undefined
-                : { visibility: "hidden", height: 0 }),
-            }}
-          />
-        </Col>
-      </Row>
+        />
+        {renderFilterRecent()}
+      </Space>
     );
   }
 

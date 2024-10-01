@@ -7,7 +7,7 @@
 Render all the messages in the chat.
 */
 
-import { Alert } from "antd";
+import { Alert, Button } from "antd";
 import { Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
@@ -17,7 +17,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { VisibleMDLG } from "@cocalc/frontend/components";
+import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import {
@@ -164,6 +164,7 @@ export function ChatLog({
           num={messages.size - numFolded - sortedDates.length}
           search={search}
           filterRecentH={filterRecentH}
+          actions={actions}
         />
       )}
       <MessageList
@@ -343,9 +344,10 @@ interface NotShowingProps {
   num: number;
   search: string;
   filterRecentH: number;
+  actions;
 }
 
-function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
+function NotShowing({ num, search, filterRecentH, actions }: NotShowingProps) {
   if (num <= 0) return null;
 
   const timespan =
@@ -353,26 +355,33 @@ function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
 
   return (
     <Alert
-      style={{ margin: "0" }}
+      style={{ marginBottom: "5px" }}
+      showIcon
       type="warning"
-      closable
-      banner
-      key="not_showing"
       message={
-        <b>
-          WARNING: Hiding {num} {plural(num, "messages")}
-          {search.trim()
-            ? ` that ${
-                num != 1 ? "do" : "does"
-              } not match search for '${search.trim()}'`
-            : ""}
-          {timespan
-            ? ` ${
-                search.trim() ? "and" : "that"
-              } were not sent in the past ${timespan}`
-            : ""}
-          .
-        </b>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <b style={{ flex: 1 }}>
+            WARNING: Hiding {num} {plural(num, "message")} in threads
+            {search.trim()
+              ? ` that ${
+                  num != 1 ? "do" : "does"
+                } not match search for '${search.trim()}'`
+              : ""}
+            {timespan
+              ? ` ${
+                  search.trim() ? "and" : "that"
+                } were not sent in the past ${timespan}`
+              : ""}
+            .
+          </b>
+          <Button
+            onClick={() => {
+              actions.clearAllFilters();
+            }}
+          >
+            <Icon name="close-circle-filled" style={{ color: "#888" }} /> Clear
+          </Button>
+        </div>
       }
     />
   );

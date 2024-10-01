@@ -26,7 +26,7 @@ export default function Filter({ actions, search, style }) {
     <Tooltip
       title={
         !value
-          ? "Show only message threads matching this search.  Use /re/ for a regular expression, quotes and dash to negate."
+          ? "Show only threads containing at least one message that matches this search.  Use /re/ for a regular expression, quotes, and dashes to negate."
           : undefined
       }
     >
@@ -51,4 +51,3 @@ export default function Filter({ actions, search, style }) {
     </Tooltip>
   );
 }
-
