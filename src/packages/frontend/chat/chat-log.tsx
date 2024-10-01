@@ -17,7 +17,7 @@ import {
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, VisibleMDLG } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
 import {
@@ -147,17 +147,15 @@ export function ChatLog({
   return (
     <>
       {visibleHashtags.size > 0 && (
-        <VisibleMDLG>
-          <HashtagBar
-            actions={{
-              set_hashtag_state: (tag, state) => {
-                actions.setHashtagState(tag, state);
-              },
-            }}
-            selected_hashtags={selectedHashtags0}
-            hashtags={visibleHashtags}
-          />
-        </VisibleMDLG>
+        <HashtagBar
+          actions={{
+            set_hashtag_state: (tag, state) => {
+              actions.setHashtagState(tag, state);
+            },
+          }}
+          selected_hashtags={selectedHashtags0}
+          hashtags={visibleHashtags}
+        />
       )}
       {messages != null && (
         <NotShowing
