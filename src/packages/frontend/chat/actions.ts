@@ -192,7 +192,7 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  public foldThread(reply_to: Date, msgIndex: number) {
+  public foldThread(reply_to: Date, messageIndex?: number) {
     if (this.syncdb == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
     const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
@@ -209,8 +209,8 @@ export class ChatActions extends Actions<ChatState> {
 
     this.syncdb.commit();
 
-    if (folded && msgIndex != null) {
-      this.scrollToBottom(msgIndex);
+    if (folded && messageIndex != null) {
+      this.scrollToBottom(messageIndex);
     }
   }
 
@@ -293,41 +293,44 @@ export class ChatActions extends Actions<ChatState> {
       // For replies search find full threads not individual messages.
       this.setState({
         input: "",
-        search: "",
-        selectedHashtags: immutableMap(),
       });
+      this.clearAllFilters();
     } else {
-      // TODO: but until we improve search to be by thread (instead of by message), do this:
-      this.setState({
-        search: "",
-        selectedHashtags: immutableMap(),
-      });
+      // when replying we make sure that the thread is expanded, since otherwise
+      // our reply won't be visible
+      const messages = this.store.get("messages");
+      if (
+        messages
+          ?.getIn([`${reply_to.valueOf()}`, "folding"])
+          ?.includes(sender_id)
+      ) {
+        this.foldThread(reply_to);
+      }
     }
 
-    if (this.store != null) {
-      const project_id = this.store?.get("project_id");
-      const path = this.store?.get("path");
-      // set notification saying that we sent an actual chat
-      let action;
-      if (
-        noNotification ||
-        mentionsLanguageModel(input) ||
-        this.isLanguageModelThread(reply_to)
-      ) {
-        // Note: don't mark it is a chat if it is with chatgpt,
-        // since no point in notifying all collabs of this.
-        action = "edit";
-      } else {
-        action = "chat";
-      }
-      webapp_client.mark_file({
-        project_id,
-        path,
-        action,
-        ttl: 10000,
-      });
-      track("send_chat", { project_id, path });
+    const project_id = this.store?.get("project_id");
+    const path = this.store?.get("path");
+    // set notification saying that we sent an actual chat
+    let action;
+    if (
+      noNotification ||
+      mentionsLanguageModel(input) ||
+      this.isLanguageModelThread(reply_to)
+    ) {
+      // Note: don't mark it is a chat if it is with chatgpt,
+      // since no point in notifying all collabs of this.
+      action = "edit";
+    } else {
+      action = "chat";
     }
+    webapp_client.mark_file({
+      project_id,
+      path,
+      action,
+      ttl: 10000,
+    });
+    track("send_chat", { project_id, path });
+
     this.save_to_disk();
     (async () => {
       await this.processLLM({
@@ -1097,6 +1100,14 @@ export class ChatActions extends Actions<ChatState> {
       path: history_path(store.get("path")!),
       foreground: true,
       foreground_project: true,
+    });
+  };
+
+  clearAllFilters = () => {
+    this.setState({
+      search: "",
+      selectedHashtags: immutableMap(),
+      filterRecentH: 0,
     });
   };
 }

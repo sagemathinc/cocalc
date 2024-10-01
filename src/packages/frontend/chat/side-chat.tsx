@@ -212,6 +212,7 @@ export default function SideChat({ project_id, path, style }: Props) {
           on_send={() => {
             sendChat(lastVisible ? { reply_to: lastVisible } : undefined);
             user_activity("side_chat", "send_chat", "keyboard");
+            actions?.clearAllFilters();
           }}
           style={{ height: INPUT_HEIGHT }}
           height={INPUT_HEIGHT}

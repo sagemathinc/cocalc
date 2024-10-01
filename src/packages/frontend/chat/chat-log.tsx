@@ -232,6 +232,7 @@ function isThread(messages: ChatMessages, message: ChatMessageTyped) {
   if (message.get("reply_to") != null) {
     return true;
   }
+
   // TODO/WARNING!!! This is a linear search
   // through all messages to decide if a message is the root of a thread.
   // This is VERY BAD and must to be redone at some point, since we call isThread
@@ -240,9 +241,8 @@ function isThread(messages: ChatMessages, message: ChatMessageTyped) {
   // use a proper data structure (or even a cache) to track this once
   // and for all.  It's more complicated but everything needs to be at
   // most O(n).
-  return messages.some(
-    (m) => m.get("reply_to") === message.get("date").toISOString(),
-  );
+  const s = message.get("date").toISOString();
+  return messages.some((m) => m.get("reply_to") === s);
 }
 
 function isFolded(
@@ -383,7 +383,6 @@ export function MessageList({
   account_id,
   virtuosoRef,
   sortedDates,
-  search,
   user_map,
   project_id,
   path,
@@ -438,10 +437,7 @@ export function MessageList({
         }
 
         const is_thread = isThread(messages, message);
-        // if we search for a message, we treat all threads as unfolded
-        const force_unfold = !!search;
-        const is_folded =
-          !force_unfold && isFolded(messages, message, account_id);
+        const is_folded = isFolded(messages, message, account_id);
         const is_thread_body = message.get("reply_to") != null;
         const h = virtuosoHeightsRef.current[index];
 
@@ -461,7 +457,6 @@ export function MessageList({
                 actions={actions}
                 is_thread={is_thread}
                 is_folded={is_folded}
-                force_unfold={force_unfold}
                 is_thread_body={is_thread_body}
                 is_prev_sender={isPrevMessageSender(
                   index,

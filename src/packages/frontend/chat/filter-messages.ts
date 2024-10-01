@@ -20,9 +20,10 @@ export function filterMessages({
   filter?: string;
   filterRecentH?: number;
 }) {
+  let messages0 = messages;
   if (filter) {
     const searchTerms = search_split(filter);
-    messages = messages.filter((message) =>
+    messages0 = messages0.filter((message) =>
       searchMatches(message, searchTerms),
     );
   }
@@ -30,13 +31,25 @@ export function filterMessages({
   if (typeof filterRecentH === "number" && filterRecentH > 0) {
     const now = webapp_client.server_time().getTime();
     const cutoff = now - filterRecentH * 1000 * 60 * 60;
-    messages = messages.filter((msg) => {
-      const date = msg.get("date").getTime();
+    messages0 = messages0.filter((message) => {
+      const date = message.get("date").getTime();
       return date >= cutoff;
     });
   }
 
-  return messages;
+  if (messages0.size == 0) {
+    // nothing matches
+    return messages0;
+  }
+
+  // Next, we expand to include all threads containing any matching messages.
+  // First find the roots of all matching threads:
+  const roots = new Set<string>();
+  for (const [_, message] of messages0) {
+    roots.add(message.get("reply_to") ?? message.get("date").toISOString());
+  }
+  // Return all messages in these threads
+  return messages.filter((message) => roots.has(message.get("reply_to") ?? message.get("date").toISOString()));
 }
 
 // NOTE: I removed search including send name, since that would
