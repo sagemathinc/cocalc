@@ -360,7 +360,7 @@ function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
       key="not_showing"
       message={
         <b>
-          WARNING: Hiding {num} {plural(num, "thread")}
+          WARNING: Hiding {num} {plural(num, "messages")}
           {search.trim()
             ? ` that ${
                 num != 1 ? "do" : "does"
