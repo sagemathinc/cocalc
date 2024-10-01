@@ -8,12 +8,11 @@ Render all the messages in the chat.
 */
 
 import { Alert } from "antd";
-import { List, Set as immutableSet } from "immutable";
+import { Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
-  TypedMap,
   useActions,
   useRedux,
   useTypedRedux,
@@ -27,15 +26,14 @@ import {
   hoursToTimeIntervalHuman,
   parse_hashtags,
   plural,
-  search_match,
-  search_split,
 } from "@cocalc/util/misc";
 import { ChatActions, getRootMessage } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
-import { ChatMessageTyped, ChatMessages, MessageHistory, Mode } from "./types";
+import type { ChatMessageTyped, ChatMessages, Mode } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
+import { filterMessages } from "./filter-messages";
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -231,16 +229,6 @@ function isPrevMessageSender(
   );
 }
 
-// NOTE: I removed search including send name, since that would
-// be slower and of questionable value.
-function searchMatches(message: ChatMessageTyped, searchTerms): boolean {
-  const first = message.get("history", List()).first() as
-    | TypedMap<MessageHistory>
-    | undefined;
-  if (first == null) return false;
-  return search_match(first.get("content", ""), searchTerms);
-}
-
 function isThread(messages: ChatMessages, message: ChatMessageTyped) {
   if (message.get("reply_to") != null) {
     return true;
@@ -282,12 +270,11 @@ export function getSortedDates(
 ): { dates: string[]; numFolded: number } {
   let numFolded = 0;
   let m = messages;
-  if (m == null) return { dates: [], numFolded: 0 };
-
-  if (search) {
-    const searchTerms = search_split(search);
-    m = m.filter((message) => searchMatches(message, searchTerms));
+  if (m == null) {
+    return { dates: [], numFolded: 0 };
   }
+
+  m = filterMessages({ messages: m, filter: search });
 
   if (typeof filterRecentH === "number" && filterRecentH > 0) {
     const now = webapp_client.server_time().getTime();
@@ -383,7 +370,7 @@ function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
       key="not_showing"
       message={
         <b>
-          WARNING: Hiding {num} {plural(num, "message")}
+          WARNING: Hiding {num} {plural(num, "thread")}
           {search.trim()
             ? ` that ${
                 num != 1 ? "do" : "does"

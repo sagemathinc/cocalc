@@ -306,83 +306,85 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
 
   function renderFilterRecent() {
     return (
-      <Select
-        open={filterRecentOpen}
-        onDropdownVisibleChange={(v) => setFilterRecentOpen(v)}
-        value={filterRecentH}
-        status={filterRecentH > 0 ? "warning" : undefined}
-        allowClear
-        onClear={() => {
-          actions.setState({ filterRecentH: 0 });
-          setFilterRecentHCustom("");
-        }}
-        style={{ width: 120 }}
-        popupMatchSelectWidth={false}
-        onSelect={(val: number) => actions.setState({ filterRecentH: val })}
-        options={[
-          FILTER_RECENT_NONE,
-          ...[1, 6, 12, 24, 48, 24 * 7, 14 * 24, 28 * 24].map((value) => {
-            const label = hoursToTimeIntervalHuman(value);
-            return { value, label };
-          }),
-        ]}
-        labelRender={({ label, value }) => {
-          if (!label) {
-            if (isValidFilterRecentCustom()) {
-              value = parseFloat(filterRecentHCustom);
-              label = hoursToTimeIntervalHuman(value);
-            } else {
-              ({ label, value } = FILTER_RECENT_NONE);
+      <Tooltip title="Only show recent threads.">
+        <Select
+          open={filterRecentOpen}
+          onDropdownVisibleChange={(v) => setFilterRecentOpen(v)}
+          value={filterRecentH}
+          status={filterRecentH > 0 ? "warning" : undefined}
+          allowClear
+          onClear={() => {
+            actions.setState({ filterRecentH: 0 });
+            setFilterRecentHCustom("");
+          }}
+          style={{ width: 120 }}
+          popupMatchSelectWidth={false}
+          onSelect={(val: number) => actions.setState({ filterRecentH: val })}
+          options={[
+            FILTER_RECENT_NONE,
+            ...[1, 6, 12, 24, 48, 24 * 7, 14 * 24, 28 * 24].map((value) => {
+              const label = hoursToTimeIntervalHuman(value);
+              return { value, label };
+            }),
+          ]}
+          labelRender={({ label, value }) => {
+            if (!label) {
+              if (isValidFilterRecentCustom()) {
+                value = parseFloat(filterRecentHCustom);
+                label = hoursToTimeIntervalHuman(value);
+              } else {
+                ({ label, value } = FILTER_RECENT_NONE);
+              }
             }
-          }
-          return (
-            <Tooltip
-              title={
-                value === 0
-                  ? `All messages.`
-                  : `Only messages sent in the past ${label}.`
-              }
-            >
-              {label}
-            </Tooltip>
-          );
-        }}
-        dropdownRender={(menu) => (
-          <>
-            {menu}
-            <Divider style={{ margin: "8px 0" }} />
-            <Input
-              placeholder="Number of hours"
-              allowClear
-              value={filterRecentHCustom}
-              status={
-                filterRecentHCustom == "" || isValidFilterRecentCustom()
-                  ? undefined
-                  : "error"
-              }
-              onChange={debounce(
-                (e: React.ChangeEvent<HTMLInputElement>) => {
-                  const v = e.target.value;
-                  setFilterRecentHCustom(v);
-                  const val = parseFloat(v);
-                  if (isFinite(val) && val >= 0) {
-                    actions.setState({ filterRecentH: val });
-                  } else if (v == "") {
-                    actions.setState({
-                      filterRecentH: FILTER_RECENT_NONE.value,
-                    });
-                  }
-                },
-                150,
-                { leading: true, trailing: true },
-              )}
-              onKeyDown={(e) => e.stopPropagation()}
-              onPressEnter={() => setFilterRecentOpen(false)}
-              addonAfter={<span style={{ paddingLeft: "5px" }}>hours</span>}
-            />
-          </>
-        )}
-      />
+            return (
+              <Tooltip
+                title={
+                  value === 0
+                    ? `All messages.`
+                    : `Only messages sent in the past ${label}.`
+                }
+              >
+                {label}
+              </Tooltip>
+            );
+          }}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              <Divider style={{ margin: "8px 0" }} />
+              <Input
+                placeholder="Number of hours"
+                allowClear
+                value={filterRecentHCustom}
+                status={
+                  filterRecentHCustom == "" || isValidFilterRecentCustom()
+                    ? undefined
+                    : "error"
+                }
+                onChange={debounce(
+                  (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const v = e.target.value;
+                    setFilterRecentHCustom(v);
+                    const val = parseFloat(v);
+                    if (isFinite(val) && val >= 0) {
+                      actions.setState({ filterRecentH: val });
+                    } else if (v == "") {
+                      actions.setState({
+                        filterRecentH: FILTER_RECENT_NONE.value,
+                      });
+                    }
+                  },
+                  150,
+                  { leading: true, trailing: true },
+                )}
+                onKeyDown={(e) => e.stopPropagation()}
+                onPressEnter={() => setFilterRecentOpen(false)}
+                addonAfter={<span style={{ paddingLeft: "5px" }}>hours</span>}
+              />
+            </>
+          )}
+        />
+      </Tooltip>
     );
   }
 
