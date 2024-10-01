@@ -20,7 +20,6 @@ import {
 import { VisibleMDLG } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   cmp,
   hoursToTimeIntervalHuman,
@@ -274,16 +273,7 @@ export function getSortedDates(
     return { dates: [], numFolded: 0 };
   }
 
-  m = filterMessages({ messages: m, filter: search });
-
-  if (typeof filterRecentH === "number" && filterRecentH > 0) {
-    const now = webapp_client.server_time().getTime();
-    const cutoff = now - filterRecentH * 1000 * 60 * 60;
-    m = m.filter((msg) => {
-      const date = msg.get("date").getTime();
-      return date >= cutoff;
-    });
-  }
+  m = filterMessages({ messages: m, filter: search, filterRecentH });
 
   const v: [date: number, reply_to: number | undefined][] = [];
   for (const [date, message] of m) {
