@@ -51,7 +51,8 @@ import {
   Feedback,
   MessageHistory,
 } from "./types";
-import { history_path } from "@cocalc/util/misc";
+import { hash_string, history_path } from "@cocalc/util/misc";
+import LRU from "lru-cache";
 
 const MAX_CHATSTREAM = 10;
 
@@ -63,6 +64,10 @@ export class ChatActions extends Actions<ChatState> {
   // at once and it really did send them all to openai at once, and
   // this prevents that at least.
   private chatStreams: Set<string> = new Set([]);
+  private beforeStripInputCache = new LRU<number, string>({
+    maxSize: 5000000,
+    sizeCalculation: (value) => value.length,
+  });
 
   public set_syncdb(syncdb: SyncDB, store: ChatStore): void {
     this.syncdb = syncdb;
@@ -267,6 +272,8 @@ export class ChatActions extends Actions<ChatState> {
       // do not send while uploading or there is nothing to send.
       return "";
     }
+    const isLLMChat =
+      mentionsLanguageModel(input) || this.isLanguageModelThread(reply_to);
     const time_stamp: Date = webapp_client.server_time();
     const time_stamp_str = time_stamp.toISOString();
     const message: ChatMessage = {
@@ -283,6 +290,20 @@ export class ChatActions extends Actions<ChatState> {
       reply_to: reply_to?.toISOString(),
       editing: {},
     };
+    let originalInput: undefined | string = undefined;
+    if (isLLMChat) {
+      const stripInput = llmStripInput(input);
+      if (stripInput != input) {
+        // save original input so it can be used for "regenerate" and otherwise
+        // sending to the llm.
+        this.beforeStripInputCache.set(
+          hash_string(JSON.stringify(message)),
+          input,
+        );
+        originalInput = input;
+        message.history[0].content = stripInput;
+      }
+    }
     this.syncdb.set(message);
     if (!reply_to) {
       this.delete_draft(0);
@@ -312,11 +333,7 @@ export class ChatActions extends Actions<ChatState> {
     const path = this.store?.get("path");
     // set notification saying that we sent an actual chat
     let action;
-    if (
-      noNotification ||
-      mentionsLanguageModel(input) ||
-      this.isLanguageModelThread(reply_to)
-    ) {
+    if (noNotification || isLLMChat) {
       // Note: don't mark it is a chat if it is with chatgpt,
       // since no point in notifying all collabs of this.
       action = "edit";
@@ -332,13 +349,16 @@ export class ChatActions extends Actions<ChatState> {
     track("send_chat", { project_id, path });
 
     this.save_to_disk();
-    (async () => {
-      await this.processLLM({
-        message,
-        reply_to: reply_to ?? time_stamp,
-        tag,
-      });
-    })();
+    if (isLLMChat) {
+      (async () => {
+        await this.processLLM({
+          originalInput,
+          message,
+          reply_to: reply_to ?? time_stamp,
+          tag,
+        });
+      })();
+    }
     return time_stamp_str;
   }
 
@@ -675,7 +695,9 @@ export class ChatActions extends Actions<ChatState> {
     tag,
     llm,
     dateLimit,
+    originalInput,
   }: {
+    originalInput?: string;
     message: ChatMessage;
     reply_to?: Date;
     tag?: string;
@@ -718,9 +740,28 @@ export class ChatActions extends Actions<ChatState> {
     }
     let input = message.history?.[0]?.content as string | undefined;
     // if there is no input in the last message, something is really wrong
-    if (input == null) return;
+    if (input == null) {
+      return;
+    }
     // there are cases, where there is nothing in the last message – but we want to regenerate it
-    if (!input && tag !== "regenerate") return;
+    if (!input && tag !== "regenerate") {
+      return;
+    }
+
+    if (originalInput != null) {
+      input = originalInput;
+    } else if (input.includes(OMITTED_INPUT)) {
+      // is it in the cache?
+      const key = hash_string(JSON.stringify(message));
+      originalInput = this.beforeStripInputCache.get(key);
+      if (originalInput != null) {
+        input = originalInput;
+      } else {
+        // it can't work...
+        // Regenerating this response is not longer possible.
+        return;
+      }
+    }
 
     let model: LanguageModel | false = false;
     if (llm != null) {
@@ -749,8 +790,6 @@ export class ChatActions extends Actions<ChatState> {
 
     // without any mentions, of course:
     input = stripMentions(input);
-    // also important to strip details, since they tend to confuse an LLM:
-    //input = stripDetails(input);
     const sender_id = (function () {
       try {
         return model2service(model);
@@ -1157,11 +1196,15 @@ function stripMentions(value: string): string {
   return value.trim();
 }
 
-// not necessary
-// // Remove instances of <details> and </details> from value:
-// function stripDetails(value: string): string {
-//   return value.replace(/<details>/g, "").replace(/<\/details>/g, "");
-// }
+// Replace contents of details blocks with a placeholder.
+// These blocks are often huge and we do want to send them
+// to the LLM, but NOT record them in the chat log.
+// We check for this OMITTED_INPUT string to see if code was
+// stripped, so don't just set it to the empty string!
+const OMITTED_INPUT = "<details>...omitted...</details>";
+function llmStripInput(value: string): string {
+  return value.replace(/<details>[\s\S]*?<\/details>/g, OMITTED_INPUT);
+}
 
 function mentionsLanguageModel(input?: string): boolean {
   const x = input?.toLowerCase() ?? "";

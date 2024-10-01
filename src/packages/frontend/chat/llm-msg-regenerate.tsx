@@ -153,10 +153,10 @@ export function RegenerateLLM({
     entries.unshift({ key: "divider", type: "divider" });
     const display =
       isOllamaLLM(model) && ollama?.get(model) != null
-        ? ollama?.getIn([model, "display"]) ?? model
+        ? (ollama?.getIn([model, "display"]) ?? model)
         : isCustomOpenAI(model) && custom_openai?.get(model) != null
-        ? custom_openai?.getIn([model, "display"]) ?? model
-        : modelToName(model);
+          ? (custom_openai?.getIn([model, "display"]) ?? model)
+          : modelToName(model);
     entries.unshift({
       key: "same",
       label: (
@@ -173,7 +173,7 @@ export function RegenerateLLM({
   }
 
   return (
-    <Tooltip title="Regenerating the response will send the thread to the language model again and replace this answer. Select a different language model to see, if it has a better response. Previous answers are kept in the history of that message.">
+    <Tooltip title="Regenerating the response will send the thread to the language model again and replace this answer. Select a different model to see if it provides a better response. All responses are kept in message history.">
       <Dropdown
         menu={{
           items: entries,
