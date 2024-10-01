@@ -1,7 +1,9 @@
 /*
 
-Find all messages that match a given collection of filters.
+Find all threads that match a given collection of filters.
 
+NOTE: chat uses every imaginable way to store a timestamp at once,
+which is the may source of weirdness in the code below...  Beware.
 */
 
 import type { ChatMessages, ChatMessageTyped, MessageHistory } from "./types";
@@ -9,6 +11,7 @@ import { search_match, search_split } from "@cocalc/util/misc";
 import { List } from "immutable";
 import type { TypedMap } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import LRU from "lru-cache";
 
 export function filterMessages({
   messages,
@@ -20,44 +23,108 @@ export function filterMessages({
   filter?: string;
   filterRecentH?: number;
 }) {
-  let messages0 = messages;
-  if (filter) {
-    const searchTerms = search_split(filter);
-    messages0 = messages0.filter((message) =>
-      searchMatches(message, searchTerms),
-    );
-  }
+  filter = filter?.trim();
 
+  if (!(filter || (typeof filterRecentH === "number" && filterRecentH > 0))) {
+    // no filters -- typical special case; waste now time.
+    return messages;
+  }
+  const searchData = getSearchData(messages);
+  let matchingRootTimes: Set<string>;
+  if (filter) {
+    matchingRootTimes = new Set<string>();
+    const searchTerms = search_split(filter);
+    for (const rootTime in searchData) {
+      const { content } = searchData[rootTime];
+      if (search_match(content, searchTerms)) {
+        matchingRootTimes.add(rootTime);
+      }
+    }
+  } else {
+    matchingRootTimes = new Set(Object.keys(searchData));
+  }
   if (typeof filterRecentH === "number" && filterRecentH > 0) {
+    // remove anything from matchingRootTimes that doesn't match
     const now = webapp_client.server_time().getTime();
     const cutoff = now - filterRecentH * 1000 * 60 * 60;
-    messages0 = messages0.filter((message) => {
-      const date = message.get("date").getTime();
-      return date >= cutoff;
-    });
+    const x = new Set<string>();
+    for (const rootTime of matchingRootTimes) {
+      const { newestTime } = searchData[rootTime];
+      if (newestTime >= cutoff) {
+        x.add(rootTime);
+      }
+    }
+    matchingRootTimes = x;
   }
 
-  if (messages0.size == 0) {
-    // nothing matches
-    return messages0;
-  }
-
-  // Next, we expand to include all threads containing any matching messages.
-  // First find the roots of all matching threads:
-  const roots = new Set<string>();
-  for (const [_, message] of messages0) {
-    roots.add(message.get("reply_to") ?? message.get("date").toISOString());
-  }
+  // Finally take all messages in all threads that have root in matchingRootTimes.
   // Return all messages in these threads
-  return messages.filter((message) => roots.has(message.get("reply_to") ?? message.get("date").toISOString()));
+  // @ts-ignore -- immutable js typing seems wrong for filter
+  const matchingThreads = messages.filter((message, time) => {
+    const reply_to = message.get("reply_to"); // iso string if defined
+    let rootTime: string;
+    if (reply_to != null) {
+      rootTime = `${new Date(reply_to).valueOf()}`;
+    } else {
+      rootTime = time;
+    }
+    return matchingRootTimes.has(rootTime);
+  });
+
+  return matchingThreads;
 }
 
 // NOTE: I removed search including send name, since that would
-// be slower and of questionable value.
-export function searchMatches(message: ChatMessageTyped, searchTerms): boolean {
+// be slower and of questionable value.  Maybe we want to add it back?
+// A dropdown listing people might be better though, similar to the
+// time filter.
+function getContent(message: ChatMessageTyped): string {
   const first = message.get("history", List()).first() as
     | TypedMap<MessageHistory>
     | undefined;
-  if (first == null) return false;
-  return search_match(first.get("content", ""), searchTerms);
+  return first?.get("content") ?? "";
+}
+
+// Make a map
+//     thread root timestamp --> {content:string; newest_message:Date}
+// We can then use this to find the thread root timestamps that match the entire search
+
+type SearchData = {
+  // time in ms but as string
+  // newestTime in ms as actual number (suitable to compare)
+  [rootTime: string]: { content: string; newestTime: number };
+};
+
+const cache = new LRU<ChatMessages, SearchData>({ max: 25 });
+
+function getSearchData(messages): SearchData {
+  if (cache.has(messages)) {
+    return cache.get(messages)!;
+  }
+  const data: SearchData = {};
+  for (const [time, message] of messages) {
+    let rootTime: string;
+    if (message.get("reply_to")) {
+      // non-root in thread
+      rootTime = `${new Date(message.get("reply_to")).valueOf()}`;
+    } else {
+      // new root thread
+      rootTime = time;
+    }
+    const messageTime = parseFloat(time);
+    const content = getContent(message);
+    if (data[rootTime] == null) {
+      data[rootTime] = {
+        content,
+        newestTime: messageTime,
+      };
+    } else {
+      data[rootTime].content += "\n" + content;
+      if (data[rootTime].newestTime < messageTime) {
+        data[rootTime].newestTime = messageTime;
+      }
+    }
+  }
+  cache.set(messages, data);
+  return data;
 }

@@ -160,6 +160,7 @@ export function ChatLog({
       {messages != null && (
         <NotShowing
           num={messages.size - numFolded - sortedDates.length}
+          showing={sortedDates.length}
           search={search}
           filterRecentH={filterRecentH}
           actions={actions}
@@ -343,9 +344,16 @@ interface NotShowingProps {
   search: string;
   filterRecentH: number;
   actions;
+  showing;
 }
 
-function NotShowing({ num, search, filterRecentH, actions }: NotShowingProps) {
+function NotShowing({
+  num,
+  search,
+  filterRecentH,
+  actions,
+  showing,
+}: NotShowingProps) {
   if (num <= 0) return null;
 
   const timespan =
@@ -353,7 +361,7 @@ function NotShowing({ num, search, filterRecentH, actions }: NotShowingProps) {
 
   return (
     <Alert
-      style={{ marginBottom: "5px" }}
+      style={{ margin: "5px" }}
       showIcon
       type="warning"
       message={
@@ -370,7 +378,7 @@ function NotShowing({ num, search, filterRecentH, actions }: NotShowingProps) {
                   search.trim() ? "and" : "that"
                 } were not sent in the past ${timespan}`
               : ""}
-            .
+            . Showing {showing} {plural(showing, "message")}.
           </b>
           <Button
             onClick={() => {
