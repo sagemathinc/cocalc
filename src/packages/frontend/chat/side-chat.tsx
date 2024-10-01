@@ -1,5 +1,4 @@
 import { Button, Flex, Space, Tooltip } from "antd";
-import { debounce } from "lodash";
 import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import {
   redux,
@@ -8,7 +7,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { AddCollaborators } from "@cocalc/frontend/collaborators";
-import { A, Icon, Loading, SearchInput } from "@cocalc/frontend/components";
+import { A, Icon, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { ProjectUsers } from "@cocalc/frontend/projects/project-users";
 import { user_activity } from "@cocalc/frontend/tracker";
@@ -20,6 +19,7 @@ import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 import { COLORS } from "@cocalc/util/theme";
+import Filter from "./filter";
 
 interface Props {
   project_id: string;
@@ -141,11 +141,9 @@ export default function SideChat({ project_id, path, style }: Props) {
           <AddChatCollab addCollab={addCollab} project_id={project_id} />
         </div>
       )}
-      <SearchInput
-        autoFocus={false}
-        placeholder={"Filter messages (use /re/ for regexp)..."}
-        default_value={search}
-        on_change={debounce((search) => actions.setState({ search }), 500)}
+      <Filter
+        actions={actions}
+        search={search}
         style={{
           margin: 0,
           ...(messages.size >= 2
@@ -214,6 +212,7 @@ export default function SideChat({ project_id, path, style }: Props) {
           on_send={() => {
             sendChat(lastVisible ? { reply_to: lastVisible } : undefined);
             user_activity("side_chat", "send_chat", "keyboard");
+            actions?.clearAllFilters();
           }}
           style={{ height: INPUT_HEIGHT }}
           height={INPUT_HEIGHT}

@@ -39,7 +39,7 @@ import {
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
+import { cmp, isValidUUID, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
@@ -51,7 +51,6 @@ import {
   Feedback,
   MessageHistory,
 } from "./types";
-import { getSelectedHashtagsSearch } from "./utils";
 import { history_path } from "@cocalc/util/misc";
 
 const MAX_CHATSTREAM = 10;
@@ -193,7 +192,7 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  public foldThread(reply_to: Date, msgIndex: number) {
+  public foldThread(reply_to: Date, messageIndex?: number) {
     if (this.syncdb == null) return;
     const account_id = this.redux.getStore("account").get_account_id();
     const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
@@ -210,8 +209,8 @@ export class ChatActions extends Actions<ChatState> {
 
     this.syncdb.commit();
 
-    if (folded && msgIndex != null) {
-      this.scrollToBottom(msgIndex);
+    if (folded && messageIndex != null) {
+      this.scrollToBottom(messageIndex);
     }
   }
 
@@ -294,40 +293,44 @@ export class ChatActions extends Actions<ChatState> {
       // For replies search find full threads not individual messages.
       this.setState({
         input: "",
-        search: "",
       });
+      this.clearAllFilters();
     } else {
-      // TODO: but until we improve search to be by thread (instead of by message), do this:
-      this.setState({
-        search: "",
-      });
-    }
-    this.ensureDraftStartsWithHashtags(false);
-
-    if (this.store != null) {
-      const project_id = this.store?.get("project_id");
-      const path = this.store?.get("path");
-      // set notification saying that we sent an actual chat
-      let action;
+      // when replying we make sure that the thread is expanded, since otherwise
+      // our reply won't be visible
+      const messages = this.store.get("messages");
       if (
-        noNotification ||
-        mentionsLanguageModel(input) ||
-        this.isLanguageModelThread(reply_to)
+        messages
+          ?.getIn([`${reply_to.valueOf()}`, "folding"])
+          ?.includes(sender_id)
       ) {
-        // Note: don't mark it is a chat if it is with chatgpt,
-        // since no point in notifying all collabs of this.
-        action = "edit";
-      } else {
-        action = "chat";
+        this.foldThread(reply_to);
       }
-      webapp_client.mark_file({
-        project_id,
-        path,
-        action,
-        ttl: 10000,
-      });
-      track("send_chat", { project_id, path });
     }
+
+    const project_id = this.store?.get("project_id");
+    const path = this.store?.get("path");
+    // set notification saying that we sent an actual chat
+    let action;
+    if (
+      noNotification ||
+      mentionsLanguageModel(input) ||
+      this.isLanguageModelThread(reply_to)
+    ) {
+      // Note: don't mark it is a chat if it is with chatgpt,
+      // since no point in notifying all collabs of this.
+      action = "edit";
+    } else {
+      action = "chat";
+    }
+    webapp_client.mark_file({
+      project_id,
+      path,
+      action,
+      ttl: 10000,
+    });
+    track("send_chat", { project_id, path });
+
     this.save_to_disk();
     (async () => {
       await this.processLLM({
@@ -621,38 +624,6 @@ export class ChatActions extends Actions<ChatState> {
         ? selectedHashtags.delete(tag)
         : selectedHashtags.set(tag, state);
     this.setState({ selectedHashtags });
-    this.ensureDraftStartsWithHashtags(true);
-  }
-
-  private ensureDraftStartsWithHashtags(commit: boolean = false): void {
-    if (this.syncdb == null || this.store == null) return;
-    // set draft input to match selected hashtags, if any.
-    const hashtags = this.store.get("selectedHashtags");
-    if (hashtags == null) return;
-    const { selectedHashtagsSearch } = getSelectedHashtagsSearch(hashtags);
-    let input = this.store.get("input");
-    const prefix = selectedHashtagsSearch.trim() + " ";
-    if (input.startsWith(prefix)) {
-      return;
-    }
-    const v = parse_hashtags(input);
-    if (v.length > 0) {
-      input = input.slice(v[v.length - 1][1]);
-    }
-
-    input = prefix + input;
-    this.setState({ input });
-    const sender_id = this.redux.getStore("account").get_account_id();
-    this.syncdb.set({
-      event: "draft",
-      active: Date.now(),
-      sender_id,
-      input,
-      date: 0,
-    });
-    if (commit) {
-      this.syncdb.commit();
-    }
   }
 
   public help() {
@@ -1129,6 +1100,14 @@ export class ChatActions extends Actions<ChatState> {
       path: history_path(store.get("path")!),
       foreground: true,
       foreground_project: true,
+    });
+  };
+
+  clearAllFilters = () => {
+    this.setState({
+      search: "",
+      selectedHashtags: immutableMap(),
+      filterRecentH: 0,
     });
   };
 }

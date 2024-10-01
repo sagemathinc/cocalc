@@ -13,9 +13,8 @@ rewrote this to use the Antd dropdown, which is more dynamic.
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
-
 import { CSS, ReactDOM } from "@cocalc/frontend/app-framework";
-import { MenuItems } from "@cocalc/frontend/components";
+import type { MenuItems } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { strictMod } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -48,9 +47,13 @@ type Props = Props1 | Props2;
 // WARNING: Complete closing when clicking outside the complete box
 // is handled in cell-list on_click.  This is ugly code (since not localized),
 // but seems to work well for now.  Could move.
-export function Complete(props: Props) {
-  const { items, onSelect, onCancel, offset, position } = props;
-
+export function Complete({
+  items,
+  onSelect,
+  onCancel,
+  offset,
+  position,
+}: Props) {
   const items_user = items.filter((item) => !(item.is_llm ?? false));
 
   // All other LLMs that should not show up in the main menu
@@ -174,8 +177,6 @@ export function Complete(props: Props) {
     };
   }, [onKeyDown, onCancel]);
 
-  if (items.length === 0) return null;
-
   selected_key_ref.current = (() => {
     if (llm || onlyLLMs) {
       const len: number = items_llm.length ?? 1;
@@ -213,9 +214,10 @@ export function Complete(props: Props) {
     menuItems.push({
       key: "sub_llm",
       label: (
-        <span style={style}>
-          <AIAvatar size={22} /> More AI Language Models
-        </span>
+        <div style={{ ...style, display: "flex", alignItems: "center" }}>
+          <AIAvatar size={22} />{" "}
+          <span style={{ marginLeft: "5px" }}>More AI Language Models</span>
+        </div>
       ),
       style,
       children: items_llm.map(({ label, value }) => {
@@ -226,6 +228,10 @@ export function Complete(props: Props) {
         };
       }),
     });
+  }
+
+  if (menuItems.length == 0) {
+    menuItems.push({ key: "nothing", label: "No items found", disabled: true });
   }
 
   // NOTE: the AI LLM sub-menu is either opened by hovering (clicking closes immediately) or by right-arrow key

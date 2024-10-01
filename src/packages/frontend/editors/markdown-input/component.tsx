@@ -275,6 +275,12 @@ export function MarkdownInput(props: Props) {
 
     cm.current = CodeMirror.fromTextArea(node, {
       ...options,
+      // dragDrop=false: instead of useless codemirror dnd, we upload file and make link.
+      // Note that for the md editor or other full code editors, we DO want dragDrop true,
+      // since, e.g., you can select some text, then drag it around, which is useful. For
+      // a simple chat message or tiny bit of markdown (like this is for), that's not so
+      // useful and drag-n-drop file upload is way better.
+      dragDrop: false,
       // IMPORTANT: there is a useEffect involving options below
       // where the following four properties must be explicitly excluded!
       inputStyle: "contenteditable" as "contenteditable", // needed for spellcheck to work!
@@ -616,7 +622,6 @@ export function MarkdownInput(props: Props) {
   }
 
   function handle_paste_event(_, e): void {
-    // console.log("handle_paste_event", e);
     const items = e.clipboardData.items;
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -909,11 +914,6 @@ export function MarkdownInput(props: Props) {
         style={{ height: "100%", width: "100%" }}
         dropzone_ref={dropzone_ref}
         close_preview_ref={upload_close_preview_ref}
-        config={
-          // only images work since when pasting other doc types
-          // things blow up (due to conflict with codemirror?)
-          { acceptedFiles: "image/*" }
-        }
       >
         {body}
       </BlobUpload>
