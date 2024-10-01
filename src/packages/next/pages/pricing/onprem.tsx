@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Layout, List } from "antd";
+import { Alert, Button, Divider, Layout, List } from "antd";
 import { useRouter } from "next/router";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
@@ -18,36 +18,45 @@ import A from "components/misc/A";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import { ReactNode } from "react";
 
 const PUBLISH_PRICE = true;
 
+const CM = <Icon name="check" />;
+
+const INF = "∞";
 interface Item {
   title: string;
   icon: IconName;
   individuals: string;
   price: number | null;
-  academic?: boolean;
+  academic?: ReactNode;
+  extra?: number;
+  prod?: string;
 }
 
 const data: Item[] = [
   {
     title: "Small Business",
     icon: "experiment",
-    individuals: "up to 25",
+    individuals: "≤ 25",
     price: 5000,
+    extra: 5000,
   },
   {
-    title: "Academic Research",
-    icon: "graduation-cap",
-    individuals: "up to 25",
-    price: 3000,
-    academic: true,
-  },
-  {
-    title: "Large institution",
-    icon: "project-outlined",
-    individuals: "more than 25",
+    title: "Large Organization",
+    icon: "home",
+    individuals: "> 25",
     price: null,
+    prod: "≥1",
+  },
+  {
+    title: "University",
+    icon: "graduation-cap",
+    individuals: "≤ 150",
+    price: 3000,
+    extra: 3000,
+    academic: CM,
   },
 ];
 
@@ -75,10 +84,20 @@ function Body() {
   const router = useRouter();
 
   const body = encodeURIComponent(
-    "PLEASE EXPLAIN YOUR EXPECTED USE CASE TO HELP US GUIDE YOU:\n\nWE WOULD LOVE TO SETUP A VIDEO CALL WITH YOU! WHEN ARE YOU AVAILABLE?",
+    "PLEASE EXPLAIN YOUR EXPECTED USE CASE TO HELP US GUIDE YOU:\n\nWE WOULD LOVE TO SETUP A VIDEO CALL WITH YOU! WHEN ARE YOU AVAILABLE (DAYS, TIMESLOTS, TIMEZONE)?",
   );
 
-  const contactURL = `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20On-prem&body=${body}&title=Purchase%20CoCalc%20On-prem`;
+  const contactURL = `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20OnPrem&body=${body}&title=Purchase%20CoCalc%20On-prem`;
+
+  function renderContactButton(
+    text: string | ReactNode = "Contact us",
+  ): JSX.Element {
+    return (
+      <Button size="large" onClick={() => router.push(contactURL)}>
+        {text}
+      </Button>
+    );
+  }
 
   function renderContact(): JSX.Element {
     return (
@@ -88,14 +107,23 @@ function Body() {
         showIcon={false}
         style={{
           textAlign: "center",
-          fontSize: "125%",
+          padding: "30px",
           marginTop: "30px",
           marginBottom: "30px",
+          borderRadius: "10px",
         }}
         message={
           <>
-            Please <A href={contactURL}>contact us</A> for questions, licensing
-            details, and purchasing.
+            <Paragraph strong style={{ fontSize: "150%" }}>
+              Please <A href={contactURL}>contact us</A> for questions,
+              licensing details, and purchasing.
+            </Paragraph>
+            <Paragraph>
+              <Text strong>Licensing is very flexible:</Text> additional
+              discounts for academic institutions, multi-year commitments,
+              first-year customers, and other options are available.
+            </Paragraph>
+            {renderContactButton()}
           </>
         }
       />
@@ -109,43 +137,79 @@ function Body() {
           <List
             grid={{ gutter: 30, column: 3, xs: 1, sm: 1 }}
             dataSource={data}
-            renderItem={({ price, individuals, icon, title, academic }) => {
+            renderItem={({
+              price,
+              individuals,
+              icon,
+              title,
+              academic,
+              extra,
+              prod,
+            }) => {
               return (
                 <PricingItem title={title} icon={icon}>
-                  <Line amount={individuals} desc={"Users"} />
+                  <Line amount={individuals} desc={"Monthly Active Users¹"} />
+                  <Line amount={prod ?? 1} desc="Production Deployment" />
+                  <Line amount={1} desc="Test Deployment" />
+                  <Line amount={INF} desc="Number of Projects" />
+                  <Line amount={INF} desc="Project Collaborators" />
+                  <Line amount={INF} desc="Cluster Resources²" />
+                  <Line amount={CM} desc="Help for Initial Setup" />
+                  <Divider />
+                  <Line amount={CM} desc="Collaborative Jupyter, LaTeX, ..." />
+                  <Line amount={CM} desc="Custom Software Environments" />
+                  <Line amount={CM} desc="Regular Software Upgrades" />
+                  <Line amount={CM} desc="Flexible LLM integration³" />
+                  <Line amount={CM} desc="GPU Support" />
+                  <Line amount={CM} desc="SAML SSO" />
+
                   {academic ? (
-                    <Line amount={1} desc="Academic discount" />
+                    <>
+                      <Divider />
+                      <Line
+                        amount={academic}
+                        desc={<Text strong>Academic discount</Text>}
+                      />
+                    </>
                   ) : undefined}
+
                   <br />
-                  <br />
-                  <div>
-                    <span
-                      style={{
-                        fontWeight: "bold",
-                        fontSize: "18pt",
-                        color: COLORS.GRAY_DD,
-                      }}
-                    >
-                      {typeof price === "number" ? (
-                        <>
-                          {money(price, true)}
-                          <span style={{ color: COLORS.GRAY_L }}>/year</span>
-                        </>
-                      ) : (
-                        <Button onClick={() => router.push(contactURL)}>
-                          Contact us
-                        </Button>
-                      )}
-                    </span>
+                  <div
+                    style={{
+                      textAlign: "center",
+                    }}
+                  >
+                    {typeof price === "number"
+                      ? renderContactButton(
+                          <span
+                            style={{
+                              fontWeight: "bold",
+                              fontSize: "18pt",
+                              color: COLORS.GRAY_DD,
+                              padding: "10px",
+                            }}
+                          >
+                            {money(price, true)}
+                            <span style={{ color: COLORS.GRAY }}>/year</span>
+                          </span>,
+                        )
+                      : renderContactButton()}
                   </div>
+                  {extra ? (
+                    <>
+                      <Divider />
+                      <Paragraph type="secondary">
+                        <Line
+                          amount={`$${extra}`}
+                          desc={<span>Premium Support (optional)</span>}
+                        />
+                      </Paragraph>
+                    </>
+                  ) : undefined}
                 </PricingItem>
               );
             }}
           />
-          <Paragraph>
-            Discounts for: academic institutions, multi-year committments,
-            first-year discounts, ...
-          </Paragraph>
           {renderContact()}
         </>
       );
@@ -180,25 +244,28 @@ function Body() {
           performance, scalability, and reliability. This enterprise-grade
           solution offers:
           <ul>
-            <li>Complete control over your data and computing environment;</li>
-            <li>
-              Enhanced privacy and security for sensitive research and
-              educational content;
-            </li>
-            <li>
-              Seamless integration with your existing IT infrastructure – for
-              example SAML based SSO authentication;
-            </li>
-            <li>Customizable features to meet specific institutional needs;</li>
             <li>
               The full suite of collaborative tools available on cocalc.com:{" "}
               <Text strong>
-                Jupyter Notebooks, Python, SageMath, R, Octave and LaTeX
+                Jupyter Notebooks for Python, SageMath, R, Octave
               </Text>
-              . Editing code- and text-files, Linux terminal, compiling code,
-              and a virtual X11 desktop are included as well. Beyond the
-              standard set of included software, it's also possible to define{" "}
-              <Text strong>customized software environments</Text>.
+              , editing <Text strong>LaTeX, Code- and Markdown/Text-files</Text>
+              , a <Text strong>collaborative Linux Terminal</Text>, and a{" "}
+              <Text strong>virtual X11 desktop</Text>.
+            </li>
+            <li>
+              Complete control over your data and computing environment, which
+              results in enhanced <Text strong>privacy and security</Text> for
+              sensitive research and educational content;
+            </li>
+            <li>
+              Integration with your existing IT infrastructure – for example
+              SAML based SSO authentication;
+            </li>
+            <li>
+              Beyond the standard set of included software, it's possible to
+              define <Text strong>customizable software environments</Text> and
+              adjust specific features to meet specific institutional needs;
             </li>
             <li>
               We'll guide you through the setup process and give you enough
@@ -213,8 +280,9 @@ function Body() {
           data science collaboration.
         </Paragraph>
 
+        <Title level={3}>Prerequisites</Title>
+
         <Paragraph>
-          <Text strong>Prerequisites</Text>
           <ul>
             <li>
               A{" "}
@@ -222,10 +290,17 @@ function Body() {
                 <A href={"https://kubernetes.io"}>Kubernetes Cluster</A>
               </Text>{" "}
               and some experience managing it. OnPrem should run on your own
-              bare-metal cluster or a managed kubernetes clusters like{" "}
-              <A href={"https://aws.amazon.com/eks/"}>Amazon's EKS</A> or{" "}
-              <A href={"https://cloud.google.com/kubernetes-engine"}>
+              bare-metal cluster or a managed kubernetes cluster like{" "}
+              <A href={"https://onprem.cocalc.com/deploy/eks.html"}>
+                Amazon's EKS
+              </A>
+              ,{" "}
+              <A href={"https://onprem.cocalc.com/deploy/gke.html"}>
                 Google's GKE
+              </A>
+              , or{" "}
+              <A href={"https://onprem.cocalc.com/deploy/aks.html"}>
+                Azure's AKS
               </A>
               .
             </li>
@@ -248,9 +323,8 @@ function Body() {
               database.
             </li>
             <li>
-              Regarding storage, a shared network file-system like{" "}
-              <Text strong>NFS</Text> will hold the data of all projects. The
-              only pre-requisite is it needs to support the Kubernetes{" "}
+              A shared network file-system like <Text strong>NFS</Text>. It must
+              support the Kubernetes{" "}
               <A
                 href={
                   "https://kubernetes.io/docs/concepts/storage/persistent-volumes/#access-modes"
@@ -264,10 +338,28 @@ function Body() {
         </Paragraph>
         <Paragraph>
           For more details, see the{" "}
-          <A href="https://onprem.cocalc.com/">CoCalc OnPrem documentation</A>.
+          <Text strong>
+            <A href="https://onprem.cocalc.com/">CoCalc OnPrem documentation</A>
+          </Text>
+          .
         </Paragraph>
         <Title level={3}>Purchasing CoCalc OnPrem</Title>
         {renderPriceInfo()}
+        <Paragraph
+          style={{
+            marginTop: "100px",
+            borderTop: `1px solid ${COLORS.GRAY_L}`,
+            color: COLORS.GRAY,
+          }}
+        >
+          ¹ "Monthly Active Users" is defined as the maximum count of distinct
+          "Active Users" during any calendar month, who actually use CoCalc.
+          <br />² There are no limitations on the number of CPU cores, Memory or
+          Virtual Machines your instance of CoCalc OnPrem can make use of in
+          your cluster.
+          <br />³ Configure CoCalc OnPrem to use your own internal LLM server
+          for increased privacy.
+        </Paragraph>
       </>
     );
   }
