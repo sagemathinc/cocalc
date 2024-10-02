@@ -59,8 +59,8 @@ export default function SideChat({ project_id, path, style, fontSize }: Props) {
   const sendChat = useCallback(
     (options?) => {
       const input = submitMentionsRef.current?.();
-      actions.send_chat({ input, ...options });
-      actions.delete_draft(0);
+      actions.sendChat({ input, ...options });
+      actions.deleteDraft(0);
       scrollToBottomRef.current?.(true);
       setTimeout(() => {
         scrollToBottomRef.current?.(true);
@@ -121,7 +121,7 @@ export default function SideChat({ project_id, path, style, fontSize }: Props) {
                   project_id,
                   path,
                 ) as ChatActions;
-                actions.send_chat({ input: value });
+                actions.sendChat({ input: value });
               }}
             />
             <Tooltip title="Show TimeTravel change history of this side chat.">
@@ -221,10 +221,10 @@ export default function SideChat({ project_id, path, style, fontSize }: Props) {
           style={{ height: INPUT_HEIGHT }}
           height={INPUT_HEIGHT}
           onChange={(value) => {
-            actions.set_input(value);
+            actions.setInput(value);
             // submitMentionsRef processes the reply, but does not actually send the mentions
             const reply = submitMentionsRef.current?.(undefined, true) ?? value;
-            actions?.llm_estimate_cost(reply, "room");
+            actions?.llmEstimateCost(reply, "room");
           }}
           submitMentionsRef={submitMentionsRef}
           syncdb={actions.syncdb}

@@ -35,7 +35,7 @@ export default async function createChat({
     actions.path,
   );
 
-  await chatActions.send_chat({
+  await chatActions.sendChat({
     input: message,
     tag: `${AI_ASSIST_TAG}-${tag ?? command}`,
     noNotification: true,

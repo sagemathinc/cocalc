@@ -43,7 +43,7 @@ export function initChat(project_id: string, path: string): string {
   syncdb.once("ready", () => {
     actions.set_syncdb(syncdb, store);
     actions.init_from_syncdb();
-    syncdb.on("change", actions.syncdb_change.bind(actions));
+    syncdb.on("change", actions.syncdbChange);
     syncdb.on("has-uncommitted-changes", (val) =>
       actions.setState({ has_uncommitted_changes: val }),
     );

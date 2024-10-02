@@ -211,7 +211,7 @@ export async function getHelp({
   // scroll to bottom *after* the message gets sent.
   const actions = await getChatActions(redux, project_id, path);
   setTimeout(() => actions.scrollToBottom(), 100);
-  await actions.send_chat({
+  await actions.sendChat({
     input: message,
     tag: `help-me-fix${tag ? `:${tag}` : ""}`,
     noNotification: true,

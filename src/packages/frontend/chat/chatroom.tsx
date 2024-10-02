@@ -131,7 +131,7 @@ export function ChatRoom({
                 cursor: "pointer",
                 fontSize: "13pt",
               }}
-              onClick={() => actions.set_is_preview(false)}
+              onClick={() => actions.setIsPreview(false)}
             >
               <Icon name="times" />
             </div>
@@ -185,7 +185,7 @@ export function ChatRoom({
       <VideoChatButton
         project_id={project_id}
         path={path}
-        sendChat={(value) => actions.send_chat({ input: value })}
+        sendChat={(value) => actions.sendChat({ input: value })}
       />
     );
   }
@@ -308,7 +308,7 @@ export function ChatRoom({
   function on_send(): void {
     const input = submitMentionsRef.current?.();
     scrollToBottomRef.current?.(true);
-    actions.send_chat({ input });
+    actions.sendChat({ input });
     setTimeout(() => {
       scrollToBottomRef.current?.(true);
     }, 100);
@@ -344,11 +344,11 @@ export function ChatRoom({
               on_send={on_send}
               height={INPUT_HEIGHT}
               onChange={(value) => {
-                actions.set_input(value);
+                actions.setInput(value);
                 // submitMentionsRef will not actually submit mentions; we're only interested in the reply value
                 const reply =
                   submitMentionsRef.current?.(undefined, true) ?? value;
-                actions?.llm_estimate_cost(reply, "room");
+                actions?.llmEstimateCost(reply, "room");
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
@@ -398,7 +398,7 @@ export function ChatRoom({
             </Tooltip>
             <div style={{ height: "5px" }} />
             <Button
-              onClick={() => actions.set_is_preview(true)}
+              onClick={() => actions.setIsPreview(true)}
               style={{ height: "47.5px" }}
               disabled={is_preview}
             >

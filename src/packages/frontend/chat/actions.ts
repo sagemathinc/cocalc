@@ -95,7 +95,7 @@ export class ChatActions extends Actions<ChatState> {
     initFromSyncDB({ syncdb: this.syncdb, store: this.store });
   };
 
-  syncdb_change = (changes): void => {
+  syncdbChange = (changes): void => {
     if (this.syncdb == null) {
       return;
     }
@@ -151,7 +151,7 @@ export class ChatActions extends Actions<ChatState> {
   // chatgpt, which is currently managed by the frontend
   // (not the project).  Also the async doesn't finish until
   // chatgpt is totally done.
-  send_chat = ({
+  sendChat = ({
     input,
     sender_id = this.redux.getStore("account").get_account_id(),
     reply_to,
@@ -165,7 +165,7 @@ export class ChatActions extends Actions<ChatState> {
     noNotification?: boolean;
   }): string => {
     if (this.syncdb == null || this.store == null) {
-      console.warn("attempt to send_chat before chat actions initialized");
+      console.warn("attempt to sendChat before chat actions initialized");
       // WARNING: give an error or try again later?
       return "";
     }
@@ -195,7 +195,7 @@ export class ChatActions extends Actions<ChatState> {
     };
     this.syncdb.set(message);
     if (!reply_to) {
-      this.delete_draft(0);
+      this.deleteDraft(0);
       // NOTE: we also clear search, since it's confusing to send a message and not
       // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
       // since by default the message you are sending has those tags.
@@ -255,7 +255,7 @@ export class ChatActions extends Actions<ChatState> {
     return time_stamp_str;
   };
 
-  set_editing = (message: ChatMessageTyped, is_editing: boolean) => {
+  setEditing = (message: ChatMessageTyped, is_editing: boolean) => {
     if (this.syncdb == null) {
       // WARNING: give an error or try again later?
       return;
@@ -281,7 +281,7 @@ export class ChatActions extends Actions<ChatState> {
   // NOTE: this is inefficient; it assumes
   //       the number of edits is small, which is reasonable -- nobody makes hundreds of distinct
   //       edits of a single message.
-  send_edit = (message: ChatMessageTyped, content: string): void => {
+  sendEdit = (message: ChatMessageTyped, content: string): void => {
     if (this.syncdb == null) {
       // WARNING: give an error or try again later?
       return;
@@ -302,11 +302,11 @@ export class ChatActions extends Actions<ChatState> {
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
     });
-    this.delete_draft(message.get("date")?.valueOf());
+    this.deleteDraft(message.get("date")?.valueOf());
     this.save_to_disk();
   };
 
-  save_history = (
+  saveHistory = (
     message: ChatMessage,
     content: string,
     author_id: string,
@@ -334,7 +334,7 @@ export class ChatActions extends Actions<ChatState> {
     return { date, prevHistory };
   };
 
-  send_reply = ({
+  sendReply = ({
     message,
     reply,
     from,
@@ -362,18 +362,18 @@ export class ChatActions extends Actions<ChatState> {
             date: new Date(message.date).valueOf(),
             messages: store.get("messages"),
           });
-    const time_stamp_str = this.send_chat({
+    const time_stamp_str = this.sendChat({
       input: reply,
       sender_id: from ?? this.redux.getStore("account").get_account_id(),
       reply_to: new Date(reply_to_value),
       noNotification,
     });
     // negative date of reply_to root is used for replies.
-    this.delete_draft(-reply_to_value);
+    this.deleteDraft(-reply_to_value);
     return time_stamp_str;
   };
 
-  delete_draft = (
+  deleteDraft = (
     date: number,
     commit: boolean = true,
     sender_id: string | undefined = undefined,
@@ -401,11 +401,11 @@ export class ChatActions extends Actions<ChatState> {
     }
   };
 
-  set_input = (input: string): void => {
+  setInput = (input: string): void => {
     this.setState({ input });
   };
 
-  private _llm_estimate_cost = async (
+  private _llmEstimateCost = async (
     input: string,
     type: "room" | "reply",
     message?: ChatMessage,
@@ -455,13 +455,13 @@ export class ChatActions extends Actions<ChatState> {
     }
   };
 
-  llm_estimate_cost: typeof this._llm_estimate_cost = debounce(
-    reuseInFlight(this._llm_estimate_cost),
+  llmEstimateCost: typeof this._llmEstimateCost = debounce(
+    reuseInFlight(this._llmEstimateCost),
     1000,
     { leading: true, trailing: true },
   );
 
-  set_is_preview = (is_preview): void => {
+  setIsPreview = (is_preview): void => {
     this.setState({ is_preview });
   };
 
@@ -673,9 +673,9 @@ export class ChatActions extends Actions<ChatState> {
     // prevHistory: in case of regenerate, it's the history *before* we added the "Thinking..." message (which we ignore)
     const { date, prevHistory = [] } =
       tag === "regenerate"
-        ? this.save_history(message, thinking, sender_id, true)
+        ? this.saveHistory(message, thinking, sender_id, true)
         : {
-            date: this.send_reply({
+            date: this.sendReply({
               message,
               reply: thinking,
               from: sender_id,
@@ -982,7 +982,7 @@ export class ChatActions extends Actions<ChatState> {
       const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
       return { prompt, tokens, truncated: txtFull != txt };
     } else {
-      this.send_chat({
+      this.sendChat({
         input: prompt,
         tag: `chat:summarize`,
         noNotification: true,

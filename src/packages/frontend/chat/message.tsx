@@ -338,7 +338,7 @@ export default function Message(props: Readonly<Props>) {
       // no editing functionality or not in a project with a path.
       return;
     }
-    props.actions.set_editing(message, true);
+    props.actions.setEditing(message, true);
     setAutoFocusEdit(true);
     props.scroll_into_view?.();
   }
@@ -503,7 +503,7 @@ export default function Message(props: Readonly<Props>) {
                       }}
                       type="text"
                       size="small"
-                      onClick={() => props.actions?.set_editing(message, true)}
+                      onClick={() => props.actions?.setEditing(message, true)}
                     >
                       <Icon name="pencil" /> Edit
                     </Button>
@@ -518,9 +518,9 @@ export default function Message(props: Readonly<Props>) {
                       title="Delete this message"
                       description="Are you sure you want to delete this message?"
                       onConfirm={() => {
-                        props.actions?.set_editing(message, true);
+                        props.actions?.setEditing(message, true);
                         setTimeout(
-                          () => props.actions?.send_edit(message, ""),
+                          () => props.actions?.sendEdit(message, ""),
                           1,
                         );
                       }}
@@ -629,17 +629,17 @@ export default function Message(props: Readonly<Props>) {
     const value = newest_content(message);
     if (mesg !== value) {
       set_edited_message(mesg);
-      props.actions.send_edit(message, mesg);
+      props.actions.sendEdit(message, mesg);
     } else {
-      props.actions.set_editing(message, false);
+      props.actions.setEditing(message, false);
     }
   }
 
   function on_cancel(): void {
     set_edited_message(newest_content(message));
     if (props.actions == null) return;
-    props.actions.set_editing(message, false);
-    props.actions.delete_draft(date);
+    props.actions.setEditing(message, false);
+    props.actions.deleteDraft(date);
   }
 
   function renderEditMessage() {
@@ -672,8 +672,8 @@ export default function Message(props: Readonly<Props>) {
           <Button
             style={{ marginRight: "5px" }}
             onClick={() => {
-              props.actions?.set_editing(message, false);
-              props.actions?.delete_draft(date);
+              props.actions?.setEditing(message, false);
+              props.actions?.deleteDraft(date);
             }}
           >
             Cancel
@@ -692,7 +692,7 @@ export default function Message(props: Readonly<Props>) {
     if (!reply) {
       reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
     }
-    props.actions.send_reply({ message: message.toJS(), reply });
+    props.actions.sendReply({ message: message.toJS(), reply });
     props.actions.scrollToBottom(props.index);
   }
 
@@ -727,7 +727,7 @@ export default function Message(props: Readonly<Props>) {
             replyMessageRef.current = value;
             // replyMentionsRef does not submit mentions, only gives us the value
             const reply = replyMentionsRef.current?.(undefined, true) ?? value;
-            props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
+            props.actions?.llmEstimateCost(reply, "reply", message.toJS());
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -736,7 +736,7 @@ export default function Message(props: Readonly<Props>) {
             style={{ marginRight: "5px" }}
             onClick={() => {
               setReplying(false);
-              props.actions?.delete_draft(replyDate);
+              props.actions?.deleteDraft(replyDate);
             }}
           >
             Cancel
