@@ -636,6 +636,8 @@
   "labels.x11_desktop": "Grafischer X11-Desktop",
   "labels.zoom_in": "Vergrößern",
   "labels.zoom_out": "Rauszoomen",
+  "llm-selector.help.message1": "Dieser Selektor bestimmt, welches Sprachmodell zur Generierung der Antwort verwendet wird. Sie können aus einer Vielzahl von Modellen wählen, die jeweils ihre eigenen Stärken und Schwächen haben. Ihre Wahl wird beim nächsten Mal, wenn Sie ein LLM verwenden, zum Standard.",
+  "llm-selector.help.message2": "Die Modelle, die mit \"{FREE}\" gekennzeichnet sind, verursachen keine Kosten. Sie sind jedoch in der Rate begrenzt, um Missbrauch zu vermeiden. Die leistungsfähigeren Modelle sind mit \"{PREMIUM}\" gekennzeichnet und werden nach der Anzahl der gelesenen und generierten Tokens – also \"pay-as-you-go\" – abgerechnet und haben keine Ratenbegrenzungen. In der Regel sind diese Kosten sehr gering!\n\nAngenommen, eine typische Nutzung umfasst {input} Eingabetokens und {output} Ausgabetokens, reicht der Preis für alle Modelle von ${min} bis ${max} pro Nutzung und beträgt {calc} für das ausgewählte Modell {name}.",
   "llm.cost-estimation.model_free_to_use": "Dieses Modell ist kostenlos nutzbar.",
   "menu.generic.button_bar.disable.label": "Alle Schaltflächen entfernen",
   "menu.generic.close_and_halt.label": "Schließen und Stoppen...",

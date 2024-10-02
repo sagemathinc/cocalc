@@ -119,10 +119,15 @@ type Ipynb = {
   metadata: { kernelspec: KernelSpec };
 };
 
-function ensureExtension(filename, ext) {
+function normalizeExt(ext: Ext): Omit<Ext, "ipynb-sagemath"> {
+  return ext === "ipynb-sagemath" ? "ipynb" : ext;
+}
+
+function ensureExtension(filename: string, ext: Ext) {
   if (!filename) return filename;
-  if (!filename.endsWith("." + ext)) {
-    return filename + "." + ext;
+  const ext2 = normalizeExt(ext);
+  if (!filename.endsWith("." + ext2)) {
+    return filename + "." + ext2;
   }
   return filename;
 }
@@ -160,9 +165,11 @@ function AIGenerateDocument({
   const [filename, setFilename] = useState<string>(
     ensureExtension(filename0 ?? "", ext),
   );
+
   useEffect(() => {
     setFilename(ensureExtension(filename0 ?? "", ext));
   }, [filename0]);
+
   const promptRef = useRef<HTMLElement>(null);
 
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
@@ -186,19 +193,33 @@ function AIGenerateDocument({
     (async () => {
       try {
         setKernelSpecs(null);
-        const X = await getKernelSpec(project_id);
+        let X = await getKernelSpec(project_id);
+        if (ext === "ipynb-sagemath") {
+          // filter all KernelSpecs from X, which are not of lang==sagemath
+          X = X.filter((x) => x.language === "sagemath");
+        }
         X.sort(field_cmp("display_name"));
         setKernelSpecs(X);
+
         if (spec == null) {
-          const name = redux
-            .getStore("account")
-            .getIn(["editor_settings", "jupyter", "kernel"]);
-          if (name != null) {
-            for (const a of X) {
-              if (a.name == name) {
-                setSpec(a);
-                break;
+          if (ext !== "ipynb-sagemath") {
+            const name = redux
+              .getStore("account")
+              .getIn(["editor_settings", "jupyter", "kernel"]);
+            if (name != null) {
+              for (const a of X) {
+                if (a.name == name) {
+                  setSpec(a);
+                  break;
+                }
               }
+            }
+          } else {
+            // only sagemath kernels in X
+            if (X.length > 0) {
+              setSpec(X[X.length - 1]);
+            } else {
+              setSpec(null);
             }
           }
         }
@@ -352,7 +373,10 @@ function AIGenerateDocument({
     await webapp_client.project_client.write_text_file({
       project_id,
       path,
-      content: ext === "ipynb" ? JSON.stringify(ipynb, null, 2) : preview,
+      content:
+        ext === "ipynb" || ext === "ipynb-sagemath"
+          ? JSON.stringify(ipynb, null, 2)
+          : preview,
     });
     return path;
   }
@@ -461,6 +485,7 @@ function AIGenerateDocument({
               (ea as LatexActions).build();
               break;
             case "ipynb":
+            case "ipynb-sagemath":
               const jea = ea as JupyterEditorActions;
               const ja: JupyterActions = jea.jupyter_actions;
               // and after we're done, cleanup and run all cells
@@ -496,7 +521,7 @@ function AIGenerateDocument({
     // ATTN: do not call this concurrently, see throttle below
     function updateContent(answer) {
       if (cancel.current) return;
-      if (ext === "ipynb") {
+      if (ext === "ipynb" || ext === "ipynb-sagemath") {
         setPreview("Jupyter Notebook");
         setIpynb(processAnswerIpynb(answer));
       } else {
@@ -508,7 +533,7 @@ function AIGenerateDocument({
     // the case of one token callback with everything and then "null" to indicate it is done.
     const processTokens = throttle(
       async function (answer: string, finalize: boolean) {
-        const fn = getFilename(answer, prompt, ext);
+        const fn = getFilename(answer, prompt, normalizeExt(ext) as string);
         if (!init && fn != null) {
           init = true;
           updateFilename(fn);
@@ -520,7 +545,7 @@ function AIGenerateDocument({
             // we never got a filename, so we create one based on the prompt and create the document
             const fn: string = sanitizeFilename(
               prompt.split("\n").join("_"),
-              ext,
+              normalizeExt(ext) as string,
             );
             updateFilename(fn);
           }
@@ -609,6 +634,7 @@ function AIGenerateDocument({
     const ex = (function (): readonly Example[] {
       switch (ext) {
         case "ipynb":
+        case "ipynb-sagemath":
           return spec != null
             ? JUPYTER[spec.language?.toLowerCase()] ?? []
             : [];
@@ -684,7 +710,7 @@ function AIGenerateDocument({
   }
 
   function renderJupyterKernelSelector() {
-    if (ext !== "ipynb") return;
+    if (ext !== "ipynb" && ext !== "ipynb-sagemath") return;
     return (
       <>
         {typeof kernelSpecs === "string" ? (
@@ -695,9 +721,10 @@ function AIGenerateDocument({
           />
         ) : undefined}
         {kernelSpecs == null && <Loading />}
-        {typeof kernelSpecs == "object" && kernelSpecs != null ? (
+        {typeof kernelSpecs === "object" && kernelSpecs != null ? (
           <Paragraph strong>
-            Select a Jupyter kernel:{" "}
+            {intl.formatMessage(labels.select_a_kernel)}
+            {": "}
             <SelectKernel
               placeholder={`${intl.formatMessage(labels.select_a_kernel)}...`}
               size="middle"
@@ -836,6 +863,7 @@ function AIGenerateDocument({
   function renderPreviewContent({ preview, ipynb }) {
     switch (ext) {
       case "ipynb":
+      case "ipynb-sagemath":
         if (ipynb == null || spec == null) return <Loading />;
         // TODO: figure out how to replace this by the "CellList" component (which requires a bunch of special objects)
         return (
@@ -996,7 +1024,8 @@ export function AIGenerateDocumentModal({
   ext: Props["ext"];
   filename?: string;
 }) {
-  const docName = file_options(`x.${ext}`).name ?? `${capitalize(ext)}`;
+  const ext2 = normalizeExt(ext) as string;
+  const docName = file_options(`x.${ext2}`).name ?? `${capitalize(ext2)}`;
 
   return (
     <Modal
