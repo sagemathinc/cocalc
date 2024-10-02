@@ -5,11 +5,9 @@
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux, redux_name } from "@cocalc/frontend/app-framework";
-import { register_file_editor } from "@cocalc/frontend/file-editors";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split, startswith } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
-import { ChatRoom } from "./chatroom";
 import { ChatStore } from "./store";
 
 // it is fine to call this more than once.
@@ -74,11 +72,3 @@ export function remove(path: string, redux, project_id: string): string {
   return name;
 }
 
-register_file_editor({
-  ext: "sage-chat",
-  icon: "comment",
-  // init has a weird call signature, for historical reasons.
-  init: (path, _redux, project_id) => initChat(project_id ?? "", path),
-  component: ChatRoom,
-  remove,
-});

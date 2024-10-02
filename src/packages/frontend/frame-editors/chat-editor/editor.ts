@@ -4,7 +4,7 @@
  */
 
 /*
-Top-level react component for editing tasks
+Top-level react component for editing chat
 */
 
 import { createElement } from "react";
