@@ -806,7 +806,7 @@ export default function Message(props: Readonly<Props>) {
               ? `Reply to ${modelToName(
                   isLLMThread,
                 )}, sending the entire thread as context.`
-              : "Reply in this thread."
+              : "Reply to this thread."
           }
         >
           <Button

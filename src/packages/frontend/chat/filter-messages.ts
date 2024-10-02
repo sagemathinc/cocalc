@@ -10,6 +10,7 @@ import type { ChatMessages, ChatMessageTyped, MessageHistory } from "./types";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { List } from "immutable";
 import type { TypedMap } from "@cocalc/frontend/app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import LRU from "lru-cache";
 
@@ -74,15 +75,24 @@ export function filterMessages({
   return matchingThreads;
 }
 
-// NOTE: I removed search including send name, since that would
-// be slower and of questionable value.  Maybe we want to add it back?
-// A dropdown listing people might be better though, similar to the
-// time filter.
-function getContent(message: ChatMessageTyped): string {
+function getContent(message: ChatMessageTyped, userMap): string {
   const first = message.get("history", List()).first() as
     | TypedMap<MessageHistory>
     | undefined;
-  return first?.get("content") ?? "";
+  if (!first) {
+    return "";
+  }
+  let content = first.get("content") ?? "";
+
+  // add in name of most recent author of message.  We do this using userMap, which
+  // might not be complete in general, but is VERY FAST.... which is fine
+  // for a search filter.
+  const author_id = first.get("author_id");
+  const user = userMap?.get(author_id);
+  if (user != null) {
+    content += " " + user.get("first_name") + " " + user.get("last_name");
+  }
+  return content;
 }
 
 // Make a map
@@ -102,6 +112,7 @@ function getSearchData(messages): SearchData {
     return cache.get(messages)!;
   }
   const data: SearchData = {};
+  const userMap = redux.getStore("users").get("user_map");
   for (const [time, message] of messages) {
     let rootTime: string;
     if (message.get("reply_to")) {
@@ -112,7 +123,7 @@ function getSearchData(messages): SearchData {
       rootTime = time;
     }
     const messageTime = parseFloat(time);
-    const content = getContent(message);
+    const content = getContent(message, userMap);
     if (data[rootTime] == null) {
       data[rootTime] = {
         content,
