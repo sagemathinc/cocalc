@@ -182,6 +182,7 @@ const TYPE_COLOR: { [name in Type]: string } = {
   question: "blue",
   task: "orange",
   purchase: "green",
+  chat: "purple",
 };
 
 export function Type({ status, type }: { status?: string; type: Type }) {

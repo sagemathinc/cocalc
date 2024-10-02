@@ -6,12 +6,9 @@ import { useEffect, useState } from "react";
 export function liveDemoUrl(context) {
   return getSupportUrl({
     subject: "Contact Us!",
-    type: "question",
-    body: `I would like to chat with a CoCalc Representative!\n\nWHEN IS A GOOD TIME (include timezone!): [REQUIRED]\n\nYOUR ORGANIZATION: [REQUIRED]\n\n(Only requests filled out in good faith will receive a response.)\n`,
-    hideExtra: true,
+    type: "chat",
     context,
     url: "",
-    required: "[REQUIRED]",
   });
 }
 
