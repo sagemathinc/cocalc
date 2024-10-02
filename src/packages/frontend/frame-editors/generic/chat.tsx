@@ -44,7 +44,7 @@ function Chat({ font_size }: Props) {
   if (!initialized) {
     return null;
   }
-  return <SideChat project_id={project_id} path={path} />;
+  return <SideChat project_id={project_id} path={path} fontSize={font_size} />;
 }
 
 export const chat: EditorDescription = {

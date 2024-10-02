@@ -40,6 +40,7 @@ interface Props {
   mode: Mode;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
   setLastVisible?: (x: Date | null) => void;
+  fontSize?: number;
 }
 
 export function ChatLog({
@@ -48,10 +49,11 @@ export function ChatLog({
   scrollToBottomRef,
   mode,
   setLastVisible,
+  fontSize,
 }: Props) {
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
-  const fontSize = useRedux(["font_size"], project_id, path);
+  const font_size = useRedux(["font_size"], project_id, path);
   const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
   const llm_cost_reply: [number, number] = useRedux(
     ["llm_cost_reply"],
@@ -176,7 +178,7 @@ export function ChatLog({
           user_map,
           project_id,
           path,
-          fontSize,
+          fontSize: fontSize ?? font_size,
           selectedHashtags,
           actions,
           llm_cost_reply,

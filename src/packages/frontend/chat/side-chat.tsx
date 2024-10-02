@@ -25,9 +25,15 @@ interface Props {
   project_id: string;
   path: string;
   style?: CSSProperties;
+  fontSize?: number;
 }
 
-export default function SideChat({ project_id, path, style }: Props) {
+export default function SideChat({
+  project_id,
+  path,
+  style,
+  fontSize,
+}: Props) {
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path);
   const [lastVisible, setLastVisible] = useState<Date | null>(null);
@@ -161,6 +167,7 @@ export default function SideChat({ project_id, path, style }: Props) {
         }}
       >
         <ChatLog
+          fontSize={fontSize}
           project_id={project_id}
           path={path}
           scrollToBottomRef={scrollToBottomRef}
