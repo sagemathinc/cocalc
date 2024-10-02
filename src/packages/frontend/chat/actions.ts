@@ -87,11 +87,6 @@ export class ChatActions extends Actions<ChatState> {
     });
   }
 
-  public close(): void {
-    this.syncdb?.close();
-    delete this.syncdb;
-  }
-
   // Initialize the state of the store from the contents of the syncdb.
   public init_from_syncdb(): void {
     if (this.syncdb == null) {
@@ -495,12 +490,6 @@ export class ChatActions extends Actions<ChatState> {
 
   public set_uploading(is_uploading: boolean): void {
     this.setState({ is_uploading });
-  }
-
-  public change_font_size(delta: number): void {
-    if (!this.store) return;
-    const font_size = this.store.get("font_size") + delta;
-    this.setState({ font_size });
   }
 
   // Scan through all messages and figure out what hashtags are used.

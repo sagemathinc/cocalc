@@ -216,7 +216,7 @@ addCommands({
   },
   decrease_font_size: {
     stayOpenOnClick: true,
-    pos: 1,
+    pos: 0,
     group: "zoom",
     title: defineMessage({
       id: "command.generic.decrease_font_size.title",
@@ -235,7 +235,7 @@ addCommands({
   },
   increase_font_size: {
     stayOpenOnClick: true,
-    pos: 0,
+    pos: 1,
     group: "zoom",
     title: defineMessage({
       id: "command.generic.increase_font_size.title",

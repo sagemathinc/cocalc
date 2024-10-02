@@ -210,6 +210,7 @@ export default function SideChat({ project_id, path, style, fontSize }: Props) {
         ) : undefined}
         <ChatInput
           autoFocus
+          fontSize={fontSize}
           cacheId={`${path}${project_id}-new`}
           input={input}
           on_send={() => {

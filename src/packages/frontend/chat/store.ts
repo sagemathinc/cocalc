@@ -4,10 +4,9 @@
  */
 
 import { List, fromJS, Map as immutableMap } from "immutable";
-
-import { Store, redux } from "@cocalc/frontend/app-framework";
+import { Store } from "@cocalc/frontend/app-framework";
 import type { HashtagState } from "@cocalc/frontend/editors/task-editor/types";
-import { ChatMessages, MentionList } from "./types";
+import type { ChatMessages, MentionList } from "./types";
 
 export interface ChatState {
   project_id?: string;
@@ -30,7 +29,6 @@ export interface ChatState {
   has_unsaved_changes: boolean;
   unsent_user_mentions: MentionList;
   is_uploading: boolean;
-  font_size: number;
   // whenever this changes and is defined, do a scroll.
   //  scrollToBottom = 0 -- scroll to the bottom
   //  scrollToBottom = ms since epoch -- scroll to the bottom of that thread
@@ -60,7 +58,6 @@ export function getInitialState() {
     has_unsaved_changes: false,
     unsent_user_mentions: List() as any,
     is_uploading: false,
-    font_size: redux.getStore("account").get("font_size"),
     filterRecentH: 0,
   };
 }

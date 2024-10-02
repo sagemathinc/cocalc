@@ -138,6 +138,7 @@ export default function Message(props: Readonly<Props>) {
     messages,
     mode,
     project_id,
+    font_size,
   } = props;
 
   const showAISummarize = redux
@@ -654,6 +655,7 @@ export default function Message(props: Readonly<Props>) {
     return (
       <div>
         <ChatInput
+          fontSize={font_size}
           autoFocus={autoFocusEdit}
           cacheId={`${props.path}${props.project_id}${date}`}
           input={newest_content(message)}
@@ -708,6 +710,7 @@ export default function Message(props: Readonly<Props>) {
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
+          fontSize={font_size}
           autoFocus={autoFocusReply}
           style={{
             borderRadius: "8px",

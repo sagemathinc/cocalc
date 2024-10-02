@@ -23,7 +23,7 @@ interface Props {
 }
 
 function Chat({ font_size }: Props) {
-  const { project_id, path: path0, actions } = useFrameContext();
+  const { project_id, path: path0 } = useFrameContext();
   const path = chatFile(path0);
   const [initialized, setInitialized] = useState<boolean>(false);
   useEffect(() => {
@@ -36,10 +36,6 @@ function Chat({ font_size }: Props) {
       setInitialized(true);
     })();
   }, []);
-
-  useEffect(() => {
-    actions?.setState({ font_size } as any);
-  }, [font_size]);
 
   if (!initialized) {
     return null;

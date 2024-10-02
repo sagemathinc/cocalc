@@ -51,7 +51,6 @@ export function ChatLog({
   actions,
 }: Props) {
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
-  const font_size = useRedux(["font_size"], project_id, path);
   const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
   const llm_cost_reply: [number, number] = useRedux(
     ["llm_cost_reply"],
@@ -148,6 +147,7 @@ export function ChatLog({
     <>
       {visibleHashtags.size > 0 && (
         <HashtagBar
+          style={{ margin: "5px 0" }}
           actions={{
             set_hashtag_state: (tag, state) => {
               actions.setHashtagState(tag, state);
@@ -176,7 +176,7 @@ export function ChatLog({
           user_map,
           project_id,
           path,
-          fontSize: fontSize ?? font_size,
+          fontSize,
           selectedHashtags,
           actions,
           llm_cost_reply,

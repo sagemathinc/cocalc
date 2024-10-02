@@ -59,7 +59,7 @@ export function initChat(project_id: string, path: string): string {
 export function remove(path: string, redux, project_id: string): string {
   const name = redux_name(project_id, path);
   const actions = redux.getActions(name);
-  actions?.close();
+  actions?.syncdb.close();
   const store = redux.getStore(name);
   if (store == null) {
     return name;
@@ -71,4 +71,3 @@ export function remove(path: string, redux, project_id: string): string {
   redux.removeActions(name);
   return name;
 }
-

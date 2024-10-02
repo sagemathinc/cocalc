@@ -131,10 +131,10 @@ export default function VideoChatButton({
     <Popconfirm
       onOpenChange={setOpen}
       title={`${
-        num_users_chatting ? "Join the current" : "Start a new"
-      } video chat session about this document?`}
+        num_users_chatting ? "Join the current" : "Launch "
+      } video chat?`}
       onConfirm={click_video_button}
-      okText={`${num_users_chatting ? "Join" : "Start"} video chat`}
+      okText={`${num_users_chatting ? "Join" : "Launch"} video chat`}
       cancelText={<CancelText />}
     >
       {open ? (

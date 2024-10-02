@@ -38,6 +38,7 @@ const chatroom: EditorDescription = {
     "export_to_markdown",
     "chatgpt",
   ]),
+  buttons: set(["undo", "redo", "decrease_font_size", "increase_font_size"]),
 } as const;
 
 const EDITOR_SPEC = {

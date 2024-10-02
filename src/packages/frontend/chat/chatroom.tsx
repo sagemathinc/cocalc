@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Tip, VisibleMDLG } from "@cocalc/frontend/components";
+import { Icon, Loading, Tip } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
@@ -69,9 +69,16 @@ interface Props {
   project_id: string;
   path: string;
   is_visible?: boolean;
+  font_size: number;
 }
 
-export function ChatRoom({ actions, project_id, path, is_visible }: Props) {
+export function ChatRoom({
+  actions,
+  project_id,
+  path,
+  is_visible,
+  font_size,
+}: Props) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const is_uploading = useEditor("is_uploading");
   const is_preview = useEditor("is_preview");
@@ -163,57 +170,12 @@ export function ChatRoom({ actions, project_id, path, is_visible }: Props) {
           placement="left"
         >
           <Icon name="arrow-down" />{" "}
-          <VisibleMDLG>
-            {" "}
-            <FormattedMessage
-              id="chatroom.scroll_bottom.label"
-              defaultMessage={"Newest"}
-            />
-          </VisibleMDLG>
+          <FormattedMessage
+            id="chatroom.scroll_bottom.label"
+            defaultMessage={"Newest"}
+          />
         </Tip>
       </Button>
-    );
-  }
-
-  function render_increase_font_size(): JSX.Element {
-    return (
-      <Button onClick={() => actions.change_font_size(1)}>
-        <Tip
-          title="Increase font size"
-          tip={<span>Make the font size larger for chat messages</span>}
-          placement="left"
-        >
-          <Icon name="search-plus" />
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_decrease_font_size(): JSX.Element {
-    return (
-      <Button onClick={() => actions.change_font_size(-1)}>
-        <Tip
-          title="Decrease font size"
-          tip={<span>Make the font size smaller for chat messages</span>}
-          placement="left"
-        >
-          <Icon name="search-minus" />
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_export_button(): JSX.Element {
-    return (
-      <VisibleMDLG>
-        <Button
-          title={"Export to Markdown"}
-          onClick={() => actions.export_to_markdown()}
-          style={{ marginLeft: "5px" }}
-        >
-          <Icon name="external-link" />
-        </Button>
-      </VisibleMDLG>
     );
   }
 
@@ -224,7 +186,6 @@ export function ChatRoom({ actions, project_id, path, is_visible }: Props) {
         project_id={project_id}
         path={path}
         sendChat={(value) => actions.send_chat({ input: value })}
-        label={"Video"}
       />
     );
   }
@@ -324,36 +285,6 @@ export function ChatRoom({ actions, project_id, path, is_visible }: Props) {
     }
     return (
       <Space style={{ width: "100%", marginTop: "3px" }} wrap>
-        <ButtonGroup style={{ marginLeft: "5px" }}>
-          {render_video_chat_button()}
-          {render_bottom_button()}
-        </ButtonGroup>
-        <ButtonGroup style={{ marginLeft: "5px" }}>
-          {render_decrease_font_size()}
-          {render_increase_font_size()}
-        </ButtonGroup>
-        {render_export_button()}
-        {actions.syncdb != null && (
-          <VisibleMDLG>
-            <ButtonGroup style={{ marginLeft: "5px" }}>
-              <Button onClick={() => actions.syncdb?.undo()} title="Undo">
-                <Icon name="undo" />
-              </Button>
-              <Button onClick={() => actions.syncdb?.redo()} title="Redo">
-                <Icon name="redo" />
-              </Button>
-            </ButtonGroup>
-          </VisibleMDLG>
-        )}
-        {actions.help != null && (
-          <Button
-            onClick={() => actions.help()}
-            style={{ marginLeft: "5px" }}
-            title="Documentation"
-          >
-            <Icon name="question-circle" />
-          </Button>
-        )}
         <Filter
           actions={actions}
           search={search}
@@ -366,6 +297,10 @@ export function ChatRoom({ actions, project_id, path, is_visible }: Props) {
           }}
         />
         {renderFilterRecent()}
+        <ButtonGroup style={{ marginLeft: "5px" }}>
+          {render_video_chat_button()}
+          {render_bottom_button()}
+        </ButtonGroup>
       </Space>
     );
   }
@@ -390,6 +325,7 @@ export function ChatRoom({ actions, project_id, path, is_visible }: Props) {
             path={path}
             scrollToBottomRef={scrollToBottomRef}
             mode={"standalone"}
+            fontSize={font_size}
           />
           {render_preview_message()}
         </div>
@@ -401,6 +337,7 @@ export function ChatRoom({ actions, project_id, path, is_visible }: Props) {
             }}
           >
             <ChatInput
+              fontSize={font_size}
               autoFocus
               cacheId={`${path}${project_id}-new`}
               input={input}

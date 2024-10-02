@@ -96,7 +96,6 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     delete this.chatActions[frameId];
     const name = actions.name;
     this.redux.removeActions(name);
-    actions.close();
   }
 
   close(): void {
