@@ -122,7 +122,6 @@ interface Props {
   is_thread?: boolean; // if true, there is a thread starting in a reply_to message
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
-  force_unfold?: boolean; // if true, all threads are temporarily forced to be unfolded
 
   llm_cost_reply?: [number, number] | null;
 }
@@ -130,7 +129,6 @@ interface Props {
 export default function Message(props: Readonly<Props>) {
   const {
     is_folded,
-    force_unfold,
     is_thread_body,
     is_thread,
     llm_cost_reply,
@@ -808,7 +806,7 @@ export default function Message(props: Readonly<Props>) {
               ? `Reply to ${modelToName(
                   isLLMThread,
                 )}, sending the entire thread as context.`
-              : "Reply in this thread."
+              : "Reply to this thread."
           }
         >
           <Button
@@ -882,7 +880,6 @@ export default function Message(props: Readonly<Props>) {
         <Button
           type="text"
           style={style}
-          disabled={force_unfold}
           onClick={() =>
             props.actions?.foldThread(message.get("date"), props.index)
           }

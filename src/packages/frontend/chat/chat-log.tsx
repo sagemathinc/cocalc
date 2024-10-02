@@ -7,35 +7,32 @@
 Render all the messages in the chat.
 */
 
-import { Alert } from "antd";
-import { List, Set as immutableSet } from "immutable";
+import { Alert, Button } from "antd";
+import { Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
-  TypedMap,
   useActions,
   useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { VisibleMDLG } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   cmp,
   hoursToTimeIntervalHuman,
   parse_hashtags,
   plural,
-  search_match,
-  search_split,
 } from "@cocalc/util/misc";
 import { ChatActions, getRootMessage } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
-import { ChatMessageTyped, ChatMessages, MessageHistory, Mode } from "./types";
+import type { ChatMessageTyped, ChatMessages, Mode } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
+import { filterMessages } from "./filter-messages";
 
 interface Props {
   project_id: string; // used to render links more effectively
@@ -43,6 +40,7 @@ interface Props {
   mode: Mode;
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
   setLastVisible?: (x: Date | null) => void;
+  fontSize?: number;
 }
 
 export function ChatLog({
@@ -51,10 +49,11 @@ export function ChatLog({
   scrollToBottomRef,
   mode,
   setLastVisible,
+  fontSize,
 }: Props) {
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
-  const fontSize = useRedux(["font_size"], project_id, path);
+  const font_size = useRedux(["font_size"], project_id, path);
   const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
   const llm_cost_reply: [number, number] = useRedux(
     ["llm_cost_reply"],
@@ -150,23 +149,23 @@ export function ChatLog({
   return (
     <>
       {visibleHashtags.size > 0 && (
-        <VisibleMDLG>
-          <HashtagBar
-            actions={{
-              set_hashtag_state: (tag, state) => {
-                actions.setHashtagState(tag, state);
-              },
-            }}
-            selected_hashtags={selectedHashtags0}
-            hashtags={visibleHashtags}
-          />
-        </VisibleMDLG>
+        <HashtagBar
+          actions={{
+            set_hashtag_state: (tag, state) => {
+              actions.setHashtagState(tag, state);
+            },
+          }}
+          selected_hashtags={selectedHashtags0}
+          hashtags={visibleHashtags}
+        />
       )}
       {messages != null && (
         <NotShowing
           num={messages.size - numFolded - sortedDates.length}
+          showing={sortedDates.length}
           search={search}
           filterRecentH={filterRecentH}
+          actions={actions}
         />
       )}
       <MessageList
@@ -179,7 +178,7 @@ export function ChatLog({
           user_map,
           project_id,
           path,
-          fontSize,
+          fontSize: fontSize ?? font_size,
           selectedHashtags,
           actions,
           llm_cost_reply,
@@ -231,20 +230,11 @@ function isPrevMessageSender(
   );
 }
 
-// NOTE: I removed search including send name, since that would
-// be slower and of questionable value.
-function searchMatches(message: ChatMessageTyped, searchTerms): boolean {
-  const first = message.get("history", List()).first() as
-    | TypedMap<MessageHistory>
-    | undefined;
-  if (first == null) return false;
-  return search_match(first.get("content", ""), searchTerms);
-}
-
 function isThread(messages: ChatMessages, message: ChatMessageTyped) {
   if (message.get("reply_to") != null) {
     return true;
   }
+
   // TODO/WARNING!!! This is a linear search
   // through all messages to decide if a message is the root of a thread.
   // This is VERY BAD and must to be redone at some point, since we call isThread
@@ -253,9 +243,8 @@ function isThread(messages: ChatMessages, message: ChatMessageTyped) {
   // use a proper data structure (or even a cache) to track this once
   // and for all.  It's more complicated but everything needs to be at
   // most O(n).
-  return messages.some(
-    (m) => m.get("reply_to") === message.get("date").toISOString(),
-  );
+  const s = message.get("date").toISOString();
+  return messages.some((m) => m.get("reply_to") === s);
 }
 
 function isFolded(
@@ -282,21 +271,11 @@ export function getSortedDates(
 ): { dates: string[]; numFolded: number } {
   let numFolded = 0;
   let m = messages;
-  if (m == null) return { dates: [], numFolded: 0 };
-
-  if (search) {
-    const searchTerms = search_split(search);
-    m = m.filter((message) => searchMatches(message, searchTerms));
+  if (m == null) {
+    return { dates: [], numFolded: 0 };
   }
 
-  if (typeof filterRecentH === "number" && filterRecentH > 0) {
-    const now = webapp_client.server_time().getTime();
-    const cutoff = now - filterRecentH * 1000 * 60 * 60;
-    m = m.filter((msg) => {
-      const date = msg.get("date").getTime();
-      return date >= cutoff;
-    });
-  }
+  m = filterMessages({ messages: m, filter: search, filterRecentH });
 
   const v: [date: number, reply_to: number | undefined][] = [];
   for (const [date, message] of m) {
@@ -366,9 +345,17 @@ interface NotShowingProps {
   num: number;
   search: string;
   filterRecentH: number;
+  actions;
+  showing;
 }
 
-function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
+function NotShowing({
+  num,
+  search,
+  filterRecentH,
+  actions,
+  showing,
+}: NotShowingProps) {
   if (num <= 0) return null;
 
   const timespan =
@@ -376,26 +363,33 @@ function NotShowing({ num, search, filterRecentH }: NotShowingProps) {
 
   return (
     <Alert
-      style={{ margin: "0" }}
+      style={{ margin: "5px" }}
+      showIcon
       type="warning"
-      closable
-      banner
-      key="not_showing"
       message={
-        <b>
-          WARNING: Hiding {num} {plural(num, "message")}
-          {search.trim()
-            ? ` that ${
-                num != 1 ? "do" : "does"
-              } not match search for '${search.trim()}'`
-            : ""}
-          {timespan
-            ? ` ${
-                search.trim() ? "and" : "that"
-              } were not sent in the past ${timespan}`
-            : ""}
-          .
-        </b>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <b style={{ flex: 1 }}>
+            WARNING: Hiding {num} {plural(num, "message")} in threads
+            {search.trim()
+              ? ` that ${
+                  num != 1 ? "do" : "does"
+                } not match search for '${search.trim()}'`
+              : ""}
+            {timespan
+              ? ` ${
+                  search.trim() ? "and" : "that"
+                } were not sent in the past ${timespan}`
+              : ""}
+            . Showing {showing} {plural(showing, "message")}.
+          </b>
+          <Button
+            onClick={() => {
+              actions.clearAllFilters();
+            }}
+          >
+            <Icon name="close-circle-filled" style={{ color: "#888" }} /> Clear
+          </Button>
+        </div>
       }
     />
   );
@@ -406,7 +400,6 @@ export function MessageList({
   account_id,
   virtuosoRef,
   sortedDates,
-  search,
   user_map,
   project_id,
   path,
@@ -461,10 +454,7 @@ export function MessageList({
         }
 
         const is_thread = isThread(messages, message);
-        // if we search for a message, we treat all threads as unfolded
-        const force_unfold = !!search;
-        const is_folded =
-          !force_unfold && isFolded(messages, message, account_id);
+        const is_folded = isFolded(messages, message, account_id);
         const is_thread_body = message.get("reply_to") != null;
         const h = virtuosoHeightsRef.current[index];
 
@@ -484,7 +474,6 @@ export function MessageList({
                 actions={actions}
                 is_thread={is_thread}
                 is_folded={is_folded}
-                force_unfold={force_unfold}
                 is_thread_body={is_thread_body}
                 is_prev_sender={isPrevMessageSender(
                   index,

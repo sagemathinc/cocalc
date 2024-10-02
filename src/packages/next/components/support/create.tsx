@@ -39,10 +39,16 @@ function VSpace({ children }) {
   );
 }
 
-export type Type = "problem" | "question" | "task" | "purchase";
+export type Type = "problem" | "question" | "task" | "purchase" | "chat";
 
 function stringToType(s?: any): Type {
-  if (s == "problem" || s == "question" || s == "task" || s == "purchase")
+  if (
+    s == "problem" ||
+    s == "question" ||
+    s == "task" ||
+    s == "purchase" ||
+    s == "chat"
+  )
     return s;
   return "problem"; // default;
 }
@@ -224,41 +230,55 @@ export default function Create() {
                   <Type type="purchase" /> I have a question regarding
                   purchasing a product.
                 </Radio>
+                <Radio value={"chat"}>
+                  <Type type="chat" /> I would like to schedule a video chat.
+                </Radio>
               </VSpace>
             </Radio.Group>
             <br />
-            {showExtra && type !== "purchase" && (
+            {showExtra && type !== "purchase" && type != "chat" && (
               <>
                 <Files onChange={setFiles} />
                 <br />
               </>
             )}
-            <b>
-              <Status
-                done={body && body.length >= MIN_BODY_LENGTH && hasRequired}
-              />{" "}
-              Description
-            </b>
-            <div
-              style={{
-                marginLeft: "30px",
-                borderLeft: "1px solid lightgrey",
-                paddingLeft: "15px",
-              }}
-            >
-              {type == "problem" && <Problem onChange={setBody} />}
-              {type == "question" && (
-                <Question onChange={setBody} defaultValue={body} />
-              )}
-              {type == "purchase" && (
-                <Purchase
-                  onChange={setBody}
-                  defaultValue={body}
-                  showExtra={showExtra}
-                />
-              )}
-              {type == "task" && <Task onChange={setBody} />}
-            </div>
+            {type == "chat" && (
+              <h1 style={{ textAlign: "center" }}>
+                <b>
+                  <A href="https://calendly.com/cocalc">Book a Video Chat...</A>
+                </b>
+              </h1>
+            )}
+            {type != "chat" && (
+              <>
+                <b>
+                  <Status
+                    done={body && body.length >= MIN_BODY_LENGTH && hasRequired}
+                  />{" "}
+                  Description
+                </b>
+                <div
+                  style={{
+                    marginLeft: "30px",
+                    borderLeft: "1px solid lightgrey",
+                    paddingLeft: "15px",
+                  }}
+                >
+                  {type == "problem" && <Problem onChange={setBody} />}
+                  {type == "question" && (
+                    <Question onChange={setBody} defaultValue={body} />
+                  )}
+                  {type == "purchase" && (
+                    <Purchase
+                      onChange={setBody}
+                      defaultValue={body}
+                      showExtra={showExtra}
+                    />
+                  )}
+                  {type == "task" && <Task onChange={setBody} />}
+                </div>
+              </>
+            )}
           </VSpace>
 
           <div style={{ textAlign: "center", marginTop: "30px" }}>
@@ -281,16 +301,16 @@ export default function Create() {
               {submitting
                 ? "Submitting..."
                 : success
-                ? "Thank you for creating a ticket"
-                : submitError
-                ? "Close the error box to try again"
-                : !isValidEmailAddress(email)
-                ? "Enter Valid Email Address above"
-                : !subject
-                ? "Enter Subject above"
-                : (body ?? "").length < MIN_BODY_LENGTH
-                ? `Describe your ${type} in detail above`
-                : "Create Support Ticket"}
+                  ? "Thank you for creating a ticket"
+                  : submitError
+                    ? "Close the error box to try again"
+                    : !isValidEmailAddress(email)
+                      ? "Enter Valid Email Address above"
+                      : !subject
+                        ? "Enter Subject above"
+                        : (body ?? "").length < MIN_BODY_LENGTH
+                          ? `Describe your ${type} in detail above`
+                          : "Create Support Ticket"}
             </Button>
             {submitting && <Loading style={{ fontSize: "32pt" }} />}
             {submitError && (

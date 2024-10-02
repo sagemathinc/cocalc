@@ -8,7 +8,7 @@ export interface Options {
   url?: string;
   subject?: string;
   body?: string;
-  type?: "problem" | "question" | "task" | "purchase";
+  type?: "problem" | "question" | "task" | "purchase" | "chat";
   hideExtra?: boolean;
   context?: string; // additional context
   required?: string; // if required is a string, then the user MUST change the body of the input

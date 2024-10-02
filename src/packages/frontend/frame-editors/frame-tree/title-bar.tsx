@@ -335,7 +335,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         size="small"
         type="text"
         onClick={click_close}
-        disabled={props.is_only}
       >
         <Icon name={"times"} />
       </Button>
