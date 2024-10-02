@@ -46,6 +46,7 @@ import {
   message_colors,
   newest_content,
   sender_is_viewer,
+  getThreadRootDate,
 } from "./utils";
 
 const DELETE_BUTTON = false;
@@ -101,6 +102,7 @@ interface Props {
   actions?: ChatActions;
 
   get_user_name: (account_id?: string) => string;
+  messages;
   message: ChatMessageTyped;
   account_id: string;
   user_map?: Map<string, any>;
@@ -133,6 +135,7 @@ export default function Message(props: Readonly<Props>) {
     is_thread,
     llm_cost_reply,
     message,
+    messages,
     mode,
     project_id,
   } = props;
@@ -188,7 +191,7 @@ export default function Message(props: Readonly<Props>) {
     if (!props.allowReply) {
       return false;
     }
-    const replyDate = -(props.actions?.store?.getThreadRootDate(date) ?? 0);
+    const replyDate = -getThreadRootDate({ date, messages });
     const draft = props.actions?.syncdb?.get_one({
       event: "draft",
       sender_id: props.account_id,
@@ -367,7 +370,7 @@ export default function Message(props: Readonly<Props>) {
     );
   }
 
-  function content_column() {
+  function contentColumn() {
     let borderRadius, marginBottom, marginTop: any;
     let value = newest_content(message);
 
@@ -534,11 +537,11 @@ export default function Message(props: Readonly<Props>) {
                     </Popconfirm>
                   </Tooltip>
                 ) : undefined}
-                {message.get("history").size > 1 ||
-                message.get("editing").size > 0
+                {(message.get("history")?.size ?? 0) > 1 ||
+                (message.get("editing")?.size ?? 0) > 0
                   ? editing_status(isEditing)
                   : undefined}
-                {message.get("history").size > 1 ? (
+                {(message.get("history")?.size ?? 0) > 1 ? (
                   <Button
                     style={{
                       marginLeft: "5px",
@@ -701,7 +704,7 @@ export default function Message(props: Readonly<Props>) {
       // when null.
       return;
     }
-    const replyDate = -(props.actions.store?.getThreadRootDate(date) ?? 0);
+    const replyDate = -getThreadRootDate({ date, messages });
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
@@ -921,22 +924,18 @@ export default function Message(props: Readonly<Props>) {
 
     switch (mode) {
       case "standalone":
-        const cols = [
-          avatar_column(),
-          content_column(),
-          getThreadfoldOrBlank(),
-        ];
+        const cols = [avatar_column(), contentColumn(), getThreadfoldOrBlank()];
         if (reverseRowOrdering) {
           cols.reverse();
         }
         return cols;
 
       case "sidechat":
-        return [getThreadfoldOrBlank(), content_column()];
+        return [getThreadfoldOrBlank(), contentColumn()];
 
       default:
         unreachable(mode);
-        return content_column();
+        return contentColumn();
     }
   }
 

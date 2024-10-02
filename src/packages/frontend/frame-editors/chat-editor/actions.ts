@@ -13,29 +13,40 @@ import {
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { ChatActions } from "@cocalc/frontend/chat/actions";
-import { ChatStore } from "@cocalc/frontend/chat/store";
+import {
+  getInitialState,
+  ChatState,
+  ChatStore,
+} from "@cocalc/frontend/chat/store";
+import { handleSyncDBChange, initFromSyncDB } from "@cocalc/frontend/chat/sync";
 import { redux_name } from "@cocalc/frontend/app-framework";
 import { aux_file } from "@cocalc/util/misc";
 
-interface ChatEditorState extends CodeEditorState {
-  // nothing yet
-}
+type ChatEditorState = CodeEditorState & ChatState;
 
 export class Actions extends CodeEditorActions<ChatEditorState> {
   protected doctype: string = "syncdb";
   protected primary_keys = ["date", "sender_id", "event"];
   // used only for drafts, since store lots of versions as user types:
   protected string_cols = ["input"];
-  chatActions: { [frameId: string]: ChatActions } = {};
-  chatStore: ChatStore;
-  auxPath: string;
+  private chatActions: { [frameId: string]: ChatActions } = {};
+  private auxPath: string;
 
   _init2(): void {
     this.auxPath = aux_file(this.path, "tasks");
-    this.chatStore = this.redux.createStore(
-      redux_name(this.project_id, this.auxPath),
-      ChatStore,
-    );
+    const store = this.store;
+    this.setState({
+      ...getInitialState(),
+      project_id: this.project_id,
+      path: this.path,
+    });
+    const syncdb = this._syncstring;
+    syncdb.once("ready", () => {
+      initFromSyncDB({ syncdb, store });
+    });
+    syncdb.on("change", (changes) => {
+      handleSyncDBChange({ store, syncdb, changes });
+    });
   }
 
   getChatActions(frameId?): ChatActions | undefined {
@@ -52,24 +63,8 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     const auxPath = this.auxPath + frameId;
     const reduxName = redux_name(this.project_id, auxPath);
     const actions = this.redux.createActions(reduxName, ChatActions);
-
-    const init = () => {
-      actions.set_syncdb(syncdb, this.chatStore);
-      actions.init_from_syncdb();
-      syncdb.on("change", actions.syncdb_change.bind(actions));
-      syncdb.on("has-uncommitted-changes", (val) =>
-        actions.setState({ has_uncommitted_changes: val }),
-      );
-      syncdb.on("has-unsaved-changes", (val) =>
-        actions.setState({ has_unsaved_changes: val }),
-      );
-    };
-    if (syncdb.get_state() != "ready") {
-      syncdb.once("ready", init);
-    } else {
-      init();
-    }
-
+    // our store is not exactly a ChatStore but it's close enough
+    actions.set_syncdb(syncdb, this.store as ChatStore);
     this.chatActions[frameId] = actions;
     return actions;
   }
@@ -111,7 +106,6 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     for (const frameId in this.chatActions) {
       this.closeChatFrame(frameId);
     }
-    this.redux.removeStore(this.chatStore.name);
     super.close();
   }
 

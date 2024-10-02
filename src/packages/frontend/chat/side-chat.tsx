@@ -28,12 +28,7 @@ interface Props {
   fontSize?: number;
 }
 
-export default function SideChat({
-  project_id,
-  path,
-  style,
-  fontSize,
-}: Props) {
+export default function SideChat({ project_id, path, style, fontSize }: Props) {
   const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path);
   const [lastVisible, setLastVisible] = useState<Date | null>(null);
@@ -167,6 +162,7 @@ export default function SideChat({
         }}
       >
         <ChatLog
+          actions={actions}
           fontSize={fontSize}
           project_id={project_id}
           path={path}

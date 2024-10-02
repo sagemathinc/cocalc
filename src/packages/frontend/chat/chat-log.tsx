@@ -12,11 +12,7 @@ import { Set as immutableSet } from "immutable";
 import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
-import {
-  useActions,
-  useRedux,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { HashtagBar } from "@cocalc/frontend/editors/task-editor/hashtag-bar";
@@ -26,11 +22,12 @@ import {
   parse_hashtags,
   plural,
 } from "@cocalc/util/misc";
-import { ChatActions, getRootMessage } from "./actions";
+import type { ChatActions } from "./actions";
 import Composing from "./composing";
 import Message from "./message";
 import type { ChatMessageTyped, ChatMessages, Mode } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
+import { getRootMessage } from "./utils";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 import { filterMessages } from "./filter-messages";
 
@@ -41,6 +38,7 @@ interface Props {
   scrollToBottomRef?: MutableRefObject<(force?: boolean) => void>;
   setLastVisible?: (x: Date | null) => void;
   fontSize?: number;
+  actions: ChatActions;
 }
 
 export function ChatLog({
@@ -50,8 +48,8 @@ export function ChatLog({
   mode,
   setLastVisible,
   fontSize,
+  actions,
 }: Props) {
-  const actions: ChatActions = useActions(project_id, path);
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const font_size = useRedux(["font_size"], project_id, path);
   const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
@@ -253,7 +251,7 @@ function isFolded(
   account_id?: string,
 ) {
   if (account_id == null) return false;
-  const rootMsg = getRootMessage(message.toJS(), messages);
+  const rootMsg = getRootMessage({ message: message.toJS(), messages });
   return rootMsg?.get("folding")?.includes(account_id) ?? false;
 }
 
@@ -459,9 +457,15 @@ export function MessageList({
         const h = virtuosoHeightsRef.current[index];
 
         return (
-          <div style={{ overflow: "hidden" }}>
+          <div
+            style={{
+              overflow: "hidden",
+              paddingTop: index == 0 ? "20px" : undefined,
+            }}
+          >
             <DivTempHeight height={h ? `${h}px` : undefined}>
               <Message
+                messages={messages}
                 key={date}
                 index={index}
                 account_id={account_id}

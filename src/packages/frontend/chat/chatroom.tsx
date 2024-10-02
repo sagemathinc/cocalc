@@ -6,31 +6,22 @@
 import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { useDebounce } from "use-debounce";
-import {
-  ButtonGroup,
-  Col,
-  Button as OldButton,
-  Row,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
+import { ButtonGroup, Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
-  useActions,
+  useEditorRedux,
   useEffect,
-  useRedux,
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Tip, VisibleMDLG } from "@cocalc/frontend/components";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { FormattedMessage } from "react-intl";
-import { ChatActions } from "./actions";
+import type { ChatActions } from "./actions";
+import type { ChatState } from "./store";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
@@ -74,39 +65,25 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
 } as const;
 
 interface Props {
+  actions: ChatActions;
   project_id: string;
   path: string;
   is_visible?: boolean;
 }
 
-export function ChatRoom({ project_id, path, is_visible }: Props) {
-  const actions: ChatActions = useActions(project_id, path);
-  const is_uploading = useRedux(["is_uploading"], project_id, path);
-  const is_saving = useRedux(["is_saving"], project_id, path);
-  const is_preview = useRedux(["is_preview"], project_id, path);
-  const has_unsaved_changes = useRedux(
-    ["has_unsaved_changes"],
-    project_id,
-    path,
-  );
-  const has_uncommitted_changes = useRedux(
-    ["has_uncommitted_changes"],
-    project_id,
-    path,
-  );
-  const input: string = useRedux(["input"], project_id, path);
+export function ChatRoom({ actions, project_id, path, is_visible }: Props) {
+  const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  const is_uploading = useEditor("is_uploading");
+  const is_preview = useEditor("is_preview");
+  const input: string = useEditor("input");
   const [preview] = useDebounce(input, 250);
 
-  const search = useRedux(["search"], project_id, path);
-  const messages = useRedux(["messages"], project_id, path);
-  const filterRecentH: number = useRedux(["filterRecentH"], project_id, path);
+  const search = useEditor("search");
+  const messages = useEditor("messages");
+  const filterRecentH: number = useEditor("filterRecentH");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
-  const llm_cost_room: [number, number] = useRedux(
-    ["llm_cost_room"],
-    project_id,
-    path,
-  );
+  const llm_cost_room = useEditor("llm_cost_room");
 
   const submitMentionsRef = useRef<SubmitMentionsFn>();
   const scrollToBottomRef = useRef<any>(null);
@@ -127,10 +104,6 @@ export function ChatRoom({ project_id, path, is_visible }: Props) {
 
   function button_scroll_to_bottom(): void {
     scrollToBottomRef.current?.(true);
-  }
-
-  function show_timetravel(): void {
-    actions.showTimeTravelInNewTab();
   }
 
   function render_preview_message(): JSX.Element | undefined {
@@ -164,20 +137,6 @@ export function ChatRoom({ project_id, path, is_visible }: Props) {
 
         <Col sm={1} />
       </Row>
-    );
-  }
-
-  function render_timetravel_button(): JSX.Element {
-    return (
-      <OldButton onClick={show_timetravel} bsStyle="info">
-        <Tip
-          title="TimeTravel"
-          tip={<span>Browse all versions of this chatroom.</span>}
-          placement="left"
-        >
-          <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
-        </Tip>
-      </OldButton>
     );
   }
 
@@ -255,40 +214,6 @@ export function ChatRoom({ project_id, path, is_visible }: Props) {
           <Icon name="external-link" />
         </Button>
       </VisibleMDLG>
-    );
-  }
-
-  function render_save_button() {
-    return (
-      <SaveButton
-        onClick={() => actions.save_to_disk()}
-        is_saving={is_saving}
-        has_unsaved_changes={has_unsaved_changes}
-        has_uncommitted_changes={has_uncommitted_changes}
-      />
-    );
-  }
-
-  function render_compute_server_button() {
-    if (!computeServersEnabled()) {
-      return null;
-    }
-
-    return (
-      <SelectComputeServerForFile
-        actions={actions}
-        key="compute-server-selector"
-        type={"sage-chat"}
-        project_id={project_id}
-        path={path}
-        style={{
-          height: "32px",
-          overflow: "hidden",
-          borderTopRightRadius: "5px",
-          borderBottomRightRadius: "5px",
-        }}
-        noLabel={true}
-      />
     );
   }
 
@@ -394,13 +319,11 @@ export function ChatRoom({ project_id, path, is_visible }: Props) {
   }
 
   function render_button_row() {
+    if (messages == null) {
+      return null;
+    }
     return (
       <Space style={{ width: "100%", marginTop: "3px" }} wrap>
-        <ButtonGroup>
-          {render_save_button()}
-          {render_timetravel_button()}
-          {render_compute_server_button()}
-        </ButtonGroup>
         <ButtonGroup style={{ marginLeft: "5px" }}>
           {render_video_chat_button()}
           {render_bottom_button()}
@@ -431,7 +354,6 @@ export function ChatRoom({ project_id, path, is_visible }: Props) {
             <Icon name="question-circle" />
           </Button>
         )}
-
         <Filter
           actions={actions}
           search={search}
@@ -463,6 +385,7 @@ export function ChatRoom({ project_id, path, is_visible }: Props) {
         {render_button_row()}
         <div className="smc-vfill" style={CHAT_LOG_STYLE}>
           <ChatLog
+            actions={actions}
             project_id={project_id}
             path={path}
             scrollToBottomRef={scrollToBottomRef}

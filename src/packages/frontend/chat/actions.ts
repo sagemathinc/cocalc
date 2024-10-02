@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { List, Map, Seq, fromJS, Map as immutableMap } from "immutable";
+import { List, Map, Seq, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -44,14 +44,15 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
-import {
+import type {
   ChatMessage,
   ChatMessageTyped,
-  ChatMessages,
   Feedback,
   MessageHistory,
 } from "./types";
 import { history_path } from "@cocalc/util/misc";
+import { initFromSyncDB, handleSyncDBChange, processSyncDBObj } from "./sync";
+import { getReplyToRoot, getThreadRootDate } from "./utils";
 
 const MAX_CHATSTREAM = 10;
 
@@ -91,107 +92,19 @@ export class ChatActions extends Actions<ChatState> {
     delete this.syncdb;
   }
 
-  // NOTE: x must be already a plain JS object (.toJS())
-  private process_syncdb_obj(x): ChatMessage | undefined {
-    if (x.event !== "chat") {
-      // Event used to be used for video chat, etc...; but we have a better approach now, so
-      // all events we care about are chat.
-      return;
-    }
-    if (x.video_chat != null ? x.video_chat.is_video_chat : undefined) {
-      // discard/ignore anything else related to the old old video chat approach
-      return;
-    }
-    x.date = new Date(x.date);
-    if ((x.history != null ? x.history.length : undefined) > 0) {
-      // nontrivial history -- nothing to do
-    } else if (x.payload != null) {
-      // for old chats with payload: content (2014-2016)... plus the script @hsy wrote in the work project ;-(
-      x.history = [];
-      x.history.push({
-        content: x.payload.content,
-        author_id: x.sender_id,
-        date: new Date(x.date),
-      });
-      delete x.payload;
-    } else if (x.mesg != null) {
-      // for old chats with mesg: content (up to 2014)
-      x.history = [];
-      x.history.push({
-        content: x.mesg.content,
-        author_id: x.sender_id,
-        date: new Date(x.date),
-      });
-      delete x.mesg;
-    }
-    if (x.history == null) {
-      x.history = [];
-    }
-    if (!x.editing) {
-      x.editing = {};
-    }
-    x.folding ??= [];
-    x.feedback ??= {};
-    return x;
-  }
-
   // Initialize the state of the store from the contents of the syncdb.
   public init_from_syncdb(): void {
     if (this.syncdb == null) {
       return;
     }
-    const v = {};
-    for (let x of this.syncdb.get().toJS()) {
-      x = this.process_syncdb_obj(x);
-      if (x != null) {
-        v[x.date.valueOf()] = x;
-      }
-    }
-
-    this.setState({
-      messages: fromJS(v) as any,
-    });
+    initFromSyncDB({ syncdb: this.syncdb, store: this.store });
   }
 
   public syncdb_change(changes): void {
-    changes.map((obj) => {
-      if (this.syncdb == null) return;
-      obj = obj.toJS();
-      if (obj.event === "draft") {
-        let drafts = this.store?.get("drafts") ?? (fromJS({}) as any);
-        // used to show that another user is editing a message.
-        const record = this.syncdb.get_one(obj);
-        if (record == null) {
-          drafts = drafts.delete(obj.sender_id);
-        } else {
-          const sender_id = record.get("sender_id");
-          drafts = drafts.set(sender_id, record);
-        }
-        this.setState({ drafts });
-        return;
-      }
-      if (obj.event === "chat") {
-        let changed: boolean = false;
-        let messages = this.store?.get("messages") ?? (fromJS({}) as any);
-        obj.date = new Date(obj.date);
-        const record = this.syncdb.get_one(obj);
-        let x: any = record?.toJS();
-        if (x == null) {
-          // delete
-          messages = messages.delete(`${obj.date.valueOf()}`);
-          changed = true;
-        } else {
-          x = this.process_syncdb_obj(x);
-          if (x != null) {
-            messages = messages.set(`${x.date.valueOf()}`, fromJS(x));
-            changed = true;
-          }
-        }
-        if (changed) {
-          this.setState({ messages });
-        }
-      }
-    });
+    if (this.syncdb == null) {
+      return;
+    }
+    handleSyncDBChange({ changes, store: this.store, syncdb: this.syncdb });
   }
 
   public foldThread(reply_to: Date, messageIndex?: number) {
@@ -312,6 +225,9 @@ export class ChatActions extends Actions<ChatState> {
 
     const project_id = this.store?.get("project_id");
     const path = this.store?.get("path");
+    if (!path) {
+      throw Error("bug -- path must be defined");
+    }
     // set notification saying that we sent an actual chat
     let action;
     if (
@@ -447,7 +363,10 @@ export class ChatActions extends Actions<ChatState> {
     const reply_to_value =
       reply_to != null
         ? reply_to.valueOf()
-        : store.getThreadRootDate(new Date(message.date).valueOf());
+        : getThreadRootDate({
+            date: new Date(message.date).valueOf(),
+            messages: store.get("messages"),
+          });
     const time_stamp_str = this.send_chat({
       input: reply,
       sender_id: from ?? this.redux.getStore("account").get_account_id(),
@@ -517,7 +436,7 @@ export class ChatActions extends Actions<ChatState> {
     const messages = this.store.get("messages");
     // message != null means this is a reply and we have to get the whole chat thread
     if (!model && message != null && messages != null) {
-      const root = getReplyToRoot(message, messages);
+      const root = getReplyToRoot({ message, messages });
       model = this.isLanguageModelThread(root);
       if (!isFreeModel(model, is_cocalc_com) && root != null) {
         for (const msg of this.getLLMHistory(root)) {
@@ -871,10 +790,10 @@ export class ChatActions extends Actions<ChatState> {
         // if that happens, create a new message with the existing history and the new sender_id
         const cur = this.syncdb.get_one({ event: "chat", date });
         if (cur == null) return;
-        const reply_to = getReplyToRoot(
-          cur.toJS() as any as ChatMessage,
+        const reply_to = getReplyToRoot({
+          message: cur.toJS() as any as ChatMessage,
           messages,
-        );
+        });
         this.syncdb.delete({ event: "chat", date });
         this.syncdb.set({
           date,
@@ -1078,8 +997,13 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) return;
     const date = date0.toISOString();
     const obj = this.syncdb.get_one({ event: "chat", date });
-    const message = this.process_syncdb_obj(obj?.toJS());
-    if (message == null) return;
+    if (obj == null) {
+      return;
+    }
+    const message = processSyncDBObj(obj.toJS() as ChatMessage);
+    if (message == null) {
+      return;
+    }
     const reply_to = message.reply_to;
     if (!reply_to) return;
     await this.processLLM({
@@ -1112,31 +1036,6 @@ export class ChatActions extends Actions<ChatState> {
       filterRecentH: 0,
     });
   };
-}
-
-export function getRootMessage(
-  message: ChatMessage,
-  messages: ChatMessages,
-): ChatMessageTyped | undefined {
-  const { reply_to, date } = message;
-  // we can't find the original message, if there is no reply_to
-  if (!reply_to) {
-    // the msssage itself is the root
-    return messages.get(`${new Date(date).valueOf()}`);
-  } else {
-    // All messages in a thread have the same reply_to, which points to the root.
-    return messages.get(`${new Date(reply_to).valueOf()}`);
-  }
-}
-
-export function getReplyToRoot(
-  message: ChatMessage,
-  messages: ChatMessages,
-): Date | undefined {
-  const root = getRootMessage(message, messages);
-  const date = root?.get("date");
-  // date is a "Date" object, but we're just double checking it is not a string by accident
-  return date ? new Date(date) : undefined;
 }
 
 // We strip out any cased version of the string @chatgpt and also all mentions.
