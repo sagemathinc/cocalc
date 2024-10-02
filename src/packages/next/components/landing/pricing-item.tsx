@@ -20,13 +20,13 @@ export default function PricingItem({ icon, children, title }: Props) {
     <List.Item style={{ padding: 0 }}>
       <Card
         styles={{ header: { backgroundColor: "#d9edf7" } }}
-        style={{ color: COLORS.GRAY }}
+        style={{ color: COLORS.GRAY_M }}
         type="inner"
         title={
-          <>
+          <span style={{ fontSize: "120%" }}>
             <Icon name={icon} style={{ marginRight: "10px" }} />{" "}
             <strong>{title}</strong>
-          </>
+          </span>
         }
       >
         {children}
@@ -42,8 +42,8 @@ const STYLE: React.CSSProperties = {
 } as const;
 
 interface Line {
-  amount?: string | number;
-  desc?: string;
+  amount?: string | number | ReactNode;
+  desc?: string | ReactNode;
 }
 
 export function Line(props: Line) {
@@ -56,19 +56,26 @@ export function Line(props: Line) {
     );
 
   let unit = "";
-  if (desc?.includes("RAM") || desc?.includes("Disk")) {
-    unit = "G";
-  } else if (desc?.includes("CPU")) {
-    unit = amount == 1 ? "core" : "cores";
-  } else if (desc == "Projects") {
-    unit = "simultaneously running";
-  } else if (desc?.includes("Overcommit")) {
-    unit = "x";
+  if (typeof desc === "string") {
+    if (desc?.includes("RAM") || desc?.includes("Disk")) {
+      unit = "G";
+    } else if (desc?.includes("CPU")) {
+      unit = amount == 1 ? "core" : "cores";
+    } else if (desc == "Projects") {
+      unit = "simultaneously running";
+    } else if (desc?.includes("Overcommit")) {
+      unit = "x";
+    }
   }
   return (
     <div>
       <b style={STYLE}>
-        {amount} {unit}
+        <div
+          style={{ display: "inline-block", width: "3em", textAlign: "right" }}
+        >
+          {amount}
+        </div>{" "}
+        {unit}
       </b>{" "}
       {desc}
     </div>
