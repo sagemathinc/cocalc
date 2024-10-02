@@ -8,25 +8,23 @@ Top-level react component for editing chat
 */
 
 import { createElement } from "react";
-
-import { TaskEditor } from "@cocalc/frontend/editors/task-editor/editor";
+import { ChatRoom } from "@cocalc/frontend/chat/chatroom";
 import { set } from "@cocalc/util/misc";
-import { createEditor } from "../frame-tree/editor";
-import { EditorDescription } from "../frame-tree/types";
-import { terminal } from "../terminal-editor/editor";
-import { time_travel } from "../time-travel-editor/editor";
+import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
+import type { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
+import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
+import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
 
-const tasks: EditorDescription = {
-  type: "tasks",
-  short: "Tasks",
-  name: "Task List",
-  icon: "tasks",
+const chatroom: EditorDescription = {
+  type: "chatroom",
+  short: "Chatroom",
+  name: "Chatroom",
+  icon: "comment",
   component: (props) => {
-    const actions = props.actions.getTaskActions(props.id);
-    return createElement(TaskEditor, {
+    const actions = props.actions.getChatActions(props.id);
+    return createElement(ChatRoom, {
       ...props,
       actions,
-      path: actions.path,
     });
   },
   commands: set([
@@ -43,12 +41,12 @@ const tasks: EditorDescription = {
 } as const;
 
 const EDITOR_SPEC = {
-  tasks,
+  chatroom,
   terminal,
   time_travel,
 } as const;
 
 export const Editor = createEditor({
   editor_spec: EDITOR_SPEC,
-  display_name: "TaskEditor",
+  display_name: "ChatEditor",
 });

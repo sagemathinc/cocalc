@@ -137,7 +137,9 @@ export class ChatActions extends Actions<ChatState> {
 
   // Initialize the state of the store from the contents of the syncdb.
   public init_from_syncdb(): void {
-    if (this.syncdb == null) return;
+    if (this.syncdb == null) {
+      return;
+    }
     const v = {};
     for (let x of this.syncdb.get().toJS()) {
       x = this.process_syncdb_obj(x);

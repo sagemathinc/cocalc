@@ -79,9 +79,8 @@ interface Props {
   is_visible?: boolean;
 }
 
-export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
+export function ChatRoom({ project_id, path, is_visible }: Props) {
   const actions: ChatActions = useActions(project_id, path);
-
   const is_uploading = useRedux(["is_uploading"], project_id, path);
   const is_saving = useRedux(["is_saving"], project_id, path);
   const is_preview = useRedux(["is_preview"], project_id, path);
@@ -581,4 +580,4 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
       </div>
     </FrameContext.Provider>
   );
-};
+}

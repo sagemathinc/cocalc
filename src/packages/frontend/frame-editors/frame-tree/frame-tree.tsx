@@ -378,7 +378,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         }
         spec = editor_spec[type];
         component = spec != null ? spec.component : undefined;
-        if (component == null) throw Error(`unknown type '${type}'`);
+        if (component == null) {
+          throw Error(
+            `unknown type '${type}'. Known types for this editor: ${JSON.stringify(Object.keys(editor_spec))}`,
+          );
+        }
       } catch (err) {
         const mesg = `Invalid frame tree ${JSON.stringify(desc)} -- ${err}`;
         console.log(mesg);

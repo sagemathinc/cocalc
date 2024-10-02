@@ -64,6 +64,7 @@ export const chat: EditorDescription = {
 } as const;
 
 // TODO: this is an ugly special case for now to make the title bar buttons work.
+// TODO: but wait -- those buttons are gone now, so maybe this can be deleted?!
 export function undo(project_id, path0) {
   const path = hidden_meta_file(path0, "sage-chat");
   (redux.getEditorActions(project_id, path) as ChatActions)?.undo();

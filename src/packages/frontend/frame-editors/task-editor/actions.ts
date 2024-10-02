@@ -12,7 +12,6 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
-
 import { TaskActions } from "@cocalc/frontend/editors/task-editor/actions";
 import { TaskStore } from "@cocalc/frontend/editors/task-editor/store";
 import { redux_name } from "../../app-framework";

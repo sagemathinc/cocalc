@@ -4,7 +4,7 @@
  */
 
 /*
-chat Editor Actions
+Chat Editor Actions
 */
 
 import {
@@ -12,163 +12,93 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
-import { TaskActions } from "@cocalc/frontend/editors/task-editor/actions";
-import { TaskStore } from "@cocalc/frontend/editors/task-editor/store";
-import { redux_name } from "../../app-framework";
-import { aux_file, cmp } from "@cocalc/util/misc";
-import { Map } from "immutable";
+import { ChatActions } from "@cocalc/frontend/chat/actions";
+import { ChatStore } from "@cocalc/frontend/chat/store";
+import { redux_name } from "@cocalc/frontend/app-framework";
+import { aux_file } from "@cocalc/util/misc";
 
-interface TaskEditorState extends CodeEditorState {
+interface ChatEditorState extends CodeEditorState {
   // nothing yet
 }
 
-export class Actions extends CodeEditorActions<TaskEditorState> {
+export class Actions extends CodeEditorActions<ChatEditorState> {
   protected doctype: string = "syncdb";
-  protected primary_keys: string[] = ["task_id"];
-  protected string_cols: string[] = ["desc"];
-  protected searchEmbeddings = {
-    primaryKey: "task_id",
-    textColumn: "desc",
-    metaColumns: ["due_date", "done"],
-  };
-  taskActions: { [frameId: string]: TaskActions } = {};
-  taskStore: TaskStore;
+  protected primary_keys = ["date", "sender_id", "event"];
+  // used only for drafts, since store lots of versions as user types:
+  protected string_cols = ["input"];
+  chatActions: { [frameId: string]: ChatActions } = {};
+  chatStore: ChatStore;
   auxPath: string;
 
   _init2(): void {
     this.auxPath = aux_file(this.path, "tasks");
-    this.taskStore = this.redux.createStore(
+    this.chatStore = this.redux.createStore(
       redux_name(this.project_id, this.auxPath),
-      TaskStore
+      ChatStore,
     );
-    const syncdb = this._syncstring;
-    syncdb.on("change", this.syncdbChange);
-    syncdb.once("change", this.ensurePositionsAreUnique);
   }
 
-  private syncdbChange(changes) {
-    const syncdb = this._syncstring;
-    const store = this.taskStore;
-    if (syncdb == null || store == null) {
-      // may happen during close
-      return;
-    }
-    let tasks = store.get("tasks") ?? Map();
-    changes.forEach((x) => {
-      const task_id = x.get("task_id");
-      const t = syncdb.get_one(x);
-      if (t == null) {
-        // deleted
-        tasks = tasks.delete(task_id);
-      } else {
-        // changed
-        tasks = tasks.set(task_id, t as any);
-      }
-    });
-
-    store.setState({ tasks });
-    for (const id in this.taskActions) {
-      this.taskActions[id]._update_visible();
-    }
-  }
-
-  private ensurePositionsAreUnique() {
-    let tasks = this.taskStore.get("tasks");
-    if (tasks == null) {
-      return;
-    }
-    // iterate through tasks adding their (string) positions to a
-    // "set" (using a map)
-    const s = {};
-    let unique = true;
-    tasks.forEach((task, id) => {
-      if (tasks == null) return; // won't happpen, but TS doesn't know that.
-      let pos = task.get("position");
-      if (pos == null) {
-        // no position set at all -- just arbitrarily set it to 0; it'll get
-        // fixed below, if this conflicts.
-        pos = 0;
-        tasks = tasks.set(id, task.set("position", 0));
-      }
-      if (s[pos]) {
-        // already got this position -- so they can't be unique
-        unique = false;
-        return false;
-      }
-      s[pos] = true;
-    });
-    if (unique) {
-      // positions turned out to all be unique - done
-      return;
-    }
-    // positions are NOT unique - this could happen, e.g., due to merging
-    // offline changes.  We fix this by simply spreading them all out to be
-    // 0 to n, arbitrarily breaking ties.
-    const v: [number, string][] = [];
-    tasks.forEach((task, id) => {
-      v.push([task.get("position") ?? 0, id]);
-    });
-    v.sort((a, b) => cmp(a[0], b[0]));
-    let position = 0;
-    const actions = this.getTaskActions();
-    if (actions == null) return;
-    for (let x of v) {
-      actions.set_task(x[1], { position });
-      position += 1;
-    }
-  }
-
-  getTaskActions(frameId?): TaskActions | undefined {
+  getChatActions(frameId?): ChatActions | undefined {
     if (frameId == null) {
-      for (const actions of Object.values(this.taskActions)) {
+      for (const actions of Object.values(this.chatActions)) {
         return actions;
       }
       return undefined;
     }
-    if (this.taskActions[frameId] != null) {
-      return this.taskActions[frameId];
+    if (this.chatActions[frameId] != null) {
+      return this.chatActions[frameId];
     }
+    const syncdb = this._syncstring;
     const auxPath = this.auxPath + frameId;
     const reduxName = redux_name(this.project_id, auxPath);
-    const actions = this.redux.createActions(reduxName, TaskActions);
-    actions._init(
-      this.project_id,
-      this.auxPath,
-      this._syncstring,
-      this.taskStore,
-      this.path
-    );
-    actions._init_frame(frameId, this);
-    this.taskActions[frameId] = actions;
+    const actions = this.redux.createActions(reduxName, ChatActions);
+
+    const init = () => {
+      actions.set_syncdb(syncdb, this.chatStore);
+      actions.init_from_syncdb();
+      syncdb.on("change", actions.syncdb_change.bind(actions));
+      syncdb.on("has-uncommitted-changes", (val) =>
+        actions.setState({ has_uncommitted_changes: val }),
+      );
+      syncdb.on("has-unsaved-changes", (val) =>
+        actions.setState({ has_unsaved_changes: val }),
+      );
+    };
+    if (syncdb.get_state() != "ready") {
+      syncdb.once("ready", init);
+    } else {
+      init();
+    }
+
+    this.chatActions[frameId] = actions;
     return actions;
   }
 
   undo() {
-    this.getTaskActions()?.undo();
+    this.getChatActions()?.undo();
   }
   redo() {
-    this.getTaskActions()?.redo();
+    this.getChatActions()?.redo();
   }
 
   help() {
-    this.getTaskActions()?.help();
+    this.getChatActions()?.help();
   }
 
   close_frame(frameId: string): void {
     super.close_frame(frameId); // actually closes the frame itself
-    // now clean up if it is a task frame:
-
-    if (this.taskActions[frameId] != null) {
-      this.closeTaskFrame(frameId);
+    // now clean up if it is a chat frame:
+    if (this.chatActions[frameId] != null) {
+      this.closeChatFrame(frameId);
     }
   }
 
-  closeTaskFrame(frameId: string): void {
-    const actions = this.taskActions[frameId];
+  closeChatFrame(frameId: string): void {
+    const actions = this.chatActions[frameId];
     if (actions == null) {
       return;
     }
-    delete this.taskActions[frameId];
+    delete this.chatActions[frameId];
     const name = actions.name;
     this.redux.removeActions(name);
     actions.close();
@@ -178,68 +108,22 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     if (this._state == "closed") {
       return;
     }
-    for (const frameId in this.taskActions) {
-      this.closeTaskFrame(frameId);
+    for (const frameId in this.chatActions) {
+      this.closeChatFrame(frameId);
     }
-    this.redux.removeStore(this.taskStore.name);
+    this.redux.removeStore(this.chatStore.name);
     super.close();
   }
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "tasks" };
+    return { type: "chatroom" };
   }
 
   async export_to_markdown(): Promise<void> {
     try {
-      await this.getTaskActions()?.export_to_markdown();
+      await this.getChatActions()?.export_to_markdown();
     } catch (error) {
       this.set_error(`${error}`);
     }
   }
-
-  public focus(id?: string): void {
-    if (id === undefined) {
-      id = this._get_active_id();
-    }
-    if (this._get_frame_type(id) == "tasks") {
-      this.getTaskActions(id)?.show();
-      return;
-    }
-    super.focus(id);
-  }
-
-  public blur(id?: string): void {
-    if (id === undefined) {
-      id = this._get_active_id();
-    }
-    if (this._get_frame_type(id) == "tasks") {
-      this.getTaskActions(id)?.hide();
-    }
-  }
-
-  protected languageModelGetText(frameId: string, scope): string {
-    if (this._get_frame_type(frameId) == "tasks") {
-      const node = this._get_frame_node(frameId);
-      return (
-        this.getTaskActions(frameId)?.chatgptGetText(
-          scope,
-          node?.get("data-current_task_id")
-        ) ?? ""
-      );
-    }
-    return super.languageModelGetText(frameId, scope);
-  }
-
-  languageModelGetScopes() {
-    return new Set<"cell">(["cell"]);
-  }
-
-  languageModelGetLanguage() {
-    return "md";
-  }
-
-  //   async updateEmbeddings(): Promise<number> {
-  //     if (this._syncstring == null) return 0;
-  //     return (await this.getTaskActions()?.updateEmbeddings()) ?? 0;
-  //   }
 }
