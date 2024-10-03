@@ -290,28 +290,30 @@ export default function Create() {
                 description={`You must replace the text '${required}' everywhere above with the requested information.`}
               />
             )}
-            <Button
-              shape="round"
-              size="large"
-              disabled={!submittable.current}
-              type="primary"
-              onClick={createSupportTicket}
-            >
-              <Icon name="paper-plane" />{" "}
-              {submitting
-                ? "Submitting..."
-                : success
-                  ? "Thank you for creating a ticket"
-                  : submitError
-                    ? "Close the error box to try again"
-                    : !isValidEmailAddress(email)
-                      ? "Enter Valid Email Address above"
-                      : !subject
-                        ? "Enter Subject above"
-                        : (body ?? "").length < MIN_BODY_LENGTH
-                          ? `Describe your ${type} in detail above`
-                          : "Create Support Ticket"}
-            </Button>
+            {type != "chat" && (
+              <Button
+                shape="round"
+                size="large"
+                disabled={!submittable.current}
+                type="primary"
+                onClick={createSupportTicket}
+              >
+                <Icon name="paper-plane" />{" "}
+                {submitting
+                  ? "Submitting..."
+                  : success
+                    ? "Thank you for creating a ticket"
+                    : submitError
+                      ? "Close the error box to try again"
+                      : !isValidEmailAddress(email)
+                        ? "Enter Valid Email Address above"
+                        : !subject
+                          ? "Enter Subject above"
+                          : (body ?? "").length < MIN_BODY_LENGTH
+                            ? `Describe your ${type} in detail above`
+                            : "Create Support Ticket"}
+              </Button>
+            )}
             {submitting && <Loading style={{ fontSize: "32pt" }} />}
             {submitError && (
               <div>

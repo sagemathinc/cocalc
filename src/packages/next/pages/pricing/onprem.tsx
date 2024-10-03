@@ -4,8 +4,6 @@
  */
 
 import { Alert, Button, Divider, Layout, List } from "antd";
-import { useRouter } from "next/router";
-
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { COLORS } from "@cocalc/util/theme";
@@ -19,6 +17,7 @@ import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import { ReactNode } from "react";
+import getSupportUrl from "@cocalc/frontend/support/url";
 
 const PUBLISH_PRICE = true;
 
@@ -40,8 +39,7 @@ const data: Item[] = [
     title: "Small Business",
     icon: "experiment",
     individuals: "≤ 25",
-    price: 5000,
-    extra: 5000,
+    price: 10000,
   },
   {
     title: "Large Organization",
@@ -54,8 +52,7 @@ const data: Item[] = [
     title: "University",
     icon: "graduation-cap",
     individuals: "≤ 150",
-    price: 3000,
-    extra: 3000,
+    price: 6000,
     academic: CM,
   },
 ];
@@ -81,19 +78,17 @@ export default function OnPrem({ customize }) {
 }
 
 function Body() {
-  const router = useRouter();
-
-  const body = encodeURIComponent(
-    "PLEASE EXPLAIN YOUR EXPECTED USE CASE TO HELP US GUIDE YOU:\n\nWE WOULD LOVE TO SETUP A VIDEO CALL WITH YOU! WHEN ARE YOU AVAILABLE (DAYS, TIMESLOTS, TIMEZONE)?",
-  );
-
-  const contactURL = `/support/new?hideExtra=true&type=purchase&subject=CoCalc%20OnPrem&body=${body}&title=Purchase%20CoCalc%20On-prem`;
+  const contactURL = getSupportUrl({
+    subject: "Purchase CoCalc OnPrem",
+    type: "chat",
+    url: "",
+  });
 
   function renderContactButton(
-    text: string | ReactNode = "Contact us",
+    text: string | ReactNode = "Contact Us",
   ): JSX.Element {
     return (
-      <Button size="large" onClick={() => router.push(contactURL)}>
+      <Button size="large" href={contactURL}>
         {text}
       </Button>
     );
@@ -115,7 +110,7 @@ function Body() {
         message={
           <>
             <Paragraph strong style={{ fontSize: "150%" }}>
-              Please <A href={contactURL}>contact us</A> for questions,
+              Please <A href={contactURL} external>contact us</A> for questions,
               licensing details, and purchasing.
             </Paragraph>
             <Paragraph>
@@ -143,7 +138,6 @@ function Body() {
               icon,
               title,
               academic,
-              extra,
               prod,
             }) => {
               return (
@@ -155,23 +149,17 @@ function Body() {
                   <Line amount={INF} desc="Project Collaborators" />
                   <Line amount={INF} desc="Cluster Resources²" />
                   <Line amount={CM} desc="Help for Initial Setup" />
+                  <Line amount={CM} desc="Premium Support" />
                   <Divider />
-                  <Line amount={CM} desc="Collaborative Jupyter, LaTeX, ..." />
+                  <Line
+                    amount={CM}
+                    desc="Collaborative Jupyter, LaTeX, SageMath, R, ..."
+                  />
                   <Line amount={CM} desc="Custom Software Environments" />
                   <Line amount={CM} desc="Regular Software Upgrades" />
                   <Line amount={CM} desc="Flexible LLM integration³" />
                   <Line amount={CM} desc="GPU Support" />
                   <Line amount={CM} desc="SAML SSO" />
-
-                  {academic ? (
-                    <>
-                      <Divider />
-                      <Line
-                        amount={academic}
-                        desc={<Text strong>Academic discount</Text>}
-                      />
-                    </>
-                  ) : undefined}
 
                   <br />
                   <div
@@ -195,15 +183,13 @@ function Body() {
                         )
                       : renderContactButton()}
                   </div>
-                  {extra ? (
+                  {academic ? (
                     <>
                       <Divider />
-                      <Paragraph type="secondary">
-                        <Line
-                          amount={`$${extra}`}
-                          desc={<span>Premium Support (optional)</span>}
-                        />
-                      </Paragraph>
+                      <Line
+                        amount={academic}
+                        desc={<Text strong>Academic discount</Text>}
+                      />
                     </>
                   ) : undefined}
                 </PricingItem>

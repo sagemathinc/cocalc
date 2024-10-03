@@ -29,14 +29,15 @@ export default function getURL(options: Options = {}) {
   const params = {
     hideExtra: options.hideExtra,
     url: options.url,
-    type: options.type ?? "",
-    subject: options.subject ?? "",
-    body: options.body ?? "",
-    required: options.required ?? "",
-    context: options.context ?? "",
+    type: options.type,
+    subject: options.subject,
+    body: options.body,
+    required: options.required,
+    context: options.context,
   };
 
   const queryParams = Object.keys(params)
+    .filter((key) => params[key])
     .map((key) => `${key}=${encodeURIComponent(params[key] as string)}`)
     .join("&");
 
