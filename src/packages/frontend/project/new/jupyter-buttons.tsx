@@ -258,7 +258,7 @@ export function JupyterNotebookButtons({
         lang,
         btn: (
           <Tip
-            key={lang}
+            key={`${lang}-${kernelName}`}
             delayShow={DELAY_SHOW_MS}
             icon={NEW_FILETYPE_ICONS[ext]}
             title={`${display} Jupyter Notebook`}

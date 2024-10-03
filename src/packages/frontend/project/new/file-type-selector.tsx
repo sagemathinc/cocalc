@@ -98,7 +98,7 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="blue" icon="jupyter" isFlyout={isFlyout}>
-          Jupyter and Documents
+          Popular Documents
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
           <JupyterNotebookButtons
