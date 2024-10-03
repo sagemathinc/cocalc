@@ -64,6 +64,8 @@ export class ChatActions extends Actions<ChatState> {
   // at once and it really did send them all to openai at once, and
   // this prevents that at least.
   private chatStreams: Set<string> = new Set([]);
+  public frameId: string = "";
+  public frameTreeActions;
 
   set_syncdb = (syncdb: SyncDB, store: ChatStore): void => {
     this.syncdb = syncdb;
@@ -527,13 +529,13 @@ export class ChatActions extends Actions<ChatState> {
     if (!this.store) return;
     // similar code in task list.
     let selectedHashtags: SelectedHashtags =
-      this.store.get("selectedHashtags") ??
+      this.frameTreeActions._get_frame_data(this.frameId, "selectedHashtags") ??
       immutableMap<string, HashtagState>();
     selectedHashtags =
       state == null
         ? selectedHashtags.delete(tag)
         : selectedHashtags.set(tag, state);
-    this.setState({ selectedHashtags });
+    this.setSelectedHashtags(selectedHashtags);
   };
 
   help = () => {
@@ -1028,10 +1030,27 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   clearAllFilters = () => {
-    this.setState({
-      search: "",
-      selectedHashtags: immutableMap(),
-      filterRecentH: 0,
+    if (this.frameTreeActions == null) {
+      // crappy code just for sage worksheets -- will go away.
+      return;
+    }
+    this.setSearch("");
+    this.setFilterRecentH(0);
+    this.setSelectedHashtags({});
+  };
+
+  setSearch = (search) => {
+    this.frameTreeActions.set_frame_data({ id: this.frameId, search });
+  };
+
+  setFilterRecentH = (filterRecentH) => {
+    this.frameTreeActions.set_frame_data({ id: this.frameId, filterRecentH });
+  };
+
+  setSelectedHashtags = (selectedHashtags) => {
+    this.frameTreeActions.set_frame_data({
+      id: this.frameId,
+      selectedHashtags,
     });
   };
 }

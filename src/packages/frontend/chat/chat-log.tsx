@@ -39,6 +39,10 @@ interface Props {
   setLastVisible?: (x: Date | null) => void;
   fontSize?: number;
   actions: ChatActions;
+  search;
+  filterRecentH?;
+  selectedHashtags;
+  disableFilters?: boolean;
 }
 
 export function ChatLog({
@@ -49,6 +53,10 @@ export function ChatLog({
   setLastVisible,
   fontSize,
   actions,
+  search: search0,
+  filterRecentH,
+  selectedHashtags: selectedHashtags0,
+  disableFilters,
 }: Props) {
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
@@ -59,13 +67,10 @@ export function ChatLog({
   );
 
   // see similar code in task list:
-  const selectedHashtags0 = useRedux(["selectedHashtags"], project_id, path);
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
     return getSelectedHashtagsSearch(selectedHashtags0);
   }, [selectedHashtags0]);
-
-  const search =
-    useRedux(["search"], project_id, path) + selectedHashtagsSearch;
+  const search = search0 + " " + selectedHashtagsSearch;
 
   useEffect(() => {
     scrollToBottomRef?.current?.(true);
@@ -82,7 +87,6 @@ export function ChatLog({
     actions.setState({ scrollToBottom: undefined });
   }, [scrollToBottom]);
 
-  const filterRecentH = useRedux(["filterRecentH"], project_id, path);
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
   const { dates: sortedDates, numFolded } = useMemo<{
@@ -110,6 +114,9 @@ export function ChatLog({
 
   const visibleHashtags = useMemo(() => {
     let X = immutableSet<string>([]);
+    if (disableFilters) {
+      return X;
+    }
     for (const date of sortedDates) {
       const message = messages.get(date);
       const value = newest_content(message);

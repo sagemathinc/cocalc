@@ -1,5 +1,5 @@
 import { Input, Tooltip } from "antd";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { debounce } from "lodash";
 
 export default function Filter({ actions, search, style }) {
@@ -7,15 +7,10 @@ export default function Filter({ actions, search, style }) {
   useEffect(() => {
     setValue(search);
   }, [search]);
-  const doSearch = useCallback(
-    (value: string) => {
-      actions.setState({ search: value });
-    },
-    [actions],
-  );
+
   const debouncedSearch = useMemo(
     () =>
-      debounce(doSearch, 200, {
+      debounce(actions.setSearch, 200, {
         leading: false,
         trailing: true,
       }),
@@ -41,11 +36,11 @@ export default function Filter({ actions, search, style }) {
         }}
         onPressEnter={() => {
           debouncedSearch.cancel();
-          doSearch(value);
+          actions.setSearch(value);
         }}
         onSearch={() => {
           debouncedSearch.cancel();
-          doSearch(value);
+          actions.setSearch(value);
         }}
       />
     </Tooltip>

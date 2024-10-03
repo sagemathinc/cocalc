@@ -70,6 +70,7 @@ interface Props {
   path: string;
   is_visible?: boolean;
   font_size: number;
+  desc;
 }
 
 export function ChatRoom({
@@ -78,6 +79,7 @@ export function ChatRoom({
   path,
   is_visible,
   font_size,
+  desc,
 }: Props) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
   const is_uploading = useEditor("is_uploading");
@@ -85,9 +87,11 @@ export function ChatRoom({
   const input: string = useEditor("input");
   const [preview] = useDebounce(input, 250);
 
-  const search = useEditor("search");
+  const search = desc.get("data-search") ?? "";
+  const filterRecentH: number = desc.get("data-filterRecentH") ?? 0;
+  const selectedHashtags = desc.get("data-selectedHashtags");
+
   const messages = useEditor("messages");
-  const filterRecentH: number = useEditor("filterRecentH");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
   const llm_cost_room = useEditor("llm_cost_room");
@@ -205,12 +209,12 @@ export function ChatRoom({
           status={filterRecentH > 0 ? "warning" : undefined}
           allowClear
           onClear={() => {
-            actions.setState({ filterRecentH: 0 });
+            actions.setFilterRecentH(0);
             setFilterRecentHCustom("");
           }}
           style={{ width: 120 }}
           popupMatchSelectWidth={false}
-          onSelect={(val: number) => actions.setState({ filterRecentH: val })}
+          onSelect={(val: number) => actions.setFilterRecentH(val)}
           options={[
             FILTER_RECENT_NONE,
             ...[1, 6, 12, 24, 48, 24 * 7, 14 * 24, 28 * 24].map((value) => {
@@ -258,11 +262,9 @@ export function ChatRoom({
                     setFilterRecentHCustom(v);
                     const val = parseFloat(v);
                     if (isFinite(val) && val >= 0) {
-                      actions.setState({ filterRecentH: val });
+                      actions.setFilterRecentH(val);
                     } else if (v == "") {
-                      actions.setState({
-                        filterRecentH: FILTER_RECENT_NONE.value,
-                      });
+                      actions.setFilterRecentH(FILTER_RECENT_NONE.value);
                     }
                   },
                   150,
@@ -326,6 +328,9 @@ export function ChatRoom({
             scrollToBottomRef={scrollToBottomRef}
             mode={"standalone"}
             fontSize={font_size}
+            search={search}
+            filterRecentH={filterRecentH}
+            selectedHashtags={selectedHashtags}
           />
           {render_preview_message()}
         </div>

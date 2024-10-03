@@ -747,7 +747,7 @@ export default function Message(props: Readonly<Props>) {
             }}
             type="primary"
           >
-            <Icon name="paper-plane" /> Send Reply
+            <Icon name="reply" /> Reply (shift+enter)
           </Button>
           <LLMCostEstimationChat
             llm_cost={llm_cost_reply}

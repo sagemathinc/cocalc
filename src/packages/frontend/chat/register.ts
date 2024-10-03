@@ -11,10 +11,10 @@ import { ChatActions } from "./actions";
 import { ChatStore } from "./store";
 
 // it is fine to call this more than once.
-export function initChat(project_id: string, path: string): string {
+export function initChat(project_id: string, path: string): ChatActions {
   const name = redux_name(project_id, path);
   if (redux.getActions(name) != null) {
-    return name; // already initialized
+    return redux.getActions(name); // already initialized
   }
 
   const actions = redux.createActions(name, ChatActions);
@@ -53,13 +53,13 @@ export function initChat(project_id: string, path: string): string {
     redux.getProjectActions(project_id)?.log_opened_time(path);
   });
 
-  return name;
+  return actions;
 }
 
 export function remove(path: string, redux, project_id: string): string {
   const name = redux_name(project_id, path);
   const actions = redux.getActions(name);
-  actions?.syncdb.close();
+  actions?.syncdb?.close();
   const store = redux.getStore(name);
   if (store == null) {
     return name;

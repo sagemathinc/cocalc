@@ -20,27 +20,40 @@ export function chatFile(path: string): string {
 
 interface Props {
   font_size: number;
+  desc;
 }
 
-function Chat({ font_size }: Props) {
-  const { project_id, path: path0 } = useFrameContext();
+function Chat({ font_size, desc }: Props) {
+  const { project_id, path: path0, actions, id: frameId } = useFrameContext();
   const path = chatFile(path0);
-  const [initialized, setInitialized] = useState<boolean>(false);
+  const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(
+    null,
+  );
   useEffect(() => {
     (async () => {
       // properly set the side chat compute server, if necessary
       await redux
         .getProjectActions(project_id)
         .setSideChatComputeServerId(path0);
-      initChat(project_id, path);
-      setInitialized(true);
+      const sideChatActions = initChat(project_id, path);
+      sideChatActions.frameTreeActions = actions;
+      sideChatActions.frameId = frameId;
+      setSideChatActions(sideChatActions);
     })();
   }, []);
 
-  if (!initialized) {
+  if (sideChatActions == null) {
     return null;
   }
-  return <SideChat project_id={project_id} path={path} fontSize={font_size} />;
+  return (
+    <SideChat
+      actions={sideChatActions}
+      project_id={project_id}
+      path={path}
+      fontSize={font_size}
+      desc={desc}
+    />
+  );
 }
 
 export const chat: EditorDescription = {

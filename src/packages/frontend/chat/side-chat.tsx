@@ -26,14 +26,28 @@ interface Props {
   path: string;
   style?: CSSProperties;
   fontSize?: number;
+  actions?: ChatActions;
+  desc?;
 }
 
-export default function SideChat({ project_id, path, style, fontSize }: Props) {
-  const actions: ChatActions = useActions(project_id, path);
+export default function SideChat({
+  actions: actions0,
+  project_id,
+  path,
+  style,
+  fontSize,
+  desc,
+}: Props) {
+  // This actionsViaContext via useActions is ONLY needed for side chat for non-frame
+  // editors, i.e., basically just Sage Worksheets!
+  const actionsViaContext = useActions(project_id, path);
+  const actions: ChatActions = actions0 ?? actionsViaContext;
+  const disableFilters = actions0 == null;
   const messages = useRedux(["messages"], project_id, path);
   const [lastVisible, setLastVisible] = useState<Date | null>(null);
   const input: string = useRedux(["input"], project_id, path);
-  const search: string = useRedux(["search"], project_id, path);
+  const search = desc?.get("data-search") ?? "";
+  const selectedHashtags = desc?.get("data-selectedHashtags");
   const addCollab: boolean = useRedux(["add_collab"], project_id, path);
   const is_uploading = useRedux(["is_uploading"], project_id, path);
   const project_map = useTypedRedux("projects", "project_map");
@@ -142,16 +156,18 @@ export default function SideChat({ project_id, path, style, fontSize }: Props) {
           <AddChatCollab addCollab={addCollab} project_id={project_id} />
         </div>
       )}
-      <Filter
-        actions={actions}
-        search={search}
-        style={{
-          margin: 0,
-          ...(messages.size >= 2
-            ? undefined
-            : { visibility: "hidden", height: 0 }),
-        }}
-      />
+      {!disableFilters && (
+        <Filter
+          actions={actions}
+          search={search}
+          style={{
+            margin: 0,
+            ...(messages.size >= 2
+              ? undefined
+              : { visibility: "hidden", height: 0 }),
+          }}
+        />
+      )}
       <div
         className="smc-vfill"
         style={{
@@ -169,6 +185,9 @@ export default function SideChat({ project_id, path, style, fontSize }: Props) {
           scrollToBottomRef={scrollToBottomRef}
           mode={"sidechat"}
           setLastVisible={setLastVisible}
+          search={search}
+          selectedHashtags={selectedHashtags}
+          disableFilters={disableFilters}
         />
       </div>
 
@@ -184,7 +203,7 @@ export default function SideChat({ project_id, path, style, fontSize }: Props) {
                       sendChat({ reply_to: new Date(lastVisible) });
                     }}
                   >
-                    Reply (shift+enter)
+                    <Icon name="reply" /> Reply (shift+enter)
                   </Button>
                 )}
                 <Button
@@ -197,7 +216,7 @@ export default function SideChat({ project_id, path, style, fontSize }: Props) {
                   disabled={!input?.trim() || is_uploading}
                 >
                   <Icon name="paper-plane" />
-                  Start New Conversation
+                  Start New Thread
                 </Button>
               </Space>
             </Tooltip>
