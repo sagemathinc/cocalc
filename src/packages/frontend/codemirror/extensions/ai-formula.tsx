@@ -1,5 +1,6 @@
 import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 import { debounce } from "lodash";
+import { useIntl } from "react-intl";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
@@ -22,13 +23,14 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { dialogs } from "@cocalc/frontend/i18n";
 import { show_react_modal } from "@cocalc/frontend/misc";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
-import { unreachable } from "@cocalc/util/misc";
 import { Locale } from "@cocalc/util/i18n";
+import { unreachable } from "@cocalc/util/misc";
 
 type Mode = "tex" | "md";
 
@@ -65,6 +67,7 @@ interface Props extends Opts {
 }
 
 function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
+  const intl = useIntl();
   const { setLocale } = useLocalizationCtx();
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [model, setModel] = useLanguageModelSetting(project_id);
@@ -260,7 +263,7 @@ function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
         </Title>
         {enabled ? (
           <>
-            Select language model:{" "}
+            {intl.formatMessage(dialogs.select_llm)}:{" "}
             <LLMSelector
               project_id={project_id}
               model={model}

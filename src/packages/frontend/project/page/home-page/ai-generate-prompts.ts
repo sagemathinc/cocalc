@@ -73,6 +73,21 @@ print(x)
 \`\`\`
 `;
 
+const IPYNB_SAGEMATH_TEMPLATE = `## Differentiate f(x) = x * sin(x)
+
+Define $f(x) = x \\sin(x)$:
+
+\`\`\`
+f(x) = x * sin(x)
+\`\`\`
+
+## Differentiate $f(X)$
+
+\`\`\`
+show(diff(f, x))
+\`\`\`
+`;
+
 const MD_TEMPLATE = `# Title
 
 ## Markdown text
@@ -89,7 +104,7 @@ export const LANG_EXTRA: { [language: string]: string } = {
   python:
     "Prefer using the standard library or the following packages: numpy, matplotlib, pandas, scikit-learn, sympy, scipy, sklearn, seaborn, statsmodels, nltk, tensorflow, pytorch, pymc3, dask, numba, bokeh.",
   r: "Prefer using the standard library or the following packages: tidyverse, tidyr, stringr, dplyr, data.table, ggplot2, car, mgcv, lme4, nlme, randomForest, survival, glmnet.",
-  sagemath: "Use all functions in SageMath.",
+  sagemath: "Use functionality in SageMath.",
   julia: "Use function from the standard library only.",
 } as const;
 
@@ -141,9 +156,17 @@ export const PROMPT: {
   ipynb: {
     extra: DEFAULT_LANG_EXTRA,
     template: {
-      prompt: "Assign 1 to x and print x",
+      prompt: "Assign 1 to x and print x.",
       content: IPYNB_TEMPLATE,
       filename: "print_x",
+    },
+  },
+  "ipynb-sagemath": {
+    extra: LANG_EXTRA.sagemath,
+    template: {
+      prompt: "Differentiate f(x) = x * sin(x) and show the result.",
+      content: IPYNB_SAGEMATH_TEMPLATE,
+      filename: "diff_fx",
     },
   },
 } as const;

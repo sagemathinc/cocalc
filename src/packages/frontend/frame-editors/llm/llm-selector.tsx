@@ -44,6 +44,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { round2up } from "@cocalc/util/misc";
 import type { CustomLLMPublic } from "@cocalc/util/types/llm";
+import { FormattedMessage } from "react-intl";
 import { getCustomLLMGroup } from "./components";
 
 type SizeType = ConfigProviderProps["componentSize"];
@@ -325,21 +326,33 @@ export default function LLMSelector({
     }
 
     return (
-      <>
+      <FormattedMessage
+        id="llm-selector.help.message2"
+        defaultMessage={`
         <Paragraph>
-          The models marked as "{FREE}" do not incur any charges. However, they
-          are rate limited to avoid abuse. The more capable models are marked "
-          {PREMIUM}" and charged by the number of read and geenerated tokens –
-          i.e. "pay-as-you-go" – and do not have rate limitations. Usually,
-          these charges are very small!
+          The models marked as "{FREE}" do not incur any charges.
+          However, they are rate limited to avoid abuse.
+          The more capable models are marked "{PREMIUM}" and charged by the number of
+          read and geenerated tokens – i.e. "pay-as-you-go" – and do not have rate limitations.
+          Usually, these charges are very small!
         </Paragraph>
         <Paragraph>
-          Assuming a typical usage involves {input} input tokens and {output}{" "}
-          output tokens, the price across all models ranges from $
-          {min.toFixed(2)} to ${max.toFixed(2)} per usage, and is{" "}
-          {calcSelected()} for the selected model {modelToName(model)}.
-        </Paragraph>
-      </>
+          Assuming a typical usage involves {input} input tokens and {output} output tokens,
+          the price across all models ranges from \${min} to \${max} per usage,
+          and is {calc} for the selected model {name}.
+        </Paragraph>`}
+        values={{
+          Paragraph: (c) => <Paragraph>{c}</Paragraph>,
+          FREE,
+          PREMIUM,
+          input,
+          output,
+          min: min.toFixed(2),
+          max: max.toFixed(2),
+          calc: calcSelected(),
+          name: modelToName(model),
+        }}
+      />
     );
   }
 
@@ -348,10 +361,12 @@ export default function LLMSelector({
       <HelpIcon title={"Language Model Selection"}>
         <>
           <Paragraph>
-            This selector determines which language model will be used to
-            generate the response. You can select from a variety of models, each
-            with its own strengths and weaknesses. Your choice will become the
-            default the next time you use an LLM.
+            <FormattedMessage
+              id="llm-selector.help.message1"
+              defaultMessage={`This selector determines which language model will be used to generate the response.
+            You can select from a variety of models, each with its own strengths and weaknesses.
+            Your choice will become the default the next time you use an LLM.`}
+            />
           </Paragraph>
           {renderHelpPricing()}
         </>
