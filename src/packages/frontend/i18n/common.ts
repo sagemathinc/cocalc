@@ -204,8 +204,8 @@ export const labels = defineMessages({
   },
   split_frame_horizontally_title: {
     id: "labels.split_frame_horizontally.title",
-    defaultMessage: "Split Down",
-    description: "Split a frame horizontally",
+    defaultMessage: "Split frame horizontally into two rows",
+    description: "Split frame horizontally",
   },
   assistant: {
     id: "labels.assistant",

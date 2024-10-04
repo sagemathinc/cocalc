@@ -107,7 +107,7 @@ addCommands({
     title: defineMessage({
       id: "command.generic.close.title",
       defaultMessage:
-        "Close this frame. To restore the default layout, select the application menu entry 'Default Layout'.",
+        "Close this frame. To restore the default layout, select the application menu entry 'Default Layout' or close all frames.",
     }),
     onClick: ({ props }) => {
       props.actions.close_frame(props.id);
@@ -1071,13 +1071,15 @@ addCommands({
       redux.getStore("projects").hasLanguageModelEnabled(props.project_id),
   },
   chat: {
-    alwaysShow: true,
+    // we have a side chat menu item... except for in a chatroom or side chat.
+    isVisible: ({ props }) =>
+      !props.path?.endsWith(".sage-chat") && props.type != "chat",
     pos: 5,
     group: "help-link",
     icon: "comment",
     label: defineMessage({
       id: "command.generic.chat.label",
-      defaultMessage: "Chat with Collaborators or AI",
+      defaultMessage: "Side Chat with Collaborators or AI",
       description:
         "Opens a chatroom next to the document to chat with other users (collaborators) or an AI chatbot",
     }),

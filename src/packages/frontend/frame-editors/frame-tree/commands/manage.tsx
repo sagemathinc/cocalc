@@ -70,7 +70,12 @@ export class ManageCommands {
     if (cmd == null) {
       cmd = COMMANDS[name];
     }
-    // some buttons are always visible, e.g., for controlling the frame.
+    if (this.props.spec.commands?.[`-${name}`]) {
+      // explicitly hidden by the spec
+      return false;
+    }
+    // some buttons are always visible, e.g., for controlling the frame, unless of course they are explicitly
+    // hidden by the spec (above)
     if (cmd?.alwaysShow) {
       return true;
     }
@@ -79,10 +84,6 @@ export class ManageCommands {
       return false;
     }
     if (cmd?.disable && this.studentProjectFunctionality[cmd.disable]) {
-      return false;
-    }
-    if (this.props.spec.commands?.[`-${name}`]) {
-      // explicitly hidden by the spec
       return false;
     }
     if (cmd?.isVisible != null) {
