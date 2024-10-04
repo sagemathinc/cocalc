@@ -3020,17 +3020,14 @@ export class Actions<
     return new Set(["selection"]);
   }
 
-  async languageModel(frameId: string, options: Options, input: string) {
+  languageModel = async (frameId: string, options: Options, input: string) => {
     await languageModelCreateChat({
       actions: this as Actions<CodeEditorState>,
       frameId,
       options,
       input,
     });
-  }
-
-  // TODO: get rid of this. it's used somehow in the title-bar.tsx, without typing
-  chatgpt = this.languageModel;
+  };
 
   tour(_id: string, _refs: any): TourProps["steps"] {
     return [];

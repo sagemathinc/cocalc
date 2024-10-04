@@ -37,11 +37,11 @@ import {
   IconName,
   LLMNameLink,
   Paragraph,
-  RawPrompt,
   Text,
   Title,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { labels } from "@cocalc/frontend/i18n";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
@@ -337,7 +337,9 @@ export default function LanguageModelTitleBarButton({
   const doIt = async () => {
     setShowPreview(false);
     const options = getQueryLLMOptions();
-    if (options == null) return;
+    if (options == null) {
+      return;
+    }
     await queryLLM(options);
     setShowDialog(false);
     setError("");
@@ -410,7 +412,9 @@ export default function LanguageModelTitleBarButton({
         icon: <Icon name={icon} />,
         label: (
           <>
-            <Text strong>{label}:</Text>{" "}
+            <Text strong style={{ marginRight: "5px" }}>
+              {label}:
+            </Text>{" "}
             <Text type="secondary">{description}</Text>
           </>
         ),
@@ -442,7 +446,9 @@ export default function LanguageModelTitleBarButton({
   }
 
   function renderShowOptions() {
-    if (!showOptions) return;
+    if (!showOptions || path.endsWith(".sage-chat")) {
+      return;
+    }
 
     return (
       <Paragraph
@@ -504,6 +510,14 @@ export default function LanguageModelTitleBarButton({
     return (
       <Paragraph style={{ textAlign: "center" }} ref={submitRef}>
         <Space size="middle">
+          <Button
+            size="large"
+            onClick={() => {
+              setShowDialog(false);
+            }}
+          >
+            Cancel
+          </Button>
           <Popover
             trigger={["click"]}
             title={
@@ -517,7 +531,7 @@ export default function LanguageModelTitleBarButton({
                 >
                   <Icon name="times" />
                 </Button>
-                Exactly this will be sent to the language model.
+                This will be sent to the language model
               </div>
             }
             open={showPreview && visible && showDialog}
@@ -528,8 +542,8 @@ export default function LanguageModelTitleBarButton({
             }}
             content={() => (
               <Space direction="vertical" style={{ maxWidth: "50vw" }}>
-                <RawPrompt
-                  input={message}
+                <StaticMarkdown
+                  value={message}
                   style={{
                     maxHeight: "30vh",
                     overflow: "auto",
@@ -598,10 +612,12 @@ export default function LanguageModelTitleBarButton({
         </Paragraph>
         {renderOptions()}
         {renderShowOptions()}
-        <Paragraph type="secondary">
-          {description} The output will appear in side-chat, so your file isn't
-          directly modified.
-        </Paragraph>
+        {!path.endsWith(".sage-chat") && (
+          <Paragraph type="secondary">
+            {description} The output will appear in the side chat, so your file
+            isn't directly modified.
+          </Paragraph>
+        )}
         {renderSubmit()}
         {error ? (
           <Alert type="error" message={error} />
@@ -614,6 +630,9 @@ export default function LanguageModelTitleBarButton({
 
   return (
     <Popover
+      placement={
+        "right" /* Otherwise this thing gets stuck on the left side of the screen, which is very disconcerting*/
+      }
       title={renderTitle()}
       open={visible && showDialog}
       content={renderContent}
