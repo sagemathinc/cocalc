@@ -382,11 +382,11 @@ export function FileTypeSelector({
         content: intl.formatMessage({
           id: "project.new.file-type-selector.sagews.modal.content",
           defaultMessage:
-            "Consider working with a Jupyter Notebook and use a SageMath Kernel. You can also convert existing SageWorksheets to Jupyter Notebooks.",
+            "Consider creating a Jupyter Notebook and use a SageMath Kernel (use the 'SageMath Notebook' button). You can also convert existing SageMath Worksheets to Jupyter Notebooks.",
         }),
         okText: intl.formatMessage({
           id: "project.new.file-type-selector.sagews.modal.ok",
-          defaultMessage: "Create anyways",
+          defaultMessage: "Create SageMath Worksheet Anyways",
         }),
         onOk: (close) => {
           create_file(ext);
