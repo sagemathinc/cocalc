@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map as ImmutableMap } from "immutable";
 import Pica from "pica";
 import ReactCropComponent from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -22,6 +21,7 @@ import {
   ProfileIcon,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import type { AccountState } from "./types";
 
 // This is what facebook uses, and it makes
 // 40x40 look very good.  It takes about 20KB
@@ -29,7 +29,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 const AVATAR_SIZE: number = 160;
 
 interface ProfileImageSelectorProps {
-  profile: ImmutableMap<any, any>;
+  profile: AccountState["profile"];
   account_id: string;
   email_address: string | undefined;
 }

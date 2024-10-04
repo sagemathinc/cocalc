@@ -100,6 +100,11 @@ export function Localize({ children }: { children: React.ReactNode }) {
           defaultLocale={DEFAULT_LOCALE}
           onError={onError}
           defaultRichTextElements={{
+            strong: (ch) => (
+              <Text strong key={getKey("strong")}>
+                {ch}
+              </Text>
+            ),
             b: (ch) => (
               <Text strong key={getKey("b")}>
                 {ch}
