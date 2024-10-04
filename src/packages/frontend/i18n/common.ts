@@ -573,6 +573,10 @@ export const labels = defineMessages({
     id: "labels.reconnect",
     defaultMessage: "Reconnect",
   },
+  color: {
+    id: "labels.color",
+    defaultMessage: "Color",
+  },
 });
 
 export const menu = defineMessages({

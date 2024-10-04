@@ -3,34 +3,96 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
-import { Component, Rendered } from "@cocalc/frontend/app-framework";
-import { capitalize, is_different, keys } from "@cocalc/util/misc";
-import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
-import { A } from "@cocalc/frontend/components";
+import { defineMessage, useIntl } from "react-intl";
 
-const EDITOR_SETTINGS_CHECKBOXES: { [setting: string]: string | Rendered } = {
-  extra_button_bar:
-    "customizable button bar below menu bar with shortcuts to menu items",
-  line_wrapping: "wrap long lines",
-  line_numbers: "show line numbers",
-  jupyter_line_numbers: "show line numbers in Jupyter notebooks",
-  code_folding: "fold code using control+Q",
-  smart_indent: "context sensitive indentation",
-  electric_chars: "sometimes reindent current line",
-  match_brackets: "highlight matching brackets near cursor",
-  auto_close_brackets: "automatically close brackets",
-  match_xml_tags: "automatically match XML tags",
-  auto_close_xml_tags: "automatically close XML tags",
-  auto_close_latex: "automatically close LaTeX environments",
-  strip_trailing_whitespace: "remove whenever file is saved",
-  show_trailing_whitespace: "show spaces at ends of lines",
-  spaces_instead_of_tabs: "send spaces when the tab key is pressed",
-  build_on_save: "build LaTex/Rmd files whenever it is saved to disk",
-  show_exec_warning: "warn that certain files are not directly executable",
-  ask_jupyter_kernel: "ask which kernel to use for a new Jupyter Notebook",
-  disable_jupyter_virtualization:
-    "render entire notebook instead of just visible part (slower and not recommended)",
+import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
+import { Rendered } from "@cocalc/frontend/app-framework";
+import { A } from "@cocalc/frontend/components";
+import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
+import { capitalize, keys } from "@cocalc/util/misc";
+import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
+
+const EDITOR_SETTINGS_CHECKBOXES: {
+  [setting: string]: IntlMessage | Rendered;
+} = {
+  extra_button_bar: defineMessage({
+    id: "account.editor-setting.checkbox.extra_button_bar",
+    defaultMessage:
+      "customizable button bar below menu bar with shortcuts to menu items",
+  }),
+  line_wrapping: defineMessage({
+    id: "account.editor-setting.checkbox.line_wrapping",
+    defaultMessage: "wrap long lines",
+  }),
+  line_numbers: defineMessage({
+    id: "account.editor-setting.checkbox.line_numbers",
+    defaultMessage: "show line numbers",
+  }),
+  jupyter_line_numbers: defineMessage({
+    id: "account.editor-setting.checkbox.jupyter_line_numbers",
+    defaultMessage: "show line numbers in Jupyter Notebooks",
+  }),
+  code_folding: defineMessage({
+    id: "account.editor-setting.checkbox.code_folding",
+    defaultMessage: "fold code using control+Q",
+  }),
+  smart_indent: defineMessage({
+    id: "account.editor-setting.checkbox.smart_indent",
+    defaultMessage: "context sensitive indentation",
+  }),
+  electric_chars: defineMessage({
+    id: "account.editor-setting.checkbox.electric_chars",
+    defaultMessage: "sometimes reindent current line",
+  }),
+  match_brackets: defineMessage({
+    id: "account.editor-setting.checkbox.match_brackets",
+    defaultMessage: "highlight matching brackets near cursor",
+  }),
+  auto_close_brackets: defineMessage({
+    id: "account.editor-setting.checkbox.auto_close_brackets",
+    defaultMessage: "automatically close brackets",
+  }),
+  match_xml_tags: defineMessage({
+    id: "account.editor-setting.checkbox.match_xml_tags",
+    defaultMessage: "automatically match XML tags",
+  }),
+  auto_close_xml_tags: defineMessage({
+    id: "account.editor-setting.checkbox.auto_close_xml_tags",
+    defaultMessage: "automatically close XML tags",
+  }),
+  auto_close_latex: defineMessage({
+    id: "account.editor-setting.checkbox.auto_close_latex",
+    defaultMessage: "automatically close LaTeX environments",
+  }),
+  strip_trailing_whitespace: defineMessage({
+    id: "account.editor-setting.checkbox.strip_trailing_whitespace",
+    defaultMessage: "remove whenever file is saved",
+  }),
+  show_trailing_whitespace: defineMessage({
+    id: "account.editor-setting.checkbox.show_trailing_whitespace",
+    defaultMessage: "show spaces at ends of lines",
+  }),
+  spaces_instead_of_tabs: defineMessage({
+    id: "account.editor-setting.checkbox.spaces_instead_of_tabs",
+    defaultMessage: "send spaces when the tab key is pressed",
+  }),
+  build_on_save: defineMessage({
+    id: "account.editor-setting.checkbox.build_on_save",
+    defaultMessage: "build LaTex/Rmd files whenever it is saved to disk",
+  }),
+  show_exec_warning: defineMessage({
+    id: "account.editor-setting.checkbox.show_exec_warning",
+    defaultMessage: "warn that certain files are not directly executable",
+  }),
+  ask_jupyter_kernel: defineMessage({
+    id: "account.editor-setting.checkbox.ask_jupyter_kernel",
+    defaultMessage: "ask which kernel to use for a new Jupyter Notebook",
+  }),
+  disable_jupyter_virtualization: defineMessage({
+    id: "account.editor-setting.checkbox.disable_jupyter_virtualization",
+    defaultMessage:
+      "render entire Jupyter Notebook instead of just visible part (slower and not recommended)",
+  }),
   jupyter_classic: (
     <span>
       <A href="https://github.com/sagemathinc/cocalc/issues/7706">
@@ -50,15 +112,13 @@ interface Props {
   on_change: Function;
 }
 
-export class EditorSettingsCheckboxes extends Component<Props> {
-  public shouldComponentUpdate(props): boolean {
-    return is_different(this.props, props, [
-      "editor_settings",
-      "email_address",
-    ]);
-  }
+export function EditorSettingsCheckboxes(props: Props) {
+  const intl = useIntl();
 
-  private label_checkbox(name: string, desc: string | Rendered): Rendered {
+  function label_checkbox(
+    name: string,
+    desc: IntlMessage | Rendered,
+  ): Rendered {
     return (
       <span>
         {capitalize(
@@ -68,14 +128,17 @@ export class EditorSettingsCheckboxes extends Component<Props> {
             .replace("xml", "XML")
             .replace("latex", "LaTeX"),
         ) + ": "}
-        {desc}
+        {isIntlMessage(desc) ? intl.formatMessage(desc) : desc}
       </span>
     );
   }
 
-  private render_checkbox(name: string, desc: string | Rendered): Rendered {
+  function render_checkbox(
+    name: string,
+    desc: IntlMessage | Rendered,
+  ): Rendered {
     if (
-      this.props.email_address?.indexOf("minervaproject.com") != -1 &&
+      props.email_address?.indexOf("minervaproject.com") != -1 &&
       name === "jupyter_classic"
     ) {
       // Special case -- minerva doesn't get the jupyter classic option, to avoid student confusion.
@@ -83,22 +146,20 @@ export class EditorSettingsCheckboxes extends Component<Props> {
     }
     return (
       <Checkbox
-        checked={!!this.props.editor_settings.get(name)}
+        checked={!!props.editor_settings.get(name)}
         key={name}
-        onChange={(e) => this.props.on_change(name, e.target.checked)}
+        onChange={(e) => props.on_change(name, e.target.checked)}
       >
-        {this.label_checkbox(name, desc)}
+        {label_checkbox(name, desc)}
       </Checkbox>
     );
   }
 
-  public render(): JSX.Element {
-    return (
-      <span>
-        {keys(EDITOR_SETTINGS_CHECKBOXES).map((name) =>
-          this.render_checkbox(name, EDITOR_SETTINGS_CHECKBOXES[name]),
-        )}
-      </span>
-    );
-  }
+  return (
+    <span>
+      {keys(EDITOR_SETTINGS_CHECKBOXES).map((name) =>
+        render_checkbox(name, EDITOR_SETTINGS_CHECKBOXES[name]),
+      )}
+    </span>
+  );
 }
