@@ -1375,13 +1375,6 @@ class CodeMirrorEditor extends FileEditor
             # Save for next time
             @_last_layout = @_layout
 
-        # Workaround a major and annoying bug in Safari:
-        #     https://github.com/philipwalton/flexbugs/issues/132
-        if $.browser.safari and @_layout == 1
-            # This is only needed for the "split via a horizontal line" layout, since
-            # the flex layout with column direction is broken on Safari.
-            @element.find(".webapp-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
-
         refresh = (cm) =>
             return if not cm?
             cm_refresh(cm)

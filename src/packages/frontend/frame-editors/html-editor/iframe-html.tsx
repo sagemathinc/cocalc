@@ -85,7 +85,6 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   React.useEffect(function () {
     mounted.current = true;
     reload_iframe();
-    safari_hack();
     set_iframe_style(scaling);
     return function () {
       mounted.current = false;
@@ -203,12 +202,6 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     body.style["transform-origin"] = "0 0";
     if (is_fullscreen && fullscreen_style != null) {
       body.style = { ...body.style, ...fullscreen_style };
-    }
-  }
-
-  function safari_hack(): void {
-    if (is_safari()) {
-      $(ReactDOM.findDOMNode(rootEl.current)).make_height_defined();
     }
   }
 

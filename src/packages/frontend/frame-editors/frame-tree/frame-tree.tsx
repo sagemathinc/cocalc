@@ -461,24 +461,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             containerRef={cols_container_ref}
             dir={"col"}
             frame_tree={frame_tree}
-            safari_hack={safari_hack}
           />
           <div className={"smc-vfill"} style={data.style_second}>
             {render_one(data.second)}
           </div>
         </div>
       );
-    }
-
-    function safari_hack() {
-      if (!is_safari()) {
-        return;
-      }
-      // Workaround a major and annoying bug in Safari:
-      //     https://github.com/philipwalton/flexbugs/issues/132
-      return $(ReactDOM.findDOMNode(elementRef.current))
-        .find(".cocalc-editor-div")
-        .make_height_defined();
     }
 
     function render_rows() {
@@ -497,7 +485,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             containerRef={rows_container_ref}
             dir={"row"}
             frame_tree={frame_tree}
-            safari_hack={safari_hack}
           />
           <div className={"smc-vfill"} style={data.style_second}>
             {render_one(data.second)}
