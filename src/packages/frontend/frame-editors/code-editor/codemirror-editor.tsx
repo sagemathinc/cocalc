@@ -14,7 +14,6 @@ codemirror editor instance mainly for use in a frame tree.
 
 import { SAVE_DEBOUNCE_MS } from "./const";
 import { Map, Set } from "immutable";
-import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
 import {
   React,

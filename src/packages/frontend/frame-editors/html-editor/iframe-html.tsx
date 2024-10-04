@@ -17,7 +17,6 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 import $ from "jquery";
 import { Set } from "immutable";
 import { delay } from "awaiting";
-import { is_safari } from "../generic/browser";
 import {
   change_filename_extension,
   is_different,

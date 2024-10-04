@@ -32,9 +32,7 @@ import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import React from "react";
-
 import {
-  ReactDOM,
   redux,
   Rendered,
   useState,
@@ -44,7 +42,6 @@ import { Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { Actions } from "../code-editor/actions";
 import { cm as cm_spec } from "../code-editor/editor";
-import { is_safari } from "../generic/browser";
 import { TimeTravelActions } from "../time-travel-editor/actions";
 import { FrameContext } from "./frame-context";
 import { FrameTreeDragBar } from "./frame-tree-drag-bar";
