@@ -148,8 +148,8 @@ export const AccountPreferences: React.FC = () => {
             {render_account_settings()}
             <ProfileSettings
               email_address={email_address}
-              first_name={first_name}
-              last_name={last_name}
+              // first_name={first_name}
+              // last_name={last_name}
             />
             {render_other_settings()}
             {!is_anonymous && <ApiKeys />}

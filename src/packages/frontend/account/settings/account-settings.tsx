@@ -44,6 +44,7 @@ import {
 import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, startswith } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { DeleteAccount } from "../delete-account";
 import { SignOut } from "../sign-out";
@@ -309,8 +310,11 @@ export function AccountSettings(props: Readonly<Props>) {
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: "#666" }}>
-          Your account is linked with (click to unlink)
+        <h5 style={{ color: COLORS.GRAY_M }}>
+          {intl.formatMessage({
+            id: "account.settings.sso.account_is_linked",
+            defaultMessage: "Your account is linked with (click to unlink)",
+          })}
         </h5>
         <ButtonToolbar style={{ marginBottom: "10px", display: "flex" }}>
           {btns}
@@ -348,9 +352,16 @@ export function AccountSettings(props: Readonly<Props>) {
     );
     if (any_hidden === false && not_linked.size === 0) return;
 
-    const heading = props.is_anonymous
-      ? "Sign up using your account at"
-      : "Click to link your account";
+    const heading = intl.formatMessage(
+      {
+        id: "account.settings.sso.link_your_account",
+        defaultMessage: `{is_anonymous, select,
+          true {Sign up using your account at}
+          other {Click to link your account}}`,
+      },
+      { is_anonymous: props.is_anonymous },
+    );
+
     const btns = not_linked
       .map((strategy) => render_strategy(strategy, account_passports))
       .toArray();
@@ -370,7 +381,7 @@ export function AccountSettings(props: Readonly<Props>) {
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: "#666" }}>{heading}</h5>
+        <h5 style={{ color: COLORS.GRAY_M }}>{heading}</h5>
         <Space size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
           {btns}
         </Space>
