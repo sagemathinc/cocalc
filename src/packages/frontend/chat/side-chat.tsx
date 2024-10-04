@@ -137,6 +137,7 @@ export default function SideChat({
                   path,
                 ) as ChatActions;
                 actions.sendChat({ input: value });
+                actions.scrollToBottom();
               }}
             />
             <Tooltip title="Show TimeTravel change history of this side chat.">

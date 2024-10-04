@@ -125,33 +125,9 @@ export default function VideoChatButton({
     </>
   );
 
-  const btn = <Button style={{ ...style, ...style0 }}>{body}</Button>;
-
   return (
-    <Popconfirm
-      onOpenChange={setOpen}
-      title={`${
-        num_users_chatting ? "Join the current" : "Launch "
-      } video chat?`}
-      onConfirm={click_video_button}
-      okText={`${num_users_chatting ? "Join" : "Launch"} video chat`}
-      cancelText={<CancelText />}
-    >
-      {open ? (
-        btn
-      ) : (
-        <Popover
-          mouseEnterDelay={0.8}
-          title={() => (
-            <span>
-              {render_join(num_users_chatting)}
-              {render_num_chatting(num_users_chatting)}
-            </span>
-          )}
-        >
-          {btn}
-        </Popover>
-      )}
-    </Popconfirm>
+    <Button onClick={click_video_button} style={{ ...style, ...style0 }}>
+      {body}
+    </Button>
   );
 }

@@ -129,4 +129,12 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
       this.set_error(`${error}`);
     }
   }
+
+  scrollToBottom = (frameId) => {
+    this.getChatActions(frameId)?.scrollToBottom();
+  };
+
+  scrollToTop = (frameId) => {
+    this.getChatActions(frameId)?.scrollToBottom(0);
+  };
 }

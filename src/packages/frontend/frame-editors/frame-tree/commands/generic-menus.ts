@@ -38,7 +38,7 @@ addMenus({
   view: {
     label: menu.view,
     pos: 2,
-    groups: ["zoom", "frame-control", "show-frames", "button-bar"],
+    groups: ["zoom", "scroll", "frame-control", "show-frames", "button-bar"],
   },
   go: {
     label: menu.go,

@@ -37,8 +37,28 @@ const chatroom: EditorDescription = {
     "help",
     "export_to_markdown",
     "chatgpt",
+    "scrollToBottom",
+    "scrollToTop",
   ]),
-  buttons: set(["undo", "redo", "decrease_font_size", "increase_font_size"]),
+  customizeCommands: {
+    scrollToTop: {
+      label: "Scroll to Old",
+      button: "Oldest",
+      title: "Scroll to oldest message in chat",
+    },
+    scrollToBottom: {
+      label: "Scroll to Newest",
+      button: "Newest",
+      title: "Scroll to newest message in chat",
+    },
+  },
+  buttons: set([
+    "undo",
+    "redo",
+    "decrease_font_size",
+    "increase_font_size",
+    "scrollToBottom",
+  ]),
 } as const;
 
 const EDITOR_SPEC = {

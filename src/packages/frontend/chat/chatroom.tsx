@@ -15,7 +15,7 @@ import {
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Tip } from "@cocalc/frontend/components";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
@@ -34,7 +34,7 @@ const FILTER_RECENT_NONE = {
   value: 0,
   label: (
     <>
-      <Icon name="clock" /> All
+      <Icon name="clock" />
     </>
   ),
 } as const;
@@ -114,10 +114,6 @@ export function ChatRoom({
     on_send();
   }
 
-  function button_scroll_to_bottom(): void {
-    scrollToBottomRef.current?.(true);
-  }
-
   function render_preview_message(): JSX.Element | undefined {
     if (!is_preview) return;
     if (input.length === 0 || preview.length === 0) return;
@@ -152,45 +148,16 @@ export function ChatRoom({
     );
   }
 
-  function render_bottom_button(): JSX.Element {
-    return (
-      <Button onClick={button_scroll_to_bottom}>
-        <Tip
-          title={
-            <FormattedMessage
-              id="chatroom.scroll_bottom.tooltip.title"
-              defaultMessage={"Newest Messages"}
-            />
-          }
-          tip={
-            <span>
-              <FormattedMessage
-                id="chatroom.scroll_bottom.tooltip.tip"
-                defaultMessage={
-                  "Scrolls the chat to the bottom showing the newest messages"
-                }
-              />
-            </span>
-          }
-          placement="left"
-        >
-          <Icon name="arrow-down" />{" "}
-          <FormattedMessage
-            id="chatroom.scroll_bottom.label"
-            defaultMessage={"Newest"}
-          />
-        </Tip>
-      </Button>
-    );
-  }
-
   function render_video_chat_button() {
     if (project_id == null || path == null) return;
     return (
       <VideoChatButton
         project_id={project_id}
         path={path}
-        sendChat={(value) => actions.sendChat({ input: value })}
+        sendChat={(value) => {
+          actions.sendChat({ input: value });
+          actions.scrollToBottom();
+        }}
       />
     );
   }
@@ -213,7 +180,6 @@ export function ChatRoom({
             actions.setFilterRecentH(0);
             setFilterRecentHCustom("");
           }}
-          style={{ width: 120 }}
           popupMatchSelectWidth={false}
           onSelect={(val: number) => actions.setFilterRecentH(val)}
           options={[
@@ -302,7 +268,6 @@ export function ChatRoom({
         {renderFilterRecent()}
         <ButtonGroup style={{ marginLeft: "5px" }}>
           {render_video_chat_button()}
-          {render_bottom_button()}
         </ButtonGroup>
       </Space>
     );

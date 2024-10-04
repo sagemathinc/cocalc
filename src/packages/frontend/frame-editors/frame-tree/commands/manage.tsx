@@ -313,7 +313,7 @@ export class ManageCommands {
     );
   };
 
-  private cmd2display = (
+  private commandToDisplay = (
     cmd: Partial<Command>,
     aspect: "label" | "title" | "button",
   ): string | null | undefined | ReactNode => {
@@ -348,9 +348,9 @@ export class ManageCommands {
     tip: boolean,
   ) => {
     const width = ICON_WIDTH;
-    let lbl = this.cmd2display(cmd, "label");
+    let lbl = this.commandToDisplay(cmd, "label");
     if (tip && cmd.title) {
-      const title = this.cmd2display(cmd, "title");
+      const title = this.commandToDisplay(cmd, "title");
       lbl = (
         <Tooltip mouseEnterDelay={0.9} title={title} placement={"left"}>
           {lbl}
@@ -473,9 +473,9 @@ export class ManageCommands {
       const icon = this.getCommandIcon(cmd);
       let buttonLabel;
       if (cmd.button != null) {
-        buttonLabel = this.cmd2display(cmd, "button");
+        buttonLabel = this.commandToDisplay(cmd, "button");
       } else {
-        buttonLabel = this.cmd2display(cmd, "label");
+        buttonLabel = this.commandToDisplay(cmd, "label");
       }
       label = (
         <>
@@ -516,7 +516,7 @@ export class ManageCommands {
               <>
                 {this.getCommandLabel(cmd, name, false)}
                 {cmd.title ? (
-                  <div>{this.cmd2display(cmd, "title")}</div>
+                  <div>{this.commandToDisplay(cmd, "title")}</div>
                 ) : undefined}
               </>
             );

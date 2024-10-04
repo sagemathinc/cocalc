@@ -54,7 +54,10 @@ addCommands({
     group: "frame-control",
     alwaysShow: true,
     pos: 2,
-    title: labels.split_frame_vertically_title,
+    title: defineMessage({
+      id: "command.generic.split_col.title",
+      defaultMessage: "Split frame vertically into two columns",
+    }),
     onClick: ({ props }) => {
       if (props.is_full) {
         return props.actions.unset_frame_full();
@@ -63,11 +66,7 @@ addCommands({
       }
     },
     icon: "vertical-split",
-    label: defineMessage({
-      id: "command.generic.split_col.label",
-      defaultMessage: "Split Right",
-      description: "Split a frame vertically",
-    }),
+    label: labels.split_frame_vertically_title,
     button: menu.split,
   },
   maximize: {
@@ -304,6 +303,18 @@ addCommands({
         },
       };
     }),
+  },
+  scrollToTop: {
+    group: "scroll",
+    pos: 0,
+    icon: "arrow-up",
+    label: "Scroll to top",
+  },
+  scrollToBottom: {
+    group: "scroll",
+    pos: 1,
+    icon: "arrow-down",
+    label: "Scroll to bottom",
   },
   undo: {
     disabled: ({ readOnly }) => readOnly,
