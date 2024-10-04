@@ -1332,6 +1332,10 @@ export const jupyter = {
 };
 
 export const dialogs = defineMessages({
+  select_llm: {
+    id: "ai-generator.select_llm",
+    defaultMessage: "Select language model",
+  },
   project_start_warning_title: {
     id: "project-start-warning.title",
     defaultMessage: "Start this project?",

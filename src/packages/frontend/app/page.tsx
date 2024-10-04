@@ -45,6 +45,7 @@ import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
 import SettingsModal from "./settings-modal";
+import InsecureTestModeBanner from "./insecure-test-mode-banner";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -113,6 +114,7 @@ export const Page: React.FC = () => {
   const show_i18n = useShowI18NBanner();
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
 
   function account_tab_icon(): IconName | JSX.Element {
     if (is_anonymous) {
@@ -371,6 +373,7 @@ export const Page: React.FC = () => {
       onDragOver={(e) => e.preventDefault()}
       onDrop={drop}
     >
+      {insecure_test_mode && <InsecureTestModeBanner />}
       {show_file_use && (
         <div style={fileUseStyle} className="smc-vfill">
           <FileUsePage />

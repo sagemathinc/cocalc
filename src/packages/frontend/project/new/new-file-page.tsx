@@ -5,7 +5,7 @@
 
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
@@ -37,6 +37,12 @@ import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
+
+const CREATE_MSG = defineMessage({
+  id: "project.new.new-file-page.create.title",
+  defaultMessage: `Create {desc}`,
+  description: "creating a file with the given description in a file-system",
+});
 
 interface Props {
   project_id: string;
@@ -285,20 +291,16 @@ export default function NewFilePage(props: Props) {
         });
       }
     }
-    const title = intl.formatMessage(
-      {
-        id: "project.new.new-file-page.create.title",
-        defaultMessage: `Create {desc}`,
-        description: "creating a file with the given description",
-      },
-      { desc },
-    );
+    const title = intl.formatMessage(CREATE_MSG, { desc });
 
     return (
       <Space>
         {!ext && !filename.endsWith("/") && (
           <Button size="large" onClick={() => createFolder()}>
-            <Icon name="folder" /> Create Folder
+            <Icon name="folder" />{" "}
+            {intl.formatMessage(CREATE_MSG, {
+              desc: intl.formatMessage(labels.folder),
+            })}
           </Button>
         )}
         <Tip
@@ -319,7 +321,8 @@ export default function NewFilePage(props: Props) {
             disabled={filename.trim() == ""}
             onClick={() => submit()}
           >
-            <Icon name={filenameIcon(filename)} /> Create {desc}
+            <Icon name={filenameIcon(filename)} />{" "}
+            {intl.formatMessage(CREATE_MSG, { desc })}
           </Button>
         </Tip>
       </Space>

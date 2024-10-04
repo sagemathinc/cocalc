@@ -7,7 +7,6 @@
 
 import jsonic from "jsonic";
 import { isEqual } from "lodash";
-
 import { LOCALE } from "@cocalc/util/consts/locale";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import {
@@ -42,6 +41,7 @@ export const TAGS = [
   "Theme",
   "On-Prem",
   "I18N",
+  "Security",
 ] as const;
 
 export type Tag = (typeof TAGS)[number];
@@ -116,7 +116,8 @@ export type SiteSettingsKeys =
   | "compute_servers_dns_enabled"
   | "compute_servers_dns"
   | "compute_servers_hyperstack_enabled"
-  | "cloud_filesystems_enabled";
+  | "cloud_filesystems_enabled"
+  | "insecure_test_mode";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -952,5 +953,13 @@ export const site_settings_conf: SiteSettings = {
       to_bool(conf.compute_servers_enabled) &&
       to_bool(conf.compute_servers_dns_enabled),
     tags: ["Compute Servers"],
+  },
+  insecure_test_mode: {
+    name: "Insecure Test Mode",
+    desc: "Put this server in a highly insecure test mode that is suitable for evaluating CoCalc, but **CANNOT BE USED IN PRODUCTION**.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Security"],
   },
 } as const;

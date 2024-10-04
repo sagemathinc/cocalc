@@ -12,7 +12,6 @@ import { callback } from "awaiting";
 import blocked from "blocked";
 import { spawn } from "child_process";
 import { program as commander, Option } from "commander";
-
 import basePath from "@cocalc/backend/base-path";
 import {
   pghost as DEFAULT_DB_HOST,
@@ -149,12 +148,13 @@ async function startServer(): Promise<void> {
     // in those cases where we initialize the database upon startup
     // (essentially only relevant for kucalc's hub-websocket)
     if (program.mode === "kucalc") {
-      // set server settings based on environment variables
-      await load_server_settings_from_env(database);
       // and for on-prem setups, also initialize the admin account, set a registration token, etc.
       await initialOnPremSetup(database);
     }
   }
+
+  // set server settings based on environment variables
+  await load_server_settings_from_env(database);
 
   if (program.agentPort) {
     winston.info("Configure agent port");
