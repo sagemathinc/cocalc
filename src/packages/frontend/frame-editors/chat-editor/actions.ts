@@ -22,6 +22,8 @@ import { handleSyncDBChange, initFromSyncDB } from "@cocalc/frontend/chat/sync";
 import { redux_name } from "@cocalc/frontend/app-framework";
 import { aux_file } from "@cocalc/util/misc";
 
+const FRAME_TYPE = "chatroom";
+
 type ChatEditorState = CodeEditorState & ChatState;
 
 export class Actions extends CodeEditorActions<ChatEditorState> {
@@ -59,6 +61,12 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     if (this.chatActions[frameId] != null) {
       return this.chatActions[frameId];
     }
+
+    if (this._get_frame_type(frameId) != FRAME_TYPE) {
+      // if frame is not of type FRAME_TYPE, no chat actions are defined
+      return;
+    }
+
     const syncdb = this._syncstring;
     const auxPath = this.auxPath + frameId;
     const reduxName = redux_name(this.project_id, auxPath);
@@ -111,7 +119,7 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "chatroom" };
+    return { type: FRAME_TYPE };
   }
 
   async export_to_markdown(): Promise<void> {

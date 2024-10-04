@@ -14,7 +14,7 @@ export default async function getChatActions(
   width: number = 0.7
 ): Promise<ChatActions> {
   const projectActions = redux.getProjectActions(project_id);
-  projectActions.open_chat({ path: path, width });
+  projectActions.open_chat({ path, width });
   const start = Date.now();
 
   while (Date.now() - start <= 1000 * maxWaitSeconds) {

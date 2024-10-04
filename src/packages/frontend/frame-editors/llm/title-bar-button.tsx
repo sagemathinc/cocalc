@@ -173,6 +173,7 @@ export default function LanguageModelTitleBarButton({
   setShowDialog,
   noLabel,
 }: Props) {
+  const noContext = path?.endsWith(".sage-chat");
   const intl = useIntl();
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [error, setError] = useState<string>("");
@@ -231,12 +232,17 @@ export default function LanguageModelTitleBarButton({
     if (showDialog) {
       setScope(getScope(id, actions));
       restoreCommand();
-      inputRef.current?.focus();
+      setTimeout(() => inputRef.current?.focus(), 10);
     }
   }, [showDialog]);
 
   useEffect(() => {
-    if (showDialog && scope && actions != null) {
+    if (
+      showDialog &&
+      scope &&
+      actions != null &&
+      !noContext
+    ) {
       const c = actions.languageModelGetContext(id, scope);
       setContext(c);
     }
@@ -296,8 +302,8 @@ export default function LanguageModelTitleBarButton({
         }`,
       );
     },
-    1000,
-    { leading: false, trailing: true },
+    500,
+    { leading: true, trailing: true },
   );
 
   useAsyncEffect(doUpdateMessage, [
@@ -446,7 +452,7 @@ export default function LanguageModelTitleBarButton({
   }
 
   function renderShowOptions() {
-    if (!showOptions || path.endsWith(".sage-chat")) {
+    if (!showOptions || noContext) {
       return;
     }
 
@@ -580,7 +586,7 @@ export default function LanguageModelTitleBarButton({
 
   function renderContent() {
     return (
-      <Space direction="vertical" style={{ width: "800px", maxWidth: "90vw" }}>
+      <Space direction="vertical" style={{ width: "800px", maxWidth: "50vw" }}>
         <Paragraph>
           Describe what you want the language model{" "}
           <LLMNameLink model={model} /> to do. Be specific!

@@ -43,6 +43,7 @@ interface Props {
   filterRecentH?;
   selectedHashtags;
   disableFilters?: boolean;
+  scrollToBottom?: null | number | undefined;
 }
 
 export function ChatLog({
@@ -57,9 +58,9 @@ export function ChatLog({
   filterRecentH,
   selectedHashtags: selectedHashtags0,
   disableFilters,
+  scrollToBottom,
 }: Props) {
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
-  const scrollToBottom = useRedux(["scrollToBottom"], project_id, path);
   const llm_cost_reply: [number, number] = useRedux(
     ["llm_cost_reply"],
     project_id,

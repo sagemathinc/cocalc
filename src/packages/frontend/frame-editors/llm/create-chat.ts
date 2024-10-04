@@ -5,6 +5,8 @@ import { capitalize } from "@cocalc/util/misc";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { AI_ASSIST_TAG } from "./consts";
 import { modelToMention } from "./llm-selector";
+import type { ChatActions } from "@cocalc/frontend/chat/actions";
+import type { Actions as ChatEditorActions } from "@cocalc/frontend/frame-editors/chat-editor/actions";
 
 export interface Options {
   codegen?: boolean;
@@ -29,11 +31,27 @@ export default async function createChat({
 
   const { message } = await createChatMessage(actions, frameId, options, input);
 
-  const chatActions = await getChatActions(
-    actions.redux,
-    actions.project_id,
-    actions.path,
-  );
+  let chatActions: ChatActions | undefined;
+  if (actions.path.endsWith(".sage-chat")) {
+    // a full chatroom (not a different doc type)
+    chatActions = (actions as ChatEditorActions).getChatActions(frameId);
+    if (chatActions == null) {
+      const id = actions.show_focused_frame_of_type("chatroom");
+      chatActions = (actions as ChatEditorActions).getChatActions(id);
+      if (chatActions == null) {
+        console.warn("Bug getting chatroom");
+        // this should be impossible -- fallback to side chat.
+      }
+    }
+  }
+  if (chatActions == null) {
+    // get side chat-specific actions
+    chatActions = await getChatActions(
+      actions.redux,
+      actions.project_id,
+      actions.path,
+    );
+  }
 
   await chatActions.sendChat({
     input: message,
@@ -43,7 +61,9 @@ export default async function createChat({
 
   chatActions.scrollToBottom();
   // scroll to bottom again *after* the message starts getting responded to.
+  // Don't scroll too much though, since user wants to actual stop and READ.
   setTimeout(() => chatActions.scrollToBottom(), 1000);
+  setTimeout(() => chatActions.scrollToBottom(), 3000);
 }
 
 export async function createChatMessage(

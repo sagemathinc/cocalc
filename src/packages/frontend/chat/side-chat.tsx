@@ -48,6 +48,7 @@ export default function SideChat({
   const input: string = useRedux(["input"], project_id, path);
   const search = desc?.get("data-search") ?? "";
   const selectedHashtags = desc?.get("data-selectedHashtags");
+  const scrollToBottom = desc.get("data-scrollToBottom") ?? null;
   const addCollab: boolean = useRedux(["add_collab"], project_id, path);
   const is_uploading = useRedux(["is_uploading"], project_id, path);
   const project_map = useTypedRedux("projects", "project_map");
@@ -188,6 +189,7 @@ export default function SideChat({
           search={search}
           selectedHashtags={selectedHashtags}
           disableFilters={disableFilters}
+          scrollToBottom={scrollToBottom}
         />
       </div>
 

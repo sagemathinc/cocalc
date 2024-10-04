@@ -48,11 +48,13 @@ import "@cocalc/frontend/codemirror/init";
 
 export const BLURED_STYLE: CSSProperties = {
   border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
+  borderRadius: "5px",
 } as const;
 
 export const FOCUSED_STYLE: CSSProperties = {
   outline: "none !important",
   boxShadow: "0px 0px 5px  #719ECE",
+  borderRadius: "5px",
   border: "1px solid #719ECE",
 } as const;
 

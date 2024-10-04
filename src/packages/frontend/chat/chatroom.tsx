@@ -90,6 +90,7 @@ export function ChatRoom({
   const search = desc.get("data-search") ?? "";
   const filterRecentH: number = desc.get("data-filterRecentH") ?? 0;
   const selectedHashtags = desc.get("data-selectedHashtags");
+  const scrollToBottom = desc.get("data-scrollToBottom") ?? null;
 
   const messages = useEditor("messages");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
@@ -331,6 +332,7 @@ export function ChatRoom({
             search={search}
             filterRecentH={filterRecentH}
             selectedHashtags={selectedHashtags}
+            scrollToBottom={scrollToBottom}
           />
           {render_preview_message()}
         </div>

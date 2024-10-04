@@ -486,8 +486,17 @@ export class ChatActions extends Actions<ChatState> {
   scrollToBottom = (index: number = -1) => {
     if (this.syncdb == null) return;
     // this triggers scroll behavior in the chat-log component.
-    this.setState({ scrollToBottom: null }); // no-op, but necessary to trigger a change
-    this.setState({ scrollToBottom: index });
+    // no-op, but necessary to trigger a change
+    this.frameTreeActions.set_frame_data({
+      id: this.frameId,
+      scrollToBottom: null,
+    });
+    setTimeout(() => {
+      this.frameTreeActions.set_frame_data({
+        id: this.frameId,
+        scrollToBottom: index,
+      });
+    }, 1);
   };
 
   set_uploading = (is_uploading: boolean): void => {
@@ -796,13 +805,13 @@ export class ChatActions extends Actions<ChatState> {
       }
     }
 
-    // FIXME: these scrollToBottoms are a good idea, but they need an index number – not the date/timestamp
-    // this.scrollToBottom(reply_to?.valueOf());
     let content: string = "";
     let halted = false;
 
     chatStream.on("token", (token) => {
-      if (halted || this.syncdb == null) return;
+      if (halted || this.syncdb == null) {
+        return;
+      }
 
       // we check if user clicked on the "stop generating" button
       const cur = this.syncdb.get_one({ event: "chat", date });
@@ -834,7 +843,6 @@ export class ChatActions extends Actions<ChatState> {
       if (token == null) {
         this.chatStreams.delete(id);
         this.syncdb.commit();
-        // this.scrollToBottom(reply_to?.valueOf());
       }
     });
 
@@ -864,7 +872,6 @@ export class ChatActions extends Actions<ChatState> {
       };
       this.syncdb.set(msg);
       this.syncdb.commit();
-      // this.scrollToBottom(reply_to?.valueOf());
     });
   };
 
