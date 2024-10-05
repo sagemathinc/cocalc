@@ -1380,7 +1380,7 @@ importers:
         version: 0.2.18(encoding@0.1.13)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/community':
         specifier: ^0.2.19
-        version: 0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.11.0(typescript@5.6.2))(axios@1.7.7)(better-sqlite3@11.3.0)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@6.0.2)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
+        version: 0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.11.0(typescript@5.6.2))(axios@1.7.7)(better-sqlite3@11.3.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.2.17
         version: 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
@@ -7141,10 +7141,6 @@ packages:
 
   ignore@5.3.1:
     resolution: {integrity: sha512-5Fytz/IraMjqpwfd34ke28PTVMjZjJG2MPn5t7OE4eUCUNf8BAa7b5WUS9/Qvr6mwOQS7Mk6vdsMno5he+T8Xw==}
-    engines: {node: '>= 4'}
-
-  ignore@6.0.2:
-    resolution: {integrity: sha512-InwqeHHN2XpumIkMvpl/DCJVrAHgCsG5+cn1XlnLWGwtZBm8QJfSusItfrwx81CTp5agNZqpKU2J/ccC5nGT4A==}
     engines: {node: '>= 4'}
 
   image-extensions@1.1.0:
@@ -13147,7 +13143,7 @@ snapshots:
       - encoding
       - openai
 
-  '@langchain/community@0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.11.0(typescript@5.6.2))(axios@1.7.7)(better-sqlite3@11.3.0)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@6.0.2)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
+  '@langchain/community@0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.11.0(typescript@5.6.2))(axios@1.7.7)(better-sqlite3@11.3.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
     dependencies:
       '@langchain/core': 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.2.11(encoding@0.1.13)
@@ -13155,7 +13151,7 @@ snapshots:
       expr-eval: 2.0.2
       flat: 5.0.2
       js-yaml: 4.1.0
-      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@6.0.2)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
+      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
       langsmith: 0.1.59(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       uuid: 10.0.0
       zod: 3.23.8
@@ -13166,10 +13162,9 @@ snapshots:
       '@qdrant/js-client-rest': 1.11.0(typescript@5.6.2)
       better-sqlite3: 11.3.0
       cheerio: 1.0.0
-      d3-dsv: 3.0.1
       google-auth-library: 9.14.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
-      ignore: 6.0.2
+      ignore: 5.3.1
       jsonwebtoken: 9.0.2
       lodash: 4.17.21
       pg: 8.13.0
@@ -18017,9 +18012,6 @@ snapshots:
 
   ignore@5.3.1: {}
 
-  ignore@6.0.2:
-    optional: true
-
   image-extensions@1.1.0: {}
 
   image-size@0.5.5:
@@ -19008,7 +19000,7 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@6.0.2)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
+  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
     dependencies:
       '@langchain/core': 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.0.34(encoding@0.1.13)
@@ -19029,10 +19021,9 @@ snapshots:
     optionalDependencies:
       axios: 1.7.7
       cheerio: 1.0.0
-      d3-dsv: 3.0.1
       fast-xml-parser: 4.5.0
       handlebars: 4.7.8
-      ignore: 6.0.2
+      ignore: 5.3.1
       ws: 8.18.0
     transitivePeerDependencies:
       - encoding
