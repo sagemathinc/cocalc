@@ -693,7 +693,7 @@ export default function Message(props: Readonly<Props>) {
       reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
     }
     props.actions.sendReply({ message: message.toJS(), reply });
-    props.actions.scrollToBottom(props.index);
+    props.actions.scrollToIndex(props.index);
   }
 
   function renderComposeReply() {
@@ -852,7 +852,7 @@ export default function Message(props: Readonly<Props>) {
             type="text"
             icon={<Icon name="down-circle-o" />}
             onClick={() =>
-              props.actions?.foldThread(message.get("date"), props.index)
+              props.actions?.toggleFoldThread(message.get("date"), props.index)
             }
           >
             <Text type="secondary">Unfold</Text>
@@ -887,7 +887,7 @@ export default function Message(props: Readonly<Props>) {
           type="text"
           style={style}
           onClick={() =>
-            props.actions?.foldThread(message.get("date"), props.index)
+            props.actions?.toggleFoldThread(message.get("date"), props.index)
           }
           icon={
             <Icon

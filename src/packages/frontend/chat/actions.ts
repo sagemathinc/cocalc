@@ -104,8 +104,10 @@ export class ChatActions extends Actions<ChatState> {
     handleSyncDBChange({ changes, store: this.store, syncdb: this.syncdb });
   };
 
-  foldThread = (reply_to: Date, messageIndex?: number) => {
-    if (this.syncdb == null) return;
+  toggleFoldThread = (reply_to: Date, messageIndex?: number) => {
+    if (this.syncdb == null) {
+      return;
+    }
     const account_id = this.redux.getStore("account").get_account_id();
     const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
     const folding = cur?.get("folding") ?? List([]);
@@ -122,7 +124,7 @@ export class ChatActions extends Actions<ChatState> {
     this.syncdb.commit();
 
     if (folded && messageIndex != null) {
-      this.scrollToBottom(messageIndex);
+      this.scrollToIndex(messageIndex);
     }
   };
 
@@ -216,7 +218,7 @@ export class ChatActions extends Actions<ChatState> {
           ?.getIn([`${reply_to.valueOf()}`, "folding"])
           ?.includes(sender_id)
       ) {
-        this.foldThread(reply_to);
+        this.toggleFoldThread(reply_to);
       }
     }
 
@@ -483,18 +485,42 @@ export class ChatActions extends Actions<ChatState> {
   // if date is given, scrolls to the bottom of the chat *thread*
   // that starts with that date.
   // safe to call after closing actions.
-  scrollToBottom = (index: number = -1) => {
-    if (this.syncdb == null) return;
-    // this triggers scroll behavior in the chat-log component.
-    // no-op, but necessary to trigger a change
+  clearScrollRequest = () => {
     this.frameTreeActions.set_frame_data({
       id: this.frameId,
-      scrollToBottom: null,
+      scrollToIndex: null,
+      scrollToDate: null,
     });
+  };
+  scrollToIndex = (index: number = -1) => {
+    if (this.syncdb == null) return;
+    // we first clear, then set it, since scroll to needs to
+    // work even if it is the same as last time.
+    // TODO: alternatively, we could get a reference
+    // to virtuoso and directly control things from here.
+    this.clearScrollRequest();
     setTimeout(() => {
       this.frameTreeActions.set_frame_data({
         id: this.frameId,
-        scrollToBottom: index,
+        scrollToIndex: index,
+        scrollToDate: null,
+      });
+    }, 1);
+  };
+
+  scrollToBottom = () => {
+    this.scrollToIndex(Number.MAX_SAFE_INTEGER);
+  };
+
+  scrollToDate = (date: number | Date | string) => {
+    this.clearScrollRequest();
+    setTimeout(() => {
+      this.frameTreeActions.set_frame_data({
+        id: this.frameId,
+        // string version of ms since epoch, which is the key
+        // in the messages immutable Map
+        scrollToDate: `${new Date(date).valueOf()}`,
+        scrollToIndex: null,
       });
     }, 1);
   };
@@ -516,7 +542,12 @@ export class ChatActions extends Actions<ChatState> {
     const path = this.store.get("path") + ".md";
     const project_id = this.store.get("project_id");
     if (project_id == null) return;
-    const { dates } = getSortedDates(messages, this.store.get("search"));
+    const account_id = this.redux.getStore("account").get_account_id();
+    const { dates } = getSortedDates(
+      messages,
+      this.store.get("search"),
+      account_id,
+    );
     const v: string[] = [];
     for (const date of dates) {
       const message = messages.get(date);
@@ -996,7 +1027,7 @@ export class ChatActions extends Actions<ChatState> {
         tag: `chat:summarize`,
         noNotification: true,
       });
-      this.scrollToBottom();
+      this.scrollToIndex();
     }
   };
 

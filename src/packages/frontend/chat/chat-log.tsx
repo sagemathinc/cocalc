@@ -27,7 +27,7 @@ import Composing from "./composing";
 import Message from "./message";
 import type { ChatMessageTyped, ChatMessages, Mode } from "./types";
 import { getSelectedHashtagsSearch, newest_content } from "./utils";
-import { getRootMessage } from "./utils";
+import { getRootMessage, getThreadRootDate } from "./utils";
 import { DivTempHeight } from "@cocalc/frontend/jupyter/cell-list";
 import { filterMessages } from "./filter-messages";
 
@@ -43,7 +43,9 @@ interface Props {
   filterRecentH?;
   selectedHashtags;
   disableFilters?: boolean;
-  scrollToBottom?: null | number | undefined;
+  scrollToIndex?: null | number | undefined;
+  // scrollToDate = string ms from epoch
+  scrollToDate?: null | undefined | string;
 }
 
 export function ChatLog({
@@ -58,7 +60,8 @@ export function ChatLog({
   filterRecentH,
   selectedHashtags: selectedHashtags0,
   disableFilters,
-  scrollToBottom,
+  scrollToIndex,
+  scrollToDate,
 }: Props) {
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const llm_cost_reply: [number, number] = useRedux(
@@ -71,22 +74,7 @@ export function ChatLog({
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
     return getSelectedHashtagsSearch(selectedHashtags0);
   }, [selectedHashtags0]);
-  const search = search0 + " " + selectedHashtagsSearch;
-
-  useEffect(() => {
-    scrollToBottomRef?.current?.(true);
-  }, [search]);
-
-  useEffect(() => {
-    if (scrollToBottom == null) return;
-    if (scrollToBottom == -1) {
-      scrollToBottomRef?.current?.(true);
-    } else {
-      // console.log({ scrollToBottom }, " -- not implemented");
-      virtuosoRef.current?.scrollToIndex({ index: scrollToBottom });
-    }
-    actions.setState({ scrollToBottom: undefined });
-  }, [scrollToBottom]);
+  const search = (search0 + " " + selectedHashtagsSearch).trim();
 
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
@@ -97,7 +85,7 @@ export function ChatLog({
     const { dates, numFolded } = getSortedDates(
       messages,
       search,
-      account_id,
+      account_id!,
       filterRecentH,
     );
     // TODO: This is an ugly hack because I'm tired and need to finish this.
@@ -112,6 +100,68 @@ export function ChatLog({
     }, 1);
     return { dates, numFolded };
   }, [messages, search, project_id, path, filterRecentH]);
+
+  useEffect(() => {
+    scrollToBottomRef?.current?.(true);
+  }, [search]);
+
+  useEffect(() => {
+    if (scrollToIndex == null) {
+      return;
+    }
+    if (scrollToIndex == -1) {
+      scrollToBottomRef?.current?.(true);
+    } else {
+      virtuosoRef.current?.scrollToIndex({ index: scrollToIndex });
+    }
+    actions.clearScrollRequest();
+  }, [scrollToIndex]);
+
+  useEffect(() => {
+    if (scrollToDate == null) {
+      return;
+    }
+    // linear search, which should be fine given that this is not a tight inner loop
+    const index = sortedDates.indexOf(scrollToDate);
+    if (index == -1) {
+      // didn't find it?
+      const message = messages.get(scrollToDate);
+      if (message == null) {
+        // the message really doesn't exist.  Weird.  Give up.
+        actions.clearScrollRequest();
+        return;
+      }
+      let tryAgain = false;
+      // we clear all filters and ALSO make sure
+      // if message is in a folded thread, then that thread is not folded.
+      if (account_id && isFolded(messages, message, account_id)) {
+        // this actually unfolds it, since it was folded.
+        const date = new Date(
+          getThreadRootDate({ date: parseFloat(scrollToDate), messages }),
+        );
+        actions.toggleFoldThread(date);
+        tryAgain = true;
+      }
+      if (messages.size > sortedDates.length && (search || filterRecentH)) {
+        // there was a search, so clear it just to be sure -- it could still hide
+        // the folded threaded
+        actions.clearAllFilters();
+        tryAgain = true;
+      }
+      if (tryAgain) {
+        // we have to wait a while for full re-render to happen
+        setTimeout(() => {
+          actions.scrollToDate(parseFloat(scrollToDate));
+        }, 10);
+      } else {
+        // totally give up
+        actions.clearScrollRequest();
+      }
+      return;
+    }
+    virtuosoRef.current?.scrollToIndex({ index });
+    actions.clearScrollRequest();
+  }, [scrollToDate]);
 
   const visibleHashtags = useMemo(() => {
     let X = immutableSet<string>([]);
@@ -137,17 +187,14 @@ export function ChatLog({
     scrollToBottomRef.current = (force?: boolean) => {
       if (manualScrollRef.current && !force) return;
       manualScrollRef.current = false;
-      virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
+      const doScroll = () =>
+        virtuosoRef.current?.scrollToIndex({ index: Number.MAX_SAFE_INTEGER });
+
+      doScroll();
       // sometimes scrolling to bottom is requested before last entry added,
       // so we do it again in the next render loop.  This seems needed mainly
       // for side chat when there is little vertical space.
-      setTimeout(
-        () =>
-          virtuosoRef.current?.scrollToIndex({
-            index: Number.MAX_SAFE_INTEGER,
-          }),
-        0,
-      );
+      setTimeout(doScroll, 1);
     };
   }, [scrollToBottomRef != null]);
 
@@ -256,9 +303,11 @@ function isThread(messages: ChatMessages, message: ChatMessageTyped) {
 function isFolded(
   messages: ChatMessages,
   message: ChatMessageTyped,
-  account_id?: string,
+  account_id: string,
 ) {
-  if (account_id == null) return false;
+  if (account_id == null) {
+    return false;
+  }
   const rootMsg = getRootMessage({ message: message.toJS(), messages });
   return rootMsg?.get("folding")?.includes(account_id) ?? false;
 }
@@ -271,8 +320,8 @@ function isFolded(
 // It was very easy to sort these before reply_to, which complicates things.
 export function getSortedDates(
   messages: ChatMessages,
-  search?: string,
-  account_id?: string,
+  search: string | undefined,
+  account_id: string,
   filterRecentH?: number,
 ): { dates: string[]; numFolded: number } {
   let numFolded = 0;

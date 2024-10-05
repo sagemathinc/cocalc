@@ -131,10 +131,10 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
   }
 
   scrollToBottom = (frameId) => {
-    this.getChatActions(frameId)?.scrollToBottom();
+    this.getChatActions(frameId)?.scrollToIndex(-1);
   };
 
   scrollToTop = (frameId) => {
-    this.getChatActions(frameId)?.scrollToBottom(0);
+    this.getChatActions(frameId)?.scrollToIndex(0);
   };
 }

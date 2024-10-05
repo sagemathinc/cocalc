@@ -29,10 +29,6 @@ export interface ChatState {
   has_unsaved_changes: boolean;
   unsent_user_mentions: MentionList;
   is_uploading: boolean;
-  // whenever this changes and is defined, do a scroll.
-  //  scrollToBottom = 0 -- scroll to the bottom
-  //  scrollToBottom = ms since epoch -- scroll to the bottom of that thread
-  scrollToBottom?: number | null;
   filterRecentH: number;
   llm_cost_room?: [number, number] | null;
   llm_cost_reply?: [number, number] | null;
