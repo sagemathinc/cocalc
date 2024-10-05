@@ -3052,4 +3052,8 @@ export class Actions<
   settings = () => {
     this.redux.getActions("page").settings("editor-settings");
   };
+
+  videoChat = () => {
+    console.log("video chat");
+  };
 }

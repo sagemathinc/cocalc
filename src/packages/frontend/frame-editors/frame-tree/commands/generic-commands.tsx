@@ -1085,12 +1085,12 @@ addCommands({
     // we have a side chat menu item... except for in a chatroom or side chat.
     isVisible: ({ props }) =>
       !props.path?.endsWith(".sage-chat") && props.type != "chat",
-    pos: 5,
-    group: "help-link",
+    pos: -1,
+    group: "show-frames",
     icon: "comment",
     label: defineMessage({
       id: "command.generic.chat.label",
-      defaultMessage: "Side Chat with Collaborators or AI",
+      defaultMessage: "Chat with Collaborators or AI",
       description:
         "Opens a chatroom next to the document to chat with other users (collaborators) or an AI chatbot",
     }),
@@ -1105,6 +1105,15 @@ addCommands({
     onClick: ({ props }) => {
       redux.getProjectActions(props.project_id).open_chat({ path: props.path });
     },
+  },
+  videoChat: {
+    alwaysShow: true,
+    pos: 0,
+    icon: "video-camera",
+    group: "show-frames",
+    label: "Video Chat",
+    button: "Video",
+    title: "Video chat with collaborators on this project",
   },
   support: {
     alwaysShow: true,

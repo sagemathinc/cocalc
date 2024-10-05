@@ -7,6 +7,8 @@ unset PGHOST
 export DEBUG="cocalc:*"
 #export DEBUG_CONSOLE="yes"
 unset DEBUG_CONSOLE
+export COCALC_NOCACHE=yes
 
 #export COCALC_DISABLE_API_VALIDATION=yes
+
 pnpm hub

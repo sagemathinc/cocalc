@@ -1,4 +1,4 @@
-import { Button, Popconfirm, Popover } from "antd";
+import { Button, Popover } from "antd";
 import { debounce } from "lodash";
 import type { CSSProperties, ReactNode } from "react";
 import { useInterval } from "react-interval-hook";
@@ -10,7 +10,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { CancelText } from "@cocalc/frontend/i18n/components";
 import { user_activity } from "@cocalc/frontend/tracker";
 import { VideoChat } from "./video-chat";
 
@@ -36,7 +35,6 @@ export default function VideoChatButton({
   // to know if somebody else has video chat opened for this file
   // @ts-ignore
   const file_use = useTypedRedux("file_use", "file_use");
-  const [open, setOpen] = useState<boolean>(false);
 
   // so we can exclude ourselves
   const account_id: string = useTypedRedux("account", "account_id");
@@ -125,9 +123,23 @@ export default function VideoChatButton({
     </>
   );
 
-  return (
+  const btn = (
     <Button onClick={click_video_button} style={{ ...style, ...style0 }}>
       {body}
     </Button>
+  );
+
+  return (
+    <Popover
+      mouseEnterDelay={0.8}
+      title={() => (
+        <span>
+          {render_join(num_users_chatting)}
+          {render_num_chatting(num_users_chatting)}
+        </span>
+      )}
+    >
+      {btn}
+    </Popover>
   );
 }

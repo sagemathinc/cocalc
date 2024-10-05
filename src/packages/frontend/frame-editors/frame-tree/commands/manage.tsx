@@ -24,7 +24,7 @@ import type { Command } from "./types";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
-const ICON_WIDTH = "24px";
+const ICON_WIDTH = "28px";
 
 export class ManageCommands {
   // TODO: setting this to FrameTitleBarProps causes type issues in frame-editors/jupyter-editor/editor.ts
@@ -482,11 +482,11 @@ export class ManageCommands {
           {icon ?? <Icon name="square" />}
           <div
             style={{
-              fontSize: "10px",
+              fontSize: "11px",
               color: "#666",
-              marginTop: "-5px",
+              marginTop: "-10px",
               // special case: button='' explicitly means no label
-              width: cmd.button === "" ? undefined : "46px",
+              width: cmd.button === "" ? undefined : "50px",
               overflow: "hidden",
               textOverflow: "ellipsis",
             }}
