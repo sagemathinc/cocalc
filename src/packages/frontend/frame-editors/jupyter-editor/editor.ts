@@ -71,6 +71,7 @@ const jupyter_cell_notebook: EditorDescription = {
     "jupyter-cell-format",
     "jupyter-cell-toolbar",
     "jupyter-nbgrader validate",
+    "halt_jupyter",
   ]),
   customizeCommands: {
     guide: {

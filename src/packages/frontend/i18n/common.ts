@@ -390,7 +390,7 @@ export const labels = defineMessages({
   },
   chat: {
     id: "labels.chat",
-    defaultMessage: "Side Chat",
+    defaultMessage: "Chat",
     description: "Short label on a button to open a chatroom",
   },
   created: {

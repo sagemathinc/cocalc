@@ -57,8 +57,8 @@ const chatroom: EditorDescription = {
     "redo",
     "decrease_font_size",
     "increase_font_size",
+    "scrollToTop",
     "scrollToBottom",
-    "videoChat",
   ]),
 } as const;
 
