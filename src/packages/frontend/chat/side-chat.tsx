@@ -128,18 +128,7 @@ export default function SideChat({
               marginTop: "-5px",
             }}
           >
-            <VideoChatButton
-              project_id={project_id}
-              path={path}
-              sendChat={(value) => {
-                const actions = redux.getEditorActions(
-                  project_id,
-                  path,
-                ) as ChatActions;
-                actions.sendChat({ input: value });
-                actions.scrollToBottom();
-              }}
-            />
+            <VideoChatButton actions={actions} />
             <Tooltip title="Show TimeTravel change history of this side chat.">
               <Button
                 onClick={() => {

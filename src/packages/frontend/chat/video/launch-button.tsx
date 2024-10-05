@@ -1,34 +1,24 @@
 import { Button, Popover } from "antd";
 import { debounce } from "lodash";
 import type { CSSProperties, ReactNode } from "react";
+import { useMemo } from "react";
 import { useInterval } from "react-interval-hook";
-
-import {
-  React,
-  useRef,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import type { ChatActions } from "../actions";
+import { React, useState, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { user_activity } from "@cocalc/frontend/tracker";
-import { VideoChat } from "./video-chat";
 
 const VIDEO_UPDATE_INTERVAL_MS = 30 * 1000;
 // jit.si doesn't seem to have a limit...?
 const VIDEO_CHAT_LIMIT = 99999;
 
 interface Props {
-  project_id: string;
-  path: string;
-  sendChat?: (string) => void;
+  actions: ChatActions;
   style?: CSSProperties;
   label?: ReactNode;
 }
 
 export default function VideoChatButton({
-  project_id,
-  path,
-  sendChat,
+  actions,
   style: style0,
   label,
 }: Props) {
@@ -36,30 +26,25 @@ export default function VideoChatButton({
   // @ts-ignore
   const file_use = useTypedRedux("file_use", "file_use");
 
-  // so we can exclude ourselves
-  const account_id: string = useTypedRedux("account", "account_id");
-
   const [counter, set_counter] = useState<number>(0); // to force updates periodically.
   useInterval(() => set_counter(counter + 1), VIDEO_UPDATE_INTERVAL_MS / 2);
-
-  const video_chat = useRef(new VideoChat(project_id, path, account_id));
+  const videoChat = useMemo(
+    () => actions.frameTreeActions.getVideoChat(),
+    [actions],
+  );
 
   const click_video_button = debounce(
     () => {
-      if (video_chat.current.we_are_chatting()) {
+      if (videoChat.weAreChatting()) {
         // we are chatting, so stop chatting
-        video_chat.current.stop_chatting();
-        user_activity("side_chat", "stop_video");
+        videoChat.stopChatting();
       } else {
-        video_chat.current.start_chatting(); // not chatting, so start
-        user_activity("side_chat", "start_video");
-        if (sendChat != null) {
-          sendChat(
-            `${
-              video_chat.current.get_user_name() ?? "User"
-            } joined [the video chat](${video_chat.current.url()}).`,
-          );
-        }
+        videoChat.startChatting(); // not chatting, so start
+        actions.sendChat({
+          input: `${
+            videoChat.getUserName() ?? "User"
+          } joined [the video chat](${videoChat.url()}).`,
+        });
       }
     },
     750,
@@ -75,14 +60,14 @@ export default function VideoChatButton({
           <hr />
           There following {num_users_chatting} people are using video chat:
           <br />
-          {video_chat.current.get_user_names().join(", ")}
+          {videoChat.getUserNames().join(", ")}
         </span>
       );
     }
   }
 
   function render_join(num_users_chatting: number): JSX.Element {
-    if (video_chat.current.we_are_chatting()) {
+    if (videoChat.weAreChatting()) {
       return (
         <span>
           <b>Leave</b> this video chatroom.
@@ -106,8 +91,7 @@ export default function VideoChatButton({
     }
   }
 
-  const num_users_chatting: number =
-    video_chat.current.num_users_chatting() ?? 0;
+  const num_users_chatting: number = videoChat.numUsersChatting() ?? 0;
   const style: React.CSSProperties = { cursor: "pointer" };
   if (num_users_chatting > 0) {
     style.color = "#c9302c";

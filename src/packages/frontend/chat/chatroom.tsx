@@ -150,16 +150,7 @@ export function ChatRoom({
 
   function render_video_chat_button() {
     if (project_id == null || path == null) return;
-    return (
-      <VideoChatButton
-        project_id={project_id}
-        path={path}
-        sendChat={(value) => {
-          actions.sendChat({ input: value });
-          actions.scrollToBottom();
-        }}
-      />
-    );
+    return <VideoChatButton actions={actions} />;
   }
 
   function isValidFilterRecentCustom(): boolean {

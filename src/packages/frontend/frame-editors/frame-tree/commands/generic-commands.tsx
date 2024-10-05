@@ -1113,7 +1113,10 @@ addCommands({
     group: "show-frames",
     label: "Video Chat",
     button: "Video",
-    title: "Video chat with collaborators on this project",
+    title: "Video chat about this file with collaborators on this project",
+    onClick: ({ props }) => {
+      props.actions.getVideoChat().startChatting();
+    },
   },
   support: {
     alwaysShow: true,

@@ -104,6 +104,7 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
+import { VideoChat } from "@cocalc/frontend/chat/video/video-chat";
 
 interface gutterMarkerParams {
   line: number;
@@ -170,6 +171,8 @@ export class Actions<
   protected terminals: TerminalManager<CodeEditorState>;
   private code_editors: CodeEditorManager<CodeEditorState>;
 
+  private videoChat: VideoChat;
+
   protected doctype: string = "syncstring";
 
   ////////
@@ -217,6 +220,7 @@ export class Actions<
 
     this.project_id = project_id;
     this.path = path;
+    this.videoChat = new VideoChat({ project_id, path });
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<CodeEditorState>(
@@ -566,6 +570,7 @@ export class Actions<
     this.terminals.close();
     // Free up stuff related to code editors with different path
     this.code_editors.close();
+    this.videoChat.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -3053,7 +3058,7 @@ export class Actions<
     this.redux.getActions("page").settings("editor-settings");
   };
 
-  videoChat = () => {
-    console.log("video chat");
+  getVideoChat = () => {
+    return this.videoChat;
   };
 }
