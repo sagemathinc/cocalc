@@ -267,9 +267,8 @@ export function ChatRoom({
   }
 
   function on_send(): void {
-    const input = submitMentionsRef.current?.();
     scrollToBottomRef.current?.(true);
-    actions.sendChat({ input });
+    actions.sendChat({ submitMentionsRef });
     setTimeout(() => {
       scrollToBottomRef.current?.(true);
     }, 100);

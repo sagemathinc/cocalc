@@ -162,28 +162,37 @@ export class ChatActions extends Actions<ChatState> {
     reply_to,
     tag,
     noNotification,
+    submitMentionsRef,
   }: {
     input?: string;
     sender_id?: string;
     reply_to?: Date;
     tag?: string;
     noNotification?: boolean;
+    submitMentionsRef?;
   }): string => {
     if (this.syncdb == null || this.store == null) {
       console.warn("attempt to sendChat before chat actions initialized");
       // WARNING: give an error or try again later?
       return "";
     }
-    if (input == null) {
-      input = this.store.get("input");
-    }
-    input = input.trim();
-    if (input.length == 0 || this.store.get("is_uploading")) {
-      // do not send while uploading or there is nothing to send.
+    if (this.store.get("is_uploading")) {
+      // do not send while uploading, since would be mangled.
       return "";
     }
     const time_stamp: Date = webapp_client.server_time();
     const time_stamp_str = time_stamp.toISOString();
+    if (submitMentionsRef?.current != null) {
+      input = submitMentionsRef.current?.({ chat: `${time_stamp.valueOf()}` });
+    }
+    if (input == null) {
+      input = this.store.get("input");
+    }
+    input = input.trim();
+    if (input.length == 0) {
+      // do not send when there is nothing to send.
+      return "";
+    }
     const message: ChatMessage = {
       sender_id,
       event: "chat",
@@ -345,12 +354,14 @@ export class ChatActions extends Actions<ChatState> {
     from,
     noNotification,
     reply_to,
+    submitMentionsRef,
   }: {
     message: ChatMessage;
-    reply: string;
+    reply?: string;
     from?: string;
     noNotification?: boolean;
     reply_to?: Date;
+    submitMentionsRef?;
   }): string => {
     const store = this.store;
     if (store == null) {
@@ -369,6 +380,7 @@ export class ChatActions extends Actions<ChatState> {
           });
     const time_stamp_str = this.sendChat({
       input: reply,
+      submitMentionsRef,
       sender_id: from ?? this.redux.getStore("account").get_account_id(),
       reply_to: new Date(reply_to_value),
       noNotification,

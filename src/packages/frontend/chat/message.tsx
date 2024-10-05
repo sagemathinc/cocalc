@@ -653,7 +653,9 @@ export default function Message(props: Readonly<Props>) {
 
   function saveEditedMessage(): void {
     if (props.actions == null) return;
-    const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
+    const mesg =
+      submitMentionsRef.current?.({ chat: `${date}` }) ??
+      edited_message_ref.current;
     const value = newest_content(message);
     if (mesg !== value) {
       set_edited_message(mesg);
@@ -717,10 +719,14 @@ export default function Message(props: Readonly<Props>) {
   function sendReply(reply?: string) {
     if (props.actions == null) return;
     setReplying(false);
-    if (!reply) {
-      reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
+    if (!reply && !replyMentionsRef.current?.(undefined, true)) {
+      reply = replyMessageRef.current;
     }
-    props.actions.sendReply({ message: message.toJS(), reply });
+    props.actions.sendReply({
+      message: message.toJS(),
+      reply,
+      submitMentionsRef: replyMentionsRef,
+    });
     props.actions.scrollToIndex(props.index);
   }
 

@@ -75,8 +75,7 @@ export default function SideChat({
 
   const sendChat = useCallback(
     (options?) => {
-      const input = submitMentionsRef.current?.();
-      actions.sendChat({ input, ...options });
+      actions.sendChat({ submitMentionsRef, ...options });
       actions.deleteDraft(0);
       scrollToBottomRef.current?.(true);
       setTimeout(() => {
