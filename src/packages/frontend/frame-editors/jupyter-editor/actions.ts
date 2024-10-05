@@ -398,7 +398,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     this.close_recently_focused_frame_of_type("introspect");
   }
 
-  async gotoFragment(fragmentId: FragmentId) {
+  gotoFragment = async (fragmentId: FragmentId) => {
     const frameId = await this.waitUntilFrameReady({
       type: "jupyter_cell_notebook",
       syncdoc: this.jupyter_actions.syncdb,
@@ -463,7 +463,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       }
       return;
     }
-  }
+  };
 
   languageModelGetText(
     frameId: string,

@@ -50,6 +50,7 @@ export default function SideChat({
   const selectedHashtags = desc?.get("data-selectedHashtags");
   const scrollToIndex = desc.get("data-scrollToIndex") ?? null;
   const scrollToDate = desc.get("data-scrollToIDate") ?? null;
+  const fragmentId = desc.get("data-fragmentId") ?? null;
   const addCollab: boolean = useRedux(["add_collab"], project_id, path);
   const is_uploading = useRedux(["is_uploading"], project_id, path);
   const project_map = useTypedRedux("projects", "project_map");
@@ -182,6 +183,7 @@ export default function SideChat({
           disableFilters={disableFilters}
           scrollToIndex={scrollToIndex}
           scrollToDate={scrollToDate}
+          selectedDate={fragmentId}
         />
       </div>
 

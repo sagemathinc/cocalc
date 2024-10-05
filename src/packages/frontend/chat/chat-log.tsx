@@ -46,6 +46,7 @@ interface Props {
   scrollToIndex?: null | number | undefined;
   // scrollToDate = string ms from epoch
   scrollToDate?: null | undefined | string;
+  selectedDate?: string;
 }
 
 export function ChatLog({
@@ -62,6 +63,7 @@ export function ChatLog({
   disableFilters,
   scrollToIndex,
   scrollToDate,
+  selectedDate,
 }: Props) {
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
   const llm_cost_reply: [number, number] = useRedux(
@@ -237,6 +239,7 @@ export function ChatLog({
           llm_cost_reply,
           manualScrollRef,
           mode,
+          selectedDate,
         }}
       />
       <Composing
@@ -464,6 +467,7 @@ export function MessageList({
   llm_cost_reply,
   manualScrollRef,
   mode,
+  selectedDate,
 }: {
   messages;
   account_id;
@@ -479,6 +483,7 @@ export function MessageList({
   actions?;
   llm_cost_reply?;
   manualScrollRef?;
+  selectedDate?: string;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -528,6 +533,7 @@ export function MessageList({
                 account_id={account_id}
                 user_map={user_map}
                 message={message}
+                selected={date == selectedDate}
                 project_id={project_id}
                 path={path}
                 font_size={fontSize}

@@ -100,7 +100,6 @@ const AVATAR_MARGIN_LEFTRIGHT = "15px";
 interface Props {
   index: number;
   actions?: ChatActions;
-
   get_user_name: (account_id?: string) => string;
   messages;
   message: ChatMessageTyped;
@@ -126,6 +125,8 @@ interface Props {
   is_thread_body: boolean;
 
   llm_cost_reply?: [number, number] | null;
+
+  selected?: boolean;
 }
 
 export default function Message(props: Readonly<Props>) {
@@ -139,6 +140,7 @@ export default function Message(props: Readonly<Props>) {
     mode,
     project_id,
     font_size,
+    selected,
   } = props;
 
   const showAISummarize = redux
@@ -410,8 +412,11 @@ export default function Message(props: Readonly<Props>) {
       marginTop,
       borderRadius,
       fontSize: font_size,
-      padding: "9px",
-      ...(mode === "sidechat" ? { marginLeft: "5px", marginRight: "5px" } : {}),
+      padding: selected ? "6px" : "9px",
+      ...(mode === "sidechat"
+        ? { marginLeft: "5px", marginRight: "5px" }
+        : undefined),
+      ...(selected ? { border: "3px solid #66bb6a" } : undefined),
     } as const;
 
     const mainXS = mode === "standalone" ? 20 : 22;
@@ -422,7 +427,12 @@ export default function Message(props: Readonly<Props>) {
 
     return (
       <Col key={1} xs={mainXS}>
-        <div style={{ display: "flex" }}>
+        <div
+          style={{ display: "flex" }}
+          onClick={() => {
+            props.actions?.setFragment(message.get("date"));
+          }}
+        >
           {!props.is_prev_sender &&
           !is_viewers_message &&
           message.get("sender_id") ? (
@@ -468,6 +478,24 @@ export default function Message(props: Readonly<Props>) {
                   <Icon name="thumbs-up" />
                 </Button>
               )}{" "}
+              <Tooltip title="Select this message. Copy the browser URL to link to this message.">
+                <Button
+                  onClick={() => {
+                    props.actions?.setFragment(message.get("date"));
+                  }}
+                  size="small"
+                  type={"text"}
+                  style={{
+                    marginRight: "5px",
+                    float: "right",
+                    marginTop: "-4px",
+                    color: is_viewers_message ? "white" : "#888",
+                    fontSize: "12px",
+                  }}
+                >
+                  <Icon name="link" />
+                </Button>
+              </Tooltip>
             </span>
           )}
           {!isEditing && (

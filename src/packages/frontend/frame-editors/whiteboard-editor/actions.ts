@@ -455,8 +455,8 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       obj.page =
         frameId == null
           ? this.defaultPageId()
-          : pages.get((this._get_frame_node(frameId)?.get("page") ?? 1) - 1) ??
-            this.defaultPageId();
+          : (pages.get((this._get_frame_node(frameId)?.get("page") ?? 1) - 1) ??
+            this.defaultPageId());
     }
 
     // Remove certain fields that never ever make no sense for a new element
@@ -1318,7 +1318,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.zoom100(frameId);
   }
 
-  async gotoFragment(fragmentId: FragmentId) {
+  gotoFragment = async (fragmentId: FragmentId) => {
     // console.log("gotoFragment ", fragmentId);
     const frameId = await this.waitUntilFrameReady({
       type: this.mainFrameType,
@@ -1341,7 +1341,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       this.scrollElementIntoView(id, frameId);
       return;
     }
-  }
+  };
 
   public async show_table_of_contents(
     _id: string | undefined = undefined,

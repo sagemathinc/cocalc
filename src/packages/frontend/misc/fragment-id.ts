@@ -8,7 +8,7 @@ import { debounce } from "lodash";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 
 interface Chat {
-  chat?: boolean; // if true, fragment refers to message in side chat for the named path.
+  chat?: string; // fragment refers to ms since epoch of chat message
 }
 
 interface Anchor extends Chat {
@@ -35,7 +35,7 @@ export function isPageFragment(x: any): x is Page {
   return typeof x?.page === "string";
 }
 
-export type FragmentId = Line | Id | Page | Anchor;
+export type FragmentId = Chat | Line | Id | Page | Anchor;
 
 namespace Fragment {
   // set is debounced so you can call it as frequently as you want...

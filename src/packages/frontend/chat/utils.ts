@@ -12,6 +12,7 @@ import type {
   ChatMessages,
   ChatMessage,
 } from "./types";
+import { is_date as isDate } from "@cocalc/util/misc";
 
 export const INPUT_HEIGHT = "125px";
 
@@ -200,4 +201,25 @@ export function getThreadRootDate({
   }
   const d = getReplyToRoot({ message, messages });
   return d?.valueOf() ?? 0;
+}
+
+// Use heuristics to try to turn "date", whatever it might be,
+// into a string representation of the number of ms since the
+// epoch.
+const floatRegex = /^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/;
+export function toMsString(date): string {
+  if (isDate(date)) {
+    return `${date.valueOf()}`;
+  }
+
+  switch (typeof date) {
+    case "number":
+      return `${date}`;
+    case "string":
+      if (floatRegex.test(date)) {
+        return `${parseInt(date)}`;
+      }
+    default:
+      return `${new Date(date).valueOf()}`;
+  }
 }

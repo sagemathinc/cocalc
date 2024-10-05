@@ -92,6 +92,7 @@ export function ChatRoom({
   const selectedHashtags = desc.get("data-selectedHashtags");
   const scrollToIndex = desc.get("data-scrollToIndex") ?? null;
   const scrollToDate = desc.get("data-scrollToDate") ?? null;
+  const fragmentId = desc.get("data-fragmentId") ?? null;
 
   const messages = useEditor("messages");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
@@ -291,6 +292,7 @@ export function ChatRoom({
             selectedHashtags={selectedHashtags}
             scrollToIndex={scrollToIndex}
             scrollToDate={scrollToDate}
+            selectedDate={fragmentId}
           />
           {render_preview_message()}
         </div>

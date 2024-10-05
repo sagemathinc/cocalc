@@ -52,7 +52,8 @@ import type {
 } from "./types";
 import { history_path } from "@cocalc/util/misc";
 import { initFromSyncDB, handleSyncDBChange, processSyncDBObj } from "./sync";
-import { getReplyToRoot, getThreadRootDate } from "./utils";
+import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 
 const MAX_CHATSTREAM = 10;
 
@@ -512,14 +513,18 @@ export class ChatActions extends Actions<ChatState> {
     this.scrollToIndex(Number.MAX_SAFE_INTEGER);
   };
 
-  scrollToDate = (date: number | Date | string) => {
+  scrollToDate = (date) => {
     this.clearScrollRequest();
+    this.frameTreeActions.set_frame_data({
+      id: this.frameId,
+      fragmentId: toMsString(date),
+    });
     setTimeout(() => {
       this.frameTreeActions.set_frame_data({
         id: this.frameId,
         // string version of ms since epoch, which is the key
         // in the messages immutable Map
-        scrollToDate: `${new Date(date).valueOf()}`,
+        scrollToDate: toMsString(date),
         scrollToIndex: null,
       });
     }, 1);
@@ -1090,6 +1095,16 @@ export class ChatActions extends Actions<ChatState> {
       id: this.frameId,
       selectedHashtags,
     });
+  };
+
+  setFragment = (date?) => {
+    if (!date) {
+      Fragment.clear();
+    } else {
+      const fragmentId = toMsString(date);
+      Fragment.set({ chat: fragmentId });
+      this.frameTreeActions.set_frame_data({ id: this.frameId, fragmentId });
+    }
   };
 }
 
