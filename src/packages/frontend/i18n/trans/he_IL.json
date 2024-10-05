@@ -795,7 +795,7 @@
   "project.named-server-panel.spec.jupyter.description": "שרת המחברות Jupyter Classic פועל בפרויקט שלך ומספק תמיכה למחברות Jupyter קלאסיות. ניתן גם להשתמש בשרת המחברות הקלאסי של Jupyter ישירות דרך הקישור למטה. זה לא תומך במשתמשים מרובים או ב-TimeTravel, אך תומך במלואו בכל התכונות וההרחבות של מחברות Jupyter הקלאסיות.",
   "project.named-server-panel.spec.jupyterlab.description": "שרת JupyterLab פועל מהפרויקט שלך ומספק תמיכה במחברות Jupyter, מסופים, גרירה ושחרור, עם פריסת חלונות מרובה יפה, והרבה יותר. JupyterLab עדיין לא תומך במספר משתמשים או ב-TimeTravel, אך תומך במלואו ברוב התכונות וההרחבות של מחברות Jupyter.",
   "project.named-server-panel.spec.pluto.description": "מחברות תגובתיות עבור Julia. <b>הערה: Pluto עשוי לקחת זמן רב להתחיל, אז היו סבלניים.</b>",
-  "project.named-server-panel.spec.rserver.description": "זהו סביבת פיתוח משולבת (IDE) עבור R, לפעמים נקראת \"R Studio\". היא מסופקת ללא שינויים כלשהם. <b>הבהרה: Posit Software, PBC (לשעבר RStudio, PBC) אינה קשורה בשום אופן ל-CoCalc.</b>",
+  "project.named-server-panel.spec.rserver.description": "זהו סביבת פיתוח משולבת (IDE) עבור R, לפעמים נקראת \"R ...\". היא מסופקת ללא שינויים כלשהם. <b>הבהרה: Posit Software, PBC (לשעבר RStudio, PBC) אינה קשורה בשום אופן ל-CoCalc.</b>",
   "project.named-server-panel.spec.server.description": "שרת ה{name} פועל מהפרויקט שלך. הוא עדיין לא תומך במשתמשים מרובים או ב-TimeTravel, אך תומך באופן מלא ברוב התכונות והתוספים האחרים של {name}.",
   "project.new-file-page.title": "צור או {upload} קובץ חדש או <folder>תיקייה</folder>",
   "project.new-file-page.title.modal.title": "צור תיקיה חדשה",

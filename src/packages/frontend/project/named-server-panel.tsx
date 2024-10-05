@@ -96,7 +96,7 @@ export const SPEC: {
     longName: R_IDE,
     description: defineMessage({
       id: "project.named-server-panel.spec.rserver.description",
-      defaultMessage: `This is an integrated development environment (IDE) for R, sometimes called "R Studio".
+      defaultMessage: `This is an integrated development environment (IDE) for R.
       It is provided without any modifications.
       <b>DISCLAIMER: Posit Software, PBC (formerly RStudio, PBC) IS IN NO WAY ASSOCIATED WITH COCALC.</b>`,
     }),

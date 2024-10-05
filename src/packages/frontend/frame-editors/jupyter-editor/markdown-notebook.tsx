@@ -5,7 +5,7 @@
 
 /*
 Frame for working with a Jupyter notebook as a single markdown
-document, like in RStudio or our RMarkdown editor.
+document, like in RIDE or our RMarkdown editor.
 */
 
 import { Rendered, Component } from "@cocalc/frontend/app-framework";
