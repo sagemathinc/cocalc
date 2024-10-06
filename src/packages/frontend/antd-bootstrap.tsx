@@ -304,9 +304,11 @@ export function Col(props: {
   className?: string;
   onClick?;
   children?: any;
+  push?;
+  pull?;
 }) {
   const props2: any = {};
-  for (const p of ["xs", "sm", "md", "lg"]) {
+  for (const p of ["xs", "sm", "md", "lg", "push", "pull"]) {
     if (props[p] != null) {
       if (props2[p] == null) {
         props2[p] = {};

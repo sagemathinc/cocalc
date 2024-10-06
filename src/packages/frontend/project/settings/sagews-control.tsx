@@ -4,8 +4,7 @@
  */
 
 import React from "react";
-import { Button } from "react-bootstrap";
-
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
 import {
