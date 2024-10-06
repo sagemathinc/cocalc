@@ -1833,7 +1833,9 @@ export class Actions<
       // TODO: this is VERY CRAPPY CODE -- wait after,
       // so cm gets state/value fully set.
       await delay(100);
-      if (this._state == "closed") return;
+      if (this._state == "closed") {
+        return;
+      }
       doc.setCursor(pos);
       cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
@@ -3074,7 +3076,8 @@ export class Actions<
     }
 
     if (fragmentId.line) {
-      this.programmatical_goto_line?.(fragmentId.line);
+      if (this._state == "closed") return;
+      this.programmatical_goto_line?.(fragmentId.line, true);
     }
 
     if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
