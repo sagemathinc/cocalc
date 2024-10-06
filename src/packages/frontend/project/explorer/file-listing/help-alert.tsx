@@ -4,8 +4,7 @@
  */
 
 import React from "react";
-
-const { Alert } = require("react-bootstrap");
+import { Alert } from "@cocalc/frontend/antd-bootstrap";
 
 const help_alert_error_syle: React.CSSProperties = {
   marginTop: "10px",

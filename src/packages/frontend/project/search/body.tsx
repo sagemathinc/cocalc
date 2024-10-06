@@ -295,9 +295,9 @@ function ProjectSearchInput({
       size={small ? "medium" : "large"}
       autoFocus={true}
       value={user_input}
-      placeholder={`Enter your search ${
+      placeholder={`Search contents of files ${
         neural ? "(semantic similarity)" : "(supports regular expressions)"
-      }`}
+      }...`}
       on_change={(value) => actions?.setState({ user_input: value })}
       on_submit={() => actions?.search()}
       on_clear={() =>

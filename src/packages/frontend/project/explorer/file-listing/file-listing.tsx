@@ -29,7 +29,7 @@ import { TERM_MODE_CHAR } from "./utils";
 
 import * as misc from "@cocalc/util/misc";
 import { FormattedMessage } from "react-intl";
-const { Col, Row } = require("react-bootstrap");
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate

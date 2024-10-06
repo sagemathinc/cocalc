@@ -6,7 +6,7 @@
 import React from "react";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, Gap } from "@cocalc/frontend/components";
-const { Row, Col } = require("react-bootstrap");
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 
 // TODO: Flatten active_file_sort for easy PureComponent use
 interface Props {
@@ -59,13 +59,13 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
       <Col sm={1} xs={3}>
         {render_sort_link("type", "Type")}
       </Col>
-      <Col sm={4} smPush={5} xs={6}>
+      <Col sm={4} xs={6}>
         {render_sort_link("time", "Date Modified")}
         <span className="pull-right">
           {render_sort_link("size", "Size/Download/View")}
         </span>
       </Col>
-      <Col sm={5} smPull={4} xs={12}>
+      <Col sm={5} xs={12}>
         {render_sort_link("name", "Name")}
       </Col>
     </Row>

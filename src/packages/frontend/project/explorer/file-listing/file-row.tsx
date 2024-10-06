@@ -5,8 +5,7 @@
 
 import { Button, Popover } from "antd";
 import memoizeOne from "memoize-one";
-import { Col, Row } from "react-bootstrap";
-
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, useState } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -202,7 +201,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       props.actions.open_file({
         path,
         foreground,
-        explicit:true,
+        explicit: true,
       });
       if (foreground) {
         props.actions.set_file_search("");
@@ -356,7 +355,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       <Col sm={1} xs={3} onClick={handle_click}>
         {render_icon()}
       </Col>
-      <Col sm={4} smPush={5} xs={6}>
+      <Col sm={4} xs={6}>
         {render_timestamp()}
         {props.isdir ? (
           <>
@@ -369,7 +368,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           </span>
         )}
       </Col>
-      <Col sm={5} smPull={4} xs={12} onClick={handle_click}>
+      <Col sm={5} xs={12} onClick={handle_click}>
         {render_name()}
       </Col>
     </Row>
