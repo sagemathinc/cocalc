@@ -423,7 +423,7 @@ export function FileTypeSelector({
   function addAiDocGenerate(btn: JSX.Element, ext: Ext) {
     if (isFlyout) {
       return (
-        <Col sm={sm} md={md}>
+        <Col sm={sm} md={md} key={`with-ai-${ext}`}>
           <Flex align="flex-start" vertical={false} gap={"5px"}>
             <Flex flex={"1 1 auto"}>{btn}</Flex>
             <Flex flex={"0 0 auto"}>
@@ -439,7 +439,7 @@ export function FileTypeSelector({
       );
     } else {
       return (
-        <Col sm={sm} md={md}>
+        <Col sm={sm} md={md} key={`with-ai-${ext}`}>
           {btn}
           <AIGenerateDocumentButton
             project_id={project_id}
@@ -458,6 +458,7 @@ export function FileTypeSelector({
 
     const btn = (
       <Tip
+        key="quarto-button"
         delayShow={DELAY_SHOW_MS}
         title="Quarto File"
         icon={NEW_FILETYPE_ICONS.qmd}
@@ -482,6 +483,7 @@ export function FileTypeSelector({
 
     const btn = (
       <Tip
+        key="latex-button"
         delayShow={DELAY_SHOW_MS}
         title={intl.formatMessage(labels.latex_document)}
         icon={NEW_FILETYPE_ICONS.tex}
@@ -507,6 +509,7 @@ export function FileTypeSelector({
   function renderMD() {
     const btn = (
       <Tip
+        key="markdown-button"
         delayShow={DELAY_SHOW_MS}
         title="Computational Markdown Document"
         icon={NEW_FILETYPE_ICONS.md}

@@ -88,7 +88,9 @@ export function JupyterNotebookButtons({
   // Sept 2024: adding "Sage Notebook", as part of deprecating "Sage Worksheet"
   const { error, kernel_selection, kernels_by_name } = useJupyterKernelsInfo();
 
-  if (!availableFeatures.jupyter_notebook) return null;
+  if (!availableFeatures.jupyter_notebook) {
+    return null;
+  }
 
   async function createNotebook(kernelName: string) {
     if (
@@ -280,21 +282,19 @@ export function JupyterNotebookButtons({
 
     if (isFlyout) {
       return btns.map(({ btn, lang }, i) => (
-        <>
-          <Col key={i} sm={sm} md={md}>
-            <Flex align="flex-start" vertical={false} gap={"5px"}>
-              <Flex flex={"1 1 auto"}>{btn}</Flex>
-              <Flex flex={"0 0 auto"}>
-                <AIGenerateDocumentButton
-                  project_id={project_id}
-                  mode="flyout"
-                  ext={langs.includes(lang as any) ? "ipynb-sagemath" : "ipynb"}
-                  filename={filenameChanged ? filename : undefined}
-                />
-              </Flex>
+        <Col key={i} sm={sm} md={md}>
+          <Flex align="flex-start" vertical={false} gap={"5px"}>
+            <Flex flex={"1 1 auto"}>{btn}</Flex>
+            <Flex flex={"0 0 auto"}>
+              <AIGenerateDocumentButton
+                project_id={project_id}
+                mode="flyout"
+                ext={langs.includes(lang as any) ? "ipynb-sagemath" : "ipynb"}
+                filename={filenameChanged ? filename : undefined}
+              />
             </Flex>
-          </Col>
-        </>
+          </Flex>
+        </Col>
       ));
     } else {
       return btns.map(({ btn, lang }, i) => (
