@@ -7,12 +7,10 @@ import {
   Button,
   ButtonToolbar,
   Col,
-  ControlLabel,
   Form,
   Row,
 } from "@cocalc/frontend/antd-bootstrap";
 import { useEffect } from "react";
-
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -108,7 +106,7 @@ export default function AskNewFilename({ project_id }: Props) {
           background: "#f8f8f8",
         }}
       >
-        <ControlLabel>
+        <div>
           Enter name for new {filename()}{" "}
           {ext_selection == "/" ? "folder" : "file"}
           {!!compute_server_id && (
@@ -117,7 +115,7 @@ export default function AskNewFilename({ project_id }: Props) {
               <ComputeServer id={compute_server_id} />
             </>
           )}
-        </ControlLabel>
+        </div>
         <Form style={{ marginTop: "5px" }}>
           <SearchInput
             autoFocus={!IS_TOUCH}

@@ -7,8 +7,6 @@ import { Alert, Button, Divider, Radio } from "antd";
 import { join } from "path";
 import {
   Col,
-  ControlLabel,
-  FormGroup,
   ListGroup,
   ListGroupItem,
   Row,
@@ -518,16 +516,14 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   function render_type_selection() {
     return (
       <>
-        {showTitle ? (
-          <ControlLabel>Software environment</ControlLabel>
-        ) : undefined}
+        {showTitle ? <div>Software environment</div> : undefined}
 
         {onCoCalcCom ? (
-          <FormGroup>
+          <div>
             <div style={{ marginBottom: "5px" }}>{render_default()}</div>
             <div style={{ marginBottom: "5px" }}>{render_standard()}</div>
             <div style={{ marginBottom: "5px" }}>{render_custom()}</div>
-          </FormGroup>
+          </div>
         ) : (
           render_onprem()
         )}
