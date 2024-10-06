@@ -4,21 +4,9 @@
  */
 
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { alert_message } from "@cocalc/frontend/alerts";
-import {
-  Button,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
-import {
-  ReactDOM,
-  Rendered,
-  useRef,
-  useState,
-} from "@cocalc/frontend/app-framework";
+import { Button, Card, Input, Space } from "antd";
+import { useState } from "react";
 import { ErrorDisplay, LabeledRow, Saving } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { log } from "@cocalc/frontend/user-tracking";
@@ -26,32 +14,34 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
-  account_id: string;
   email_address?: string;
   disabled?: boolean;
   is_anonymous?: boolean;
   verify_emails?: boolean;
 }
 
-export const EmailAddressSetting = (props: Readonly<Props>) => {
+export const EmailAddressSetting = ({
+  email_address: email_address0,
+  disabled,
+  is_anonymous,
+  verify_emails,
+}: Props) => {
   const intl = useIntl();
-
-  const emailRef = useRef<FormControl>(null);
-  const passwordRef = useRef<FormControl>(null);
-
   const [state, setState] = useState<"view" | "edit" | "saving">("view");
   const [password, setPassword] = useState<string>("");
-  const [email_address, set_email_address] = useState<string>("");
+  const [email_address, set_email_address] = useState<string>(
+    email_address0 ?? "",
+  );
   const [error, setError] = useState<string>("");
 
-  function start_editing(): void {
+  function start_editing() {
     setState("edit");
-    set_email_address(props.email_address != null ? props.email_address : "");
+    set_email_address(email_address0 ?? "");
     setError("");
     setPassword("");
   }
 
-  function cancel_editing(): void {
+  function cancel_editing() {
     setState("view");
     setPassword("");
   }
@@ -70,7 +60,7 @@ export const EmailAddressSetting = (props: Readonly<Props>) => {
       setError(`Error -- ${error}`);
       return;
     }
-    if (props.is_anonymous) {
+    if (is_anonymous) {
       log("email_sign_up", { source: "anonymous_account" });
     }
     setState("view");
@@ -79,14 +69,12 @@ export const EmailAddressSetting = (props: Readonly<Props>) => {
     // if email verification is enabled, send out a token
     // in any case, send a welcome email to an anonymous user, possibly
     // including an email verification link
-    if (!(props.verify_emails || props.is_anonymous)) {
+    if (!(verify_emails || is_anonymous)) {
       return;
     }
     try {
       // anonymouse users will get the "welcome" email
-      await webapp_client.account_client.send_verification_email(
-        !props.is_anonymous,
-      );
+      await webapp_client.account_client.send_verification_email(!is_anonymous);
     } catch (error) {
       const err_msg = `Problem sending welcome email: ${error}`;
       console.log(err_msg);
@@ -95,22 +83,10 @@ export const EmailAddressSetting = (props: Readonly<Props>) => {
   }
 
   function is_submittable(): boolean {
-    return !!(password !== "" && email_address !== props.email_address);
+    return !!(password !== "" && email_address !== email_address0);
   }
 
-  function render_change_button(): Rendered {
-    return (
-      <Button
-        disabled={!is_submittable()}
-        onClick={save_editing}
-        bsStyle="success"
-      >
-        {button_label()}
-      </Button>
-    );
-  }
-
-  function render_error(): Rendered {
+  function render_error() {
     if (error) {
       return (
         <ErrorDisplay
@@ -122,7 +98,7 @@ export const EmailAddressSetting = (props: Readonly<Props>) => {
     }
   }
 
-  function render_edit(): Rendered {
+  function render_edit() {
     const password_label = intl.formatMessage(
       {
         id: "account.settings.email_address.password_label",
@@ -130,64 +106,58 @@ export const EmailAddressSetting = (props: Readonly<Props>) => {
           "{have_email, select, true {Current password} other {Choose a password}}",
       },
       {
-        have_email: !!props.email_address,
+        have_email: !!email_address,
       },
     );
     return (
-      <Well style={{ marginTop: "3ex" }}>
-        <FormGroup>
+      <Card style={{ marginTop: "3ex" }}>
+        <div style={{ marginBottom: "15px" }}>
           <FormattedMessage
             id="account.settings.email_address.new_email_address_label"
             defaultMessage="New email address"
           />
-          <FormControl
+          <Input
             autoFocus
-            type="email_address"
-            ref={emailRef}
-            value={email_address}
             placeholder="user@example.com"
-            onChange={() => {
-              const em = ReactDOM.findDOMNode(emailRef.current)?.value;
-              set_email_address(em);
+            onChange={(e) => {
+              set_email_address(e.target.value);
             }}
             maxLength={254}
           />
-        </FormGroup>
+        </div>
         {password_label}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
+        <Input.Password
+          value={password}
+          placeholder={password_label}
+          onChange={(e) => {
+            const pw = e.target.value;
+            if (pw != null) {
+              setPassword(pw);
+            }
+          }}
+          onPressEnter={() => {
             if (is_submittable()) {
               return save_editing();
             }
           }}
-        >
-          <FormGroup>
-            <FormControl
-              type="password"
-              ref={passwordRef}
-              value={password}
-              placeholder={password_label}
-              onChange={() => {
-                const pw = ReactDOM.findDOMNode(passwordRef.current)?.value;
-                if (pw != null) {
-                  setPassword(pw);
-                }
-              }}
-            />
-          </FormGroup>
-        </form>
-        <ButtonToolbar>
-          {render_change_button()}
+        />
+        <Space style={{ marginTop: "15px" }}>
           <Button onClick={cancel_editing}>Cancel</Button>
-        </ButtonToolbar>
+          <Button
+            disabled={!is_submittable()}
+            onClick={save_editing}
+            type="primary"
+          >
+            {button_label()}
+          </Button>
+        </Space>
         {render_error()}
         {render_saving()}
-      </Well>
+      </Card>
     );
   }
 
-  function render_saving(): Rendered {
+  function render_saving() {
     if (state === "saving") {
       return <Saving />;
     }
@@ -203,16 +173,12 @@ export const EmailAddressSetting = (props: Readonly<Props>) => {
       other {Set email address and password}}`,
       },
       {
-        type: props.is_anonymous
-          ? "anonymous"
-          : props.email_address
-          ? "have_email"
-          : "",
+        type: is_anonymous ? "anonymous" : email_address ? "have_email" : "",
       },
     );
   }
 
-  const label = props.is_anonymous ? (
+  const label = is_anonymous ? (
     <h5 style={{ color: COLORS.GRAY_M }}>
       Sign up using an email address and password
     </h5>
@@ -223,13 +189,13 @@ export const EmailAddressSetting = (props: Readonly<Props>) => {
   return (
     <LabeledRow
       label={label}
-      style={props.disabled ? { color: COLORS.GRAY_M } : undefined}
+      style={disabled ? { color: COLORS.GRAY_M } : undefined}
     >
       <div>
-        {props.email_address}
+        {email_address}
         {state === "view" ? (
           <Button
-            disabled={props.disabled}
+            disabled={disabled}
             className="pull-right"
             onClick={start_editing}
           >

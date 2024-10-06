@@ -49,7 +49,6 @@ import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { DeleteAccount } from "../delete-account";
 import { SignOut } from "../sign-out";
 import { set_account_table, ugly_error } from "../util";
-import { APIKeySetting } from "./api-key";
 import { EmailAddressSetting } from "./email-address-setting";
 import { EmailVerification } from "./email-verification";
 import { PasswordSetting } from "./password-setting";
@@ -578,7 +577,6 @@ will no longer work (automatic redirects are not implemented), so change with ca
     }
     return (
       <EmailAddressSetting
-        account_id={props.account_id}
         email_address={props.email_address}
         is_anonymous={props.is_anonymous}
         disabled={props.is_anonymous && !terms_checkbox}
@@ -619,11 +617,6 @@ will no longer work (automatic redirects are not implemented), so change with ca
     }
   }
 
-  function render_api_key(): Rendered {
-    if (props.is_anonymous) return;
-    return <APIKeySetting />;
-  }
-
   return (
     <Panel header={render_header()}>
       {render_anonymous_warning()}
@@ -634,7 +627,6 @@ will no longer work (automatic redirects are not implemented), so change with ca
       <div style={{ marginBottom: "15px" }}></div>
       {render_email_verification()}
       {render_password()}
-      {render_api_key()}
       {render_created()}
       {render_delete_account()}
       {render_linked_external_accounts()}

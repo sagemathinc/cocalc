@@ -16,7 +16,6 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 
 // TODO: What we haven't converted yet, but do use in CoCalc:
 export {
-  ControlLabel,
   Form,
   FormControl,
   FormGroup,
