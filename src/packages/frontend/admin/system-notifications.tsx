@@ -5,47 +5,28 @@
 
 import { Map } from "immutable";
 import { Alert, Button, Card, Input, Popconfirm, Space } from "antd";
-import {
-  Component,
-  rclass,
-  redux,
-  rtypes,
-} from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Title } from "@cocalc/frontend/components";
 import { plural } from "@cocalc/util/misc";
+import { useState } from "react";
+import { useActions, useRedux } from "@cocalc/frontend/app-framework";
 
-interface Props {
-  notifications?: Map<string, any>;
-}
+export function SystemNotifications({}) {
+  const [state, setState] = useState<"view" | "edit">("view");
+  const [mesg, setMesg] = useState<string>("");
+  const notifications = useRedux("system_notifications", "notifications");
+  const actions = useActions("system_notifications");
 
-interface State {
-  state: "view" | "edit";
-  mesg?: string;
-}
-
-class SystemNotifications extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    this.state = { state: "view" };
-  }
-
-  static reduxProps(): any {
-    return {
-      system_notifications: { notifications: rtypes.immutable },
-    };
-  }
-
-  render_mark_done() {
-    if (!this.props.notifications) return;
+  function render_mark_done() {
+    if (!notifications) return;
     let open = 0;
-    this.props.notifications.map((mesg: Map<string, any>) => {
+    notifications.map((mesg: Map<string, any>) => {
       if (mesg && !mesg.get("done")) {
         open += 1;
       }
     });
     if (open > 0) {
       return (
-        <Button onClick={() => this.mark_all_done()}>
+        <Button onClick={() => mark_all_done()}>
           Mark {open} {plural(open, "Notification")} Done
         </Button>
       );
@@ -54,34 +35,33 @@ class SystemNotifications extends Component<Props, State> {
     }
   }
 
-  render_buttons() {
+  function render_buttons() {
     return (
       <Space>
-        <Button onClick={() => this.setState({ state: "edit", mesg: "" })}>
+        <Button
+          onClick={() => {
+            setState("edit");
+            setMesg("");
+          }}
+        >
           Compose...
         </Button>
-        {this.render_mark_done()}
+        {render_mark_done()}
       </Space>
     );
   }
 
-  render_editor() {
+  function render_editor() {
     return (
       <Card>
         <Input.TextArea
           autoFocus
-          value={this.state.mesg}
+          value={mesg}
           rows={3}
-          onChange={(e) =>
-            this.setState({
-              mesg: e.target.value,
-            })
-          }
+          onChange={(e) => setMesg(e.target.value)}
         />
         <Space style={{ marginTop: "15px" }}>
-          <Button onClick={() => this.setState({ state: "view" })}>
-            Cancel
-          </Button>
+          <Button onClick={() => setState("view")}>Cancel</Button>
           <Popconfirm
             title="Send notification?"
             description={
@@ -90,11 +70,11 @@ class SystemNotifications extends Component<Props, State> {
                 once in the upper right until you explicitly mark it done (they
                 can dismiss it).
                 <hr />
-                <Alert message={this.state.mesg} />
+                <Alert message={mesg} />
               </div>
             }
             onConfirm={() => {
-              this.send();
+              send();
             }}
           >
             <Button danger>
@@ -106,40 +86,35 @@ class SystemNotifications extends Component<Props, State> {
     );
   }
 
-  send(): void {
-    this.setState({ state: "view" });
-    if (!this.state.mesg) return;
-    (redux.getActions("system_notifications") as any).send_message({
-      text: this.state.mesg.trim(),
+  function send(): void {
+    setState("view");
+    if (!mesg) return;
+    actions.send_message({
+      text: mesg.trim(),
       priority: "high",
     });
   }
 
-  mark_all_done(): void {
-    (redux.getActions("system_notifications") as any).mark_all_done();
+  function mark_all_done(): void {
+    actions.mark_all_done();
   }
 
-  render_body() {
-    if (this.props.notifications == null) {
+  function render_body() {
+    if (notifications == null) {
       return <Loading />;
     }
-    switch (this.state.state) {
+    switch (state) {
       case "view":
-        return this.render_buttons();
+        return render_buttons();
       case "edit":
-        return this.render_editor();
+        return render_editor();
     }
   }
 
-  render() {
-    return (
-      <div>
-        <Title level={4}>System Notifications</Title>
-        {this.render_body()}
-      </div>
-    );
-  }
+  return (
+    <div>
+      <Title level={4}>System Notifications</Title>
+      {render_body()}
+    </div>
+  );
 }
-
-const SystemNotifications0 = rclass(SystemNotifications);
-export { SystemNotifications0 as SystemNotifications };
