@@ -11,7 +11,6 @@ import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
-
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { initChat } from "@cocalc/frontend/chat/register";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
@@ -1102,7 +1101,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Used by open/close chat below.
   set_chat_state(path: string, chatState: ChatState): void {
-    if (this.open_files == null) return;
+    if (this.open_files == null) {
+      return;
+    }
     this.open_files.set(path, "chatState", chatState);
     local_storage(this.project_id, path, "chatState", chatState);
   }
