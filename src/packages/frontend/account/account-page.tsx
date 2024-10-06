@@ -18,6 +18,7 @@ import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
+  useIsMountedRef,
   useTypedRedux,
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
@@ -257,9 +258,17 @@ export const AccountPage: React.FC = () => {
 };
 
 function RedirectToNextApp({}) {
+  const isMountedRef = useIsMountedRef();
+
   useEffect(() => {
-    window.location.href = appBasePath;
+    const f = () => {
+      if (isMountedRef.current) {
+        // didn't get signed in so go to landing page
+        window.location.href = appBasePath;
+      }
+    };
+    setTimeout(f, 5000);
   }, []);
 
-  return null;
+  return <Loading theme="medium" />;
 }
