@@ -374,7 +374,7 @@ export default function Message(props: Readonly<Props>) {
   }
 
   function contentColumn() {
-    let borderRadius, marginBottom, marginTop: any;
+    let marginBottom, marginTop;
     let value = newest_content(message);
 
     const { background, color, lighten, message_class } = message_colors(
@@ -396,21 +396,13 @@ export default function Message(props: Readonly<Props>) {
       marginTop = "5px";
     }
 
-    if (!props.is_prev_sender && !props.is_next_sender && !show_history) {
-      borderRadius = "10px 10px 10px 10px";
-    } else if (!props.is_prev_sender) {
-      borderRadius = "10px 10px 5px 5px";
-    } else if (!props.is_next_sender) {
-      borderRadius = "5px 5px 10px 10px";
-    }
-
     const message_style: CSSProperties = {
       color,
       background,
       wordWrap: "break-word",
+      borderRadius: "5px",
       marginBottom,
       marginTop,
-      borderRadius,
       fontSize: font_size,
       padding: selected ? "6px" : "9px",
       ...(mode === "sidechat"
