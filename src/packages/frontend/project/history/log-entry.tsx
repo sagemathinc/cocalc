@@ -4,8 +4,7 @@
  */
 import { Space, Tooltip } from "antd";
 import React from "react";
-import { Col, Grid, Row } from "react-bootstrap";
-
+import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -205,10 +204,10 @@ export const LogEntry: React.FC<Props> = React.memo(
     ): JSX.Element {
       const envs = software_envs?.get("environments");
       const prev: string = envs
-        ? envs.get(event.previous)?.get("title") ?? event.previous
+        ? (envs.get(event.previous)?.get("title") ?? event.previous)
         : intl.formatMessage(labels.loading);
       const next: string = envs
-        ? envs.get(event.next)?.get("title") ?? event.next
+        ? (envs.get(event.next)?.get("title") ?? event.next)
         : intl.formatMessage(labels.loading);
 
       return (
@@ -906,7 +905,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       case "full":
         const style = props.cursor ? selected_item : backgroundStyle;
         return (
-          <Grid fluid={true} style={{ width: "100%" }}>
+          <Grid style={{ width: "100%" }}>
             <Row style={style}>
               <Col sm={1} style={{ textAlign: "center" }}>
                 <Icon name={icon()} style={style} />

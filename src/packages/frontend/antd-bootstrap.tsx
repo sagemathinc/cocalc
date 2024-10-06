@@ -91,7 +91,7 @@ function parse_bsStyle(props: {
   let type =
     props.bsStyle == null
       ? "default"
-      : BS_STYLE_TO_TYPE[props.bsStyle] ?? "default";
+      : (BS_STYLE_TO_TYPE[props.bsStyle] ?? "default");
 
   let style: React.CSSProperties | undefined = undefined;
   // antd has no analogue of "success" & "warning", it's not clear to me what
@@ -267,14 +267,7 @@ export function Well(props: {
   );
 }
 
-export function Checkbox(props: {
-  style?: React.CSSProperties;
-  children?: any;
-  autoFocus?: boolean;
-  checked?: boolean;
-  disabled?: boolean;
-  onChange?: any;
-}) {
+export function Checkbox(props) {
   const style: React.CSSProperties = props.style != null ? props.style : {};
   if (style.fontWeight == null) {
     // Antd checkbox uses the label DOM element, and bootstrap css
@@ -288,15 +281,7 @@ export function Checkbox(props: {
   // has that margin.
   return (
     <div style={{ margin: "10px 0" }}>
-      <AntdCheckbox
-        autoFocus={props.autoFocus}
-        checked={props.checked}
-        disabled={props.disabled}
-        style={style}
-        onChange={props.onChange}
-      >
-        {props.children}
-      </AntdCheckbox>
+      <AntdCheckbox {...{ ...props, style }}>{props.children}</AntdCheckbox>
     </div>
   );
 }
