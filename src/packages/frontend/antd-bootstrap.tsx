@@ -20,7 +20,6 @@ export {
   Form,
   FormControl,
   FormGroup,
-  InputGroup,
   ListGroup,
   ListGroupItem,
 } from "react-bootstrap";
