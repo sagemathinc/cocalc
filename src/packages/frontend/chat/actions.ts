@@ -54,6 +54,7 @@ import { history_path } from "@cocalc/util/misc";
 import { initFromSyncDB, handleSyncDBChange, processSyncDBObj } from "./sync";
 import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import type { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 
 const MAX_CHATSTREAM = 10;
 
@@ -66,7 +67,8 @@ export class ChatActions extends Actions<ChatState> {
   // this prevents that at least.
   private chatStreams: Set<string> = new Set([]);
   public frameId: string = "";
-  public frameTreeActions;
+  // this might not be set e.g., for deprecated side chat on sagews:
+  public frameTreeActions?: CodeEditorActions;
 
   set_syncdb = (syncdb: SyncDB, store: ChatStore): void => {
     this.syncdb = syncdb;
@@ -499,7 +501,7 @@ export class ChatActions extends Actions<ChatState> {
   // that starts with that date.
   // safe to call after closing actions.
   clearScrollRequest = () => {
-    this.frameTreeActions.set_frame_data({
+    this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       scrollToIndex: null,
       scrollToDate: null,
@@ -513,7 +515,7 @@ export class ChatActions extends Actions<ChatState> {
     // to virtuoso and directly control things from here.
     this.clearScrollRequest();
     setTimeout(() => {
-      this.frameTreeActions.set_frame_data({
+      this.frameTreeActions?.set_frame_data({
         id: this.frameId,
         scrollToIndex: index,
         scrollToDate: null,
@@ -527,12 +529,12 @@ export class ChatActions extends Actions<ChatState> {
 
   scrollToDate = (date) => {
     this.clearScrollRequest();
-    this.frameTreeActions.set_frame_data({
+    this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       fragmentId: toMsString(date),
     });
     setTimeout(() => {
-      this.frameTreeActions.set_frame_data({
+      this.frameTreeActions?.set_frame_data({
         id: this.frameId,
         // string version of ms since epoch, which is the key
         // in the messages immutable Map
@@ -583,7 +585,7 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   setHashtagState = (tag: string, state?: HashtagState): void => {
-    if (!this.store) return;
+    if (!this.store || this.frameTreeActions == null) return;
     // similar code in task list.
     let selectedHashtags: SelectedHashtags =
       this.frameTreeActions._get_frame_data(this.frameId, "selectedHashtags") ??
@@ -1095,15 +1097,15 @@ export class ChatActions extends Actions<ChatState> {
   };
 
   setSearch = (search) => {
-    this.frameTreeActions.set_frame_data({ id: this.frameId, search });
+    this.frameTreeActions?.set_frame_data({ id: this.frameId, search });
   };
 
   setFilterRecentH = (filterRecentH) => {
-    this.frameTreeActions.set_frame_data({ id: this.frameId, filterRecentH });
+    this.frameTreeActions?.set_frame_data({ id: this.frameId, filterRecentH });
   };
 
   setSelectedHashtags = (selectedHashtags) => {
-    this.frameTreeActions.set_frame_data({
+    this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       selectedHashtags,
     });
@@ -1115,7 +1117,7 @@ export class ChatActions extends Actions<ChatState> {
     } else {
       const fragmentId = toMsString(date);
       Fragment.set({ chat: fragmentId });
-      this.frameTreeActions.set_frame_data({ id: this.frameId, fragmentId });
+      this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
     }
   };
 }

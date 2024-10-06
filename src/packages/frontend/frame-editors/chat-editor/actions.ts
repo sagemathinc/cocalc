@@ -76,7 +76,7 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     // our store is not exactly a ChatStore but it's close enough
     actions.set_syncdb(syncdb, this.store as ChatStore);
     actions.frameId = frameId;
-    actions.frameTreeActions = this;
+    actions.frameTreeActions = this as any;
     this.chatActions[frameId] = actions;
     return actions;
   }

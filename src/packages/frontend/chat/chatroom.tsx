@@ -70,7 +70,7 @@ interface Props {
   path: string;
   is_visible?: boolean;
   font_size: number;
-  desc;
+  desc?;
 }
 
 export function ChatRoom({
@@ -87,12 +87,12 @@ export function ChatRoom({
   const input: string = useEditor("input");
   const [preview] = useDebounce(input, 250);
 
-  const search = desc.get("data-search") ?? "";
-  const filterRecentH: number = desc.get("data-filterRecentH") ?? 0;
-  const selectedHashtags = desc.get("data-selectedHashtags");
-  const scrollToIndex = desc.get("data-scrollToIndex") ?? null;
-  const scrollToDate = desc.get("data-scrollToDate") ?? null;
-  const fragmentId = desc.get("data-fragmentId") ?? null;
+  const search = desc?.get("data-search") ?? "";
+  const filterRecentH: number = desc?.get("data-filterRecentH") ?? 0;
+  const selectedHashtags = desc?.get("data-selectedHashtags");
+  const scrollToIndex = desc?.get("data-scrollToIndex") ?? null;
+  const scrollToDate = desc?.get("data-scrollToDate") ?? null;
+  const fragmentId = desc?.get("data-fragmentId") ?? null;
 
   const messages = useEditor("messages");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");

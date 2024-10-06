@@ -29,9 +29,14 @@ export default function VideoChatButton({
   const [counter, set_counter] = useState<number>(0); // to force updates periodically.
   useInterval(() => set_counter(counter + 1), VIDEO_UPDATE_INTERVAL_MS / 2);
   const videoChat = useMemo(
-    () => actions.frameTreeActions.getVideoChat(),
+    () => actions.frameTreeActions?.getVideoChat(),
     [actions],
   );
+
+  if (videoChat == null) {
+    // eg sage worksheets...
+    return null;
+  }
 
   const click_video_button = debounce(
     () => {
@@ -60,14 +65,14 @@ export default function VideoChatButton({
           <hr />
           There following {num_users_chatting} people are using video chat:
           <br />
-          {videoChat.getUserNames().join(", ")}
+          {videoChat?.getUserNames().join(", ")}
         </span>
       );
     }
   }
 
   function render_join(num_users_chatting: number): JSX.Element {
-    if (videoChat.weAreChatting()) {
+    if (videoChat?.weAreChatting()) {
       return (
         <span>
           <b>Leave</b> this video chatroom.
@@ -91,7 +96,7 @@ export default function VideoChatButton({
     }
   }
 
-  const num_users_chatting: number = videoChat.numUsersChatting() ?? 0;
+  const num_users_chatting: number = videoChat?.numUsersChatting() ?? 0;
   const style: React.CSSProperties = { cursor: "pointer" };
   if (num_users_chatting > 0) {
     style.color = "#c9302c";
