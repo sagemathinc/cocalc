@@ -105,6 +105,11 @@ import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
 import { VideoChat } from "@cocalc/frontend/chat/video/video-chat";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import {
+  chat,
+  getSideChatActions,
+} from "@cocalc/frontend/frame-editors/generic/chat";
 
 interface gutterMarkerParams {
   line: number;
@@ -2957,7 +2962,7 @@ export class Actions<
     type: string;
   }): Promise<string> {
     const state = (syncdoc ?? this._syncstring).get_state();
-    if (!(await this.wait_until_syncdoc_ready(syncdoc))) {
+    if (state != "ready" && !(await this.wait_until_syncdoc_ready(syncdoc))) {
       return "";
     }
     const frameId = this.show_focused_frame_of_type(type);
@@ -3061,4 +3066,31 @@ export class Actions<
   getVideoChat = () => {
     return this.videoChat;
   };
+
+  // NOTE: can't be an arrow function because gets called in derived classes
+  async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId == null) {
+      return;
+    }
+
+    if (fragmentId.line) {
+      this.programmatical_goto_line?.(fragmentId.line);
+    }
+
+    if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
+      // open side chat
+      this.redux
+        .getProjectActions(this.project_id)
+        .open_chat({ path: this.path });
+      this.show_focused_frame_of_type(chat.type);
+      for (const d of [1, 10, 50, 500, 1000]) {
+        const actions = getSideChatActions({
+          project_id: this.project_id,
+          path: this.path,
+        });
+        actions?.scrollToDate(fragmentId.chat);
+        await delay(d);
+      }
+    }
+  }
 }

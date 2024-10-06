@@ -398,13 +398,17 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     this.close_recently_focused_frame_of_type("introspect");
   }
 
-  gotoFragment = async (fragmentId: FragmentId) => {
+  async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId.chat) {
+      // deal with side chat in base class
+      await super.gotoFragment(fragmentId);
+    }
     const frameId = await this.waitUntilFrameReady({
       type: "jupyter_cell_notebook",
       syncdoc: this.jupyter_actions.syncdb,
     });
     if (!frameId) return;
-    const { id, anchor } = fragmentId as any;
+    const { id, anchor } = fragmentId;
 
     const goto = (cellId: string) => {
       const actions = this.get_frame_actions(frameId);
@@ -463,7 +467,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       }
       return;
     }
-  };
+  }
 
   languageModelGetText(
     frameId: string,

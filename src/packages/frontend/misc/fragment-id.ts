@@ -7,35 +7,21 @@ The different types are inspired by https://en.wikipedia.org/wiki/URI_fragment
 import { debounce } from "lodash";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 
-interface Chat {
+export interface FragmentId {
   chat?: string; // fragment refers to ms since epoch of chat message
+  anchor?: string;
+  // a specific line in a document
+  line?: number;
+  // an id of an element or cell, e.g., in a whiteboard or Jupyter notebook.
+  // These ids are assumed globally unique, so no page is specified.
+  id?: string;
+  // a specific page in a document, but where no line or element in that page is specified.
+  page?: string;
 }
 
-interface Anchor extends Chat {
-  anchor: string;
+export function isPageFragment(x: any): x is FragmentId {
+  return !!x?.page;
 }
-
-// a specific line in a document
-interface Line extends Chat {
-  line: number;
-}
-
-// an id of an element or cell, e.g., in a whiteboard or Jupyter notebook.
-// These ids are assumed globally unique, so no page is specified.
-interface Id extends Chat {
-  id: string;
-}
-
-// a specific page in a document, but where no line or element in that page is specified.
-interface Page {
-  page: string;
-}
-
-export function isPageFragment(x: any): x is Page {
-  return typeof x?.page === "string";
-}
-
-export type FragmentId = Chat | Line | Id | Page | Anchor;
 
 namespace Fragment {
   // set is debounced so you can call it as frequently as you want...
@@ -60,8 +46,8 @@ namespace Fragment {
       console.warn("encode -- invalid fragmentId object: ", fragmentId);
       throw Error(`attempt to encode invalid fragmentId -- "${fragmentId}"`);
     }
-    if (fragmentId["anchor"] != null) {
-      return fragmentId["anchor"];
+    if (fragmentId.anchor != null) {
+      return fragmentId.anchor;
     }
     const v: string[] = [];
     for (const key in fragmentId) {

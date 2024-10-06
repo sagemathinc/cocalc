@@ -49,7 +49,7 @@ export default function SideChat({
   const search = desc?.get("data-search") ?? "";
   const selectedHashtags = desc?.get("data-selectedHashtags");
   const scrollToIndex = desc.get("data-scrollToIndex") ?? null;
-  const scrollToDate = desc.get("data-scrollToIDate") ?? null;
+  const scrollToDate = desc.get("data-scrollToDate") ?? null;
   const fragmentId = desc.get("data-fragmentId") ?? null;
   const addCollab: boolean = useRedux(["add_collab"], project_id, path);
   const is_uploading = useRedux(["is_uploading"], project_id, path);

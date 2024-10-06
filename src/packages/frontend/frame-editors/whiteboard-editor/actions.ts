@@ -1318,7 +1318,11 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     this.zoom100(frameId);
   }
 
-  gotoFragment = async (fragmentId: FragmentId) => {
+  async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId.chat) {
+      // deal with side chat in base class
+      await super.gotoFragment(fragmentId);
+    }
     // console.log("gotoFragment ", fragmentId);
     const frameId = await this.waitUntilFrameReady({
       type: this.mainFrameType,
@@ -1341,7 +1345,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       this.scrollElementIntoView(id, frameId);
       return;
     }
-  };
+  }
 
   public async show_table_of_contents(
     _id: string | undefined = undefined,

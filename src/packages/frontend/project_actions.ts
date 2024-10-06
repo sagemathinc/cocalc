@@ -1020,8 +1020,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return;
       }
       // a fallback for now.
-      if (fragmentId["line"] != null) {
-        this.goto_line(path, fragmentId["line"], true, true);
+      if (fragmentId.line != null) {
+        this.goto_line(path, fragmentId.line, true, true);
         return;
       }
     } else {
@@ -1108,13 +1108,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat = async ({
-    path,
-    width = 0.7,
-  }: {
-    path: string;
-    width?: number;
-  }) => {
+  open_chat = ({ path, width = 0.7 }: { path: string; width?: number }) => {
     const info = this.get_store()
       ?.get("open_files")
       .getIn([path, "component"]) as any;
@@ -1123,7 +1117,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_chat_state(path, "pending");
       return;
     }
-    // only not null for modern editors.
+    //  not null for modern editors.
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["show_focused_frame_of_type"] != null) {
       // @ts-ignore -- todo will go away when everything is a frame editor
@@ -1131,7 +1125,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_chat_state(path, "internal");
     } else {
       // First create the chat actions:
-      await initChat(this.project_id, misc.meta_file(path, "chat"));
+      initChat(this.project_id, misc.meta_file(path, "chat"));
       // Only then set state to say that the chat is opened!
       // Otherwise when the opened chat is rendered actions is
       // randomly not defined, and things break.

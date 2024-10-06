@@ -22,6 +22,7 @@ import { handleSyncDBChange, initFromSyncDB } from "@cocalc/frontend/chat/sync";
 import { redux_name } from "@cocalc/frontend/app-framework";
 import { aux_file } from "@cocalc/util/misc";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import { delay } from "awaiting";
 
 const FRAME_TYPE = "chatroom";
 
@@ -139,7 +140,7 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     this.getChatActions(frameId)?.scrollToIndex(0);
   };
 
-  gotoFragment = async (fragmentId: FragmentId) => {
+  async gotoFragment(fragmentId: FragmentId) {
     const { chat } = fragmentId as any;
     if (!chat) {
       return;
@@ -150,18 +151,10 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     if (!frameId) {
       return;
     }
-    const actions = this.getChatActions(frameId);
-    if (actions == null) {
-      return;
+    for (const d of [1, 10, 50, 500, 1000]) {
+      const actions = this.getChatActions(frameId);
+      actions?.scrollToDate(chat);
+      await delay(d);
     }
-    // if id is an iso string, just pass that in; otherwise, it could be a string
-    // repr of ms since epoch and in that case we have to convert it to a number
-    actions.scrollToDate(chat);
-    // do it again since above scrollTo will be wrong if frame just opened, since
-    // new chat frames typically scroll to bottom on initial render.
-    // TODO: we could obviously do better here!
-    for (const d of [5, 50, 500]) {
-      setTimeout(() => actions.scrollToDate(chat), d);
-    }
-  };
+  }
 }

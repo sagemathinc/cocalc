@@ -98,7 +98,7 @@ export function MentionRow(props: Props) {
     //    file.txt#chat=true,id=092ab039
     redux.getProjectActions(project_id).open_file({
       path: path,
-      chat: !fragmentId ? true : fragmentId["chat"],
+      chat: !!fragmentId?.chat,
       fragmentId,
     });
 

@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useState } from "react";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { initChat } from "@cocalc/frontend/chat/register";
@@ -17,7 +16,6 @@ import { EditorDescription } from "../frame-tree/types";
 export function chatFile(path: string): string {
   return hidden_meta_file(path, "sage-chat");
 }
-
 interface Props {
   font_size: number;
   desc;
@@ -72,13 +70,25 @@ export const chat: EditorDescription = {
   component: Chat,
 } as const;
 
+export function getSideChatActions({
+  project_id,
+  path,
+}: {
+  project_id: string;
+  path: string;
+}): ChatActions | null {
+  const actions = redux.getEditorActions(project_id, chatFile(path));
+  if (actions == null) {
+    return null;
+  }
+  return actions as ChatActions;
+}
+
 // TODO: this is an ugly special case for now to make the title bar buttons work.
 // TODO: but wait -- those buttons are gone now, so maybe this can be deleted?!
-export function undo(project_id, path0) {
-  const path = hidden_meta_file(path0, "sage-chat");
-  (redux.getEditorActions(project_id, path) as ChatActions)?.undo();
+export function undo(project_id, path) {
+  return getSideChatActions({ project_id, path })?.undo();
 }
-export function redo(project_id, path0) {
-  const path = hidden_meta_file(path0, "sage-chat");
-  (redux.getEditorActions(project_id, path) as ChatActions)?.redo();
+export function redo(project_id, path) {
+  return getSideChatActions({ project_id, path })?.redo();
 }
