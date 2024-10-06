@@ -3,11 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// 3rd Party Libraries
-import { FormControl, FormGroup, Panel } from "../../antd-bootstrap";
-import { Button, Space } from "antd";
-import { useState } from "../../app-framework";
-import { ErrorDisplay, Icon } from "../../components";
+import { Button, Card, Input, Space } from "antd";
+import { useState } from "react";
+import { A, ErrorDisplay, Icon } from "@cocalc/frontend/components";
 
 // Sibling Libraries
 import { compute_fingerprint } from "./fingerprint";
@@ -117,27 +115,29 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
 
   function render_panel() {
     return (
-      <Panel
-        header={
+      <Card
+        title={
           <>
-            <Icon name="plus-circle" /> Add an SSH key
+            <Icon name="plus-circle" /> Add an{" "}
+            <A href="https://doc.cocalc.com/account/ssh.html">SSH key</A>
           </>
         }
         style={style}
       >
         {extra && extra}
-        <form onSubmit={submit_form}>
-          <FormGroup>
-            Title
-            <FormControl
-              id="ssh-title"
-              type="text"
-              value={key_title}
-              onChange={(e) => set_key_title((e.target as any).value)}
-            />
+        <div>
+          Title
+          <Input
+            id="ssh-title"
+            value={key_title}
+            onChange={(e) => set_key_title(e.target.value)}
+            placeholder={
+              "Choose a name for this ssh key to help you keep track of it..."
+            }
+          />
+          <div style={{ marginTop: "15px" }}>
             Key
-            <FormControl
-              componentClass="textarea"
+            <Input.TextArea
               value={key_value}
               rows={8}
               placeholder={`Begins with ${ALLOWED_SSH_TYPES_DESCRIPTION}`}
@@ -150,9 +150,9 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
               }}
               style={{ resize: "vertical" }}
             />
-          </FormGroup>
-        </form>
-        <div>
+          </div>
+        </div>
+        <div style={{ marginTop: "15px" }}>
           <Space>
             {toggleable ? (
               <Button onClick={cancel_and_close}>Cancel</Button>
@@ -173,7 +173,7 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
             />
           )}
         </div>
-      </Panel>
+      </Card>
     );
   }
 
