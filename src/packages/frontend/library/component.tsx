@@ -18,10 +18,20 @@ import {
   ReactDOM,
   Fragment,
 } from "../app-framework";
-import { Col, Row, Button, ListGroup, ListGroupItem } from "react-bootstrap";
-import { Markdown, Icon, Loading, SearchInput } from "../components";
-import { webapp_client } from "../webapp-client";
-
+import {
+  Col,
+  Row,
+  Button,
+  ListGroup,
+  ListGroupItem,
+} from "@cocalc/frontend/antd-bootstrap";
+import {
+  Markdown,
+  Icon,
+  Loading,
+  SearchInput,
+} from "@cocalc/frontend/components";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 declare var $: any;
 
@@ -40,7 +50,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
   const library_selected = useTypedRedux({ project_id }, "library_selected");
   const library_is_copying = useTypedRedux(
     { project_id },
-    "library_is_copying"
+    "library_is_copying",
   );
   const library_search = useTypedRedux({ project_id }, "library_search");
 
@@ -60,7 +70,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
       // Using JSON of the doc is pretty naive but it's fast enough
       // and I don't want to spend much time on this!
       docs = docs.filter((doc) =>
-        search_match(JSON.stringify(doc.toJS()).toLowerCase(), search)
+        search_match(JSON.stringify(doc.toJS()).toLowerCase(), search),
       );
     }
 
@@ -206,7 +216,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
         list.push(
           <li className="list-group-header" key={`header-${cur_cat}`}>
             {cur_cat_title}
-          </li>
+          </li>,
         );
       }
 
@@ -220,7 +230,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
           bsSize={"small"}
         >
           {doc.get("title") ?? doc.get("id")}
-        </ListGroupItem>
+        </ListGroupItem>,
       );
     });
     return list;
