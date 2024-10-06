@@ -4,18 +4,9 @@
  */
 
 import { Map } from "immutable";
-
-import {
-  Button,
-  ButtonToolbar,
-  FormControl,
-  FormGroup,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Alert, Button, Card, Input, Popconfirm, Space } from "antd";
 import {
   Component,
-  ReactDOM,
-  Rendered,
   rclass,
   redux,
   rtypes,
@@ -44,7 +35,7 @@ class SystemNotifications extends Component<Props, State> {
     };
   }
 
-  render_mark_done(): Rendered {
+  render_mark_done() {
     if (!this.props.notifications) return;
     let open = 0;
     this.props.notifications.map((mesg: Map<string, any>) => {
@@ -63,43 +54,55 @@ class SystemNotifications extends Component<Props, State> {
     }
   }
 
-  render_buttons(): Rendered {
+  render_buttons() {
     return (
-      <ButtonToolbar>
+      <Space>
         <Button onClick={() => this.setState({ state: "edit", mesg: "" })}>
           Compose...
         </Button>
         {this.render_mark_done()}
-      </ButtonToolbar>
+      </Space>
     );
   }
 
-  render_editor(): Rendered {
+  render_editor() {
     return (
-      <Well>
-        <FormGroup>
-          <FormControl
-            autoFocus
-            value={this.state.mesg}
-            ref="input"
-            rows={3}
-            componentClass="textarea"
-            onChange={() =>
-              this.setState({
-                mesg: ReactDOM.findDOMNode(this.refs.input)?.value,
-              })
-            }
-          />
-        </FormGroup>
-        <ButtonToolbar>
-          <Button onClick={() => this.send()} bsStyle="danger">
-            <Icon name="paper-plane" /> Send
-          </Button>
+      <Card>
+        <Input.TextArea
+          autoFocus
+          value={this.state.mesg}
+          rows={3}
+          onChange={(e) =>
+            this.setState({
+              mesg: e.target.value,
+            })
+          }
+        />
+        <Space style={{ marginTop: "15px" }}>
           <Button onClick={() => this.setState({ state: "view" })}>
             Cancel
           </Button>
-        </ButtonToolbar>
-      </Well>
+          <Popconfirm
+            title="Send notification?"
+            description={
+              <div style={{ width: "400px" }}>
+                Everyone that uses CoCalc will see the following notification
+                once in the upper right until you explicitly mark it done (they
+                can dismiss it).
+                <hr />
+                <Alert message={this.state.mesg} />
+              </div>
+            }
+            onConfirm={() => {
+              this.send();
+            }}
+          >
+            <Button danger>
+              <Icon name="paper-plane" /> Send
+            </Button>
+          </Popconfirm>
+        </Space>
+      </Card>
     );
   }
 
@@ -116,7 +119,7 @@ class SystemNotifications extends Component<Props, State> {
     (redux.getActions("system_notifications") as any).mark_all_done();
   }
 
-  render_body(): Rendered {
+  render_body() {
     if (this.props.notifications == null) {
       return <Loading />;
     }
@@ -128,7 +131,7 @@ class SystemNotifications extends Component<Props, State> {
     }
   }
 
-  render(): Rendered {
+  render() {
     return (
       <div>
         <Title level={4}>System Notifications</Title>
