@@ -425,6 +425,143 @@ export default function Message(props: Readonly<Props>) {
     const otherFeedback =
       isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
 
+    const editControlRow = () => {
+      if (isEditing) {
+        return null;
+      }
+      const showDeleteButton =
+        DELETE_BUTTON && newest_content(message).trim().length > 0;
+      const showEditingStatus =
+        (message.get("history")?.size ?? 0) > 1 ||
+        (message.get("editing")?.size ?? 0) > 0;
+      const showHistory = (message.get("history")?.size ?? 0) > 1;
+      const showLLMFeedback = isLLMThread && msgWrittenByLLM;
+      const showOtherFeedback = otherFeedback > 0;
+
+      const show =
+        showEditButton ||
+        showDeleteButton ||
+        showEditingStatus ||
+        showHistory ||
+        showLLMFeedback ||
+        showOtherFeedback;
+      if (!show) {
+        // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
+        return null;
+      }
+
+      return (
+        <div style={{ width: "100%", textAlign: "center" }}>
+          <Space direction="horizontal" size="small" wrap>
+            {showEditButton ? (
+              <Tooltip
+                title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
+                placement="left"
+              >
+                <Button
+                  disabled={replying}
+                  style={{
+                    color: is_viewers_message ? "white" : "#555",
+                  }}
+                  type="text"
+                  size="small"
+                  onClick={() => props.actions?.setEditing(message, true)}
+                >
+                  <Icon name="pencil" /> Edit
+                </Button>
+              </Tooltip>
+            ) : undefined}
+            {showDeleteButton && (
+              <Tooltip
+                title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+                placement="left"
+              >
+                <Popconfirm
+                  title="Delete this message"
+                  description="Are you sure you want to delete this message?"
+                  onConfirm={() => {
+                    props.actions?.setEditing(message, true);
+                    setTimeout(() => props.actions?.sendEdit(message, ""), 1);
+                  }}
+                >
+                  <Button
+                    disabled={replying}
+                    style={{
+                      color: is_viewers_message ? "white" : "#555",
+                    }}
+                    type="text"
+                    size="small"
+                  >
+                    <Icon name="trash" /> Delete
+                  </Button>
+                </Popconfirm>
+              </Tooltip>
+            )}
+            {showEditingStatus && editing_status(isEditing)}
+            {showHistory && (
+              <Button
+                style={{
+                  marginLeft: "5px",
+                  color: is_viewers_message ? "white" : "#555",
+                }}
+                type="text"
+                size="small"
+                icon={<Icon name="history" />}
+                onClick={() => {
+                  set_show_history(!show_history);
+                  props.scroll_into_view?.();
+                }}
+              >
+                <Tip
+                  title="Message History"
+                  tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                >
+                  {verb} History
+                </Tip>
+              </Button>
+            )}
+            {showLLMFeedback && (
+              <>
+                <RegenerateLLM
+                  actions={props.actions}
+                  date={date}
+                  model={isLLMThread}
+                />
+                <FeedbackLLM actions={props.actions} message={message} />
+              </>
+            )}
+          </Space>
+          {showOtherFeedback && (
+            <div
+              style={{
+                float: "right",
+                color: is_viewers_message ? "white" : "#555",
+              }}
+            >
+              <Tooltip
+                title={() => {
+                  return (
+                    <div>
+                      {Object.keys(message.get("feedback")?.toJS() ?? {}).map(
+                        (account_id) => (
+                          <div key={account_id} style={{ marginBottom: "2px" }}>
+                            <Avatar size={24} account_id={account_id} />{" "}
+                            <User account_id={account_id} />
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  );
+                }}
+              >
+                {otherFeedback} <Icon name="thumbs-up" />
+              </Tooltip>
+            </div>
+          )}
+        </div>
+      );
+    };
+
     return (
       <Col key={1} xs={mainXS}>
         <div
@@ -516,125 +653,7 @@ export default function Message(props: Readonly<Props>) {
             />
           )}
           {isEditing && renderEditMessage()}
-          {!isEditing && (
-            <div style={{ width: "100%", textAlign: "center" }}>
-              <Space direction="horizontal" size="small" wrap>
-                {showEditButton ? (
-                  <Tooltip
-                    title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
-                    placement="left"
-                  >
-                    <Button
-                      disabled={replying}
-                      style={{
-                        color: is_viewers_message ? "white" : "#555",
-                      }}
-                      type="text"
-                      size="small"
-                      onClick={() => props.actions?.setEditing(message, true)}
-                    >
-                      <Icon name="pencil" /> Edit
-                    </Button>
-                  </Tooltip>
-                ) : undefined}
-                {DELETE_BUTTON && newest_content(message).trim().length > 0 ? (
-                  <Tooltip
-                    title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-                    placement="left"
-                  >
-                    <Popconfirm
-                      title="Delete this message"
-                      description="Are you sure you want to delete this message?"
-                      onConfirm={() => {
-                        props.actions?.setEditing(message, true);
-                        setTimeout(
-                          () => props.actions?.sendEdit(message, ""),
-                          1,
-                        );
-                      }}
-                    >
-                      <Button
-                        disabled={replying}
-                        style={{
-                          color: is_viewers_message ? "white" : "#555",
-                        }}
-                        type="text"
-                        size="small"
-                      >
-                        <Icon name="trash" /> Delete
-                      </Button>
-                    </Popconfirm>
-                  </Tooltip>
-                ) : undefined}
-                {(message.get("history")?.size ?? 0) > 1 ||
-                (message.get("editing")?.size ?? 0) > 0
-                  ? editing_status(isEditing)
-                  : undefined}
-                {(message.get("history")?.size ?? 0) > 1 ? (
-                  <Button
-                    style={{
-                      marginLeft: "5px",
-                      color: is_viewers_message ? "white" : "#555",
-                    }}
-                    type="text"
-                    size="small"
-                    icon={<Icon name="history" />}
-                    onClick={() => {
-                      set_show_history(!show_history);
-                      props.scroll_into_view?.();
-                    }}
-                  >
-                    <Tip
-                      title="Message History"
-                      tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
-                    >
-                      {verb} History
-                    </Tip>
-                  </Button>
-                ) : undefined}
-                {isLLMThread && msgWrittenByLLM ? (
-                  <>
-                    <RegenerateLLM
-                      actions={props.actions}
-                      date={date}
-                      model={isLLMThread}
-                    />
-                    <FeedbackLLM actions={props.actions} message={message} />
-                  </>
-                ) : undefined}
-              </Space>
-              {otherFeedback > 0 && (
-                <div
-                  style={{
-                    float: "right",
-                    color: is_viewers_message ? "white" : "#555",
-                  }}
-                >
-                  <Tooltip
-                    title={() => {
-                      return (
-                        <div>
-                          {Object.keys(
-                            message.get("feedback")?.toJS() ?? {},
-                          ).map((account_id) => (
-                            <div
-                              key={account_id}
-                              style={{ marginBottom: "2px" }}
-                            >
-                              <Avatar size={24} account_id={account_id} />{" "}
-                              <User account_id={account_id} />
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    }}
-                  >
-                    {otherFeedback} <Icon name="thumbs-up" />
-                  </Tooltip>
-                </div>
-              )}
-            </div>
-          )}
+          {editControlRow()}
         </div>
         {show_history && (
           <div>
