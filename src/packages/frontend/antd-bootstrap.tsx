@@ -141,7 +141,7 @@ export const Button = (props: {
   style?: React.CSSProperties;
   disabled?: boolean;
   onClick?: (e?: any) => void;
-  key?: string;
+  key?;
   children?: any;
   className?: string;
   href?: string;
@@ -332,7 +332,7 @@ export type AntdTabItem = NonNullable<AntdTabsProps["items"]>[number];
 
 interface TabsProps {
   id?: string;
-  key?: string;
+  key?;
   activeKey: string;
   onSelect?: (activeKey: string) => void;
   animation?: boolean;
@@ -360,7 +360,7 @@ export function Tabs(props: Readonly<TabsProps>) {
 
 export function Tab(props: {
   id?: string;
-  key?: string;
+  key?;
   eventKey: string;
   title: any;
   children?: any;
@@ -438,10 +438,11 @@ export function Alert(props: AlertProps) {
 }
 
 export function Panel(props: {
-  key?: string;
+  key?;
   style?: React.CSSProperties;
-  header?: any;
+  header?;
   children?: any;
+  onClick?;
 }) {
   const style = { ...{ marginBottom: "20px" }, ...props.style };
   return (
@@ -451,6 +452,7 @@ export function Panel(props: {
       styles={{
         header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
       }}
+      onClick={props.onClick}
     >
       {props.children}
     </AntdCard>
