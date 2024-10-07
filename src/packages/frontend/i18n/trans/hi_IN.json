@@ -222,6 +222,7 @@
   "command.generic.show_table_of_contents.button": "सामग्री",
   "command.generic.show_table_of_contents.title": "सामग्री तालिका दिखाएं",
   "command.generic.split_col.label": "दाएं विभाजित करें",
+  "command.generic.split_col.title": "फ्रेम को दो स्तंभों में लंबवत विभाजित करें",
   "command.generic.split_row.title": "फ्रेम को क्षैतिज रूप से दो पंक्तियों में विभाजित करें",
   "command.generic.stop_build.label": "रोकें",
   "command.generic.stop_build.title": "सभी चल रहे कार्य बंद करें.",
