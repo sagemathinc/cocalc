@@ -11,6 +11,8 @@ import CheckedFiles from "./checked-files";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 
+const MAX_FILENAME_LENGTH = 4095;
+
 interface Props {
   duplicate?: boolean;
 }
@@ -19,9 +21,7 @@ export default function RenameFile({ duplicate }: Props) {
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
-  const [target, setTarget] = useState<string>(() => {
-    return path_split(checked_files?.first() ?? "").tail;
-  });
+  const [target, setTarget] = useState<string>("");
   const ext = filename_extension(target);
   const [editExtension, setEditExtension] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -34,12 +34,20 @@ export default function RenameFile({ duplicate }: Props) {
   }, []);
 
   useEffect(() => {
-    setTarget(path_split(checked_files?.first() ?? "").tail);
-  }, [checked_files]);
+    const name = path_split(checked_files?.first() ?? "").tail;
+    if (duplicate) {
+      setTarget(
+        actions?.suggestDuplicateFilenameInCurrentDirectory(name) ?? name,
+      );
+      setEditExtension(false);
+    } else {
+      setTarget(name);
+    }
+  }, [checked_files, duplicate]);
 
-  const doRename = async () => {
+  const doAction = async () => {
     setError("");
-    if (loading || actions == null) {
+    if (loading || actions == null || !target) {
       return;
     }
     const store = actions.get_store();
@@ -53,10 +61,19 @@ export default function RenameFile({ duplicate }: Props) {
     const renameDir = path_split(src).head;
     try {
       setLoading(true);
-      await actions.rename_file({
+      const opts = {
         src: checked_files.first(),
         dest: path_to_file(renameDir, target),
-      });
+      };
+      if (duplicate) {
+        await actions.copy_paths({
+          src: [opts.src],
+          dest: opts.dest,
+          only_contents: true,
+        });
+      } else {
+        await actions.rename_file(opts);
+      }
       await actions.fetch_directory_listing({ path: renameDir });
     } catch (err) {
       setLoading(false);
@@ -75,7 +92,8 @@ export default function RenameFile({ duplicate }: Props) {
   return (
     <Card
       title=<>
-        <Icon name="swap" /> Rename the file '{checked_files?.first()}'
+        <Icon name="swap" /> {duplicate ? "Duplicate" : "Rename"} the file '
+        {checked_files?.first()}'
       </>
     >
       <CheckedFiles />
@@ -83,23 +101,25 @@ export default function RenameFile({ duplicate }: Props) {
         New Name
         {editExtension ? (
           <Input
+            maxLength={MAX_FILENAME_LENGTH}
             ref={inputRef}
             autoFocus
             onChange={(e) => setTarget(e.target.value)}
             type="text"
             value={target}
             placeholder="New Name"
-            onPressEnter={doRename}
+            onPressEnter={doAction}
           />
         ) : (
           <Input
+            maxLength={MAX_FILENAME_LENGTH - ext.length - 1}
             ref={inputRef}
             autoFocus
             onChange={(e) => setTarget(e.target.value + "." + ext)}
             type="text"
             value={target.slice(0, -ext.length - 1)}
             placeholder="New Name"
-            onPressEnter={doRename}
+            onPressEnter={doAction}
             suffix={"." + ext}
           />
         )}
@@ -112,22 +132,26 @@ export default function RenameFile({ duplicate }: Props) {
           Cancel
         </Button>{" "}
         <Button
-          onClick={doRename}
+          onClick={doAction}
           type="primary"
           disabled={
-            loading || target == path_split(checked_files?.first() ?? "").tail
+            !target ||
+            loading ||
+            target == path_split(checked_files?.first() ?? "").tail
           }
         >
-          Rename File {loading && <Spin />}
+          {duplicate ? "Duplicate" : "Rename"} File {loading && <Spin />}
         </Button>
       </Space>
       <div style={{ marginTop: "15px" }} />
-      <Checkbox
-        checked={editExtension}
-        onChange={() => setEditExtension(!editExtension)}
-      >
-        Edit Filename Extension
-      </Checkbox>
+      {!duplicate && (
+        <Checkbox
+          checked={editExtension}
+          onChange={() => setEditExtension(!editExtension)}
+        >
+          Edit Filename Extension
+        </Checkbox>
+      )}
       {editExtension && (
         <Alert
           style={{ marginTop: "15px" }}
@@ -136,6 +160,14 @@ export default function RenameFile({ duplicate }: Props) {
             "Editing the filename extension may cause your file to no longer open properly."
           }
           showIcon
+        />
+      )}
+      {target.length > MAX_FILENAME_LENGTH && (
+        <Alert
+          style={{ marginTop: "15px" }}
+          showIcon
+          type="error"
+          message={`The maximum length of a filename is ${MAX_FILENAME_LENGTH}.`}
         />
       )}
       <ShowError setError={setError} error={error} />

@@ -197,11 +197,8 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
         ? props.current_path.startsWith(".snapshots")
         : undefined);
     const obj = file_actions[name];
-    const get_basename = () => {
-      return misc.path_split(props.checked_files.first()).tail;
-    };
     const handle_click = (_e: React.MouseEvent) => {
-      props.actions.set_file_action(name, get_basename);
+      props.actions.set_file_action(name);
     };
 
     return (
