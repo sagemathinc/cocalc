@@ -14,7 +14,7 @@ import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { in_snapshot_path } from "../utils";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import * as misc from "@cocalc/util/misc";
-import { Button as AntdButton, Radio } from "antd";
+import { Button as AntdButton, Radio, Alert as AntdAlert } from "antd";
 import {
   Button,
   ButtonToolbar,
@@ -30,6 +30,7 @@ import * as account from "@cocalc/frontend/account";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ConfigureShare from "@cocalc/frontend/share/config";
 import CreateArchive from "./create-archive";
+import RenameFile from "./rename-file";
 
 export const PRE_STYLE = {
   marginBottom: "15px",
@@ -123,10 +124,6 @@ export const ActionBox = rclass<ReactProps>(
           break;
         case 13:
           switch (this.props.file_action) {
-            case "rename":
-            case "duplicate":
-              this.submit_action_rename();
-              break;
             case "move":
               this.submit_action_move();
               break;
@@ -226,36 +223,6 @@ export const ActionBox = rclass<ReactProps>(
       );
     }
 
-    rename_or_duplicate_click(): void {
-      const rename_dir = misc.path_split(
-        this.props.checked_files?.first() ?? "",
-      ).head;
-      const destination = (ReactDOM.findDOMNode(this.refs.new_name) as any)
-        .value;
-      switch (this.props.file_action) {
-        case "rename":
-          const checked = this.props.checked_files.toArray();
-          if (checked.length != 1) {
-            // shouldn't happen -- shouldn't even get to this point.
-            return;
-          }
-          this.props.actions.rename_file({
-            src: checked[0],
-            dest: misc.path_to_file(rename_dir, destination),
-          });
-          break;
-        case "duplicate":
-          this.props.actions.copy_paths({
-            src: this.props.checked_files.toArray(),
-            dest: misc.path_to_file(rename_dir, destination),
-            only_contents: true,
-          });
-          break;
-      }
-      this.props.actions.set_file_action();
-      this.props.actions.set_all_files_unchecked();
-    }
-
     private filename_length_test(name: string): boolean {
       return name.length > 250;
     }
@@ -303,17 +270,22 @@ export const ActionBox = rclass<ReactProps>(
         return; // no warning or error
       }
       return (
-        <Alert bsStyle={bsStyle} style={{ wordWrap: "break-word" }}>
-          <h4>
-            <Icon name="exclamation-triangle" /> Warning
-          </h4>
-          <p>{message}</p>
-          {bsStyle === "danger" ? (
-            <p>This is not allowed.</p>
-          ) : (
-            <p>This may cause your file to no longer open properly.</p>
-          )}
-        </Alert>
+        <AntdAlert
+          type="warning"
+          style={{ wordWrap: "break-word", marginTop: "15px" }}
+          showIcon
+          message={<>Warning</>}
+          description={
+            <>
+              <p>{message}</p>
+              {bsStyle === "danger" ? (
+                <p>This is not allowed.</p>
+              ) : (
+                <p>This may cause your file to no longer open properly.</p>
+              )}
+            </>
+          }
+        />
       );
     }
 
@@ -327,74 +299,6 @@ export const ActionBox = rclass<ReactProps>(
         return false;
       }
       return this.state.new_name.trim() !== misc.path_split(single_item).tail;
-    };
-
-    render_rename_or_duplicate(): JSX.Element {
-      let action_title, first_heading;
-      const single_item = this.props.checked_files.first("");
-      switch (this.props.file_action) {
-        case "rename":
-          action_title = "Rename";
-          first_heading = "Change the name";
-          break;
-        case "duplicate":
-          action_title = "Duplicate";
-          first_heading = "File to duplicate";
-          break;
-      }
-      return (
-        <div>
-          <Row>
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>{first_heading}</h4>
-              {this.render_selected_files_list()}
-            </Col>
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>New name</h4>
-              <FormGroup>
-                <FormControl
-                  autoFocus={true}
-                  ref="new_name"
-                  key="new_name"
-                  type="text"
-                  defaultValue={this.state.new_name}
-                  placeholder="New file name..."
-                  onChange={() =>
-                    this.setState({
-                      new_name: (
-                        ReactDOM.findDOMNode(this.refs.new_name) as any
-                      ).value,
-                    })
-                  }
-                  onKeyDown={this.action_key}
-                />
-              </FormGroup>
-              {this.render_rename_warning()}
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
-              <ButtonToolbar>
-                <Button
-                  bsStyle="info"
-                  onClick={() => this.rename_or_duplicate_click()}
-                  disabled={!this.valid_rename_input(single_item)}
-                >
-                  <Icon name="pencil" /> {action_title} Item
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
-            </Col>
-          </Row>
-        </div>
-      );
-    }
-
-    submit_action_rename = (): void => {
-      const single_item = this.props.checked_files.first("");
-      if (this.valid_rename_input(single_item)) {
-        this.rename_or_duplicate_click();
-      }
     };
 
     move_click = (): void => {
@@ -924,8 +828,9 @@ export const ActionBox = rclass<ReactProps>(
         case "download":
           return this.render_download();
         case "rename":
+          return <RenameFile />;
         case "duplicate":
-          return this.render_rename_or_duplicate();
+          return <RenameFile duplicate />;
         case "move":
           return this.render_move();
         case "share":

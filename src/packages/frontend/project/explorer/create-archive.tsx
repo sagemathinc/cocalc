@@ -4,7 +4,7 @@ import { path_split, path_to_file, plural } from "@cocalc/util/misc";
 import { default_filename } from "@cocalc/frontend/account";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useRedux } from "@cocalc/frontend/app-framework";
-import { PRE_STYLE } from "./action-box";
+import CheckedFiles from "./checked-files";
 
 export default function CreateArchive({}) {
   const inputRef = useRef<any>(null);
@@ -12,7 +12,7 @@ export default function CreateArchive({}) {
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
   const [target, setTarget] = useState<string>(() => {
     if (checked_files?.size == 1) {
-      return path_split(checked_files.toArray()[0]).tail;
+      return path_split(checked_files?.first()).tail;
     }
     return default_filename("", actions?.project_id ?? "");
   });
@@ -50,11 +50,7 @@ export default function CreateArchive({}) {
         {plural(checked_files?.size, "item")}
       </>
     >
-      <pre style={PRE_STYLE}>
-        {checked_files.map((name) => (
-          <div key={name}>{path_split(name).tail}</div>
-        ))}
-      </pre>
+      <CheckedFiles />
       <Space style={{ marginTop: "15px" }}>
         <Input
           ref={inputRef}
