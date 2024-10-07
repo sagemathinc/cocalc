@@ -6,7 +6,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import * as immutable from "immutable";
-
 import { rtypes, rclass } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import DirectorySelector from "../directory-selector";
@@ -16,7 +15,6 @@ import { in_snapshot_path } from "../utils";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import * as misc from "@cocalc/util/misc";
 import { Button as AntdButton, Radio } from "antd";
-
 import {
   Button,
   ButtonToolbar,
@@ -31,6 +29,18 @@ import {
 import * as account from "@cocalc/frontend/account";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ConfigureShare from "@cocalc/frontend/share/config";
+import CreateArchive from "./create-archive";
+
+export const PRE_STYLE = {
+  marginBottom: "15px",
+  maxHeight: "80px",
+  minHeight: "34px",
+  fontSize: "14px",
+  fontFamily: "inherit",
+  color: "#555",
+  backgroundColor: "#eee",
+  padding: "6px 12px",
+} as const;
 
 type FileAction = undefined | keyof typeof file_actions;
 
@@ -69,8 +79,6 @@ interface State {
 
 export const ActionBox = rclass<ReactProps>(
   class ActionBox extends React.Component<ReactProps & ReduxProps, State> {
-    private pre_styles: React.CSSProperties;
-
     static reduxProps = ({ name }) => {
       return {
         projects: {
@@ -102,16 +110,6 @@ export const ActionBox = rclass<ReactProps>(
         copy_from_compute_server_to: "compute-server",
         dest_compute_server_id: props.compute_server_id ?? 0,
       };
-      this.pre_styles = {
-        marginBottom: "15px",
-        maxHeight: "80px",
-        minHeight: "34px",
-        fontSize: "14px",
-        fontFamily: "inherit",
-        color: "#555",
-        backgroundColor: "#eee",
-        padding: "6px 12px",
-      } as const;
     }
 
     cancel_action = (): void => {
@@ -125,9 +123,6 @@ export const ActionBox = rclass<ReactProps>(
           break;
         case 13:
           switch (this.props.file_action) {
-            case "compress":
-              this.compress_click();
-              break;
             case "rename":
             case "duplicate":
               this.submit_action_rename();
@@ -144,68 +139,13 @@ export const ActionBox = rclass<ReactProps>(
 
     render_selected_files_list(): JSX.Element {
       return (
-        <pre style={this.pre_styles}>
+        <pre style={PRE_STYLE}>
           {this.props.checked_files.toArray().map((name) => (
             <div key={name}>{misc.path_split(name).tail}</div>
           ))}
         </pre>
       );
     }
-
-    compress_click = (): void => {
-      const destination = (
-        ReactDOM.findDOMNode(this.refs.result_archive) as any
-      ).value;
-      this.props.actions.zip_files({
-        src: this.props.checked_files.toArray(),
-        dest: misc.path_to_file(this.props.current_path, destination),
-      });
-      this.props.actions.set_all_files_unchecked();
-      this.props.actions.set_file_action();
-    };
-
-    render_compress = (): JSX.Element => {
-      const { size } = this.props.checked_files;
-      return (
-        <div>
-          <Row>
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>Create a zip file</h4>
-              {this.render_selected_files_list()}
-            </Col>
-
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>Result archive</h4>
-              <FormGroup>
-                <FormControl
-                  autoFocus={true}
-                  ref="result_archive"
-                  key="result_archive"
-                  type="text"
-                  defaultValue={account.default_filename(
-                    "zip",
-                    this.props.project_id,
-                  )}
-                  placeholder="Result archive..."
-                  onKeyDown={this.action_key}
-                />
-              </FormGroup>
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
-              <ButtonToolbar>
-                <Button bsStyle="warning" onClick={this.compress_click}>
-                  <Icon name="compress" /> Compress {size}{" "}
-                  {misc.plural(size, "Item")}
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
-            </Col>
-          </Row>
-        </div>
-      );
-    };
 
     delete_click = (): void => {
       this.props.actions.delete_files({
@@ -899,7 +839,7 @@ export const ActionBox = rclass<ReactProps>(
       return (
         <div>
           <h4>Download link</h4>
-          <pre style={this.pre_styles}>
+          <pre style={PRE_STYLE}>
             <a href={target} target="_blank">
               {target}
             </a>
@@ -976,7 +916,7 @@ export const ActionBox = rclass<ReactProps>(
     render_action_box(action: FileAction): JSX.Element | undefined {
       switch (action) {
         case "compress":
-          return this.render_compress();
+          return <CreateArchive />;
         case "copy":
           return this.render_copy();
         case "delete":

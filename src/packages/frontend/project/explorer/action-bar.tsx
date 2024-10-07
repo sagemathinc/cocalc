@@ -314,6 +314,7 @@ export const ACTION_BUTTONS_DIR = [
 
 export const ACTION_BUTTONS_FILE = [
   "download",
+  "compress",
   "delete",
   "rename",
   "duplicate",
