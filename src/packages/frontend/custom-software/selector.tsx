@@ -3,14 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Divider, Radio } from "antd";
+import { Col, Row, Alert, Button, Divider, List, Radio } from "antd";
 import { join } from "path";
-import {
-  Col,
-  ListGroup,
-  ListGroupItem,
-  Row,
-} from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   React,
@@ -184,21 +178,24 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
         const [id, img] = e;
         const display = img.get("display", "");
         return (
-          <ListGroupItem
+          <List.Item
             key={id}
-            active={image_selected === id}
             onClick={() => set_state(id, display, image_type)}
-            style={ENTRIES_ITEM_STYLE}
-            bsSize={"small"}
+            style={{
+              ...ENTRIES_ITEM_STYLE,
+              ...(image_selected === id
+                ? { background: "#337ab7", color: "white" }
+                : undefined),
+            }}
           >
             {display}
-          </ListGroupItem>
+          </List.Item>
         );
       })
       .toArray();
 
     if (entries.length > 0) {
-      return <ListGroup style={CS_LIST_STYLE}>{entries}</ListGroup>;
+      return <List style={CS_LIST_STYLE}>{entries}</List>;
     } else {
       if (search_img.length > 0) {
         return <div>No search hits.</div>;
@@ -498,7 +495,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     if (image_type !== "standard") return;
 
     return (
-      <Col sm={12}>
+      <Col sm={24}>
         <ComputeImageSelector
           selected_image={image_selected ?? dflt_software_img}
           layout={"horizontal"}
@@ -542,7 +539,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
 
   return (
     <Row>
-      <Col sm={12} style={{ marginTop: "10px" }}>
+      <Col sm={24} style={{ marginTop: "10px" }}>
         {render_type_selection()}
       </Col>
 
@@ -550,9 +547,9 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
         <>
           {render_divider()}
           {render_standard_image_selector()}
-          <Col sm={6}>{render_custom_images()}</Col>
-          <Col sm={6}>{render_selected_custom_image_info()}</Col>
-          <Col sm={12}>{render_custom_images_info()}</Col>
+          <Col sm={12}>{render_custom_images()}</Col>
+          <Col sm={12}>{render_selected_custom_image_info()}</Col>
+          <Col sm={24}>{render_custom_images_info()}</Col>
         </>
       ) : undefined}
     </Row>

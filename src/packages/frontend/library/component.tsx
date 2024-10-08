@@ -3,6 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+/*
+To work on this make sure /ext/library/ exists:
+
+$ ls /ext/library/
+cocalc-examples  update.sh
+$ more update.sh
+[...]
+git clone --depth=1 https://github.com/sagemathinc/cocalc-examples.git
+cd cocalc-examples/
+git submodule update --init --recursive --depth 1
+make
+[...]
+
+*/
+
 import { join } from "path";
 import { path_split, search_match, search_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
