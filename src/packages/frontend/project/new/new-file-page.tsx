@@ -5,10 +5,10 @@
 
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
-
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { filenameIcon } from "@cocalc/frontend/file-associations";
 import {
   ProjectActions,
   useActions,
@@ -37,6 +37,12 @@ import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
 import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
+
+const CREATE_MSG = defineMessage({
+  id: "project.new.new-file-page.create.title",
+  defaultMessage: `Create {desc}`,
+  description: "creating a file with the given description in a file-system",
+});
 
 interface Props {
   project_id: string;
@@ -259,6 +265,7 @@ export default function NewFilePage(props: Props) {
 
   const renderCreate = () => {
     let desc: string;
+    const ext = filename_extension(filename);
     if (filename.endsWith("/")) {
       desc = intl.formatMessage(labels.folder);
     } else if (
@@ -267,55 +274,58 @@ export default function NewFilePage(props: Props) {
     ) {
       desc = intl.formatMessage(labels.download);
     } else {
-      const ext = filename_extension(filename);
       if (ext) {
         desc = intl.formatMessage(
           {
             id: "project.new.new-file-page.create.desc_file",
             defaultMessage: "{ext} file",
-            description: "An extension-nameed file on a button",
+            description: "An extension-named file on a button",
           },
           { ext },
         );
       } else {
         desc = intl.formatMessage({
           id: "project.new.new-file-page.create.desc_no_ext",
-          defaultMessage: "file with no extension",
+          defaultMessage: "File with no extension",
           description: "A filename without an extension",
         });
       }
     }
-    const title = intl.formatMessage(
-      {
-        id: "project.new.new-file-page.create.title",
-        defaultMessage: `Create {desc}`,
-        description: "creating a file with the given description",
-      },
-      { desc },
-    );
+    const title = intl.formatMessage(CREATE_MSG, { desc });
 
     return (
-      <Tip
-        icon="file"
-        title={title}
-        tip={intl.formatMessage(
-          {
-            id: "project.new.new-file-page.create.tooltip",
-            defaultMessage: `{title}.  You can also press return.`,
-            description:
-              "Informing the user in this tooltip, that it is also possible to press the return key",
-          },
-          { title },
+      <Space>
+        {!ext && !filename.endsWith("/") && (
+          <Button size="large" onClick={() => createFolder()}>
+            <Icon name="folder" />{" "}
+            {intl.formatMessage(CREATE_MSG, {
+              desc: intl.formatMessage(labels.folder),
+            })}
+          </Button>
         )}
-      >
-        <Button
-          size="large"
-          disabled={filename.trim() == ""}
-          onClick={() => submit()}
+        <Tip
+          icon="file"
+          title={title}
+          tip={intl.formatMessage(
+            {
+              id: "project.new.new-file-page.create.tooltip",
+              defaultMessage: `{title}.  You can also press return.`,
+              description:
+                "Informing the user in this tooltip, that it is also possible to press the return key",
+            },
+            { title },
+          )}
         >
-          Create {desc}
-        </Button>
-      </Tip>
+          <Button
+            size="large"
+            disabled={filename.trim() == ""}
+            onClick={() => submit()}
+          >
+            <Icon name={filenameIcon(filename)} />{" "}
+            {intl.formatMessage(CREATE_MSG, { desc })}
+          </Button>
+        </Tip>
+      </Space>
     );
   };
 

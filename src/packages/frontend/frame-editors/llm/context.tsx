@@ -21,11 +21,7 @@ const MISSING =
 
 export default function Context({ value, info }) {
   if (!value?.trim()) {
-    return (
-      <b style={{ fontSize: FONT_SIZE }}>
-        No context from your file will be included.
-      </b>
-    );
+    return <b>No context from your file will be included.</b>;
   }
   if (info === "md" || info === "markdown") {
     return (

@@ -8,7 +8,7 @@ export interface Options {
   url?: string;
   subject?: string;
   body?: string;
-  type?: "problem" | "question" | "task" | "purchase";
+  type?: "problem" | "question" | "task" | "purchase" | "chat";
   hideExtra?: boolean;
   context?: string; // additional context
   required?: string; // if required is a string, then the user MUST change the body of the input
@@ -29,14 +29,15 @@ export default function getURL(options: Options = {}) {
   const params = {
     hideExtra: options.hideExtra,
     url: options.url,
-    type: options.type ?? "",
-    subject: options.subject ?? "",
-    body: options.body ?? "",
-    required: options.required ?? "",
-    context: options.context ?? "",
+    type: options.type,
+    subject: options.subject,
+    body: options.body,
+    required: options.required,
+    context: options.context,
   };
 
   const queryParams = Object.keys(params)
+    .filter((key) => params[key])
     .map((key) => `${key}=${encodeURIComponent(params[key] as string)}`)
     .join("&");
 

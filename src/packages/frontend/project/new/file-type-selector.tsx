@@ -3,12 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Flex, Row, Tag } from "antd";
+import { Col, Flex, Modal, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { Available } from "@cocalc/comm/project-configuration";
+import { CSS } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
@@ -97,7 +98,7 @@ export function FileTypeSelector({
     return (
       <>
         <Section color="blue" icon="jupyter" isFlyout={isFlyout}>
-          Jupyter and LaTeX
+          Popular Documents
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
           <JupyterNotebookButtons
@@ -110,10 +111,11 @@ export function FileTypeSelector({
             filename={filename}
             filenameChanged={filenameChanged}
             makeNewFilename={() => makeNewFilename?.("ipynb")}
+            after={
+              /* Those come after the main button, then the additional jupyter notebooks – to avoid jumpyness */
+              [renderLaTeX(), renderQuarto(), renderMD()]
+            }
           />
-          {renderLaTeX()}
-          {renderQuarto()}
-          {renderSageWS()}
         </Row>
       </>
     );
@@ -244,7 +246,7 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <NewFileButton
                 size={btnSize}
-                name={`JupyterLab, VS Code, Pluto, RStudio, etc....`}
+                name={`JupyterLab, VS Code, Pluto, R IDE, etc....`}
                 ext="server"
                 on_click={() => {
                   projectActions?.setServerTab("notebooks");
@@ -370,6 +372,30 @@ export function FileTypeSelector({
   function renderSageWS() {
     if (!availableFeatures.sage) return;
 
+    function handleClick(ext) {
+      Modal.confirm({
+        icon: <Icon name="exclamation-circle" />,
+        title: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.title",
+          defaultMessage: "SageMath Worksheets are deprecated.",
+        }),
+        content: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.content",
+          defaultMessage:
+            "Consider creating a Jupyter Notebook and use a SageMath Kernel (use the 'SageMath Notebook' button). You can also convert existing SageMath Worksheets to Jupyter Notebooks.",
+        }),
+        okText: intl.formatMessage({
+          id: "project.new.file-type-selector.sagews.modal.ok",
+          defaultMessage: "Create SageMath Worksheet Anyways",
+        }),
+        onOk: (close) => {
+          create_file(ext);
+          close();
+        },
+        closable: true,
+      });
+    }
+
     return (
       <Col sm={sm} md={md}>
         <Tip
@@ -384,12 +410,12 @@ export function FileTypeSelector({
         >
           <NewFileButton
             name={intl.formatMessage(labels.sagemath_worksheet)}
-            on_click={create_file}
+            on_click={handleClick}
             ext="sagews"
             size={btnSize}
             active={btnActive("sagews")}
           />
-        </Tip>{" "}
+        </Tip>
       </Col>
     );
   }
@@ -397,7 +423,7 @@ export function FileTypeSelector({
   function addAiDocGenerate(btn: JSX.Element, ext: Ext) {
     if (isFlyout) {
       return (
-        <Col sm={sm} md={md}>
+        <Col sm={sm} md={md} key={`with-ai-${ext}`}>
           <Flex align="flex-start" vertical={false} gap={"5px"}>
             <Flex flex={"1 1 auto"}>{btn}</Flex>
             <Flex flex={"0 0 auto"}>
@@ -413,7 +439,7 @@ export function FileTypeSelector({
       );
     } else {
       return (
-        <Col sm={sm} md={md}>
+        <Col sm={sm} md={md} key={`with-ai-${ext}`}>
           {btn}
           <AIGenerateDocumentButton
             project_id={project_id}
@@ -427,11 +453,12 @@ export function FileTypeSelector({
   }
 
   function renderQuarto() {
-    if (mode !== "flyout") return;
-    if (!availableFeatures.qmd) return;
+    if (mode !== "flyout") return null;
+    if (!availableFeatures.qmd) return null;
 
     const btn = (
       <Tip
+        key="quarto-button"
         delayShow={DELAY_SHOW_MS}
         title="Quarto File"
         icon={NEW_FILETYPE_ICONS.qmd}
@@ -456,6 +483,7 @@ export function FileTypeSelector({
 
     const btn = (
       <Tip
+        key="latex-button"
         delayShow={DELAY_SHOW_MS}
         title={intl.formatMessage(labels.latex_document)}
         icon={NEW_FILETYPE_ICONS.tex}
@@ -481,6 +509,7 @@ export function FileTypeSelector({
   function renderMD() {
     const btn = (
       <Tip
+        key="markdown-button"
         delayShow={DELAY_SHOW_MS}
         title="Computational Markdown Document"
         icon={NEW_FILETYPE_ICONS.md}
@@ -507,13 +536,18 @@ export function FileTypeSelector({
   function renderMarkdown() {
     if (disabledFeatures?.md) return;
 
+    const labelSlides = intl.formatMessage({
+      id: "new.file-type-selector.slides.title",
+      defaultMessage: "Slides",
+      description: "Short label on a buton to create a new slideshow file",
+    });
+
     return (
       <>
         <Section color="green" icon="markdown" isFlyout={isFlyout}>
-          Markdown Document Suite
+          Miscellaneous Documents
         </Section>
         <Row gutter={gutter} style={newRowStyle}>
-          {renderMD()}
           {availableFeatures.rmd &&
             addAiDocGenerate(
               <Tip
@@ -562,12 +596,7 @@ export function FileTypeSelector({
             <Tip
               delayShow={DELAY_SHOW_MS}
               icon={NEW_FILETYPE_ICONS.slides}
-              title={intl.formatMessage({
-                id: "new.file-type-selector.slides.title",
-                defaultMessage: "Slides",
-                description:
-                  "Short label on a buton to create a new slideshow file",
-              })}
+              title={labelSlides}
               tip={intl.formatMessage({
                 id: "new.file-type-selector.slides.tooltip",
                 defaultMessage:
@@ -575,7 +604,7 @@ export function FileTypeSelector({
               })}
             >
               <NewFileButton
-                name="Slides"
+                name={labelSlides}
                 on_click={create_file}
                 ext="slides"
                 size={btnSize}
@@ -583,12 +612,23 @@ export function FileTypeSelector({
               />
             </Tip>
           </Col>
+          {renderSageWS()}
         </Row>
       </>
     );
   }
 
   function renderUtilities() {
+    const labelTaskList = intl.formatMessage({
+      id: "new.file-type-selector.tasks.label",
+      defaultMessage: "Task List",
+    });
+
+    const labelStopWatchTimer = intl.formatMessage({
+      id: "project.new.file-type-selector.timers.label",
+      defaultMessage: "Stopwatch and Timer",
+    });
+
     return (
       <>
         <Section color="yellow" icon="wrench" isFlyout={isFlyout}>
@@ -598,12 +638,16 @@ export function FileTypeSelector({
           <Col sm={doubleSm} md={doubleMd}>
             <Tip
               delayShow={DELAY_SHOW_MS}
-              title="Task List"
+              title={labelTaskList}
               icon={NEW_FILETYPE_ICONS.tasks}
-              tip="Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code."
+              tip={intl.formatMessage({
+                id: "new.file-type-selector.tasks.tooltip",
+                defaultMessage:
+                  "Create a task list to keep track of everything you are doing on a project.  Put #hashtags in the item descriptions and set due dates.  Run code.",
+              })}
             >
               <NewFileButton
-                name="Task List"
+                name={labelTaskList}
                 on_click={create_file}
                 ext="tasks"
                 size={btnSize}
@@ -615,12 +659,16 @@ export function FileTypeSelector({
             <Col sm={doubleSm} md={doubleMd}>
               <Tip
                 delayShow={DELAY_SHOW_MS}
-                title="Stopwatches and Timer"
+                title={labelStopWatchTimer}
                 icon={NEW_FILETYPE_ICONS.time}
-                tip="Create collaborative stopwatches and timers to keep track of how long it takes to do something."
+                tip={intl.formatMessage({
+                  id: "project.new.file-type-selector.timers.tooltip",
+                  defaultMessage:
+                    "Create collaborative stopwatches and timers to keep track of how long it takes to do something.",
+                })}
               >
                 <NewFileButton
-                  name="Stopwatch and Timer"
+                  name={labelStopWatchTimer}
                   on_click={create_file}
                   ext="time"
                   size={btnSize}
@@ -655,8 +703,8 @@ function Section({
 }: {
   children;
   color;
-  icon;
-  style?;
+  icon: string;
+  style?: CSS;
   isFlyout: boolean;
 }) {
   return (

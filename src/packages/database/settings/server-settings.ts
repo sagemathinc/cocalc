@@ -90,6 +90,7 @@ export async function load_server_settings_from_env(
   db: PostgreSQL,
 ): Promise<void> {
   const PREFIX = SERVER_SETTINGS_ENV_PREFIX;
+  L.debug("load_server_settings_from_env variables prefixed by ", PREFIX);
   // reset all readonly values
   await db.async_query({
     query: "UPDATE server_settings",

@@ -11,7 +11,7 @@ import Info from "components/landing/info";
 import { Paragraph, Text } from "components/misc";
 import A from "components/misc/A";
 import { useCustomize } from "lib/customize";
-import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
+import ComputeServerInfographic from "public/features/running-compute-server.png";
 import { LANDING_HEADER_LEVEL } from "./constants";
 import ComputeServerTemplates from "./compute-server-templates";
 import { useRef } from "react";

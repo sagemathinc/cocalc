@@ -12,6 +12,7 @@ import { Popover } from "antd";
 
 import { Icon } from "@cocalc/frontend/components";
 //import { Actions } from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { Localize } from "@cocalc/frontend/app/localize";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize } from "@cocalc/util/misc";
 import { Actions } from "./actions";
@@ -63,42 +64,49 @@ function component(
   }
   // NOTE/BUG: despite allow_touch true below, this still does NOT work on my iPad -- we see the icon, but nothing
   // happens when clicking on it; this may be a codemirror issue.
+  // NOTE: the IntlProvider (in Localize) is necessary, because this is mounted outside the application's overall context.
+  // TODO: maybe make this part of the application react root.
   return (
-    <Popover
-      title={message}
-      content={
-        <div>
-          {content}
-          {group == "errors" && (
-            <>
-              <br />
-              <HelpMeFix
-                size="small"
-                style={{ marginTop: "5px" }}
-                task={"ran latex"}
-                error={content}
-                input={() => {
-                  const s = actions._syncstring.to_str();
-                  const v = s
-                    .split("\n")
-                    .slice(0, line + 1)
-                    .join("\n");
-                  //line+1 since lines are 1-based
-                  return v + `% this is line number ${line + 1}`;
-                }}
-                language={"latex"}
-                extraFileInfo={actions.languageModelExtraFileInfo()}
-                tag={"latex-error-popover"}
-                prioritize="end"
-              />
-            </>
-          )}
-        </div>
-      }
-      placement={"right"}
-      mouseEnterDelay={0}
-    >
-      <Icon name={spec.icon} style={{ color: spec.color, cursor: "pointer" }} />
-    </Popover>
+    <Localize>
+      <Popover
+        title={message}
+        content={
+          <div>
+            {content}
+            {group == "errors" && (
+              <>
+                <br />
+                <HelpMeFix
+                  size="small"
+                  style={{ marginTop: "5px" }}
+                  task={"ran latex"}
+                  error={content}
+                  input={() => {
+                    const s = actions._syncstring.to_str();
+                    const v = s
+                      .split("\n")
+                      .slice(0, line + 1)
+                      .join("\n");
+                    //line+1 since lines are 1-based
+                    return v + `% this is line number ${line + 1}`;
+                  }}
+                  language={"latex"}
+                  extraFileInfo={actions.languageModelExtraFileInfo()}
+                  tag={"latex-error-popover"}
+                  prioritize="end"
+                />
+              </>
+            )}
+          </div>
+        }
+        placement={"right"}
+        mouseEnterDelay={0}
+      >
+        <Icon
+          name={spec.icon}
+          style={{ color: spec.color, cursor: "pointer" }}
+        />
+      </Popover>
+    </Localize>
   );
 }

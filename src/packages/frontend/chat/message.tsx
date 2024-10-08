@@ -23,6 +23,7 @@ import {
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
+import { User } from "@cocalc/frontend/users";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
@@ -45,6 +46,7 @@ import {
   message_colors,
   newest_content,
   sender_is_viewer,
+  getThreadRootDate,
 } from "./utils";
 
 const DELETE_BUTTON = false;
@@ -98,8 +100,8 @@ const AVATAR_MARGIN_LEFTRIGHT = "15px";
 interface Props {
   index: number;
   actions?: ChatActions;
-
   get_user_name: (account_id?: string) => string;
+  messages;
   message: ChatMessageTyped;
   account_id: string;
   user_map?: Map<string, any>;
@@ -121,21 +123,24 @@ interface Props {
   is_thread?: boolean; // if true, there is a thread starting in a reply_to message
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
-  force_unfold?: boolean; // if true, all threads are temporarily forced to be unfolded
 
   llm_cost_reply?: [number, number] | null;
+
+  selected?: boolean;
 }
 
 export default function Message(props: Readonly<Props>) {
   const {
     is_folded,
-    force_unfold,
     is_thread_body,
     is_thread,
     llm_cost_reply,
     message,
+    messages,
     mode,
     project_id,
+    font_size,
+    selected,
   } = props;
 
   const showAISummarize = redux
@@ -189,7 +194,7 @@ export default function Message(props: Readonly<Props>) {
     if (!props.allowReply) {
       return false;
     }
-    const replyDate = -(props.actions?.store?.getThreadRootDate(date) ?? 0);
+    const replyDate = -getThreadRootDate({ date, messages });
     const draft = props.actions?.syncdb?.get_one({
       event: "draft",
       sender_id: props.account_id,
@@ -335,7 +340,7 @@ export default function Message(props: Readonly<Props>) {
       // no editing functionality or not in a project with a path.
       return;
     }
-    props.actions.set_editing(message, true);
+    props.actions.setEditing(message, true);
     setAutoFocusEdit(true);
     props.scroll_into_view?.();
   }
@@ -368,8 +373,8 @@ export default function Message(props: Readonly<Props>) {
     );
   }
 
-  function content_column() {
-    let borderRadius, marginBottom, marginTop: any;
+  function contentColumn() {
+    let marginBottom, marginTop;
     let value = newest_content(message);
 
     const { background, color, lighten, message_class } = message_colors(
@@ -391,32 +396,172 @@ export default function Message(props: Readonly<Props>) {
       marginTop = "5px";
     }
 
-    if (!props.is_prev_sender && !props.is_next_sender && !show_history) {
-      borderRadius = "10px 10px 10px 10px";
-    } else if (!props.is_prev_sender) {
-      borderRadius = "10px 10px 5px 5px";
-    } else if (!props.is_next_sender) {
-      borderRadius = "5px 5px 10px 10px";
-    }
-
     const message_style: CSSProperties = {
       color,
       background,
       wordWrap: "break-word",
+      borderRadius: "5px",
       marginBottom,
       marginTop,
-      borderRadius,
       fontSize: font_size,
-      padding: "9px",
-      ...(mode === "sidechat" ? { marginLeft: "5px", marginRight: "5px" } : {}),
+      padding: selected ? "6px" : "9px",
+      ...(mode === "sidechat"
+        ? { marginLeft: "5px", marginRight: "5px" }
+        : undefined),
+      ...(selected ? { border: "3px solid #66bb6a" } : undefined),
     } as const;
 
     const mainXS = mode === "standalone" ? 20 : 22;
     const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
+    const feedback = message.getIn(["feedback", props.account_id]);
+    const otherFeedback =
+      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
+
+    const editControlRow = () => {
+      if (isEditing) {
+        return null;
+      }
+      const showDeleteButton =
+        DELETE_BUTTON && newest_content(message).trim().length > 0;
+      const showEditingStatus =
+        (message.get("history")?.size ?? 0) > 1 ||
+        (message.get("editing")?.size ?? 0) > 0;
+      const showHistory = (message.get("history")?.size ?? 0) > 1;
+      const showLLMFeedback = isLLMThread && msgWrittenByLLM;
+      const showOtherFeedback = otherFeedback > 0;
+
+      const show =
+        showEditButton ||
+        showDeleteButton ||
+        showEditingStatus ||
+        showHistory ||
+        showLLMFeedback ||
+        showOtherFeedback;
+      if (!show) {
+        // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
+        return null;
+      }
+
+      return (
+        <div style={{ width: "100%", textAlign: "center" }}>
+          <Space direction="horizontal" size="small" wrap>
+            {showEditButton ? (
+              <Tooltip
+                title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
+                placement="left"
+              >
+                <Button
+                  disabled={replying}
+                  style={{
+                    color: is_viewers_message ? "white" : "#555",
+                  }}
+                  type="text"
+                  size="small"
+                  onClick={() => props.actions?.setEditing(message, true)}
+                >
+                  <Icon name="pencil" /> Edit
+                </Button>
+              </Tooltip>
+            ) : undefined}
+            {showDeleteButton && (
+              <Tooltip
+                title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+                placement="left"
+              >
+                <Popconfirm
+                  title="Delete this message"
+                  description="Are you sure you want to delete this message?"
+                  onConfirm={() => {
+                    props.actions?.setEditing(message, true);
+                    setTimeout(() => props.actions?.sendEdit(message, ""), 1);
+                  }}
+                >
+                  <Button
+                    disabled={replying}
+                    style={{
+                      color: is_viewers_message ? "white" : "#555",
+                    }}
+                    type="text"
+                    size="small"
+                  >
+                    <Icon name="trash" /> Delete
+                  </Button>
+                </Popconfirm>
+              </Tooltip>
+            )}
+            {showEditingStatus && editing_status(isEditing)}
+            {showHistory && (
+              <Button
+                style={{
+                  marginLeft: "5px",
+                  color: is_viewers_message ? "white" : "#555",
+                }}
+                type="text"
+                size="small"
+                icon={<Icon name="history" />}
+                onClick={() => {
+                  set_show_history(!show_history);
+                  props.scroll_into_view?.();
+                }}
+              >
+                <Tip
+                  title="Message History"
+                  tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                >
+                  {verb} History
+                </Tip>
+              </Button>
+            )}
+            {showLLMFeedback && (
+              <>
+                <RegenerateLLM
+                  actions={props.actions}
+                  date={date}
+                  model={isLLMThread}
+                />
+                <FeedbackLLM actions={props.actions} message={message} />
+              </>
+            )}
+          </Space>
+          {showOtherFeedback && (
+            <div
+              style={{
+                float: "right",
+                color: is_viewers_message ? "white" : "#555",
+              }}
+            >
+              <Tooltip
+                title={() => {
+                  return (
+                    <div>
+                      {Object.keys(message.get("feedback")?.toJS() ?? {}).map(
+                        (account_id) => (
+                          <div key={account_id} style={{ marginBottom: "2px" }}>
+                            <Avatar size={24} account_id={account_id} />{" "}
+                            <User account_id={account_id} />
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  );
+                }}
+              >
+                {otherFeedback} <Icon name="thumbs-up" />
+              </Tooltip>
+            </div>
+          )}
+        </div>
+      );
+    };
 
     return (
       <Col key={1} xs={mainXS}>
-        <div style={{ display: "flex" }}>
+        <div
+          style={{ display: "flex" }}
+          onClick={() => {
+            props.actions?.setFragment(message.get("date"));
+          }}
+        >
           {!props.is_prev_sender &&
           !is_viewers_message &&
           message.get("sender_id") ? (
@@ -441,6 +586,45 @@ export default function Message(props: Readonly<Props>) {
           {!isEditing && (
             <span style={lighten}>
               <Time message={message} edit={edit_message} />
+              {!isLLMThread && (
+                <Button
+                  style={{
+                    marginRight: "5px",
+                    float: "right",
+                    marginTop: "-4px",
+                    color: !feedback && is_viewers_message ? "white" : "#888",
+                    fontSize: "12px",
+                  }}
+                  size="small"
+                  type={feedback ? "dashed" : "text"}
+                  onClick={() => {
+                    props.actions?.feedback(
+                      message,
+                      feedback ? null : "positive",
+                    );
+                  }}
+                >
+                  <Icon name="thumbs-up" />
+                </Button>
+              )}{" "}
+              <Tooltip title="Select this message. Copy the browser URL to link to this message.">
+                <Button
+                  onClick={() => {
+                    props.actions?.setFragment(message.get("date"));
+                  }}
+                  size="small"
+                  type={"text"}
+                  style={{
+                    marginRight: "5px",
+                    float: "right",
+                    marginTop: "-4px",
+                    color: is_viewers_message ? "white" : "#888",
+                    fontSize: "12px",
+                  }}
+                >
+                  <Icon name="link" />
+                </Button>
+              </Tooltip>
             </span>
           )}
           {!isEditing && (
@@ -461,95 +645,7 @@ export default function Message(props: Readonly<Props>) {
             />
           )}
           {isEditing && renderEditMessage()}
-          {!isEditing && (
-            <div style={{ width: "100%", textAlign: "center" }}>
-              <Space direction="horizontal" size="small" wrap>
-                {showEditButton ? (
-                  <Tooltip
-                    title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
-                    placement="left"
-                  >
-                    <Button
-                      disabled={replying}
-                      style={{
-                        color: is_viewers_message ? "white" : "#555",
-                      }}
-                      type="text"
-                      size="small"
-                      onClick={() => props.actions?.set_editing(message, true)}
-                    >
-                      <Icon name="pencil" /> Edit
-                    </Button>
-                  </Tooltip>
-                ) : undefined}
-                {DELETE_BUTTON && newest_content(message).trim().length > 0 ? (
-                  <Tooltip
-                    title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-                    placement="left"
-                  >
-                    <Popconfirm
-                      title="Delete this message"
-                      description="Are you sure you want to delete this message?"
-                      onConfirm={() => {
-                        props.actions?.set_editing(message, true);
-                        setTimeout(
-                          () => props.actions?.send_edit(message, ""),
-                          1,
-                        );
-                      }}
-                    >
-                      <Button
-                        disabled={replying}
-                        style={{
-                          color: is_viewers_message ? "white" : "#555",
-                        }}
-                        type="text"
-                        size="small"
-                      >
-                        <Icon name="trash" /> Delete
-                      </Button>
-                    </Popconfirm>
-                  </Tooltip>
-                ) : undefined}
-                {message.get("history").size > 1 ||
-                message.get("editing").size > 0
-                  ? editing_status(isEditing)
-                  : undefined}
-                {message.get("history").size > 1 ? (
-                  <Button
-                    style={{
-                      marginLeft: "5px",
-                      color: is_viewers_message ? "white" : "#555",
-                    }}
-                    type="text"
-                    size="small"
-                    icon={<Icon name="history" />}
-                    onClick={() => {
-                      set_show_history(!show_history);
-                      props.scroll_into_view?.();
-                    }}
-                  >
-                    <Tip
-                      title="Message History"
-                      tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
-                    >
-                      {verb} History
-                    </Tip>
-                  </Button>
-                ) : undefined}
-                {isLLMThread && msgWrittenByLLM ? (
-                  <>
-                    <RegenerateLLM
-                      actions={props.actions}
-                      date={date}
-                      model={isLLMThread}
-                    />
-                    <FeedbackLLM actions={props.actions} message={message} />
-                  </>
-                ) : undefined}
-              </Space>
-            </div>
-          )}
+          {editControlRow()}
         </div>
         {show_history && (
           <div>
@@ -568,21 +664,23 @@ export default function Message(props: Readonly<Props>) {
 
   function saveEditedMessage(): void {
     if (props.actions == null) return;
-    const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
+    const mesg =
+      submitMentionsRef.current?.({ chat: `${date}` }) ??
+      edited_message_ref.current;
     const value = newest_content(message);
     if (mesg !== value) {
       set_edited_message(mesg);
-      props.actions.send_edit(message, mesg);
+      props.actions.sendEdit(message, mesg);
     } else {
-      props.actions.set_editing(message, false);
+      props.actions.setEditing(message, false);
     }
   }
 
   function on_cancel(): void {
     set_edited_message(newest_content(message));
     if (props.actions == null) return;
-    props.actions.set_editing(message, false);
-    props.actions.delete_draft(date);
+    props.actions.setEditing(message, false);
+    props.actions.deleteDraft(date);
   }
 
   function renderEditMessage() {
@@ -598,6 +696,7 @@ export default function Message(props: Readonly<Props>) {
     return (
       <div>
         <ChatInput
+          fontSize={font_size}
           autoFocus={autoFocusEdit}
           cacheId={`${props.path}${props.project_id}${date}`}
           input={newest_content(message)}
@@ -614,8 +713,8 @@ export default function Message(props: Readonly<Props>) {
           <Button
             style={{ marginRight: "5px" }}
             onClick={() => {
-              props.actions?.set_editing(message, false);
-              props.actions?.delete_draft(date);
+              props.actions?.setEditing(message, false);
+              props.actions?.deleteDraft(date);
             }}
           >
             Cancel
@@ -631,11 +730,15 @@ export default function Message(props: Readonly<Props>) {
   function sendReply(reply?: string) {
     if (props.actions == null) return;
     setReplying(false);
-    if (!reply) {
-      reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
+    if (!reply && !replyMentionsRef.current?.(undefined, true)) {
+      reply = replyMessageRef.current;
     }
-    props.actions.send_reply({ message: message.toJS(), reply });
-    props.actions.scrollToBottom(props.index);
+    props.actions.sendReply({
+      message: message.toJS(),
+      reply,
+      submitMentionsRef: replyMentionsRef,
+    });
+    props.actions.scrollToIndex(props.index);
   }
 
   function renderComposeReply() {
@@ -648,10 +751,11 @@ export default function Message(props: Readonly<Props>) {
       // when null.
       return;
     }
-    const replyDate = -(props.actions.store?.getThreadRootDate(date) ?? 0);
+    const replyDate = -getThreadRootDate({ date, messages });
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
+          fontSize={font_size}
           autoFocus={autoFocusReply}
           style={{
             borderRadius: "8px",
@@ -668,7 +772,7 @@ export default function Message(props: Readonly<Props>) {
             replyMessageRef.current = value;
             // replyMentionsRef does not submit mentions, only gives us the value
             const reply = replyMentionsRef.current?.(undefined, true) ?? value;
-            props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
+            props.actions?.llmEstimateCost(reply, "reply", message.toJS());
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -677,7 +781,7 @@ export default function Message(props: Readonly<Props>) {
             style={{ marginRight: "5px" }}
             onClick={() => {
               setReplying(false);
-              props.actions?.delete_draft(replyDate);
+              props.actions?.deleteDraft(replyDate);
             }}
           >
             Cancel
@@ -688,7 +792,7 @@ export default function Message(props: Readonly<Props>) {
             }}
             type="primary"
           >
-            <Icon name="paper-plane" /> Send
+            <Icon name="reply" /> Reply (shift+enter)
           </Button>
           <LLMCostEstimationChat
             llm_cost={llm_cost_reply}
@@ -753,7 +857,7 @@ export default function Message(props: Readonly<Props>) {
               ? `Reply to ${modelToName(
                   isLLMThread,
                 )}, sending the entire thread as context.`
-              : "Reply in this thread."
+              : "Reply to this thread."
           }
         >
           <Button
@@ -793,7 +897,7 @@ export default function Message(props: Readonly<Props>) {
             type="text"
             icon={<Icon name="down-circle-o" />}
             onClick={() =>
-              props.actions?.foldThread(message.get("date"), props.index)
+              props.actions?.toggleFoldThread(message.get("date"), props.index)
             }
           >
             <Text type="secondary">Unfold</Text>
@@ -827,9 +931,8 @@ export default function Message(props: Readonly<Props>) {
         <Button
           type="text"
           style={style}
-          disabled={force_unfold}
           onClick={() =>
-            props.actions?.foldThread(message.get("date"), props.index)
+            props.actions?.toggleFoldThread(message.get("date"), props.index)
           }
           icon={
             <Icon
@@ -869,22 +972,18 @@ export default function Message(props: Readonly<Props>) {
 
     switch (mode) {
       case "standalone":
-        const cols = [
-          avatar_column(),
-          content_column(),
-          getThreadfoldOrBlank(),
-        ];
+        const cols = [avatar_column(), contentColumn(), getThreadfoldOrBlank()];
         if (reverseRowOrdering) {
           cols.reverse();
         }
         return cols;
 
       case "sidechat":
-        return [getThreadfoldOrBlank(), content_column()];
+        return [getThreadfoldOrBlank(), contentColumn()];
 
       default:
         unreachable(mode);
-        return content_column();
+        return contentColumn();
     }
   }
 

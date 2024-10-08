@@ -49,6 +49,7 @@ const cm: EditorDescription = {
     "format",
     "build",
     "build_on_save",
+    "settings",
   ]),
   buttons: set([
     "format-ai_formula",

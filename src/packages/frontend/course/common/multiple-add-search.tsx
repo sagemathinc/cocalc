@@ -59,7 +59,7 @@ export function MultipleAddSearch({
             boxShadow: "8px 8px 4px #888",
             ...selectorStyle,
           }}
-          title={`Select one or more ${itemName} directories`}
+          title={`Select one or more ${itemName} folders`}
           onMultiSelect={setSelectedItems}
           onClose={clear}
           isExcluded={(path) => {

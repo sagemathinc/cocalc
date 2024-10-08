@@ -57,6 +57,7 @@ export const cm: EditorDescription = {
     "terminal",
     "format",
     "auto_indent",
+    "settings",
     //"tour"
   ]),
   customizeCommands: {

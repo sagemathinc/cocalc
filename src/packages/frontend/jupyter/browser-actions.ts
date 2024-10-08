@@ -37,13 +37,10 @@ import { CursorManager } from "./cursor-manager";
 import { NBGraderActions } from "./nbgrader/actions";
 import * as parsing from "./parsing";
 import { WidgetManager } from "./widgets/manager";
-const { instantiate_snippets } = require("../assistant/main");
 
 export class JupyterActions extends JupyterActions0 {
   public widget_manager?: WidgetManager;
   public nbgrader_actions: NBGraderActions;
-  public snippet_actions: any;
-
   private cursor_manager: CursorManager;
   private account_change_editor_settings: any;
   private update_keyboard_shortcuts: any;
@@ -100,10 +97,6 @@ export class JupyterActions extends JupyterActions0 {
         path: this.path,
       });
     })();
-
-    // this initializes actions+store for the snippet dialog
-    // this is also only a UI specific action
-    this.snippet_actions = instantiate_snippets(this.project_id, this.path);
 
     // nbgrader support
     this.nbgrader_actions = new NBGraderActions(this, this.redux);
@@ -169,7 +162,8 @@ export class JupyterActions extends JupyterActions0 {
     if (this.store.get("read_only")) return;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      throw Error(`can't run cell ${id} since it does not exist`);
+      // it is trivial to run a cell that does not exist -- nothing needs to be done.
+      return;
     }
 
     const cell_type = cell.get("cell_type", "code");

@@ -5,8 +5,8 @@
 
 import React from "react";
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { Icon, Gap } from "@cocalc/frontend/components";
-const { Row, Col } = require("react-bootstrap");
+import { Icon, Gap, VisibleMDLG } from "@cocalc/frontend/components";
+import { Col, Row } from "antd";
 
 // TODO: Flatten active_file_sort for easy PureComponent use
 interface Props {
@@ -29,44 +29,55 @@ const inner_icon_style = { marginRight: "10px" };
 export const ListingHeader: React.FC<Props> = (props: Props) => {
   const { active_file_sort, sort_by } = props;
 
-  function render_sort_link(column_name: string, display_name: string) {
+  function render_sort_link(
+    column_name: string,
+    display_name: string,
+    marginLeft?,
+  ) {
     return (
-      <a
-        href=""
-        onClick={(e) => {
-          e.preventDefault();
-          return sort_by(column_name);
-        }}
-        style={{ color: "#428bca", fontWeight: "bold" }}
-      >
-        {display_name}
-        <Gap />
-        {active_file_sort.get("column_name") === column_name ? (
-          <Icon
-            style={inner_icon_style}
-            name={
-              active_file_sort.get("is_descending") ? "caret-up" : "caret-down"
-            }
-          />
-        ) : undefined}
-      </a>
+      <span>
+        <VisibleMDLG>
+          <span style={{ marginLeft }} />
+        </VisibleMDLG>
+        <a
+          href=""
+          onClick={(e) => {
+            e.preventDefault();
+            return sort_by(column_name);
+          }}
+          style={{ color: "#428bca", fontWeight: "bold" }}
+        >
+          {display_name}
+          <Gap />
+          {active_file_sort.get("column_name") === column_name ? (
+            <Icon
+              style={inner_icon_style}
+              name={
+                active_file_sort.get("is_descending")
+                  ? "caret-up"
+                  : "caret-down"
+              }
+            />
+          ) : undefined}
+        </a>
+      </span>
     );
   }
 
   return (
     <Row style={row_style}>
-      <Col sm={2} xs={3} />
-      <Col sm={1} xs={3}>
-        {render_sort_link("type", "Type")}
+      <Col sm={4} xs={6} />
+      <Col sm={2} xs={6}>
+        {render_sort_link("type", "Type", "-4px")}
       </Col>
-      <Col sm={4} smPush={5} xs={6}>
-        {render_sort_link("time", "Date Modified")}
+      <Col sm={10} xs={24}>
+        {render_sort_link("name", "Name", "-4px")}
+      </Col>
+      <Col sm={8} xs={12}>
+        {render_sort_link("time", "Date Modified", "2px")}
         <span className="pull-right">
           {render_sort_link("size", "Size/Download/View")}
         </span>
-      </Col>
-      <Col sm={5} smPull={4} xs={12}>
-        {render_sort_link("name", "Name")}
       </Col>
     </Row>
   );

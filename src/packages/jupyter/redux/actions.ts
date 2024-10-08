@@ -183,7 +183,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   sync_read_only = (): void => {
     if (this._state == "closed") return;
     const a = this.store.get("read_only");
-    const b = this.syncdb != null ? this.syncdb.is_read_only() : undefined;
+    const b = this.syncdb?.is_read_only();
     if (a !== b) {
       this.setState({ read_only: b });
       this.set_cm_options();
@@ -1105,7 +1105,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   ): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      throw Error(`can't run cell ${id} since it does not exist`);
+      // it is trivial to run a cell that does not exist -- nothing needs to be done.
+      return;
     }
     const kernel = this.store.get("kernel");
     if (kernel == null || kernel === "") {

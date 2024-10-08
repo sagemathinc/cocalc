@@ -172,10 +172,15 @@ export const labels = defineMessages({
     defaultMessage: "Create a new file",
     description: "A new file in a file-system",
   },
+  pages: {
+    id: "labels.pages",
+    defaultMessage: "Pages",
+    description: "Pages in a document",
+  },
   settings: {
     id: "labels.settings",
     defaultMessage: "Settings",
-    description: "On a button to show project settings",
+    description: "On a button to show the configuration settings",
   },
   help: {
     id: "labels.help",
@@ -195,12 +200,13 @@ export const labels = defineMessages({
   },
   split_frame_vertically_title: {
     id: "labels.split_frame_vertically.title",
-    defaultMessage: "Split frame vertically into two columns",
+    defaultMessage: "Split Vertically",
+    description: "Split frame vertically into two columns",
   },
   split_frame_horizontally_title: {
     id: "labels.split_frame_horizontally.title",
-    defaultMessage: "Split Down",
-    description: "Split a frame horizontally",
+    defaultMessage: "Split Horizontally",
+    description: "Split frame horizontally",
   },
   assistant: {
     id: "labels.assistant",
@@ -523,6 +529,16 @@ export const labels = defineMessages({
     description:
       "Short label, telling the user a connecting is about to be established.",
   },
+  disconnected: {
+    id: "labels.disconnected",
+    defaultMessage: "Disconnected",
+    description:
+      "Short label, telling the user a possible connection has not been established.",
+  },
+  connection: {
+    id: "labels.connection",
+    defaultMessage: "Connection",
+  },
   terminal_command: {
     id: "labels.terminal_command",
     defaultMessage: "Terminal command",
@@ -532,6 +548,35 @@ export const labels = defineMessages({
   language: {
     id: "labels.language",
     defaultMessage: "Language",
+  },
+  always_running: {
+    id: "labels.always_running",
+    defaultMessage: "Always Running",
+  },
+  idle_timeout: {
+    id: "labels.idle_timeout",
+    defaultMessage: "Idle Timeout",
+  },
+  uptime: {
+    id: "labels.uptime",
+    defaultMessage: "Uptime",
+  },
+  more_info: {
+    id: "labels.more_info",
+    defaultMessage: "More info",
+    description: "Short label for showing 'more information' about something",
+  },
+  message_plural: {
+    id: "labels.messsage.plural",
+    defaultMessage: "{num, plural, one {message} other {messages}}",
+  },
+  reconnect: {
+    id: "labels.reconnect",
+    defaultMessage: "Reconnect",
+  },
+  color: {
+    id: "labels.color",
+    defaultMessage: "Color",
   },
 });
 
@@ -1292,6 +1337,10 @@ export const jupyter = {
 };
 
 export const dialogs = defineMessages({
+  select_llm: {
+    id: "ai-generator.select_llm",
+    defaultMessage: "Select language model",
+  },
   project_start_warning_title: {
     id: "project-start-warning.title",
     defaultMessage: "Start this project?",

@@ -44,11 +44,11 @@ import {
 import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, startswith } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { DeleteAccount } from "../delete-account";
 import { SignOut } from "../sign-out";
 import { set_account_table, ugly_error } from "../util";
-import { APIKeySetting } from "./api-key";
 import { EmailAddressSetting } from "./email-address-setting";
 import { EmailVerification } from "./email-verification";
 import { PasswordSetting } from "./password-setting";
@@ -309,8 +309,11 @@ export function AccountSettings(props: Readonly<Props>) {
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: "#666" }}>
-          Your account is linked with (click to unlink)
+        <h5 style={{ color: COLORS.GRAY_M }}>
+          {intl.formatMessage({
+            id: "account.settings.sso.account_is_linked",
+            defaultMessage: "Your account is linked with (click to unlink)",
+          })}
         </h5>
         <ButtonToolbar style={{ marginBottom: "10px", display: "flex" }}>
           {btns}
@@ -348,9 +351,16 @@ export function AccountSettings(props: Readonly<Props>) {
     );
     if (any_hidden === false && not_linked.size === 0) return;
 
-    const heading = props.is_anonymous
-      ? "Sign up using your account at"
-      : "Click to link your account";
+    const heading = intl.formatMessage(
+      {
+        id: "account.settings.sso.link_your_account",
+        defaultMessage: `{is_anonymous, select,
+          true {Sign up using your account at}
+          other {Click to link your account}}`,
+      },
+      { is_anonymous: props.is_anonymous },
+    );
+
     const btns = not_linked
       .map((strategy) => render_strategy(strategy, account_passports))
       .toArray();
@@ -370,7 +380,7 @@ export function AccountSettings(props: Readonly<Props>) {
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: "#666" }}>{heading}</h5>
+        <h5 style={{ color: COLORS.GRAY_M }}>{heading}</h5>
         <Space size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
           {btns}
         </Space>
@@ -567,7 +577,6 @@ will no longer work (automatic redirects are not implemented), so change with ca
     }
     return (
       <EmailAddressSetting
-        account_id={props.account_id}
         email_address={props.email_address}
         is_anonymous={props.is_anonymous}
         disabled={props.is_anonymous && !terms_checkbox}
@@ -608,11 +617,6 @@ will no longer work (automatic redirects are not implemented), so change with ca
     }
   }
 
-  function render_api_key(): Rendered {
-    if (props.is_anonymous) return;
-    return <APIKeySetting />;
-  }
-
   return (
     <Panel header={render_header()}>
       {render_anonymous_warning()}
@@ -623,7 +627,6 @@ will no longer work (automatic redirects are not implemented), so change with ca
       <div style={{ marginBottom: "15px" }}></div>
       {render_email_verification()}
       {render_password()}
-      {render_api_key()}
       {render_created()}
       {render_delete_account()}
       {render_linked_external_accounts()}

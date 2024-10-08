@@ -20,7 +20,7 @@ const ICON_MAP: Record<SocialMediaType, IconName> = {
   [SocialMediaType.LINKEDIN]: "linkedin-filled",
   [SocialMediaType.TWITTER]: "twitter",
   [SocialMediaType.YOUTUBE]: "youtube-filled",
-}
+};
 
 export interface SocialMediaIconListProps {
   links: Partial<Record<SocialMediaType, string>>;
@@ -28,12 +28,8 @@ export interface SocialMediaIconListProps {
   style?: React.CSSProperties;
 }
 
-const SocialMediaIconList = (props: SocialMediaIconListProps) => {
-  const {
-    links,
-    iconFontSize = 12,
-    style = {}
-  } = props;
+export default function SocialMediaIconList(props: SocialMediaIconListProps) {
+  const { links, iconFontSize = 12, style = {} } = props;
 
   return (
     <Flex
@@ -42,9 +38,11 @@ const SocialMediaIconList = (props: SocialMediaIconListProps) => {
       style={{
         fontSize: `${iconFontSize}px`,
         ...style,
-      }}>
-      {
-        Object.keys(links).sort().map((mediaType: SocialMediaType) => (
+      }}
+    >
+      {Object.keys(links)
+        .sort()
+        .map((mediaType: SocialMediaType) => (
           <a
             key={mediaType}
             href={links[mediaType]}
@@ -53,12 +51,12 @@ const SocialMediaIconList = (props: SocialMediaIconListProps) => {
               color: COLORS.GRAY,
             }}
           >
-            <Icon name={ICON_MAP[mediaType]} style={{ margin: `0 ${iconFontSize/2}px` }}/>
+            <Icon
+              name={ICON_MAP[mediaType]}
+              style={{ margin: `0 ${iconFontSize / 2}px` }}
+            />
           </a>
-        ))
-      }
+        ))}
     </Flex>
   );
 }
-
-export default SocialMediaIconList;

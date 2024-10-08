@@ -27,7 +27,7 @@ import {
   FormGroup,
   Alert,
   Checkbox,
-} from "react-bootstrap";
+} from "@cocalc/frontend/antd-bootstrap";
 import * as account from "@cocalc/frontend/account";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ConfigureShare from "@cocalc/frontend/share/config";
@@ -554,7 +554,6 @@ export const ActionBox = rclass<ReactProps>(
         return (
           <div>
             <Checkbox
-              ref="delete_extra_files_checkbox"
               onChange={(e) =>
                 this.setState({ delete_extra_files: (e.target as any).checked })
               }
@@ -562,7 +561,6 @@ export const ActionBox = rclass<ReactProps>(
               Delete extra files in target directory
             </Checkbox>
             <Checkbox
-              ref="overwrite_newer_checkbox"
               onChange={(e) =>
                 this.setState({ overwrite_newer: (e.target as any).checked })
               }

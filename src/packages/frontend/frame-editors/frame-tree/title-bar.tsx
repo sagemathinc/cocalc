@@ -12,7 +12,6 @@ import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
-
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -325,20 +324,18 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   function render_x(): Rendered {
     return (
-      <Button
+      <Tooltip
         title={intl.formatMessage({
           id: "frame_editors.frame_tree.title_bar.close",
-          defaultMessage: "Close this frame",
+          defaultMessage:
+            "Close this frame. To restore the default layout, close all frames.",
           description: "Click this X button to close the frame",
         })}
-        key={"close"}
-        size="small"
-        type="text"
-        onClick={click_close}
-        disabled={props.is_only}
       >
-        <Icon name={"times"} />
-      </Button>
+        <Button key={"close"} size="small" type="text" onClick={click_close}>
+          <Icon name={"times"} />
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -375,94 +372,104 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   function render_full(): Rendered {
     if (props.is_full) {
       return (
-        <Button
-          disabled={props.is_only}
+        <Tooltip
           title={intl.formatMessage({
             id: "frame_editors.frame_tree.title_bar.minimize",
             defaultMessage: "Show all frames",
             description: "Minimize this frame to show all frames",
           })}
-          key={"full-screen-button"}
-          size="small"
-          type="text"
-          onClick={() => {
-            track("unset-full");
-            props.actions.unset_frame_full();
-          }}
-          style={{
-            color: darkMode ? "orange" : undefined,
-            background: !darkMode ? "orange" : undefined,
-          }}
         >
-          <Icon name={"compress"} />
-        </Button>
+          <Button
+            disabled={props.is_only}
+            key={"full-screen-button"}
+            size="small"
+            type="text"
+            onClick={() => {
+              track("unset-full");
+              props.actions.unset_frame_full();
+            }}
+            style={{
+              color: darkMode ? "orange" : undefined,
+              background: !darkMode ? "orange" : undefined,
+            }}
+          >
+            <Icon name={"compress"} />
+          </Button>
+        </Tooltip>
       );
     } else {
       return (
-        <Button
-          disabled={props.is_only}
-          key={"full-screen-button"}
+        <Tooltip
           title={intl.formatMessage({
             id: "frame_editors.frame_tree.title_bar.maximize",
             defaultMessage: "Show only this frame",
             description: "Maximize this frame to show only this one",
           })}
-          size="small"
-          type="text"
-          onClick={() => {
-            track("set-full");
-            props.actions.set_frame_full(props.id);
-          }}
         >
-          <Icon name={"expand"} />
-        </Button>
+          <Button
+            disabled={props.is_only}
+            key={"full-screen-button"}
+            size="small"
+            type="text"
+            onClick={() => {
+              track("set-full");
+              props.actions.set_frame_full(props.id);
+            }}
+          >
+            <Icon name={"expand"} />
+          </Button>
+        </Tooltip>
       );
     }
   }
 
   function render_split_row(): Rendered {
     return (
-      <Button
-        key={"split-row-button"}
+      <Tooltip
         title={intl.formatMessage(labels.split_frame_horizontally_title)}
-        size="small"
-        type="text"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.is_full) {
-            track("unset-full");
-            return props.actions.unset_frame_full();
-          } else {
-            track("split-row");
-            return props.actions.split_frame("row", props.id);
-          }
-        }}
       >
-        <Icon name="horizontal-split" />
-      </Button>
+        <Button
+          key={"split-row-button"}
+          size="small"
+          type="text"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (props.is_full) {
+              track("unset-full");
+              return props.actions.unset_frame_full();
+            } else {
+              track("split-row");
+              return props.actions.split_frame("row", props.id);
+            }
+          }}
+        >
+          <Icon name="horizontal-split" />
+        </Button>
+      </Tooltip>
     );
   }
 
   function render_split_col(): Rendered {
     return (
-      <Button
-        key={"split-col-button"}
-        title={intl.formatMessage(labels.split_frame_vertically_title)}
-        size="small"
-        type="text"
-        onClick={(e) => {
-          e.stopPropagation();
-          if (props.is_full) {
-            track("unset-full");
-            return props.actions.unset_frame_full();
-          } else {
-            track("split-col");
-            return props.actions.split_frame("col", props.id);
-          }
-        }}
-      >
-        <Icon name="vertical-split" />
-      </Button>
+      <Tooltip title={intl.formatMessage(labels.split_frame_vertically_title)}>
+        <Button
+          key={"split-col-button"}
+          size="small"
+          type="text"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (props.is_full) {
+              track("unset-full");
+              return props.actions.unset_frame_full();
+            } else {
+              track("split-col");
+              return props.actions.split_frame("col", props.id);
+            }
+          }}
+        >
+          <Icon name="vertical-split" />
+        </Button>
+      </Tooltip>
     );
   }
 
@@ -699,8 +706,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />
@@ -885,7 +892,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     ) {
       return;
     }
-    if (props.connection_status == "connected") {
+    if (props.connection_status === "connected") {
       // To reduce clutter show nothing when connected.
       // NOTE: Keep this consistent with
       // cocalc/src/@cocalc/frontend/project/websocket/websocket-indicator.tsx

@@ -692,7 +692,7 @@ export function Assignment({
             to a backup file ending in a tilde, or possibly only be available in
             snapshots. Select "Replace student files!" in case you do <b>not</b>{" "}
             want to create any backups and also <b>delete</b> all other files in
-            the assignment directory of their projects.{" "}
+            the assignment folder of their projects.{" "}
             <a
               target="_blank"
               href="https://github.com/sagemathinc/cocalc/wiki/CourseCopy"

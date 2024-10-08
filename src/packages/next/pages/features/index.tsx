@@ -14,7 +14,7 @@ import LaTeX from "components/landing/latex";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import ComputeServerInfographic from "public/features/cocalc-compute-infographic-20231124.jpg";
+import ComputeServerInfographic from "public/features/running-compute-server.png";
 import juliaScreenshot from "public/features/julia-jupyter.png";
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";

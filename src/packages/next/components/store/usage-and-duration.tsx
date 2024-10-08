@@ -95,7 +95,7 @@ export function UsageAndDuration(props: Props) {
         range[1] = new Date(range[1]);
       }
       suffix =
-        range && range[0] && `(${getTimezoneFromDate(range[0], "long")})`;
+        range && range[0] && `(midnight to 11:59pm, ${getTimezoneFromDate(range[0], "long")})`;
     } catch (err) {
       invalidRange = true;
       console.warn(`WARNING: issue parsing date ${range[0]}`);

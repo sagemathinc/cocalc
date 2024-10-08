@@ -4,6 +4,8 @@
  */
 
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { CSS } from "@cocalc/frontend/app-framework";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import NewFilePage from "./new-file-page";
 
 interface Props {
@@ -11,9 +13,15 @@ interface Props {
 }
 
 export function ProjectNew({ project_id }: Props): JSX.Element {
+  const { mainWidthPx } = useProjectContext();
+
+  const isWide = mainWidthPx > 800;
+  const offset = isWide ? 1 : 0;
+  const style: CSS = isWide ? {} : { marginLeft: "10px", marginRight: "10px" };
+
   return (
-    <Row style={{ marginTop: "15px" }}>
-      <Col md={12} mdOffset={0} lg={10} lgOffset={1}>
+    <Row style={style}>
+      <Col md={12} mdOffset={0} lg={12 - 2 * offset} lgOffset={offset}>
         <NewFilePage project_id={project_id} />
       </Col>
     </Row>

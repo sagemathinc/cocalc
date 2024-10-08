@@ -3,18 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Divider } from "antd";
+import { Alert, Button, Divider, Radio } from "antd";
 import { join } from "path";
 import {
   Col,
-  ControlLabel,
-  FormGroup,
   ListGroup,
   ListGroupItem,
-  Radio,
   Row,
-} from "react-bootstrap";
-
+} from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   React,
@@ -162,7 +158,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     } else {
       // must be standard image
       const img = software_images.get(default_image);
-      const display = img != null ? img.get("title") ?? "" : "";
+      const display = img != null ? (img.get("title") ?? "") : "";
       set_state(default_image, display, "standard");
     }
   }, []);
@@ -449,7 +445,9 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   }
 
   function render_standard() {
-    if (!haveSoftwareImages) return;
+    if (!haveSoftwareImages) {
+      return;
+    }
     return (
       <Radio
         checked={image_type === "standard"}
@@ -464,7 +462,9 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   }
 
   function render_custom() {
-    if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+    if (customize_kucalc !== KUCALC_COCALC_COM) {
+      return null;
+    }
 
     if (images == null || images.size == 0) {
       return "There are no customized software environments available.";
@@ -472,7 +472,6 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
       return (
         <Radio
           checked={image_type === "custom"}
-          label={"Custom software environment"}
           id={"custom-compute-image"}
           onChange={() => {
             set_state(undefined, undefined, "custom");
@@ -517,16 +516,14 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   function render_type_selection() {
     return (
       <>
-        {showTitle ? (
-          <ControlLabel>Software environment</ControlLabel>
-        ) : undefined}
+        {showTitle ? <div>Software environment</div> : undefined}
 
         {onCoCalcCom ? (
-          <FormGroup>
-            {render_default()}
-            {render_standard()}
-            {render_custom()}
-          </FormGroup>
+          <div>
+            <div style={{ marginBottom: "5px" }}>{render_default()}</div>
+            <div style={{ marginBottom: "5px" }}>{render_standard()}</div>
+            <div style={{ marginBottom: "5px" }}>{render_custom()}</div>
+          </div>
         ) : (
           render_onprem()
         )}

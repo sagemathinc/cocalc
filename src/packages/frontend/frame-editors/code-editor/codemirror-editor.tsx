@@ -14,7 +14,6 @@ codemirror editor instance mainly for use in a frame tree.
 
 import { SAVE_DEBOUNCE_MS } from "./const";
 import { Map, Set } from "immutable";
-import { is_safari } from "../generic/browser";
 import * as CodeMirror from "codemirror";
 import {
   React,
@@ -215,19 +214,11 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     editor_actions()?.syncstring_commit();
   }
 
-  function safari_hack(): void {
-    if (is_safari()) {
-      $(ReactDOM.findDOMNode(divRef.current)).make_height_defined();
-    }
-  }
-
   async function init_codemirror(props: Props): Promise<void> {
     const node: HTMLTextAreaElement = ReactDOM.findDOMNode(textareaRef.current);
     if (node == null) {
       return;
     }
-
-    safari_hack();
 
     const options: any = cm_options(
       props.path,
@@ -309,7 +300,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     (cm as any)._actions = editor_actions();
 
     if (props.is_public) {
-      if (props.value !== undefined) {
+      if (props.value != null) {
         // should always be the case if public.
         cm.setValue(props.value);
       }
@@ -513,8 +504,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props) => {
     </div>
   );
 });
-
-CodemirrorEditor.defaultProps = { value: "" };
 
 // Needed e.g., for vim ":w" support; this is global,
 // so be careful.

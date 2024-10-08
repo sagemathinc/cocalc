@@ -455,8 +455,8 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       obj.page =
         frameId == null
           ? this.defaultPageId()
-          : pages.get((this._get_frame_node(frameId)?.get("page") ?? 1) - 1) ??
-            this.defaultPageId();
+          : (pages.get((this._get_frame_node(frameId)?.get("page") ?? 1) - 1) ??
+            this.defaultPageId());
     }
 
     // Remove certain fields that never ever make no sense for a new element
@@ -1319,6 +1319,10 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId.chat) {
+      // deal with side chat in base class
+      await super.gotoFragment(fragmentId);
+    }
     // console.log("gotoFragment ", fragmentId);
     const frameId = await this.waitUntilFrameReady({
       type: this.mainFrameType,

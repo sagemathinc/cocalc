@@ -119,7 +119,10 @@ export class ProjectClient {
     const mesg = is_public
       ? message.copy_public_path_between_projects(opts)
       : message.copy_path_between_projects(opts);
-    mesg.wait_until_done = true; // TODO: our UI only supports this fornow.
+    mesg.wait_until_done = true; // TODO: our UI only supports this for now.
+
+    // THIS CAN BE USEFUL FOR DEBUGGING!
+    // mesg.debug_delay_s = 10;
 
     await this.client.async_call({
       timeout: opts.timeout,

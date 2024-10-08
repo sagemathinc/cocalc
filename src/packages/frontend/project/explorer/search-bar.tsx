@@ -4,7 +4,6 @@
  */
 
 import React from "react";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
@@ -200,6 +199,7 @@ export const SearchBar = React.memo((props: Props) => {
               color: "#666",
               fontSize: "14pt",
               position: "absolute",
+              background: "white",
             }}
           >
             <Icon name="times" />
@@ -283,7 +283,7 @@ export const SearchBar = React.memo((props: Props) => {
         autoSelect
         placeholder={intl.formatMessage({
           id: "project.explorer.search-bar.placeholder",
-          defaultMessage: "Search or create file",
+          defaultMessage: "Filter files (/ for terminal)...",
         })}
         value={file_search}
         on_change={on_change}
@@ -295,7 +295,7 @@ export const SearchBar = React.memo((props: Props) => {
       />
       {render_file_creation_error()}
       {render_help_info()}
-      <div style={output_style_searchbox}>
+      <div style={{ ...output_style_searchbox, width: "100%", left: 0 }}>
         {render_output(error, {
           color: "darkred",
           margin: 0,

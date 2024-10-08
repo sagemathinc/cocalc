@@ -51,7 +51,7 @@ export const useMentions: (Options) => MentionsControl = ({
   }, [isVisible]);
 
   const items: Item[] = useMemo(() => {
-    return matchingUsers(search);
+    return matchingUsers(search.toLowerCase());
   }, [search]);
 
   const onKeyDown = useCallback(

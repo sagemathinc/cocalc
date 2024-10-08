@@ -36,19 +36,20 @@ export default function SelectLicense({
         value={x.id}
         key={x.id}
         search={`${x.id} ${x.title} ${x.description} ${JSON.stringify(
-          x.quota
+          x.quota,
         )}`.toLowerCase()}
       >
-        {x.title?.trim() ? `${x.title} - ` : ''}<span style={{ fontFamily: "monospace" }}>{x.id}</span>
+        {x.title?.trim() ? `${x.title} - ` : ""}
+        <span style={{ fontFamily: "monospace" }}>{x.id}</span>
         <br />
         <Quota quota={x.quota} />
-      </Option>
+      </Option>,
     );
   }
 
   return (
     <Select
-      style={style}
+      style={{ ...style, ...(license ? { height: "80px" } : undefined) }}
       disabled={disabled}
       showSearch
       allowClear

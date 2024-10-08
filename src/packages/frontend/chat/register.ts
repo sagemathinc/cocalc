@@ -5,18 +5,16 @@
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux, redux_name } from "@cocalc/frontend/app-framework";
-import { register_file_editor } from "@cocalc/frontend/file-editors";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split, startswith } from "@cocalc/util/misc";
 import { ChatActions } from "./actions";
-import { ChatRoom } from "./chatroom";
 import { ChatStore } from "./store";
 
 // it is fine to call this more than once.
-export function initChat(project_id: string, path: string): string {
+export function initChat(project_id: string, path: string): ChatActions {
   const name = redux_name(project_id, path);
   if (redux.getActions(name) != null) {
-    return name; // already initialized
+    return redux.getActions(name); // already initialized
   }
 
   const actions = redux.createActions(name, ChatActions);
@@ -45,7 +43,7 @@ export function initChat(project_id: string, path: string): string {
   syncdb.once("ready", () => {
     actions.set_syncdb(syncdb, store);
     actions.init_from_syncdb();
-    syncdb.on("change", actions.syncdb_change.bind(actions));
+    syncdb.on("change", actions.syncdbChange);
     syncdb.on("has-uncommitted-changes", (val) =>
       actions.setState({ has_uncommitted_changes: val }),
     );
@@ -55,13 +53,13 @@ export function initChat(project_id: string, path: string): string {
     redux.getProjectActions(project_id)?.log_opened_time(path);
   });
 
-  return name;
+  return actions;
 }
 
 export function remove(path: string, redux, project_id: string): string {
   const name = redux_name(project_id, path);
   const actions = redux.getActions(name);
-  actions?.close();
+  actions?.syncdb?.close();
   const store = redux.getStore(name);
   if (store == null) {
     return name;
@@ -73,12 +71,3 @@ export function remove(path: string, redux, project_id: string): string {
   redux.removeActions(name);
   return name;
 }
-
-register_file_editor({
-  ext: "sage-chat",
-  icon: "comment",
-  // init has a weird call signature, for historical reasons.
-  init: (path, _redux, project_id) => initChat(project_id ?? "", path),
-  component: ChatRoom,
-  remove,
-});

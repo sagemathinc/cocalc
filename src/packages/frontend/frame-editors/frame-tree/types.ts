@@ -39,6 +39,7 @@ export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 // e.g. #7787 was caused by merely checking on the name, which had changed.
 type EditorType =
   | "chat"
+  | "chatroom"
   | "cm-lean"
   | "cm"
   | "course-assignments"

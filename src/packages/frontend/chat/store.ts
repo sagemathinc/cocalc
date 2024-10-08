@@ -4,11 +4,9 @@
  */
 
 import { List, fromJS, Map as immutableMap } from "immutable";
-
-import { Store, redux } from "@cocalc/frontend/app-framework";
+import { Store } from "@cocalc/frontend/app-framework";
 import type { HashtagState } from "@cocalc/frontend/editors/task-editor/types";
-import { ChatMessages, MentionList } from "./types";
-import { getReplyToRoot } from "./actions";
+import type { ChatMessages, MentionList } from "./types";
 
 export interface ChatState {
   project_id?: string;
@@ -31,49 +29,35 @@ export interface ChatState {
   has_unsaved_changes: boolean;
   unsent_user_mentions: MentionList;
   is_uploading: boolean;
-  font_size: number;
-  // whenever this changes and is defined, do a scroll.
-  //  scrollToBottom = 0 -- scroll to the bottom
-  //  scrollToBottom = ms since epoch -- scroll to the bottom of that thread
-  scrollToBottom?: number | null;
   filterRecentH: number;
   llm_cost_room?: [number, number] | null;
   llm_cost_reply?: [number, number] | null;
 }
 
-export class ChatStore extends Store<ChatState> {
-  getInitialState = () => {
-    return {
-      height: 0,
-      input: "",
-      message_plain_text: "",
-      is_preview: undefined,
-      messages: undefined,
-      drafts: undefined,
-      offset: undefined,
-      position: undefined,
-      use_saved_position: undefined,
-      saved_position: undefined,
-      search: "",
-      selectedHashtags: fromJS({}) as any,
-      add_collab: false,
-      is_saving: false,
-      has_uncommitted_changes: false,
-      has_unsaved_changes: false,
-      unsent_user_mentions: List() as any,
-      is_uploading: false,
-      font_size: redux.getStore("account").get("font_size"),
-      filterRecentH: 0,
-    };
+export function getInitialState() {
+  return {
+    height: 0,
+    input: "",
+    message_plain_text: "",
+    is_preview: undefined,
+    messages: undefined,
+    drafts: undefined,
+    offset: undefined,
+    position: undefined,
+    use_saved_position: undefined,
+    saved_position: undefined,
+    search: "",
+    selectedHashtags: fromJS({}) as any,
+    add_collab: false,
+    is_saving: false,
+    has_uncommitted_changes: false,
+    has_unsaved_changes: false,
+    unsent_user_mentions: List() as any,
+    is_uploading: false,
+    filterRecentH: 0,
   };
+}
 
-  getThreadRootDate = (date: number): number => {
-    const messages = this.get("messages") ?? (fromJS({}) as ChatMessages);
-    const message = messages.get(`${date}`)?.toJS();
-    if (message == null) {
-      return 0;
-    }
-    const d = getReplyToRoot(message, messages);
-    return d?.valueOf() ?? 0;
-  };
+export class ChatStore extends Store<ChatState> {
+  getInitialState = () => getInitialState();
 }

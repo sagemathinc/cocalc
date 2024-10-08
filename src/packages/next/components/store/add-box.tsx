@@ -7,9 +7,9 @@
 Add a cash voucher to your shopping cart.
 */
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { round2up } from "@cocalc/util/misc";
+import { round2up, round4 } from "@cocalc/util/misc";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { Alert, Button } from "antd";
+import { Alert, Button, Tooltip } from "antd";
 import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
@@ -35,7 +35,7 @@ export function AddBox(props: Props) {
     dedicatedItem = false,
     noAccount,
   } = props;
-  console.log({ cost });
+  // console.log({ cost });
   if (cost?.input.type == "cash-voucher") {
     return null;
   }
@@ -52,12 +52,14 @@ export function AddBox(props: Props) {
     if (cost?.input.type != "quota") {
       return;
     }
-    if (dedicatedItem || cost.input.quantity == null) return;
+    if (dedicatedItem || cost.input.quantity == null) {
+      return;
+    }
+    const costPer = periodicCost(cost) / cost.input.quantity;
     return (
-      <div>
-        {money(round2up(periodicCost(cost) / cost.input.quantity))} per
-        project
-      </div>
+      <Tooltip title={`$${round4(costPer)} per project`}>
+        <div>{money(round2up(costPer))} per project</div>
+      </Tooltip>
     );
   }
 
@@ -147,8 +149,8 @@ export function AddToCartButton(props: CartButtonProps) {
       {disabled
         ? "Finish configuring the license..."
         : router.query.id != null
-        ? "Save Changes"
-        : "Add to Cart"}
+          ? "Save Changes"
+          : "Add to Cart"}
     </Button>
   );
 }

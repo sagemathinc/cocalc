@@ -3,8 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
-
 import { HTML } from "./html";
 import { markdown_to_html } from "../markdown";
 import { Props as HTMLProps } from "./html";
@@ -14,7 +12,7 @@ type Props = HTMLProps & {
   line_numbers?: boolean;
 };
 
-export const Markdown: React.FC<Props> = (props) => {
+export function Markdown(props: Props) {
   function to_html() {
     if (!props.value) {
       return;
@@ -36,15 +34,13 @@ export const Markdown: React.FC<Props> = (props) => {
       className={props.className}
       href_transform={props.href_transform}
       post_hook={props.post_hook}
-      safeHTML={props.safeHTML}
+      safeHTML={props.safeHTML ?? true}
       reload_images={props.reload_images}
       smc_image_scaling={props.smc_image_scaling}
-      highlight_code={props.highlight_code}
+      highlight_code={props.highlight_code ?? true}
       content_editable={props.content_editable}
       onClick={props.onClick}
       onDoubleClick={props.onDoubleClick}
     />
   );
-};
-
-Markdown.defaultProps = { safeHTML: true, highlight_code: true };
+}

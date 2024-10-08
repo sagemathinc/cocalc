@@ -9,6 +9,8 @@ import { webapp_client } from "../webapp-client";
 import { UsersState } from "./types";
 import { store } from "./store";
 
+const warned = new Set<string>();
+
 export class UsersActions extends Actions<UsersState> {
   public async fetch_non_collaborator(account_id: string): Promise<void> {
     if (!account_id) {
@@ -18,9 +20,12 @@ export class UsersActions extends Actions<UsersState> {
     try {
       obj = await webapp_client.users_client.get_username(account_id);
     } catch (err) {
-      console.warn(
-        `WARNING: unable to get username for account with id '${account_id}'`
-      );
+      if (!warned.has(account_id)) {
+        warned.add(account_id);
+        console.warn(
+          `WARNING: unable to get username for account with id '${account_id}'`,
+        );
+      }
       return;
     }
     // see https://github.com/sagemathinc/cocalc/issues/2828

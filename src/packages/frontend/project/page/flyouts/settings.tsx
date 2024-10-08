@@ -22,7 +22,7 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { labels } from "@cocalc/frontend/i18n";
+import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { AboutBox } from "@cocalc/frontend/project/settings/about-box";
 import { ApiKeys } from "@cocalc/frontend/project/settings/api-keys";
@@ -81,6 +81,14 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
     setExpandedPanels(state);
   }, []);
 
+  function renderI18N(msg: string | IntlMessage): string {
+    if (isIntlMessage(msg)) {
+      return intl.formatMessage(msg);
+    } else {
+      return msg;
+    }
+  }
+
   function renderState() {
     if (status == null) return <Loading />;
     const s = status?.get("state");
@@ -89,7 +97,7 @@ export function SettingsFlyout(_: Readonly<Props>): JSX.Element {
 
     const display = (
       <>
-        <Icon name={iconName as IconName} /> {str}
+        <Icon name={iconName as IconName} /> {renderI18N(str)}
       </>
     );
 

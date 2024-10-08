@@ -6,7 +6,6 @@
 // Implement the open_file actions for opening one single file in a project.
 
 import { callback } from "awaiting";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";

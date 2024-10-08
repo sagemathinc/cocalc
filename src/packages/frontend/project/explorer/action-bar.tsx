@@ -5,7 +5,9 @@
 
 import React from "react";
 import * as immutable from "immutable";
-import { HiddenSM, Icon, Gap } from "../../components";
+import { FormattedMessage } from "react-intl";
+
+import { HiddenSM, Icon, Gap } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { ProjectActions } from "@cocalc/frontend/project_store";
@@ -15,10 +17,10 @@ import {
   ButtonGroup,
   ButtonToolbar,
 } from "@cocalc/frontend/antd-bootstrap";
-
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import * as misc from "@cocalc/util/misc";
 import { file_actions } from "@cocalc/frontend/project_store";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
@@ -40,8 +42,6 @@ interface Props {
   show_custom_software_reset?: boolean;
   project_is_running?: boolean;
 }
-
-import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
 export const ActionBar: React.FC<Props> = (props: Props) => {
   const [select_entire_directory, set_select_entire_directory] = React.useState<
@@ -166,7 +166,13 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
           <span>{`${total} ${misc.plural(total, "item")}`}</span>
           <div style={{ display: "inline" }}>
             {" "}
-            &mdash; Click checkbox to the left of a file to copy, download, etc.
+            &mdash;{" "}
+            <FormattedMessage
+              id="project.explorer.action-bar.currently_selected.info"
+              defaultMessage={
+                "Click checkbox to the left of a file to copy, download, etc."
+              }
+            />
           </div>
         </div>
       );

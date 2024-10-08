@@ -16,12 +16,13 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 
 // TODO: What we haven't converted yet, but do use in CoCalc:
 export {
-  ControlLabel,
   Form,
   FormControl,
   FormGroup,
-  InputGroup,
+  ListGroup,
+  ListGroupItem,
 } from "react-bootstrap";
+
 import {
   Alert as AntdAlert,
   Button as AntdButton,
@@ -35,7 +36,6 @@ import {
   Tooltip,
 } from "antd";
 import { MouseEventHandler } from "react";
-
 import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { Gap } from "@cocalc/frontend/components/gap";
 import { r_join } from "@cocalc/frontend/components/r_join";
@@ -91,7 +91,7 @@ function parse_bsStyle(props: {
   let type =
     props.bsStyle == null
       ? "default"
-      : BS_STYLE_TO_TYPE[props.bsStyle] ?? "default";
+      : (BS_STYLE_TO_TYPE[props.bsStyle] ?? "default");
 
   let style: React.CSSProperties | undefined = undefined;
   // antd has no analogue of "success" & "warning", it's not clear to me what
@@ -141,7 +141,7 @@ export const Button = (props: {
   style?: React.CSSProperties;
   disabled?: boolean;
   onClick?: (e?: any) => void;
-  key?: string;
+  key?;
   children?: any;
   className?: string;
   href?: string;
@@ -267,14 +267,7 @@ export function Well(props: {
   );
 }
 
-export function Checkbox(props: {
-  style?: React.CSSProperties;
-  children?: any;
-  autoFocus?: boolean;
-  checked?: boolean;
-  disabled?: boolean;
-  onChange?: any;
-}) {
+export function Checkbox(props) {
   const style: React.CSSProperties = props.style != null ? props.style : {};
   if (style.fontWeight == null) {
     // Antd checkbox uses the label DOM element, and bootstrap css
@@ -288,15 +281,7 @@ export function Checkbox(props: {
   // has that margin.
   return (
     <div style={{ margin: "10px 0" }}>
-      <AntdCheckbox
-        autoFocus={props.autoFocus}
-        checked={props.checked}
-        disabled={props.disabled}
-        style={style}
-        onChange={props.onChange}
-      >
-        {props.children}
-      </AntdCheckbox>
+      <AntdCheckbox {...{ ...props, style }}>{props.children}</AntdCheckbox>
     </div>
   );
 }
@@ -319,9 +304,11 @@ export function Col(props: {
   className?: string;
   onClick?;
   children?: any;
+  push?;
+  pull?;
 }) {
   const props2: any = {};
-  for (const p of ["xs", "sm", "md", "lg"]) {
+  for (const p of ["xs", "sm", "md", "lg", "push", "pull"]) {
     if (props[p] != null) {
       if (props2[p] == null) {
         props2[p] = {};
@@ -345,7 +332,7 @@ export type AntdTabItem = NonNullable<AntdTabsProps["items"]>[number];
 
 interface TabsProps {
   id?: string;
-  key?: string;
+  key?;
   activeKey: string;
   onSelect?: (activeKey: string) => void;
   animation?: boolean;
@@ -373,7 +360,7 @@ export function Tabs(props: Readonly<TabsProps>) {
 
 export function Tab(props: {
   id?: string;
-  key?: string;
+  key?;
   eventKey: string;
   title: any;
   children?: any;
@@ -451,10 +438,11 @@ export function Alert(props: AlertProps) {
 }
 
 export function Panel(props: {
-  key?: string;
+  key?;
   style?: React.CSSProperties;
-  header?: any;
+  header?;
   children?: any;
+  onClick?;
 }) {
   const style = { ...{ marginBottom: "20px" }, ...props.style };
   return (
@@ -464,6 +452,7 @@ export function Panel(props: {
       styles={{
         header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
       }}
+      onClick={props.onClick}
     >
       {props.children}
     </AntdCard>

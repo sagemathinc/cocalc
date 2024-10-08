@@ -17,6 +17,8 @@ export function isIntlMessage(msg: unknown): msg is MessageDescriptor {
     typeof msg === "object" &&
     msg != null &&
     "id" in msg &&
-    "defaultMessage" in msg
+    typeof msg.id === "string" &&
+    "defaultMessage" in msg &&
+    typeof msg.defaultMessage === "string"
   );
 }

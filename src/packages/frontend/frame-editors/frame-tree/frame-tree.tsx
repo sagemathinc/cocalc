@@ -32,9 +32,7 @@ import { copy, hidden_meta_file, is_different } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import { Map, Set } from "immutable";
 import React from "react";
-
 import {
-  ReactDOM,
   redux,
   Rendered,
   useState,
@@ -44,7 +42,6 @@ import { Loading } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { Actions } from "../code-editor/actions";
 import { cm as cm_spec } from "../code-editor/editor";
-import { is_safari } from "../generic/browser";
 import { TimeTravelActions } from "../time-travel-editor/actions";
 import { FrameContext } from "./frame-context";
 import { FrameTreeDragBar } from "./frame-tree-drag-bar";
@@ -378,7 +375,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         }
         spec = editor_spec[type];
         component = spec != null ? spec.component : undefined;
-        if (component == null) throw Error(`unknown type '${type}'`);
+        if (component == null) {
+          throw Error(
+            `unknown type '${type}'. Known types for this editor: ${JSON.stringify(Object.keys(editor_spec))}`,
+          );
+        }
       } catch (err) {
         const mesg = `Invalid frame tree ${JSON.stringify(desc)} -- ${err}`;
         console.log(mesg);
@@ -457,24 +458,12 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             containerRef={cols_container_ref}
             dir={"col"}
             frame_tree={frame_tree}
-            safari_hack={safari_hack}
           />
           <div className={"smc-vfill"} style={data.style_second}>
             {render_one(data.second)}
           </div>
         </div>
       );
-    }
-
-    function safari_hack() {
-      if (!is_safari()) {
-        return;
-      }
-      // Workaround a major and annoying bug in Safari:
-      //     https://github.com/philipwalton/flexbugs/issues/132
-      return $(ReactDOM.findDOMNode(elementRef.current))
-        .find(".cocalc-editor-div")
-        .make_height_defined();
     }
 
     function render_rows() {
@@ -493,7 +482,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             containerRef={rows_container_ref}
             dir={"row"}
             frame_tree={frame_tree}
-            safari_hack={safari_hack}
           />
           <div className={"smc-vfill"} style={data.style_second}>
             {render_one(data.second)}

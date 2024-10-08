@@ -1,13 +1,21 @@
-import { Set as immutableSet, Map as immutableMap } from "immutable";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+import { Map as immutableMap, Set as immutableSet } from "immutable";
+
+import { isIntlMessage } from "@cocalc/frontend/i18n";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { COMPUTE_STATES, ComputeState } from "@cocalc/util/compute-states";
 import {
+  cmp,
+  cmp_Date,
   parse_hashtags,
   search_match,
   search_split,
-  cmp,
-  cmp_Date,
 } from "@cocalc/util/misc";
-import { webapp_client } from "../webapp-client";
-import { COMPUTE_STATES } from "@cocalc/util/compute-states";
+import { ProjectMap } from "./store";
 
 function parse_tags(info): string[] {
   const indices = parse_hashtags(info);
@@ -24,10 +32,10 @@ function hashtags_to_string(tags: Set<string> | string[] | undefined): string {
 let search_cache: {
   [project_id: string]: string;
 } = {};
-let last_project_map: any = null;
+let last_project_map: ProjectMap | null | undefined = null;
 let last_user_map: any = null;
 
-function get_search_info(project_id, project, user_map): string {
+function get_search_info(project_id: string, project, user_map): string {
   let s: undefined | string = search_cache[project_id];
   if (s != null) {
     return s;
@@ -38,9 +46,10 @@ function get_search_info(project_id, project, user_map): string {
   if (desc != "No description") {
     s += " " + desc;
   }
-  s +=
-    " " +
-    (COMPUTE_STATES[project.getIn(["state", "state"], "")]?.display ?? "");
+  const compute_state: ComputeState =
+    COMPUTE_STATES[project.getIn(["state", "state"], "")];
+  const display = compute_state?.display;
+  s += " " + (isIntlMessage(display) ? display.defaultMessage : display ?? "");
   s = s.toLowerCase();
   s = s + " " + hashtags_to_string(parse_tags(s));
   if (user_map != null) {
@@ -62,7 +71,7 @@ function get_search_info(project_id, project, user_map): string {
 }
 
 export function get_visible_projects(
-  project_map,
+  project_map: ProjectMap | undefined,
   user_map,
   hashtags: immutableSet<string> | undefined,
   search: string,

@@ -16,14 +16,3 @@ $.fn.maxheight = function (opts: { offset?: number } = {}) {
   });
   return this;
 };
-
-// Use to workaround Safari flex layout bug https://github.com/philipwalton/flexbugs/issues/132
-$.fn.make_height_defined = function () {
-  this.each(function () {
-    // @ts-ignore
-    const elt = $(this);
-    // Doing this makes the height **defined**, so that flexbox can use it even on safari.
-    elt.height(elt.height());
-  });
-  return this;
-};

@@ -11,7 +11,6 @@ import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
-
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { initChat } from "@cocalc/frontend/chat/register";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
@@ -1020,8 +1019,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return;
       }
       // a fallback for now.
-      if (fragmentId["line"] != null) {
-        this.goto_line(path, fragmentId["line"], true, true);
+      if (fragmentId.line != null) {
+        this.goto_line(path, fragmentId.line, true, true);
         return;
       }
     } else {
@@ -1102,19 +1101,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Used by open/close chat below.
   set_chat_state(path: string, chatState: ChatState): void {
-    if (this.open_files == null) return;
+    if (this.open_files == null) {
+      return;
+    }
     this.open_files.set(path, "chatState", chatState);
     local_storage(this.project_id, path, "chatState", chatState);
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat = async ({
-    path,
-    width = 0.7,
-  }: {
-    path: string;
-    width?: number;
-  }) => {
+  open_chat = ({ path, width = 0.7 }: { path: string; width?: number }) => {
     const info = this.get_store()
       ?.get("open_files")
       .getIn([path, "component"]) as any;
@@ -1123,7 +1118,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_chat_state(path, "pending");
       return;
     }
-    // only not null for modern editors.
+    //  not null for modern editors.
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["show_focused_frame_of_type"] != null) {
       // @ts-ignore -- todo will go away when everything is a frame editor
@@ -1131,7 +1126,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_chat_state(path, "internal");
     } else {
       // First create the chat actions:
-      await initChat(this.project_id, misc.meta_file(path, "chat"));
+      initChat(this.project_id, misc.meta_file(path, "chat"));
       // Only then set state to say that the chat is opened!
       // Otherwise when the opened chat is rendered actions is
       // randomly not defined, and things break.
@@ -1380,9 +1375,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -2238,8 +2232,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {
@@ -3441,9 +3435,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     title: string;
     content: string;
   }): Promise<"ok" | "cancel"> {
-    if (this.modal != null) {
-      await this.wait_until_no_modals();
-    }
+    await this.wait_until_no_modals();
     let response: "ok" | "cancel" = "cancel";
     const modal = fromJS({
       title,
@@ -3452,17 +3444,25 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       onCancel: () => (response = "cancel"),
     }) as any;
     this.modal = modal;
-    this.setState({
-      modal,
-    });
+    this.setState({ modal });
     await this.wait_until_no_modals();
     return response;
   }
 
   public async wait_until_no_modals(): Promise<void> {
-    if (this.modal == null) return;
-    await this.get_store()?.async_wait({
-      until: (s) => !s.get("modal") && this.modal == null,
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    const noModal = () => {
+      return this.modal == null && !store.get("modal");
+    };
+
+    if (noModal()) {
+      return;
+    }
+    await store.async_wait({
+      until: noModal,
       timeout: 99999,
     });
   }

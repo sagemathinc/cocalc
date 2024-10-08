@@ -217,6 +217,7 @@ const MiniTerminal0: React.FC<Props> = (props: Readonly<Props>) => {
           top: 0,
           color: COLORS.GRAY_M,
           fontSize: "10pt",
+          background: "white",
         }}
       >
         <Icon name="times" />

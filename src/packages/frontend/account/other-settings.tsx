@@ -5,7 +5,7 @@
 
 import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -96,8 +96,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!props.other_settings.get("show_global_info2")}
         onChange={(e) => toggle_global_banner(e.target.checked)}
       >
-        <strong>Show announcement banner</strong>: only shows up if there is a
-        message
+        <FormattedMessage
+          id="account.other-settings.global_banner"
+          defaultMessage={`<strong>Show announcement banner</strong>: only shows up if there is a
+        message`}
+        />
       </Checkbox>
     );
   }
@@ -108,8 +111,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("time_ago_absolute")}
         onChange={(e) => on_change("time_ago_absolute", e.target.checked)}
       >
-        Display <strong>timestamps as absolute points in time</strong> instead
-        of relative to the current time
+        <FormattedMessage
+          id="account.other-settings.time_ago_absolute"
+          defaultMessage={`Display <strong>timestamps as absolute points in time</strong>
+            instead of relative to the current time`}
+        />
       </Checkbox>
     );
   }
@@ -121,8 +127,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           checked={!!props.other_settings.get("confirm_close")}
           onChange={(e) => on_change("confirm_close", e.target.checked)}
         >
-          <strong>Confirm Close:</strong> always ask for confirmation before
-          closing the browser window
+          <FormattedMessage
+            id="account.other-settings.confirm_close"
+            defaultMessage={`<strong>Confirm Close:</strong> always ask for confirmation before
+          closing the browser window`}
+          />
         </Checkbox>
       );
     }
@@ -137,9 +146,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("katex")}
         onChange={(e) => on_change("katex", e.target.checked)}
       >
-        <strong>KaTeX:</strong> attempt to render formulas with{" "}
-        <A href={"https://katex.org/"}>KaTeX</A> (much faster, but missing
-        context menu options)
+        <FormattedMessage
+          id="account.other-settings.katex"
+          defaultMessage={`<strong>KaTeX:</strong> attempt to render formulas
+              using {katex} (much faster, but missing context menu options)`}
+          values={{ katex: <A href={"https://katex.org/"}>KaTeX</A> }}
+        />
       </Checkbox>
     );
   }
@@ -149,7 +161,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       return;
     }
     return (
-      <LabeledRow label="Standby timeout">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.standby_timeout",
+          defaultMessage: "Standby timeout",
+        })}
+      >
         <NumberInput
           on_change={(n) => on_change("standby_timeout_m", n)}
           min={1}
@@ -167,8 +184,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("mask_files")}
         onChange={(e) => on_change("mask_files", e.target.checked)}
       >
-        <strong>Mask files:</strong> grey out files in the files viewer that you
-        probably do not want to open
+        <FormattedMessage
+          id="account.other-settings.mask_files"
+          defaultMessage={`<strong>Mask files:</strong> grey out files in the files viewer
+            that you probably do not want to open`}
+        />
       </Checkbox>
     );
   }
@@ -179,8 +199,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("hide_project_popovers")}
         onChange={(e) => on_change("hide_project_popovers", e.target.checked)}
       >
-        <strong>Hide Project Tab Popovers:</strong> do not show the popovers
-        over the project tabs
+        <FormattedMessage
+          id="account.other-settings.project_popovers"
+          defaultMessage={`<strong>Hide Project Tab Popovers:</strong>
+            do not show the popovers over the project tabs`}
+        />
       </Checkbox>
     );
   }
@@ -191,8 +214,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("hide_file_popovers")}
         onChange={(e) => on_change("hide_file_popovers", e.target.checked)}
       >
-        <strong>Hide File Tab Popovers:</strong> do not show the popovers over
-        file tabs
+        <FormattedMessage
+          id="account.other-settings.file_popovers"
+          defaultMessage={`<strong>Hide File Tab Popovers:</strong>
+            do not show the popovers over file tabs`}
+        />
       </Checkbox>
     );
   }
@@ -203,8 +229,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("hide_button_tooltips")}
         onChange={(e) => on_change("hide_button_tooltips", e.target.checked)}
       >
-        <strong>Hide Button Tooltips:</strong> hides some button tooltips (this
-        is only partial)
+        <FormattedMessage
+          id="account.other-settings.button_tooltips"
+          defaultMessage={`<strong>Hide Button Tooltips:</strong>
+            hides some button tooltips (this is only partial)`}
+        />
       </Checkbox>
     );
   }
@@ -381,13 +410,21 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
 
   function render_vertical_fixed_bar_options(): Rendered {
     const selected = getValidVBAROption(props.other_settings.get(VBAR_KEY));
+    const options = Object.fromEntries(
+      Object.entries(VBAR_OPTIONS).map(([k, v]) => [k, intl.formatMessage(v)]),
+    );
     return (
-      <LabeledRow label="Vertical Project Bar">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.vbar.title",
+          defaultMessage: "Vertical Project Bar",
+        })}
+      >
         <div>
           <SelectorInput
             style={{ marginBottom: "10px" }}
             selected={selected}
-            options={VBAR_OPTIONS}
+            options={options}
             on_change={(value) => {
               on_change(VBAR_KEY, value);
               track("flyout", { aspect: "layout", how: "account", value });
@@ -397,7 +434,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
             type="secondary"
             ellipsis={{ expandable: true, symbol: "more" }}
           >
-            {VBAR_EXPLANATION}
+            {intl.formatMessage(VBAR_EXPLANATION)}
           </Paragraph>
         </div>
       </LabeledRow>
@@ -494,9 +531,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
             on_change("disable_markdown_codebar", e.target.checked);
           }}
         >
-          <strong>Disable the markdown code bar</strong> in all markdown
-          documents. Checking this hides the extra run, copy, and explain
-          buttons in fenced code blocks.
+          <FormattedMessage
+            id="account.other-settings.markdown_codebar"
+            defaultMessage={`<strong>Disable the markdown code bar</strong> in all markdown documents.
+            Checking this hides the extra run, copy, and explain buttons in fenced code blocks.`}
+          />
         </Checkbox>
         {render_i18n_selector()}
         {render_vertical_fixed_bar_options()}

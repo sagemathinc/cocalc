@@ -4,10 +4,15 @@
  */
 
 import { throttle } from "lodash";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { original_path } from "@cocalc/util/misc";
-import { ChatMessageTyped, MentionList } from "./types";
+import type {
+  ChatMessageTyped,
+  MentionList,
+  ChatMessages,
+  ChatMessage,
+} from "./types";
+import { is_date as isDate } from "@cocalc/util/misc";
 
 export const INPUT_HEIGHT = "125px";
 
@@ -147,4 +152,74 @@ export function getSelectedHashtagsSearch(hashtags): {
     selectedHashtags: X,
     selectedHashtagsSearch: X.size > 0 ? " #" + Array.from(X).join(" #") : "",
   };
+}
+
+export function getRootMessage({
+  message,
+  messages,
+}: {
+  message: ChatMessage;
+  messages: ChatMessages;
+}): ChatMessageTyped | undefined {
+  const { reply_to, date } = message;
+  // we can't find the original message, if there is no reply_to
+  if (!reply_to) {
+    // the msssage itself is the root
+    return messages.get(`${new Date(date).valueOf()}`);
+  } else {
+    // All messages in a thread have the same reply_to, which points to the root.
+    return messages.get(`${new Date(reply_to).valueOf()}`);
+  }
+}
+
+export function getReplyToRoot({
+  message,
+  messages,
+}: {
+  message: ChatMessage;
+  messages: ChatMessages;
+}): Date | undefined {
+  const root = getRootMessage({ message, messages });
+  const date = root?.get("date");
+  // date is a "Date" object, but we're just double checking it is not a string by accident
+  return date ? new Date(date) : undefined;
+}
+
+export function getThreadRootDate({
+  date,
+  messages,
+}: {
+  date: number;
+  messages?: ChatMessages;
+}): number {
+  if (messages == null) {
+    return 0;
+  }
+  const message = messages.get(`${date}`)?.toJS();
+  if (message == null) {
+    return 0;
+  }
+  const d = getReplyToRoot({ message, messages });
+  return d?.valueOf() ?? 0;
+}
+
+// Use heuristics to try to turn "date", whatever it might be,
+// into a string representation of the number of ms since the
+// epoch.
+const floatRegex = /^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/;
+export function toMsString(date): string {
+  if (isDate(date)) {
+    return `${date.valueOf()}`;
+  }
+
+  switch (typeof date) {
+    case "number":
+      return `${date}`;
+    case "string":
+      if (floatRegex.test(date)) {
+        return `${parseInt(date)}`;
+      }
+    default:
+      return `${new Date(date).valueOf()}`;
+  }
 }

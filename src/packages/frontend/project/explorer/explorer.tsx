@@ -6,7 +6,7 @@
 import { Alert } from "antd";
 import * as immutable from "immutable";
 import React from "react";
-import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
+import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import * as underscore from "underscore";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {

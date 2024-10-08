@@ -177,6 +177,8 @@ export interface CustomizeState {
   default_llm?: string;
   user_defined_llm: boolean;
 
+  insecure_test_mode?: boolean;
+
   i18n?: List<Locale>;
 }
 
@@ -329,7 +331,7 @@ function process_customize(obj) {
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
     obj[k] =
-      obj[k] != null ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
+      obj[k] != null ? obj[k] : (v.to_val?.(v.default, obj_orig) ?? v.default);
   }
   // the llm markup special case
   obj.llm_markup = obj_orig._llm_markup ?? 30;

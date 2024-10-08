@@ -54,7 +54,10 @@ addCommands({
     group: "frame-control",
     alwaysShow: true,
     pos: 2,
-    title: labels.split_frame_vertically_title,
+    title: defineMessage({
+      id: "command.generic.split_col.title",
+      defaultMessage: "Split frame vertically into two columns",
+    }),
     onClick: ({ props }) => {
       if (props.is_full) {
         return props.actions.unset_frame_full();
@@ -63,11 +66,7 @@ addCommands({
       }
     },
     icon: "vertical-split",
-    label: defineMessage({
-      id: "command.generic.split_col.label",
-      defaultMessage: "Split Right",
-      description: "Split a frame vertically",
-    }),
+    label: labels.split_frame_vertically_title,
     button: menu.split,
   },
   maximize: {
@@ -107,7 +106,7 @@ addCommands({
     title: defineMessage({
       id: "command.generic.close.title",
       defaultMessage:
-        "Close this frame. To restore the default layout, select the application menu entry 'Default Layout'.",
+        "Close this frame. To restore the default layout, select the application menu entry 'Default Layout' or close all frames.",
     }),
     onClick: ({ props }) => {
       props.actions.close_frame(props.id);
@@ -147,51 +146,76 @@ addCommands({
   show_search: {
     group: "find",
     pos: 0,
-    title: "Show panel for searching in this document",
-    label: "Search",
+    title: defineMessage({
+      id: "command.generic.show_search.tooltip",
+      defaultMessage: "Show panel for searching in this document",
+    }),
+    label: labels.search,
     icon: "search",
   },
   show_overview: {
     group: "show-frames",
-    title: "Show overview of all pages",
+    title: defineMessage({
+      id: "command.generic.show_overview.tooltip",
+      defaultMessage: "Show overview of all pages",
+      description: "All pages in a document",
+    }),
     label: labels.overview,
     icon: "overview",
   },
   show_pages: {
     group: "show-frames",
-    title: "Show all pages of this document",
-    label: "Pages",
+    title: defineMessage({
+      id: "command.generic.show_pages.tooltip",
+      defaultMessage: "Show all pages of this document",
+      description: "All pages in a document",
+    }),
+    label: labels.pages,
     icon: "pic-centered",
   },
   show_slideshow: {
     group: "show-frames",
-    title: "Display Slideshow Presentation",
+    title: defineMessage({
+      id: "command.generic.show_slideshow.tooltip",
+      defaultMessage: "Display Slideshow Presentation",
+    }),
     label: labels.slideshow,
     icon: "play-square",
   },
   show_speaker_notes: {
     group: "show-frames",
-    title: "Show Speaker Notes",
+    title: defineMessage({
+      id: "command.generic.show_speaker_notes.tooltip",
+      defaultMessage: "Show Speaker Notes",
+      description: "Speaker Notes for a Slideshow Presentation",
+    }),
     label: "Speaker Notes",
     icon: "pencil",
   },
   shell: {
     group: "show-frames",
-    title: "Open a terminal for running code",
+    title: defineMessage({
+      id: "command.generic.shell.tooltip",
+      defaultMessage: "Open a terminal for running code",
+    }),
     icon: "terminal",
     disable: "disableTerminals",
     label: "Shell",
   },
   terminal: {
     group: "show-frames",
-    title: "Open a command line terminal for interacting with the Linux prompt",
+    title: defineMessage({
+      id: "command.generic.terminal.tooltip",
+      defaultMessage:
+        "Open a command-line terminal for interacting with the Linux prompt",
+    }),
     icon: "terminal",
     disable: "disableTerminals",
     label: labels.terminal,
   },
   decrease_font_size: {
     stayOpenOnClick: true,
-    pos: 1,
+    pos: 0,
     group: "zoom",
     title: defineMessage({
       id: "command.generic.decrease_font_size.title",
@@ -210,7 +234,7 @@ addCommands({
   },
   increase_font_size: {
     stayOpenOnClick: true,
-    pos: 0,
+    pos: 1,
     group: "zoom",
     title: defineMessage({
       id: "command.generic.increase_font_size.title",
@@ -256,7 +280,10 @@ addCommands({
   set_zoom: {
     pos: 5,
     group: "zoom",
-    title: "Zoom to a preset size",
+    title: defineMessage({
+      id: "command.generic.set_zoom.tooltip",
+      defaultMessage: "Zoom to a preset size",
+    }),
     label: ({ props }) => (
       <span>
         {props.font_size == null
@@ -276,6 +303,18 @@ addCommands({
         },
       };
     }),
+  },
+  scrollToTop: {
+    group: "scroll",
+    pos: 0,
+    icon: "arrow-up",
+    label: "Scroll to top",
+  },
+  scrollToBottom: {
+    group: "scroll",
+    pos: 1,
+    icon: "arrow-down",
+    label: "Scroll to bottom",
   },
   undo: {
     disabled: ({ readOnly }) => readOnly,
@@ -316,7 +355,11 @@ addCommands({
     group: "copy",
     pos: 0,
     label: labels.cut,
-    title: "Cut selection",
+    title: defineMessage({
+      id: "command.generic.cut.tooltip",
+      defaultMessage: "Cut selection",
+      description: "Cut text in a text editor",
+    }),
     icon: "scissors",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + X`,
     disabled: ({ readOnly }) => readOnly,
@@ -325,7 +368,11 @@ addCommands({
     group: "copy",
     pos: 1,
     label: labels.copy,
-    title: "Copy selection",
+    title: defineMessage({
+      id: "command.generic.copy.tooltip",
+      defaultMessage: "Copy selection",
+      description: "Copy text in a text editor",
+    }),
     icon: "copy",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + C`,
   },
@@ -333,7 +380,11 @@ addCommands({
     group: "copy",
     pos: 2,
     label: labels.paste,
-    title: "Paste buffer",
+    title: defineMessage({
+      id: "command.generic.paste.tooltip",
+      defaultMessage: "Insert cut or copied text at the cursor position",
+      description: "Paste text in a text editor",
+    }),
     icon: "paste",
     keyboard: `${IS_MACOS ? "⌘" : "control"} + V`,
     disabled: ({ readOnly }) => readOnly,
@@ -432,8 +483,14 @@ addCommands({
   restart: {
     group: "action",
     icon: "sync",
-    label: "Restart Server",
-    title: "Restart the backend service",
+    label: defineMessage({
+      id: "command.generic.restart.label",
+      defaultMessage: "Restart Server",
+    }),
+    title: defineMessage({
+      id: "command.generic.restart.tooltip",
+      defaultMessage: "Restart the backend service",
+    }),
   },
 
   kick_other_users_out: {
@@ -691,8 +748,11 @@ addCommands({
   export_to_markdown: {
     group: "export",
     label: "Export to Markdown",
-    title:
-      "Create and open a markdown version of current view of this document.",
+    title: defineMessage({
+      id: "command.generic.export_to_markdown.tooltip",
+      defaultMessage:
+        "Create and open a markdown version of current view of this document.",
+    }),
     icon: "markdown",
   },
 
@@ -713,8 +773,16 @@ addCommands({
 
   tour: {
     group: "tour",
-    label: "Take the Tour",
-    title: "Take a guided tour of the user interface for this editor.",
+    label: defineMessage({
+      id: "command.generic.tour.label",
+      defaultMessage: "Take the Tour",
+      description: "Interactive tour for explaining a user-interface",
+    }),
+    title: defineMessage({
+      id: "command.generic.tour.tooltip",
+      defaultMessage:
+        "Take a guided tour of the user interface for this editor.",
+    }),
     icon: "map",
     neverVisibleOnMobile: true,
     onClick: ({ props }) => {
@@ -889,7 +957,11 @@ addCommands({
     pos: 10,
     group: "misc-file-actions",
     icon: "upload",
-    title: "Upload a file or directory from your compute to the server",
+    title: defineMessage({
+      id: "command.generic.upload.tooltip",
+      defaultMessage:
+        "Upload a file or directory from your compute to the server",
+    }),
     label: labels.upload,
     ...fileAction("upload"),
   },
@@ -921,14 +993,17 @@ addCommands({
       defaultMessage:
         "Show a printable version of this document in a popup window.",
     }),
-
     label: labels.print,
   },
   new: {
     pos: 0,
     group: "new-open",
     icon: "plus-circle",
-    title: "Create a new file",
+    title: defineMessage({
+      id: "menu.generic.new.tooltip",
+      defaultMessage: "Create a new file",
+      description: "A file in a file-system",
+    }),
     label: menu.new_file,
     ...fileAction("new"),
   },
@@ -1007,9 +1082,11 @@ addCommands({
       redux.getStore("projects").hasLanguageModelEnabled(props.project_id),
   },
   chat: {
-    alwaysShow: true,
-    pos: 5,
-    group: "help-link",
+    // we have a side chat menu item... except for in a chatroom or side chat.
+    isVisible: ({ props }) =>
+      !props.path?.endsWith(".sage-chat") && props.type != "chat",
+    pos: -1,
+    group: "show-frames",
     icon: "comment",
     label: defineMessage({
       id: "command.generic.chat.label",
@@ -1018,10 +1095,27 @@ addCommands({
         "Opens a chatroom next to the document to chat with other users (collaborators) or an AI chatbot",
     }),
     button: labels.chat,
-    title:
-      "Open chat on the side of this file for chatting with project collaborators or AI about this file.",
+    title: defineMessage({
+      id: "command.generic.chat.tooltip",
+      defaultMessage:
+        "Open chat on the side of this file for chatting with project collaborators or AI about this file.",
+      description:
+        "Opens a chatroom next to the document to chat with other users (collaborators) or an AI chatbot",
+    }),
     onClick: ({ props }) => {
       redux.getProjectActions(props.project_id).open_chat({ path: props.path });
+    },
+  },
+  videoChat: {
+    alwaysShow: true,
+    pos: 0,
+    icon: "video-camera",
+    group: "show-frames",
+    label: "Video Chat",
+    button: "Video",
+    title: "Video chat about this file with collaborators on this project",
+    onClick: ({ props }) => {
+      props.actions.getVideoChat().startChatting();
     },
   },
   support: {
@@ -1122,6 +1216,17 @@ addCommands({
       description: "Editor for a file in a user interface",
     }),
     ...fileAction("close"),
+  },
+  settings: {
+    pos: 10,
+    group: "settings",
+    icon: "gear",
+    title: labels.settings,
+    label: labels.settings,
+    button: labels.settings,
+    onClick: ({ props }) => {
+      props.actions.settings?.();
+    },
   },
   new_frame_of_type: {
     alwaysShow: true,

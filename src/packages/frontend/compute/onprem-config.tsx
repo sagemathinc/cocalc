@@ -77,7 +77,7 @@ export default function OnPremCloudConfiguration({
   if (!editable || !project_id) {
     return (
       <div>
-        OnPrem {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux VM
+        Self Hosted {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux VM
         {configuration.gpu ? " that has an NVIDIA GPU" : ""}.
       </div>
     );
@@ -91,7 +91,7 @@ export default function OnPremCloudConfiguration({
     <div style={{ marginBottom: "30px" }}>
       <div style={{ color: "#666", marginBottom: "15px" }}>
         <div style={{ color: "#666", marginBottom: "5px" }}>
-          <b>OnPrem Compute Server</b>
+          <b>Self Hosted Compute Server</b>
         </div>
         You can connect your own <b>Ubuntu 22.04 Virtual Machine</b> to this
         CoCalc project and seamlessly run Jupyter notebooks and terminals on it.
@@ -104,13 +104,10 @@ export default function OnPremCloudConfiguration({
             </A>
             .
           </li>
-          <li>On-Prem compute servers are currently free.</li>
+          <li>Self hosted compute servers are currently free.</li>
           <li>
-            <A href="https://onprem.cocalc.com/overview.html">
-              CoCalc-OnPrem
-            </A>{" "}
-            is a related on-prem product for running a self-contained CoCalc
-            cluster.
+            <A href="https://onprem.cocalc.com/overview.html">CoCalc OnPrem</A>{" "}
+            is a related product for running a self-contained CoCalc cluster.
           </li>
         </ul>
       </div>

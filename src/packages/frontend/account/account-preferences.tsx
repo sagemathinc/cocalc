@@ -6,7 +6,6 @@
 import { Form, Switch, Tooltip } from "antd";
 import { join } from "path";
 import { FormattedMessage } from "react-intl";
-
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Loading } from "@cocalc/frontend/components";
@@ -34,9 +33,6 @@ export const AccountPreferences: React.FC = () => {
   );
   const passports = useTypedRedux("account", "passports");
   const sign_out_error = useTypedRedux("account", "sign_out_error");
-  const autosave = useTypedRedux("account", "autosave");
-  const font_size = useTypedRedux("account", "font_size");
-  const editor_settings = useTypedRedux("account", "editor_settings");
   const stripe_customer = useTypedRedux("account", "stripe_customer");
   const other_settings = useTypedRedux("account", "other_settings");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -152,20 +148,14 @@ export const AccountPreferences: React.FC = () => {
             {render_account_settings()}
             <ProfileSettings
               email_address={email_address}
-              first_name={first_name}
-              last_name={last_name}
+              // first_name={first_name}
+              // last_name={last_name}
             />
             {render_other_settings()}
             {!is_anonymous && <ApiKeys />}
           </Col>
           <Col xs={12} md={6}>
-            <EditorSettings
-              autosave={autosave}
-              tab_size={editor_settings?.get("tab_size")}
-              font_size={font_size}
-              editor_settings={editor_settings as any}
-              email_address={email_address}
-            />
+            <EditorSettings />
             <TerminalSettings />
             <KeyboardSettings />
           </Col>

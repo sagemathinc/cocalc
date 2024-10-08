@@ -14,7 +14,7 @@ export const ProjectSearchHeader: React.FC = () => {
 
   return (
     <div style={{ marginTop: "0px", fontSize: SIZE }}>
-      <Icon name="search" /> Search{" "}
+      <Icon name="search" /> Search Contents of Files{" "}
       <span className="hidden-xs">
         {" in "}
         <PathNavigator

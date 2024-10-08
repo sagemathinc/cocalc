@@ -58,7 +58,8 @@ export class JupyterActions extends JupyterActions0 {
     if (this.store.get("read_only")) return;
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      throw Error(`can't run cell ${id} since it does not exist`);
+      // it is trivial to run a cell that does not exist -- nothing needs to be done.
+      return;
     }
     const cell_type = cell.get("cell_type", "code");
     if (cell_type == "code") {
@@ -669,9 +670,8 @@ export class JupyterActions extends JupyterActions0 {
     // we are done waiting for output from this cell.
     // The output handler removes all listeners whenever it is
     // finished, so we don't have to remove this listener for done.
-    handler.once(
-      "done",
-      () => this.jupyter_kernel?.removeListener("closed", handleKernelClose),
+    handler.once("done", () =>
+      this.jupyter_kernel?.removeListener("closed", handleKernelClose),
     );
 
     handler.on("more_output", (mesg, mesg_length) => {

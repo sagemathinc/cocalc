@@ -4,8 +4,14 @@
  */
 
 import { Rendered, useState } from "../app-framework";
-import { Alert, Button, ButtonToolbar, Row, Col } from "react-bootstrap";
-import { Icon, IconName} from "../components/icon";
+import {
+  Alert,
+  Button,
+  ButtonToolbar,
+  Row,
+  Col,
+} from "@cocalc/frontend/antd-bootstrap";
+import { Icon, IconName } from "../components/icon";
 import { Gap } from "../components/gap";
 import { brand_to_icon_name } from "./data";
 
@@ -24,7 +30,7 @@ export const PaymentMethod: React.FC<Props> = (props) => {
 
   function icon_name(): IconName {
     return brand_to_icon_name(
-      props.source.brand != null ? props.source.brand.toLowerCase() : undefined
+      props.source.brand != null ? props.source.brand.toLowerCase() : undefined,
     );
   }
 
