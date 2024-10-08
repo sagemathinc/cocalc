@@ -34,7 +34,7 @@
     "@cocalc/sync": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@types/primus": "^7.3.6",
-    "cookie": "^0.5.0",
+    "cookie": "^0.7.0",
     "debug": "^4.3.2",
     "primus": "^8.0.7",
     "ws": "^8.18.0"
