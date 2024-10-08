@@ -412,7 +412,6 @@ class SagewsPrinter extends Printer
         return $html.html()
 
     html: (cb, progress) ->
-        console.log("html printer")
         # the following fits mentally into sagews.SynchronizedWorksheet
         # progress takes two arguments: a float between 0 and 1 [%] and optionally a message
         {MARKERS}    = require('@cocalc/util/sagews')

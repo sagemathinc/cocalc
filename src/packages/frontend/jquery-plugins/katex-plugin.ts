@@ -45,7 +45,6 @@ function katex_plugin(elt, preProcess): void {
       tex2jax.PreProcess(e);
     }
   }
-  console.log("katex_plugin", elt.html());
 
   // Select all the math and try to use katex on each part.
   elt.find("script").each(async function () {
