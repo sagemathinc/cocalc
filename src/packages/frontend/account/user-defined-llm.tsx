@@ -14,6 +14,7 @@ import {
 } from "antd";
 import { useWatch } from "antd/es/form/Form";
 import { sortBy } from "lodash";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import {
   useEffect,
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export function UserDefinedLLMComponent({ on_change }: Props) {
+  const intl = useIntl();
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
   const other_settings = useTypedRedux("account", "other_settings");
   const [form] = Form.useForm();
@@ -157,7 +159,10 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
           }
         }}
       >
-        Add your own Language Model
+        <FormattedMessage
+          id="account.user-defined-llm.add_button.label"
+          defaultMessage="Add your own Language Model"
+        />
       </Button>
     );
   }
@@ -349,7 +354,10 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
     return <Alert message={error} type="error" closable />;
   }
 
-  const title = "Bring your own Language Model";
+  const title = intl.formatMessage({
+    id: "account.user-defined-llm.title",
+    defaultMessage: "Bring your own Language Model",
+  });
 
   function renderContent() {
     if (user_defined_llm) {
@@ -371,14 +379,20 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
       <Title level={5}>
         {title}{" "}
         <HelpIcon style={{ float: "right" }} maxWidth="300px" title={title}>
-          This allows you to call a{" "}
-          <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
-            Large Language Model
-          </A>
-          of your own. You either need an API key or run it on your own server.
-          Make sure to click on "Test" to check, that the communication to the
-          API actually works. Most likely, the type you are looking for is
-          "Custom OpenAI" or "Ollama".
+          <FormattedMessage
+            id="account.user-defined-llm.info"
+            defaultMessage={`This allows you to call a {llm} of your own.
+            You either need an API key or run it on your own server.
+            Make sure to click on "Test" to check, that the communication to the API actually works.
+            Most likely, the type you are looking for is "Custom OpenAI" or "Ollama".`}
+            values={{
+              llm: (
+                <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
+                  Large Language Model
+                </A>
+              ),
+            }}
+          />
         </HelpIcon>
       </Title>
 
