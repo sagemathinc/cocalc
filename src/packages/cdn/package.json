@@ -9,8 +9,7 @@
   ],
   "devDependencies": {
     "codemirror": "^5.65.3",
-    "katex": "^0.16.10",
-    "mathjax": "^2.7.9"
+    "katex": "^0.16.10"
   },
   "scripts": {
     "clean": "rm -rf build node_modules dist",

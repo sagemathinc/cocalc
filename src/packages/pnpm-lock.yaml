@@ -135,9 +135,6 @@ importers:
       katex:
         specifier: ^0.16.10
         version: 0.16.11
-      mathjax:
-        specifier: ^2.7.9
-        version: 2.7.9
 
   comm:
     dependencies:
@@ -471,7 +468,7 @@ importers:
         specifier: ^1.0.1
         version: 1.0.1
       katex:
-        specifier: ^0.16.10
+        specifier: ^0.16.11
         version: 0.16.11
       langs:
         specifier: ^2.0.0
@@ -494,9 +491,6 @@ importers:
       markdown-it-front-matter:
         specifier: ^0.2.3
         version: 0.2.4
-      mathjax:
-        specifier: ^2.7.9
-        version: 2.7.9
       md5:
         specifier: ^2
         version: 2.3.0
@@ -577,7 +571,7 @@ importers:
         version: 2.6.0(plotly.js@2.35.2(mapbox-gl@3.7.0)(webpack@5.95.0))(react@18.3.1)
       react-redux:
         specifier: ^8.0.5
-        version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1)
+        version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1)
       react-timeago:
         specifier: ^7.2.0
         version: 7.2.0(react@18.3.1)
@@ -669,9 +663,6 @@ importers:
       '@types/markdown-it':
         specifier: 12.2.3
         version: 12.2.3
-      '@types/mathjax':
-        specifier: 0.0.36
-        version: 0.0.36
       '@types/md5':
         specifier: ^2.2.0
         version: 2.3.5
@@ -1368,7 +1359,7 @@ importers:
         version: 0.2.18(encoding@0.1.13)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/community':
         specifier: ^0.2.19
-        version: 0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.11.0(typescript@5.6.2))(axios@1.7.7)(better-sqlite3@11.3.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
+        version: 0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.2))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@6.0.2)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.2.17
         version: 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
@@ -1601,7 +1592,7 @@ importers:
     devDependencies:
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.5.10
-        version: 0.5.15(react-refresh@0.14.2)(type-fest@4.26.1)(webpack-hot-middleware@2.26.1)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
+        version: 0.5.15(react-refresh@0.14.2)(type-fest@3.13.1)(webpack-hot-middleware@2.26.1)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       '@swc/core':
         specifier: 1.3.3
         version: 1.3.3
@@ -3601,6 +3592,12 @@ packages:
     peerDependencies:
       typescript: '>=4.7'
 
+  '@qdrant/js-client-rest@1.12.0':
+    resolution: {integrity: sha512-H8VokZq2DYe9yfKG3c7xPNR+Oc5ZvwMUtPEr1wUO4xVi9w5P89MScJaCc9UW8mS5AR+/Y1h2t1YjSxBFPIYT2Q==}
+    engines: {node: '>=18.0.0', pnpm: '>=8'}
+    peerDependencies:
+      typescript: '>=4.7'
+
   '@qdrant/openapi-typescript-fetch@1.2.6':
     resolution: {integrity: sha512-oQG/FejNpItrxRHoyctYvT3rwGZOnK4jr3JdppO/c78ktDvkWiPXPHNsrDf33K9sZdRb6PR7gi4noIapu5q4HA==}
     engines: {node: '>=18.0.0', pnpm: '>=8'}
@@ -3998,9 +3995,6 @@ packages:
 
   '@types/markdown-it@12.2.3':
     resolution: {integrity: sha512-GKMHFfv3458yYy+v/N8gjufHO6MSZKCOXpZc5GXIWWy8uldwfmPn98vp81gZ5f9SVw8YYBctgfJ22a2d7AOMeQ==}
-
-  '@types/mathjax@0.0.36':
-    resolution: {integrity: sha512-TqDJc2GWuTqd/m+G/FbNkN+/TF2OCCHvcawmhIrUaZkdVquMdNZmNiNUkupNg9qctorXXkVLVSogZv1DhmgLmg==}
 
   '@types/md5@2.3.5':
     resolution: {integrity: sha512-/i42wjYNgE6wf0j2bcTX6kuowmdL/6PE4IVitMpm2eYKBUuYCprdcWVK+xEF0gcV6ufMCRhtxmReGfc6hIK7Jw==}
@@ -4800,9 +4794,6 @@ packages:
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
-  better-sqlite3@11.3.0:
-    resolution: {integrity: sha512-iHt9j8NPYF3oKCNOO5ZI4JwThjt3Z6J6XrcwG85VNMVzv1ByqrHWv5VILEbCMFWDsoHhXvQ7oC8vgRXFAKgl9w==}
-
   better-sqlite3@8.7.0:
     resolution: {integrity: sha512-99jZU4le+f3G6aIl6PmmV0cxUIWqKieHxsiF7G34CVFiE+/UabpYqkU0NJIkY/96mQKikHeBjtR27vFfs5JpEw==}
 
@@ -5024,10 +5015,6 @@ packages:
 
   cheerio-select@2.1.0:
     resolution: {integrity: sha512-9v9kG0LvzrlcungtnJtpGNxY+fzECQKhK4EGJX2vByejiMX84MFNQw4UxPJl3bFbTMw+Dfs37XaIkCwTZfLh4g==}
-
-  cheerio@1.0.0:
-    resolution: {integrity: sha512-quS9HgjQpdaXOvsZz82Oz7uxtXiy6UIsIQcpBj7HRw2M63Skasm9qlDocAM7jNuaxdhpPU7c4kJN+gA5MCu4ww==}
-    engines: {node: '>=18.17'}
 
   cheerio@1.0.0-rc.10:
     resolution: {integrity: sha512-g0J0q/O6mW8z5zxQ3A8E8J1hUgp4SMOvEoW/x84OwyHKe/Zccz83PVT4y5Crcr530FV6NgmKI1qvGTKVl9XXVw==}
@@ -6075,9 +6062,6 @@ packages:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
     engines: {node: '>= 0.8'}
 
-  encoding-sniffer@0.2.0:
-    resolution: {integrity: sha512-ju7Wq1kg04I3HtiYIOrUrdfdDvkyO9s5XM8QAj/bN61Yo/Vb4vgJxy5vi4Yxk01gWHbrofpPtpxM8bKger9jhg==}
-
   encoding@0.1.13:
     resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
 
@@ -7048,9 +7032,6 @@ packages:
   htmlparser2@8.0.2:
     resolution: {integrity: sha512-GYdjWKDkbRLkZ5geuHs5NY1puJ+PXwP7+fHPRz06Eirsb9ugf6d8kkXav6ADhcODhFFPMIXyxkxSuMf3D6NCFA==}
 
-  htmlparser2@9.1.0:
-    resolution: {integrity: sha512-5zfg6mHUoaer/97TxnGpxmbR7zJtPwIYFMZ/H5ucTlPZhKvtum05yiPK3Mgai3a0DyVxv7qYqoweaEd2nrYQzQ==}
-
   htmlparser@1.7.7:
     resolution: {integrity: sha512-zpK66ifkT0fauyFh2Mulrq4AqGTucxGtOhZ8OjkbSfcCpkqQEI8qRkY0tSQSJNAQ4HUZkgWaU4fK4EH6SVH9PQ==}
     engines: {node: '>=0.1.33'}
@@ -7120,6 +7101,10 @@ packages:
 
   ignore@5.3.1:
     resolution: {integrity: sha512-5Fytz/IraMjqpwfd34ke28PTVMjZjJG2MPn5t7OE4eUCUNf8BAa7b5WUS9/Qvr6mwOQS7Mk6vdsMno5he+T8Xw==}
+    engines: {node: '>= 4'}
+
+  ignore@6.0.2:
+    resolution: {integrity: sha512-InwqeHHN2XpumIkMvpl/DCJVrAHgCsG5+cn1XlnLWGwtZBm8QJfSusItfrwx81CTp5agNZqpKU2J/ccC5nGT4A==}
     engines: {node: '>= 4'}
 
   image-extensions@1.1.0:
@@ -8350,9 +8335,6 @@ packages:
     resolution: {integrity: sha512-9W0yGtkaMAkf74XGYVy4Dqw3YUMnTNB2eeiw9aQbUl4A3KmuCEHTt2DgAB07ENzOYAjsYSAYufkAq0Zd+jU7zA==}
     engines: {node: '>=0.10.0'}
 
-  mathjax@2.7.9:
-    resolution: {integrity: sha512-NOGEDTIM9+MrsqnjPEjVGNx4q0GQxqm61yQwSK+/5S59i26wId5IC5gNu9/bu8+CCVl5p9G2IHcAl/wJa+5+BQ==}
-
   md5@2.3.0:
     resolution: {integrity: sha512-T1GITYmFaKuO91vxyoQMFETst+O71VUPEU3ze5GNzDm0OWdP8v1ziTaAEPUr/3kLsY3Sftgz242A1SetQiDL7g==}
 
@@ -9093,9 +9075,6 @@ packages:
 
   parse5-htmlparser2-tree-adapter@7.0.0:
     resolution: {integrity: sha512-B77tOZrqqfUfnVcOrUvfdLbz4pu4RopLD/4vmu3HUPswwTA8OH0EMW9BlWR2B0RCoiZRAHEUu7IxeP1Pd1UU+g==}
-
-  parse5-parser-stream@7.1.2:
-    resolution: {integrity: sha512-JyeQc9iwFLn5TbvvqACIF/VXG6abODeB3Fwmv/TGdLk2LfbWkaySGY72at4+Ty7EkPZj854u4CrICqNk2qIbow==}
 
   parse5@6.0.1:
     resolution: {integrity: sha512-Ofn/CTFzRGTTxwpNEs9PP93gXShHcTq255nzRYSKe8AkVpZY7e1fpmTfOyoIvjP5HG7Z2ZM7VS9PPhQGW2pOpw==}
@@ -10105,9 +10084,6 @@ packages:
 
   redux@4.2.1:
     resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
-
-  redux@5.0.1:
-    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
 
   reflect-metadata@0.1.13:
     resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
@@ -11125,10 +11101,6 @@ packages:
     resolution: {integrity: sha512-tLq3bSNx+xSpwvAJnzrK0Ep5CLNWjvFTOp71URMaAEWBfRb9nnJiBoUe0tF8bI4ZFO3omgBR6NvnbzVUT3Ly4g==}
     engines: {node: '>=14.16'}
 
-  type-fest@4.26.1:
-    resolution: {integrity: sha512-yOGpmOAL7CkKe/91I5O3gPICmJNLJ1G4zFYVAsRHg7M64biSnPtRj0WNQt++bRkjYOqjWXrhnUw1utzmVErAdg==}
-    engines: {node: '>=16'}
-
   type-is@1.6.18:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
     engines: {node: '>= 0.6'}
@@ -11209,10 +11181,6 @@ packages:
   undici@5.28.4:
     resolution: {integrity: sha512-72RFADWFqKmUb2hmmvNODKL3p9hcB6Gt2DOQMis1SEBaV6a4MH8soBvzg+95CYhCKPFedut2JY9bMfrDl9D23g==}
     engines: {node: '>=14.0'}
-
-  undici@6.19.8:
-    resolution: {integrity: sha512-U8uCCl2x9TK3WANvmBavymRzxbfFYG+tAu+fgx3zxQy3qdagQqBLwJVrdyO1TBfUXvfKveMKJZhpvUYoOjM+4g==}
-    engines: {node: '>=18.17'}
 
   unified@10.1.2:
     resolution: {integrity: sha512-pUSWAi/RAnVy1Pif2kAoeWNBa3JVrx0MId2LASj8G+7AiHWoKZNTomq6LG326T68U7/e263X6fTdcXIy7XnF7Q==}
@@ -11548,14 +11516,6 @@ packages:
 
   webworkify@1.5.0:
     resolution: {integrity: sha512-AMcUeyXAhbACL8S2hqqdqOLqvJ8ylmIbNwUIqQujRSouf4+eUFaXbG6F1Rbu+srlJMmxQWsiU7mOJi0nMBfM1g==}
-
-  whatwg-encoding@3.1.1:
-    resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
-    engines: {node: '>=18'}
-
-  whatwg-mimetype@4.0.0:
-    resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
-    engines: {node: '>=18'}
 
   whatwg-url@5.0.0:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
@@ -13089,7 +13049,7 @@ snapshots:
       - encoding
       - openai
 
-  '@langchain/community@0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.11.0(typescript@5.6.2))(axios@1.7.7)(better-sqlite3@11.3.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
+  '@langchain/community@0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.2))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@6.0.2)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
     dependencies:
       '@langchain/core': 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.2.11(encoding@0.1.13)
@@ -13097,7 +13057,7 @@ snapshots:
       expr-eval: 2.0.2
       flat: 5.0.2
       js-yaml: 4.1.0
-      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
+      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@6.0.2)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
       langsmith: 0.1.59(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       uuid: 10.0.0
       zod: 3.23.8
@@ -13105,12 +13065,13 @@ snapshots:
     optionalDependencies:
       '@google-ai/generativelanguage': 2.6.0(encoding@0.1.13)
       '@google-cloud/storage': 7.13.0(encoding@0.1.13)
-      '@qdrant/js-client-rest': 1.11.0(typescript@5.6.2)
-      better-sqlite3: 11.3.0
-      cheerio: 1.0.0
+      '@qdrant/js-client-rest': 1.12.0(typescript@5.6.2)
+      better-sqlite3: 8.7.0
+      cheerio: 1.0.0-rc.10
+      d3-dsv: 3.0.1
       google-auth-library: 9.14.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
-      ignore: 5.3.1
+      ignore: 6.0.2
       jsonwebtoken: 9.0.2
       lodash: 4.17.21
       pg: 8.13.0
@@ -13613,7 +13574,7 @@ snapshots:
 
   '@plotly/regl@2.1.2': {}
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.5.15(react-refresh@0.14.2)(type-fest@4.26.1)(webpack-hot-middleware@2.26.1)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))':
+  '@pmmmwh/react-refresh-webpack-plugin@0.5.15(react-refresh@0.14.2)(type-fest@3.13.1)(webpack-hot-middleware@2.26.1)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))':
     dependencies:
       ansi-html: 0.0.9
       core-js-pure: 3.27.1
@@ -13625,7 +13586,7 @@ snapshots:
       source-map: 0.7.4
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
     optionalDependencies:
-      type-fest: 4.26.1
+      type-fest: 3.13.1
       webpack-hot-middleware: 2.26.1
 
   '@polka/url@1.0.0-next.28': {}
@@ -13659,6 +13620,14 @@ snapshots:
       '@sevinf/maybe': 0.5.0
       typescript: 5.6.2
       undici: 5.28.4
+
+  '@qdrant/js-client-rest@1.12.0(typescript@5.6.2)':
+    dependencies:
+      '@qdrant/openapi-typescript-fetch': 1.2.6
+      '@sevinf/maybe': 0.5.0
+      typescript: 5.6.2
+      undici: 5.28.4
+    optional: true
 
   '@qdrant/openapi-typescript-fetch@1.2.6': {}
 
@@ -14109,8 +14078,6 @@ snapshots:
     dependencies:
       '@types/linkify-it': 5.0.0
       '@types/mdurl': 2.0.0
-
-  '@types/mathjax@0.0.36': {}
 
   '@types/md5@2.3.5': {}
 
@@ -15074,12 +15041,6 @@ snapshots:
 
   bcryptjs@2.4.3: {}
 
-  better-sqlite3@11.3.0:
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.2
-    optional: true
-
   better-sqlite3@8.7.0:
     dependencies:
       bindings: 1.5.0
@@ -15327,21 +15288,6 @@ snapshots:
       domelementtype: 2.3.0
       domhandler: 5.0.3
       domutils: 3.1.0
-
-  cheerio@1.0.0:
-    dependencies:
-      cheerio-select: 2.1.0
-      dom-serializer: 2.0.0
-      domhandler: 5.0.3
-      domutils: 3.1.0
-      encoding-sniffer: 0.2.0
-      htmlparser2: 9.1.0
-      parse5: 7.1.2
-      parse5-htmlparser2-tree-adapter: 7.0.0
-      parse5-parser-stream: 7.1.2
-      undici: 6.19.8
-      whatwg-mimetype: 4.0.0
-    optional: true
 
   cheerio@1.0.0-rc.10:
     dependencies:
@@ -16470,12 +16416,6 @@ snapshots:
   encodeurl@1.0.2: {}
 
   encodeurl@2.0.0: {}
-
-  encoding-sniffer@0.2.0:
-    dependencies:
-      iconv-lite: 0.6.3
-      whatwg-encoding: 3.1.1
-    optional: true
 
   encoding@0.1.13:
     dependencies:
@@ -17854,14 +17794,6 @@ snapshots:
       domutils: 3.1.0
       entities: 4.5.0
 
-  htmlparser2@9.1.0:
-    dependencies:
-      domelementtype: 2.3.0
-      domhandler: 5.0.3
-      domutils: 3.1.0
-      entities: 4.5.0
-    optional: true
-
   htmlparser@1.7.7: {}
 
   http-errors@1.6.3:
@@ -17945,6 +17877,9 @@ snapshots:
   ieee754@1.2.1: {}
 
   ignore@5.3.1: {}
+
+  ignore@6.0.2:
+    optional: true
 
   image-extensions@1.1.0: {}
 
@@ -18932,7 +18867,7 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
+  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@6.0.2)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
     dependencies:
       '@langchain/core': 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.0.34(encoding@0.1.13)
@@ -18952,10 +18887,11 @@ snapshots:
       zod-to-json-schema: 3.23.0(zod@3.23.8)
     optionalDependencies:
       axios: 1.7.7
-      cheerio: 1.0.0
+      cheerio: 1.0.0-rc.10
+      d3-dsv: 3.0.1
       fast-xml-parser: 4.5.0
       handlebars: 4.7.8
-      ignore: 5.3.1
+      ignore: 6.0.2
       ws: 8.18.0
     transitivePeerDependencies:
       - encoding
@@ -19271,8 +19207,6 @@ snapshots:
   material-colors@1.2.6: {}
 
   math-log2@1.0.1: {}
-
-  mathjax@2.7.9: {}
 
   md5@2.3.0:
     dependencies:
@@ -20251,11 +20185,6 @@ snapshots:
     dependencies:
       domhandler: 5.0.3
       parse5: 7.1.2
-
-  parse5-parser-stream@7.1.2:
-    dependencies:
-      parse5: 7.1.2
-    optional: true
 
   parse5@6.0.1: {}
 
@@ -21367,7 +21296,7 @@ snapshots:
 
   react-property@2.0.0: {}
 
-  react-redux@8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1):
+  react-redux@8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1):
     dependencies:
       '@babel/runtime': 7.25.6
       '@types/hoist-non-react-statics': 3.3.1
@@ -21380,7 +21309,7 @@ snapshots:
       '@types/react': 18.3.10
       '@types/react-dom': 18.3.0
       react-dom: 18.3.1(react@18.3.1)
-      redux: 5.0.1
+      redux: 4.2.1
 
   react-refresh@0.14.2: {}
 
@@ -21492,9 +21421,6 @@ snapshots:
   redux@4.2.1:
     dependencies:
       '@babel/runtime': 7.25.6
-
-  redux@5.0.1:
-    optional: true
 
   reflect-metadata@0.1.13: {}
 
@@ -22650,9 +22576,6 @@ snapshots:
 
   type-fest@3.13.1: {}
 
-  type-fest@4.26.1:
-    optional: true
-
   type-is@1.6.18:
     dependencies:
       media-typer: 0.3.0
@@ -22743,9 +22666,6 @@ snapshots:
   undici@5.28.4:
     dependencies:
       '@fastify/busboy': 2.1.0
-
-  undici@6.19.8:
-    optional: true
 
   unified@10.1.2:
     dependencies:
@@ -23189,14 +23109,6 @@ snapshots:
       - utf-8-validate
 
   webworkify@1.5.0: {}
-
-  whatwg-encoding@3.1.1:
-    dependencies:
-      iconv-lite: 0.6.3
-    optional: true
-
-  whatwg-mimetype@4.0.0:
-    optional: true
 
   whatwg-url@5.0.0:
     dependencies:
