@@ -472,7 +472,6 @@ export class ChatActions extends Actions<ChatState> {
       max: number;
     } | null = null,
   ) => {
-    console.log("setCostEstimate", costEstimate);
     this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       costEstimate,
