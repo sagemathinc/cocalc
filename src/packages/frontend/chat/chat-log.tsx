@@ -47,6 +47,7 @@ interface Props {
   // scrollToDate = string ms from epoch
   scrollToDate?: null | undefined | string;
   selectedDate?: string;
+  costEstimate?;
 }
 
 export function ChatLog({
@@ -64,13 +65,9 @@ export function ChatLog({
   scrollToIndex,
   scrollToDate,
   selectedDate,
+  costEstimate,
 }: Props) {
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
-  const llm_cost_reply: [number, number] = useRedux(
-    ["llm_cost_reply"],
-    project_id,
-    path,
-  );
 
   // see similar code in task list:
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
@@ -236,7 +233,7 @@ export function ChatLog({
           fontSize,
           selectedHashtags,
           actions,
-          llm_cost_reply,
+          costEstimate,
           manualScrollRef,
           mode,
           selectedDate,
@@ -464,7 +461,7 @@ export function MessageList({
   fontSize,
   selectedHashtags,
   actions,
-  llm_cost_reply,
+  costEstimate,
   manualScrollRef,
   mode,
   selectedDate,
@@ -481,7 +478,7 @@ export function MessageList({
   fontSize?;
   selectedHashtags?;
   actions?;
-  llm_cost_reply?;
+  costEstimate?;
   manualScrollRef?;
   selectedDate?: string;
 }) {
@@ -568,7 +565,7 @@ export function MessageList({
                 allowReply={
                   messages.getIn([sortedDates[index + 1], "reply_to"]) == null
                 }
-                llm_cost_reply={llm_cost_reply}
+                costEstimate={costEstimate}
               />
             </DivTempHeight>
           </div>

@@ -45,20 +45,15 @@ export default function SideChat({
   const disableFilters = actions0 == null;
   const messages = useRedux(["messages"], project_id, path);
   const [lastVisible, setLastVisible] = useState<Date | null>(null);
-  const input: string = useRedux(["input"], project_id, path);
+  const [input, setInput] = useState("");
   const search = desc?.get("data-search") ?? "";
   const selectedHashtags = desc?.get("data-selectedHashtags");
   const scrollToIndex = desc?.get("data-scrollToIndex") ?? null;
   const scrollToDate = desc?.get("data-scrollToDate") ?? null;
   const fragmentId = desc?.get("data-fragmentId") ?? null;
+  const costEstimate = desc?.get("data-costEstimate");
   const addCollab: boolean = useRedux(["add_collab"], project_id, path);
-  const is_uploading = useRedux(["is_uploading"], project_id, path);
   const project_map = useTypedRedux("projects", "project_map");
-  const llm_cost_room: [number, number] = useRedux(
-    ["llm_cost_room"],
-    project_id,
-    path,
-  );
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
   const submitMentionsRef = useRef<SubmitMentionsFn>();
@@ -183,6 +178,7 @@ export default function SideChat({
           scrollToIndex={scrollToIndex}
           scrollToDate={scrollToDate}
           selectedDate={fragmentId}
+          costEstimate={costEstimate}
         />
       </div>
 
@@ -193,6 +189,7 @@ export default function SideChat({
               <Space>
                 {lastVisible && (
                   <Button
+                    disabled={!input.trim()}
                     type="primary"
                     onClick={() => {
                       sendChat({ reply_to: new Date(lastVisible) });
@@ -208,18 +205,20 @@ export default function SideChat({
                     sendChat();
                     user_activity("side_chat", "send_chat", "click");
                   }}
-                  disabled={!input?.trim() || is_uploading}
+                  disabled={!input?.trim()}
                 >
                   <Icon name="paper-plane" />
                   Start New Thread
                 </Button>
               </Space>
             </Tooltip>
-            <LLMCostEstimationChat
-              compact
-              llm_cost={llm_cost_room}
-              style={{ margin: "5px" }}
-            />
+            {costEstimate?.get("date") == 0 && (
+              <LLMCostEstimationChat
+                compact
+                costEstimate={costEstimate?.toJS()}
+                style={{ margin: "5px" }}
+              />
+            )}
           </Flex>
         ) : undefined}
         <ChatInput
@@ -235,10 +234,10 @@ export default function SideChat({
           style={{ height: INPUT_HEIGHT }}
           height={INPUT_HEIGHT}
           onChange={(value) => {
-            actions.setInput(value);
+            setInput(value);
             // submitMentionsRef processes the reply, but does not actually send the mentions
-            const reply = submitMentionsRef.current?.(undefined, true) ?? value;
-            actions?.llmEstimateCost(reply, "room");
+            const input = submitMentionsRef.current?.(undefined, true) ?? value;
+            actions?.llmEstimateCost({ date: 0, input });
           }}
           submitMentionsRef={submitMentionsRef}
           syncdb={actions.syncdb}

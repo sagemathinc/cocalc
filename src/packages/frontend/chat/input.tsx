@@ -6,11 +6,7 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useDebouncedCallback } from "use-debounce";
-import {
-  CSS,
-  redux,
-  useIsMountedRef,
-} from "@cocalc/frontend/app-framework";
+import { CSS, redux, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
@@ -65,7 +61,7 @@ export default function ChatInput({
   useEffect(() => {
     onSendRef.current = on_send;
   }, [on_send]);
-  const { project_id, actions } = useFrameContext();
+  const { project_id } = useFrameContext();
   const sender_id = useMemo(
     () => redux.getStore("account").get_account_id(),
     [],
@@ -216,8 +212,6 @@ export default function ChatInput({
       cacheId={cacheId}
       value={input}
       enableUpload={true}
-      onUploadStart={() => actions?.set_uploading(true)}
-      onUploadEnd={() => actions?.set_uploading(false)}
       enableMentions={true}
       submitMentionsRef={submitMentionsRef}
       onChange={(input) => {
