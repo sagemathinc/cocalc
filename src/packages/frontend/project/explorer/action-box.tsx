@@ -4,7 +4,6 @@
  */
 
 import React from "react";
-import ReactDOM from "react-dom";
 import * as immutable from "immutable";
 import { rtypes, rclass } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
@@ -21,16 +20,14 @@ import {
   Col,
   Row,
   Well,
-  FormControl,
-  FormGroup,
   Alert,
   Checkbox,
 } from "@cocalc/frontend/antd-bootstrap";
-import * as account from "@cocalc/frontend/account";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ConfigureShare from "@cocalc/frontend/share/config";
 import CreateArchive from "./create-archive";
 import RenameFile from "./rename-file";
+import Download from "./download";
 
 export const PRE_STYLE = {
   marginBottom: "15px",
@@ -703,120 +700,6 @@ export const ActionBox = rclass<ReactProps>(
       );
     }
 
-    download_single_click = (): void => {
-      this.props.actions.download_file({
-        path: this.props.checked_files.first(),
-        log: true,
-      });
-      this.props.actions.set_file_action();
-    };
-
-    download_multiple_click = (): void => {
-      const destination = (
-        ReactDOM.findDOMNode(this.refs.download_archive) as any
-      ).value;
-      const dest = misc.path_to_file(this.props.current_path, destination);
-      const files = this.props.checked_files.toArray();
-      this.props.actions.zip_files({
-        src: files,
-        dest,
-        cb: (err) => {
-          if (err) {
-            this.props.actions.set_activity({ id: misc.uuid(), error: err });
-            return;
-          }
-          this.props.actions.download_file({
-            path: dest,
-            log: files,
-          });
-          this.props.actions.fetch_directory_listing();
-        },
-      });
-      this.props.actions.set_all_files_unchecked();
-      this.props.actions.set_file_action();
-    };
-
-    render_download_single(single_item: string): JSX.Element {
-      const target = (this.props.actions.get_store() as any).get_raw_link(
-        single_item,
-      );
-      return (
-        <div>
-          <h4>Download link</h4>
-          <pre style={PRE_STYLE}>
-            <a href={target} target="_blank">
-              {target}
-            </a>
-          </pre>
-        </div>
-      );
-    }
-
-    render_download_multiple(): JSX.Element {
-      return (
-        <div>
-          <h4>Download as archive</h4>
-          <FormGroup>
-            <FormControl
-              autoFocus={true}
-              ref="download_archive"
-              key="download_archive"
-              type="text"
-              defaultValue={account.default_filename(
-                "zip",
-                this.props.project_id,
-              )}
-              placeholder="Result archive..."
-              onKeyDown={this.action_key}
-            />
-          </FormGroup>
-        </div>
-      );
-    }
-
-    render_download(): JSX.Element {
-      let download_multiple_files;
-      const single_item = this.props.checked_files.first("");
-      const listing_item = this.props.file_map[
-        misc.path_split(single_item).tail
-      ] || { isdir: undefined };
-      if (this.props.checked_files.size !== 1 || listing_item.isdir) {
-        download_multiple_files = true;
-      }
-      return (
-        <div>
-          <Row>
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>Download file(s) to your computer</h4>
-              {this.render_selected_files_list()}
-            </Col>
-            <Col sm={7} style={{ color: "#666" }}>
-              {download_multiple_files
-                ? this.render_download_multiple()
-                : this.render_download_single(single_item)}
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
-              <ButtonToolbar>
-                <Button
-                  bsStyle="primary"
-                  onClick={
-                    download_multiple_files
-                      ? this.download_multiple_click
-                      : this.download_single_click
-                  }
-                >
-                  <Icon name="cloud-download" /> Download
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
-            </Col>
-          </Row>
-        </div>
-      );
-    }
-
     render_action_box(action: FileAction): JSX.Element | undefined {
       switch (action) {
         case "compress":
@@ -826,7 +709,7 @@ export const ActionBox = rclass<ReactProps>(
         case "delete":
           return this.render_delete();
         case "download":
-          return this.render_download();
+          return <Download />;
         case "rename":
           return <RenameFile />;
         case "duplicate":

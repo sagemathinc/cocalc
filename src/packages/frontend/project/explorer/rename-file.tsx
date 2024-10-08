@@ -23,7 +23,7 @@ export default function RenameFile({ duplicate }: Props) {
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
   const [target, setTarget] = useState<string>("");
   const ext = filename_extension(target);
-  const [editExtension, setEditExtension] = useState<boolean>(false);
+  const [editExtension, setEditExtension] = useState<boolean>(!ext);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -35,14 +35,15 @@ export default function RenameFile({ duplicate }: Props) {
 
   useEffect(() => {
     const name = path_split(checked_files?.first() ?? "").tail;
+    let target;
     if (duplicate) {
-      setTarget(
-        actions?.suggestDuplicateFilenameInCurrentDirectory(name) ?? name,
-      );
-      setEditExtension(false);
+      target =
+        actions?.suggestDuplicateFilenameInCurrentDirectory(name) ?? name;
     } else {
-      setTarget(name);
+      target = name;
     }
+    setEditExtension(!filename_extension(target));
+    setTarget(target);
   }, [checked_files, duplicate]);
 
   const doAction = async () => {
@@ -146,22 +147,24 @@ export default function RenameFile({ duplicate }: Props) {
       <div style={{ marginTop: "15px" }} />
       {!duplicate && (
         <Checkbox
+          disabled={!ext}
           checked={editExtension}
           onChange={() => setEditExtension(!editExtension)}
         >
           Edit Filename Extension
         </Checkbox>
       )}
-      {editExtension && (
-        <Alert
-          style={{ marginTop: "15px" }}
-          type="warning"
-          message={
-            "Editing the filename extension may cause your file to no longer open properly."
-          }
-          showIcon
-        />
-      )}
+      {editExtension &&
+        filename_extension(checked_files?.first() ?? "") != ext && (
+          <Alert
+            style={{ marginTop: "15px" }}
+            type="warning"
+            message={
+              "Changing the filename extension may cause your file to no longer open properly."
+            }
+            showIcon
+          />
+        )}
       {target.length > MAX_FILENAME_LENGTH && (
         <Alert
           style={{ marginTop: "15px" }}
