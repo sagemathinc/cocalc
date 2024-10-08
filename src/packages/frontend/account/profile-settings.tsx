@@ -4,7 +4,6 @@
  */
 
 import { useIntl } from "react-intl";
-
 import { Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ColorPicker } from "@cocalc/frontend/colorpicker";

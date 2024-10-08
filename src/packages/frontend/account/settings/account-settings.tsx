@@ -7,14 +7,12 @@ import { Alert as AntdAlert, Space } from "antd";
 import { List, Map } from "immutable";
 import { join } from "path";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import {
   Alert,
   Button,
   ButtonToolbar,
   Checkbox,
   Col,
-  FormGroup,
   Panel,
   Row,
   Well,
@@ -452,14 +450,14 @@ export function AccountSettings(props: Readonly<Props>) {
       style.border = "2px solid red";
     }
     return (
-      <FormGroup style={style}>
+      <div style={style}>
         <Checkbox
           checked={terms_checkbox}
           onChange={(e) => set_terms_checkbox(e.target.checked)}
         >
           <TermsOfService style={{ display: "inline" }} />
         </Checkbox>
-      </FormGroup>
+      </div>
     );
   }
 
