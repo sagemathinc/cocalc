@@ -13,10 +13,9 @@ import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { in_snapshot_path } from "../utils";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import * as misc from "@cocalc/util/misc";
-import { Button as AntdButton, Radio, Alert as AntdAlert } from "antd";
+import { Button as AntdButton, Radio, Alert as AntdAlert, Space } from "antd";
 import {
   Button,
-  ButtonToolbar,
   Col,
   Row,
   Well,
@@ -203,17 +202,17 @@ export const ActionBox = rclass<ReactProps>(
           </Row>
           <Row>
             <Col sm={12}>
-              <ButtonToolbar>
-                <Button
-                  bsStyle="danger"
+              <Space>
+                <AntdButton onClick={this.cancel_action}>Cancel</AntdButton>
+                <AntdButton
+                  danger
                   onClick={this.delete_click}
                   disabled={this.props.current_path === ".trash"}
                 >
                   <Icon name="trash" /> Delete {size}{" "}
                   {misc.plural(size, "Item")}
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
+                </AntdButton>
+              </Space>
             </Col>
           </Row>
         </div>
@@ -328,18 +327,18 @@ export const ActionBox = rclass<ReactProps>(
         <div>
           <Row>
             <Col sm={5} style={{ color: "#666" }}>
-              <h4>Move to a directory</h4>
+              <h4>Move files to a directory</h4>
               {this.render_selected_files_list()}
-              <ButtonToolbar>
-                <Button
-                  bsStyle="warning"
+              <Space>
+                <Button onClick={this.cancel_action}>Cancel</Button>
+                <AntdButton
+                  type="primary"
                   onClick={this.move_click}
                   disabled={!this.valid_move_input()}
                 >
-                  <Icon name="move" /> Move {size} {misc.plural(size, "Item")}
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
+                  Move {size} {misc.plural(size, "Item")}
+                </AntdButton>
+              </Space>
             </Col>
             <Col sm={5} style={{ color: "#666", marginBottom: "15px" }}>
               <h4>
@@ -560,13 +559,13 @@ export const ActionBox = rclass<ReactProps>(
             <LoginLink />
             <Row>
               <Col sm={12}>
-                <ButtonToolbar>
+                <Space>
+                  <Button onClick={this.cancel_action}>Cancel</Button>
                   <Button bsStyle="primary" disabled={true}>
                     <Icon name="files" /> Copy {size}{" "}
                     {misc.plural(size, "item")}
                   </Button>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
-                </ButtonToolbar>
+                </Space>
               </Col>
             </Row>
           </div>
@@ -580,17 +579,17 @@ export const ActionBox = rclass<ReactProps>(
                 style={{ color: "#666" }}
               >
                 {this.render_copy_description()}
-                <ButtonToolbar>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
-                  <Button
-                    bsStyle="primary"
+                <Space>
+                  <AntdButton onClick={this.cancel_action}>Cancel</AntdButton>
+                  <AntdButton
+                    type="primary"
                     onClick={this.copy_click}
                     disabled={!this.valid_copy_input()}
                   >
                     <Icon name="files" /> Copy {size}{" "}
                     {misc.plural(size, "Item")}
-                  </Button>
-                </ButtonToolbar>
+                  </AntdButton>
+                </Space>
               </Col>
               {this.render_different_project_dialog()}
               <Col
