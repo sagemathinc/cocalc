@@ -796,7 +796,7 @@
   "project.named-server-panel.spec.jupyter.description": "يشغل خادم Jupyter Classic دفتر الملاحظات في مشروعك ويوفر دعمًا لدفاتر ملاحظات Jupyter الكلاسيكية. يمكنك أيضًا استخدام خادم دفتر الملاحظات الكلاسيكي العادي مباشرةً عبر الرابط أدناه. هذا لا يدعم المستخدمين المتعددين أو TimeTravel، لكنه يدعم بالكامل جميع ميزات وإضافات دفتر ملاحظات Jupyter الكلاسيكية.",
   "project.named-server-panel.spec.jupyterlab.description": "خادم JupyterLab يعمل من مشروعك ويوفر الدعم لدفاتر Jupyter، والمحطات، والسحب والإفلات، مع تخطيط نوافذ متعددة مريح، وأكثر من ذلك بكثير. JupyterLab لا يدعم بعد مستخدمين متعددين أو TimeTravel، لكنه يدعم بشكل كامل معظم ميزات وملحقات دفتر Jupyter.",
   "project.named-server-panel.spec.pluto.description": "دفاتر تفاعلية لجوليا. <b>ملاحظة: قد يستغرق بلوتو وقتاً طويلاً للبدء، لذا تحلى بالصبر.</b>",
-  "project.named-server-panel.spec.rserver.description": "هذه بيئة تطوير متكاملة (IDE) للغة R، تُعرف أحياناً بـ \"R Studio\". يتم تقديمها دون أي تعديلات. <b>إخلاء المسؤولية: شركة Posit Software, PBC (المعروفة سابقاً بـ RStudio, PBC) ليست مرتبطة بأي شكل من الأشكال بـ CoCalc.</b>",
+  "project.named-server-panel.spec.rserver.description": "هذه بيئة تطوير متكاملة (IDE) للغة R. يتم توفيرها دون أي تعديلات. <b>إخلاء المسؤولية: شركة Posit Software, PBC (المعروفة سابقاً باسم RStudio, PBC) ليست مرتبطة بأي شكل من الأشكال مع CoCalc.</b>",
   "project.named-server-panel.spec.server.description": "الخادم {name} يعمل من مشروعك. لا يدعم حتى الآن تعدد المستخدمين أو السفر عبر الزمن، ولكنه يدعم بشكل كامل معظم الميزات والامتدادات الأخرى لـ{name}.",
   "project.new-file-page.title": "إنشاء أو {upload} ملف جديد أو <folder>مجلد</folder>",
   "project.new-file-page.title.modal.title": "إنشاء مجلد جديد",

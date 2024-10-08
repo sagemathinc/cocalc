@@ -796,7 +796,7 @@
   "project.named-server-panel.spec.jupyter.description": "Jupyter Classic 笔记本服务器在您的项目中运行，并为经典 Jupyter 笔记本提供支持。您还可以通过下面的链接直接使用纯经典 Jupyter 笔记本服务器。这不支持多用户或时间旅行，但完全支持所有经典 Jupyter 笔记本功能和扩展。",
   "project.named-server-panel.spec.jupyterlab.description": "JupyterLab服务器从您的项目中运行，提供对Jupyter notebook、终端、拖放的支持，并具有漂亮的多窗口布局，以及更多功能。JupyterLab尚不支持多用户或TimeTravel，但完全支持大多数Jupyter notebook功能和扩展。",
   "project.named-server-panel.spec.pluto.description": "Julia的响应式笔记本。<b>注意：Pluto可能需要很长时间才能启动，请耐心等待。</b>",
-  "project.named-server-panel.spec.rserver.description": "这是一个用于R的集成开发环境（IDE），有时称为“R Studio”。它未经任何修改提供。免责声明：Posit Software, PBC（前身为RStudio, PBC）与CoCalc没有任何关联。",
+  "project.named-server-panel.spec.rserver.description": "这是一个用于 R 的集成开发环境 (IDE)。它未经任何修改提供。<b>免责声明：Posit Software, PBC（前身为 RStudio, PBC）与 CoCalc 没有任何关联。</b>",
   "project.named-server-panel.spec.server.description": "{name} 服务器从您的项目运行。它尚不支持多用户或TimeTravel，但完全支持{name}的大多数其他功能和扩展。",
   "project.new-file-page.title": "创建或{上传}新文件或<folder>文件夹</folder>",
   "project.new-file-page.title.modal.title": "新建文件夹",
