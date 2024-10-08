@@ -15,7 +15,7 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 */
 
 // TODO: What we haven't converted yet, but do use in CoCalc:
-export { Form, ListGroup, ListGroupItem } from "react-bootstrap";
+export { ListGroup, ListGroupItem } from "react-bootstrap";
 
 import {
   Alert as AntdAlert,
