@@ -18,6 +18,7 @@ import { AIGenerateDocumentButton } from "../page/home-page/ai-generate-document
 import { ensure_project_running } from "../project-start-warning";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { NewFileButton } from "./new-file-button";
+import { AiDocGenerateBtn } from "./add-ai-gen-btn";
 
 /**
  * An incomplete mapping of Jupyter Kernel "language" names to a display name and file extension.
@@ -51,7 +52,7 @@ interface JupyterNotebookButtonsProps {
   create_file: (ext: string) => void;
   btnSize: "small" | "large";
   btnActive: (name: string) => boolean;
-  grid: [number, number];
+  grid: [number | { flex: string }, number | { flex: string }];
   filename: string;
   filenameChanged?: boolean;
   mode: "full" | "flyout";
@@ -287,7 +288,6 @@ export function JupyterNotebookButtons({
             <Flex flex={"1 1 auto"}>{btn}</Flex>
             <Flex flex={"0 0 auto"}>
               <AIGenerateDocumentButton
-                project_id={project_id}
                 mode="flyout"
                 ext={langs.includes(lang as any) ? "ipynb-sagemath" : "ipynb"}
                 filename={filenameChanged ? filename : undefined}
@@ -301,7 +301,6 @@ export function JupyterNotebookButtons({
         <Col key={i} sm={sm} md={md}>
           {btn}
           <AIGenerateDocumentButton
-            project_id={project_id}
             mode="full"
             ext={langs.includes(lang as any) ? "ipynb-sagemath" : "ipynb"}
             filename={filenameChanged ? filename : undefined}
@@ -330,35 +329,15 @@ export function JupyterNotebookButtons({
   );
 
   function renderMainJupyterButton() {
-    if (isFlyout) {
-      return (
-        <Col sm={sm} md={md}>
-          <Flex align="flex-start" vertical={false} gap={"5px"}>
-            <Flex flex={"1 1 auto"}>{btn}</Flex>
-            <Flex flex={"0 0 auto"}>
-              <AIGenerateDocumentButton
-                project_id={project_id}
-                mode="flyout"
-                ext="ipynb"
-                filename={filenameChanged ? filename : undefined}
-              />
-            </Flex>
-          </Flex>
-        </Col>
-      );
-    } else {
-      return (
-        <Col sm={sm} md={md}>
-          {btn}
-          <AIGenerateDocumentButton
-            project_id={project_id}
-            mode="full"
-            ext="ipynb"
-            filename={filenameChanged ? filename : undefined}
-          />
-        </Col>
-      );
-    }
+    return (
+      <AiDocGenerateBtn
+        btn={btn}
+        mode={mode}
+        ext={"ipynb"}
+        grid={[sm, md]}
+        filename={filenameChanged ? filename : undefined}
+      />
+    );
   }
 
   return (
