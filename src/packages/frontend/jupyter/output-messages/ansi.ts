@@ -4,23 +4,15 @@
  */
 
 import Anser from "anser";
-
-let Ansi = require("@cocalc/ansi-to-react");
-if (Ansi.default) {
-  // Total hack to workaround some weird issue with Typescript, modules
-  // and the share server.  Just doing `import Ansi from "ansi-to-react";`
-  // works on the frontend but BREAK badly on the share server.
-  // TODO: Fix this, since we're now upstream https://github.com/sagemathinc/ansi-to-react
-  Ansi = Ansi.default;
-}
+import Ansi from "@cocalc/frontend/components/ansi-to-react";
 export { Ansi };
 
 export function is_ansi(s: any): boolean {
   return (
     typeof s === "string" &&
-    (s.indexOf("\u001b") !== -1 ||
-      s.indexOf("\r") != -1 || // For \r and \b below, see https://github.com/sagemathinc/cocalc/issues/2520
-      s.indexOf("\b") != -1)
+    (s.includes("\u001b") ||
+      s.includes("\r") || // For \r and \b below, see https://github.com/sagemathinc/cocalc/issues/2520
+      s.includes("\b"))
   );
 }
 

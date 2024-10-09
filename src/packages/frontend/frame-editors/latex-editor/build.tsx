@@ -7,7 +7,7 @@
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 
-import Ansi from "@cocalc/ansi-to-react";
+import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import { Button, Flex, Tooltip } from "antd";
 import { Fragment, useState } from "react";
 
