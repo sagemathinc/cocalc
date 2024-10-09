@@ -380,7 +380,7 @@ export class ManageCommands {
             },
             { isOnButtonBar },
           )}
-          placement="top"
+          placement="left"
         >
           <Button
             type="text"
