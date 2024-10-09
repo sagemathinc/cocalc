@@ -554,12 +554,12 @@ export class ManageCommands {
     };
     if (!button && cmd.keyboard && !IS_MOBILE) {
       label = (
-        <div style={{ display: "flex" }}>
+        <div style={{ display: "flex", width: "100%" }}>
           {label}
           <div
             style={{
               flex: 1,
-              color: "#666",
+              color: "#999",
               textAlign: "right",
               marginLeft: "50px",
             }}
