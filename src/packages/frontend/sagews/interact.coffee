@@ -192,7 +192,7 @@ interact_control = (desc, update, process_html_output) ->
         return
     control.processIcons()
     if desc.label?
-        control.find(".webapp-interact-label").html(desc.label).katex()
+        control.find(".webapp-interact-label").html(desc.label).katex({preProcess:true})
 
     # Initialization specific to each control type
     set = undefined
@@ -263,7 +263,7 @@ interact_control = (desc, update, process_html_output) ->
                 button.find('i').hide()
             button.click (evt) -> send(null)
             set = (val) ->
-                button.find("span").html(val).katex()
+                button.find("span").html(val).katex({preProcess:true})
 
         when 'text'
             text = control.find(".webapp-interact-control-content")
@@ -278,12 +278,12 @@ interact_control = (desc, update, process_html_output) ->
                     # it has already appeared, so safe to mathjax immediately
                     text.html(val)
                     process_html_output(text)
-                    text.katex()
+                    text.katex({preProcess:true})
 
                 text.data('val', val)
 
             control.data 'refresh', () ->
-                text.katex(tex:text.data('val'))
+                text.katex({preProcess:true, tex:text.data('val')})
 
         when 'input-grid'
             grid = control.find(".webapp-interact-control-grid")

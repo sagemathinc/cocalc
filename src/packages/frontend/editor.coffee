@@ -1607,7 +1607,7 @@ class CodeMirrorEditor extends FileEditor
             cm.on('cursorActivity', _.debounce(update_context_sensitive_bar, 250))
 
         update_context_sensitive_bar()
-        @element.find(".webapp-editor-codemirror-textedit-buttons").katex()
+        @element.find(".webapp-editor-codemirror-textedit-buttons").katex({preProcess:true})
 
 
 exports.codemirror_editor = (project_id, filename, extra_opts) ->
