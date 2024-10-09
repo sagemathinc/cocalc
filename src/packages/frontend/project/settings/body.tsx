@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Col, Row } from "react-bootstrap";
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";

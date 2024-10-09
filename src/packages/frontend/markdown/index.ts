@@ -41,10 +41,11 @@ const PLUGINS = [
       delimiters: "cocalc",
       engine: {
         renderToString: (tex, options) => {
-          // We need to continue to support rendering to MathJax as an option,
+          // We **used to** need to continue to support rendering to MathJax as an option,
           // but texmath only supports katex.  Thus we output by default to
           // html using script tags, which are then parsed later using our
           // katex/mathjax plugin.
+          // We no longer support MathJax, so maybe this can be simplified?
           return `<script type="math/tex${
             options.displayMode ? "; mode=display" : ""
           }">${tex}</script>`;

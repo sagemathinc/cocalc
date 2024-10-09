@@ -112,10 +112,18 @@ export class TimeClient {
       // That's annoying -- time is not marching forward... let's fake it until it does.
       t = new Date(last.valueOf() + 1);
     }
-    if (this.clock_skew_ms) {
-      // We have synced the clock once successfully, so we now ensure the time is increasing.
+    if (
+      this.last_pong != null &&
+      Date.now() - this.last_pong.local.valueOf() < 5 * this.ping_interval_ms
+    ) {
+      // We have synced the clock **recently successfully**, so
+      // we now ensure the time is increasing.
       // This first sync should happen with ms of the user connecting.
+      // We do NOT trust if the sync was a long time ago, e.g., due to
+      // a long network outage or laptop suspend/resume.
       this.last_server_time = t;
+    } else {
+      delete this.last_server_time;
     }
     return t;
   }

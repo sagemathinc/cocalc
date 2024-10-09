@@ -180,7 +180,7 @@ async function get_julia(): Promise<boolean> {
   return await have("julia");
 }
 
-// rserver is the name of the executable to start the RStudio Server.
+// rserver is the name of the executable to start the R IDE Server.
 // In a default Linux installation, it is not in the PATH – therefore add a symlink pointing to it.
 // At the time of writing this, it was here: /usr/lib/rstudio-server/bin/rserver
 async function get_rserver(): Promise<boolean> {

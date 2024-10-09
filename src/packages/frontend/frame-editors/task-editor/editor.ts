@@ -4,11 +4,10 @@
  */
 
 /*
-Top-level react component for editing markdown documents
+Top-level react component for editing tasks
 */
 
 import { createElement } from "react";
-
 import { TaskEditor } from "@cocalc/frontend/editors/task-editor/editor";
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";

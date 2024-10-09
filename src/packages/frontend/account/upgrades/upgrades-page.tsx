@@ -21,6 +21,7 @@ import { Footer, PolicyPricingPageUrl, SiteName } from "../../customize";
 import "./project-upgrades-table";
 import { ProjectUpgradesTable } from "./project-upgrades-table";
 export { tmp as UpgradesPage };
+declare var DEBUG: boolean;
 
 interface reduxProps {
   stripe_customer?: Map<string, any>;
@@ -178,7 +179,7 @@ class UpgradesPage extends Component<reduxProps> {
       redux.getActions("projects").load_all_projects();
       return <Loading theme={"medium"} />;
     }
-    if (!this.props.stripe_customer?.getIn(["subscriptions", "total_count"])) {
+    if (!DEBUG && !this.props.stripe_customer?.getIn(["subscriptions", "total_count"])) {
       return this.render_no_upgrades();
     } else {
       return (

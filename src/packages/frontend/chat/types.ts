@@ -38,6 +38,7 @@ export interface ChatMessage {
   generating?: boolean;
   editing?: { [author_id: string]: "FUTURE" | null };
   folding?: string[];
+  feedback?: { [account_id: string]: Feedback };
 }
 
 // this type isn't explicitly used anywhere yet, but the actual structure is and I just

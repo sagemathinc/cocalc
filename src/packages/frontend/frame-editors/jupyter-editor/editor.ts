@@ -8,7 +8,6 @@ Spec for editing Jupyter notebooks via a frame tree.
 */
 
 import { createElement } from "react";
-
 import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
@@ -30,9 +29,7 @@ import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
 import { TableOfContents } from "./table-of-contents";
 
-const {
-  ICON_NAME: SNIPPET_ICON_NAME,
-} = require("@cocalc/frontend/assistant/common");
+const SNIPPET_ICON_NAME = "magic";
 
 const jupyterCommands = set([
   "about",
@@ -71,6 +68,8 @@ const jupyter_cell_notebook: EditorDescription = {
     "jupyter-cell-format",
     "jupyter-cell-toolbar",
     "jupyter-nbgrader validate",
+    "halt_jupyter",
+    "guide",
   ]),
   customizeCommands: {
     guide: {

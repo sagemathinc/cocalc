@@ -9,19 +9,21 @@ import {
 } from "@cocalc/frontend/misc/llm-cost-estimation";
 
 export function LLMCostEstimationChat({
-  llm_cost,
+  costEstimate,
   compact,
   style,
 }: {
-  llm_cost?: [number, number] | null;
+  costEstimate?: { min: number; max: number } | null;
   compact: boolean; // only mean is shown
   style?: CSS;
 }) {
   const intl = useIntl();
 
-  if (!llm_cost) return null;
+  if (!costEstimate) {
+    return null;
+  }
 
-  const [min, max] = llm_cost;
+  const { min, max } = costEstimate;
   const sum = min + max;
   if (min == null || max == null || isNaN(sum)) return null;
   const isFree = min === 0 && max === 0;

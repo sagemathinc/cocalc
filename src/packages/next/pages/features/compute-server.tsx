@@ -119,7 +119,7 @@ export default function ComputeServer({ customize }) {
                     </li>
                     <li>
                       <Text strong>Hosting</Text>: choose a subdomain, in order
-                      to host web applications, VS Code, JupyterLab, RStudio,
+                      to host web applications, VS Code, JupyterLab, R IDE,
                       Pluto, and more.
                     </li>
                   </ul>

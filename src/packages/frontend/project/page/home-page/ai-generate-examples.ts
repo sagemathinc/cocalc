@@ -177,7 +177,7 @@ export const JUPYTER: { [key in Language]: readonly Example[] } = {
 } as const;
 
 // supported extensions
-const EXTS = ["tex", "rmd", "ipynb", "qmd", "md"] as const;
+const EXTS = ["tex", "rmd", "ipynb", "qmd", "md", "ipynb-sagemath"] as const;
 export type Ext = (typeof EXTS)[number];
 export function isSupportedExtension(ext?: string): ext is Ext {
   return typeof ext === "string" && EXTS.includes(ext as any);
@@ -272,6 +272,13 @@ const RMD_QMD: readonly Example[] = [
 
 export const DOCUMENT: { [ext in Ext]: readonly Example[] } = {
   ipynb: [["Test", "Random numbers", ["testing"]]],
+  "ipynb-sagemath": [
+    [
+      "Test",
+      "Explain how to compute the differential of a function",
+      ["testing"],
+    ],
+  ],
   tex: [
     [
       "Article",

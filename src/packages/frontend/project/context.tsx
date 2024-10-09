@@ -41,6 +41,7 @@ export interface ProjectContextState {
   onCoCalcCom: boolean;
   onCoCalcDocker: boolean;
   enabledLLMs: LLMServicesAvailable;
+  mainWidthPx: number;
 }
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -66,6 +67,7 @@ export const ProjectContext: Context<ProjectContextState> =
       custom_openai: false,
       user: false,
     },
+    mainWidthPx: 0,
   });
 
 export function useProjectContext() {
@@ -78,10 +80,15 @@ export function useProjectContext() {
   return context;
 }
 
-export function useProjectContextProvider(
-  project_id: string,
-  is_active: boolean,
-): ProjectContextState {
+export function useProjectContextProvider({
+  project_id,
+  is_active,
+  mainWidthPx,
+}: {
+  project_id: string;
+  is_active: boolean;
+  mainWidthPx: number;
+}): ProjectContextState {
   const actions = useActions({ project_id });
   const { project, group } = useProject(project_id);
   const status: ProjectStatus = useProjectState(project_id);
@@ -137,5 +144,6 @@ export function useProjectContextProvider(
     onCoCalcCom,
     onCoCalcDocker,
     enabledLLMs,
+    mainWidthPx,
   };
 }

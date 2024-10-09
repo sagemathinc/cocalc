@@ -3,12 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popover } from "antd";
+import { Button, Popover, Col, Row } from "antd";
 import memoizeOne from "memoize-one";
-import { Col, Row } from "react-bootstrap";
-
 import { CSS, React, useState } from "@cocalc/frontend/app-framework";
-import { Icon, IconName, TimeAgo, Tip } from "@cocalc/frontend/components";
+import {
+  Icon,
+  IconName,
+  TimeAgo,
+  Tip,
+  VisibleXS,
+} from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
@@ -202,7 +206,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       props.actions.open_file({
         path,
         foreground,
-        explicit:true,
+        explicit: true,
       });
       if (foreground) {
         props.actions.set_file_search("");
@@ -339,7 +343,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       onMouseDown={handle_mouse_down}
       className={props.no_select ? "noselect" : undefined}
     >
-      <Col sm={1} xs={1} style={{ textAlign: "center" }}>
+      <Col sm={2} xs={6} style={{ textAlign: "center" }}>
         {!student_project_functionality.disableActions && (
           <FileCheckbox
             name={props.name}
@@ -350,13 +354,22 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           />
         )}
       </Col>
-      <Col sm={1} xs={1} style={{ textAlign: "center" }}>
+      <Col sm={2} xs={6} style={{ textAlign: "center" }}>
         {render_public_file_info()}
       </Col>
-      <Col sm={1} xs={3} onClick={handle_click}>
+      <Col sm={2} xs={12} onClick={handle_click}>
         {render_icon()}
       </Col>
-      <Col sm={4} smPush={5} xs={6}>
+      <Col sm={10} xs={24} onClick={handle_click}>
+        <VisibleXS>
+          <span style={{ marginLeft: "16px" }} />
+        </VisibleXS>
+        {render_name()}
+      </Col>
+      <Col sm={8} xs={24}>
+        <VisibleXS>
+          <span style={{ marginLeft: "16px" }} />
+        </VisibleXS>
         {render_timestamp()}
         {props.isdir ? (
           <>
@@ -368,9 +381,6 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
             {render_view_button(url, props.name)}
           </span>
         )}
-      </Col>
-      <Col sm={5} smPull={4} xs={12} onClick={handle_click}>
-        {render_name()}
       </Col>
     </Row>
   );

@@ -50,7 +50,7 @@ export interface Available {
   jupyter_lab: boolean;
   jupyter_notebook: boolean;
   jupyter: boolean;
-  rserver: boolean; // RStudio Server
+  rserver: boolean;
   x11: boolean;
   latex: boolean;
   sage: boolean;

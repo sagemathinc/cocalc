@@ -6,13 +6,7 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useDebouncedCallback } from "use-debounce";
-
-import {
-  CSS,
-  redux,
-  useIsMountedRef,
-  useRedux,
-} from "@cocalc/frontend/app-framework";
+import { CSS, redux, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
@@ -33,7 +27,7 @@ interface Props {
   on_paste?: (e) => void;
   height?: string;
   submitMentionsRef?: SubmitMentionsRef;
-  font_size?: number;
+  fontSize?: number;
   hideHelp?: boolean;
   style?: CSSProperties;
   cacheId?: string;
@@ -49,7 +43,7 @@ export default function ChatInput({
   cacheId,
   date,
   editBarStyle,
-  font_size,
+  fontSize,
   height,
   hideHelp,
   input: propsInput,
@@ -67,11 +61,7 @@ export default function ChatInput({
   useEffect(() => {
     onSendRef.current = on_send;
   }, [on_send]);
-  const { project_id, path, actions } = useFrameContext();
-  const fontSize = useRedux(["font_size"], project_id, path);
-  if (font_size == null) {
-    font_size = fontSize;
-  }
+  const { project_id } = useFrameContext();
   const sender_id = useMemo(
     () => redux.getStore("account").get_account_id(),
     [],
@@ -222,8 +212,6 @@ export default function ChatInput({
       cacheId={cacheId}
       value={input}
       enableUpload={true}
-      onUploadStart={() => actions?.set_uploading(true)}
-      onUploadEnd={() => actions?.set_uploading(false)}
       enableMentions={true}
       submitMentionsRef={submitMentionsRef}
       onChange={(input) => {
@@ -248,7 +236,7 @@ export default function ChatInput({
           ? "Click the date to edit chats."
           : "Double click to edit chats."
       }
-      fontSize={font_size}
+      fontSize={fontSize}
       hideHelp={hideHelp}
       style={style}
       onUndo={() => {

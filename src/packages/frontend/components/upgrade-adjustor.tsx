@@ -10,15 +10,11 @@ javascript object in the same format as quota_params cancel_upgrading takes no
 arguments and is called when the cancel button is hit.
 */
 
-import { Button as AntdButton, Checkbox, Alert } from "antd";
-
+import { Button as AntdButton, Checkbox, Alert, InputNumber } from "antd";
 import {
   Button,
   ButtonToolbar,
   Col,
-  FormControl,
-  FormGroup,
-  InputGroup,
   Row,
 } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -123,7 +119,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     // how much unused upgrade you have remaining
     const user_remaining = map_diff(
       props.upgrades_you_can_use as any,
-      user_upgrades as any
+      user_upgrades as any,
     );
     // the overall limits are capped by the maximum per project
     const proj_maximum = PROJECT_UPGRADES.max_per_project;
@@ -210,7 +206,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
     current: number,
     limit: number,
     total: number,
-    proj_remainder: number
+    proj_remainder: number,
   ) {
     let label, reason, reasons, show_remaining, val;
     if (data == null) {
@@ -338,19 +334,13 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
             {remaining_note}
           </Col>
           <Col sm={5}>
-            <FormGroup>
-              <InputGroup>
-                <FormControl
-                  type={"text"}
-                  value={val_state}
-                  style={style}
-                  onChange={(e) => set_state(name, (e.target as any).value)}
-                />
-                <InputGroup.Addon>
-                  {render_addon(name, display_unit, limit)}
-                </InputGroup.Addon>
-              </InputGroup>
-            </FormGroup>
+            <InputNumber
+              addonAfter={render_addon(name, display_unit, limit)}
+              value={val}
+              style={style}
+              min={0}
+              onChange={(value) => set_state(name, value)}
+            />
             {label}
           </Col>
         </Row>
@@ -372,7 +362,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
       const current_val = round2((current[name] ?? 0) * factor);
       const remaining_val = Math.max(
         round2((remaining[name] ?? 0) * factor),
-        0
+        0,
       ); // everything is now in display units
 
       if (data.input_type === "checkbox") {
@@ -514,7 +504,7 @@ export const UpgradeAdjustor: React.FC<Props> = (props) => {
                 current[name] ?? 0,
                 limits[name] ?? 0,
                 totals[name] ?? 0,
-                proj_remainder[name] ?? 0
+                proj_remainder[name] ?? 0,
               );
             })}
             <UpgradeRestartWarning style={{ marginTop: "15px" }} />

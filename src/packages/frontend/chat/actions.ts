@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { List, Map, Seq, fromJS, Map as immutableMap } from "immutable";
+import { List, Map, Seq, Map as immutableMap } from "immutable";
 import { debounce } from "lodash";
 import { Optional } from "utility-types";
 import { setDefaultLLM } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -39,20 +39,22 @@ import {
   toOllamaModel,
   type LanguageModel,
 } from "@cocalc/util/db-schema/llm-utils";
-import { cmp, isValidUUID, parse_hashtags, uuid } from "@cocalc/util/misc";
+import { cmp, isValidUUID, uuid } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { getSortedDates, getUserName } from "./chat-log";
 import { message_to_markdown } from "./message";
 import { ChatState, ChatStore } from "./store";
-import {
+import type {
   ChatMessage,
   ChatMessageTyped,
-  ChatMessages,
   Feedback,
   MessageHistory,
 } from "./types";
-import { getSelectedHashtagsSearch } from "./utils";
 import { history_path } from "@cocalc/util/misc";
+import { initFromSyncDB, handleSyncDBChange, processSyncDBObj } from "./sync";
+import { getReplyToRoot, getThreadRootDate, toMsString } from "./utils";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
+import type { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 
 const MAX_CHATSTREAM = 10;
 
@@ -64,8 +66,11 @@ export class ChatActions extends Actions<ChatState> {
   // at once and it really did send them all to openai at once, and
   // this prevents that at least.
   private chatStreams: Set<string> = new Set([]);
+  public frameId: string = "";
+  // this might not be set e.g., for deprecated side chat on sagews:
+  public frameTreeActions?: CodeEditorActions;
 
-  public set_syncdb(syncdb: SyncDB, store: ChatStore): void {
+  set_syncdb = (syncdb: SyncDB, store: ChatStore): void => {
     this.syncdb = syncdb;
     this.store = store;
 
@@ -85,116 +90,27 @@ export class ChatActions extends Actions<ChatState> {
       textColumn: "content",
       metaColumns: ["sender_id"],
     });
-  }
-
-  public close(): void {
-    this.syncdb?.close();
-    delete this.syncdb;
-  }
-
-  // NOTE: x must be already a plain JS object (.toJS())
-  private process_syncdb_obj(x): ChatMessage | undefined {
-    if (x.event !== "chat") {
-      // Event used to be used for video chat, etc...; but we have a better approach now, so
-      // all events we care about are chat.
-      return;
-    }
-    if (x.video_chat != null ? x.video_chat.is_video_chat : undefined) {
-      // discard/ignore anything else related to the old old video chat approach
-      return;
-    }
-    x.date = new Date(x.date);
-    if ((x.history != null ? x.history.length : undefined) > 0) {
-      // nontrivial history -- nothing to do
-    } else if (x.payload != null) {
-      // for old chats with payload: content (2014-2016)... plus the script @hsy wrote in the work project ;-(
-      x.history = [];
-      x.history.push({
-        content: x.payload.content,
-        author_id: x.sender_id,
-        date: new Date(x.date),
-      });
-      delete x.payload;
-    } else if (x.mesg != null) {
-      // for old chats with mesg: content (up to 2014)
-      x.history = [];
-      x.history.push({
-        content: x.mesg.content,
-        author_id: x.sender_id,
-        date: new Date(x.date),
-      });
-      delete x.mesg;
-    }
-    if (x.history == null) {
-      x.history = [];
-    }
-    if (!x.editing) {
-      x.editing = {};
-    }
-    x.folding ??= [];
-    x.feedback ??= {};
-    return x;
-  }
+  };
 
   // Initialize the state of the store from the contents of the syncdb.
-  public init_from_syncdb(): void {
-    if (this.syncdb == null) return;
-    const v = {};
-    for (let x of this.syncdb.get().toJS()) {
-      x = this.process_syncdb_obj(x);
-      if (x != null) {
-        v[x.date.valueOf()] = x;
-      }
+  init_from_syncdb = (): void => {
+    if (this.syncdb == null) {
+      return;
     }
+    initFromSyncDB({ syncdb: this.syncdb, store: this.store });
+  };
 
-    this.setState({
-      messages: fromJS(v) as any,
-    });
-  }
+  syncdbChange = (changes): void => {
+    if (this.syncdb == null) {
+      return;
+    }
+    handleSyncDBChange({ changes, store: this.store, syncdb: this.syncdb });
+  };
 
-  public syncdb_change(changes): void {
-    changes.map((obj) => {
-      if (this.syncdb == null) return;
-      obj = obj.toJS();
-      if (obj.event === "draft") {
-        let drafts = this.store?.get("drafts") ?? (fromJS({}) as any);
-        // used to show that another user is editing a message.
-        const record = this.syncdb.get_one(obj);
-        if (record == null) {
-          drafts = drafts.delete(obj.sender_id);
-        } else {
-          const sender_id = record.get("sender_id");
-          drafts = drafts.set(sender_id, record);
-        }
-        this.setState({ drafts });
-        return;
-      }
-      if (obj.event === "chat") {
-        let changed: boolean = false;
-        let messages = this.store?.get("messages") ?? (fromJS({}) as any);
-        obj.date = new Date(obj.date);
-        const record = this.syncdb.get_one(obj);
-        let x: any = record?.toJS();
-        if (x == null) {
-          // delete
-          messages = messages.delete(`${obj.date.valueOf()}`);
-          changed = true;
-        } else {
-          x = this.process_syncdb_obj(x);
-          if (x != null) {
-            messages = messages.set(`${x.date.valueOf()}`, fromJS(x));
-            changed = true;
-          }
-        }
-        if (changed) {
-          this.setState({ messages });
-        }
-      }
-    });
-  }
-
-  public foldThread(reply_to: Date, msgIndex: number) {
-    if (this.syncdb == null) return;
+  toggleFoldThread = (reply_to: Date, messageIndex?: number) => {
+    if (this.syncdb == null) {
+      return;
+    }
     const account_id = this.redux.getStore("account").get_account_id();
     const cur = this.syncdb.get_one({ event: "chat", date: reply_to });
     const folding = cur?.get("folding") ?? List([]);
@@ -210,12 +126,12 @@ export class ChatActions extends Actions<ChatState> {
 
     this.syncdb.commit();
 
-    if (folded && msgIndex != null) {
-      this.scrollToBottom(msgIndex);
+    if (folded && messageIndex != null) {
+      this.scrollToIndex(messageIndex);
     }
-  }
+  };
 
-  public feedback(message: ChatMessageTyped, feedback: Feedback | null) {
+  feedback = (message: ChatMessageTyped, feedback: Feedback | null) => {
     if (this.syncdb == null) return;
     const date = message.get("date");
     if (!(date instanceof Date)) return;
@@ -236,40 +152,42 @@ export class ChatActions extends Actions<ChatState> {
         feedback,
       });
     }
-  }
+  };
 
   // The second parameter is used for sending a message by
   // chatgpt, which is currently managed by the frontend
   // (not the project).  Also the async doesn't finish until
   // chatgpt is totally done.
-  send_chat({
+  sendChat = ({
     input,
     sender_id = this.redux.getStore("account").get_account_id(),
     reply_to,
     tag,
     noNotification,
+    submitMentionsRef,
   }: {
     input?: string;
     sender_id?: string;
     reply_to?: Date;
     tag?: string;
     noNotification?: boolean;
-  }): string {
+    submitMentionsRef?;
+  }): string => {
     if (this.syncdb == null || this.store == null) {
-      console.warn("attempt to send_chat before chat actions initialized");
+      console.warn("attempt to sendChat before chat actions initialized");
       // WARNING: give an error or try again later?
-      return "";
-    }
-    if (input == null) {
-      input = this.store.get("input");
-    }
-    input = input.trim();
-    if (input.length == 0 || this.store.get("is_uploading")) {
-      // do not send while uploading or there is nothing to send.
       return "";
     }
     const time_stamp: Date = webapp_client.server_time();
     const time_stamp_str = time_stamp.toISOString();
+    if (submitMentionsRef?.current != null) {
+      input = submitMentionsRef.current?.({ chat: `${time_stamp.valueOf()}` });
+    }
+    input = input?.trim();
+    if (!input) {
+      // do not send when there is nothing to send.
+      return "";
+    }
     const message: ChatMessage = {
       sender_id,
       event: "chat",
@@ -286,48 +204,52 @@ export class ChatActions extends Actions<ChatState> {
     };
     this.syncdb.set(message);
     if (!reply_to) {
-      this.delete_draft(0);
+      this.deleteDraft(0);
       // NOTE: we also clear search, since it's confusing to send a message and not
       // even see it (if it doesn't match search).  We do NOT clear the hashtags though,
       // since by default the message you are sending has those tags.
       // Also, only do this clearing when not replying.
       // For replies search find full threads not individual messages.
-      this.setState({
-        input: "",
-        search: "",
-      });
+      this.clearAllFilters();
     } else {
-      // TODO: but until we improve search to be by thread (instead of by message), do this:
-      this.setState({
-        search: "",
-      });
-    }
-    this.ensureDraftStartsWithHashtags(false);
-
-    if (this.store != null) {
-      const project_id = this.store?.get("project_id");
-      const path = this.store?.get("path");
-      // set notification saying that we sent an actual chat
-      let action;
+      // when replying we make sure that the thread is expanded, since otherwise
+      // our reply won't be visible
+      const messages = this.store.get("messages");
       if (
-        noNotification ||
-        mentionsLanguageModel(input) ||
-        this.isLanguageModelThread(reply_to)
+        messages
+          ?.getIn([`${reply_to.valueOf()}`, "folding"])
+          ?.includes(sender_id)
       ) {
-        // Note: don't mark it is a chat if it is with chatgpt,
-        // since no point in notifying all collabs of this.
-        action = "edit";
-      } else {
-        action = "chat";
+        this.toggleFoldThread(reply_to);
       }
-      webapp_client.mark_file({
-        project_id,
-        path,
-        action,
-        ttl: 10000,
-      });
-      track("send_chat", { project_id, path });
     }
+
+    const project_id = this.store?.get("project_id");
+    const path = this.store?.get("path");
+    if (!path) {
+      throw Error("bug -- path must be defined");
+    }
+    // set notification saying that we sent an actual chat
+    let action;
+    if (
+      noNotification ||
+      mentionsLanguageModel(input) ||
+      this.isLanguageModelThread(reply_to)
+    ) {
+      // Note: don't mark it is a chat if it is with chatgpt,
+      // since no point in notifying all collabs of this.
+      action = "edit";
+    } else {
+      action = "chat";
+    }
+    webapp_client.mark_file({
+      project_id,
+      path,
+      action,
+      ttl: 10000,
+    });
+    track("send_chat", { project_id, path });
+
     this.save_to_disk();
     (async () => {
       await this.processLLM({
@@ -337,9 +259,9 @@ export class ChatActions extends Actions<ChatState> {
       });
     })();
     return time_stamp_str;
-  }
+  };
 
-  public set_editing(message: ChatMessageTyped, is_editing: boolean) {
+  setEditing = (message: ChatMessageTyped, is_editing: boolean) => {
     if (this.syncdb == null) {
       // WARNING: give an error or try again later?
       return;
@@ -359,13 +281,13 @@ export class ChatActions extends Actions<ChatState> {
     });
     // commit now so others users know this user is editing
     this.syncdb.commit();
-  }
+  };
 
   // Used to edit sent messages.
   // NOTE: this is inefficient; it assumes
   //       the number of edits is small, which is reasonable -- nobody makes hundreds of distinct
   //       edits of a single message.
-  public send_edit(message: ChatMessageTyped, content: string): void {
+  sendEdit = (message: ChatMessageTyped, content: string): void => {
     if (this.syncdb == null) {
       // WARNING: give an error or try again later?
       return;
@@ -386,11 +308,11 @@ export class ChatActions extends Actions<ChatState> {
       editing: message.get("editing").set(author_id, null).toJS(),
       date: message.get("date").toISOString(),
     });
-    this.delete_draft(message.get("date")?.valueOf());
+    this.deleteDraft(message.get("date")?.valueOf());
     this.save_to_disk();
-  }
+  };
 
-  save_history(
+  saveHistory = (
     message: ChatMessage,
     content: string,
     author_id: string,
@@ -398,7 +320,7 @@ export class ChatActions extends Actions<ChatState> {
   ): {
     date: string;
     prevHistory: MessageHistory[];
-  } {
+  } => {
     const date: string =
       typeof message.date === "string"
         ? message.date
@@ -416,21 +338,23 @@ export class ChatActions extends Actions<ChatState> {
       generating,
     });
     return { date, prevHistory };
-  }
+  };
 
-  send_reply({
+  sendReply = ({
     message,
     reply,
     from,
     noNotification,
     reply_to,
+    submitMentionsRef,
   }: {
     message: ChatMessage;
-    reply: string;
+    reply?: string;
     from?: string;
     noNotification?: boolean;
     reply_to?: Date;
-  }): string {
+    submitMentionsRef?;
+  }): string => {
     const store = this.store;
     if (store == null) {
       return "";
@@ -442,23 +366,27 @@ export class ChatActions extends Actions<ChatState> {
     const reply_to_value =
       reply_to != null
         ? reply_to.valueOf()
-        : store.getThreadRootDate(new Date(message.date).valueOf());
-    const time_stamp_str = this.send_chat({
+        : getThreadRootDate({
+            date: new Date(message.date).valueOf(),
+            messages: store.get("messages"),
+          });
+    const time_stamp_str = this.sendChat({
       input: reply,
+      submitMentionsRef,
       sender_id: from ?? this.redux.getStore("account").get_account_id(),
       reply_to: new Date(reply_to_value),
       noNotification,
     });
     // negative date of reply_to root is used for replies.
-    this.delete_draft(-reply_to_value);
+    this.deleteDraft(-reply_to_value);
     return time_stamp_str;
-  }
+  };
 
-  public delete_draft(
+  deleteDraft = (
     date: number,
     commit: boolean = true,
     sender_id: string | undefined = undefined,
-  ) {
+  ) => {
     if (!this.syncdb) return;
     sender_id = sender_id ?? this.redux.getStore("account").get_account_id();
     this.syncdb.delete({
@@ -469,50 +397,40 @@ export class ChatActions extends Actions<ChatState> {
     if (commit) {
       this.syncdb.commit();
     }
-  }
+  };
 
   // Make sure everything saved to DISK.
-  public async save_to_disk(): Promise<void> {
-    if (this.syncdb == null) return;
-    try {
-      this.setState({ is_saving: true });
-      await this.syncdb.save_to_disk();
-    } finally {
-      this.setState({ is_saving: false });
+  save_to_disk = async (): Promise<void> => {
+    this.syncdb?.save_to_disk();
+  };
+
+  private _llmEstimateCost = async ({
+    input,
+    date,
+    message,
+  }: {
+    input: string;
+    // date is as in chat/input.tsx -- so 0 for main input and -ms for reply
+    date: number;
+    // in case of reply/edit, so we can get the entire thread
+    message?: ChatMessage;
+  }): Promise<void> => {
+    if (!this.store) {
+      return;
     }
-  }
-
-  public set_input(input: string): void {
-    this.setState({ input });
-  }
-
-  public llm_estimate_cost: typeof this._llm_estimate_cost = debounce(
-    reuseInFlight(this._llm_estimate_cost).bind(this),
-    1000,
-    { leading: true, trailing: true },
-  );
-
-  private async _llm_estimate_cost(
-    input: string,
-    type: "room" | "reply",
-    message?: ChatMessage,
-  ): Promise<void> {
-    if (!this.store) return;
 
     const is_cocalc_com = this.redux.getStore("customize").get("is_cocalc_com");
-    if (!is_cocalc_com) return;
-
+    if (!is_cocalc_com) {
+      return;
+    }
     // this is either a new message or in a reply, but mentions an LLM
     let model: LanguageModel | null | false = getLanguageModel(input);
-    const key: keyof ChatState =
-      type === "room" ? "llm_cost_room" : "llm_cost_reply";
-
     input = stripMentions(input);
     let history: string[] = [];
     const messages = this.store.get("messages");
-    // message != null means this is a reply and we have to get the whole chat thread
+    // message != null means this is a reply or edit and we have to get the whole chat thread
     if (!model && message != null && messages != null) {
-      const root = getReplyToRoot(message, messages);
+      const root = getReplyToRoot({ message, messages });
       model = this.isLanguageModelThread(root);
       if (!isFreeModel(model, is_cocalc_com) && root != null) {
         for (const msg of this.getLLMHistory(root)) {
@@ -520,10 +438,9 @@ export class ChatActions extends Actions<ChatState> {
         }
       }
     }
-
     if (model) {
       if (isFreeModel(model, is_cocalc_com)) {
-        this.setState({ [key]: [0, 0] });
+        this.setCostEstimate({ date, min: 0, max: 0 });
       } else {
         const llm_markup = this.redux.getStore("customize").get("llm_markup");
         // do not import until needed -- it is HUGE!
@@ -535,64 +452,107 @@ export class ChatActions extends Actions<ChatState> {
           maxTokens,
         );
         const { min, max } = calcMinMaxEstimation(tokens, model, llm_markup);
-        this.setState({ [key]: [min, max] });
+        this.setCostEstimate({ date, min, max });
       }
     } else {
-      this.setState({ [key]: null });
+      this.setCostEstimate();
     }
-  }
+  };
 
-  public set_is_preview(is_preview): void {
-    this.setState({ is_preview });
-  }
+  llmEstimateCost: typeof this._llmEstimateCost = debounce(
+    reuseInFlight(this._llmEstimateCost),
+    1000,
+    { leading: true, trailing: true },
+  );
 
-  public set_use_saved_position(use_saved_position): void {
-    this.setState({ use_saved_position });
-  }
+  private setCostEstimate = (
+    costEstimate: {
+      date: number;
+      min: number;
+      max: number;
+    } | null = null,
+  ) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      costEstimate,
+    });
+  };
 
-  public save_scroll_state(position, height, offset): void {
+  save_scroll_state = (position, height, offset): void => {
     if (height == 0) {
       // height == 0 means chat room is not rendered
       return;
     }
     this.setState({ saved_position: position, height, offset });
-  }
+  };
 
   // scroll to the bottom of the chat log
   // if date is given, scrolls to the bottom of the chat *thread*
   // that starts with that date.
   // safe to call after closing actions.
-  public scrollToBottom(index: number = -1) {
+  clearScrollRequest = () => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      scrollToIndex: null,
+      scrollToDate: null,
+    });
+  };
+  scrollToIndex = (index: number = -1) => {
     if (this.syncdb == null) return;
-    // this triggers scroll behavior in the chat-log component.
-    this.setState({ scrollToBottom: null }); // no-op, but necessary to trigger a change
-    this.setState({ scrollToBottom: index });
-  }
+    // we first clear, then set it, since scroll to needs to
+    // work even if it is the same as last time.
+    // TODO: alternatively, we could get a reference
+    // to virtuoso and directly control things from here.
+    this.clearScrollRequest();
+    setTimeout(() => {
+      this.frameTreeActions?.set_frame_data({
+        id: this.frameId,
+        scrollToIndex: index,
+        scrollToDate: null,
+      });
+    }, 1);
+  };
 
-  public set_uploading(is_uploading: boolean): void {
-    this.setState({ is_uploading });
-  }
+  scrollToBottom = () => {
+    this.scrollToIndex(Number.MAX_SAFE_INTEGER);
+  };
 
-  public change_font_size(delta: number): void {
-    if (!this.store) return;
-    const font_size = this.store.get("font_size") + delta;
-    this.setState({ font_size });
-  }
+  scrollToDate = (date) => {
+    this.clearScrollRequest();
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      fragmentId: toMsString(date),
+    });
+    setTimeout(() => {
+      this.frameTreeActions?.set_frame_data({
+        id: this.frameId,
+        // string version of ms since epoch, which is the key
+        // in the messages immutable Map
+        scrollToDate: toMsString(date),
+        scrollToIndex: null,
+      });
+    }, 1);
+  };
 
   // Scan through all messages and figure out what hashtags are used.
   // Of course, at some point we should try to use efficient algorithms
   // to make this faster incrementally.
-  public update_hashtags(): void {}
+  update_hashtags = (): void => {};
 
   // Exports the currently visible chats to a markdown file and opens it.
-  public async export_to_markdown(): Promise<void> {
+  export_to_markdown = async (): Promise<void> => {
     if (!this.store) return;
     const messages = this.store.get("messages");
     if (messages == null) return;
     const path = this.store.get("path") + ".md";
     const project_id = this.store.get("project_id");
     if (project_id == null) return;
-    const { dates } = getSortedDates(messages, this.store.get("search"));
+    const account_id = this.redux.getStore("account").get_account_id();
+    const { dates } = getSortedDates(
+      messages,
+      this.store.get("search"),
+      account_id,
+    );
     const v: string[] = [];
     for (const date of dates) {
       const message = messages.get(date);
@@ -608,80 +568,48 @@ export class ChatActions extends Actions<ChatState> {
     this.redux
       .getProjectActions(project_id)
       .open_file({ path, foreground: true });
-  }
+  };
 
-  setHashtagState(tag: string, state?: HashtagState): void {
-    if (!this.store) return;
+  setHashtagState = (tag: string, state?: HashtagState): void => {
+    if (!this.store || this.frameTreeActions == null) return;
     // similar code in task list.
     let selectedHashtags: SelectedHashtags =
-      this.store.get("selectedHashtags") ??
+      this.frameTreeActions._get_frame_data(this.frameId, "selectedHashtags") ??
       immutableMap<string, HashtagState>();
     selectedHashtags =
       state == null
         ? selectedHashtags.delete(tag)
         : selectedHashtags.set(tag, state);
-    this.setState({ selectedHashtags });
-    this.ensureDraftStartsWithHashtags(true);
-  }
+    this.setSelectedHashtags(selectedHashtags);
+  };
 
-  private ensureDraftStartsWithHashtags(commit: boolean = false): void {
-    if (this.syncdb == null || this.store == null) return;
-    // set draft input to match selected hashtags, if any.
-    const hashtags = this.store.get("selectedHashtags");
-    if (hashtags == null) return;
-    const { selectedHashtagsSearch } = getSelectedHashtagsSearch(hashtags);
-    let input = this.store.get("input");
-    const prefix = selectedHashtagsSearch.trim() + " ";
-    if (input.startsWith(prefix)) {
-      return;
-    }
-    const v = parse_hashtags(input);
-    if (v.length > 0) {
-      input = input.slice(v[v.length - 1][1]);
-    }
-
-    input = prefix + input;
-    this.setState({ input });
-    const sender_id = this.redux.getStore("account").get_account_id();
-    this.syncdb.set({
-      event: "draft",
-      active: Date.now(),
-      sender_id,
-      input,
-      date: 0,
-    });
-    if (commit) {
-      this.syncdb.commit();
-    }
-  }
-
-  public help() {
+  help = () => {
     open_new_tab("https://doc.cocalc.com/chat.html");
-  }
+  };
 
-  public undo() {
+  undo = () => {
     this.syncdb?.undo();
-  }
+  };
 
-  public redo() {
+  redo = () => {
     this.syncdb?.redo();
-  }
+  };
 
   /**
    * This checks a thread of messages to see if it is a language model thread and if so, returns it.
    */
-  public isLanguageModelThread(date?: Date): false | LanguageModel {
+  isLanguageModelThread = (date?: Date): false | LanguageModel => {
     if (date == null) {
       return false;
     }
-    const messages = this.getMessagesInThread(date.toISOString());
-    if (messages == null) {
+    const thread = this.getMessagesInThread(date.toISOString());
+    if (thread == null) {
       return false;
     }
 
     // We deliberately start at the last most recent message.
     // Why? If we use the LLM regenerate dropdown button to change the LLM, we want to keep it.
-    for (const message of messages.reverse()) {
+    for (const message of thread.reverse()) {
       const lastHistory = message.get("history")?.first();
       // this must be an invalid message, because there is no history
       if (lastHistory == null) continue;
@@ -696,9 +624,9 @@ export class ChatActions extends Actions<ChatState> {
     }
 
     return false;
-  }
+  };
 
-  private async processLLM({
+  private processLLM = async ({
     message,
     reply_to,
     tag,
@@ -710,7 +638,7 @@ export class ChatActions extends Actions<ChatState> {
     tag?: string;
     llm?: LanguageModel;
     dateLimit?: Date; // only for regenerate, filter history
-  }) {
+  }) => {
     const store = this.store;
     if (this.syncdb == null || !store) {
       console.warn("processLLM called before chat actions initialized");
@@ -792,9 +720,9 @@ export class ChatActions extends Actions<ChatState> {
     // prevHistory: in case of regenerate, it's the history *before* we added the "Thinking..." message (which we ignore)
     const { date, prevHistory = [] } =
       tag === "regenerate"
-        ? this.save_history(message, thinking, sender_id, true)
+        ? this.saveHistory(message, thinking, sender_id, true)
         : {
-            date: this.send_reply({
+            date: this.sendReply({
               message,
               reply: thinking,
               from: sender_id,
@@ -898,10 +826,10 @@ export class ChatActions extends Actions<ChatState> {
         // if that happens, create a new message with the existing history and the new sender_id
         const cur = this.syncdb.get_one({ event: "chat", date });
         if (cur == null) return;
-        const reply_to = getReplyToRoot(
-          cur.toJS() as any as ChatMessage,
+        const reply_to = getReplyToRoot({
+          message: cur.toJS() as any as ChatMessage,
           messages,
-        );
+        });
         this.syncdb.delete({ event: "chat", date });
         this.syncdb.set({
           date,
@@ -913,13 +841,13 @@ export class ChatActions extends Actions<ChatState> {
       }
     }
 
-    // FIXME: these scrollToBottoms are a good idea, but they need an index number – not the date/timestamp
-    // this.scrollToBottom(reply_to?.valueOf());
     let content: string = "";
     let halted = false;
 
     chatStream.on("token", (token) => {
-      if (halted || this.syncdb == null) return;
+      if (halted || this.syncdb == null) {
+        return;
+      }
 
       // we check if user clicked on the "stop generating" button
       const cur = this.syncdb.get_one({ event: "chat", date });
@@ -951,7 +879,6 @@ export class ChatActions extends Actions<ChatState> {
       if (token == null) {
         this.chatStreams.delete(id);
         this.syncdb.commit();
-        // this.scrollToBottom(reply_to?.valueOf());
       }
     });
 
@@ -981,19 +908,21 @@ export class ChatActions extends Actions<ChatState> {
       };
       this.syncdb.set(msg);
       this.syncdb.commit();
-      // this.scrollToBottom(reply_to?.valueOf());
     });
-  }
+  };
 
   /**
    * @param dateStr - the ISO date of the message to get the thread for
    * @returns  - the messages in the thread, sorted by date
    */
-  private getMessagesInThread(
+  private getMessagesInThread = (
     dateStr: string,
-  ): Seq.Indexed<ChatMessageTyped> | undefined {
+  ): Seq.Indexed<ChatMessageTyped> | undefined => {
     const messages = this.store?.get("messages");
-    if (messages == null) return;
+    if (messages == null) {
+      return;
+    }
+
     return (
       messages // @ts-ignore -- immutablejs typings are wrong (?)
         .filter(
@@ -1005,12 +934,12 @@ export class ChatActions extends Actions<ChatState> {
         .valueSeq()
         .sort((a, b) => cmp(a.get("date"), b.get("date")))
     );
-  }
+  };
 
   // the input and output for the thread ending in the
   // given message, formatted for querying a langauge model, and heuristically
   // truncated to not exceed a limit in size.
-  private getLLMHistory(reply_to: Date): LanguageModelHistory {
+  private getLLMHistory = (reply_to: Date): LanguageModelHistory => {
     const history: LanguageModelHistory = [];
     // Next get all of the messages with this reply_to or that are the root of this reply chain:
     const d = reply_to.toISOString();
@@ -1031,9 +960,9 @@ export class ChatActions extends Actions<ChatState> {
       history.push({ content, role, date });
     }
     return history;
-  }
+  };
 
-  public languageModelStopGenerating(date: Date) {
+  languageModelStopGenerating = (date: Date) => {
     if (this.syncdb == null) return;
     this.syncdb.set({
       event: "chat",
@@ -1041,9 +970,9 @@ export class ChatActions extends Actions<ChatState> {
       generating: false,
     });
     this.syncdb.commit();
-  }
+  };
 
-  public async summarizeThread({
+  summarizeThread = async ({
     model,
     reply_to,
     returnInfo,
@@ -1053,12 +982,18 @@ export class ChatActions extends Actions<ChatState> {
     reply_to?: string;
     returnInfo?: boolean; // do not send, but return prompt + info}
     short: boolean;
-  }) {
-    if (!reply_to) return;
+  }) => {
+    if (!reply_to) {
+      return;
+    }
     const user_map = redux.getStore("users").get("user_map");
-    if (!user_map) return;
+    if (!user_map) {
+      return;
+    }
     const threadMessages = this.getMessagesInThread(reply_to);
-    if (!threadMessages) return;
+    if (!threadMessages) {
+      return;
+    }
 
     const history: { author: string; content: string }[] = [];
     for (const message of threadMessages) {
@@ -1092,21 +1027,26 @@ export class ChatActions extends Actions<ChatState> {
       const tokens = numTokensUpperBound(prompt, getMaxTokens(model));
       return { prompt, tokens, truncated: txtFull != txt };
     } else {
-      this.send_chat({
+      this.sendChat({
         input: prompt,
         tag: `chat:summarize`,
         noNotification: true,
       });
-      this.scrollToBottom();
+      this.scrollToIndex();
     }
-  }
+  };
 
-  public async regenerateLLMResponse(date0: Date, llm?: LanguageModel) {
+  regenerateLLMResponse = async (date0: Date, llm?: LanguageModel) => {
     if (this.syncdb == null) return;
     const date = date0.toISOString();
     const obj = this.syncdb.get_one({ event: "chat", date });
-    const message = this.process_syncdb_obj(obj?.toJS());
-    if (message == null) return;
+    if (obj == null) {
+      return;
+    }
+    const message = processSyncDBObj(obj.toJS() as ChatMessage);
+    if (message == null) {
+      return;
+    }
     const reply_to = message.reply_to;
     if (!reply_to) return;
     await this.processLLM({
@@ -1120,7 +1060,7 @@ export class ChatActions extends Actions<ChatState> {
     if (llm != null) {
       setDefaultLLM(llm);
     }
-  }
+  };
 
   showTimeTravelInNewTab = () => {
     const store = this.store;
@@ -1131,31 +1071,48 @@ export class ChatActions extends Actions<ChatState> {
       foreground_project: true,
     });
   };
-}
 
-export function getRootMessage(
-  message: ChatMessage,
-  messages: ChatMessages,
-): ChatMessageTyped | undefined {
-  const { reply_to, date } = message;
-  // we can't find the original message, if there is no reply_to
-  if (!reply_to) {
-    // the msssage itself is the root
-    return messages.get(`${new Date(date).valueOf()}`);
-  } else {
-    // All messages in a thread have the same reply_to, which points to the root.
-    return messages.get(`${new Date(reply_to).valueOf()}`);
-  }
-}
+  clearAllFilters = () => {
+    if (this.frameTreeActions == null) {
+      // crappy code just for sage worksheets -- will go away.
+      return;
+    }
+    this.setSearch("");
+    this.setFilterRecentH(0);
+    this.setSelectedHashtags({});
+  };
 
-export function getReplyToRoot(
-  message: ChatMessage,
-  messages: ChatMessages,
-): Date | undefined {
-  const root = getRootMessage(message, messages);
-  const date = root?.get("date");
-  // date is a "Date" object, but we're just double checking it is not a string by accident
-  return date ? new Date(date) : undefined;
+  setSearch = (search) => {
+    this.frameTreeActions?.set_frame_data({ id: this.frameId, search });
+  };
+
+  setFilterRecentH = (filterRecentH) => {
+    this.frameTreeActions?.set_frame_data({ id: this.frameId, filterRecentH });
+  };
+
+  setSelectedHashtags = (selectedHashtags) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      selectedHashtags,
+    });
+  };
+
+  setFragment = (date?) => {
+    if (!date) {
+      Fragment.clear();
+    } else {
+      const fragmentId = toMsString(date);
+      Fragment.set({ chat: fragmentId });
+      this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
+    }
+  };
+
+  setShowPreview = (showPreview) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      showPreview,
+    });
+  };
 }
 
 // We strip out any cased version of the string @chatgpt and also all mentions.

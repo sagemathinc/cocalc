@@ -6,7 +6,6 @@
 import { Tooltip } from "antd";
 import { List } from "immutable";
 import { isEmpty } from "lodash";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";

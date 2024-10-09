@@ -330,7 +330,7 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
     // scroll to bottom *after* the message gets sent.
     const chatActions = await getChatActions(actions.redux, project_id, path);
     setTimeout(() => chatActions.scrollToBottom(), 100);
-    chatActions.send_chat({
+    chatActions.sendChat({
       input: message,
       tag: `jupyter-cell-llm:${mode}`,
       noNotification: true,

@@ -66,7 +66,7 @@ function SupportTimeline({ tickets }) {
     v.push(
       <Timeline.Item key={ticket.id} color={statusToColor(ticket.status)}>
         <Ticket ticket={ticket} />
-      </Timeline.Item>
+      </Timeline.Item>,
     );
   }
   return <Timeline>{v}</Timeline>;
@@ -182,6 +182,7 @@ const TYPE_COLOR: { [name in Type]: string } = {
   question: "blue",
   task: "orange",
   purchase: "green",
+  chat: "purple",
 };
 
 export function Type({ status, type }: { status?: string; type: Type }) {

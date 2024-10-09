@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Row, Col } from "react-bootstrap";
+import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
 import { Component, Rendered, redux } from "../app-framework";
 import { keys, intersection } from "lodash";
 import { PeriodName } from "./types";

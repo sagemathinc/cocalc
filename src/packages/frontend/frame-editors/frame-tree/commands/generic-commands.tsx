@@ -54,7 +54,10 @@ addCommands({
     group: "frame-control",
     alwaysShow: true,
     pos: 2,
-    title: labels.split_frame_vertically_title,
+    title: defineMessage({
+      id: "command.generic.split_col.title",
+      defaultMessage: "Split frame vertically into two columns",
+    }),
     onClick: ({ props }) => {
       if (props.is_full) {
         return props.actions.unset_frame_full();
@@ -63,11 +66,7 @@ addCommands({
       }
     },
     icon: "vertical-split",
-    label: defineMessage({
-      id: "command.generic.split_col.label",
-      defaultMessage: "Split Right",
-      description: "Split a frame vertically",
-    }),
+    label: labels.split_frame_vertically_title,
     button: menu.split,
   },
   maximize: {
@@ -107,7 +106,7 @@ addCommands({
     title: defineMessage({
       id: "command.generic.close.title",
       defaultMessage:
-        "Close this frame. To restore the default layout, select the application menu entry 'Default Layout'.",
+        "Close this frame. To restore the default layout, select the application menu entry 'Default Layout' or close all frames.",
     }),
     onClick: ({ props }) => {
       props.actions.close_frame(props.id);
@@ -216,7 +215,7 @@ addCommands({
   },
   decrease_font_size: {
     stayOpenOnClick: true,
-    pos: 1,
+    pos: 0,
     group: "zoom",
     title: defineMessage({
       id: "command.generic.decrease_font_size.title",
@@ -235,7 +234,7 @@ addCommands({
   },
   increase_font_size: {
     stayOpenOnClick: true,
-    pos: 0,
+    pos: 1,
     group: "zoom",
     title: defineMessage({
       id: "command.generic.increase_font_size.title",
@@ -304,6 +303,18 @@ addCommands({
         },
       };
     }),
+  },
+  scrollToTop: {
+    group: "scroll",
+    pos: 0,
+    icon: "arrow-up",
+    label: "Scroll to top",
+  },
+  scrollToBottom: {
+    group: "scroll",
+    pos: 1,
+    icon: "arrow-down",
+    label: "Scroll to bottom",
   },
   undo: {
     disabled: ({ readOnly }) => readOnly,
@@ -1071,9 +1082,11 @@ addCommands({
       redux.getStore("projects").hasLanguageModelEnabled(props.project_id),
   },
   chat: {
-    alwaysShow: true,
-    pos: 5,
-    group: "help-link",
+    // we have a side chat menu item... except for in a chatroom or side chat.
+    isVisible: ({ props }) =>
+      !props.path?.endsWith(".sage-chat") && props.type != "chat",
+    pos: -1,
+    group: "show-frames",
     icon: "comment",
     label: defineMessage({
       id: "command.generic.chat.label",
@@ -1091,6 +1104,18 @@ addCommands({
     }),
     onClick: ({ props }) => {
       redux.getProjectActions(props.project_id).open_chat({ path: props.path });
+    },
+  },
+  videoChat: {
+    alwaysShow: true,
+    pos: 0,
+    icon: "video-camera",
+    group: "show-frames",
+    label: "Video Chat",
+    button: "Video",
+    title: "Video chat about this file with collaborators on this project",
+    onClick: ({ props }) => {
+      props.actions.getVideoChat().startChatting();
     },
   },
   support: {

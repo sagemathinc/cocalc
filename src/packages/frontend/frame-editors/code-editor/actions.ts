@@ -104,6 +104,12 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
+import { VideoChat } from "@cocalc/frontend/chat/video/video-chat";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import {
+  chat,
+  getSideChatActions,
+} from "@cocalc/frontend/frame-editors/generic/chat";
 
 interface gutterMarkerParams {
   line: number;
@@ -170,6 +176,8 @@ export class Actions<
   protected terminals: TerminalManager<CodeEditorState>;
   private code_editors: CodeEditorManager<CodeEditorState>;
 
+  private videoChat: VideoChat;
+
   protected doctype: string = "syncstring";
 
   ////////
@@ -217,6 +225,7 @@ export class Actions<
 
     this.project_id = project_id;
     this.path = path;
+    this.videoChat = new VideoChat({ project_id, path });
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<CodeEditorState>(
@@ -566,6 +575,7 @@ export class Actions<
     this.terminals.close();
     // Free up stuff related to code editors with different path
     this.code_editors.close();
+    this.videoChat.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -1823,7 +1833,9 @@ export class Actions<
       // TODO: this is VERY CRAPPY CODE -- wait after,
       // so cm gets state/value fully set.
       await delay(100);
-      if (this._state == "closed") return;
+      if (this._state == "closed") {
+        return;
+      }
       doc.setCursor(pos);
       cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
@@ -2952,7 +2964,7 @@ export class Actions<
     type: string;
   }): Promise<string> {
     const state = (syncdoc ?? this._syncstring).get_state();
-    if (!(await this.wait_until_syncdoc_ready(syncdoc))) {
+    if (state != "ready" && !(await this.wait_until_syncdoc_ready(syncdoc))) {
       return "";
     }
     const frameId = this.show_focused_frame_of_type(type);
@@ -3020,17 +3032,14 @@ export class Actions<
     return new Set(["selection"]);
   }
 
-  async languageModel(frameId: string, options: Options, input: string) {
+  languageModel = async (frameId: string, options: Options, input: string) => {
     await languageModelCreateChat({
       actions: this as Actions<CodeEditorState>,
       frameId,
       options,
       input,
     });
-  }
-
-  // TODO: get rid of this. it's used somehow in the title-bar.tsx, without typing
-  chatgpt = this.languageModel;
+  };
 
   tour(_id: string, _refs: any): TourProps["steps"] {
     return [];
@@ -3055,4 +3064,36 @@ export class Actions<
   settings = () => {
     this.redux.getActions("page").settings("editor-settings");
   };
+
+  getVideoChat = () => {
+    return this.videoChat;
+  };
+
+  // NOTE: can't be an arrow function because gets called in derived classes
+  async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId == null) {
+      return;
+    }
+
+    if (fragmentId.line) {
+      if (this._state == "closed") return;
+      this.programmatical_goto_line?.(fragmentId.line, true);
+    }
+
+    if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
+      // open side chat
+      this.redux
+        .getProjectActions(this.project_id)
+        .open_chat({ path: this.path });
+      this.show_focused_frame_of_type(chat.type);
+      for (const d of [1, 10, 50, 500, 1000]) {
+        const actions = getSideChatActions({
+          project_id: this.project_id,
+          path: this.path,
+        });
+        actions?.scrollToDate(fragmentId.chat);
+        await delay(d);
+      }
+    }
+  }
 }

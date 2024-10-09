@@ -3,50 +3,40 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Divider, Input, Select, Tooltip } from "antd";
+import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
-import { useDebounce } from "use-debounce";
-
-import {
-  ButtonGroup,
-  Col,
-  Button as OldButton,
-  Row,
-  Well,
-} from "@cocalc/frontend/antd-bootstrap";
+import { ButtonGroup, Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
-  useActions,
+  useEditorRedux,
   useEffect,
-  useRedux,
   useRef,
   useState,
 } from "@cocalc/frontend/app-framework";
-import {
-  Icon,
-  Loading,
-  SearchInput,
-  Tip,
-  VisibleMDLG,
-} from "@cocalc/frontend/components";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
+import { Icon, Loading } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
-import { sanitize_html_safe } from "@cocalc/frontend/misc";
 import { hoursToTimeIntervalHuman } from "@cocalc/util/misc";
 import { FormattedMessage } from "react-intl";
-import { ChatActions } from "./actions";
+import type { ChatActions } from "./actions";
+import type { ChatState } from "./store";
 import { ChatLog } from "./chat-log";
 import ChatInput from "./input";
 import { LLMCostEstimationChat } from "./llm-cost-estimation";
 import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
+import Filter from "./filter";
 
-const FILTER_RECENT_NONE = { value: 0, label: "All" } as const;
+const FILTER_RECENT_NONE = {
+  value: 0,
+  label: (
+    <>
+      <Icon name="clock" />
+    </>
+  ),
+} as const;
 
 const PREVIEW_STYLE: React.CSSProperties = {
   background: "#f5f5f5",
@@ -67,7 +57,6 @@ const GRID_STYLE: React.CSSProperties = {
 } as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
-  margin: "5px 0",
   padding: "0",
   background: "white",
   flex: "1 0 auto",
@@ -75,40 +64,35 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
 } as const;
 
 interface Props {
+  actions: ChatActions;
   project_id: string;
   path: string;
   is_visible?: boolean;
+  font_size: number;
+  desc?;
 }
 
-export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
-  const actions: ChatActions = useActions(project_id, path);
-
-  const is_uploading = useRedux(["is_uploading"], project_id, path);
-  const is_saving = useRedux(["is_saving"], project_id, path);
-  const is_preview = useRedux(["is_preview"], project_id, path);
-  const has_unsaved_changes = useRedux(
-    ["has_unsaved_changes"],
-    project_id,
-    path,
-  );
-  const has_uncommitted_changes = useRedux(
-    ["has_uncommitted_changes"],
-    project_id,
-    path,
-  );
-  const input: string = useRedux(["input"], project_id, path);
-  const [preview] = useDebounce(input, 250);
-
-  const search = useRedux(["search"], project_id, path);
-  const messages = useRedux(["messages"], project_id, path);
-  const filterRecentH: number = useRedux(["filterRecentH"], project_id, path);
+export function ChatRoom({
+  actions,
+  project_id,
+  path,
+  is_visible,
+  font_size,
+  desc,
+}: Props) {
+  const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  const [input, setInput] = useState("");
+  const search = desc?.get("data-search") ?? "";
+  const filterRecentH: number = desc?.get("data-filterRecentH") ?? 0;
+  const selectedHashtags = desc?.get("data-selectedHashtags");
+  const scrollToIndex = desc?.get("data-scrollToIndex") ?? null;
+  const scrollToDate = desc?.get("data-scrollToDate") ?? null;
+  const fragmentId = desc?.get("data-fragmentId") ?? null;
+  const showPreview = desc?.get("data-showPreview") ?? null;
+  const costEstimate = desc?.get("data-costEstimate");
+  const messages = useEditor("messages");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
-  const llm_cost_room: [number, number] = useRedux(
-    ["llm_cost_room"],
-    project_id,
-    path,
-  );
 
   const submitMentionsRef = useRef<SubmitMentionsFn>();
   const scrollToBottomRef = useRef<any>(null);
@@ -127,18 +111,13 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
     on_send();
   }
 
-  function button_scroll_to_bottom(): void {
-    scrollToBottomRef.current?.(true);
-  }
-
-  function show_timetravel(): void {
-    actions.showTimeTravelInNewTab();
-  }
-
   function render_preview_message(): JSX.Element | undefined {
-    if (!is_preview) return;
-    if (input.length === 0 || preview.length === 0) return;
-    const value = sanitize_html_safe(preview);
+    if (!showPreview) {
+      return;
+    }
+    if (input.length === 0) {
+      return;
+    }
 
     return (
       <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
@@ -154,11 +133,11 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
                 cursor: "pointer",
                 fontSize: "13pt",
               }}
-              onClick={() => actions.set_is_preview(false)}
+              onClick={() => actions.setShowPreview(false)}
             >
               <Icon name="times" />
             </div>
-            <StaticMarkdown value={value} />
+            <StaticMarkdown value={input} />
             <div className="small lighten" style={{ marginTop: "15px" }}>
               Preview (press Shift+Enter to send)
             </div>
@@ -170,165 +149,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
     );
   }
 
-  function render_timetravel_button(): JSX.Element {
-    return (
-      <OldButton onClick={show_timetravel} bsStyle="info">
-        <Tip
-          title="TimeTravel"
-          tip={<span>Browse all versions of this chatroom.</span>}
-          placement="left"
-        >
-          <Icon name="history" /> <VisibleMDLG>TimeTravel</VisibleMDLG>
-        </Tip>
-      </OldButton>
-    );
-  }
-
-  function render_bottom_button(): JSX.Element {
-    return (
-      <Button onClick={button_scroll_to_bottom}>
-        <Tip
-          title={
-            <FormattedMessage
-              id="chatroom.scroll_bottom.tooltip.title"
-              defaultMessage={"Newest Messages"}
-            />
-          }
-          tip={
-            <span>
-              <FormattedMessage
-                id="chatroom.scroll_bottom.tooltip.tip"
-                defaultMessage={
-                  "Scrolls the chat to the bottom showing the newest messages"
-                }
-              />
-            </span>
-          }
-          placement="left"
-        >
-          <Icon name="arrow-down" />{" "}
-          <VisibleMDLG>
-            {" "}
-            <FormattedMessage
-              id="chatroom.scroll_bottom.label"
-              defaultMessage={"Newest"}
-            />
-          </VisibleMDLG>
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_increase_font_size(): JSX.Element {
-    return (
-      <Button onClick={() => actions.change_font_size(1)}>
-        <Tip
-          title="Increase font size"
-          tip={<span>Make the font size larger for chat messages</span>}
-          placement="left"
-        >
-          <Icon name="search-plus" />
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_decrease_font_size(): JSX.Element {
-    return (
-      <Button onClick={() => actions.change_font_size(-1)}>
-        <Tip
-          title="Decrease font size"
-          tip={<span>Make the font size smaller for chat messages</span>}
-          placement="left"
-        >
-          <Icon name="search-minus" />
-        </Tip>
-      </Button>
-    );
-  }
-
-  function render_export_button(): JSX.Element {
-    return (
-      <VisibleMDLG>
-        <Button
-          title={"Export to Markdown"}
-          onClick={() => actions.export_to_markdown()}
-          style={{ marginLeft: "5px" }}
-        >
-          <Icon name="external-link" />
-        </Button>
-      </VisibleMDLG>
-    );
-  }
-
-  function render_save_button() {
-    return (
-      <SaveButton
-        onClick={() => actions.save_to_disk()}
-        is_saving={is_saving}
-        has_unsaved_changes={has_unsaved_changes}
-        has_uncommitted_changes={has_uncommitted_changes}
-      />
-    );
-  }
-
-  function render_compute_server_button() {
-    if (!computeServersEnabled()) {
-      return null;
-    }
-
-    return (
-      <SelectComputeServerForFile
-        actions={actions}
-        key="compute-server-selector"
-        type={"sage-chat"}
-        project_id={project_id}
-        path={path}
-        style={{
-          height: "32px",
-          overflow: "hidden",
-          borderTopRightRadius: "5px",
-          borderBottomRightRadius: "5px",
-        }}
-        noLabel={true}
-      />
-    );
-  }
-
   function render_video_chat_button() {
     if (project_id == null || path == null) return;
-    return (
-      <VideoChatButton
-        project_id={project_id}
-        path={path}
-        sendChat={(value) => actions.send_chat({ input: value })}
-        label={"Video"}
-      />
-    );
-  }
-
-  function render_search() {
-    return (
-      <SearchInput
-        autoFocus={false}
-        placeholder={"Filter messages (use /re/ for regexp)..."}
-        default_value={search}
-        on_change={debounce(
-          (value) => actions.setState({ search: value }),
-          150,
-          { leading: false, trailing: true },
-        )}
-        status={!search ? undefined : "warning"}
-        style={{
-          margin: 0,
-          width: "100%",
-          marginBottom: "5px",
-          ...(messages.size >= 2
-            ? undefined
-            : { visibility: "hidden", height: 0 }),
-        }}
-      />
-    );
+    return <VideoChatButton actions={actions} />;
   }
 
   function isValidFilterRecentCustom(): boolean {
@@ -338,147 +161,116 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
 
   function renderFilterRecent() {
     return (
-      <Select
-        open={filterRecentOpen}
-        onDropdownVisibleChange={(v) => setFilterRecentOpen(v)}
-        value={filterRecentH}
-        status={filterRecentH > 0 ? "warning" : undefined}
-        allowClear
-        onClear={() => {
-          actions.setState({ filterRecentH: 0 });
-          setFilterRecentHCustom("");
-        }}
-        style={{ width: 120 }}
-        popupMatchSelectWidth={false}
-        onSelect={(val: number) => actions.setState({ filterRecentH: val })}
-        options={[
-          FILTER_RECENT_NONE,
-          ...[1, 6, 12, 24, 48, 24 * 7, 14 * 24, 28 * 24].map((value) => {
-            const label = hoursToTimeIntervalHuman(value);
-            return { value, label };
-          }),
-        ]}
-        labelRender={({ label, value }) => {
-          if (!label) {
-            if (isValidFilterRecentCustom()) {
-              value = parseFloat(filterRecentHCustom);
-              label = hoursToTimeIntervalHuman(value);
-            } else {
-              ({ label, value } = FILTER_RECENT_NONE);
+      <Tooltip title="Only show recent threads.">
+        <Select
+          open={filterRecentOpen}
+          onDropdownVisibleChange={(v) => setFilterRecentOpen(v)}
+          value={filterRecentH}
+          status={filterRecentH > 0 ? "warning" : undefined}
+          allowClear
+          onClear={() => {
+            actions.setFilterRecentH(0);
+            setFilterRecentHCustom("");
+          }}
+          popupMatchSelectWidth={false}
+          onSelect={(val: number) => actions.setFilterRecentH(val)}
+          options={[
+            FILTER_RECENT_NONE,
+            ...[1, 6, 12, 24, 48, 24 * 7, 14 * 24, 28 * 24].map((value) => {
+              const label = hoursToTimeIntervalHuman(value);
+              return { value, label };
+            }),
+          ]}
+          labelRender={({ label, value }) => {
+            if (!label) {
+              if (isValidFilterRecentCustom()) {
+                value = parseFloat(filterRecentHCustom);
+                label = hoursToTimeIntervalHuman(value);
+              } else {
+                ({ label, value } = FILTER_RECENT_NONE);
+              }
             }
-          }
-          return (
-            <Tooltip
-              title={
-                value === 0
-                  ? `All messages.`
-                  : `Only messages sent in the past ${label}.`
-              }
-            >
-              {label}
-            </Tooltip>
-          );
-        }}
-        dropdownRender={(menu) => (
-          <>
-            {menu}
-            <Divider style={{ margin: "8px 0" }} />
-            <Input
-              placeholder="Number of hours"
-              allowClear
-              value={filterRecentHCustom}
-              status={
-                filterRecentHCustom == "" || isValidFilterRecentCustom()
-                  ? undefined
-                  : "error"
-              }
-              onChange={debounce(
-                (e: React.ChangeEvent<HTMLInputElement>) => {
-                  const v = e.target.value;
-                  setFilterRecentHCustom(v);
-                  const val = parseFloat(v);
-                  if (isFinite(val) && val >= 0) {
-                    actions.setState({ filterRecentH: val });
-                  } else if (v == "") {
-                    actions.setState({
-                      filterRecentH: FILTER_RECENT_NONE.value,
-                    });
-                  }
-                },
-                150,
-                { leading: true, trailing: true },
-              )}
-              onKeyDown={(e) => e.stopPropagation()}
-              onPressEnter={() => setFilterRecentOpen(false)}
-              addonAfter={<span style={{ paddingLeft: "5px" }}>hours</span>}
-            />
-          </>
-        )}
-      />
+            return (
+              <Tooltip
+                title={
+                  value === 0
+                    ? undefined
+                    : `Only threads with messages sent in the past ${label}.`
+                }
+              >
+                {label}
+              </Tooltip>
+            );
+          }}
+          dropdownRender={(menu) => (
+            <>
+              {menu}
+              <Divider style={{ margin: "8px 0" }} />
+              <Input
+                placeholder="Number of hours"
+                allowClear
+                value={filterRecentHCustom}
+                status={
+                  filterRecentHCustom == "" || isValidFilterRecentCustom()
+                    ? undefined
+                    : "error"
+                }
+                onChange={debounce(
+                  (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const v = e.target.value;
+                    setFilterRecentHCustom(v);
+                    const val = parseFloat(v);
+                    if (isFinite(val) && val >= 0) {
+                      actions.setFilterRecentH(val);
+                    } else if (v == "") {
+                      actions.setFilterRecentH(FILTER_RECENT_NONE.value);
+                    }
+                  },
+                  150,
+                  { leading: true, trailing: true },
+                )}
+                onKeyDown={(e) => e.stopPropagation()}
+                onPressEnter={() => setFilterRecentOpen(false)}
+                addonAfter={<span style={{ paddingLeft: "5px" }}>hours</span>}
+              />
+            </>
+          )}
+        />
+      </Tooltip>
     );
   }
 
   function render_button_row() {
+    if (messages == null) {
+      return null;
+    }
     return (
-      <Row style={{ marginLeft: 0, marginRight: 0 }}>
-        <Col xs={9} md={9} style={{ padding: "2px" }}>
-          <ButtonGroup>
-            {render_save_button()}
-            {render_timetravel_button()}
-            {render_compute_server_button()}
-          </ButtonGroup>
-          <ButtonGroup style={{ marginLeft: "5px" }}>
-            {render_video_chat_button()}
-            {render_bottom_button()}
-          </ButtonGroup>
-          <ButtonGroup style={{ marginLeft: "5px" }}>
-            {render_decrease_font_size()}
-            {render_increase_font_size()}
-          </ButtonGroup>
-          {render_export_button()}
-          {actions.syncdb != null && (
-            <VisibleMDLG>
-              <ButtonGroup style={{ marginLeft: "5px" }}>
-                <Button onClick={() => actions.syncdb?.undo()} title="Undo">
-                  <Icon name="undo" />
-                </Button>
-                <Button onClick={() => actions.syncdb?.redo()} title="Redo">
-                  <Icon name="redo" />
-                </Button>
-              </ButtonGroup>
-            </VisibleMDLG>
-          )}
-          {actions.help != null && (
-            <Button
-              onClick={() => actions.help()}
-              style={{ marginLeft: "5px" }}
-              title="Documentation"
-            >
-              <Icon name="question-circle" />
-            </Button>
-          )}
-        </Col>
-        <Col
-          xs={3}
-          md={3}
+      <Space style={{ width: "100%", marginTop: "3px" }} wrap>
+        <Filter
+          actions={actions}
+          search={search}
           style={{
-            padding: "2px",
-            display: "flex",
-            verticalAlign: "center",
-            gap: "5px",
+            margin: 0,
+            width: "100%",
+            ...(messages.size >= 2
+              ? undefined
+              : { visibility: "hidden", height: 0 }),
           }}
-        >
-          {renderFilterRecent()}
-          {render_search()}
-        </Col>
-      </Row>
+        />
+        {renderFilterRecent()}
+        <ButtonGroup style={{ marginLeft: "5px" }}>
+          {render_video_chat_button()}
+        </ButtonGroup>
+      </Space>
     );
   }
 
   function on_send(): void {
-    const input = submitMentionsRef.current?.();
     scrollToBottomRef.current?.(true);
-    actions.send_chat({ input });
+    actions.sendChat({ submitMentionsRef });
+    setTimeout(() => {
+      scrollToBottomRef.current?.(true);
+    }, 100);
   }
 
   function render_body(): JSX.Element {
@@ -487,10 +279,19 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
         {render_button_row()}
         <div className="smc-vfill" style={CHAT_LOG_STYLE}>
           <ChatLog
+            actions={actions}
             project_id={project_id}
             path={path}
             scrollToBottomRef={scrollToBottomRef}
             mode={"standalone"}
+            fontSize={font_size}
+            search={search}
+            filterRecentH={filterRecentH}
+            selectedHashtags={selectedHashtags}
+            scrollToIndex={scrollToIndex}
+            scrollToDate={scrollToDate}
+            selectedDate={fragmentId}
+            costEstimate={costEstimate}
           />
           {render_preview_message()}
         </div>
@@ -502,17 +303,18 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
             }}
           >
             <ChatInput
+              fontSize={font_size}
               autoFocus
               cacheId={`${path}${project_id}-new`}
               input={input}
               on_send={on_send}
               height={INPUT_HEIGHT}
               onChange={(value) => {
-                actions.set_input(value);
+                setInput(value);
                 // submitMentionsRef will not actually submit mentions; we're only interested in the reply value
-                const reply =
+                const input =
                   submitMentionsRef.current?.(undefined, true) ?? value;
-                actions?.llm_estimate_cost(reply, "room");
+                actions?.llmEstimateCost({ date: 0, input });
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
@@ -529,16 +331,18 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
             }}
           >
             <div style={{ flex: 1 }} />
-            <LLMCostEstimationChat
-              llm_cost={llm_cost_room}
-              compact
-              style={{
-                flex: 0,
-                fontSize: "85%",
-                textAlign: "center",
-                margin: "0 0 5px 0",
-              }}
-            />
+            {costEstimate?.get('date') == 0 && (
+              <LLMCostEstimationChat
+                costEstimate={costEstimate?.toJS()}
+                compact
+                style={{
+                  flex: 0,
+                  fontSize: "85%",
+                  textAlign: "center",
+                  margin: "0 0 5px 0",
+                }}
+              />
+            )}
             <Tooltip
               title={
                 <FormattedMessage
@@ -549,7 +353,7 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
             >
               <Button
                 onClick={on_send_button_click}
-                disabled={input.trim() === "" || is_uploading}
+                disabled={input.trim() === ""}
                 type="primary"
                 style={{ height: "47.5px" }}
                 icon={<Icon name="paper-plane" />}
@@ -562,9 +366,9 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
             </Tooltip>
             <div style={{ height: "5px" }} />
             <Button
-              onClick={() => actions.set_is_preview(true)}
+              type={showPreview ? "dashed" : undefined}
+              onClick={() => actions.setShowPreview(!showPreview)}
               style={{ height: "47.5px" }}
-              disabled={is_preview}
             >
               <FormattedMessage
                 id="chatroom.chat_input.preview_button.label"
@@ -604,4 +408,4 @@ export const ChatRoom: React.FC<Props> = ({ project_id, path, is_visible }) => {
       </div>
     </FrameContext.Provider>
   );
-};
+}

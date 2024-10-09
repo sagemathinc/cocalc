@@ -14,7 +14,6 @@ import { Button, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HiddenXS } from "@cocalc/frontend/components";

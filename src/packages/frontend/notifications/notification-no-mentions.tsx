@@ -4,7 +4,6 @@
  */
 
 import { useIntl } from "react-intl";
-
 import { CSS } from "@cocalc/frontend/app-framework";
 import { unreachable } from "@cocalc/util/misc";
 import { MentionsFilter } from "./mentions/types";

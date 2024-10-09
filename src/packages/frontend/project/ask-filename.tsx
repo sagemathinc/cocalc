@@ -3,16 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import {
-  Button,
-  ButtonToolbar,
-  Col,
-  ControlLabel,
-  Form,
-  Row,
-} from "@cocalc/frontend/antd-bootstrap";
+import { Button, Col, Row, Space } from "antd";
 import { useEffect } from "react";
-
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -108,7 +100,7 @@ export default function AskNewFilename({ project_id }: Props) {
           background: "#f8f8f8",
         }}
       >
-        <ControlLabel>
+        <div>
           Enter name for new {filename()}{" "}
           {ext_selection == "/" ? "folder" : "file"}
           {!!compute_server_id && (
@@ -117,8 +109,8 @@ export default function AskNewFilename({ project_id }: Props) {
               <ComputeServer id={compute_server_id} />
             </>
           )}
-        </ControlLabel>
-        <Form style={{ marginTop: "5px" }}>
+        </div>
+        <div style={{ marginTop: "5px" }}>
           <SearchInput
             autoFocus={!IS_TOUCH}
             autoSelect={!IS_TOUCH}
@@ -128,45 +120,38 @@ export default function AskNewFilename({ project_id }: Props) {
             on_escape={cancel}
             on_change={change}
           />
-          <Row>
-            <Col md={5} style={{ paddingTop: "15px" }}>
+          <Row style={{ marginTop: "15px" }}>
+            <Col md={10}>
               <SelectorInput
                 selected={selected}
                 options={NewFilenameFamilies}
                 on_change={change_family}
               />
             </Col>
-
-            <Col md={7}>
-              <ButtonToolbar
+            <Col md={14}>
+              <Space
                 style={{
+                  float: "right",
                   whiteSpace: "nowrap",
                   padding: "0",
-                  marginTop: "15px",
+                  marginLeft: "15px",
                 }}
               >
+                <Button onClick={cancel}>Cancel</Button>
                 <Button onClick={shuffle}>
                   <Icon name={"sync-alt"} />
                 </Button>
                 <Button
-                  className={"pull-right"}
-                  bsStyle={"primary"}
+                  type={"primary"}
                   onClick={create_click}
                   disabled={new_filename.length == 0}
                 >
                   <Icon name={"plus-circle"} /> Create
                 </Button>
-                <Button
-                  className={"pull-right"}
-                  onClick={cancel}
-                  style={{ marginRight: "5px" }}
-                >
-                  Cancel
-                </Button>
-              </ButtonToolbar>
+              </Space>
             </Col>
           </Row>
-        </Form>
+        </div>
       </div>
     </div>
   );

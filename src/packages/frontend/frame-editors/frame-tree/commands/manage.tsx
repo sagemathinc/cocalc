@@ -24,7 +24,7 @@ import type { Command } from "./types";
 
 const MAX_TITLE_WIDTH = 20;
 const MAX_SEARCH_RESULTS = 10;
-const ICON_WIDTH = "24px";
+const ICON_WIDTH = "28px";
 
 export class ManageCommands {
   // TODO: setting this to FrameTitleBarProps causes type issues in frame-editors/jupyter-editor/editor.ts
@@ -70,7 +70,12 @@ export class ManageCommands {
     if (cmd == null) {
       cmd = COMMANDS[name];
     }
-    // some buttons are always visible, e.g., for controlling the frame.
+    if (this.props.spec.commands?.[`-${name}`]) {
+      // explicitly hidden by the spec
+      return false;
+    }
+    // some buttons are always visible, e.g., for controlling the frame, unless of course they are explicitly
+    // hidden by the spec (above)
     if (cmd?.alwaysShow) {
       return true;
     }
@@ -79,10 +84,6 @@ export class ManageCommands {
       return false;
     }
     if (cmd?.disable && this.studentProjectFunctionality[cmd.disable]) {
-      return false;
-    }
-    if (this.props.spec.commands?.[`-${name}`]) {
-      // explicitly hidden by the spec
       return false;
     }
     if (cmd?.isVisible != null) {
@@ -312,7 +313,7 @@ export class ManageCommands {
     );
   };
 
-  private cmd2display = (
+  private commandToDisplay = (
     cmd: Partial<Command>,
     aspect: "label" | "title" | "button",
   ): string | null | undefined | ReactNode => {
@@ -347,9 +348,9 @@ export class ManageCommands {
     tip: boolean,
   ) => {
     const width = ICON_WIDTH;
-    let lbl = this.cmd2display(cmd, "label");
+    let lbl = this.commandToDisplay(cmd, "label");
     if (tip && cmd.title) {
-      const title = this.cmd2display(cmd, "title");
+      const title = this.commandToDisplay(cmd, "title");
       lbl = (
         <Tooltip mouseEnterDelay={0.9} title={title} placement={"left"}>
           {lbl}
@@ -472,20 +473,20 @@ export class ManageCommands {
       const icon = this.getCommandIcon(cmd);
       let buttonLabel;
       if (cmd.button != null) {
-        buttonLabel = this.cmd2display(cmd, "button");
+        buttonLabel = this.commandToDisplay(cmd, "button");
       } else {
-        buttonLabel = this.cmd2display(cmd, "label");
+        buttonLabel = this.commandToDisplay(cmd, "label");
       }
       label = (
         <>
           {icon ?? <Icon name="square" />}
           <div
             style={{
-              fontSize: "10px",
+              fontSize: "11px",
               color: "#666",
-              marginTop: "-5px",
+              marginTop: "-10px",
               // special case: button='' explicitly means no label
-              width: cmd.button === "" ? undefined : "46px",
+              width: cmd.button === "" ? undefined : "50px",
               overflow: "hidden",
               textOverflow: "ellipsis",
             }}
@@ -515,7 +516,7 @@ export class ManageCommands {
               <>
                 {this.getCommandLabel(cmd, name, false)}
                 {cmd.title ? (
-                  <div>{this.cmd2display(cmd, "title")}</div>
+                  <div>{this.commandToDisplay(cmd, "title")}</div>
                 ) : undefined}
               </>
             );

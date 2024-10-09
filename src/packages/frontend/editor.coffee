@@ -67,8 +67,6 @@ printing = require('./printing')
 
 {file_nonzero_size} = require('./project/utils')
 
-{render_snippets_dialog} = require('./assistant/legacy')
-
 copypaste = require('./copy-paste-buffer')
 
 extra_alt_keys = (extraKeys, editor, opts) ->
@@ -1375,13 +1373,6 @@ class CodeMirrorEditor extends FileEditor
             # Save for next time
             @_last_layout = @_layout
 
-        # Workaround a major and annoying bug in Safari:
-        #     https://github.com/philipwalton/flexbugs/issues/132
-        if $.browser.safari and @_layout == 1
-            # This is only needed for the "split via a horizontal line" layout, since
-            # the flex layout with column direction is broken on Safari.
-            @element.find(".webapp-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
-
         refresh = (cm) =>
             return if not cm?
             cm_refresh(cm)
@@ -1428,24 +1419,6 @@ class CodeMirrorEditor extends FileEditor
                 @syncdoc?.sync()
                 # needed so that dropdown menu closes when clicked.
                 return true
-
-    snippets_dialog_handler: () =>
-        # @snippets_dialog is an ExampleActions object, unique for each editor instance
-        lang = @_current_mode
-        # special case sh → bash
-        if lang == 'sh' then lang = 'bash'
-
-        if not @snippets_dialog?
-            $target = @mode_display.parent().find('.react-target')
-            @snippets_dialog = render_snippets_dialog(
-                target     : $target[0]
-                project_id : @project_id
-                path       : @filename
-                lang       : lang
-            )
-        else
-            @snippets_dialog.show(lang)
-        @snippets_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
         # insert : {lang: string, descr: string, code: string[]}
@@ -1595,10 +1568,8 @@ class CodeMirrorEditor extends FileEditor
                 textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
-        # show the assistant button to reveal the dialog for example selection
-        @element.find('.webapp-editor-codeedit-buttonbar-assistant').show()
-        assistant_button = @element.find('a[href="#assistant"]')
-        assistant_button.click(@snippets_dialog_handler)
+        # this is deprecated
+        @element.find('.webapp-editor-codeedit-buttonbar-assistant').hide()
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for

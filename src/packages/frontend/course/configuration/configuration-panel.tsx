@@ -132,7 +132,6 @@ export function UpgradeConfiguration({
           name={name}
           is_onprem={false}
           is_commercial={is_commercial}
-          upgrade_goal={settings?.get("upgrade_goal")}
           institute_pay={settings?.get("institute_pay")}
           student_pay={settings?.get("student_pay")}
           site_license_id={settings?.get("site_license_id")}

@@ -38,8 +38,9 @@ const TAGS = {
   A100: { search: ["a100"], desc: "an A100 GPU", group: 0 },
   L40: { search: ["l40"], desc: "an L40 GPU", group: 0 },
   "RTX-A6000": { search: ["rtx-a6000"], desc: "an RTX-A6000 GPU", group: 0 },
-  "RTX-A5000": { search: ["rtx-a5000"], desc: "an RTX-A5000 GPU", group: 0 },
-  "RTX-A4000": { search: ["rtx-a4000"], desc: "an RTX-A4000 GPU", group: 0 },
+  // it seems like a4000 and a5000's are just gone from hyperstack now.
+  //"RTX-A5000": { search: ["rtx-a5000"], desc: "an RTX-A5000 GPU", group: 0 },
+  //"RTX-A4000": { search: ["rtx-a4000"], desc: "an RTX-A4000 GPU", group: 0 },
   //"1 × GPU": { search: ["quantity:1"], desc: "only one GPU", group: 1 },
   "CPU Only": { search: ["cpu only"], desc: "no GPUs", group: 0 },
   Canada: {

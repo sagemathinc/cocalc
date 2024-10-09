@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Well } from "react-bootstrap";
+import { Alert, Well } from "@cocalc/frontend/antd-bootstrap";
 import { Component, Rendered } from "../app-framework";
 import { Gap } from "../components/gap";
 import { Icon } from "../components/icon";

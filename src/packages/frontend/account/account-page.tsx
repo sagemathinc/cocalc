@@ -10,14 +10,15 @@ for different account related information
 and configuration.
 */
 
+import { useEffect } from "react";
 import { Space } from "antd";
 import { useIntl } from "react-intl";
-
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
+  useIsMountedRef,
   useTypedRedux,
   useWindowDimensions,
 } from "@cocalc/frontend/app-framework";
@@ -25,8 +26,6 @@ import { Icon, Loading } from "@cocalc/frontend/components";
 import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { labels } from "@cocalc/frontend/i18n";
-import { LandingPage } from "@cocalc/frontend/landing-page/landing-page";
-import { local_storage_length } from "@cocalc/frontend/misc/local-storage";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
 import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
@@ -41,6 +40,7 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
@@ -52,43 +52,10 @@ export const AccountPage: React.FC = () => {
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const strategies = useTypedRedux("account", "strategies");
-  const sign_up_error = useTypedRedux("account", "sign_up_error");
-  const sign_in_error = useTypedRedux("account", "sign_in_error");
-  const signing_in = useTypedRedux("account", "signing_in");
-  const signing_up = useTypedRedux("account", "signing_up");
-  const forgot_password_error = useTypedRedux(
-    "account",
-    "forgot_password_error",
-  );
-  const forgot_password_success = useTypedRedux(
-    "account",
-    "forgot_password_success",
-  );
-  const show_forgot_password = useTypedRedux("account", "show_forgot_password");
-  const token = useTypedRedux("account", "token");
-  const reset_key = useTypedRedux("account", "reset_key");
-  const reset_password_error = useTypedRedux("account", "reset_password_error");
-  const remember_me = useTypedRedux("account", "remember_me");
-  const has_remember_me = useTypedRedux("account", "has_remember_me");
-
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
-
-  // for each exclusive domain, tell the user which strategy to use
-  const exclusive_sso_domains = React.useMemo(() => {
-    if (strategies == null) return;
-    const domains: { [domain: string]: string } = {};
-    for (const strat of strategies) {
-      const doms = strat.get("exclusive_domains");
-      for (const dom of doms ?? []) {
-        domains[dom] = strat.get("name");
-      }
-    }
-    return domains;
-  }, [strategies]);
 
   function handle_select(key: string): void {
     switch (key) {
@@ -102,28 +69,6 @@ export const AccountPage: React.FC = () => {
     }
     redux.getActions("account").set_active_tab(key);
     redux.getActions("account").push_state(`/${key}`);
-  }
-
-  function render_landing_page(): JSX.Element {
-    return (
-      <LandingPage
-        strategies={strategies}
-        exclusive_sso_domains={exclusive_sso_domains}
-        sign_up_error={sign_up_error}
-        sign_in_error={sign_in_error}
-        signing_in={signing_in}
-        signing_up={signing_up}
-        forgot_password_error={forgot_password_error}
-        forgot_password_success={forgot_password_success}
-        show_forgot_password={show_forgot_password}
-        token={token}
-        reset_key={reset_key}
-        reset_password_error={reset_password_error}
-        remember_me={remember_me}
-        has_remember_me={has_remember_me}
-        has_account={local_storage_length() > 0}
-      />
-    );
   }
 
   function render_account_tab(): AntdTabItem {
@@ -303,9 +248,27 @@ export const AccountPage: React.FC = () => {
       className="smc-vfill"
       style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}
     >
-      {is_logged_in && !get_api_key
-        ? render_logged_in_view()
-        : render_landing_page()}
+      {is_logged_in && !get_api_key ? (
+        render_logged_in_view()
+      ) : (
+        <RedirectToNextApp />
+      )}
     </div>
   );
 };
+
+function RedirectToNextApp({}) {
+  const isMountedRef = useIsMountedRef();
+
+  useEffect(() => {
+    const f = () => {
+      if (isMountedRef.current) {
+        // didn't get signed in so go to landing page
+        window.location.href = appBasePath;
+      }
+    };
+    setTimeout(f, 5000);
+  }, []);
+
+  return <Loading theme="medium" />;
+}
