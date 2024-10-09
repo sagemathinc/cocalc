@@ -62,6 +62,7 @@ import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project/new/consts";
 import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
@@ -1102,18 +1103,17 @@ export function AIGenerateDocumentModal({
 }
 
 export function AIGenerateDocumentButton({
-  project_id,
   style,
   mode = "full",
   ext,
   filename,
 }: {
-  project_id: string;
   style?: CSS;
   mode?: "full" | "flyout";
   ext: Props["ext"];
   filename?: string;
 }) {
+  const { project_id } = useProjectContext();
   const intl = useIntl();
   const [show, setShow] = useState<boolean>(false);
 
@@ -1122,7 +1122,6 @@ export function AIGenerateDocumentButton({
   }
 
   const btnStyle: CSS = {
-    width: "100%",
     overflowX: "hidden",
     overflow: "hidden",
     whiteSpace: "nowrap",
@@ -1159,7 +1158,13 @@ export function AIGenerateDocumentButton({
           style={btnStyle}
           size={mode === "flyout" ? "small" : undefined}
         >
-          <Space>
+          <Space
+            style={{
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              textOverflow: "ellipsis",
+            }}
+          >
             <AIAvatar size={15} />
             {mode === "full"
               ? ` ${intl.formatMessage(labels.ai_generate_label)}`

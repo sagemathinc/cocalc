@@ -11,11 +11,11 @@ import { COLORS } from "@cocalc/util/theme";
 import { NEW_FILETYPE_ICONS, isNewFiletypeIconName } from "./consts";
 
 export const STYLE = {
-  marginRight: "5px",
   marginBottom: "5px",
   whiteSpace: "normal",
   padding: "10px",
   height: "auto",
+  width: "100%",
 } as const;
 
 const ICON_STYLE = {
