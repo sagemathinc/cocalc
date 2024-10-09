@@ -24,7 +24,7 @@ If for any reason the react element exists or the parent is scrolled, then
 the idle timeout is reset.
 */
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import $ from "jquery";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { useStableHtmlContext } from "@cocalc/frontend/jupyter/cell-list";
@@ -259,7 +259,6 @@ export default function StableUnsafeHtml({
     }
     // html was mutated (e.g., happens with transient messages or and collab), so update the
     // element in place.
-    const prev = htmlRef.current;
     htmlRef.current = html;
     const elt = getElt();
     elt.html(html);
