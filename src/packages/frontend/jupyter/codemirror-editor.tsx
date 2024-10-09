@@ -818,7 +818,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
           <a
             style={{
               marginTop: "6px",
-              opacity: 0.7,
+              opacity: 0.5,
               fontSize: "inherit",
             }}
             onClick={() => setShowAICellGen("replace")}
