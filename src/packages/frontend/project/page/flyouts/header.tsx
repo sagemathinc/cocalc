@@ -218,6 +218,8 @@ export function FlyoutHeader(_: Readonly<Props>) {
   return (
     <div
       style={{
+        height: "40px",
+        overflow: "hidden",
         display: "flex",
         flexDirection: "row",
         alignItems: "start",
