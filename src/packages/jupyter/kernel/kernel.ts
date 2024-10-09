@@ -484,19 +484,13 @@ class JupyterKernel extends EventEmitter implements JupyterKernelInterface {
             this.emit("execution_state", mesg.content.execution_state);
           }
 
-          if (
-            (mesg.content != null ? mesg.content.comm_id : undefined) !==
-            undefined
-          ) {
+          if (mesg.content?.comm_id != null) {
             // A comm message, which gets handled directly.
             this.process_comm_message_from_kernel(mesg);
             break;
           }
 
-          if (
-            this._actions != null &&
-            this._actions.capture_output_message(mesg)
-          ) {
+          if (this._actions?.capture_output_message(mesg)) {
             // captured an output message -- do not process further
             break;
           }

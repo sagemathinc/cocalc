@@ -115,9 +115,6 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     for (const n of numericallyOrderedKeys(obj)) {
       const mesg = obj[n];
       if (mesg != null) {
-        if (mesg.get("transient")) {
-          continue;
-        }
         if (mesg.get("traceback")) {
           hasError = true;
           traceback += mesg.get("traceback").join("\n") + "\n";
