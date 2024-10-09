@@ -215,10 +215,7 @@ export function FilesSelectedControls({
                   onClick={() => {
                     // TODO re-using the existing controls is a stopgap. make this part of the flyouts.
                     actions?.set_active_tab("files");
-                    actions?.set_file_action(
-                      name,
-                      () => path_split(checked_files.first()).tail,
-                    );
+                    actions?.set_file_action(name);
                   }}
                 >
                   <Icon name={icon} />
@@ -242,8 +239,8 @@ export function FilesSelectedControls({
           ? renderButtons(ACTION_BUTTONS_DIR)
           : renderButtons(ACTION_BUTTONS_FILE.filter((n) => n !== "download"))
         : checked_files.size > 1
-        ? renderButtons(ACTION_BUTTONS_MULTI)
-        : undefined}
+          ? renderButtons(ACTION_BUTTONS_MULTI)
+          : undefined}
       {renderFileInfo()}
     </Space>
   );

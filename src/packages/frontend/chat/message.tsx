@@ -124,7 +124,7 @@ interface Props {
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
 
-  llm_cost_reply?: [number, number] | null;
+  costEstimate;
 
   selected?: boolean;
 }
@@ -134,13 +134,13 @@ export default function Message(props: Readonly<Props>) {
     is_folded,
     is_thread_body,
     is_thread,
-    llm_cost_reply,
     message,
     messages,
     mode,
     project_id,
     font_size,
     selected,
+    costEstimate,
   } = props;
 
   const showAISummarize = redux
@@ -771,8 +771,12 @@ export default function Message(props: Readonly<Props>) {
           onChange={(value) => {
             replyMessageRef.current = value;
             // replyMentionsRef does not submit mentions, only gives us the value
-            const reply = replyMentionsRef.current?.(undefined, true) ?? value;
-            props.actions?.llmEstimateCost(reply, "reply", message.toJS());
+            const input = replyMentionsRef.current?.(undefined, true) ?? value;
+            props.actions?.llmEstimateCost({
+              date: replyDate,
+              input,
+              message: message.toJS(),
+            });
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -794,11 +798,13 @@ export default function Message(props: Readonly<Props>) {
           >
             <Icon name="reply" /> Reply (shift+enter)
           </Button>
-          <LLMCostEstimationChat
-            llm_cost={llm_cost_reply}
-            compact={false}
-            style={{ display: "inline-block", marginLeft: "10px" }}
-          />
+          {costEstimate?.get("date") == replyDate && (
+            <LLMCostEstimationChat
+              costEstimate={costEstimate?.toJS()}
+              compact={false}
+              style={{ display: "inline-block", marginLeft: "10px" }}
+            />
+          )}
         </div>
       </div>
     );

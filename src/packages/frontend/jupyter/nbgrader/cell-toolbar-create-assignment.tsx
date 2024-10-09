@@ -7,11 +7,9 @@
 nbgrader functionality: the create assignment toolbar.
 */
 
-import { Space } from "antd";
+import { Button, Select, Space } from "antd";
 import { Map } from "immutable";
 import { DebounceInput } from "react-debounce-input";
-
-import { Button, FormControl } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, useRef } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { popup } from "@cocalc/frontend/frame-editors/frame-tree/print";
@@ -26,22 +24,36 @@ import {
 } from "./cell-types";
 import type { Metadata } from "./types";
 
-const OPTIONS_CODE: Rendered[] = [];
-const OPTIONS_NOTCODE: Rendered[] = [];
-
-for (const x of CELLTYPE_INFO_LIST) {
-  const option = (
-    <option key={x.value} value={x.value}>
-      {x.title}
-    </option>
-  );
-  if (!x.markdown_only) {
-    OPTIONS_CODE.push(option);
-  }
-  if (!x.code_only) {
-    OPTIONS_NOTCODE.push(option);
-  }
-}
+const OPTIONS_CODE = CELLTYPE_INFO_LIST.filter((x) => !x.markdown_only).map(
+  (x) => {
+    return {
+      ...x,
+      label: (
+        <>
+          {x.icon ? (
+            <Icon name={x.icon} style={{ marginRight: "5px" }} />
+          ) : undefined}{" "}
+          {x.title}
+        </>
+      ),
+    };
+  },
+);
+const OPTIONS_NOTCODE = CELLTYPE_INFO_LIST.filter((x) => !x.code_only).map(
+  (x) => {
+    return {
+      ...x,
+      label: (
+        <>
+          {x.icon ? (
+            <Icon name={x.icon} style={{ marginRight: "5px" }} />
+          ) : undefined}{" "}
+          {x.title}
+        </>
+      ),
+    };
+  },
+);
 
 interface Props {
   actions: JupyterActions;
@@ -61,7 +73,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     const id = cell.get("id");
     metadata.grade_id = cell.getIn(
       ["metadata", "nbgrader", "grade_id"],
-      ""
+      "",
     ) as string;
     if (!metadata.grade_id) {
       // TODO -- check if default is globally unique...?
@@ -74,7 +86,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
       const input = value_to_template_content(
         value,
         language,
-        cell.get("cell_type", "code")
+        cell.get("cell_type", "code"),
       );
       if (input != "") {
         actions.set_cell_input(id, input);
@@ -188,15 +200,12 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     const options =
       cell.get("cell_type", "code") == "code" ? OPTIONS_CODE : OPTIONS_NOTCODE;
     return (
-      <FormControl
-        componentClass="select"
-        placeholder="select"
-        onChange={(e) => select((e as any).target.value)}
+      <Select
+        options={options}
+        onChange={select}
         value={get_value()}
-        style={{ marginLeft: "15px" }}
-      >
-        {options}
-      </FormControl>
+        style={{ marginLeft: "15px", width: "225px" }}
+      />
     );
   }
 

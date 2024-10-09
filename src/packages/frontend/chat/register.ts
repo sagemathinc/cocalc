@@ -44,12 +44,6 @@ export function initChat(project_id: string, path: string): ChatActions {
     actions.set_syncdb(syncdb, store);
     actions.init_from_syncdb();
     syncdb.on("change", actions.syncdbChange);
-    syncdb.on("has-uncommitted-changes", (val) =>
-      actions.setState({ has_uncommitted_changes: val }),
-    );
-    syncdb.on("has-unsaved-changes", (val) =>
-      actions.setState({ has_unsaved_changes: val }),
-    );
     redux.getProjectActions(project_id)?.log_opened_time(path);
   });
 

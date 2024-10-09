@@ -4,9 +4,7 @@
  */
 
 import React from "react";
-import ReactDOM from "react-dom";
 import * as immutable from "immutable";
-
 import { rtypes, rclass } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import DirectorySelector from "../directory-selector";
@@ -15,22 +13,31 @@ import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { in_snapshot_path } from "../utils";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import * as misc from "@cocalc/util/misc";
-import { Button as AntdButton, Radio } from "antd";
-
+import { Button as AntdButton, Radio, Alert as AntdAlert, Space } from "antd";
 import {
   Button,
-  ButtonToolbar,
   Col,
   Row,
   Well,
-  FormControl,
-  FormGroup,
   Alert,
   Checkbox,
 } from "@cocalc/frontend/antd-bootstrap";
-import * as account from "@cocalc/frontend/account";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ConfigureShare from "@cocalc/frontend/share/config";
+import CreateArchive from "./create-archive";
+import RenameFile from "./rename-file";
+import Download from "./download";
+
+export const PRE_STYLE = {
+  marginBottom: "15px",
+  maxHeight: "80px",
+  minHeight: "34px",
+  fontSize: "14px",
+  fontFamily: "inherit",
+  color: "#555",
+  backgroundColor: "#eee",
+  padding: "6px 12px",
+} as const;
 
 type FileAction = undefined | keyof typeof file_actions;
 
@@ -69,8 +76,6 @@ interface State {
 
 export const ActionBox = rclass<ReactProps>(
   class ActionBox extends React.Component<ReactProps & ReduxProps, State> {
-    private pre_styles: React.CSSProperties;
-
     static reduxProps = ({ name }) => {
       return {
         projects: {
@@ -102,16 +107,6 @@ export const ActionBox = rclass<ReactProps>(
         copy_from_compute_server_to: "compute-server",
         dest_compute_server_id: props.compute_server_id ?? 0,
       };
-      this.pre_styles = {
-        marginBottom: "15px",
-        maxHeight: "80px",
-        minHeight: "34px",
-        fontSize: "14px",
-        fontFamily: "inherit",
-        color: "#555",
-        backgroundColor: "#eee",
-        padding: "6px 12px",
-      } as const;
     }
 
     cancel_action = (): void => {
@@ -125,13 +120,6 @@ export const ActionBox = rclass<ReactProps>(
           break;
         case 13:
           switch (this.props.file_action) {
-            case "compress":
-              this.compress_click();
-              break;
-            case "rename":
-            case "duplicate":
-              this.submit_action_rename();
-              break;
             case "move":
               this.submit_action_move();
               break;
@@ -144,68 +132,13 @@ export const ActionBox = rclass<ReactProps>(
 
     render_selected_files_list(): JSX.Element {
       return (
-        <pre style={this.pre_styles}>
+        <pre style={PRE_STYLE}>
           {this.props.checked_files.toArray().map((name) => (
             <div key={name}>{misc.path_split(name).tail}</div>
           ))}
         </pre>
       );
     }
-
-    compress_click = (): void => {
-      const destination = (
-        ReactDOM.findDOMNode(this.refs.result_archive) as any
-      ).value;
-      this.props.actions.zip_files({
-        src: this.props.checked_files.toArray(),
-        dest: misc.path_to_file(this.props.current_path, destination),
-      });
-      this.props.actions.set_all_files_unchecked();
-      this.props.actions.set_file_action();
-    };
-
-    render_compress = (): JSX.Element => {
-      const { size } = this.props.checked_files;
-      return (
-        <div>
-          <Row>
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>Create a zip file</h4>
-              {this.render_selected_files_list()}
-            </Col>
-
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>Result archive</h4>
-              <FormGroup>
-                <FormControl
-                  autoFocus={true}
-                  ref="result_archive"
-                  key="result_archive"
-                  type="text"
-                  defaultValue={account.default_filename(
-                    "zip",
-                    this.props.project_id,
-                  )}
-                  placeholder="Result archive..."
-                  onKeyDown={this.action_key}
-                />
-              </FormGroup>
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
-              <ButtonToolbar>
-                <Button bsStyle="warning" onClick={this.compress_click}>
-                  <Icon name="compress" /> Compress {size}{" "}
-                  {misc.plural(size, "Item")}
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
-            </Col>
-          </Row>
-        </div>
-      );
-    };
 
     delete_click = (): void => {
       this.props.actions.delete_files({
@@ -269,51 +202,21 @@ export const ActionBox = rclass<ReactProps>(
           </Row>
           <Row>
             <Col sm={12}>
-              <ButtonToolbar>
-                <Button
-                  bsStyle="danger"
+              <Space>
+                <AntdButton onClick={this.cancel_action}>Cancel</AntdButton>
+                <AntdButton
+                  danger
                   onClick={this.delete_click}
                   disabled={this.props.current_path === ".trash"}
                 >
                   <Icon name="trash" /> Delete {size}{" "}
                   {misc.plural(size, "Item")}
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
+                </AntdButton>
+              </Space>
             </Col>
           </Row>
         </div>
       );
-    }
-
-    rename_or_duplicate_click(): void {
-      const rename_dir = misc.path_split(
-        this.props.checked_files?.first() ?? "",
-      ).head;
-      const destination = (ReactDOM.findDOMNode(this.refs.new_name) as any)
-        .value;
-      switch (this.props.file_action) {
-        case "rename":
-          const checked = this.props.checked_files.toArray();
-          if (checked.length != 1) {
-            // shouldn't happen -- shouldn't even get to this point.
-            return;
-          }
-          this.props.actions.rename_file({
-            src: checked[0],
-            dest: misc.path_to_file(rename_dir, destination),
-          });
-          break;
-        case "duplicate":
-          this.props.actions.copy_paths({
-            src: this.props.checked_files.toArray(),
-            dest: misc.path_to_file(rename_dir, destination),
-            only_contents: true,
-          });
-          break;
-      }
-      this.props.actions.set_file_action();
-      this.props.actions.set_all_files_unchecked();
     }
 
     private filename_length_test(name: string): boolean {
@@ -363,17 +266,22 @@ export const ActionBox = rclass<ReactProps>(
         return; // no warning or error
       }
       return (
-        <Alert bsStyle={bsStyle} style={{ wordWrap: "break-word" }}>
-          <h4>
-            <Icon name="exclamation-triangle" /> Warning
-          </h4>
-          <p>{message}</p>
-          {bsStyle === "danger" ? (
-            <p>This is not allowed.</p>
-          ) : (
-            <p>This may cause your file to no longer open properly.</p>
-          )}
-        </Alert>
+        <AntdAlert
+          type="warning"
+          style={{ wordWrap: "break-word", marginTop: "15px" }}
+          showIcon
+          message={<>Warning</>}
+          description={
+            <>
+              <p>{message}</p>
+              {bsStyle === "danger" ? (
+                <p>This is not allowed.</p>
+              ) : (
+                <p>This may cause your file to no longer open properly.</p>
+              )}
+            </>
+          }
+        />
       );
     }
 
@@ -387,74 +295,6 @@ export const ActionBox = rclass<ReactProps>(
         return false;
       }
       return this.state.new_name.trim() !== misc.path_split(single_item).tail;
-    };
-
-    render_rename_or_duplicate(): JSX.Element {
-      let action_title, first_heading;
-      const single_item = this.props.checked_files.first("");
-      switch (this.props.file_action) {
-        case "rename":
-          action_title = "Rename";
-          first_heading = "Change the name";
-          break;
-        case "duplicate":
-          action_title = "Duplicate";
-          first_heading = "File to duplicate";
-          break;
-      }
-      return (
-        <div>
-          <Row>
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>{first_heading}</h4>
-              {this.render_selected_files_list()}
-            </Col>
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>New name</h4>
-              <FormGroup>
-                <FormControl
-                  autoFocus={true}
-                  ref="new_name"
-                  key="new_name"
-                  type="text"
-                  defaultValue={this.state.new_name}
-                  placeholder="New file name..."
-                  onChange={() =>
-                    this.setState({
-                      new_name: (
-                        ReactDOM.findDOMNode(this.refs.new_name) as any
-                      ).value,
-                    })
-                  }
-                  onKeyDown={this.action_key}
-                />
-              </FormGroup>
-              {this.render_rename_warning()}
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
-              <ButtonToolbar>
-                <Button
-                  bsStyle="info"
-                  onClick={() => this.rename_or_duplicate_click()}
-                  disabled={!this.valid_rename_input(single_item)}
-                >
-                  <Icon name="pencil" /> {action_title} Item
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
-            </Col>
-          </Row>
-        </div>
-      );
-    }
-
-    submit_action_rename = (): void => {
-      const single_item = this.props.checked_files.first("");
-      if (this.valid_rename_input(single_item)) {
-        this.rename_or_duplicate_click();
-      }
     };
 
     move_click = (): void => {
@@ -487,18 +327,18 @@ export const ActionBox = rclass<ReactProps>(
         <div>
           <Row>
             <Col sm={5} style={{ color: "#666" }}>
-              <h4>Move to a directory</h4>
+              <h4>Move files to a directory</h4>
               {this.render_selected_files_list()}
-              <ButtonToolbar>
-                <Button
-                  bsStyle="warning"
+              <Space>
+                <Button onClick={this.cancel_action}>Cancel</Button>
+                <AntdButton
+                  type="primary"
                   onClick={this.move_click}
                   disabled={!this.valid_move_input()}
                 >
-                  <Icon name="move" /> Move {size} {misc.plural(size, "Item")}
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
+                  Move {size} {misc.plural(size, "Item")}
+                </AntdButton>
+              </Space>
             </Col>
             <Col sm={5} style={{ color: "#666", marginBottom: "15px" }}>
               <h4>
@@ -719,13 +559,13 @@ export const ActionBox = rclass<ReactProps>(
             <LoginLink />
             <Row>
               <Col sm={12}>
-                <ButtonToolbar>
+                <Space>
+                  <Button onClick={this.cancel_action}>Cancel</Button>
                   <Button bsStyle="primary" disabled={true}>
                     <Icon name="files" /> Copy {size}{" "}
                     {misc.plural(size, "item")}
                   </Button>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
-                </ButtonToolbar>
+                </Space>
               </Col>
             </Row>
           </div>
@@ -739,17 +579,17 @@ export const ActionBox = rclass<ReactProps>(
                 style={{ color: "#666" }}
               >
                 {this.render_copy_description()}
-                <ButtonToolbar>
-                  <Button onClick={this.cancel_action}>Cancel</Button>
-                  <Button
-                    bsStyle="primary"
+                <Space>
+                  <AntdButton onClick={this.cancel_action}>Cancel</AntdButton>
+                  <AntdButton
+                    type="primary"
                     onClick={this.copy_click}
                     disabled={!this.valid_copy_input()}
                   >
                     <Icon name="files" /> Copy {size}{" "}
                     {misc.plural(size, "Item")}
-                  </Button>
-                </ButtonToolbar>
+                  </AntdButton>
+                </Space>
               </Col>
               {this.render_different_project_dialog()}
               <Col
@@ -859,133 +699,20 @@ export const ActionBox = rclass<ReactProps>(
       );
     }
 
-    download_single_click = (): void => {
-      this.props.actions.download_file({
-        path: this.props.checked_files.first(),
-        log: true,
-      });
-      this.props.actions.set_file_action();
-    };
-
-    download_multiple_click = (): void => {
-      const destination = (
-        ReactDOM.findDOMNode(this.refs.download_archive) as any
-      ).value;
-      const dest = misc.path_to_file(this.props.current_path, destination);
-      const files = this.props.checked_files.toArray();
-      this.props.actions.zip_files({
-        src: files,
-        dest,
-        cb: (err) => {
-          if (err) {
-            this.props.actions.set_activity({ id: misc.uuid(), error: err });
-            return;
-          }
-          this.props.actions.download_file({
-            path: dest,
-            log: files,
-          });
-          this.props.actions.fetch_directory_listing();
-        },
-      });
-      this.props.actions.set_all_files_unchecked();
-      this.props.actions.set_file_action();
-    };
-
-    render_download_single(single_item: string): JSX.Element {
-      const target = (this.props.actions.get_store() as any).get_raw_link(
-        single_item,
-      );
-      return (
-        <div>
-          <h4>Download link</h4>
-          <pre style={this.pre_styles}>
-            <a href={target} target="_blank">
-              {target}
-            </a>
-          </pre>
-        </div>
-      );
-    }
-
-    render_download_multiple(): JSX.Element {
-      return (
-        <div>
-          <h4>Download as archive</h4>
-          <FormGroup>
-            <FormControl
-              autoFocus={true}
-              ref="download_archive"
-              key="download_archive"
-              type="text"
-              defaultValue={account.default_filename(
-                "zip",
-                this.props.project_id,
-              )}
-              placeholder="Result archive..."
-              onKeyDown={this.action_key}
-            />
-          </FormGroup>
-        </div>
-      );
-    }
-
-    render_download(): JSX.Element {
-      let download_multiple_files;
-      const single_item = this.props.checked_files.first("");
-      const listing_item = this.props.file_map[
-        misc.path_split(single_item).tail
-      ] || { isdir: undefined };
-      if (this.props.checked_files.size !== 1 || listing_item.isdir) {
-        download_multiple_files = true;
-      }
-      return (
-        <div>
-          <Row>
-            <Col sm={5} style={{ color: "#666" }}>
-              <h4>Download file(s) to your computer</h4>
-              {this.render_selected_files_list()}
-            </Col>
-            <Col sm={7} style={{ color: "#666" }}>
-              {download_multiple_files
-                ? this.render_download_multiple()
-                : this.render_download_single(single_item)}
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
-              <ButtonToolbar>
-                <Button
-                  bsStyle="primary"
-                  onClick={
-                    download_multiple_files
-                      ? this.download_multiple_click
-                      : this.download_single_click
-                  }
-                >
-                  <Icon name="cloud-download" /> Download
-                </Button>
-                <Button onClick={this.cancel_action}>Cancel</Button>
-              </ButtonToolbar>
-            </Col>
-          </Row>
-        </div>
-      );
-    }
-
     render_action_box(action: FileAction): JSX.Element | undefined {
       switch (action) {
         case "compress":
-          return this.render_compress();
+          return <CreateArchive />;
         case "copy":
           return this.render_copy();
         case "delete":
           return this.render_delete();
         case "download":
-          return this.render_download();
+          return <Download />;
         case "rename":
+          return <RenameFile />;
         case "duplicate":
-          return this.render_rename_or_duplicate();
+          return <RenameFile duplicate />;
         case "move":
           return this.render_move();
         case "share":

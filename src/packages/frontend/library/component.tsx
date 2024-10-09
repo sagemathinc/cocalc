@@ -3,6 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+/*
+To work on this make sure /ext/library/ exists:
+
+$ ls /ext/library/
+cocalc-examples  update.sh
+$ more update.sh
+[...]
+git clone --depth=1 https://github.com/sagemathinc/cocalc-examples.git
+cd cocalc-examples/
+git submodule update --init --recursive --depth 1
+make
+[...]
+
+*/
+
 import { join } from "path";
 import { path_split, search_match, search_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -10,21 +25,12 @@ import track from "@cocalc/frontend/user-tracking";
 import {
   useActions,
   useMemo,
-  useRef,
   useState,
   useTypedRedux,
   CSS,
-  React,
-  ReactDOM,
   Fragment,
 } from "../app-framework";
-import {
-  Col,
-  Row,
-  Button,
-  ListGroup,
-  ListGroupItem,
-} from "@cocalc/frontend/antd-bootstrap";
+import { List, Col, Row, Button } from "antd";
 import {
   Markdown,
   Icon,
@@ -44,7 +50,7 @@ interface Props {
 }
 
 // This is the main library component. It consists of a "selector" and a preview.
-export const Library: React.FC<Props> = ({ project_id, onClose }) => {
+export function Library({ project_id, onClose }: Props) {
   const current_path = useTypedRedux({ project_id }, "current_path");
   const library = useTypedRedux({ project_id }, "library");
   const library_selected = useTypedRedux({ project_id }, "library_selected");
@@ -57,7 +63,6 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
   const project_map = useTypedRedux("projects", "project_map");
 
   const actions = useActions({ project_id });
-  const selector_list_ref = useRef(null);
 
   const [show_thumb, set_show_thumb] = useState<boolean>(false);
 
@@ -143,39 +148,6 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
     });
   }
 
-  function selector_keyup(evt) {
-    let dx;
-    switch (evt.keyCode) {
-      case 38: // up
-        dx = -1;
-        break;
-      case 40: // down
-        dx = 1;
-        break;
-    }
-    move_cursor(dx);
-    evt.preventDefault();
-    evt.stopPropagation();
-    evt.nativeEvent.stopImmediatePropagation();
-    return false;
-  }
-
-  function move_cursor(dx) {
-    if (library_docs_sorted == null || actions == null) return;
-    let new_doc;
-    if (library_selected == null) {
-      new_doc = library_docs_sorted.get(0);
-    } else {
-      const ids = library_docs_sorted.map((doc) => doc.get("id"));
-      const idx = ids.indexOf(library_selected.get("id")) + dx;
-      new_doc = library_docs_sorted.get(idx % library_docs_sorted.size);
-    }
-    actions.setState({ library_selected: new_doc });
-    $(ReactDOM.findDOMNode(selector_list_ref.current))
-      .find(".active")
-      .scrollintoview();
-  }
-
   function set_search(search) {
     actions?.setState({ library_search: search });
   }
@@ -203,6 +175,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
       padding: "5px",
       border: "none",
       textAlign: "left",
+      cursor: "pointer",
     };
 
     const list: JSX.Element[] = [];
@@ -222,15 +195,18 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
 
       // the entry for each available document
       list.push(
-        <ListGroupItem
+        <List.Item
           key={doc.get("id")}
-          active={doc.get("id") == library_selected?.get("id")}
           onClick={() => select_list_click(doc)}
-          style={item_style}
-          bsSize={"small"}
+          style={{
+            ...item_style,
+            ...(doc.get("id") == library_selected?.get("id")
+              ? { background: "#337ab7", color: "white" }
+              : undefined),
+          }}
         >
           {doc.get("title") ?? doc.get("id")}
-        </ListGroupItem>,
+        </List.Item>,
       );
     });
     return list;
@@ -244,17 +220,10 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
       border: `1px solid ${COLORS.GRAY_LL}`,
       borderRadius: "5px",
       marginBottom: "0px",
+      marginRight: "15px",
     } as CSS;
 
-    return (
-      <ListGroup
-        style={list_style}
-        onKeyUp={selector_keyup}
-        ref={selector_list_ref}
-      >
-        {select_list()}
-      </ListGroup>
-    );
+    return <List style={list_style}>{select_list()}</List>;
   }
 
   function thumbnail() {
@@ -287,14 +256,19 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
 
   function copy_button() {
     return (
-      <Button bsStyle="success" onClick={copy} disabled={library_is_copying}>
+      <Button
+        size="large"
+        type="primary"
+        onClick={copy}
+        disabled={library_is_copying}
+      >
         {library_is_copying ? (
           <span>
             <Loading text="Copying ..." />
           </span>
         ) : (
           <span>
-            <Icon name="files" /> Get a Copy
+            <Icon name="files" /> Get a Free Copy
           </span>
         )}
       </Button>
@@ -306,7 +280,7 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
       return;
     }
     return (
-      <Button className={"pull-right"} onClick={onClose}>
+      <Button style={{ float: "right" }} onClick={onClose}>
         Close
       </Button>
     );
@@ -411,8 +385,6 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
         value={library_search}
         on_change={(value) => set_search(value)}
         on_escape={() => set_search("")}
-        on_up={() => move_cursor(-1)}
-        on_down={() => move_cursor(1)}
       />
     );
   }
@@ -422,10 +394,12 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
       library_selected != null ? library_selected.get("thumbnail") : undefined;
     return (
       <Row>
-        <Col sm={12}>{render_search()}</Col>
-        <Col sm={4}>{selector()}</Col>
-        <Col sm={thumb ? 6 : 8}>{details()}</Col>
-        {thumb ? <Col sm={2}>{thumbnail()}</Col> : undefined}
+        <Col sm={24} style={{ marginBottom: "15px" }}>
+          {render_search()}
+        </Col>
+        <Col sm={8}>{selector()}</Col>
+        <Col sm={thumb ? 12 : 16}>{details()}</Col>
+        {thumb ? <Col sm={4}>{thumbnail()}</Col> : undefined}
       </Row>
     );
   }
@@ -447,9 +421,9 @@ export const Library: React.FC<Props> = ({ project_id, onClose }) => {
       {content}
       {onClose != null && (
         <Row>
-          <Col sm={12}>{close_button()}</Col>
+          <Col sm={24}>{close_button()}</Col>
         </Row>
       )}
     </Fragment>
   );
-};
+}

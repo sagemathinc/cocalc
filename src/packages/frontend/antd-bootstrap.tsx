@@ -14,15 +14,6 @@ some serious problems / bug /issues with using our stupid old react-bootstrap
 *at all*, hence this.
 */
 
-// TODO: What we haven't converted yet, but do use in CoCalc:
-export {
-  Form,
-  FormControl,
-  FormGroup,
-  ListGroup,
-  ListGroupItem,
-} from "react-bootstrap";
-
 import {
   Alert as AntdAlert,
   Button as AntdButton,
@@ -35,7 +26,7 @@ import {
   TabsProps as AntdTabsProps,
   Tooltip,
 } from "antd";
-import { MouseEventHandler } from "react";
+import type { MouseEventHandler } from "react";
 import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { Gap } from "@cocalc/frontend/components/gap";
 import { r_join } from "@cocalc/frontend/components/r_join";
