@@ -68,6 +68,8 @@ module.exports = removeImports({
     // besides the ticket about this, here is a blogpost about this
     // https://www.joshwcomeau.com/react/nextjs-scroll-restoration/
     scrollRestoration: true,
+    // https://nextjs.org/docs/app/building-your-application/optimizing/memory-usage#webpack-build-worker
+    webpackBuildWorker: true,
   },
   // For i18n, see https://nextjs.org/docs/advanced-features/i18n-routing
   // We are doing this at all since it improves our Lighthouse accessibility score.
