@@ -129,8 +129,6 @@ const LinkRetry: React.FC<Props> = ({
         return btn;
       }
     case "link":
-    default:
-      console.warn(`LinkRetry: invalid mode "${mode}"`);
       const aLink = (
         <a onClick={click} style={{ cursor: "pointer" }}>
           {children}
@@ -148,6 +146,8 @@ const LinkRetry: React.FC<Props> = ({
           {renderError()}
         </span>
       );
+    default:
+      console.warn(`LinkRetry: invalid mode "${mode}"`);
   }
 };
 

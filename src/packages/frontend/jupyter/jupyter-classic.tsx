@@ -9,20 +9,24 @@ export default function JupyterClassic({ project_id }) {
     <div>
       <Alert
         showIcon
-        style={{ width: "600px", margin: "30px auto" }}
+        style={{ maxWidth: "800px", margin: "30px auto" }}
         type="warning"
         message={"Collaborative Jupyter Classic in CoCalc is Deprecated"}
         description={
           <div>
             Jupyter Classic as a Collaborative CoCalc editor is no longer
-            available. You can launch JupyterLab or Jupyter classic in the
-            servers panel and open this notebook from there.
+            available. You can launch JupyterLab or Jupyter classic from the
+            servers panel or the buttons below, or open this notebook from
+            there.
             <Divider />
-            <Space>
-              <LinkRetry href={serverURL(project_id, "jupyterlab")}>
+            <Space wrap>
+              <LinkRetry
+                mode="button"
+                href={serverURL(project_id, "jupyterlab")}
+              >
                 <Icon name={SPEC.jupyterlab.icon} /> Open JupyterLab...
               </LinkRetry>
-              <LinkRetry href={serverURL(project_id, "jupyter")}>
+              <LinkRetry mode="button" href={serverURL(project_id, "jupyter")}>
                 <Icon name={SPEC.jupyter.icon} /> Open Jupyter Classic...
               </LinkRetry>
               <Button
