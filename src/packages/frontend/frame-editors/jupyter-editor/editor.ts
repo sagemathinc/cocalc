@@ -209,7 +209,6 @@ const JUPYTER_MENUS = {
           },
         },
       ],
-      classic: ["switch to classical notebook"],
     },
   },
   edit: {
