@@ -14,7 +14,6 @@ import {
 import { React } from "./app-framework";
 
 import { delay } from "awaiting";
-import { getStudentProjectFunctionality } from "./course";
 import { IconName } from "./components/icon";
 
 declare let DEBUG: boolean;
@@ -150,16 +149,6 @@ function get_ed(
     ext ??
     altExt[key(project_id, path)] ??
     filename_extension_notilde(path).toLowerCase();
-
-  // TODO: hack because we have two kinds of ipynb editors.  This will probably never go away.
-  if (
-    project_id != null &&
-    ext == "ipynb" &&
-    getStudentProjectFunctionality(project_id).disableJupyterClassicMode
-  ) {
-    // This ipynb-cocalc-jupyter just ensures we get the right editor below.
-    ext = "ipynb-cocalc-jupyter";
-  }
 
   // either use the one given by ext, or if there isn't one, use the '' fallback.
   const spec =
