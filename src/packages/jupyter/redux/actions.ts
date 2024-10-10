@@ -1141,6 +1141,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         state: "start",
         start,
         end: null,
+        // time last evaluation took
+        last:
+          cell.get("start") != null && cell.get("end") != null
+            ? cell.get("end") - cell.get("start")
+            : cell.get("last"),
         output: null,
         exec_count: null,
         collapsed: null,
@@ -1152,6 +1157,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   clear_cell = (id: string, save = true) => {
+    const cell = this.store.getIn(["cells", id]);
+
     return this._set(
       {
         type: "cell",
@@ -1159,6 +1166,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         state: null,
         start: null,
         end: null,
+        last:
+          cell?.get("start") != null && cell?.get("end") != null
+            ? cell?.get("end") - cell?.get("start")
+            : (cell?.get("last") ?? null),
         output: null,
         exec_count: null,
         collapsed: null,
