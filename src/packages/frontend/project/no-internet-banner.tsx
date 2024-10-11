@@ -17,7 +17,6 @@ import { A, Icon, Text, VisibleMDLG } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import {
   ALERT_STYLE,
-  A_STYLE,
   BannerApplySiteLicense,
   NO_INTERNET,
 } from "./trial-banner";
@@ -28,7 +27,7 @@ const MANAGE_LICENSE_URL = join(appBasePath, "/licenses/managed");
 interface NoInternetBannerProps {
   project_id: string;
   projectSiteLicenses: string[];
-  student_pay?: boolean;
+  isPaidStudentPayProject?: boolean;
 }
 
 const STYLE: CSS = {
@@ -38,7 +37,7 @@ const STYLE: CSS = {
 
 export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
   (props: NoInternetBannerProps) => {
-    const { project_id, projectSiteLicenses, student_pay } = props;
+    const { project_id, projectSiteLicenses, isPaidStudentPayProject } = props;
 
     const actions = useActions({ project_id });
 
@@ -55,16 +54,16 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
     function renderMessage() {
       return (
         <>
-          <strong>No internet access</strong> – Inside this project{" "}
-          {NO_INTERNET}.
-          {!student_pay && (
+          <strong>No internet access</strong> – {NO_INTERNET}.
+          {!isPaidStudentPayProject && (
             <>
+              {" "}
               You{" "}
-              <a style={A_STYLE} onClick={() => setShowAddLicense(true)}>
+              <a onClick={() => setShowAddLicense(true)}>
                 need to apply
               </a>{" "}
               a <A href={MANAGE_LICENSE_URL}>valid license</A> providing
-              upgrades or <A href={BUY_A_LICENSE_URL}>purchase one</A>!
+              upgrades or <A href={BUY_A_LICENSE_URL}>purchase one</A>.
             </>
           )}
         </>
@@ -74,7 +73,7 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
     function renderDescription(): JSX.Element {
       return (
         <div style={{ display: "flex", flexDirection: "row" }}>
-          <div style={{ flex: "1 1 auto", marginTop: "4px" }}>
+          <div style={{ flex: "1 1 auto" }}>
             <Text style={{ fontSize: ALERT_STYLE.fontSize }}>
               {renderMessage()}
             </Text>

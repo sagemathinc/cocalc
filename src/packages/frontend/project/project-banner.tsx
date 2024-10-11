@@ -24,19 +24,20 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
   const projects_store = useStore("projects");
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const runQuota = useRunQuota(project_id, null);
-  const student_pay = useMemo(
-    () => projects_store.date_when_course_payment_required(project_id),
+  const isPaidStudentPayProject = useMemo(
+    () => projects_store.isPaidStudentPayProject(project_id),
     [project_map, project_id],
   );
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const isSandbox = project_map?.getIn([project_id, "sandbox"]);
 
-  const host: boolean = !runQuota?.member_host;
-  const internet: boolean = !runQuota?.network;
+  const noMemberHosting: boolean = !runQuota?.member_host;
+  const noInternet: boolean = !runQuota?.network;
+  console.log({ runQuota, noInternet });
 
   // fallback case for showBanner
   function showNoInternetBanner(): "no-internet" | null {
-    if (projectIsRunning && internet) {
+    if (projectIsRunning && noInternet) {
       return "no-internet";
     } else {
       return null;
@@ -62,23 +63,25 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
       return null;
     }
     // we exclude students, but still show a warning about internet
-    if (student_pay) {
-      if (!internet) {
+    if (isPaidStudentPayProject) {
+      if (noInternet) {
         return showNoInternetBanner();
       }
       return null;
     }
-    if (!host && !internet) {
+    if (!noMemberHosting && !noInternet) {
       return null;
     }
-    if (!host && internet) {
+    if (!noMemberHosting && noInternet) {
       return showNoInternetBanner();
     }
     // if none of the above cases apply, we show the trial banner
     return "trial";
   }
 
-  if (projectIsRunning == null) return null;
+  if (projectIsRunning == null) {
+    return null;
+  }
 
   switch (showBanner()) {
     case "trial":
@@ -96,8 +99,8 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
           project_id={project_id}
           projectSiteLicenses={projectSiteLicenses}
           projectCreatedTS={project_map?.get(project_id)?.get("created")}
-          host={host}
-          internet={internet}
+          noMemberHosting={noMemberHosting}
+          noInternet={noInternet}
           projectIsRunning={projectIsRunning}
           hasComputeServers={hasComputeServers}
         />
@@ -108,7 +111,7 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
         <NoInternetBanner
           project_id={project_id}
           projectSiteLicenses={projectSiteLicenses}
-          student_pay={!!student_pay}
+          isPaidStudentPayProject={isPaidStudentPayProject}
         />
       );
   }
