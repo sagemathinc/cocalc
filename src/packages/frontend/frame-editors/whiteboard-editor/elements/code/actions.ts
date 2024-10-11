@@ -45,7 +45,7 @@ export async function getJupyterFrameEditorActions({
     | undefined;
   if (actions == null) {
     const projectActions = redux.getProjectActions(project_id);
-    await projectActions.initFileRedux(aux_path, false, "ipynb-cocalc-jupyter");
+    await projectActions.initFileRedux(aux_path, false, "ipynb");
     actions = redux.getEditorActions(project_id, aux_path) as
       | JupyterEditorActions
       | undefined;
@@ -66,7 +66,7 @@ export function openJupyterNotebook({
   const aux_path = pathToIpynb(path);
   redux
     .getProjectActions(project_id)
-    .open_file({ path: aux_path, ext: "ipynb-cocalc-jupyter" });
+    .open_file({ path: aux_path, ext: "ipynb" });
 }
 
 export function pathToIpynb(pathToWhiteboard: string): string {
