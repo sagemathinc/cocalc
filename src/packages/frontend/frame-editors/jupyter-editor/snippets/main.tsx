@@ -9,7 +9,7 @@ declare var require: {
   (paths: string[], callback: (...modules: any[]) => void): void;
   ensure: (
     paths: string[],
-    callback: (require: <T>(path: string) => T) => void
+    callback: (require: <T>(path: string) => T) => void,
   ) => void;
 };
 
@@ -65,7 +65,7 @@ const BUTTON_TEXT = "pick";
 const HEADER_SORTER = ([k, _]) =>
   -["Introduction", "Tutorial", "Help", CUSTOM_SNIPPETS_TITLE].indexOf(k);
 
-// will be set once in the require.ensure callback
+// will be set once in an await import below
 let hardcoded: any = {};
 
 async function loadData(project_actions, setData, setError, forced = false) {
@@ -78,36 +78,36 @@ async function loadData(project_actions, setData, setError, forced = false) {
     const custom = await loadCustomSnippets(
       project_actions.project_id,
       setError,
-      forced
+      forced,
     );
     setData(merge({}, hardcoded, custom));
   } else {
     setError(
-      "The command line JSON processor 'jq' is not installed in your project; you must install and possibly restart your project."
+      "The command line JSON processor 'jq' is not installed in your project; you must install and possibly restart your project.",
     );
   }
 }
 
 function useData(
   project_actions,
-  setError
+  setError,
 ): [
   { [lang: string]: Snippets | undefined } | undefined,
   Function,
   number,
-  boolean
+  boolean,
 ] {
   const [data, setData] = useState<{ [lang: string]: Snippets | undefined }>();
   const [reloadTS, setReloadTS] = useState<number>(Date.now());
   const [loading, setLoading] = useState<boolean>(false);
   if (data == null) {
-    require.ensure([], () => {
+    (async () => {
+      hardcoded = await import("@cocalc/assets/examples/examples.json");
       // this file is supposed to be in @cocalc/assets/examples/examples.json
       //     follow "./install.py examples" to see how the makefile is called during build
-      hardcoded = require("@cocalc/assets/examples/examples.json");
       setData(hardcoded); // call immediately to show default snippets quickly
       loadData(project_actions, setData, setError);
-    });
+    })();
   }
   // reload has "forced" set to true, which clears the cache
   const reload = async function () {
@@ -155,7 +155,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   const [error, setError] = useState<string | null>(null);
   const [data, reload, reloadTS, reloading] = useData(
     project_actions,
-    setError
+    setError,
   );
 
   useEffect(() => {
@@ -184,7 +184,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       "jupyter_cell_notebook",
       "col",
       true,
-      0.7
+      0.7,
     );
     if (jid == null) {
       // this should never happen, since the above should always succeed
@@ -249,7 +249,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   function snippet(
     titleLevel3: string,
     doc: SnippetDoc[1],
-    data: SnippetEntry
+    data: SnippetEntry,
   ) {
     // if there is no code (empty string) → undefined
     // otherwise make sure this is string[]
@@ -257,8 +257,8 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
       doc[0] === ""
         ? undefined
         : typeof doc[0] === "string"
-        ? [doc[0]]
-        : doc[0];
+          ? [doc[0]]
+          : doc[0];
     if (code != null && insertSetup) {
       const setup = generateSetupCode({ code, data });
       if (setup != "") code.unshift(setup);
@@ -322,7 +322,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
   // for each section, iterate over all headers
   function level1([titleLevel1, entries]: [
     string,
-    SnippetEntries
+    SnippetEntries,
   ]): JSX.Element {
     const lvl2 = sortBy(Object.entries(entries), [
       ([_, v]) => v.sortweight,

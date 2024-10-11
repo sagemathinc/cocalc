@@ -3,6 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-const getConfig = require("./dist-ts/src/webpack.config").default;
+const getConfig = require("./dist-ts/src/rspack.config").default;
 
 module.exports = getConfig();

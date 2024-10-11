@@ -170,7 +170,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
             <FormattedMessage
               id="project.explorer.action-bar.currently_selected.info"
               defaultMessage={
-                "Click checkbox to the left of a file to copy, download, etc."
+                "Click the checkbox to the left of a file to copy, download, etc."
               }
             />
           </div>
