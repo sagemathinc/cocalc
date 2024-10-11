@@ -96,7 +96,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
     const text = intl.formatMessage(
       {
         id: "project.settings.hide-delete-box.delete.label",
-        defaultMessage: `{is_deleted, select, true {Undelete Project} other {Delete Project...}} Project`,
+        defaultMessage: `{is_deleted, select, true {Undelete Project} other {Delete Project...}}`,
       },
       { is_deleted },
     );
