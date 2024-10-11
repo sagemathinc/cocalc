@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
+import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
@@ -301,7 +301,6 @@ export default function Message(props: Readonly<Props>) {
         <div
           style={{
             color: COLORS.GRAY_M,
-            marginBottom: "2px",
             fontSize: "14px" /* matches Reply button */,
           }}
         >
@@ -416,6 +415,7 @@ export default function Message(props: Readonly<Props>) {
     const feedback = message.getIn(["feedback", props.account_id]);
     const otherFeedback =
       isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
+    const showOtherFeedback = otherFeedback > 0;
 
     const editControlRow = () => {
       if (isEditing) {
@@ -428,15 +428,16 @@ export default function Message(props: Readonly<Props>) {
         (message.get("editing")?.size ?? 0) > 0;
       const showHistory = (message.get("history")?.size ?? 0) > 1;
       const showLLMFeedback = isLLMThread && msgWrittenByLLM;
-      const showOtherFeedback = otherFeedback > 0;
 
+      // Show the bottom line of the message -- this uses a LOT of extra
+      // vertical space, so only do it if there is a good reason to.
+      // Getting rid of this might be nice.
       const show =
         showEditButton ||
         showDeleteButton ||
         showEditingStatus ||
         showHistory ||
-        showLLMFeedback ||
-        showOtherFeedback;
+        showLLMFeedback;
       if (!show) {
         // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
         return null;
@@ -523,33 +524,6 @@ export default function Message(props: Readonly<Props>) {
               </>
             )}
           </Space>
-          {showOtherFeedback && (
-            <div
-              style={{
-                float: "right",
-                color: is_viewers_message ? "white" : "#555",
-              }}
-            >
-              <Tooltip
-                title={() => {
-                  return (
-                    <div>
-                      {Object.keys(message.get("feedback")?.toJS() ?? {}).map(
-                        (account_id) => (
-                          <div key={account_id} style={{ marginBottom: "2px" }}>
-                            <Avatar size={24} account_id={account_id} />{" "}
-                            <User account_id={account_id} />
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  );
-                }}
-              >
-                {otherFeedback} <Icon name="thumbs-up" />
-              </Tooltip>
-            </div>
-          )}
         </div>
       );
     };
@@ -587,25 +561,63 @@ export default function Message(props: Readonly<Props>) {
             <span style={lighten}>
               <Time message={message} edit={edit_message} />
               {!isLLMThread && (
-                <Button
-                  style={{
-                    marginRight: "5px",
-                    float: "right",
-                    marginTop: "-4px",
-                    color: !feedback && is_viewers_message ? "white" : "#888",
-                    fontSize: "12px",
-                  }}
-                  size="small"
-                  type={feedback ? "dashed" : "text"}
-                  onClick={() => {
-                    props.actions?.feedback(
-                      message,
-                      feedback ? null : "positive",
-                    );
-                  }}
+                <Tooltip
+                  title={
+                    !showOtherFeedback
+                      ? undefined
+                      : () => {
+                          return (
+                            <div>
+                              {Object.keys(
+                                message.get("feedback")?.toJS() ?? {},
+                              ).map((account_id) => (
+                                <div
+                                  key={account_id}
+                                  style={{ marginBottom: "2px" }}
+                                >
+                                  <Avatar size={24} account_id={account_id} />{" "}
+                                  <User account_id={account_id} />
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+                  }
                 >
-                  <Icon name="thumbs-up" />
-                </Button>
+                  <Button
+                    style={{
+                      marginRight: "5px",
+                      float: "right",
+                      marginTop: "-4px",
+                      color: !feedback && is_viewers_message ? "white" : "#888",
+                      fontSize: "12px",
+                    }}
+                    size="small"
+                    type={feedback ? "dashed" : "text"}
+                    onClick={() => {
+                      props.actions?.feedback(
+                        message,
+                        feedback ? null : "positive",
+                      );
+                    }}
+                  >
+                    {showOtherFeedback ? (
+                      <Badge
+                        count={otherFeedback}
+                        color="darkblue"
+                        size="small"
+                      />
+                    ) : (
+                      ""
+                    )}
+                    <Icon
+                      name="thumbs-up"
+                      style={{
+                        color: showOtherFeedback ? "darkred" : undefined,
+                      }}
+                    />
+                  </Button>
+                </Tooltip>
               )}{" "}
               <Tooltip title="Select this message. Copy the browser URL to link to this message.">
                 <Button
