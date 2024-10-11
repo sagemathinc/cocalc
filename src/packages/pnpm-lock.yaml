@@ -571,7 +571,7 @@ importers:
         version: 2.6.0(plotly.js@2.35.2(mapbox-gl@3.7.0)(webpack@5.95.0))(react@18.3.1)
       react-redux:
         specifier: ^8.0.5
-        version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1)
+        version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1)
       react-timeago:
         specifier: ^7.2.0
         version: 7.2.0(react@18.3.1)
@@ -1359,7 +1359,7 @@ importers:
         version: 0.2.18(encoding@0.1.13)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/community':
         specifier: ^0.2.19
-        version: 0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@11.3.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
+        version: 0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.2.17
         version: 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
@@ -1592,7 +1592,7 @@ importers:
     devDependencies:
       '@pmmmwh/react-refresh-webpack-plugin':
         specifier: ^0.5.10
-        version: 0.5.15(react-refresh@0.14.2)(type-fest@4.26.1)(webpack-hot-middleware@2.26.1)(webpack@5.95.0)
+        version: 0.5.15(react-refresh@0.14.2)(type-fest@3.13.1)(webpack-hot-middleware@2.26.1)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       '@swc/core':
         specifier: 1.3.3
         version: 1.3.3
@@ -1637,19 +1637,19 @@ importers:
         version: 3.0.0
       clean-webpack-plugin:
         specifier: ^4.0.0
-        version: 4.0.0(webpack@5.95.0)
+        version: 4.0.0(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       coffee-cache:
         specifier: ^1.0.2
         version: 1.0.2
       coffee-loader:
         specifier: ^3.0.0
-        version: 3.0.0(coffeescript@2.7.0)(webpack@5.95.0)
+        version: 3.0.0(coffeescript@2.7.0)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       coffeescript:
         specifier: ^2.5.1
         version: 2.7.0
       css-loader:
         specifier: ^7.1.2
-        version: 7.1.2(webpack@5.95.0)
+        version: 7.1.2(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       entities:
         specifier: ^2.2.0
         version: 2.2.0
@@ -1676,19 +1676,19 @@ importers:
         version: 1.7.3(handlebars@4.7.8)
       html-loader:
         specifier: ^2.1.2
-        version: 2.1.2(webpack@5.95.0)
+        version: 2.1.2(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       html-minify-loader:
         specifier: ^1.4.0
         version: 1.4.0
       html-webpack-plugin:
         specifier: ^5.5.3
-        version: 5.6.0(webpack@5.95.0)
+        version: 5.6.0(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       identity-obj-proxy:
         specifier: ^3.0.0
         version: 3.0.0
       imports-loader:
         specifier: ^3.0.0
-        version: 3.1.1(webpack@5.95.0)
+        version: 3.1.1(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       jquery:
         specifier: ^3.6.0
         version: 3.7.1
@@ -1712,13 +1712,13 @@ importers:
         version: 4.2.0
       less-loader:
         specifier: ^11.0.0
-        version: 11.1.4(less@4.2.0)(webpack@5.95.0)
+        version: 11.1.4(less@4.2.0)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       path-browserify:
         specifier: ^1.0.1
         version: 1.0.1
       raw-loader:
         specifier: ^4.0.2
-        version: 4.0.2(webpack@5.95.0)
+        version: 4.0.2(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1739,22 +1739,22 @@ importers:
         version: 1.79.3
       sass-loader:
         specifier: ^13.0.2
-        version: 13.3.3(sass@1.79.3)(webpack@5.95.0)
+        version: 13.3.3(sass@1.79.3)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       script-loader:
         specifier: ^0.7.2
         version: 0.7.2
       source-map-loader:
         specifier: ^3.0.0
-        version: 3.0.2(webpack@5.95.0)
+        version: 3.0.2(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       stream-browserify:
         specifier: ^3.0.0
         version: 3.0.0
       style-loader:
         specifier: ^2.0.0
-        version: 2.0.0(webpack@5.95.0)
+        version: 2.0.0(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       swc-loader:
         specifier: ^0.2.3
-        version: 0.2.6(@swc/core@1.3.3)(webpack@5.95.0)
+        version: 0.2.6(@swc/core@1.3.3)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       timeago:
         specifier: ^1.6.3
         version: 1.6.7
@@ -4794,9 +4794,6 @@ packages:
   bcryptjs@2.4.3:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
 
-  better-sqlite3@11.3.0:
-    resolution: {integrity: sha512-iHt9j8NPYF3oKCNOO5ZI4JwThjt3Z6J6XrcwG85VNMVzv1ByqrHWv5VILEbCMFWDsoHhXvQ7oC8vgRXFAKgl9w==}
-
   better-sqlite3@8.7.0:
     resolution: {integrity: sha512-99jZU4le+f3G6aIl6PmmV0cxUIWqKieHxsiF7G34CVFiE+/UabpYqkU0NJIkY/96mQKikHeBjtR27vFfs5JpEw==}
 
@@ -5018,10 +5015,6 @@ packages:
 
   cheerio-select@2.1.0:
     resolution: {integrity: sha512-9v9kG0LvzrlcungtnJtpGNxY+fzECQKhK4EGJX2vByejiMX84MFNQw4UxPJl3bFbTMw+Dfs37XaIkCwTZfLh4g==}
-
-  cheerio@1.0.0:
-    resolution: {integrity: sha512-quS9HgjQpdaXOvsZz82Oz7uxtXiy6UIsIQcpBj7HRw2M63Skasm9qlDocAM7jNuaxdhpPU7c4kJN+gA5MCu4ww==}
-    engines: {node: '>=18.17'}
 
   cheerio@1.0.0-rc.10:
     resolution: {integrity: sha512-g0J0q/O6mW8z5zxQ3A8E8J1hUgp4SMOvEoW/x84OwyHKe/Zccz83PVT4y5Crcr530FV6NgmKI1qvGTKVl9XXVw==}
@@ -6069,9 +6062,6 @@ packages:
     resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
     engines: {node: '>= 0.8'}
 
-  encoding-sniffer@0.2.0:
-    resolution: {integrity: sha512-ju7Wq1kg04I3HtiYIOrUrdfdDvkyO9s5XM8QAj/bN61Yo/Vb4vgJxy5vi4Yxk01gWHbrofpPtpxM8bKger9jhg==}
-
   encoding@0.1.13:
     resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
 
@@ -7041,9 +7031,6 @@ packages:
 
   htmlparser2@8.0.2:
     resolution: {integrity: sha512-GYdjWKDkbRLkZ5geuHs5NY1puJ+PXwP7+fHPRz06Eirsb9ugf6d8kkXav6ADhcODhFFPMIXyxkxSuMf3D6NCFA==}
-
-  htmlparser2@9.1.0:
-    resolution: {integrity: sha512-5zfg6mHUoaer/97TxnGpxmbR7zJtPwIYFMZ/H5ucTlPZhKvtum05yiPK3Mgai3a0DyVxv7qYqoweaEd2nrYQzQ==}
 
   htmlparser@1.7.7:
     resolution: {integrity: sha512-zpK66ifkT0fauyFh2Mulrq4AqGTucxGtOhZ8OjkbSfcCpkqQEI8qRkY0tSQSJNAQ4HUZkgWaU4fK4EH6SVH9PQ==}
@@ -9088,9 +9075,6 @@ packages:
   parse5-htmlparser2-tree-adapter@7.0.0:
     resolution: {integrity: sha512-B77tOZrqqfUfnVcOrUvfdLbz4pu4RopLD/4vmu3HUPswwTA8OH0EMW9BlWR2B0RCoiZRAHEUu7IxeP1Pd1UU+g==}
 
-  parse5-parser-stream@7.1.2:
-    resolution: {integrity: sha512-JyeQc9iwFLn5TbvvqACIF/VXG6abODeB3Fwmv/TGdLk2LfbWkaySGY72at4+Ty7EkPZj854u4CrICqNk2qIbow==}
-
   parse5@6.0.1:
     resolution: {integrity: sha512-Ofn/CTFzRGTTxwpNEs9PP93gXShHcTq255nzRYSKe8AkVpZY7e1fpmTfOyoIvjP5HG7Z2ZM7VS9PPhQGW2pOpw==}
 
@@ -10099,9 +10083,6 @@ packages:
 
   redux@4.2.1:
     resolution: {integrity: sha512-LAUYz4lc+Do8/g7aeRa8JkyDErK6ekstQaqWQrNRW//MY1TvCEpMtpTWvlQ+FPbWCx+Xixu/6SHt5N0HR+SB4w==}
-
-  redux@5.0.1:
-    resolution: {integrity: sha512-M9/ELqF6fy8FwmkpnF0S3YKOqMyoWJ4+CS5Efg2ct3oY9daQvd/Pc71FpGZsVsbl3Cpb+IIcjBDUnnyBdQbq4w==}
 
   reflect-metadata@0.1.13:
     resolution: {integrity: sha512-Ts1Y/anZELhSsjMcU605fU9RE4Oi3p5ORujwbIKXfWa+0Zxs510Qrmrce5/Jowq3cHSZSJqBjypxmHarc+vEWg==}
@@ -11119,10 +11100,6 @@ packages:
     resolution: {integrity: sha512-tLq3bSNx+xSpwvAJnzrK0Ep5CLNWjvFTOp71URMaAEWBfRb9nnJiBoUe0tF8bI4ZFO3omgBR6NvnbzVUT3Ly4g==}
     engines: {node: '>=14.16'}
 
-  type-fest@4.26.1:
-    resolution: {integrity: sha512-yOGpmOAL7CkKe/91I5O3gPICmJNLJ1G4zFYVAsRHg7M64biSnPtRj0WNQt++bRkjYOqjWXrhnUw1utzmVErAdg==}
-    engines: {node: '>=16'}
-
   type-is@1.6.18:
     resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
     engines: {node: '>= 0.6'}
@@ -11203,10 +11180,6 @@ packages:
   undici@5.28.4:
     resolution: {integrity: sha512-72RFADWFqKmUb2hmmvNODKL3p9hcB6Gt2DOQMis1SEBaV6a4MH8soBvzg+95CYhCKPFedut2JY9bMfrDl9D23g==}
     engines: {node: '>=14.0'}
-
-  undici@6.20.0:
-    resolution: {integrity: sha512-AITZfPuxubm31Sx0vr8bteSalEbs9wQb/BOBi9FPlD9Qpd6HxZ4Q0+hI742jBhkPb4RT2v5MQzaW5VhRVyj+9A==}
-    engines: {node: '>=18.17'}
 
   unified@10.1.2:
     resolution: {integrity: sha512-pUSWAi/RAnVy1Pif2kAoeWNBa3JVrx0MId2LASj8G+7AiHWoKZNTomq6LG326T68U7/e263X6fTdcXIy7XnF7Q==}
@@ -11542,14 +11515,6 @@ packages:
 
   webworkify@1.5.0:
     resolution: {integrity: sha512-AMcUeyXAhbACL8S2hqqdqOLqvJ8ylmIbNwUIqQujRSouf4+eUFaXbG6F1Rbu+srlJMmxQWsiU7mOJi0nMBfM1g==}
-
-  whatwg-encoding@3.1.1:
-    resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
-    engines: {node: '>=18'}
-
-  whatwg-mimetype@4.0.0:
-    resolution: {integrity: sha512-QaKxh0eNIi2mE9p2vEdzfagOKHCcj1pJ56EEHGQOVxp8r9/iszLUUV7v89x9O1p/T+NlTM5W7jW6+cz4Fq1YVg==}
-    engines: {node: '>=18'}
 
   whatwg-url@5.0.0:
     resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
@@ -11938,7 +11903,7 @@ snapshots:
       '@babel/code-frame': 7.24.7
       '@babel/generator': 7.25.6
       '@babel/helper-compilation-targets': 7.25.2
-      '@babel/helper-module-transforms': 7.25.2(@babel/core@7.25.2)(supports-color@9.4.0)
+      '@babel/helper-module-transforms': 7.25.2(@babel/core@7.25.2(supports-color@9.4.0))(supports-color@9.4.0)
       '@babel/helpers': 7.25.6
       '@babel/parser': 7.25.6
       '@babel/template': 7.25.0
@@ -12051,6 +12016,16 @@ snapshots:
       - supports-color
     optional: true
 
+  '@babel/helper-module-transforms@7.25.2(@babel/core@7.25.2(supports-color@9.4.0))(supports-color@9.4.0)':
+    dependencies:
+      '@babel/core': 7.25.2(supports-color@9.4.0)
+      '@babel/helper-module-imports': 7.24.7(supports-color@9.4.0)
+      '@babel/helper-simple-access': 7.24.7(supports-color@9.4.0)
+      '@babel/helper-validator-identifier': 7.24.7
+      '@babel/traverse': 7.25.6(supports-color@9.4.0)
+    transitivePeerDependencies:
+      - supports-color
+
   '@babel/helper-module-transforms@7.25.2(@babel/core@7.25.2)':
     dependencies:
       '@babel/core': 7.25.2
@@ -12058,16 +12033,6 @@ snapshots:
       '@babel/helper-simple-access': 7.24.7
       '@babel/helper-validator-identifier': 7.24.7
       '@babel/traverse': 7.25.6
-    transitivePeerDependencies:
-      - supports-color
-
-  '@babel/helper-module-transforms@7.25.2(@babel/core@7.25.2)(supports-color@9.4.0)':
-    dependencies:
-      '@babel/core': 7.25.2
-      '@babel/helper-module-imports': 7.24.7(supports-color@9.4.0)
-      '@babel/helper-simple-access': 7.24.7(supports-color@9.4.0)
-      '@babel/helper-validator-identifier': 7.24.7
-      '@babel/traverse': 7.25.6(supports-color@9.4.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -13076,7 +13041,7 @@ snapshots:
       - encoding
       - openai
 
-  '@langchain/community@0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@11.3.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
+  '@langchain/community@0.2.33(@google-ai/generativelanguage@2.6.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
     dependencies:
       '@langchain/core': 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.2.11(encoding@0.1.13)
@@ -13084,7 +13049,7 @@ snapshots:
       expr-eval: 2.0.2
       flat: 5.0.2
       js-yaml: 4.1.0
-      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
+      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
       langsmith: 0.1.59(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       uuid: 10.0.0
       zod: 3.23.8
@@ -13093,8 +13058,9 @@ snapshots:
       '@google-ai/generativelanguage': 2.6.0(encoding@0.1.13)
       '@google-cloud/storage': 7.13.0(encoding@0.1.13)
       '@qdrant/js-client-rest': 1.12.0(typescript@5.6.3)
-      better-sqlite3: 11.3.0
-      cheerio: 1.0.0
+      better-sqlite3: 8.7.0
+      cheerio: 1.0.0-rc.10
+      d3-dsv: 3.0.1
       google-auth-library: 9.14.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
       ignore: 5.3.1
@@ -13600,7 +13566,7 @@ snapshots:
 
   '@plotly/regl@2.1.2': {}
 
-  '@pmmmwh/react-refresh-webpack-plugin@0.5.15(react-refresh@0.14.2)(type-fest@4.26.1)(webpack-hot-middleware@2.26.1)(webpack@5.95.0)':
+  '@pmmmwh/react-refresh-webpack-plugin@0.5.15(react-refresh@0.14.2)(type-fest@3.13.1)(webpack-hot-middleware@2.26.1)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))':
     dependencies:
       ansi-html: 0.0.9
       core-js-pure: 3.27.1
@@ -13612,7 +13578,7 @@ snapshots:
       source-map: 0.7.4
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
     optionalDependencies:
-      type-fest: 4.26.1
+      type-fest: 3.13.1
       webpack-hot-middleware: 2.26.1
 
   '@polka/url@1.0.0-next.28': {}
@@ -14481,17 +14447,17 @@ snapshots:
       '@webassemblyjs/ast': 1.12.1
       '@xtuc/long': 4.2.2
 
-  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4)(webpack@5.95.0)':
+  '@webpack-cli/configtest@2.1.1(webpack-cli@5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0))(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))':
     dependencies:
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0)
 
-  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4)(webpack@5.95.0)':
+  '@webpack-cli/info@2.0.2(webpack-cli@5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0))(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))':
     dependencies:
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0)
 
-  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4)(webpack@5.95.0)':
+  '@webpack-cli/serve@2.0.5(webpack-cli@5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0))(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))':
     dependencies:
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
       webpack-cli: 5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0)
@@ -15069,12 +15035,6 @@ snapshots:
 
   bcryptjs@2.4.3: {}
 
-  better-sqlite3@11.3.0:
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.2
-    optional: true
-
   better-sqlite3@8.7.0:
     dependencies:
       bindings: 1.5.0
@@ -15323,21 +15283,6 @@ snapshots:
       domhandler: 5.0.3
       domutils: 3.1.0
 
-  cheerio@1.0.0:
-    dependencies:
-      cheerio-select: 2.1.0
-      dom-serializer: 2.0.0
-      domhandler: 5.0.3
-      domutils: 3.1.0
-      encoding-sniffer: 0.2.0
-      htmlparser2: 9.1.0
-      parse5: 7.1.2
-      parse5-htmlparser2-tree-adapter: 7.0.0
-      parse5-parser-stream: 7.1.2
-      undici: 6.20.0
-      whatwg-mimetype: 4.0.0
-    optional: true
-
   cheerio@1.0.0-rc.10:
     dependencies:
       cheerio-select: 1.6.0
@@ -15406,7 +15351,7 @@ snapshots:
 
   clean-stack@2.2.0: {}
 
-  clean-webpack-plugin@4.0.0(webpack@5.95.0):
+  clean-webpack-plugin@4.0.0(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       del: 4.1.1
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
@@ -15486,7 +15431,7 @@ snapshots:
       minimatch: 3.1.2
       pkginfo: 0.4.1
 
-  coffee-loader@3.0.0(coffeescript@2.7.0)(webpack@5.95.0):
+  coffee-loader@3.0.0(coffeescript@2.7.0)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       coffeescript: 2.7.0
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
@@ -15799,7 +15744,7 @@ snapshots:
 
   css-global-keywords@1.0.1: {}
 
-  css-loader@7.1.2(webpack@5.95.0):
+  css-loader@7.1.2(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       icss-utils: 5.1.0(postcss@8.4.41)
       postcss: 8.4.41
@@ -15811,6 +15756,19 @@ snapshots:
       semver: 7.6.3
     optionalDependencies:
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
+
+  css-loader@7.1.2(webpack@5.95.0):
+    dependencies:
+      icss-utils: 5.1.0(postcss@8.4.41)
+      postcss: 8.4.41
+      postcss-modules-extract-imports: 3.1.0(postcss@8.4.41)
+      postcss-modules-local-by-default: 4.0.5(postcss@8.4.41)
+      postcss-modules-scope: 3.2.0(postcss@8.4.41)
+      postcss-modules-values: 4.0.0(postcss@8.4.41)
+      postcss-value-parser: 4.2.0
+      semver: 7.6.3
+    optionalDependencies:
+      webpack: 5.95.0
 
   css-select@4.3.0:
     dependencies:
@@ -16454,12 +16412,6 @@ snapshots:
   encodeurl@1.0.2: {}
 
   encodeurl@2.0.0: {}
-
-  encoding-sniffer@0.2.0:
-    dependencies:
-      iconv-lite: 0.6.3
-      whatwg-encoding: 3.1.1
-    optional: true
 
   encoding@0.1.13:
     dependencies:
@@ -17750,7 +17702,7 @@ snapshots:
 
   html-escaper@2.0.2: {}
 
-  html-loader@2.1.2(webpack@5.95.0):
+  html-loader@2.1.2(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       html-minifier-terser: 5.1.1
       parse5: 6.0.1
@@ -17791,7 +17743,7 @@ snapshots:
 
   html-void-elements@2.0.1: {}
 
-  html-webpack-plugin@5.6.0(webpack@5.95.0):
+  html-webpack-plugin@5.6.0(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       '@types/html-minifier-terser': 6.1.0
       html-minifier-terser: 6.1.0
@@ -17837,14 +17789,6 @@ snapshots:
       domhandler: 5.0.3
       domutils: 3.1.0
       entities: 4.5.0
-
-  htmlparser2@9.1.0:
-    dependencies:
-      domelementtype: 2.3.0
-      domhandler: 5.0.3
-      domutils: 3.1.0
-      entities: 4.5.0
-    optional: true
 
   htmlparser@1.7.7: {}
 
@@ -17954,7 +17898,7 @@ snapshots:
       pkg-dir: 4.2.0
       resolve-cwd: 3.0.0
 
-  imports-loader@3.1.1(webpack@5.95.0):
+  imports-loader@3.1.1(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       source-map: 0.6.1
       strip-comments: 2.0.1
@@ -18916,7 +18860,7 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
+  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
     dependencies:
       '@langchain/core': 0.2.34(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.0.34(encoding@0.1.13)
@@ -18936,7 +18880,8 @@ snapshots:
       zod-to-json-schema: 3.23.0(zod@3.23.8)
     optionalDependencies:
       axios: 1.7.7
-      cheerio: 1.0.0
+      cheerio: 1.0.0-rc.10
+      d3-dsv: 3.0.1
       fast-xml-parser: 4.5.0
       handlebars: 4.7.8
       ignore: 5.3.1
@@ -18993,7 +18938,7 @@ snapshots:
       '@types/node': 9.6.61
       lean-client-js-core: 1.5.0
 
-  less-loader@11.1.4(less@4.2.0)(webpack@5.95.0):
+  less-loader@11.1.4(less@4.2.0)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       less: 4.2.0
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
@@ -20236,11 +20181,6 @@ snapshots:
       domhandler: 5.0.3
       parse5: 7.1.2
 
-  parse5-parser-stream@7.1.2:
-    dependencies:
-      parse5: 7.1.2
-    optional: true
-
   parse5@6.0.1: {}
 
   parse5@7.1.2:
@@ -20844,7 +20784,7 @@ snapshots:
 
   raw-loader@0.5.1: {}
 
-  raw-loader@4.0.2(webpack@5.95.0):
+  raw-loader@4.0.2(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       loader-utils: 2.0.4
       schema-utils: 3.1.1
@@ -21351,7 +21291,7 @@ snapshots:
 
   react-property@2.0.0: {}
 
-  react-redux@8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1):
+  react-redux@8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@4.2.1):
     dependencies:
       '@babel/runtime': 7.25.6
       '@types/hoist-non-react-statics': 3.3.1
@@ -21364,7 +21304,7 @@ snapshots:
       '@types/react': 18.3.10
       '@types/react-dom': 18.3.0
       react-dom: 18.3.1(react@18.3.1)
-      redux: 5.0.1
+      redux: 4.2.1
 
   react-refresh@0.14.2: {}
 
@@ -21476,9 +21416,6 @@ snapshots:
   redux@4.2.1:
     dependencies:
       '@babel/runtime': 7.25.6
-
-  redux@5.0.1:
-    optional: true
 
   reflect-metadata@0.1.13: {}
 
@@ -21747,7 +21684,7 @@ snapshots:
       parse-srcset: 1.0.2
       postcss: 8.4.31
 
-  sass-loader@13.3.3(sass@1.79.3)(webpack@5.95.0):
+  sass-loader@13.3.3(sass@1.79.3)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       neo-async: 2.6.2
       webpack: 5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)
@@ -22024,7 +21961,7 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  source-map-loader@3.0.2(webpack@5.95.0):
+  source-map-loader@3.0.2(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       abab: 2.0.6
       iconv-lite: 0.6.3
@@ -22246,7 +22183,7 @@ snapshots:
 
   stubs@3.0.0: {}
 
-  style-loader@2.0.0(webpack@5.95.0):
+  style-loader@2.0.0(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       loader-utils: 2.0.4
       schema-utils: 3.3.0
@@ -22325,7 +22262,7 @@ snapshots:
       parse-svg-path: 0.1.2
       svg-path-bounds: 1.0.2
 
-  swc-loader@0.2.6(@swc/core@1.3.3)(webpack@5.95.0):
+  swc-loader@0.2.6(@swc/core@1.3.3)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       '@swc/core': 1.3.3
       '@swc/counter': 0.1.3
@@ -22397,7 +22334,7 @@ snapshots:
       mkdirp: 0.5.6
       rimraf: 2.6.3
 
-  terser-webpack-plugin@5.3.10(@swc/core@1.3.3)(webpack@5.95.0):
+  terser-webpack-plugin@5.3.10(@swc/core@1.3.3)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4)):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.25
       jest-worker: 27.5.1
@@ -22634,9 +22571,6 @@ snapshots:
 
   type-fest@3.13.1: {}
 
-  type-fest@4.26.1:
-    optional: true
-
   type-is@1.6.18:
     dependencies:
       media-typer: 0.3.0
@@ -22727,9 +22661,6 @@ snapshots:
   undici@5.28.4:
     dependencies:
       '@fastify/busboy': 2.1.0
-
-  undici@6.20.0:
-    optional: true
 
   unified@10.1.2:
     dependencies:
@@ -23024,9 +22955,9 @@ snapshots:
   webpack-cli@5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0):
     dependencies:
       '@discoveryjs/json-ext': 0.5.7
-      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4)(webpack@5.95.0)
-      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4)(webpack@5.95.0)
-      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4)(webpack@5.95.0)
+      '@webpack-cli/configtest': 2.1.1(webpack-cli@5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0))(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
+      '@webpack-cli/info': 2.0.2(webpack-cli@5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0))(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
+      '@webpack-cli/serve': 2.0.5(webpack-cli@5.1.4(webpack-bundle-analyzer@4.10.2)(webpack@5.95.0))(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       colorette: 2.0.20
       commander: 10.0.1
       cross-spawn: 7.0.3
@@ -23120,7 +23051,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 3.3.0
       tapable: 2.2.1
-      terser-webpack-plugin: 5.3.10(@swc/core@1.3.3)(webpack@5.95.0)
+      terser-webpack-plugin: 5.3.10(@swc/core@1.3.3)(webpack@5.95.0(@swc/core@1.3.3)(webpack-cli@5.1.4))
       watchpack: 2.4.2
       webpack-sources: 3.2.3
     optionalDependencies:
@@ -23173,14 +23104,6 @@ snapshots:
       - utf-8-validate
 
   webworkify@1.5.0: {}
-
-  whatwg-encoding@3.1.1:
-    dependencies:
-      iconv-lite: 0.6.3
-    optional: true
-
-  whatwg-mimetype@4.0.0:
-    optional: true
 
   whatwg-url@5.0.0:
     dependencies:

@@ -24,7 +24,7 @@ import { useRouter } from "next/router";
 import { AddBox } from "./add-box";
 import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { InfoBar } from "./cost-info-bar";
-import { MemberHostingAndIdleTimeout } from "./member-idletime";
+import { IdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { PRESETS, PRESET_MATCH_FIELDS, Presets } from "./quota-config-presets";
 import { decodeFormValues, encodeFormValues } from "./quota-query-params";
@@ -121,7 +121,6 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
   const [showExplanations, setShowExplanations] = useState<boolean>(true);
-  const [shadowMember, setShadowMember] = useState<boolean | null>(null);
   const [configMode, setConfigMode] = useState<"preset" | "expert">("preset");
   const [form] = Form.useForm();
   const router = useRouter();
@@ -281,12 +280,10 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           presetAdjusted={presetAdjusted}
         />
         {configMode === "expert" && (
-          <MemberHostingAndIdleTimeout
+          <IdleTimeout
             showExplanations={showExplanations}
             form={form}
             onChange={onLicenseChange}
-            shadowMember={shadowMember}
-            setShadowMember={setShadowMember}
           />
         )}
         <TitleDescription showExplanations={showExplanations} form={form} />
