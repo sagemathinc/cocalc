@@ -209,10 +209,10 @@ export function FileTab(props: Readonly<Props>) {
   // alerts only work on non-docker projects (for now) -- #7077
   const status_alerts: string[] =
     !onCoCalcDocker && name === "info"
-      ? project_status
+      ? (project_status
           ?.get("alerts")
           ?.map((a) => a.get("type"))
-          .toJS() ?? []
+          .toJS() ?? [])
       : [];
 
   const other_settings = useTypedRedux("account", "other_settings");
@@ -295,8 +295,8 @@ export function FileTab(props: Readonly<Props>) {
       flyout === active_flyout
         ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
         : active_flyout == null
-        ? COLORS.GRAY_L
-        : COLORS.GRAY_L0;
+          ? COLORS.GRAY_L
+          : COLORS.GRAY_L0;
     const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
 
     return (
@@ -357,7 +357,7 @@ export function FileTab(props: Readonly<Props>) {
 
   const icon =
     path != null
-      ? file_options(path)?.icon ?? "code-o"
+      ? (file_options(path)?.icon ?? "code-o")
       : FIXED_PROJECT_TABS[name!].icon;
 
   const tags =
@@ -397,7 +397,6 @@ export function FileTab(props: Readonly<Props>) {
         label={label}
         inline={!isFixedTab}
         project_id={project_id}
-        condensed={condensed}
       />
       {tags}
     </>
@@ -507,12 +506,17 @@ const FULLPATH_LABEL_STYLE: CSS = {
   padding: "0 1px", // need less since have ..
 } as const;
 
-function DisplayedLabel({ path, label, inline = true, project_id, condensed }) {
+function DisplayedLabel({ path, label, inline = true, project_id }) {
   if (path == null) {
     // a fixed tab (not an actual file)
     const E = inline ? "span" : "div";
     const style: CSS = {
-      fontSize: condensed ? "10px" : "12px",
+      // disabled because condensed state is buggy -- both andrey and I have frequently
+      // complained about it getting stuck small. Also, the width doesn't change so all
+      // you get from this is small hard to read text and slightly more vertical buttons,
+      // but there is vertical scroll, so not needed.
+      //fontSize: condensed ? "10px" : "12px",
+      fontSize: "12px",
       textAlign: "center",
       maxWidth: "65px",
       overflow: "hidden",
