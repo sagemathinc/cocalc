@@ -5,8 +5,7 @@
 
 import Anser from "anser";
 import React from "react";
-
-import Ansi from "@cocalc/ansi-to-react";
+import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";

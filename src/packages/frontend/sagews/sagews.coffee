@@ -1347,7 +1347,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             html = markdown.markdown_to_html(delim + val.tex + delim)
             t = $("<div class='sagews-output-tex'>")
             t.html(html)
-            t.find('span.cocalc-katex-error').mathjax(hide_when_rendering:false)
+            t.find('span.cocalc-katex-error').katex()
             output.append(t)
 
         if mesg.raw_input?

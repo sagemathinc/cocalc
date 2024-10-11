@@ -287,6 +287,10 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
 
     function renderMarkdownEdit() {
       const cmOptions = options("markdown").toJS();
+      if (cmOptions?.readOnly) {
+        // see https://github.com/sagemathinc/cocalc/issues/7777
+        return render_markdown();
+      }
       return (
         <MarkdownInput
           fontSize={props.font_size}

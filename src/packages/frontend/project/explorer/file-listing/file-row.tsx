@@ -366,7 +366,14 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         </VisibleXS>
         {render_name()}
       </Col>
-      <Col sm={8} xs={24}>
+      <Col
+        sm={8}
+        xs={24}
+        style={{
+          paddingRight:
+            "16px" /* otherwise cloud download is too close to edge or cut off */,
+        }}
+      >
         <VisibleXS>
           <span style={{ marginLeft: "16px" }} />
         </VisibleXS>

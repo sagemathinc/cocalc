@@ -11,7 +11,6 @@ import { Button, Dropdown, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import React, { useState } from "react";
-
 import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ComputeServer from "@cocalc/frontend/compute/inline";
@@ -161,10 +160,15 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarCellTiming() {
-      if (cell.get("start") == null) return;
       return (
-        <div style={{ margin: "4px 4px 4px 10px" }}>
-          <CellTiming start={cell.get("start")} end={cell.get("end")} />
+        <div style={{ margin: "2.5px 4px 4px 10px" }}>
+          <CellTiming
+            start={cell.get("start")}
+            end={cell.get("end")}
+            last={cell.get("last")}
+            state={cell.get("state")}
+            isLive={!is_readonly && actions != null}
+          />
         </div>
       );
     }

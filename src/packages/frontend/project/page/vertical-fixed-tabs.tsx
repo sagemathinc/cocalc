@@ -55,7 +55,6 @@ export default function ProjectTabs(props: PTProps) {
       style={{
         width: "100%",
         height: "40px",
-        padding: "2.5px",
         overflow: "hidden",
       }}
     >

@@ -8,8 +8,7 @@ About dialog -- provides info about the Jupyter Notebook
 */
 import { Modal } from "antd";
 import { FormattedMessage } from "react-intl";
-
-import Ansi from "@cocalc/ansi-to-react";
+import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import { A, Icon, Paragraph, Title } from "@cocalc/frontend/components";
 import { ShowSupportLink } from "@cocalc/frontend/support";
 import { KernelInfo } from "@cocalc/jupyter/types";
