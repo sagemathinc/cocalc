@@ -33,7 +33,6 @@ export const ProjectWarningBanner: React.FC<{}> = React.memo(() => {
 
   const noMemberHosting: boolean = !runQuota?.member_host;
   const noInternet: boolean = !runQuota?.network;
-  console.log({ runQuota, noInternet });
 
   // fallback case for showBanner
   function showNoInternetBanner(): "no-internet" | null {

@@ -5,7 +5,7 @@
 
 import { Alert, Button } from "antd";
 import { join } from "path";
-
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import {
   CSS,
   React,
@@ -38,6 +38,8 @@ const STYLE: CSS = {
 export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
   (props: NoInternetBannerProps) => {
     const { project_id, projectSiteLicenses, isPaidStudentPayProject } = props;
+    const student_project_functionality =
+      useStudentProjectFunctionality(project_id);
 
     const actions = useActions({ project_id });
 
@@ -58,11 +60,9 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
           {!isPaidStudentPayProject && (
             <>
               {" "}
-              You{" "}
-              <a onClick={() => setShowAddLicense(true)}>
+              You <a onClick={() => setShowAddLicense(true)}>
                 need to apply
-              </a>{" "}
-              a <A href={MANAGE_LICENSE_URL}>valid license</A> providing
+              </a> a <A href={MANAGE_LICENSE_URL}>valid license</A> providing
               upgrades or <A href={BUY_A_LICENSE_URL}>purchase one</A>.
             </>
           )}
@@ -92,7 +92,10 @@ export const NoInternetBanner: React.FC<NoInternetBannerProps> = React.memo(
       );
     }
 
-    if (internet_warning_closed) {
+    if (
+      internet_warning_closed ||
+      student_project_functionality.disableNetworkWarningBanner
+    ) {
       return null;
     }
 
