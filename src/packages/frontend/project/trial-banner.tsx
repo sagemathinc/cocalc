@@ -58,9 +58,6 @@ export const ALERT_STYLE: CSS = {
   paddingRight: "5px",
   paddingBottom: "5px",
   marginBottom: 0,
-  // this is to cancel out the margin between file tabs and project tabs, which
-  // isn't right for a banner.
-  marginTop: "-5px",
   fontSize: "9pt",
   borderRadius: 0,
 } as const;

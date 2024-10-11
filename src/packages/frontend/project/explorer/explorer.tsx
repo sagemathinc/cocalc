@@ -770,7 +770,7 @@ const Explorer0 = rclass(
               flex: "0 0 auto",
               display: "flex",
               flexDirection: "column",
-              padding: "5px 5px 0 5px",
+              padding: "2px 2px 0 2px",
             }}
           >
             {this.render_error()}
