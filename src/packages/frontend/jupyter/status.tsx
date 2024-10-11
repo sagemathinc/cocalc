@@ -100,6 +100,7 @@ export function Kernel({
   // no redux_kernel or empty string (!) means there is no kernel
   const kernel: string | null = !redux_kernel ? null : redux_kernel;
   const kernels: undefined | immutable.List<any> = useRedux([name, "kernels"]);
+  const runProgress = useRedux([name, "runProgress"]);
   const project_id: string = useRedux([name, "project_id"]);
   const kernel_info: undefined | immutable.Map<string, any> = useRedux([
     name,
@@ -505,6 +506,7 @@ export function Kernel({
     const style: CSS = {
       display: "flex",
       borderLeft: `1px solid ${COLORS.GRAY}`,
+      cursor: "pointer",
     };
     const pstyle: CSS = {
       margin: "2px",
@@ -546,6 +548,31 @@ export function Kernel({
 
     return (
       <div style={style}>
+        {runProgress != null && (
+          <Tooltip
+            title={
+              <>
+                Percent of code cells that have been run since the last
+                kernel restart.
+              </>
+            }
+          >
+            <div style={usage_style}>
+              {is_fullscreen ? (
+                <span style={{ marginRight: "5px" }}>Code</span>
+              ) : (
+                ""
+              )}
+              <Progress
+                style={pstyle}
+                showInfo={false}
+                percent={runProgress}
+                size="small"
+                trailColor="white"
+              />
+            </div>
+          </Tooltip>
+        )}
         <div style={usage_style}>
           {is_fullscreen ? <span style={{ marginRight: "5px" }}>CPU</span> : ""}
           <Progress

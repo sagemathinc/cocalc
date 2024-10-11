@@ -91,7 +91,7 @@ export class JupyterActions extends JupyterActions0 {
                      /|\                                        |
                       |-----------------------------------------|
 
-        Going from ready to starting happens when a code execution is requested.
+        Going from ready to starting happens first when a code execution is requested.
         */
 
     // Check just in case Typescript doesn't catch something:
@@ -111,11 +111,18 @@ export class JupyterActions extends JupyterActions0 {
     this._backend_state = backend_state;
 
     if (this.isCellRunner()) {
-      this._set({
-        type: "settings",
-        backend_state,
-      });
-      this.save_asap();
+      const stored_backend_state = this.syncdb
+        .get_one({ type: "settings" })
+        ?.get("backend_state");
+
+      if (stored_backend_state != backend_state) {
+        this._set({
+          type: "settings",
+          backend_state,
+          last_backend_state: Date.now(),
+        });
+        this.save_asap();
+      }
 
       // The following is to clear kernel_error if things are working only.
       if (backend_state == "running") {
