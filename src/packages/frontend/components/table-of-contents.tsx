@@ -24,10 +24,13 @@ interface Props {
   contents?: TableOfContentsEntryList; // an immutable.js List of entries, as above.
   scrollTo?: (TableOfContentsEntry) => void;
   style?: CSS;
+  // show numbers and font sizes is disabled by default -- see https://github.com/sagemathinc/cocalc/issues/7746
+  showNumbers?: boolean;
+  fontSizes?: boolean;
 }
 
 export const TableOfContents: React.FC<Props> = React.memo(
-  ({ contents, scrollTo, style }) => {
+  ({ contents, scrollTo, style, showNumbers, fontSizes }) => {
     function renderHeader(
       level: 1 | 2 | 3 | 4 | 5 | 6,
       value: string,
@@ -35,7 +38,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
     ): JSX.Element {
       if (level < 1) level = 1;
       if (level > 6) level = 6;
-      const fontSize = `${1 + (7 - level) / 6}em`;
+      const fontSize = fontSizes ? `${1 + (7 - level) / 6}em` : undefined;
       return (
         <div
           style={{
@@ -82,7 +85,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
     function renderEntry(entry: TableOfContentsEntryMap): JSX.Element {
       let number = entry.get("number");
       let value = entry.get("value");
-      if (number != null) {
+      if (showNumbers && number != null) {
         value = `${number.join(".")}.  ${value}`;
       }
       return (

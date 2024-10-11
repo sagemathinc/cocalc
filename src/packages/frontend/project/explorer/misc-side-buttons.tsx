@@ -20,7 +20,7 @@ import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { serverURL, SPEC } from "../named-server-panel";
+import { serverURL, SPEC } from "@cocalc/frontend/project/named-server-panel";
 import TourButton from "./tour/button";
 
 const OPEN_MSG = defineMessage({

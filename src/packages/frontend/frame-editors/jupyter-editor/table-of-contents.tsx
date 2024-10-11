@@ -23,7 +23,6 @@ export const TableOfContents: React.FC<Props> = React.memo(
       actions.jupyter_actions.name,
       "contents",
     ]);
-
     async function jump_to_cell(
       id: string,
       extra = "top" as "top",
@@ -39,7 +38,7 @@ export const TableOfContents: React.FC<Props> = React.memo(
     return (
       <TOC
         contents={contents}
-        style={{ fontSize: `${font_size - 6}px` }}
+        style={{ fontSize: `${font_size}px` }}
         scrollTo={async ({ id, extra }) => {
           const { cell_id, markdown_id } = JSON.parse(id);
           jump_to_cell(cell_id, extra);

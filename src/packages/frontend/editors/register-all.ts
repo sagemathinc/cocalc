@@ -14,7 +14,6 @@ One you add a new built in editor, it should go here.
 
 import "./archive/actions";
 import "./stopwatch/register";
-
 import "./media-viewer/register";
 
 // Raw data editors
@@ -26,14 +25,9 @@ import "../frame-editors/register";
 // Unknown files
 import "./unknown/register";
 
-import { init as init_jupyter } from "@cocalc/frontend/frame-editors/jupyter-editor/register";
-
 // All the non-react editors.
 const { register_nonreact_editors } = require("../editor");
 register_nonreact_editors();
-
-// And configure jupyter and jupyter classic.
-init_jupyter(); // must run after register_nonreact_editors
 
 // Ensure that we load all the codemirror plugins, modes, etc.
 import "@cocalc/frontend/codemirror/init";

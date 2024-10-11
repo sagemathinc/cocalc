@@ -131,6 +131,7 @@ const markdown_table_of_contents: EditorDescription = {
   icon: "align-right",
   component: TableOfContents,
   commands: set(["decrease_font_size", "increase_font_size"]),
+  buttons: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 
 const EDITOR_SPEC = {

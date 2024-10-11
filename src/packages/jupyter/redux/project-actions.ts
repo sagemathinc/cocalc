@@ -804,7 +804,7 @@ export class JupyterActions extends JupyterActions0 {
 
     exec.on("output", (mesg) => {
       // uncomment only for specific low level debugging -- see https://github.com/sagemathinc/cocalc/issues/7022
-      // dbg(`got mesg='${JSON.stringify(mesg)}'`);
+      // dbg(`got mesg='${JSON.stringify(mesg)}'`);  // !!!☡ ☡ ☡  -- EXTREME DANGER ☡ ☡ ☡ !!!!
 
       if (mesg == null) {
         // can't possibly happen, of course.
@@ -818,6 +818,18 @@ export class JupyterActions extends JupyterActions0 {
         handler.done();
         return;
       }
+      if (mesg.content?.transient?.display_id != null) {
+        // See https://github.com/sagemathinc/cocalc/issues/2132
+        // We find any other outputs in the document with
+        // the same transient.display_id, and set their output to
+        // this mesg's output.
+        this.handleTransientUpdate(mesg);
+        if (mesg.msg_type == "update_display_data") {
+          // don't also create a new output
+          return;
+        }
+      }
+
       if (mesg.msg_type === "clear_output") {
         handler.clear(mesg.content.wait);
         return;
@@ -1707,5 +1719,35 @@ export class JupyterActions extends JupyterActions0 {
     }
   };
 
+  // Handle transient cell messages.
+  handleTransientUpdate = (mesg) => {
+    const display_id = mesg.content?.transient?.display_id;
+    if (!display_id) {
+      return false;
+    }
+
+    let matched = false;
+    // are there any transient outputs in the entire document that
+    // have this display_id?  search to find them.
+    // TODO: we could use a clever data structure to make
+    // this faster and more likely to have bugs.
+    const cells = this.syncdb.get({ type: "cell" });
+    for (let cell of cells) {
+      let output = cell.get("output");
+      if (output != null) {
+        for (const [n, val] of output) {
+          if (val.getIn(["transient", "display_id"]) == display_id) {
+            // found a match -- replace it
+            output = output.set(n, immutable.fromJS(mesg.content));
+            this.syncdb.set({ type: "cell", id: cell.get("id"), output });
+            matched = true;
+          }
+        }
+      }
+    }
+    if (matched) {
+      this.syncdb.commit();
+    }
+  };
   // End Websocket API
 }
