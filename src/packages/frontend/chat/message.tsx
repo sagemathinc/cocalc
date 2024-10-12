@@ -768,6 +768,17 @@ export default function Message(props: Readonly<Props>) {
       return;
     }
     const replyDate = -getThreadRootDate({ date, messages });
+    let input;
+    if (isLLMThread) {
+      input = "";
+    } else {
+      const replying_to = message.get("history")?.first()?.get("author_id");
+      if (!replying_to || replying_to == props.account_id) {
+        input = "";
+      } else {
+        input = `<span class="user-mention" account-id=${replying_to} >@${editor_name}</span> `;
+      }
+    }
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
@@ -778,7 +789,7 @@ export default function Message(props: Readonly<Props>) {
             height: "auto" /* for some reason the default 100% breaks things */,
           }}
           cacheId={`${props.path}${props.project_id}${date}-reply`}
-          input={""}
+          input={input}
           submitMentionsRef={replyMentionsRef}
           on_send={sendReply}
           height={"auto"}
