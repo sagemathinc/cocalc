@@ -337,20 +337,20 @@ export const EXTRAS: SettingsExtras = {
     tags: ["AI LLM"],
   },
   qdrant_section: {
-    name: "Qdrant Configuration",
+    name: "DEPRECATED - Qdrant Configuration",
     desc: "",
     default: "",
     show: neural_search_enabled,
     type: "header",
   },
   qdrant_cluster_url: {
-    name: "Qdrant Cluster URL (needed for OpenAI Neural Search)",
+    name: "DEPRECATED - Qdrant Cluster URL (needed for OpenAI Neural Search)",
     desc: "Your [Qdrant](https://qdrant.tech/) server from https://cloud.qdrant.io/ or you can also run Qdrant locally.  This is needed to support functionality that uses Neural Search.",
     default: "",
     show: neural_search_enabled,
   },
   qdrant_api_key: {
-    name: "Qdrant API key (needed for OpenAI Neural Search)",
+    name: "DEPRECATED - Qdrant API key (needed for OpenAI Neural Search)",
     desc: "Your [Qdrant](https://qdrant.tech/) API key, which is needed to connect to your Qdrant server.  See https://qdrant.tech/documentation/cloud/cloud-quick-start/#authentication",
     default: "",
     password: true,

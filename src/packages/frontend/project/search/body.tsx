@@ -12,12 +12,10 @@ be in a single namespace somehow...!
 
 import { Button, Card, Col, Input, Row, Space, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
-
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { Alert, Checkbox, Well } from "@cocalc/frontend/antd-bootstrap";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
-  A,
   Gap,
   HelpIcon,
   Icon,
@@ -140,14 +138,8 @@ export const ProjectSearchBody: React.FC<{
                 New
               </Tag>
               <div>
-                <Icon name="robot" /> <b>Neural search</b> using{" "}
-                <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
-                  OpenAI Embeddings
-                </A>{" "}
-                and <A href="https://qdrant.tech/">Qdrant</A>: search recently
-                edited files using a neural network similarity algorithm.
-                Indexed file types: jupyter, tasks, chat, whiteboards, and
-                slides.
+                <Icon name="robot" /> <b>Neural search</b>: jupyter, tasks,
+                chat, whiteboards, and slides.
               </div>
             </Checkbox>
           )}
@@ -211,16 +203,7 @@ export const ProjectSearchBody: React.FC<{
               actions?.setState({ neural_search: !neural_search })
             }
           >
-            <Icon name="robot" /> Neural search <Tag color="green">New</Tag>{" "}
-            <HelpIcon title="Neural search">
-              This novel search uses{" "}
-              <A href="https://platform.openai.com/docs/guides/embeddings/what-are-embeddings">
-                OpenAI Embeddings
-              </A>{" "}
-              and <A href="https://qdrant.tech/">Qdrant</A>. It searches
-              recently edited files using a neural network similarity algorithm.
-              Indexed file types: jupyter, tasks, chat, whiteboards, and slides.
-            </HelpIcon>
+            <Icon name="robot" /> Neural search
           </Checkbox>
         )}
       </div>

@@ -861,7 +861,7 @@ export const site_settings_conf: SiteSettings = {
     tags: ["AI LLM"],
   },
   neural_search_enabled: {
-    name: "OpenAI Neural Search UI",
+    name: "DEPRECATED - OpenAI Neural Search UI",
     desc: "Controls visibility of UI elements related to Neural Search integration.  You must **also set your OpenAI API key** below and fully configure the **Qdrant vector database** for neural search to work.",
     default: "no",
     valid: only_booleans,
