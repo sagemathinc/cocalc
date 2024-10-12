@@ -217,10 +217,6 @@ export default function getConfig({ middleware }: Options = {}) {
     plugins,
     devServer: {
       hot: true,
-      // https://dev.to/woovi/web-dev-efficiency-achieving-faster-builds-and-lower-memory-load-with-webpack-4cm8
-      devMiddleware: {
-        writeToDisk: true,
-      },
     },
   };
 
