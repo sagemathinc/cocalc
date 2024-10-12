@@ -20,7 +20,7 @@ import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { serverURL, SPEC } from "../named-server-panel";
+import { serverURL, SPEC } from "@cocalc/frontend/project/named-server-panel";
 import TourButton from "./tour/button";
 
 const OPEN_MSG = defineMessage({
@@ -131,6 +131,9 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   };
 
   function render_library_button(): JSX.Element | undefined {
+    if (student_project_functionality.disableLibrary) {
+      return;
+    }
     // library only exists on kucalc, for now.
     if (!available_features?.library) return;
     if (kucalc !== "yes") return;
@@ -142,6 +145,9 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   }
 
   function render_vscode_button(): JSX.Element | undefined {
+    if (student_project_functionality.disableVSCodeServer) {
+      return;
+    }
     if (!available_features) return;
     const { vscode, homeDirectory } = available_features;
     if (!vscode || !homeDirectory) return;
@@ -161,6 +167,9 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   }
 
   function render_jupyterlab_button(): JSX.Element | undefined {
+    if (student_project_functionality.disableJupyterLabServer) {
+      return;
+    }
     if (!available_features) return;
     if (!available_features.jupyter_lab) return;
     // appending /tree/[relative path to home dir]

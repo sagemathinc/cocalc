@@ -4,7 +4,10 @@
  */
 
 import { React, useEffect, useRedux } from "../../app-framework";
-import { TableOfContents as TOC, TableOfContentsEntryList } from "../../components";
+import {
+  TableOfContents as TOC,
+  TableOfContentsEntryList,
+} from "../../components";
 import { Actions } from "./actions";
 
 interface Props {
@@ -30,9 +33,9 @@ export const TableOfContents: React.FC<Props> = React.memo(
     return (
       <TOC
         contents={contents}
-        style={{ fontSize: `${font_size - 6}px` }}
+        style={{ fontSize: `${font_size}px` }}
         scrollTo={actions.scrollToHeading.bind(actions)}
       />
     );
-  }
+  },
 );

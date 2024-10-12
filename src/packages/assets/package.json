@@ -3,9 +3,7 @@
   "version": "1.10.1",
   "description": "The static assets (images, code, etc.) for the CoCalc frontend.",
   "main": "index.js",
-  "workspaces": [
-    "../backend"
-  ],
+  "workspaces": ["../backend"],
   "directories": {
     "example": "examples"
   },
@@ -15,9 +13,7 @@
     "test": "../node_modules/.bin/jest",
     "prepublishOnly": "pnpm test"
   },
-  "keywords": [
-    "cocalc"
-  ],
+  "keywords": ["cocalc"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {

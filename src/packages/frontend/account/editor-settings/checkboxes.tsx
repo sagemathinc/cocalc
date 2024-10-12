@@ -4,13 +4,10 @@
  */
 
 import { defineMessage, useIntl } from "react-intl";
-
 import { Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered } from "@cocalc/frontend/app-framework";
-import { A } from "@cocalc/frontend/components";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { capitalize, keys } from "@cocalc/util/misc";
-import { JUPYTER_CLASSIC_MODERN } from "@cocalc/util/theme";
 
 const EDITOR_SETTINGS_CHECKBOXES: {
   [setting: string]: IntlMessage | Rendered;
@@ -93,17 +90,6 @@ const EDITOR_SETTINGS_CHECKBOXES: {
     defaultMessage:
       "render entire Jupyter Notebook instead of just visible part (slower and not recommended)",
   }),
-  jupyter_classic: (
-    <span>
-      <A href="https://github.com/sagemathinc/cocalc/issues/7706">
-        <b>DEPRECATED -- will to be removed after Aug 2024</b>
-      </A>{" "}
-      (see <A href={JUPYTER_CLASSIC_MODERN}>the docs</A>).
-    </span>
-  ),
-  /* commented out since we are never using this.
-  disable_jupyter_windowing:
-    "never use windowing with Jupyter notebooks (windowing is sometimes used on the Chrome browser to make very large notebooks render quickly, but can lead to trouble)",*/
 } as const;
 
 interface Props {

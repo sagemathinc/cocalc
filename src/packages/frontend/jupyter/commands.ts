@@ -1208,12 +1208,6 @@ export function commands(actions: AllActions): {
       },
     },
 
-    "switch to classical notebook": {
-      m: "Switch to classical notebook...",
-      f: () => actions.jupyter_actions?.switch_to_classical_notebook(),
-      r: true,
-    },
-
     "tab key": {
       k: [{ mode: "escape", which: 9 }],
       m: defineMessage({

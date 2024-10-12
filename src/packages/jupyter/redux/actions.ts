@@ -692,6 +692,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             const obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
+              last_backend_state: record.get("last_backend_state"),
               kernel_state: record.get("kernel_state"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
               max_output_length: bounded_integer(
@@ -763,6 +764,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             const obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
+              last_backend_state: record.get("last_backend_state"),
               kernel_state: record.get("kernel_state"),
               kernel_error: record.get("kernel_error"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
@@ -1141,6 +1143,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         state: "start",
         start,
         end: null,
+        // time last evaluation took
+        last:
+          cell.get("start") != null && cell.get("end") != null
+            ? cell.get("end") - cell.get("start")
+            : cell.get("last"),
         output: null,
         exec_count: null,
         collapsed: null,
@@ -1152,6 +1159,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   clear_cell = (id: string, save = true) => {
+    const cell = this.store.getIn(["cells", id]);
+
     return this._set(
       {
         type: "cell",
@@ -1159,6 +1168,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         state: null,
         start: null,
         end: null,
+        last:
+          cell?.get("start") != null && cell?.get("end") != null
+            ? cell?.get("end") - cell?.get("start")
+            : (cell?.get("last") ?? null),
         output: null,
         exec_count: null,
         collapsed: null,
@@ -2782,6 +2795,50 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
 
     return value;
+  };
+
+  // Update run progress, which is a number between 0 and 100,
+  // giving the number of runnable cells that have been run since
+  // the kernel was last set to the running state.
+  // Currently only run in the browser, but could maybe be useful
+  // elsewhere someday.
+  updateRunProgress = () => {
+    if (this.store.get("backend_state") != "running") {
+      this.setState({ runProgress: 0 });
+      return;
+    }
+    const cells = this.store.get("cells");
+    if (cells == null) {
+      return;
+    }
+    const last = this.store.get("last_backend_state");
+    if (last == null) {
+      // not supported yet, e.g., old backend, kernel never started
+      return;
+    }
+    // count of number of cells that are runnable and
+    // have start greater than last, and end set...
+    // count a currently running cell as 0.5.
+    let total = 0;
+    let ran = 0;
+    for (const [_, cell] of cells) {
+      if (
+        cell.get("cell_type", "code") != "code" ||
+        !cell.get("input")?.trim()
+      ) {
+        // not runnable
+        continue;
+      }
+      total += 1;
+      if ((cell.get("start") ?? 0) >= last) {
+        if (cell.get("end")) {
+          ran += 1;
+        } else {
+          ran += 0.5;
+        }
+      }
+    }
+    this.setState({ runProgress: total > 0 ? (100 * ran) / total : 100 });
   };
 }
 

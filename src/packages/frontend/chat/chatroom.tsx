@@ -271,6 +271,7 @@ export function ChatRoom({
     setTimeout(() => {
       scrollToBottomRef.current?.(true);
     }, 100);
+    setInput("");
   }
 
   function render_body(): JSX.Element {
@@ -331,7 +332,7 @@ export function ChatRoom({
             }}
           >
             <div style={{ flex: 1 }} />
-            {costEstimate?.get('date') == 0 && (
+            {costEstimate?.get("date") == 0 && (
               <LLMCostEstimationChat
                 costEstimate={costEstimate?.toJS()}
                 compact

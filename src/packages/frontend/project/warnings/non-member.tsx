@@ -10,8 +10,9 @@ import { LICENSE_MIN_PRICE } from "@cocalc/util/consts/billing";
 
 export const UPGRADE_HINT = (
   <>
-    <A href={PolicyPricingPageUrl}>Licenses start at ${LICENSE_MIN_PRICE}</A> or
-    upgrade via <A href={PAYGODocsUrl}>Pay-as-you-go</A>.
+    <A href={PolicyPricingPageUrl}>Licenses start at {LICENSE_MIN_PRICE}</A> or
+    temporarily upgrade via <A href={PAYGODocsUrl}>Pay-as-you-go</A> for a few
+    cents per hour.
   </>
 );
 

@@ -6,8 +6,6 @@
 /*
 * Webpack configuration file
 
-This webpack config file might look scary, but it only consists of a few moving parts.
-
 The Entry Points:
   - load: showed immediately when you start loading the page
   - app: the main web application -- this is the entire application.
@@ -36,22 +34,18 @@ webpack website.  Differences include:
 
 "use strict";
 
-import { userInfo } from "os";
-import { ProvidePlugin } from "webpack";
-import type { WebpackPluginInstance } from "webpack";
+import { ProvidePlugin } from "@rspack/core";
+import type { WebpackPluginInstance } from "@rspack/core";
 import { resolve as path_resolve } from "path";
 import { execSync } from "child_process";
 import { version as SMC_VERSION } from "@cocalc/util/smc-version";
 import { SITE_NAME as TITLE } from "@cocalc/util/theme";
 import { versions as CDN_VERSIONS } from "@cocalc/cdn";
-
 import bannerPlugin from "./plugins/banner";
 import cleanPlugin from "./plugins/clean";
 import appLoaderPlugin from "./plugins/app-loader";
 import defineConstantsPlugin from "./plugins/define-constants";
-import measurePlugin from "./plugins/measure";
 import hotModuleReplacementPlugin, { getHotMiddlewareUrl } from "./plugins/hot";
-
 import moduleRules from "./module-rules";
 
 // Resolve a path to an absolute path, where the input pathRelativeToTop is
@@ -79,18 +73,16 @@ export default function getConfig({ middleware }: Options = {}) {
   const BUILD_DATE = date.toISOString();
   const BUILD_TS = date.getTime();
   const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
-  const COCALC_NOCACHE = !!process.env.COCALC_NOCACHE;
   const WEBPACK_DEV_SERVER =
     NODE_ENV != "production" && !process.env.NO_WEBPACK_DEV_SERVER;
 
-  // output build variables of webpack
+  // output build variables
   console.log(`SMC_VERSION         = ${SMC_VERSION}`);
   console.log(`COCALC_GIT_REVISION = ${COCALC_GIT_REVISION}`);
   console.log(`NODE_ENV            = ${NODE_ENV}`);
   console.log(`MEASURE             = ${MEASURE}`);
   console.log(`OUTPUT              = ${OUTPUT}`);
   console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
-  console.log(`COCALC_NOCACHE      = ${COCALC_NOCACHE}`);
   console.log(`WEBPACK_DEV_SERVER  = ${WEBPACK_DEV_SERVER}`);
 
   const plugins: WebpackPluginInstance[] = [];
@@ -140,23 +132,12 @@ export default function getConfig({ middleware }: Options = {}) {
   );
 
   if (MEASURE) {
-    measurePlugin(registerPlugin);
+    // see https://rspack.dev/guide/optimization/analysis
+    throw Error("measure: not implemented");
   }
 
   if (WEBPACK_DEV_SERVER) {
     hotModuleReplacementPlugin(registerPlugin);
-  }
-
-  const useDiskCache = !COCALC_NOCACHE;
-
-  // It's critical that the caching filesystem is VERY fast, but
-  // it is fine if the data is wiped, so use /tmp.
-  const cacheDirectory = `/tmp/webpack-${userInfo().username}`;
-
-  if (useDiskCache) {
-    console.log(`\nUsing '${cacheDirectory}' as filesystem cache.\n`);
-  } else {
-    console.log(`\nNOT using filesystem cache.\n`);
   }
 
   function insertHotMiddlewareUrl(v: string[]): string[] {
@@ -169,19 +150,6 @@ export default function getConfig({ middleware }: Options = {}) {
 
   const config = {
     ignoreWarnings: [/Failed to parse source map/],
-    cache: useDiskCache
-      ? {
-          // This is supposed to cache the in-memory state to disk
-          // so initial startup time is less.  Don't do this in
-          // user home directory on cocalc, since it uses a LOT
-          // of disk IO, which makes everything very slow.
-          type: "filesystem" as "filesystem",
-          buildDependencies: {
-            config: [__filename],
-          },
-          cacheDirectory,
-        }
-      : undefined,
     devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
     mode: PRODMODE
       ? ("production" as "production")
@@ -209,7 +177,6 @@ export default function getConfig({ middleware }: Options = {}) {
       path: OUTPUT,
       filename: PRODMODE ? "[name]-[chunkhash].js" : "[id]-[chunkhash].js",
       chunkFilename: PRODMODE ? "[chunkhash].js" : "[id]-[chunkhash].js",
-      hashFunction: "sha256",
     },
     module: {
       rules: moduleRules(WEBPACK_DEV_SERVER),

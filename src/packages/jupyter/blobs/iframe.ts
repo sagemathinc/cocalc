@@ -37,6 +37,12 @@ export function is_likely_iframe(content: string): boolean {
     // Hopefully the above heuristic is sufficiently robust to detect but not overdetect.
     return false;
   }
+  if (content.includes("<!doctype html>") || content.includes("<html>")) {
+    // plotly wraps its output in <html>, which strongly suggests it wants to
+    // be in an iframe.  It's not valid to put <html> as a child of a div, so really
+    // the only valid way to render an <html> string is as an iframe.
+    return true;
+  }
   if (content.length >= MAX_HTML_SIZE) {
     // it'll just break anyways if we don't use an iframe -- if we do, there is hope.
     return true;

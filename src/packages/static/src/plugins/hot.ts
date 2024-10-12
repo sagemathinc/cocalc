@@ -6,29 +6,28 @@ instead of running a webserver, which gets complicated in some environments.
 */
 
 import basePath from "@cocalc/backend/base-path";
-import { HotModuleReplacementPlugin } from "webpack";
+import { HotModuleReplacementPlugin } from "@rspack/core";
 import { join } from "path";
-
-import ReactRefreshWebpackPlugin from "@pmmmwh/react-refresh-webpack-plugin";
+import ReactRefreshPlugin from "@rspack/plugin-react-refresh";
 
 export default function hotModuleReplacementPlugin(registerPlugin) {
   registerPlugin(
     "HotModuleReplacementPlugin -- don't have to refresh when things change",
-    new HotModuleReplacementPlugin()
+    new HotModuleReplacementPlugin(),
   );
+  // https://www.npmjs.com/package/@rspack/plugin-react-refresh
   registerPlugin(
-    "ReactRefreshWebpackPlugin -- don't have to refresh when react things change",
-    new ReactRefreshWebpackPlugin({
-      library: "hmr",
-      overlay: { sockIntegration: "whm" },
-    })
+    "ReactRefreshPlugin -- don't have to refresh when react changes",
+    new ReactRefreshPlugin(),
   );
 }
+
+// rspack TODO: no way this works!
 
 // See https://github.com/webpack-contrib/webpack-hot-middleware
 export function getHotMiddlewareUrl() {
   return `webpack-hot-middleware/client?path=${join(
     basePath,
-    "/static/__webpack_hmr"
+    "/static/__webpack_hmr",
   )}`;
 }

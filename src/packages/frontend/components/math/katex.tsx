@@ -1,5 +1,5 @@
 /*
-More complicated not-necessarily-synchronous math formula component, which
+More complicated not-necessarily-synchronous (but actually it is sync) math formula component, which
 works fine on the frontend but NOT on a backend with node.js.
 
 This supports rendering using KaTeX.

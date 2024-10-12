@@ -103,6 +103,8 @@ export interface JupyterStoreState {
   // computeServerId -- gets optionally set on the frontend (useful for react)
   computeServerId?: number;
   requestedComputeServerId?: number;
+  // run progress = Percent (0-100) of runnable cells that have been run since the last kernel restart. (Thus markdown and empty cells are excluded.)
+  runProgress?: number;
 }
 
 export const initial_jupyter_store_state: {

@@ -9,7 +9,8 @@ export DEBUG="cocalc:*"
 unset DEBUG_CONSOLE
 
 #export COCALC_DISABLE_API_VALIDATION=yes
-ulimit -Sv 120000000
+#export NO_RSPACK_DEV_SERVER=yes
+#ulimit -Sv 120000000
 
 while true; do
   pnpm hub

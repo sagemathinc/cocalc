@@ -3,6 +3,7 @@
 # License: MS-RSL – see LICENSE.md for details
 #########################################################################
 
+
 $         = window.$
 async     = require('async')
 stringify = require('json-stable-stringify')
@@ -1317,11 +1318,10 @@ class SynchronizedWorksheet extends SynchronizedDocument2
         if mesg.d3?
             e = $("<div>")
             output.append(e)
-            require.ensure [], () =>
-                require('./d3')  # install the d3 plugin
-                e.d3
-                    viewer : mesg.d3.viewer
-                    data   : mesg.d3.data
+            await import("./d3")
+            e.d3
+                viewer : mesg.d3.viewer
+                data   : mesg.d3.data
 
         if mesg.md?
             # markdown
@@ -1347,7 +1347,7 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             html = markdown.markdown_to_html(delim + val.tex + delim)
             t = $("<div class='sagews-output-tex'>")
             t.html(html)
-            t.find('span.cocalc-katex-error').mathjax(hide_when_rendering:false)
+            t.find('span.cocalc-katex-error').katex()
             output.append(t)
 
         if mesg.raw_input?
@@ -1383,18 +1383,16 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                         elt = $("<div class='webapp-3d-container'></div>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
-                        require.ensure [], () =>
-                            # only load 3d library when needed
-                            {render_3d_scene} = require('./3d')
-                            render_3d_scene
-                                url     : target
-                                element : elt
-                                cb      : (err, obj) =>
-                                    if err
-                                        # TODO: red?
-                                        elt.append($("<div>").text("error rendering 3d scene -- #{err}"))
-                                    else
-                                        elt.data('width', obj.opts.width / $(window).width())
+                        {render_3d_scene} = await import("./3d")
+                        render_3d_scene
+                            url     : target
+                            element : elt
+                            cb      : (err, obj) =>
+                                if err
+                                    # TODO: red?
+                                    elt.append($("<div>").text("error rendering 3d scene -- #{err}"))
+                                else
+                                    elt.data('width', obj.opts.width / $(window).width())
 
                     when 'svg', 'png', 'gif', 'jpg', 'jpeg'
                         img = $("<div class='sagews-output-image'><img src='#{target}'></div>")

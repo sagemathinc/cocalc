@@ -240,10 +240,24 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
 
   function render_default_file_sort(): Rendered {
     return (
-      <LabeledRow label="Default file sort">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.default_file_sort.label",
+          defaultMessage: "Default file sort",
+        })}
+      >
         <SelectorInput
           selected={props.other_settings.get("default_file_sort")}
-          options={{ time: "Sort by time", name: "Sort by name" }}
+          options={{
+            time: intl.formatMessage({
+              id: "account.other-settings.default_file_sort.by_time",
+              defaultMessage: "Sort by time",
+            }),
+            name: intl.formatMessage({
+              id: "account.other-settings.default_file_sort.by_name",
+              defaultMessage: "Sort by name",
+            }),
+          }}
           on_change={(value) => on_change("default_file_sort", value)}
         />
       </LabeledRow>
@@ -254,19 +268,41 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     const selected =
       props.other_settings.get(NEW_FILENAMES) ?? DEFAULT_NEW_FILENAMES;
     return (
-      <LabeledRow label="Generated filenames">
-        <SelectorInput
-          selected={selected}
-          options={NewFilenameFamilies}
-          on_change={(value) => on_change(NEW_FILENAMES, value)}
-        />
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.filename_generator.label",
+          defaultMessage: "Filename generator",
+        })}
+      >
+        <div>
+          <SelectorInput
+            selected={selected}
+            options={NewFilenameFamilies}
+            on_change={(value) => on_change(NEW_FILENAMES, value)}
+          />
+          <Paragraph
+            type="secondary"
+            ellipsis={{ expandable: true, symbol: "more" }}
+          >
+            {intl.formatMessage({
+              id: "account.other-settings.filename_generator.description",
+              defaultMessage: `Select how automatically generated filenames are generated.
+                In particular, to make them unique or to include the current time.`,
+            })}
+          </Paragraph>
+        </div>
       </LabeledRow>
     );
   }
 
   function render_page_size(): Rendered {
     return (
-      <LabeledRow label="Number of files per page">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings._page_size.label",
+          defaultMessage: "Number of files per page",
+        })}
+      >
         <NumberInput
           on_change={(n) => on_change("page_size", n)}
           min={1}
@@ -316,18 +352,35 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
             borderRadius: "3px",
           }}
         >
-          Dark mode: reduce eye strain by showing a dark background (via{" "}
-          <A
-            style={{ color: "#e96c4d", fontWeight: 700 }}
-            href="https://darkreader.org/"
-          >
-            DARK READER
-          </A>
-          )
+          <FormattedMessage
+            id="account.other-settings.theme.dark_mode.compact"
+            defaultMessage={`Dark mode: reduce eye strain by showing a dark background (via {DR})`}
+            values={{
+              DR: (
+                <A
+                  style={{ color: "#e96c4d", fontWeight: 700 }}
+                  href="https://darkreader.org/"
+                >
+                  DARK READER
+                </A>
+              ),
+            }}
+          />
         </Checkbox>
-        {checked && (
-          <Card size="small" title="Dark Mode Configuration">
-            <span style={label_style}>Brightness</span>
+        {checked ? (
+          <Card
+            size="small"
+            title={intl.formatMessage({
+              id: "account.other-settings.theme.dark_mode.configuration",
+              defaultMessage: "Dark Mode Configuration",
+            })}
+          >
+            <span style={label_style}>
+              <FormattedMessage
+                id="account.other-settings.theme.dark_mode.brightness"
+                defaultMessage="Brightness"
+              />
+            </span>
             <InputNumber
               min={dark_mode_mins.brightness}
               max={100}
@@ -335,7 +388,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
               onChange={(x) => on_change("dark_mode_brightness", x)}
             />
             <br />
-            <span style={label_style}>Contrast</span>
+            <span style={label_style}>
+              <FormattedMessage
+                id="account.other-settings.theme.dark_mode.contrast"
+                defaultMessage="Contrast"
+              />
+            </span>
             <InputNumber
               min={dark_mode_mins.contrast}
               max={100}
@@ -343,7 +401,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
               onChange={(x) => on_change("dark_mode_contrast", x)}
             />
             <br />
-            <span style={label_style}>Sepia</span>
+            <span style={label_style}>
+              <FormattedMessage
+                id="account.other-settings.theme.dark_mode.sepia"
+                defaultMessage="Sepia"
+              />
+            </span>
             <InputNumber
               min={dark_mode_mins.sepia}
               max={100}
@@ -351,7 +414,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
               onChange={(x) => on_change("dark_mode_sepia", x)}
             />
             <br />
-            <span style={label_style}>Grayscale</span>
+            <span style={label_style}>
+              <FormattedMessage
+                id="account.other-settings.theme.dark_mode.grayscale"
+                defaultMessage="Grayscale"
+              />
+            </span>
             <InputNumber
               min={dark_mode_mins.grayscale}
               max={100}
@@ -359,7 +427,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
               onChange={(x) => on_change("dark_mode_grayscale", x)}
             />
           </Card>
-        )}
+        ) : undefined}
       </div>
     );
   }
@@ -371,25 +439,37 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           checked={props.other_settings.get("antd_rounded", true)}
           onChange={(e) => on_change("antd_rounded", e.target.checked)}
         >
-          <b>Rounded Design</b>: use rounded corners for buttons, etc.
+          <FormattedMessage
+            id="account.other-settings.theme.antd.rounded"
+            defaultMessage={`<b>Rounded Design</b>: use rounded corners for buttons, etc.`}
+          />
         </Checkbox>
         <Checkbox
           checked={props.other_settings.get("antd_animate", true)}
           onChange={(e) => on_change("antd_animate", e.target.checked)}
         >
-          <b>Animations</b>: briefly animate some aspects, e.g. buttons
+          <FormattedMessage
+            id="account.other-settings.theme.antd.animations"
+            defaultMessage={`<b>Animations</b>: briefly animate some aspects, e.g. buttons`}
+          />
         </Checkbox>
         <Checkbox
           checked={props.other_settings.get("antd_brandcolors", false)}
           onChange={(e) => on_change("antd_brandcolors", e.target.checked)}
         >
-          <b>Color Scheme</b>: use brand colors instead of default colors
+          <FormattedMessage
+            id="account.other-settings.theme.antd.color_scheme"
+            defaultMessage={`<b>Color Scheme</b>: use brand colors instead of default colors`}
+          />
         </Checkbox>
         <Checkbox
           checked={props.other_settings.get("antd_compact", false)}
           onChange={(e) => on_change("antd_compact", e.target.checked)}
         >
-          <b>Compact Design</b>: use a more compact design
+          <FormattedMessage
+            id="account.other-settings.theme.antd.compact"
+            defaultMessage={`<b>Compact Design</b>: use a more compact design`}
+          />
         </Checkbox>
       </>
     );
@@ -450,15 +530,23 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           redux.getStore("projects").clearOpenAICache();
         }}
       >
-        <strong>Disable all AI integrations</strong>, e.g., code generation or
-        explanation buttons in Jupyter, @chatgpt mentions, etc.
+        <FormattedMessage
+          id="account.other-settings.llm.disable_all"
+          defaultMessage={`<strong>Disable all AI integrations</strong>,
+            e.g., code generation or explanation buttons in Jupyter, @chatgpt mentions, etc.`}
+        />
       </Checkbox>
     );
   }
 
   function render_language_model(): Rendered {
     return (
-      <LabeledRow label={<>Default AI Language Model</>}>
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.llm.default_llm",
+          defaultMessage: "Default AI Language Model",
+        })}
+      >
         <LLMSelector model={model} setModel={setModel} />
       </LabeledRow>
     );
@@ -480,7 +568,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       <Panel
         header={
           <>
-            <AIAvatar size={18} /> AI Settings
+            <AIAvatar size={18} />{" "}
+            <FormattedMessage
+              id="account.other-settings.llm.title"
+              defaultMessage={`AI Settings`}
+            />
           </>
         }
       >
@@ -501,7 +593,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       <Panel
         header={
           <>
-            <Icon name="highlighter" /> Theme
+            <Icon name="highlighter" />{" "}
+            <FormattedMessage
+              id="account.other-settings.theme"
+              defaultMessage="Theme"
+              description="Visual UI theme of the application"
+            />
           </>
         }
       >

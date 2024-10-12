@@ -2,7 +2,7 @@ import register from "./register";
 import HTML from "@cocalc/frontend/components/html-ssr";
 import StableUnsafeHtml from "../stable-unsafe-html";
 
-const Html = ({
+export default function Html({
   value,
   id,
   index,
@@ -12,7 +12,7 @@ const Html = ({
   id?: string;
   index?: number;
   trust?: boolean;
-}) => {
+}) {
   // if id and index aren't set no way to track this as stable unsafe html.
   // This happens, e.g., right now with renderOutput with ipywidgets, which is probably OK, since usually
   // with widgets the HTML doesn't need to be stable -- you are using widgets for state, not HTML.
@@ -32,9 +32,7 @@ const Html = ({
       />
     </div>
   );
-};
-
-export default Html;
+}
 
 // HTML should definitely have higher priority than
 // LaTeX.  For example, Julia tables are output as both
