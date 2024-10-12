@@ -134,54 +134,56 @@ interface Props {
   overflowEllipsis?: boolean; // if true, show "..." button popping up all menu entries
 
   dirtyRef?: MutableRefObject<boolean>; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).
+
+  controlRef?: MutableRefObject<any>;
 }
 
-export default function MultiMarkdownInput(props: Props) {
-  const {
-    autoFocus,
-    cacheId,
-    cmOptions,
-    compact,
-    cursors,
-    defaultMode,
-    dirtyRef,
-    editBarStyle,
-    editorDivRef,
-    enableMentions,
-    enableUpload = true,
-    extraHelp,
-    fixedMode,
-    fontSize,
-    getValueRef,
-    height = "auto",
-    hideHelp,
-    isFocused,
-    minimal,
-    modeSwitchStyle,
-    noVfill,
-    onBlur,
-    onChange,
-    onCursorBottom,
-    onCursors,
-    onCursorTop,
-    onFocus,
-    onModeChange,
-    onRedo,
-    onSave,
-    onShiftEnter,
-    onUndo,
-    onUploadEnd,
-    onUploadStart,
-    overflowEllipsis = false,
-    placeholder,
-    refresh,
-    registerEditor,
-    saveDebounceMs = SAVE_DEBOUNCE_MS,
-    style,
-    submitMentionsRef,
-    unregisterEditor,
-    value,
-  } = props;
+export default function MultiMarkdownInput({
+  autoFocus,
+  cacheId,
+  cmOptions,
+  compact,
+  cursors,
+  defaultMode,
+  dirtyRef,
+  editBarStyle,
+  editorDivRef,
+  enableMentions,
+  enableUpload = true,
+  extraHelp,
+  fixedMode,
+  fontSize,
+  getValueRef,
+  height = "auto",
+  hideHelp,
+  isFocused,
+  minimal,
+  modeSwitchStyle,
+  noVfill,
+  onBlur,
+  onChange,
+  onCursorBottom,
+  onCursors,
+  onCursorTop,
+  onFocus,
+  onModeChange,
+  onRedo,
+  onSave,
+  onShiftEnter,
+  onUndo,
+  onUploadEnd,
+  onUploadStart,
+  overflowEllipsis = false,
+  placeholder,
+  refresh,
+  registerEditor,
+  saveDebounceMs = SAVE_DEBOUNCE_MS,
+  style,
+  submitMentionsRef,
+  unregisterEditor,
+  value,
+  controlRef,
+}: Props) {
   const {
     isFocused: isFocusedFrame,
     isVisible,
@@ -204,10 +206,10 @@ export default function MultiMarkdownInput(props: Props) {
 
   const editBar2 = useRef<JSX.Element | undefined>(undefined);
 
+  const getKey = () => `${project_id}${path}:${cacheId}`;
+
   function getCache() {
-    return cacheId === undefined
-      ? undefined
-      : multimodeStateCache.get(`${project_id}${path}:${cacheId}`);
+    return cacheId == null ? undefined : multimodeStateCache.get(getKey());
   }
 
   const [mode, setMode0] = useState<Mode>(
@@ -248,23 +250,34 @@ export default function MultiMarkdownInput(props: Props) {
   } | null>(null);
 
   useEffect(() => {
-    if (cacheId == null) return;
+    if (cacheId == null) {
+      return;
+    }
     const cache = getCache();
     if (cache?.[mode] != null && selectionRef.current != null) {
       // restore selection on mount.
       try {
         selectionRef.current.setSelection(cache?.[mode]);
       } catch (_err) {
-        // console.warn(_err);  // definitely don't need this.
-        // This is expected to fail, since the selection from last
-        // use will be invalid now if another user changed the
-        // document, etc., or you did in a different mode, possibly.
+        // it might just be that the document isn't initialized yet
+        setTimeout(() => {
+          try {
+            selectionRef.current?.setSelection(cache?.[mode]);
+          } catch (_err2) {
+            //  console.warn(_err2); // definitely don't need this.
+            // This is expected to fail, since the selection from last
+            // use will be invalid now if another user changed the
+            // document, etc., or you did in a different mode, possibly.
+          }
+        }, 100);
       }
     }
     return () => {
-      if (selectionRef.current == null || cacheId == null) return;
+      if (selectionRef.current == null || cacheId == null) {
+        return;
+      }
       const selection = selectionRef.current.getSelection();
-      multimodeStateCache.set(`${project_id}${path}:${cacheId}`, {
+      multimodeStateCache.set(getKey(), {
         ...getCache(),
         [mode]: selection,
       });
@@ -518,6 +531,7 @@ export default function MultiMarkdownInput(props: Props) {
             submitMentionsRef={submitMentionsRef}
             editBar2={editBar2}
             dirtyRef={dirtyRef}
+            controlRef={controlRef}
           />
         </div>
       ) : undefined}

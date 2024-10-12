@@ -67,8 +67,8 @@
     "underscore": "^1.12.1",
     "uuid": "^8.3.2",
     "validator": "^13.6.0",
-    "webpack-dev-middleware": "^6.1.2",
-    "webpack-hot-middleware": "^2.25.4",
+    "webpack-dev-middleware": "^7.4.2",
+    "webpack-hot-middleware": "^2.26.1",
     "ws": "^8.18.0"
   },
   "devDependenicesNotes": "For license and size reasons, we make @cocalc/crm a dev dependency so it is NOT installed unless explicitly installed as a separate step.",

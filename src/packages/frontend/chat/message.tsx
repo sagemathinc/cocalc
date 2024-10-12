@@ -54,11 +54,10 @@ const DELETE_BUTTON = false;
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
 const MARKDOWN_STYLE = undefined;
-// const MARKDOWN_STYLE = { maxHeight: "300px", overflowY: "auto" };
 
 const BORDER = "2px solid #ccc";
 
-const SHOW_EDIT_BUTTON_MS = 45000;
+const SHOW_EDIT_BUTTON_MS = 15000;
 
 const TRHEAD_STYLE_SINGLE: CSS = {
   marginLeft: "15px",
@@ -448,7 +447,13 @@ export default function Message(props: Readonly<Props>) {
           <Space direction="horizontal" size="small" wrap>
             {showEditButton ? (
               <Tooltip
-                title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
+                title={
+                  <>
+                    Edit this message. You can edit <b>any</b> past message at
+                    any time by double clicking on it. Fix other people's typos.
+                    All versions are stored.
+                  </>
+                }
                 placement="left"
               >
                 <Button
@@ -613,7 +618,7 @@ export default function Message(props: Readonly<Props>) {
                     <Icon
                       name="thumbs-up"
                       style={{
-                        color: showOtherFeedback ? "darkred" : undefined,
+                        color: showOtherFeedback ? "darkblue" : undefined,
                       }}
                     />
                   </Button>
@@ -627,7 +632,6 @@ export default function Message(props: Readonly<Props>) {
                   size="small"
                   type={"text"}
                   style={{
-                    marginRight: "5px",
                     float: "right",
                     marginTop: "-4px",
                     color: is_viewers_message ? "white" : "#888",
@@ -764,6 +768,17 @@ export default function Message(props: Readonly<Props>) {
       return;
     }
     const replyDate = -getThreadRootDate({ date, messages });
+    let input;
+    if (isLLMThread) {
+      input = "";
+    } else {
+      const replying_to = message.get("history")?.first()?.get("author_id");
+      if (!replying_to || replying_to == props.account_id) {
+        input = "";
+      } else {
+        input = `<span class="user-mention" account-id=${replying_to} >@${editor_name}</span> `;
+      }
+    }
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
@@ -774,7 +789,7 @@ export default function Message(props: Readonly<Props>) {
             height: "auto" /* for some reason the default 100% breaks things */,
           }}
           cacheId={`${props.path}${props.project_id}${date}-reply`}
-          input={""}
+          input={input}
           submitMentionsRef={replyMentionsRef}
           on_send={sendReply}
           height={"auto"}

@@ -110,7 +110,7 @@
     "ts-jest": "^29.2.3",
     "tsd": "^0.22.0",
     "util": "^0.12.3",
-    "webpack-hot-middleware": "^2.25.4",
+    "webpack-hot-middleware": "^2.26.1",
     "webpack-path-rewriter": "^1.1.4"
   }
 }
