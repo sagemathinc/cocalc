@@ -552,8 +552,8 @@ export function Kernel({
           <Tooltip
             title={
               <>
-                Percent of code cells that have been run since the last
-                kernel restart.
+                Percent of code cells that have been run since the
+                kernel started.
               </>
             }
           >

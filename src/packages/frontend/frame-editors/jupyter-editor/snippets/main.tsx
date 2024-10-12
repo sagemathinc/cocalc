@@ -532,10 +532,10 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
         ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
       >
         <Typography.Text strong>Code Snippets</Typography.Text> is a collection
-        of examples for the current programming language. Go ahead and expand
-        the categories to see them and use the "{BUTTON_TEXT}" button to copy
-        the snippet into your notebook. If there is some text in the search box,
-        it shows you some of the matching snippets. Something missing? Please{" "}
+        of examples for the current programming language. Expand the categories
+        to see them and use the "{BUTTON_TEXT}" button to copy the snippet into
+        your notebook. If there is some text in the search box, it shows you
+        some of the matching snippets. Something missing? Please{" "}
         <A href={URL}>contribute snippets</A> or create your own personal
         "Custom Snippets" as described at the very bottom below.
       </Typography.Paragraph>

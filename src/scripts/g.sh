@@ -8,8 +8,8 @@ export DEBUG="cocalc:*"
 #export DEBUG_CONSOLE="yes"
 unset DEBUG_CONSOLE
 
-export NO_WEBPACK_DEV_SERVER=true
 #export COCALC_DISABLE_API_VALIDATION=yes
+#export NO_RSPACK_DEV_SERVER=yes
 #ulimit -Sv 120000000
 
 while true; do

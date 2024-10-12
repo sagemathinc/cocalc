@@ -5,7 +5,7 @@
   "main": "./dist-ts/src/index.js",
   "exports": {
     ".": "./dist-ts/src/index.js",
-    "./webpack-compiler": "./dist-ts/src/webpack-compiler.js"
+    "./rspack-compiler": "./dist-ts/src/rspack-compiler.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
@@ -16,7 +16,7 @@
     "webpack-measure": "COCALC_OUTPUT=dist-measure MEASURE=true NODE_ENV=development pnpm webpack ",
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true pnpm webpack-prod",
     "build": "pnpm run build-dev && ./production-build.py",
-    "build-dev": "pnpm run copy-css && cd src && ../../node_modules/.bin/tsc --build && pnpm rspack build -m development ",
+    "build-dev": "pnpm run copy-css && cd src && ../../node_modules/.bin/tsc --build",
     "watch": "pnpm rspack build -m development -w",
     "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
