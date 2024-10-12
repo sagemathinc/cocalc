@@ -1771,7 +1771,7 @@ importers:
         specifier: ^0.12.3
         version: 0.12.5
       webpack-hot-middleware:
-        specifier: ^2.25.4
+        specifier: ^2.26.1
         version: 2.26.1
       webpack-path-rewriter:
         specifier: ^1.1.4
