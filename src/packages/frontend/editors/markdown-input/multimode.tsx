@@ -134,54 +134,56 @@ interface Props {
   overflowEllipsis?: boolean; // if true, show "..." button popping up all menu entries
 
   dirtyRef?: MutableRefObject<boolean>; // a boolean react ref that gets set to true whenever document changes for any reason (client should explicitly set this back to false).
+
+  controlRef?: MutableRefObject<any>;
 }
 
-export default function MultiMarkdownInput(props: Props) {
-  const {
-    autoFocus,
-    cacheId,
-    cmOptions,
-    compact,
-    cursors,
-    defaultMode,
-    dirtyRef,
-    editBarStyle,
-    editorDivRef,
-    enableMentions,
-    enableUpload = true,
-    extraHelp,
-    fixedMode,
-    fontSize,
-    getValueRef,
-    height = "auto",
-    hideHelp,
-    isFocused,
-    minimal,
-    modeSwitchStyle,
-    noVfill,
-    onBlur,
-    onChange,
-    onCursorBottom,
-    onCursors,
-    onCursorTop,
-    onFocus,
-    onModeChange,
-    onRedo,
-    onSave,
-    onShiftEnter,
-    onUndo,
-    onUploadEnd,
-    onUploadStart,
-    overflowEllipsis = false,
-    placeholder,
-    refresh,
-    registerEditor,
-    saveDebounceMs = SAVE_DEBOUNCE_MS,
-    style,
-    submitMentionsRef,
-    unregisterEditor,
-    value,
-  } = props;
+export default function MultiMarkdownInput({
+  autoFocus,
+  cacheId,
+  cmOptions,
+  compact,
+  cursors,
+  defaultMode,
+  dirtyRef,
+  editBarStyle,
+  editorDivRef,
+  enableMentions,
+  enableUpload = true,
+  extraHelp,
+  fixedMode,
+  fontSize,
+  getValueRef,
+  height = "auto",
+  hideHelp,
+  isFocused,
+  minimal,
+  modeSwitchStyle,
+  noVfill,
+  onBlur,
+  onChange,
+  onCursorBottom,
+  onCursors,
+  onCursorTop,
+  onFocus,
+  onModeChange,
+  onRedo,
+  onSave,
+  onShiftEnter,
+  onUndo,
+  onUploadEnd,
+  onUploadStart,
+  overflowEllipsis = false,
+  placeholder,
+  refresh,
+  registerEditor,
+  saveDebounceMs = SAVE_DEBOUNCE_MS,
+  style,
+  submitMentionsRef,
+  unregisterEditor,
+  value,
+  controlRef,
+}: Props) {
   const {
     isFocused: isFocusedFrame,
     isVisible,
@@ -529,6 +531,7 @@ export default function MultiMarkdownInput(props: Props) {
             submitMentionsRef={submitMentionsRef}
             editBar2={editBar2}
             dirtyRef={dirtyRef}
+            controlRef={controlRef}
           />
         </div>
       ) : undefined}

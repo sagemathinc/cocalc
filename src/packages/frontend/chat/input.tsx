@@ -66,7 +66,7 @@ export default function ChatInput({
     () => redux.getStore("account").get_account_id(),
     [],
   );
-
+  const controlRef = useRef<any>(null);
   const [input, setInput] = useState<string>("");
   useEffect(() => {
     const dbInput = syncdb
@@ -80,12 +80,20 @@ export default function ChatInput({
     // the db version is used when you refresh your browser while editing, or scroll up and down
     // thus unmounting and remounting the currently editing message (due to virtualization).
     // See https://github.com/sagemathinc/cocalc/issues/6415
-    setInput(dbInput ?? propsInput);
+    const input = dbInput ?? propsInput;
+    setInput(input);
+    if (input?.trim()) {
+      // have to wait until it's all rendered -- i hate code like this...
+      for (const n of [1, 10, 50]) {
+        setTimeout(() => {
+          controlRef.current?.moveCursorToEndOfLine();
+        }, n);
+      }
+    }
   }, [date, sender_id, propsInput]);
 
   const currentInputRef = useRef<string>(input);
   const saveOnUnmountRef = useRef<boolean>(true);
-
   const isMountedRef = useIsMountedRef();
   const lastSavedRef = useRef<string>(input);
   const saveChat = useDebouncedCallback(
@@ -142,7 +150,7 @@ export default function ChatInput({
       // Note: it is still slightly annoying, due to loss of focus... however, data
       // loss is NOT ok, whereas loss of focus is.
       const input = currentInputRef.current;
-      if (input == null || syncdb == null) {
+      if (!input || syncdb == null) {
         return;
       }
       if (
@@ -212,6 +220,7 @@ export default function ChatInput({
       onBlur={onBlur}
       cacheId={cacheId}
       value={input}
+      controlRef={controlRef}
       enableUpload={true}
       enableMentions={true}
       submitMentionsRef={submitMentionsRef}
