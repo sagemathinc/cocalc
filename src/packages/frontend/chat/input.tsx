@@ -67,7 +67,8 @@ export default function ChatInput({
     [],
   );
 
-  const [input, setInput] = useState<string>(() => {
+  const [input, setInput] = useState<string>("");
+  useEffect(() => {
     const dbInput = syncdb
       ?.get_one({
         event: "draft",
@@ -79,9 +80,9 @@ export default function ChatInput({
     // the db version is used when you refresh your browser while editing, or scroll up and down
     // thus unmounting and remounting the currently editing message (due to virtualization).
     // See https://github.com/sagemathinc/cocalc/issues/6415
-    const input = dbInput ?? propsInput;
-    return input;
-  });
+    setInput(dbInput ?? propsInput);
+  }, [date, sender_id, propsInput]);
+
   const currentInputRef = useRef<string>(input);
   const saveOnUnmountRef = useRef<boolean>(true);
 
