@@ -36,6 +36,7 @@ interface Props {
   editBarStyle?: CSS;
   placeholder?: string;
   autoFocus?: boolean;
+  moveCursorToEndOfLine?: boolean;
 }
 
 export default function ChatInput({
@@ -55,6 +56,7 @@ export default function ChatInput({
   style,
   submitMentionsRef,
   syncdb,
+  moveCursorToEndOfLine,
 }: Props) {
   const intl = useIntl();
   const onSendRef = useRef<Function>(on_send);
@@ -82,7 +84,7 @@ export default function ChatInput({
     // See https://github.com/sagemathinc/cocalc/issues/6415
     const input = dbInput ?? propsInput;
     setInput(input);
-    if (input?.trim()) {
+    if (input?.trim() && moveCursorToEndOfLine) {
       // have to wait until it's all rendered -- i hate code like this...
       for (const n of [1, 10, 50]) {
         setTimeout(() => {

@@ -769,6 +769,7 @@ export default function Message(props: Readonly<Props>) {
     }
     const replyDate = -getThreadRootDate({ date, messages });
     let input;
+    let moveCursorToEndOfLine = false;
     if (isLLMThread) {
       input = "";
     } else {
@@ -777,6 +778,7 @@ export default function Message(props: Readonly<Props>) {
         input = "";
       } else {
         input = `<span class="user-mention" account-id=${replying_to} >@${editor_name}</span> `;
+        moveCursorToEndOfLine = autoFocusReply;
       }
     }
     return (
@@ -784,6 +786,7 @@ export default function Message(props: Readonly<Props>) {
         <ChatInput
           fontSize={font_size}
           autoFocus={autoFocusReply}
+          moveCursorToEndOfLine={moveCursorToEndOfLine}
           style={{
             borderRadius: "8px",
             height: "auto" /* for some reason the default 100% breaks things */,
@@ -879,8 +882,9 @@ export default function Message(props: Readonly<Props>) {
       !props.allowReply ||
       is_folded ||
       props.actions == null
-    )
+    ) {
       return;
+    }
 
     return (
       <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
