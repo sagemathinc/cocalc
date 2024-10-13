@@ -77,11 +77,16 @@ export function ChatLog({
 
   const user_map = useTypedRedux("users", "user_map");
   const account_id = useTypedRedux("account", "account_id");
-  const { dates: sortedDates, numFolded } = useMemo<{
+  const {
+    dates: sortedDates,
+    numFolded,
+    numChildren,
+  } = useMemo<{
     dates: string[];
     numFolded: number;
+    numChildren;
   }>(() => {
-    const { dates, numFolded } = getSortedDates(
+    const { dates, numFolded, numChildren } = getSortedDates(
       messages,
       search,
       account_id!,
@@ -97,7 +102,7 @@ export function ChatLog({
           : new Date(parseFloat(dates[dates.length - 1])),
       );
     }, 1);
-    return { dates, numFolded };
+    return { dates, numFolded, numChildren };
   }, [messages, search, project_id, path, filterRecentH]);
 
   useEffect(() => {
@@ -237,6 +242,7 @@ export function ChatLog({
           manualScrollRef,
           mode,
           selectedDate,
+          numChildren,
         }}
       />
       <Composing
@@ -283,21 +289,14 @@ function isPrevMessageSender(
   );
 }
 
-function isThread(messages: ChatMessages, message: ChatMessageTyped) {
+function isThread(
+  message: ChatMessageTyped,
+  numChildren: { [date: number]: number },
+) {
   if (message.get("reply_to") != null) {
     return true;
   }
-
-  // TODO/WARNING!!! This is a linear search
-  // through all messages to decide if a message is the root of a thread.
-  // This is VERY BAD and must to be redone at some point, since we call isThread
-  // on all messages (in getSortedDates), making that algorithm O(n^2),
-  // which is hideous as the number of messages scales.  Instead one must
-  // use a proper data structure (or even a cache) to track this once
-  // and for all.  It's more complicated but everything needs to be at
-  // most O(n).
-  const s = message.get("date").toISOString();
-  return messages.some((m) => m.get("reply_to") === s);
+  return (numChildren[message.get("date").valueOf()] ?? 0) > 0;
 }
 
 function isFolded(
@@ -323,14 +322,35 @@ export function getSortedDates(
   search: string | undefined,
   account_id: string,
   filterRecentH?: number,
-): { dates: string[]; numFolded: number } {
+): {
+  dates: string[];
+  numFolded: number;
+  numChildren: { [date: number]: number };
+} {
   let numFolded = 0;
   let m = messages;
   if (m == null) {
-    return { dates: [], numFolded: 0 };
+    return {
+      dates: [],
+      numFolded: 0,
+      numChildren: {},
+    };
   }
 
+  // we assume filterMessages contains complete threads.  It does
+  // right now, but that's an assumption in this function.
   m = filterMessages({ messages: m, filter: search, filterRecentH });
+
+  // Do a linear pass through all messages to divide into threads, so that
+  // getSortedDates is O(n) instead of O(n^2) !
+  const numChildren: { [date: number]: number } = {};
+  for (const [_, message] of m) {
+    const parent = message.get("reply_to");
+    if (parent != null) {
+      const d = new Date(parent).valueOf();
+      numChildren[d] = (numChildren[d] ?? 0) + 1;
+    }
+  }
 
   const v: [date: number, reply_to: number | undefined][] = [];
   for (const [date, message] of m) {
@@ -338,9 +358,9 @@ export function getSortedDates(
 
     // If we search for a message, we treat all threads as unfolded
     if (!search) {
-      const is_thread = isThread(messages, message);
-      const is_folded = isFolded(messages, message, account_id);
-      const is_thread_body = message.get("reply_to") != null;
+      const is_thread = isThread(message, numChildren);
+      const is_folded = is_thread && isFolded(messages, message, account_id);
+      const is_thread_body = is_thread && message.get("reply_to") != null;
       const folded = is_thread && is_folded && is_thread_body;
       if (folded) {
         numFolded++;
@@ -356,7 +376,7 @@ export function getSortedDates(
   }
   v.sort(cmpMessages);
   const dates = v.map((z) => `${z[0]}`);
-  return { dates, numFolded };
+  return { dates, numFolded, numChildren };
 }
 
 /*
@@ -465,6 +485,7 @@ export function MessageList({
   manualScrollRef,
   mode,
   selectedDate,
+  numChildren,
 }: {
   messages;
   account_id;
@@ -481,6 +502,7 @@ export function MessageList({
   costEstimate?;
   manualScrollRef?;
   selectedDate?: string;
+  numChildren?;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -510,9 +532,13 @@ export function MessageList({
           return <div style={{ height: "1px" }} />;
         }
 
-        const is_thread = isThread(messages, message);
-        const is_folded = isFolded(messages, message, account_id);
-        const is_thread_body = message.get("reply_to") != null;
+        // only do threading if numChildren is defined.  It's not defined,
+        // e.g., when viewing past versions via TimeTravel.
+        const is_thread = numChildren != null && isThread(message, numChildren);
+        // optimization: only threads can be folded, so don't waste time
+        // checking on folding state if it isn't a thread.
+        const is_folded = is_thread && isFolded(messages, message, account_id);
+        const is_thread_body = is_thread && message.get("reply_to") != null;
         const h = virtuosoHeightsRef.current[index];
 
         return (

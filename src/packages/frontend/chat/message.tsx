@@ -904,7 +904,9 @@ export default function Message({
   }
 
   function renderFoldedRow() {
-    if (!is_folded || !is_thread || is_thread_body) return;
+    if (!is_folded || !is_thread || is_thread_body) {
+      return;
+    }
 
     return (
       <Col xs={24}>
