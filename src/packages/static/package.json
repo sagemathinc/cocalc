@@ -17,7 +17,7 @@
     "webpack-measure-prod": "COCALC_OUTPUT=dist-prod-measure MEASURE=true pnpm webpack-prod",
     "build": "pnpm run build-dev && ./production-build.py",
     "build-dev": "pnpm run copy-css && cd src && ../../node_modules/.bin/tsc --build",
-    "watch": "pnpm rspack build -m development -w",
+    "watch": "NODE_ENV=development pnpm rspack build -w",
     "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
   },

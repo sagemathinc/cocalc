@@ -15,7 +15,7 @@ export default function defineConstantsPlugin(registerPlugin, constants) {
     opts[key] = JSON.stringify(constants[key]);
   }
   registerPlugin(
-    "DefinePlugin -- define frontend constants -- versions, modes, dates, etc.",
+    "DefinePlugin -- define frontend constants -- versions, modes, dates, etc."+JSON.stringify(opts),
     new DefinePlugin(opts)
   );
 }
