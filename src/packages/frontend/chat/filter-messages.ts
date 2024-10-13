@@ -90,7 +90,8 @@ function getContent(message: ChatMessageTyped, userMap): string {
   const author_id = first.get("author_id");
   const user = userMap?.get(author_id);
   if (user != null) {
-    content += " " + user.get("first_name") + " " + user.get("last_name");
+    content =
+      user.get("first_name") + " " + user.get("last_name") + "\n\n" + content;
   }
   return content;
 }

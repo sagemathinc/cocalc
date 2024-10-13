@@ -2969,7 +2969,7 @@ export class Actions<
     if (state != "ready" && !(await this.wait_until_syncdoc_ready(syncdoc))) {
       return "";
     }
-    const frameId = this.show_focused_frame_of_type(type);
+    const frameId = this.show_focused_frame_of_type(type, "col", true);
     if (state != "ready" && frameId) {
       // TODO: temporary hack until we have gotoFragment
       // as part of constructor!

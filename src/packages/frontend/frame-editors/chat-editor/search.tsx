@@ -16,6 +16,8 @@ import { throttle } from "lodash";
 import useSearchIndex from "./use-search-index";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { TimeAgo } from "@cocalc/frontend/components";
 
 interface Props {
   font_size: number;
@@ -86,6 +88,7 @@ function Search({ font_size, desc }: Props) {
           style={{ marginBottom: "15px" }}
         />
         <Input.Search
+          autoFocus
           allowClear
           placeholder="Search for messages..."
           value={search}
@@ -96,9 +99,41 @@ function Search({ font_size, desc }: Props) {
           }}
         />
       </Card>
-      <pre className="smc-vfill" style={{ overflow: "auto" }}>
-        {JSON.stringify(result, undefined, 2)}
-      </pre>
+      <div className="smc-vfill">
+        <div style={{ overflow: "auto", padding: "15px" }}>
+          {result?.hits?.map((hit) => (
+            <SearchResult key={hit.id} hit={hit} actions={actions} />
+          ))}
+          {result?.hits == null && search?.trim() && <div>No hits</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchResult({ hit, actions }) {
+  const { document } = hit;
+  return (
+    <div
+      style={{
+        cursor: "pointer",
+        margin: "5px 0",
+        padding: "5px",
+        border: "1px solid #ccc",
+        background: "#f8f8f8",
+        borderRadius: "5px",
+        maxHeight: "100px",
+        overflow: "hidden",
+      }}
+      onClick={() => {
+        actions.gotoFragment({ chat: document.time });
+      }}
+    >
+      <TimeAgo style={{ float: "right", color: "#888" }} date={document.time} />
+      <StaticMarkdown
+        value={document.message}
+        style={{ marginBottom: "-10px" /* account for <p> */ }}
+      />
     </div>
   );
 }
