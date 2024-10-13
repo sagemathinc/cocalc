@@ -23,6 +23,7 @@ import { redux_name } from "@cocalc/frontend/app-framework";
 import { aux_file } from "@cocalc/util/misc";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { delay } from "awaiting";
+import { getSearchData } from "@cocalc/frontend/chat/filter-messages";
 
 const FRAME_TYPE = "chatroom";
 
@@ -157,4 +158,12 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
       await delay(d);
     }
   }
+
+  getSearchData = () => {
+    const messages = this.store?.get("messages");
+    if (messages == null) {
+      return {};
+    }
+    return getSearchData({ messages, threads: false });
+  };
 }
