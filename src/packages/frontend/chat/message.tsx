@@ -606,16 +606,20 @@ export default function Message({
                     ) : (
                       ""
                     )}
-                    <Icon
-                      name="thumbs-up"
-                      style={{
-                        color: showOtherFeedback ? "darkblue" : undefined,
-                      }}
-                    />
+                    <Tooltip
+                      title={showOtherFeedback ? undefined : "Like this"}
+                    >
+                      <Icon
+                        name="thumbs-up"
+                        style={{
+                          color: showOtherFeedback ? "darkblue" : undefined,
+                        }}
+                      />
+                    </Tooltip>
                   </Button>
                 </Tooltip>
               )}{" "}
-              <Tooltip title="Select this message. Copy the browser URL to link to this message.">
+              <Tooltip title="Select message. Copy URL to link to this message.">
                 <Button
                   onClick={() => {
                     actions?.setFragment(message.get("date"));
@@ -861,13 +865,13 @@ export default function Message({
     }
 
     return (
-      <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
+      <div style={{ textAlign: "center", width: "100%" }}>
         <Tooltip
           title={
             isLLMThread
               ? `Reply to ${modelToName(
                   isLLMThread,
-                )}, sending the entire thread as context.`
+                )}, sending the thread as context.`
               : "Reply to this thread."
           }
         >
@@ -938,11 +942,17 @@ export default function Message({
       const style: CSS =
         mode === "standalone"
           ? {
+              color: "#666",
               marginTop: MARGIN_TOP_VIEWER,
               marginLeft: "5px",
               marginRight: "5px",
             }
-          : { marginTop: "5px", width: "100%", textAlign: "center" };
+          : {
+              color: "#666",
+              marginTop: "5px",
+              width: "100%",
+              textAlign: "center",
+            };
       const iconname = is_folded
         ? mode === "standalone"
           ? reverseRowOrdering
@@ -974,9 +984,16 @@ export default function Message({
           ) : (
             <Tooltip
               title={
-                is_folded
-                  ? "Unfold this thread"
-                  : "Fold this thread to hide replies"
+                is_folded ? (
+                  <>
+                    Unfold this thread{" "}
+                    {numChildren
+                      ? ` to show ${numChildren} ${plural(numChildren, "reply", "replies")}`
+                      : ""}
+                  </>
+                ) : (
+                  "Fold this thread to hide replies"
+                )
               }
             >
               {button}
