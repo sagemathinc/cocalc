@@ -9,21 +9,24 @@ export default function useSearchIndex() {
   const [index, setIndex] = useState<null | SearchIndex>(null);
   const [error, setError] = useState<string>("");
   const { val: refresh, inc: doRefresh } = useCounter();
+  const [indexTime, setIndexTime] = useState<number>(0);
 
   useEffect(() => {
     (async () => {
       try {
         setError("");
+        const t0 = Date.now();
         const index = new SearchIndex({ actions });
         await index.init();
         setIndex(index);
+        setIndexTime(Date.now() - t0);
       } catch (err) {
         setError(`${err}`);
       }
     })();
   }, [project_id, path, refresh]);
 
-  return { index, error, doRefresh, setError };
+  return { index, error, doRefresh, setError, indexTime };
 }
 
 class SearchIndex {

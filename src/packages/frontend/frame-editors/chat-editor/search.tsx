@@ -9,12 +9,13 @@ Full text search that is better than a simple filter.
 
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import { Button, Card, Input } from "antd";
+import { Button, Card, Input, Tooltip } from "antd";
 import { set } from "@cocalc/util/misc";
 import { useEffect, useMemo, useState } from "react";
 import { throttle } from "lodash";
 import useSearchIndex from "./use-search-index";
 import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   font_size: number;
@@ -35,7 +36,7 @@ function Search({ font_size, desc }: Props) {
     [project_id, path],
   );
 
-  const { error, setError, index, doRefresh } = useSearchIndex();
+  const { error, setError, index, doRefresh, indexTime } = useSearchIndex();
 
   useEffect(() => {
     if (index == null) {
@@ -57,19 +58,33 @@ function Search({ font_size, desc }: Props) {
         title={
           <>
             Search {path}
-            <Button
-              onClick={() => {
-                doRefresh();
-              }}
-              style={{ float: "right" }}
+            <Tooltip
+              title={
+                <>
+                  Recreate search index.{" "}
+                  {indexTime ? <>Time: {indexTime}ms</> : undefined}
+                </>
+              }
             >
-              Refresh
-            </Button>
+              <Button
+                onClick={() => {
+                  doRefresh();
+                }}
+                style={{ float: "right" }}
+              >
+                <Icon name="reload" />
+                Refresh
+              </Button>
+            </Tooltip>
           </>
         }
         style={{ fontSize: font_size }}
       >
-        <ShowError error={error} setError={setError} />
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ marginBottom: "15px" }}
+        />
         <Input.Search
           allowClear
           placeholder="Search for messages..."

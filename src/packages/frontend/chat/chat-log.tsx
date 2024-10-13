@@ -544,11 +544,6 @@ export function MessageList({
                   sortedDates,
                   messages,
                 )}
-                is_next_sender={isNextMessageSender(
-                  index,
-                  sortedDates,
-                  messages,
-                )}
                 show_avatar={!isNextMessageSender(index, sortedDates, messages)}
                 mode={mode}
                 get_user_name={(account_id: string | undefined) =>
