@@ -401,6 +401,8 @@ export default function Message({
         ? { marginLeft: "5px", marginRight: "5px" }
         : undefined),
       ...(selected ? { border: "3px solid #66bb6a" } : undefined),
+      maxHeight: is_folded ? "100px" : undefined,
+      overflowY: is_folded ? "auto" : undefined,
     } as const;
 
     const mainXS = mode === "standalone" ? 20 : 22;
@@ -1006,7 +1008,9 @@ export default function Message({
 
   function renderCols(): JSX.Element[] | JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
-    if (is_thread && is_folded && is_thread_body) return <></>;
+    if (is_thread && is_folded && is_thread_body) {
+      return <></>;
+    }
 
     switch (mode) {
       case "standalone":

@@ -68,7 +68,6 @@ export function ChatLog({
   costEstimate,
 }: Props) {
   const messages = useRedux(["messages"], project_id, path) as ChatMessages;
-
   // see similar code in task list:
   const { selectedHashtags, selectedHashtagsSearch } = useMemo(() => {
     return getSelectedHashtagsSearch(selectedHashtags0);
@@ -507,7 +506,7 @@ export function MessageList({
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}${path}`,
-    initialState: { index: messages.size - 1, offset: 0 }, // starts scrolled to the newest message.
+    initialState: { index: Math.max(sortedDates.length - 1, 0), offset: 0 }, // starts scrolled to the newest message.
   });
 
   return (
@@ -528,8 +527,10 @@ export function MessageList({
         const date = sortedDates[index];
         const message: ChatMessageTyped | undefined = messages.get(date);
         if (message == null) {
-          // shouldn't happen.  But we should be robust to such a possibility.
-          return <div style={{ height: "1px" }} />;
+          // shouldn't happen, but make code robust to such a possibility.
+          // if it happens, fix it.
+          console.warn("empty message", { date, index, sortedDates });
+          return <div style={{ height: "30px" }} />;
         }
 
         // only do threading if numChildren is defined.  It's not defined,
