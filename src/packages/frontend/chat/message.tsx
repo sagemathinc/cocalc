@@ -15,20 +15,13 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  Gap,
-  Icon,
-  Paragraph,
-  Text,
-  TimeAgo,
-  Tip,
-} from "@cocalc/frontend/components";
+import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { User } from "@cocalc/frontend/users";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
-import { unreachable } from "@cocalc/util/misc";
+import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
@@ -125,6 +118,10 @@ interface Props {
   costEstimate;
 
   selected?: boolean;
+
+  // for the root of a folded thread, optionally give this number of a
+  // more informative message to the user.
+  numChildren?: number;
 }
 
 export default function Message({
@@ -149,6 +146,7 @@ export default function Message({
   is_thread_body,
   costEstimate,
   selected,
+  numChildren,
 }: Props) {
   const showAISummarize = redux
     .getStore("projects")
@@ -374,19 +372,13 @@ export default function Message({
   }
 
   function contentColumn() {
-    let marginBottom, marginTop;
+    let marginTop;
     let value = newest_content(message);
 
     const { background, color, lighten, message_class } = message_colors(
       account_id,
       message,
     );
-
-    if (show_avatar) {
-      marginBottom = "1vh";
-    } else {
-      marginBottom = "3px";
-    }
 
     if (!is_prev_sender && is_viewers_message) {
       marginTop = MARGIN_TOP_VIEWER;
@@ -399,10 +391,12 @@ export default function Message({
       background,
       wordWrap: "break-word",
       borderRadius: "5px",
-      marginBottom,
       marginTop,
       fontSize: `${font_size}px`,
-      padding: selected ? "6px" : "9px",
+      // no padding on bottom, since message itself is markdown, hence
+      // wrapped in <p>'s, which have a big 10px margin on their bottoms
+      // already.
+      padding: selected ? "6px 6px 0 6px" : "9px 9px 0 9px",
       ...(mode === "sidechat"
         ? { marginLeft: "5px", marginRight: "5px" }
         : undefined),
@@ -908,20 +902,30 @@ export default function Message({
       return;
     }
 
+    let label;
+    if (numChildren) {
+      label = (
+        <>
+          {numChildren} {plural(numChildren, "Reply", "Replies")}
+        </>
+      );
+    } else {
+      label = "View Replies";
+    }
+
     return (
       <Col xs={24}>
-        <Paragraph type="secondary" style={{ textAlign: "center" }}>
-          {mode === "standalone" ? "This thread is folded. " : ""}
+        <div style={{ textAlign: "center" }}>
           <Button
-            type="text"
-            icon={<Icon name="down-circle-o" />}
             onClick={() =>
               actions?.toggleFoldThread(message.get("date"), index)
             }
+            type="link"
+            style={{ color: "darkblue" }}
           >
-            <Text type="secondary">Unfold</Text>
+            {label}
           </Button>
-        </Paragraph>
+        </div>
       </Col>
     );
   }
@@ -965,7 +969,7 @@ export default function Message({
           key={"blankcolumn"}
           style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
         >
-          {true || hideTooltip ? (
+          {hideTooltip ? (
             button
           ) : (
             <Tooltip

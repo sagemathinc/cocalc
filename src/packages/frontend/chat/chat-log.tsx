@@ -551,6 +551,7 @@ export function MessageList({
             <DivTempHeight height={h ? `${h}px` : undefined}>
               <Message
                 messages={messages}
+                numChildren={numChildren[message.get("date").valueOf()]}
                 key={date}
                 index={index}
                 account_id={account_id}
