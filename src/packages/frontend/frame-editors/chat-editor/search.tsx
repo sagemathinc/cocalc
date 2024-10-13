@@ -9,15 +9,16 @@ Full text search that is better than a simple filter.
 
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
-import { Button, Card, Input, Tooltip } from "antd";
-import { set } from "@cocalc/util/misc";
+import { Card, Input } from "antd";
+import { path_split, separate_file_extension, set } from "@cocalc/util/misc";
 import { useEffect, useMemo, useState } from "react";
 import { throttle } from "lodash";
 import useSearchIndex from "./use-search-index";
 import ShowError from "@cocalc/frontend/components/error";
-import { Icon } from "@cocalc/frontend/components/icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { TimeAgo } from "@cocalc/frontend/components";
+import { useEditorRedux } from "@cocalc/frontend/app-framework";
+import type { ChatState } from "@cocalc/frontend/chat/store";
 
 interface Props {
   font_size: number;
@@ -26,6 +27,9 @@ interface Props {
 
 function Search({ font_size, desc }: Props) {
   const { project_id, path, actions, id } = useFrameContext();
+  const useEditor = useEditorRedux<ChatState>({ project_id, path });
+  const messages = useEditor("messages");
+  const [indexedMessages, setIndexedMessages] = useState<any>(messages);
   const [search, setSearch] = useState<string>(desc.get("data-search") ?? "");
   const [result, setResult] = useState<any>(null);
   const saveSearch = useMemo(
@@ -38,7 +42,7 @@ function Search({ font_size, desc }: Props) {
     [project_id, path],
   );
 
-  const { error, setError, index, doRefresh, indexTime } = useSearchIndex();
+  const { error, setError, index, doRefresh } = useSearchIndex();
 
   useEffect(() => {
     if (index == null) {
@@ -54,31 +58,18 @@ function Search({ font_size, desc }: Props) {
     })();
   }, [search, index]);
 
+  useEffect(() => {
+    if (indexedMessages != messages) {
+      setIndexedMessages(messages);
+      doRefresh();
+    }
+  }, [messages]);
+
   return (
     <div className="smc-vfill">
       <Card
         title={
-          <>
-            Search {path}
-            <Tooltip
-              title={
-                <>
-                  Recreate search index.{" "}
-                  {indexTime ? <>Time: {indexTime}ms</> : undefined}
-                </>
-              }
-            >
-              <Button
-                onClick={() => {
-                  doRefresh();
-                }}
-                style={{ float: "right" }}
-              >
-                <Icon name="reload" />
-                Refresh
-              </Button>
-            </Tooltip>
-          </>
+          <>Search Chatroom {separate_file_extension(path_split(path).tail).name}</>
         }
         style={{ fontSize: font_size }}
       >
@@ -90,7 +81,7 @@ function Search({ font_size, desc }: Props) {
         <Input.Search
           autoFocus
           allowClear
-          placeholder="Search for messages..."
+          placeholder="Search messages..."
           value={search}
           onChange={(e) => {
             const search = e.target.value ?? "";
@@ -117,7 +108,7 @@ function SearchResult({ hit, actions }) {
     <div
       style={{
         cursor: "pointer",
-        margin: "5px 0",
+        margin: "10px 0",
         padding: "5px",
         border: "1px solid #ccc",
         background: "#f8f8f8",

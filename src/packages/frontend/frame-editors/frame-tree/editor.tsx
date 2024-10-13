@@ -115,7 +115,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     useEffect(() => {
       if (!frameRootRef.current) return;
       const observer = new ResizeObserver(() => {
-        actions.set_resize();
+        actions.set_resize?.();
       });
       observer.observe(frameRootRef.current);
       return () => observer.disconnect();

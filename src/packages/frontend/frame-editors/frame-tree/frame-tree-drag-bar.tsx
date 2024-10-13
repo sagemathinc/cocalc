@@ -90,7 +90,7 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
       id: frame_tree.get("id"),
       pos,
     });
-    actions.set_resize();
+    actions.set_resize?.();
     actions.focus(); // see https://github.com/sagemathinc/cocalc/issues/3269
   }
 
