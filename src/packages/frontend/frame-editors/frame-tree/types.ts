@@ -77,6 +77,7 @@ type EditorType =
   | "rst-view"
   | "sagews-cells"
   | "sagews-document"
+  | "search"
   | "settings"
   | "slate"
   | "slides-notes"

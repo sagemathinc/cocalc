@@ -30,7 +30,7 @@ export function filterMessages({
     // no filters -- typical special case; waste now time.
     return messages;
   }
-  const searchData = getSearchData(messages);
+  const searchData = getSearchData({ messages, threads: true });
   let matchingRootTimes: Set<string>;
   if (filter) {
     matchingRootTimes = new Set<string>();
@@ -107,23 +107,37 @@ type SearchData = {
 
 const cache = new LRU<ChatMessages, SearchData>({ max: 25 });
 
-function getSearchData(messages): SearchData {
+export function getSearchData({
+  messages,
+  threads,
+}: {
+  messages: ChatMessages;
+  threads: boolean;
+}): SearchData {
   if (cache.has(messages)) {
     return cache.get(messages)!;
   }
   const data: SearchData = {};
   const userMap = redux.getStore("users").get("user_map");
-  for (const [time, message] of messages) {
+  for (let [time, message] of messages) {
+    if (typeof time != "string") {
+      // for typescript
+      time = `${time}`;
+    }
+    const messageTime = parseFloat(time);
+    const content = getContent(message, userMap);
+    if (!threads) {
+      data[time] = { content, newestTime: messageTime };
+      continue;
+    }
     let rootTime: string;
     if (message.get("reply_to")) {
       // non-root in thread
-      rootTime = `${new Date(message.get("reply_to")).valueOf()}`;
+      rootTime = `${new Date(message.get("reply_to")!).valueOf()}`;
     } else {
       // new root thread
       rootTime = time;
     }
-    const messageTime = parseFloat(time);
-    const content = getContent(message, userMap);
     if (data[rootTime] == null) {
       data[rootTime] = {
         content,
