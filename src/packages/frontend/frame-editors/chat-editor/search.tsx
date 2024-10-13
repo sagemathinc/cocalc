@@ -42,7 +42,7 @@ function Search({ font_size, desc }: Props) {
     [project_id, path],
   );
 
-  const { error, setError, index, doRefresh } = useSearchIndex();
+  const { error, setError, index, doRefresh, fragmentKey } = useSearchIndex();
 
   useEffect(() => {
     if (index == null) {
@@ -69,7 +69,10 @@ function Search({ font_size, desc }: Props) {
     <div className="smc-vfill">
       <Card
         title={
-          <>Search Chatroom {separate_file_extension(path_split(path).tail).name}</>
+          <>
+            Search Chatroom{" "}
+            {separate_file_extension(path_split(path).tail).name}
+          </>
         }
         style={{ fontSize: font_size }}
       >
@@ -93,7 +96,7 @@ function Search({ font_size, desc }: Props) {
       <div className="smc-vfill">
         <div style={{ overflow: "auto", padding: "15px" }}>
           {result?.hits?.map((hit) => (
-            <SearchResult key={hit.id} hit={hit} actions={actions} />
+            <SearchResult key={hit.id} hit={hit} actions={actions} fragmentKey={fragmentKey} />
           ))}
           {result?.hits == null && search?.trim() && <div>No hits</div>}
         </div>
@@ -102,7 +105,7 @@ function Search({ font_size, desc }: Props) {
   );
 }
 
-function SearchResult({ hit, actions }) {
+function SearchResult({ hit, actions, fragmentKey }) {
   const { document } = hit;
   return (
     <div
@@ -117,12 +120,12 @@ function SearchResult({ hit, actions }) {
         overflow: "hidden",
       }}
       onClick={() => {
-        actions.gotoFragment({ chat: document.time });
+        actions.gotoFragment({ [fragmentKey]: document.id });
       }}
     >
-      <TimeAgo style={{ float: "right", color: "#888" }} date={document.time} />
+      <TimeAgo style={{ float: "right", color: "#888" }} date={parseFloat(document.id)} />
       <StaticMarkdown
-        value={document.message}
+        value={document.content}
         style={{ marginBottom: "-10px" /* account for <p> */ }}
       />
     </div>

@@ -159,11 +159,16 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
     }
   }
 
-  getSearchData = () => {
+  getSearchIndexData = () => {
     const messages = this.store?.get("messages");
     if (messages == null) {
       return {};
     }
-    return getSearchData({ messages, threads: false });
+    const data: { [id: string]: string } = {};
+    const data0 = getSearchData({ messages, threads: false });
+    for (const id in data0) {
+      data[id] = data0[id]?.content;
+    }
+    return { data, fragmentKey: "chat" };
   };
 }

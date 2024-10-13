@@ -13,6 +13,7 @@ export default function useSearchIndex() {
   const [error, setError] = useState<string>("");
   const { val: refresh, inc: doRefresh } = useCounter();
   const [indexTime, setIndexTime] = useState<number>(0);
+  const [fragmentKey, setFragmentKey] = useState<string>("id");
 
   useEffect(() => {
     if (
@@ -26,34 +27,40 @@ export default function useSearchIndex() {
       try {
         setError("");
         const t0 = Date.now();
-        const index = new SearchIndex({ actions });
-        await index.init();
-        setIndex(index);
+        const newIndex = new SearchIndex({ actions });
+        await newIndex.init();
+        setFragmentKey(newIndex.fragmentKey ?? "id");
+        setIndex(newIndex);
         setIndexTime(Date.now() - t0);
+        //index?.close();
       } catch (err) {
         setError(`${err}`);
       }
     })();
   }, [project_id, path, refresh]);
 
-  return { index, error, doRefresh, setError, indexTime };
+  return { index, error, doRefresh, setError, indexTime, fragmentKey };
 }
 
 class SearchIndex {
-  private actions;
-  private state: "init" | "ready" | "failed" = "init";
-  private error: Error | null = null;
-  private db;
+  private actions?;
+  private state: "init" | "ready" | "failed" | "closed" = "init";
+  private db?;
+  public fragmentKey?: string = "id";
 
   constructor({ actions }) {
     this.actions = actions;
   }
 
-  getState = () => this.state;
-  getError = () => this.error;
+  close = () => {
+    this.state = "closed";
+    delete this.actions;
+    delete this.db;
+    delete this.fragmentKey;
+  };
 
   search = async (query) => {
-    if (this.state != "ready") {
+    if (this.state != "ready" || this.db == null) {
       throw Error("index not ready");
     }
     return await search(this.db, query);
@@ -62,19 +69,22 @@ class SearchIndex {
   init = async () => {
     this.db = await create({
       schema: {
-        time: "number",
-        message: "string",
+        content: "string",
       },
     });
 
-    const searchData = this.actions.getSearchData();
-    if (searchData != null) {
-      const docs: { time: number; message: string }[] = [];
-      for (const time in searchData) {
-        docs.push({
-          time: parseInt(time),
-          message: searchData[time]?.content ?? "",
-        });
+    if (this.actions == null || this.state != "init") {
+      throw Error("not in init state");
+    }
+    const { data, fragmentKey } = this.actions.getSearchIndexData();
+    this.fragmentKey = fragmentKey;
+    if (data != null) {
+      const docs: { id: string; content: string }[] = [];
+      for (const id in data) {
+        const content = data[id]?.trim();
+        if (content) {
+          docs.push({ id, content });
+        }
       }
       await insertMultiple(this.db, docs);
     }
