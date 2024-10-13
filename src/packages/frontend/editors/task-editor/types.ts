@@ -11,10 +11,12 @@ export interface Task {
   deleted?: boolean;
   position?: number;
   desc?: string;
-  due_date?: number
+  due_date?: number;
   done?: boolean;
   last_edited?: number;
 }
+
+export type Align = "start" | "center" | "end" | "view" | false;
 
 export type Headings = "Custom" | "Due" | "Changed";
 export type HeadingsDir = "asc" | "desc";

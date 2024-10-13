@@ -31,7 +31,6 @@ interface Props {
   current_task_id?: string;
   local_task_state?: LocalTaskStateMap;
   scrollState?: any;
-  scroll_into_view?: boolean;
   font_size: number;
   sortable?: boolean;
   read_only?: boolean;
@@ -48,7 +47,6 @@ export default function TaskList({
   current_task_id,
   local_task_state,
   scrollState,
-  scroll_into_view,
   font_size,
   sortable,
   read_only,
@@ -90,23 +88,8 @@ export default function TaskList({
   }, [search_terms]);
 
   useEffect(() => {
-    if (actions && scroll_into_view) {
-      _scroll_into_view();
-      actions.scroll_into_view_done();
-    }
-  }, [scroll_into_view]);
-
-  function _scroll_into_view() {
-    if (current_task_id == null) {
-      return;
-    }
-    // Figure out the index of current_task_id.
-    const index = visible.indexOf(current_task_id);
-    if (index === -1) {
-      return;
-    }
-    virtuosoRef.current?.scrollIntoView({ index });
-  }
+    actions?.setVirtuosoRef(virtuosoRef);
+  }, [actions, virtuosoRef]);
 
   function render_task(task_id, index?) {
     if (index === visible.size) {

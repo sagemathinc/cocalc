@@ -17,10 +17,14 @@ import { TaskStore } from "@cocalc/frontend/editors/task-editor/store";
 import { redux_name } from "../../app-framework";
 import { aux_file, cmp } from "@cocalc/util/misc";
 import { Map } from "immutable";
+import { delay } from "awaiting";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 
 interface TaskEditorState extends CodeEditorState {
   // nothing yet
 }
+
+const FRAME_TYPE = "tasks";
 
 export class Actions extends CodeEditorActions<TaskEditorState> {
   protected doctype: string = "syncdb";
@@ -39,7 +43,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     this.auxPath = aux_file(this.path, "tasks");
     this.taskStore = this.redux.createStore(
       redux_name(this.project_id, this.auxPath),
-      TaskStore
+      TaskStore,
     );
     const syncdb = this._syncstring;
     syncdb.on("change", this.syncdbChange);
@@ -136,7 +140,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
       this.auxPath,
       this._syncstring,
       this.taskStore,
-      this.path
+      this.path,
     );
     actions._init_frame(frameId, this);
     this.taskActions[frameId] = actions;
@@ -186,7 +190,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    return { type: "tasks" };
+    return { type: FRAME_TYPE };
   }
 
   async export_to_markdown(): Promise<void> {
@@ -201,7 +205,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     if (id === undefined) {
       id = this._get_active_id();
     }
-    if (this._get_frame_type(id) == "tasks") {
+    if (this._get_frame_type(id) == FRAME_TYPE) {
       this.getTaskActions(id)?.show();
       return;
     }
@@ -212,18 +216,18 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     if (id === undefined) {
       id = this._get_active_id();
     }
-    if (this._get_frame_type(id) == "tasks") {
+    if (this._get_frame_type(id) == FRAME_TYPE) {
       this.getTaskActions(id)?.hide();
     }
   }
 
   protected languageModelGetText(frameId: string, scope): string {
-    if (this._get_frame_type(frameId) == "tasks") {
+    if (this._get_frame_type(frameId) == FRAME_TYPE) {
       const node = this._get_frame_node(frameId);
       return (
         this.getTaskActions(frameId)?.chatgptGetText(
           scope,
-          node?.get("data-current_task_id")
+          node?.get("data-current_task_id"),
         ) ?? ""
       );
     }
@@ -238,8 +242,22 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     return "md";
   }
 
-  //   async updateEmbeddings(): Promise<number> {
-  //     if (this._syncstring == null) return 0;
-  //     return (await this.getTaskActions()?.updateEmbeddings()) ?? 0;
-  //   }
+  async gotoFragment(fragmentId: FragmentId) {
+    const { id } = fragmentId as any;
+    if (!id) {
+      return;
+    }
+    const frameId = await this.waitUntilFrameReady({
+      type: FRAME_TYPE,
+    });
+    if (!frameId) {
+      return;
+    }
+    for (const d of [1, 10, 50, 500, 1000]) {
+      const actions = this.getTaskActions(frameId);
+      actions?.set_current_task(id);
+      actions?.scrollIntoView("start");
+      await delay(d);
+    }
+  }
 }

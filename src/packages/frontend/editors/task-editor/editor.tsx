@@ -34,9 +34,7 @@ interface Props {
 export const TaskEditor: React.FC<Props> = React.memo(
   ({ actions, path, project_id, desc, read_only }) => {
     const useEditor = useEditorRedux<TaskState>({ project_id, path });
-
     const tasks = useEditor("tasks");
-
     const visible = desc.get("data-visible");
     const local_task_state = desc.get("data-local_task_state") ?? fromJS({});
     const local_view_state = desc.get("data-local_view_state") ?? fromJS({});
@@ -46,7 +44,6 @@ export const TaskEditor: React.FC<Props> = React.memo(
     const search_terms = desc.get("data-search_terms");
     const search_desc = desc.get("data-search_desc");
     const focus_find_box = desc.get("data-focus_find_box");
-    const scroll_into_view = desc.get("data-scroll_into_view");
 
     if (tasks == null || visible == null) {
       return (
@@ -126,7 +123,6 @@ export const TaskEditor: React.FC<Props> = React.memo(
             current_task_id={current_task_id}
             local_task_state={local_task_state}
             scrollState={(local_view_state as any).get("scrollState")?.toJS?.()}
-            scroll_into_view={scroll_into_view}
             font_size={desc.get("font_size")}
             sortable={
               !read_only &&
