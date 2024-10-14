@@ -99,7 +99,10 @@ export default function Task({
   return (
     <Grid
       style={style}
-      onClick={() => actions?.set_current_task(task.get("task_id"))}
+      onClick={() => {
+        actions?.set_current_task(task.get("task_id"));
+        actions?.enable_key_handler();
+      }}
     >
       <Row>
         <Col sm={1}>

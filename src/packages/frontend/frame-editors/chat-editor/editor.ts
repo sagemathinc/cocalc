@@ -14,6 +14,7 @@ import { createEditor } from "@cocalc/frontend/frame-editors/frame-tree/editor";
 import type { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { terminal } from "@cocalc/frontend/frame-editors/terminal-editor/editor";
 import { time_travel } from "@cocalc/frontend/frame-editors/time-travel-editor/editor";
+import { search } from "./search";
 
 const chatroom: EditorDescription = {
   type: "chatroom",
@@ -39,6 +40,7 @@ const chatroom: EditorDescription = {
     "chatgpt",
     "scrollToBottom",
     "scrollToTop",
+    "show_search",
   ]),
   customizeCommands: {
     scrollToTop: {
@@ -59,6 +61,7 @@ const chatroom: EditorDescription = {
     "increase_font_size",
     "scrollToTop",
     "scrollToBottom",
+    "show_search",
   ]),
 } as const;
 
@@ -66,6 +69,7 @@ const EDITOR_SPEC = {
   chatroom,
   terminal,
   time_travel,
+  search,
 } as const;
 
 export const Editor = createEditor({
