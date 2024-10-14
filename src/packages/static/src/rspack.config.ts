@@ -73,8 +73,8 @@ export default function getConfig({ middleware }: Options = {}) {
   const BUILD_DATE = date.toISOString();
   const BUILD_TS = date.getTime();
   const COCALC_NOCLEAN = !!process.env.COCALC_NOCLEAN;
-  const WEBPACK_DEV_SERVER =
-    NODE_ENV != "production" && !process.env.NO_WEBPACK_DEV_SERVER;
+  const RSPACK_DEV_SERVER =
+    NODE_ENV != "production" && !process.env.NO_RSPACK_DEV_SERVER;
 
   // output build variables
   console.log(`SMC_VERSION         = ${SMC_VERSION}`);
@@ -83,7 +83,7 @@ export default function getConfig({ middleware }: Options = {}) {
   console.log(`MEASURE             = ${MEASURE}`);
   console.log(`OUTPUT              = ${OUTPUT}`);
   console.log(`COCALC_NOCLEAN      = ${COCALC_NOCLEAN}`);
-  console.log(`WEBPACK_DEV_SERVER  = ${WEBPACK_DEV_SERVER}`);
+  console.log(`RSPACK_DEV_SERVER  = ${RSPACK_DEV_SERVER}`);
 
   const plugins: WebpackPluginInstance[] = [];
   function registerPlugin(
@@ -136,13 +136,13 @@ export default function getConfig({ middleware }: Options = {}) {
     throw Error("measure: not implemented");
   }
 
-  if (WEBPACK_DEV_SERVER) {
+  if (RSPACK_DEV_SERVER) {
     hotModuleReplacementPlugin(registerPlugin);
   }
 
   function insertHotMiddlewareUrl(v: string[]): string[] {
     const hotMiddlewareUrl = getHotMiddlewareUrl();
-    if (WEBPACK_DEV_SERVER) {
+    if (RSPACK_DEV_SERVER) {
       v.unshift(hotMiddlewareUrl);
     }
     return v;
@@ -179,7 +179,7 @@ export default function getConfig({ middleware }: Options = {}) {
       chunkFilename: PRODMODE ? "[chunkhash].js" : "[id]-[chunkhash].js",
     },
     module: {
-      rules: moduleRules(WEBPACK_DEV_SERVER),
+      rules: moduleRules(RSPACK_DEV_SERVER),
     },
     resolve: {
       alias: {
