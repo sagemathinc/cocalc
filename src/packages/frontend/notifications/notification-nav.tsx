@@ -51,14 +51,17 @@ const MSGS = defineMessages({
   unread: {
     id: "notifications.nav.unread",
     defaultMessage: "Unread",
+    description: "Label for unread messages",
   },
   read: {
     id: "notifications.nav.read",
     defaultMessage: "Read",
+    description: "Label for messages that have been read",
   },
   saved: {
     id: "notifications.nav.saved",
     defaultMessage: "Saved for later",
+    description: "Label for messages saved for later",
   },
   all: {
     id: "notifications.nav.all",

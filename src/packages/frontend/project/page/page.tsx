@@ -288,7 +288,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
     // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
-      <div style={{ display: "flex", margin: "0", paddingTop: "3px" }}>
+      <div style={{ display: "flex", height: "36px" }}>
         <HomePageButton
           project_id={project_id}
           active={active_project_tab == "home"}
@@ -381,10 +381,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   return (
     <ProjectContext.Provider value={projectCtx}>
       <div className="container-content" style={PAGE_STYLE}>
-        <StudentPayUpgrade
-          project_id={project_id}
-          style={{ marginTop: "5px" }}
-        />
+        <StudentPayUpgrade project_id={project_id} />
         <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />
         <RamWarning project_id={project_id} />

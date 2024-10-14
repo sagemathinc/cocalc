@@ -178,20 +178,13 @@ export class ChatActions extends Actions<ChatState> {
       // WARNING: give an error or try again later?
       return "";
     }
-    if (this.store.get("is_uploading")) {
-      // do not send while uploading, since would be mangled.
-      return "";
-    }
     const time_stamp: Date = webapp_client.server_time();
     const time_stamp_str = time_stamp.toISOString();
     if (submitMentionsRef?.current != null) {
       input = submitMentionsRef.current?.({ chat: `${time_stamp.valueOf()}` });
     }
-    if (input == null) {
-      input = this.store.get("input");
-    }
-    input = input.trim();
-    if (input.length == 0) {
+    input = input?.trim();
+    if (!input) {
       // do not send when there is nothing to send.
       return "";
     }
@@ -217,9 +210,6 @@ export class ChatActions extends Actions<ChatState> {
       // since by default the message you are sending has those tags.
       // Also, only do this clearing when not replying.
       // For replies search find full threads not individual messages.
-      this.setState({
-        input: "",
-      });
       this.clearAllFilters();
     } else {
       // when replying we make sure that the thread is expanded, since otherwise
@@ -411,38 +401,34 @@ export class ChatActions extends Actions<ChatState> {
 
   // Make sure everything saved to DISK.
   save_to_disk = async (): Promise<void> => {
-    if (this.syncdb == null) return;
-    try {
-      this.setState({ is_saving: true });
-      await this.syncdb.save_to_disk();
-    } finally {
-      this.setState({ is_saving: false });
+    this.syncdb?.save_to_disk();
+  };
+
+  private _llmEstimateCost = async ({
+    input,
+    date,
+    message,
+  }: {
+    input: string;
+    // date is as in chat/input.tsx -- so 0 for main input and -ms for reply
+    date: number;
+    // in case of reply/edit, so we can get the entire thread
+    message?: ChatMessage;
+  }): Promise<void> => {
+    if (!this.store) {
+      return;
     }
-  };
-
-  setInput = (input: string): void => {
-    this.setState({ input });
-  };
-
-  private _llmEstimateCost = async (
-    input: string,
-    type: "room" | "reply",
-    message?: ChatMessage,
-  ): Promise<void> => {
-    if (!this.store) return;
 
     const is_cocalc_com = this.redux.getStore("customize").get("is_cocalc_com");
-    if (!is_cocalc_com) return;
-
+    if (!is_cocalc_com) {
+      return;
+    }
     // this is either a new message or in a reply, but mentions an LLM
     let model: LanguageModel | null | false = getLanguageModel(input);
-    const key: keyof ChatState =
-      type === "room" ? "llm_cost_room" : "llm_cost_reply";
-
     input = stripMentions(input);
     let history: string[] = [];
     const messages = this.store.get("messages");
-    // message != null means this is a reply and we have to get the whole chat thread
+    // message != null means this is a reply or edit and we have to get the whole chat thread
     if (!model && message != null && messages != null) {
       const root = getReplyToRoot({ message, messages });
       model = this.isLanguageModelThread(root);
@@ -452,10 +438,9 @@ export class ChatActions extends Actions<ChatState> {
         }
       }
     }
-
     if (model) {
       if (isFreeModel(model, is_cocalc_com)) {
-        this.setState({ [key]: [0, 0] });
+        this.setCostEstimate({ date, min: 0, max: 0 });
       } else {
         const llm_markup = this.redux.getStore("customize").get("llm_markup");
         // do not import until needed -- it is HUGE!
@@ -467,10 +452,10 @@ export class ChatActions extends Actions<ChatState> {
           maxTokens,
         );
         const { min, max } = calcMinMaxEstimation(tokens, model, llm_markup);
-        this.setState({ [key]: [min, max] });
+        this.setCostEstimate({ date, min, max });
       }
     } else {
-      this.setState({ [key]: null });
+      this.setCostEstimate();
     }
   };
 
@@ -480,12 +465,17 @@ export class ChatActions extends Actions<ChatState> {
     { leading: true, trailing: true },
   );
 
-  setIsPreview = (is_preview): void => {
-    this.setState({ is_preview });
-  };
-
-  set_use_saved_position = (use_saved_position): void => {
-    this.setState({ use_saved_position });
+  private setCostEstimate = (
+    costEstimate: {
+      date: number;
+      min: number;
+      max: number;
+    } | null = null,
+  ) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      costEstimate,
+    });
   };
 
   save_scroll_state = (position, height, offset): void => {
@@ -527,12 +517,14 @@ export class ChatActions extends Actions<ChatState> {
     this.scrollToIndex(Number.MAX_SAFE_INTEGER);
   };
 
+// this scrolls the message with given date into view and sets it as the selected message.
   scrollToDate = (date) => {
     this.clearScrollRequest();
     this.frameTreeActions?.set_frame_data({
       id: this.frameId,
       fragmentId: toMsString(date),
     });
+    this.setFragment(date);
     setTimeout(() => {
       this.frameTreeActions?.set_frame_data({
         id: this.frameId,
@@ -542,10 +534,6 @@ export class ChatActions extends Actions<ChatState> {
         scrollToIndex: null,
       });
     }, 1);
-  };
-
-  set_uploading = (is_uploading: boolean): void => {
-    this.setState({ is_uploading });
   };
 
   // Scan through all messages and figure out what hashtags are used.
@@ -1119,6 +1107,13 @@ export class ChatActions extends Actions<ChatState> {
       Fragment.set({ chat: fragmentId });
       this.frameTreeActions?.set_frame_data({ id: this.frameId, fragmentId });
     }
+  };
+
+  setShowPreview = (showPreview) => {
+    this.frameTreeActions?.set_frame_data({
+      id: this.frameId,
+      showPreview,
+    });
   };
 }
 

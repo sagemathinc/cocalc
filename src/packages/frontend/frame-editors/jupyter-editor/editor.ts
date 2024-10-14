@@ -28,6 +28,7 @@ import { RawIPynb } from "./raw-ipynb";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
 import { TableOfContents } from "./table-of-contents";
+import { search } from "./search";
 
 const SNIPPET_ICON_NAME = "magic";
 
@@ -50,6 +51,7 @@ const jupyterCommands = set([
   "help",
   "compute_server",
   "settings",
+  "show_search",
 ]);
 
 const jupyter_cell_notebook: EditorDescription = {
@@ -70,6 +72,7 @@ const jupyter_cell_notebook: EditorDescription = {
     "jupyter-nbgrader validate",
     "halt_jupyter",
     "guide",
+    "show_search",
   ]),
   customizeCommands: {
     guide: {
@@ -110,6 +113,7 @@ const jupyter_table_of_contents: EditorDescription = {
   icon: "align-right",
   component: TableOfContents,
   commands: set(["decrease_font_size", "increase_font_size"]),
+  buttons: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 
 const introspect: EditorDescription = {
@@ -149,6 +153,7 @@ export const EDITOR_SPEC = {
   time_travel,
   jupyter_json,
   jupyter_raw,
+  search,
 } as const;
 
 const JUPYTER_MENUS = {
@@ -208,7 +213,6 @@ const JUPYTER_MENUS = {
           },
         },
       ],
-      classic: ["switch to classical notebook"],
     },
   },
   edit: {

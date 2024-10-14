@@ -13,16 +13,17 @@ import "./webapp-error-reporter";
 // TODO: get rid of bootstrap!  We intend to switch to antd entirely!
 import "bootstrap/dist/css/bootstrap.min.css";
 
-// explicit jQuery UI widgets that we use -- no need to load the entire library
+// jQuery UI widgets
+import "jquery-ui/dist/jquery-ui"; // needed when switched to rspack
 import "jquery-ui/ui/widgets/draggable"; // used in sage worksheets
 import "jquery-ui/ui/widgets/slider"; // used in sage worksheets
 import "jquery-ui/ui/widgets/resizable"; // used in sage worksheets
-// this is a require since it must happen after window.jQuery above (and imports happen before code).
+// // this is a require since it must happen after window.jQuery above (and imports happen before code).
 import "jquery-tooltip/jquery.tooltip"; // used in sage worksheets
-// Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/
+// // Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/
 import "jquery-ui-touch-punch";
 
-// Hack we wrote to make jQuery hide and show not break with Bootstrap 3
+// // Hack we wrote to make jQuery hide and show not break with Bootstrap 3
 import "@cocalc/assets/jquery/plugins/bootstrap_hide_show";
 
 // Timeago jQuery plugin

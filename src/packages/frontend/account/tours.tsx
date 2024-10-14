@@ -31,8 +31,8 @@ export default function Tours() {
         }}
       >
         {TOUR_NAMES[name]}
-      </Checkbox>
+      </Checkbox>,
     );
   }
-  return <Space>Completed Tours: {v}</Space>;
+  return <Space wrap>Completed Tours: {v}</Space>;
 }

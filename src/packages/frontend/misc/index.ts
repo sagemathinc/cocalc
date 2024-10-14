@@ -4,7 +4,6 @@
  */
 
 export { BASE_URL } from "./base-url";
-export { mathjax_finish_startup } from "./mathjax";
 export { open_new_tab, open_popup_window } from "./open-browser-tab";
 export * from "./misc";
 export * from "./sanitize";

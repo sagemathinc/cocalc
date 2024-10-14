@@ -5,7 +5,6 @@
 
 import { Button, Divider, Input, Select, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
-import { useDebounce } from "use-debounce";
 import { ButtonGroup, Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -82,22 +81,18 @@ export function ChatRoom({
   desc,
 }: Props) {
   const useEditor = useEditorRedux<ChatState>({ project_id, path });
-  const is_uploading = useEditor("is_uploading");
-  const is_preview = useEditor("is_preview");
-  const input: string = useEditor("input");
-  const [preview] = useDebounce(input, 250);
-
+  const [input, setInput] = useState("");
   const search = desc?.get("data-search") ?? "";
   const filterRecentH: number = desc?.get("data-filterRecentH") ?? 0;
   const selectedHashtags = desc?.get("data-selectedHashtags");
   const scrollToIndex = desc?.get("data-scrollToIndex") ?? null;
   const scrollToDate = desc?.get("data-scrollToDate") ?? null;
   const fragmentId = desc?.get("data-fragmentId") ?? null;
-
+  const showPreview = desc?.get("data-showPreview") ?? null;
+  const costEstimate = desc?.get("data-costEstimate");
   const messages = useEditor("messages");
   const [filterRecentHCustom, setFilterRecentHCustom] = useState<string>("");
   const [filterRecentOpen, setFilterRecentOpen] = useState<boolean>(false);
-  const llm_cost_room = useEditor("llm_cost_room");
 
   const submitMentionsRef = useRef<SubmitMentionsFn>();
   const scrollToBottomRef = useRef<any>(null);
@@ -117,8 +112,12 @@ export function ChatRoom({
   }
 
   function render_preview_message(): JSX.Element | undefined {
-    if (!is_preview) return;
-    if (input.length === 0 || preview.length === 0) return;
+    if (!showPreview) {
+      return;
+    }
+    if (input.length === 0) {
+      return;
+    }
 
     return (
       <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
@@ -134,11 +133,11 @@ export function ChatRoom({
                 cursor: "pointer",
                 fontSize: "13pt",
               }}
-              onClick={() => actions.setIsPreview(false)}
+              onClick={() => actions.setShowPreview(false)}
             >
               <Icon name="times" />
             </div>
-            <StaticMarkdown value={preview} />
+            <StaticMarkdown value={input} />
             <div className="small lighten" style={{ marginTop: "15px" }}>
               Preview (press Shift+Enter to send)
             </div>
@@ -272,6 +271,7 @@ export function ChatRoom({
     setTimeout(() => {
       scrollToBottomRef.current?.(true);
     }, 100);
+    setInput("");
   }
 
   function render_body(): JSX.Element {
@@ -292,6 +292,7 @@ export function ChatRoom({
             scrollToIndex={scrollToIndex}
             scrollToDate={scrollToDate}
             selectedDate={fragmentId}
+            costEstimate={costEstimate}
           />
           {render_preview_message()}
         </div>
@@ -310,11 +311,11 @@ export function ChatRoom({
               on_send={on_send}
               height={INPUT_HEIGHT}
               onChange={(value) => {
-                actions.setInput(value);
+                setInput(value);
                 // submitMentionsRef will not actually submit mentions; we're only interested in the reply value
-                const reply =
+                const input =
                   submitMentionsRef.current?.(undefined, true) ?? value;
-                actions?.llmEstimateCost(reply, "room");
+                actions?.llmEstimateCost({ date: 0, input });
               }}
               submitMentionsRef={submitMentionsRef}
               syncdb={actions.syncdb}
@@ -331,16 +332,18 @@ export function ChatRoom({
             }}
           >
             <div style={{ flex: 1 }} />
-            <LLMCostEstimationChat
-              llm_cost={llm_cost_room}
-              compact
-              style={{
-                flex: 0,
-                fontSize: "85%",
-                textAlign: "center",
-                margin: "0 0 5px 0",
-              }}
-            />
+            {costEstimate?.get("date") == 0 && (
+              <LLMCostEstimationChat
+                costEstimate={costEstimate?.toJS()}
+                compact
+                style={{
+                  flex: 0,
+                  fontSize: "85%",
+                  textAlign: "center",
+                  margin: "0 0 5px 0",
+                }}
+              />
+            )}
             <Tooltip
               title={
                 <FormattedMessage
@@ -351,7 +354,7 @@ export function ChatRoom({
             >
               <Button
                 onClick={on_send_button_click}
-                disabled={input.trim() === "" || is_uploading}
+                disabled={input.trim() === ""}
                 type="primary"
                 style={{ height: "47.5px" }}
                 icon={<Icon name="paper-plane" />}
@@ -364,9 +367,9 @@ export function ChatRoom({
             </Tooltip>
             <div style={{ height: "5px" }} />
             <Button
-              onClick={() => actions.setIsPreview(true)}
+              type={showPreview ? "dashed" : undefined}
+              onClick={() => actions.setShowPreview(!showPreview)}
               style={{ height: "47.5px" }}
-              disabled={is_preview}
             >
               <FormattedMessage
                 id="chatroom.chat_input.preview_button.label"

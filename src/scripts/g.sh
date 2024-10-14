@@ -9,5 +9,9 @@ export DEBUG="cocalc:*"
 unset DEBUG_CONSOLE
 
 #export COCALC_DISABLE_API_VALIDATION=yes
+#export NO_RSPACK_DEV_SERVER=yes
 
-pnpm hub
+while true; do
+  pnpm hub
+  sleep 1
+done

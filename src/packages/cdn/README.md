@@ -4,7 +4,6 @@ These packages
 
 - katex
 - codemirror
-- mathjax
 
 ## Why?
 

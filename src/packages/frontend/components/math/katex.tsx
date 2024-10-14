@@ -1,29 +1,25 @@
 /*
-
-More complicated not-necessarily-synchronous math formula component, which
+More complicated not-necessarily-synchronous (but actually it is sync) math formula component, which
 works fine on the frontend but NOT on a backend with node.js.
 
-This supports rendering using KaTeX with a fallback to MathJaxV2.  Also,
-if the user explicitly selects in account settings to use MathJax by default,
-then this only uses MathJax.
+This supports rendering using KaTeX.
 
+Right now it is *just* katex, so in fact is synchronous.
 */
 
 import { useEffect, useRef } from "react";
-
 import { math_escape, math_unescape } from "@cocalc/util/markdown-utils";
 import { remove_math, replace_math } from "@cocalc/util/mathjax-utils";
 import { latexMathToHtmlOrError } from "@cocalc/frontend/misc/math-to-html";
 import { replace_all } from "@cocalc/util/misc";
 import { replaceMathBracketDelims } from "./util";
-import { katexIsEnabled } from "@cocalc/frontend/account/other-settings";
 
 interface Props {
   data: string;
   inMarkdown?: boolean;
 }
 
-export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
+export default function KaTeX({ data, inMarkdown }: Props) {
   const ref = useRef<any>(null);
   data = replaceMathBracketDelims(data);
   const [text, math] = remove_math(math_escape(data));
@@ -44,7 +40,7 @@ export default function KaTeXAndMathJaxV2({ data, inMarkdown }: Props) {
     return <>{data}</>;
   }
 
-  if (inMarkdown && katexIsEnabled()) {
+  if (inMarkdown) {
     const __html = attemptKatex(text, math);
     if (__html != null) {
       // no error -- using katex is allowed and fully worked.
@@ -65,7 +61,12 @@ function attemptKatex(text: string, math: string[]): undefined | string {
       math[i] = __html;
     } else {
       // there was an error
-      return;
+      const div = $("<div>")
+        .text(math[i])
+        .css("color", "red")
+        .attr("title", `${err}`);
+      const htmlString = div.prop("outerHTML");
+      math[i] = htmlString;
     }
   }
   // Substitute processed math back in.

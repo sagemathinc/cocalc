@@ -79,12 +79,15 @@ export class JupyterActions extends JupyterActions0 {
 
     // first update
     this.syncdb.once("change", this.updateContentsNow);
+    this.syncdb.once("change", this.updateRunProgress);
 
     this.syncdb.on("change", () => {
       // And activity indicator
       this.activity();
       // Update table of contents
       this.update_contents();
+      // run progress
+      this.updateRunProgress();
     });
 
     // Load kernel (once ipynb file loads).

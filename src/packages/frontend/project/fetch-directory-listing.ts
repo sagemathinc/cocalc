@@ -1,7 +1,7 @@
 import { is_running_or_starting } from "./project-start-warning";
 import type { ProjectActions } from "@cocalc/frontend/project_actions";
 import { trunc_middle, uuid } from "@cocalc/util/misc";
-import { get_directory_listing2 as get_directory_listing } from "./directory-listing";
+import { get_directory_listing } from "./directory-listing";
 import { fromJS, Map } from "immutable";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 

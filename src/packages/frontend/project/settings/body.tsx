@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -60,10 +60,21 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
     kucalc === KUCALC_COCALC_COM ||
     (kucalc === KUCALC_ON_PREMISES && datastore);
 
+  // this very rarely changes, so just call this once
+  const isPaidStudentPayProject = useMemo(
+    () => !redux.getProjectsStore().isPaidStudentPayProject(project_id),
+    [project_id],
+  );
   const showNonMemberWarning =
-    commercial && runQuota != null && !runQuota.member_host;
+    !isPaidStudentPayProject &&
+    commercial &&
+    runQuota != null &&
+    !runQuota.member_host;
   const showNoInternetWarning =
-    commercial && runQuota != null && !runQuota.network;
+    !isPaidStudentPayProject &&
+    commercial &&
+    runQuota != null &&
+    !runQuota.network;
 
   return (
     <div>

@@ -3,11 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-/*
-NOTE: The diff function below is very similar to
-some code in editor_jupyter.coffee.
-*/
-
 import { Node, Operation } from "slate";
 import { diff_main } from "@cocalc/sync/editor/generic/util";
 import { StringCharMapping } from "@cocalc/util/misc";

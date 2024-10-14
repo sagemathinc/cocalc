@@ -377,7 +377,7 @@ export function FileTypeSelector({
         icon: <Icon name="exclamation-circle" />,
         title: intl.formatMessage({
           id: "project.new.file-type-selector.sagews.modal.title",
-          defaultMessage: "SageMath Worksheets are deprecated.",
+          defaultMessage: "SageMath Worksheets are currently less supported",
         }),
         content: intl.formatMessage({
           id: "project.new.file-type-selector.sagews.modal.content",

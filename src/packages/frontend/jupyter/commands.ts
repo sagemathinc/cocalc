@@ -508,7 +508,7 @@ export function commands(actions: AllActions): {
 
     "find and replace": {
       i: "replace",
-      b: "Find",
+      b: "Replace",
       m: jupyter.commands.find_and_replace,
       k: [
         { mode: "escape", which: 70 },
@@ -1206,12 +1206,6 @@ export function commands(actions: AllActions): {
         actions.frame_actions?.set_mode("escape");
         actions.frame_actions?.split_current_cell();
       },
-    },
-
-    "switch to classical notebook": {
-      m: "Switch to classical notebook...",
-      f: () => actions.jupyter_actions?.switch_to_classical_notebook(),
-      r: true,
     },
 
     "tab key": {

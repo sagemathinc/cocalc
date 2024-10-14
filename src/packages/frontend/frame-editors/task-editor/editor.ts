@@ -14,6 +14,7 @@ import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
+import { search } from "./search";
 
 const tasks: EditorDescription = {
   type: "tasks",
@@ -25,7 +26,6 @@ const tasks: EditorDescription = {
     return createElement(TaskEditor, {
       ...props,
       actions,
-      path: actions.path,
     });
   },
   commands: set([
@@ -38,6 +38,14 @@ const tasks: EditorDescription = {
     "help",
     "export_to_markdown",
     "chatgpt",
+    "show_search",
+  ]),
+  buttons: set([
+    "undo",
+    "redo",
+    "decrease_font_size",
+    "increase_font_size",
+    "show_search",
   ]),
 } as const;
 
@@ -45,6 +53,7 @@ const EDITOR_SPEC = {
   tasks,
   terminal,
   time_travel,
+  search,
 } as const;
 
 export const Editor = createEditor({

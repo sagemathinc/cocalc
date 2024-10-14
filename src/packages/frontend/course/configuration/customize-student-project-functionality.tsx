@@ -44,12 +44,6 @@ const OPTIONS: Option[] = [
       "Disable the user interface for running a Jupyter classic server in student projects.  This is important, since Jupyter classic provides its own extensive download and edit functionality; moreover, you may want to disable Jupyter classic to reduce confusion if you don't plan to use it.",
   },
   {
-    name: "disableJupyterClassicMode",
-    title: "Jupyter Classic mode",
-    description:
-      "Do not allow opening Jupyter notebooks using classic mode.  The Jupyter classic UI has some workarounds for the other restrictions here, and can also cause confusion if you don't want students to use it in your class.",
-  },
-  {
     name: "disableJupyterLabServer",
     title: "JupyterLab notebook server",
     description:
@@ -85,6 +79,12 @@ const OPTIONS: Option[] = [
       "Blocks uploading files to the student project via drag-n-drop or the Upload button.",
   },
   {
+    name: "disableLibrary",
+    title: "Library",
+    description:
+      "In the file explorer there is a library button for browsing and copying books and tutorials into a project.  Disable this to simplify the interface.",
+  },
+  {
     name: "disableCollaborators",
     title: "adding or removing collaborators",
     description:
@@ -103,6 +103,13 @@ const OPTIONS: Option[] = [
     title: "outgoing network access",
     description:
       "Blocks all outgoing network connections from the student projects.",
+  },
+  {
+    isCoCalcCom: true,
+    name: "disableNetworkWarningBanner",
+    title: "outgoing network access warning banner",
+    description:
+      "Disables the banner at the top of the screen that warns students that network access is disabled.",
   },
   {
     isCoCalcCom: true,

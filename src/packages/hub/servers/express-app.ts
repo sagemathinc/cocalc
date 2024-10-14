@@ -10,7 +10,6 @@ import { join } from "path";
 import { parse as parseURL } from "url";
 import webpackDevMiddleware from "webpack-dev-middleware";
 import webpackHotMiddleware from "webpack-hot-middleware";
-
 import { path as WEBAPP_PATH } from "@cocalc/assets";
 import basePath from "@cocalc/backend/base-path";
 import { path as CDN_PATH } from "@cocalc/cdn";
@@ -195,22 +194,22 @@ async function initStatic(router) {
   let compiler: any = null;
   if (
     process.env.NODE_ENV != "production" &&
-    !process.env.NO_WEBPACK_DEV_SERVER
+    !process.env.NO_RSPACK_DEV_SERVER
   ) {
-    // Try to use the integrated webpack dev server, if it is installed.
+    // Try to use the integrated rspack dev server, if it is installed.
     // It might not be installed at all, e.g., in production, and there
     // @cocalc/static can't even be imported.
     try {
-      const { webpackCompiler } = require("@cocalc/static/webpack-compiler");
-      compiler = webpackCompiler();
-    } catch (_err) {
-      console.warn("webpack is not available");
+      const { rspackCompiler } = require("@cocalc/static/rspack-compiler");
+      compiler = rspackCompiler();
+    } catch (err) {
+      console.warn("rspack is not available", err);
     }
   }
 
   if (compiler != null) {
     console.warn(
-      "\n-----------\n| WEBPACK: Running webpack dev server for frontend /static app.\n| Set env variable NO_WEBPACK_DEV_SERVER to disable.\n-----------\n",
+      "\n-----------\n| RSPACK: Running rspack dev server for frontend /static app.\n| Set env variable NO_RSPACK_DEV_SERVER to disable.\n-----------\n",
     );
     router.use("/static", webpackDevMiddleware(compiler, {}));
     router.use("/static", webpackHotMiddleware(compiler, {}));

@@ -31,7 +31,7 @@ import {
 
 const { Text } = Typography;
 
-const EXPERT_CONFIG = "Expert configuration";
+const EXPERT_CONFIG = "Expert Configuration";
 const listFormat = new Intl.ListFormat("en");
 
 const RAM_HIGH_WARN_THRESHOLD = 10;
@@ -444,13 +444,16 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     return (
       <>
         <Form.Item label="Presets" shouldUpdate={true} extra={presetExtra()}>
-          <Radio.Group value={preset}>
+          <Radio.Group value={preset} size="large">
             <Space size={[5, 5]} wrap>
               {Object.keys(PRESETS).map((p) => {
                 const presetData = PRESETS[p];
                 return (
                   <Radio.Button onClick={onPresetChange} key={p} value={p}>
-                    <Icon name={presetData.icon ?? "arrow-up"} />{" "}
+                    <Icon
+                      name={presetData.icon ?? "arrow-up"}
+                      style={{ marginRight: "10px" }}
+                    />
                     {presetData.name}
                   </Radio.Button>
                 );
@@ -481,8 +484,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               <Text type="secondary">
                 Configure the quotas you want to add on top of your existing
                 license. E.g. if your license provides a limit of 2G of RAM and
-                you add a matching boost license with 3G of RAM, you'll end up
-                with a total quota limit of 5G of RAM.
+                you add a matching boost license with 3 GB of RAM, you'll end up
+                with a total quota limit of 5 GB of RAM.
               </Text>
             </Col>
           </Row>
@@ -503,8 +506,8 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               key: "preset",
               label: (
                 <span>
-                  <Icon name="lightbulb" />
-                  Quota presets
+                  <Icon name="gears" style={{ marginRight: "5px" }} />
+                  Presets
                 </span>
               ),
               children: presets(),
@@ -513,7 +516,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               key: "expert",
               label: (
                 <span>
-                  <Icon name="wrench" />
+                  <Icon name="wrench" style={{ marginRight: "5px" }} />
                   {EXPERT_CONFIG}
                 </span>
               ),

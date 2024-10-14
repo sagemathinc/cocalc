@@ -6,11 +6,7 @@
 import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useDebouncedCallback } from "use-debounce";
-import {
-  CSS,
-  redux,
-  useIsMountedRef,
-} from "@cocalc/frontend/app-framework";
+import { CSS, redux, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { SAVE_DEBOUNCE_MS } from "@cocalc/frontend/frame-editors/code-editor/const";
@@ -40,6 +36,7 @@ interface Props {
   editBarStyle?: CSS;
   placeholder?: string;
   autoFocus?: boolean;
+  moveCursorToEndOfLine?: boolean;
 }
 
 export default function ChatInput({
@@ -59,19 +56,21 @@ export default function ChatInput({
   style,
   submitMentionsRef,
   syncdb,
+  moveCursorToEndOfLine,
 }: Props) {
   const intl = useIntl();
   const onSendRef = useRef<Function>(on_send);
   useEffect(() => {
     onSendRef.current = on_send;
   }, [on_send]);
-  const { project_id, actions } = useFrameContext();
+  const { project_id } = useFrameContext();
   const sender_id = useMemo(
     () => redux.getStore("account").get_account_id(),
     [],
   );
-
-  const [input, setInput] = useState<string>(() => {
+  const controlRef = useRef<any>(null);
+  const [input, setInput] = useState<string>("");
+  useEffect(() => {
     const dbInput = syncdb
       ?.get_one({
         event: "draft",
@@ -84,11 +83,19 @@ export default function ChatInput({
     // thus unmounting and remounting the currently editing message (due to virtualization).
     // See https://github.com/sagemathinc/cocalc/issues/6415
     const input = dbInput ?? propsInput;
-    return input;
-  });
+    setInput(input);
+    if (input?.trim() && moveCursorToEndOfLine) {
+      // have to wait until it's all rendered -- i hate code like this...
+      for (const n of [1, 10, 50]) {
+        setTimeout(() => {
+          controlRef.current?.moveCursorToEndOfLine();
+        }, n);
+      }
+    }
+  }, [date, sender_id, propsInput]);
+
   const currentInputRef = useRef<string>(input);
   const saveOnUnmountRef = useRef<boolean>(true);
-
   const isMountedRef = useIsMountedRef();
   const lastSavedRef = useRef<string>(input);
   const saveChat = useDebouncedCallback(
@@ -145,7 +152,7 @@ export default function ChatInput({
       // Note: it is still slightly annoying, due to loss of focus... however, data
       // loss is NOT ok, whereas loss of focus is.
       const input = currentInputRef.current;
-      if (input == null || syncdb == null) {
+      if (!input || syncdb == null) {
         return;
       }
       if (
@@ -215,9 +222,8 @@ export default function ChatInput({
       onBlur={onBlur}
       cacheId={cacheId}
       value={input}
+      controlRef={controlRef}
       enableUpload={true}
-      onUploadStart={() => actions?.set_uploading(true)}
-      onUploadEnd={() => actions?.set_uploading(false)}
       enableMentions={true}
       submitMentionsRef={submitMentionsRef}
       onChange={(input) => {

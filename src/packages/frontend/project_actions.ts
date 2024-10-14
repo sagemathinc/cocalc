@@ -1697,45 +1697,30 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return files_in_dir;
   }
 
-  private _suggest_duplicate_filename(name: string): string | undefined {
+  suggestDuplicateFilenameInCurrentDirectory = (
+    name: string,
+  ): string | undefined => {
     const store = this.get_store();
     if (store == undefined) {
       return;
     }
 
     // fallback to name, simple fallback
-    const files_in_dir = this.get_filenames_in_current_dir() || name;
-    // This loop will keep trying new names until one isn't in the directory
+    const filesInDir = this.get_filenames_in_current_dir() || name;
+    // This loop will keep trying new names until one isn't in the directory,
+    // because the name keeps changing and filesInDir is finite.
     while (true) {
       name = misc.suggest_duplicate_filename(name);
-      if (!files_in_dir[name]) {
+      if (!filesInDir[name]) {
         return name;
       }
     }
-  }
+  };
 
-  set_file_action(action?: string, get_basename?: () => string): void {
+  set_file_action(action?: string): void {
     const store = this.get_store();
-    if (store == undefined) {
+    if (store == null) {
       return;
-    }
-    let basename: string = "";
-
-    switch (action) {
-      case "duplicate":
-        if (get_basename != undefined) {
-          basename = get_basename();
-        }
-        this.setState({
-          new_name: this._suggest_duplicate_filename(basename),
-        });
-        break;
-      case "rename":
-        if (get_basename != undefined) {
-          basename = get_basename();
-        }
-        this.setState({ new_name: misc.path_split(basename).tail });
-        break;
     }
     this.setState({ file_action: action });
   }
@@ -1795,7 +1780,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.set_file_checked(opts.path, true);
-    this.set_file_action(opts.action, () => path_splitted.tail);
+    this.set_file_action(opts.action);
   }
 
   private async get_from_web(opts: {

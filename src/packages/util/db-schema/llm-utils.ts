@@ -700,32 +700,32 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-3.5-turbo": "GPT-3.5",
   "gpt-3.5-turbo-16k": "GPT-3.5-16k",
   "gpt-4-turbo-preview": "GPT-4 Turbo 128k",
-  "gpt-4-turbo-preview-8k": "GPT-4 Turbo 8k",
+  "gpt-4-turbo-preview-8k": "GPT-4 Turbo",
   "gpt-4-turbo": "GPT-4 Turbo 128k",
-  "gpt-4-turbo-8k": "GPT-4 Turbo 8k",
-  "gpt-4o": "GPT-4 Omni 128k",
-  "gpt-4o-8k": "GPT-4 Omni 8k",
+  "gpt-4-turbo-8k": "GPT-4 Turbo",
+  "gpt-4o": "GPT-4o 128k",
+  "gpt-4o-8k": "GPT-4o",
   "gpt-4o-mini": "GPT-4o Mini 128k",
-  "gpt-4o-mini-8k": "GPT-4o Mini 8k",
+  "gpt-4o-mini-8k": "GPT-4o Mini",
   "text-embedding-ada-002": "Text Embedding Ada 002", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini 1.0 Pro",
   "gemini-1.0-ultra": "Gemini 1.0 Ultra",
   "gemini-1.5-pro": "Gemini 1.5 Pro 1m",
-  "gemini-1.5-pro-8k": "Gemini 1.5 Pro 8k",
-  "gemini-1.5-flash-8k": "Gemini 1.5 Flash 8k",
+  "gemini-1.5-pro-8k": "Gemini 1.5 Pro",
+  "gemini-1.5-flash-8k": "Gemini 1.5 Flash",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
-  "claude-3-haiku": "Claude 3 Haiku",
-  "claude-3-haiku-8k": "Claude 3 Haiku 8k",
-  "claude-3-sonnet": "Claude 3 Sonnet",
-  "claude-3-sonnet-4k": "Claude 3 Sonnet 4k",
-  "claude-3-5-sonnet": "Claude 3.5 Sonnet",
-  "claude-3-5-sonnet-4k": "Claude 3.5 Sonnet 4k",
+  "claude-3-haiku": "Claude 3 Haiku 200k",
+  "claude-3-haiku-8k": "Claude 3 Haiku",
+  "claude-3-sonnet": "Claude 3 Sonnet 200k",
+  "claude-3-sonnet-4k": "Claude 3 Sonnet",
+  "claude-3-5-sonnet": "Claude 3.5 Sonnet 200k",
+  "claude-3-5-sonnet-4k": "Claude 3.5 Sonnet",
   "claude-3-opus": "Claude 3 Opus 200k",
-  "claude-3-opus-8k": "Claude 3 Opus 8k",
+  "claude-3-opus-8k": "Claude 3 Opus",
 } as const;
 
 // similar to the above, we map to short user-visible description texts
@@ -736,17 +736,17 @@ export const LLM_DESCR: LLM2String = {
   chatgpt4:
     "Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
   "gpt-4":
-    "Most powerful OpenAI model. Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
+    "Powerful OpenAI model. Can follow complex instructions and solve difficult problems. (OpenAI, 8k token context)",
   "gpt-4-32k": "",
   "gpt-3.5-turbo": "Fast, great for everyday tasks. (OpenAI, 4k token context)",
   "gpt-3.5-turbo-16k": `Same as ${LLM_USERNAMES["gpt-3.5-turbo"]} but with larger 16k token context`,
   "gpt-4-turbo-preview-8k":
     "More powerful, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
   "gpt-4-turbo-preview":
-    "Like GPT-4 Turbo 8k, but with up to 128k token context",
+    "Like GPT-4 Turbo, but with up to 128k token context",
   "gpt-4-turbo-8k":
     "Faster, fresher knowledge, and lower price than GPT-4. (OpenAI, 8k token context)",
-  "gpt-4-turbo": "Like GPT-4 Turbo 8k, but with up to 128k token context",
+  "gpt-4-turbo": "Like GPT-4 Turbo, but with up to 128k token context",
   "gpt-4o-8k":
     "Most powerful, fastest, and cheapest (OpenAI, 8k token context)",
   "gpt-4o": "Most powerful fastest, and cheapest (OpenAI, 128k token context)",
@@ -873,14 +873,14 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: false,
   },
   "gpt-3.5-turbo": {
-    prompt_tokens: usd1Mtokens(1.5),
-    completion_tokens: usd1Mtokens(2),
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(6),
     max_tokens: 4096,
     free: true,
   },
   "gpt-3.5-turbo-16k": {
-    prompt_tokens: usd1Mtokens(0.5),
-    completion_tokens: usd1Mtokens(1.5),
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(6),
     max_tokens: 16384,
     free: false,
   },
@@ -910,14 +910,14 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: false,
   },
   "gpt-4o-8k": {
-    prompt_tokens: usd1Mtokens(5),
-    completion_tokens: usd1Mtokens(15),
+    prompt_tokens: usd1Mtokens(2.5),
+    completion_tokens: usd1Mtokens(10),
     max_tokens: 8192, // like gpt-4-turbo-8k
     free: false,
   },
   "gpt-4o": {
-    prompt_tokens: usd1Mtokens(5),
-    completion_tokens: usd1Mtokens(15),
+    prompt_tokens: usd1Mtokens(2.5),
+    completion_tokens: usd1Mtokens(10),
     max_tokens: 128000, // This is a lot: blows up the "max cost" calculation → requires raising the minimum balance and quota limit
     free: false,
   },
@@ -966,15 +966,15 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: true,
   },
   "gemini-1.5-flash-8k": {
-    prompt_tokens: usd1Mtokens(0.35),
-    completion_tokens: usd1Mtokens(1.05),
+    prompt_tokens: usd1Mtokens(0.075),
+    completion_tokens: usd1Mtokens(0.3),
     max_tokens: 8_000,
     free: true,
   },
   // https://mistral.ai/technology/
   "mistral-small-latest": {
-    prompt_tokens: usd1Mtokens(1),
-    completion_tokens: usd1Mtokens(3),
+    prompt_tokens: usd1Mtokens(0.2),
+    completion_tokens: usd1Mtokens(0.6),
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
     free: true,
   },
@@ -985,8 +985,8 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: true,
   },
   "mistral-large-latest": {
-    prompt_tokens: usd1Mtokens(4),
-    completion_tokens: usd1Mtokens(12),
+    prompt_tokens: usd1Mtokens(2),
+    completion_tokens: usd1Mtokens(6),
     max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
     free: false,
   },
@@ -1006,13 +1006,13 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "claude-3-5-sonnet": {
     prompt_tokens: usd1Mtokens(3),
     completion_tokens: usd1Mtokens(15),
-    max_tokens: 4_000, // limited to 4k tokens, offered for free
+    max_tokens: 200_000,
     free: false,
   },
   "claude-3-5-sonnet-4k": {
     prompt_tokens: usd1Mtokens(3),
     completion_tokens: usd1Mtokens(15),
-    max_tokens: 4_000, // limited to 4k tokens, offered for free
+    max_tokens: 4_000, // limited to 4k tokens
     free: false,
   },
   "claude-3-sonnet-4k": {
