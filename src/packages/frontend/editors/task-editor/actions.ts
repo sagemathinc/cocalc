@@ -34,10 +34,12 @@ import {
   TaskMap,
   TaskState,
 } from "./types";
-import { TaskStore } from "./store";
 import { SyncDB } from "@cocalc/sync/editor/db";
 import { webapp_client } from "../../webapp-client";
-import type { Actions as TaskFrameActions } from "@cocalc/frontend/frame-editors/task-editor/actions";
+import type {
+  Actions as TaskFrameActions,
+  Store as TaskStore,
+} from "@cocalc/frontend/frame-editors/task-editor/actions";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 
 const LAST_EDITED_THRESH_S = 30;
@@ -48,7 +50,7 @@ export class TaskActions extends Actions<TaskState> {
   private project_id: string;
   private path: string;
   private truePath: string;
-  private store: TaskStore;
+  public store: TaskStore;
   _update_visible: Function;
   private is_closed: boolean = false;
   private key_handler?: (any) => void;
@@ -663,7 +665,6 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public blur_find_box(): void {
-    this.enable_key_handler();
     this.setFrameData({ focus_find_box: false });
   }
 

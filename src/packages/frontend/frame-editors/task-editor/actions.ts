@@ -13,18 +13,22 @@ import {
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { TaskActions } from "@cocalc/frontend/editors/task-editor/actions";
-import { TaskStore } from "@cocalc/frontend/editors/task-editor/store";
-import { redux_name } from "../../app-framework";
+import { redux_name } from "@cocalc/frontend/app-framework";
+import type { Store as BaseStore } from "@cocalc/frontend/app-framework";
 import { aux_file, cmp } from "@cocalc/util/misc";
 import { Map } from "immutable";
 import { delay } from "awaiting";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import type { Tasks } from "@cocalc/frontend/editors/task-editor/types";
+import { DONE } from "./search";
 
 interface TaskEditorState extends CodeEditorState {
-  // nothing yet
+  tasks?: Tasks;
 }
 
 const FRAME_TYPE = "tasks";
+
+export type Store = BaseStore<TaskEditorState>;
 
 export class Actions extends CodeEditorActions<TaskEditorState> {
   protected doctype: string = "syncdb";
@@ -36,15 +40,10 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     metaColumns: ["due_date", "done"],
   };
   taskActions: { [frameId: string]: TaskActions } = {};
-  taskStore: TaskStore;
   auxPath: string;
 
   _init2(): void {
     this.auxPath = aux_file(this.path, "tasks");
-    this.taskStore = this.redux.createStore(
-      redux_name(this.project_id, this.auxPath),
-      TaskStore,
-    );
     const syncdb = this._syncstring;
     syncdb.on("change", this.syncdbChange);
     syncdb.once("change", this.ensurePositionsAreUnique);
@@ -52,7 +51,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
 
   private syncdbChange(changes) {
     const syncdb = this._syncstring;
-    const store = this.taskStore;
+    const store = this.store;
     if (syncdb == null || store == null) {
       // may happen during close
       return;
@@ -77,7 +76,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
   }
 
   private ensurePositionsAreUnique() {
-    let tasks = this.taskStore.get("tasks");
+    let tasks = this.store.get("tasks");
     if (tasks == null) {
       return;
     }
@@ -139,11 +138,12 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
       this.project_id,
       this.auxPath,
       this._syncstring,
-      this.taskStore,
+      this.store,
       this.path,
     );
     actions._init_frame(frameId, this);
     this.taskActions[frameId] = actions;
+    actions.store = this.store;
     return actions;
   }
 
@@ -185,7 +185,7 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     for (const frameId in this.taskActions) {
       this.closeTaskFrame(frameId);
     }
-    this.redux.removeStore(this.taskStore.name);
+    this.redux.removeStore(this.store.name);
     super.close();
   }
 
@@ -201,14 +201,23 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     }
   }
 
+  private hideAllTaskActionsExcept = (id) => {
+    for (const id0 in this.taskActions) {
+      if (id0 != id) {
+        this.taskActions[id0].hide();
+      }
+    }
+  };
+
   public focus(id?: string): void {
     if (id === undefined) {
       id = this._get_active_id();
     }
-    if (this._get_frame_type(id) == FRAME_TYPE) {
-      this.getTaskActions(id)?.show();
-      return;
-    }
+    this.hideAllTaskActionsExcept(id);
+    //     if (this._get_frame_type(id) == FRAME_TYPE) {
+    //       this.getTaskActions(id)?.show();
+    //       return;
+    //     }
     super.focus(id);
   }
 
@@ -260,4 +269,26 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
       await delay(d);
     }
   }
+
+  getSearchIndexData = () => {
+    const tasks = this.store?.get("tasks");
+    if (tasks == null) {
+      return {};
+    }
+    const data: { [id: string]: string } = {};
+    for (const [id, task] of tasks) {
+      if (task.get("deleted")) {
+        continue;
+      }
+      let content = task.get("desc")?.trim();
+      if (!content) {
+        continue;
+      }
+      if (task.get("done")) {
+        content = DONE + content;
+      }
+      data[id] = content;
+    }
+    return { data, fragmentKey: "id" };
+  };
 }

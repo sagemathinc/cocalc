@@ -17,4 +17,8 @@ function Preview({ id, content }) {
   );
 }
 
-export const search = createSearchEditor({ Preview });
+export const search = createSearchEditor({
+  Preview,
+  updateField: "messages",
+  title: "Chatroom",
+});

@@ -4,6 +4,6 @@
  */
 
 import { Store } from "../../app-framework";
-import { TaskState } from "./types";
+import type { TaskState } from "./types";
 
 export class TaskStore extends Store<TaskState> {}

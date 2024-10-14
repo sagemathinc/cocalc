@@ -16,18 +16,59 @@ import { throttle } from "lodash";
 import useSearchIndex from "./use-search-index";
 import ShowError from "@cocalc/frontend/components/error";
 import { useEditorRedux } from "@cocalc/frontend/app-framework";
-import type { ChatState } from "@cocalc/frontend/chat/store";
+
+export function createSearchEditor({
+  Preview,
+  updateField,
+  previewStyle,
+}: {
+  // component for previewing search results.
+  Preview?;
+  // name of a field in the store so that we should update the search index
+  // exactly when the value of that field changes.
+  updateField: string;
+  // overload styles for component that contains the preview, e.g., maxHeight could be made bigger.
+  previewStyle?;
+  title?: string;
+}): EditorDescription {
+  return {
+    type: "search",
+    short: "Search",
+    name: "Search",
+    icon: "comment",
+    commands: set(["decrease_font_size", "increase_font_size"]),
+    component: (props) => (
+      <Search
+        {...props}
+        Preview={Preview}
+        updateField={updateField}
+        previewStyle={previewStyle}
+      />
+    ),
+  } as EditorDescription;
+}
 
 interface Props {
   font_size: number;
   desc;
+  updateField: string;
   Preview?;
+  previewStyle?;
+  title?;
 }
 
-function Search({ font_size, desc, Preview }: Props) {
+function Search({
+  font_size: fontSize,
+  desc,
+  Preview,
+  updateField,
+  previewStyle,
+  title,
+}: Props) {
   const { project_id, path, actions, id } = useFrameContext();
-  const useEditor = useEditorRedux<ChatState>({ project_id, path });
-  const messages = useEditor("messages");
+  const useEditor = useEditorRedux({ project_id, path });
+  // @ts-ignore
+  const messages = useEditor(updateField);
   const [indexedMessages, setIndexedMessages] = useState<any>(messages);
   const [search, setSearch] = useState<string>(desc.get("data-search") ?? "");
   const [result, setResult] = useState<any>(null);
@@ -52,7 +93,7 @@ function Search({ font_size, desc, Preview }: Props) {
       return;
     }
     (async () => {
-      const result = await index.search({ term: search });
+      const result = await index.search({ term: search, limit: 30 /* todo */ });
       setResult(result);
     })();
   }, [search, index]);
@@ -69,19 +110,18 @@ function Search({ font_size, desc, Preview }: Props) {
       <Card
         title={
           <>
-            Search Chatroom{" "}
-            {separate_file_extension(path_split(path).tail).name}
+            Search {title} {separate_file_extension(path_split(path).tail).name}
           </>
         }
-        style={{ fontSize: font_size }}
+        style={{ fontSize }}
       >
         <ShowError
           error={error}
           setError={setError}
-          style={{ marginBottom: "15px" }}
+          style={{ marginBottom: "15px", fontSize }}
         />
         <Input.Search
-          autoFocus
+          style={{ fontSize }}
           allowClear
           placeholder="Search messages..."
           value={search}
@@ -94,6 +134,17 @@ function Search({ font_size, desc, Preview }: Props) {
       </Card>
       <div className="smc-vfill">
         <div style={{ overflow: "auto", padding: "15px" }}>
+          <div style={{ color: "#888", textAlign: "center", fontSize }}>
+            {!search?.trim() && <span>Enter a search above</span>}
+            {(result?.hits?.length ?? 0) == 0 && search?.trim() && (
+              <span>No Matches</span>
+            )}
+            {(result?.count ?? 0) > (result?.hits?.length ?? 0) && (
+              <span>
+                Showing {result?.hits.length} of {result?.count ?? 0} results
+              </span>
+            )}
+          </div>
           {result?.hits?.map((hit) => (
             <SearchResult
               key={hit.id}
@@ -101,16 +152,24 @@ function Search({ font_size, desc, Preview }: Props) {
               actions={actions}
               fragmentKey={fragmentKey}
               Preview={Preview}
+              previewStyle={previewStyle}
+              fontSize={fontSize}
             />
           ))}
-          {result?.hits == null && search?.trim() && <div>No hits</div>}
         </div>
       </div>
     </div>
   );
 }
 
-function SearchResult({ hit, actions, fragmentKey, Preview }) {
+function SearchResult({
+  hit,
+  actions,
+  fragmentKey,
+  Preview,
+  previewStyle,
+  fontSize,
+}) {
   const { document } = hit;
   return (
     <div
@@ -123,31 +182,22 @@ function SearchResult({ hit, actions, fragmentKey, Preview }) {
         borderRadius: "5px",
         maxHeight: "100px",
         overflow: "hidden",
+        fontSize,
+        ...previewStyle,
       }}
       onClick={() => {
         actions.gotoFragment({ [fragmentKey]: document.id });
       }}
     >
       {Preview != null ? (
-        <Preview id={document.id} content={document.content} />
+        <Preview
+          id={document.id}
+          content={document.content}
+          fontSize={fontSize}
+        />
       ) : (
         <div>{document.content}</div>
       )}
     </div>
   );
-}
-
-export function createSearchEditor({
-  Preview,
-}: {
-  Preview?;
-}): EditorDescription {
-  return {
-    type: "search",
-    short: "Search",
-    name: "Search",
-    icon: "comment",
-    commands: set(["decrease_font_size", "increase_font_size"]),
-    component: (props) => <Search {...props} Preview={Preview} />,
-  } as EditorDescription;
 }
