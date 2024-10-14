@@ -1374,8 +1374,7 @@ export class Actions<
       // to make typescript happy
       return;
     }
-    this.set_frame_tree({ id, font_size });
-    this.focus(id);
+    this.set_font_size(id, font_size);
   }
 
   increase_font_size(id: string): void {
@@ -1386,6 +1385,9 @@ export class Actions<
     this.change_font_size(-1, id);
   }
 
+  // ATTN: this is overloaded in some derived classes, eg. latex to adjust settings
+  // based on font size changing. Code should call this to set the font size instead
+  // of directly modifying frame tree.
   set_font_size(id: string, font_size: number): void {
     this.set_frame_tree({ id, font_size });
     this.focus(id);
