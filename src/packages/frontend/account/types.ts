@@ -14,6 +14,7 @@ import {
   OTHER_SETTINGS_USERDEFINED_LLM,
 } from "@cocalc/util/db-schema/defaults";
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
@@ -50,6 +51,7 @@ export interface AccountState {
     news_read_until: number; // JavaScript timestamp in milliseconds
     [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
     [OTHER_SETTINGS_LOCALE_KEY]?: string;
+    [OTHER_SETTINGS_REPLY_ENGLISH_KEY]?: string;
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

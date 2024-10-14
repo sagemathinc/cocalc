@@ -565,8 +565,8 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       >
         <FormattedMessage
           id="account.other-settings.llm.reply_language"
-          defaultMessage={`<strong>Always reply in English</strong>,
-          If set, the replies are always in English. Otherwise – the default – it replies in your interface language (currently {lang})`}
+          defaultMessage={`<strong>Always reply in English:</strong>
+          If set, the replies are always in English. Otherwise, it replies in your language ({lang}).`}
           values={{ lang: intl.formatMessage(LOCALIZATIONS[locale].trans) }}
         />
       </Checkbox>
