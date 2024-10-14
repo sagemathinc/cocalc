@@ -8,21 +8,22 @@ export default function Filter({ actions, search, style }) {
     setValue(search);
   }, [search]);
 
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(actions.setSearch, 200, {
-        leading: false,
-        trailing: true,
-      }),
-    [actions],
-  );
+  const debouncedSearch = useMemo(() => {
+    return debounce(actions.setSearch, 200, {
+      leading: false,
+      trailing: true,
+    });
+  }, [actions]);
 
   return (
     <Tooltip
       title={
-        !value
-          ? "Show only threads that match this search.  Use /re/ for a regular expression, quotes, and dashes to negate."
-          : undefined
+        !value ? (
+          <>
+            Show only threads that match this filter. Use /re/ for a regular
+            expression, quotes, and dashes to negate.
+          </>
+        ) : undefined
       }
     >
       <Input.Search

@@ -360,7 +360,7 @@ export class Actions<
         );
         return;
       }
-      if (!this._syncstring || this._state == "closed") {
+      if (!this._syncstring || this.isClosed()) {
         // the doc could perhaps be closed by the time this init is fired, in which case just bail -- no point in trying to initialize anything.
         return;
       }
@@ -552,8 +552,10 @@ export class Actions<
     cm.setValue(value);
   }
 
+  isClosed = () => this._state == "closed";
+
   public close(): void {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       return;
     }
     this._state = "closed";
@@ -1505,7 +1507,7 @@ export class Actions<
       if (must_create) {
         // Have to wait until after editor gets created
         await delay(1);
-        if (this._state == "closed") return;
+        if (this.isClosed()) return;
       }
       this.programmatical_goto_line(opts.line, opts.cursor);
     }
@@ -1514,7 +1516,7 @@ export class Actions<
       // Have to wait until after editor gets created, and
       // probably also event that caused this open.
       await delay(1);
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
       const cm = this._recent_cm();
       if (cm) {
         cm.focus();
@@ -1617,7 +1619,7 @@ export class Actions<
   async set_codemirror_to_syncstring(): Promise<void> {
     if (
       this._syncstring == null ||
-      this._state == "closed" ||
+      this.isClosed() ||
       this._syncstring.get_state() == "closed"
     ) {
       // no point in doing anything further.
@@ -1626,7 +1628,7 @@ export class Actions<
 
     if (this._syncstring.get_state() != "ready") {
       await once(this._syncstring, "ready");
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
     }
 
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
@@ -1741,7 +1743,7 @@ export class Actions<
     if (state == "closed") return false;
     if (state == "init") {
       await once(syncdoc, "ready");
-      if (this._state == "closed") return false;
+      if (this.isClosed()) return false;
     }
     return true;
   }
@@ -1811,7 +1813,7 @@ export class Actions<
       if (cm == null) {
         await delay(25);
       }
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
     }
     if (cm == null) {
       // still failed -- give up.
@@ -1833,7 +1835,7 @@ export class Actions<
       // TODO: this is VERY CRAPPY CODE -- wait after,
       // so cm gets state/value fully set.
       await delay(100);
-      if (this._state == "closed") {
+      if (this.isClosed()) {
         return;
       }
       doc.setCursor(pos);
@@ -1925,7 +1927,7 @@ export class Actions<
     this.setState({ status });
     if (timeout) {
       await delay(timeout);
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
       if (this.store.get("status") === status) {
         this.setState({ status: "" });
       }
@@ -1977,7 +1979,7 @@ export class Actions<
   // sets the mispelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     const proj_store = this.redux.getProjectStore(this.project_id);
     if (proj_store != null) {
       // TODO why is this an immutable map? it's project_configuration/Available
@@ -2293,7 +2295,7 @@ export class Actions<
      Exception if can't be done, e.g., if editor not mounted.
   */
   _get_cm_value(): string {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("editor is closed");
     }
     const cm = this._get_cm();
@@ -2311,7 +2313,7 @@ export class Actions<
      Exception if can't be done.
   */
   _get_syncstring_value(): string {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("editor is closed");
     }
     if (!this._syncstring) {
@@ -2459,7 +2461,7 @@ export class Actions<
     });
 
     await delay(0); // wait until next render loop
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_resize();
     this.refresh_visible();
     this.focus();
@@ -2562,7 +2564,7 @@ export class Actions<
     // Have to wait until after editor gets created, and
     // probably also event that caused this open.
     await delay(1);
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_active_id(shell_id);
   }
 
@@ -2584,7 +2586,7 @@ export class Actions<
     // Have to wait until after editor gets created, and
     // probably also event that caused this open.
     await delay(1);
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_active_id(shell_id);
   }
 
@@ -2967,7 +2969,7 @@ export class Actions<
     if (state != "ready" && !(await this.wait_until_syncdoc_ready(syncdoc))) {
       return "";
     }
-    const frameId = this.show_focused_frame_of_type(type);
+    const frameId = this.show_focused_frame_of_type(type, "col", true);
     if (state != "ready" && frameId) {
       // TODO: temporary hack until we have gotoFragment
       // as part of constructor!
@@ -3076,7 +3078,7 @@ export class Actions<
     }
 
     if (fragmentId.line) {
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
       this.programmatical_goto_line?.(fragmentId.line, true);
     }
 

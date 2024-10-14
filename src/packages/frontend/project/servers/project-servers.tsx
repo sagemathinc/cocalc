@@ -29,6 +29,7 @@ import {
   TabName,
 } from "@cocalc/frontend/compute/tab";
 import { FormattedMessage } from "react-intl";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
 // Antd's 24 grid system
 const md = 6;
@@ -39,6 +40,8 @@ const newRowStyle = { marginTop: `${y}px` };
 
 export function ProjectServers() {
   const { project_id } = useProjectContext();
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
 
   const available = useAvailableFeatures(project_id);
 
@@ -61,56 +64,63 @@ export function ProjectServers() {
     return (
       <>
         <Row gutter={gutter} style={newRowStyle}>
-          {available.jupyter_lab && (
-            <Col sm={sm} md={md}>
-              <NewFileButton
-                name={<span style={{ fontSize: "14pt" }}>JupyterLab</span>}
-                icon={"ipynb"}
-                active={showNamedServer === "jupyterlab"}
-                on_click={() => toggleShowNamedServer("jupyterlab")}
-              />
-            </Col>
-          )}
-          {available.vscode && (
-            <Col sm={sm} md={md}>
-              <NewFileButton
-                name={<span style={{ fontSize: "14pt" }}>VS Code</span>}
-                icon={"vscode"}
-                active={showNamedServer === "code"}
-                on_click={() => toggleShowNamedServer("code")}
-              />
-            </Col>
-          )}
-          {available.julia && (
-            <Col sm={sm} md={md}>
-              <NewFileButton
-                name={<span style={{ fontSize: "14pt" }}>Pluto</span>}
-                icon={"julia"}
-                active={showNamedServer === "pluto"}
-                on_click={() => toggleShowNamedServer("pluto")}
-              />
-            </Col>
-          )}
-          {available.rserver && (
-            <Col sm={sm} md={md}>
-              <NewFileButton
-                name={<span style={{ fontSize: "14pt" }}>{R_IDE}</span>}
-                icon={"r"}
-                active={showNamedServer === "rserver"}
-                on_click={() => toggleShowNamedServer("rserver")}
-              />
-            </Col>
-          )}
-          {available.jupyter_notebook && (
-            <Col sm={sm} md={md}>
-              <NewFileButton
-                name={<span style={{ fontSize: "14pt" }}>Jupyter Classic</span>}
-                icon={"ipynb"}
-                active={showNamedServer === "jupyter"}
-                on_click={() => toggleShowNamedServer("jupyter")}
-              />
-            </Col>
-          )}
+          {available.jupyter_lab &&
+            !student_project_functionality.disableJupyterLabServer && (
+              <Col sm={sm} md={md}>
+                <NewFileButton
+                  name={<span style={{ fontSize: "14pt" }}>JupyterLab</span>}
+                  icon={"ipynb"}
+                  active={showNamedServer === "jupyterlab"}
+                  on_click={() => toggleShowNamedServer("jupyterlab")}
+                />
+              </Col>
+            )}
+          {available.vscode &&
+            !student_project_functionality.disableVSCodeServer && (
+              <Col sm={sm} md={md}>
+                <NewFileButton
+                  name={<span style={{ fontSize: "14pt" }}>VS Code</span>}
+                  icon={"vscode"}
+                  active={showNamedServer === "code"}
+                  on_click={() => toggleShowNamedServer("code")}
+                />
+              </Col>
+            )}
+          {available.julia &&
+            !student_project_functionality.disablePlutoServer && (
+              <Col sm={sm} md={md}>
+                <NewFileButton
+                  name={<span style={{ fontSize: "14pt" }}>Pluto</span>}
+                  icon={"julia"}
+                  active={showNamedServer === "pluto"}
+                  on_click={() => toggleShowNamedServer("pluto")}
+                />
+              </Col>
+            )}
+          {available.rserver &&
+            !student_project_functionality.disableRServer && (
+              <Col sm={sm} md={md}>
+                <NewFileButton
+                  name={<span style={{ fontSize: "14pt" }}>{R_IDE}</span>}
+                  icon={"r"}
+                  active={showNamedServer === "rserver"}
+                  on_click={() => toggleShowNamedServer("rserver")}
+                />
+              </Col>
+            )}
+          {available.jupyter_notebook &&
+            !student_project_functionality.disableJupyterClassicServer && (
+              <Col sm={sm} md={md}>
+                <NewFileButton
+                  name={
+                    <span style={{ fontSize: "14pt" }}>Jupyter Classic</span>
+                  }
+                  icon={"ipynb"}
+                  active={showNamedServer === "jupyter"}
+                  on_click={() => toggleShowNamedServer("jupyter")}
+                />
+              </Col>
+            )}
           {noServers && (
             <Col sm={sm} md={md}>
               <NewFileButton

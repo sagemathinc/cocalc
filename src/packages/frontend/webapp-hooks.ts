@@ -24,13 +24,12 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 let first_login = true;
 
 export function init() {
-  // load more of the app now that user is logged in.
-  const load_app = (cb) =>
-    (require as any).ensure([], function () {
-      require("./account/account-page"); // initialize react-related account page
-      require("./projects/actions"); // initialize projects list
-      cb();
-    });
+  const load_app = async (cb) => {
+    // load more of the app now that user is logged in:
+    await import("./account/account-page"); // initialize react-related account page
+    await import("./projects/actions"); // initialize projects list
+    cb();
+  };
 
   webapp_client.on("mesg_info", function (info) {
     const f = () => {
@@ -76,7 +75,7 @@ export function init() {
     // just in case, always show manual login screen after 45s.
     setTimeout(
       () => redux.getActions("account").setState({ remember_me: false }),
-      45000
+      45000,
     );
   }
   webapp_client.on("remember_me_failed", function () {

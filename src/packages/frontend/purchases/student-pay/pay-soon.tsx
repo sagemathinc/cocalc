@@ -25,12 +25,21 @@ export default function PaySoon({
     return null;
   }
   return (
-    <div style={{ margin: "0 2.5px" }}>
+    <div>
       <Collapse>
         <Collapse.Panel
           key="it"
           header=<>
-            Course Fee: Please pay the course fee{" "}
+            Course Fee:{" "}
+            <b>
+              <a
+                onClick={() => {
+                  setOpen(true);
+                }}
+              >
+                Please pay the course fee
+              </a>
+            </b>{" "}
             <Cost purchaseInfo={purchaseInfo} /> to upgrade this project.{" "}
             <b>
               Due: <TimeAgo date={when} />.

@@ -46,8 +46,13 @@ class UpgradesPage extends Component<reduxProps> {
     return (
       <div>
         <h3>Upgrades are no longer available</h3>
-        Please visit <A href={join(appBasePath, "store")}>the new store</A> and
-        the <A href="https://cocalc.com/pricing">pricing pages</A>.
+        Please visit <A href={join(appBasePath, "store")}>
+          the new store
+        </A>, explore <A href={join(appBasePath, "pricing")}>our products</A>, or{" "}
+        <A href={join(appBasePath, "billing/subscriptions")}>
+          view your legacy upgrade subscriptions
+        </A>
+        .
         <Footer />
       </div>
     );
@@ -179,7 +184,10 @@ class UpgradesPage extends Component<reduxProps> {
       redux.getActions("projects").load_all_projects();
       return <Loading theme={"medium"} />;
     }
-    if (!DEBUG && !this.props.stripe_customer?.getIn(["subscriptions", "total_count"])) {
+    if (
+      !DEBUG &&
+      !this.props.stripe_customer?.getIn(["subscriptions", "total_count"])
+    ) {
       return this.render_no_upgrades();
     } else {
       return (
@@ -187,7 +195,6 @@ class UpgradesPage extends Component<reduxProps> {
           {this.render_have_upgrades()}
           {this.render_upgrades()}
           <ProjectUpgradesTable />
-          <Footer />
         </div>
       );
     }

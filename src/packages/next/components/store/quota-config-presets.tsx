@@ -5,19 +5,10 @@
 
 import { IconName } from "@cocalc/frontend/components/icon";
 import { Uptime } from "@cocalc/util/consts/site-license";
-import { Typography } from "antd";
 import A from "components/misc/A";
 import { ReactNode } from "react";
-const { Text } = Typography;
 
-export type Presets =
-  | "standard"
-  //  | "student"
-  | "student+"
-  | "instructor"
-  | "research"
-  | "development";
-//| "budget";
+export type Presets = "standard" | "instructor" | "research";
 
 // Fields to be used to match a configured license against a pre-existing preset.
 //
@@ -48,30 +39,7 @@ type PresetEntries = {
 // some constants to keep text and preset in sync
 const STANDARD_CPU = 1;
 const STANDARD_RAM = 4;
-const LARGE_RAM = 8;
 const STANDARD_DISK = 3;
-
-const WARN_SELECT_NUMBER_PROJECTS = (
-  <Text italic>
-    Each student will work in their own project. Therefore, make sure to select
-    the number of projects (the "Run Limit", above) to match your expected
-    number of students!
-  </Text>
-);
-
-const APPLY_LICENSE_COURSE_CONFIG = (
-  <>
-    To apply this license to all student projects, add it in the{" "}
-    <A
-      href={
-        "https://doc.cocalc.com/teaching-upgrade-course.html#install-course-license"
-      }
-    >
-      course configuration
-    </A>
-    .
-  </>
-);
 
 export const PRESETS: PresetEntries = {
   standard: {
@@ -83,7 +51,7 @@ export const PRESETS: PresetEntries = {
         You can run two or three Jupyter Notebooks in the same project at the
         same time, given they do not require a large amount of memory. This
         quota is fine for editing LaTeX documents, working with Sage Worksheets,
-        and all other document types. {STANDARD_DISK}G of disk space are also
+        and all other document types. Also, {STANDARD_DISK} GB of disk space is
         sufficient to store many files and a few small datasets.
       </>
     ),
@@ -93,47 +61,8 @@ export const PRESETS: PresetEntries = {
     uptime: "short",
     member: true,
   },
-  //   student: {
-  //     icon: "meh",
-  //     name: "Student",
-  //     descr: "covers student projects in a course",
-  //     details: (
-  //       <>
-  //         If you're teaching a course, this upgrade is suitable for{" "}
-  //         <Text italic>student projects</Text>. The upgrade schema is the same as
-  //         for "Standard" projects, which should be a good choice for doing their
-  //         assignments. {WARN_SELECT_NUMBER_PROJECTS} Each student project will get
-  //         the configured upgrades, internet access, and improved hosting quality.{" "}
-  //         {APPLY_LICENSE_COURSE_CONFIG}
-  //       </>
-  //     ),
-  //     cpu: STANDARD_CPU,
-  //     ram: STANDARD_RAM,
-  //     disk: STANDARD_DISK,
-  //   },
-  "student+": {
-    icon: "smile",
-    name: "Student+",
-    descr: "covers student projects with extra resources",
-    details: (
-      <>
-        This quota preset is very similar to the "Student" quota, although
-        students are allowed a bit more ram and disk space.{" "}
-        {WARN_SELECT_NUMBER_PROJECTS} The increased idle-timeout will keep their
-        notebooks and worksheets running for a bit longer while not in active
-        use. Choose this schema if you plan to let students run data and memory
-        intensive calculations, e.g. data-science, machine-learning, etc.{" "}
-        {APPLY_LICENSE_COURSE_CONFIG}
-      </>
-    ),
-    cpu: 1,
-    ram: STANDARD_RAM + 1,
-    disk: 2 * STANDARD_DISK,
-    uptime: "medium",
-    member: true,
-  },
   instructor: {
-    icon: "highlighter",
+    icon: "slides",
     name: "Instructor",
     descr:
       "is a good choice for the instructor's project when teaching a course",
@@ -168,7 +97,7 @@ export const PRESETS: PresetEntries = {
     member: true,
   },
   research: {
-    icon: "rocket",
+    icon: "users",
     name: "Researcher",
     descr: "is a good choice for a research group",
     details: (
@@ -189,47 +118,10 @@ export const PRESETS: PresetEntries = {
         </b>
       </>
     ),
-    cpu: 1,
-    ram: LARGE_RAM,
+    cpu: 2,
+    ram: 10,
     disk: 10,
     uptime: "day",
     member: true,
   },
-  development: {
-    icon: "settings",
-    name: "Development",
-    descr: "is suitable for software development",
-    details: (
-      <>
-        This configuration allows for parallelized build tasks across more than
-        one CPU with an increased the amount of memory and disk space. If you
-        need <b>vastly more dedicated disk space, CPU or RAM</b>, you should
-        instead rent a{" "}
-        <A href="https://doc.cocalc.com/compute_server.html">compute server</A>.
-      </>
-    ),
-    cpu: 2,
-    ram: LARGE_RAM,
-    disk: 10,
-    uptime: "medium",
-    member: true,
-  },
-  /*budget: {
-    icon: "wallet",
-    name: "Budget",
-    descr: "is the cheapest option",
-    details: (
-      <>
-        Choose this option if you want to spend as little money as possible,
-        while still getting access to the internet from within a project (to
-        download packages, datasets, or interact with GitHub/GitLab). It also
-        removes the{" "}
-        <A href={"https://doc.cocalc.com/trial.html"}>trial project</A> banner.
-      </>
-    ),
-    cpu: 1,
-    ram: 1,
-    disk: 3,
-    member: false,
-  },*/
 } as const;

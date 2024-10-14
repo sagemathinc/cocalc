@@ -69,7 +69,7 @@ export function SummarizeThread({
             a {short ? "short" : "detailed"} summary of the conversation.
           </Paragraph>
           <Paragraph>
-            Summary lenght:{" "}
+            Summary length:{" "}
             <Switch
               checked={!short}
               onChange={(v) => setShort(!v)}

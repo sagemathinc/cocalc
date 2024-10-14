@@ -79,6 +79,12 @@ const OPTIONS: Option[] = [
       "Blocks uploading files to the student project via drag-n-drop or the Upload button.",
   },
   {
+    name: "disableLibrary",
+    title: "Library",
+    description:
+      "In the file explorer there is a library button for browsing and copying books and tutorials into a project.  Disable this to simplify the interface.",
+  },
+  {
     name: "disableCollaborators",
     title: "adding or removing collaborators",
     description:
@@ -97,6 +103,13 @@ const OPTIONS: Option[] = [
     title: "outgoing network access",
     description:
       "Blocks all outgoing network connections from the student projects.",
+  },
+  {
+    isCoCalcCom: true,
+    name: "disableNetworkWarningBanner",
+    title: "outgoing network access warning banner",
+    description:
+      "Disables the banner at the top of the screen that warns students that network access is disabled.",
   },
   {
     isCoCalcCom: true,

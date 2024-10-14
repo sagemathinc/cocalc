@@ -316,6 +316,7 @@ exports.FileEditor = FileEditor
 class CodeMirrorEditor extends FileEditor
     constructor: (project_id, filename, content, opts) ->
         super(project_id, filename)
+
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : undefined
