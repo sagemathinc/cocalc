@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> formülleri {katex} kullanarak render etmeye çalış (çok daha hızlı, ancak bağlam menüsü seçenekleri eksik)",
   "account.other-settings.llm.default_llm": "Varsayılan AI Dil Modeli",
   "account.other-settings.llm.disable_all": "<strong>Tüm AI entegrasyonlarını devre dışı bırak</strong>, örneğin, Jupyter'deki kod oluşturma veya açıklama düğmeleri, @chatgpt bahsetmeleri, vb.",
+  "account.other-settings.llm.reply_language": "<strong>Her zaman İngilizce yanıtla:</strong> Ayarlandığında, yanıtlar her zaman İngilizce olur. Aksi takdirde, kendi dilinizde ({lang}) yanıt verir.",
   "account.other-settings.llm.title": "AI Ayarları",
   "account.other-settings.markdown_codebar": "<strong>Tüm markdown belgelerinde markdown kod çubuğunu devre dışı bırak</strong>. Bunu işaretlemek, çitlenmiş kod bloklarındaki ekstra çalıştır, kopyala ve açıkla düğmelerini gizler.",
   "account.other-settings.mask_files": "<strong>Dosya maskesi:</strong> Dosya görüntüleyicide muhtemelen açmak istemediğiniz dosyaları gri renkte göster",

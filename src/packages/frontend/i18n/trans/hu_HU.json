@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> kísérlet képletek renderelésére {katex} használatával (sokkal gyorsabb, de hiányoznak a helyi menü opciók)",
   "account.other-settings.llm.default_llm": "Alapértelmezett AI nyelvi modell",
   "account.other-settings.llm.disable_all": "<strong>Az összes AI integráció letiltása</strong>, pl. kódgenerálás vagy magyarázó gombok a Jupyterben, @chatgpt említések stb.",
+  "account.other-settings.llm.reply_language": "<strong>Mindig válaszoljon angolul:</strong> Ha be van állítva, a válaszok mindig angolul lesznek. Ellenkező esetben a saját nyelvén ({lang}) válaszol.",
   "account.other-settings.llm.title": "AI beállítások",
   "account.other-settings.markdown_codebar": "<strong>Tiltsa le a markdown kódsávot</strong> minden markdown dokumentumban. Ennek bejelölése elrejti a további futtatás, másolás és magyarázat gombokat a keretezett kódrészletekben.",
   "account.other-settings.mask_files": "<strong>Fájlok elrejtése:</strong> szürkítse el a fájlokat a fájlnézegetőben, amelyeket valószínűleg nem akar megnyitni",

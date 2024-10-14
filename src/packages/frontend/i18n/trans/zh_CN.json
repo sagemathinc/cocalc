@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX：</strong>尝试使用{katex}渲染公式（速度更快，但缺少上下文菜单选项）",
   "account.other-settings.llm.default_llm": "默认AI语言模型",
   "account.other-settings.llm.disable_all": "<strong>禁用所有AI集成</strong>，例如，Jupyter中的代码生成或解释按钮，@chatgpt提及等。",
+  "account.other-settings.llm.reply_language": "<strong>始终用英语回复：</strong> 如果设置，回复将始终为英语。否则，将使用您的语言（{lang}）回复。",
   "account.other-settings.llm.title": "AI设置",
   "account.other-settings.markdown_codebar": "<strong>禁用markdown代码栏</strong> 在所有markdown文档中。选中此项会隐藏围栏代码块中的额外运行、复制和解释按钮。",
   "account.other-settings.mask_files": "<strong>屏蔽文件：</strong>在文件查看器中将您可能不想打开的文件置灰",

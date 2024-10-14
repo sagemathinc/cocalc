@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> tentar renderizar fórmulas usando {katex} (muito mais rápido, mas sem opções de menu de contexto)",
   "account.other-settings.llm.default_llm": "Modelo de Linguagem AI Padrão",
   "account.other-settings.llm.disable_all": "Desativar todas as integrações de IA, por exemplo, botões de geração de código ou explicação no Jupyter, menções @chatgpt, etc.",
+  "account.other-settings.llm.reply_language": "<strong>Sempre responder em inglês:</strong> Se ativado, as respostas são sempre em inglês. Caso contrário, responde na sua língua ({lang}).",
   "account.other-settings.llm.title": "Configurações de IA",
   "account.other-settings.markdown_codebar": "<strong>Desativar a barra de código markdown</strong> em todos os documentos markdown. Marcar esta opção oculta os botões extra de execução, cópia e explicação em blocos de código delimitados.",
   "account.other-settings.mask_files": "<strong>Mascarar ficheiros:</strong> esbater ficheiros no visualizador de ficheiros que provavelmente não quer abrir",

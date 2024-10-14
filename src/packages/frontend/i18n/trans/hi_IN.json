@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> सूत्रों को {katex} का उपयोग करके प्रस्तुत करने का प्रयास करें (काफी तेज़, लेकिन संदर्भ मेनू विकल्प गायब हैं)",
   "account.other-settings.llm.default_llm": "डिफ़ॉल्ट एआई भाषा मॉडल",
   "account.other-settings.llm.disable_all": "<strong>सभी AI एकीकरण अक्षम करें</strong>, जैसे कोड जनरेशन या Jupyter में व्याख्या बटन, @chatgpt उल्लेख, आदि।",
+  "account.other-settings.llm.reply_language": "<strong>हमेशा अंग्रेजी में उत्तर दें:</strong> यदि सेट किया गया है, तो उत्तर हमेशा अंग्रेजी में होंगे। अन्यथा, यह आपकी भाषा ({lang}) में उत्तर देगा।",
   "account.other-settings.llm.title": "एआई सेटिंग्स",
   "account.other-settings.markdown_codebar": "<strong>सभी मार्कडाउन दस्तावेज़ों में मार्कडाउन कोड बार को अक्षम करें</strong>. इसे चेक करने से बाड़े गए कोड ब्लॉकों में अतिरिक्त चलाएं, कॉपी करें और समझाएं बटन छिप जाते हैं।",
   "account.other-settings.mask_files": "<strong>मास्क फाइल्स:</strong> उन फाइलों को ग्रे आउट करें जिन्हें आप शायद खोलना नहीं चाहते फाइल्स व्यूअर में",

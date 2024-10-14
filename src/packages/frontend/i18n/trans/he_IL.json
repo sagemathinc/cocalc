@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> ניסיון לעבד נוסחאות באמצעות {katex} (מהיר יותר, אך חסרות אפשרויות בתפריט ההקשר)",
   "account.other-settings.llm.default_llm": "מודל שפה AI ברירת מחדל",
   "account.other-settings.llm.disable_all": "<strong>השבת את כל האינטגרציות של AI</strong>, לדוגמה, כפתורי יצירת קוד או הסבר ב-Jupyter, אזכורי @chatgpt וכו'.",
+  "account.other-settings.llm.reply_language": "<strong>תמיד להגיב באנגלית:</strong> אם מוגדר, התשובות תמיד באנגלית. אחרת, זה עונה בשפה שלך ({lang}).",
   "account.other-settings.llm.title": "הגדרות AI",
   "account.other-settings.markdown_codebar": "<strong>השבת את סרגל הקוד של Markdown</strong> בכל מסמכי ה-Markdown. סימון זה מסתיר את כפתורי הריצה, ההעתקה וההסבר הנוספים בקטעי קוד מגודרים.",
   "account.other-settings.mask_files": "<strong>הסתר קבצים:</strong> האפור קבצים בצופה הקבצים שבדרך כלל לא תרצה לפתוח",

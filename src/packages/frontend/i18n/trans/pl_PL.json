@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> próba renderowania formuł za pomocą {katex} (znacznie szybciej, ale brakuje opcji w menu kontekstowym)",
   "account.other-settings.llm.default_llm": "Domyślny Model Językowy AI",
   "account.other-settings.llm.disable_all": "<strong>Wyłącz wszystkie integracje AI</strong>, np. przyciski generowania kodu lub wyjaśnienia w Jupyter, wzmianki @chatgpt itp.",
+  "account.other-settings.llm.reply_language": "<strong>Zawsze odpowiadaj po angielsku:</strong> Jeśli ustawione, odpowiedzi są zawsze po angielsku. W przeciwnym razie odpowiada w twoim języku ({lang}).",
   "account.other-settings.llm.title": "Ustawienia AI",
   "account.other-settings.markdown_codebar": "<strong>Wyłącz pasek kodu markdown</strong> we wszystkich dokumentach markdown. Zaznaczenie tego ukrywa dodatkowe przyciski uruchamiania, kopiowania i wyjaśniania w blokach kodu.",
   "account.other-settings.mask_files": "<strong>Maskuj pliki:</strong> wyszarz pliki w przeglądarce plików, których prawdopodobnie nie chcesz otworzyć",

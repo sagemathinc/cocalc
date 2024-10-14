@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> محاولة عرض الصيغ باستخدام {katex} (أسرع بكثير، ولكن بدون خيارات قائمة السياق)",
   "account.other-settings.llm.default_llm": "نموذج اللغة الافتراضي AI",
   "account.other-settings.llm.disable_all": "<strong>تعطيل جميع تكاملات الذكاء الاصطناعي</strong>، مثل أزرار توليد أو شرح الأكواد في Jupyter، وذكر @chatgpt، إلخ.",
+  "account.other-settings.llm.reply_language": "<strong>الرد دائمًا باللغة الإنجليزية:</strong> إذا تم التعيين، تكون الردود دائمًا باللغة الإنجليزية. وإلا، فإنه يرد بلغتك ({lang}).",
   "account.other-settings.llm.title": "إعدادات AI",
   "account.other-settings.markdown_codebar": "<strong>تعطيل شريط كود العلامات</strong> في جميع مستندات العلامات. يؤدي تحديد هذا إلى إخفاء أزرار التشغيل والنسخ والشرح الإضافية في كتل الكود المسورة.",
   "account.other-settings.mask_files": "<strong>إخفاء الملفات:</strong> تظليل الملفات في عارض الملفات التي ربما لا تريد فتحها",

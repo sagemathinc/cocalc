@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> 数式を {katex} を使ってレンダリングする試み（はるかに高速だが、コンテキストメニューオプションが欠けている）",
   "account.other-settings.llm.default_llm": "デフォルトAI言語モデル",
   "account.other-settings.llm.disable_all": "<strong>すべてのAI統合を無効化</strong>、例：Jupyterのコード生成や説明ボタン、@chatgptのメンションなど。",
+  "account.other-settings.llm.reply_language": "<strong>常に英語で返信する:</strong> 設定すると、返信は常に英語になります。そうでない場合は、あなたの言語 ({lang}) で返信します。",
   "account.other-settings.llm.title": "AI設定",
   "account.other-settings.markdown_codebar": "すべてのMarkdown文書で<strong>Markdownコードバーを無効化</strong>します。これをチェックすると、囲まれたコードブロック内の追加の実行、コピー、説明ボタンが非表示になります。",
   "account.other-settings.mask_files": "<strong>マスクファイル:</strong> 開きたくないファイルをファイルビューアでグレーアウト",

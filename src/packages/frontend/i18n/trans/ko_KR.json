@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> {katex}를 사용하여 수식을 렌더링 시도 (훨씬 빠르지만, 컨텍스트 메뉴 옵션이 없음)",
   "account.other-settings.llm.default_llm": "기본 AI 언어 모델",
   "account.other-settings.llm.disable_all": "<strong>모든 AI 통합 비활성화</strong>, 예: Jupyter의 코드 생성 또는 설명 버튼, @chatgpt 언급 등.",
+  "account.other-settings.llm.reply_language": "<strong>항상 영어로 답변:</strong> 설정하면 답변이 항상 영어로 제공됩니다. 그렇지 않으면 사용자의 언어({lang})로 답변합니다.",
   "account.other-settings.llm.title": "AI 설정",
   "account.other-settings.markdown_codebar": "모든 마크다운 문서에서 <strong>마크다운 코드 바 비활성화</strong>. 이 옵션을 선택하면 코드 블록의 실행, 복사 및 설명 버튼이 숨겨집니다.",
   "account.other-settings.mask_files": "<strong>파일 숨기기:</strong> 파일 뷰어에서 열고 싶지 않은 파일을 회색으로 표시",

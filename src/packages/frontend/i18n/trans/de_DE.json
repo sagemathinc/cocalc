@@ -46,6 +46,7 @@
   "account.other-settings.katex": "<strong>KaTeX:</strong> Versuch, Formeln mit {katex} zu rendern (viel schneller, aber ohne Kontextmenüoptionen)",
   "account.other-settings.llm.default_llm": "Standard-AI-Sprachmodell",
   "account.other-settings.llm.disable_all": "<strong>Alle KI-Integrationen deaktivieren</strong>, z.B. Code-Generierungs- oder Erklärungsbuttons in Jupyter, @chatgpt-Erwähnungen usw.",
+  "account.other-settings.llm.reply_language": "<strong>Immer auf Englisch antworten:</strong> Wenn eingestellt, sind die Antworten immer auf Englisch. Andernfalls antwortet es in Ihrer Sprache ({lang}).",
   "account.other-settings.llm.title": "KI-Einstellungen",
   "account.other-settings.markdown_codebar": "<strong>Deaktiviere die Markdown-Codeleiste</strong> in allen Markdown-Dokumenten. Wenn Sie dies aktivieren, werden die zusätzlichen Ausführen-, Kopieren- und Erklären-Buttons in umrandeten Codeblöcken ausgeblendet.",
   "account.other-settings.mask_files": "<strong>Dateien maskieren:</strong> Dateien im Dateibetrachter ausgrauen, die Sie wahrscheinlich nicht öffnen möchten",
