@@ -508,7 +508,7 @@ export function commands(actions: AllActions): {
 
     "find and replace": {
       i: "replace",
-      b: "Find",
+      b: "Replace",
       m: jupyter.commands.find_and_replace,
       k: [
         { mode: "escape", which: 70 },

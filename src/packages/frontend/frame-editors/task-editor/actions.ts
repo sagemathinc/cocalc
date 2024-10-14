@@ -144,6 +144,8 @@ export class Actions extends CodeEditorActions<TaskEditorState> {
     actions._init_frame(frameId, this);
     this.taskActions[frameId] = actions;
     actions.store = this.store;
+    // this makes sure nothing is initially in edit mode, mainly because our keyboard handling SUCKS.
+    actions.edit_desc(null);
     return actions;
   }
 

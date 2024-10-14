@@ -13,7 +13,7 @@ import { is_sortable as is_sortable_header } from "./headings-info";
 
 function is_sortable(actions): boolean {
   return is_sortable_header(
-    actions.store.getIn(["local_view_state", "sort", "column"]) ?? HEADINGS[0]
+    actions.store.getIn(["local_view_state", "sort", "column"]) ?? HEADINGS[0],
   );
 }
 

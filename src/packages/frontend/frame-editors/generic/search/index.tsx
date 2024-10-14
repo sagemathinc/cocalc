@@ -15,12 +15,13 @@ import { useEffect, useMemo, useState } from "react";
 import { throttle } from "lodash";
 import useSearchIndex from "./use-search-index";
 import ShowError from "@cocalc/frontend/components/error";
-import { useEditorRedux } from "@cocalc/frontend/app-framework";
+import { useRedux } from "@cocalc/frontend/app-framework";
 
 export function createSearchEditor({
   Preview,
   updateField,
   previewStyle,
+  title,
 }: {
   // component for previewing search results.
   Preview?;
@@ -43,6 +44,7 @@ export function createSearchEditor({
         Preview={Preview}
         updateField={updateField}
         previewStyle={previewStyle}
+        title={title}
       />
     ),
   } as EditorDescription;
@@ -66,10 +68,7 @@ function Search({
   title,
 }: Props) {
   const { project_id, path, actions, id } = useFrameContext();
-  const useEditor = useEditorRedux({ project_id, path });
   // @ts-ignore
-  const messages = useEditor(updateField);
-  const [indexedMessages, setIndexedMessages] = useState<any>(messages);
   const [search, setSearch] = useState<string>(desc.get("data-search") ?? "");
   const [result, setResult] = useState<any>(null);
   const saveSearch = useMemo(
@@ -82,7 +81,12 @@ function Search({
     [project_id, path],
   );
 
-  const { error, setError, index, doRefresh, fragmentKey } = useSearchIndex();
+  const { error, setError, index, doRefresh, fragmentKey, reduxName } =
+    useSearchIndex();
+
+  const data = useRedux(reduxName ?? actions.name, updateField);
+
+  const [indexedData, setIndexedData] = useState<any>(data);
 
   useEffect(() => {
     if (index == null) {
@@ -99,11 +103,11 @@ function Search({
   }, [search, index]);
 
   useEffect(() => {
-    if (indexedMessages != messages) {
-      setIndexedMessages(messages);
+    if (indexedData != data) {
+      setIndexedData(data);
       doRefresh();
     }
-  }, [messages]);
+  }, [data]);
 
   return (
     <div className="smc-vfill">
@@ -123,7 +127,7 @@ function Search({
         <Input.Search
           style={{ fontSize }}
           allowClear
-          placeholder="Search messages..."
+          placeholder={`Search ${title}...`}
           value={search}
           onChange={(e) => {
             const search = e.target.value ?? "";
