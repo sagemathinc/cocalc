@@ -37,9 +37,9 @@ export default function init(): Router {
 
   const router = Router();
 
-  router.get("/.smc/upload", (_, res) => {
+  router.get("/.smc/upload", function (_, res) {
     logger.http("upload GET");
-    res.send("hello");
+    return res.send("hello");
   });
 
   router.post("/.smc/upload", async function (req, res): Promise<void> {

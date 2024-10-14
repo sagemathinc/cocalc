@@ -3,9 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import getPort from "get-port";
 import { exec } from "node:child_process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import basePath from "@cocalc/backend/base-path";
 import { data } from "@cocalc/backend/data";
 import { project_id } from "@cocalc/project/data";
@@ -24,7 +26,6 @@ export async function start(name: NamedServerName): Promise<number> {
     winston.debug(`${name} is already running`);
     return s.port;
   }
-  const getPort = (await import("get-port")).default; // since esm only
   const port = await getPort({ port: preferredPort(name) });
   // For servers that need a basePath, they will use this one.
   // Other servers (e.g., Pluto, code-server) that don't need

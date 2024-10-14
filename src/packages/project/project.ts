@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import daemonizeProcess from "daemonize-process";
+
 import { init as initBugCounter } from "./bug-counter";
 import { init as initClient } from "./client";
 import initInfoJson from "./info-json";
@@ -11,7 +13,6 @@ import { getOptions } from "./init-program";
 import { cleanup as cleanupEnvironmentVariables } from "./project-setup";
 import initPublicPaths from "./public-paths";
 import initServers from "./servers/init";
-import { daemonizeProcess } from "./daemonize-process";
 
 import { getLogger } from "./logger";
 const logger = getLogger("project-main");

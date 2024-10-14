@@ -71,7 +71,7 @@ export async function browser_symmetric_channel(
   return name;
 }
 
-export class SymmetricChannel extends EventEmitter {
+class SymmetricChannel extends EventEmitter {
   channel: any;
 
   constructor(channel?: any) {
