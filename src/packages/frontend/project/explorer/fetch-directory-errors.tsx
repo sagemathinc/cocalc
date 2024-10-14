@@ -33,10 +33,7 @@ export function FetchDirectoryErrors({
       );
     case "not_a_dir":
       return (
-        <ShowError
-          message="Not a folder"
-          error={`${path} is not a folder.`}
-        />
+        <ShowError message="Not a folder" error={`${path} is not a folder.`} />
       );
     case "not_running":
       // This shouldn't happen, but due to maybe a slight race condition in the backend it can.
@@ -51,9 +48,12 @@ export function FetchDirectoryErrors({
     default:
       if (
         error === "no_instance" ||
-        (is_commercial && quotas && !quotas.member_host)
+        (is_commercial &&
+          quotas &&
+          !quotas.member_host &&
+          !`${error}`.includes("EACCES"))
       ) {
-        // the second part of the or is to blame it on the free servers...
+        // the second part of the or is to blame it on the free servers, unless EACCESS = read permission error -- see https://github.com/sagemathinc/cocalc/issues/4100
         return (
           <ShowError
             message="Project unavailable"

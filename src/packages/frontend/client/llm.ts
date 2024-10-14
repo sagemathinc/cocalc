@@ -24,6 +24,12 @@ import {
 import * as message from "@cocalc/util/message";
 import type { WebappClient } from "./client";
 import type { History } from "./types";
+import {
+  LOCALIZATIONS,
+  OTHER_SETTINGS_LOCALE_KEY,
+  OTHER_SETTINGS_REPLY_ENGLISH_KEY,
+} from "@cocalc/util/i18n/const";
+import { sanitizeLocale } from "@cocalc/frontend/i18n";
 
 interface QueryLLMProps {
   input: string;
@@ -109,6 +115,19 @@ export class LLMClient {
         await delay(1000);
         return "Pong";
       }
+    }
+
+    // append a sentence to request to translate the output to the user's language – unless disabled
+    const other_settings = redux.getStore("account").get("other_settings");
+    const alwaysEnglish = !!other_settings.get(
+      OTHER_SETTINGS_REPLY_ENGLISH_KEY,
+    );
+    const locale = sanitizeLocale(
+      other_settings.get(OTHER_SETTINGS_LOCALE_KEY),
+    );
+    if (!alwaysEnglish && locale != "en") {
+      const lang = LOCALIZATIONS[locale].name; // name is always in english
+      system = `${system}\n\nYour answer must be written in the language ${lang}.`;
     }
 
     const is_cocalc_com = redux.getStore("customize").get("is_cocalc_com");
