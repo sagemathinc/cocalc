@@ -9,6 +9,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
 import {
   A,
   HelpIcon,
@@ -22,7 +23,7 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
-import { labels } from "@cocalc/frontend/i18n";
+import { LOCALIZATIONS, labels } from "@cocalc/frontend/i18n";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
@@ -33,6 +34,7 @@ import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
 import Tours from "./tours";
@@ -60,6 +62,7 @@ interface Props {
 
 export function OtherSettings(props: Readonly<Props>): JSX.Element {
   const intl = useIntl();
+  const { locale } = useLocalizationCtx();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
 
@@ -552,6 +555,24 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     );
   }
 
+  function render_llm_reply_language(): Rendered {
+    return (
+      <Checkbox
+        checked={!!props.other_settings.get(OTHER_SETTINGS_REPLY_ENGLISH_KEY)}
+        onChange={(e) => {
+          on_change(OTHER_SETTINGS_REPLY_ENGLISH_KEY, e.target.checked);
+        }}
+      >
+        <FormattedMessage
+          id="account.other-settings.llm.reply_language"
+          defaultMessage={`<strong>Always reply in English</strong>,
+          If set, the replies are always in English. Otherwise – the default – it replies in your interface language (currently {lang})`}
+          values={{ lang: intl.formatMessage(LOCALIZATIONS[locale].trans) }}
+        />
+      </Checkbox>
+    );
+  }
+
   function render_custom_llm(): Rendered {
     // on cocalc.com, do not even show that they're disabled
     if (isCoCalcCom && !user_defined_llm) return;
@@ -578,6 +599,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       >
         {render_disable_all_llm()}
         {render_language_model()}
+        {render_llm_reply_language()}
         {render_custom_llm()}
       </Panel>
     );
