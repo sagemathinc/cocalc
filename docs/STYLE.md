@@ -14,6 +14,11 @@
 
   - NOTE: there's a lot of Javascript code in cocalc that uses Python conventions. Long ago Nicholas R. argued "by using Python conventions we can easily distinguish our code from other code"; in retrospect, this was a bad argument, and only serves to make Javascript devs less comfortable in our codebase, and make our code look weird compared to most Javascript code. Rewrite it.
 
+- Abbreviations: Do not use obscure abbreviations for variable names.
+
+  - Good code is read much more than it is written, so make it easy to read.
+  - E.g., do not use "dflt" since: (1) it barely saves any characters over "default", and (2) if you do a Google search for "dflt" you will see it's not even a common abbreviation for default.
+
 - Javascript Methods: Prefer arrow functions for methods of classes.
 
   - it's standard
@@ -79,4 +84,3 @@ const MyButton: React.FC<MyButtonProps> = (props) => {
 - Bootstrap:
   - CoCalc used to use jquery + bootstrap (way before react even existed!) for everything, and that's still in use for some things today (e.g., Sage Worksheets). Rewrite or delete all this.
   - CoCalc also used to use react-bootstrap, and sadly still does. Get rid of this.
-

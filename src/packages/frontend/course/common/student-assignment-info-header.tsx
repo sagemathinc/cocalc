@@ -7,6 +7,7 @@ import { Tip } from "@cocalc/frontend/components";
 import { unreachable } from "@cocalc/util/misc";
 import { Col, Row } from "antd";
 import { AssignmentCopyStep } from "../types";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 interface StudentAssignmentInfoHeaderProps {
   title: string;
@@ -17,42 +18,49 @@ export function StudentAssignmentInfoHeader({
   title,
   peer_grade,
 }: StudentAssignmentInfoHeaderProps) {
-  function tip_title(key: AssignmentCopyStep | "grade"): {
-    tip: string;
-    title: string;
-  } {
+  const { actions } = useFrameContext();
+  function tip_title(key: AssignmentCopyStep | "grade") {
     switch (key) {
       case "assignment":
         return {
           title: "Assign to Student",
-          tip: "This column gives the status of making homework available to students, and lets you copy homework to one student at a time.",
+          tip: "Status of making assignment available to students; also, you can copy assignment to one student at a time.",
         };
       case "collect":
         return {
           title: "Collect from Student",
-          tip: "This column gives status information about collecting homework from students, and lets you collect from one student at a time.",
+          tip: "Status information about collecting assignments from students; also, you can collect from one student at a time.",
         };
       case "grade":
         return {
-          title: "Record Homework Grade",
-          tip: "Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Configuration tab.  Enter anything here; it does not have to be a number.",
+          title: "Record Assignment Grade",
+          tip: (
+            <>
+              Record the grade the student received on the assignment. Once the
+              grade is recorded, you can return the assignment. You can also{" "}
+              <a onClick={() => (actions as any)?.setModal?.("export-grades")}>
+                export grades to a file in the Actions tab
+              </a>
+              . Enter anything here; it does not have to be a number.
+            </>
+          ),
         };
       case "peer_assignment":
         return {
           title: "Assign Peer Grading",
-          tip: "This column gives the status of sending out collected homework to students for peer grading.",
+          tip: "Status of sending out collected assignment to students for peer grading.",
         };
 
       case "peer_collect":
         return {
           title: "Collect Peer Grading",
-          tip: "This column gives status information about collecting the peer grading work that students did, and lets you collect peer grading from one student at a time.",
+          tip: "Status information about collecting the peer grading work that students did; also, you can collect peer grading from one student at a time.",
         };
 
       case "return_graded":
         return {
           title: "Return to Student",
-          tip: "This column gives status information about when you returned homework to the students.  Once you have entered a grade, you can return the assignment.",
+          tip: "Status information about when you returned assignment to the students.  Once you have entered a grade, you can return the assignment.",
         };
       default:
         unreachable(key);
