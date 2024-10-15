@@ -294,8 +294,8 @@ importers:
         specifier: ^1.31.1
         version: 1.37.2(crypto@1.0.1)
       '@microlink/react-json-view':
-        specifier: ^1.23.0
-        version: 1.23.2(@types/react@18.3.10)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: ^1.23.3
+        version: 1.23.3(@types/react@18.3.10)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@orama/orama':
         specifier: 3.0.0-rc-3
         version: 3.0.0-rc-3
@@ -784,8 +784,8 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3
       express:
-        specifier: ^4.20.0
-        version: 4.21.0
+        specifier: ^4.21.1
+        version: 4.21.1
       formidable:
         specifier: ^3.5.1
         version: 3.5.1
@@ -1074,8 +1074,8 @@ importers:
         specifier: ^1.11.11
         version: 1.11.13
       express:
-        specifier: ^4.20.0
-        version: 4.21.0
+        specifier: ^4.21.1
+        version: 4.21.1
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
@@ -1231,11 +1231,11 @@ importers:
         specifier: ^26.6.2
         version: 26.6.2
       express:
-        specifier: ^4.20.0
-        version: 4.21.0
+        specifier: ^4.21.1
+        version: 4.21.1
       express-rate-limit:
         specifier: ^7.4.0
-        version: 7.4.0(express@4.21.0)
+        version: 7.4.0(express@4.21.1)
       formidable:
         specifier: ^3.5.1
         version: 3.5.1
@@ -1463,8 +1463,8 @@ importers:
         specifier: ^2.1.4
         version: 2.1.5
       express-session:
-        specifier: ^1.18.0
-        version: 1.18.0
+        specifier: ^1.18.1
+        version: 1.18.1
       google-auth-library:
         specifier: ^9.4.1
         version: 9.14.1(encoding@0.1.13)
@@ -3320,8 +3320,8 @@ packages:
     resolution: {integrity: sha512-5ueL4UDitzVtceQ8J4kY+Px3WK+eZTsmGwha3MBKHKqiHvKrjWWwBCIl1K8BuJSc5OFh83uI8IFNoFvQxX2uUw==}
     hasBin: true
 
-  '@microlink/react-json-view@1.23.2':
-    resolution: {integrity: sha512-0jQvLjIit0qwqla+unz+ht/0xU8kUviKwRXoY1fvn8opLC0eMEvnAYu1Wlqn+adfzpCPVZBBjjBpGc3l84M31Q==}
+  '@microlink/react-json-view@1.23.3':
+    resolution: {integrity: sha512-5az8z8ebKEU/8XN60TF7aAB7d68z8EtHbIL43tO8MJdBhm4jLQCjAKuuoGX01WgdgnazYnqtBe6LLcUmCv/MyA==}
     peerDependencies:
       react: '>= 15'
       react-dom: '>= 15'
@@ -5500,8 +5500,12 @@ packages:
     resolution: {integrity: sha512-ZwrFkGJxUR3EIoXtO+yVE69Eb7KlixbaeAWfBQB9vVsNn/o+Yw69gBWSSDK825hQNdN+wF8zELf3dFNl/kxkUA==}
     engines: {node: '>= 0.6'}
 
-  cookie@0.6.0:
-    resolution: {integrity: sha512-U71cyTamuh1CRNCfpGY6to28lxvNwPG4Guz/EVjgf3Jmzv0vlDp1atT9eS5dDjMYHucpHbWns6Lwf3BKz6svdw==}
+  cookie@0.7.1:
+    resolution: {integrity: sha512-6DnInpx7SJ2AK3+CTUE/ZM0vWTUboZCegxhC2xiIydHR9jNuTAASBrfEpHhiGOZw/nX51bHt6YQl8jsGo4y/0w==}
+    engines: {node: '>= 0.6'}
+
+  cookie@0.7.2:
+    resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
     engines: {node: '>= 0.6'}
 
   cookie@1.0.0:
@@ -6520,12 +6524,12 @@ packages:
     peerDependencies:
       express: 4 || 5 || ^5.0.0-beta.1
 
-  express-session@1.18.0:
-    resolution: {integrity: sha512-m93QLWr0ju+rOwApSsyso838LQwgfs44QtOP/WBiwtAgPIo/SAh1a5c6nn2BR6mFNZehTpqKDESzP+fRHVbxwQ==}
+  express-session@1.18.1:
+    resolution: {integrity: sha512-a5mtTqEaZvBCL9A9aqkrtfz+3SMDhOVUnjafjo+s7A9Txkq+SVX2DLvSp1Zrv4uCXa3lMSK3viWnh9Gg07PBUA==}
     engines: {node: '>= 0.8.0'}
 
-  express@4.21.0:
-    resolution: {integrity: sha512-VqcNGcj/Id5ZT1LZ/cfihi3ttTn+NJmkli2eZADigjq29qTlWi/hAQ43t/VLPq8+UX06FCEx3ByOYet6ZFblng==}
+  express@4.21.1:
+    resolution: {integrity: sha512-YSFlK1Ee0/GC8QaO91tHcDxJiE/X4FbpAyQWkxAvG6AXCuR65YzK8ua6D9hvi/TzUfZMpc+BwuM1IPw8fmQBiQ==}
     engines: {node: '>= 0.10.0'}
 
   ext@1.7.0:
@@ -12582,7 +12586,7 @@ snapshots:
       awaiting: 3.0.0
       cheerio: 1.0.0-rc.12
       csv-parse: 5.5.6
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -13482,7 +13486,7 @@ snapshots:
       sort-object: 3.0.3
       tinyqueue: 3.0.0
 
-  '@microlink/react-json-view@1.23.2(@types/react@18.3.10)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@microlink/react-json-view@1.23.3(@types/react@18.3.10)(encoding@0.1.13)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       flux: 4.0.3(encoding@0.1.13)(react@18.3.1)
       react: 18.3.1
@@ -13581,7 +13585,7 @@ snapshots:
       '@types/xml-encryption': 1.2.4
       '@types/xml2js': 0.4.14
       '@xmldom/xmldom': 0.8.10
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
       xml-crypto: 3.2.0
       xml-encryption: 3.0.2
       xml2js: 0.5.0
@@ -14038,7 +14042,7 @@ snapshots:
       '@rspack/core': 1.0.10(@swc/helpers@0.5.13)
       chokidar: 3.6.0
       connect-history-api-fallback: 2.0.0
-      express: 4.21.0
+      express: 4.21.1
       http-proxy-middleware: 2.0.7(@types/express@4.17.21)
       mime-types: 2.1.35
       p-retry: 4.6.2
@@ -14920,13 +14924,13 @@ snapshots:
 
   agent-base@6.0.2:
     dependencies:
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -15239,7 +15243,7 @@ snapshots:
 
   axios@1.7.7:
     dependencies:
-      follow-redirects: 1.15.6
+      follow-redirects: 1.15.6(debug@4.3.7)
       form-data: 4.0.0
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -15979,7 +15983,9 @@ snapshots:
 
   cookie@0.4.1: {}
 
-  cookie@0.6.0: {}
+  cookie@0.7.1: {}
+
+  cookie@0.7.2: {}
 
   cookie@1.0.0: {}
 
@@ -16417,10 +16423,6 @@ snapshots:
   debug@3.2.7:
     dependencies:
       ms: 2.1.2
-
-  debug@4.3.7:
-    dependencies:
-      ms: 2.1.3
 
   debug@4.3.7(supports-color@8.1.1):
     dependencies:
@@ -17177,13 +17179,13 @@ snapshots:
 
   expr-eval@2.0.2: {}
 
-  express-rate-limit@7.4.0(express@4.21.0):
+  express-rate-limit@7.4.0(express@4.21.1):
     dependencies:
-      express: 4.21.0
+      express: 4.21.1
 
-  express-session@1.18.0:
+  express-session@1.18.1:
     dependencies:
-      cookie: 0.6.0
+      cookie: 0.7.2
       cookie-signature: 1.0.7
       debug: 2.6.9
       depd: 2.0.0
@@ -17194,14 +17196,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  express@4.21.0:
+  express@4.21.1:
     dependencies:
       accepts: 1.3.8
       array-flatten: 1.1.1
       body-parser: 1.20.3
       content-disposition: 0.5.4
       content-type: 1.0.5
-      cookie: 0.6.0
+      cookie: 0.7.1
       cookie-signature: 1.0.6
       debug: 2.6.9
       depd: 2.0.0
@@ -17407,8 +17409,6 @@ snapshots:
       react: 18.3.1
     transitivePeerDependencies:
       - encoding
-
-  follow-redirects@1.15.6: {}
 
   follow-redirects@1.15.6(debug@4.3.7):
     optionalDependencies:
@@ -18172,7 +18172,7 @@ snapshots:
     dependencies:
       '@tootallnate/once': 2.0.0
       agent-base: 6.0.2
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -18199,14 +18199,14 @@ snapshots:
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
   https-proxy-agent@7.0.2:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.3.7
+      debug: 4.3.7(supports-color@8.1.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -21609,7 +21609,7 @@ snapshots:
 
   react-base16-styling@0.9.1:
     dependencies:
-      '@babel/runtime': 7.25.6
+      '@babel/runtime': 7.25.7
       '@types/base16': 1.0.5
       '@types/lodash': 4.17.9
       base16: 1.0.0
@@ -21768,7 +21768,7 @@ snapshots:
 
   react-textarea-autosize@8.3.4(@types/react@18.3.10)(react@18.3.1):
     dependencies:
-      '@babel/runtime': 7.25.6
+      '@babel/runtime': 7.25.7
       react: 18.3.1
       use-composed-ref: 1.3.0(react@18.3.1)
       use-latest: 1.2.1(@types/react@18.3.10)(react@18.3.1)
@@ -23457,7 +23457,7 @@ snapshots:
       compression: 1.7.4
       connect-history-api-fallback: 2.0.0
       default-gateway: 6.0.3
-      express: 4.21.0
+      express: 4.21.1
       graceful-fs: 4.2.11
       html-entities: 2.5.2
       http-proxy-middleware: 2.0.7(@types/express@4.17.21)
