@@ -2,7 +2,9 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
-
+import { Space, Tooltip } from "antd";
+import React from "react";
+import { Col, Grid, Row } from "@cocalc/frontend/antd-bootstrap";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
   CSS,
@@ -19,10 +21,13 @@ import {
   TimeAgo,
   Tip,
 } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import ComputeLogEntry from "@cocalc/frontend/compute/log-entry";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { file_associations } from "@cocalc/frontend/file-associations";
+import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { labels } from "@cocalc/frontend/i18n";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { DisplayProjectQuota } from "@cocalc/frontend/purchases/purchases";
@@ -32,11 +37,7 @@ import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { Space, Tooltip } from "antd";
-import React from "react";
-import { Col, Grid, Row } from "react-bootstrap";
-import AIAvatar from "../../components/ai-avatar";
-import { modelToName } from "../../frame-editors/llm/llm-selector";
+import { FormattedMessage, useIntl } from "react-intl";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
 import type {
@@ -62,12 +63,12 @@ import { isUnknownEvent } from "./types";
 const TRUNC = 90;
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { User } = require("../../users");
+const { User } = require("@cocalc/frontend/users");
 
 const selected_item: CSS = {
   backgroundColor: "#08c",
   color: "white",
-};
+} as const;
 
 // this is a dictionary for FILE_ACTIONS in packages/frontend/project_actions.ts
 const file_action_icons: {
@@ -112,7 +113,7 @@ function TookTime({
     description = `${(Math.round(ms / 100) / 10).toFixed(1)}s`;
   }
 
-  return <span style={{ color: "#666" }}>(took {description})</span>;
+  return <span style={{ color: COLORS.GRAY_M }}>(took {description})</span>;
 }
 
 function areEqual(prev: Props, next: Props): boolean {
@@ -137,6 +138,8 @@ export const LogEntry: React.FC<Props> = React.memo(
       mode = "full",
       flyoutExtra = false,
     } = props;
+
+    const intl = useIntl();
 
     const software_envs: SoftwareEnvironments | null = useTypedRedux(
       "customize",
@@ -171,20 +174,27 @@ export const LogEntry: React.FC<Props> = React.memo(
     function render_public_path(event: PublicPathEvent): JSX.Element {
       return (
         <span>
-          set the public path
-          <Gap />
-          <PathLink
-            path={event.path}
-            full={true}
-            style={cursor ? selected_item : undefined}
-            trunc={TRUNC}
-            project_id={project_id}
-          />{" "}
-          to be {event.disabled ? "disabled" : "enabled"}
-          {" and "}
-          {event.unlisted ? "unlisted" : "listed"}
-          {event.site_license_id &&
-            ` and license id ...${event.site_license_id}`}
+          <FormattedMessage
+            id="project.history.log-entry.public_path"
+            defaultMessage={`set the public path {gap} {path} to be {event} and {listed} {license}`}
+            values={{
+              gap: <Gap />,
+              path: (
+                <PathLink
+                  path={event.path}
+                  full={true}
+                  style={cursor ? selected_item : undefined}
+                  trunc={TRUNC}
+                  project_id={project_id}
+                />
+              ),
+              event: event.disabled ? "disabled" : "enabled",
+              listed: event.unlisted ? "unlisted" : "listed",
+              license: event.site_license_id
+                ? ` and license id ...${event.site_license_id}`
+                : "",
+            }}
+          />
         </span>
       );
     }
@@ -194,15 +204,19 @@ export const LogEntry: React.FC<Props> = React.memo(
     ): JSX.Element {
       const envs = software_envs?.get("environments");
       const prev: string = envs
-        ? envs.get(event.previous)?.get("title") ?? event.previous
-        : "Loading…";
+        ? (envs.get(event.previous)?.get("title") ?? event.previous)
+        : intl.formatMessage(labels.loading);
       const next: string = envs
-        ? envs.get(event.next)?.get("title") ?? event.next
-        : "Loading…";
+        ? (envs.get(event.next)?.get("title") ?? event.next)
+        : intl.formatMessage(labels.loading);
 
       return (
         <span>
-          changed the software environment from {prev} to {next}
+          <FormattedMessage
+            id="project.history.log-entry.software"
+            defaultMessage={`changed the software environment from {prev} to {next}`}
+            values={{ prev, next }}
+          />
         </span>
       );
     }
@@ -210,29 +224,68 @@ export const LogEntry: React.FC<Props> = React.memo(
     function render_start_project(event: ProjectControlEvent): JSX.Element {
       return (
         <span>
-          started this project <TookTime ms={event.time} />
+          <FormattedMessage
+            id="project.history.log-entry.start_project"
+            defaultMessage={`started this project {time}`}
+            values={{ time: <TookTime ms={event.time} /> }}
+          />
         </span>
       );
     }
 
     function render_project_restart_requested(): JSX.Element {
-      return <span>requested to restart this project</span>;
+      return (
+        <span>
+          <FormattedMessage
+            id="project.history.log-entry.request_restart_project"
+            defaultMessage={`requested to restart this project`}
+          />
+        </span>
+      );
     }
 
     function render_project_stop_requested(): JSX.Element {
-      return <span>requested to stop this project</span>;
+      return (
+        <span>
+          <FormattedMessage
+            id="project.history.log-entry.request_stop_project"
+            defaultMessage={`requested to stop this project`}
+          />
+        </span>
+      );
     }
 
     function render_project_start_requested(): JSX.Element {
-      return <span>requested to start this project</span>;
+      return (
+        <span>
+          <FormattedMessage
+            id="project.history.log-entry.request_start_project"
+            defaultMessage={`requested to start this project`}
+          />
+        </span>
+      );
     }
 
     function render_project_started(): JSX.Element {
-      return <span>started this project</span>;
+      return (
+        <span>
+          <FormattedMessage
+            id="project.history.log-entry.project_started"
+            defaultMessage={`started this project`}
+          />
+        </span>
+      );
     }
 
     function render_project_stopped(): JSX.Element {
-      return <span>stopped this project</span>;
+      return (
+        <span>
+          <FormattedMessage
+            id="project.history.log-entry.project_stopped"
+            defaultMessage={`stopped this project`}
+          />
+        </span>
+      );
     }
 
     function render_miniterm_command(cmd: string): JSX.Element {
@@ -255,7 +308,11 @@ export const LogEntry: React.FC<Props> = React.memo(
     function render_miniterm(event: MiniTermEvent): JSX.Element {
       return (
         <span>
-          executed mini terminal command {render_miniterm_command(event.input)}
+          <FormattedMessage
+            id="project.history.log-entry.miniterm"
+            defaultMessage={`executed mini terminal command {cmd}`}
+            values={{ cmd: render_miniterm_command(event.input) }}
+          />
         </span>
       );
     }
@@ -349,7 +406,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "deleted":
           return (
             <span>
-              deleted {multi_file_links(e, true)}{" "}
+              {intl.formatMessage(labels.deleted)} {multi_file_links(e, true)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
               {computeServer}
             </span>
@@ -357,7 +414,8 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "downloaded":
           return (
             <span>
-              downloaded {multi_file_links(e, true)}{" "}
+              {intl.formatMessage(labels.downloaded)}{" "}
+              {multi_file_links(e, true)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
               {computeServer}
             </span>
@@ -365,7 +423,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "moved":
           return (
             <span>
-              moved {multi_file_links(e, false)}{" "}
+              {intl.formatMessage(labels.moved)} {multi_file_links(e, false)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
               {computeServer}
             </span>
@@ -373,15 +431,15 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "renamed":
           return (
             <span>
-              renamed {file_link(e.src, false, 0)} to{" "}
-              {file_link(e.dest, true, 1)}
+              {intl.formatMessage(labels.renamed)} {file_link(e.src, false, 0)}{" "}
+              to {file_link(e.dest, true, 1)}
               {computeServer}
             </span>
           );
         case "copied":
           return (
             <span>
-              copied {multi_file_links(e)}{" "}
+              {intl.formatMessage(labels.copied)} {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
               {computeServer}
               {e.src_compute_server_id != null &&
@@ -410,7 +468,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "shared":
           return (
             <span>
-              shared {multi_file_links(e)}{" "}
+              {intl.formatMessage(labels.shared)} {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
               {computeServer}
             </span>
@@ -418,13 +476,15 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "uploaded":
           return (
             <span>
-              uploaded {file_link(e.file, true, 0)} {computeServer}
+              {intl.formatMessage(labels.uploaded)} {file_link(e.file, true, 0)}{" "}
+              {computeServer}
             </span>
           );
         case "created":
           return (
             <span>
-              created {multi_file_links(e)} {computeServer}
+              {intl.formatMessage(labels.created)} {multi_file_links(e)}{" "}
+              {computeServer}
             </span>
           );
       }
@@ -650,18 +710,38 @@ export const LogEntry: React.FC<Props> = React.memo(
     function render_invite_user(event: CollaboratorEvent): JSX.Element {
       return (
         <span>
-          invited user{" "}
+          <FormattedMessage
+            id="project.history.log-entry.invited_user"
+            defaultMessage={"invited user"}
+          />{" "}
           <User user_map={user_map} account_id={event.invitee_account_id} />
         </span>
       );
     }
 
     function render_invite_nonuser(event: CollaboratorEvent): JSX.Element {
-      return <span>invited new user via {event.invitee_email}</span>;
+      return (
+        <span>
+          <FormattedMessage
+            id="project.history.log-entry.invited_user_via"
+            defaultMessage={"invited new user via"}
+          />{" "}
+          {event.invitee_email}
+        </span>
+      );
     }
 
     function render_remove_collaborator(event: CollaboratorEvent): JSX.Element {
-      return <span>removed user {event.removed_name}</span>;
+      return (
+        <span>
+          {" "}
+          <FormattedMessage
+            id="project.history.log-entry.removed_user"
+            defaultMessage={"removed user"}
+          />{" "}
+          {event.removed_name}
+        </span>
+      );
     }
 
     function render_desc(): Rendered | Rendered[] {
@@ -825,7 +905,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       case "full":
         const style = props.cursor ? selected_item : backgroundStyle;
         return (
-          <Grid fluid={true} style={{ width: "100%" }}>
+          <Grid style={{ width: "100%" }}>
             <Row style={style}>
               <Col sm={1} style={{ textAlign: "center" }}>
                 <Icon name={icon()} style={style} />

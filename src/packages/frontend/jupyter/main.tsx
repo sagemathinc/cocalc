@@ -44,6 +44,7 @@ import * as toolComponents from "./llm";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
 import { Kernel } from "./status";
+import JupyterClassic from "./jupyter-classic";
 
 export const ERROR_STYLE: CSS = {
   whiteSpace: "pre" as "pre",
@@ -222,6 +223,12 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   );
 
   const { usage, expected_cell_runtime } = useKernelUsage(name);
+
+  const jupyterClassic = useRedux([
+    "account",
+    "editor_settings",
+    "jupyter_classic",
+  ]);
 
   function render_error() {
     if (error) {
@@ -421,9 +428,14 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  if (jupyterClassic) {
+    return <JupyterClassic project_id={project_id} />;
+  }
+
   if (fatal) {
     return render_fatal();
   }
+
   return (
     <JupyterContext.Provider value={{ kernelspec: kernelspec?.toJS(), trust }}>
       <div

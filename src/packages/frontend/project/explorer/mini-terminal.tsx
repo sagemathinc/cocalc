@@ -14,17 +14,19 @@ IDEAS FOR LATER:
  - [ ] help
 
 */
-
-import { React } from "../../app-framework";
-import { user_activity } from "../../tracker";
-import { ProjectActions } from "../../project_actions";
 import { Button, Input, Space } from "antd";
+import { useIntl } from "react-intl";
+
+import { React, redux, useRef, useState } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { redux } from "@cocalc/frontend/app-framework";
+import { labels } from "@cocalc/frontend/i18n";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { user_activity } from "@cocalc/frontend/tracker";
+import { COLORS } from "@cocalc/util/theme";
 
 // used to run the command -- could change to use an action and the store.
-import { webapp_client } from "../../webapp-client";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 const WIDTH = "256px";
 
@@ -74,81 +76,71 @@ interface Props {
   show_close_x?: boolean;
 }
 
-interface State {
-  input: string;
-  state: "edit" | "run";
-  stdout?: string;
-  error?: string;
-}
+const MiniTerminal0: React.FC<Props> = (props: Readonly<Props>) => {
+  const { current_path, project_id, actions, show_close_x = true } = props;
+  const intl = useIntl();
 
-class MiniTerminal0 extends React.Component<Props, State> {
-  private _id: number = 0;
+  //private _id: number = 0;
+  const _id = useRef<number>(0);
 
-  constructor(props) {
-    super(props);
-    this.state = {
-      input: "",
-      stdout: undefined,
-      state: "edit", // 'edit' --> 'run' --> 'edit'
-      error: undefined,
-    };
-  }
+  const [input, set_input] = useState<string>("");
+  const [state, set_state] = useState<"edit" | "run">("edit"); // 'edit' --> 'run' --> 'edit'
+  const [stdout, set_stdout] = useState<string | undefined>(undefined);
+  const [error, set_error] = useState<string | undefined>(undefined);
 
-  static defaultProps = {
-    show_close_x: true,
-  };
-
-  execute_command = () => {
-    this.setState({ stdout: "", error: "" });
-    const input = this.state.input.trim();
-    if (!input) {
+  function execute_command() {
+    set_stdout("");
+    set_error("");
+    const input_val = input.trim();
+    if (!input_val) {
       return;
     }
-    const error = BAD_COMMANDS[input.split(" ")[0]];
+    const error = BAD_COMMANDS[input_val.split(" ")[0]];
     if (error) {
-      this.setState({
-        state: "edit",
-        error,
-      });
+      set_state("edit");
+      set_error(error);
       return;
     }
 
-    const input0 = input + '\necho $HOME "`pwd`"';
-    this.setState({ state: "run" });
+    const input0 = input_val + '\necho $HOME "`pwd`"';
+    set_state("run");
 
-    this._id = this._id + 1;
-    const id = this._id;
+    _id.current = _id.current + 1;
+    const id = _id.current;
     const start_time = new Date().getTime();
     user_activity("mini_terminal", "exec", input);
+
     const compute_server_id = redux
-      .getProjectStore(this.props.project_id)
+      .getProjectStore(project_id)
       ?.get("compute_server_id");
+
     webapp_client.exec({
-      project_id: this.props.project_id,
+      project_id: project_id,
       command: input0,
       timeout: EXEC_TIMEOUT,
       max_output: 100000,
       bash: true,
-      path: this.props.current_path,
+      path: current_path,
       err_on_exit: false,
       compute_server_id,
       filesystem: true,
       cb: (err, output) => {
-        if (this._id !== id) {
+        if (_id.current !== id) {
           // computation was canceled -- ignore result.
           return;
         }
         if (err) {
-          this.setState({ error: JSON.stringify(err), state: "edit" });
+          set_error(JSON.stringify(err));
+          set_state("edit");
         } else if (
           output.exit_code !== 0 &&
           new Date().getTime() - start_time >= 0.98 * EXEC_TIMEOUT
         ) {
           // we get no other error except it takes a long time and the exit_code isn't 0.
-          this.setState({
-            state: "edit",
-            error: `Miniterminal commands are limited to ${EXEC_TIMEOUT} seconds.\nFor longer or interactive commands,\nuse a full terminal.`,
-          });
+          set_state("edit");
+          set_error(
+            `Miniterminal commands are limited to ${EXEC_TIMEOUT} seconds.\nFor longer or interactive commands,\nuse a full terminal.`,
+          );
         } else {
           if (output.stdout) {
             // Find the current path
@@ -170,60 +162,62 @@ class MiniTerminal0 extends React.Component<Props, State> {
             if (full_path.slice(0, i) === s.slice(0, i)) {
               // only change if in project
               const path = s.slice(2 * i + 2);
-              this.props.actions.open_directory(path);
+              actions.open_directory(path);
             }
           }
           if (!output.stderr) {
             // only log commands that worked...
-            this.props.actions.log({ event: "miniterm", input });
+            actions.log({ event: "miniterm", input });
           }
-          this.props.actions.fetch_directory_listing(); // update directory listing (command may change files)
-          this.setState({
-            state: "edit",
-            error: output.stderr,
-            stdout: `${
-              this.props.current_path ? "~/" + this.props.current_path : "~"
-            }$ ${input}\n${output.stdout}`,
-          });
+          actions.fetch_directory_listing(); // update directory listing (command may change files)
+          set_state("edit");
+          set_error(output.stderr);
+          set_stdout(
+            `${current_path ? "~/" + current_path : "~"}$ ${input}\n${
+              output.stdout
+            }`,
+          );
           if (!output.stderr) {
-            this.setState({ input: "" });
+            set_input("");
           }
         }
       },
     });
-  };
+  }
 
-  render_button() {
-    switch (this.state.state) {
+  function render_button() {
+    switch (state) {
       case "edit":
         return (
-          <Button style={{ height: "33px" }} onClick={this.execute_command}>
+          <Button style={{ height: "33px" }} onClick={execute_command}>
             <Icon name="play" />
           </Button>
         );
       case "run":
         return (
-          <Button style={{ height: "33px" }} onClick={this.execute_command}>
+          <Button style={{ height: "33px" }} onClick={execute_command}>
             <Icon name="cocalc-ring" spin />
           </Button>
         );
     }
   }
 
-  render_close_x() {
-    if (!this.props.show_close_x) return;
+  function render_close_x() {
+    if (!show_close_x) return;
     return (
       <Button
         type="text"
         onClick={() => {
-          this.setState({ stdout: "", error: "" });
+          set_stdout("");
+          set_error("");
         }}
         style={{
           position: "absolute",
           right: 0,
           top: 0,
-          color: "#666",
+          color: COLORS.GRAY_M,
           fontSize: "10pt",
+          background: "white",
         }}
       >
         <Icon name="times" />
@@ -231,68 +225,69 @@ class MiniTerminal0 extends React.Component<Props, State> {
     );
   }
 
-  render_output(x, style) {
+  function render_output(x, style) {
     if (x) {
       return (
         <pre style={style}>
-          {this.render_close_x()}
+          {render_close_x()}
           {x}
         </pre>
       );
     }
   }
 
-  keydown = (e) => {
+  function keydown(e) {
     // IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
     // all null right now -- see
     //     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
     //# e.persist(); window.e = e  # for debugging
     if (e.keyCode === 27) {
-      this.setState({ input: "", stdout: "", error: "" });
+      set_input("");
+      set_stdout("");
+      set_error("");
     }
-  };
-
-  render() {
-    // We don't use inline, since we still want the full horizontal width.
-    return (
-      <>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            this.execute_command();
-          }}
-        >
-          <Space.Compact style={{ width: WIDTH, float: "right" }}>
-            <Input
-              allowClear
-              type="text"
-              value={this.state.input}
-              placeholder="Terminal command..."
-              onChange={(e) => {
-                e.preventDefault();
-                const input = e?.target?.value;
-                if (!input) {
-                  this.setState({ stdout: "", error: "" });
-                }
-                if (input == null) return;
-                this.setState({ input });
-              }}
-              onKeyDown={this.keydown}
-            />
-            {this.render_button()}
-          </Space.Compact>
-        </form>
-        <div style={output_style_miniterm}>
-          {this.render_output(this.state.stdout, { margin: 0 })}
-          {this.render_output(this.state.error, {
-            color: "darkred",
-            margin: 0,
-          })}
-        </div>
-      </>
-    );
   }
-}
+
+  // We don't use inline, since we still want the full horizontal width.
+  return (
+    <>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          execute_command();
+        }}
+      >
+        <Space.Compact style={{ width: WIDTH, float: "right" }}>
+          <Input
+            allowClear
+            type="text"
+            value={input}
+            placeholder={`${intl.formatMessage(labels.terminal_command)}...`}
+            onChange={(e) => {
+              e.preventDefault();
+              const input_val = e?.target?.value;
+              if (!input_val) {
+                set_stdout("");
+                set_error("");
+              }
+              if (input_val == null) return;
+              set_input(input_val);
+            }}
+            onKeyDown={keydown}
+          />
+          {render_button()}
+        </Space.Compact>
+      </form>
+      <div style={output_style_miniterm}>
+        {render_output(stdout, { margin: 0 })}
+        {render_output(error, {
+          color: "darkred",
+          margin: 0,
+        })}
+      </div>
+    </>
+  );
+};
 
 export const MiniTerminal: React.FC<Props> = (props) => {
   const student_project_functionality = useStudentProjectFunctionality(

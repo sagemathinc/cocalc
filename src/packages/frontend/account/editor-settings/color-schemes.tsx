@@ -3,26 +3,33 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useIntl } from "react-intl";
 import { Map } from "immutable";
-
-import { LabeledRow, SelectorInput } from "../../components";
-import { CodeMirrorStatic } from "../../jupyter/codemirror-static";
-import { cm_options } from "../../frame-editors/codemirror/cm-options";
-import { Button } from "../../antd-bootstrap";
+import { LabeledRow, SelectorInput } from "@cocalc/frontend/components";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import { cm_options } from "@cocalc/frontend/frame-editors/codemirror/cm-options";
+import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { AsyncComponent } from "@cocalc/frontend/misc/async-component";
 import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
 
 interface Props {
   theme: string;
   on_change: (selected: string) => void;
-  editor_settings: Map<string, any>;
+  editor_settings;
   font_size?: number;
 }
 
 export function EditorSettingsColorScheme(props: Props): JSX.Element {
+  const intl = useIntl();
+
   return (
     <div>
-      <LabeledRow label="Editor color scheme">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.editor-settings.color-schemes.label",
+          defaultMessage: "Editor color scheme",
+        })}
+      >
         <Button
           disabled={props.theme == "default"}
           style={{ float: "right" }}

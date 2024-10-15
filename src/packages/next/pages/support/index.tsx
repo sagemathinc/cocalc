@@ -7,10 +7,11 @@ import A from "components/misc/A";
 import ChatGPTHelp from "components/openai/chatgpt-help";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
+import { VideoItem } from "components/videos";
 import IndexList, { DataSource } from "components/landing/index-list";
 import { Title } from "components/misc";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
+import SocialMediaIconList from "components/landing/social-media-icon-list";
 
 const dataSource = [
   {
@@ -22,10 +23,18 @@ const dataSource = [
       <>
         If you are having any trouble or just have a question,{" "}
         <A href="/support/new">
-          <b>create a support ticket</b>
+          <b>create a support ticket</b>{" "}
         </A>
-        . You do NOT have to be a paying customer to open a ticket, though we
-        prioritize customer requests.
+        or{" "}
+        <A href="https://calendly.com/cocalc">
+          <b>book a video chat</b>
+        </A>
+        . You do NOT have to be a paying customer to open a ticket.
+        <VideoItem
+          width={800}
+          style={{ margin: "15px 0" }}
+          id={"4Ef9sxX59XM"}
+        />
       </>
     ),
   },
@@ -39,6 +48,20 @@ const dataSource = [
         Check on the{" "}
         <A href="/support/tickets">
           <b>status of your support tickets</b>
+        </A>
+        .
+      </>
+    ),
+  },
+  {
+    link: "https://calendly.com/cocalc",
+    title: "Book a Video Chat",
+    logo: "video",
+    description: (
+      <>
+        Book a{" "}
+        <A href="https://calendly.com/cocalc">
+          <b>video chat</b>
         </A>
         .
       </>
@@ -75,8 +98,16 @@ const dataSource = [
         <A href="https://groups.google.com/forum/?fromgroups#!forum/cocalc">
           post to the mailing list.{" "}
         </A>
-        We also have <A href="https://twitter.com/cocalc_com">a Twitter feed</A>{" "}
-        and <A href="https://about.cocalc.com/cocalcs-blog/">a blog</A>.
+        <SocialMediaIconList
+          links={{
+            facebook: "https://www.facebook.com/CoCalcOnline",
+            github: "https://github.com/sagemathinc/cocalc",
+            linkedin: "https://www.linkedin.com/company/sagemath-inc./",
+            twitter: "https://twitter.com/cocalc_com",
+            youtube: "https://www.youtube.com/c/SagemathCloud",
+          }}
+          iconFontSize={20}
+        />
       </>
     ),
   },

@@ -4,12 +4,11 @@
  */
 
 import { QuestionCircleOutlined } from "@ant-design/icons";
-import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { isEqual } from "lodash";
-
+import { useIntl } from "react-intl";
 import Export from "@cocalc/frontend/purchases/export";
-
 import {
   React,
   redux,
@@ -24,6 +23,7 @@ import {
   QuestionMarkText,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProjectState } from "@cocalc/frontend/project/page/project-state-hook";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { cmp, plural, trunc, unreachable } from "@cocalc/util/misc";
@@ -77,6 +77,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
   } = props;
 
   const isFlyout = mode === "flyout";
+  const intl = useIntl();
   const isMountedRef = useIsMountedRef();
   const [loading, setLoading] = useState<boolean>(true);
   // string is an error, Info the actual license data
@@ -512,7 +513,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
       <div style={{ display: "flex" }}>
         <Tooltip placement="bottom" title={"Reload license information"}>
           <Button onClick={() => fetchInfos(true)}>
-            <Icon name="refresh" /> Refresh
+            <Icon name="refresh" /> {intl.formatMessage(labels.refresh)}
           </Button>
         </Tooltip>
         <Export data={data} name="licenses" style={{ marginLeft: "8px" }} />
@@ -540,7 +541,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         {isFlyout ? undefined : (
           <Table.Column<TableRow>
             key="status"
-            title="Status"
+            title={intl.formatMessage(labels.status)}
             dataIndex="status"
             align="center"
             render={(_, rec) => renderStatus(rec)}
@@ -549,8 +550,14 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         <Table.Column<TableRow>
           key="title"
           title={
-            <QuestionMarkText tip="License information. Click on a row to expand details.">
-              License
+            <QuestionMarkText
+              tip={intl.formatMessage({
+                id: "site-licenses-public-info.license-column.help",
+                defaultMessage:
+                  "License information. Click on a row to expand details.",
+              })}
+            >
+              {intl.formatMessage(labels.license)}
             </QuestionMarkText>
           }
           dataIndex="title"

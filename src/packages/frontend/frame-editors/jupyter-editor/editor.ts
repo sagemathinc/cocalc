@@ -8,7 +8,6 @@ Spec for editing Jupyter notebooks via a frame tree.
 */
 
 import { createElement } from "react";
-
 import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
@@ -29,10 +28,9 @@ import { RawIPynb } from "./raw-ipynb";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
 import { TableOfContents } from "./table-of-contents";
+import { search } from "./search";
 
-const {
-  ICON_NAME: SNIPPET_ICON_NAME,
-} = require("@cocalc/frontend/assistant/common");
+const SNIPPET_ICON_NAME = "magic";
 
 const jupyterCommands = set([
   "about",
@@ -52,6 +50,8 @@ const jupyterCommands = set([
   "terminal",
   "help",
   "compute_server",
+  "settings",
+  "show_search",
 ]);
 
 const jupyter_cell_notebook: EditorDescription = {
@@ -70,12 +70,15 @@ const jupyter_cell_notebook: EditorDescription = {
     "jupyter-cell-format",
     "jupyter-cell-toolbar",
     "jupyter-nbgrader validate",
+    "halt_jupyter",
+    "guide",
+    "show_search",
   ]),
   customizeCommands: {
     guide: {
-      label: "Snippets",
+      label: labels.snippets,
       icon: SNIPPET_ICON_NAME,
-      title: "Open a panel containing code snippets.",
+      title: jupyter.editor.snippets_tooltip,
     },
     shell: {
       label: jupyter.editor.console_label,
@@ -110,6 +113,7 @@ const jupyter_table_of_contents: EditorDescription = {
   icon: "align-right",
   component: TableOfContents,
   commands: set(["decrease_font_size", "increase_font_size"]),
+  buttons: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 
 const introspect: EditorDescription = {
@@ -149,6 +153,7 @@ export const EDITOR_SPEC = {
   time_travel,
   jupyter_json,
   jupyter_raw,
+  search,
 } as const;
 
 const JUPYTER_MENUS = {
@@ -208,7 +213,6 @@ const JUPYTER_MENUS = {
           },
         },
       ],
-      classic: ["switch to classical notebook"],
     },
   },
   edit: {
@@ -266,7 +270,12 @@ const JUPYTER_MENUS = {
           icon: "menu-outlined",
           label: jupyter.commands.select_cells_menu,
           name: "select",
-          children: ["select all cells", "deselect all cells"],
+          children: [
+            "select all cells",
+            "deselect all cells",
+            "select all code cells",
+            "select all markdown cells",
+          ],
         },
       ],
       "cell-type": [
@@ -364,6 +373,7 @@ const JUPYTER_MENUS = {
             "cell toolbar metadata",
             "cell toolbar attachments",
             "cell toolbar tags",
+            "cell toolbar ids",
           ],
         },
         {

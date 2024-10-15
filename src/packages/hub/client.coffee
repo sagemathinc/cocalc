@@ -40,7 +40,6 @@ db_schema            = require('@cocalc/util/db-schema')
 generateHash     = require("@cocalc/server/auth/hash").default;
 passwordHash     = require("@cocalc/backend/auth/password-hash").default;
 llm              = require('@cocalc/server/llm/index');
-embeddings_api   = require('@cocalc/server/llm/embeddings-api');
 jupyter_execute  = require('@cocalc/server/jupyter/execute').execute;
 jupyter_kernels  = require('@cocalc/server/jupyter/kernels').default;
 create_project   = require("@cocalc/server/projects/create").default;
@@ -678,7 +677,12 @@ class exports.Client extends EventEmitter
 
         handler = @["mesg_#{mesg.event}"]
         if handler?
-            handler(mesg)
+            try
+                await handler(mesg)
+            catch err
+                # handler *should* handle any possible error, but just in case something
+                # not expected goes wrong... we do this
+                @error_to_client(id:mesg.id, error:"${err}")
             mesg_from_client_total.labels("#{mesg.event}").inc(1)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
@@ -1122,6 +1126,7 @@ class exports.Client extends EventEmitter
                     limit  : mesg.limit
                     admin  : mesg.admin
                     active : mesg.active
+                    only_email: mesg.only_email
                 try
                     locals.results = await user_search(opts)
                     cb(undefined)
@@ -1768,18 +1773,6 @@ class exports.Client extends EventEmitter
                         mesg.resp = resp
                         @push_to_client(mesg)
 
-    mesg_get_usernames: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        @database.get_usernames
-            account_ids : mesg.account_ids
-            use_cache   : true
-            cb          : (err, usernames) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.usernames(usernames:usernames, id:mesg.id))
 
     ###
     Support Tickets → Zendesk
@@ -2091,44 +2084,15 @@ class exports.Client extends EventEmitter
                 dbg("failed -- #{err}")
                 @error_to_client(id:mesg.id, error:"#{err}")
 
+    # These are deprecated. Not the best approach.
     mesg_openai_embeddings_search: (mesg) =>
-        dbg = @dbg("mesg_openai_embeddings_search")
-        dbg(mesg.input)
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"not signed in")
-            return
-        try
-            matches = await embeddings_api.search(account_id:@account_id, scope:mesg.scope, text:mesg.text, filter:mesg.filter, limit:mesg.limit, selector:mesg.selector, offset:mesg.offset)
-            @push_to_client(message.openai_embeddings_search_response(id:mesg.id, matches:matches))
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"#{err}")
+        @error_to_client(id:mesg.id, error:"openai_embeddings_search is DEPRECATED")
 
     mesg_openai_embeddings_save: (mesg) =>
-        dbg = @dbg("mesg_openai_embeddings_save")
-        dbg()
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"not signed in")
-            return
-        try
-            ids = await embeddings_api.save(account_id:@account_id, data:mesg.data, project_id:mesg.project_id, path:mesg.path)
-            @push_to_client(message.openai_embeddings_save_response(id:mesg.id, ids:ids))
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"#{err}")
+        @error_to_client(id:mesg.id, error:"openai_embeddings_save is DEPRECATED")
 
     mesg_openai_embeddings_remove: (mesg) =>
-        dbg = @dbg("mesg_openai_embeddings_remove")
-        dbg()
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"not signed in")
-            return
-        try
-            ids = await embeddings_api.remove(account_id:@account_id, data:mesg.data, project_id:mesg.project_id, path:mesg.path)
-            @push_to_client(message.openai_embeddings_remove_response(id:mesg.id, ids:ids))
-        catch err
-            dbg("failed -- #{err}")
-            @error_to_client(id:mesg.id, error:"#{err}")
+        @error_to_client(id:mesg.id, error:"openai_embeddings_remove is DEPRECATED")
 
     mesg_jupyter_execute: (mesg) =>
         dbg = @dbg("mesg_jupyter_execute")

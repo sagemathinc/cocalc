@@ -5,10 +5,12 @@
 
 import * as CodeMirror from "codemirror";
 
+import { redux } from "@cocalc/frontend/app-framework";
 import {
   commands as EDIT_COMMANDS,
   FONT_FACES,
 } from "@cocalc/frontend/editors/editor-button-bar";
+import { getLocale } from "@cocalc/frontend/i18n";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { open_new_tab, sagews_canonical_mode } from "@cocalc/frontend/misc";
 import { defaults, required, startswith } from "@cocalc/util/misc";
@@ -369,7 +371,15 @@ CodeMirror.defineExtension(
 
         case "ai_formula":
           if (project_id != null) {
-            src = await ai_gen_formula({ mode, text: src, project_id });
+            const account_store = redux.getStore("account");
+            const locale = getLocale(account_store.get("other_settings"));
+
+            src = await ai_gen_formula({
+              mode,
+              text: src,
+              project_id,
+              locale,
+            });
           }
           done = true;
           break;

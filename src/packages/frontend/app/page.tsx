@@ -11,7 +11,6 @@ everything on *desktop*, once the user has signed in.
 declare var DEBUG: boolean;
 
 import { useIntl } from "react-intl";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -44,6 +43,9 @@ import { Notification } from "./notifications";
 import PopconfirmModal from "./popconfirm-modal";
 import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
+import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
+import SettingsModal from "./settings-modal";
+import InsecureTestModeBanner from "./insecure-test-mode-banner";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -109,8 +111,10 @@ export const Page: React.FC = () => {
   );
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
+  const show_i18n = useShowI18NBanner();
 
   const is_commercial = useTypedRedux("customize", "is_commercial");
+  const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
 
   function account_tab_icon(): IconName | JSX.Element {
     if (is_anonymous) {
@@ -311,7 +315,10 @@ export const Page: React.FC = () => {
         }}
         name={"projects"}
         active_top_tab={active_top_tab}
-        tooltip="Show all the projects on which you collaborate."
+        tooltip={intl.formatMessage({
+          id: "page.project_nav.tooltip",
+          defaultMessage: "Show all the projects on which you collaborate.",
+        })}
         icon="edit"
         label={intl.formatMessage(labels.projects)}
       />
@@ -366,6 +373,7 @@ export const Page: React.FC = () => {
       onDragOver={(e) => e.preventDefault()}
       onDrop={drop}
     >
+      {insecure_test_mode && <InsecureTestModeBanner />}
       {show_file_use && (
         <div style={fileUseStyle} className="smc-vfill">
           <FileUsePage />
@@ -375,6 +383,7 @@ export const Page: React.FC = () => {
       {new_version && <VersionWarning new_version={new_version} />}
       {cookie_warning && <CookieWarning />}
       {local_storage_warning && <LocalStorageWarning />}
+      {show_i18n && <I18NBanner />}
       {!fullscreen && (
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />
@@ -395,6 +404,7 @@ export const Page: React.FC = () => {
       <ActiveContent />
       <PayAsYouGoModal />
       <PopconfirmModal />
+      <SettingsModal />
     </div>
   );
 };

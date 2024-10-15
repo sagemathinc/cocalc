@@ -3,44 +3,41 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Map } from "immutable";
+import { FormattedMessage } from "react-intl";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
+import { Icon, Loading } from "@cocalc/frontend/components";
+import { KEYBOARD_VARIANTS } from "@cocalc/frontend/frame-editors/x11-editor/xpra/keyboards";
 import { deep_copy } from "@cocalc/util/misc";
-import { redux, Component } from "../../app-framework";
-import { Panel } from "../../antd-bootstrap";
-import { Icon, Loading } from "../../components";
-import { EditorSettingsCheckboxes } from "./checkboxes";
 import { EditorSettingsAutosaveInterval } from "./autosave-interval";
+import { EditorSettingsCheckboxes } from "./checkboxes";
 import { EditorSettingsColorScheme } from "./color-schemes";
 import { EditorSettingsFontSize } from "./font-size";
 import { EditorSettingsIndentSize } from "./indent-size";
 import { EditorSettingsKeyboardBindings } from "./keyboard-bindings";
-import { KEYBOARD_VARIANTS } from "../../frame-editors/x11-editor/xpra/keyboards";
 import {
-  EditorSettingsPhysicalKeyboard,
   EditorSettingsKeyboardVariant,
+  EditorSettingsPhysicalKeyboard,
 } from "./x11-keyboard";
-
 import { set_account_table } from "../util";
 
-interface Props {
-  autosave?: number;
-  tab_size?: number;
-  font_size?: number;
-  email_address?: string;
-  editor_settings?: Map<string, any>;
-}
+export function EditorSettings({}) {
+  const autosave = useTypedRedux("account", "autosave");
+  const font_size = useTypedRedux("account", "font_size");
+  const editor_settings = useTypedRedux("account", "editor_settings");
+  const email_address = useTypedRedux("account", "email_address");
+  const tab_size = editor_settings?.get("tab_size");
 
-export class EditorSettings extends Component<Props> {
-  private get_keyboard_variant_options(val?) {
+  function get_keyboard_variant_options(val?) {
     if (val == null) {
-      val = this.props.editor_settings?.get("physical_keyboard");
+      val = editor_settings?.get("physical_keyboard");
     }
     const options = deep_copy(KEYBOARD_VARIANTS[val] ?? []);
     options.unshift({ value: "", display: "No variant" });
     return options;
   }
 
-  private on_change(name: string, val: any): void {
+  function on_change(name: string, val: any): void {
     if (name === "autosave" || name === "font_size") {
       set_account_table({ [name]: val });
     } else {
@@ -48,77 +45,67 @@ export class EditorSettings extends Component<Props> {
     }
 
     if (name === "physical_keyboard") {
-      const options = this.get_keyboard_variant_options(val);
+      const options = get_keyboard_variant_options(val);
       redux
         .getActions("account")
         .setState({ keyboard_variant_options: options });
       for (const opt of options) {
         if (opt.value === "nodeadkeys") {
-          this.on_change("keyboard_variant", opt.value);
+          on_change("keyboard_variant", opt.value);
           return;
         }
       }
       // otherwise, select default
-      this.on_change("keyboard_variant", "");
+      on_change("keyboard_variant", "");
     }
   }
 
-  public render() {
-    if (
-      this.props.editor_settings == null ||
-      this.props.font_size == null ||
-      !this.props.autosave ||
-      !this.props.tab_size
-    ) {
-      return <Loading />;
-    }
-    return (
-      <Panel
-        header={
-          <>
-            <Icon name="edit" /> Editor
-          </>
-        }
-      >
-        <EditorSettingsFontSize
-          on_change={this.on_change.bind(this)}
-          font_size={this.props.font_size}
-        />
-        <EditorSettingsAutosaveInterval
-          on_change={this.on_change.bind(this)}
-          autosave={this.props.autosave}
-        />
-        <EditorSettingsIndentSize
-          on_change={this.on_change.bind(this)}
-          tab_size={this.props.tab_size}
-        />
-        <EditorSettingsColorScheme
-          on_change={(value) => this.on_change("theme", value)}
-          theme={this.props.editor_settings.get("theme")}
-          editor_settings={this.props.editor_settings}
-          font_size={this.props.font_size}
-        />
-        <EditorSettingsKeyboardBindings
-          on_change={(value) => this.on_change("bindings", value)}
-          bindings={this.props.editor_settings.get("bindings")}
-        />
-        <EditorSettingsPhysicalKeyboard
-          on_change={(value) => this.on_change("physical_keyboard", value)}
-          physical_keyboard={this.props.editor_settings.get(
-            "physical_keyboard"
-          )}
-        />
-        <EditorSettingsKeyboardVariant
-          on_change={(value) => this.on_change("keyboard_variant", value)}
-          keyboard_variant={this.props.editor_settings.get("keyboard_variant")}
-          keyboard_variant_options={this.get_keyboard_variant_options()}
-        />
-        <EditorSettingsCheckboxes
-          on_change={this.on_change.bind(this)}
-          editor_settings={this.props.editor_settings}
-          email_address={this.props.email_address}
-        />
-      </Panel>
-    );
+  if (editor_settings == null || font_size == null || !autosave || !tab_size) {
+    return <Loading />;
   }
+
+  return (
+    <Panel
+      header={
+        <>
+          <Icon name="edit" />{" "}
+          <FormattedMessage
+            id="account.editor-settings.title"
+            defaultMessage="Editor Settings"
+          />
+        </>
+      }
+    >
+      <EditorSettingsFontSize on_change={on_change} font_size={font_size} />
+      <EditorSettingsAutosaveInterval
+        on_change={on_change}
+        autosave={autosave}
+      />
+      <EditorSettingsIndentSize on_change={on_change} tab_size={tab_size} />
+      <EditorSettingsColorScheme
+        on_change={(value) => on_change("theme", value)}
+        theme={editor_settings.get("theme") ?? ""}
+        editor_settings={editor_settings}
+        font_size={font_size}
+      />
+      <EditorSettingsKeyboardBindings
+        on_change={(value) => on_change("bindings", value)}
+        bindings={editor_settings.get("bindings") ?? ""}
+      />
+      <EditorSettingsPhysicalKeyboard
+        on_change={(value) => on_change("physical_keyboard", value)}
+        physical_keyboard={editor_settings.get("physical_keyboard") ?? ""}
+      />
+      <EditorSettingsKeyboardVariant
+        on_change={(value) => on_change("keyboard_variant", value)}
+        keyboard_variant={editor_settings.get("keyboard_variant") ?? ""}
+        keyboard_variant_options={get_keyboard_variant_options()}
+      />
+      <EditorSettingsCheckboxes
+        on_change={on_change}
+        editor_settings={editor_settings}
+        email_address={email_address}
+      />
+    </Panel>
+  );
 }

@@ -14,6 +14,7 @@ happens, and also when the system is heavily loaded.
 
 import { Alert, Button, Space } from "antd";
 import { CSSProperties, useRef } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -23,6 +24,7 @@ import {
   ProjectState,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { server_seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
@@ -36,6 +38,7 @@ const STYLE: CSSProperties = {
 } as const;
 
 export function StartButton() {
+  const intl = useIntl();
   const { project_id } = useProjectContext();
   const project_websockets = useTypedRedux("projects", "project_websockets");
   const connected = project_websockets?.get(project_id) == "online";
@@ -47,7 +50,7 @@ export function StartButton() {
     const state = project_map?.get(project_id)?.get("state");
     if (state != null) {
       lastNotRunningRef.current =
-        state.get("state") == "running" ? null : Date.now();
+        state.get("state") === "running" ? null : Date.now();
     }
     return state;
   }, [project_map]);
@@ -57,16 +60,16 @@ export function StartButton() {
   // Making the UI depend on this instead of *just* the state
   // makes things feel more responsive.
   const starting = useMemo(() => {
-    if (state?.get("state") == "starting" || state?.get("state") == "opening")
+    if (state?.get("state") === "starting" || state?.get("state") === "opening")
       return true;
-    if (state?.get("state") == "running") return false;
+    if (state?.get("state") === "running") return false;
     const action_request = (
       project_map?.getIn([project_id, "action_request"]) as any
     )?.toJS() as any;
     if (action_request == null) {
       return false; // no action request at all
     }
-    if (action_request.action != "start") {
+    if (action_request.action !== "start") {
       return false; // a non-start action
     }
     if (action_request.finished >= new Date(action_request.time)) {
@@ -83,7 +86,7 @@ export function StartButton() {
     return true;
   }, [project_map]);
 
-  if (state?.get("state") == "running") {
+  if (state?.get("state") === "running") {
     if (connected) {
       return <></>;
     } else {
@@ -107,7 +110,8 @@ export function StartButton() {
                   color: COLORS.GRAY_M,
                 }}
               >
-                Connecting... <Icon name="cocalc-ring" spin />
+                {intl.formatMessage(labels.connecting)}...{" "}
+                <Icon name="cocalc-ring" spin />
               </span>
             }
           />
@@ -125,27 +129,45 @@ export function StartButton() {
             style={{ margin: "10px 20%" }}
             message={
               <span style={{ fontWeight: 500, fontSize: "14pt" }}>
-                Too Many Free Trial Projects
+                <FormattedMessage
+                  id="project.start-button.trial.message"
+                  defaultMessage={"Too Many Free Trial Projects"}
+                />
               </span>
             }
             type="error"
             description={
               <span style={{ fontSize: "12pt" }}>
-                There is no more capacity for{" "}
-                <A href={DOC_TRIAL}>Free Trial projects</A> on CoCalc right now.{" "}
-                <br />
-                <a
-                  onClick={() => {
-                    redux
-                      .getProjectActions(project_id)
-                      .set_active_tab("upgrades");
+                <FormattedMessage
+                  id="project.start-button.trial.description"
+                  defaultMessage={`There is no more capacity for <A>Free Trial projects</A>on CoCalc right now.
+                  {br}
+                  <A2>Upgrade your project</A2> using <A3>a license</A3> or {A4}.
+                  `}
+                  values={{
+                    br: <br />,
+                    A: (c) => <A href={DOC_TRIAL}>{c}</A>,
+                    A2: (c) => (
+                      <a
+                        onClick={() => {
+                          redux
+                            .getProjectActions(project_id)
+                            .set_active_tab("upgrades");
+                        }}
+                      >
+                        {c}
+                      </a>
+                    ),
+                    A3: (c) => (
+                      <A href="https://doc.cocalc.com/licenses.html">{c}</A>
+                    ),
+                    A4: (
+                      <A href="https://doc.cocalc.com/paygo.html">
+                        pay as you go
+                      </A>
+                    ),
                   }}
-                >
-                  Upgrade your project
-                </a>{" "}
-                using{" "}
-                <A href="https://doc.cocalc.com/licenses.html">a license</A> or{" "}
-                <A href="https://doc.cocalc.com/paygo.html">pay as you go</A>.
+                />
               </span>
             }
           />
@@ -158,7 +180,17 @@ export function StartButton() {
       state == null ||
       (allowed &&
         ["opened", "closed", "archived"].includes(state?.get("state")));
-    const txt = `Start${starting ? "ing" : ""} project`;
+
+    const txt = intl.formatMessage(
+      {
+        id: "project.start-button.button.txt",
+        defaultMessage: `{starting, select, true {Starting project} other {Start project}}`,
+        description:
+          "Label on a button, either to start the project or indicating the project is currently starting.",
+      },
+      { starting },
+    );
+
     return (
       <div>
         <Button

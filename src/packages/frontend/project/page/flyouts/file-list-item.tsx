@@ -440,7 +440,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             }
           }
           actions?.set_active_tab("files");
-          actions?.set_file_action(name, () => fileName);
+          actions?.set_file_action(name);
         },
       });
     }

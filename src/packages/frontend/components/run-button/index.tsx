@@ -33,6 +33,8 @@ import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import Output from "./output";
 import SelectKernel from "./select-kernel";
 
+// ATTN[i18n]: it's tempting to translate this, but it is a dependency of next (vouchers/notes → slate/code-block → buttons)
+
 export type RunFunction = () => Promise<void>;
 type RunRef = MutableRefObject<RunFunction | null>;
 

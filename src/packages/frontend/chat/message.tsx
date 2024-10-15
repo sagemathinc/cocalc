@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
+import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
 import { Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
@@ -15,19 +15,13 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import {
-  Gap,
-  Icon,
-  Paragraph,
-  Text,
-  TimeAgo,
-  Tip,
-} from "@cocalc/frontend/components";
+import { Gap, Icon, TimeAgo, Tip } from "@cocalc/frontend/components";
+import { User } from "@cocalc/frontend/users";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
-import { unreachable } from "@cocalc/util/misc";
+import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
@@ -45,6 +39,7 @@ import {
   message_colors,
   newest_content,
   sender_is_viewer,
+  getThreadRootDate,
 } from "./utils";
 
 const DELETE_BUTTON = false;
@@ -52,11 +47,10 @@ const DELETE_BUTTON = false;
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
 const MARKDOWN_STYLE = undefined;
-// const MARKDOWN_STYLE = { maxHeight: "300px", overflowY: "auto" };
 
 const BORDER = "2px solid #ccc";
 
-const SHOW_EDIT_BUTTON_MS = 45000;
+const SHOW_EDIT_BUTTON_MS = 15000;
 
 const TRHEAD_STYLE_SINGLE: CSS = {
   marginLeft: "15px",
@@ -98,8 +92,8 @@ const AVATAR_MARGIN_LEFTRIGHT = "15px";
 interface Props {
   index: number;
   actions?: ChatActions;
-
   get_user_name: (account_id?: string) => string;
+  messages;
   message: ChatMessageTyped;
   account_id: string;
   user_map?: Map<string, any>;
@@ -107,7 +101,6 @@ interface Props {
   path?: string;
   font_size: number;
   is_prev_sender?: boolean;
-  is_next_sender?: boolean;
   show_avatar?: boolean;
   mode: Mode;
   selectedHashtags?: Set<string>;
@@ -121,23 +114,40 @@ interface Props {
   is_thread?: boolean; // if true, there is a thread starting in a reply_to message
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
-  force_unfold?: boolean; // if true, all threads are temporarily forced to be unfolded
 
-  llm_cost_reply?: [number, number] | null;
+  costEstimate;
+
+  selected?: boolean;
+
+  // for the root of a folded thread, optionally give this number of a
+  // more informative message to the user.
+  numChildren?: number;
 }
 
-export default function Message(props: Readonly<Props>) {
-  const {
-    is_folded,
-    force_unfold,
-    is_thread_body,
-    is_thread,
-    llm_cost_reply,
-    message,
-    mode,
-    project_id,
-  } = props;
-
+export default function Message({
+  index,
+  actions,
+  get_user_name,
+  messages,
+  message,
+  account_id,
+  user_map,
+  project_id,
+  path,
+  font_size,
+  is_prev_sender,
+  show_avatar,
+  mode,
+  selectedHashtags,
+  scroll_into_view,
+  allowReply,
+  is_thread,
+  is_folded,
+  is_thread_body,
+  costEstimate,
+  selected,
+  numChildren,
+}: Props) {
   const showAISummarize = redux
     .getStore("projects")
     .hasLanguageModelEnabled(project_id, "chat-summarize");
@@ -170,29 +180,27 @@ export default function Message(props: Readonly<Props>) {
   const history_size = useMemo(() => message.get("history").size, [message]);
 
   const isEditing = useMemo(
-    () => is_editing(message, props.account_id),
-    [message, props.account_id],
+    () => is_editing(message, account_id),
+    [message, account_id],
   );
 
   const editor_name = useMemo(() => {
-    return props.get_user_name(
-      message.get("history")?.first()?.get("author_id"),
-    );
+    return get_user_name(message.get("history")?.first()?.get("author_id"));
   }, [message]);
 
   const reverseRowOrdering =
-    !is_thread_body && sender_is_viewer(props.account_id, message);
+    !is_thread_body && sender_is_viewer(account_id, message);
 
   const submitMentionsRef = useRef<SubmitMentionsFn>();
 
   const [replying, setReplying] = useState<boolean>(() => {
-    if (!props.allowReply) {
+    if (!allowReply) {
       return false;
     }
-    const replyDate = -(props.actions?.store?.getThreadRootDate(date) ?? 0);
-    const draft = props.actions?.syncdb?.get_one({
+    const replyDate = -getThreadRootDate({ date, messages });
+    const draft = actions?.syncdb?.get_one({
       event: "draft",
-      sender_id: props.account_id,
+      sender_id: account_id,
       date: replyDate,
     });
     if (draft == null) {
@@ -206,10 +214,10 @@ export default function Message(props: Readonly<Props>) {
     return true;
   });
   useEffect(() => {
-    if (!props.allowReply) {
+    if (!allowReply) {
       setReplying(false);
     }
-  }, [props.allowReply]);
+  }, [allowReply]);
 
   const [autoFocusReply, setAutoFocusReply] = useState<boolean>(false);
   const [autoFocusEdit, setAutoFocusEdit] = useState<boolean>(false);
@@ -217,12 +225,12 @@ export default function Message(props: Readonly<Props>) {
   const replyMessageRef = useRef<string>("");
   const replyMentionsRef = useRef<SubmitMentionsFn>();
 
-  const is_viewers_message = sender_is_viewer(props.account_id, message);
+  const is_viewers_message = sender_is_viewer(account_id, message);
   const verb = show_history ? "Hide" : "Show";
 
   const isLLMThread = useMemo(
-    () => props.actions?.isLanguageModelThread(message.get("date")),
-    [message, props.actions != null],
+    () => actions?.isLanguageModelThread(message.get("date")),
+    [message, actions != null],
   );
 
   const msgWrittenByLLM = useMemo(() => {
@@ -232,7 +240,7 @@ export default function Message(props: Readonly<Props>) {
 
   useLayoutEffect(() => {
     if (replying) {
-      props.scroll_into_view?.();
+      scroll_into_view?.();
     }
   }, [replying]);
 
@@ -240,7 +248,7 @@ export default function Message(props: Readonly<Props>) {
     let text;
     const other_editors = message
       .get("editing")
-      .remove(props.account_id)
+      .remove(account_id)
       // @ts-ignore – not sure why this error shows up
       .keySeq();
     if (is_editing) {
@@ -248,7 +256,7 @@ export default function Message(props: Readonly<Props>) {
         // This user and someone else is also editing
         text = (
           <>
-            {`WARNING: ${props.get_user_name(
+            {`WARNING: ${get_user_name(
               other_editors.first(),
             )} is also editing this! `}
             <b>Simultaneous editing of messages is not supported.</b>
@@ -269,7 +277,7 @@ export default function Message(props: Readonly<Props>) {
     } else {
       if (other_editors.size === 1) {
         // One person is editing
-        text = `${props.get_user_name(
+        text = `${get_user_name(
           other_editors.first(),
         )} is editing this message`;
       } else if (other_editors.size > 1) {
@@ -296,7 +304,6 @@ export default function Message(props: Readonly<Props>) {
         <div
           style={{
             color: COLORS.GRAY_M,
-            marginBottom: "2px",
             fontSize: "14px" /* matches Reply button */,
           }}
         >
@@ -327,30 +334,26 @@ export default function Message(props: Readonly<Props>) {
   }
 
   function edit_message() {
-    if (
-      props.project_id == null ||
-      props.path == null ||
-      props.actions == null
-    ) {
+    if (project_id == null || path == null || actions == null) {
       // no editing functionality or not in a project with a path.
       return;
     }
-    props.actions.set_editing(message, true);
+    actions.setEditing(message, true);
     setAutoFocusEdit(true);
-    props.scroll_into_view?.();
+    scroll_into_view?.();
   }
 
   function avatar_column() {
     const sender_id = message.get("sender_id");
     let style: CSSProperties = {};
-    if (!props.is_prev_sender) {
+    if (!is_prev_sender) {
       style.marginTop = "22px";
     } else {
       style.marginTop = "5px";
     }
 
     if (!is_thread_body) {
-      if (sender_is_viewer(props.account_id, message)) {
+      if (sender_is_viewer(account_id, message)) {
         style.marginLeft = AVATAR_MARGIN_LEFTRIGHT;
       } else {
         style.marginRight = AVATAR_MARGIN_LEFTRIGHT;
@@ -360,7 +363,7 @@ export default function Message(props: Readonly<Props>) {
     return (
       <Col key={0} xs={2}>
         <div style={style}>
-          {sender_id != null && props.show_avatar ? (
+          {sender_id != null && show_avatar ? (
             <Avatar size={40} account_id={sender_id} />
           ) : undefined}
         </div>
@@ -368,65 +371,182 @@ export default function Message(props: Readonly<Props>) {
     );
   }
 
-  function content_column() {
-    let borderRadius, marginBottom, marginTop: any;
+  function contentColumn() {
+    let marginTop;
     let value = newest_content(message);
 
     const { background, color, lighten, message_class } = message_colors(
-      props.account_id,
+      account_id,
       message,
     );
 
-    const font_size = `${props.font_size}px`;
-
-    if (props.show_avatar) {
-      marginBottom = "1vh";
-    } else {
-      marginBottom = "3px";
-    }
-
-    if (!props.is_prev_sender && is_viewers_message) {
+    if (!is_prev_sender && is_viewers_message) {
       marginTop = MARGIN_TOP_VIEWER;
     } else {
       marginTop = "5px";
-    }
-
-    if (!props.is_prev_sender && !props.is_next_sender && !show_history) {
-      borderRadius = "10px 10px 10px 10px";
-    } else if (!props.is_prev_sender) {
-      borderRadius = "10px 10px 5px 5px";
-    } else if (!props.is_next_sender) {
-      borderRadius = "5px 5px 10px 10px";
     }
 
     const message_style: CSSProperties = {
       color,
       background,
       wordWrap: "break-word",
-      marginBottom,
+      borderRadius: "5px",
       marginTop,
-      borderRadius,
-      fontSize: font_size,
-      padding: "9px",
-      ...(mode === "sidechat" ? { marginLeft: "5px", marginRight: "5px" } : {}),
+      fontSize: `${font_size}px`,
+      // no padding on bottom, since message itself is markdown, hence
+      // wrapped in <p>'s, which have a big 10px margin on their bottoms
+      // already.
+      padding: selected ? "6px 6px 0 6px" : "9px 9px 0 9px",
+      ...(mode === "sidechat"
+        ? { marginLeft: "5px", marginRight: "5px" }
+        : undefined),
+      ...(selected ? { border: "3px solid #66bb6a" } : undefined),
+      maxHeight: is_folded ? "100px" : undefined,
+      overflowY: is_folded ? "auto" : undefined,
     } as const;
 
     const mainXS = mode === "standalone" ? 20 : 22;
     const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
+    const feedback = message.getIn(["feedback", account_id]);
+    const otherFeedback =
+      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
+    const showOtherFeedback = otherFeedback > 0;
+
+    const editControlRow = () => {
+      if (isEditing) {
+        return null;
+      }
+      const showDeleteButton =
+        DELETE_BUTTON && newest_content(message).trim().length > 0;
+      const showEditingStatus =
+        (message.get("history")?.size ?? 0) > 1 ||
+        (message.get("editing")?.size ?? 0) > 0;
+      const showHistory = (message.get("history")?.size ?? 0) > 1;
+      const showLLMFeedback = isLLMThread && msgWrittenByLLM;
+
+      // Show the bottom line of the message -- this uses a LOT of extra
+      // vertical space, so only do it if there is a good reason to.
+      // Getting rid of this might be nice.
+      const show =
+        showEditButton ||
+        showDeleteButton ||
+        showEditingStatus ||
+        showHistory ||
+        showLLMFeedback;
+      if (!show) {
+        // important to explicitly check this before rendering below, since otherwise we get a big BLANK space.
+        return null;
+      }
+
+      return (
+        <div style={{ width: "100%", textAlign: "center" }}>
+          <Space direction="horizontal" size="small" wrap>
+            {showEditButton ? (
+              <Tooltip
+                title={
+                  <>
+                    Edit this message. You can edit <b>any</b> past message at
+                    any time by double clicking on it. Fix other people's typos.
+                    All versions are stored.
+                  </>
+                }
+                placement="left"
+              >
+                <Button
+                  disabled={replying}
+                  style={{
+                    color: is_viewers_message ? "white" : "#555",
+                  }}
+                  type="text"
+                  size="small"
+                  onClick={() => actions?.setEditing(message, true)}
+                >
+                  <Icon name="pencil" /> Edit
+                </Button>
+              </Tooltip>
+            ) : undefined}
+            {showDeleteButton && (
+              <Tooltip
+                title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
+                placement="left"
+              >
+                <Popconfirm
+                  title="Delete this message"
+                  description="Are you sure you want to delete this message?"
+                  onConfirm={() => {
+                    actions?.setEditing(message, true);
+                    setTimeout(() => actions?.sendEdit(message, ""), 1);
+                  }}
+                >
+                  <Button
+                    disabled={replying}
+                    style={{
+                      color: is_viewers_message ? "white" : "#555",
+                    }}
+                    type="text"
+                    size="small"
+                  >
+                    <Icon name="trash" /> Delete
+                  </Button>
+                </Popconfirm>
+              </Tooltip>
+            )}
+            {showEditingStatus && editing_status(isEditing)}
+            {showHistory && (
+              <Button
+                style={{
+                  marginLeft: "5px",
+                  color: is_viewers_message ? "white" : "#555",
+                }}
+                type="text"
+                size="small"
+                icon={<Icon name="history" />}
+                onClick={() => {
+                  set_show_history(!show_history);
+                  scroll_into_view?.();
+                }}
+              >
+                <Tip
+                  title="Message History"
+                  tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
+                >
+                  {verb} History
+                </Tip>
+              </Button>
+            )}
+            {showLLMFeedback && (
+              <>
+                <RegenerateLLM
+                  actions={actions}
+                  date={date}
+                  model={isLLMThread}
+                />
+                <FeedbackLLM actions={actions} message={message} />
+              </>
+            )}
+          </Space>
+        </div>
+      );
+    };
 
     return (
       <Col key={1} xs={mainXS}>
-        <div style={{ display: "flex" }}>
-          {!props.is_prev_sender &&
+        <div
+          style={{ display: "flex" }}
+          onClick={() => {
+            actions?.setFragment(message.get("date"));
+          }}
+        >
+          {!is_prev_sender &&
           !is_viewers_message &&
           message.get("sender_id") ? (
-            <Name sender_name={props.get_user_name(message.get("sender_id"))} />
+            <Name sender_name={get_user_name(message.get("sender_id"))} />
           ) : undefined}
-          {generating === true && props.actions ? (
+          {generating === true && actions ? (
             <Button
               style={{ color: COLORS.GRAY_M }}
               onClick={() => {
-                props.actions?.languageModelStopGenerating(new Date(date));
+                actions?.languageModelStopGenerating(new Date(date));
               }}
             >
               <Icon name="square" /> Stop Generating
@@ -441,6 +561,83 @@ export default function Message(props: Readonly<Props>) {
           {!isEditing && (
             <span style={lighten}>
               <Time message={message} edit={edit_message} />
+              {!isLLMThread && (
+                <Tooltip
+                  title={
+                    !showOtherFeedback
+                      ? undefined
+                      : () => {
+                          return (
+                            <div>
+                              {Object.keys(
+                                message.get("feedback")?.toJS() ?? {},
+                              ).map((account_id) => (
+                                <div
+                                  key={account_id}
+                                  style={{ marginBottom: "2px" }}
+                                >
+                                  <Avatar size={24} account_id={account_id} />{" "}
+                                  <User account_id={account_id} />
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+                  }
+                >
+                  <Button
+                    style={{
+                      marginRight: "5px",
+                      float: "right",
+                      marginTop: "-4px",
+                      color: !feedback && is_viewers_message ? "white" : "#888",
+                      fontSize: "12px",
+                    }}
+                    size="small"
+                    type={feedback ? "dashed" : "text"}
+                    onClick={() => {
+                      actions?.feedback(message, feedback ? null : "positive");
+                    }}
+                  >
+                    {showOtherFeedback ? (
+                      <Badge
+                        count={otherFeedback}
+                        color="darkblue"
+                        size="small"
+                      />
+                    ) : (
+                      ""
+                    )}
+                    <Tooltip
+                      title={showOtherFeedback ? undefined : "Like this"}
+                    >
+                      <Icon
+                        name="thumbs-up"
+                        style={{
+                          color: showOtherFeedback ? "darkblue" : undefined,
+                        }}
+                      />
+                    </Tooltip>
+                  </Button>
+                </Tooltip>
+              )}{" "}
+              <Tooltip title="Select message. Copy URL to link to this message.">
+                <Button
+                  onClick={() => {
+                    actions?.setFragment(message.get("date"));
+                  }}
+                  size="small"
+                  type={"text"}
+                  style={{
+                    float: "right",
+                    marginTop: "-4px",
+                    color: is_viewers_message ? "white" : "#888",
+                    fontSize: "12px",
+                  }}
+                >
+                  <Icon name="link" />
+                </Button>
+              </Tooltip>
             </span>
           )}
           {!isEditing && (
@@ -448,116 +645,25 @@ export default function Message(props: Readonly<Props>) {
               style={MARKDOWN_STYLE}
               value={value}
               className={message_class}
-              selectedHashtags={props.selectedHashtags}
+              selectedHashtags={selectedHashtags}
               toggleHashtag={
-                props.selectedHashtags != null && props.actions != null
+                selectedHashtags != null && actions != null
                   ? (tag) =>
-                      props.actions?.setHashtagState(
+                      actions?.setHashtagState(
                         tag,
-                        props.selectedHashtags?.has(tag) ? undefined : 1,
+                        selectedHashtags?.has(tag) ? undefined : 1,
                       )
                   : undefined
               }
             />
           )}
           {isEditing && renderEditMessage()}
-          {!isEditing && (
-            <div style={{ width: "100%", textAlign: "center" }}>
-              <Space direction="horizontal" size="small" wrap>
-                {showEditButton ? (
-                  <Tooltip
-                    title="Edit this message. You can edit any past message by anybody at any time by double clicking on it.  Previous versions are in the history."
-                    placement="left"
-                  >
-                    <Button
-                      disabled={replying}
-                      style={{
-                        color: is_viewers_message ? "white" : "#555",
-                      }}
-                      type="text"
-                      size="small"
-                      onClick={() => props.actions?.set_editing(message, true)}
-                    >
-                      <Icon name="pencil" /> Edit
-                    </Button>
-                  </Tooltip>
-                ) : undefined}
-                {DELETE_BUTTON && newest_content(message).trim().length > 0 ? (
-                  <Tooltip
-                    title="Delete this message. You can delete any past message by anybody.  The deleted message can be view in history."
-                    placement="left"
-                  >
-                    <Popconfirm
-                      title="Delete this message"
-                      description="Are you sure you want to delete this message?"
-                      onConfirm={() => {
-                        props.actions?.set_editing(message, true);
-                        setTimeout(
-                          () => props.actions?.send_edit(message, ""),
-                          1,
-                        );
-                      }}
-                    >
-                      <Button
-                        disabled={replying}
-                        style={{
-                          color: is_viewers_message ? "white" : "#555",
-                        }}
-                        type="text"
-                        size="small"
-                      >
-                        <Icon name="trash" /> Delete
-                      </Button>
-                    </Popconfirm>
-                  </Tooltip>
-                ) : undefined}
-                {message.get("history").size > 1 ||
-                message.get("editing").size > 0
-                  ? editing_status(isEditing)
-                  : undefined}
-                {message.get("history").size > 1 ? (
-                  <Button
-                    style={{
-                      marginLeft: "5px",
-                      color: is_viewers_message ? "white" : "#555",
-                    }}
-                    type="text"
-                    size="small"
-                    icon={<Icon name="history" />}
-                    onClick={() => {
-                      set_show_history(!show_history);
-                      props.scroll_into_view?.();
-                    }}
-                  >
-                    <Tip
-                      title="Message History"
-                      tip={`${verb} history of editing of this message.  Any collaborator can edit any message by double clicking on it.`}
-                    >
-                      {verb} History
-                    </Tip>
-                  </Button>
-                ) : undefined}
-                {isLLMThread && msgWrittenByLLM ? (
-                  <>
-                    <RegenerateLLM
-                      actions={props.actions}
-                      date={date}
-                      model={isLLMThread}
-                    />
-                    <FeedbackLLM actions={props.actions} message={message} />
-                  </>
-                ) : undefined}
-              </Space>
-            </div>
-          )}
+          {editControlRow()}
         </div>
         {show_history && (
           <div>
             <HistoryTitle />
-            <History
-              history={message.get("history")}
-              user_map={props.user_map}
-            />
+            <History history={message.get("history")} user_map={user_map} />
             <HistoryFooter />
           </div>
         )}
@@ -567,30 +673,28 @@ export default function Message(props: Readonly<Props>) {
   }
 
   function saveEditedMessage(): void {
-    if (props.actions == null) return;
-    const mesg = submitMentionsRef.current?.() ?? edited_message_ref.current;
+    if (actions == null) return;
+    const mesg =
+      submitMentionsRef.current?.({ chat: `${date}` }) ??
+      edited_message_ref.current;
     const value = newest_content(message);
     if (mesg !== value) {
       set_edited_message(mesg);
-      props.actions.send_edit(message, mesg);
+      actions.sendEdit(message, mesg);
     } else {
-      props.actions.set_editing(message, false);
+      actions.setEditing(message, false);
     }
   }
 
   function on_cancel(): void {
     set_edited_message(newest_content(message));
-    if (props.actions == null) return;
-    props.actions.set_editing(message, false);
-    props.actions.delete_draft(date);
+    if (actions == null) return;
+    actions.setEditing(message, false);
+    actions.deleteDraft(date);
   }
 
   function renderEditMessage() {
-    if (
-      props.project_id == null ||
-      props.path == null ||
-      props.actions?.syncdb == null
-    ) {
+    if (project_id == null || path == null || actions?.syncdb == null) {
       // should never get into this position
       // when null.
       return;
@@ -598,13 +702,14 @@ export default function Message(props: Readonly<Props>) {
     return (
       <div>
         <ChatInput
+          fontSize={font_size}
           autoFocus={autoFocusEdit}
-          cacheId={`${props.path}${props.project_id}${date}`}
+          cacheId={`${path}${project_id}${date}`}
           input={newest_content(message)}
           submitMentionsRef={submitMentionsRef}
           on_send={saveEditedMessage}
           height={"auto"}
-          syncdb={props.actions.syncdb}
+          syncdb={actions.syncdb}
           date={date}
           onChange={(value) => {
             edited_message_ref.current = value;
@@ -614,8 +719,8 @@ export default function Message(props: Readonly<Props>) {
           <Button
             style={{ marginRight: "5px" }}
             onClick={() => {
-              props.actions?.set_editing(message, false);
-              props.actions?.delete_draft(date);
+              actions?.setEditing(message, false);
+              actions?.deleteDraft(date);
             }}
           >
             Cancel
@@ -629,46 +734,65 @@ export default function Message(props: Readonly<Props>) {
   }
 
   function sendReply(reply?: string) {
-    if (props.actions == null) return;
+    if (actions == null) return;
     setReplying(false);
-    if (!reply) {
-      reply = replyMentionsRef.current?.() ?? replyMessageRef.current;
+    if (!reply && !replyMentionsRef.current?.(undefined, true)) {
+      reply = replyMessageRef.current;
     }
-    props.actions.send_reply({ message: message.toJS(), reply });
-    props.actions.scrollToBottom(props.index);
+    actions.sendReply({
+      message: message.toJS(),
+      reply,
+      submitMentionsRef: replyMentionsRef,
+    });
+    actions.scrollToIndex(index);
   }
 
   function renderComposeReply() {
-    if (
-      props.project_id == null ||
-      props.path == null ||
-      props.actions?.syncdb == null
-    ) {
+    if (project_id == null || path == null || actions?.syncdb == null) {
       // should never get into this position
       // when null.
       return;
     }
-    const replyDate = -(props.actions.store?.getThreadRootDate(date) ?? 0);
+    const replyDate = -getThreadRootDate({ date, messages });
+    let input;
+    let moveCursorToEndOfLine = false;
+    if (isLLMThread) {
+      input = "";
+    } else {
+      const replying_to = message.get("history")?.first()?.get("author_id");
+      if (!replying_to || replying_to == account_id) {
+        input = "";
+      } else {
+        input = `<span class="user-mention" account-id=${replying_to} >@${editor_name}</span> `;
+        moveCursorToEndOfLine = autoFocusReply;
+      }
+    }
     return (
       <div style={{ marginLeft: mode === "standalone" ? "30px" : "0" }}>
         <ChatInput
+          fontSize={font_size}
           autoFocus={autoFocusReply}
+          moveCursorToEndOfLine={moveCursorToEndOfLine}
           style={{
             borderRadius: "8px",
             height: "auto" /* for some reason the default 100% breaks things */,
           }}
-          cacheId={`${props.path}${props.project_id}${date}-reply`}
-          input={""}
+          cacheId={`${path}${project_id}${date}-reply`}
+          input={input}
           submitMentionsRef={replyMentionsRef}
           on_send={sendReply}
           height={"auto"}
-          syncdb={props.actions.syncdb}
+          syncdb={actions.syncdb}
           date={replyDate}
           onChange={(value) => {
             replyMessageRef.current = value;
             // replyMentionsRef does not submit mentions, only gives us the value
-            const reply = replyMentionsRef.current?.(undefined, true) ?? value;
-            props.actions?.llm_estimate_cost(reply, "reply", message.toJS());
+            const input = replyMentionsRef.current?.(undefined, true) ?? value;
+            actions?.llmEstimateCost({
+              date: replyDate,
+              input,
+              message: message.toJS(),
+            });
           }}
           placeholder={"Reply to the above message..."}
         />
@@ -677,7 +801,7 @@ export default function Message(props: Readonly<Props>) {
             style={{ marginRight: "5px" }}
             onClick={() => {
               setReplying(false);
-              props.actions?.delete_draft(replyDate);
+              actions?.deleteDraft(replyDate);
             }}
           >
             Cancel
@@ -688,13 +812,15 @@ export default function Message(props: Readonly<Props>) {
             }}
             type="primary"
           >
-            <Icon name="paper-plane" /> Send
+            <Icon name="reply" /> Reply (shift+enter)
           </Button>
-          <LLMCostEstimationChat
-            llm_cost={llm_cost_reply}
-            compact={false}
-            style={{ display: "inline-block", marginLeft: "10px" }}
-          />
+          {costEstimate?.get("date") == replyDate && (
+            <LLMCostEstimationChat
+              costEstimate={costEstimate?.toJS()}
+              compact={false}
+              style={{ display: "inline-block", marginLeft: "10px" }}
+            />
+          )}
         </div>
       </div>
     );
@@ -711,7 +837,7 @@ export default function Message(props: Readonly<Props>) {
       } else {
         return TRHEAD_STYLE_SINGLE;
       }
-    } else if (props.allowReply) {
+    } else if (allowReply) {
       return THREAD_STYLE_BOTTOM;
     } else {
       return THREAD_STYLE;
@@ -736,24 +862,19 @@ export default function Message(props: Readonly<Props>) {
   }
 
   function renderReplyRow() {
-    if (
-      replying ||
-      generating ||
-      !props.allowReply ||
-      is_folded ||
-      props.actions == null
-    )
+    if (replying || generating || !allowReply || is_folded || actions == null) {
       return;
+    }
 
     return (
-      <div style={{ textAlign: "center", marginBottom: "5px", width: "100%" }}>
+      <div style={{ textAlign: "center", width: "100%" }}>
         <Tooltip
           title={
             isLLMThread
               ? `Reply to ${modelToName(
                   isLLMThread,
-                )}, sending the entire thread as context.`
-              : "Reply in this thread."
+                )}, sending the thread as context.`
+              : "Reply to this thread."
           }
         >
           <Button
@@ -776,29 +897,41 @@ export default function Message(props: Readonly<Props>) {
           </Button>
         </Tooltip>
         {showAISummarize && is_thread ? (
-          <SummarizeThread message={message} actions={props.actions} />
+          <SummarizeThread message={message} actions={actions} />
         ) : undefined}
       </div>
     );
   }
 
   function renderFoldedRow() {
-    if (!is_folded || !is_thread || is_thread_body) return;
+    if (!is_folded || !is_thread || is_thread_body) {
+      return;
+    }
+
+    let label;
+    if (numChildren) {
+      label = (
+        <>
+          {numChildren} {plural(numChildren, "Reply", "Replies")}
+        </>
+      );
+    } else {
+      label = "View Replies";
+    }
 
     return (
       <Col xs={24}>
-        <Paragraph type="secondary" style={{ textAlign: "center" }}>
-          {mode === "standalone" ? "This thread is folded. " : ""}
+        <div style={{ textAlign: "center" }}>
           <Button
-            type="text"
-            icon={<Icon name="down-circle-o" />}
             onClick={() =>
-              props.actions?.foldThread(message.get("date"), props.index)
+              actions?.toggleFoldThread(message.get("date"), index)
             }
+            type="link"
+            style={{ color: "darkblue" }}
           >
-            <Text type="secondary">Unfold</Text>
+            {label}
           </Button>
-        </Paragraph>
+        </div>
       </Col>
     );
   }
@@ -811,11 +944,17 @@ export default function Message(props: Readonly<Props>) {
       const style: CSS =
         mode === "standalone"
           ? {
+              color: "#666",
               marginTop: MARGIN_TOP_VIEWER,
               marginLeft: "5px",
               marginRight: "5px",
             }
-          : { marginTop: "5px", width: "100%", textAlign: "center" };
+          : {
+              color: "#666",
+              marginTop: "5px",
+              width: "100%",
+              textAlign: "center",
+            };
       const iconname = is_folded
         ? mode === "standalone"
           ? reverseRowOrdering
@@ -827,10 +966,7 @@ export default function Message(props: Readonly<Props>) {
         <Button
           type="text"
           style={style}
-          disabled={force_unfold}
-          onClick={() =>
-            props.actions?.foldThread(message.get("date"), props.index)
-          }
+          onClick={() => actions?.toggleFoldThread(message.get("date"), index)}
           icon={
             <Icon
               name={iconname}
@@ -845,14 +981,21 @@ export default function Message(props: Readonly<Props>) {
           key={"blankcolumn"}
           style={{ textAlign: reverseRowOrdering ? "left" : "right" }}
         >
-          {true || hideTooltip ? (
+          {hideTooltip ? (
             button
           ) : (
             <Tooltip
               title={
-                is_folded
-                  ? "Unfold this thread"
-                  : "Fold this thread to hide replies"
+                is_folded ? (
+                  <>
+                    Unfold this thread{" "}
+                    {numChildren
+                      ? ` to show ${numChildren} ${plural(numChildren, "reply", "replies")}`
+                      : ""}
+                  </>
+                ) : (
+                  "Fold this thread to hide replies"
+                )
               }
             >
               {button}
@@ -865,26 +1008,24 @@ export default function Message(props: Readonly<Props>) {
 
   function renderCols(): JSX.Element[] | JSX.Element {
     // these columns should be filtered in the first place, this here is just an extra check
-    if (is_thread && is_folded && is_thread_body) return <></>;
+    if (is_thread && is_folded && is_thread_body) {
+      return <></>;
+    }
 
     switch (mode) {
       case "standalone":
-        const cols = [
-          avatar_column(),
-          content_column(),
-          getThreadfoldOrBlank(),
-        ];
+        const cols = [avatar_column(), contentColumn(), getThreadfoldOrBlank()];
         if (reverseRowOrdering) {
           cols.reverse();
         }
         return cols;
 
       case "sidechat":
-        return [getThreadfoldOrBlank(), content_column()];
+        return [getThreadfoldOrBlank(), contentColumn()];
 
       default:
         unreachable(mode);
-        return content_column();
+        return contentColumn();
     }
   }
 

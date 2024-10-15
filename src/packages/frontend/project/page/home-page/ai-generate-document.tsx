@@ -57,7 +57,7 @@ import LLMSelector, {
   modelToName,
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { Actions as RmdActions } from "@cocalc/frontend/frame-editors/rmd-editor/actions";
-import { labels } from "@cocalc/frontend/i18n";
+import { dialogs, labels } from "@cocalc/frontend/i18n";
 import getKernelSpec from "@cocalc/frontend/jupyter/kernelspecs";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
@@ -75,7 +75,7 @@ import {
   getLLMServiceStatusCheckMD,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
-import { capitalize, field_cmp, getRandomColor } from "@cocalc/util/misc";
+import { capitalize, cmp, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import {
   DOCUMENT,
@@ -101,7 +101,6 @@ import {
 
 const TAG = AI_GENERATE_DOC_TAG;
 const TAG_TMPL = `${TAG}-template`;
-const PLACEHOLDER = "Describe the content...";
 
 export const PREVIEW_BOX: CSS = {
   border: `1px solid ${COLORS.GRAY}`,
@@ -119,10 +118,15 @@ type Ipynb = {
   metadata: { kernelspec: KernelSpec };
 };
 
-function ensureExtension(filename, ext) {
+function normalizeExt(ext: Ext): Omit<Ext, "ipynb-sagemath"> {
+  return ext === "ipynb-sagemath" ? "ipynb" : ext;
+}
+
+function ensureExtension(filename: string, ext: Ext) {
   if (!filename) return filename;
-  if (!filename.endsWith("." + ext)) {
-    return filename + "." + ext;
+  const ext2 = normalizeExt(ext);
+  if (!filename.endsWith("." + ext2)) {
+    return filename + "." + ext2;
   }
   return filename;
 }
@@ -160,9 +164,11 @@ function AIGenerateDocument({
   const [filename, setFilename] = useState<string>(
     ensureExtension(filename0 ?? "", ext),
   );
+
   useEffect(() => {
     setFilename(ensureExtension(filename0 ?? "", ext));
   }, [filename0]);
+
   const promptRef = useRef<HTMLElement>(null);
 
   const [kernelSpecs, setKernelSpecs] = useState<KernelSpec[] | null | string>(
@@ -186,10 +192,24 @@ function AIGenerateDocument({
     (async () => {
       try {
         setKernelSpecs(null);
-        const X = await getKernelSpec(project_id);
-        X.sort(field_cmp("display_name"));
+        let X = await getKernelSpec(project_id);
+        if (ext === "ipynb-sagemath") {
+          // only SageMath KernelSpecs
+          X = X.filter((x) => x.language === "sagemath");
+        }
+
+        // sort by descending priority and ascending display name
+        X.sort((a, b) => {
+          const an = a.display_name;
+          const bn = b.display_name;
+          const ap = a?.metadata?.cocalc?.priority ?? 0;
+          const bp = b?.metadata?.cocalc?.priority ?? 0;
+          return -cmp(ap, bp) || an.localeCompare(bn);
+        });
+
         setKernelSpecs(X);
-        if (spec == null) {
+
+        if (spec == null && ext !== "ipynb-sagemath") {
           const name = redux
             .getStore("account")
             .getIn(["editor_settings", "jupyter", "kernel"]);
@@ -197,9 +217,18 @@ function AIGenerateDocument({
             for (const a of X) {
               if (a.name == name) {
                 setSpec(a);
-                break;
+                return;
               }
             }
+          }
+        }
+
+        // not found? either we pick the top priority sagemath or just the first one
+        if (spec == null) {
+          if (X.length > 0) {
+            setSpec(X[0]);
+          } else {
+            setSpec(null);
           }
         }
       } catch (err) {
@@ -333,12 +362,18 @@ function AIGenerateDocument({
     };
     projectActions?.log(event);
 
-    if (
-      !(await ensure_project_running(
-        project_id,
-        `create the ${docName} document '${path}'`,
-      ))
-    ) {
+    const what = intl.formatMessage(
+      {
+        id: "project.page.ai-generate-document.create_document.what",
+        defaultMessage: `create the {docName} document "{path}"`,
+      },
+      {
+        docName,
+        path,
+      },
+    );
+
+    if (!(await ensure_project_running(project_id, what))) {
       throw new Error(`Unable to create ${docName} document for ${path}`);
     }
 
@@ -346,7 +381,10 @@ function AIGenerateDocument({
     await webapp_client.project_client.write_text_file({
       project_id,
       path,
-      content: ext === "ipynb" ? JSON.stringify(ipynb, null, 2) : preview,
+      content:
+        ext === "ipynb" || ext === "ipynb-sagemath"
+          ? JSON.stringify(ipynb, null, 2)
+          : preview,
     });
     return path;
   }
@@ -455,6 +493,7 @@ function AIGenerateDocument({
               (ea as LatexActions).build();
               break;
             case "ipynb":
+            case "ipynb-sagemath":
               const jea = ea as JupyterEditorActions;
               const ja: JupyterActions = jea.jupyter_actions;
               // and after we're done, cleanup and run all cells
@@ -476,9 +515,10 @@ function AIGenerateDocument({
     if (filename) {
       return;
     }
-    const fn = sanitizeFilename(fnNext, ext);
+    const ext2 = normalizeExt(ext);
+    const fn = sanitizeFilename(fnNext, ext2 as string);
     const timestamp = getTimestamp();
-    setFilename(`${fn}-${timestamp}.${ext}`);
+    setFilename(`${fn}-${timestamp}.${ext2}`);
   }
 
   async function updateDocument(llmStream: ChatStream): Promise<void> {
@@ -490,7 +530,7 @@ function AIGenerateDocument({
     // ATTN: do not call this concurrently, see throttle below
     function updateContent(answer) {
       if (cancel.current) return;
-      if (ext === "ipynb") {
+      if (ext === "ipynb" || ext === "ipynb-sagemath") {
         setPreview("Jupyter Notebook");
         setIpynb(processAnswerIpynb(answer));
       } else {
@@ -502,7 +542,7 @@ function AIGenerateDocument({
     // the case of one token callback with everything and then "null" to indicate it is done.
     const processTokens = throttle(
       async function (answer: string, finalize: boolean) {
-        const fn = getFilename(answer, prompt, ext);
+        const fn = getFilename(answer, prompt, normalizeExt(ext) as string);
         if (!init && fn != null) {
           init = true;
           updateFilename(fn);
@@ -514,7 +554,7 @@ function AIGenerateDocument({
             // we never got a filename, so we create one based on the prompt and create the document
             const fn: string = sanitizeFilename(
               prompt.split("\n").join("_"),
-              ext,
+              normalizeExt(ext) as string,
             );
             updateFilename(fn);
           }
@@ -603,6 +643,7 @@ function AIGenerateDocument({
     const ex = (function (): readonly Example[] {
       switch (ext) {
         case "ipynb":
+        case "ipynb-sagemath":
           return spec != null
             ? JUPYTER[spec.language?.toLowerCase()] ?? []
             : [];
@@ -678,7 +719,7 @@ function AIGenerateDocument({
   }
 
   function renderJupyterKernelSelector() {
-    if (ext !== "ipynb") return;
+    if (ext !== "ipynb" && ext !== "ipynb-sagemath") return;
     return (
       <>
         {typeof kernelSpecs === "string" ? (
@@ -689,11 +730,12 @@ function AIGenerateDocument({
           />
         ) : undefined}
         {kernelSpecs == null && <Loading />}
-        {typeof kernelSpecs == "object" && kernelSpecs != null ? (
+        {typeof kernelSpecs === "object" && kernelSpecs != null ? (
           <Paragraph strong>
-            Select a Jupyter kernel:{" "}
+            {intl.formatMessage(labels.select_a_kernel)}
+            {": "}
             <SelectKernel
-              placeholder="Select a kernel..."
+              placeholder={`${intl.formatMessage(labels.select_a_kernel)}...`}
               size="middle"
               disabled={querying}
               project_id={project_id}
@@ -728,11 +770,14 @@ function AIGenerateDocument({
       <div>
         <Divider />
         <Paragraph type="secondary">
-          A prompt to generate the document will be sent to the{" "}
-          <LLMNameLink model={model} /> language model. You'll see a preview of
-          the new content, which you'll then be able to save in a new file and
-          start working on it. Overall, the newly created document should help
-          you getting started accomplishing your goal.
+          <FormattedMessage
+            id="project.page.ai-generate-document.preview.info"
+            defaultMessage={`A prompt to generate the document will be sent to the {llm} language model.
+            You'll see a preview of the new content,
+            which you'll then be able to save in a new file and start working on it.
+            Overall, the newly created document should help you getting started accomplishing your goal.`}
+            values={{ llm: <LLMNameLink model={model} /> }}
+          />
         </Paragraph>
         <Collapse
           items={[
@@ -765,10 +810,14 @@ function AIGenerateDocument({
   }
 
   function renderDialog() {
+    const placeholder = intl.formatMessage({
+      id: "project.page.ai-generate-document.content.placeholder",
+      defaultMessage: "Describe the content...",
+    });
     return (
       <>
         <Paragraph strong>
-          Select language model:{" "}
+          {intl.formatMessage(dialogs.select_llm)}:{" "}
           <LLMSelector
             project_id={project_id}
             model={model}
@@ -778,8 +827,13 @@ function AIGenerateDocument({
         </Paragraph>
         {renderJupyterKernelSelector()}
         <Paragraph>
-          Provide a detailed description of the {docName} document you want to
-          create:
+          <FormattedMessage
+            id="project.page.ai-generate-document.content.label"
+            defaultMessage={
+              "Provide a detailed description of the {docName} document you want to create:"
+            }
+            values={{ docName }}
+          />
         </Paragraph>
         <Paragraph>
           <Input.TextArea
@@ -787,7 +841,7 @@ function AIGenerateDocument({
             allowClear
             autoSize={{ minRows: 3, maxRows: 6 }}
             maxLength={3000}
-            placeholder={PLACEHOLDER}
+            placeholder={placeholder}
             value={prompt}
             disabled={querying}
             onChange={({ target: { value } }) => setPrompt(value)}
@@ -809,7 +863,13 @@ function AIGenerateDocument({
                 loading={querying}
                 onClick={generate}
                 llmTools={{ model, setModel }}
-                task={`Create ${docName} using`}
+                task={intl.formatMessage(
+                  {
+                    id: "project.page.ai-generate-document.create.label",
+                    defaultMessage: `Create {docName} using`,
+                  },
+                  { docName },
+                )}
               />
             </Space>
           </Paragraph>
@@ -830,6 +890,7 @@ function AIGenerateDocument({
   function renderPreviewContent({ preview, ipynb }) {
     switch (ext) {
       case "ipynb":
+      case "ipynb-sagemath":
         if (ipynb == null || spec == null) return <Loading />;
         // TODO: figure out how to replace this by the "CellList" component (which requires a bunch of special objects)
         return (
@@ -863,36 +924,51 @@ function AIGenerateDocument({
   function renderPreview() {
     if (preview == null) return;
     const disabled = querying || saving || !preview?.trim();
+    const message = intl.formatMessage(
+      {
+        id: "project.page.ai-generate-document.preview.saving",
+        defaultMessage: `{saving, select,
+        true {The file is saving...}
+        other {Please wait until fully generated...}}`,
+      },
+      { saving },
+    );
     return (
       <>
         <div>
-          <Paragraph>This is a preview of the generated content.</Paragraph>
+          <Paragraph>
+            <FormattedMessage
+              id="project.page.ai-generate-document.preview.header"
+              defaultMessage={`This is a preview of the generated content.`}
+            />
+          </Paragraph>
           <Paragraph>
             {querying || saving ? (
               <Alert
                 banner
                 type={saving ? "info" : "warning"}
                 style={{ fontWeight: "bold" }}
-                message={
-                  saving
-                    ? "The file is saving..."
-                    : "Please wait until fully generated..."
-                }
+                message={message}
               />
             ) : (
-              <>
-                It finished generating the content. You can either{" "}
-                <Button
-                  type="primary"
-                  size="small"
-                  onClick={save}
-                  disabled={disabled}
-                >
-                  save the file
-                </Button>{" "}
-                with the given filename or discard the preview and go back to
-                the previous step.
-              </>
+              <FormattedMessage
+                id="project.page.ai-generate-document.preview.save_message"
+                defaultMessage={`It finished generating the content.
+                You can either <B>save the file</B> with the given filename,
+                or discard the preview and go back to the previous step.`}
+                values={{
+                  B: (c) => (
+                    <Button
+                      type="primary"
+                      size="small"
+                      onClick={save}
+                      disabled={disabled}
+                    >
+                      {c}
+                    </Button>
+                  ),
+                }}
+              />
             )}
           </Paragraph>
           <Paragraph>
@@ -929,16 +1005,19 @@ function AIGenerateDocument({
               onClick={save}
               disabled={disabled || saving}
             >
-              <Icon name="paper-plane" /> Save {docName}
+              <Icon name="paper-plane" /> {intl.formatMessage(labels.save)}{" "}
+              {docName}
             </Button>
           </Space>
         </Paragraph>
         {!disabled ? (
           <Paragraph type="secondary">
-            Click "save" to store the preview of the content in a new file with
-            the given filename. You can then edit and run the computational
-            document as usual. Click "discard" to ignore the result and go back
-            to the previous step.
+            <FormattedMessage
+              id="project.page.ai-generate-document.preview.footer"
+              defaultMessage={`Click "save" to store the preview of the content in a new file with the given filename.
+              You can then edit and run the computational document as usual.
+              Click "discard" to ignore the result and go back to the previous step.`}
+            />
           </Paragraph>
         ) : undefined}
       </>
@@ -990,7 +1069,8 @@ export function AIGenerateDocumentModal({
   ext: Props["ext"];
   filename?: string;
 }) {
-  const docName = file_options(`x.${ext}`).name ?? `${capitalize(ext)}`;
+  const ext2 = normalizeExt(ext) as string;
+  const docName = file_options(`x.${ext2}`).name ?? `${capitalize(ext2)}`;
 
   return (
     <Modal
@@ -1058,10 +1138,21 @@ export function AIGenerateDocumentButton({
         delayShow={DELAY_SHOW_MS}
         title={
           <>
-            <AIAvatar size={16} /> Generator
+            <AIAvatar size={16} />{" "}
+            <FormattedMessage
+              id="project.page.ai-generate-document.info.title"
+              defaultMessage={"Generator"}
+              description={
+                "Title of a dialog for generating documents automatically"
+              }
+            />
           </>
         }
-        tip="Open the AI Generator to automatically create a document."
+        tip={intl.formatMessage({
+          id: "project.page.ai-generate-document.info.tooltip",
+          defaultMessage:
+            "Open the AI Generator to automatically create a document.",
+        })}
       >
         <Button
           onClick={() => setShow(true)}

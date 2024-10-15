@@ -7,9 +7,33 @@
 Functionality that mainly involves working with a specific project.
 */
 
+import { join } from "path";
+
+import { redux } from "@cocalc/frontend/app-framework";
 import computeServers from "@cocalc/frontend/compute/manager";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { dialogs, getIntl } from "@cocalc/frontend/i18n";
 import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
+import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
+import { API } from "@cocalc/frontend/project/websocket/api";
+import { connection_to_project } from "@cocalc/frontend/project/websocket/connect";
+import {
+  ProjectInfo,
+  project_info,
+} from "@cocalc/frontend/project/websocket/project-info";
+import {
+  ProjectStatus,
+  project_status,
+} from "@cocalc/frontend/project/websocket/project-status";
+import {
+  UsageInfoWS,
+  get_usage_info,
+} from "@cocalc/frontend/project/websocket/usage-info";
+import {
+  Configuration,
+  ConfigurationAspect,
+} from "@cocalc/frontend/project_configuration";
 import { HOME_ROOT } from "@cocalc/util/consts/files";
 import type { ApiKey } from "@cocalc/util/db-schema/api-keys";
 import {
@@ -28,19 +52,6 @@ import {
 } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import { join } from "path";
-import { redux } from "../app-framework";
-import { allow_project_to_run } from "../project/client-side-throttle";
-import { ensure_project_running } from "../project/project-start-warning";
-import { API } from "../project/websocket/api";
-import { connection_to_project } from "../project/websocket/connect";
-import { ProjectInfo, project_info } from "../project/websocket/project-info";
-import {
-  ProjectStatus,
-  project_status,
-} from "../project/websocket/project-status";
-import { UsageInfoWS, get_usage_info } from "../project/websocket/usage-info";
-import { Configuration, ConfigurationAspect } from "../project_configuration";
 import httpApi from "./api";
 import { WebappClient } from "./client";
 
@@ -95,7 +106,7 @@ export class ProjectClient {
     overwrite_newer?: boolean; // overwrite newer versions of file at destination (destructive)
     delete_missing?: boolean; // delete files in dest that are missing from source (destructive)
     backup?: boolean; // make ~ backup files instead of overwriting changed files
-    timeout?: number; // how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+    timeout?: number; // **timeout in seconds** -- how long to wait for the copy to complete before reporting "error" (though it could still succeed)
     exclude?: string[]; // list of patterns to exclude; this uses exactly the (confusing) rsync patterns
   }): Promise<void> {
     const is_public = opts.public;
@@ -108,7 +119,10 @@ export class ProjectClient {
     const mesg = is_public
       ? message.copy_public_path_between_projects(opts)
       : message.copy_path_between_projects(opts);
-    mesg.wait_until_done = true; // TODO: our UI only supports this fornow.
+    mesg.wait_until_done = true; // TODO: our UI only supports this for now.
+
+    // THIS CAN BE USEFUL FOR DEBUGGING!
+    // mesg.debug_delay_s = 10;
 
     await this.client.async_call({
       timeout: opts.timeout,
@@ -219,14 +233,17 @@ export class ProjectClient {
       });
     }
 
-    const msg = isExecOptsBlocking(opts)
-      ? `execute the command ${opts.command}`
-      : `getting job ${opts.async_get}`;
+    const intl = await getIntl();
+    const msg = intl.formatMessage(dialogs.client_project_exec_msg, {
+      blocking: isExecOptsBlocking(opts),
+      arg: isExecOptsBlocking(opts) ? opts.command : opts.async_get,
+    });
+
     if (!(await ensure_project_running(opts.project_id, msg))) {
       return {
         type: "blocking",
         stdout: "",
-        stderr: "You must start the project first",
+        stderr: intl.formatMessage(dialogs.client_project_exec_start_first),
         exit_code: 1,
         time: 0,
       };

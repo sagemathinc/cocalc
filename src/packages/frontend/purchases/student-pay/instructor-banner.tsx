@@ -27,7 +27,7 @@ export default function PaySoon({ when, purchaseInfo, paid, course }: Props) {
   );
 
   return (
-    <div style={{ margin: "0 2.5px" }}>
+    <div>
       <Collapse>
         <Collapse.Panel
           key="it"

@@ -9,7 +9,7 @@ import * as immutable from "immutable";
 import React, { useEffect, useRef, useState } from "react";
 import { useInterval } from "react-interval-hook";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-
+import { Alert, Spin } from "antd";
 import {
   AppRedux,
   Rendered,
@@ -28,7 +28,8 @@ import { TerminalModeDisplay } from "./terminal-mode-display";
 import { TERM_MODE_CHAR } from "./utils";
 
 import * as misc from "@cocalc/util/misc";
-const { Col, Row } = require("react-bootstrap");
+import { FormattedMessage } from "react-intl";
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 
 interface Props {
   // TODO: everything but actions/redux should be immutable JS data, and use shouldComponentUpdate
@@ -65,26 +66,26 @@ export function watchFiles({ actions, current_path }): void {
   }
 }
 
-export const FileListing: React.FC<Props> = (props: Props) => {
-  const {
-    actions,
-    redux,
-    name,
-    active_file_sort,
-    listing,
-    file_map,
-    checked_files,
-    current_path,
-    create_folder,
-    create_file,
-    selected_file_index,
-    project_id,
-    shift_is_down,
-    sort_by,
-    configuration_main,
-    file_search = "",
-    isRunning,
-  } = props;
+export const FileListing: React.FC<Props> = ({
+  actions,
+  redux,
+  name,
+  active_file_sort,
+  listing,
+  file_map,
+  checked_files,
+  current_path,
+  create_folder,
+  create_file,
+  selected_file_index,
+  project_id,
+  shift_is_down,
+  sort_by,
+  configuration_main,
+  file_search = "",
+  isRunning,
+}: Props) => {
+  const [starting, setStarting] = useState<boolean>(false);
 
   const prev_current_path = usePrevious(current_path);
 
@@ -166,9 +167,18 @@ export const FileListing: React.FC<Props> = (props: Props) => {
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
+  const lastSelectedFileIndexRef = useRef<undefined | number>(selected_file_index);
+
   useEffect(() => {
-    if (selected_file_index == null) return;
-    virtuosoRef.current?.scrollIntoView({ index: selected_file_index });
+    if (selected_file_index == null) {
+      return;
+    }
+    if (lastSelectedFileIndexRef.current == selected_file_index - 1) {
+      virtuosoRef.current?.scrollIntoView({ index: selected_file_index + 1 });
+    } else {
+      virtuosoRef.current?.scrollIntoView({ index: selected_file_index });
+    }
+    lastSelectedFileIndexRef.current = selected_file_index;
   }, [selected_file_index]);
 
   function render_rows(): Rendered {
@@ -229,25 +239,66 @@ export const FileListing: React.FC<Props> = (props: Props) => {
     }
   }
 
+  if (!isRunning && listing.length == 0) {
+    return (
+      <Alert
+        style={{
+          textAlign: "center",
+          margin: "15px auto",
+          maxWidth: "400px",
+        }}
+        showIcon
+        type="warning"
+        message={
+          <div style={{ padding: "30px", fontSize: "14pt" }}>
+            <a
+              onClick={async () => {
+                if (starting) return;
+                try {
+                  setStarting(true);
+                  await actions.fetch_directory_listing_directly(
+                    current_path,
+                    true,
+                  );
+                } finally {
+                  setStarting(false);
+                }
+              }}
+            >
+              Start this project to see your files.
+              {starting && <Spin />}
+            </a>
+          </div>
+        }
+      />
+    );
+  }
+
   return (
     <>
       {!isRunning && listing.length > 0 && (
         <div
           style={{ textAlign: "center", marginBottom: "5px", fontSize: "12pt" }}
         >
-          <>
-            Showing stale directory listing{" "}
-            {missing > 0 && <b>missing {missing} files</b>}.{" "}
-          </>
-          To update the directory listing,{" "}
-          <a
-            onClick={() => {
-              redux.getActions("projects").start_project(project_id);
+          <FormattedMessage
+            id="project.explorer.file-listing.stale-warning"
+            defaultMessage={`Showing stale directory listing
+              {is_missing, select, true {<b>missing {missing} files</b>} other {}}.
+              To update the directory listing <a>start this project</a>.`}
+            values={{
+              is_missing: missing > 0,
+              missing,
+              a: (c) => (
+                <a
+                  onClick={() => {
+                    redux.getActions("projects").start_project(project_id);
+                  }}
+                >
+                  {c}
+                </a>
+              ),
             }}
-          >
-            start this project
-          </a>
-          .
+          />
         </div>
       )}
       <Col

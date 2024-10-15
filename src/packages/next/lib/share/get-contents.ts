@@ -62,7 +62,7 @@ export default async function getContents(
     // get actual file content
     const ext = getExtension(fsPath);
     if (hasSpecialViewer(ext)) {
-      if (stats.size >= LIMITS[ext] ?? LIMITS.other) {
+      if (stats.size >= (LIMITS[ext] ?? LIMITS.other)) {
         obj.truncated = "File too big to be displayed; download it instead.";
       } else {
         obj.content = (await fs.readFile(fsPath)).toString();

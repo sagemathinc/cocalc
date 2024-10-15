@@ -23,6 +23,10 @@ import {
 } from "@cocalc/frontend/projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type {
+  CopyConfigurationOptions,
+  CopyConfigurationTargets,
+} from "./configuration/configuration-copying";
 
 export const PARALLEL_DEFAULT = 5;
 export const MAX_COPY_PARALLEL = 25;
@@ -54,18 +58,20 @@ export type TerminalCommand = TypedMap<{
 }>;
 
 export type StudentRecord = TypedMap<{
-  create_project: number; // Time the student project was created
-  account_id: string;
+  create_project?: number; // Time the student project was created
+  account_id?: string;
   student_id: string;
-  first_name: string;
-  last_name: string;
-  last_active: number;
-  hosting: string;
-  email_address: string;
-  project_id: string;
-  deleted: boolean;
-  note: string;
-  last_email_invite: number;
+  first_name?: string;
+  last_name?: string;
+  last_active?: number;
+  hosting?: string;
+  email_address?: string;
+  project_id?: string;
+  deleted?: boolean;
+  // deleted_account: true if the account_id is known to have been deleted
+  deleted_account?: boolean;
+  note?: string;
+  last_email_invite?: number;
 }>;
 
 export type StudentsMap = Map<string, StudentRecord>;
@@ -79,7 +85,7 @@ export type LastCopyInfo = {
 export type AssignmentRecord = TypedMap<{
   assignment_id: string;
   deleted: boolean;
-  due_date: Date;
+  due_date: string; // iso string
   path: string;
   peer_grade?: {
     enabled: boolean;
@@ -137,6 +143,8 @@ export type CourseSettingsRecord = TypedMap<{
   email_invite: string;
   institute_pay: boolean;
   pay: string | Date;
+  payInfo?: TypedMap<PurchaseInfo>;
+  payCost?: number;
   shared_project_id: string;
   student_pay: boolean;
   title: string;
@@ -156,6 +164,8 @@ export type CourseSettingsRecord = TypedMap<{
   nbgrader_parallel?: number;
   datastore?: Datastore;
   envvars?: EnvVarsRecord;
+  copy_config_targets: CopyConfigurationTargets;
+  copy_config_options: CopyConfigurationOptions;
 }>;
 
 export const CourseSetting = createTypedMap<CourseSettingsRecord>();
@@ -200,6 +210,10 @@ export interface CourseState {
   unsaved?: boolean;
   terminal_command?: TerminalCommand;
   nbgrader_run_info?: NBgraderRunInfo;
+  // map from student_id to a filter string.
+  assignmentFilter?: Map<string, string>;
+  // each page -- students, assignments, handouts (etc.?) has a filter.  This is the state of that filter.
+  pageFilter?: Map<string, string>;
 }
 
 export class CourseStore extends Store<CourseState> {
@@ -261,7 +275,7 @@ export class CourseStore extends Store<CourseState> {
   public get_payInfo(): PurchaseInfo | null {
     const settings = this.get("settings");
     if (settings == null || !settings.get("student_pay")) return null;
-    const payInfo = settings.get("payInfo");
+    const payInfo = settings.get("payInfo")?.toJS();
     if (!payInfo) return null;
     return payInfo;
   }
@@ -326,7 +340,7 @@ export class CourseStore extends Store<CourseState> {
       // Student doesn't have an account yet on CoCalc (that we know about).
       // Email address:
       if (student.has("email_address")) {
-        return student.get("email_address");
+        return student.get("email_address")!;
       }
       // One of the above had to work, since we add students by email or account.
       // But put this in anyways:
@@ -342,7 +356,7 @@ export class CourseStore extends Store<CourseState> {
     // This situation usually shouldn't happen, but maybe could in case the user was known but
     // then removed themselves as a collaborator, or something else odd.
     if (student.has("email_address")) {
-      return student.get("email_address");
+      return student.get("email_address")!;
     }
     // OK, now there is really no way to identify this student.  I suppose this could
     // happen if the student was added by searching for their name, then they removed
@@ -399,7 +413,7 @@ export class CourseStore extends Store<CourseState> {
     const account_id = student.get("account_id");
     if (account_id == null) {
       if (student.has("email_address")) {
-        return student.get("email_address");
+        return student.get("email_address")!;
       }
       return student_id;
     }
@@ -440,7 +454,10 @@ export class CourseStore extends Store<CourseState> {
     let v: string[] = [];
 
     for (const [, val] of this.get("students")) {
-      const project_id: string = val.get("project_id");
+      const project_id = val.get("project_id");
+      if (!project_id) {
+        continue;
+      }
       if (deleted_only) {
         if (include_deleted && val.get("deleted")) {
           v.push(project_id);

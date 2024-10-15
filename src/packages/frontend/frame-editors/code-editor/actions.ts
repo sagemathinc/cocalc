@@ -104,6 +104,12 @@ import * as cm_doc_cache from "./doc";
 import { SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
+import { VideoChat } from "@cocalc/frontend/chat/video/video-chat";
+import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
+import {
+  chat,
+  getSideChatActions,
+} from "@cocalc/frontend/frame-editors/generic/chat";
 
 interface gutterMarkerParams {
   line: number;
@@ -170,6 +176,8 @@ export class Actions<
   protected terminals: TerminalManager<CodeEditorState>;
   private code_editors: CodeEditorManager<CodeEditorState>;
 
+  private videoChat: VideoChat;
+
   protected doctype: string = "syncstring";
 
   ////////
@@ -217,6 +225,7 @@ export class Actions<
 
     this.project_id = project_id;
     this.path = path;
+    this.videoChat = new VideoChat({ project_id, path });
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<CodeEditorState>(
@@ -351,7 +360,7 @@ export class Actions<
         );
         return;
       }
-      if (!this._syncstring || this._state == "closed") {
+      if (!this._syncstring || this.isClosed()) {
         // the doc could perhaps be closed by the time this init is fired, in which case just bail -- no point in trying to initialize anything.
         return;
       }
@@ -543,8 +552,10 @@ export class Actions<
     cm.setValue(value);
   }
 
+  isClosed = () => this._state == "closed";
+
   public close(): void {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       return;
     }
     this._state = "closed";
@@ -566,6 +577,7 @@ export class Actions<
     this.terminals.close();
     // Free up stuff related to code editors with different path
     this.code_editors.close();
+    this.videoChat.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -1362,8 +1374,7 @@ export class Actions<
       // to make typescript happy
       return;
     }
-    this.set_frame_tree({ id, font_size });
-    this.focus(id);
+    this.set_font_size(id, font_size);
   }
 
   increase_font_size(id: string): void {
@@ -1374,6 +1385,9 @@ export class Actions<
     this.change_font_size(-1, id);
   }
 
+  // ATTN: this is overloaded in some derived classes, eg. latex to adjust settings
+  // based on font size changing. Code should call this to set the font size instead
+  // of directly modifying frame tree.
   set_font_size(id: string, font_size: number): void {
     this.set_frame_tree({ id, font_size });
     this.focus(id);
@@ -1495,7 +1509,7 @@ export class Actions<
       if (must_create) {
         // Have to wait until after editor gets created
         await delay(1);
-        if (this._state == "closed") return;
+        if (this.isClosed()) return;
       }
       this.programmatical_goto_line(opts.line, opts.cursor);
     }
@@ -1504,7 +1518,7 @@ export class Actions<
       // Have to wait until after editor gets created, and
       // probably also event that caused this open.
       await delay(1);
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
       const cm = this._recent_cm();
       if (cm) {
         cm.focus();
@@ -1607,7 +1621,7 @@ export class Actions<
   async set_codemirror_to_syncstring(): Promise<void> {
     if (
       this._syncstring == null ||
-      this._state == "closed" ||
+      this.isClosed() ||
       this._syncstring.get_state() == "closed"
     ) {
       // no point in doing anything further.
@@ -1616,7 +1630,7 @@ export class Actions<
 
     if (this._syncstring.get_state() != "ready") {
       await once(this._syncstring, "ready");
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
     }
 
     // NOTE: we fallback to getting the underlying CM doc, in case all actual
@@ -1731,7 +1745,7 @@ export class Actions<
     if (state == "closed") return false;
     if (state == "init") {
       await once(syncdoc, "ready");
-      if (this._state == "closed") return false;
+      if (this.isClosed()) return false;
     }
     return true;
   }
@@ -1801,7 +1815,7 @@ export class Actions<
       if (cm == null) {
         await delay(25);
       }
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
     }
     if (cm == null) {
       // still failed -- give up.
@@ -1823,7 +1837,9 @@ export class Actions<
       // TODO: this is VERY CRAPPY CODE -- wait after,
       // so cm gets state/value fully set.
       await delay(100);
-      if (this._state == "closed") return;
+      if (this.isClosed()) {
+        return;
+      }
       doc.setCursor(pos);
       cm.scrollIntoView(pos, cm.getScrollInfo().clientHeight / 2);
     }
@@ -1913,7 +1929,7 @@ export class Actions<
     this.setState({ status });
     if (timeout) {
       await delay(timeout);
-      if (this._state == "closed") return;
+      if (this.isClosed()) return;
       if (this.store.get("status") === status) {
         this.setState({ status: "" });
       }
@@ -1965,7 +1981,7 @@ export class Actions<
   // sets the mispelled_words part of the state to the immutable
   // Set of those words.  They can then be rendered by any editor/view.
   async update_misspelled_words(time?: number): Promise<void> {
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     const proj_store = this.redux.getProjectStore(this.project_id);
     if (proj_store != null) {
       // TODO why is this an immutable map? it's project_configuration/Available
@@ -2281,7 +2297,7 @@ export class Actions<
      Exception if can't be done, e.g., if editor not mounted.
   */
   _get_cm_value(): string {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("editor is closed");
     }
     const cm = this._get_cm();
@@ -2299,7 +2315,7 @@ export class Actions<
      Exception if can't be done.
   */
   _get_syncstring_value(): string {
-    if (this._state == "closed") {
+    if (this.isClosed()) {
       throw Error("editor is closed");
     }
     if (!this._syncstring) {
@@ -2447,7 +2463,7 @@ export class Actions<
     });
 
     await delay(0); // wait until next render loop
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_resize();
     this.refresh_visible();
     this.focus();
@@ -2550,7 +2566,7 @@ export class Actions<
     // Have to wait until after editor gets created, and
     // probably also event that caused this open.
     await delay(1);
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_active_id(shell_id);
   }
 
@@ -2572,7 +2588,7 @@ export class Actions<
     // Have to wait until after editor gets created, and
     // probably also event that caused this open.
     await delay(1);
-    if (this._state == "closed") return;
+    if (this.isClosed()) return;
     this.set_active_id(shell_id);
   }
 
@@ -2952,10 +2968,10 @@ export class Actions<
     type: string;
   }): Promise<string> {
     const state = (syncdoc ?? this._syncstring).get_state();
-    if (!(await this.wait_until_syncdoc_ready(syncdoc))) {
+    if (state != "ready" && !(await this.wait_until_syncdoc_ready(syncdoc))) {
       return "";
     }
-    const frameId = this.show_focused_frame_of_type(type);
+    const frameId = this.show_focused_frame_of_type(type, "col", true);
     if (state != "ready" && frameId) {
       // TODO: temporary hack until we have gotoFragment
       // as part of constructor!
@@ -3020,17 +3036,14 @@ export class Actions<
     return new Set(["selection"]);
   }
 
-  async languageModel(frameId: string, options: Options, input: string) {
+  languageModel = async (frameId: string, options: Options, input: string) => {
     await languageModelCreateChat({
       actions: this as Actions<CodeEditorState>,
       frameId,
       options,
       input,
     });
-  }
-
-  // TODO: get rid of this. it's used somehow in the title-bar.tsx, without typing
-  chatgpt = this.languageModel;
+  };
 
   tour(_id: string, _refs: any): TourProps["steps"] {
     return [];
@@ -3042,5 +3055,49 @@ export class Actions<
       .getStore("account")
       .getIn(["editor_settings", "build_on_save"]);
     set_account_table({ editor_settings: { build_on_save: !val } });
+  }
+
+  getTrust = () => {
+    return this._syncstring.get_settings()?.get("trust");
+  };
+
+  setTrust = async (trust: boolean) => {
+    await this._syncstring.set_settings({ trust });
+  };
+
+  settings = () => {
+    this.redux.getActions("page").settings("editor-settings");
+  };
+
+  getVideoChat = () => {
+    return this.videoChat;
+  };
+
+  // NOTE: can't be an arrow function because gets called in derived classes
+  async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId == null) {
+      return;
+    }
+
+    if (fragmentId.line) {
+      if (this.isClosed()) return;
+      this.programmatical_goto_line?.(fragmentId.line, true);
+    }
+
+    if (fragmentId.chat && !this.path.endsWith(".sage-chat")) {
+      // open side chat
+      this.redux
+        .getProjectActions(this.project_id)
+        .open_chat({ path: this.path });
+      this.show_focused_frame_of_type(chat.type);
+      for (const d of [1, 10, 50, 500, 1000]) {
+        const actions = getSideChatActions({
+          project_id: this.project_id,
+          path: this.path,
+        });
+        actions?.scrollToDate(fragmentId.chat);
+        await delay(d);
+      }
+    }
   }
 }

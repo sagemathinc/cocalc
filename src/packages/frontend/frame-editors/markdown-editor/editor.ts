@@ -19,7 +19,7 @@ import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { editor } from "@cocalc/frontend/i18n";
 
-const  slate: EditorDescription = {
+const slate: EditorDescription = {
   type: "slate",
   placeholder: "Enter text...",
   short: "Text",
@@ -57,10 +57,9 @@ const  slate: EditorDescription = {
     "sync",
     "show_table_of_contents",
   ]),
-} as const
+} as const;
 
-
-const cm:   EditorDescription = {
+const cm: EditorDescription = {
   type: "cm",
   placeholder: "Enter markdown...",
   short: "Markdown",
@@ -86,6 +85,7 @@ const cm:   EditorDescription = {
     "redo",
     "format",
     "sync",
+    "settings",
   ]),
   buttons: set([
     "decrease_font_size",
@@ -100,9 +100,9 @@ const cm:   EditorDescription = {
     "format-font-size",
     "format-color",
   ]),
-} as const
+} as const;
 
-const markdown:EditorDescription= {
+const markdown: EditorDescription = {
   type: "markdown",
   short: "Locked",
   name: "Locked View",
@@ -122,8 +122,7 @@ const markdown:EditorDescription= {
     "edit", // change frame to editable slate
   ]),
   buttons: set(["edit", "decrease_font_size", "increase_font_size"]),
-} as const
-
+} as const;
 
 const markdown_table_of_contents: EditorDescription = {
   type: "markdown-toc",
@@ -132,7 +131,8 @@ const markdown_table_of_contents: EditorDescription = {
   icon: "align-right",
   component: TableOfContents,
   commands: set(["decrease_font_size", "increase_font_size"]),
-} as const
+  buttons: set(["decrease_font_size", "increase_font_size"]),
+} as const;
 
 const EDITOR_SPEC = {
   slate,

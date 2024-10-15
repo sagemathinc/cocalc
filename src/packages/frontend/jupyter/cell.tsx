@@ -326,15 +326,24 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
       // in the condition above.
       style = {
         position: "absolute",
-        top: "-2px",
-        left: 0,
+        top: 0,
+        left: "2px",
         whiteSpace: "nowrap",
         color: COLORS.GRAY_L,
       };
     } else {
       // Need arbitrarily much horizontal space, so we
       // get our own line.
-      style = { color: COLORS.GRAY_L, marginBottom: "5px" };
+      style = {
+        color: COLORS.GRAY_L,
+        marginBottom: "5px",
+        top: 0,
+        left: "2px",
+      };
+    }
+    if (props.cell.get("cell_type") == "markdown") {
+      // move down to avoid overlap with drag handle
+      style = { ...style, top: "20px" };
     }
 
     if (props.is_current || props.is_selected) {

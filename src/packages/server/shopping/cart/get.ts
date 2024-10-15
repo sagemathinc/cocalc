@@ -8,6 +8,7 @@ import { assertValidAccountID } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { Item } from "@cocalc/util/db-schema/shopping-cart-items";
 export type { Item };
+import { ensureValidLicenseIntervals } from "./validate";
 
 interface Options {
   account_id: string;
@@ -26,8 +27,9 @@ export default async function getCart({
     `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased IS ${
       purchased ? " NOT " : ""
     } NULL AND removed IS ${removed ? " NOT " : ""} NULL ORDER BY id DESC`,
-    [account_id]
+    [account_id],
   );
+  await ensureValidLicenseIntervals(rows, pool);
   return rows;
 }
 
@@ -42,7 +44,7 @@ export async function getItem({
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT * FROM shopping_cart_items WHERE account_id=$1 AND id=$2",
-    [account_id, id]
+    [account_id, id],
   );
   if (rows.length == 0) {
     throw Error(`no item with id ${id}`);

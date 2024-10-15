@@ -91,8 +91,10 @@ export default function StableUnsafeHtml({
   const intervalRef = useRef<any>(null);
   const { isVisible, project_id, path, id } = useFrameContext();
   const stableHtmlContext = useStableHtmlContext();
-
-  const globalKey = sha1(`${project_id}-${id}-${docId}-${path}-${html}`);
+  const htmlRef = useRef<string>(html);
+  const globalKeyRef = useRef<string>(
+    sha1(`${project_id}-${id}-${docId}-${path}-${html}`),
+  );
 
   const position = useCallback(() => {
     // make it so elt is exactly positioned on top of divRef.current using CSS
@@ -167,7 +169,7 @@ export default function StableUnsafeHtml({
         elt.style.width = `${w}px`;
       }
 
-      // if its an iframe resize it
+      // if it's an iframe resize it
       if (html.toLowerCase().startsWith("<iframe")) {
         const iframe = jElt.find("iframe");
         if (iframe.length > 0) {
@@ -199,9 +201,9 @@ export default function StableUnsafeHtml({
   }, []);
 
   const getElt = () => {
-    if (!cache.has(globalKey)) {
+    if (!cache.has(globalKeyRef.current)) {
       const elt = $(
-        `<div id="${globalKey}" style="border:0;position:absolute;overflow:auto;z-index:${zIndex}"/>${html}</div>`,
+        `<div id="${globalKeyRef.current}" style="border:0;position:absolute;overflow:auto;z-index:${zIndex}"/>${html}</div>`,
       );
       // @ts-ignore
       elt.process_smc_links();
@@ -221,11 +223,11 @@ export default function StableUnsafeHtml({
         }, 2000);
       });
 
-      cache.set(globalKey, elt);
+      cache.set(globalKeyRef.current, elt);
       $("body").append(elt);
       return elt;
     } else {
-      return cache.get(globalKey);
+      return cache.get(globalKeyRef.current);
     }
   };
 
@@ -252,13 +254,24 @@ export default function StableUnsafeHtml({
   }, [isVisible]);
 
   useEffect(() => {
+    if (htmlRef.current == html) {
+      return;
+    }
+    // html was mutated (e.g., happens with transient messages or and collab), so update the
+    // element in place.
+    htmlRef.current = html;
+    const elt = getElt();
+    elt.html(html);
+  }, [html]);
+
+  useEffect(() => {
     intervalRef.current = setInterval(
       position,
       POSITION_WHEN_MOUNTED_INTERVAL_MS,
     );
     if (stableHtmlContext.scrollOrResize != null) {
       let count = 0;
-      stableHtmlContext.scrollOrResize[globalKey] = async () => {
+      stableHtmlContext.scrollOrResize[globalKeyRef.current] = async () => {
         if (count > 0) {
           return;
         }
@@ -280,7 +293,7 @@ export default function StableUnsafeHtml({
     setTimeout(position, 0);
 
     return () => {
-      delete stableHtmlContext.scrollOrResize?.[globalKey];
+      delete stableHtmlContext.scrollOrResize?.[globalKeyRef.current];
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }

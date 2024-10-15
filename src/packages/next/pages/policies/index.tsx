@@ -3,14 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import Footer from "components/landing/footer";
-import Header from "components/landing/header";
-import Head from "components/landing/head";
-import withCustomize from "lib/with-customize";
-import { Customize } from "lib/customize";
-import IndexList, { DataSource } from "components/landing/index-list";
-import A from "components/misc/A";
 import { Layout } from "antd";
+
+import Footer from "components/landing/footer";
+import Head from "components/landing/head";
+import Header from "components/landing/header";
+import IndexList, { DataSource } from "components/landing/index-list";
+import { POLICIES } from "components/landing/sub-nav";
+import A from "components/misc/A";
+import { Customize } from "lib/customize";
+import withCustomize from "lib/with-customize";
 
 const dataSourceCoCalcCom = [
   {
@@ -43,6 +45,19 @@ const dataSourceCoCalcCom = [
       <>
         The <A href="/policies/privacy">Privacy Policy</A> describes how
         SageMath, Inc. respects the privacy of its users.
+      </>
+    ),
+  },
+  {
+    link: "/policies/trust",
+    title: POLICIES.trust.label,
+    logo: "lock-outlined",
+    description: (
+      <>
+        The <A href="/policies/trust">{POLICIES.trust.label}</A> page highlights
+        our SOC 2 {/*and GDPR*/} compliance. We adhere to rigorous standards to
+        protect your data and maintain transparency and accountability in all
+        our operations.
       </>
     ),
   },

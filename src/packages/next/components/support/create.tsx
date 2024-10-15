@@ -26,6 +26,7 @@ import getBrowserInfo from "./browser-info";
 import RecentFiles from "./recent-files";
 import { Type } from "./tickets";
 import { NoZendesk } from "./util";
+import { VideoItem } from "components/videos";
 
 const CHATGPT_DISABLED = true;
 const MIN_BODY_LENGTH = 16;
@@ -38,10 +39,16 @@ function VSpace({ children }) {
   );
 }
 
-export type Type = "problem" | "question" | "task" | "purchase";
+export type Type = "problem" | "question" | "task" | "purchase" | "chat";
 
 function stringToType(s?: any): Type {
-  if (s == "problem" || s == "question" || s == "task" || s == "purchase")
+  if (
+    s == "problem" ||
+    s == "question" ||
+    s == "task" ||
+    s == "purchase" ||
+    s == "chat"
+  )
     return s;
   return "problem"; // default;
 }
@@ -140,23 +147,30 @@ export default function Create() {
         </Title>
         {showExtra && (
           <>
-            <p style={{ fontSize: "12pt" }}>
-              Create a new support ticket below or{" "}
-              <A href="/support/tickets">
-                check the status of your support tickets
-              </A>
-              .{" "}
-              {helpEmail ? (
-                <>
-                  You can also email us directly at{" "}
-                  <A href={`mailto:${helpEmail}`}>{helpEmail}</A> or{" "}
-                  <A href="https://calendly.com/cocalc/discovery">
-                    book a demo or discovery call
-                  </A>
-                  .
-                </>
-              ) : undefined}
-            </p>
+            <Space>
+              <p style={{ fontSize: "12pt" }}>
+                Create a new support ticket below or{" "}
+                <A href="/support/tickets">
+                  check the status of your support tickets
+                </A>
+                .{" "}
+                {helpEmail ? (
+                  <>
+                    You can also email us directly at{" "}
+                    <A href={`mailto:${helpEmail}`}>{helpEmail}</A> or{" "}
+                    <A href="https://calendly.com/cocalc/discovery">
+                      book a demo or discovery call
+                    </A>
+                    .
+                  </>
+                ) : undefined}
+              </p>
+              <VideoItem
+                width={600}
+                style={{ margin: "15px 0", width: "600px" }}
+                id={"4Ef9sxX59XM"}
+              />
+            </Space>
             {openaiEnabled && onCoCalcCom && !CHATGPT_DISABLED ? (
               <ChatGPT siteName={siteName} />
             ) : undefined}
@@ -216,41 +230,55 @@ export default function Create() {
                   <Type type="purchase" /> I have a question regarding
                   purchasing a product.
                 </Radio>
+                <Radio value={"chat"}>
+                  <Type type="chat" /> I would like to schedule a video chat.
+                </Radio>
               </VSpace>
             </Radio.Group>
             <br />
-            {showExtra && type !== "purchase" && (
+            {showExtra && type !== "purchase" && type != "chat" && (
               <>
                 <Files onChange={setFiles} />
                 <br />
               </>
             )}
-            <b>
-              <Status
-                done={body && body.length >= MIN_BODY_LENGTH && hasRequired}
-              />{" "}
-              Description
-            </b>
-            <div
-              style={{
-                marginLeft: "30px",
-                borderLeft: "1px solid lightgrey",
-                paddingLeft: "15px",
-              }}
-            >
-              {type == "problem" && <Problem onChange={setBody} />}
-              {type == "question" && (
-                <Question onChange={setBody} defaultValue={body} />
-              )}
-              {type == "purchase" && (
-                <Purchase
-                  onChange={setBody}
-                  defaultValue={body}
-                  showExtra={showExtra}
-                />
-              )}
-              {type == "task" && <Task onChange={setBody} />}
-            </div>
+            {type == "chat" && (
+              <h1 style={{ textAlign: "center" }}>
+                <b>
+                  <A href="https://calendly.com/cocalc">Book a Video Chat...</A>
+                </b>
+              </h1>
+            )}
+            {type != "chat" && (
+              <>
+                <b>
+                  <Status
+                    done={body && body.length >= MIN_BODY_LENGTH && hasRequired}
+                  />{" "}
+                  Description
+                </b>
+                <div
+                  style={{
+                    marginLeft: "30px",
+                    borderLeft: "1px solid lightgrey",
+                    paddingLeft: "15px",
+                  }}
+                >
+                  {type == "problem" && <Problem onChange={setBody} />}
+                  {type == "question" && (
+                    <Question onChange={setBody} defaultValue={body} />
+                  )}
+                  {type == "purchase" && (
+                    <Purchase
+                      onChange={setBody}
+                      defaultValue={body}
+                      showExtra={showExtra}
+                    />
+                  )}
+                  {type == "task" && <Task onChange={setBody} />}
+                </div>
+              </>
+            )}
           </VSpace>
 
           <div style={{ textAlign: "center", marginTop: "30px" }}>
@@ -262,28 +290,30 @@ export default function Create() {
                 description={`You must replace the text '${required}' everywhere above with the requested information.`}
               />
             )}
-            <Button
-              shape="round"
-              size="large"
-              disabled={!submittable.current}
-              type="primary"
-              onClick={createSupportTicket}
-            >
-              <Icon name="paper-plane" />{" "}
-              {submitting
-                ? "Submitting..."
-                : success
-                ? "Thank you for creating a ticket"
-                : submitError
-                ? "Close the error box to try again"
-                : !isValidEmailAddress(email)
-                ? "Enter Valid Email Address above"
-                : !subject
-                ? "Enter Subject above"
-                : (body ?? "").length < MIN_BODY_LENGTH
-                ? `Describe your ${type} in detail above`
-                : "Create Support Ticket"}
-            </Button>
+            {type != "chat" && (
+              <Button
+                shape="round"
+                size="large"
+                disabled={!submittable.current}
+                type="primary"
+                onClick={createSupportTicket}
+              >
+                <Icon name="paper-plane" />{" "}
+                {submitting
+                  ? "Submitting..."
+                  : success
+                    ? "Thank you for creating a ticket"
+                    : submitError
+                      ? "Close the error box to try again"
+                      : !isValidEmailAddress(email)
+                        ? "Enter Valid Email Address above"
+                        : !subject
+                          ? "Enter Subject above"
+                          : (body ?? "").length < MIN_BODY_LENGTH
+                            ? `Describe your ${type} in detail above`
+                            : "Create Support Ticket"}
+              </Button>
+            )}
             {submitting && <Loading style={{ fontSize: "32pt" }} />}
             {submitError && (
               <div>

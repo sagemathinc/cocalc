@@ -125,6 +125,9 @@ systemctl restart docker
 `;
 }
 
+// NOTE: we absolutely DO need "# Allow root to use FUSE mount of user" below.
+// This is needed so that we can do a very fast bind mount as root of fast
+// scratch directories on top of the slower fuse mounted home directory.
 export function installUser() {
   return `
 # Create the "user" if they do not already exist:
@@ -138,15 +141,18 @@ if ! id -u user >/dev/null 2>&1; then
   # Allow to be root
   echo '%user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-  # Allow to use FUSE
+  # Allow root to use FUSE mount of user
   sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
 
-  # Add user to the docker group, so that they can
-  # use docker without having to do "sudo".
-
-  sed -i 's/docker:x:999:/docker:x:999:user/' /etc/group
-
 fi
+
+# Add user to the docker group, so that they can
+# use docker without having to do "sudo".  We do this
+# every time since it seems to get removed by
+# other steps.  Also, using usermod instead of sed is
+# more robust.   This is needed, e.g., for our
+# current ssh approach.
+usermod -aG docker user
 `;
 }
 
@@ -369,7 +375,7 @@ apt-get -y install $NVIDIA_KERNEL_OPEN $CUDA_DRIVERS
 `;
 }
 
-async function authorizedKeys(project_id: string) {
+export async function authorizedKeys(project_id: string) {
   const sshKeys = await getSshKeys(project_id);
   return (
     "# This file is managed by CoCalc.  Add keys in account prefs and project settings.\n# See https://doc.cocalc.com/account/ssh.html\n\n" +

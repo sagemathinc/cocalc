@@ -17,7 +17,6 @@ or Loading... if the file is still being loaded.
 import { Map } from "immutable";
 import { useEffect, useMemo, useRef } from "react";
 import Draggable from "react-draggable";
-
 import {
   React,
   ReactDOM,
@@ -29,7 +28,7 @@ import { KioskModeBanner } from "@cocalc/frontend/app/kiosk-mode-banner";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Loading } from "@cocalc/frontend/components";
-import KaTeXAndMathJaxV2 from "@cocalc/frontend/components/math/katex-and-mathjax2";
+import KaTeX from "@cocalc/frontend/components/math/katex";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import {
@@ -161,7 +160,7 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
           urlTransform: getUrlTransform({ project_id, path }),
           AnchorTagComponent: getAnchorTagComponent({ project_id, path }),
           noSanitize: true, // TODO: temporary for backward compat for now; will make it user-configurable on a per file basis later.
-          MathComponent: KaTeXAndMathJaxV2,
+          MathComponent: KaTeX,
           jupyterApiEnabled,
           hasLanguageModel: redux
             ?.getStore("projects")

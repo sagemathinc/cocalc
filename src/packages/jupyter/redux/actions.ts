@@ -183,7 +183,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   sync_read_only = (): void => {
     if (this._state == "closed") return;
     const a = this.store.get("read_only");
-    const b = this.syncdb != null ? this.syncdb.is_read_only() : undefined;
+    const b = this.syncdb?.is_read_only();
     if (a !== b) {
       this.setState({ read_only: b });
       this.set_cm_options();
@@ -385,7 +385,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // Might throw a CellWriteProtectedException
   public set_cell_input(id: string, input: string, save = true): void {
     if (!this.store) return;
-    if (this.store.getIn(["this.st", id, "input"]) == input) {
+    if (this.store.getIn(["cells", id, "input"]) == input) {
       // nothing changed.   Note, I tested doing the above check using
       // both this.syncdb and this.store, and this.store is orders of magnitude faster.
       return;
@@ -416,6 +416,19 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
       },
       save,
     );
+  };
+
+  setCellId = (id: string, newId: string, save = true) => {
+    let cell = this.store.getIn(["cells", id])?.toJS();
+    if (cell == null) {
+      return;
+    }
+    cell.id = newId;
+    this.syncdb.delete({ type: "cell", id });
+    this.syncdb.set(cell);
+    if (save) {
+      this.syncdb.commit();
+    }
   };
 
   clear_selected_outputs = () => {
@@ -679,6 +692,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             const obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
+              last_backend_state: record.get("last_backend_state"),
               kernel_state: record.get("kernel_state"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
               max_output_length: bounded_integer(
@@ -750,6 +764,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
             const obj: any = {
               trust: !!record.get("trust"), // case to boolean
               backend_state: record.get("backend_state"),
+              last_backend_state: record.get("last_backend_state"),
               kernel_state: record.get("kernel_state"),
               kernel_error: record.get("kernel_error"),
               metadata: record.get("metadata"), // extra custom user-specified metadata
@@ -1092,7 +1107,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   ): void {
     const cell = this.store.getIn(["cells", id]);
     if (cell == null) {
-      throw Error(`can't run cell ${id} since it does not exist`);
+      // it is trivial to run a cell that does not exist -- nothing needs to be done.
+      return;
     }
     const kernel = this.store.get("kernel");
     if (kernel == null || kernel === "") {
@@ -1127,6 +1143,11 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         state: "start",
         start,
         end: null,
+        // time last evaluation took
+        last:
+          cell.get("start") != null && cell.get("end") != null
+            ? cell.get("end") - cell.get("start")
+            : cell.get("last"),
         output: null,
         exec_count: null,
         collapsed: null,
@@ -1138,6 +1159,8 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   clear_cell = (id: string, save = true) => {
+    const cell = this.store.getIn(["cells", id]);
+
     return this._set(
       {
         type: "cell",
@@ -1145,6 +1168,10 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
         state: null,
         start: null,
         end: null,
+        last:
+          cell?.get("start") != null && cell?.get("end") != null
+            ? cell?.get("end") - cell?.get("start")
+            : (cell?.get("last") ?? null),
         output: null,
         exec_count: null,
         collapsed: null,
@@ -1780,42 +1807,6 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
     this.set_cell_input(id, new_input, save);
   }
-
-  complete_handle_key = (_: string, keyCode: number): void => {
-    // User presses a key while the completions dialog is open.
-    let complete = this.store.get("complete");
-    if (complete == null) {
-      return;
-    }
-    const c = String.fromCharCode(keyCode);
-    complete = complete.toJS(); // code is ugly without just doing this - doesn't matter for speed
-    const { code } = complete;
-    const { pos } = complete;
-    complete.code = code.slice(0, pos) + c + code.slice(pos);
-    complete.cursor_end += 1;
-    complete.pos += 1;
-    const target = complete.code.slice(
-      complete.cursor_start,
-      complete.cursor_end,
-    );
-    complete.matches = (() => {
-      const result: any = [];
-      for (const x of complete.matches) {
-        if (misc.startswith(x, target)) {
-          result.push(x);
-        }
-      }
-      return result;
-    })();
-    if (complete.matches.length === 0) {
-      this.clear_complete();
-    } else {
-      const orig_base = complete.base;
-      complete.base = complete.code;
-      this.setState({ complete: immutable.fromJS(complete) });
-      this.complete_cell(complete.id, orig_base, complete.code);
-    }
-  };
 
   is_introspecting(): boolean {
     const actions = this.getFrameActions() as any;
@@ -2804,6 +2795,53 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
     });
 
     return value;
+  };
+
+  // Update run progress, which is a number between 0 and 100,
+  // giving the number of runnable cells that have been run since
+  // the kernel was last set to the running state.
+  // Currently only run in the browser, but could maybe be useful
+  // elsewhere someday.
+  updateRunProgress = () => {
+    if (this.store == null) {
+      return;
+    }
+    if (this.store.get("backend_state") != "running") {
+      this.setState({ runProgress: 0 });
+      return;
+    }
+    const cells = this.store.get("cells");
+    if (cells == null) {
+      return;
+    }
+    const last = this.store.get("last_backend_state");
+    if (last == null) {
+      // not supported yet, e.g., old backend, kernel never started
+      return;
+    }
+    // count of number of cells that are runnable and
+    // have start greater than last, and end set...
+    // count a currently running cell as 0.5.
+    let total = 0;
+    let ran = 0;
+    for (const [_, cell] of cells) {
+      if (
+        cell.get("cell_type", "code") != "code" ||
+        !cell.get("input")?.trim()
+      ) {
+        // not runnable
+        continue;
+      }
+      total += 1;
+      if ((cell.get("start") ?? 0) >= last) {
+        if (cell.get("end")) {
+          ran += 1;
+        } else {
+          ran += 0.5;
+        }
+      }
+    }
+    this.setState({ runProgress: total > 0 ? (100 * ran) / total : 100 });
   };
 }
 

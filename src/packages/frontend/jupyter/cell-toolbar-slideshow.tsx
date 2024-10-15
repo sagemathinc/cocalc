@@ -6,11 +6,8 @@
 /*
 The slideshow toolbar functionality for cells.
 */
-
+import { Select } from "antd";
 import { Map as ImmutableMap } from "immutable";
-
-import { FormControl } from "@cocalc/frontend/antd-bootstrap";
-import { React } from "@cocalc/frontend/app-framework";
 import { JupyterActions } from "./browser-actions";
 
 const TYPES = [
@@ -22,33 +19,25 @@ const TYPES = [
   { title: "Notes", value: "notes" },
 ] as const;
 
-const rendered_options = TYPES.map((x) => (
-  <option key={x.value} value={x.value}>
-    {x.title}
-  </option>
-));
-
 interface SlideshowProps {
   actions: JupyterActions;
   cell: ImmutableMap<string, any>;
 }
 
-export const Slideshow: React.FC<SlideshowProps> = (props: SlideshowProps) => {
-  const { actions, cell } = props;
-  function select(e: any): void {
-    actions.set_cell_slide(cell.get("id"), e.target.value);
-  }
+export function Slideshow({ actions, cell }: SlideshowProps) {
   return (
     <div style={{ width: "100%" }}>
-      <FormControl
-        componentClass="select"
-        placeholder="select"
-        onChange={select}
+      <Select
+        onChange={(value) => {
+          actions.set_cell_slide(cell.get("id"), value);
+        }}
         value={cell.get("slide", "")}
         style={{ float: "right", width: "200px" }}
-      >
-        {rendered_options}
-      </FormControl>
+        options={TYPES.map((x) => ({
+          label: x.title,
+          value: x.value,
+        }))}
+      />
     </div>
   );
-};
+}

@@ -5,10 +5,14 @@
 
 import { Card, InputNumber } from "antd";
 import { Map } from "immutable";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { Checkbox, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useLocalizationCtx } from "@cocalc/frontend/app/localize";
 import {
   A,
+  HelpIcon,
   Icon,
   LabeledRow,
   Loading,
@@ -19,6 +23,7 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MOBILE, IS_TOUCH } from "@cocalc/frontend/feature";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { LOCALIZATIONS, labels } from "@cocalc/frontend/i18n";
 import {
   VBAR_EXPLANATION,
   VBAR_KEY,
@@ -29,7 +34,9 @@ import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { dark_mode_mins, get_dark_mode_config } from "./dark-mode";
+import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
 import Tours from "./tours";
 import { useLanguageModelSetting } from "./useLanguageModelSetting";
 import { UserDefinedLLMComponent } from "./user-defined-llm";
@@ -54,6 +61,8 @@ interface Props {
 }
 
 export function OtherSettings(props: Readonly<Props>): JSX.Element {
+  const intl = useIntl();
+  const { locale } = useLocalizationCtx();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
 
@@ -90,8 +99,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!props.other_settings.get("show_global_info2")}
         onChange={(e) => toggle_global_banner(e.target.checked)}
       >
-        <strong>Show announcement banner</strong>: only shows up if there is a
-        message
+        <FormattedMessage
+          id="account.other-settings.global_banner"
+          defaultMessage={`<strong>Show announcement banner</strong>: only shows up if there is a
+        message`}
+        />
       </Checkbox>
     );
   }
@@ -102,8 +114,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("time_ago_absolute")}
         onChange={(e) => on_change("time_ago_absolute", e.target.checked)}
       >
-        Display <strong>timestamps as absolute points in time</strong> instead
-        of relative to the current time
+        <FormattedMessage
+          id="account.other-settings.time_ago_absolute"
+          defaultMessage={`Display <strong>timestamps as absolute points in time</strong>
+            instead of relative to the current time`}
+        />
       </Checkbox>
     );
   }
@@ -115,8 +130,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           checked={!!props.other_settings.get("confirm_close")}
           onChange={(e) => on_change("confirm_close", e.target.checked)}
         >
-          <strong>Confirm Close:</strong> always ask for confirmation before
-          closing the browser window
+          <FormattedMessage
+            id="account.other-settings.confirm_close"
+            defaultMessage={`<strong>Confirm Close:</strong> always ask for confirmation before
+          closing the browser window`}
+          />
         </Checkbox>
       );
     }
@@ -131,9 +149,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("katex")}
         onChange={(e) => on_change("katex", e.target.checked)}
       >
-        <strong>KaTeX:</strong> attempt to render formulas with{" "}
-        <A href={"https://katex.org/"}>KaTeX</A> (much faster, but missing
-        context menu options)
+        <FormattedMessage
+          id="account.other-settings.katex"
+          defaultMessage={`<strong>KaTeX:</strong> attempt to render formulas
+              using {katex} (much faster, but missing context menu options)`}
+          values={{ katex: <A href={"https://katex.org/"}>KaTeX</A> }}
+        />
       </Checkbox>
     );
   }
@@ -143,7 +164,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       return;
     }
     return (
-      <LabeledRow label="Standby timeout">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.standby_timeout",
+          defaultMessage: "Standby timeout",
+        })}
+      >
         <NumberInput
           on_change={(n) => on_change("standby_timeout_m", n)}
           min={1}
@@ -161,8 +187,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("mask_files")}
         onChange={(e) => on_change("mask_files", e.target.checked)}
       >
-        <strong>Mask files:</strong> grey out files in the files viewer that you
-        probably do not want to open
+        <FormattedMessage
+          id="account.other-settings.mask_files"
+          defaultMessage={`<strong>Mask files:</strong> grey out files in the files viewer
+            that you probably do not want to open`}
+        />
       </Checkbox>
     );
   }
@@ -173,8 +202,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("hide_project_popovers")}
         onChange={(e) => on_change("hide_project_popovers", e.target.checked)}
       >
-        <strong>Hide Project Tab Popovers:</strong> do not show the popovers
-        over the project tabs
+        <FormattedMessage
+          id="account.other-settings.project_popovers"
+          defaultMessage={`<strong>Hide Project Tab Popovers:</strong>
+            do not show the popovers over the project tabs`}
+        />
       </Checkbox>
     );
   }
@@ -185,8 +217,11 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("hide_file_popovers")}
         onChange={(e) => on_change("hide_file_popovers", e.target.checked)}
       >
-        <strong>Hide File Tab Popovers:</strong> do not show the popovers over
-        file tabs
+        <FormattedMessage
+          id="account.other-settings.file_popovers"
+          defaultMessage={`<strong>Hide File Tab Popovers:</strong>
+            do not show the popovers over file tabs`}
+        />
       </Checkbox>
     );
   }
@@ -197,18 +232,35 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
         checked={!!props.other_settings.get("hide_button_tooltips")}
         onChange={(e) => on_change("hide_button_tooltips", e.target.checked)}
       >
-        <strong>Hide Button Tooltips:</strong> hides some button tooltips (this
-        is only partial)
+        <FormattedMessage
+          id="account.other-settings.button_tooltips"
+          defaultMessage={`<strong>Hide Button Tooltips:</strong>
+            hides some button tooltips (this is only partial)`}
+        />
       </Checkbox>
     );
   }
 
   function render_default_file_sort(): Rendered {
     return (
-      <LabeledRow label="Default file sort">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.default_file_sort.label",
+          defaultMessage: "Default file sort",
+        })}
+      >
         <SelectorInput
           selected={props.other_settings.get("default_file_sort")}
-          options={{ time: "Sort by time", name: "Sort by name" }}
+          options={{
+            time: intl.formatMessage({
+              id: "account.other-settings.default_file_sort.by_time",
+              defaultMessage: "Sort by time",
+            }),
+            name: intl.formatMessage({
+              id: "account.other-settings.default_file_sort.by_name",
+              defaultMessage: "Sort by name",
+            }),
+          }}
           on_change={(value) => on_change("default_file_sort", value)}
         />
       </LabeledRow>
@@ -219,19 +271,41 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
     const selected =
       props.other_settings.get(NEW_FILENAMES) ?? DEFAULT_NEW_FILENAMES;
     return (
-      <LabeledRow label="Generated filenames">
-        <SelectorInput
-          selected={selected}
-          options={NewFilenameFamilies}
-          on_change={(value) => on_change(NEW_FILENAMES, value)}
-        />
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.filename_generator.label",
+          defaultMessage: "Filename generator",
+        })}
+      >
+        <div>
+          <SelectorInput
+            selected={selected}
+            options={NewFilenameFamilies}
+            on_change={(value) => on_change(NEW_FILENAMES, value)}
+          />
+          <Paragraph
+            type="secondary"
+            ellipsis={{ expandable: true, symbol: "more" }}
+          >
+            {intl.formatMessage({
+              id: "account.other-settings.filename_generator.description",
+              defaultMessage: `Select how automatically generated filenames are generated.
+                In particular, to make them unique or to include the current time.`,
+            })}
+          </Paragraph>
+        </div>
       </LabeledRow>
     );
   }
 
   function render_page_size(): Rendered {
     return (
-      <LabeledRow label="Number of files per page">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings._page_size.label",
+          defaultMessage: "Number of files per page",
+        })}
+      >
         <NumberInput
           on_change={(n) => on_change("page_size", n)}
           min={1}
@@ -281,18 +355,35 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
             borderRadius: "3px",
           }}
         >
-          Dark mode: reduce eye strain by showing a dark background (via{" "}
-          <A
-            style={{ color: "#e96c4d", fontWeight: 700 }}
-            href="https://darkreader.org/"
-          >
-            DARK READER
-          </A>
-          )
+          <FormattedMessage
+            id="account.other-settings.theme.dark_mode.compact"
+            defaultMessage={`Dark mode: reduce eye strain by showing a dark background (via {DR})`}
+            values={{
+              DR: (
+                <A
+                  style={{ color: "#e96c4d", fontWeight: 700 }}
+                  href="https://darkreader.org/"
+                >
+                  DARK READER
+                </A>
+              ),
+            }}
+          />
         </Checkbox>
-        {checked && (
-          <Card size="small" title="Dark Mode Configuration">
-            <span style={label_style}>Brightness</span>
+        {checked ? (
+          <Card
+            size="small"
+            title={intl.formatMessage({
+              id: "account.other-settings.theme.dark_mode.configuration",
+              defaultMessage: "Dark Mode Configuration",
+            })}
+          >
+            <span style={label_style}>
+              <FormattedMessage
+                id="account.other-settings.theme.dark_mode.brightness"
+                defaultMessage="Brightness"
+              />
+            </span>
             <InputNumber
               min={dark_mode_mins.brightness}
               max={100}
@@ -300,7 +391,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
               onChange={(x) => on_change("dark_mode_brightness", x)}
             />
             <br />
-            <span style={label_style}>Contrast</span>
+            <span style={label_style}>
+              <FormattedMessage
+                id="account.other-settings.theme.dark_mode.contrast"
+                defaultMessage="Contrast"
+              />
+            </span>
             <InputNumber
               min={dark_mode_mins.contrast}
               max={100}
@@ -308,7 +404,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
               onChange={(x) => on_change("dark_mode_contrast", x)}
             />
             <br />
-            <span style={label_style}>Sepia</span>
+            <span style={label_style}>
+              <FormattedMessage
+                id="account.other-settings.theme.dark_mode.sepia"
+                defaultMessage="Sepia"
+              />
+            </span>
             <InputNumber
               min={dark_mode_mins.sepia}
               max={100}
@@ -316,7 +417,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
               onChange={(x) => on_change("dark_mode_sepia", x)}
             />
             <br />
-            <span style={label_style}>Grayscale</span>
+            <span style={label_style}>
+              <FormattedMessage
+                id="account.other-settings.theme.dark_mode.grayscale"
+                defaultMessage="Grayscale"
+              />
+            </span>
             <InputNumber
               min={dark_mode_mins.grayscale}
               max={100}
@@ -324,7 +430,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
               onChange={(x) => on_change("dark_mode_grayscale", x)}
             />
           </Card>
-        )}
+        ) : undefined}
       </div>
     );
   }
@@ -336,39 +442,72 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           checked={props.other_settings.get("antd_rounded", true)}
           onChange={(e) => on_change("antd_rounded", e.target.checked)}
         >
-          <b>Rounded Design</b>: use rounded corners for buttons, etc.
+          <FormattedMessage
+            id="account.other-settings.theme.antd.rounded"
+            defaultMessage={`<b>Rounded Design</b>: use rounded corners for buttons, etc.`}
+          />
         </Checkbox>
         <Checkbox
           checked={props.other_settings.get("antd_animate", true)}
           onChange={(e) => on_change("antd_animate", e.target.checked)}
         >
-          <b>Animations</b>: briefly animate some aspects, e.g. buttons
+          <FormattedMessage
+            id="account.other-settings.theme.antd.animations"
+            defaultMessage={`<b>Animations</b>: briefly animate some aspects, e.g. buttons`}
+          />
         </Checkbox>
         <Checkbox
           checked={props.other_settings.get("antd_brandcolors", false)}
           onChange={(e) => on_change("antd_brandcolors", e.target.checked)}
         >
-          <b>Color Scheme</b>: use brand colors instead of default colors
+          <FormattedMessage
+            id="account.other-settings.theme.antd.color_scheme"
+            defaultMessage={`<b>Color Scheme</b>: use brand colors instead of default colors`}
+          />
         </Checkbox>
         <Checkbox
           checked={props.other_settings.get("antd_compact", false)}
           onChange={(e) => on_change("antd_compact", e.target.checked)}
         >
-          <b>Compact Design</b>: use a more compact design
+          <FormattedMessage
+            id="account.other-settings.theme.antd.compact"
+            defaultMessage={`<b>Compact Design</b>: use a more compact design`}
+          />
         </Checkbox>
       </>
     );
   }
 
+  function render_i18n_selector(): Rendered {
+    return (
+      <LabeledRow label={intl.formatMessage(labels.language)}>
+        <div>
+          <I18NSelector />{" "}
+          <HelpIcon title={intl.formatMessage(I18N_TITLE)}>
+            {intl.formatMessage(I18N_MESSAGE)}
+          </HelpIcon>
+        </div>
+      </LabeledRow>
+    );
+  }
+
   function render_vertical_fixed_bar_options(): Rendered {
     const selected = getValidVBAROption(props.other_settings.get(VBAR_KEY));
+    const options = Object.fromEntries(
+      Object.entries(VBAR_OPTIONS).map(([k, v]) => [k, intl.formatMessage(v)]),
+    );
     return (
-      <LabeledRow label="Vertical Project Bar">
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.vbar.title",
+          defaultMessage: "Vertical Project Bar",
+        })}
+      >
         <div>
           <SelectorInput
             style={{ marginBottom: "10px" }}
             selected={selected}
-            options={VBAR_OPTIONS}
+            options={options}
             on_change={(value) => {
               on_change(VBAR_KEY, value);
               track("flyout", { aspect: "layout", how: "account", value });
@@ -378,7 +517,7 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
             type="secondary"
             ellipsis={{ expandable: true, symbol: "more" }}
           >
-            {VBAR_EXPLANATION}
+            {intl.formatMessage(VBAR_EXPLANATION)}
           </Paragraph>
         </div>
       </LabeledRow>
@@ -394,17 +533,43 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
           redux.getStore("projects").clearOpenAICache();
         }}
       >
-        <strong>Disable all AI integrations</strong>, e.g., code generation or
-        explanation buttons in Jupyter, @chatgpt mentions, etc.
+        <FormattedMessage
+          id="account.other-settings.llm.disable_all"
+          defaultMessage={`<strong>Disable all AI integrations</strong>,
+            e.g., code generation or explanation buttons in Jupyter, @chatgpt mentions, etc.`}
+        />
       </Checkbox>
     );
   }
 
   function render_language_model(): Rendered {
     return (
-      <LabeledRow label={<>Default AI Language Model</>}>
+      <LabeledRow
+        label={intl.formatMessage({
+          id: "account.other-settings.llm.default_llm",
+          defaultMessage: "Default AI Language Model",
+        })}
+      >
         <LLMSelector model={model} setModel={setModel} />
       </LabeledRow>
+    );
+  }
+
+  function render_llm_reply_language(): Rendered {
+    return (
+      <Checkbox
+        checked={!!props.other_settings.get(OTHER_SETTINGS_REPLY_ENGLISH_KEY)}
+        onChange={(e) => {
+          on_change(OTHER_SETTINGS_REPLY_ENGLISH_KEY, e.target.checked);
+        }}
+      >
+        <FormattedMessage
+          id="account.other-settings.llm.reply_language"
+          defaultMessage={`<strong>Always reply in English:</strong>
+          If set, the replies are always in English. Otherwise, it replies in your language ({lang}).`}
+          values={{ lang: intl.formatMessage(LOCALIZATIONS[locale].trans) }}
+        />
+      </Checkbox>
     );
   }
 
@@ -424,12 +589,17 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       <Panel
         header={
           <>
-            <AIAvatar size={18} /> AI Settings
+            <AIAvatar size={18} />{" "}
+            <FormattedMessage
+              id="account.other-settings.llm.title"
+              defaultMessage={`AI Settings`}
+            />
           </>
         }
       >
         {render_disable_all_llm()}
         {render_language_model()}
+        {render_llm_reply_language()}
         {render_custom_llm()}
       </Panel>
     );
@@ -445,7 +615,12 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
       <Panel
         header={
           <>
-            <Icon name="highlighter" /> Theme
+            <Icon name="highlighter" />{" "}
+            <FormattedMessage
+              id="account.other-settings.theme"
+              defaultMessage="Theme"
+              description="Visual UI theme of the application"
+            />
           </>
         }
       >
@@ -475,10 +650,13 @@ export function OtherSettings(props: Readonly<Props>): JSX.Element {
             on_change("disable_markdown_codebar", e.target.checked);
           }}
         >
-          <strong>Disable the markdown code bar</strong> in all markdown
-          documents. Checking this hides the extra run, copy, and explain
-          buttons in fenced code blocks.
+          <FormattedMessage
+            id="account.other-settings.markdown_codebar"
+            defaultMessage={`<strong>Disable the markdown code bar</strong> in all markdown documents.
+            Checking this hides the extra run, copy, and explain buttons in fenced code blocks.`}
+          />
         </Checkbox>
+        {render_i18n_selector()}
         {render_vertical_fixed_bar_options()}
         {render_new_filenames()}
         {render_default_file_sort()}

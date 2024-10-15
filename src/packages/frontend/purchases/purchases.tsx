@@ -652,6 +652,13 @@ function Description({ description, period_end, service }) {
     const { license_id } = description;
     return (
       <Popover
+        overlayStyle={{
+          maxHeight: "60vh",
+          overflow: "auto",
+          border: "1px solid #ccc",
+          borderRadius: "5px",
+          boxShadow: "4px 4px 2px #dfdfdf",
+        }}
         title={
           <>
             Licenses:{" "}

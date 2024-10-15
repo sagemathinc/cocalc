@@ -66,11 +66,11 @@ export const NewButton: React.FC<Props> = (props: Props) => {
       key: ext,
       onClick: () => on_dropdown_entry_clicked(ext),
       label: (
-        <>
+        <span style={{ whiteSpace: "nowrap" }}>
           <Icon name={data.icon} />{" "}
           <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
           <span style={{ color: COLORS.GRAY_D }}>(.{ext})</span>
-        </>
+        </span>
       ),
     };
   }
@@ -120,9 +120,9 @@ export const NewButton: React.FC<Props> = (props: Props) => {
       key: "folder",
       onClick: () => on_dropdown_entry_clicked("folder"),
       label: (
-        <>
-          <Icon name="folder" /> Folder
-        </>
+        <span style={{ whiteSpace: "nowrap" }}>
+          <Icon name="folder" /> {intl.formatMessage(labels.folder)}
+        </span>
       ),
     },
   ];

@@ -5,13 +5,10 @@
 
 import { Button, Card, Checkbox } from "antd";
 import { isEqual } from "lodash";
-
+import { useEffect, useRef, useState } from "react";
 import {
-  React,
   redux,
-  useEffect,
   useIsMountedRef,
-  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
@@ -45,12 +42,6 @@ const OPTIONS: Option[] = [
     title: "Jupyter Classic notebook server",
     description:
       "Disable the user interface for running a Jupyter classic server in student projects.  This is important, since Jupyter classic provides its own extensive download and edit functionality; moreover, you may want to disable Jupyter classic to reduce confusion if you don't plan to use it.",
-  },
-  {
-    name: "disableJupyterClassicMode",
-    title: "Jupyter Classic mode",
-    description:
-      "Do not allow opening Jupyter notebooks using classic mode.  The Jupyter classic UI has some workarounds for the other restrictions here, and can also cause confusion if you don't want students to use it in your class.",
   },
   {
     name: "disableJupyterLabServer",
@@ -88,6 +79,12 @@ const OPTIONS: Option[] = [
       "Blocks uploading files to the student project via drag-n-drop or the Upload button.",
   },
   {
+    name: "disableLibrary",
+    title: "Library",
+    description:
+      "In the file explorer there is a library button for browsing and copying books and tutorials into a project.  Disable this to simplify the interface.",
+  },
+  {
     name: "disableCollaborators",
     title: "adding or removing collaborators",
     description:
@@ -106,6 +103,13 @@ const OPTIONS: Option[] = [
     title: "outgoing network access",
     description:
       "Blocks all outgoing network connections from the student projects.",
+  },
+  {
+    isCoCalcCom: true,
+    name: "disableNetworkWarningBanner",
+    title: "outgoing network access warning banner",
+    description:
+      "Disables the banner at the top of the screen that warns students that network access is disabled.",
   },
   {
     isCoCalcCom: true,
@@ -138,97 +142,121 @@ interface Props {
   onChange: (StudentProjectFunctionality) => Promise<void>;
 }
 
-export const CustomizeStudentProjectFunctionality: React.FC<Props> = React.memo(
-  ({ functionality, onChange }) => {
-    const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
-    const [state, setState] =
-      useState<StudentProjectFunctionality>(functionality);
-    const [saving, setSaving] = useState<boolean>(false);
-    function onChangeState(obj: StudentProjectFunctionality) {
-      const newState = { ...state };
-      for (const key in obj) {
-        newState[key] = obj[key];
-      }
-      setState(newState);
+export function CustomizeStudentProjectFunctionality({
+  functionality,
+  onChange,
+}: Props) {
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+  const [state, setState] =
+    useState<StudentProjectFunctionality>(functionality);
+  const [saving, setSaving] = useState<boolean>(false);
+  function onChangeState(obj: StudentProjectFunctionality) {
+    const newState = { ...state };
+    for (const key in obj) {
+      newState[key] = obj[key];
     }
-    const isMountedRef = useIsMountedRef();
+    setState(newState);
+  }
+  const isMountedRef = useIsMountedRef();
 
-    function renderOption(option) {
-      let { title } = option;
-      if (option.notImplemented) {
-        title += " (NOT IMPLEMENTED)";
-      }
-      return (
-        <Tip key={title} title={`Disable ${title}`} tip={option.description}>
-          <Checkbox
-            disabled={saving}
-            defaultChecked={state[option.name]}
-            onChange={(e) =>
-              onChangeState({
-                [option.name]: (e.target as any).checked,
-              })
-            }
-          >
-            Disable {title}
-          </Checkbox>
-          <br />
-        </Tip>
-      );
+  const lastFunctionalityRef =
+    useRef<StudentProjectFunctionality>(functionality);
+  useEffect(() => {
+    if (isEqual(functionality, lastFunctionalityRef.current)) {
+      return;
     }
+    // some sort of upstream change
+    lastFunctionalityRef.current = functionality;
+    setState(functionality);
+  }, [functionality]);
 
-    const options: JSX.Element[] = [];
-    for (const option of OPTIONS) {
-      if (option.isCoCalcCom && !isCoCalcCom) continue;
-      options.push(renderOption(option));
+  function renderOption(option) {
+    let { title } = option;
+    if (option.notImplemented) {
+      title += " (NOT IMPLEMENTED)";
     }
-
     return (
-      <Card
-        title={
-          <>
-            <Icon name="lock" /> Restrict Student Projects
-          </>
-        }
-      >
-        <span style={{ color: "#666" }}>
-          Check any of the boxes below to remove the corresponding functionality
-          from student projects. Hover over an option for more information about
-          what it disables. This is useful to reduce student confusion and keep
-          the students more focused, e.g., during an exam.{" "}
-          <i>
-            Do not gain a false sense of security and expect these to prevent
-            all forms of cheating.
-          </i>
-        </span>
-        <hr />
-        <div
-          style={{
-            border: "1px solid lightgrey",
-            padding: "10px",
-            borderRadius: "5px",
-          }}
+      <Tip key={title} title={`Disable ${title}`} tip={option.description}>
+        <Checkbox
+          disabled={saving}
+          checked={state[option.name]}
+          onChange={(e) =>
+            onChangeState({
+              [option.name]: (e.target as any).checked,
+            })
+          }
         >
-          {options}
-          <div style={{ marginTop: "8px" }}>
-            <Button
-              type="primary"
-              disabled={saving || isEqual(functionality, state)}
-              onClick={async () => {
-                setSaving(true);
-                await onChange(state);
-                if (isMountedRef.current) {
-                  setSaving(false);
-                }
-              }}
-            >
-              Save changes
-            </Button>
-          </div>
-        </div>
-      </Card>
+          Disable {title}
+        </Checkbox>
+        <br />
+      </Tip>
     );
-  },
-);
+  }
+
+  const options: JSX.Element[] = [];
+  for (const option of OPTIONS) {
+    if (option.isCoCalcCom && !isCoCalcCom) continue;
+    options.push(renderOption(option));
+  }
+
+  return (
+    <Card
+      title={
+        <>
+          <Icon name="lock" /> Restrict Student Projects
+        </>
+      }
+    >
+      <span style={{ color: "#666" }}>
+        Check any of the boxes below to remove the corresponding functionality
+        from student projects. Hover over an option for more information about
+        what it disables. This is useful to reduce student confusion and keep
+        the students more focused, e.g., during an exam.{" "}
+        <i>
+          Do not gain a false sense of security and expect these to prevent all
+          forms of cheating.
+        </i>
+      </span>
+      <hr />
+      <div
+        style={{
+          border: "1px solid lightgrey",
+          padding: "10px",
+          borderRadius: "5px",
+        }}
+      >
+        {options}
+        <div style={{ marginTop: "8px" }}>
+          <Button
+            type="primary"
+            disabled={saving || isEqual(functionality, state)}
+            onClick={async () => {
+              setSaving(true);
+              await onChange(state);
+              if (isMountedRef.current) {
+                setSaving(false);
+              }
+            }}
+          >
+            Save changes
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export function completeStudentProjectFunctionality(
+  x: StudentProjectFunctionality,
+) {
+  const y = { ...x };
+  for (const { name } of OPTIONS) {
+    if (y[name] == null) {
+      y[name] = false;
+    }
+  }
+  return y;
+}
 
 // NOTE: we allow project_id to be undefined for convenience since some clients
 // were written with that unlikely assumption on their knowledge of project_id.

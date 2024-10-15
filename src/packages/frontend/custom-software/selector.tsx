@@ -3,18 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Divider } from "antd";
+import { Col, Row, Alert, Button, Divider, List, Radio } from "antd";
 import { join } from "path";
-import {
-  Col,
-  ControlLabel,
-  FormGroup,
-  ListGroup,
-  ListGroupItem,
-  Radio,
-  Row,
-} from "react-bootstrap";
-
 import {
   CSS,
   React,
@@ -162,7 +152,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     } else {
       // must be standard image
       const img = software_images.get(default_image);
-      const display = img != null ? img.get("title") ?? "" : "";
+      const display = img != null ? (img.get("title") ?? "") : "";
       set_state(default_image, display, "standard");
     }
   }, []);
@@ -188,21 +178,24 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
         const [id, img] = e;
         const display = img.get("display", "");
         return (
-          <ListGroupItem
+          <List.Item
             key={id}
-            active={image_selected === id}
             onClick={() => set_state(id, display, image_type)}
-            style={ENTRIES_ITEM_STYLE}
-            bsSize={"small"}
+            style={{
+              ...ENTRIES_ITEM_STYLE,
+              ...(image_selected === id
+                ? { background: "#337ab7", color: "white" }
+                : undefined),
+            }}
           >
             {display}
-          </ListGroupItem>
+          </List.Item>
         );
       })
       .toArray();
 
     if (entries.length > 0) {
-      return <ListGroup style={CS_LIST_STYLE}>{entries}</ListGroup>;
+      return <List style={CS_LIST_STYLE}>{entries}</List>;
     } else {
       if (search_img.length > 0) {
         return <div>No search hits.</div>;
@@ -449,7 +442,9 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   }
 
   function render_standard() {
-    if (!haveSoftwareImages) return;
+    if (!haveSoftwareImages) {
+      return;
+    }
     return (
       <Radio
         checked={image_type === "standard"}
@@ -464,7 +459,9 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   }
 
   function render_custom() {
-    if (customize_kucalc !== KUCALC_COCALC_COM) return null;
+    if (customize_kucalc !== KUCALC_COCALC_COM) {
+      return null;
+    }
 
     if (images == null || images.size == 0) {
       return "There are no customized software environments available.";
@@ -472,7 +469,6 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
       return (
         <Radio
           checked={image_type === "custom"}
-          label={"Custom software environment"}
           id={"custom-compute-image"}
           onChange={() => {
             set_state(undefined, undefined, "custom");
@@ -499,7 +495,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
     if (image_type !== "standard") return;
 
     return (
-      <Col sm={12}>
+      <Col sm={24}>
         <ComputeImageSelector
           selected_image={image_selected ?? dflt_software_img}
           layout={"horizontal"}
@@ -517,16 +513,14 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
   function render_type_selection() {
     return (
       <>
-        {showTitle ? (
-          <ControlLabel>Software environment</ControlLabel>
-        ) : undefined}
+        {showTitle ? <div>Software environment</div> : undefined}
 
         {onCoCalcCom ? (
-          <FormGroup>
-            {render_default()}
-            {render_standard()}
-            {render_custom()}
-          </FormGroup>
+          <div>
+            <div style={{ marginBottom: "5px" }}>{render_default()}</div>
+            <div style={{ marginBottom: "5px" }}>{render_standard()}</div>
+            <div style={{ marginBottom: "5px" }}>{render_custom()}</div>
+          </div>
         ) : (
           render_onprem()
         )}
@@ -545,7 +539,7 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
 
   return (
     <Row>
-      <Col sm={12} style={{ marginTop: "10px" }}>
+      <Col sm={24} style={{ marginTop: "10px" }}>
         {render_type_selection()}
       </Col>
 
@@ -553,9 +547,9 @@ export const SoftwareEnvironment: React.FC<Props> = (props: Props) => {
         <>
           {render_divider()}
           {render_standard_image_selector()}
-          <Col sm={6}>{render_custom_images()}</Col>
-          <Col sm={6}>{render_selected_custom_image_info()}</Col>
-          <Col sm={12}>{render_custom_images_info()}</Col>
+          <Col sm={12}>{render_custom_images()}</Col>
+          <Col sm={12}>{render_selected_custom_image_info()}</Col>
+          <Col sm={24}>{render_custom_images_info()}</Col>
         </>
       ) : undefined}
     </Row>

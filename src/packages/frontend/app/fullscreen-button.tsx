@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useIntl } from "react-intl";
+
 import {
   CSS,
   React,
@@ -33,6 +35,7 @@ export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
   const { pageStyle } = props;
   const { fontSizeIcons } = pageStyle;
 
+  const intl = useIntl();
   const fullscreen = useTypedRedux("page", "fullscreen");
   const page_actions = useActions("page");
 
@@ -61,10 +64,15 @@ export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
         }),
   };
 
+  const tooltip = intl.formatMessage({
+    id: "app.fullscreen-button.tooltip",
+    defaultMessage: "Fullscreen mode, focused on the current document or page.",
+  });
+
   return (
     <Tip
       style={fullscreen === "default" ? TIP_STYLE_FULLSCREEN : undefined}
-      title={"Fullscreen mode, focused on the current document or page."}
+      title={tooltip}
       placement={"bottomRight"}
       delayShow={2000}
     >

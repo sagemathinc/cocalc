@@ -1,7 +1,5 @@
-import { Button, Flex, Tooltip } from "antd";
-import { debounce } from "lodash";
-import { CSSProperties, useCallback, useEffect, useRef } from "react";
-
+import { Button, Flex, Space, Tooltip } from "antd";
+import { CSSProperties, useCallback, useEffect, useRef, useState } from "react";
 import {
   redux,
   useActions,
@@ -9,7 +7,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { AddCollaborators } from "@cocalc/frontend/collaborators";
-import { A, Icon, Loading, SearchInput } from "@cocalc/frontend/components";
+import { A, Icon, Loading } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { ProjectUsers } from "@cocalc/frontend/projects/project-users";
 import { user_activity } from "@cocalc/frontend/tracker";
@@ -21,26 +19,41 @@ import { SubmitMentionsFn } from "./types";
 import { INPUT_HEIGHT, markChatAsReadIfUnseen } from "./utils";
 import VideoChatButton from "./video/launch-button";
 import { COLORS } from "@cocalc/util/theme";
+import Filter from "./filter";
 
 interface Props {
   project_id: string;
   path: string;
   style?: CSSProperties;
+  fontSize?: number;
+  actions?: ChatActions;
+  desc?;
 }
 
-export default function SideChat({ project_id, path, style }: Props) {
-  const actions: ChatActions = useActions(project_id, path);
+export default function SideChat({
+  actions: actions0,
+  project_id,
+  path,
+  style,
+  fontSize,
+  desc,
+}: Props) {
+  // This actionsViaContext via useActions is ONLY needed for side chat for non-frame
+  // editors, i.e., basically just Sage Worksheets!
+  const actionsViaContext = useActions(project_id, path);
+  const actions: ChatActions = actions0 ?? actionsViaContext;
+  const disableFilters = actions0 == null;
   const messages = useRedux(["messages"], project_id, path);
-  const input: string = useRedux(["input"], project_id, path);
-  const search: string = useRedux(["search"], project_id, path);
+  const [lastVisible, setLastVisible] = useState<Date | null>(null);
+  const [input, setInput] = useState("");
+  const search = desc?.get("data-search") ?? "";
+  const selectedHashtags = desc?.get("data-selectedHashtags");
+  const scrollToIndex = desc?.get("data-scrollToIndex") ?? null;
+  const scrollToDate = desc?.get("data-scrollToDate") ?? null;
+  const fragmentId = desc?.get("data-fragmentId") ?? null;
+  const costEstimate = desc?.get("data-costEstimate");
   const addCollab: boolean = useRedux(["add_collab"], project_id, path);
-  const is_uploading = useRedux(["is_uploading"], project_id, path);
   const project_map = useTypedRedux("projects", "project_map");
-  const llm_cost_room: [number, number] = useRedux(
-    ["llm_cost_room"],
-    project_id,
-    path,
-  );
   const project = project_map?.get(project_id);
   const scrollToBottomRef = useRef<any>(null);
   const submitMentionsRef = useRef<SubmitMentionsFn>();
@@ -55,11 +68,20 @@ export default function SideChat({ project_id, path, style }: Props) {
     markAsRead();
   }, []);
 
-  const sendChat = useCallback(() => {
-    const input = submitMentionsRef.current?.();
-    actions.send_chat({ input });
-    scrollToBottomRef.current?.(true);
-  }, [actions]);
+  const sendChat = useCallback(
+    (options?) => {
+      actions.sendChat({ submitMentionsRef, ...options });
+      actions.deleteDraft(0);
+      scrollToBottomRef.current?.(true);
+      setTimeout(() => {
+        scrollToBottomRef.current?.(true);
+      }, 10);
+      setTimeout(() => {
+        scrollToBottomRef.current?.(true);
+      }, 1000);
+    },
+    [actions],
+  );
 
   if (messages == null) {
     return <Loading />;
@@ -96,31 +118,23 @@ export default function SideChat({ project_id, path, style }: Props) {
             borderBottom: "1px solid lightgrey",
           }}
         >
-          <Button
+          <Space.Compact
             style={{
               float: "right",
               marginTop: "-5px",
-              color: "rgb(51, 51, 51)",
-              background: "rgb(91, 192, 222)",
-            }}
-            onClick={() => {
-              actions.showTimeTravelInNewTab();
             }}
           >
-            <Icon name="history" />
-          </Button>
-          <VideoChatButton
-            style={{ float: "right", marginTop: "-5px" }}
-            project_id={project_id}
-            path={path}
-            sendChat={(value) => {
-              const actions = redux.getEditorActions(
-                project_id,
-                path,
-              ) as ChatActions;
-              actions.send_chat({ input: value });
-            }}
-          />{" "}
+            <VideoChatButton actions={actions} />
+            <Tooltip title="Show TimeTravel change history of this side chat.">
+              <Button
+                onClick={() => {
+                  actions.showTimeTravelInNewTab();
+                }}
+              >
+                <Icon name="history" />
+              </Button>
+            </Tooltip>
+          </Space.Compact>
           <CollabList
             addCollab={addCollab}
             project={project}
@@ -129,18 +143,18 @@ export default function SideChat({ project_id, path, style }: Props) {
           <AddChatCollab addCollab={addCollab} project_id={project_id} />
         </div>
       )}
-      <SearchInput
-        autoFocus={false}
-        placeholder={"Filter messages (use /re/ for regexp)..."}
-        default_value={search}
-        on_change={debounce((search) => actions.setState({ search }), 500)}
-        style={{
-          margin: 0,
-          ...(messages.size >= 2
-            ? undefined
-            : { visibility: "hidden", height: 0 }),
-        }}
-      />
+      {!disableFilters && (
+        <Filter
+          actions={actions}
+          search={search}
+          style={{
+            margin: 0,
+            ...(messages.size >= 2
+              ? undefined
+              : { visibility: "hidden", height: 0 }),
+          }}
+        />
+      )}
       <div
         className="smc-vfill"
         style={{
@@ -151,10 +165,20 @@ export default function SideChat({ project_id, path, style }: Props) {
         }}
       >
         <ChatLog
+          actions={actions}
+          fontSize={fontSize}
           project_id={project_id}
           path={path}
           scrollToBottomRef={scrollToBottomRef}
           mode={"sidechat"}
+          setLastVisible={setLastVisible}
+          search={search}
+          selectedHashtags={selectedHashtags}
+          disableFilters={disableFilters}
+          scrollToIndex={scrollToIndex}
+          scrollToDate={scrollToDate}
+          selectedDate={fragmentId}
+          costEstimate={costEstimate}
         />
       </div>
 
@@ -162,41 +186,58 @@ export default function SideChat({ project_id, path, style }: Props) {
         {input.trim() ? (
           <Flex vertical={false} align="center" justify="space-between">
             <Tooltip title="Send message (shift+enter)">
-              <Button
-                style={{ margin: "5px 0 5px 5px" }}
-                onClick={() => {
-                  sendChat();
-                  user_activity("side_chat", "send_chat", "click");
-                }}
-                disabled={!input?.trim() || is_uploading}
-                type="primary"
-              >
-                <Icon name="paper-plane" />
-                Send
-              </Button>
+              <Space>
+                {lastVisible && (
+                  <Button
+                    disabled={!input.trim()}
+                    type="primary"
+                    onClick={() => {
+                      sendChat({ reply_to: new Date(lastVisible) });
+                    }}
+                  >
+                    <Icon name="reply" /> Reply (shift+enter)
+                  </Button>
+                )}
+                <Button
+                  type={!lastVisible ? "primary" : undefined}
+                  style={{ margin: "5px 0 5px 5px" }}
+                  onClick={() => {
+                    sendChat();
+                    user_activity("side_chat", "send_chat", "click");
+                  }}
+                  disabled={!input?.trim()}
+                >
+                  <Icon name="paper-plane" />
+                  Start New Thread
+                </Button>
+              </Space>
             </Tooltip>
-            <LLMCostEstimationChat
-              compact
-              llm_cost={llm_cost_room}
-              style={{ margin: "5px" }}
-            />
+            {costEstimate?.get("date") == 0 && (
+              <LLMCostEstimationChat
+                compact
+                costEstimate={costEstimate?.toJS()}
+                style={{ margin: "5px" }}
+              />
+            )}
           </Flex>
         ) : undefined}
         <ChatInput
           autoFocus
+          fontSize={fontSize}
           cacheId={`${path}${project_id}-new`}
           input={input}
           on_send={() => {
-            sendChat();
+            sendChat(lastVisible ? { reply_to: lastVisible } : undefined);
             user_activity("side_chat", "send_chat", "keyboard");
+            actions?.clearAllFilters();
           }}
           style={{ height: INPUT_HEIGHT }}
           height={INPUT_HEIGHT}
           onChange={(value) => {
-            actions.set_input(value);
+            setInput(value);
             // submitMentionsRef processes the reply, but does not actually send the mentions
-            const reply = submitMentionsRef.current?.(undefined, true) ?? value;
-            actions?.llm_estimate_cost(reply, "room");
+            const input = submitMentionsRef.current?.(undefined, true) ?? value;
+            actions?.llmEstimateCost({ date: 0, input });
           }}
           submitMentionsRef={submitMentionsRef}
           syncdb={actions.syncdb}

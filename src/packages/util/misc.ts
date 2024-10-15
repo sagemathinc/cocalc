@@ -1875,7 +1875,7 @@ export function seconds2hms(
   const m = Math.floor(secs / 60) % 60;
   const h = Math.floor(secs / 60 / 60);
   const d = Math.floor(secs / 60 / 60 / 24);
-  // for more than one day, special routine (ignoring seconds altogehter)
+  // for more than one day, special routine (ignoring seconds altogether)
   if (d > 0) {
     return seconds2hms_days(d, h, m, longform);
   }

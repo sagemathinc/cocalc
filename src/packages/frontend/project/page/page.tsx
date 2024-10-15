@@ -5,6 +5,7 @@
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
 import { Button, Modal, Tooltip } from "antd";
+import { useIntl } from "react-intl";
 
 import {
   React,
@@ -13,6 +14,7 @@ import {
   useEffect,
   useMemo,
   useRedux,
+  useRef,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -56,6 +58,7 @@ import Tabs, {
   FIXED_TABS_BG_COLOR,
   VerticalFixedTabs,
 } from "./vertical-fixed-tabs";
+import { throttle } from "lodash";
 
 const PAGE_STYLE: React.CSSProperties = {
   display: "flex",
@@ -71,6 +74,9 @@ interface Props {
 
 export const ProjectPage: React.FC<Props> = (props: Props) => {
   const { project_id, is_active } = props;
+  const intl = useIntl();
+  const mainRef = useRef<HTMLDivElement>(null);
+  const [mainWidthPx, setMainWidthPx] = useState<number>(0);
   const hideActionButtons = useTypedRedux({ project_id }, "hideActionButtons");
   const flyout = useTypedRedux({ project_id }, "flyout");
   const actions = useActions({ project_id });
@@ -80,7 +86,11 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     project_id,
     "deleted",
   ]);
-  const projectCtx = useProjectContextProvider(project_id, is_active);
+  const projectCtx = useProjectContextProvider({
+    project_id,
+    is_active,
+    mainWidthPx,
+  });
   const fullscreen = useTypedRedux("page", "fullscreen");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const modal = useTypedRedux({ project_id }, "modal");
@@ -112,10 +122,31 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   }, [project_id]);
 
   useEffect(() => {
-    if (flyoutWidth > pageWidthPx / 2) {
-      setFlyoutWidth(Math.max(FLYOUT_DEFAULT_WIDTH_PX / 2, pageWidthPx / 2));
+    if (flyoutWidth > pageWidthPx * 0.9) {
+      setFlyoutWidth(Math.max(FLYOUT_DEFAULT_WIDTH_PX / 2, pageWidthPx * 0.9));
     }
   }, [pageWidthPx]);
+
+  // observe debounced width changes of mainRef div and set it via setMainWidthPx
+  useEffect(() => {
+    const main = mainRef.current;
+    if (main == null) return;
+    const resizeObserver = new ResizeObserver(
+      throttle(
+        (entries) => {
+          if (entries.length > 0) {
+            setMainWidthPx(entries[0].contentRect.width);
+          }
+        },
+        100,
+        { leading: false, trailing: true },
+      ),
+    );
+    resizeObserver.observe(main);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   function setWidth(newWidth: number, reset = false): void {
     if (flyout == null) return;
@@ -257,7 +288,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
     // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
-      <div style={{ display: "flex", margin: "0", paddingTop: "3px" }}>
+      <div style={{ display: "flex", height: "36px" }}>
         <HomePageButton
           project_id={project_id}
           active={active_project_tab == "home"}
@@ -276,7 +307,14 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
 
     if (hideActionButtons) {
       return (
-        <Tooltip title="Show the action bar" placement="rightTop">
+        <Tooltip
+          title={intl.formatMessage({
+            id: "project.page.vertical-fixed-tabs.show-sidebar.tooltip",
+            defaultMessage: "Show the action bar",
+            description: "This shows the vertical action bar in the UI",
+          })}
+          placement="rightTop"
+        >
           <Button
             size="small"
             type="text"
@@ -320,6 +358,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   function renderMainContent() {
     return (
       <div
+        ref={mainRef}
         style={{
           flex: 1,
           display: "flex",
@@ -342,10 +381,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   return (
     <ProjectContext.Provider value={projectCtx}>
       <div className="container-content" style={PAGE_STYLE}>
-        <StudentPayUpgrade
-          project_id={project_id}
-          style={{ marginTop: "5px" }}
-        />
+        <StudentPayUpgrade project_id={project_id} />
         <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />
         <RamWarning project_id={project_id} />

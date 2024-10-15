@@ -22,6 +22,7 @@ export class PageActions extends Actions<PageState> {
   private active_key_handler?: any;
   private suppress_key_handlers: boolean = false;
   private popconfirmIsOpen: boolean = false;
+  private settingsModalIsOpen: boolean = false;
 
   /* Expects a func which takes a browser keydown event
      Only allows one keyhandler to be active at a time.
@@ -419,6 +420,27 @@ export class PageActions extends Actions<PageState> {
       this.popconfirmIsOpen = false;
       // trigger a change, so other code has a chance to get the lock
       this.setState({ popconfirm: { open: false } });
+    }
+  };
+
+  settings = async (name) => {
+    if (!name) {
+      this.setState({ settingsModal: "" });
+      this.settingsModalIsOpen = false;
+      return;
+    }
+    const store = redux.getStore("page");
+    while (this.settingsModalIsOpen) {
+      await once(store, "change");
+    }
+    try {
+      this.settingsModalIsOpen = true;
+      this.setState({ settingsModal: name });
+      while (store.get("settingsModal")) {
+        await once(store, "change");
+      }
+    } finally {
+      this.settingsModalIsOpen = false;
     }
   };
 }

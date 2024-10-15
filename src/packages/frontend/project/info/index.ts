@@ -4,5 +4,3 @@
  */
 
 export { ProjectInfo } from "./project-info";
-
-export const PROJECT_INFO_TITLE = "Processes";

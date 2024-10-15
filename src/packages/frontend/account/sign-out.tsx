@@ -4,8 +4,7 @@
  */
 import { Button, Popconfirm } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
-
-import { LogoutOutlined } from "@ant-design/icons";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { React, Rendered, redux } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
@@ -95,11 +94,9 @@ export const SignOut: React.FC<Props> = (props: Readonly<Props>) => {
       )}
       cancelText={intl.formatMessage(labels.cancel)}
     >
-      <Button
-        icon={<LogoutOutlined />}
-        type={highlight ? "primary" : undefined}
-        style={style}
-      >
+      {/* NOTE: weirdly darkreader breaks when we use the antd LogoutOutlined icon!? */}
+      <Button type={highlight ? "primary" : undefined} style={style}>
+        <Icon name="sign-in" />{" "}
         {!narrow || everywhere ? render_body() : undefined}
       </Button>
     </Popconfirm>

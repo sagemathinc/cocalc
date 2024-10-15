@@ -77,15 +77,18 @@ const ALERT_STYLE_EXPIRED: CSS = {
 interface BannerProps {
   project_id: string;
   projectSiteLicenses: string[];
-  host: boolean;
-  internet: boolean;
+  // noMemberHosting = true means they do NOT have member hosting
+  noMemberHosting: boolean;
+  // noInternet = true means they do NOT have internet access (yes, this is backwards)
+  noInternet: boolean;
   projectIsRunning: boolean;
   projectCreatedTS?: Date;
+  // true if have a paid for compute server
+  hasComputeServers: boolean;
 }
 
 // string and URLs
-export const NO_INTERNET =
-  "you can't install packages, clone from GitHub, or download datasets";
+export const NO_INTERNET = "can't install packages or download datasets";
 const NO_HOST = ["expect slower performance"];
 const INET_QUOTA =
   "https://doc.cocalc.com/billing.html#what-exactly-is-the-internet-access-quota";
@@ -96,12 +99,13 @@ const MEMBER_QUOTA =
 export const TrialBanner: React.FC<BannerProps> = React.memo(
   (props: BannerProps) => {
     const {
-      host,
-      internet,
+      noMemberHosting,
+      noInternet,
       project_id,
       projectCreatedTS,
       projectSiteLicenses,
       projectIsRunning,
+      hasComputeServers,
     } = props;
 
     const [showAddLicense, setShowAddLicense] = useState<boolean>(false);
@@ -128,8 +132,8 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     const style = expired
       ? ALERT_STYLE_EXPIRED
       : elevated
-      ? ALERT_STYLE_ELEVATED
-      : ALERT_STYLE;
+        ? ALERT_STYLE_ELEVATED
+        : ALERT_STYLE;
     const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
 
     const trial_project = no_licenses ? (
@@ -168,7 +172,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
           />
           .<br />
-          Price starts at {LICENSE_MIN_PRICE}.{" "}
+          Prices start at {LICENSE_MIN_PRICE}.{" "}
           <a style={a_style} onClick={() => setShowAddLicense(true)}>
             Apply your license to this project
           </a>
@@ -187,7 +191,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         );
       }
 
-      if (host && internet) {
+      if (noMemberHosting && noInternet) {
         return (
           <span>
             {trial_project} You can improve hosting quality and get internet
@@ -195,9 +199,12 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             <br />
             Otherwise, {humanizeList([...NO_HOST, NO_INTERNET])}
             {"."}
+            {hasComputeServers && (
+              <>&nbsp; NOTE: Compute servers always have internet access.</>
+            )}
           </span>
         );
-      } else if (host) {
+      } else if (noMemberHosting) {
         return (
           <span>
             <strong>Low-grade hosting</strong> - upgrade to{" "}
@@ -210,7 +217,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             {renderBuyAndUpgrade("Buy a license")}
           </span>
         );
-      } else if (internet) {
+      } else if (noInternet) {
         return (
           <span>
             <strong>No internet access</strong> – upgrade{" "}
@@ -221,6 +228,9 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             {"."}
             <br />
             {renderBuyAndUpgrade("Buy a license")}
+            {hasComputeServers && (
+              <>&npsp;NOTE: Compute servers always have internet access.</>
+            )}
           </span>
         );
       }
@@ -246,8 +256,9 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
 
     // allow users to close the banner, if there is either internet or host upgrade – or if user has licenses (past customer, upgrades by someone else, etc.)
     const closable =
-      !host ||
-      !internet ||
+      hasComputeServers ||
+      !noMemberHosting ||
+      !noInternet ||
       !no_licenses ||
       projectAgeDays < BANNER_NON_DISMISSABLE_DAYS;
 
@@ -283,7 +294,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         closeIcon={renderClose()}
         style={style}
         banner={true}
-        showIcon={!closable || (internet && host)}
+        showIcon={!closable || (noInternet && noMemberHosting)}
         icon={
           <Icon
             name="exclamation-triangle"
@@ -404,7 +415,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
 
   const shutdown_ts = start_ts + 1000 * 60 * limit_min;
   const countdown = shutdown_ts - server_time().getTime();
-  const countdwon0 = countdown > 0 ? countdown : 0;
+  const countdown0 = countdown > 0 ? countdown : 0;
 
   if (countdown < 0 && !triggered.current) {
     triggered.current = true;
@@ -460,10 +471,10 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
         >
           <TimeAmount
             key={"time"}
-            amount={countdwon0}
+            amount={countdown0}
             compact={true}
             showIcon={true}
-            countdown={countdwon0}
+            countdown={countdown0}
             style={{ color: COLORS.ANTD_RED }}
           />
         </Tag>

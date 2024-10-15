@@ -11,6 +11,7 @@ This fails if:
 Everything is done in a single atomic transaction.
 */
 
+import getPool from "@cocalc/database/pool";
 import { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
@@ -21,7 +22,6 @@ import createPurchase from "@cocalc/server/purchases/create-purchase";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import setCourseInfo from "@cocalc/server/projects/course/set-course-info";
-import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import type { StudentPay } from "@cocalc/util/db-schema/token-actions";
 import createTokenAction, {
@@ -29,6 +29,10 @@ import createTokenAction, {
 } from "@cocalc/server/token-actions/create";
 import dayjs from "dayjs";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { len } from "@cocalc/util/misc";
+import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
+import removeLicenseFromProject from "@cocalc/server/licenses/remove-from-project";
 
 const logger = getLogger("purchases:student-pay");
 
@@ -180,4 +184,68 @@ export async function studentPayLink({
       dayjs().add(1, "week").toDate(),
     ),
   );
+}
+
+export async function studentPayTransfer({
+  account_id,
+  project_id,
+  paid_project_id,
+}) {
+  logger.debug("studentPayTransfer", {
+    account_id,
+    project_id,
+    paid_project_id,
+  });
+  // make some basic checks, then update the database.
+  if (!(await isCollaborator({ account_id, project_id }))) {
+    throw Error("user must be collaborator on project");
+  }
+  if (!(await isCollaborator({ account_id, project_id: paid_project_id }))) {
+    throw Error("user must be collaborator on project");
+  }
+
+  const target = await getCourseInfo(project_id);
+  const paid = await getCourseInfo(paid_project_id);
+  if (target?.course == null || paid?.course == null) {
+    throw Error("not a course project");
+  }
+  if (!paid.course.paid) {
+    throw Error("paid project not paid");
+  }
+  if (paid.site_license == null || len(paid.site_license) == 0) {
+    throw Error("paid project doesn't have a license");
+  }
+  const license_id = Object.keys(paid.site_license)[0];
+  if (!license_id) {
+    throw Error("problem with paid project license");
+  }
+  const pool = getPool();
+
+  await pool.query(
+    "UPDATE projects SET course=jsonb_set(course, '{paid}', to_jsonb(NOW()::text)) WHERE project_id=$1",
+    [project_id],
+  );
+
+  // add license_id to new project
+  await addLicenseToProject({ project_id, license_id });
+
+  // remove license_id from paid project
+  await removeLicenseFromProject({ project_id: paid_project_id, license_id });
+
+  // remove fact that paid from paid project
+  // (should do this as a transaction but that is a pain and if things go wrong
+  // we just error in the students favor here)
+  await pool.query(
+    "UPDATE projects SET course=course#-'{paid}' WHERE project_id=$1",
+    [paid_project_id],
+  );
+}
+
+async function getCourseInfo(project_id) {
+  const pool = getPool();
+  const { rows } = await pool.query(
+    "SELECT course, site_license FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  return rows[0];
 }

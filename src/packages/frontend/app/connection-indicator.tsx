@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useIntl } from "react-intl";
+
 import {
   CSS,
   React,
@@ -10,8 +12,9 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
+import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
+import { COLORS } from "@cocalc/util/theme";
 import {
   FONT_SIZE_ICONS_NORMAL,
   PageStyle,
@@ -35,6 +38,8 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
   (props: Props) => {
     const { on_click, height, pageStyle } = props;
     const { topPaddingIcons, sidePaddingIcons, fontSizeIcons } = pageStyle;
+
+    const intl = useIntl();
     const connection_status = useTypedRedux("page", "connection_status");
     const mesg_info = useTypedRedux("account", "mesg_info");
     const actions = useActions("page");
@@ -44,7 +49,7 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
       color: "white",
       overflow: "hidden",
       margin: "auto 0",
-    };
+    } as const;
 
     const outer_style: CSS = {
       flex: "0 0 auto",
@@ -62,7 +67,7 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
                 : COLORS.ORANGE_WARN,
           }
         : {}),
-    };
+    } as const;
 
     function render_connection_status() {
       if (connection_status === "connected") {
@@ -79,9 +84,17 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         }
         return <Icon name="wifi" style={icon_style} />;
       } else if (connection_status === "connecting") {
-        return <div style={connecting_style}>connecting...</div>;
+        return (
+          <div style={connecting_style}>
+            {intl.formatMessage(labels.connecting)}...
+          </div>
+        );
       } else if (connection_status === "disconnected") {
-        return <div style={connecting_style}>disconnected</div>;
+        return (
+          <div style={connecting_style}>
+            {intl.formatMessage(labels.disconnected)}
+          </div>
+        );
       }
     }
 
@@ -103,5 +116,5 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         {render_connection_status()}
       </div>
     );
-  }
+  },
 );

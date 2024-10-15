@@ -28,14 +28,17 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
     }
     const kernel = capitalize(props.kernel != null ? props.kernel : "");
     let tip: string | JSX.Element = "Enter code to be evaluated.";
-    switch (props.state) {
+    // in timetravel or read only mode only state is "done".
+    const state =
+      props.actions == null || props.read_only ? "done" : props.state;
+    switch (state) {
       case "start":
         n = <Icon name="arrow-circle-o-left" style={{ color: "#faad14" }} />;
         tip = `Sending to be evaluated using ${kernel}.`;
         break;
       case "run":
         n = <Icon name="hand" style={{ color: "#ff4d4f" }} />;
-        tip = `Waiting for another computation to finish first. Will evaluate using ${kernel}.`;
+        tip = `Waiting for another cell to finish running. Will evaluate using ${kernel}.`;
         break;
       case "busy":
         n = (

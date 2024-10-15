@@ -4,8 +4,6 @@
  */
 
 import humanizeList from "humanize-list";
-
-import { FormGroup } from "@cocalc/frontend/antd-bootstrap";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 import { SERVER_SETTINGS_ENV_PREFIX } from "@cocalc/util/consts";
 import { ConfigValid, RowType } from "@cocalc/util/db-schema/site-defaults";
@@ -96,7 +94,7 @@ export function RowEntry({
       default:
         const is_valid = !testIsInvalid(value, valid);
         return (
-          <FormGroup>
+          <div>
             <RowEntryInner
               name={name}
               value={value}
@@ -126,7 +124,7 @@ export function RowEntry({
                 <span>Valid values: {humanizeList(valid)}.</span>
               )}
             </div>
-          </FormGroup>
+          </div>
         );
     }
   }

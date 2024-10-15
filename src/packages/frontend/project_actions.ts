@@ -11,11 +11,15 @@ import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
-import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { initChat } from "@cocalc/frontend/chat/register";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
+import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
+import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
+import { dialogs, getIntl } from "@cocalc/frontend/i18n";
+import { set_local_storage } from "@cocalc/frontend/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import fetchDirectoryListing from "@cocalc/frontend/project/fetch-directory-listing";
 import track from "@cocalc/frontend/user-tracking";
@@ -25,47 +29,64 @@ import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
-import { default_filename } from "./account";
-import { alert_message } from "./alerts";
-import { Actions, project_redux_name, redux } from "./app-framework";
-import { IconName } from "./components";
-import { local_storage } from "./editor-local-storage";
-import { set_local_storage } from "@cocalc/frontend/misc";
+import { default_filename } from "@cocalc/frontend/account";
+import { alert_message } from "@cocalc/frontend/alerts";
+import {
+  Actions,
+  project_redux_name,
+  redux,
+} from "@cocalc/frontend/app-framework";
+import { IconName } from "@cocalc/frontend/components";
+import { local_storage } from "@cocalc/frontend/editor-local-storage";
 import { get_editor } from "./editors/react-wrapper";
-import { query as client_query, exec } from "./frame-editors/generic/client";
-import { set_url } from "./history";
-import { download_file, open_new_tab, open_popup_window } from "./misc";
-import * as project_file from "./project-file";
-import { delete_files } from "./project/delete-files";
+import {
+  query as client_query,
+  exec,
+} from "@cocalc/frontend/frame-editors/generic/client";
+import { set_url } from "@cocalc/frontend/history";
+import {
+  download_file,
+  open_new_tab,
+  open_popup_window,
+} from "@cocalc/frontend/misc";
+import * as project_file from "@cocalc/frontend/project-file";
+import { delete_files } from "@cocalc/frontend/project/delete-files";
 import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
-} from "./project/history/types";
+} from "@cocalc/frontend/project/history/types";
 import {
   OpenFileOpts,
   log_file_open,
   log_opened_time,
   open_file,
-} from "./project/open-file";
-import { OpenFiles } from "./project/open-files";
-import { FixedTab } from "./project/page/file-tab";
+} from "@cocalc/frontend/project/open-file";
+import { OpenFiles } from "@cocalc/frontend/project/open-files";
+import { FixedTab } from "@cocalc/frontend/project/page/file-tab";
 import {
   FlyoutActiveMode,
   FlyoutLogDeduplicate,
   FlyoutLogMode,
   storeFlyoutState,
-} from "./project/page/flyouts/state";
-import { VBAR_KEY, getValidVBAROption } from "./project/page/vbar";
-import { ensure_project_running } from "./project/project-start-warning";
-import { transform_get_url } from "./project/transform-get-url";
+} from "@cocalc/frontend/project/page/flyouts/state";
+import {
+  FLYOUT_LOG_FILTER_DEFAULT,
+  FlyoutLogFilter,
+} from "@cocalc/frontend/project/page/flyouts/utils";
+import {
+  VBAR_KEY,
+  getValidVBAROption,
+} from "@cocalc/frontend/project/page/vbar";
+import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
+import { transform_get_url } from "@cocalc/frontend/project/transform-get-url";
 import {
   NewFilenames,
   download_href,
   in_snapshot_path,
   normalize,
   url_href,
-} from "./project/utils";
-import { API } from "./project/websocket/api";
+} from "@cocalc/frontend/project/utils";
+import { API } from "@cocalc/frontend/project/websocket/api";
 import {
   Configuration,
   ConfigurationAspect,
@@ -73,15 +94,13 @@ import {
   ProjectConfiguration,
   is_available as feature_is_available,
   get_configuration,
-} from "./project_configuration";
-import { ModalInfo, ProjectStore, ProjectStoreState } from "./project_store";
-import { webapp_client } from "./webapp-client";
+} from "@cocalc/frontend/project_configuration";
 import {
-  FLYOUT_LOG_FILTER_DEFAULT,
-  FlyoutLogFilter,
-} from "./project/page/flyouts/utils";
-import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { setServerTab, TabName } from "@cocalc/frontend/compute/tab";
+  ModalInfo,
+  ProjectStore,
+  ProjectStoreState,
+} from "@cocalc/frontend/project_store";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 const { defaults, required } = misc;
 
@@ -1000,8 +1019,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return;
       }
       // a fallback for now.
-      if (fragmentId["line"] != null) {
-        this.goto_line(path, fragmentId["line"], true, true);
+      if (fragmentId.line != null) {
+        this.goto_line(path, fragmentId.line, true, true);
         return;
       }
     } else {
@@ -1082,19 +1101,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // Used by open/close chat below.
   set_chat_state(path: string, chatState: ChatState): void {
-    if (this.open_files == null) return;
+    if (this.open_files == null) {
+      return;
+    }
     this.open_files.set(path, "chatState", chatState);
     local_storage(this.project_id, path, "chatState", chatState);
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat = async ({
-    path,
-    width = 0.7,
-  }: {
-    path: string;
-    width?: number;
-  }) => {
+  open_chat = ({ path, width = 0.7 }: { path: string; width?: number }) => {
     const info = this.get_store()
       ?.get("open_files")
       .getIn([path, "component"]) as any;
@@ -1103,7 +1118,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_chat_state(path, "pending");
       return;
     }
-    // only not null for modern editors.
+    //  not null for modern editors.
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["show_focused_frame_of_type"] != null) {
       // @ts-ignore -- todo will go away when everything is a frame editor
@@ -1111,7 +1126,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_chat_state(path, "internal");
     } else {
       // First create the chat actions:
-      await initChat(this.project_id, misc.meta_file(path, "chat"));
+      initChat(this.project_id, misc.meta_file(path, "chat"));
       // Only then set state to say that the chat is opened!
       // Otherwise when the opened chat is rendered actions is
       // randomly not defined, and things break.
@@ -1682,45 +1697,30 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return files_in_dir;
   }
 
-  private _suggest_duplicate_filename(name: string): string | undefined {
+  suggestDuplicateFilenameInCurrentDirectory = (
+    name: string,
+  ): string | undefined => {
     const store = this.get_store();
     if (store == undefined) {
       return;
     }
 
     // fallback to name, simple fallback
-    const files_in_dir = this.get_filenames_in_current_dir() || name;
-    // This loop will keep trying new names until one isn't in the directory
+    const filesInDir = this.get_filenames_in_current_dir() || name;
+    // This loop will keep trying new names until one isn't in the directory,
+    // because the name keeps changing and filesInDir is finite.
     while (true) {
       name = misc.suggest_duplicate_filename(name);
-      if (!files_in_dir[name]) {
+      if (!filesInDir[name]) {
         return name;
       }
     }
-  }
+  };
 
-  set_file_action(action?: string, get_basename?: () => string): void {
+  set_file_action(action?: string): void {
     const store = this.get_store();
-    if (store == undefined) {
+    if (store == null) {
       return;
-    }
-    let basename: string = "";
-
-    switch (action) {
-      case "duplicate":
-        if (get_basename != undefined) {
-          basename = get_basename();
-        }
-        this.setState({
-          new_name: this._suggest_duplicate_filename(basename),
-        });
-        break;
-      case "rename":
-        if (get_basename != undefined) {
-          basename = get_basename();
-        }
-        this.setState({ new_name: misc.path_split(basename).tail });
-        break;
     }
     this.setState({ file_action: action });
   }
@@ -1780,7 +1780,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.set_file_checked(opts.path, true);
-    this.set_file_action(opts.action, () => path_splitted.tail);
+    this.set_file_action(opts.action);
   }
 
   private async get_from_web(opts: {
@@ -2217,8 +2217,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {
@@ -2375,9 +2375,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const id = misc.uuid();
     const status = `Renaming ${opts.src} to ${opts.dest}`;
     let error: any = undefined;
-    if (
-      !(await ensure_project_running(this.project_id, `rename ${opts.src}`))
-    ) {
+    const intl = await getIntl();
+    const what = intl.formatMessage(dialogs.project_actions_rename_file, {
+      src: opts.src,
+    });
+    if (!(await ensure_project_running(this.project_id, what))) {
       return;
     }
 
@@ -2707,9 +2709,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.setState({ file_creation_error: e.message });
       return;
     }
-    if (
-      !(await ensure_project_running(this.project_id, `create the file '${p}'`))
-    ) {
+
+    const intl = await getIntl();
+    const what = intl.formatMessage(dialogs.project_actions_create_file_what, {
+      path: p,
+    });
+    if (!(await ensure_project_running(this.project_id, what))) {
       return;
     }
     const ext = misc.filename_extension(p);
@@ -3297,11 +3302,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ internet_warning_closed: true });
   }
 
-  async set_compute_image(compute_image: string): Promise<void> {
+  set_compute_image = async (compute_image: string): Promise<void> => {
     const projects_store = this.redux.getStore("projects");
     const previous: string =
       projects_store.getIn(["project_map", this.project_id, "compute_image"]) ??
       "";
+    if (previous == compute_image) {
+      // it is already set to the goal, so nothing to do.
+      // See https://github.com/sagemathinc/cocalc/issues/7304
+      return;
+    }
 
     await client_query({
       query: {
@@ -3319,7 +3329,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       next: compute_image,
     };
     this.log(event);
-  }
+  };
 
   async set_environment(env: object): Promise<void> {
     if (typeof env != "object") {
@@ -3410,9 +3420,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     title: string;
     content: string;
   }): Promise<"ok" | "cancel"> {
-    if (this.modal != null) {
-      await this.wait_until_no_modals();
-    }
+    await this.wait_until_no_modals();
     let response: "ok" | "cancel" = "cancel";
     const modal = fromJS({
       title,
@@ -3421,17 +3429,25 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       onCancel: () => (response = "cancel"),
     }) as any;
     this.modal = modal;
-    this.setState({
-      modal,
-    });
+    this.setState({ modal });
     await this.wait_until_no_modals();
     return response;
   }
 
   public async wait_until_no_modals(): Promise<void> {
-    if (this.modal == null) return;
-    await this.get_store()?.async_wait({
-      until: (s) => !s.get("modal") && this.modal == null,
+    const store = this.get_store();
+    if (store == null) {
+      return;
+    }
+    const noModal = () => {
+      return this.modal == null && !store.get("modal");
+    };
+
+    if (noModal()) {
+      return;
+    }
+    await store.async_wait({
+      until: noModal,
       timeout: 99999,
     });
   }
@@ -3454,6 +3470,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       just_closed_files: List([]),
     });
   }
+
   getComputeServerId = (id?: number): number => {
     const store = this.get_store();
     return id ?? store?.get("compute_server_id") ?? 0;

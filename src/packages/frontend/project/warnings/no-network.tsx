@@ -6,6 +6,7 @@
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { Icon } from "@cocalc/frontend/components";
 import { UPGRADE_HINT } from "./non-member";
+import { NO_INTERNET } from "@cocalc/frontend/project/trial-banner";
 
 export function NoNetworkProjectWarning() {
   return (
@@ -15,9 +16,7 @@ export function NoNetworkProjectWarning() {
         <strong>does not have full internet access</strong>
       </h4>
       <p>
-        Projects without internet access enabled cannot connect to external
-        websites, download software packages, or invite and notify collaborators
-        via email. {UPGRADE_HINT}
+        Projects without internet {NO_INTERNET}. {UPGRADE_HINT}
       </p>
     </Alert>
   );

@@ -37,7 +37,7 @@ interface Register {
 }
 
 function isAsyncRegister(
-  opts: Register | AsyncRegister
+  opts: Register | AsyncRegister,
 ): opts is AsyncRegister {
   return opts["editor"] != null;
 }
@@ -71,7 +71,7 @@ export function register_file_editor(opts: Register | AsyncRegister) {
       opts.component,
       opts.Actions,
       opts.asyncData,
-      is_public
+      is_public,
     );
   }
 }
@@ -95,7 +95,7 @@ function register(
         component: any;
         Actions: any;
       }>),
-  is_public: boolean
+  is_public: boolean,
 ) {
   let data: any = {
     icon,
@@ -144,9 +144,7 @@ function register(
       if (is_public) return;
       const name = redux_name(project_id, path);
       const actions = redux.getActions(name);
-      if (actions) {
-        actions.save();
-      }
+      actions?.save?.();
     },
   };
 
@@ -179,7 +177,7 @@ function register(
   } else {
     if (asyncData == null) {
       throw Error(
-        "either asyncData must be given or components and Actions must be given (or both)"
+        "either asyncData must be given or components and Actions must be given (or both)",
       );
     }
     let async_data: any = undefined;

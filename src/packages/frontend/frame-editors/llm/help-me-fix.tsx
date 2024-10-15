@@ -7,7 +7,6 @@ import { Alert, Button, Space } from "antd";
 import type { BaseButtonProps } from "antd/lib/button/button";
 import { CSSProperties, useState } from "react";
 import useAsyncEffect from "use-async-effect";
-
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { AIAvatar, RawPrompt } from "@cocalc/frontend/components";
@@ -211,7 +210,7 @@ export async function getHelp({
   // scroll to bottom *after* the message gets sent.
   const actions = await getChatActions(redux, project_id, path);
   setTimeout(() => actions.scrollToBottom(), 100);
-  await actions.send_chat({
+  await actions.sendChat({
     input: message,
     tag: `help-me-fix${tag ? `:${tag}` : ""}`,
     noNotification: true,

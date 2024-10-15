@@ -11,10 +11,12 @@ import type { MenuProps } from "antd";
 import { Button, Dropdown, Modal, Tooltip } from "antd";
 import { debounce, throttle } from "lodash";
 import { ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { tab_to_path } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -53,7 +55,6 @@ export default function ProjectTabs(props: PTProps) {
       style={{
         width: "100%",
         height: "40px",
-        padding: "2.5px",
         overflow: "hidden",
       }}
     >
@@ -90,6 +91,7 @@ interface FVTProps {
 }
 
 export function VerticalFixedTabs(props: Readonly<FVTProps>) {
+  const intl = useIntl();
   const { setHomePageButtonWidth } = props;
   const {
     actions,
@@ -213,7 +215,14 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
 
   function renderToggleSidebar() {
     return (
-      <Tooltip title="Hide the action bar" placement="rightTop">
+      <Tooltip
+        title={intl.formatMessage({
+          id: "project.page.vertical-fixed-tabs.toggle-sidebar.tooltip",
+          defaultMessage: "Hide the action bar",
+          description: "This hides the vertical action bar in the UI",
+        })}
+        placement="rightTop"
+      >
         <Button
           size="small"
           type="text"
@@ -254,10 +263,14 @@ export function VerticalFixedTabs(props: Readonly<FVTProps>) {
 }
 
 function LayoutSelector({ vbar }) {
+  const intl = useIntl();
   const { project_id } = useProjectContext();
   const account_settings = useActions("account");
 
-  const title = "Vertical bar layout";
+  const title = intl.formatMessage({
+    id: "project.page.vertica-fixed-tabs.title",
+    defaultMessage: "Vertical bar layout",
+  });
 
   const items: NonNullable<MenuProps["items"]> = Object.entries(
     VBAR_OPTIONS,
@@ -273,13 +286,13 @@ function LayoutSelector({ vbar }) {
       });
     },
     label: (
-      <>
+      <span>
         <Icon
           name="check"
           style={key === vbar ? undefined : { visibility: "hidden" }}
         />{" "}
-        {label}
-      </>
+        {intl.formatMessage(label)}
+      </span>
     ),
   }));
 
@@ -287,9 +300,9 @@ function LayoutSelector({ vbar }) {
   items.unshift({
     key: "title",
     label: (
-      <>
+      <span>
         <Icon name="layout" /> {title}{" "}
-      </>
+      </span>
     ),
   });
 
@@ -297,14 +310,14 @@ function LayoutSelector({ vbar }) {
   items.push({
     key: "info",
     label: (
-      <>
-        <Icon name="question-circle" /> More info
-      </>
+      <span>
+        <Icon name="question-circle" /> {intl.formatMessage(labels.more_info)}
+      </span>
     ),
     onClick: () => {
       Modal.info({
         title,
-        content: VBAR_EXPLANATION,
+        content: intl.formatMessage(VBAR_EXPLANATION),
       });
     },
   });

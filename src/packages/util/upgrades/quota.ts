@@ -37,7 +37,6 @@ costs add).
 // TODO: relative path just needed in manage-*
 
 import { isEmpty } from "lodash";
-
 import {
   LicenseIdleTimeouts,
   LicenseIdleTimeoutsKeysOrdered,
@@ -1062,7 +1061,7 @@ export function quota_with_reasons(
 // Compute the contribution to quota coming from the quota field of the site licenses.
 // This is max'd with the quota computed using settings, the rest of the licenses, etc.
 // The given licenses might be a subset of all, because e.g. it's sort of cheating
-// to combine memory upgades of member hosting with preempt hosting, or add a small
+// to combine memory upgrades of member hosting with preempt hosting, or add a small
 // always_running license on top of a cheaper but larger member hosting license.
 // @see select_site_licenses
 //
@@ -1139,7 +1138,7 @@ export function site_license_quota(
   // remember: this function is for the front-end
   // if there is a dedicated VM, all other licenses are ignored and we set some quotas
   // to avoid warnings and the red banner, that's all.
-  if (dedicated_vm != null) {
+  if (dedicated_vm) {
     total_quota.dedicated_vm = dedicated_vm;
     total_quota.member_host = true;
     total_quota.network = true;

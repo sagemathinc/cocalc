@@ -9,21 +9,29 @@
 # conf directory, based, e.g., on the on prem run script.  The api_server can be
 # especially tricky to untangle when doing dev.
 
+# NOTE: this doesn't work with the new openapi validation, so you have to do
+#
+#  export COCALC_DISABLE_API_VALIDATION=yes
+#
+# before running your hub dev server to disable that.
+
 set -v
 
-export api_server=`cat conf/api_server`
-
+. env.sh
 
 function setState {
-  id=`cat conf/compute_server_id`
+  id=$COMPUTE_SERVER_ID
   name=$1
   state=${2:-'ready'}
   extra=${3:-''}
   timeout=${4:-0}
   progress=${5:-100}
+  project_id=$PROJECT_ID
 
   echo "$name is $state"
-  curl -sk -u `cat conf/api_key`:  -H 'Content-Type: application/json' -d "{\"id\":$id,\"name\":\"$name\",\"state\":\"$state\",\"extra\":\"$extra\",\"timeout\":$timeout,\"progress\":$progress}" $api_server/api/v2/compute/set-detailed-state
+  PAYLOAD="{\"id\":$id,\"name\":\"$name\",\"state\":\"$state\",\"extra\":\"$extra\",\"timeout\":$timeout,\"progress\":$progress,\"project_id\":\"$project_id\"}"
+  echo $PAYLOAD
+  curl -sk -u $API_KEY:  -H 'Content-Type: application/json' -d $PAYLOAD $API_SERVER/api/v2/compute/set-detailed-state
 }
 
 
@@ -47,6 +55,8 @@ setState vm start '' 60 60
 sleep 0.1
 
 while true; do
+  setState compute ready '' 35 100
+  setState filesystem-sync ready '' 35 100
   setState vm ready '' 35 100
   sleep 30
 done

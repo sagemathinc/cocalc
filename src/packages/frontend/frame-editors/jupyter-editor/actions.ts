@@ -399,12 +399,16 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   async gotoFragment(fragmentId: FragmentId) {
+    if (fragmentId.chat) {
+      // deal with side chat in base class
+      await super.gotoFragment(fragmentId);
+    }
     const frameId = await this.waitUntilFrameReady({
       type: "jupyter_cell_notebook",
       syncdoc: this.jupyter_actions.syncdb,
     });
     if (!frameId) return;
-    const { id, anchor } = fragmentId as any;
+    const { id, anchor } = fragmentId;
 
     const goto = (cellId: string) => {
       const actions = this.get_frame_actions(frameId);
@@ -573,6 +577,22 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       }
     }
   }
+
+  getSearchIndexData = () => {
+    const cells = this.jupyter_actions.store.get("cells");
+    if (cells == null) {
+      return {};
+    }
+    const data: { [id: string]: string } = {};
+    for (const [id, cell] of cells) {
+      let content = cell.get("input")?.trim();
+      if (!content) {
+        continue;
+      }
+      data[id] = content;
+    }
+    return { data, fragmentKey: "id", reduxName: this.jupyter_actions.name };
+  };
 }
 
 export { JupyterEditorActions as Actions };

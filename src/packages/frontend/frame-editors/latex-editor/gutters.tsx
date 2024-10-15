@@ -9,14 +9,14 @@
 // one gets a gutter mark, with pref to errors.  The main error log shows everything, so this should be OK.
 
 import { Popover } from "antd";
-
 import { Icon } from "@cocalc/frontend/components";
-//import { Actions } from "@cocalc/frontend/frame-editors/code-editor/actions";
+import { Localize } from "@cocalc/frontend/app/localize";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize } from "@cocalc/util/misc";
-import { Actions } from "./actions";
+import type { Actions } from "./actions";
 import { SPEC, SpecItem } from "./errors-and-warnings";
 import { Error, IProcessedLatexLog } from "./latex-log-parser";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 
 export function update_gutters(opts: {
   log: IProcessedLatexLog;
@@ -35,27 +35,36 @@ export function update_gutters(opts: {
       opts.set_gutter(
         item.file,
         item.line - 1,
-        component(
-          item.level,
-          item.message,
-          item.content,
-          opts.actions,
-          group,
-          item.line,
-        ),
+        <Component
+          level={item.level}
+          message={item.message}
+          content={item.content}
+          actions={opts.actions}
+          group={group}
+          line={item.line}
+        />,
       );
     }
   }
 }
 
-function component(
-  level: string,
-  message: string,
-  content: string | undefined,
-  actions: Actions,
-  group: string,
-  line: number,
-) {
+function Component({
+  level,
+  message,
+  content,
+  actions,
+  group,
+  line,
+}: {
+  level: string;
+  message: string;
+  content: string | undefined;
+  actions: Actions;
+  group: string;
+  line: number;
+}) {
+  const { desc } = useFrameContext();
+  const fontSize = desc?.get("font_size");
   const spec: SpecItem = SPEC[level];
   if (content === undefined) {
     content = message;
@@ -63,42 +72,60 @@ function component(
   }
   // NOTE/BUG: despite allow_touch true below, this still does NOT work on my iPad -- we see the icon, but nothing
   // happens when clicking on it; this may be a codemirror issue.
+  // NOTE: the IntlProvider (in Localize) is necessary, because this is mounted outside the application's overall context.
+  // TODO: maybe make this part of the application react root.
   return (
-    <Popover
-      title={message}
-      content={
-        <div>
-          {content}
-          {group == "errors" && (
-            <>
-              <br />
-              <HelpMeFix
-                size="small"
-                style={{ marginTop: "5px" }}
-                task={"ran latex"}
-                error={content}
-                input={() => {
-                  const s = actions._syncstring.to_str();
-                  const v = s
-                    .split("\n")
-                    .slice(0, line + 1)
-                    .join("\n");
-                  //line+1 since lines are 1-based
-                  return v + `% this is line number ${line + 1}`;
-                }}
-                language={"latex"}
-                extraFileInfo={actions.languageModelExtraFileInfo()}
-                tag={"latex-error-popover"}
-                prioritize="end"
-              />
-            </>
-          )}
-        </div>
-      }
-      placement={"right"}
-      mouseEnterDelay={0}
-    >
-      <Icon name={spec.icon} style={{ color: spec.color, cursor: "pointer" }} />
-    </Popover>
+    <Localize>
+      <Popover
+        title={
+          <span style={{ fontSize }}>
+            {message}{" "}
+            {group == "errors" && (
+              <>
+                <br />
+                <HelpMeFix
+                  size="small"
+                  style={{ marginTop: "5px" }}
+                  task={"ran latex"}
+                  error={content}
+                  input={() => {
+                    const s = actions._syncstring.to_str();
+                    const v = s
+                      .split("\n")
+                      .slice(0, line + 1)
+                      .join("\n");
+                    //line+1 since lines are 1-based
+                    return v + `% this is line number ${line + 1}`;
+                  }}
+                  language={"latex"}
+                  extraFileInfo={actions.languageModelExtraFileInfo()}
+                  tag={"latex-error-popover"}
+                  prioritize="end"
+                />
+              </>
+            )}
+          </span>
+        }
+        content={
+          <div
+            style={{
+              fontSize,
+              maxWidth: "70vw",
+              maxHeight: "70vh",
+              overflow: "auto",
+            }}
+          >
+            {content}
+          </div>
+        }
+        placement={"right"}
+        mouseEnterDelay={0}
+      >
+        <Icon
+          name={spec.icon}
+          style={{ color: spec.color, cursor: "pointer", fontSize }}
+        />
+      </Popover>
+    </Localize>
   );
 }

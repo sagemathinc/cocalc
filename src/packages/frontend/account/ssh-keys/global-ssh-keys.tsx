@@ -19,12 +19,12 @@ export const SSHKeysPage: React.FC = () => {
         The global SSH keys listed here allow you to connect from your computer
         via SSH to{" "}
         <b>
-          <i>all projects</i>
+          <i>all projects</i> and <i>compute servers</i>
         </b>{" "}
         on which you are an owner or collaborator. Alternatively, set SSH keys
         that grant access only to a project in the settings for that project.
-        See the SSH part of the settings page in a project for further
-        instructions.
+        See <A href="https://doc.cocalc.com/account/ssh.html">the docs</A> or
+        the SSH part of the settings page in a project for further instructions.
       </div>
     );
   }

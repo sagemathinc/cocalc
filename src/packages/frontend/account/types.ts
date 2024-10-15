@@ -7,13 +7,14 @@ import { List, Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { MessageInfo } from "@cocalc/frontend/client/hub";
-import type { Locale } from "@cocalc/frontend/i18n";
+import type { Locale, OTHER_SETTINGS_LOCALE_KEY } from "@cocalc/frontend/i18n";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
   OTHER_SETTINGS_USERDEFINED_LLM,
 } from "@cocalc/util/db-schema/defaults";
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
+import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
 
@@ -49,6 +50,8 @@ export interface AccountState {
     dark_mode_grayscale: number;
     news_read_until: number; // JavaScript timestamp in milliseconds
     [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
+    [OTHER_SETTINGS_LOCALE_KEY]?: string;
+    [OTHER_SETTINGS_REPLY_ENGLISH_KEY]?: string;
   }>;
   stripe_customer?: TypedMap<{
     subscriptions: { data: Map<string, any> };

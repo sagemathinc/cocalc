@@ -33,6 +33,7 @@ import { markdown_to_html } from "@cocalc/frontend/markdown";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { Descendant, Editor, Range, Transforms, createEditor } from "slate";
 import { resetSelection } from "./control";
+import * as control from "./control";
 import { useBroadcastCursors, useCursorDecorate } from "./cursors";
 import { EditBar, useLinkURL, useListProperties, useMarks } from "./edit-bar";
 import { Element } from "./element";
@@ -121,6 +122,9 @@ interface Props {
   editBar2?: MutableRefObject<JSX.Element | undefined>;
   dirtyRef?: MutableRefObject<boolean>;
   minimal?: boolean;
+  controlRef?: MutableRefObject<{
+    moveCursorToEndOfLine: () => void;
+  } | null>;
 }
 
 export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
@@ -159,12 +163,13 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
     submitMentionsRef,
     unregisterEditor,
     value,
+    controlRef,
   } = props;
   const { project_id, path, desc, isVisible } = useFrameContext();
   const isMountedRef = useIsMountedRef();
   const id = id0 ?? "";
   const actions = actions0 ?? {};
-  const font_size = font_size0 ?? desc.get("font_size") ?? 14; // so possible to use without specifying this.  TODO: should be from account settings
+  const font_size = font_size0 ?? desc?.get("font_size") ?? 14; // so possible to use without specifying this.  TODO: should be from account settings
   const [change, setChange] = useState<number>(0);
 
   const editor = useMemo(() => {
@@ -243,6 +248,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
         getSelection: () => {
           return ed.selection;
         },
+      };
+    }
+
+    if (controlRef != null) {
+      controlRef.current = {
+        moveCursorToEndOfLine: () => control.moveCursorToEndOfLine(ed),
       };
     }
 

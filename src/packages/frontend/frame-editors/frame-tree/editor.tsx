@@ -5,7 +5,6 @@
 
 import { Map, Set } from "immutable";
 import { clone } from "lodash";
-
 import {
   CSS,
   React,
@@ -116,7 +115,7 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     useEffect(() => {
       if (!frameRootRef.current) return;
       const observer = new ResizeObserver(() => {
-        actions.set_resize();
+        actions.set_resize?.();
       });
       observer.observe(frameRootRef.current);
       return () => observer.disconnect();
@@ -243,7 +242,11 @@ export function createEditor(opts: Options): React.FC<EditorProps> {
         project_id={project_id}
         format_bar={!!opts.format_bar}
         format_bar_exclude={opts.format_bar_exclude}
-        editor_spec={{ ...opts.editor_spec, chat }}
+        editor_spec={
+          path.endsWith(".sage-chat")
+            ? opts.editor_spec
+            : { ...opts.editor_spec, chat }
+        }
         tab_is_visible={is_visible}
       />
     );

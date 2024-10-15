@@ -26,15 +26,12 @@ import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import {
   ICON_UPGRADES,
   ICON_USERS,
-  TITLE_UPGRADES,
-  TITLE_USERS,
 } from "@cocalc/frontend/project/servers/consts";
 import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
 import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
-import { PROJECT_INFO_TITLE } from "../info";
 import { TITLE as SERVERS_TITLE } from "../servers";
 import {
   CollabsFlyout,
@@ -89,7 +86,7 @@ type FixedTabs = {
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
   active: {
-    label: "Tabs",
+    label: labels.tabs,
     flyoutTitle: "File Tabs",
     icon: "edit",
     flyout: ActiveFlyout,
@@ -97,7 +94,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noFullPage: true,
   },
   files: {
-    label: "Explorer",
+    label: labels.explorer,
     icon: "folder-open",
     flyout: FilesFlyout,
     noAnonymous: false,
@@ -106,14 +103,14 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: labels.new,
     flyoutTitle: defineMessage({
       id: "project.page.flyout.new_file.title",
-      defaultMessage: "Create New File or Folder",
+      defaultMessage: "Create New",
     }),
     icon: "plus-circle",
     flyout: NewFlyout,
     noAnonymous: false,
   },
   log: {
-    label: "Log",
+    label: labels.log,
     icon: "history",
     flyout: LogFlyout,
     flyoutTitle: defineMessage({
@@ -138,7 +135,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     noAnonymous: false,
   },
   users: {
-    label: TITLE_USERS,
+    label: labels.users,
     icon: ICON_USERS,
     flyout: CollabsFlyout,
     noAnonymous: false,
@@ -147,11 +144,14 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: labels.upgrades,
     icon: ICON_UPGRADES,
     flyout: LicensesFlyout,
-    flyoutTitle: `Project ${TITLE_UPGRADES}`,
+    flyoutTitle: defineMessage({
+      id: "project.page.file-tab.upgrades.flyoutTitle",
+      defaultMessage: `Project Upgrades`,
+    }),
     noAnonymous: false,
   },
   info: {
-    label: PROJECT_INFO_TITLE,
+    label: labels.project_info_title,
     icon: "microchip",
     flyout: ProjectInfoFlyout,
     noAnonymous: false,
@@ -209,10 +209,10 @@ export function FileTab(props: Readonly<Props>) {
   // alerts only work on non-docker projects (for now) -- #7077
   const status_alerts: string[] =
     !onCoCalcDocker && name === "info"
-      ? project_status
+      ? (project_status
           ?.get("alerts")
           ?.map((a) => a.get("type"))
-          .toJS() ?? []
+          .toJS() ?? [])
       : [];
 
   const other_settings = useTypedRedux("account", "other_settings");
@@ -295,8 +295,8 @@ export function FileTab(props: Readonly<Props>) {
       flyout === active_flyout
         ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
         : active_flyout == null
-        ? COLORS.GRAY_L
-        : COLORS.GRAY_L0;
+          ? COLORS.GRAY_L
+          : COLORS.GRAY_L0;
     const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
 
     return (
@@ -357,7 +357,7 @@ export function FileTab(props: Readonly<Props>) {
 
   const icon =
     path != null
-      ? file_options(path)?.icon ?? "code-o"
+      ? (file_options(path)?.icon ?? "code-o")
       : FIXED_PROJECT_TABS[name!].icon;
 
   const tags =
@@ -397,7 +397,6 @@ export function FileTab(props: Readonly<Props>) {
         label={label}
         inline={!isFixedTab}
         project_id={project_id}
-        condensed={condensed}
       />
       {tags}
     </>
@@ -507,13 +506,21 @@ const FULLPATH_LABEL_STYLE: CSS = {
   padding: "0 1px", // need less since have ..
 } as const;
 
-function DisplayedLabel({ path, label, inline = true, project_id, condensed }) {
+function DisplayedLabel({ path, label, inline = true, project_id }) {
   if (path == null) {
     // a fixed tab (not an actual file)
     const E = inline ? "span" : "div";
     const style: CSS = {
-      fontSize: condensed ? "10px" : "12px",
+      // disabled because condensed state is buggy -- both andrey and I have frequently
+      // complained about it getting stuck small. Also, the width doesn't change so all
+      // you get from this is small hard to read text and slightly more vertical buttons,
+      // but there is vertical scroll, so not needed.
+      //fontSize: condensed ? "10px" : "12px",
+      fontSize: "12px",
       textAlign: "center",
+      maxWidth: "65px",
+      overflow: "hidden",
+      textOverflow: "ellipsis", // important for i18n, since sometimes the words are long
     };
     return (
       <>

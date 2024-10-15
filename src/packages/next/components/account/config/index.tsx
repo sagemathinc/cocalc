@@ -29,7 +29,7 @@ interface Props {
 }
 
 export default function Config({ main, sub }: Props) {
-  const C = components[main]?.[sub];
+  const C = components[main]?.[sub] as any;
   if (C != null) {
     return <C />;
   }

@@ -1,11 +1,35 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { defineMessages } from "react-intl";
 
 export const labels = defineMessages({
+  unique_id_is_missing: {
+    defaultMessage: "unique id missing",
+    description:
+      "This is just an internal message to trigger ID collisions. If you hit this, your i18n message has no ID. Please consult the README in this directory for more information. The usual pattern is something like [dir].[subdir/filename].[section].[label|message|...]. Messages in this file however are prefixed with their purpose.",
+  },
   cancel: {
     id: "labels.button.cancel",
     defaultMessage: "Cancel",
     description:
       "'Cancel' button on all those small confirmation modals (other one is 'Ok' or 'Yes')",
+  },
+  reset: {
+    id: "labels.reset",
+    defaultMessage: "Reset",
+    description: "A 'Reset' button on a small confirmation modal dialog",
+  },
+  other: {
+    id: "labels.other",
+    defaultMessage: "Other",
+  },
+  project: {
+    id: "labels.project",
+    defaultMessage: "Project",
+    description: "Label for a single project, label on a button, title, etc.",
   },
   projects: {
     id: "labels.projects",
@@ -85,7 +109,13 @@ export const labels = defineMessages({
   upload: {
     id: "labels.upload",
     defaultMessage: "Upload",
-    description: "Label on such buttons, where a file upload can be initiated",
+    description: "Label on a button, where a file upload can be initiated",
+  },
+  upload_tooltip: {
+    id: "labels.upload_tooltip",
+    defaultMessage:
+      "Upload files from your computer into this project's directory",
+    description: "Tooltip for a button, where a file upload can be initiated",
   },
   preferences: { id: "labels.preferences", defaultMessage: "Preferences" },
   purchases: { id: "labels.purchases", defaultMessage: "Purchases" },
@@ -95,11 +125,21 @@ export const labels = defineMessages({
     defaultMessage: "Statements",
     description: "Billing statements",
   },
+  license: {
+    id: "labels.license",
+    defaultMessage: "License",
+    description:
+      "A license is part of a subscription or a one-time purchase to upgrade projects",
+  },
   licenses: {
     id: "labels.licenses",
     defaultMessage: "Licenses",
     description:
       "A license is part of a subscription or a one-time purchase to upgrade projects",
+  },
+  status: {
+    id: "labels.status",
+    defaultMessage: "Status",
   },
   published_files: {
     id: "labels.published_files",
@@ -109,6 +149,12 @@ export const labels = defineMessages({
     id: "labels.upgrades",
     defaultMessage: "Upgrades",
     description: "Upgrades for specific projects",
+  },
+  loading: {
+    id: "labels.loading",
+    defaultMessage: "Loading...",
+    description:
+      "The UI tells the user to wait, until a some information is available",
   },
   cloud_file_system: {
     id: "labels.cloud_file_system",
@@ -121,10 +167,20 @@ export const labels = defineMessages({
     defaultMessage: "New",
     description: "Create new file button '+ New'",
   },
+  new_tooltip: {
+    id: "labels.new.file.tooltip",
+    defaultMessage: "Create a new file",
+    description: "A new file in a file-system",
+  },
+  pages: {
+    id: "labels.pages",
+    defaultMessage: "Pages",
+    description: "Pages in a document",
+  },
   settings: {
     id: "labels.settings",
     defaultMessage: "Settings",
-    description: "On a button to show project settings",
+    description: "On a button to show the configuration settings",
   },
   help: {
     id: "labels.help",
@@ -144,12 +200,13 @@ export const labels = defineMessages({
   },
   split_frame_vertically_title: {
     id: "labels.split_frame_vertically.title",
-    defaultMessage: "Split frame vertically into two columns",
+    defaultMessage: "Split Vertically",
+    description: "Split frame vertically into two columns",
   },
   split_frame_horizontally_title: {
     id: "labels.split_frame_horizontally.title",
-    defaultMessage: "Split Down",
-    description: "Split a frame horizontally",
+    defaultMessage: "Split Horizontally",
+    description: "Split frame horizontally",
   },
   assistant: {
     id: "labels.assistant",
@@ -184,6 +241,10 @@ export const labels = defineMessages({
     defaultMessage: "Snippets",
     description: "Short label for opening the 'Snippets' frame",
   },
+  overview: {
+    id: "labels.overview",
+    defaultMessage: "Overview",
+  },
   zoom_in: {
     id: "labels.zoom_in",
     defaultMessage: "Zoom in",
@@ -196,6 +257,7 @@ export const labels = defineMessages({
     id: "labels.reload",
     defaultMessage: "Reload",
   },
+  remove: { id: "labels.remove", defaultMessage: "Remove" },
   cut: { id: "labels.cut", defaultMessage: "Cut" },
   copy: { id: "labels.copy", defaultMessage: "Copy" },
   undo: { id: "labels.undo", defaultMessage: "Undo" },
@@ -276,9 +338,253 @@ export const labels = defineMessages({
     id: "labels.insert",
     defaultMessage: "Insert",
   },
+  refresh: {
+    id: "labels.refresh",
+    defaultMessage: "Refresh",
+  },
+  print: {
+    id: "labels.print",
+    defaultMessage: "Print",
+  },
+  new_dots: {
+    id: "labels.new_dots",
+    defaultMessage: "New...",
+  },
+  documentation: {
+    id: "labels.documentation",
+    defaultMessage: "Documentation",
+  },
+  buttons: {
+    id: "labels.buttons",
+    defaultMessage: "Buttons",
+  },
+  explorer: {
+    id: "labels.explorer",
+    defaultMessage: "Explorer",
+    description: "a short label for showing a file explorer",
+  },
+  log: {
+    id: "labels.log",
+    defaultMessage: "Log",
+    description: "a short label for showing a chronological log of activities",
+  },
+  x11_desktop: {
+    id: "labels.x11_desktop",
+    defaultMessage: "Graphical X11 Desktop",
+    description:
+      "Short label of a button to create an emulated X11 desktop environment",
+  },
+  chatroom: {
+    id: "labels.chatroom",
+    defaultMessage: "Chatroom",
+  },
+  tabs: {
+    id: "labels.tabs",
+    defaultMessage: "Tabs",
+    description: "a short label to show tabs of open files in the UI",
+  },
+  collabs_info: {
+    id: "labels.project.page.project-collaborators.info",
+    defaultMessage:
+      "Collaborators are other users, who can access this project. They can view and edit the same files as you.",
+  },
+  chat: {
+    id: "labels.chat",
+    defaultMessage: "Chat",
+    description: "Short label on a button to open a chatroom",
+  },
+  created: {
+    id: "labels.created",
+    defaultMessage: "Created",
+    description: "Short label for a field, which shows the creation date",
+  },
+  about: {
+    id: "labels.about",
+    defaultMessage: "About",
+    description:
+      "Title on a section or label on a button to show information 'about' something.",
+  },
+  users: {
+    id: "labels.users",
+    defaultMessage: "Users",
+    description:
+      "Short label of a table, which shows the list of users having access",
+  },
+  project_info_title: {
+    id: "labels.project_info_title",
+    defaultMessage: "Processes",
+    description:
+      "Short label of the panel, to show running processes in this project",
+  },
+  recent: {
+    id: "labels.recent",
+    defaultMessage: "Recent",
+    description: "Something that happened recently",
+  },
+  files: {
+    id: "labels.files",
+    defaultMessage: "Files",
+    description: "Files in a directory in a file-explorer",
+  },
+  activity: {
+    id: "labels.activity",
+    defaultMessage: "Activity",
+    description: "Recent activity",
+  },
+  hidden_files: {
+    id: "labels.hidden_files",
+    defaultMessage:
+      "{hidden, select, true {Hide hidden files} other {Show hidden files}}. Hidden files in Linux start with a '.' in their filename. They are usually not meant to be edited.",
+    description: "show/hide hidden files in a file-explorer in a UI",
+  },
+  masked_files: {
+    id: "labels.masked_files",
+    defaultMessage:
+      "{masked, select, true {Hide masked files} other {Show masked files}}. Masked files are autogenerated or temporary files, which are not meant to be edited. They are be grayed out.",
+    description: "show/hide masked files in a file-explorer in a UI.",
+  },
+  folder: {
+    id: "labels.folder",
+    defaultMessage: "folder",
+    description: "a folder organizing files in a file-system",
+  },
+  download: {
+    id: "labels.download",
+    defaultMessage: "download",
+    description: "download a file from the web",
+  },
+  videos: {
+    id: "labels.videos",
+    defaultMessage: "Videos",
+  },
+  search: {
+    id: "labels.search",
+    defaultMessage: "Search",
+  },
+  close: {
+    id: "labels.close",
+    defaultMessage: "Close",
+  },
+  guide: {
+    id: "labels.guide",
+    defaultMessage: "Guide",
+  },
+  select: {
+    id: "labels.select",
+    defaultMessage: "select",
+  },
+  select_a_kernel: {
+    id: "labels.select_a_kernel",
+    defaultMessage: "Select a kernel",
+    description: "A kernel in a Jupyter Notebook",
+  },
+  halt: {
+    id: "labels.halt",
+    defaultMessage: "Halt",
+    description: "Short label on a button to halt or stop something",
+  },
+  deleted: {
+    id: "labels.deleted",
+    defaultMessage: "deleted",
+    description: "a file has been deleted",
+  },
+  downloaded: {
+    id: "labels.downloaded",
+    defaultMessage: "downloaded",
+    description: "a file has been downloaded",
+  },
+  moved: {
+    id: "labels.moved",
+    defaultMessage: "moved",
+    description: "a file has been moved",
+  },
+  renamed: {
+    id: "labels.renamed",
+    defaultMessage: "renamed",
+    description: "a file has been renamed",
+  },
+  copied: {
+    id: "labels.copied",
+    defaultMessage: "copied",
+    description: "a file has been copied",
+  },
+  shared: {
+    id: "labels.shared",
+    defaultMessage: "shared",
+    description: "a file has been shared",
+  },
+  uploaded: {
+    id: "labels.uploaded",
+    defaultMessage: "uploaded",
+    description: "a file has been uploaded",
+  },
+  created_file: {
+    id: "labels.created_file",
+    defaultMessage: "created",
+    description: "a file has been created",
+  },
+  connecting: {
+    id: "labels.connecting",
+    defaultMessage: "Connecting",
+    description:
+      "Short label, telling the user a connecting is about to be established.",
+  },
+  disconnected: {
+    id: "labels.disconnected",
+    defaultMessage: "Disconnected",
+    description:
+      "Short label, telling the user a possible connection has not been established.",
+  },
+  connection: {
+    id: "labels.connection",
+    defaultMessage: "Connection",
+  },
+  terminal_command: {
+    id: "labels.terminal_command",
+    defaultMessage: "Terminal command",
+    description:
+      "Short label/placeholder for entering a Linux Terminal command in a text box",
+  },
+  language: {
+    id: "labels.language",
+    defaultMessage: "Language",
+  },
+  always_running: {
+    id: "labels.always_running",
+    defaultMessage: "Always Running",
+  },
+  idle_timeout: {
+    id: "labels.idle_timeout",
+    defaultMessage: "Idle Timeout",
+  },
+  uptime: {
+    id: "labels.uptime",
+    defaultMessage: "Uptime",
+  },
+  more_info: {
+    id: "labels.more_info",
+    defaultMessage: "More info",
+    description: "Short label for showing 'more information' about something",
+  },
+  message_plural: {
+    id: "labels.messsage.plural",
+    defaultMessage: "{num, plural, one {message} other {messages}}",
+  },
+  reconnect: {
+    id: "labels.reconnect",
+    defaultMessage: "Reconnect",
+  },
+  color: {
+    id: "labels.color",
+    defaultMessage: "Color",
+  },
 });
 
 export const menu = defineMessages({
+  pause_resume: {
+    id: "menu.terminal.pause_resume",
+    defaultMessage: "{pause, select, true {Resume} other {Pause}}",
+  },
   file: {
     id: "menu.generic.file.label",
     defaultMessage: "File",
@@ -330,6 +636,11 @@ export const menu = defineMessages({
     defaultMessage: "Close and Halt...",
     description: "Close and halt the editor for Jupyter, a server, etc.",
   },
+  close_and_halt_title: {
+    id: "menu.generic.close_and_halt.title",
+    defaultMessage: "Halt backend server and close this file.",
+    description: "Close and halt the editor for Jupyter, a server, etc.",
+  },
   halt_jupyter_button: {
     id: "menu.generic.halt_jupyter.button",
     defaultMessage: "Halt",
@@ -357,6 +668,14 @@ export const menu = defineMessages({
     defaultMessage: "Split",
     description:
       "Split a frame horizontally or vertically (short single word on button)",
+  },
+  remove_all_buttons: {
+    id: "menu.generic.button_bar.disable.label",
+    defaultMessage: "Remove All Buttons",
+  },
+  reset_toolbar_button_default: {
+    id: "menu.generic.reset_toolbar_button_default",
+    defaultMessage: "Reset Toolbar to Default",
   },
 });
 
@@ -415,6 +734,16 @@ export const editor = defineMessages({
     id: "editor.latex.pdf_embed.title",
     defaultMessage: "PDF - Native",
   },
+  latex_source_code_label_name: {
+    id: "editor.latex.source_code.name",
+    defaultMessage: "LaTeX Source Code",
+    description: "Name of a LaTeX document editor",
+  },
+  latex_source_code_label_short: {
+    id: "editor.latex.source_code.short",
+    defaultMessage: "Source",
+    description: "Name of a LaTeX source document editor",
+  },
   latex_command_print_label: {
     id: "editor.latex.command.print.label",
     defaultMessage: "Print LaTeX Source",
@@ -437,10 +766,53 @@ export const editor = defineMessages({
     defaultMessage: "Editor Settings",
     description: "The name of the editor settings frame",
   },
+  guide_tooltip: {
+    id: "editor.guide_tooltip",
+    defaultMessage:
+      "Tool for creating, testing, and learning about Linux Terminal commands.",
+  },
+  clear_terminal_popconfirm_title: {
+    id: "editor.clear_terminal_popconfirm_title",
+    defaultMessage: "Clear this Terminal?",
+  },
+  clear_terminal_tooltip: {
+    id: "editor.clear_terminal_tooltip",
+    defaultMessage:
+      "Clearing this Linux Terminal frame terminates running programs, respawns the shell, and cleans up the display buffer.",
+  },
+  clear_terminal_popconfirm_confirm: {
+    id: "editor.clear_terminal_popconfirm_confirm",
+    defaultMessage: "Yes, clean up!",
+  },
 });
 
 export const jupyter = {
   editor: defineMessages({
+    nbgrader_minimal_stubs: {
+      id: "jupyter.editor.nbgrader.actions.confirm_assign.minimal_stubs",
+      defaultMessage: "Generate with minimal stubs",
+    },
+    nbgrader_create_title: {
+      id: "jupyter.editor.nbgrader.actions.confirm_assign.title",
+      defaultMessage:
+        "Generate Student Version{full, select, true { of Jupyter Notebook} other {}}",
+    },
+    nbgrader_create_body: {
+      id: "jupyter.editor.nbgrader.actions.confirm_assign.body",
+      defaultMessage: `Generating the student version of the Jupyter Notebook will create a new Jupyter Notebook "{target}"
+        that is ready to distribute to your students.
+        This process locks cells and writes metadata so parts of the notebook can't be accidentally edited or deleted;
+        it removes solutions, and replaces them with code or text stubs saying (for example) "YOUR ANSWER HERE";
+        and it clears all outputs.
+        Once done, you can easily inspect the resulting notebook to make sure everything looks right.
+        (This is analogous to 'nbgrader assign'.)
+        The CoCalc course management system will *only* copy the {STUDENT_SUBDIR} subdirectory
+        that contains this generated notebook to students.`,
+    },
+    snippets_tooltip: {
+      id: "jupyter.editor.snippets_tooltip",
+      defaultMessage: "Open a panel containing code snippets.",
+    },
     run_all_cells: {
       id: "jupyter.editor.run_all_cells.label",
       defaultMessage: "Run All Cells",
@@ -726,7 +1098,7 @@ export const jupyter = {
       description: "In a Jupyter Notebook, turn the running kernel off",
     },
     shutdown_kernel_menu: {
-      id: "jupyter.commands.shutdown_kernel.menu",
+      id: "jupyter.commands.shutdown_kernel.menu.dots",
       defaultMessage: "Shutdown Kernel...",
       description: "In a Jupyter Notebook, turn the running kernel off",
     },
@@ -920,8 +1292,83 @@ export const jupyter = {
       defaultMessage: "Generate student version...",
     },
     nbgrader_assign_button: {
-      id: "jupyter.commands.nbgrader_assign.buton",
+      id: "jupyter.commands.nbgrader_assign.button",
       defaultMessage: "Generate",
+    },
+    nbgrader_assign_tooltip: {
+      id: "jupyter.commands.nbgrader_assign.tooltip",
+      defaultMessage:
+        "Generate the student version of this document, which strips out the extra instructor tests and cells.",
+    },
+    nbconvert_slides: {
+      id: "jupyter.commands.nbconvert_slides.label",
+      defaultMessage: "Slideshow server via nbconvert",
+      description: "do not translate 'nbconvert'",
+    },
+    cut_cells: {
+      id: "jupyter.commands.cut_cells.label",
+      defaultMessage: "Cut Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    copy_cells: {
+      id: "jupyter.commands.copy_cells.label",
+      defaultMessage: "Copy Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    delete_cells: {
+      id: "jupyter.commands.delete_cells.label",
+      defaultMessage: "Delete Cells",
+      description: "Cells in a Jupyter Notebook",
+    },
+    find_and_replace: {
+      id: "jupyter.commands.find_and_replace.label",
+      defaultMessage: "Find and Replace",
+    },
+    delete_all_blank_code_cells: {
+      id: "jupyter.commands.delete_all_blank_code_cells.label",
+      defaultMessage: "Delete All Blank Code Cells",
+    },
+    merge_selected_cells_menu: {
+      id: "jupyter.commands.merge_cells.menu",
+      description: "Cells in a Jupyter Notebook",
+      defaultMessage: "Merge Selected Cells",
     },
   }),
 };
+
+export const dialogs = defineMessages({
+  select_llm: {
+    id: "ai-generator.select_llm",
+    defaultMessage: "Select language model",
+  },
+  project_start_warning_title: {
+    id: "project-start-warning.title",
+    defaultMessage: "Start this project?",
+  },
+  project_start_warning_content: {
+    id: "project-start-warning.content",
+    defaultMessage: `You must start the project "{project_title}" before you can {what}. {title}`,
+  },
+  project_actions_rename_file: {
+    id: "project_actions.rename_file.what",
+    defaultMessage: `rename {src}`,
+  },
+  project_open_file_what: {
+    id: "project.open_file.what",
+    defaultMessage: `open the file "{path}"`,
+  },
+  project_actions_create_file_what: {
+    id: "project_actions.create_file.what",
+    defaultMessage: `create the file "{path}"`,
+  },
+  client_project_exec_msg: {
+    id: "client.project.exec.msg",
+    defaultMessage: `{blocking, select,
+    true {execute the command {arg}}
+    other {getting job {arg}}}`,
+  },
+  client_project_exec_start_first: {
+    id: "client.project.exec.start_first",
+    defaultMessage: "You must start the project first",
+  },
+});

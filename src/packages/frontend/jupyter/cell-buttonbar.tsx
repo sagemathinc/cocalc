@@ -11,13 +11,14 @@ import { Button, Dropdown, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Map } from "immutable";
 import React, { useState } from "react";
-
 import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ComputeServer from "@cocalc/frontend/compute/inline";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { jupyter } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { LLMTools } from "@cocalc/jupyter/types";
+import { FormattedMessage, useIntl } from "react-intl";
 import { JupyterActions } from "./browser-actions";
 import { CodeBarDropdownMenu } from "./cell-buttonbar-menu";
 import { CellIndexNumber } from "./cell-index-number";
@@ -68,6 +69,8 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     is_readonly,
     haveLLMCellTools,
   }: Props) => {
+    const intl = useIntl();
+
     const { project_id, path } = useFrameContext();
     const frameActions = useNotebookFrameActions();
     const [formatting, setFormatting] = useState<boolean>(false);
@@ -125,13 +128,17 @@ export const CellButtonBar: React.FC<Props> = React.memo(
                 {
                   key: "all-above",
                   icon: <Icon name={RUN_ALL_CELLS_ABOVE_ICON} />,
-                  label: "Run All Above Selected Cell",
+                  label: intl.formatMessage(
+                    jupyter.commands.run_all_cells_above_menu,
+                  ),
                   onClick: () => actions?.run_all_above_cell(id),
                 },
                 {
                   key: "all-below",
                   icon: <Icon name={RUN_ALL_CELLS_BELOW_ICON} rotate={"90"} />,
-                  label: "Run Selected Cell and All Below",
+                  label: intl.formatMessage(
+                    jupyter.commands.run_all_cells_below_menu,
+                  ),
                   onClick: () => actions?.run_all_below_cell(id),
                 },
               ],
@@ -153,30 +160,36 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     }
 
     function renderCodeBarCellTiming() {
-      if (cell.get("start") == null) return;
       return (
-        <div style={{ margin: "4px 4px 4px 10px" }}>
-          <CellTiming start={cell.get("start")} end={cell.get("end")} />
+        <div style={{ margin: "2.5px 4px 4px 10px" }}>
+          <CellTiming
+            start={cell.get("start")}
+            end={cell.get("end")}
+            last={cell.get("last")}
+            state={cell.get("state")}
+            isLive={!is_readonly && actions != null}
+          />
         </div>
       );
     }
 
     function renderCodeBarLLMButtons() {
       if (!llmTools || !haveLLMCellTools) return;
-      return (
-        <LLMCellTool
-          id={id}
-          actions={actions}
-          llmTools={llmTools}
-        />
-      );
+      return <LLMCellTool id={id} actions={actions} llmTools={llmTools} />;
     }
 
     function renderCodeBarFormatButton() {
       // Should only show formatter button if there is a way to format this code.
       if (is_readonly || actions == null) return;
       return (
-        <Tooltip title="Format this code to look nice" placement="top">
+        <Tooltip
+          title={intl.formatMessage({
+            id: "jupyter.cell-buttonbr.format-button.tooltip",
+            defaultMessage: "Format this code to look nice",
+            description: "Code cell in a Jupyter Notebook",
+          })}
+          placement="top"
+        >
           <Button
             disabled={formatting}
             type="text"
@@ -196,7 +209,11 @@ export const CellButtonBar: React.FC<Props> = React.memo(
             }}
           >
             <Icon name={formatting ? "spinner" : "sitemap"} spin={formatting} />{" "}
-            Format
+            <FormattedMessage
+              id="jupyter.cell-buttonbr.format-button.label"
+              defaultMessage={"Format"}
+              description={"Code cell in a Jupyter Notebook"}
+            />
           </Button>
         </Tooltip>
       );

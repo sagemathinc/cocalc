@@ -5,7 +5,6 @@
 
 import { Tooltip } from "antd";
 import { CSSProperties, useState } from "react";
-
 import { isChatBot } from "@cocalc/frontend/account/chatbot";
 import {
   React,
@@ -56,7 +55,7 @@ export function Avatar(props) {
     return (
       <LanguageModelVendorAvatar
         model={service2model(props.account_id)}
-        size={props.size}
+        size={props.size ?? 30}
         style={props.style}
       />
     );
@@ -249,8 +248,10 @@ const Avatar0: React.FC<Props> = (props) => {
     return <span style={{ ...style, ...CIRCLE_INNER_STYLE }}>{letter()}</span>;
   }
 
+  const { max_age_s = 600 } = props;
+
   function fade() {
-    if (props.activity == null || !props.max_age_s) {
+    if (props.activity == null || !max_age_s) {
       return 1;
     }
     const { last_used } = props.activity;
@@ -258,14 +259,16 @@ const Avatar0: React.FC<Props> = (props) => {
     return ensure_bound(
       1 -
         (webapp_client.server_time().valueOf() - last_used.valueOf()) /
-          (props.max_age_s * 1000),
+          (max_age_s * 1000),
       0,
       0.85,
     );
   }
 
-  const { size } = props;
-  if (size == null) throw Error("bug");
+  const { size = 30 } = props;
+  if (size == null) {
+    throw Error("bug");
+  }
   const outer_style = {
     height: `${size}px`,
     width: `${size}px`,
@@ -291,4 +294,3 @@ const Avatar0: React.FC<Props> = (props) => {
   }
 };
 
-Avatar.defaultProps = { size: 30, max_age_s: 600 };

@@ -8,6 +8,7 @@ import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { CopyConfigurationOptions, CopyConfigurationTargets } from "./configuration/configuration-copying";
 
 export interface SyncDBRecordBase {
   table: string;
@@ -19,6 +20,8 @@ export interface SyncDBRecordSettings {
   table: string;
   upgrade_goal?: UpgradeGoal;
   allow_collabs?: boolean;
+  mirror_config?: boolean;
+  mirror_config_path?: string;
   student_project_functionality?: StudentProjectFunctionality;
   shared_project_id?: string;
   pay?: string;
@@ -40,6 +43,8 @@ export interface SyncDBRecordSettings {
   datastore?: Datastore;
   envvars?: EnvVars;
   license_upgrade_host_project?: boolean;
+  copy_config_targets?: CopyConfigurationTargets;
+  copy_config_options?: CopyConfigurationOptions;
 }
 
 // This is closely related to store.AssignmentRecord...
@@ -91,6 +96,7 @@ export interface SyncDBRecordStudent {
   account_id?: string;
   email_invite?: string;
   deleted?: boolean;
+  deleted_account?: boolean;
   first_name?: string;
   last_name?: string;
   email_address?: string;

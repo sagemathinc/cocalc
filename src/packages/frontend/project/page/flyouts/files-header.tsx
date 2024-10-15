@@ -5,6 +5,7 @@
 
 import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
 import immutable from "immutable";
+import { FormattedMessage, useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
@@ -19,6 +20,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   DirectoryListing,
@@ -94,6 +96,8 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
     selectAllFiles,
     clearAllSelections,
   } = props;
+
+  const intl = useIntl();
 
   const {
     isRunning: projectIsRunning,
@@ -303,21 +307,31 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
         style={{ padding: FLYOUT_PADDING, margin: 0 }}
         message={
           <>
-            <Icon name="warning" /> Stale directory listing
+            <Icon name="warning" />{" "}
+            <FormattedMessage
+              id="page.flyouts.files.stale-directory.message"
+              defaultMessage={"stale directory listing"}
+              description={"outdated information in a file directory listing"}
+            />
           </>
         }
         description={
-          <>
-            To update,{" "}
-            <a
-              onClick={() => {
-                redux.getActions("projects").start_project(project_id);
-              }}
-            >
-              start this project
-            </a>
-            .
-          </>
+          <FormattedMessage
+            id="page.flyouts.files.stale-directory.description"
+            defaultMessage={"To update, <A>start this project</A>."}
+            description={"to update the outdated information in a file directory listing of a project"}
+            values={{
+              A: (c) => (
+                <a
+                  onClick={() => {
+                    redux.getActions("projects").start_project(project_id);
+                  }}
+                >
+                  {c}
+                </a>
+              ),
+            }}
+          />
         }
       />
     );
@@ -378,14 +392,22 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
               {renderSortButton("type", "Type")}
             </Radio.Group>
             <Space.Compact direction="horizontal" size={"small"}>
-              <Button
-                className={uploadClassName}
-                size="small"
-                disabled={!projectIsRunning || disableUploads}
+              <Tooltip
+                title={intl.formatMessage(labels.upload_tooltip)}
+                placement="bottom"
               >
-                <Icon name={"upload"} />
-              </Button>
-              <Tooltip title="Create a new file" placement="bottom">
+                <Button
+                  className={uploadClassName}
+                  size="small"
+                  disabled={!projectIsRunning || disableUploads}
+                >
+                  <Icon name={"upload"} />
+                </Button>
+              </Tooltip>
+              <Tooltip
+                title={intl.formatMessage(labels.new_tooltip)}
+                placement="bottom"
+              >
                 <Button
                   size="small"
                   type="primary"
@@ -421,7 +443,7 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
           />
           <Space.Compact direction="horizontal" size="small">
             <BootstrapButton
-              title={hidden ? "Hide hidden files" : "Show hidden files"}
+              title={intl.formatMessage(labels.hidden_files, { hidden })}
               bsSize="xsmall"
               style={{ flex: "0" }}
               onClick={() => actions?.setState({ show_hidden: !hidden })}
@@ -429,7 +451,9 @@ export function FilesHeader(props: Readonly<Props>): JSX.Element {
               <Icon name={hidden ? "eye" : "eye-slash"} />
             </BootstrapButton>
             <BootstrapButton
-              title={show_masked ? "Hide masked files" : "Show masked files"}
+              title={intl.formatMessage(labels.masked_files, {
+                masked: show_masked,
+              })}
               bsSize="xsmall"
               style={{ flex: "0" }}
               active={!show_masked}

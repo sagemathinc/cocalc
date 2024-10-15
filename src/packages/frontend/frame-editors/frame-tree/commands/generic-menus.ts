@@ -6,7 +6,7 @@ addMenus({
   app: {
     label: APPLICATION_MENU,
     pos: -10,
-    groups: ["about", "frame_types", "quit"],
+    groups: ["about", "frame_types", "quit", "settings"],
   },
   file: {
     label: menu.file,
@@ -38,7 +38,7 @@ addMenus({
   view: {
     label: menu.view,
     pos: 2,
-    groups: ["zoom", "frame-control", "show-frames", "button-bar"],
+    groups: ["zoom", "scroll", "frame-control", "show-frames", "button-bar"],
   },
   go: {
     label: menu.go,

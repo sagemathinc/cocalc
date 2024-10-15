@@ -6,7 +6,7 @@
 import { Alert } from "antd";
 import * as immutable from "immutable";
 import React from "react";
-import { Button, ButtonGroup, Col, Row } from "react-bootstrap";
+import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import * as underscore from "underscore";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
@@ -54,6 +54,7 @@ import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import { FormattedMessage } from "react-intl";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -482,13 +483,7 @@ const Explorer0 = rclass(
             className="smc-vfill"
           >
             <FileListing
-              isRunning={
-                this.props.project_map?.getIn([
-                  this.props.project_id,
-                  "state",
-                  "state",
-                ]) == "running"
-              }
+              isRunning={project_is_running}
               name={this.props.name}
               active_file_sort={this.props.active_file_sort}
               listing={listing}
@@ -527,17 +522,23 @@ const Explorer0 = rclass(
               showIcon
               description={
                 <Paragraph>
-                  In order to see the files in this directory, you have to{" "}
-                  <a
-                    onClick={() => {
-                      redux
-                        .getActions("projects")
-                        .start_project(this.props.project_id);
+                  <FormattedMessage
+                    id="project.explorer.start_project.warning"
+                    defaultMessage={`In order to see the files in this directory, you have to <a>start this project</a>.`}
+                    values={{
+                      a: (c) => (
+                        <a
+                          onClick={() => {
+                            redux
+                              .getActions("projects")
+                              .start_project(this.props.project_id);
+                          }}
+                        >
+                          {c}
+                        </a>
+                      ),
                     }}
-                  >
-                    start this project
-                  </a>
-                  .
+                  />
                 </Paragraph>
               }
             />
@@ -732,12 +733,10 @@ const Explorer0 = rclass(
         project_is_running = true;
         // next, we check if this is a common user (not public)
       } else if (my_group !== "public") {
-        if (this.props.project_map != undefined) {
-          project_state = this.props.project_map.getIn([
-            this.props.project_id,
-            "state",
-          ]) as any;
-        }
+        project_state = this.props.project_map?.getIn([
+          this.props.project_id,
+          "state",
+        ]) as any;
         project_is_running = project_state?.get("state") == "running";
       } else {
         project_is_running = false;
@@ -771,7 +770,7 @@ const Explorer0 = rclass(
               flex: "0 0 auto",
               display: "flex",
               flexDirection: "column",
-              padding: "5px 5px 0 5px",
+              padding: "2px 2px 0 2px",
             }}
           >
             {this.render_error()}

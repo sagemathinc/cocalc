@@ -9,15 +9,17 @@
 // this is... so for now it still sort of toggles.  For now things
 // do work properly via a hack in close_chat in project_actions.
 
+import { filename_extension } from "@cocalc/util/misc";
 import { Button, Tooltip } from "antd";
 import { debounce } from "lodash";
-import { filename_extension } from "@cocalc/util/misc";
 import { useMemo } from "react";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { FormattedMessage, useIntl } from "react-intl";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HiddenXS } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
 import track from "@cocalc/frontend/user-tracking";
+import { labels } from "../i18n";
 
 export type ChatState =
   | "" // not opened (also undefined counts as not open)
@@ -29,12 +31,12 @@ const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "15pt",
   paddingTop: "3px",
   cursor: "pointer",
-};
+} as const;
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
   maxWidth: "120px",
   marginRight: "5px",
-};
+} as const;
 
 interface Props {
   project_id: string;
@@ -47,6 +49,7 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
   };
+
   return (
     <div style={style}>
       <UsersViewing
@@ -60,6 +63,8 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
 }
 
 function ChatButton({ project_id, path, chatState }) {
+  const intl = useIntl();
+
   const toggleChat = debounce(
     () => {
       const actions = redux.getProjectActions(project_id);
@@ -92,7 +97,10 @@ function ChatButton({ project_id, path, chatState }) {
       title={
         <span>
           <Icon name="comment" style={{ marginRight: "5px" }} />
-          Hide or Show Document Chat
+          <FormattedMessage
+            id="chat.chat-indicator.tooltip"
+            defaultMessage={"Hide or Show Document Chat"}
+          />
         </span>
       }
       placement={"leftTop"}
@@ -107,7 +115,9 @@ function ChatButton({ project_id, path, chatState }) {
       >
         <Icon name="comment" />
         <HiddenXS>
-          <span style={{ marginLeft: "5px" }}>Chat</span>
+          <span style={{ marginLeft: "5px" }}>
+            {intl.formatMessage(labels.chat)}
+          </span>
         </HiddenXS>
       </Button>
     </Tooltip>

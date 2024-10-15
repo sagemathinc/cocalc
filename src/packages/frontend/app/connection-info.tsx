@@ -3,14 +3,23 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { React, useActions, useTypedRedux } from "../app-framework";
-import { Icon } from "../components";
 import { Modal } from "antd";
-import { Button, Row, Col } from "../antd-bootstrap";
-import { webapp_client } from "../webapp-client";
-import { plural } from "@cocalc/util/misc";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { Button, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import {
+  React,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { COLORS } from "@cocalc/util/theme";
 
 export const ConnectionInfo: React.FC = React.memo(() => {
+  const intl = useIntl();
+
   const ping = useTypedRedux("page", "ping");
   const avgping = useTypedRedux("page", "avgping");
   const status = useTypedRedux("page", "connection_status");
@@ -29,7 +38,8 @@ export const ConnectionInfo: React.FC = React.memo(() => {
       onOk={close}
       title={
         <>
-          <Icon name="wifi" style={{ marginRight: "1em" }} /> Connection
+          <Icon name="wifi" style={{ marginRight: "1em" }} />{" "}
+          {intl.formatMessage(labels.connection)}
         </>
       }
     >
@@ -37,31 +47,51 @@ export const ConnectionInfo: React.FC = React.memo(() => {
         {ping ? (
           <Row>
             <Col sm={3}>
-              <h4>Ping time</h4>
+              <h4>
+                <FormattedMessage
+                  id="connection-info.ping"
+                  defaultMessage="Ping time"
+                  description={"Ping how long a server takes to respond"}
+                />
+              </h4>
             </Col>
             <Col sm={6}>
               <pre>
-                {avgping}ms (latest: {ping}ms)
+                <FormattedMessage
+                  id="connection-info.ping_info"
+                  defaultMessage="{avgping}ms (latest: {ping}ms)"
+                  description={
+                    "Short string stating the average and the most recent ping in milliseconds."
+                  }
+                  values={{ avgping, ping }}
+                />
               </pre>
             </Col>
           </Row>
         ) : undefined}
         <Row>
           <Col sm={3}>
-            <h4>Hub server</h4>
+            <h4>
+              <FormattedMessage
+                id="connection-info.hub_server"
+                defaultMessage="Hub server"
+                description={"Ping how long a server takes to respond"}
+              />
+            </h4>
           </Col>
           <Col sm={6}>
             <pre>{hub != null ? hub : "Not signed in"}</pre>
           </Col>
           <Col sm={2}>
             <Button onClick={webapp_client.hub_client.fix_connection}>
-              <Icon name="repeat" spin={status === "connecting"} /> Reconnect
+              <Icon name="repeat" spin={status === "connecting"} />{" "}
+              {intl.formatMessage(labels.reconnect)}
             </Button>
           </Col>
         </Row>
         <Row>
           <Col sm={3}>
-            <h4>Messages</h4>
+            <h4>{intl.formatMessage(labels.message_plural, { num: 10 })}</h4>
           </Col>
           <Col sm={6}>
             <MessageInfo />
@@ -81,18 +111,37 @@ function bytes_to_str(bytes: number): string {
 }
 
 const MessageInfo: React.FC = React.memo(() => {
+  const intl = useIntl();
+
   const info = useTypedRedux("account", "mesg_info");
 
   if (info == null) {
     return <span></span>;
   }
+
+  function messages(num: number): string {
+    return `${num} ${intl.formatMessage(labels.message_plural, { num })}`;
+  }
+
+  const sent = intl.formatMessage({
+    id: "connection-info.messages_sent",
+    defaultMessage: "sent",
+    description: "Messages sent",
+  });
+
+  const received = intl.formatMessage({
+    id: "connection-info.messages_received",
+    defaultMessage: "received",
+    description: "Messages received",
+  });
+
   return (
     <div>
       <pre>
-        {info.get("sent")} messages sent (
+        {messages(info.get("sent"))} {sent} (
         {bytes_to_str(info.get("sent_length"))})
         <br />
-        {info.get("recv")} messages received (
+        {messages(info.get("recv"))} {received} (
         {bytes_to_str(info.get("recv_length"))})
         <br />
         <span
@@ -102,17 +151,19 @@ const MessageInfo: React.FC = React.memo(() => {
               : undefined
           }
         >
-          {info.get("count")} {plural(info.get("count"), "message")} in flight
+          {messages(info.get("count"))} in flight
         </span>
         <br />
-        {info.get("enqueued")} {plural(info.get("enqueued"), "message")} queued
-        to send
+        {messages(info.get("enqueued"))} queued to send
       </pre>
-      <div style={{ color: "#666" }}>
-        Connection icon color changes as the number of messages in flight to a
-        hub increases. Usually, no action is needed, but the counts are helpful
-        for diagnostic purposes. The maximum number of messages that can be sent
-        at the same time is {info.get("max_concurrent")}.
+      <div style={{ color: COLORS.GRAY_M }}>
+        <FormattedMessage
+          id="connection-info.info"
+          defaultMessage={`Connection icon color changes as the number of messages in flight to a hub increases.
+          Usually, no action is needed, but the counts are helpful for diagnostic purposes.
+          The maximum number of messages that can be sent at the same time is {max}.`}
+          values={{ max: info.get("max_concurrent") }}
+        />
       </div>
     </div>
   );

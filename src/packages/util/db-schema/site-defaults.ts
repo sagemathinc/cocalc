@@ -7,7 +7,6 @@
 
 import jsonic from "jsonic";
 import { isEqual } from "lodash";
-
 import { LOCALE } from "@cocalc/util/consts/locale";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import {
@@ -42,6 +41,7 @@ export const TAGS = [
   "Theme",
   "On-Prem",
   "I18N",
+  "Security",
 ] as const;
 
 export type Tag = (typeof TAGS)[number];
@@ -117,7 +117,8 @@ export type SiteSettingsKeys =
   | "compute_servers_dns_enabled"
   | "compute_servers_dns"
   | "compute_servers_hyperstack_enabled"
-  | "cloud_filesystems_enabled";
+  | "cloud_filesystems_enabled"
+  | "insecure_test_mode";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -605,7 +606,7 @@ export const site_settings_conf: SiteSettings = {
   },
   limit_free_project_uptime: {
     name: "Limit Free Project Uptime",
-    desc: "If this number of minutes is >0, then projects running for longer than that must have a license applied, or some upgrade, etc. This exposes a count-down timer in the trial banner. (0 means disabled)",
+    desc: "If this number of minutes is >0, then projects running for longer than that must have a license applied, or some upgrade, etc. This exposes a countdown timer in the trial banner. (0 means disabled)",
     default: "0",
     to_val: to_int,
     valid: only_nonneg_int,
@@ -868,7 +869,7 @@ export const site_settings_conf: SiteSettings = {
     tags: ["AI LLM"],
   },
   neural_search_enabled: {
-    name: "OpenAI Neural Search UI",
+    name: "DEPRECATED - OpenAI Neural Search UI",
     desc: "Controls visibility of UI elements related to Neural Search integration.  You must **also set your OpenAI API key** below and fully configure the **Qdrant vector database** for neural search to work.",
     default: "no",
     valid: only_booleans,
@@ -919,8 +920,8 @@ export const site_settings_conf: SiteSettings = {
     tags: ["Compute Servers"],
   },
   compute_servers_onprem_enabled: {
-    name: "Enable Compute Servers - On Prem",
-    desc: "Whether or not to include on prem compute servers.  Right now, these are VM's that must be manually managed by a user and involve copy/paste, but someday they will be much more automated.",
+    name: "Enable Compute Servers - Self Hosted",
+    desc: "Whether or not to allow self hosted compute servers.  These are VM's that must be manually managed by a user.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
@@ -960,5 +961,13 @@ export const site_settings_conf: SiteSettings = {
       to_bool(conf.compute_servers_enabled) &&
       to_bool(conf.compute_servers_dns_enabled),
     tags: ["Compute Servers"],
+  },
+  insecure_test_mode: {
+    name: "Insecure Test Mode",
+    desc: "Put this server in a highly insecure test mode that is suitable for evaluating CoCalc, but **CANNOT BE USED IN PRODUCTION**.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Security"],
   },
 } as const;

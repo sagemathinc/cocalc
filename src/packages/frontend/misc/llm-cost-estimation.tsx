@@ -1,4 +1,5 @@
 import { BaseType } from "antd/es/typography/Base";
+import { defineMessage, useIntl } from "react-intl";
 
 import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
@@ -8,7 +9,6 @@ import {
   isFreeModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { round2down, round2up } from "@cocalc/util/misc";
-
 /*
 NOTE: To get a quick idea about the numbers of how many completion tokens are returned, run this:
 
@@ -51,6 +51,11 @@ export const ESTIMATION_HELP_TEXT = (
   </>
 );
 
+export const MODEL_FREE_TO_USE = defineMessage({
+  id: "llm.cost-estimation.model_free_to_use",
+  defaultMessage: "This model is free to use.",
+});
+
 export function LLMCostEstimation({
   model,
   tokens, // Note: use the "await imported" numTokensUpperBound function to get the number of tokens
@@ -66,13 +71,14 @@ export function LLMCostEstimation({
   paragraph?: boolean;
   textAlign?: CSS["textAlign"];
 }) {
+  const intl = useIntl();
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
 
   if (isFreeModel(model, isCoCalcCom)) {
     return (
       <Wrapper type={type} paragraph={paragraph} textAlign={textAlign}>
-        This model is free to use.
+        {intl.formatMessage(MODEL_FREE_TO_USE)}
       </Wrapper>
     );
   }

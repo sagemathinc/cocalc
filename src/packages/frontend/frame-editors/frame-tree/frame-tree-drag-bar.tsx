@@ -58,11 +58,10 @@ interface Props {
   // the direction
   dir: "col" | "row";
   frame_tree: Map<string, any>;
-  safari_hack: () => void;
 }
 
 export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
-  const { dir, frame_tree, actions, safari_hack, containerRef } = props;
+  const { dir, frame_tree, actions, containerRef } = props;
 
   const dragBarRef = React.useRef<Draggable>(null);
 
@@ -91,7 +90,7 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
       id: frame_tree.get("id"),
       pos,
     });
-    actions.set_resize();
+    actions.set_resize?.();
     actions.focus(); // see https://github.com/sagemathinc/cocalc/issues/3269
   }
 
@@ -104,7 +103,6 @@ export const FrameTreeDragBar: React.FC<Props> = React.memo((props: Props) => {
     setDragActive(false);
     drag_stop_iframe_enable();
     calcPosition(_, ui);
-    safari_hack();
   }
 
   function style(): CSS | undefined {

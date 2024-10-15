@@ -5,7 +5,6 @@
 import { List, Map, Set } from "immutable";
 import { fromPairs, isEmpty } from "lodash";
 import LRU from "lru-cache";
-
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
 import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
@@ -149,6 +148,32 @@ export class ProjectsStore extends Store<ProjectsState> {
     return !!this.get_course_info(project_id);
   }
 
+  // true if this project is a student project that requires
+  // payment and it has been paid.
+  isPaidStudentPayProject = (project_id: string) => {
+    const info = this.get_course_info(project_id);
+    if (!info?.get("pay")) {
+      return false;
+    }
+    return !!info.get("paid");
+  };
+
+  // True if the current user is the student in a course project.
+  isStudent = (project_id: string) => {
+    const account = redux.getStore("account");
+    if (account == null) {
+      return;
+    }
+    const info = this.get_course_info(project_id);
+    if (info == null) {
+      return;
+    }
+    return (
+      info.get("account_id") == webapp_client.account_id ||
+      info.get("email_address") == account.get("email_address")
+    );
+  };
+
   /*
   If a course payment is required for this project from the signed in user,
   returns time when it will be required; otherwise, returns undefined.
@@ -158,40 +183,34 @@ export class ProjectsStore extends Store<ProjectsState> {
   This is so students have access to their work even after their subscription
   has expired.
   */
-  public date_when_course_payment_required(
+  date_when_course_payment_required = (
     project_id: string,
-  ): undefined | Date {
-    const account = redux.getStore("account");
-    if (account == null) {
+  ): undefined | Date => {
+    if (!this.isStudent(project_id) || this.is_deleted(project_id)) {
       return;
     }
     const info = this.get_course_info(project_id);
     if (info == null) {
       return;
     }
-    const is_student =
-      info.get("account_id") == webapp_client.account_id ||
-      info.get("email_address") == account.get("email_address");
-    if (is_student && !this.is_deleted(project_id)) {
-      // signed in user is the student
-      let pay = info.get("pay");
-      if (pay) {
-        if (webapp_client.server_time() >= months_before(-3, pay)) {
-          // It's 3 months after date when sign up required, so course likely over,
-          // and we no longer require payment
-          return;
-        }
-        // payment is required at some point
-        if (this.get_total_project_quotas(project_id)?.member_host) {
-          // already paid -- thanks
-          return;
-        } else {
-          // need to pay, but haven't -- this is the time by which they must pay
-          return pay;
-        }
+    // signed in user is the student
+    let pay = info.get("pay");
+    if (pay) {
+      if (webapp_client.server_time() >= months_before(-3, pay)) {
+        // It's 3 months after date when sign up required, so course likely over,
+        // and we no longer require payment
+        return;
+      }
+      // payment is required at some point
+      if (this.get_total_project_quotas(project_id)?.member_host) {
+        // already paid -- thanks
+        return;
+      } else {
+        // need to pay, but haven't -- this is the time by which they must pay
+        return pay;
       }
     }
-  }
+  };
 
   public is_deleted(project_id: string): boolean {
     return !!this.getIn(["project_map", project_id, "deleted"]);
@@ -518,7 +537,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (quotas == null) {
       return undefined;
     }
-    const kind = quotas.member_host ?? true ? "member" : "free";
+    const kind = (quotas.member_host ?? true) ? "member" : "free";
     // if any quota regarding cpu or memory is upgraded, we treat it better than purely free projects
     const upgraded =
       (quotas.memory != null && quotas.memory > DEFAULT_QUOTAS.memory) ||

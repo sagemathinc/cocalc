@@ -115,9 +115,9 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
                   <A href="https://doc.cocalc.com/account/ssh.html">
                     account public ssh keys
                   </A>{" "}
-                  that has access to this project (you must restart the compute
-                  server if you add keys). If you start a web service on any
-                  port P on your compute server, type{" "}
+                  that has access to this project (wait about 30 seconds after
+                  you add keys). If you start a web service on any port P on
+                  your compute server, type{" "}
                   <code>ssh -L P:localhost:P user@ip_address</code>
                   on your laptop, and you can connect to that web service on
                   localhost on your laptop. Also ports 80 and 443 are always

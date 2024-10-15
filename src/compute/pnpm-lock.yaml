@@ -42,27 +42,27 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       cookie:
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^1.0.0
+        version: 1.0.0
       debug:
         specifier: ^4.3.2
         version: 4.3.4
       websocketfs:
-        specifier: ^0.17.2
-        version: 0.17.2
+        specifier: ^0.17.4
+        version: 0.17.4
       ws:
         specifier: ^8.18.0
         version: 8.18.0
     devDependencies:
       '@types/cookie':
-        specifier: ^0.5.1
-        version: 0.5.1
+        specifier: ^0.6.0
+        version: 0.6.0
       '@types/node':
         specifier: ^18.16.14
         version: 18.16.14
       typescript:
-        specifier: ^5.5.4
-        version: 5.5.4
+        specifier: ^5.6.3
+        version: 5.6.3
 
 packages:
 
@@ -74,8 +74,8 @@ packages:
     resolution: {integrity: sha512-RQgQ4uQ+pLbqXfOmieB91ejmLwvSgv9nLx6sT6sD83s7umBypgg+OIBOBbEUiJXrfpnp9j0mRhYYdzp9uqq3lA==}
     engines: {node: '>=12'}
 
-  '@types/cookie@0.5.1':
-    resolution: {integrity: sha512-COUnqfB2+ckwXXSFInsFdOAWQzCCx+a5hq2ruyj+Vjund94RJQd4LG2u9hnvJrTgunKAaax7ancBYlDrNYxA0g==}
+  '@types/cookie@0.6.0':
+    resolution: {integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==}
 
   '@types/node@18.16.14':
     resolution: {integrity: sha512-+ImzUB3mw2c5ISJUq0punjDilUQ5GnUim0ZRvchHIWJmOC0G+p0kzhXBqj6cDjK0QdPFwzrHWgrJp3RPvCG5qg==}
@@ -111,6 +111,10 @@ packages:
   cookie@0.5.0:
     resolution: {integrity: sha512-YZ3GUyn/o8gfKJlnlX7g7xq4gyO6OSuhGPKaaGssGB2qgDUS0gPgtTvoyZLTt9Ab6dC4hfc9dV5arkvc/OCmrw==}
     engines: {node: '>= 0.6'}
+
+  cookie@1.0.0:
+    resolution: {integrity: sha512-bsSztFoaR8bw9MlFCrTHzc1wOKCUKOBsbgFdoDilZDkETAOOjKSqV7L+EQLbTaylwvZasd9vM4MGKotJaUfSpA==}
+    engines: {node: '>=18'}
 
   cuint@0.2.2:
     resolution: {integrity: sha512-d4ZVpCW31eWwCMe1YT3ur7mUDnTXbgwyzaL320DrcRT45rfjYxkt5QWLrmOJ+/UEAI2+fQgKe/fCjR8l4TpRgw==}
@@ -190,16 +194,16 @@ packages:
   napi-macros@2.2.2:
     resolution: {integrity: sha512-hmEVtAGYzVQpCKdbQea4skABsdXW4RUh5t5mJ2zzqowJS2OyXZTU1KhDVFhx+NlWZ4ap9mqR9TcDO3LTTttd+g==}
 
-  node-abi@3.65.0:
-    resolution: {integrity: sha512-ThjYBfoDNr08AWx6hGaRbfPwxKV9kVzAzOzlLKbk2CuqXE2xnCh+cbAGnwM3t8Lq4v9rUB7VfondlkBckcJrVA==}
+  node-abi@3.68.0:
+    resolution: {integrity: sha512-7vbj10trelExNjFSBm5kTvZXXa7pZyKWx9RCKIyqe6I9Ev3IzGpQoqBP3a+cOdxY+pWj6VkP28n/2wWysBHD/A==}
     engines: {node: '>=10'}
 
-  node-addon-api@8.0.0:
-    resolution: {integrity: sha512-ipO7rsHEBqa9STO5C5T10fj732ml+5kLN1cAG8/jdHd56ldQeGj3Q7+scUS+VHK/qy1zLEwC4wMK5+yM0btPvw==}
+  node-addon-api@8.1.0:
+    resolution: {integrity: sha512-yBY+qqWSv3dWKGODD6OGE6GnTX7Q2r+4+DfpqxHSHh8x0B4EKP9+wVGLS6U/AM1vxSNNmUEuIV5EGhYwPpfOwQ==}
     engines: {node: ^18 || ^20 || >= 21}
 
-  node-gyp-build@4.8.0:
-    resolution: {integrity: sha512-u6fs2AEUljNho3EYTJNBfImO5QTo/J/1Etd+NVdCj7qWKUSN/bSLkZwhDv7I+w/MSC6qJ4cknepkAYykDdK8og==}
+  node-gyp-build@4.8.2:
+    resolution: {integrity: sha512-IRUxE4BVsHWXkV/SFOut4qTlagw2aM8T5/vnTsmrHJvVoKueJHRc/JaFND7QDDc61kLYUJ6qlZM3sqTSyx2dTw==}
     hasBin: true
 
   once@1.4.0:
@@ -213,8 +217,8 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  pump@3.0.0:
-    resolution: {integrity: sha512-LwZy+p3SFs1Pytd/jYct4wpv49HiYCqd9Rlc5ZVdk0V+8Yzv6jR5Blk3TRmPL1ft69TxP0IMZGJ+WPFU2BFhww==}
+  pump@3.0.2:
+    resolution: {integrity: sha512-tUPXtzlGM8FE3P0ZL6DVs/3P58k9nk8/jZeQCurTJylQA8qFYzHFfhBJkuqyE0FifOsQ0uKWekiZ5g8wtr28cw==}
 
   rc@1.2.8:
     resolution: {integrity: sha512-y3bGgqKj3QBdxLbLkomlohkvsA8gdAiUQlSBJnBhfn+BPxg4bc62d8TcBW15wavDfgexCgccckhcZvywyQYPOw==}
@@ -227,8 +231,8 @@ packages:
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
 
-  semver@7.6.2:
-    resolution: {integrity: sha512-FNAIBWCx9qcRhoHcgcJ0gvU7SN1lYU2ZXuSfl04bSC5OpvDHFyJCjdNHomPXxjQlCBU67YW64PzY7/VIEH7F2w==}
+  semver@7.6.3:
+    resolution: {integrity: sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -255,20 +259,20 @@ packages:
   tunnel-agent@0.6.0:
     resolution: {integrity: sha512-McnNiV1l8RYeY8tBgEpuodCC1mLUdbSN+CYBL7kJsJNInOP8UjDDEwdk6Mw60vdLLrr5NHKZhMAOSrR2NZuQ+w==}
 
-  typescript@5.5.4:
-    resolution: {integrity: sha512-Mtq29sKDAEYP7aljRgtPOpTvOfbwRWlS6dPRzwjdE+C0R4brX/GUyhHSecbHMFLNBLcJIPt9nl9yG5TZ1weH+Q==}
+  typescript@5.6.3:
+    resolution: {integrity: sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
-  websocket-sftp@0.8.0:
-    resolution: {integrity: sha512-7+j6SKhA4u+yNRgOfDyCHwr95YPv0zdSb+Z2brsTEECE8eAZy1X5KpHDYA3Rofw3FDf+PN/5G52PuFIBQPDpbA==}
+  websocket-sftp@0.8.2:
+    resolution: {integrity: sha512-LHUzwTSQNB+Rud+OTe+lt9ojdWzE5nHQ2rnBs1JwQIXnh3bc0NVXk9pY7TMmFLkLYoBUKypa7Kl2CPfuxKLE4g==}
     engines: {node: '>=0.16.0'}
 
-  websocketfs@0.17.2:
-    resolution: {integrity: sha512-euK18tWJ5Mpg069wd5Y8FVPgZndQh5ccX65BspLdixOkGrEUfR0DhmsAhAAbryNQlkh50Q07YGa+ZWZlZs9DOg==}
+  websocketfs@0.17.4:
+    resolution: {integrity: sha512-TpZa59TRzbJwfp2BE66pYxf/aXDqJ24awb1iWtqepIVLYqlVNr/rqTfgg6rA3belpjUGVTD7fBOlmVrvSrn7Gg==}
     engines: {node: '>=0.16.0'}
     hasBin: true
 
@@ -296,11 +300,11 @@ snapshots:
     dependencies:
       nanoresource: 1.3.0
       napi-macros: 2.2.2
-      node-gyp-build: 4.8.0
+      node-gyp-build: 4.8.2
 
   '@isaacs/ttlcache@1.4.1': {}
 
-  '@types/cookie@0.5.1': {}
+  '@types/cookie@0.6.0': {}
 
   '@types/node@18.16.14': {}
 
@@ -311,7 +315,7 @@ snapshots:
   '@wwa/statvfs@1.1.18':
     dependencies:
       bindings: 1.5.0
-      node-addon-api: 8.0.0
+      node-addon-api: 8.1.0
       prebuild-install: 7.1.2
 
   awaiting@3.0.0: {}
@@ -338,6 +342,8 @@ snapshots:
   chownr@1.1.4: {}
 
   cookie@0.5.0: {}
+
+  cookie@1.0.0: {}
 
   cuint@0.2.2: {}
 
@@ -396,13 +402,13 @@ snapshots:
 
   napi-macros@2.2.2: {}
 
-  node-abi@3.65.0:
+  node-abi@3.68.0:
     dependencies:
-      semver: 7.6.2
+      semver: 7.6.3
 
-  node-addon-api@8.0.0: {}
+  node-addon-api@8.1.0: {}
 
-  node-gyp-build@4.8.0: {}
+  node-gyp-build@4.8.2: {}
 
   once@1.4.0:
     dependencies:
@@ -418,14 +424,14 @@ snapshots:
       minimist: 1.2.8
       mkdirp-classic: 0.5.3
       napi-build-utils: 1.0.2
-      node-abi: 3.65.0
-      pump: 3.0.0
+      node-abi: 3.68.0
+      pump: 3.0.2
       rc: 1.2.8
       simple-get: 4.0.1
       tar-fs: 2.1.1
       tunnel-agent: 0.6.0
 
-  pump@3.0.0:
+  pump@3.0.2:
     dependencies:
       end-of-stream: 1.4.4
       once: 1.4.0
@@ -445,7 +451,7 @@ snapshots:
 
   safe-buffer@5.2.1: {}
 
-  semver@7.6.2: {}
+  semver@7.6.3: {}
 
   simple-concat@1.0.1: {}
 
@@ -465,7 +471,7 @@ snapshots:
     dependencies:
       chownr: 1.1.4
       mkdirp-classic: 0.5.3
-      pump: 3.0.0
+      pump: 3.0.2
       tar-stream: 2.2.0
 
   tar-stream@2.2.0:
@@ -480,11 +486,11 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
-  typescript@5.5.4: {}
+  typescript@5.6.3: {}
 
   util-deprecate@1.0.2: {}
 
-  websocket-sftp@0.8.0:
+  websocket-sftp@0.8.2:
     dependencies:
       '@wwa/statvfs': 1.1.18
       awaiting: 3.0.0
@@ -496,7 +502,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  websocketfs@0.17.2:
+  websocketfs@0.17.4:
     dependencies:
       '@cocalc/fuse-native': 2.4.1
       '@isaacs/ttlcache': 1.4.1
@@ -506,7 +512,7 @@ snapshots:
       debug: 4.3.4
       lz4: 0.6.5
       port-get: 1.0.4
-      websocket-sftp: 0.8.0
+      websocket-sftp: 0.8.2
     transitivePeerDependencies:
       - bufferutil
       - supports-color

@@ -24,6 +24,10 @@ const DELETE_THRESH_MARGIN = 10;
 const logger = getLogger("server:compute:maintenance:purchase:low-balance");
 
 export default async function lowBalance({ server }) {
+  if (server.cloud == "onprem") {
+    // currently there is no charge at all for onprem compute servers
+    return;
+  }
   if (server.state == "deprovisioned") {
     // We only need to worry if the server isn't already deprovisioned.
     return;

@@ -5,7 +5,7 @@
 
 import { Button, Tooltip } from "antd";
 import { useEffect, useState } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { TourName } from "@cocalc/frontend/account/tours";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -52,7 +52,9 @@ export function FlyoutHeader(_: Readonly<Props>) {
   }, [is_active]);
 
   function renderDefaultTitle() {
-    const title = FIXED_PROJECT_TABS[flyout].flyoutTitle;
+    const title =
+      FIXED_PROJECT_TABS[flyout].flyoutTitle ??
+      FIXED_PROJECT_TABS[flyout].label;
     if (title != null) {
       return isIntlMessage(title) ? intl.formatMessage(title) : title;
     } else {
@@ -71,7 +73,13 @@ export function FlyoutHeader(_: Readonly<Props>) {
 
   function closeBtn() {
     return (
-      <Tooltip title="Hide this panel" placement="bottom">
+      <Tooltip
+        title={intl.formatMessage({
+          id: "flyouts.header.hide.tooltip",
+          defaultMessage: "Hide this panel",
+        })}
+        placement="bottom"
+      >
         <Icon
           name="times"
           className="cc-project-fixedtab-close"
@@ -95,7 +103,12 @@ export function FlyoutHeader(_: Readonly<Props>) {
   function renderFullpagePopupTitle() {
     return (
       <>
-        <div>Open this flyout panel as a full page.</div>
+        <div>
+          <FormattedMessage
+            id="flyouts.header.fullpage.tooltip.title"
+            defaultMessage={"Open this flyout panel as a full page."}
+          />
+        </div>
         {highlightFullpage ? (
           <>
             <hr />
@@ -205,6 +218,8 @@ export function FlyoutHeader(_: Readonly<Props>) {
   return (
     <div
       style={{
+        height: "40px",
+        overflow: "hidden",
         display: "flex",
         flexDirection: "row",
         alignItems: "start",

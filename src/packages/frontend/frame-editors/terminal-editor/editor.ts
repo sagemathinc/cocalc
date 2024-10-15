@@ -14,9 +14,6 @@ import { EditorDescription } from "../frame-tree/types";
 import { CommandsGuide } from "./commands-guide";
 import { TerminalFrame } from "./terminal";
 
-const CLEAR =
-  "Clearing this terminal frame terminates any running programs, respawns the shell, and cleans up the display buffer.";
-
 export const terminal: EditorDescription = {
   type: "terminal",
   short: labels.terminal,
@@ -41,7 +38,7 @@ export const terminal: EditorDescription = {
     "chatgpt",
     // "tour", -- temporarily disabled until I figure out how to to do editor tours again (fallout from pr 7180)
     "compute_server",
-    /*"reload" */
+    "settings",
   ]),
   buttons: set([
     "decrease_font_size",
@@ -53,19 +50,20 @@ export const terminal: EditorDescription = {
   hide_public: true, // never show this editor option for public view
   customizeCommands: {
     guide: {
-      label: "Guide",
-      title:
-        "Tool for creating, testing, and learning about terminal commands.",
+      label: labels.guide,
+      title: editor.guide_tooltip,
     },
     help: {
       title: editor.terminal_cmd_help_title,
     },
     clear: {
-      title: CLEAR,
-      popconfirm: {
-        title: "Clear this Terminal?",
-        description: CLEAR,
-        okText: "Yes, clean up!",
+      title: editor.clear_terminal_tooltip,
+      popconfirm: ({ intl }) => {
+        return {
+          title: intl.formatMessage(editor.clear_terminal_popconfirm_title),
+          description: intl.formatMessage(editor.clear_terminal_tooltip),
+          okText: intl.formatMessage(editor.clear_terminal_popconfirm_confirm),
+        };
       },
     },
   },
@@ -73,8 +71,8 @@ export const terminal: EditorDescription = {
 
 const commands_guide: EditorDescription = {
   type: "terminal-guide",
-  short: "Guide",
-  name: "Guide",
+  short: labels.guide,
+  name: labels.guide,
   icon: "magic",
   component: CommandsGuide,
   commands: set(["decrease_font_size", "increase_font_size"]),

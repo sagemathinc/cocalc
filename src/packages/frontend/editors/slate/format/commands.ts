@@ -5,6 +5,11 @@
 
 import { delay } from "awaiting";
 import { isEqual } from "lodash";
+
+import { redux } from "@cocalc/frontend/app-framework";
+import { commands } from "@cocalc/frontend/editors/editor-button-bar";
+import { getLocale } from "@cocalc/frontend/i18n";
+import { is_array, startswith } from "@cocalc/util/misc";
 import {
   BaseRange,
   Editor,
@@ -16,9 +21,6 @@ import {
   Text,
   Transforms,
 } from "slate";
-
-import { commands } from "@cocalc/frontend/editors/editor-button-bar";
-import { is_array, startswith } from "@cocalc/util/misc";
 import { getMarks } from "../edit-bar/marks";
 import { SlateEditor } from "../editable-markdown";
 import { markdown_to_slate } from "../markdown-to-slate";
@@ -327,11 +329,7 @@ export async function formatAction(
   project_id?: string,
 ) {
   const isFocused = ReactEditor.isFocused(editor);
-  if (!isFocused) {
-    ReactEditor.focus(editor);
-    restoreSelectionAndFocus(editor);
-    await delay(1);
-  }
+  const { selection, lastSelection } = editor;
   try {
     if (
       cmd === "bold" ||
@@ -429,7 +427,9 @@ export async function formatAction(
 
     if (cmd === "ai_formula") {
       if (project_id == null) throw new Error("ai_formula requires project_id");
-      const formula = await insertAIFormula(project_id);
+      const account_store = redux.getStore("account")
+      const locale = getLocale(account_store.get("other_settings"))
+      const formula = await insertAIFormula(project_id, locale);
       const value = removeDollars(removeBlankLines(formula.trim()));
       const node: Node = {
         type: "math_inline",
@@ -449,10 +449,16 @@ export async function formatAction(
       return;
     }
   } finally {
-    ReactEditor.focus(editor);
+    if (!isFocused) {
+      ReactEditor.focus(editor);
+      setSelectionAndFocus(editor, selection ?? lastSelection);
+      await delay(1);
+      ReactEditor.focus(editor);
+      setSelectionAndFocus(editor, selection ?? lastSelection);
+    }
   }
 
-  console.log("WARNING -- slate.format_action not implemented", {
+  console.warn("WARNING -- slate.format_action not implemented", {
     cmd,
     args,
     editor,

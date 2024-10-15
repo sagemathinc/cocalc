@@ -93,7 +93,7 @@ export async function getTarget({
     port_desc === "jupyter" || // Jupyter Classic
     port_desc === "jupyterlab" || // JupyterLab
     port_desc === "code" || // VSCode = "code-server"
-    port_desc === "rserver" // RStudio Server
+    port_desc === "rserver"
   ) {
     if (host == null || state.state !== "running") {
       // We just start the project.

@@ -39,9 +39,11 @@ export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 // e.g. #7787 was caused by merely checking on the name, which had changed.
 type EditorType =
   | "chat"
+  | "chatroom"
   | "cm-lean"
   | "cm"
   | "course-assignments"
+  | "course-actions"
   | "course-configuration"
   | "course-handouts"
   | "course-shared_project"
@@ -75,6 +77,7 @@ type EditorType =
   | "rst-view"
   | "sagews-cells"
   | "sagews-document"
+  | "search"
   | "settings"
   | "slate"
   | "slides-notes"
@@ -92,7 +95,7 @@ type EditorType =
   | "whiteboard"
   | "wiki"
   | "x11-apps"
-  | "x11"
+  | "x11";
 
 // Editor spec
 export interface EditorDescription {

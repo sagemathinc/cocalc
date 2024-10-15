@@ -1,21 +1,29 @@
 import { Tooltip } from "antd";
+import { useIntl } from "react-intl";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Paragraph } from "@cocalc/frontend/components";
-import { ESTIMATION_HELP_TEXT } from "@cocalc/frontend/misc/llm-cost-estimation";
+import {
+  ESTIMATION_HELP_TEXT,
+  MODEL_FREE_TO_USE,
+} from "@cocalc/frontend/misc/llm-cost-estimation";
 
 export function LLMCostEstimationChat({
-  llm_cost,
+  costEstimate,
   compact,
   style,
 }: {
-  llm_cost?: [number, number] | null;
+  costEstimate?: { min: number; max: number } | null;
   compact: boolean; // only mean is shown
   style?: CSS;
 }) {
-  if (!llm_cost) return null;
+  const intl = useIntl();
 
-  const [min, max] = llm_cost;
+  if (!costEstimate) {
+    return null;
+  }
+
+  const { min, max } = costEstimate;
   const sum = min + max;
   if (min == null || max == null || isNaN(sum)) return null;
   const isFree = min === 0 && max === 0;
@@ -52,7 +60,7 @@ export function LLMCostEstimationChat({
         </Paragraph>
         <Paragraph>
           {isFree ? (
-            <>This model is free to use.</>
+            <>{intl.formatMessage(MODEL_FREE_TO_USE)}</>
           ) : (
             <>
               The estimate for this call is between ${min.toFixed(2)} and $

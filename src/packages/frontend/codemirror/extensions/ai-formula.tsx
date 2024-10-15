@@ -1,5 +1,6 @@
 import { Button, Descriptions, Divider, Input, Modal, Space } from "antd";
 import { debounce } from "lodash";
+import { useIntl } from "react-intl";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import {
@@ -9,6 +10,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { Localize, useLocalizationCtx } from "@cocalc/frontend/app/localize";
 import type { Message } from "@cocalc/frontend/client/types";
 import {
   HelpIcon,
@@ -21,11 +23,13 @@ import {
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { dialogs } from "@cocalc/frontend/i18n";
 import { show_react_modal } from "@cocalc/frontend/misc";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
+import { Locale } from "@cocalc/util/i18n";
 import { unreachable } from "@cocalc/util/misc";
 
 type Mode = "tex" | "md";
@@ -36,15 +40,25 @@ interface Opts {
   mode: Mode;
   text?: string;
   project_id: string;
+  locale?: Locale;
 }
 
 export async function ai_gen_formula({
   mode,
   text = "",
   project_id,
+  locale,
 }: Opts): Promise<string> {
   return await show_react_modal((cb) => (
-    <AiGenFormula mode={mode} text={text} project_id={project_id} cb={cb} />
+    <Localize>
+      <AiGenFormula
+        mode={mode}
+        text={text}
+        project_id={project_id}
+        locale={locale}
+        cb={cb}
+      />
+    </Localize>
   ));
 }
 
@@ -52,7 +66,9 @@ interface Props extends Opts {
   cb: (err?: string, result?: string) => void;
 }
 
-function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
+function AiGenFormula({ mode, text = "", project_id, locale, cb }: Props) {
+  const intl = useIntl();
+  const { setLocale } = useLocalizationCtx();
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState<string>(text);
@@ -61,6 +77,12 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const [tokens, setTokens] = useState<number>(0);
+
+  useEffect(() => {
+    if (typeof locale === "string") {
+      setLocale(locale);
+    }
+  }, [locale]);
 
   useAsyncEffect(
     debounce(
@@ -241,7 +263,7 @@ function AiGenFormula({ mode, text = "", project_id, cb }: Props) {
         </Title>
         {enabled ? (
           <>
-            Select language model:{" "}
+            {intl.formatMessage(dialogs.select_llm)}:{" "}
             <LLMSelector
               project_id={project_id}
               model={model}

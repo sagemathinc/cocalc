@@ -14,7 +14,6 @@ import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { TableOfContents } from "../markdown-editor/table-of-contents";
-//import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { Build } from "./build";
@@ -37,8 +36,8 @@ export const pdfjsCommands = set([
 
 const cm: EditorDescription = {
   type: "cm",
-  short: "Source",
-  name: "LaTeX Source Code",
+  short: editor.latex_source_code_label_short,
+  name: editor.latex_source_code_label_name,
   icon: "code",
   component: CodemirrorEditor,
   commands: set([
@@ -69,6 +68,7 @@ const cm: EditorDescription = {
     "word_count",
     "-format-SpecialChar", // disable this since not properly implemented for latex.  It could be though!
     "download_pdf",
+    "settings",
   ]),
   buttons: set([
     "format-ai_formula",

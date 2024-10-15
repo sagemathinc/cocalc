@@ -10,7 +10,6 @@ $ = window.$
 templates_html = \
   require("./console.html").default +
   require("./editor.html").default +
-  require("./jupyter.html").default +
   require("./sagews/interact.html").default +
   require("./sagews/3d.html").default +
   require("./sagews/d3.html").default;
@@ -66,8 +65,6 @@ sagews   = require('./sagews/sagews')
 printing = require('./printing')
 
 {file_nonzero_size} = require('./project/utils')
-
-{render_snippets_dialog} = require('./assistant/legacy')
 
 copypaste = require('./copy-paste-buffer')
 
@@ -319,6 +316,7 @@ exports.FileEditor = FileEditor
 class CodeMirrorEditor extends FileEditor
     constructor: (project_id, filename, content, opts) ->
         super(project_id, filename)
+
         editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : undefined
@@ -1375,13 +1373,6 @@ class CodeMirrorEditor extends FileEditor
             # Save for next time
             @_last_layout = @_layout
 
-        # Workaround a major and annoying bug in Safari:
-        #     https://github.com/philipwalton/flexbugs/issues/132
-        if $.browser.safari and @_layout == 1
-            # This is only needed for the "split via a horizontal line" layout, since
-            # the flex layout with column direction is broken on Safari.
-            @element.find(".webapp-editor-codemirror-input-container-layout-#{@_layout}").make_height_defined()
-
         refresh = (cm) =>
             return if not cm?
             cm_refresh(cm)
@@ -1428,24 +1419,6 @@ class CodeMirrorEditor extends FileEditor
                 @syncdoc?.sync()
                 # needed so that dropdown menu closes when clicked.
                 return true
-
-    snippets_dialog_handler: () =>
-        # @snippets_dialog is an ExampleActions object, unique for each editor instance
-        lang = @_current_mode
-        # special case sh → bash
-        if lang == 'sh' then lang = 'bash'
-
-        if not @snippets_dialog?
-            $target = @mode_display.parent().find('.react-target')
-            @snippets_dialog = render_snippets_dialog(
-                target     : $target[0]
-                project_id : @project_id
-                path       : @filename
-                lang       : lang
-            )
-        else
-            @snippets_dialog.show(lang)
-        @snippets_dialog.set_handler(@example_insert_handler)
 
     example_insert_handler: (insert) =>
         # insert : {lang: string, descr: string, code: string[]}
@@ -1595,10 +1568,8 @@ class CodeMirrorEditor extends FileEditor
                 textedit_only_show_known_buttons(name)
             set_mode_display(name)
 
-        # show the assistant button to reveal the dialog for example selection
-        @element.find('.webapp-editor-codeedit-buttonbar-assistant').show()
-        assistant_button = @element.find('a[href="#assistant"]')
-        assistant_button.click(@snippets_dialog_handler)
+        # this is deprecated
+        @element.find('.webapp-editor-codeedit-buttonbar-assistant').hide()
 
         # The code below changes the bar at the top depending on where the cursor
         # is located.  We only change the edit bar if the cursor hasn't moved for
@@ -1636,7 +1607,7 @@ class CodeMirrorEditor extends FileEditor
             cm.on('cursorActivity', _.debounce(update_context_sensitive_bar, 250))
 
         update_context_sensitive_bar()
-        @element.find(".webapp-editor-codemirror-textedit-buttons").mathjax()
+        @element.find(".webapp-editor-codemirror-textedit-buttons").katex({preProcess:true})
 
 
 exports.codemirror_editor = (project_id, filename, extra_opts) ->
@@ -1778,75 +1749,6 @@ class FileEditorWrapper extends FileEditor
         @wrapped?.hide?()
 
 
-###
-# Jupyter notebook
-###
-jupyter = require('./editor_jupyter')
-
-class JupyterNotebook extends FileEditorWrapper
-    init_wrapped: () =>
-        @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
-        require.ensure [], =>
-            @init_font_size() # get the @default_font_size
-            # console.log("JupyterNotebook@default_font_size: #{@default_font_size}")
-            @opts.default_font_size = @default_font_size
-            @element = jupyter.jupyter_notebook(@, @filename, @opts)
-            @wrapped = @element.data('jupyter_notebook')
-
-    mount: () =>
-        if not @mounted
-            $(document.body).append(@element)
-            @mounted = true
-        return @mounted
-
-class JupyterNBViewer extends FileEditorWrapper
-    init_wrapped: () ->
-        @element = jupyter.jupyter_nbviewer(@project_id, @filename, @content, @opts)
-        @wrapped = @element.data('jupyter_nbviewer')
-
-class JupyterNBViewerEmbedded extends FileEditor
-    # this is like JupyterNBViewer but https://nbviewer.jupyter.org in an iframe
-    # it's only used for public files and when not part of the project or anonymous
-    constructor: (project_id, filename, content, opts) ->
-        super(project_id, filename)
-        @content = content
-        @element = $(".smc-jupyter-templates .smc-jupyter-nbviewer").clone()
-        @init_buttons()
-
-    init_buttons: () =>
-        # code duplication from editor_jupyter/JupyterNBViewer
-        @element.find('a[href="#copy"]').click () =>
-            actions = redux.getProjectActions(@project_id)
-            actions.load_target('files')
-            actions.set_all_files_unchecked()
-            actions.set_file_checked(@filename, true)
-            actions.set_file_action('copy')
-            return false
-
-        @element.find('a[href="#download"]').click () =>
-            actions = redux.getProjectActions(@project_id)
-            actions.load_target('files')
-            actions.set_all_files_unchecked()
-            actions.set_file_checked(@filename, true)
-            actions.set_file_action('download')
-            return false
-
-    show: () =>
-        if not @is_active()
-            return
-        if not @iframe?
-            @iframe = @element.find(".smc-jupyter-nbviewer-content").find('iframe')
-            {join} = require('path')
-            ipynb_src = join(window.location.hostname,
-                             appBasePath,
-                             @project_id,
-                             'raw',
-                             @filename)
-            # for testing, set it to a src like this: (smc-in-smc doesn't work for published files, since it
-            # still requires the user to be logged in with access to the host project)
-            #ipynb_src = 'cocalc.com/14eed217-2d3c-4975-a381-b69edcb40e0e/raw/scratch/1_notmnist.ipynb'
-            @iframe.attr('src', "//nbviewer.jupyter.org/urls/#{ipynb_src}")
-        @element.show()
 
 exports.register_nonreact_editors = ->
 
@@ -1868,9 +1770,6 @@ exports.register_nonreact_editors = ->
 
     if feature.IS_TOUCH
         register(false, Terminal, ['term', 'sage-term'])
-
-    exports.switch_to_ipynb_classic = ->
-        register(false, JupyterNotebook,  ['ipynb'])
 
     # Editing Sage worksheets
     reg

@@ -3,17 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import Fragment, { isPageFragment } from "@cocalc/frontend/misc/fragment-id";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { NotificationFilter, isNotificationFilter } from "./mentions/types";
 
 export function getNotificationFilterFromFragment():
   | NotificationFilter
   | undefined {
-  const fragID = Fragment.get();
-  if (isPageFragment(fragID)) {
-    const { page } = fragID;
-    if (isNotificationFilter(page)) {
-      return page;
-    }
+  const fragmentId = Fragment.get();
+  if (fragmentId == null) {
+    return;
+  }
+  const { page } = fragmentId;
+  if (!page) {
+    return;
+  }
+  if (isNotificationFilter(page)) {
+    return page;
   }
 }

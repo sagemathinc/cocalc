@@ -8,15 +8,12 @@
     "cocalc"
   ],
   "devDependencies": {
-    "bootstrap": "=3.4.1",
     "codemirror": "^5.65.3",
-    "katex": "^0.16.10",
-    "mathjax": "^2.7.9",
-    "pdfjs-dist": "^4.2.67"
+    "katex": "^0.16.10"
   },
   "scripts": {
     "clean": "rm -rf build node_modules dist",
-    "build": "rm -rf build dist && mkdir build && cp -rv *.json *.py *.js pix build/ && cd build && npm ci && mkdir dist && ./setup.py && mv dist .. && cd .. && rm -rf build ",
+    "build": "rm -rf build dist && mkdir build && cp -rv *.json *.py *.js build/ && cd build && npm ci && mkdir dist && ./setup.py && mv dist .. && cd .. && rm -rf build ",
     "postinstall": "./postinstall.js",
     "test": "../node_modules/.bin/jest",
     "prepublishOnly": "npm test"

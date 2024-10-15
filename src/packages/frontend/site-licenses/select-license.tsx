@@ -134,6 +134,7 @@ export default function SelectLicense(props: Props) {
 
     return (
       <Space>
+        {onCancel && <Button onClick={onCancel}>Cancel</Button>}
         {onSave &&
           wrapConfirm(
             <Button
@@ -146,7 +147,6 @@ export default function SelectLicense(props: Props) {
               <Icon name="check" /> {confirmLabel ?? "Apply License"}
             </Button>,
           )}
-        {onCancel && <Button onClick={onCancel}>Cancel</Button>}
         {extraButtons != null ? (
           <span style={{ paddingLeft: "20px" }}>{extraButtons}</span>
         ) : null}
