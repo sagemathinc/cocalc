@@ -200,7 +200,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           const label = render_kernel_button(name);
 
           entries.push(
-            <Descriptions.Item key={name} label={label}>
+            <Descriptions.Item key={`${name}-${lang}`} label={label}>
               <div>{render_suggested_link(cocalc)}</div>
             </Descriptions.Item>,
           );
