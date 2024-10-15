@@ -5,7 +5,6 @@ The main hub express app.
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import express from "express";
-import ms from "ms";
 import { join } from "path";
 import { parse as parseURL } from "url";
 import webpackDevMiddleware from "webpack-dev-middleware";
@@ -32,10 +31,7 @@ import initStripeWebhook from "./app/webhooks/stripe";
 import { database } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
-
-// Used for longterm caching of files. This should be in units of seconds.
-const MAX_AGE = Math.round(ms("10 days") / 1000);
-const SHORT_AGE = Math.round(ms("10 seconds") / 1000);
+import { cacheShortTerm, cacheLongTerm } from "@cocalc/util/http-caching";
 
 interface Options {
   projectControl;
@@ -166,30 +162,6 @@ export default async function init(opts: Options): Promise<{
   return { httpServer, router };
 }
 
-function cacheShortTerm(res) {
-  res.setHeader(
-    "Cache-Control",
-    `public, max-age=${SHORT_AGE}, must-revalidate`,
-  );
-  res.setHeader(
-    "Expires",
-    new Date(Date.now().valueOf() + SHORT_AGE).toUTCString(),
-  );
-}
-
-// Various files such as the webpack static content should be cached long-term,
-// and we use this function to set appropriate headers at various points below.
-function cacheLongTerm(res) {
-  res.setHeader(
-    "Cache-Control",
-    `public, max-age=${MAX_AGE}, must-revalidate'`,
-  );
-  res.setHeader(
-    "Expires",
-    new Date(Date.now().valueOf() + MAX_AGE).toUTCString(),
-  );
-}
-
 async function initStatic(router) {
   let compiler: any = null;
   if (
@@ -215,7 +187,7 @@ async function initStatic(router) {
     router.use("/static", webpackHotMiddleware(compiler, {}));
   } else {
     router.use(
-      join("/static", STATIC_PATH, "app.html"),
+      join("/static", "app.html"),
       express.static(join(STATIC_PATH, "app.html"), {
         setHeaders: cacheShortTerm,
       }),

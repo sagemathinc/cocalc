@@ -6,6 +6,12 @@ settings:
 
 importers:
 
+  api-client: {}
+
+  backend: {}
+
+  comm: {}
+
   compute:
     dependencies:
       '@cocalc/api-client':
@@ -20,6 +26,9 @@ importers:
       '@cocalc/jupyter':
         specifier: workspace:*
         version: link:../jupyter
+      '@cocalc/static':
+        specifier: workspace:*
+        version: link:../static
       '@cocalc/sync':
         specifier: workspace:*
         version: link:../sync
@@ -35,6 +44,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@types/ms':
+        specifier: ^0.7.34
+        version: 0.7.34
       '@types/ws':
         specifier: ^8.5.9
         version: 8.5.9
@@ -67,6 +79,20 @@ importers:
         specifier: ^5.6.3
         version: 5.6.3
 
+  jupyter: {}
+
+  static: {}
+
+  sync: {}
+
+  sync-client: {}
+
+  sync-fs: {}
+
+  terminal: {}
+
+  util: {}
+
 packages:
 
   '@cocalc/fuse-native@2.4.1':
@@ -79,6 +105,9 @@ packages:
 
   '@types/cookie@0.6.0':
     resolution: {integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==}
+
+  '@types/ms@0.7.34':
+    resolution: {integrity: sha512-nG96G3Wp6acyAgJqGasjODb+acrI7KltPiRxzHPXnP3NgI28bpQDRv53olbqGXbfcgF5aiiHmO3xpwEpS5Ld9g==}
 
   '@types/node@18.16.14':
     resolution: {integrity: sha512-+ImzUB3mw2c5ISJUq0punjDilUQ5GnUim0ZRvchHIWJmOC0G+p0kzhXBqj6cDjK0QdPFwzrHWgrJp3RPvCG5qg==}
@@ -552,6 +581,8 @@ snapshots:
   '@isaacs/ttlcache@1.4.1': {}
 
   '@types/cookie@0.6.0': {}
+
+  '@types/ms@0.7.34': {}
 
   '@types/node@18.16.14': {}
 
