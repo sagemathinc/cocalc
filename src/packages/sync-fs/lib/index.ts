@@ -354,6 +354,8 @@ class SyncFS {
   };
 
   private mountUnionFS = async () => {
+    // NOTE: allow_other is essential to allow bind mounted as root
+    // of fast scratch directories into HOME!
     // unionfs-fuse -o allow_other,auto_unmount,nonempty,large_read,cow,max_files=32768 /upper=RW:/home/user=RO /merged
     await execa("unionfs-fuse", [
       "-o",

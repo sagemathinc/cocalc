@@ -148,9 +148,9 @@ export async function mountProject({
           ...options.connectOptions,
         },
         mountOptions: {
-          allowOther: true,
-          nonEmpty: true,
           ...options.mountOptions,
+          allowOther: true, // this is critical to allow for fast bind mounts of scratch etc. as root.
+          nonEmpty: true,
         },
         cacheTimeout,
         hidePath: "/.unionfs",
@@ -175,6 +175,11 @@ export async function mountProject({
         );
         websocketfsMountOptions.mountOptions.allowOther = false;
         ({ unmount } = await mount(websocketfsMountOptions));
+
+        // This worked so the problem is allow_other.
+        throw Error(
+          "fusermount: option allow_other only allowed if 'user_allow_other' is set in /etc/fuse.conf\n\n\nFix this:\n\n    sudo sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf\n\n\n",
+        );
       }
 
       pingInterval = setInterval(async () => {
