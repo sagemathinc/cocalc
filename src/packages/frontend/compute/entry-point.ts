@@ -11,18 +11,13 @@ Entry point for compute server version of CoCalc...
 import "@cocalc/frontend/client/client";
 import { redux, setEntryPoint } from "../app-framework";
 import "../jquery-plugins";
-// Initialize app stores, actions, etc.
+
 import { init as initAccount } from "../account";
 import { init as initApp } from "../app/init";
 import { init as initProjects } from "../projects";
 import { init as initMarkdown } from "../markdown/markdown-input/main";
 import { init as initCrashBanner } from "../crash-banner";
-
-// Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
-// This import of codemirror forces the initial full load of codemirror
-// as part of the main webpack entry point.
 import "codemirror";
-
 import { init as initLast } from "../last";
 import { render } from "../app/render";
 

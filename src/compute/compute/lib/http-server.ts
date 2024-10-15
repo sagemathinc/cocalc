@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import compression from "compression";
 import express from "express";
 import { createServer } from "http";
 import { getLogger } from "@cocalc/backend/logger";
@@ -28,6 +29,8 @@ export function initHttpServer({
 
   const app = express();
   const server = createServer(app);
+
+  app.use(compression());
 
   app.get("/", (_req, res) => {
     const files = manager.getOpenFiles();
