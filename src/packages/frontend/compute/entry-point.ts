@@ -4,25 +4,19 @@
  */
 
 /*
-Entry point for embedded version of CoCalc embedding in an iframe.
-This is for editing exactly one file.
+Entry point for compute server version of CoCalc...
 */
-
-console.log("Embed mode");
 
 // Load/initialize Redux-based react functionality
 import "@cocalc/frontend/client/client";
 import { redux, setEntryPoint } from "../app-framework";
-
 import "../jquery-plugins";
-
 // Initialize app stores, actions, etc.
 import { init as initAccount } from "../account";
 import { init as initApp } from "../app/init";
 import { init as initProjects } from "../projects";
 import { init as initMarkdown } from "../markdown/markdown-input/main";
 import { init as initCrashBanner } from "../crash-banner";
-
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror forces the initial full load of codemirror
@@ -33,7 +27,7 @@ import { init as initLast } from "../last";
 import { render } from "../app/render";
 
 export async function init() {
-  setEntryPoint("embed");
+  setEntryPoint("compute");
   initAccount(redux);
   initApp();
   initProjects();
@@ -46,4 +40,5 @@ export async function init() {
     // or user would see the banner for a moment.
     initCrashBanner();
   }
+  console.log("Loaded Compute Server Entry Point");
 }

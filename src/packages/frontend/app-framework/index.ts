@@ -3,6 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+let entryPoint = "app"; // default
+export { entryPoint };
+export function setEntryPoint(x) {
+  entryPoint = x;
+}
+
 // Not sure where this should go...
 declare global {
   interface Window {

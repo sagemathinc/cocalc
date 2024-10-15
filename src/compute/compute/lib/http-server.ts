@@ -13,7 +13,7 @@ import { cacheShortTerm, cacheLongTerm } from "@cocalc/util/http-caching";
 
 const logger = getLogger("compute:http-server");
 
-const ENTRY_POINT = "app.html";
+const ENTRY_POINT = "compute.html";
 
 export function initHttpServer({
   port = 5004,
@@ -46,6 +46,10 @@ export function initHttpServer({
     "/static",
     express.static(STATIC_PATH, { setHeaders: cacheLongTerm }),
   );
+
+  app.get("/customize", (_req, res) => {
+    res.json({ configuration: {}, registration: false });
+  });
 
   server.listen(port, host, () => {
     logger.info(`Server listening http://${host}:${port}`);

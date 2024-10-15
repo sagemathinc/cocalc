@@ -27,4 +27,15 @@ export default function appLoaderPlugin(
       chunks: ["load", "embed"],
     }),
   );
+
+  registerPlugin(
+    "Compute -- generates the compute.html file",
+    new rspack.HtmlRspackPlugin({
+      title,
+      filename: "compute.html",
+      template: resolve(__dirname, "../app.html"),
+      hash: PRODMODE,
+      chunks: ["load", "compute"],
+    }),
+  );
 }
