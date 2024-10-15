@@ -181,9 +181,11 @@ export async function cleanup_old_projects_data(
       numProj += 1;
       let delRows = 0;
 
-      // Clean up data *on* a given project. For now, remove all site licenses.
+      // Clean up data *on* a given project. For now, remove all site licenses, status and last_active.
       await pool.query(
-        `UPDATE projects SET site_license = NULL WHERE project_id = $1`,
+        `UPDATE projects
+         SET site_license = NULL, status = NULL, last_active = NULL, run_quota = NULL
+         WHERE project_id = $1`,
         [project_id],
       );
 
@@ -237,17 +239,23 @@ async function delete_associated_project_data(
   L2: WinstonLogger["debug"],
   project_id: string,
 ): Promise<number> {
+  // TODO: two tables reference a project, but become useless.
+  // There should be a fallback strategy to move these objects to another project or surface them as being orphaned.
+  // tables: cloud_filesystems, compute_servers
+
   let total = 0;
   // collecting tables, where the primary key is the default (i.e. "id") and
   // the field to check is always called "project_id"
   const tables = [
-    "public_paths",
-    "project_log",
-    "file_use",
-    "file_access_log",
-    "jupyter_api_log",
-    "openai_chatgpt_log",
     "blobs",
+    "file_access_log",
+    "file_use",
+    "jupyter_api_log",
+    "mentions",
+    "openai_chatgpt_log",
+    "project_log",
+    "public_paths",
+    "shopping_cart_items",
   ] as const;
 
   for (const table of tables) {
