@@ -11,7 +11,6 @@ import { mount } from "websocketfs";
 import getLogger from "@cocalc/backend/logger";
 import { project } from "@cocalc/api-client";
 import { serialize } from "cookie";
-import { join } from "path";
 import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import syncFS from "@cocalc/sync-fs";
 import {
@@ -100,7 +99,7 @@ export async function mountProject({
     // Ping to start project so it's possible to mount.
     await pingProjectUntilSuccess(project_id);
 
-    const remote = join(getProjectWebsocketUrl(project_id), "websocketfs");
+    const remote = getProjectWebsocketUrl(project_id) + "/websocketfs";
     log("connecting to ", remote);
     const headers = { Cookie: serialize(API_COOKIE_NAME, apiKey) };
     // SECURITY: DO NOT log headers and connectOptions, obviously!
@@ -139,7 +138,7 @@ export async function mountProject({
         progress: 30,
       });
 
-      ({ unmount } = await mount({
+      const websocketfsMountOptions = {
         remote,
         path: homeMountPoint,
         ...options,
@@ -149,9 +148,9 @@ export async function mountProject({
           ...options.connectOptions,
         },
         mountOptions: {
-          allowOther: true,
-          nonEmpty: true,
           ...options.mountOptions,
+          allowOther: true, // this is critical to allow for fast bind mounts of scratch etc. as root.
+          nonEmpty: true,
         },
         cacheTimeout,
         hidePath: "/.unionfs",
@@ -163,7 +162,26 @@ export async function mountProject({
         readTrackingExclude: exclude,
         // metadata file
         metadataFile,
-      }));
+      };
+
+      log("websocketfs -- mount options", websocketfsMountOptions);
+
+      try {
+        ({ unmount } = await mount(websocketfsMountOptions));
+      } catch (err) {
+        log("failed trying to mount -- ", err);
+        log(
+          "try again without allowOther, since some versions of FUSE do not support this option",
+        );
+        websocketfsMountOptions.mountOptions.allowOther = false;
+        ({ unmount } = await mount(websocketfsMountOptions));
+
+        // This worked so the problem is allow_other.
+        throw Error(
+          "fusermount: option allow_other only allowed if 'user_allow_other' is set in /etc/fuse.conf\n\n\nFix this:\n\n    sudo sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf\n\n\n",
+        );
+      }
+
       pingInterval = setInterval(async () => {
         try {
           await project.ping({ project_id });

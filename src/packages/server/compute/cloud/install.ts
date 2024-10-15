@@ -125,6 +125,9 @@ systemctl restart docker
 `;
 }
 
+// NOTE: we absolutely DO need "# Allow root to use FUSE mount of user" below.
+// This is needed so that we can do a very fast bind mount as root of fast
+// scratch directories on top of the slower fuse mounted home directory.
 export function installUser() {
   return `
 # Create the "user" if they do not already exist:
@@ -138,7 +141,7 @@ if ! id -u user >/dev/null 2>&1; then
   # Allow to be root
   echo '%user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-  # Allow to use FUSE
+  # Allow root to use FUSE mount of user
   sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
 
 fi

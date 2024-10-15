@@ -167,9 +167,18 @@ export const FileListing: React.FC<Props> = ({
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
 
+  const lastSelectedFileIndexRef = useRef<undefined | number>(selected_file_index);
+
   useEffect(() => {
-    if (selected_file_index == null) return;
-    virtuosoRef.current?.scrollIntoView({ index: selected_file_index });
+    if (selected_file_index == null) {
+      return;
+    }
+    if (lastSelectedFileIndexRef.current == selected_file_index - 1) {
+      virtuosoRef.current?.scrollIntoView({ index: selected_file_index + 1 });
+    } else {
+      virtuosoRef.current?.scrollIntoView({ index: selected_file_index });
+    }
+    lastSelectedFileIndexRef.current = selected_file_index;
   }, [selected_file_index]);
 
   function render_rows(): Rendered {

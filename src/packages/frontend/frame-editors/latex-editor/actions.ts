@@ -1597,4 +1597,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   chatgptCodeDescription(): string {
     return "Put any LaTeX you generate in the answer in a fenced code block with info string 'tex'.";
   }
+
+  set_font_size(id: string, font_size: number): void {
+    super.set_font_size(id, font_size);
+    this.update_gutters_soon();
+  }
 }

@@ -337,12 +337,12 @@ export function FileTypeSelector({
         icon: <Icon name="exclamation-circle" />,
         title: intl.formatMessage({
           id: "project.new.file-type-selector.sagews.modal.title",
-          defaultMessage: "SageMath Worksheets are currently less supported",
+          defaultMessage: "SageMath Worksheets are Deprecated",
         }),
         content: intl.formatMessage({
           id: "project.new.file-type-selector.sagews.modal.content",
           defaultMessage:
-            "Consider creating a Jupyter Notebook and use a SageMath Kernel (use the 'SageMath Notebook' button). You can also convert existing SageMath Worksheets to Jupyter Notebooks.",
+            "Consider creating a Jupyter Notebook and use a SageMath Kernel (use the 'SageMath Notebook' button). You can also convert existing SageMath Worksheets to Jupyter Notebooks by opening the worksheet and clicking 'Jupyter'.",
         }),
         okText: intl.formatMessage({
           id: "project.new.file-type-selector.sagews.modal.ok",
