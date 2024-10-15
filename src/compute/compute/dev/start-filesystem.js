@@ -58,8 +58,9 @@ async function main() {
     });
     unmount = exports.fs.unmount;
   } catch (err) {
-    console.log("something went wrong ", err);
+    console.trace("something went wrong ", err);
     exitHandler();
+    return;
   }
 
   const info = () => {

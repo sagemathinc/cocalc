@@ -3,11 +3,14 @@ The scripts here are helpful for developing the compute\-server manager, which i
 1. Create the directory /tmp/user and make sure you can read it. Maybe even mount it from the target project.
 
 2. The conf/ directory here has the same files as on /cocalc/conf in an actual compute\-server, except:
-     - replace api_server by something like `http://localhost:5000/6659c2e3-ff5e-4bb4-9a43-8830aa951282/port/5000`, where the port is what you're using for your dev server and the project id is of your dev server. The point is that we're going to connect directly without going through some external server.
+     - replace api_server by something like `http://127.0.0.1:5000/6659c2e3-ff5e-4bb4-9a43-8830aa951282/port/5000`, where the port is what you're using for your dev server and the project id is of your dev server. The point is that we're going to connect directly without going through some external server.
      - api_key: the one from an actual server will get deleted when you turn that server off, so make a different project level api key.
 
-   Type `tar xvf conf.tar` to get a template for the conf directory.  You will need to change the contents
-   of all the files you get, as mentioned above!
+   Type `tar xvf conf.tar` to get a template for the conf directory.  
+   You will need to change the contents of all the files you get, as 
+   mentioned above!  Also, regarding the api_server, be especially careful
+   about ipv4 versus ipv6, e.g., use 127.0.0.1 instead of localhost to
+   nail down the protocol.
 
 This is potentially confusing, and when developing this it was 10x worse... Maybe you'll be confused for 2 hours instead of 2 days.
 
