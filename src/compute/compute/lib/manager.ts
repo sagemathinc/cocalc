@@ -28,6 +28,7 @@ import { apiCall } from "@cocalc/api-client";
 import { get_blob_store as initJupyterBlobStore } from "@cocalc/jupyter/blobs";
 import { delay } from "awaiting";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { initHttpServer } from "./http-server";
 
 const logger = debug("cocalc:compute:manager");
 
@@ -47,6 +48,9 @@ interface Options {
   // If true, doesn't do anything until the type of the file system that home is
   // mounted on is of this type, e.g., "fuse".
   waitHomeFilesystemType?: string;
+
+  host?: string;
+  port?: number;
 }
 
 process.on("exit", () => {
@@ -75,11 +79,13 @@ export function manager(opts: Options) {
   return new Manager(opts);
 }
 
-class Manager {
+export class Manager {
   private state: "new" | "init" | "ready" = "new";
   private sync_db;
   private project_id: string;
   private home: string;
+  private host?: string;
+  private port?: number;
   private waitHomeFilesystemType?: string;
   private compute_server_id: number;
   private connections: { [path: string]: any } = {};
@@ -91,6 +97,8 @@ class Manager {
     compute_server_id = parseInt(process.env.COMPUTE_SERVER_ID ?? "0"),
     home = process.env.HOME ?? "/home/user",
     waitHomeFilesystemType,
+    host,
+    port,
   }: Options) {
     if (!project_id) {
       throw Error("project_id or process.env.PROJECT_ID must be given");
@@ -102,6 +110,8 @@ class Manager {
     // @ts-ignore -- can't true type, since constructed via plain javascript startup script.
     this.compute_server_id = parseInt(compute_server_id);
     this.home = home;
+    this.host = host;
+    this.port = port;
     this.waitHomeFilesystemType = waitHomeFilesystemType;
     const env = this.env();
     for (const key in env) {
@@ -115,6 +125,9 @@ class Manager {
     }
     this.log("initialize the Manager");
     this.state = "init";
+
+    await this.initHttpServer();
+
     // Ping to start the project and ensure there is a hub connection to it.
     await pingProjectUntilSuccess(this.project_id);
     // wait for home direcotry file system to be mounted:
@@ -420,5 +433,15 @@ class Manager {
       default:
         throw Error(`unknown event '${data?.event}'`);
     }
+  };
+
+  private initHttpServer = () => {
+    if (this.host != null && this.port != null) {
+      initHttpServer({ port: this.port, host: this.host, manager: this });
+    }
+  };
+
+  getOpenFiles = (): string[] => {
+    return Object.keys(this.connections);
   };
 }
