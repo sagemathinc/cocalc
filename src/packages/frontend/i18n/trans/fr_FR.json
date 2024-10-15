@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {Démarrage du projet} other {Démarrer le projet}}",
   "project.start-button.trial.description": "Il n'y a plus de capacité pour les <A>projets d'essai gratuit</A> sur CoCalc pour le moment. {br} <A2>Améliorez votre projet</A2> en utilisant <A3>une licence</A3> ou {A4}.",
   "project.start-button.trial.message": "Trop de projets d'essai gratuits",
+  "project.warnings.deleted.banner": "<h4>{icon} Avertissement : ce projet est <strong>supprimé !</strong></h4> Si vous avez l'intention d'utiliser ce projet, vous devriez <strong>le restaurer</strong> dans les paramètres du projet.",
   "projects.filename-search.placeholder": "Rechercher les noms de fichiers que vous avez modifiés...",
   "projects.load-all.label": "Afficher tous les projets...",
   "projects.search.placeholder": "Rechercher des projets (utiliser /re/ pour les expressions régulières)...",

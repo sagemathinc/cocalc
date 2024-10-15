@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {プロジェクトを開始しています} other {プロジェクトを開始}}",
   "project.start-button.trial.description": "現在CoCalcでは<A>無料試用プロジェクト</A>の容量がありません。 {br} <A2>ライセンス</A2>を使用して<A3>プロジェクトをアップグレード</A3>するか{A4}。",
   "project.start-button.trial.message": "無料トライアルプロジェクトが多すぎます",
+  "project.warnings.deleted.banner": "<h4>{icon} 警告: このプロジェクトは<strong>削除されました！</strong></h4> このプロジェクトを使用するつもりなら、プロジェクト設定で<strong>削除を取り消してください</strong>。",
   "projects.filename-search.placeholder": "編集したファイル名を検索...",
   "projects.load-all.label": "すべてのプロジェクトを表示...",
   "projects.search.placeholder": "プロジェクトを検索 (/re/ を正規表現として使用)...",

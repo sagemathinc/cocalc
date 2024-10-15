@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {परियोजना शुरू हो रही है} other {परियोजना शुरू करें}}",
   "project.start-button.trial.description": "CoCalc पर अभी <A>फ्री ट्रायल प्रोजेक्ट्स</A> के लिए और क्षमता नहीं है। {br} <A2>अपने प्रोजेक्ट को अपग्रेड करें</A2> <A3>लाइसेंस</A3> का उपयोग करके या {A4}।",
   "project.start-button.trial.message": "बहुत सारे मुफ्त ट्रायल प्रोजेक्ट्स",
+  "project.warnings.deleted.banner": "<h4>{icon} चेतावनी: यह प्रोजेक्ट <strong>हटाया गया है!</strong></h4> यदि आप इस प्रोजेक्ट का उपयोग करना चाहते हैं, तो आपको प्रोजेक्ट सेटिंग्स में इसे <strong>अनहटाना</strong> चाहिए।",
   "projects.filename-search.placeholder": "संपादित की गई फ़ाइल नाम खोजें...",
   "projects.load-all.label": "सभी प्रोजेक्ट दिखाएँ...",
   "projects.search.placeholder": "प्रोजेक्ट खोजें (regexp के लिए /re/ का उपयोग करें)...",

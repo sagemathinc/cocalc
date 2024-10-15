@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {프로젝트 시작 중} other {프로젝트 시작}}",
   "project.start-button.trial.description": "현재 CoCalc에는 <A>무료 체험 프로젝트</A>의 추가 용량이 없습니다. {br} <A2>라이선스를</A2> 사용하여 <A3>프로젝트를 업그레이드</A3>하거나 {A4}하십시오.",
   "project.start-button.trial.message": "무료 체험 프로젝트가 너무 많음",
+  "project.warnings.deleted.banner": "<h4>{icon} 경고: 이 프로젝트는 <strong>삭제되었습니다!</strong></h4> 이 프로젝트를 사용하려면 프로젝트 설정에서 <strong>삭제 취소</strong>를 해야 합니다.",
   "projects.filename-search.placeholder": "편집한 파일 이름 검색...",
   "projects.load-all.label": "모든 프로젝트 보기...",
   "projects.search.placeholder": "프로젝트 검색 (/re/ 정규식 사용)...",

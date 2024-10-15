@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {Proje başlatılıyor} other {Projeyi başlat}}",
   "project.start-button.trial.description": "Şu anda CoCalc üzerinde <A>Ücretsiz Deneme projeleri</A> için daha fazla kapasite yok. {br} <A2>Projenizi yükseltin</A2> <A3>bir lisans</A3> kullanarak veya {A4}.",
   "project.start-button.trial.message": "Çok Fazla Ücretsiz Deneme Projesi",
+  "project.warnings.deleted.banner": "<h4>{icon} Uyarı: bu proje <strong>silindi!</strong></h4> Bu projeyi kullanmayı düşünüyorsanız, proje ayarlarında <strong>silinmesini geri alın</strong>.",
   "projects.filename-search.placeholder": "Düzenlediğiniz dosya adlarını arayın...",
   "projects.load-all.label": "Tüm projeleri göster...",
   "projects.search.placeholder": "Projeleri ara (/re/ kullanarak düzenli ifade)...",

@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {Запуск проекта} other {Запустить проект}}",
   "project.start-button.trial.description": "На CoCalc сейчас нет свободных ресурсов для <A>бесплатных пробных проектов</A>. {br} <A2>Обновите свой проект</A2> с помощью <A3>лицензии</A3> или {A4}.",
   "project.start-button.trial.message": "Слишком много пробных проектов",
+  "project.warnings.deleted.banner": "<h4>{icon} Внимание: этот проект <strong>удален!</strong></h4> Если вы собираетесь использовать этот проект, вам следует <strong>восстановить его</strong> в настройках проекта.",
   "projects.filename-search.placeholder": "Искать измененные вами файлы...",
   "projects.load-all.label": "Показать все проекты...",
   "projects.search.placeholder": "Искать проекты (используйте /re/ для regexp)...",

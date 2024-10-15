@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {启动项目} other {启动项目}}",
   "project.start-button.trial.description": "目前CoCalc上没有更多的<A>免费试用项目</A>容量。{br} 使用<A3>许可证</A3>或{A4} <A2>升级您的项目</A2>。",
   "project.start-button.trial.message": "免费试用项目过多",
+  "project.warnings.deleted.banner": "<h4>{icon} 警告：此项目已<strong>删除！</strong></h4> 如果您打算使用此项目，应该在项目设置中<strong>取消删除</strong>。",
   "projects.filename-search.placeholder": "搜索你编辑过的文件名",
   "projects.load-all.label": "显示所有项目...",
   "projects.search.placeholder": "搜索项目（使用 /re/ 进行正则表达式搜索）…",

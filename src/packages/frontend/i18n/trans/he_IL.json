@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {מפעיל פרויקט} other {הפעל פרויקט}}",
   "project.start-button.trial.description": "אין יותר מקום עבור <A>פרויקטים לניסיון חינם</A> ב-CoCalc כרגע. {br} <A2>שדרג את הפרויקט שלך</A2> באמצעות <A3>רישיון</A3> או {A4}.",
   "project.start-button.trial.message": "יותר מדי פרויקטים של ניסיון חינם",
+  "project.warnings.deleted.banner": "<h4>{icon} אזהרה: הפרויקט הזה <strong>נמחק!</strong></h4> אם אתה מתכוון להשתמש בפרויקט הזה, עליך <strong>לבטל את המחיקה שלו</strong> בהגדרות הפרויקט.",
   "projects.filename-search.placeholder": "חפש קבצים שערכת...",
   "projects.load-all.label": "הצג את כל הפרויקטים...",
   "projects.search.placeholder": "חפש פרויקטים (השתמש ב-/re/ לחיפוש רגולרי)...",

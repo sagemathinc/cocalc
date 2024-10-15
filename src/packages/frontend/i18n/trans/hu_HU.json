@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {Projekt indítása} other {Projekt indítása}}",
   "project.start-button.trial.description": "Nincs több kapacitás az <A>Ingyenes Próba projektek</A> számára a CoCalc-on jelenleg. {br} <A2>Frissítse projektjét</A2> <A3>licenc</A3> használatával vagy {A4}.",
   "project.start-button.trial.message": "Túl sok ingyenes próba projekt",
+  "project.warnings.deleted.banner": "<h4>{icon} Figyelem: ez a projekt <strong>törölve van!</strong></h4> Ha használni szeretné ezt a projektet, akkor <strong>vissza kell állítania</strong> a projekt beállításaiban.",
   "projects.filename-search.placeholder": "Keressen a szerkesztett fájlnevek között...",
   "projects.load-all.label": "Összes projekt megjelenítése...",
   "projects.search.placeholder": "Projektek keresése (használja a /re/ a regexphez)...",

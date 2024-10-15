@@ -909,6 +909,7 @@
   "project.start-button.button.txt": "{starting, select, true {بدء المشروع} other {ابدأ المشروع}}",
   "project.start-button.trial.description": "لا توجد سعة لمشاريع <A>التجربة المجانية</A> على CoCalc في الوقت الحالي. {br} <A2>قم بترقية مشروعك</A2> باستخدام <A3>رخصة</A3> أو {A4}.",
   "project.start-button.trial.message": "عدد كبير جدًا من المشاريع التجريبية المجانية",
+  "project.warnings.deleted.banner": "<h4>{icon} تحذير: هذا المشروع <strong>محذوف!</strong></h4> إذا كنت تنوي استخدام هذا المشروع، ينبغي عليك <strong>استعادته</strong> في إعدادات المشروع.",
   "projects.filename-search.placeholder": "ابحث عن أسماء الملفات التي قمت بتحريرها...",
   "projects.load-all.label": "عرض كل المشاريع...",
   "projects.search.placeholder": "ابحث عن المشاريع (استخدم /re/ للبحث المنتظم)...",
