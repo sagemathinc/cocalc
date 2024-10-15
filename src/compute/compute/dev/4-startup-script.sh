@@ -55,6 +55,8 @@ setState vm start '' 60 60
 sleep 0.1
 
 while true; do
+  setState compute ready '' 35 100
+  setState filesystem-sync ready '' 35 100
   setState vm ready '' 35 100
   sleep 30
 done
