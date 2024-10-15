@@ -180,6 +180,10 @@ export interface CustomizeState {
   insecure_test_mode?: boolean;
 
   i18n?: List<Locale>;
+
+  // in case we're connecting directly to a compute server,
+  // this has info about the configuration of that server.
+  compute_server?: TypedMap<{ project_id: string }>;
 }
 
 export class CustomizeStore extends Store<CustomizeState> {

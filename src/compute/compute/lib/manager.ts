@@ -82,12 +82,12 @@ export function manager(opts: Options) {
 export class Manager {
   private state: "new" | "init" | "ready" = "new";
   private sync_db;
-  private project_id: string;
+  public project_id: string;
   private home: string;
   private host?: string;
   private port?: number;
   private waitHomeFilesystemType?: string;
-  private compute_server_id: number;
+  public compute_server_id: number;
   private connections: { [path: string]: any } = {};
   private websocket;
   private client;

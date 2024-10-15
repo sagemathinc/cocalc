@@ -39,6 +39,10 @@ export function initHttpServer({
     );
   });
 
+  app.get("/settings", (_req, res) => {
+    res.send(`<h1><a href="${join("/static", ENTRY_POINT)}">CoCalc App</a>`);
+  });
+
   app.use(
     join("/static", ENTRY_POINT),
     express.static(join(STATIC_PATH, ENTRY_POINT), {
@@ -51,7 +55,12 @@ export function initHttpServer({
   );
 
   app.get("/customize", (_req, res) => {
-    res.json({ configuration: {}, registration: false });
+    res.json({
+      configuration: {
+        compute_server: { project_id: manager.project_id },
+      },
+      registration: false,
+    });
   });
 
   server.listen(port, host, () => {
