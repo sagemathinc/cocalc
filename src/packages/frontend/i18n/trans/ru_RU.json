@@ -931,6 +931,8 @@
   "util.compute-states.closed.display": "Закрыто",
   "util.compute-states.closing.desc": "Проект находится в процессе закрытия.",
   "util.compute-states.closing.display": "Закрытие",
+  "util.compute-states.deleted.desc": "Проект удален",
+  "util.compute-states.deleted.display": "Удалено",
   "util.compute-states.opened.desc": "Проект доступен и готов к запуску.",
   "util.compute-states.opened.display": "Остановлено",
   "util.compute-states.opening.desc": "Проект импортируется; это может занять несколько минут в зависимости от размера.",

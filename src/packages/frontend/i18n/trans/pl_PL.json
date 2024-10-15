@@ -931,6 +931,8 @@
   "util.compute-states.closed.display": "Zamknięte",
   "util.compute-states.closing.desc": "Projekt jest w trakcie zamykania.",
   "util.compute-states.closing.display": "Zamykanie",
+  "util.compute-states.deleted.desc": "Projekt został usunięty",
+  "util.compute-states.deleted.display": "Usunięto",
   "util.compute-states.opened.desc": "Projekt jest dostępny i gotowy do uruchomienia.",
   "util.compute-states.opened.display": "Zatrzymano",
   "util.compute-states.opening.desc": "Projekt jest importowany; może to potrwać kilka minut w zależności od rozmiaru.",

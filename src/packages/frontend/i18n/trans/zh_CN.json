@@ -931,6 +931,8 @@
   "util.compute-states.closed.display": "已关闭",
   "util.compute-states.closing.desc": "项目正在关闭中",
   "util.compute-states.closing.display": "关闭",
+  "util.compute-states.deleted.desc": "项目已删除",
+  "util.compute-states.deleted.display": "已删除",
   "util.compute-states.opened.desc": "项目已可用并准备运行。",
   "util.compute-states.opened.display": "已停止",
   "util.compute-states.opening.desc": "项目正在导入中；根据大小可能需要几分钟。",

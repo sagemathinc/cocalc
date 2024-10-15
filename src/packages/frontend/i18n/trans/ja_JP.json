@@ -931,6 +931,8 @@
   "util.compute-states.closed.display": "閉じた",
   "util.compute-states.closing.desc": "プロジェクトは閉鎖中です",
   "util.compute-states.closing.display": "終了",
+  "util.compute-states.deleted.desc": "プロジェクトは削除されました",
+  "util.compute-states.deleted.display": "削除しました",
   "util.compute-states.opened.desc": "プロジェクトは利用可能で、実行準備ができています。",
   "util.compute-states.opened.display": "停止",
   "util.compute-states.opening.desc": "プロジェクトをインポート中です。サイズによっては数分かかる場合があります。",

@@ -931,6 +931,8 @@
   "util.compute-states.closed.display": "닫힘",
   "util.compute-states.closing.desc": "프로젝트가 닫히는 중입니다.",
   "util.compute-states.closing.display": "닫는 중",
+  "util.compute-states.deleted.desc": "프로젝트가 삭제되었습니다",
+  "util.compute-states.deleted.display": "삭제됨",
   "util.compute-states.opened.desc": "프로젝트가 사용 가능하며 실행할 준비가 되었습니다.",
   "util.compute-states.opened.display": "중지됨",
   "util.compute-states.opening.desc": "프로젝트가 가져오는 중입니다. 크기에 따라 몇 분 정도 걸릴 수 있습니다.",

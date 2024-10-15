@@ -931,6 +931,8 @@
   "util.compute-states.closed.display": "बंद",
   "util.compute-states.closing.desc": "प्रोजेक्ट को बंद किया जा रहा है।",
   "util.compute-states.closing.display": "समाप्त कर रहा है",
+  "util.compute-states.deleted.desc": "प्रोजेक्ट हटा दिया गया है",
+  "util.compute-states.deleted.display": "हटाया गया",
   "util.compute-states.opened.desc": "प्रोजेक्ट उपलब्ध है और चलाने के लिए तैयार है.",
   "util.compute-states.opened.display": "रुका हुआ",
   "util.compute-states.opening.desc": "प्रोजेक्ट को आयात किया जा रहा है; आकार के अनुसार इसमें कुछ मिनट लग सकते हैं",

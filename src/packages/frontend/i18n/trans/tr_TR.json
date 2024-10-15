@@ -931,6 +931,8 @@
   "util.compute-states.closed.display": "Kapalı",
   "util.compute-states.closing.desc": "Proje kapatılma sürecinde.",
   "util.compute-states.closing.display": "Kapatılıyor",
+  "util.compute-states.deleted.desc": "Proje silindi",
+  "util.compute-states.deleted.display": "Silindi",
   "util.compute-states.opened.desc": "Proje mevcut ve çalıştırılmaya hazır.",
   "util.compute-states.opened.display": "Durduruldu",
   "util.compute-states.opening.desc": "Proje içe aktarılıyor; boyutuna bağlı olarak bu birkaç dakika sürebilir.",

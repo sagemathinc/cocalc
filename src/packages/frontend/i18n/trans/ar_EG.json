@@ -931,6 +931,8 @@
   "util.compute-states.closed.display": "مغلق",
   "util.compute-states.closing.desc": "المشروع في طور الإغلاق.",
   "util.compute-states.closing.display": "إغلاق",
+  "util.compute-states.deleted.desc": "تم حذف المشروع",
+  "util.compute-states.deleted.display": "محذوف",
   "util.compute-states.opened.desc": "المشروع متاح وجاهز للتجربة والتشغيل.",
   "util.compute-states.opened.display": "توقف",
   "util.compute-states.opening.desc": "يتم استيراد المشروع؛ قد يستغرق هذا عدة دقائق حسب الحجم.",

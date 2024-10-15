@@ -304,9 +304,15 @@ export const COMPUTE_STATES: ComputeStates = {
 
   // projects are deleted in hub -> postgres.delete-projects and this is a one-way operation
   deleted: {
-    desc: "Project is deleted",
+    desc: defineMessage({
+      id: "util.compute-states.deleted.desc",
+      defaultMessage: "Project is deleted",
+    }),
     icon: "trash",
-    display: "Deleted",
+    display: defineMessage({
+      id: "util.compute-states.deleted.display",
+      defaultMessage: "Deleted",
+    }),
     stable: true,
     to: {},
     commands: [],
