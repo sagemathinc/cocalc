@@ -28,7 +28,6 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
-import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
 const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
 
