@@ -5,8 +5,10 @@
 
 import {
   Alert,
+  Button,
   Col,
   Divider,
+  Flex,
   Form,
   Radio,
   Row,
@@ -14,19 +16,21 @@ import {
   Tabs,
   Typography,
 } from "antd";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
 import { plural } from "@cocalc/util/misc";
 import { BOOST, DISK_DEFAULT_GB, REGULAR } from "@cocalc/util/upgrades/consts";
-import { CSS } from "components/misc";
+import PricingItem, { Line } from "components/landing/pricing-item";
+import { CSS, Paragraph } from "components/misc";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 import {
   PRESETS,
   PRESET_MATCH_FIELDS,
   Preset,
-  Presets,
+  PresetConfig,
 } from "./quota-config-presets";
 
 const { Text } = Typography;
@@ -50,8 +54,8 @@ interface Props {
   // boost doesn't define any of the below, that's only for site-license
   configMode?: "preset" | "expert";
   setConfigMode?: (mode: "preset" | "expert") => void;
-  preset?: Presets | null;
-  setPreset?: (preset: Presets | null) => void;
+  preset?: Preset | null;
+  setPreset?: (preset: Preset | null) => void;
   presetAdjusted?: boolean;
   setPresetAdjusted?: (adjusted: boolean) => void;
 }
@@ -70,6 +74,32 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     presetAdjusted,
     setPresetAdjusted,
   } = props;
+
+  const presetsRef = useRef<HTMLDivElement>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [narrow, setNarrow] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    const observer = new ResizeObserver((entries) => {
+      if (isClient && entries[0].contentRect.width < 600) {
+        setNarrow(true);
+      } else {
+        setNarrow(false);
+      }
+    });
+
+    if (presetsRef.current) {
+      observer.observe(presetsRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [presetsRef.current]);
 
   const ramVal = Form.useWatch("ram", form);
   const cpuVal = Form.useWatch("cpu", form);
@@ -285,13 +315,14 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function infoText() {
-    if (preset == null) {
+  function presetIsAdjusted() {
+    if (preset == null) return;
+    const presetData: PresetConfig = PRESETS[preset];
+    if (presetData == null) {
       return (
-        <Text type="danger">
-          Currently, no preset selection is active. Select a preset above to
-          reset your recent changes.
-        </Text>
+        <div>
+          Error: preset <code>{preset}</code> is not known.
+        </div>
       );
     }
 
@@ -305,16 +336,6 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       return;
     }
 
-    const presetData: Preset = PRESETS[preset];
-    if (presetData == null) {
-      return (
-        <div>
-          Error: preset <code>{preset}</code> is not known.
-        </div>
-      );
-    }
-    const { name, descr, details } = presetData;
-
     const presetDiff = Object.keys(PRESET_MATCH_FIELDS).reduce(
       (diff, presetField) => {
         if (presetData[presetField] !== quotaConfig[presetField]) {
@@ -326,83 +347,20 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       [] as string[],
     );
 
-    function presetDescription() {
-      if (!descr) {
-        return "";
-      } else {
-        return <>{descr}. It</>;
-      }
-    }
-
-    function renderDetails() {
-      if (details) {
-        return details;
-      }
-    }
-
-    function renderProvides() {
-      if (preset) {
-        const { cpu, disk, ram, uptime, member } = PRESETS[preset];
-
-        const basic = (
-          <>
-            provides up to{" "}
-            <Text strong>
-              {cpu} {plural(cpu, "vCPU")}
-            </Text>
-            , <Text strong>{ram} GB memory</Text>, and{" "}
-            <Text strong>{disk} GB disk space</Text> for each project.
-          </>
-        );
-
-        const mh =
-          member === false ? (
-            <Text strong>member hosting is disabled</Text>
-          ) : null;
-
-        const ut =
-          uptime && uptime !== "short" ? (
-            <>
-              {mh != null ? " and" : ""} the project's{" "}
-              <Text strong>idle timeout is {displaySiteLicense(uptime)}</Text>
-            </>
-          ) : null;
-
-        const any = mh != null || ut != null;
-
-        return (
-          <>
-            {basic} {any ? "Additionally, " : ""}
-            {mh}
-            {ut}
-            {any ? "." : ""}
-          </>
-        );
-      }
-    }
-
-    function presetIsAdjusted() {
-      if (!presetAdjusted || !presetDiff.length) return;
-      return (
-        <Typography style={{ marginBottom: "10px" }}>
-          <Text type="warning">
-            The currently configured license differs from the selected preset in
-            <b> {listFormat.format(presetDiff)}</b>. By clicking any of the
-            above buttons, you can ensure your license configuration matches the
-            original preset configuration.
-          </Text>
-        </Typography>
-      );
-    }
-
+    if (!presetAdjusted || !presetDiff.length) return;
     return (
-      <>
-        {presetIsAdjusted()}
-        <Typography>
-          Preset <Text strong>"{name}"</Text> {presetDescription()}{" "}
-          {renderProvides()} {renderDetails()}
-        </Typography>
-      </>
+      <Alert
+        type="warning"
+        style={{ marginBottom: "20px" }}
+        message={
+          <>
+            The currently configured license differs from the selected preset in{" "}
+            <strong>{listFormat.format(presetDiff)}</strong>. By clicking any of
+            the presets below, you reconfigure your license configuration to
+            match the original preset.
+          </>
+        }
+      />
     );
   }
 
@@ -410,25 +368,166 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     if (!showExplanations) return null;
     return (
       <Text type="secondary">
-        After selecting a preset, feel free to fine tune the selection in the "
-        {EXPERT_CONFIG}" tab. Subsequent preset selections will reset your
-        adjustments.
+        {preset == null ? (
+          <>After selecting a preset, feel free to</>
+        ) : (
+          <>
+            Selected preset <strong>"{PRESETS[preset]?.name}"</strong>. You can
+          </>
+        )}{" "}
+        fine tune the selection in the "{EXPERT_CONFIG}" tab. Subsequent preset
+        selections will reset your adjustments.
       </Text>
+    );
+  }
+
+  function renderNoPresetWarning() {
+    if (preset != null) return;
+    return (
+      <Text type="danger">
+        Currently, no preset selection is active. Select a preset above to reset
+        your recent changes.
+      </Text>
+    );
+  }
+
+  function renderPresetsNarrow() {
+    const p = preset != null ? PRESETS[preset] : undefined;
+    let presetInfo: JSX.Element | undefined = undefined;
+    if (p != null) {
+      const { name, cpu, disk, ram, uptime, note } = p;
+      const basic = (
+        <>
+          provides up to{" "}
+          <Text strong>
+            {cpu} {plural(cpu, "vCPU")}
+          </Text>
+          , <Text strong>{ram} GB memory</Text>, and{" "}
+          <Text strong>{disk} GB disk space</Text> for each project.
+        </>
+      );
+      const ut = (
+        <>
+          the project's{" "}
+          <Text strong>idle timeout is {displaySiteLicense(uptime)}</Text>
+        </>
+      );
+      presetInfo = (
+        <Paragraph>
+          <strong>{name}</strong> {basic} Additionally, {ut}. {note}
+        </Paragraph>
+      );
+    }
+
+    return (
+      <>
+        <Form.Item label="Preset">
+          <Radio.Group
+            size="large"
+            value={preset}
+            onChange={(e) => onPresetChange(e.target.value)}
+          >
+            <Space direction="vertical">
+              {(Object.keys(PRESETS) as Array<Preset>).map((p) => {
+                const { name, icon, descr } = PRESETS[p];
+                return (
+                  <Radio key={p} value={p}>
+                    <span>
+                      <Icon name={icon ?? "arrow-up"} />{" "}
+                      <strong>{name}:</strong> {descr}
+                    </span>
+                  </Radio>
+                );
+              })}
+            </Space>
+          </Radio.Group>
+        </Form.Item>
+        {presetInfo}
+      </>
+    );
+  }
+
+  function renderPresetPanels() {
+    if (narrow) return renderPresetsNarrow();
+
+    const panels = (Object.keys(PRESETS) as Array<Preset>).map((p, idx) => {
+      const { name, icon, cpu, ram, disk, uptime, expect, descr, note } =
+        PRESETS[p];
+      const active = preset === p;
+      return (
+        <PricingItem
+          key={idx}
+          title={name}
+          icon={icon}
+          style={{ flex: 1 }}
+          active={active}
+          onClick={() => onPresetChange(p)}
+        >
+          <Paragraph>
+            <strong>{name}</strong> {descr}.
+          </Paragraph>
+          <Divider />
+          <Line amount={cpu} desc={"CPU"} indent={false} />
+          <Line amount={ram} desc={"RAM"} indent={false} />
+          <Line amount={disk} desc={"Disk space"} indent={false} />
+          <Line
+            amount={displaySiteLicense(uptime)}
+            desc={"Idle timeout"}
+            indent={false}
+          />
+          <Divider />
+          <Paragraph>
+            <Text type="secondary">In each project, you will be able to:</Text>
+            <ul>
+              {expect.map((what, idx) => (
+                <li key={idx}>{what}</li>
+              ))}
+            </ul>
+          </Paragraph>
+          {active && note != null ? (
+            <>
+              <Divider />
+              <Paragraph type="secondary">{note}</Paragraph>
+            </>
+          ) : undefined}
+          <Paragraph style={{ marginTop: "20px", textAlign: "center" }}>
+            <Button
+              onClick={() => onPresetChange(p)}
+              size="large"
+              type={active ? "primary" : undefined}
+            >
+              {name}
+            </Button>
+          </Paragraph>
+        </PricingItem>
+      );
+    });
+    return (
+      <Flex
+        style={{ width: "100%" }}
+        justify={"space-between"}
+        align={"flex-start"}
+        gap="10px"
+      >
+        {panels}
+      </Flex>
     );
   }
 
   function presetExtra() {
     return (
-      <Space direction="vertical">
-        <div></div>
-        <div>{infoText()}</div>
+      <Space ref={presetsRef} direction="vertical">
+        <div>
+          {presetIsAdjusted()}
+          {renderPresetPanels()}
+          {renderNoPresetWarning()}
+        </div>
         {presetsCommon()}
       </Space>
     );
   }
 
-  function onPresetChange(newVal) {
-    const val = newVal.target.value;
+  function onPresetChange(val: Preset) {
     if (val == null || setPreset == null) return;
     setPreset(val);
     setPresetAdjusted?.(false);
@@ -438,31 +537,6 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       form.setFieldsValue({ uptime, member, cpu, ram, disk });
     }
     onChange();
-  }
-
-  function presets() {
-    return (
-      <>
-        <Form.Item label="Presets" shouldUpdate={true} extra={presetExtra()}>
-          <Radio.Group value={preset} size="large">
-            <Space size={[5, 5]} wrap>
-              {Object.keys(PRESETS).map((p) => {
-                const presetData = PRESETS[p];
-                return (
-                  <Radio.Button onClick={onPresetChange} key={p} value={p}>
-                    <Icon
-                      name={presetData.icon ?? "arrow-up"}
-                      style={{ marginRight: "10px" }}
-                    />
-                    {presetData.name}
-                  </Radio.Button>
-                );
-              })}
-            </Space>
-          </Radio.Group>
-        </Form.Item>
-      </>
-    );
   }
 
   function detailed() {
@@ -510,7 +584,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
                   Presets
                 </span>
               ),
-              children: presets(),
+              children: presetExtra(),
             },
             {
               key: "expert",
