@@ -14,7 +14,9 @@ import { Router } from "express";
 import { Server } from "http";
 import Primus from "primus";
 import type { PrimusWithChannels } from "@cocalc/terminal";
+import { initWebsocketApi } from "./websocket-api";
 import { getLogger } from "../logger";
+
 const logger = getLogger("websocket");
 
 export default function initWebsocket(
@@ -31,11 +33,11 @@ export default function initWebsocket(
   // add multiplex to Primus so we have channels.
   primus.plugin("multiplex", require("@cocalc/primus-multiplex"));
   primus.plugin("responder", require("@cocalc/primus-responder"));
+  
+  initWebsocketApi(primus);
 
   const router = Router();
   const library: string = primus.library();
-  // See note above.
-  //UglifyJS.minify(primus.library()).code;
 
   router.get("/.smc/primus.js", (_, res) => {
     logger.debug("serving up primus.js to a specific client");
