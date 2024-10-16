@@ -23,7 +23,9 @@ export function useProjectStatus(actions?: ProjectActions): void {
   }
 
   function connect() {
-    if (project_id == null) return;
+    if (project_id == null) {
+      return;
+    }
     const status_sync = webapp_client.project_client.project_status(project_id);
     statusRef.current = status_sync;
     const update = () => {

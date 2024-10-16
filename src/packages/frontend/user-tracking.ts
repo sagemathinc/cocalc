@@ -9,7 +9,7 @@
 
 import { query, server_time } from "./frame-editors/generic/client";
 import { analytics_cookie_name as analytics, uuid } from "@cocalc/util/misc";
-import { redux } from "./app-framework";
+import { entryPoint, redux } from "./app-framework";
 import { version } from "@cocalc/util/smc-version";
 import { get_cookie } from "./misc";
 import { webapp_client } from "./webapp-client";
@@ -41,8 +41,12 @@ export async function log(eventName: string, payload: any): Promise<void> {
 // shows a warning in the console when it can't report to the backend.
 export default async function track(
   event: string,
-  value: object
+  value: object,
 ): Promise<void> {
+  if (entryPoint == "compute") {
+    // for now, we do no tracking of users when using compute servers directly.
+    return;
+  }
   // Replace all dashes with underscores in the event argument for consistency
   event = event.replace(/-/g, "_");
 

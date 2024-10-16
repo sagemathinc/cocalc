@@ -9,21 +9,23 @@ Entry point for compute server version of CoCalc...
 
 // Load/initialize Redux-based react functionality
 import "@cocalc/frontend/client/client";
-import { redux, setEntryPoint } from "../app-framework";
-import "../jquery-plugins";
-import { init as initAccount } from "../account";
-import { init as initApp } from "../app/init";
-import { init as initProjects } from "../projects";
-import { init as initMarkdown } from "../markdown/markdown-input/main";
-import { init as initCrashBanner } from "../crash-banner";
+import { redux, setEntryPoint } from "@cocalc/frontend/app-framework";
+import "@cocalc/frontend/jquery-plugins";
+import { init as initAccount } from "@cocalc/frontend/account";
+import { init as initApp } from "@cocalc/frontend/app/init";
+import { init as initProjects } from "@cocalc/frontend/projects";
+import { init as initFileUse } from "@cocalc/frontend/file-use/init";
+import { init as initMarkdown } from "@cocalc/frontend/markdown/markdown-input/main";
+import { init as initCrashBanner } from "@cocalc/frontend/crash-banner";
 import "codemirror";
-import { init as initLast } from "../last";
-import { render } from "../app/render";
+import { init as initLast } from "@cocalc/frontend/last";
+import { render } from "@cocalc/frontend/app/render";
 
 export async function init() {
   setEntryPoint("compute");
   initAccount(redux);
   initApp();
+  initFileUse();
   initProjects();
   initMarkdown();
   initLast();

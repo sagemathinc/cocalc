@@ -12,6 +12,7 @@ import { path as STATIC_PATH } from "@cocalc/static";
 import { join } from "path";
 import { cacheShortTerm, cacheLongTerm } from "@cocalc/util/http-caching";
 import initWebsocket from "./websocket";
+import initHttpNextApi from "./http-next-api";
 
 const logger = getLogger("http-server");
 
@@ -70,6 +71,8 @@ export function initHttpServer({
       registration: false,
     });
   });
+
+  app.use("/api/v2", initHttpNextApi({ manager }));
 
   server.listen(port, host, () => {
     logger.info(`Server listening http://${host}:${port}`);

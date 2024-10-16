@@ -18,7 +18,7 @@ import { eval_code } from "@cocalc/backend/eval-code";
 
 const log = getLogger("websocket-api");
 
-export function initWebsocketApi({ primus: primus, manager }): void {
+export function initWebsocketApi({ primus, manager }): void {
   primus.on("connection", function (spark) {
     log.debug(`new connection from ${spark.address.ip} -- ${spark.id}`);
 
