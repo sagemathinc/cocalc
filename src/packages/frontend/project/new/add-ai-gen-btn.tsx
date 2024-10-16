@@ -3,10 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Flex } from "antd";
+import { Col, Flex, Space } from "antd";
 
+import { AIGenerateDocumentButton } from "@cocalc/frontend/project/page/home-page/ai-generate-document";
 import { Ext } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
-import { AIGenerateDocumentButton } from "../page/home-page/ai-generate-document";
 
 interface Props {
   btn: JSX.Element;
@@ -38,10 +38,10 @@ export function AiDocGenerateBtn({ btn, grid, ext, filename, mode }: Props) {
     );
   } else {
     return (
-      <Col sm={sm} md={md} key={`with-ai-${ext}`}>
+      <Space direction="vertical">
         {btn}
         <AIGenerateDocumentButton mode="full" ext={ext} filename={filename} />
-      </Col>
+      </Space>
     );
   }
 }

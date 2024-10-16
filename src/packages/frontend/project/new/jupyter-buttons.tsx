@@ -260,23 +260,24 @@ export function JupyterNotebookButtons({
       btns.push({
         lang,
         btn: (
-          <Tip
-            key={`${lang}-${kernelName}`}
-            delayShow={DELAY_SHOW_MS}
-            icon={NEW_FILETYPE_ICONS[ext]}
-            title={`${display} Jupyter Notebook`}
-            tip={`Create an interactive Jupyter Notebook for using ${display}.`}
-            style={mode === "flyout" ? { flex: "1 1 auto" } : undefined}
-          >
-            <NewFileButton
-              name={name}
-              on_click={() => handleClick(kernelName)}
-              ext={ext}
-              size={btnSize}
-              active={btnActive("ipynb-sagemath")}
-              // mode={isFlyout ? "secondary" : undefined}
-            />
-          </Tip>
+          <div style={isFlyout ? { flex: "1 1 auto" } : { flex: 1 }}>
+            <Tip
+              key={`${lang}-${kernelName}`}
+              delayShow={DELAY_SHOW_MS}
+              icon={NEW_FILETYPE_ICONS[ext]}
+              title={`${display} Jupyter Notebook`}
+              tip={`Create an interactive Jupyter Notebook for using ${display}.`}
+            >
+              <NewFileButton
+                name={name}
+                on_click={() => handleClick(kernelName)}
+                ext={ext}
+                size={btnSize}
+                active={btnActive("ipynb-sagemath")}
+                // mode={isFlyout ? "secondary" : undefined}
+              />
+            </Tip>
+          </div>
         ),
       });
     }

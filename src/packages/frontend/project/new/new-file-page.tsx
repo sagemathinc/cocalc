@@ -6,13 +6,14 @@
 import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
 import {
   ProjectActions,
   useActions,
-  useRedux,
+  // useRedux,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
@@ -29,13 +30,13 @@ import ComputeServer from "@cocalc/frontend/compute/inline";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
 import { labels } from "@cocalc/frontend/i18n";
 import { special_filenames_with_no_extension } from "@cocalc/frontend/project-file";
-import { ProjectMap } from "@cocalc/frontend/todo-types";
+// import { ProjectMap } from "@cocalc/frontend/todo-types";
 import { filename_extension, is_only_downloadable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PathNavigator } from "../explorer/path-navigator";
 import { useAvailableFeatures } from "../use-available-features";
 import { FileTypeSelector } from "./file-type-selector";
-import { NewFileButton } from "./new-file-button";
+// import { NewFileButton } from "./new-file-button";
 import { NewFileDropdown } from "./new-file-dropdown";
 
 const CREATE_MSG = defineMessage({
@@ -84,15 +85,15 @@ export default function NewFilePage(props: Props) {
     { project_id },
     "file_creation_error",
   );
-  const downloading_file = useTypedRedux({ project_id }, "downloading_file");
-  const project_map: ProjectMap | undefined = useRedux([
-    "projects",
-    "project_map",
-  ]);
-  const get_total_project_quotas = useRedux([
-    "projects",
-    "get_total_project_quotas",
-  ]);
+  // const downloading_file = useTypedRedux({ project_id }, "downloading_file");
+  // const project_map: ProjectMap | undefined = useRedux([
+  //   "projects",
+  //   "project_map",
+  // ]);
+  // const get_total_project_quotas = useRedux([
+  //   "projects",
+  //   "get_total_project_quotas",
+  // ]);
 
   if (actions == null) {
     return <Loading theme="medium" />;
@@ -164,16 +165,16 @@ export default function NewFilePage(props: Props) {
     );
   }
 
-  function blocked() {
-    if (project_map == null) {
-      return "";
-    }
-    if (get_total_project_quotas(project_id)?.network) {
-      return "";
-    } else {
-      return " (access blocked -- see project settings)";
-    }
-  }
+  // function blocked() {
+  //   if (project_map == null) {
+  //     return "";
+  //   }
+  //   if (get_total_project_quotas(project_id)?.network) {
+  //     return "";
+  //   } else {
+  //     return " (access blocked -- see project settings)";
+  //   }
+  // }
 
   function createFolder() {
     getActions().create_folder({
@@ -506,8 +507,8 @@ export default function NewFilePage(props: Props) {
             availableFeatures={availableFeatures}
             filename={filename}
             filenameChanged={filenameChanged}
-          >
-            <Tip
+          />
+          {/* <Tip
               title={"Download files from the Internet"}
               icon={"cloud"}
               placement={"bottom"}
@@ -519,8 +520,7 @@ export default function NewFilePage(props: Props) {
                 on_click={() => createFile()}
                 loading={downloading_file}
               />
-            </Tip>
-          </FileTypeSelector>
+            </Tip> */}
         </Col>
       </Row>
       {renderUpload()}
