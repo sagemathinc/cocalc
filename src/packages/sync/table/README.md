@@ -1,4 +1,70 @@
-# SYNCHRONIZED TABLE --
+# Synchronized Tables aka SyncTables
+
+A synchronized table is basically a small in\-memory key:value store that is replicated across many web browsers and a cocalc project, and usually persisted in the database. They are _mostly_ defined by a PostgreSQL table and rules that grant a user permission to read or write to a defined subset of the table. There are also ephemeral synctables, which are not persisted to the database, e.g., the location of user cursors in a document.
+
+A web browser can directly manage a synctable via queries \(through a hub\) to the database, e.g., the account settings and list of user projects are dealt with this way.
+
+For file editing, the synctable is managed by the project, and all web browsers connect via a websocket to the project. The project ensures that the syntable state is eventually identical for all browsers to its own state, and is also responsible for persisting data longterm to the database. It does NOT setup a changefeed for file editing with the database, since all file editing goes through the project, hence it is the only one that changes the database table of file editing state.
+
+```mermaid
+graph TD;
+  A[Web Browsers...] -- WebSocket --> B[The Project Home Base];
+  D -- TCP Socket --> B;
+  A -- Queries --> D[Hubs...];
+  D -- SQL & LISTEN/NOTIFY --> C[(The PostgreSQL Database)];
+  G[Compute Servers...] -- WebSocket --> B;
+  A -- WebSocket --> G;
+
+  subgraph SyncTable Architecture
+    E((Ephemeral SyncTables))
+    F((Persistent SyncTables))
+    G
+    A
+    B
+  end
+
+  style E fill:#f9f,stroke:#333,stroke-width:2px
+  style F fill:#ff9,stroke:#333,stroke-width:2px
+  style B fill:#afa,stroke:#333,stroke-width:2px
+  style G fill:#f88,stroke:#333,stroke-width:2px
+  style C fill:#ccf,stroke:#333,stroke-width:2px
+  style D fill:#ffb,stroke:#333,stroke-width:2px
+```
+
+The direction of the arrow indicates which side _initiates_ the connection; in most cases data flows in both directions,
+possibly with a realtime push model (due to persistent connections).
+
+## SyncTables: Motivation and Broader Context
+
+Realtime synchronized text editing and editing complicated data structures like those in Jupyter notebooks is **not** done directly using synctables! Instead, synctables are a low level primitive on which we build those more complicated synchronized documents.
+
+### Global State
+
+We do use synctables to manage various aspects of user state that directly reflects the contents of the database, including:
+
+- all (or recent!) projects a user is a collaborator on,
+- the log of activity in an open project,
+- account settings for a user,
+- files that were recently active in some project you collaborate on
+
+These are all managed via a direct connection between the web browser and a backend hub, which connects to the database and uses PostgreSQL LISTEN/NOTIFY to get realtime updates whenever the database changes. It is not necessary to that if one web browser makes a change, e.g., to account settings, that everybody else sees that as quickly as possible; also, the volume of such traffic is relatively low.
+
+
+### File Editing State
+
+In contrast, when actively editing a file, the higher level SyncDoc data structures create a synctables that is being populated with new patches every second or two, and these must be made visible to
+all other clients as quickly as possible. Moreover, when evaluating code in a Jupyter notebook, a synctable changes to reflect that you want to evaluate code, and is then updated again with a new patch with the result of that code evaluation -- this must all happen quickly, and can't involve the database as part of the data flow. Instead, the browsers and home base communicate directly via a websocket, and the patches are persisted to the database (in big chunks) in the background.
+
+## The Algorithm Used to Synchronize SyncTables
+
+Synctables exist in three places:
+
+- Web Browsers
+- The Project Home Base
+- Compute Servers
+
+They are _eventually consistent_, in the sense that if everybody stops making changes and all network connections are working, then eventually all copies of the same table will be the same.
+
 
 ## Defined by an object query
 
@@ -8,21 +74,24 @@
 
 ## Methods
 
-- constructor(query): query = the name of a table (or a more complicated object)
+- constructor\(query\): query = the name of a table \(or a more complicated object\)
 
-- set(map): Set the given keys of map to their values; one key must be
-  the primary key for the table. NOTE: Computed primary keys will
-  get automatically filled in; these are keys in schema.coffee,
-  where the set query looks like this say:
-  (obj, db) -> db.sha1(obj.project_id, obj.path)
-- get(): Current value of the query, as an immutable.js Map from
+- set\(map\): Set the given keys of map to their values; one key must be
+  the primary key for the table. NOTE: Computed primary keys will get automatically filled in; these are keys in `packages/util/db-schema`
+  where the set query looks like this:
+  `(obj, db) -> db.sha1(obj.project_id, obj.path)`
+
+- get\(\): Current value of the query, as an immutable.js Map from
   the primary key to the records, which are also immutable.js Maps.
-- get(key): The record with given key, as an immutable Map.
-- get(keys): Immutable Map from given keys to the corresponding records.
-- get_one(): Returns one record as an immutable Map (useful if there
-  is only one record)
 
-- close(): Frees up resources, stops syncing, don't use object further
+- get\(key\): The record with given key, as an immutable Map.
+
+- get\(keys\): Immutable Map from given keys to the corresponding records.
+
+- get_one\(\): Returns one record as an immutable Map \(useful if there
+  is only one record\)
+
+- close\(\): Frees up resources, stops syncing, don't use object further
 
 ## Events
 
@@ -43,17 +112,25 @@
 
 A SyncTable is a finite state machine as follows:
 
-                          -------------------<------------------
-                         \|/                                   |
-    [connecting] --> [connected]  -->  [disconnected]  --> [reconnecting]
+```mermaid
+stateDiagram-v2
+    [*] --> connecting
+    connecting --> connected
+    connected --> disconnected
+    disconnected --> reconnecting
+    reconnecting --> connecting
 
-Also, there is a final state called 'closed', that the SyncTable moves to when
+    connecting --> closed
+    connected --> closed
+    disconnected --> closed
+    reconnecting --> closed
+```
+
+There is a final state called 'closed', that the SyncTable moves to when
 it will not be used further; this frees up all connections and used memory.
 The table can't be used after it is closed. The only way to get to the
 closed state is to explicitly call close() on the table; otherwise, the
 table will keep attempting to connect and work, until it works.
-
-    (anything)  --> [closed]
 
 - connecting -- connecting to the backend, and have never connected before.
 
