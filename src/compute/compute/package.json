@@ -32,6 +32,8 @@
     "@cocalc/backend": "workspace:*",
     "@cocalc/compute": "link:",
     "@cocalc/jupyter": "workspace:*",
+    "@cocalc/primus-multiplex": "^1.1.0",
+    "@cocalc/primus-responder": "^1.0.5",
     "@cocalc/static": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
@@ -46,6 +48,7 @@
     "cookie": "^1.0.0",
     "debug": "^4.3.2",
     "express": "^4.20.0",
+    "primus": "^8.0.7",
     "websocketfs": "^0.17.4",
     "ws": "^8.18.0"
   },

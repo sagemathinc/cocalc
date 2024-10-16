@@ -6,13 +6,14 @@
 import compression from "compression";
 import express from "express";
 import { createServer } from "http";
-import { getLogger } from "@cocalc/backend/logger";
-import type { Manager } from "./manager";
+import { getLogger } from "../logger";
+import type { Manager } from "../manager";
 import { path as STATIC_PATH } from "@cocalc/static";
 import { join } from "path";
 import { cacheShortTerm, cacheLongTerm } from "@cocalc/util/http-caching";
+import initWebsocket from "./websocket";
 
-const logger = getLogger("compute:http-server");
+const logger = getLogger("http-server");
 
 const ENTRY_POINT = "compute.html";
 
@@ -30,6 +31,13 @@ export function initHttpServer({
   const app = express();
   const server = createServer(app);
 
+  // this is expected by the frontend code for where to find the project.
+  const projectBase = `/${manager.project_id}/raw/`;
+  logger.info({ projectBase });
+
+  app.use(projectBase, initWebsocket(server, projectBase));
+
+  // CRITICAL: compression must be after websocket above!
   app.use(compression());
 
   app.get("/", (_req, res) => {
@@ -44,8 +52,8 @@ export function initHttpServer({
   });
 
   app.use(
-    join("/static", ENTRY_POINT),
-    express.static(join(STATIC_PATH, ENTRY_POINT), {
+    `/static/${ENTRY_POINT}`,
+    express.static(`/${STATIC_PATH}/${ENTRY_POINT}`, {
       setHeaders: cacheShortTerm,
     }),
   );
