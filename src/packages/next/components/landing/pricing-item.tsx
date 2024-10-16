@@ -84,7 +84,7 @@ export function Line(props: Line) {
   let unit = "";
   if (typeof desc === "string") {
     if (desc?.includes("RAM") || desc?.includes("Disk")) {
-      unit = "G";
+      unit = " GB";
     } else if (desc?.includes("CPU")) {
       unit = amount == 1 ? "core" : "cores";
     } else if (desc == "Projects") {
