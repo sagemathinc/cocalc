@@ -14,11 +14,15 @@ import { realpath as fs_realpath } from "node:fs/promises";
 const HOME: string =
   process.env.SMC_LOCAL_HUB_HOME ?? process.env.HOME ?? "/home/user";
 
-export async function realpath(path: string): Promise<string> {
-  const fullpath = HOME + "/" + path;
+export default async function realpath(
+  path: string,
+  home?: string,
+): Promise<string> {
+  home = home ?? HOME;
+  const fullpath = home + "/" + path;
   const rpath = await fs_realpath(fullpath);
-  if (rpath == fullpath || !rpath.startsWith(HOME + "/")) {
+  if (rpath == fullpath || !rpath.startsWith(home + "/")) {
     return path;
   }
-  return rpath.slice((HOME + "/").length);
+  return rpath.slice((home + "/").length);
 }

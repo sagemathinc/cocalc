@@ -48,7 +48,7 @@ export function initHttpServer({
   });
 
   app.get("/settings", (_req, res) => {
-    res.send(`<h1><a href="${join("/static", ENTRY_POINT)}">CoCalc App</a>`);
+    res.redirect(join("/static", ENTRY_POINT));
   });
 
   app.use(

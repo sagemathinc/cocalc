@@ -12,13 +12,13 @@ import type { Mesg } from "@cocalc/comm/websocket/types";
 import getListing from "@cocalc/backend/get-listing";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { callback2 } from "@cocalc/util/async-utils";
+import { terminal } from "@cocalc/terminal";
+import realpath from "@cocalc/backend/realpath";
+import { eval_code } from "@cocalc/backend/eval-code";
 
 const log = getLogger("websocket-api");
 
-let primus: any = undefined;
-export function initWebsocketApi({ primus: primus0, manager }): void {
-  primus = primus0;
-
+export function initWebsocketApi({ primus: primus, manager }): void {
   primus.on("connection", function (spark) {
     log.debug(`new connection from ${spark.address.ip} -- ${spark.id}`);
 
@@ -26,7 +26,7 @@ export function initWebsocketApi({ primus: primus0, manager }): void {
       log.debug("primus-api", "request", data, "REQUEST");
       const t0 = Date.now();
       try {
-        const resp = await handleApiCall(data, spark, manager);
+        const resp = await handleApiCall(data, spark, manager, primus);
         done(resp);
       } catch (err) {
         // console.trace(); log.debug("primus-api error stacktrack", err.stack, err);
@@ -49,7 +49,12 @@ export function initWebsocketApi({ primus: primus0, manager }): void {
   });
 }
 
-async function handleApiCall(data: Mesg, _spark, manager): Promise<any> {
+async function handleApiCall(
+  data: Mesg,
+  _spark,
+  manager,
+  primus,
+): Promise<any> {
   switch (data.cmd) {
     case "version":
       return version;
@@ -88,9 +93,18 @@ async function handleApiCall(data: Mesg, _spark, manager): Promise<any> {
         data.opts,
       );
 
-    // TODO
-    case "eval_code":
     case "terminal":
+      // this might work but be TOTALLY WRONG (?)... or require
+      // some thought about who "hosts" the terminal.
+      return await terminal(primus, data.path, data.options);
+
+    case "eval_code":
+      return await eval_code(data.code);
+
+    case "realpath":
+      return realpath(data.path, manager.home);
+
+    // TODO
     case "lean":
     case "jupyter_strip_notebook":
     case "jupyter_nbconvert":
@@ -100,7 +114,6 @@ async function handleApiCall(data: Mesg, _spark, manager): Promise<any> {
     case "synctable_channel":
     case "syncdoc_call":
     case "symmetric_channel":
-    case "realpath":
     case "project_info":
     case "compute_filesystem_cache":
     case "sync_fs":

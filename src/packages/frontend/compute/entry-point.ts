@@ -27,8 +27,8 @@ export async function init() {
   initProjects();
   initMarkdown();
   initLast();
-  initEntryPointState();
   try {
+    await initEntryPointState();
     await render();
   } finally {
     // don't insert the crash banner until the main app has rendered,
