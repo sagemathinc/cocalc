@@ -90,7 +90,7 @@ export class Manager {
   public compute_server_id: number;
   private connections: { [path: string]: any } = {};
   private websocket;
-  private client;
+  public client;
 
   constructor({
     project_id,

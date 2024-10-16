@@ -11,6 +11,7 @@ import { version } from "@cocalc/util/smc-version";
 import type { Mesg } from "@cocalc/comm/websocket/types";
 import getListing from "@cocalc/backend/get-listing";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { callback2 } from "@cocalc/util/async-utils";
 
 const log = getLogger("websocket-api");
 
@@ -55,6 +56,19 @@ async function handleApiCall(data: Mesg, _spark, manager): Promise<any> {
     case "listing":
       // see packages/sync-fs/lib/index.ts
       return await getListing(data.path, data.hidden, manager.home);
+
+    // TODO
+    case "delete_files":
+    case "move_files":
+    case "rename_file":
+    case "canonical_paths":
+    case "configuration":
+    case "prettier": // deprecated
+    case "formatter":
+    case "prettier_string": // deprecated
+    case "formatter_string":
+      throw Error(`command "${(data as any).cmd}" not implemented`);
+
     case "exec":
       if (data.opts == null) {
         throw Error("opts must not be null");
@@ -64,6 +78,37 @@ async function handleApiCall(data: Mesg, _spark, manager): Promise<any> {
         home: manager.home,
         ccNewFile: true,
       });
+
+    case "query":
+      if (data.opts?.changes) {
+        throw Error("changefeeds are not supported for api queries");
+      }
+      return await callback2(
+        manager.client.query.bind(manager.client),
+        data.opts,
+      );
+
+    // TODO
+    case "eval_code":
+    case "terminal":
+    case "lean":
+    case "jupyter_strip_notebook":
+    case "jupyter_nbconvert":
+    case "jupyter_run_notebook":
+    case "lean_channel":
+    case "x11_channel":
+    case "synctable_channel":
+    case "syncdoc_call":
+    case "symmetric_channel":
+    case "realpath":
+    case "project_info":
+    case "compute_filesystem_cache":
+    case "sync_fs":
+    case "compute_server_sync_register":
+    case "compute_server_compute_register":
+    case "compute_server_sync_request":
+    case "copy_from_project_to_compute_server":
+    case "copy_from_compute_server_to_project":
     default:
       throw Error(`command "${(data as any).cmd}" not implemented`);
   }
