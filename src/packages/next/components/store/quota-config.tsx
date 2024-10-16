@@ -108,7 +108,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
     if (boost) {
       return "Booster";
     } else {
-      return "Quota upgrades";
+      return "Quota Upgrades";
     }
   }
 
@@ -557,7 +557,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             <Col xs={16} offset={6} style={{ marginBottom: "20px" }}>
               <Text type="secondary">
                 Configure the quotas you want to add on top of your existing
-                license. E.g. if your license provides a limit of 2G of RAM and
+                license. E.g. if your license provides a limit of 2 GB of RAM and
                 you add a matching boost license with 3 GB of RAM, you'll end up
                 with a total quota limit of 5 GB of RAM.
               </Text>
