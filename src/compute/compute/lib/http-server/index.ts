@@ -35,7 +35,7 @@ export function initHttpServer({
   const projectBase = `/${manager.project_id}/raw/`;
   logger.info({ projectBase });
 
-  app.use(projectBase, initWebsocket(server, projectBase));
+  app.use(projectBase, initWebsocket({ server, projectBase, manager }));
 
   // CRITICAL: compression must be after websocket above!
   app.use(compression());

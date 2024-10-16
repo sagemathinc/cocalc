@@ -9,11 +9,13 @@
 import { getLogger } from "../logger";
 import { version } from "@cocalc/util/smc-version";
 import type { Mesg } from "@cocalc/comm/websocket/types";
+import getListing from "@cocalc/backend/get-listing";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 const log = getLogger("websocket-api");
 
 let primus: any = undefined;
-export function initWebsocketApi(primus0): void {
+export function initWebsocketApi({ primus: primus0, manager }): void {
   primus = primus0;
 
   primus.on("connection", function (spark) {
@@ -23,7 +25,7 @@ export function initWebsocketApi(primus0): void {
       log.debug("primus-api", "request", data, "REQUEST");
       const t0 = Date.now();
       try {
-        const resp = await handleApiCall(data, spark);
+        const resp = await handleApiCall(data, spark, manager);
         done(resp);
       } catch (err) {
         // console.trace(); log.debug("primus-api error stacktrack", err.stack, err);
@@ -46,13 +48,22 @@ export function initWebsocketApi(primus0): void {
   });
 }
 
-async function handleApiCall(data: Mesg, _spark): Promise<any> {
+async function handleApiCall(data: Mesg, _spark, manager): Promise<any> {
   switch (data.cmd) {
     case "version":
       return version;
     case "listing":
       // see packages/sync-fs/lib/index.ts
-      throw Error("todo");
+      return await getListing(data.path, data.hidden, manager.home);
+    case "exec":
+      if (data.opts == null) {
+        throw Error("opts must not be null");
+      }
+      return await executeCode({
+        ...data.opts,
+        home: manager.home,
+        ccNewFile: true,
+      });
     default:
       throw Error(`command "${(data as any).cmd}" not implemented`);
   }

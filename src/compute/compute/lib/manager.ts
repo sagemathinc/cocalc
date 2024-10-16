@@ -83,7 +83,7 @@ export class Manager {
   private state: "new" | "init" | "ready" = "new";
   private sync_db;
   public project_id: string;
-  private home: string;
+  public home: string;
   private host?: string;
   private port?: number;
   private waitHomeFilesystemType?: string;

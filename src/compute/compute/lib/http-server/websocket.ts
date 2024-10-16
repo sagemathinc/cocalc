@@ -19,12 +19,17 @@ import { getLogger } from "../logger";
 
 const logger = getLogger("websocket");
 
-export default function initWebsocket(
-  server: Server,
-  basePath: string,
-): Router {
+export default function initWebsocket({
+  server,
+  projectBase,
+  manager,
+}: {
+  server: Server;
+  projectBase: string;
+  manager;
+}): Router {
   const opts = {
-    pathname: join(basePath, ".smc", "ws"),
+    pathname: join(projectBase, ".smc", "ws"),
     transformer: "websockets",
   } as const;
   logger.debug(`Initializing primus websocket server at "${opts.pathname}"...`);
@@ -33,8 +38,8 @@ export default function initWebsocket(
   // add multiplex to Primus so we have channels.
   primus.plugin("multiplex", require("@cocalc/primus-multiplex"));
   primus.plugin("responder", require("@cocalc/primus-responder"));
-  
-  initWebsocketApi(primus);
+
+  initWebsocketApi({ primus, manager });
 
   const router = Router();
   const library: string = primus.library();

@@ -17,7 +17,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { EventEmitter } from "node:stream";
 import shellEscape from "shell-escape";
-
 import getLogger from "@cocalc/backend/logger";
 import { envToInt } from "@cocalc/backend/misc/env-to-number";
 import { aggregate } from "@cocalc/util/aggregate";
@@ -37,6 +36,7 @@ import {
 import { Processes } from "@cocalc/util/types/project-info/types";
 import { envForSpawn } from "./misc";
 import { ProcessStats } from "./process-stats";
+import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
 const log = getLogger("execute-code");
 
@@ -143,6 +143,15 @@ async function executeCodeNoAggregate(
     } else {
       throw new Error(`Async operation '${key}' does not exist.`);
     }
+  } else if (opts.ccNewFile && opts.command == "cc-new-file") {
+    // so we don't have to depend on having our cc-new-file script
+    // installed.  We just don't support templates on compute server.
+    for (const path of opts.args ?? []) {
+      const target = join(opts.home ?? process.env.HOME ?? "", path);
+      await ensureContainingDirectoryExists(target);
+      await writeFile(target, "");
+    }
+    return { exit_code: 0, stdout: "", stderr: "", type: "blocking" };
   }
 
   opts.args ??= [];
