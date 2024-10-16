@@ -16,8 +16,8 @@ export const SiteLicenseIdleTimeoutSchema = z
 export const SiteLicenseUptimeSchema = z
   .union([SiteLicenseIdleTimeoutSchema, z.literal("always_running")])
   .describe(
-    `Determines how long a project runs while not being used before being automatically 
-     stopped. A \`short\` value corresponds to a 30-minute timeout, and a \`medium\` value 
+    `Determines how long a project runs while not being used before being automatically
+     stopped. A \`short\` value corresponds to a 30-minute timeout, and a \`medium\` value
      to a 2-hour timeout.`,
   );
 
@@ -31,7 +31,7 @@ export const SiteLicenseQuotaSchema = z.object({
     .boolean()
     .nullish()
     .describe(
-      `Indicates whether the project(s) this license is applied to should be 
+      `Indicates whether the project(s) this license is applied to should be
        allowed to always be running.`,
     ),
   boost: z
@@ -39,26 +39,26 @@ export const SiteLicenseQuotaSchema = z.object({
     .nullish()
     .describe(
       `If \`true\`, this license is a boost license and allows for a project to
-       temporarily boost the amount of resources available to a project by the amount 
+       temporarily boost the amount of resources available to a project by the amount
        specified in the \`cpu\`, \`memory\`, and \`disk\` fields.`,
     ),
   cpu: z
     .number()
     .min(1)
     .describe("Limits the total number of vCPUs allocated to a project."),
-  dedicated_cpu: z.number().min(1),
-  dedicated_ram: z.number().min(1),
+  dedicated_cpu: z.number().min(1).nullish(),
+  dedicated_ram: z.number().min(1).nullish(),
   disk: z
     .number()
     .min(1)
     .describe(
-      `Disk size in GB to be allocated to the project to which this license is 
+      `Disk size in GB to be allocated to the project to which this license is
        applied.`,
     ),
-  idle_timeout: SiteLicenseIdleTimeoutSchema,
+  idle_timeout: SiteLicenseIdleTimeoutSchema.nullish(),
   member: z.boolean().describe(
-    `Member hosting significantly reduces competition for resources, and we 
-     prioritize support requests much higher. _Please be aware: licenses of 
+    `Member hosting significantly reduces competition for resources, and we
+     prioritize support requests much higher. _Please be aware: licenses of
      different member hosting service levels cannot be combined!_`,
   ),
   ram: z

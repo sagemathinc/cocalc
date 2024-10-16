@@ -8,19 +8,44 @@ import { ReactNode } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
+import { CSS } from "components/misc";
+
+import styles from "./pricing.module.css";
 
 interface Props {
   children: ReactNode;
   icon: IconName;
   title: string;
+  style?: CSS;
+  active?: boolean;
+  onClick?: () => void;
 }
 
-export default function PricingItem({ icon, children, title }: Props) {
+const ACTIVE_STYLE: CSS = {
+  outline: `2px solid ${COLORS.BLUE_D}`,
+} as const;
+
+export default function PricingItem({
+  icon,
+  children,
+  title,
+  style,
+  active,
+  onClick,
+}: Props) {
+  const outerStyle: CSS = {
+    padding: 0,
+    ...style,
+  } as const;
+  const activeStyle: CSS = active === true ? ACTIVE_STYLE : {};
+  const innerStyle: CSS = { color: COLORS.GRAY_M, ...activeStyle };
+
   return (
-    <List.Item style={{ padding: 0 }}>
+    <List.Item style={outerStyle} onClick={onClick}>
       <Card
-        styles={{ header: { backgroundColor: "#d9edf7" } }}
-        style={{ color: COLORS.GRAY_M }}
+        className={onClick != null ? styles.item : undefined}
+        styles={{ header: { backgroundColor: COLORS.BLUE_LLLL } }}
+        style={innerStyle}
         type="inner"
         title={
           <span style={{ fontSize: "120%" }}>
@@ -44,10 +69,11 @@ const STYLE: React.CSSProperties = {
 interface Line {
   amount?: string | number | ReactNode;
   desc?: string | ReactNode;
+  indent?: boolean;
 }
 
 export function Line(props: Line) {
-  const { amount, desc } = props;
+  const { amount, desc, indent = true } = props;
   if (!amount)
     return (
       <div>
@@ -67,14 +93,13 @@ export function Line(props: Line) {
       unit = "x";
     }
   }
+
+  const indentStyle: CSS = indent ? { width: "3em", textAlign: "right" } : {};
+
   return (
     <div>
       <b style={STYLE}>
-        <div
-          style={{ display: "inline-block", width: "3em", textAlign: "right" }}
-        >
-          {amount}
-        </div>{" "}
+        <div style={{ display: "inline-block", ...indentStyle }}>{amount}</div>{" "}
         {unit}
       </b>{" "}
       {desc}

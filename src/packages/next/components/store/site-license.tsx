@@ -9,6 +9,7 @@ Create a new site license.
 import { Form, Input } from "antd";
 import { isEmpty } from "lodash";
 import { useEffect, useRef, useState } from "react";
+
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
@@ -26,7 +27,7 @@ import { ApplyLicenseToProject } from "./apply-license-to-project";
 import { InfoBar } from "./cost-info-bar";
 import { IdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
-import { PRESETS, PRESET_MATCH_FIELDS, Presets } from "./quota-config-presets";
+import { PRESETS, PRESET_MATCH_FIELDS, Preset } from "./quota-config-presets";
 import { decodeFormValues, encodeFormValues } from "./quota-query-params";
 import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
@@ -35,7 +36,7 @@ import { TitleDescription } from "./title-description";
 import { ToggleExplanations } from "./toggle-explanations";
 import { UsageAndDuration } from "./usage-and-duration";
 
-const DEFAULT_PRESET: Presets = "standard";
+const DEFAULT_PRESET: Preset = "standard";
 
 const STYLE: React.CSSProperties = {
   marginTop: "15px",
@@ -125,7 +126,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [form] = Form.useForm();
   const router = useRouter();
 
-  const [preset, setPreset] = useState<Presets | null>(DEFAULT_PRESET);
+  const [preset, setPreset] = useState<Preset | null>(DEFAULT_PRESET);
   const [presetAdjusted, setPresetAdjusted] = useState<boolean>(false);
 
   /**
@@ -136,19 +137,20 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
     const currentConfiguration = form.getFieldsValue(
       Object.keys(PRESET_MATCH_FIELDS),
     );
-    let foundPreset: Presets | undefined;
+
+    let foundPreset: Preset | undefined;
 
     Object.keys(PRESETS).some((p) => {
-      const presetMismatch = Object.keys(PRESET_MATCH_FIELDS).some(
+      const presetMatches = Object.keys(PRESET_MATCH_FIELDS).every(
         (formField) =>
-          !(PRESETS[p][formField] === currentConfiguration[formField]),
+          PRESETS[p][formField] === currentConfiguration[formField],
       );
 
-      if (!presetMismatch) {
-        foundPreset = p as Presets;
+      if (presetMatches) {
+        foundPreset = p as Preset;
       }
 
-      return !presetMismatch;
+      return presetMatches;
     });
 
     return foundPreset;
@@ -244,8 +246,8 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
         form={form}
         style={STYLE}
         name="basic"
-        labelCol={{ span: 6 }}
-        wrapperCol={{ span: 18 }}
+        labelCol={{ span: 3 }}
+        wrapperCol={{ span: 21 }}
         autoComplete="off"
         onValuesChange={onLicenseChange}
       >
@@ -279,13 +281,13 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           setPreset={setPreset}
           presetAdjusted={presetAdjusted}
         />
-        {configMode === "expert" && (
+        {configMode === "expert" ? (
           <IdleTimeout
             showExplanations={showExplanations}
             form={form}
             onChange={onLicenseChange}
           />
-        )}
+        ) : undefined}
         <TitleDescription showExplanations={showExplanations} form={form} />
         <Reset
           addBox={addBox}
