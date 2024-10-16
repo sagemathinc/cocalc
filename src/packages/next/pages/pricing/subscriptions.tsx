@@ -4,11 +4,13 @@
  */
 
 import { Alert, Layout, List } from "antd";
+import dayjs from "dayjs";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import {
+  CURRENT_VERSION,
   discount_monthly_pct,
   discount_yearly_pct,
   MIN_QUOTE,
@@ -20,6 +22,7 @@ import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import PricingItem, { Line } from "components/landing/pricing-item";
+import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import {
   applyLicense,
@@ -30,9 +33,6 @@ import { LinkToStore, StoreConf } from "components/store/link";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import { Paragraph, Title } from "components/misc";
-import dayjs from "dayjs";
-import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 
 function addMonth(date: Date): Date {
   return dayjs(date).add(30, "days").add(12, "hours").toDate();
@@ -291,7 +291,7 @@ function Body(): JSX.Element {
             <Line amount={item.shared_cores} desc="Shared CPU per project" />
             <Line amount={item.disk} desc="Disk space per project" />
             <Line amount={item.uptime} desc="Idle timeout" />
-            <Line amount={"Unlimited"} desc="Collaborators" />
+            <Line amount={"∞"} desc="Collaborators" />
             {item.academic ? (
               <Line amount="40%" desc="Academic discount" />
             ) : (

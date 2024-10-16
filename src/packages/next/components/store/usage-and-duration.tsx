@@ -57,7 +57,7 @@ export function UsageAndDuration(props: Props) {
         initialValue={
           isAcademic(profile?.email_address) ? "academic" : "business"
         }
-        label={"Type of Usage"}
+        label={"Usage"}
         extra={
           showExplanations ? (
             <>
