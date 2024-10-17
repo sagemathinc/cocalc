@@ -8,14 +8,14 @@ Project status server, doing the heavy lifting of telling the client
 what's going on in the project, especially if there is a problem.
 
 Under the hood, it subscribes to the ProjectInfoServer, which updates
-various statistics at a high-frequency. Therefore, this here filters
+various statistics at a high-frequency. Therefore, this filters
 that information to a low-frequency low-volume stream of important
 status updates.
 
-Hence in particular, information like cpu, memory and disk are smoothed out and throttled.
+In particular, information like cpu, memory and disk are smoothed out and throttled.
 */
 
-import { getLogger } from "@cocalc/project/logger";
+import { getLogger } from "@cocalc/backend/logger";
 import { how_long_ago_m, round1 } from "@cocalc/util/misc";
 import { version as smcVersion } from "@cocalc/util/smc-version";
 import { delay } from "awaiting";
@@ -42,7 +42,7 @@ import { cgroup_stats } from "@cocalc/comm/project-status/utils";
 //  return next;
 //}
 
-const winston = getLogger("ProjectStatusServer");
+const logger = getLogger("project:project-status-server");
 
 function quantize(val, order) {
   const q = Math.round(Math.pow(10, order));
@@ -58,7 +58,6 @@ interface Elevated {
 }
 
 export class ProjectStatusServer extends EventEmitter {
-  private readonly dbg: Function;
   private running = false;
   private readonly testing: boolean;
   private readonly project_info: ProjectInfoServer;
@@ -83,14 +82,13 @@ export class ProjectStatusServer extends EventEmitter {
   constructor(testing = false) {
     super();
     this.testing = testing;
-    this.dbg = (...msg) => winston.debug(...msg);
     this.project_info = get_ProjectInfoServer();
   }
 
   private async init(): Promise<void> {
     this.project_info.start();
     this.project_info.on("info", (info) => {
-      //this.dbg(`got info timestamp=${info.timestamp}`);
+      //logger.debug(`got info timestamp=${info.timestamp}`);
       this.info = info;
       this.update();
       this.emitInfo();
@@ -100,14 +98,14 @@ export class ProjectStatusServer extends EventEmitter {
   // checks if there the current state (after update()) should be emitted
   private emitInfo(): void {
     if (this.lastEmit === 0) {
-      this.dbg("emitInfo[last=0]", this.status);
+      logger.debug("emitInfo[last=0]", this.status);
       this.doEmit();
       return;
     }
 
     // if alert changed, emit immediately
     if (!isEqual(this.last?.alerts, this.status?.alerts)) {
-      this.dbg("emitInfo[alert]", this.status);
+      logger.debug("emitInfo[alert]", this.status);
       this.doEmit();
     } else {
       // deep comparison check via lodash and we rate limit
@@ -115,7 +113,7 @@ export class ProjectStatusServer extends EventEmitter {
         this.lastEmit + 1000 * STATUS_UPDATES_INTERVAL_S > Date.now();
       const changed = !isEqual(this.status, this.last);
       if (!recent && changed) {
-        this.dbg("emitInfo[changed]", this.status);
+        logger.debug("emitInfo[changed]", this.status);
         this.doEmit();
       }
     }
@@ -202,7 +200,7 @@ export class ProjectStatusServer extends EventEmitter {
       }
     }
     pids.sort(); // to make this stable across iterations
-    //this.dbg("alert_cpu_processes", pids, ecp);
+    //logger.debug("alert_cpu_processes", pids, ecp);
     return pids;
   }
 
@@ -298,7 +296,7 @@ export class ProjectStatusServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.running) {
-      this.dbg(
+      logger.debug(
         "project-status/server: already running, cannot be started twice",
       );
     } else {
@@ -307,7 +305,7 @@ export class ProjectStatusServer extends EventEmitter {
   }
 
   private async _start(): Promise<void> {
-    this.dbg("start");
+    logger.debug("start");
     if (this.running) {
       throw Error("Cannot start ProjectStatusServer twice");
     }

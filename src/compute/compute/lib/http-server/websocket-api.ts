@@ -15,6 +15,7 @@ import { callback2 } from "@cocalc/util/async-utils";
 import { terminal } from "@cocalc/terminal";
 import realpath from "@cocalc/backend/realpath";
 import { eval_code } from "@cocalc/backend/eval-code";
+import synctableChannel from "./synctable-channel";
 
 const log = getLogger("websocket-api");
 
@@ -104,6 +105,14 @@ async function handleApiCall(
     case "realpath":
       return realpath(data.path, manager.home);
 
+    case "synctable_channel":
+      return await synctableChannel({
+        manager,
+        query: data.query,
+        options: data.options,
+        primus,
+      });
+
     // TODO
     case "lean":
     case "jupyter_strip_notebook":
@@ -111,7 +120,6 @@ async function handleApiCall(
     case "jupyter_run_notebook":
     case "lean_channel":
     case "x11_channel":
-    case "synctable_channel":
     case "syncdoc_call":
     case "symmetric_channel":
     case "project_info":

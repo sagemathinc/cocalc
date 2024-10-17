@@ -592,7 +592,6 @@ async function synctable_channel0(
     } else if (query?.project_status != null) {
       register_project_status_table(
         synctable_channels[name].get_synctable(),
-        logger,
         client.client_id(),
       );
     } else if (query?.usage_info != null) {

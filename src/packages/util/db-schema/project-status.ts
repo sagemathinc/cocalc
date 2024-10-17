@@ -8,7 +8,9 @@ This table contains the current overall status about a running project.
 This is the sister-table to "project-info".
 In contrast, this table provides much less frequently changed pieces of status information.
 For example, project version, certain "alerts", disk usage, etc.
-Its intended usage is to subscribe to it once you open a project and notify the user if certain alerts go off.
+Its intended use is to subscribe to it once you open a project and notify the user if certain alerts go off.
+
+It is an ephemeral table stored in memory only in the project and clients.
 */
 
 import { Table } from "./types";
