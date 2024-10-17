@@ -119,11 +119,68 @@ First we assume that the network connection is robust and explain how the protoc
 Assume that the network is working perfectly.   Each client keeps track of the following:
 
 - **value:**  the key:value mapping \(we use immutable.js to implement this\)
-- **changes:** a map from each key to 
+- **changes:** a map from keys that this client has changed but not yet saved to the timestamp when they  made the change. Initially this is empty.
+- **versions:** a map from all keys to when they were last changed \(or time when table was initialized\)
+
+When a participant _makes a change_ to their copy of the synctable, they do the following:
+
+- update **value**\[key\] \(which could include deleting the value\)
+
+- set **changes**\[key\] = time of change.  \(In the code we add 1ms enough times to the realtime so that changes\[key\] are locally distinct, but I don't see why that is needed.\)
+
+- The project assigns **versions**\[key\] and immediately broadcasts to all connected clients the new **value**\[key\] and its version.  The browser sets **versions**\[key\] to 0.
+
+When a browser saves their changes to the project, they send the following to the project for every key where **changes**\[key\] is set:
+
+- **value**\[key\]   \-\- the value.  This also determines the key since it the primary key.
+- **time = changes**\[key\] \-\- when browser made the change to value\[key\]
+
+The project sends a message with the above data, and assuming the send succeeds, it clears the **changes** variable, assuming that the data was sent.  
+
+**NOTE:** Our implementation does verify that the send happens \(write to the websocket succeeds\), but does not wait for an explicit acknowledgement back confirming that the data was received and processed by the project.   I think the idea is that every reason for the project to not receive the data would **also** result in the websocket connection breaking and everything resetting anyways.
+
+The project then receives a message with the above data and does the following \(see `apply_changes_from_browser_client`\):
+
+- if the **changes**\[key\] is $\geq$ **versions**\[key\], make the change, recording the new value, versions and changes values.
+
+We do the above for all keys, then broadcast a message to all connected clients with the new values and times.  The clients then receive those broadcast message and for each key, do the following:
+
+- if the **changes**\[key\] is $\geq$ **versions**\[key\], make the change, recording the new value and version.
+
+**NOTE:** We have not implemented deleting from a synctable yet, and there's code that awkwardly gets around this, e.g., by using a sentinel value.  For collab editing we don't need delete, since all we are saving is patches, which we never delete \(unless deleting everything\).   I don't see any reason why implementing delete would be hard though.
+
+**NOTE:**  Maybe the comparison should be $>$ instead of $\geq$ because in the case of a tie, the project is going to send out the version again, and then the other client with the same timestamp will receive and change their result. It works because the other client does change their result, but it's extra work and a bit nerve racking, and it would just be more efficient to break the tie in the other direction.
 
 #### Network Connection Breaks
 
-Next we consider the various situation where the network connection breaks.  During that downtime, we must assume that both every table may be getting changed, so of course we can't just reset everything. 
+Next we consider the various situation where the network connection breaks, the project restarts entirely, etc..  During that time, we assume that every table may be getting changed \(e.g., users are still typing away\), so we can't just reset everything.   
+
+After something breaks \(network, project, etc.\), a client connects to the project and the following happens:
+
+- the project sends the entire table, which includes key/value pairs, and also their versions.  For an ephemeral table, e.g., cursors, ipywidgets, etc., this is empty.  For a table backed by the database, e.g., directory listings, this would be the latest version of the relevant data from the database and the versions are all reset to the time the table was initialized again in the project. 
+- the client then goes through this table and for each key where the version is bigger $\geq$ to what they have, the value and version is updated \(as above\).
+- for each key that the client knows about and for which they did not change it when offline \(so it's not already marked to send out\), we set changes\[key\] to now, so that key will get sent to the server.    E.g., if we have an ephemeral table and the project side restarts, this makes it so everything in all clients gets sent to the project on the next save, and who wins is somewhat random.
+  - **NOTE**: For an ephemeral table, if one client changes a key when the project is down and nobody else does, then that one client would have the oldest timestamp for that change, and all the other clients, with an older version of that data, would overwrite the newer version.  _That's not optimal and we should probably change this._ Ephemeral tables are typically for things like cursors \(or ipywidgets\) when editing a document, so the impact of this might be a glitch for 1 second while reconnecting, and there's probably other much weirder stuff going on at the same time.
+
+**NOTE:** If the table is entirely reset to the database and the browser has made changes while waiting to connect, those would be lost, because the versions that the project assigns in this case are when the table is initialized again in the project.   There's probably applications where this is bad.  However, in cocalc it isn't a problem: for collaborative editing we never change entries in the table, instead just make new ones \(which can't clash\); for listings, those are only created by the project.
+
+### Compute Servers
+
+Our new goal is that compute servers can also act like the project.  In fact a large number of web browsers connect to a compute server, it manages sync with all of them, then periodically sends a big single update to the project.   This would allow for best security, scalability, etc., where a single project could have hundreds of notebooks run at once \(say\), across several compute servers, with realtime sync, and many clients.
+
+```mermaid
+graph TD;
+  A[Web Browsers...] <---> B[Project Home Base];
+  C[Compute Servers...] <---> B;
+  B -.Non-Ephemeral Data.-> H[Hub] --> D[(Database)];
+  B -.Ephemeral Data.-> N[ /dev/null]
+  A <---> C
+
+  subgraph Clients of Project-Backed SyncTables
+    A
+    C
+  end
+```
 
 ## Defined by an object query
 

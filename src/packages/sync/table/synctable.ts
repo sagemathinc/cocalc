@@ -965,7 +965,7 @@ export class SyncTable extends EventEmitter {
     const changes = copy(this.changes);
     //console.log("_save: send ", changes);
     for (const key in this.changes) {
-      if (this.versions[key] === 0) {
+      if (this.versions[key] == 0) {
         proposed_keys[key] = true;
       }
       const x = this.value.get(key);
