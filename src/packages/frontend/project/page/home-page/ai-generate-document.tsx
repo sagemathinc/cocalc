@@ -1125,6 +1125,8 @@ export function AIGenerateDocumentButton({
     overflowX: "hidden",
     overflow: "hidden",
     whiteSpace: "nowrap",
+    width: "100%",
+    textOverflow: "ellipsis",
     ...(mode === "flyout"
       ? { ...NEW_FILE_STYLE, marginRight: "0", marginBottom: "0" }
       : {}),

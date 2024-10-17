@@ -38,10 +38,18 @@ export function AiDocGenerateBtn({ btn, grid, ext, filename, mode }: Props) {
     );
   } else {
     return (
-      <Space direction="vertical">
-        {btn}
-        <AIGenerateDocumentButton mode="full" ext={ext} filename={filename} />
-      </Space>
+      //<Space direction="vertical">
+      <Flex
+        align="flex-start"
+        vertical={true}
+        gap={"5px"}
+        style={{ width: "100%" }}
+      >
+        <Flex flex={"1 1 auto"}>{btn}</Flex>
+        <Flex flex={"0 0 auto"}>
+          <AIGenerateDocumentButton mode="full" ext={ext} filename={filename} />
+        </Flex>
+      </Flex>
     );
   }
 }

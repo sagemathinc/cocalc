@@ -5,12 +5,13 @@
 
 import { Button } from "antd";
 
+import { CSS } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { NEW_FILETYPE_ICONS, isNewFiletypeIconName } from "./consts";
 
-export const STYLE = {
+export const STYLE: CSS = {
   marginBottom: "5px",
   whiteSpace: "normal",
   padding: "10px",
@@ -18,12 +19,12 @@ export const STYLE = {
   width: "100%",
 } as const;
 
-const ICON_STYLE = {
+const ICON_STYLE: CSS = {
   color: COLORS.FILE_ICON,
   fontSize: "125%",
 } as const;
 
-const ICON_STYLE_LARGE = {
+const ICON_STYLE_LARGE: CSS = {
   ...ICON_STYLE,
   fontSize: "200%",
 };
@@ -66,7 +67,7 @@ export function NewFileButton({
     <Icon style={iconStyle} name={icon} />
   );
 
-  const style = {
+  const style: CSS = {
     ...STYLE,
     ...(active
       ? {
@@ -76,7 +77,7 @@ export function NewFileButton({
       : {}),
     ...(mode === "secondary" ? { padding: "5px" } : { width: "100%" }),
     ...(active && mode === "secondary" ? {} : undefined),
-    ...(size == "large" ? { minHeight: "125px" } : undefined),
+    ...(size === "large" ? { minHeight: "125px" } : undefined),
   };
 
   function renderBody() {

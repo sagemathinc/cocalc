@@ -3,8 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Flex, Modal, Row, Tag } from "antd";
+import { Col, Modal, Row, Tag } from "antd";
 import { Gutter } from "antd/es/grid/row";
+import { throttle } from "lodash";
 import type { ReactNode } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -21,7 +22,6 @@ import { Tip } from "@cocalc/frontend/components/tip";
 import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { throttle } from "lodash";
 import { AiDocGenerateBtn } from "./add-ai-gen-btn";
 import { DELAY_SHOW_MS, NEW_FILETYPE_ICONS } from "./consts";
 import { JupyterNotebookButtons } from "./jupyter-buttons";
@@ -67,7 +67,7 @@ export function FileTypeSelector({
 
   const mainDivRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState<number>(0);
-  const btnWidth = Math.max(100, (width - 25) / 5);
+  const btnWidth = Math.max(100, (width - 50) / 5);
 
   useEffect(() => {
     const main = mainDivRef.current;
@@ -95,11 +95,12 @@ export function FileTypeSelector({
 
   const isFlyout = mode === "flyout";
   const btnSize = isFlyout ? "small" : "large";
-  const tipStyle = isFlyout ? { flex: "1 1 auto" } : { width: `${btnWidth}px` };
+  const tipStyle: CSS = isFlyout ? { flex: "1 1 auto" } : { width: "100%" }; //{ flex: "1 1 auto" };
 
   // Usually, there are supposed to be 5 columns, but it changes if the layout is tighter to 3
   const base = (n = 1) => {
-    return { flex: `${n * 20}%` };
+    // return { flex: `${n * 20}%` };
+    return 5 * n;
   };
   const md = isFlyout ? 24 : base(1);
   const sm = isFlyout ? 24 : base(2);
@@ -115,32 +116,41 @@ export function FileTypeSelector({
   }
 
   function wrapBtn(btn: ReactNode) {
-    //return <Col sm={sm} md={md}>{btn}</Col>
     return (
-      <div
-        style={{ display: "flex", flex: "1 1 auto", width: `${btnWidth}px` }}
-      >
+      <Col sm={sm} md={md}>
         {btn}
-      </div>
+      </Col>
     );
+    //return <Col flex={1}>{btn}</Col>;
+    // return (
+    //   <div
+    //     style={{ display: "flex", flex: "1 1 auto", width: `${btnWidth}px` }}
+    //   >
+    //     {btn}
+    //   </div>
+    // );
   }
 
   function makeRow(btns: ReactNode) {
-    // <Row gutter={gutter} style={newRowStyle}>
     return (
-      <Flex
-        style={{ ...newRowStyle, width: "100%" }}
-        justify={"flex-start"}
-        align={"flex-start"}
-        gap="middle"
-        wrap
-      >
+      <Row gutter={gutter} style={newRowStyle} wrap={false}>
         {btns}
-      </Flex>
-      // <Space style={{ ...newRowStyle, width: "100%" }} wrap>
-      //   {btns}
-      // </Space>
+      </Row>
     );
+    //    return (
+    //      <Flex
+    //        style={{ ...newRowStyle, width: "100%" }}
+    //        justify={"flex-start"}
+    //        align={"flex-start"}
+    //        gap="middle"
+    //        wrap
+    //      >
+    //        {btns}
+    //      </Flex>
+    //      // <Space style={{ ...newRowStyle, width: "100%" }} wrap>
+    //      //   {btns}
+    //      // </Space>
+    //    );
   }
 
   function renderPopular() {
