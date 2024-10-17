@@ -930,7 +930,7 @@ export class SyncTable extends EventEmitter {
                 need to be saved.
 
      If writing to the database results in an error (but not due to no network),
-     then an error state is set (which client can consult), an even is emitted,
+     then an error state is set (which client can consult), an event is emitted,
      and we do not try to write to the database again until that error
      state is cleared. One way it can be cleared is by changing the table.
   */
@@ -1362,8 +1362,13 @@ export class SyncTable extends EventEmitter {
     const received_keys = this.apply_changes_to_browser_client(changes);
     if (before != null) {
       before.forEach((_, key) => {
-        if (key == null || received_keys[key]) return; // received as part of init
-        if (this.changes[key] && this.versions[key] == 0) return; // not event sent yet
+        if (key == null || received_keys[key]) {
+          return; // received as part of init
+        }
+        if (this.changes[key] && this.versions[key] == 0) {
+          return;
+          // not event sent yet
+        }
         // This key was known and confirmed sent before init, but
         // didn't get sent back this time.  So it was lost somehow,
         // e.g., due to not getting saved to the database and the project
