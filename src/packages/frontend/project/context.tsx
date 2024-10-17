@@ -26,6 +26,8 @@ import {
 import { useProjectStatus } from "./page/project-status-hook";
 import { useProjectHasInternetAccess } from "./settings/has-internet-access-hook";
 import { Project } from "./settings/types";
+import { useStarredFilesManager } from "./page/flyouts/store";
+import { FlyoutActiveStarred } from "./page/flyouts/state";
 
 export interface ProjectContextState {
   actions?: ProjectActions;
@@ -42,6 +44,10 @@ export interface ProjectContextState {
   onCoCalcDocker: boolean;
   enabledLLMs: LLMServicesAvailable;
   mainWidthPx: number;
+  manageStarredFiles: {
+    starred: FlyoutActiveStarred;
+    setStarredPath: (path: string, starState: boolean) => void;
+  };
 }
 
 export const ProjectContext: Context<ProjectContextState> =
@@ -68,6 +74,10 @@ export const ProjectContext: Context<ProjectContextState> =
       user: false,
     },
     mainWidthPx: 0,
+    manageStarredFiles: {
+      starred: [],
+      setStarredPath: () => {},
+    },
   });
 
 export function useProjectContext() {
@@ -104,6 +114,11 @@ export function useProjectContextProvider({
   );
   // shared data: used to flip through the open tabs in the active files flyout
   const flipTabs = useState<number>(0);
+
+  // manage starred files (active tabs)
+  // This is put here, to only sync the starred files when the project is opened,
+  // not each time the active tab is opened!
+  const manageStarredFiles = useStarredFilesManager(project_id);
 
   const kucalc = useTypedRedux("customize", "kucalc");
   const onCoCalcCom = kucalc === KUCALC_COCALC_COM;
@@ -145,5 +160,6 @@ export function useProjectContextProvider({
     onCoCalcDocker,
     enabledLLMs,
     mainWidthPx,
+    manageStarredFiles,
   };
 }
