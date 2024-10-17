@@ -17,7 +17,7 @@ import {
   useMemo,
   usePrevious,
   useState,
-  useTypedRedux,
+  useTypedRedux
 } from "@cocalc/frontend/app-framework";
 import { useAppContext } from "@cocalc/frontend/app/context";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
@@ -51,15 +51,14 @@ import { FileListItem } from "./file-list-item";
 import { FlyoutFilterWarning } from "./filter-warning";
 import {
   FlyoutActiveMode,
-  FlyoutActiveStarred,
   FlyoutActiveTabSort,
   getFlyoutActiveMode,
   getFlyoutActiveShowStarred,
-  getFlyoutActiveStarred,
   getFlyoutActiveTabSort,
   isFlyoutActiveMode,
-  storeFlyoutState,
+  storeFlyoutState
 } from "./state";
+import { useStarredFilesManager } from "./store";
 import { GROUP_STYLE, randomLeftBorder } from "./utils";
 
 const FILE_TYPE_PRIORITY = [
@@ -127,9 +126,6 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   const [mode, setActiveMode] = useState<FlyoutActiveMode>(
     getFlyoutActiveMode(project_id),
   );
-  const [starred, setStarred] = useState<FlyoutActiveStarred>(
-    getFlyoutActiveStarred(project_id),
-  );
 
   const [sortTabs, setSortTabsState] = useState<FlyoutActiveTabSort>(
     getFlyoutActiveTabSort(project_id),
@@ -144,6 +140,8 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
   );
   const [showStarredTabs, setShowStarredTabs] = useState<boolean>(true);
 
+  const { starred, setStarredPath } = useStarredFilesManager(project_id);
+
   function setMode(mode: FlyoutActiveMode) {
     if (isFlyoutActiveMode(mode)) {
       setActiveMode(mode);
@@ -151,14 +149,6 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
     } else {
       console.warn(`Invalid flyout active mode: ${mode}`);
     }
-  }
-
-  function setStarredPath(path: string, next: boolean) {
-    const newStarred = next
-      ? [...starred, path]
-      : starred.filter((p) => p !== path);
-    setStarred(newStarred);
-    storeFlyoutState(project_id, "active", { starred: newStarred });
   }
 
   function setSortTabs(sort: FlyoutActiveTabSort) {
@@ -297,12 +287,12 @@ export function ActiveFlyout(props: Readonly<Props>): JSX.Element {
           }
         }}
         isStarred={showStarred ? starred.includes(path) : undefined}
-        onStar={(next: boolean) => {
+        onStar={(starState: boolean) => {
           // we only toggle star, if it is currently opeend!
           // otherwise, when closed and accidentally clicking on the star
           // the file unstarred and just vanishes
           if (isopen) {
-            setStarredPath(path, next);
+            setStarredPath(path, starState);
           } else {
             handleFileClick(undefined, path, "star");
           }

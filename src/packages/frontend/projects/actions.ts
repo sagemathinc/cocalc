@@ -5,16 +5,21 @@
 
 import { Set } from "immutable";
 import { isEqual } from "lodash";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
+import api from "@cocalc/frontend/client/api";
 import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
+import startProjectPayg from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
+import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
+import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   assert_uuid,
   copy,
@@ -28,10 +33,6 @@ import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import api from "@cocalc/frontend/client/api";
-import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
-import startProjectPayg from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 
 import type {
   CourseInfo,
