@@ -16,8 +16,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { callback, delay } from "awaiting";
 import { ajax, globalEval } from "jquery";
 import { join } from "path";
-
-import { redux } from "@cocalc/frontend/app-framework";
+import { entryPoint, redux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { allow_project_to_run } from "../client-side-throttle";
@@ -88,17 +87,20 @@ async function connection_to_project0(project_id: string): Promise<any> {
           throw Error("currently reading one already");
         }
 
-        if (!webapp_client.is_signed_in()) {
-          // At least wait until main client is signed in, since nothing
-          // will work until that is the case anyways.
-          await once(webapp_client, "signed_in");
+        // for compute entry point, no sign in needed and project is assumed running.
+        if (entryPoint != "compute") {
+          if (!webapp_client.is_signed_in()) {
+            // At least wait until main client is signed in, since nothing
+            // will work until that is the case anyways.
+            await once(webapp_client, "signed_in");
+          }
+
+          log("wait_for_project_to_start...");
+          await wait_for_project_to_start(project_id);
+          log("wait_for_project_to_start: done");
         }
 
-        log("wait_for_project_to_start...");
-        await wait_for_project_to_start(project_id);
-        log("wait_for_project_to_start: done");
-
-        // Now project is thought to be running, so maybe this will work:
+        // Now user is signed in and project is thought to be running, so maybe this will work:
         try {
           if (do_eval) {
             READING_PRIMUS_JS = true;

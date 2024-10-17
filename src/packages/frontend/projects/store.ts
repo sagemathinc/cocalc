@@ -5,7 +5,12 @@
 import { List, Map, Set } from "immutable";
 import { fromPairs, isEmpty } from "lodash";
 import LRU from "lru-cache";
-import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
+import {
+  entryPoint,
+  redux,
+  Store,
+  TypedMap,
+} from "@cocalc/frontend/app-framework";
 import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
 import { CUSTOM_IMG_PREFIX } from "@cocalc/frontend/custom-software/util";
 import { WebsocketState } from "@cocalc/frontend/project/websocket/websocket-state";
@@ -243,6 +248,10 @@ export class ProjectsStore extends Store<ProjectsState> {
   'admin' - user is not owner/collaborator but is an admin, hence has rights.
   */
   public get_my_group(project_id: string): UserGroup | undefined {
+    if (entryPoint == "compute") {
+      // in compute server mode there is only one project.
+      return "owner";
+    }
     const account_store = redux.getStore("account");
     if (account_store == null) {
       return;

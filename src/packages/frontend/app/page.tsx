@@ -16,6 +16,7 @@ import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
+  entryPoint,
   React,
   useActions,
   useEffect,
@@ -200,7 +201,12 @@ export const Page: React.FC = () => {
   }
 
   function render_sign_in_tab(): JSX.Element | null {
-    if (is_logged_in) return null;
+    if (is_logged_in) {
+      return null;
+    }
+    if (entryPoint == "compute") {
+      return null;
+    }
 
     let style: CSS | undefined = undefined;
     if (active_top_tab !== "account") {

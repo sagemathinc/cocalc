@@ -8,7 +8,6 @@ Functionality that mainly involves working with a specific project.
 */
 
 import { join } from "path";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import computeServers from "@cocalc/frontend/compute/manager";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";

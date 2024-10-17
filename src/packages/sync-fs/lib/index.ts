@@ -28,7 +28,6 @@ import { executeCode } from "@cocalc/backend/execute-code";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
-import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 
 const EXPLICIT_HIDDEN_EXCLUDES = [".cache", ".local"];
 
@@ -318,17 +317,11 @@ class SyncFS {
         return await getListing(data.path, data.hidden, this.mount);
 
       case "exec":
-        if (data.opts.command == "cc-new-file") {
-          // so we don't have to depend on having our cc-new-file script
-          // installed.  We just don't support templates on compute server.
-          for (const path of data.opts.args ?? []) {
-            const target = join(this.mount, path);
-            await ensureContainingDirectoryExists(target);
-            await writeFile(target, "");
-          }
-          return { status: 0, stdout: "", stderr: "" };
-        }
-        return await executeCode({ ...data.opts, home: this.mount });
+        return await executeCode({
+          ...data.opts,
+          home: this.mount,
+          ccNewFile: true,
+        });
 
       case "delete_files":
         return await delete_files(data.paths, this.mount);

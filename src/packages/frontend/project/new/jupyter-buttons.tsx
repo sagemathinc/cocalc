@@ -87,7 +87,6 @@ export function JupyterNotebookButtons({
   // SEE https://github.com/sagemathinc/cocalc/issues/7168
   // Sept 2024: adding "Sage Notebook", as part of deprecating "Sage Worksheet"
   const { error, kernel_selection, kernels_by_name } = useJupyterKernelsInfo();
-
   if (!availableFeatures.jupyter_notebook) {
     return null;
   }
@@ -235,7 +234,9 @@ export function JupyterNotebookButtons({
   }
 
   function renderLanguageSpecificButtons() {
-    if (kernel_selection == null || kernels_by_name == null) return null;
+    if (kernel_selection == null || kernels_by_name == null) {
+      return null;
+    }
 
     const langs = ["sage", "sagemath"] as const;
     const btns: { lang: string; btn: JSX.Element }[] = [];

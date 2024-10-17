@@ -12,7 +12,8 @@ console.log("Embed mode");
 
 // Load/initialize Redux-based react functionality
 import "@cocalc/frontend/client/client";
-import { redux } from "../app-framework";
+import { redux, setEntryPoint } from "../app-framework";
+
 import "../jquery-plugins";
 
 // Initialize app stores, actions, etc.
@@ -32,6 +33,7 @@ import { init as initLast } from "../last";
 import { render } from "../app/render";
 
 export async function init() {
+  setEntryPoint("embed");
   initAccount(redux);
   initApp();
   initProjects();

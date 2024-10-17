@@ -32,7 +32,7 @@ export default class API implements API_Interface {
     try {
       this.cachedVersion = await this.call({ cmd: "version" }, 15000);
     } catch (err) {
-      if (err.message.includes('command "version" not implemented')) {
+      if (err.message?.includes('command "version" not implemented')) {
         this.cachedVersion = 0;
       } else {
         throw err;

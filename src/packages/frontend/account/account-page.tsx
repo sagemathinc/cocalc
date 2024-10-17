@@ -16,6 +16,7 @@ import { useIntl } from "react-intl";
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import {
+  entryPoint,
   React,
   redux,
   useIsMountedRef,
@@ -259,6 +260,10 @@ export const AccountPage: React.FC = () => {
 
 function RedirectToNextApp({}) {
   const isMountedRef = useIsMountedRef();
+  if (entryPoint == "compute") {
+    // no login page for compute cocalc app
+    return;
+  }
 
   useEffect(() => {
     const f = () => {

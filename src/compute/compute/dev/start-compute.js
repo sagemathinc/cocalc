@@ -6,6 +6,8 @@ console.log("API_SERVER=", process.env.API_SERVER);
 const { manager } = require("../dist/lib");
 
 const PROJECT_HOME = process.env.PROJECT_HOME ?? "/tmp/home";
+const PORT = process.env.PORT ?? 5004;
+const HOST = process.env.HOST ?? "0.0.0.0";
 
 async function main() {
   const exitHandler = async () => {
@@ -28,6 +30,8 @@ async function main() {
       process.env.UNIONFS_UPPER && process.env.UNIONFS_LOWER
         ? "fuse.unionfs-fuse"
         : "fuse",
+    host: HOST,
+    port: PORT,
   });
   exports.manager = M;
   await M.init();

@@ -15,32 +15,30 @@
   "bin": {
     "cocalc-compute-start": "./bin/start.js"
   },
-  "files": [
-    "dist/**",
-    "bin/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
   "author": "SageMath, Inc.",
-  "keywords": [
-    "cocalc",
-    "jupyter"
-  ],
+  "keywords": ["cocalc", "jupyter"],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/api-client": "workspace:*",
     "@cocalc/backend": "workspace:*",
     "@cocalc/compute": "link:",
+    "@cocalc/comm": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
+    "@cocalc/primus-multiplex": "^1.1.0",
+    "@cocalc/primus-responder": "^1.0.5",
+    "@cocalc/static": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/sync-fs": "workspace:*",
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "@types/ws": "^8.5.9",
     "awaiting": "^3.0.0",
+    "compression": "^1.7.4",
     "cookie": "^1.0.0",
     "debug": "^4.3.2",
+    "express": "^4.21.1",
+    "primus": "^8.0.7",
     "websocketfs": "^0.17.4",
     "ws": "^8.18.0"
   },
@@ -50,8 +48,12 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
+    "@types/compression": "^1.7.5",
     "@types/cookie": "^0.6.0",
+    "@types/express": "^4.17.21",
+    "@types/ms": "^0.7.34",
     "@types/node": "^18.16.14",
+    "@types/ws": "^8.5.9",
     "typescript": "^5.6.3"
   }
 }

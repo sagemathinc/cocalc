@@ -10,25 +10,22 @@ import {
   get_ProjectStatusServer,
   ProjectStatusServer,
 } from "../project-status";
-import { ProjectStatus } from "@cocalc/comm/project-status/types";
+import type { ProjectStatus } from "@cocalc/comm/project-status/types";
+import { getLogger } from "@cocalc/backend/logger";
+
+const logger = getLogger("project:project-status");
 
 class ProjectStatusTable {
   private table: SyncTable;
-  private logger: { debug: Function };
   private project_id: string;
   private state: "ready" | "closed" = "ready";
   private readonly publish: (status: ProjectStatus) => Promise<void>;
   private readonly status_server: ProjectStatusServer;
 
-  constructor(
-    table: SyncTable,
-    logger: { debug: Function },
-    project_id: string,
-  ) {
+  constructor(table: SyncTable, project_id: string) {
     this.status_handler = this.status_handler.bind(this);
     this.project_id = project_id;
-    this.logger = logger;
-    this.log("register");
+    logger.debug("register");
     this.publish = reuseInFlight(this.publish_impl.bind(this));
     this.table = table;
     this.table.on("closed", () => this.close());
@@ -39,7 +36,7 @@ class ProjectStatusTable {
   }
 
   private status_handler(status): void {
-    this.log?.("status_server event 'status'", status.timestamp);
+    logger.debug("status_server event 'status'", status.timestamp);
     this.publish?.(status);
   }
 
@@ -50,10 +47,10 @@ class ProjectStatusTable {
       try {
         await this.table.save();
       } catch (err) {
-        this.log(`error saving ${err}`);
+        logger.debug(`error saving ${err}`);
       }
-    } else if (this.log != null) {
-      this.log(
+    } else {
+      logger.debug(
         `ProjectStatusTable '${
           this.state
         }' and table is ${this.table?.get_state()}`,
@@ -62,16 +59,11 @@ class ProjectStatusTable {
   }
 
   public close(): void {
-    this.log("close");
+    logger.debug("close");
     this.status_server?.off("status", this.status_handler);
     this.table?.close_no_async();
     close(this);
     this.state = "closed";
-  }
-
-  private log(...args): void {
-    if (this.logger == null) return;
-    this.logger.debug("project_status", ...args);
   }
 }
 
@@ -79,7 +71,6 @@ let project_status_table: ProjectStatusTable | undefined = undefined;
 
 export function register_project_status_table(
   table: SyncTable,
-  logger: any,
   project_id: string,
 ): void {
   logger.debug("register_project_status_table");
@@ -89,7 +80,7 @@ export function register_project_status_table(
     );
     project_status_table.close();
   }
-  project_status_table = new ProjectStatusTable(table, logger, project_id);
+  project_status_table = new ProjectStatusTable(table, project_id);
 }
 
 export function get_project_status_table(): ProjectStatusTable | undefined {

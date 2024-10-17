@@ -13,7 +13,7 @@ debug.log = console.log.bind(console); // see https://github.com/debug-js/debug#
 import { COCALC_MINIMAL } from "./fullscreen";
 
 // Load/initialize Redux-based react functionality
-import { redux } from "./app-framework";
+import { redux, setEntryPoint } from "./app-framework";
 
 // Systemwide notifications that are broadcast to all users (and set by admins)
 import "./system-notifications";
@@ -50,6 +50,7 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
+  setEntryPoint("app");
   initAccount(redux);
   initApp();
   initProjects();
