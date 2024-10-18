@@ -553,8 +553,9 @@ export class PassportLogin {
   }
 
   // If we did end up here, and there wasn't already a valid remember me cookie,
-  // we signed in a user. We record that and set the remember me cookie
-  // SSO strategies can configure the expiration of that cookie – e.g. super paranoid ones can set this to 1 day.
+  // we signed in a user. We record that and set the remember me cookie.
+  // SSO strategies can configure the expiration of that cookie – e.g. super
+  // paranoid ones can set this to 1 day.
   private async handleNewSignIn(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals,
@@ -563,7 +564,9 @@ export class PassportLogin {
     const L = logger.extend("handle_new_sign_in").debug;
 
     // make TS happy
-    if (locals.account_id == null) throw new Error("locals.account_id is null");
+    if (locals.account_id == null) {
+      throw new Error("locals.account_id is null");
+    }
 
     L("passport created: set remember_me cookie, so user gets logged in");
 
