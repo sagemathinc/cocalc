@@ -32,12 +32,20 @@ import accountCreationActions, {
   creationActionsDone,
 } from "./account-creation-actions";
 import sendEmailVerification from "./send-email-verification";
+import { getLogger } from "@cocalc/backend/logger";
 
-export default async function setEmailAddress(
-  account_id: string,
-  email_address: string,
-  password: string,
-): Promise<void> {
+const log = getLogger("server:accounts:email-address");
+
+export default async function setEmailAddress({
+  account_id,
+  email_address,
+  password,
+}: {
+  account_id: string;
+  email_address: string;
+  password: string;
+}): Promise<void> {
+  log.debug("setEmailAddress", account_id, email_address);
   if (!isValidUUID(account_id)) {
     throw Error("account_id is not valid");
   }
@@ -72,7 +80,7 @@ export default async function setEmailAddress(
     // user has no password set, so we can set it – but not the email address
     if (!password_hash) {
       await pool.query(
-        "UPDATE accounts SET password_hash=$1,  WHERE account_id=$2",
+        "UPDATE accounts SET password_hash=$1 WHERE account_id=$2",
         [passwordHash(password), account_id],
       );
     }

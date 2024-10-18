@@ -39,7 +39,7 @@ create_project   = require("@cocalc/server/projects/create").default;
 user_search      = require("@cocalc/server/accounts/search").default;
 collab           = require('@cocalc/server/projects/collab');
 delete_passport  = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
-setEmailAddress = require("@cocalc/server/accounts/set-email-address").default;
+setEmailAddress  = require("@cocalc/server/accounts/set-email-address").default;
 
 {one_result} = require("@cocalc/database")
 
@@ -645,11 +645,13 @@ class exports.Client extends EventEmitter
                     @push_to_client(message.signed_out(id:mesg.id))
 
     # Messages: Password/email address management
-
     mesg_change_email_address: (mesg) =>
         try
-            await setEmailAddress(@account_id, mesg.new_email_address,  mesg.password)
-            @push_to_client(message.changed_email_address(id:mesg.id, error:err))
+            await setEmailAddress
+                account_id: @account_id
+                email_address: mesg.new_email_address
+                password: mesg.password
+            @push_to_client(message.changed_email_address(id:mesg.id))
         catch err
             @error_to_client(id:mesg.id, error:err)
 
