@@ -386,7 +386,6 @@ export class PassportManager {
         const cookies = new Cookies(req, res);
         // to match @cocalc/frontend/client/password-reset
         const name = encodeURIComponent(`${base_path}PWRESET`);
-
         const secure = req.protocol === "https";
 
         cookies.set(name, token, {
