@@ -21,6 +21,7 @@ import "./accounts";
 import "./api-keys";
 import "./auth";
 import "./blobs";
+import "./bookmarks";
 import "./central-log";
 import "./client-error-log";
 import "./cloud-filesystems";
