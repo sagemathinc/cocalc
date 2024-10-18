@@ -139,6 +139,6 @@ export default async function setEmailAddress(
   // we do this at the very end, since we don't want an error sending the verification email
   // disrupt the account creation process above
   if (email_address_verified?.[email_address] == null) {
-    await sendEmailVerification(account_id, email_address);
+    await sendEmailVerification(account_id);
   }
 }

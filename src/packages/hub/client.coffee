@@ -648,10 +648,7 @@ class exports.Client extends EventEmitter
 
     mesg_change_email_address: (mesg) =>
         try
-            await setEmailAddress
-                account_id : @account_id
-                email_address : mesg.new_email_address
-                password: mesg.password
+            await setEmailAddress(@account_id, mesg.new_email_address,  mesg.password)
             @push_to_client(message.changed_email_address(id:mesg.id, error:err))
         catch err
             @error_to_client(id:mesg.id, error:err)
