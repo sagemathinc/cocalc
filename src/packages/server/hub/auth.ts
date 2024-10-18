@@ -99,6 +99,7 @@ import {
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
 import { record_sign_in } from "./sign-in";
+import { getServerSettings } from "@cocalc/database/settings";
 
 const logger = getLogger("server:hub:auth");
 
@@ -343,9 +344,9 @@ export class PassportManager {
   private async init_email_verification(): Promise<void> {
     // email verification
     this.router.get(`${AUTH_BASE}/verify`, async (req, res) => {
-      const { DOMAIN_URL } = require("@cocalc/util/theme");
+      const { dns } = await getServerSettings();
       const path = require("path").join(base_path, "app");
-      const url = `${DOMAIN_URL}${path}`;
+      const url = `https://${dns}${path}`;
       res.header("Content-Type", "text/html");
       res.header("Cache-Control", "no-cache, no-store");
       if (
