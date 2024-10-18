@@ -12,7 +12,6 @@ TEST:
  - This should always work:  "mypy workspaces.py"
 """
 
-
 import argparse, json, os, platform, shutil, subprocess, sys, time
 
 from typing import Any, Optional, Callable, List
@@ -300,7 +299,16 @@ def clean(args) -> None:
 
     def f(path):
         print("rm -rf '%s'" % path)
+        if not os.path.exists(path):
+            return
+        if os.path.isfile(path):
+            os.unlink(path)
+            return
         shutil.rmtree(path, ignore_errors=True)
+        if os.path.exists(path):
+            shutil.rmtree(path, ignore_errors=True)
+        if os.path.exists(path):
+            raise RuntimeError(f'failed to delete {path}')
 
     if (len(paths) == 0):
         banner("No node_modules or dist directories")
