@@ -306,7 +306,7 @@ export const labels = defineMessages({
   },
   latex_document: {
     id: "labels.latex_document",
-    defaultMessage: "LaTeX Document",
+    defaultMessage: "LaTeX",
     description:
       "Indicating a LaTeX Documents on a button label or frame title",
   },
@@ -577,6 +577,10 @@ export const labels = defineMessages({
   color: {
     id: "labels.color",
     defaultMessage: "Color",
+  },
+  create: {
+    id: "labels.create",
+    defaultMessage: "Create",
   },
 });
 
