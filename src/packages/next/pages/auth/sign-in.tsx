@@ -14,7 +14,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
 export default function Home({ customize }) {
-  const { siteName } = customize;
+  const { siteName = "CoCalc" } = customize ?? {};
   const router = useRouter();
   return (
     <Customize value={customize}>
