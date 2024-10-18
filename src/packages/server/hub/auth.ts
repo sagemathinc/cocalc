@@ -394,6 +394,7 @@ export class PassportManager {
           secure,
           overwrite: true,
           httpOnly: false,
+          sameSite: secure ? "strict" : undefined,
         });
         res.redirect("../app");
       }
@@ -581,8 +582,8 @@ export class PassportManager {
         req.user.profile != null
           ? req.user.profile
           : req.user.attributes != null
-          ? req.user.attributes
-          : req.user;
+            ? req.user.attributes
+            : req.user;
 
       // there are cases, where profile is a JSON string (e.g. oauth2next)
       let profile: passport.Profile;

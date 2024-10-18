@@ -84,7 +84,10 @@ export async function signUserIn(req, res, account_id: string): Promise<void> {
     return;
   }
   try {
-    const cookies = new Cookies(req, res, { maxAge: ttl_s * 1000 });
+    const cookies = new Cookies(req, res, {
+      maxAge: ttl_s * 1000,
+      sameSite: "strict",
+    });
     cookies.set(REMEMBER_ME_COOKIE_NAME, value);
   } catch (err) {
     res.json({ error: `Problem setting cookie -- ${err.message}.` });

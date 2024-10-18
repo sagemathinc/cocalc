@@ -393,7 +393,7 @@ export class PassportLogin {
     opts: PassportLoginOpts,
     email_address: string | undefined,
   ): Promise<string> {
-    return await cb2(this.database.create_account, {
+    return await cb2(this.database.create_sso_account, {
       first_name: opts.first_name,
       last_name: opts.last_name,
       email_address,
@@ -576,6 +576,7 @@ export class PassportLogin {
     L(`set remember_me cookie in client. ttl=${ttl_s}s`);
     locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
       maxAge: ttl_s * 1000,
+      sameSite: "strict",
     });
   }
 }

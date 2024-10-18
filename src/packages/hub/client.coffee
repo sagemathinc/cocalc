@@ -8,13 +8,8 @@ Client = a client that is connected via a persistent connection to the hub
 ###
 
 {EventEmitter}       = require('events')
-
 uuid                 = require('uuid')
 async                = require('async')
-
-# TODO: I'm very suspicious about this sameSite:"none" config option.
-exports.COOKIE_OPTIONS = COOKIE_OPTIONS = Object.freeze(secure:true, sameSite:'none')
-
 Cookies              = require('cookies')            # https://github.com/jed/cookies
 misc                 = require('@cocalc/util/misc')
 {defaults, required, to_safe_str} = misc
@@ -23,7 +18,6 @@ access               = require('./access')
 clients              = require('./clients').getClients()
 auth                 = require('./auth')
 auth_token           = require('./auth-token')
-password             = require('./password')
 local_hub_connection = require('./local_hub_connection')
 sign_in              = require('@cocalc/server/hub/sign-in')
 hub_projects         = require('./projects')
@@ -31,7 +25,6 @@ hub_projects         = require('./projects')
 {send_email, send_invite_email} = require('./email')
 manageApiKeys        = require("@cocalc/server/api/manage").default
 {legacyManageApiKey} = require("@cocalc/server/api/manage")
-{create_account, delete_account} = require('./client/create-account')
 purchase_license     = require('@cocalc/server/licenses/purchase').default
 db_schema            = require('@cocalc/util/db-schema')
 { escapeHtml }       = require("escape-html")
@@ -46,7 +39,7 @@ create_project   = require("@cocalc/server/projects/create").default;
 user_search      = require("@cocalc/server/accounts/search").default;
 collab           = require('@cocalc/server/projects/collab');
 delete_passport  = require('@cocalc/server/auth/sso/delete-passport').delete_passport;
-
+setEmailAddress = require("@cocalc/server/accounts/set-email-address").default;
 
 {one_result} = require("@cocalc/database")
 
@@ -64,8 +57,6 @@ underscore = require('underscore')
 {get_personal_user} = require('@cocalc/database/postgres/personal')
 
 {RESEND_INVITE_INTERVAL_DAYS} = require("@cocalc/util/consts/invites")
-
-{PW_RESET_ENDPOINT} = require('./password')
 
 removeLicenseFromProject = require('@cocalc/server/licenses/remove-from-project').default
 addLicenseToProject = require('@cocalc/server/licenses/add-to-project').default
@@ -181,7 +172,7 @@ class exports.Client extends EventEmitter
 
         # Setup remember-me related cookie handling
         @cookies = {}
-        c = new Cookies(@conn.request, COOKIE_OPTIONS)
+        c = new Cookies(@conn.request)
         @_remember_me_value = c.get(REMEMBER_ME_COOKIE_NAME)
 
         @check_for_remember_me()
@@ -453,83 +444,6 @@ class exports.Client extends EventEmitter
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:path_join(base_path, "cookies")))
 
-    set_cookie: (opts) =>
-        opts = defaults opts,
-            name  : required
-            value : required
-            ttl   : undefined    # time in seconds until cookie expires
-        if not @conn?.id?
-            # no connection or connection died
-            return
-
-        options = {}
-        if opts.ttl?
-            options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
-        @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:path_join(base_path, "cookies"), value:opts.value))
-
-    remember_me: (opts) =>
-        return if not @conn?
-        ###
-        Remember me.  There are many ways to implement
-        "remember me" functionality in a web app. Here's how
-        we do it with CoCalc:    We generate a random uuid,
-        which along with salt, is stored in the user's
-        browser as an httponly cookie.  We password hash the
-        random uuid and store that in our database.  When
-        the user later visits the SMC site, their browser
-        sends the cookie, which the server hashes to get the
-        key for the database table, which has corresponding
-        value the mesg needed for sign in.  We then sign the
-        user in using that message.
-
-        The reason we use a password hash is that if
-        somebody gains access to an entry in the key:value
-        store of the database, we want to ensure that they
-        can't use that information to login.  The only way
-        they could login would be by gaining access to the
-        cookie in the user's browser.
-
-        There is no point in signing the cookie since its
-        contents are random.
-
-        Regarding ttl, we use 1 year.  The database will forget
-        the cookie automatically at the same time that the
-        browser invalidates it.
-        ###
-
-        # WARNING: The code below is somewhat replicated in
-        # passport_login.
-
-        opts = defaults opts,
-            lti_id        : undefined
-            account_id    : required
-            ttl           : 24*3600 *30     # 30 days, by default
-            cb            : undefined
-
-        ttl = opts.ttl; delete opts.ttl
-        opts.hub = @_opts.host
-        opts.remember_me = true
-
-        opts0 = misc.copy(opts)
-        delete opts0.cb
-        signed_in_mesg   = message.signed_in(opts0)
-        session_id       = uuid.v4()
-        @hash_session_id = passwordHash(session_id)
-
-        x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
-        @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
-        @set_cookie  # same name also hardcoded in the client!
-            name  : REMEMBER_ME_COOKIE_NAME
-            value : @_remember_me_value
-            ttl   : ttl
-
-        @database.save_remember_me
-            account_id : opts.account_id
-            hash       : @hash_session_id
-            value      : signed_in_mesg
-            ttl        : ttl
-            cb         : opts.cb
 
     invalidate_remember_me: (opts) =>
         return if not @conn?
@@ -693,25 +607,6 @@ class exports.Client extends EventEmitter
     mesg_ping: (mesg) =>
         @push_to_client(message.pong(id:mesg.id, now:new Date()))
 
-    # Messages: Account creation, deletion, sign in, sign out
-    mesg_create_account: (mesg) =>
-        if @_opts.personal
-            @error_to_client(id:mesg.id, error:"account creation not allowed on personal server")
-            return
-        create_account
-            client   : @
-            mesg     : mesg
-            database : @database
-            host     : @_opts.host
-            port     : @_opts.port
-            sign_in  : @conn?  # browser clients have a websocket conn
-
-    mesg_delete_account: (mesg) =>
-        delete_account
-            client   : @
-            mesg     : mesg
-            database : @database
-
     mesg_sign_in: (mesg) =>
         sign_in.sign_in
             client   : @
@@ -752,14 +647,14 @@ class exports.Client extends EventEmitter
     # Messages: Password/email address management
 
     mesg_change_email_address: (mesg) =>
-        password.change_email_address
-            mesg       : mesg
-            account_id : @account_id
-            ip_address : @ip_address
-            database   : @database
-            logger     : @logger
-            cb         : (err) =>
-                @push_to_client(message.changed_email_address(id:mesg.id, error:err))
+        try
+            await setEmailAddress
+                account_id : @account_id
+                email_address : mesg.new_email_address
+                password: mesg.password
+            @push_to_client(message.changed_email_address(id:mesg.id, error:err))
+        catch err
+            @error_to_client(id:mesg.id, error:err)
 
     mesg_send_verification_email: (mesg) =>
         auth = require('./auth')
@@ -2056,7 +1951,7 @@ class exports.Client extends EventEmitter
             # as admins send one manually, they typically need more time, so 1 day instead.
             # We used 8 hours for a while and it is often not enough time.
             id = await callback2(@database.set_password_reset, {email_address : mesg.email_address, ttl:24*60*60});
-            mesg.link = "#{PW_RESET_ENDPOINT}/#{id}"
+            mesg.link = "/auth/password-reset/#{id}"
             @push_to_client(mesg)
         catch err
             dbg("failed -- #{err}")

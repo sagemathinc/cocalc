@@ -52,7 +52,7 @@ class UserSearch extends Component<ReduxProps> {
               width: "90%",
             }}
             value={this.props.query}
-            placeholder="Search for users by first name, last name, or email address..."
+            placeholder="Search for users by partial name, email, account id or project id..."
             onChange={(e) => actions.set_query(e.target.value)}
             onKeyDown={(e) => {
               if (e.keyCode === 13) {
