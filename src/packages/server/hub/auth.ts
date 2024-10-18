@@ -745,7 +745,7 @@ export class PassportManager {
     const opts = {
       clientID: confDB.conf.clientID,
       clientSecret: confDB.conf.clientSecret,
-      callbackURL: returnUrl,
+      callbackURL: `${base_path.length > 1 ? base_path : ""}${returnUrl}`,
       ...extra_opts,
     } as const;
 
