@@ -43,6 +43,7 @@ import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
+import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -156,18 +157,7 @@ export class PassportLogin {
       // WARNING: a 302 appears to work in dev mode, but that's only because
       // of all the hot module loading complexity.  Also, I could not get a meta redirect to work,
       // so had to use Javascript.
-      this.opts.res.send(
-        `<head>
-  <script>
-    window.onload = function () {
-      window.location.href = "${this.opts.site_url}";
-    };
-  </script>
-</head>
-<body>
-  You should be <a href="${this.opts.site_url}">automatically redirected</a>.
-</body>`,
-      );
+      clientSideRedirect({ res: this.opts.res, target: this.opts.site_url });
     } catch (err) {
       // this error is used to signal that the user has done something wrong (in a general sense)
       // and it shouldn't be the code or how it handles the returned data.

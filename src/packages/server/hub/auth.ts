@@ -100,6 +100,7 @@ import {
 } from "@cocalc/server/auth/sso/public-strategies";
 import { record_sign_in } from "./sign-in";
 import { getServerSettings } from "@cocalc/database/settings";
+import { signInUsingImpersonateToken } from "@cocalc/server/auth/impersonate";
 
 const logger = getLogger("server:hub:auth");
 
@@ -294,6 +295,7 @@ export class PassportManager {
 
     // this.router endpoints setup
     this.init_strategies_endpoint();
+    this.initImpersonate();
     this.init_email_verification();
     this.init_password_reset_token();
 
@@ -814,6 +816,13 @@ export class PassportManager {
     }
     L(`initialization of '${name}' at '${strategyUrl}' successful`);
   }
+
+  // This is not really SSO, but we treat it in a similar way.
+  private initImpersonate = () => {
+    this.router.get(`${AUTH_BASE}/impersonate`, (req, res) => {
+      signInUsingImpersonateToken({ req, res });
+    });
+  };
 }
 
 interface IsPasswordCorrect {
