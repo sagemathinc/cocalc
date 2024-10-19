@@ -67,7 +67,6 @@ async function callApi(
     await delay(RETRY_DELAY_MS);
     return await callApi(endpoint, args, numRetriesOnFail - 1);
   }
-  console.log("json = ", json);
   if (json == null) {
     throw Error("timeout -- try again later");
   }
