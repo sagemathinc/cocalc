@@ -1898,8 +1898,7 @@ export class SyncDoc extends EventEmitter {
     const account_id: string = this.client_id();
     let map = this.cursor_map;
     if (
-      excludeSelf &&
-      map.has(account_id) &&
+      (excludeSelf && map.has(account_id)) ||
       this.cursor_last_time >=
         (map.getIn([account_id, "time"], new Date(0)) as Date)
     ) {

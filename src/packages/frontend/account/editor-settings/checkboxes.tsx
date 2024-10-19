@@ -9,9 +9,7 @@ import { Rendered } from "@cocalc/frontend/app-framework";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { capitalize, keys } from "@cocalc/util/misc";
 
-const EDITOR_SETTINGS_CHECKBOXES: {
-  [setting: string]: IntlMessage | Rendered;
-} = {
+const EDITOR_SETTINGS_CHECKBOXES = {
   extra_button_bar: defineMessage({
     id: "account.editor-setting.checkbox.extra_button_bar",
     defaultMessage:
@@ -85,6 +83,8 @@ const EDITOR_SETTINGS_CHECKBOXES: {
     id: "account.editor-setting.checkbox.ask_jupyter_kernel",
     defaultMessage: "ask which kernel to use for a new Jupyter Notebook",
   }),
+  show_my_other_cursors:
+    "when editing the same file in mutiple browsers, show my other cursors",
   disable_jupyter_virtualization: defineMessage({
     id: "account.editor-setting.checkbox.disable_jupyter_virtualization",
     defaultMessage:
