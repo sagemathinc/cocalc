@@ -158,6 +158,7 @@ export class PassportManager {
     undefined;
   // prefix for those endpoints, where SSO services return back
   private auth_url: string | undefined = undefined;
+  private site_url = `https://${DNS}${base_path}`; // updated during init
 
   constructor(opts: PassportManagerOpts) {
     const { router, database, host } = opts;
@@ -302,6 +303,7 @@ export class PassportManager {
 
     const settings = await cb2(this.database.get_server_settings_cached);
     const dns = settings.dns || DNS;
+    this.site_url = `https://${dns}${base_path}`;
     this.auth_url = `https://${dns}${path_join(base_path, AUTH_BASE)}`;
     logger.debug(`auth_url='${this.auth_url}'`);
 
@@ -623,6 +625,7 @@ export class PassportManager {
         cookie_ttl_s,
         req,
         res,
+        site_url: this.site_url,
       };
 
       for (const k in login_info) {

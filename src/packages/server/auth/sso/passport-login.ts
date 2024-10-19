@@ -62,7 +62,6 @@ export class PassportLogin {
     this.database = opts.database;
     this.record_sign_in = opts.record_sign_in;
 
-    // TODO: untangle this, make each param a field in this object
     this.opts = opts;
 
     L({
@@ -148,8 +147,27 @@ export class PassportLogin {
       //  last step: set remember me cookie (for a  new sign in)
       await this.handleNewSignIn(this.opts, locals);
       // no exceptions → we're all good
+
       L(`redirect the client to '${locals.target}'`);
-      this.opts.res.redirect(locals.target);
+      // Doing a 302 redirect does NOT work because it doesn't send the cookie, due to
+      // sameSite = 'strict'!!!
+      // this.opts.res.redirect(locals.target);
+      // See https://stackoverflow.com/questions/66675803/samesite-strict-cookies-are-not-included-in-302-redirects-when-user-clicks-link
+      // WARNING: a 302 appears to work in dev mode, but that's only because
+      // of all the hot module loading complexity.  Also, I could not get a meta redirect to work,
+      // so had to use Javascript.
+      this.opts.res.send(
+        `<head>
+  <script>
+    window.onload = function () {
+      window.location.href = "${this.opts.site_url}";
+    };
+  </script>
+</head>
+<body>
+  You should be <a href="${this.opts.site_url}">automatically redirected</a>.
+</body>`,
+      );
     } catch (err) {
       // this error is used to signal that the user has done something wrong (in a general sense)
       // and it shouldn't be the code or how it handles the returned data.
@@ -421,7 +439,7 @@ export class PassportLogin {
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
 
-    // if we know the email address provided by the SSO strategy,
+    // if we know the email address provided by t
     // we execute the account creation actions and set the address to be verified
     await accountCreationActions({
       email_address: locals.email_address,

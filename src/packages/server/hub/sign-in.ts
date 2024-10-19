@@ -387,7 +387,7 @@ var _sign_in_using_auth_token = async function (opts, done) {
           remember_me: false,
           hub: opts.host + ":" + opts.port,
         });
-        return client.remember_me({
+        client.remember_me({
           account_id: signed_in_mesg.account_id,
           lti_id: signed_in_mesg.lti_id,
           ttl: 12 * 3600,
