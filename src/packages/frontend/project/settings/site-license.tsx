@@ -8,7 +8,6 @@
 
 import { Button, Card, Popover } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   redux,
@@ -207,14 +206,24 @@ export function SiteLicense({
 
   function render_extra(): Rendered {
     return (
-      <Popover
-        content={LICENSE_INFORMATION}
-        trigger={["click"]}
-        placement="rightTop"
-        title="License information"
-      >
-        <Icon name="question-circle" />
-      </Popover>
+      <>
+        <Button
+          href="https://youtu.be/kQv26e27ksY"
+          target="_new"
+          style={{ marginRight: "15px" }}
+        >
+          <Icon name="youtube" style={{ color: "red" }} />
+          Tutorial
+        </Button>
+        <Popover
+          content={LICENSE_INFORMATION}
+          trigger={["click"]}
+          placement="rightTop"
+          title="License information"
+        >
+          <Icon name="question-circle" />
+        </Popover>
+      </>
     );
   }
 
