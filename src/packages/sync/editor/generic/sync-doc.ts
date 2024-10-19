@@ -582,10 +582,14 @@ export class SyncDoc extends EventEmitter {
       user_id: this.my_user_id,
       locs,
     };
-    if (!side_effect) {
-      x.time = this.client.server_time();
+    const now = this.client.server_time();
+    if (!side_effect || (x.time ?? now) >= now) {
+      // the now comparison above is in case the cursor time
+      // is in the future (due to clock issues) -- always fix that.
+      x.time = now;
     }
     if (x.time != null) {
+      // will actually always be non-null due to above
       this.cursor_last_time = x.time;
     }
     this.cursors_table.set(x, "none");
@@ -1904,17 +1908,29 @@ export class SyncDoc extends EventEmitter {
     ) {
       map = map.delete(account_id);
     }
-    if (maxAge) {
-      // Remove any old cursors, where "old" is by default more than 1 minute old, since
-      // old cursors are not useful
-      const now = Date.now();
-      for (const [client_id, value] of map as any) {
-        const time = value.get("time");
+    // Remove any old cursors, where "old" is by default more than maxAge old.
+    const now = Date.now();
+    for (const [client_id, value] of map as any) {
+      const time = value.get("time");
+      if (time == null) {
+        // this should always be set.
+        map = map.delete(client_id);
+        continue;
+      }
+      if (maxAge) {
         // we use abs to implicitly exclude a bad value that is somehow in the future,
         // if that were to happen.
-        if (time == null || Math.abs(now - time.valueOf()) >= maxAge) {
+        if (Math.abs(now - time.valueOf()) >= maxAge) {
           map = map.delete(client_id);
+          continue;
         }
+      }
+      if (time >= now + 10 * 1000) {
+        // We *always* delete any cursors more than 10 seconds in the future, since
+        // that can only happen if a client inserts invalid data (e.g., clock not
+        // yet synchronized). See https://github.com/sagemathinc/cocalc/issues/7969
+        map = map.delete(client_id);
+        continue;
       }
     }
     return map;
