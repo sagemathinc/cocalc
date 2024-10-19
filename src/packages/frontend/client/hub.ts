@@ -7,7 +7,6 @@ import { callback, delay } from "awaiting";
 import { throttle } from "lodash";
 import type { WebappClient } from "./client";
 import { delete_cookie } from "../misc/cookies";
-import { QueryParams } from "../misc/query-params";
 import {
   copy_without,
   from_json_socket,
@@ -453,17 +452,7 @@ export class HubClient {
       conn.removeAllListeners("data");
       conn.on("data", this.ondata.bind(this));
 
-      const auth_token = QueryParams.get("auth_token");
-      if (auth_token && typeof auth_token == "string") {
-        QueryParams.remove("auth_token");
-        await this.client.account_client.sign_in_using_auth_token(auth_token);
-        // If user was already signed in, then connection may have sent over some
-        // basic data about previous user, so we MUST reload the page to get
-        // fresh auth information about the new user we just signed in as with an
-        // auth_token.  This is also just safer from a security and integrity
-        // point of view, to avoid leaking state from one account to another.
-        location.reload();
-      } else if (should_do_anonymous_setup()) {
+      if (should_do_anonymous_setup()) {
         do_anonymous_setup(this.client);
       }
     });

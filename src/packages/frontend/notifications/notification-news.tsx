@@ -116,7 +116,7 @@ export function NewsPanel(props: NewsPanelProps) {
         </Button>
         {anyUnread ? (
           <Button onClick={() => news_actions.markNewsRead()} type="primary">
-            <Icon name="check-square" /> Mark all read
+            <Icon name="check-square" /> Mark all Read
           </Button>
         ) : (
           <Button
@@ -125,7 +125,7 @@ export function NewsPanel(props: NewsPanelProps) {
               news_actions.markNewsUnread();
             }}
           >
-            <Icon name="square" /> Mark all unread
+            <Icon name="square" /> Mark all Unread
           </Button>
         )}
       </Space>

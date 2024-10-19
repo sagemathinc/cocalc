@@ -5,10 +5,11 @@
 
 import { IconName } from "@cocalc/frontend/components/icon";
 import { Uptime } from "@cocalc/util/consts/site-license";
+import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import { ReactNode } from "react";
 
-export type Presets = "standard" | "instructor" | "research";
+export type Preset = "standard" | "instructor" | "research";
 
 // Fields to be used to match a configured license against a pre-existing preset.
 //
@@ -20,20 +21,22 @@ export const PRESET_MATCH_FIELDS: Record<string, string> = {
   member: "member hosting",
 };
 
-export interface Preset {
-  icon?: IconName;
+export interface PresetConfig {
+  icon: IconName;
   name: string;
   descr: ReactNode;
-  details?: ReactNode;
+  details: ReactNode;
   cpu: number;
   ram: number;
   disk: number;
   uptime: Uptime;
   member: boolean;
+  expect: string[];
+  note?: ReactNode;
 }
 
 type PresetEntries = {
-  [key in Presets]: Preset;
+  [key in Preset]: PresetConfig;
 };
 
 // some constants to keep text and preset in sync
@@ -41,17 +44,34 @@ const STANDARD_CPU = 1;
 const STANDARD_RAM = 4;
 const STANDARD_DISK = 3;
 
+const PRESET_STANDARD_NAME = "Standard";
+
 export const PRESETS: PresetEntries = {
   standard: {
     icon: "line-chart",
-    name: "Standard",
-    descr: "is a good choice for most users and students to get started",
+    name: PRESET_STANDARD_NAME,
+    descr:
+      "is a good choice for most users to get started and students in a course",
+    expect: [
+      "Run 5-10 Jupyter Notebooks at once,",
+      "Edit LaTeX, Markdown, R Documents, and use VS Code,",
+      `${STANDARD_DISK} GB disk space is sufficient to store many files and small datasets.`,
+    ],
+    note: (
+      <Paragraph type="secondary">
+        You can start with a "Run Limit" of one project. Later, when your usage
+        increases, you can easily edit your license at any time to change the
+        "Run Limit" or the quotas. Read more about{" "}
+        <A href={"https://doc.cocalc.com/licenses.html"}>Managing Licenses</A>{" "}
+        in our documentation.
+      </Paragraph>
+    ),
     details: (
       <>
-        You can run two or three Jupyter Notebooks in the same project at the
-        same time, given they do not require a large amount of memory. This
-        quota is fine for editing LaTeX documents, working with Sage Worksheets,
-        and all other document types. Also, {STANDARD_DISK} GB of disk space is
+        You can run 5-10 Jupyter Notebooks in a project at once, depending on
+        the kernel and memory usage. This quota is fine for editing LaTeX
+        documents, working with Sage Worksheets, using VS Code, and editing all
+        other document types. Also, {STANDARD_DISK} GB of disk space is
         sufficient to store many files and a few small datasets.
       </>
     ),
@@ -64,8 +84,45 @@ export const PRESETS: PresetEntries = {
   instructor: {
     icon: "slides",
     name: "Instructor",
-    descr:
-      "is a good choice for the instructor's project when teaching a course",
+    descr: "is good for your instructor project when teaching a course",
+    expect: [
+      "Grade the work of students,",
+      "Run 10-20 Jupyter Notebooks at once¹,",
+      "Store the files of all students,",
+      "Make longer breaks without your project being shut down.",
+    ],
+    note: (
+      <>
+        <Paragraph type="secondary">
+          For your instructor project, you only need one such license with a
+          "Run Limit" of 1. Apply that license via the{" "}
+          <A href={"https://doc.cocalc.com/project-settings.html#licenses"}>
+            project settings
+          </A>
+          . For the students, select a "{PRESET_STANDARD_NAME}" license with a
+          "Run Limit" of the number of students and distribute it via the{" "}
+          <A
+            href={
+              "https://doc.cocalc.com/teaching-upgrade-course.html#teacher-or-institute-pays-for-upgrades"
+            }
+          >
+            course configuration
+          </A>
+          .
+        </Paragraph>
+        <Paragraph type="secondary">
+          ¹ Depends on the kernel; also, make sure to use the{" "}
+          <A
+            href={
+              "https://doc.cocalc.com/jupyter.html?highlight=halt%20button#use-the-halt-button-to-conserve-memory"
+            }
+          >
+            Halt button
+          </A>
+          .
+        </Paragraph>
+      </>
+    ),
     details: (
       <>
         The upgrade schema is suitable for grading the work of students: by
@@ -99,22 +156,37 @@ export const PRESETS: PresetEntries = {
   research: {
     icon: "users",
     name: "Researcher",
-    descr: "is a good choice for a research group",
+    descr:
+      "is a good choice for intense professional usage or a research group",
+    expect: [
+      "Run many Jupyter Notebooks at once,",
+      "Run memory-intensive computations,",
+      "1 day idle-timeout is sufficient to not interrupt your work, and to execute long-running calculations.",
+      "More disk space also allows you to store larger datasets.",
+    ],
+    note: (
+      <>
+        <Paragraph type="secondary">
+          If you need{" "}
+          <b>much more dedicated disk space, a GPU, more CPU or RAM</b>, you
+          should also{" "}
+          <b>
+            use <A href="/features/compute-server">compute servers</A>.
+          </b>
+        </Paragraph>
+      </>
+    ),
     details: (
       <>
-        This configuration allows the project to run many Jupyter Notebooks and
-        Worksheets at once or to run memory-intensive computations. An
-        idle-timeout of one day is sufficient to not interrupt your work; you
-        can also execute long-running calculations with this configuration.
-        Increasing the disk space quota also allows you to store larger
-        datasets. If you need{" "}
-        <b>vastly more dedicated disk space, CPU or RAM</b>, you should instead{" "}
+        This configuration allows the project to run many Jupyter Notebooks at
+        once and run memory-intensive computations. An idle-timeout of one day
+        is sufficient to not interrupt your work; you can also execute
+        long-running calculations with this configuration. Increasing the disk
+        space quota also allows you to store larger datasets. If you need{" "}
+        <b>much more dedicated disk space, a GPU, more CPU or RAM</b>, you
+        should also{" "}
         <b>
-          rent a{" "}
-          <A href="https://doc.cocalc.com/compute_server.html">
-            compute server
-          </A>
-          .
+          use a <A href="/features/compute-server">compute server</A>.
         </b>
       </>
     ),

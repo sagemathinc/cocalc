@@ -1148,13 +1148,19 @@ export class Actions<
     // TODO: for now, just for the one syncstring obviously
     // TOOD: this is probably naive and slow too...
     let cursors: Map<string, List<Map<string, any>>> = Map();
-    this._syncstring.get_cursors().forEach((info, account_id) => {
-      info.get("locs").forEach((loc) => {
-        loc = loc.set("time", info.get("time"));
-        const locs = cursors.get(account_id, List()).push(loc);
-        cursors = cursors.set(account_id, locs as any);
+    this._syncstring
+      .get_cursors({
+        excludeSelf: !redux
+          .getStore("account")
+          .getIn(["editor_settings", "show_my_other_cursors"]),
+      })
+      .forEach((info, account_id) => {
+        info.get("locs").forEach((loc) => {
+          loc = loc.set("time", info.get("time"));
+          const locs = cursors.get(account_id, List()).push(loc);
+          cursors = cursors.set(account_id, locs as any);
+        });
       });
-    });
     if (!cursors.equals(this.store.get("cursors"))) {
       this.setState({ cursors });
     }
@@ -1191,7 +1197,10 @@ export class Actions<
       return;
     }
     const omit_lines: SetMap = {};
-    const cursors = this._syncstring.get_cursors?.(); // there are situations where get_cursors isn't defined (seen this).
+    const cursors = this._syncstring.get_cursors?.({
+      excludeSelf: false,
+      maxAge: 3 * 60 * 1000,
+    }); // there are situations where get_cursors isn't defined (seen this).
     if (cursors) {
       cursors.map((user, _) => {
         const locs = user.get("locs");
@@ -1374,8 +1383,7 @@ export class Actions<
       // to make typescript happy
       return;
     }
-    this.set_frame_tree({ id, font_size });
-    this.focus(id);
+    this.set_font_size(id, font_size);
   }
 
   increase_font_size(id: string): void {
@@ -1386,6 +1394,9 @@ export class Actions<
     this.change_font_size(-1, id);
   }
 
+  // ATTN: this is overloaded in some derived classes, eg. latex to adjust settings
+  // based on font size changing. Code should call this to set the font size instead
+  // of directly modifying frame tree.
   set_font_size(id: string, font_size: number): void {
     this.set_frame_tree({ id, font_size });
     this.focus(id);

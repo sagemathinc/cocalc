@@ -9,7 +9,6 @@ Task Actions
 
 import { fromJS, Map } from "immutable";
 import { throttle } from "lodash";
-import { delay } from "awaiting";
 import {
   close,
   copy_with,
@@ -120,7 +119,9 @@ export class TaskActions extends Actions<TaskState> {
   }
 
   public disable_key_handler(): void {
-    if (this.key_handler == null || this.redux == null) return;
+    if (this.key_handler == null || this.redux == null) {
+      return;
+    }
     this.frameActions.erase_active_key_handler(this.key_handler);
     delete this.key_handler;
   }
@@ -532,7 +533,16 @@ export class TaskActions extends Actions<TaskState> {
     this.set_local_task_state(task_id, { editing_desc: false });
   }
 
-  public edit_desc(task_id: string | undefined): void {
+  isEditing = () => {
+    const task_id = this.getFrameData("current_task_id");
+    return !!this.getFrameData("local_task_state")?.getIn([
+      task_id,
+      "editing_desc",
+    ]);
+  };
+
+  // null=unselect all.
+  public edit_desc(task_id: string | undefined | null): void {
     // close any that were currently in edit state before opening new one
     const local = this.getFrameData("local_task_state") ?? fromJS({});
     for (const [id, state] of local) {
@@ -540,8 +550,13 @@ export class TaskActions extends Actions<TaskState> {
         this.stop_editing_desc(id);
       }
     }
-
-    this.set_local_task_state(task_id, { editing_desc: true });
+    if (task_id !== null) {
+      this.set_local_task_state(task_id, { editing_desc: true });
+    }
+    this.disable_key_handler();
+    setTimeout(() => {
+      this.disable_key_handler();
+    }, 1);
   }
 
   public set_due_date(
@@ -748,10 +763,7 @@ export class TaskActions extends Actions<TaskState> {
     this.disable_key_handler();
   }
 
-  public async show(): Promise<void> {
-    await delay(1);
-    this.enable_key_handler();
-  }
+  public async show(): Promise<void> {}
 
   chatgptGetText(scope: "cell" | "all", current_id?): string {
     if (scope == "all") {

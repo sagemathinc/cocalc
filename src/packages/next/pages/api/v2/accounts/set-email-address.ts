@@ -29,7 +29,7 @@ async function handle(req, res) {
   }
   const { email_address, password } = getParams(req);
   try {
-    await setEmailAddress(account_id, email_address, password);
+    await setEmailAddress({ account_id, email_address, password });
     res.json(SuccessStatus);
   } catch (err) {
     if (err.message.includes("duplicate key")) {

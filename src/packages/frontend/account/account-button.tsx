@@ -175,7 +175,7 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
               className={"cocalc-account-button"}
               href=""
             >
-              xSign out...
+              Sign out...
             </a>
           </Popconfirm>
         </li>

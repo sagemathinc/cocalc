@@ -21,36 +21,36 @@ interface Spec {
 
 export type QuotaSpec = Record<Service, Spec>;
 
-const GPT_TURBO: Spec = {
+const GPT_TURBO_128k: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
   color: "#10a37f",
   category: "ai",
 } as const;
 
 const GPT_TURBO_8K: Spec = {
-  ...GPT_TURBO,
-  display: `${GPT_TURBO.display} 8k`,
+  ...GPT_TURBO_128k,
+  display: "OpenAI GPT-4 Turbo",
 } as const;
 
-const GPT_OMNI: Spec = {
-  display: "OpenAI GPT-4 Omni",
+const GPT_OMNI_128k: Spec = {
+  display: "OpenAI GPT-4o 128k",
   color: "#10a37f",
   category: "ai",
 } as const;
 
 const GPT_OMNI_8K: Spec = {
-  ...GPT_OMNI,
-  display: `${GPT_OMNI.display} 8k`,
+  ...GPT_OMNI_128k,
+  display: "OpenAI GPT-4o",
 } as const;
 
-const GPT_OMNI_MINI: Spec = {
-  ...GPT_OMNI,
-  display: "OpenAI GPT-4o Mini",
+const GPT_OMNI_MINI_128k: Spec = {
+  ...GPT_OMNI_128k,
+  display: "OpenAI GPT-4o Mini 128k",
 };
 
 const GPT_OMNI_MINI_8K: Spec = {
-  ...GPT_OMNI_MINI,
-  display: `${GPT_OMNI_MINI.display} 8k`,
+  ...GPT_OMNI_MINI_128k,
+  display: "OpenAI GPT-4o Mini",
 };
 
 const GOOGLE_AI_COLOR = "#ff4d4f";
@@ -120,13 +120,13 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: "#10a37f",
     category: "ai",
   },
-  "openai-gpt-4-turbo-preview": GPT_TURBO, // the "preview" is over
+  "openai-gpt-4-turbo-preview": GPT_TURBO_128k, // the "preview" is over
   "openai-gpt-4-turbo-preview-8k": GPT_TURBO_8K, // the "preview" is over
-  "openai-gpt-4-turbo": GPT_TURBO,
+  "openai-gpt-4-turbo": GPT_TURBO_128k,
   "openai-gpt-4-turbo-8k": GPT_TURBO_8K,
-  "openai-gpt-4o": GPT_OMNI,
+  "openai-gpt-4o": GPT_OMNI_128k,
   "openai-gpt-4o-8k": GPT_OMNI_8K,
-  "openai-gpt-4o-mini": GPT_OMNI_MINI,
+  "openai-gpt-4o-mini": GPT_OMNI_MINI_128k,
   "openai-gpt-4o-mini-8k": GPT_OMNI_MINI_8K,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",

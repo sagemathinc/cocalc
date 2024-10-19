@@ -215,7 +215,8 @@ const ACTIONS: { [mode in Mode]: LLMTool } = {
     label: defineMessage({
       id: "jupyter.llm.cell-tool.actions.document.label",
       defaultMessage: "Document",
-      description: "Label on a button to write a documentation, i.e. to 'document' this",
+      description:
+        "Label on a button to write a documentation, i.e. to 'document' this",
     }),
     descr: defineMessage({
       id: "jupyter.llm.cell-tool.actions.document.descr",

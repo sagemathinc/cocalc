@@ -365,8 +365,11 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     }
 
     function render_site_license(): Rendered {
-      // site licenses are also used in on-prem setups to tweak project quotas
-      if (!in_kucalc) return;
+      if (!in_kucalc) {
+        // site licenses are also used in on-prem setups to tweak project quotas, but
+        // nowhere else (currently).
+        return;
+      }
       return (
         <SiteLicense
           project_id={project_id}

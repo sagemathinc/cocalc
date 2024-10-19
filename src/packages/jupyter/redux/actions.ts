@@ -2803,6 +2803,9 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   // Currently only run in the browser, but could maybe be useful
   // elsewhere someday.
   updateRunProgress = () => {
+    if (this.store == null) {
+      return;
+    }
     if (this.store.get("backend_state") != "running") {
       this.setState({ runProgress: 0 });
       return;

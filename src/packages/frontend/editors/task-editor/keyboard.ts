@@ -13,12 +13,15 @@ import { is_sortable as is_sortable_header } from "./headings-info";
 
 function is_sortable(actions): boolean {
   return is_sortable_header(
-    actions.store.getIn(["local_view_state", "sort", "column"]) ?? HEADINGS[0]
+    actions.store.getIn(["local_view_state", "sort", "column"]) ?? HEADINGS[0],
   );
 }
 
 export function create_key_handler(actions): (any) => void {
-  return function (evt) {
+  return (evt) => {
+    if (actions.isEditing()) {
+      return;
+    }
     const read_only = !!actions.store.get("read_only");
     const mod = evt.ctrlKey || evt.metaKey || evt.altKey || evt.shiftKey;
 

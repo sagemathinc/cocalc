@@ -577,6 +577,22 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       }
     }
   }
+
+  getSearchIndexData = () => {
+    const cells = this.jupyter_actions.store.get("cells");
+    if (cells == null) {
+      return {};
+    }
+    const data: { [id: string]: string } = {};
+    for (const [id, cell] of cells) {
+      let content = cell.get("input")?.trim();
+      if (!content) {
+        continue;
+      }
+      data[id] = content;
+    }
+    return { data, fragmentKey: "id", reduxName: this.jupyter_actions.name };
+  };
 }
 
 export { JupyterEditorActions as Actions };

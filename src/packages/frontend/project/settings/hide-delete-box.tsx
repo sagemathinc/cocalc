@@ -3,12 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Space } from "antd";
-import { useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { Alert, Button, Popconfirm, Switch } from "antd";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
-import { Col, Row, Well } from "@cocalc/frontend/antd-bootstrap";
-import { Icon, SettingBox } from "@cocalc/frontend/components";
+import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import {
+  Icon,
+  Paragraph,
+  SettingBox,
+  Title,
+} from "@cocalc/frontend/components";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
@@ -26,14 +30,19 @@ interface Props {
 export function HideDeleteBox(props: Readonly<Props>) {
   const { project, actions, mode = "project" } = props;
   const isFlyout = mode === "flyout";
-
   const intl = useIntl();
+  const is_deleted = project.get("deleted");
 
-  const [show_delete_conf, set_show_delete_conf] = useState<boolean>(false);
+  const deleteUndeleteMsg = (
+    <FormattedMessage
+      id="project.settings.hide-delete-box.delete.label"
+      defaultMessage={`{is_deleted, select, true {Undelete Project} other {Delete Project}}`}
+      values={{ is_deleted }}
+    />
+  );
 
   function toggle_delete_project(): void {
     actions.toggle_delete_project(project.get("project_id"));
-    set_show_delete_conf(false);
   }
 
   function toggle_hide_project(): void {
@@ -46,7 +55,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
   }
 
   function delete_message(): JSX.Element {
-    if (project.get("deleted")) {
+    if (is_deleted) {
       return <DeletedProjectWarning />;
     } else {
       return (
@@ -83,43 +92,50 @@ export function HideDeleteBox(props: Readonly<Props>) {
             Hide this project, so it does not show up in your default project listing.
             This only impacts you, not your collaborators, and you can easily unhide it.
           }}`}
-        values={{ hide: user.get("hide") }}
+        values={{ hide: hidden }}
       />
     );
 
     return <span>{msg}</span>;
   }
 
-  function render_delete_undelete_button(is_deleted, is_expanded): JSX.Element {
-    let disabled, onClick;
-
-    const text = intl.formatMessage(
-      {
-        id: "project.settings.hide-delete-box.delete.label",
-        defaultMessage: `{is_deleted, select, true {Undelete Project} other {Delete Project...}}`,
-      },
-      { is_deleted },
-    );
-
+  function render_delete_undelete_button(): JSX.Element {
     if (is_deleted) {
-      onClick = toggle_delete_project;
-      disabled = false;
+      return (
+        <Button
+          danger
+          style={{ float: "right" }}
+          onClick={toggle_delete_project}
+          icon={<Icon name="trash" />}
+        >
+          {deleteUndeleteMsg}
+        </Button>
+      );
     } else {
-      onClick = () => set_show_delete_conf(true);
-      disabled = is_expanded;
+      return (
+        <Popconfirm
+          placement={"bottom"}
+          arrow={{ pointAtCenter: true }}
+          title={render_expanded_delete_info()}
+          onConfirm={toggle_delete_project}
+          okText={intl.formatMessage({
+            id: "project.settings.hide-delete-box.delete.confirm.yes",
+            defaultMessage: `Yes, please delete this project!`,
+          })}
+          cancelText={intl.formatMessage(labels.cancel)}
+          overlayStyle={{ maxWidth: "400px" }}
+          icon={<Icon name="trash" />}
+        >
+          <Button
+            danger
+            style={{ float: "right" }}
+            icon={<Icon name="trash" />}
+          >
+            {deleteUndeleteMsg}...
+          </Button>
+        </Popconfirm>
+      );
     }
-
-    return (
-      <Button
-        danger
-        style={{ float: "right" }}
-        onClick={onClick}
-        disabled={disabled}
-        cocalc-test={is_deleted ? "undelete-project" : "delete-project"}
-      >
-        <Icon name="trash" /> {text}
-      </Button>
-    );
   }
 
   function render_expanded_delete_info(): JSX.Element {
@@ -128,7 +144,13 @@ export function HideDeleteBox(props: Readonly<Props>) {
         ? false
         : user_has_applied_upgrades(webapp_client.account_id, project);
     return (
-      <Well style={{ textAlign: "center" }}>
+      <Paragraph>
+        <div style={{ marginBottom: "5px" }}>
+          {intl.formatMessage({
+            id: "project.settings.hide-delete-box.delete.warning.title",
+            defaultMessage: `Are you sure you want to delete this project?`,
+          })}
+        </div>
         {has_upgrades ? (
           <Alert
             showIcon
@@ -142,30 +164,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
             })}
           />
         ) : undefined}
-        {!has_upgrades ? (
-          <div style={{ marginBottom: "5px" }}>
-            {intl.formatMessage({
-              id: "project.settings.hide-delete-box.delete.warning.title",
-              defaultMessage: "Are you sure you want to delete this project?",
-            })}
-          </div>
-        ) : undefined}
-        <Space>
-          <Button onClick={() => set_show_delete_conf(false)}>
-            {intl.formatMessage(labels.cancel)}
-          </Button>
-          <Button
-            danger
-            onClick={toggle_delete_project}
-            cocalc-test="please-delete-project"
-          >
-            {intl.formatMessage({
-              id: "project.settings.hide-delete-box.delete.warning.confirmation",
-              defaultMessage: "Yes, please delete this project",
-            })}
-          </Button>
-        </Space>
-      </Well>
+      </Paragraph>
     );
   }
 
@@ -173,50 +172,57 @@ export function HideDeleteBox(props: Readonly<Props>) {
     const hide_label = intl.formatMessage(
       {
         id: "project.settings.hide-delete-box.hide.label",
-        defaultMessage: `{hidden, select, true {Unhide} other {Hide}} Project`,
+        defaultMessage: `{hidden, select, true {Unhide Project} other {Hide Project}}`,
       },
       { hidden },
     );
 
+    const hide_switch = defineMessage({
+      id: "project.settings.hide-delete-box.hide.switch",
+      defaultMessage: `{hidden, select, true {Hidden} other {Visible}}`,
+      description: "The project is either visible or hidden",
+    });
+
     return (
       <>
-        <Row>
-          <Col sm={8}>{hide_message()}</Col>
-          <Col sm={4}>
-            <Button
-              onClick={toggle_hide_project}
-              style={{ float: "right" }}
-              cocalc-test={hidden ? "unhide-project" : "hide-project"}
-            >
-              <Icon name="eye-slash" /> {hide_label}
-            </Button>
-          </Col>
-        </Row>
-        <hr />
-        <Row>
-          <Col sm={8}>{delete_message()}</Col>
-          <Col sm={4}>
-            {render_delete_undelete_button(
-              project.get("deleted"),
-              show_delete_conf,
-            )}
-          </Col>
-        </Row>
-        {show_delete_conf && !project.get("deleted") ? (
-          <Row style={{ marginTop: "10px" }}>
-            <Col sm={12}>{render_expanded_delete_info()}</Col>
-          </Row>
-        ) : undefined}
-        <hr />
         <Row style={{ color: COLORS.GRAY_M }}>
           <Col sm={12}>
-            <FormattedMessage
-              id="project.settings.hide-delete-box.delete.disclaimer"
-              defaultMessage={`Projects are not immediately deleted.
+            <Title level={4}>
+              <Icon name={hidden ? "eye-slash" : "eye"} /> {hide_label}
+              <Switch
+                checked={hidden}
+                style={{ float: "right" }}
+                checkedChildren={intl.formatMessage(hide_switch, {
+                  hidden: true,
+                })}
+                unCheckedChildren={intl.formatMessage(hide_switch, {
+                  hidden: false,
+                })}
+                onChange={toggle_hide_project}
+              />
+            </Title>
+            <Paragraph>{hide_message()}</Paragraph>
+          </Col>
+        </Row>
+        <hr />
+        <Row>
+          <Col sm={12}>
+            <Title level={4}>
+              <Icon name="trash" /> {deleteUndeleteMsg}{" "}
+              {render_delete_undelete_button()}
+            </Title>
+          </Col>
+          <Col sm={12}>
+            <Paragraph>{delete_message()}</Paragraph>
+            <Paragraph type="secondary">
+              <FormattedMessage
+                id="project.settings.hide-delete-box.delete.disclaimer"
+                defaultMessage={`Projects are not immediately deleted.
                 If you need to permanently and immediately delete some sensitive information in this project,
                 contact {help}.`}
-              values={{ help: <HelpEmailLink /> }}
-            />
+                values={{ help: <HelpEmailLink /> }}
+              />
+            </Paragraph>
           </Col>
         </Row>
       </>

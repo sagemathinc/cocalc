@@ -9,8 +9,6 @@ Send verification email
 
 import sendEmailVerification from "@cocalc/server/accounts/send-email-verification";
 import getAccountId from "lib/account/get-account";
-import getParams from "lib/api/get-params";
-
 import { apiRoute, apiRouteOperation } from "lib/api";
 import { SuccessStatus } from "lib/api/status";
 import {
@@ -24,9 +22,8 @@ async function handle(req, res) {
     res.json({ error: "must be signed in" });
     return;
   }
-  const { email_address } = getParams(req);
   try {
-    const msg = await sendEmailVerification(account_id, email_address);
+    const msg = await sendEmailVerification(account_id);
 
     if (msg) {
       res.json({ error: msg });

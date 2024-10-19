@@ -912,8 +912,8 @@ export const site_settings_conf: SiteSettings = {
     tags: ["Compute Servers"],
   },
   compute_servers_onprem_enabled: {
-    name: "Enable Compute Servers - On Prem",
-    desc: "Whether or not to include on prem compute servers.  Right now, these are VM's that must be manually managed by a user and involve copy/paste, but someday they will be much more automated.",
+    name: "Enable Compute Servers - Self Hosted",
+    desc: "Whether or not to allow self hosted compute servers.  These are VM's that must be manually managed by a user.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

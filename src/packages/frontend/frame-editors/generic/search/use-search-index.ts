@@ -14,6 +14,7 @@ export default function useSearchIndex() {
   const { val: refresh, inc: doRefresh } = useCounter();
   const [indexTime, setIndexTime] = useState<number>(0);
   const [fragmentKey, setFragmentKey] = useState<string>("id");
+  const [reduxName, setReduxName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (
@@ -30,6 +31,7 @@ export default function useSearchIndex() {
         const newIndex = new SearchIndex({ actions });
         await newIndex.init();
         setFragmentKey(newIndex.fragmentKey ?? "id");
+        setReduxName(newIndex.reduxName);
         setIndex(newIndex);
         setIndexTime(Date.now() - t0);
         //index?.close();
@@ -39,7 +41,15 @@ export default function useSearchIndex() {
     })();
   }, [project_id, path, refresh]);
 
-  return { index, error, doRefresh, setError, indexTime, fragmentKey };
+  return {
+    index,
+    error,
+    doRefresh,
+    setError,
+    indexTime,
+    fragmentKey,
+    reduxName,
+  };
 }
 
 class SearchIndex {
@@ -47,6 +57,7 @@ class SearchIndex {
   private state: "init" | "ready" | "failed" | "closed" = "init";
   private db?;
   public fragmentKey?: string = "id";
+  public reduxName?: string = undefined;
 
   constructor({ actions }) {
     this.actions = actions;
@@ -76,8 +87,9 @@ class SearchIndex {
     if (this.actions == null || this.state != "init") {
       throw Error("not in init state");
     }
-    const { data, fragmentKey } = this.actions.getSearchIndexData();
+    const { data, fragmentKey, reduxName } = this.actions.getSearchIndexData();
     this.fragmentKey = fragmentKey;
+    this.reduxName = reduxName;
     if (data != null) {
       const docs: { id: string; content: string }[] = [];
       for (const id in data) {

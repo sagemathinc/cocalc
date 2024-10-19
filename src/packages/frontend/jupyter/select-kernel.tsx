@@ -19,7 +19,6 @@ import {
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import {
   CSS,
   React,
@@ -140,9 +139,10 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
       const priority: number = kernels_by_name
         ?.get(name)
         ?.getIn(["metadata", "cocalc", "priority"]) as number;
+      const key = `kernel-${lang}-${name}`;
       const btn = (
         <Button
-          key={`kernel-${lang}-${name}`}
+          key={key}
           onClick={() => {
             actions.select_kernel(name);
             track("jupyter", {
@@ -167,7 +167,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         return btn;
       }
       return (
-        <Tooltip color="white" title={render_suggested_link(cocalc)}>
+        <Tooltip key={key} color="white" title={render_suggested_link(cocalc)}>
           {btn}
         </Tooltip>
       );
@@ -200,7 +200,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
           const label = render_kernel_button(name);
 
           entries.push(
-            <Descriptions.Item key={lang} label={label}>
+            <Descriptions.Item key={`${name}-${lang}`} label={label}>
               <div>{render_suggested_link(cocalc)}</div>
             </Descriptions.Item>,
           );
