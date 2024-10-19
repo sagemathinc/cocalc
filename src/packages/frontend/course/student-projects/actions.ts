@@ -39,13 +39,18 @@ export class StudentProjectsActions {
     return store;
   };
 
-  // Create and configure a single student project.
-  create_student_project = async (
-    student_id: string,
-  ): Promise<string | undefined> => {
+  // create project that will get used by this student, but doesn't actually
+  // add student as a collaborator or save the project id anywhere.
+  createProjectForStudentUse = async ({
+    student_id,
+    type,
+  }: {
+    student_id: string;
+    type: "student" | "exam" | "group";
+  }): Promise<string | undefined> => {
     const { store, student } = this.course_actions.resolve({
       student_id,
-      finish: this.course_actions.set_error.bind(this),
+      finish: this.course_actions.set_error,
     });
     if (store == null || student == null) return;
     if (store.get("students") == null || store.get("settings") == null) {
@@ -54,26 +59,32 @@ export class StudentProjectsActions {
       );
       return;
     }
-    if (student.get("project_id")) {
-      // project already created.
-      return student.get("project_id");
-    }
-    this.course_actions.set({
-      create_project: webapp_client.server_time(),
-      table: "students",
-      student_id,
-    });
     const id = this.course_actions.set_activity({
       desc: `Create project for ${store.get_student_name(student_id)}.`,
     });
-    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
+    const defaultImage = await redux
+      .getStore("customize")
+      .getDefaultComputeImage();
     let project_id: string;
     try {
       project_id = await redux.getActions("projects").create_project({
         title: store.get("settings").get("title"),
         description: store.get("settings").get("description"),
-        image: store.get("settings").get("custom_image") ?? dflt_img,
+        image: store.get("settings").get("custom_image") ?? defaultImage,
         noPool: true, // student is unlikely to use the project right *now*
+      });
+      this.configure_project_visibility(project_id);
+
+      // important to at least set the basics of the course field, since this
+      // modifies security model so any instructor can add colabs to this project,
+      // even if the instructor wasn't added -- that just deals with an edge
+      // case that often causes problems otherwise.
+      const actions = redux.getActions("projects");
+      await actions.set_project_course_info({
+        project_id,
+        course_project_id: store.get("course_project_id"),
+        path: store.get("course_filename"),
+        type,
       });
     } catch (err) {
       this.course_actions.set_error(
@@ -85,15 +96,42 @@ export class StudentProjectsActions {
     } finally {
       this.course_actions.clear_activity(id);
     }
+    return project_id;
+  };
+
+  // Create and configure a single student project.
+  create_student_project = async (
+    student_id: string,
+  ): Promise<string | undefined> => {
+    const { student } = this.course_actions.resolve({
+      student_id,
+    });
+    if (student == null) {
+      // no such student -- nothing to do
+      return;
+    }
+    if (student.get("project_id")) {
+      // project already created.
+      return student.get("project_id");
+    }
+    this.course_actions.set({
+      create_project: webapp_client.server_time(),
+      table: "students",
+      student_id,
+    });
+    const project_id = await this.createProjectForStudentUse({
+      student_id,
+      type: "student",
+    });
+    await this.configure_project({
+      student_id,
+      student_project_id: project_id,
+    });
     this.course_actions.set({
       create_project: null,
       project_id,
       table: "students",
       student_id,
-    });
-    await this.configure_project({
-      student_id,
-      student_project_id: project_id,
     });
     return project_id;
   };
@@ -561,15 +599,17 @@ export class StudentProjectsActions {
     }
   };
 
-  private configure_project = async (props: {
+  private configure_project = async ({
+    student_id,
+    student_project_id,
+    force_send_invite_by_email,
+    license_id,
+  }: {
     student_id;
     student_project_id?: string;
     force_send_invite_by_email?: boolean;
     license_id?: string; // relevant for serial license strategy only
   }): Promise<void> => {
-    const { student_id, force_send_invite_by_email, license_id } = props;
-    let student_project_id = props.student_project_id;
-
     // student_project_id is optional. Will be used instead of from student_id store if provided.
     // Configure project for the given student so that it has the right title,
     // description, and collaborators for belonging to the indicated student.
@@ -605,8 +645,10 @@ export class StudentProjectsActions {
   ): Promise<void> => {
     const store = this.get_store();
     if (store == null) return;
-    const dflt_img = await redux.getStore("customize").getDefaultComputeImage();
-    const img_id = store.get("settings").get("custom_image") ?? dflt_img;
+    const defaultImage = await redux
+      .getStore("customize")
+      .getDefaultComputeImage();
+    const img_id = store.get("settings").get("custom_image") ?? defaultImage;
     const actions = redux.getProjectActions(student_project_id);
     await actions.set_compute_image(img_id);
   };
@@ -922,4 +964,32 @@ export class StudentProjectsActions {
       }
     }
   };
+
+  configureExamProject = async ({ assignment, student, mode }) => {
+    /*
+    If the project hasn't already been created, do nothing. Otherwise:
+
+    mode = 'exam':
+      - set collabs on exam project to be exactly the student and all collabs on course project
+      - make project visible only to the student
+      - configure project title and description
+      - configure project image
+      - configure project license
+
+    mode = 'instructor'
+      - remove the student
+    */
+    const project_id = this.course_actions.assignments.getProjectId({
+      assignment,
+      student,
+    });
+    if (project_id == null) {
+      return;
+    }
+    if (mode == "exam") {
+    } else {
+    }
+  };
+
+  //configureGroupProject = async ({ assignment, student }) => {};
 }
