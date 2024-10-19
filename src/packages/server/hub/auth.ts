@@ -100,6 +100,7 @@ import {
 } from "@cocalc/server/auth/sso/public-strategies";
 import { record_sign_in } from "./sign-in";
 import { getServerSettings } from "@cocalc/database/settings";
+import { signInUsingImpersonateToken } from "@cocalc/server/auth/impersonate";
 
 const logger = getLogger("server:hub:auth");
 
@@ -158,6 +159,7 @@ export class PassportManager {
     undefined;
   // prefix for those endpoints, where SSO services return back
   private auth_url: string | undefined = undefined;
+  private site_url = `https://${DNS}${base_path}`; // updated during init
 
   constructor(opts: PassportManagerOpts) {
     const { router, database, host } = opts;
@@ -293,6 +295,7 @@ export class PassportManager {
 
     // this.router endpoints setup
     this.init_strategies_endpoint();
+    this.initImpersonate();
     this.init_email_verification();
     this.init_password_reset_token();
 
@@ -302,6 +305,7 @@ export class PassportManager {
 
     const settings = await cb2(this.database.get_server_settings_cached);
     const dns = settings.dns || DNS;
+    this.site_url = `https://${dns}${base_path}`;
     this.auth_url = `https://${dns}${path_join(base_path, AUTH_BASE)}`;
     logger.debug(`auth_url='${this.auth_url}'`);
 
@@ -623,6 +627,7 @@ export class PassportManager {
         cookie_ttl_s,
         req,
         res,
+        site_url: this.site_url,
       };
 
       for (const k in login_info) {
@@ -811,6 +816,13 @@ export class PassportManager {
     }
     L(`initialization of '${name}' at '${strategyUrl}' successful`);
   }
+
+  // This is not really SSO, but we treat it in a similar way.
+  private initImpersonate = () => {
+    this.router.get(`${AUTH_BASE}/impersonate`, (req, res) => {
+      signInUsingImpersonateToken({ req, res });
+    });
+  };
 }
 
 interface IsPasswordCorrect {
