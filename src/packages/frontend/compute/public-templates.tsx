@@ -349,6 +349,11 @@ export default function PublicTemplates({
             textAlign: "center",
             marginBottom: "5px",
             fontWeight: "normal",
+            border: "1px solid lightgrey",
+            borderRadius: "5px",
+            marginLeft: "15px",
+            background: "#fffeee",
+            padding: "10px",
           }}
         >
           {Object.keys(TAGS)

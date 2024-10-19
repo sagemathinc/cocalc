@@ -33,7 +33,9 @@ export function MentionsPanel(props: MentionsPanelProps) {
   const { filter, mentions, user_map, account_id, style } = props;
   const mentions_actions = redux.getActions("mentions");
 
-  if (isNewsFilter(filter)) throw Error("Should be in NewsPanel");
+  if (isNewsFilter(filter)) {
+    throw Error("Should be in NewsPanel");
+  }
 
   if (!isNewsFilter(filter) && (mentions == undefined || mentions.size == 0)) {
     return <NoMentions filter={filter} style={style} />;
@@ -54,10 +56,10 @@ export function MentionsPanel(props: MentionsPanelProps) {
     const opposite: NotificationFilter = filter === "read" ? "unread" : "read";
     return (
       <Space direction="horizontal" size="small">
-        <MarkAll<"read" | "unread">
+        <MarkAll
           how={opposite}
           size="small"
-          onClick={(how) => markRead(project_id, how)}
+          onClick={(how: "read" | "unread") => markRead(project_id, how)}
         />
         <Button
           onClick={(e) => {
@@ -114,7 +116,7 @@ export function MentionsPanel(props: MentionsPanelProps) {
           id={id}
           mention={m}
           user_map={user_map}
-        />
+        />,
       );
     });
 
@@ -137,7 +139,7 @@ export function MentionsPanel(props: MentionsPanelProps) {
         >
           <ul>{mentions_per_project[project_id]}</ul>
         </Panel>
-      </Collapse>
+      </Collapse>,
     );
   }
 

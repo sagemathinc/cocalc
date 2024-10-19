@@ -104,8 +104,14 @@ export default function moduleRules(devServer?: boolean) {
       type: "asset/resource",
     },
     {
-      test: /\.html$/i,
-      type: "asset/resource",
+      test: /\.html$/,
+      use: [
+        { loader: "raw-loader" },
+        {
+          loader: "html-minify-loader",
+          options: { conservativeCollapse: true },
+        },
+      ],
     },
     { test: /\.hbs$/, loader: "handlebars-loader" },
     {

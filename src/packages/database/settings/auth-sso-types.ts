@@ -31,6 +31,7 @@ export interface PassportLoginOpts {
   update_on_login: boolean; // passed down from StrategyConf, default false
   cookie_ttl_s?: number; // how long the remember_me cookied lasts (default is a month or so)
   host: string;
+  site_url: string;
   cb?: (err) => void;
 }
 

@@ -189,15 +189,15 @@ export interface PostgreSQL extends EventEmitter {
   set_server_setting(opts: { name: string; value: string; cb: CB }): void;
   server_settings_synctable(): any; // returns a table
 
-  create_account(opts: {
+  create_sso_account(opts: {
     first_name?: string; // invalid name will throw Error
     last_name?: string; // invalid name will throw Error
     created_by?: string;
     email_address?: string;
     password_hash?: string;
-    passport_strategy?: any;
-    passport_id?: string;
-    passport_profile?: any;
+    passport_strategy: any;
+    passport_id: string;
+    passport_profile: any;
     usage_intent?: string;
     cb: CB;
   }): void;
@@ -221,14 +221,6 @@ export interface PostgreSQL extends EventEmitter {
   }): void;
 
   get_remember_me(opts: { hash: string; cb: CB });
-
-  save_remember_me(opts: {
-    account_id: string;
-    hash: string;
-    value: string;
-    ttl: number;
-    cb: CB;
-  });
 
   passport_exists(opts: PassportExistsOpts): Promise<string | undefined>;
 

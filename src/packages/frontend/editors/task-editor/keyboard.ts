@@ -18,7 +18,10 @@ function is_sortable(actions): boolean {
 }
 
 export function create_key_handler(actions): (any) => void {
-  return function (evt) {
+  return (evt) => {
+    if (actions.isEditing()) {
+      return;
+    }
     const read_only = !!actions.store.get("read_only");
     const mod = evt.ctrlKey || evt.metaKey || evt.altKey || evt.shiftKey;
 
