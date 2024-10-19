@@ -32,6 +32,7 @@ import {
 } from "@cocalc/util/upgrades/quota";
 import { isBoostLicense } from "@cocalc/util/upgrades/utils";
 import { SiteLicense as SiteLicenseT } from "./types";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 
 interface Props {
   project_id: string;
@@ -60,8 +61,11 @@ export async function applyLicense(opts: ALOpts): Promise<void> {
   }
 }
 
-export const SiteLicense: React.FC<Props> = (props: Props) => {
-  const { project_id, site_license, mode = "project" } = props;
+export function SiteLicense({
+  project_id,
+  site_license,
+  mode = "project",
+}: Props) {
   const isFlyout = mode === "flyout";
 
   const intl = useIntl();
@@ -191,7 +195,12 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
         <Icon name="key" /> {intl.formatMessage(labels.licenses)}
         {isFlyout ? (
           <span style={{ float: "right" }}>{render_extra()}</span>
-        ) : undefined}
+        ) : (
+          <>
+            {" "}
+            - <ProjectTitle project_id={project_id} />
+          </>
+        )}
       </Title>
     );
   }
@@ -267,4 +276,4 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
       </Card>
     );
   }
-};
+}
