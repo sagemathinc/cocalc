@@ -343,7 +343,7 @@ chown ${UID}:${UID} -R /cocalc/conf
 /*
 THIS works to install CUDA
 
-https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=deb_network
+https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=24.04&target_type=deb_network
 
 (NOTE: K80's don't work since they are too old and not supported!)
 
@@ -360,7 +360,7 @@ Links to all versions: https://developer.nvidia.com/cuda-toolkit-archive
 
 export function installCuda() {
   return `
-curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 dpkg -i cuda-keyring.deb
 rm cuda-keyring.deb
 apt-get update -y
