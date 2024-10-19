@@ -6,7 +6,6 @@
 import { Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
-
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
 import { COLORS } from "@cocalc/util/theme";
 import { RecentHeadline } from "@cocalc/util/types/news";
@@ -20,7 +19,6 @@ import Logo from "components/logo";
 import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import Videos, { Video } from "components/videos";
-import getAccountId from "lib/account/get-account";
 import basePath from "lib/base-path";
 import { Customize, CustomizeType } from "lib/customize";
 import { PublicPath as PublicPathType } from "lib/share/types";
@@ -181,18 +179,16 @@ export default function Home(props: Props) {
 }
 
 export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const isAuthenticated = (await getAccountId(context.req)) != null;
-
   // get most recent headlines
   const recentHeadlines = await getRecentHeadlines(5);
-  // we want not always show the same at the start
+  // we want to not always show the same headlines at the start
   const headlineIndex =
     recentHeadlines != null
       ? Math.floor(Date.now() % recentHeadlines.length)
       : 0;
 
   return await withCustomize(
-    { context, props: { recentHeadlines, headlineIndex, isAuthenticated } },
+    { context, props: { recentHeadlines, headlineIndex } },
     { name: true },
   );
 }
