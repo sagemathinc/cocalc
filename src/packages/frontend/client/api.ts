@@ -11,6 +11,8 @@ This doesn't know anything about types, etc.
 
 import { join } from "path";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { delay } from "awaiting";
+import { trunc } from "@cocalc/util/misc";
 
 export default async function api(endpoint: string, args?: object) {
   return await callApi(join("v2", endpoint), args);
@@ -21,9 +23,24 @@ export async function v1(endpoint: string, args?: object) {
   return await callApi(join("v1", endpoint), args);
 }
 
+// if api call fails (typically 5xx due to a temporary restart of
+// backend servers e.g., in kubernetes) we wait RETRY_DELAY_MS, then give
+// it NUM_RETRIES many ties before showing the user an error.
+// Setting the third numRetriesOnFail argument to 0 below
+// can be used to disable this behavior.
+// This "api call fails" isn't where you get an error json
+// back, but when actually making the request really is
+// failing, e.g., due to network or server issues.
+const RETRY_DELAY_MS = 2000;
+const NUM_RETRIES = 3;
+
 // NOTE: I made this complicated with respClone, so I can see
 // what the response is if it is not JSON.
-async function callApi(endpoint: string, args?: object) {
+async function callApi(
+  endpoint: string,
+  args?: object,
+  numRetriesOnFail?: number,
+) {
   const url = join(appBasePath, "api", endpoint);
   const resp = await fetch(url, {
     method: "POST",
@@ -38,9 +55,19 @@ async function callApi(endpoint: string, args?: object) {
     json = await resp.json();
   } catch (e) {
     console.log(e);
-    console.log(await respClone.text());
-    throw Error("API server is down -- try again later");
+    const r = await respClone.text();
+    console.log(trunc(r, 2000));
+    if (numRetriesOnFail != null && numRetriesOnFail == 0) {
+      throw Error("API server is down -- try again later");
+    }
+    numRetriesOnFail = numRetriesOnFail ?? NUM_RETRIES;
+    console.log(
+      `waiting 3s then trying again up to ${numRetriesOnFail} more times`,
+    );
+    await delay(RETRY_DELAY_MS);
+    return await callApi(endpoint, args, numRetriesOnFail - 1);
   }
+  console.log("json = ", json);
   if (json == null) {
     throw Error("timeout -- try again later");
   }
