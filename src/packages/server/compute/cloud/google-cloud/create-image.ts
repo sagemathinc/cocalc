@@ -311,7 +311,7 @@ ubuntu-2404-noble-arm64-v20241004
 function getSourceImage(arch: Architecture) {
   return `projects/ubuntu-os-cloud/global/images/ubuntu-2404-noble-${
     arch == "arm64" ? "arm" : "amd"
-  }64-v20240701a`;
+  }64-v20241004`;
 }
 
 const LOGDIR = "logs";
