@@ -43,7 +43,6 @@ import { emailBelongsToDomain, getEmailDomain } from "./check-required-sso";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import accountCreationActions from "@cocalc/server/accounts/account-creation-actions";
-import { delay } from "awaiting";
 
 const logger = getLogger("server:auth:sso:passport-login");
 
@@ -148,7 +147,6 @@ export class PassportLogin {
       await this.isUserBanned(locals.account_id, locals.email_address);
       //  last step: set remember me cookie (for a  new sign in)
       await this.handleNewSignIn(this.opts, locals);
-      await delay(500);
       // no exceptions → we're all good
       L(`redirect the client to '${locals.target}'`);
       this.opts.res.redirect(locals.target);
