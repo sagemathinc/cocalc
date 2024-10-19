@@ -83,8 +83,7 @@ const EDITOR_SETTINGS_CHECKBOXES = {
     id: "account.editor-setting.checkbox.ask_jupyter_kernel",
     defaultMessage: "ask which kernel to use for a new Jupyter Notebook",
   }),
-  show_my_other_cursors:
-    "when editing the same file in mutiple browsers, show my other cursors",
+  show_my_other_cursors: "when editing the same file in multiple browsers",
   disable_jupyter_virtualization: defineMessage({
     id: "account.editor-setting.checkbox.disable_jupyter_virtualization",
     defaultMessage:
