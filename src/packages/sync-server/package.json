@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "description": "CoCalc realtime synchronization framework -- server component",
   "exports": {
-    "./*": "./dist/*.js",
+    "./server/*": "./dist/server/*.js",
+    "./x11": "./dist/x11.js",
     "./monitor/activity": "./dist/monitor/activity/index.js",
     "./monitor/usage": "./dist/monitor/usage/index.js",
     "./monitor/status-and-alerts": "./dist/monitor/status-and-alerts.js"
@@ -15,9 +16,17 @@
     "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "prepublishOnly": "pnpm test"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["cocalc", "realtime synchronization"],
+  "keywords": [
+    "cocalc",
+    "realtime synchronization"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
@@ -30,6 +39,7 @@
     "awaiting": "^3.0.0",
     "diskusage": "^1.1.3",
     "events": "3.3.0",
+    "json-stable-stringify": "^1.0.1",
     "lodash": "^4.17.21"
   },
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-server",
@@ -38,6 +48,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "devDependencies": {
+    "@types/json-stable-stringify": "^1.0.32",
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14"
   }

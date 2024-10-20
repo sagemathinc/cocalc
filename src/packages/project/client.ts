@@ -45,9 +45,9 @@ import initJupyter from "./jupyter/init";
 import * as kucalc from "./kucalc";
 import { getLogger } from "./logger";
 import * as sage_session from "./sage_session";
-import { getListingsTable } from "@cocalc/project/sync/listings";
-import { get_synctable } from "@cocalc/sync-server/open-synctables";
-import { getSyncDoc } from "@cocalc/sync-server/syncdocs-manager";
+import { getListingsTable } from "@cocalc/sync-server/server/listings";
+import { get_synctable } from "@cocalc/sync-server/server/open-synctables";
+import { getSyncDoc } from "@cocalc/sync-server/server/syncdocs-manager";
 
 const winston = getLogger("client");
 

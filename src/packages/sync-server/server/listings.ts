@@ -9,7 +9,7 @@ import {
 } from "@cocalc/sync/listings";
 import getListing from "@cocalc/backend/get-listing";
 import { Watcher } from "@cocalc/backend/path-watcher";
-import { closeAllSyncDocsInTree } from "@cocalc/sync-server/syncdocs-manager";
+import { closeAllSyncDocsInTree } from "@cocalc/sync-server/server/syncdocs-manager";
 import { getLogger } from "@cocalc/backend/logger";
 import { existsSync } from "fs";
 

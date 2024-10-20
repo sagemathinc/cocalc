@@ -51,7 +51,10 @@ import {
 // @ts-ignore -- typescript nonsense.
 const _ = set_debug;
 
-import { key, register_synctable } from "@cocalc/sync-server/open-synctables";
+import {
+  key,
+  register_synctable,
+} from "@cocalc/sync-server/server/open-synctables";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
@@ -61,12 +64,12 @@ import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
 import type { MergeType } from "@cocalc/sync/table/synctable";
-import Client from "@cocalc/sync-client";
+import type { Client } from "@cocalc/sync/client/types";
 import { getJupyterRedux } from "@cocalc/jupyter/kernel";
 import {
   initSyncDoc,
   getSyncDocFromSyncTable,
-} from "@cocalc/sync-server/syncdocs-manager";
+} from "@cocalc/sync-server/server/syncdocs-manager";
 
 type Query = { [key: string]: any };
 

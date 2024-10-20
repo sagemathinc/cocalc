@@ -1072,7 +1072,7 @@ export class SyncDoc extends EventEmitter {
 
     // WARNING: that 'closed' is emitted at the beginning of the
     // close function (before anything async) for the project is
-    // assumed in src/packages/project/sync/sync-doc.ts, because
+    // assumed in @cocalc/sync-server/server/sync-doc.ts, because
     // that ensures that the moment close is called we lock trying
     // try create the syncdoc again until closing is finished.
     // (This set_state call emits "closed"):
@@ -1717,7 +1717,7 @@ export class SyncDoc extends EventEmitter {
 
     // this only potentially happens for tables in the project,
     // e.g., jupyter and compute servers:
-    // see packages/project/sync/server.ts
+    // see @cocalc/sync-server/server/server.ts
     this.patches_table.on("message", (...args) => {
       dbg("received message", args);
       this.emit("message", ...args);
