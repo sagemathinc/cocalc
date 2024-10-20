@@ -16,6 +16,7 @@ import { terminal } from "@cocalc/terminal";
 import realpath from "@cocalc/backend/realpath";
 import { eval_code } from "@cocalc/backend/eval-code";
 import synctableChannel from "./synctable-channel";
+import { project_info_ws } from "@cocalc/sync-server/monitor/activity";
 
 const log = getLogger("websocket-api");
 
@@ -76,9 +77,7 @@ async function handleApiCall(
 
     case "query":
       if (data.opts?.changes) {
-        throw Error(
-          `changefeeds are not supported for api queries`,
-        );
+        throw Error(`changefeeds are not supported for api queries`);
       }
       return await callback2(
         manager.client.query.bind(manager.client),
@@ -104,6 +103,9 @@ async function handleApiCall(
         primus,
       });
 
+    case "project_info":
+      return await project_info_ws(primus, log);
+
     // TODO
     case "delete_files":
     case "move_files":
@@ -122,7 +124,6 @@ async function handleApiCall(
     case "x11_channel":
     case "syncdoc_call":
     case "symmetric_channel":
-    case "project_info":
     case "compute_filesystem_cache":
     case "sync_fs":
     case "compute_server_sync_register":
