@@ -4,17 +4,17 @@
  */
 
 /*
-X11 server channel.
+X11 server channel.  This is implemented under the hood using the standard 
+xpra server. Frontends use a custom xpra client we wrote.
 
 TODO:
   - [ ] other user activity
-  - [ ] when stopping project, kill xpra's
+  - [ ] when stopping sync server, kill xpra sessions
 */
 
 import { spawn, SpawnOptions } from "node:child_process";
 import { callback } from "awaiting";
 import { clone } from "lodash";
-
 import abspath from "@cocalc/backend/misc/abspath";
 import { path_split } from "@cocalc/util/misc";
 

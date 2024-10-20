@@ -24,8 +24,7 @@ import {
   Processes,
   ProjectInfo,
 } from "@cocalc/util/types/project-info/types";
-import { get_path_for_pid as x11_pid2path } from "../x11/server";
-//import { get_sage_path } from "../sage_session"
+import { get_path_for_pid as x11_pid2path } from "@cocalc/sync-server/x11";
 import { getLogger } from "../logger";
 
 const L = getLogger("project-info:server").debug;

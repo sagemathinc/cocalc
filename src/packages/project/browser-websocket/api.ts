@@ -24,7 +24,7 @@ import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
 import { synctable_channel } from "../sync/server";
 import { callSyncDoc } from "@cocalc/sync-server/syncdocs-manager";
 import { terminal } from "@cocalc/terminal";
-import { x11_channel } from "../x11/server";
+import { x11_channel } from "@cocalc/sync-server/x11";
 import { canonical_paths } from "./canonical-path";
 import { delete_files } from "@cocalc/backend/files/delete-files";
 import { eval_code } from "@cocalc/backend/eval-code";
