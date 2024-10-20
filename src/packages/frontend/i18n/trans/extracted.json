@@ -1024,7 +1024,7 @@
     "defaultMessage": "Translate"
   },
   "jupyter.llm.cell-tool.assistant.title": {
-    "defaultMessage": "Use AI assitant on this cell"
+    "defaultMessage": "Use AI assistant on this cell"
   },
   "jupyter.llm.cell-tool.explanation.bugfix": {
     "defaultMessage": "Explain the problem of the code in the cell and the selected language model will attempt to fix it. Usually, it will tell you if it found a problem and explain it to you."

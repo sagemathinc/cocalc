@@ -84,6 +84,10 @@ export interface FrameActions extends Actions {
   // optional, set in frame-editors/jupyter-editor/editor.ts → initMenus
   jupyter_actions?: JupyterActions;
   frame_actions?: NotebookFrameActions;
+
+  // the menu bar and buttons - can be used to explicitly run any menu command
+  // programatically, etc.
+  manageCommands?;
 }
 
 interface EditorActions extends Actions {
@@ -251,6 +255,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       intl,
     ],
   );
+  props.actions.manageCommands = manageCommands;
 
   const has_unsaved_changes: boolean = useRedux([
     props.editor_actions.name,

@@ -159,7 +159,7 @@ export abstract class JupyterActions extends Actions<JupyterStoreState> {
   }
 
   // Only use this on the frontend, of course.
-  protected getFrameActions() {
+  getFrameActions() {
     return this.redux.getEditorActions(this.project_id, this.path);
   }
 
