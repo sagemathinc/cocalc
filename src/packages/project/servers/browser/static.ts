@@ -1,10 +1,19 @@
-import { Application, static as staticServer } from "express";
+/*
+Serve static files from the HOME directory.  
+
+Security: Authentication is not handled at this level.
+
+NOTE: There is a very similar server in src/compute/compute/lib/http-server/static.ts
+*/
+
+import { type Application, static as staticServer } from "express";
 import index from "serve-index";
 import { getLogger } from "@cocalc/project/logger";
 
+const log = getLogger("serve-static-files-to-browser");
+
 export default function init(app: Application, base: string) {
-  const winston = getLogger("serve-static-files-to-browser");
-  winston.info(`initialize with base="${base}"`);
+  log.info(`initialize with base="${base}"`);
   // Setup the static raw HTTP server.  This must happen after anything above,
   // since it serves all URL's (so it has to be the fallback).
   app.use(base, (req, res, next) => {
@@ -24,7 +33,7 @@ export default function init(app: Application, base: string) {
   if (HOME == null) {
     throw Error("HOME env variable must be defined");
   }
-  winston.info(`serving up HOME="${HOME}"`);
+  log.info(`serving up HOME="${HOME}"`);
 
   app.use(base, index(HOME, { hidden: true, icons: true }));
   app.use(base, staticServer(HOME, { dotfiles: "allow" }));

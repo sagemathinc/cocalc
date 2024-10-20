@@ -13,6 +13,7 @@ import { join } from "path";
 import { cacheShortTerm, cacheLongTerm } from "@cocalc/util/http-caching";
 import initWebsocket from "./websocket";
 import initHttpNextApi from "./http-next-api";
+import initRaw from "./raw-server";
 
 const logger = getLogger("http-server");
 
@@ -48,7 +49,7 @@ export function initHttpServer({
     );
   });
 
-  app.get("/settings", (_req, res) => {
+  app.get(`${manager.project_id}/settings`, (_req, res) => {
     res.redirect(join("/static", ENTRY_POINT));
   });
 
@@ -73,6 +74,10 @@ export function initHttpServer({
   });
 
   app.use("/api/v2", initHttpNextApi({ manager }));
+
+  const rawUrl = `/${manager.project_id}/raw`;
+  logger.debug("raw server at ", { rawUrl });
+  app.use(rawUrl, initRaw({ home: manager.home }));
 
   server.listen(port, host, () => {
     logger.info(`Server listening http://${host}:${port}`);
