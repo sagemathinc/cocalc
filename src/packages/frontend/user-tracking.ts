@@ -9,7 +9,8 @@
 
 import { query, server_time } from "./frame-editors/generic/client";
 import { analytics_cookie_name as analytics, uuid } from "@cocalc/util/misc";
-import { entryPoint, redux } from "./app-framework";
+import { redux } from "./app-framework";
+import { entryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import { version } from "@cocalc/util/smc-version";
 import { get_cookie } from "./misc";
 import { webapp_client } from "./webapp-client";

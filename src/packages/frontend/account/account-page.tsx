@@ -15,8 +15,8 @@ import { Space } from "antd";
 import { useIntl } from "react-intl";
 import { SignOut } from "@cocalc/frontend/account/sign-out";
 import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
+import { entryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import {
-  entryPoint,
   React,
   redux,
   useIsMountedRef,

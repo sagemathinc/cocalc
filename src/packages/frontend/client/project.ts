@@ -7,10 +7,8 @@
 Functionality that mainly involves working with a specific project.
 */
 
-import { join } from "path";
 import { redux } from "@cocalc/frontend/app-framework";
 import computeServers from "@cocalc/frontend/compute/manager";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { dialogs, getIntl } from "@cocalc/frontend/i18n";
 import { ipywidgetsGetBufferUrl } from "@cocalc/frontend/jupyter/server-urls";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
@@ -45,7 +43,6 @@ import {
   coerce_codomain_to_numbers,
   copy_without,
   defaults,
-  encode_path,
   is_valid_uuid_string,
   required,
 } from "@cocalc/util/misc";
@@ -53,6 +50,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 import httpApi from "./api";
 import { WebappClient } from "./client";
+import rawUrl from "@cocalc/frontend/lib/raw-url";
 
 export class ProjectClient {
   private client: WebappClient;
@@ -88,12 +86,11 @@ export class ProjectClient {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
   }): string {
-    const base_path = appBasePath;
     if (opts.path[0] === "/") {
       // absolute path to the root
       opts.path = HOME_ROOT + opts.path; // use root symlink, which is created by start_smc
     }
-    return encode_path(join(base_path, `${opts.project_id}/raw/${opts.path}`));
+    return rawUrl(opts);
   }
 
   public async copy_path_between_projects(opts: {

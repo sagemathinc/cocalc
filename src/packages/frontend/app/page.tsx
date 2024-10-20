@@ -14,9 +14,9 @@ import { useIntl } from "react-intl";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
+import { entryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import {
   CSS,
-  entryPoint,
   React,
   useActions,
   useEffect,

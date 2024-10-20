@@ -21,7 +21,7 @@ import { ProjectActions } from "@cocalc/frontend/project_actions";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { url_href } from "../../utils";
+import rawUrl from "@cocalc/frontend/lib/raw-url";
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
@@ -335,7 +335,10 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   // See https://github.com/sagemathinc/cocalc/issues/1020
   // support right-click → copy url for the download button
-  const url = url_href(props.actions.project_id, full_path());
+  const url = rawUrl({
+    project_id: props.actions.project_id,
+    path: full_path(),
+  });
 
   return (
     <Row

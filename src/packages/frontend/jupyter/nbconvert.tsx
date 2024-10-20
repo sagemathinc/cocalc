@@ -9,7 +9,7 @@ NBConvert dialog -- for running nbconvert
 import { Button, Modal } from "antd";
 import * as immutable from "immutable";
 import React, { useEffect, useRef } from "react";
-
+import rawUrl from "@cocalc/frontend/lib/raw-url";
 import { redux } from "@cocalc/frontend/app-framework";
 import { A, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import * as misc from "@cocalc/util/misc";
@@ -196,7 +196,7 @@ export const NBConvert: React.FC<NBConvertProps> = React.memo(
         ext = info.ext;
       }
       const targetPath = misc.change_filename_extension(path, ext);
-      const url = actions.store.get_raw_link(targetPath);
+      const url = rawUrl({ path: targetPath, project_id });
       return { targetPath, url, info };
     }
 

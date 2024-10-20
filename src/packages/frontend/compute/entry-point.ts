@@ -9,7 +9,8 @@ Entry point for compute server version of CoCalc...
 
 // Load/initialize Redux-based react functionality
 import "@cocalc/frontend/client/client";
-import { redux, setEntryPoint } from "@cocalc/frontend/app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
+import { setEntryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import "@cocalc/frontend/jquery-plugins";
 import { init as initAccount } from "@cocalc/frontend/account";
 import { init as initApp } from "@cocalc/frontend/app/init";

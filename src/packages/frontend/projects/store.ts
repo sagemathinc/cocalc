@@ -5,8 +5,8 @@
 import { List, Map, Set } from "immutable";
 import { fromPairs, isEmpty } from "lodash";
 import LRU from "lru-cache";
+import { entryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import {
-  entryPoint,
   redux,
   Store,
   TypedMap,

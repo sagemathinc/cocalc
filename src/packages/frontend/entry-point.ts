@@ -13,7 +13,8 @@ debug.log = console.log.bind(console); // see https://github.com/debug-js/debug#
 import { COCALC_MINIMAL } from "./fullscreen";
 
 // Load/initialize Redux-based react functionality
-import { redux, setEntryPoint } from "./app-framework";
+import { redux } from "./app-framework";
+import { setEntryPoint } from "@cocalc/frontend/app-framework/entry-point";
 
 // Systemwide notifications that are broadcast to all users (and set by admins)
 import "./system-notifications";

@@ -6,9 +6,9 @@
 import { AccountPage } from "@cocalc/frontend/account/account-page";
 import { AdminPage } from "@cocalc/frontend/admin";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import { entryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import {
   CSS,
-  entryPoint,
   React,
   redux,
   useActions,
