@@ -9,7 +9,7 @@ import { SyncTable } from "@cocalc/sync/table";
 import {
   get_ProjectStatusServer,
   ProjectStatusServer,
-} from "../project-status";
+} from "@cocalc/sync-server/monitor/status-and-alerts";
 import type { ProjectStatus } from "@cocalc/comm/project-status/types";
 import { getLogger } from "@cocalc/backend/logger";
 

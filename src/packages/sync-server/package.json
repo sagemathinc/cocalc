@@ -4,7 +4,9 @@
   "description": "CoCalc realtime synchronization framework -- server component",
   "exports": {
     "./*": "./dist/*.js",
-    "./monitor/activity": "./dist/monitor/activity/index.js"
+    "./monitor/activity": "./dist/monitor/activity/index.js",
+    "./monitor/usage": "./dist/monitor/usage/index.js",
+    "./monitor/status-and-alerts": "./dist/monitor/status-and-alerts.js"
   },
   "scripts": {
     "clean": "rm -rf dist",
@@ -19,6 +21,7 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/comm": "workspace:*",
     "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-server": "workspace:*",

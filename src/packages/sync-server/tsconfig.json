@@ -7,11 +7,12 @@
   "exclude": ["node_modules", "dist", "test"],
   "references": [
     {
-      "path": "../util",
       "path": "../backend",
+      "path": "../comm",
       "path": "../jupyter",
       "path": "../sync",
-      "path": "../terminal"
+      "path": "../terminal",
+      "path": "../util"
     }
   ]
 }
