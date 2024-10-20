@@ -14,5 +14,7 @@ export default async function synctableChannel({
   primus;
 }) {
   log.debug(JSON.stringify({ query, options }));
+  const syncTable = manager.client.sync_client.sync_table(query, options);
+  log.debug("have our syncTable!", syncTable);
   throw Error("not implemented");
 }

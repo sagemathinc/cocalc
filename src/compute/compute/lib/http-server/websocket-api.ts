@@ -31,6 +31,7 @@ export function initWebsocketApi({ primus, manager }): void {
         done(resp);
       } catch (err) {
         // console.trace(); log.debug("primus-api error stacktrack", err.stack, err);
+        console.log("primus-api", "request", data, "FAILED", err);
         done({ error: err.toString(), status: "error" });
       }
       log.debug(
@@ -63,18 +64,6 @@ async function handleApiCall(
       // see packages/sync-fs/lib/index.ts
       return await getListing(data.path, data.hidden, manager.home);
 
-    // TODO
-    case "delete_files":
-    case "move_files":
-    case "rename_file":
-    case "canonical_paths":
-    case "configuration":
-    case "prettier": // deprecated
-    case "formatter":
-    case "prettier_string": // deprecated
-    case "formatter_string":
-      throw Error(`command "${(data as any).cmd}" not implemented`);
-
     case "exec":
       if (data.opts == null) {
         throw Error("opts must not be null");
@@ -87,7 +76,9 @@ async function handleApiCall(
 
     case "query":
       if (data.opts?.changes) {
-        throw Error("changefeeds are not supported for api queries");
+        throw Error(
+          `changefeeds are not supported for api queries`,
+        );
       }
       return await callback2(
         manager.client.query.bind(manager.client),
@@ -114,6 +105,15 @@ async function handleApiCall(
       });
 
     // TODO
+    case "delete_files":
+    case "move_files":
+    case "rename_file":
+    case "canonical_paths":
+    case "configuration":
+    case "prettier": // deprecated
+    case "formatter":
+    case "prettier_string": // deprecated
+    case "formatter_string":
     case "lean":
     case "jupyter_strip_notebook":
     case "jupyter_nbconvert":
