@@ -1,5 +1,15 @@
 #!/usr/bin/env node
 
+/*
+To get an interactive console with access to the manager:
+
+~/cocalc/src/compute/compute/dev$ node
+Welcome to Node.js v18.17.1.
+Type ".help" for more information.
+> manager = require('./start-compute.js').manager
+
+*/
+
 process.env.API_SERVER = process.env.API_SERVER ?? "https://cocalc.com";
 console.log("API_SERVER=", process.env.API_SERVER);
 

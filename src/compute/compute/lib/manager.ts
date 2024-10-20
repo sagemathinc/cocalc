@@ -90,6 +90,7 @@ export class Manager {
   public compute_server_id: number;
   private connections: { [path: string]: any } = {};
   private websocket;
+  public listings;
   public client;
 
   constructor({
@@ -187,7 +188,7 @@ export class Manager {
   };
 
   private initListings = async () => {
-    await initListings({
+    this.listings = await initListings({
       client: this.client,
       project_id: this.project_id,
       compute_server_id: this.compute_server_id,

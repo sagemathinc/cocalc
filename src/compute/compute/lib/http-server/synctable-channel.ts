@@ -13,8 +13,13 @@ export default async function synctableChannel({
   options;
   primus;
 }) {
-  log.debug(JSON.stringify({ query, options }));
-  const syncTable = manager.client.sync_client.sync_table(query, options);
-  log.debug("have our syncTable!", syncTable);
+  log.debug("synctableChannel ", query, options);
+  console.log("synctableChannel", primus != null);
+  const table = await manager.client.synctable_project(
+    manager.project_id,
+    query,
+    options ?? [],
+  );
+  console.log("have our syncTable!", table.get()?.toJS());
   throw Error("not implemented");
 }
