@@ -22,7 +22,7 @@ import { lean, lean_channel } from "../lean/server";
 import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
 import { synctable_channel } from "../sync/server";
-import { callSyncDoc } from "@cocalc/sync/server/syncdocs-manager";
+import { callSyncDoc } from "@cocalc/sync-server/syncdocs-manager";
 import { terminal } from "@cocalc/terminal";
 import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";

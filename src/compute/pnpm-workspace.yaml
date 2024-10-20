@@ -6,6 +6,7 @@ packages:
   - "sync"
   - "sync-fs"
   - "sync-client"
+  - "sync-server"
   - "util"
   - "terminal"
   - "compute"

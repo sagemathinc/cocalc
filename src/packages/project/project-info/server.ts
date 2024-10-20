@@ -13,7 +13,6 @@ import type { DiskUsage as DF_DiskUsage } from "diskusage";
 import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
-
 import { ProcessStats } from "@cocalc/backend/process-stats";
 import { get_kernel_by_pid } from "@cocalc/jupyter/kernel";
 import { pidToPath as terminalPidToPath } from "@cocalc/terminal";

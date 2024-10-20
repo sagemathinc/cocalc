@@ -51,7 +51,7 @@ import {
 // @ts-ignore -- typescript nonsense.
 const _ = set_debug;
 
-import { key, register_synctable } from "@cocalc/sync/server/open-synctables";
+import { key, register_synctable } from "@cocalc/sync-server/open-synctables";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
@@ -71,7 +71,7 @@ import {
   initSyncDoc,
   getSyncDocFromSyncTable,
   initSyncDocsManager,
-} from "@cocalc/sync/server/syncdocs-manager";
+} from "@cocalc/sync-server/syncdocs-manager";
 
 import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
 import { getLogger } from "@cocalc/backend/logger";

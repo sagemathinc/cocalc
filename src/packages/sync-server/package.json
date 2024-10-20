@@ -1,0 +1,35 @@
+{
+  "name": "@cocalc/sync-server",
+  "version": "0.1.0",
+  "description": "CoCalc realtime synchronization framework -- server component",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "clean": "rm -rf dist",
+    "preinstall": "npx only-allow pnpm",
+    "build": "../node_modules/.bin/tsc --build",
+    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
+    "prepublishOnly": "pnpm test"
+  },
+  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "author": "SageMath, Inc.",
+  "keywords": ["cocalc", "realtime synchronization"],
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/sync-server": "workspace:*",
+    "@cocalc/sync": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "events": "3.3.0",
+    "awaiting": "^3.0.0"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/sync-server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "devDependencies": {
+    "@types/node": "^18.16.14"
+  }
+}

@@ -113,6 +113,7 @@ def all_packages() -> List[str]:
         'packages/api-client',
         'packages/jupyter',
         'packages/comm',
+        'packages/sync-server',
         'packages/assets',
         'packages/frontend',  # static depends on frontend; frontend depends on assets
         'packages/project',  # project depends on frontend for nbconvert (but NEVER vice versa again), which also depends on assets
