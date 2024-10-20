@@ -27,21 +27,11 @@ import { once } from "@cocalc/util/async-utils";
 import { filename_extension, original_path } from "@cocalc/util/misc";
 import { EventEmitter } from "events";
 import { COMPUTER_SERVER_DB_NAME } from "@cocalc/util/compute/manager";
+import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
+import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
+import { getLogger } from "@cocalc/backend/logger";
 
-// This must be called externally to initialize the logger and open file tracker,
-// if you need that functionality
-let logger: undefined | { debug: Function } = undefined;
-let computeServerOpenFileTracking: undefined | Function = undefined;
-let jupyter: undefined | { initJupyterRedux; removeJupyterRedux } = undefined;
-export function initSyncDocsManager(opts: {
-  logger?;
-  computeServerOpenFileTracking?;
-  jupyter?;
-}) {
-  logger = opts.logger;
-  computeServerOpenFileTracking = opts.computeServerOpenFileTracking;
-  jupyter = opts.jupyter;
-}
+const logger = getLogger("project:sync:sync-doc");
 
 type SyncDoc = SyncDB | SyncString;
 
@@ -55,11 +45,11 @@ export class SyncDocs extends EventEmitter {
   async close(path: string): Promise<void> {
     const doc = this.get(path);
     if (doc == null) {
-      logger?.debug(`SyncDocs: close ${path} -- no need, as it is not opened`);
+      logger.debug(`SyncDocs: close ${path} -- no need, as it is not opened`);
       return;
     }
     try {
-      logger?.debug(`SyncDocs: close ${path} -- starting close`);
+      logger.debug(`SyncDocs: close ${path} -- starting close`);
       this.closing.add(path);
       // As soon as this close starts, doc is in an undefined state.
       // Also, this can take an **unbounded** amount of time to finish,
@@ -79,16 +69,14 @@ export class SyncDocs extends EventEmitter {
       // track down heisenbug. See also
       // https://github.com/sagemathinc/cocalc/issues/5617
       await doc.close();
-      logger?.debug(`SyncDocs: close ${path} -- successfully closed`);
+      logger.debug(`SyncDocs: close ${path} -- successfully closed`);
     } finally {
       // No matter what happens above when it finishes, we clear it
       // and consider it closed.
       // There is perhaps a chance closing fails above (no idea how),
       // but we don't want it to be impossible to attempt to open
       // the path again I.e., we don't want to leave around a lock.
-      logger?.debug(
-        `SyncDocs: close ${path} -- recording that close succeeded`,
-      );
+      logger.debug(`SyncDocs: close ${path} -- recording that close succeeded`);
       delete this.syncdocs[path];
       this.closing.delete(path);
       // I think close-${path} is used only internally in this.create below
@@ -113,11 +101,11 @@ export class SyncDocs extends EventEmitter {
   async create(type, opts): Promise<SyncDoc> {
     const path = opts.path;
     if (this.closing.has(path)) {
-      logger?.debug(
+      logger.debug(
         `SyncDocs: create ${path} -- waiting for previous version to completely finish closing...`,
       );
       await once(this, `close-${path}`);
-      logger?.debug(`SyncDocs: create ${path} -- successfully closed.`);
+      logger.debug(`SyncDocs: create ${path} -- successfully closed.`);
     }
     let doc;
     switch (type) {
@@ -131,14 +119,11 @@ export class SyncDocs extends EventEmitter {
         throw Error(`unknown syncdoc type ${type}`);
     }
     this.syncdocs[path] = doc;
-    logger?.debug(`SyncDocs: create ${path} -- successfully created`);
+    logger.debug(`SyncDocs: create ${path} -- successfully created`);
     // This is used by computeServerOpenFileTracking:
     this.emit("open", path);
-    if (
-      computeServerOpenFileTracking != null &&
-      path == COMPUTER_SERVER_DB_NAME
-    ) {
-      logger?.debug(
+    if (path == COMPUTER_SERVER_DB_NAME) {
+      logger.debug(
         "SyncDocs: also initializing open file tracking for ",
         COMPUTER_SERVER_DB_NAME,
       );
@@ -148,7 +133,7 @@ export class SyncDocs extends EventEmitter {
   }
 
   async closeAll(filename: string): Promise<void> {
-    logger?.debug(`SyncDocs: closeAll("${filename}")`);
+    logger.debug(`SyncDocs: closeAll("${filename}")`);
     for (const path in this.syncdocs) {
       if (path == filename || path.startsWith(filename + "/")) {
         await this.close(path);
@@ -194,14 +179,18 @@ async function initSyncDocAsync(
   synctable: SyncTable,
 ): Promise<void> {
   function log(...args): void {
-    logger?.debug("initSyncDocAsync: ", ...args);
+    logger.debug("initSyncDocAsync: ", ...args);
   }
 
   log("waiting until synctable is ready");
   await waitUntilSyncTableReady(synctable);
   log("synctable ready.  Now getting type and opts");
   const { type, opts } = getTypeAndOpts(synctable);
-  const project_id = (opts.project_id = client.client_id());
+  const project_id = client.client_id();
+  if (project_id == null) {
+    throw Error("client_id must be defined");
+  }
+  opts.project_id = project_id;
   //   log("type = ", type);
   //   log("opts = ", JSON.stringify(opts));
   opts.client = client;
@@ -229,31 +218,28 @@ async function initSyncDocAsync(
   log("ext = ", ext);
   switch (ext) {
     case "sage-jupyter2":
-      if (jupyter != null) {
-        const { initJupyterRedux, removeJupyterRedux } = jupyter;
-        log("initializing Jupyter backend");
-        await initJupyterRedux(syncdoc, client);
-        const path = original_path(syncdoc.get_path());
-        synctable.on("closed", async () => {
-          log("removing Jupyter backend");
-          await removeJupyterRedux(path, project_id);
-        });
-      }
+      log("initializing Jupyter backend");
+      await initJupyterRedux(syncdoc, client);
+      const path = original_path(syncdoc.get_path());
+      synctable.on("closed", async () => {
+        log("removing Jupyter backend");
+        await removeJupyterRedux(path, project_id);
+      });
       break;
   }
 }
 
 async function waitUntilSyncTableReady(synctable: SyncTable): Promise<void> {
   if (synctable.get_state() == "disconnected") {
-    logger?.debug("waitUntilSyncTableReady: wait for synctable be connected");
+    logger.debug("waitUntilSyncTableReady: wait for synctable be connected");
     await once(synctable, "connected");
   }
 
   const t = synctable.get_one();
   if (t != null) {
-    logger?.debug("waitUntilSyncTableReady: currently", t.toJS());
+    logger.debug("waitUntilSyncTableReady: currently", t.toJS());
   }
-  logger?.debug(
+  logger.debug(
     "waitUntilSyncTableReady: wait for document info to get loaded into synctable...",
   );
   // Next wait until there's a document in the synctable, since that will
@@ -261,15 +247,15 @@ async function waitUntilSyncTableReady(synctable: SyncTable): Promise<void> {
   function is_ready(): boolean {
     const t = synctable.get_one();
     if (t == null) {
-      logger?.debug("waitUntilSyncTableReady: is_ready: table is null still");
+      logger.debug("waitUntilSyncTableReady: is_ready: table is null still");
       return false;
     } else {
-      logger?.debug("waitUntilSyncTableReady: is_ready", JSON.stringify(t));
+      logger.debug("waitUntilSyncTableReady: is_ready", JSON.stringify(t));
       return t.has("path");
     }
   }
   await synctable.wait(is_ready, 0);
-  logger?.debug("waitUntilSyncTableReady: document info is now in synctable");
+  logger.debug("waitUntilSyncTableReady: document info is now in synctable");
 }
 
 function getTypeAndOpts(synctable: SyncTable): { type: string; opts: any } {
@@ -306,17 +292,17 @@ function getTypeAndOpts(synctable: SyncTable): { type: string; opts: any } {
 }
 
 export async function callSyncDoc(path: string, mesg: any): Promise<string> {
-  logger?.debug("callSyncDoc", path, mesg);
+  logger.debug("callSyncDoc", path, mesg);
   const doc = syncDocs.get(path);
   if (doc == null) {
-    logger?.debug("callSyncDoc -- not open: ", path);
+    logger.debug("callSyncDoc -- not open: ", path);
     return "not open";
   }
   switch (mesg.cmd) {
     case "close":
-      logger?.debug("callSyncDoc -- now closing: ", path);
+      logger.debug("callSyncDoc -- now closing: ", path);
       await syncDocs.close(path);
-      logger?.debug("callSyncDoc -- closed: ", path);
+      logger.debug("callSyncDoc -- closed: ", path);
       return "successfully closed";
     default:
       throw Error(`unknown command ${mesg.cmd}`);
@@ -326,6 +312,6 @@ export async function callSyncDoc(path: string, mesg: any): Promise<string> {
 // This is used when deleting a file/directory
 // filename may be a directory or actual filename
 export async function closeAllSyncDocsInTree(filename: string): Promise<void> {
-  logger?.debug("closeAllSyncDocsInTree", filename);
+  logger.debug("closeAllSyncDocsInTree", filename);
   return await syncDocs.closeAll(filename);
 }

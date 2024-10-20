@@ -62,24 +62,11 @@ import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
 import type { MergeType } from "@cocalc/sync/table/synctable";
 import Client from "@cocalc/sync-client";
-import {
-  getJupyterRedux,
-  initJupyterRedux,
-  removeJupyterRedux,
-} from "@cocalc/jupyter/kernel";
+import { getJupyterRedux } from "@cocalc/jupyter/kernel";
 import {
   initSyncDoc,
   getSyncDocFromSyncTable,
-  initSyncDocsManager,
 } from "@cocalc/sync-server/syncdocs-manager";
-
-import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
-import { getLogger } from "@cocalc/backend/logger";
-initSyncDocsManager({
-  logger: getLogger("project:sync:sync-doc"),
-  computeServerOpenFileTracking,
-  jupyter: { initJupyterRedux, removeJupyterRedux },
-});
 
 type Query = { [key: string]: any };
 

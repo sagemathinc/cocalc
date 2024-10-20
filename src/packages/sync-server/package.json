@@ -18,8 +18,10 @@
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/backend": "workspace:*",
+    "@cocalc/jupyter": "workspace:*",
     "@cocalc/sync-server": "workspace:*",
     "@cocalc/sync": "workspace:*",
+    "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",
     "events": "3.3.0",
     "awaiting": "^3.0.0"
