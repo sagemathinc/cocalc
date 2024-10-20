@@ -25,9 +25,9 @@ import {
   ProjectInfo,
 } from "@cocalc/util/types/project-info/types";
 import { get_path_for_pid as x11_pid2path } from "@cocalc/sync-server/x11";
-import { getLogger } from "../logger";
+import { getLogger } from "@cocalc/backend/logger";
 
-const L = getLogger("project-info:server").debug;
+const L = getLogger("sync-server:project-info:server").debug;
 
 // function is_in_dev_project() {
 //   return process.env.SMC_LOCAL_HUB_HOME != null;

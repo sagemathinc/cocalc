@@ -32,7 +32,7 @@ import computeFilesystemCache from "./compute-filesystem-cache";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
 import realpath from "@cocalc/backend/realpath";
-import { project_info_ws } from "../project-info";
+import { project_info_ws } from "@cocalc/sync-server/monitor/activity";
 import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
 import type { Mesg } from "@cocalc/comm/websocket/types";

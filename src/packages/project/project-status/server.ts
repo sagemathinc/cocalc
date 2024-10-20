@@ -21,7 +21,7 @@ import { version as smcVersion } from "@cocalc/util/smc-version";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { isEqual } from "lodash";
-import { get_ProjectInfoServer, ProjectInfoServer } from "../project-info";
+import { get_ProjectInfoServer, ProjectInfoServer } from "@cocalc/sync-server/monitor/activity";
 import { ProjectInfo } from "@cocalc/util/types/project-info/types";
 import {
   ALERT_DISK_FREE,

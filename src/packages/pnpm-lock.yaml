@@ -1226,10 +1226,7 @@ importers:
         version: 3.0.0
       debug:
         specifier: ^4.3.2
-        version: 4.3.7(supports-color@8.1.1)
-      diskusage:
-        specifier: ^1.1.3
-        version: 1.2.0
+        version: 4.3.7
       expect:
         specifier: ^26.6.2
         version: 26.6.2
@@ -1932,10 +1929,19 @@ importers:
       awaiting:
         specifier: ^3.0.0
         version: 3.0.0
+      diskusage:
+        specifier: ^1.1.3
+        version: 1.2.0
       events:
         specifier: 3.3.0
         version: 3.3.0
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21
     devDependencies:
+      '@types/lodash':
+        specifier: ^4.14.202
+        version: 4.17.9
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.55
@@ -8903,9 +8909,6 @@ packages:
   nan@2.17.0:
     resolution: {integrity: sha512-2ZTgtl0nJsO0KQCjEpxcIr5D+Yv90plTitZt9JBfQvVJDS5seMl3FOvsh3+9CoYWXf/1l5OaZzzF6nDm4cagaQ==}
 
-  nan@2.19.0:
-    resolution: {integrity: sha512-nO1xXxfh/RWNxfd/XPfbIfFk5vgLsAxUR9y5O0cHMJu/AW9U95JLXqthYHjEp+8gQ5p96K9jUp8nbVOxCdRbtw==}
-
   nan@2.20.0:
     resolution: {integrity: sha512-bk3gXBZDGILuuo/6sKtr0DQmSThYHLtNCdSdXk9YkxD/jK6X2vmCyyXBBxyqZ4XcnzTyYEAThfX3DCEnLf6igw==}
 
@@ -12637,7 +12640,7 @@ snapshots:
 
   '@cocalc/primus-responder@1.0.5':
     dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       node-uuid: 1.4.8
     transitivePeerDependencies:
       - supports-color
@@ -15611,7 +15614,7 @@ snapshots:
   canvas@2.11.2(encoding@0.1.13):
     dependencies:
       '@mapbox/node-pre-gyp': 1.0.11(encoding@0.1.13)
-      nan: 2.19.0
+      nan: 2.20.0
       simple-get: 3.1.1
     transitivePeerDependencies:
       - encoding
@@ -16473,6 +16476,10 @@ snapshots:
   debug@3.2.7:
     dependencies:
       ms: 2.1.2
+
+  debug@4.3.7:
+    dependencies:
+      ms: 2.1.3
 
   debug@4.3.7(supports-color@8.1.1):
     dependencies:
@@ -20158,9 +20165,6 @@ snapshots:
 
   nan@2.17.0: {}
 
-  nan@2.19.0:
-    optional: true
-
   nan@2.20.0: {}
 
   nanoid@3.3.6: {}
@@ -23725,7 +23729,7 @@ snapshots:
     dependencies:
       '@wwa/statvfs': 1.1.18
       awaiting: 3.0.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       port-get: 1.0.4
       ws: 8.18.0
     transitivePeerDependencies:
