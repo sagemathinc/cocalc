@@ -9,7 +9,7 @@ import {
 } from "@cocalc/sync/listings";
 import getListing from "@cocalc/backend/get-listing";
 import { Watcher } from "@cocalc/backend/path-watcher";
-import { close_all_syncdocs_in_tree } from "./sync-doc";
+import { closeAllSyncDocsInTree } from "@cocalc/sync/server/syncdocs-manager";
 import { getLogger } from "@cocalc/backend/logger";
 import { existsSync } from "fs";
 
@@ -24,7 +24,7 @@ export function registerListingsTable(table, query): void {
   const onDeletePath = async (path) => {
     // Also we need to close *all* syncdocs that are going to be deleted,
     // and wait until closing is done before we return.
-    await close_all_syncdocs_in_tree(path);
+    await closeAllSyncDocsInTree(path);
   };
 
   const createWatcher = (path: string, debounce: number) =>

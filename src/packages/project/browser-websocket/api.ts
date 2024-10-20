@@ -22,7 +22,7 @@ import { lean, lean_channel } from "../lean/server";
 import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
 import { synctable_channel } from "../sync/server";
-import { syncdoc_call } from "../sync/sync-doc";
+import { callSyncDoc } from "@cocalc/sync/server/syncdocs-manager";
 import { terminal } from "@cocalc/terminal";
 import { x11_channel } from "../x11/server";
 import { canonical_paths } from "./canonical-path";
@@ -167,7 +167,7 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
         data.options,
       );
     case "syncdoc_call":
-      return await syncdoc_call(data.path, data.mesg);
+      return await callSyncDoc(data.path, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, log, data.name);
     case "realpath":

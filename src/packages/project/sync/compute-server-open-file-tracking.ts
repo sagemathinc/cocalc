@@ -1,10 +1,10 @@
 /*
 Manage the state of open files in the compute servers syncdb sync'd file.
 
-TODO: terminals aren't handled at all here, since they don't have a syncdoc.
+NOTE: terminals aren't handled at all here, since they don't have a syncdoc.
 */
 
-import type { SyncDocs } from "./sync-doc";
+import type { SyncDocs } from "@cocalc/sync/server/syncdocs-manager";
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { once } from "@cocalc/util/async-utils";
 import { meta_file, auxFileToOriginal } from "@cocalc/util/misc";

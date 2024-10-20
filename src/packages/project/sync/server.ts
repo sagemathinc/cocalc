@@ -10,7 +10,7 @@ between project and browser client.
 TODO:
 
 - [ ] If initial query fails, need to raise exception.  Right now it gets
-silently swallowed in persistent mode...
+      silently swallowed in persistent mode...
 */
 
 // How long to wait from when we hit 0 clients until closing this channel.
@@ -51,8 +51,7 @@ import {
 // @ts-ignore -- typescript nonsense.
 const _ = set_debug;
 
-import { init_syncdoc, getSyncDocFromSyncTable } from "./sync-doc";
-import { key, register_synctable } from "./open-synctables";
+import { key, register_synctable } from "@cocalc/sync/server/open-synctables";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
@@ -63,7 +62,24 @@ import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
 import type { MergeType } from "@cocalc/sync/table/synctable";
 import Client from "@cocalc/sync-client";
-import { getJupyterRedux } from "@cocalc/jupyter/kernel";
+import {
+  getJupyterRedux,
+  initJupyterRedux,
+  removeJupyterRedux,
+} from "@cocalc/jupyter/kernel";
+import {
+  initSyncDoc,
+  getSyncDocFromSyncTable,
+  initSyncDocsManager,
+} from "@cocalc/sync/server/syncdocs-manager";
+
+import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
+import { getLogger } from "@cocalc/backend/logger";
+initSyncDocsManager({
+  logger: getLogger("project:sync:sync-doc"),
+  computeServerOpenFileTracking,
+  jupyter: { initJupyterRedux, removeJupyterRedux },
+});
 
 type Query = { [key: string]: any };
 
@@ -237,7 +253,7 @@ class SyncTableChannel {
     }
     if (this.synctable.table === "syncstrings") {
       this.log("init_synctable -- syncstrings: also initialize syncdoc...");
-      init_syncdoc(this.client, this.synctable);
+      initSyncDoc(this.client, this.synctable);
     }
 
     this.synctable.on(

@@ -124,4 +124,6 @@ class ClientNoDatabase extends EventEmitter {
     // not implemented yet in general
     return undefined;
   };
+
+  client_id = () => this.client.client_id();
 }
