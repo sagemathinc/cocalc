@@ -30,6 +30,7 @@
     "@cocalc/static": "workspace:*",
     "@cocalc/sync": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
+    "@cocalc/sync-server": "workspace:*",
     "@cocalc/sync-fs": "workspace:*",
     "@cocalc/terminal": "workspace:*",
     "@cocalc/util": "workspace:*",

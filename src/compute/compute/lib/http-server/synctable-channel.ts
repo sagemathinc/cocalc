@@ -1,4 +1,5 @@
 import { getLogger } from "../logger";
+import { synctable_channel } from "@cocalc/sync-server/server/server";
 
 const log = getLogger("synctable-channel");
 
@@ -14,12 +15,5 @@ export default async function synctableChannel({
   primus;
 }) {
   log.debug("synctableChannel ", query, options);
-  console.log("synctableChannel", primus != null);
-  const table = await manager.client.synctable_project(
-    manager.project_id,
-    query,
-    options ?? [],
-  );
-  console.log("have our syncTable!", table.get()?.toJS());
-  throw Error("not implemented");
+  return await synctable_channel(manager.client, primus, log, query, options);
 }

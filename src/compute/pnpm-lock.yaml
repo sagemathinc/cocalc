@@ -41,6 +41,9 @@ importers:
       '@cocalc/sync-fs':
         specifier: workspace:*
         version: link:../sync-fs
+      '@cocalc/sync-server':
+        specifier: workspace:*
+        version: link:../sync-server
       '@cocalc/terminal':
         specifier: workspace:*
         version: link:../terminal
