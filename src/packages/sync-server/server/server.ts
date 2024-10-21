@@ -466,6 +466,10 @@ class SyncTableChannel {
     if (this.closed || this.closing) {
       return; // closing or already closed
     }
+    if (this.synctable == null) {
+      this.log("save_if_possible: not initialized yet");
+      return;
+    }
     this.log("save_if_possible: saves changes to database");
     await this.synctable.save();
     if (this.synctable.table === "syncstrings") {
@@ -523,8 +527,8 @@ class SyncTableChannel {
     this.log("close: closing");
     this.closing = true;
     delete synctable_channels[this.name];
-    this.channel.destroy();
-    this.synctable.close_no_async();
+    this.channel?.destroy();
+    this.synctable?.close_no_async();
     this.log("close: closed");
     close(this); // don't call this.log after this!
     this.closed = true;
