@@ -99,6 +99,8 @@ import {
   TwitterStrategyConf,
 } from "@cocalc/server/auth/sso/public-strategies";
 import { record_sign_in } from "./sign-in";
+import { getServerSettings } from "@cocalc/database/settings";
+import { signInUsingImpersonateToken } from "@cocalc/server/auth/impersonate";
 
 const logger = getLogger("server:hub:auth");
 
@@ -157,6 +159,7 @@ export class PassportManager {
     undefined;
   // prefix for those endpoints, where SSO services return back
   private auth_url: string | undefined = undefined;
+  private site_url = `https://${DNS}${base_path}`; // updated during init
 
   constructor(opts: PassportManagerOpts) {
     const { router, database, host } = opts;
@@ -292,6 +295,7 @@ export class PassportManager {
 
     // this.router endpoints setup
     this.init_strategies_endpoint();
+    this.initImpersonate();
     this.init_email_verification();
     this.init_password_reset_token();
 
@@ -301,6 +305,7 @@ export class PassportManager {
 
     const settings = await cb2(this.database.get_server_settings_cached);
     const dns = settings.dns || DNS;
+    this.site_url = `https://${dns}${base_path}`;
     this.auth_url = `https://${dns}${path_join(base_path, AUTH_BASE)}`;
     logger.debug(`auth_url='${this.auth_url}'`);
 
@@ -343,9 +348,9 @@ export class PassportManager {
   private async init_email_verification(): Promise<void> {
     // email verification
     this.router.get(`${AUTH_BASE}/verify`, async (req, res) => {
-      const { DOMAIN_URL } = require("@cocalc/util/theme");
+      const { dns } = await getServerSettings();
       const path = require("path").join(base_path, "app");
-      const url = `${DOMAIN_URL}${path}`;
+      const url = `https://${dns}${path}`;
       res.header("Content-Type", "text/html");
       res.header("Cache-Control", "no-cache, no-store");
       if (
@@ -386,7 +391,6 @@ export class PassportManager {
         const cookies = new Cookies(req, res);
         // to match @cocalc/frontend/client/password-reset
         const name = encodeURIComponent(`${base_path}PWRESET`);
-
         const secure = req.protocol === "https";
 
         cookies.set(name, token, {
@@ -394,6 +398,7 @@ export class PassportManager {
           secure,
           overwrite: true,
           httpOnly: false,
+          sameSite: secure ? "strict" : undefined,
         });
         res.redirect("../app");
       }
@@ -581,8 +586,8 @@ export class PassportManager {
         req.user.profile != null
           ? req.user.profile
           : req.user.attributes != null
-          ? req.user.attributes
-          : req.user;
+            ? req.user.attributes
+            : req.user;
 
       // there are cases, where profile is a JSON string (e.g. oauth2next)
       let profile: passport.Profile;
@@ -622,6 +627,7 @@ export class PassportManager {
         cookie_ttl_s,
         req,
         res,
+        site_url: this.site_url,
       };
 
       for (const k in login_info) {
@@ -744,7 +750,7 @@ export class PassportManager {
     const opts = {
       clientID: confDB.conf.clientID,
       clientSecret: confDB.conf.clientSecret,
-      callbackURL: returnUrl,
+      callbackURL: `${base_path.length > 1 ? base_path : ""}${returnUrl}`,
       ...extra_opts,
     } as const;
 
@@ -810,6 +816,13 @@ export class PassportManager {
     }
     L(`initialization of '${name}' at '${strategyUrl}' successful`);
   }
+
+  // This is not really SSO, but we treat it in a similar way.
+  private initImpersonate = () => {
+    this.router.get(`${AUTH_BASE}/impersonate`, (req, res) => {
+      signInUsingImpersonateToken({ req, res });
+    });
+  };
 }
 
 interface IsPasswordCorrect {

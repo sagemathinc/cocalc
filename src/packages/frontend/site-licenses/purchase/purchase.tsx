@@ -726,7 +726,7 @@ export const PurchaseOneLicense: React.FC<Props> = React.memo(({ onClose }) => {
         />
         You should see it listed under{" "}
         <A href={join(appBasePath, "/licenses/managed")}>
-          Licenses that you manage
+          Licenses You Manage
         </A>
         .
       </div>

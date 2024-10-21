@@ -60,15 +60,6 @@ export class AccountClient {
     return await this.call(message.delete_account({ account_id }));
   }
 
-  public async sign_in_using_auth_token(auth_token: string): Promise<any> {
-    // console.log("sign_in_using_auth_token", auth_token);
-    return await this.call(
-      message.sign_in_using_auth_token({
-        auth_token,
-      }),
-    );
-  }
-
   public async sign_in(opts: {
     email_address: string;
     password: string;

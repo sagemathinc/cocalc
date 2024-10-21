@@ -1,8 +1,7 @@
 import Cookies from "cookies";
 
 import { versionCookieName } from "@cocalc/util/consts";
-import base_path from "@cocalc/backend/base-path";
-
+import basePath from "@cocalc/backend/base-path";
 import getServerSettings from "../servers/server-settings";
 import getLogger from "../logger";
 
@@ -33,7 +32,7 @@ export function versionCheckFails(req, res?): boolean {
      also used in the frontend code file @cocalc/frontend/set-version-cookie.js
      but everybody imports it from @cocalc/util/consts.
   */
-  const rawVal = cookies.get(versionCookieName(base_path));
+  const rawVal = cookies.get(versionCookieName(basePath));
   if (rawVal == null) {
     return true;
   }

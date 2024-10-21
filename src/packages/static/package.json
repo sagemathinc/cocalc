@@ -82,6 +82,7 @@
     "handlebars": "^4.7.7",
     "handlebars-loader": "^1.7.1",
     "html-loader": "^2.1.2",
+    "html-minify-loader": "^1.4.0",
     "html-webpack-plugin": "^5.5.3",
     "identity-obj-proxy": "^3.0.0",
     "imports-loader": "^3.0.0",

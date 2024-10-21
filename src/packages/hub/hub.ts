@@ -44,7 +44,6 @@ import initHttpRedirect from "./servers/http-redirect";
 import initPrimus from "./servers/primus";
 import initVersionServer from "./servers/version";
 
-const { COOKIE_OPTIONS } = require("./client"); // import { COOKIE_OPTIONS } from "./client";
 const MetricsRecorder = require("./metrics-recorder"); // import * as MetricsRecorder from "./metrics-recorder";
 
 // Logger tagged with 'hub' for this file.
@@ -109,11 +108,6 @@ async function initMetrics() {
 
 async function startServer(): Promise<void> {
   winston.info("start_server");
-
-  // Be very sure cookies do NOT work unless over https.  IMPORTANT.
-  if (!COOKIE_OPTIONS.secure) {
-    throw Error("client cookie options are not secure");
-  }
 
   winston.info(`basePath='${basePath}'`);
   winston.info(
@@ -288,25 +282,26 @@ async function startServer(): Promise<void> {
     winston.info(msg);
     console.log(msg);
 
-    if (
-      program.websocketServer &&
-      program.nextServer &&
-      process.env["NODE_ENV"] != "production"
-    ) {
-      // This is entirely to deal with conflicts between both nextjs and webpack when doing
-      // hot module reloading.  They fight with each other, and the we -- the developers --
-      // win only AFTER the fight is done. So we force the fight automatically, rather than
-      // manually, which is confusing.
-      console.log(
-        `launch get of ${target} so that webpack and nextjs websockets can fight things out`,
-      );
-      const process = spawn(
-        "chromium-browser",
-        ["--no-sandbox", "--headless", target],
-        { detached: true, stdio: "ignore" },
-      );
-      process.unref();
-    }
+    // this is not so robust, so disabled for now.
+    //     if (
+    //       program.websocketServer &&
+    //       program.nextServer &&
+    //       process.env["NODE_ENV"] != "production"
+    //     ) {
+    //       // This is entirely to deal with conflicts between both nextjs and webpack when doing
+    //       // hot module reloading.  They fight with each other, and the we -- the developers --
+    //       // win only AFTER the fight is done. So we force the fight automatically, rather than
+    //       // manually, which is confusing.
+    //       console.log(
+    //         `launch get of ${target} so that webpack and nextjs websockets can fight things out`,
+    //       );
+    //       const process = spawn(
+    //         "chromium-browser",
+    //         ["--no-sandbox", "--headless", target],
+    //         { detached: true, stdio: "ignore" },
+    //       );
+    //       process.unref();
+    //     }
   }
 
   if (program.all || program.mentions) {
