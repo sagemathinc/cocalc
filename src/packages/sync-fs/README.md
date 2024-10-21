@@ -22,19 +22,22 @@ tree is way too much. Instead, when doing sync, we will just walk the tree.
 Running 'find' as a subcommand seems optimal, taking a few KB memory and about
 1s for several hundred thousand files.
 
+
+- TODO: This sync protocol does NOT deal with file permissions, e.g., changing a file to be executable when it wasn't, since that doesn't update the mtime.  See https://github.com/sagemathinc/cocalc/issues/7342
+
 ## ALGORITHM
 
 The actual sync works as follows. For now, we will do this periodically, possibly triggered
 by active usage signals from the user.
 
 **STEP 1:** On the compute server, make a map from all paths in upper \(both directories and files and whiteouts\),
-except ones excluded from sync, to the ctime for the path \(or negative ctime for deleted paths\):
+except ones excluded from sync, to the mtime for the path \(or negative mtime for deleted paths\):
 
 ```javascript {kernel="javascript"}
-computeState = {[path:string]:ctime of last change to file}
+computeState = {[path:string]:mtime of last change to file metadata}
 ```
 
-**IMPORTANT: We use ctimes in integer seconds, rounding down, since that's what tar does.** Also, a 1 second resolution is more than enough for our application.
+**IMPORTANT: We use mtimes in integer seconds, rounding down, since that's what tar does.** Also, a 1second resolution is more than enough for our application.
 
 We store this in memory.
 
@@ -57,12 +60,12 @@ if any of the following apply:
 - copy from project to compute
 - copy from compute to project
 
-The decision about which is based on knowing the `ctime` of that path on compute, in the project,
+The decision about which is based on knowing the `mtime` of that path on compute, in the project,
 and whether or not the file was deleted \(and when\) on both sides. We know all this information
 for each path, so we _can_ make this decision. It is tricky for directories and files in them,
 but the information is all there, so we can make the decision. If there is a conflict, we resolve it
 by "last timestamp wins, with preference to the project in case of a tie". Note also that all
-`ctimes` are defined and this all happens on local filesystems \(not websocketfs\). It's also possible
+mtimes are defined and this all happens on local filesystems \(not websocketfs\). It's also possible
 to just decide not to do anything regarding a given path and wait until later, which is critical
 since we do not have point in time snapshots; if a file is actively being changed, we just wait until
 next time to deal with it.
@@ -120,11 +123,13 @@ This is a sync algorithm that depends on the existence of clocks.  Therefore we 
 
 We amend the above protocol as follows.  The compute server's message to the project also includes $t_c$ which is the number of ms since the epoch as far as the compute server is concerned.   When the project receives the message, it computes its own time $t_p$.  If  $|t_c - t_p|$ is small, e.g., less than maybe 3 seconds, we just assume the clocks are properly sync'd and do nothing different.  Otherwise, we assume the clock on $t_c$ is wrong.  Instead of trying to fix it, we just shift all timestamps _provided by the compute server_  by adding $\delta = t_p - t_c$ to them.  Also, when sending timestamps computed on the project to the compute server, we subtract $\delta$ from them.  In this way everything should work and the compute server should be none the wiser.
 
-Except that all the files in the tarballs have the wrong timestamps, so we would have to adjust the times of all these files.  And of course all the lower layer filesystem timestamps are just going to be wrong no matter what.  This is not something that can reasonably be done.
+Except that all the files in the tarballs have the wrong timestamps, so we would have to adjust the mtimes of all these files.  And of course all the lower layer filesystem timestamps are just going to be wrong no matter what.  This is not something that can reasonably be done.  
 
 OK, so our protocol instead is that if the time is off by at least 10s \(say\), then instead of doing sync, the project responds with an error message.  This can then be surfaced to the user.
 
 ## Notes
 
-- [mtime versus ctime](https://github.com/sagemathinc/cocalc/issues/7342):  We do not use mtime at all. We do use ctime since whenever metadata or actual data changes, ctime changes, but mtime only changes when actual data changes \(or touch\). The time is used to decide in which direction to sync files when there is a conflict.  It is NOT used as a threshold for whether or not to copy files at all.  E.g., if you have an old file `a.c` and type `cp -a a.c a2.c` on the compute server, then `a2.c` does still get copied back to the project.
+- mtime versus ctime.  We do not use ctime at all. We do use mtime, but it is used to decide in which direction to sync files when there is a conflict.  It is NOT used as a threshold for whether or not to copy files at all.  E.g., if you have an old file `a.c` and type `cp -a a.c a2.c` on the compute server, then `a2.c` does still get copied back to the project.
+
+- mtime versus ctime, part 2: To quote the internet: "You cannot change the ctime by ordinary means. This is by design: the ctime is always updated to the current when you change any of the file's metadata, and there is no way to impose a different ctime." -- https://unix.stackexchange.com/questions/36021/how-can-i-change-change-date-of-file/36105#36105
 

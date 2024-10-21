@@ -28,7 +28,7 @@ export async function metadataFile({
   path: string;
   exclude: string[];
 }): Promise<string> {
-  log("metadataFile", path, exclude);
+  log("mtimeDirTree", path, exclude);
   if (!(await exists(path))) {
     return "";
   }
@@ -41,7 +41,7 @@ export async function metadataFile({
   //   in them!
   //   BUT -- we are assuming filenames can be encoded as utf8; if not, sync will
   //   obviously not work.
-  // - The find output contains more than just what is needed for ctimeDirTree; it contains
+  // - The find output contains more than just what is needed for mtimeDirTree; it contains
   //   everything needed by websocketfs for doing stat, i.e., this output is used
   //   for the metadataFile functionality of websocketfs.
   // - Just a little fact -- output from find is NOT sorted in any guaranteed way.
@@ -61,7 +61,7 @@ export async function metadataFile({
       "-o",
       ...findExclude(exclude),
       "-printf",
-      "%p\\0%.10C@ %.10A@ %b %s %M\\0\\0",
+      "%p\\0%.10T@ %.10A@ %b %s %M\\0\\0",
     ]),
     {
       cwd: path,
@@ -70,13 +70,13 @@ export async function metadataFile({
   return stdout;
 }
 
-// Compute the map from paths to their integral ctime for the entire directory tree
+// Compute the map from paths to their integral mtime for the entire directory tree
 // NOTE: this could also be done with the walkdir library, but using find
 // is several times faster in general. This is *the* bottleneck, and the
 // subprocess IO isn't much, so calling find as a subprocess is the right
 // solution!  This is not a hack at all.
 // IMPORTANT: top level hidden subdirectories in path are always ignored
-export async function ctimeDirTree({
+export async function mtimeDirTree({
   path,
   exclude,
   metadataFile,
@@ -85,7 +85,7 @@ export async function ctimeDirTree({
   exclude: string[];
   metadataFile?: string;
 }): Promise<{ [path: string]: number }> {
-  log("ctimeDirTree", path, exclude);
+  log("mtimeDirTree", path, exclude);
   if (!(await exists(path))) {
     return {};
   }
@@ -102,7 +102,7 @@ export async function ctimeDirTree({
       "-o",
       ...findExclude(exclude),
       "-printf",
-      "%p\\0%C@\\0\\0",
+      "%p\\0%T@\\0\\0",
     ]);
     const { stdout } = await execa("find", [...args], {
       cwd: path,
