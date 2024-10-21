@@ -10,7 +10,7 @@ The code here helps with periodically syncing a compute server and the project,
 where the compute server uses unionfs\-fuse combined with websocketfs, and the
 project uses a non\-FUSE fast local filesystem \(e.g., ext4 or zfs\). This
 algorithm will result in the file systems being equal if there is no activity for
-a few seconds. ItϨ's meant to provide a "last on to change the path wins", BUT
+a few seconds. It's meant to provide a "last one to change the file wins", BUT
 with a tolerance of maybe ~10 seconds, especially for deletes.
 
 This does not use inotify or any other file watching because cocalc runs on
@@ -21,6 +21,9 @@ potentially using large amounts of memory and cpu. E.g., one single cocalc dev
 tree is way too much. Instead, when doing sync, we will just walk the tree.
 Running 'find' as a subcommand seems optimal, taking a few KB memory and about
 1s for several hundred thousand files.
+
+
+- TODO: This sync protocol does NOT deal with file permissions, e.g., changing a file to be executable when it wasn't, since that doesn't update the mtime.  See https://github.com/sagemathinc/cocalc/issues/7342
 
 ## ALGORITHM
 
@@ -127,4 +130,6 @@ OK, so our protocol instead is that if the time is off by at least 10s \(say\), 
 ## Notes
 
 - mtime versus ctime.  We do not use ctime at all. We do use mtime, but it is used to decide in which direction to sync files when there is a conflict.  It is NOT used as a threshold for whether or not to copy files at all.  E.g., if you have an old file `a.c` and type `cp -a a.c a2.c` on the compute server, then `a2.c` does still get copied back to the project.
+
+- mtime versus ctime, part 2: To quote the internet: "You cannot change the ctime by ordinary means. This is by design: the ctime is always updated to the current when you change any of the file's metadata, and there is no way to impose a different ctime." -- https://unix.stackexchange.com/questions/36021/how-can-i-change-change-date-of-file/36105#36105
 
