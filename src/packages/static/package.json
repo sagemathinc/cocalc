@@ -22,6 +22,7 @@
     "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
   },
+  "browserslist": ["defaults"],
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/cocalc"

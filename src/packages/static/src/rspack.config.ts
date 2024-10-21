@@ -149,6 +149,7 @@ export default function getConfig({ middleware }: Options = {}) {
   }
 
   const config = {
+    target: "browserslist",
     ignoreWarnings: [/Failed to parse source map/],
     devtool: PRODMODE ? undefined : "eval-cheap-module-source-map",
     mode: PRODMODE
