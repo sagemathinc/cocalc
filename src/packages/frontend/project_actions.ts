@@ -84,7 +84,6 @@ import {
   download_href,
   in_snapshot_path,
   normalize,
-  url_href,
 } from "@cocalc/frontend/project/utils";
 import { API } from "@cocalc/frontend/project/websocket/api";
 import {
@@ -101,6 +100,7 @@ import {
   ProjectStoreState,
 } from "@cocalc/frontend/project_store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import rawUrl from "@cocalc/frontend/lib/raw-url";
 
 const { defaults, required } = misc;
 
@@ -2571,7 +2571,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       url = download_href(this.project_id, opts.path);
       download_file(url);
     } else {
-      url = url_href(this.project_id, opts.path);
+      url = rawUrl({ project_id: this.project_id, path: opts.path });
       const tab = open_new_tab(url);
       if (tab != null && opts.print) {
         // "?" since there might be no print method -- could depend on browser API

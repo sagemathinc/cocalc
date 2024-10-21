@@ -1064,6 +1064,9 @@ addCommands({
     label: labels.save,
     keyboard: `${IS_MACOS ? "⌘" : "control"} + S`,
   },
+  // DO NOT just change the name from chatgpt to something else, e.g.,
+  // this is explicitly used in /frontend/jupyter/llm/cell-tool.tsx
+  // to search for and run the command.
   chatgpt: {
     pos: 1,
     group: "show-frames",

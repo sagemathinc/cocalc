@@ -6,9 +6,11 @@
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { close } from "@cocalc/util/misc";
 import { SyncTable } from "@cocalc/sync/table";
-import { get_ProjectInfoServer } from "../project-info";
+import {
+  get_ProjectInfoServer,
+  type ProjectInfoServer,
+} from "@cocalc/sync-server/monitor/activity";
 import { ProjectInfo } from "@cocalc/util/types/project-info/types";
-import { ProjectInfoServer } from "../project-info";
 
 class ProjectInfoTable {
   private table: SyncTable;
@@ -21,7 +23,7 @@ class ProjectInfoTable {
   constructor(
     table: SyncTable,
     logger: { debug: Function },
-    project_id: string
+    project_id: string,
   ) {
     this.project_id = project_id;
     this.logger = logger;
@@ -48,7 +50,7 @@ class ProjectInfoTable {
       this.log(
         `ProjectInfoTable state = '${
           this.state
-        }' and table is '${this.table?.get_state()}'`
+        }' and table is '${this.table?.get_state()}'`,
       );
     }
   }
@@ -72,12 +74,12 @@ let project_info_table: ProjectInfoTable | undefined = undefined;
 export function register_project_info_table(
   table: SyncTable,
   logger: any,
-  project_id: string
+  project_id: string,
 ): void {
   logger.debug("register_project_info_table");
   if (project_info_table != null) {
     logger.debug(
-      "register_project_info_table: cleaning up an already existing one"
+      "register_project_info_table: cleaning up an already existing one",
     );
     project_info_table.close();
   }

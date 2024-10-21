@@ -8,7 +8,6 @@ import * as dogNames from "dog-names";
 import * as os_path from "path";
 import { generate as heroku } from "project-name-generator";
 import * as superb from "superb";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { BASE_URL } from "@cocalc/frontend/misc";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -25,6 +24,7 @@ import {
   unreachable,
   uuid,
 } from "@cocalc/util/misc";
+import rawUrl from "@cocalc/frontend/lib/raw-url";
 
 export function randomPetName() {
   return Math.random() > 0.5 ? catNames.random() : dogNames.allRandom();
@@ -289,14 +289,9 @@ export function url_fullpath(project_id: string, path: string): string {
   );
 }
 
-// returns the URL for the file at the given path
-export function url_href(project_id: string, path: string): string {
-  return os_path.join(appBasePath, project_id, "raw", encode_path(path));
-}
-
 // returns the download URL for a file at a given path
 export function download_href(project_id: string, path: string): string {
-  return `${url_href(project_id, path)}?download`;
+  return `${rawUrl({ project_id, path })}?download`;
 }
 
 export function in_snapshot_path(path: string): boolean {

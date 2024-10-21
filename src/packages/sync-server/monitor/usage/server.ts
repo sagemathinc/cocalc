@@ -13,14 +13,13 @@ from the ProjectInfoServer (which collects data about everything)
 
 import { delay } from "awaiting";
 import { EventEmitter } from "node:events";
-
-import { getLogger } from "../logger";
-import { ProjectInfoServer, get_ProjectInfoServer } from "../project-info";
+import { getLogger } from "@cocalc/backend/logger";
+import { ProjectInfoServer, get_ProjectInfoServer } from "@cocalc/sync-server/monitor/activity";
 import { Process, ProjectInfo } from "@cocalc/util/types/project-info/types";
 import type { UsageInfo } from "@cocalc/util/types/project-usage-info";
 import { throttle } from "lodash";
 
-const L = getLogger("usage-info:server").debug;
+const L = getLogger("sync-server:usage:server").debug;
 
 const throttled_dbg = throttle((...args) => L(...args), 10000);
 

@@ -21,18 +21,18 @@ import { nbconvert as jupyter_nbconvert } from "../jupyter/convert";
 import { lean, lean_channel } from "../lean/server";
 import { jupyter_strip_notebook } from "@cocalc/jupyter/nbgrader/jupyter-parse";
 import { jupyter_run_notebook } from "@cocalc/jupyter/nbgrader/jupyter-run";
-import { synctable_channel } from "../sync/server";
-import { syncdoc_call } from "../sync/sync-doc";
+import { synctable_channel } from "@cocalc/sync-server/server/server";
+import { callSyncDoc } from "@cocalc/sync-server/server/syncdocs-manager";
 import { terminal } from "@cocalc/terminal";
-import { x11_channel } from "../x11/server";
+import { x11_channel } from "@cocalc/sync-server/x11";
 import { canonical_paths } from "./canonical-path";
 import { delete_files } from "@cocalc/backend/files/delete-files";
-import { eval_code } from "./eval-code";
+import { eval_code } from "@cocalc/backend/eval-code";
 import computeFilesystemCache from "./compute-filesystem-cache";
 import { move_files } from "@cocalc/backend/files/move-files";
 import { rename_file } from "@cocalc/backend/files/rename-file";
-import { realpath } from "./realpath";
-import { project_info_ws } from "../project-info";
+import realpath from "@cocalc/backend/realpath";
+import { project_info_ws } from "@cocalc/sync-server/monitor/activity";
 import query from "./query";
 import { browser_symmetric_channel } from "./symmetric_channel";
 import type { Mesg } from "@cocalc/comm/websocket/types";
@@ -167,7 +167,7 @@ async function handleApiCall(data: Mesg, spark): Promise<any> {
         data.options,
       );
     case "syncdoc_call":
-      return await syncdoc_call(data.path, data.mesg);
+      return await callSyncDoc(data.path, data.mesg);
     case "symmetric_channel":
       return await browser_symmetric_channel(client, primus, log, data.name);
     case "realpath":

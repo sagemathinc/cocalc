@@ -8,6 +8,7 @@ import CheckedFiles from "./checked-files";
 import ShowError from "@cocalc/frontend/components/error";
 import { PRE_STYLE } from "./action-box";
 import { Icon } from "@cocalc/frontend/components/icon";
+import rawUrl from "@cocalc/frontend/lib/raw-url";
 
 export default function Download({}) {
   const inputRef = useRef<any>(null);
@@ -36,14 +37,13 @@ export default function Download({}) {
       setArchiveMode(true);
       return;
     }
-    const file = checked_files.first();
+    const path = checked_files.first();
     const isdir = redux.getProjectStore(project_id).get("displayed_listing")
-      ?.file_map?.[path_split(file).tail]?.isdir;
-    console.log({ isdir });
+      ?.file_map?.[path_split(path).tail]?.isdir;
     setArchiveMode(!!isdir);
     if (!isdir) {
-      const store = actions?.get_store();
-      setUrl(store?.get_raw_link(file) ?? "");
+      const url = rawUrl({ project_id, path });
+      setUrl(`${document.location.origin}${url}`);
     }
   }, [checked_files, current_path]);
 

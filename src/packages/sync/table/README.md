@@ -1,4 +1,186 @@
-# SYNCHRONIZED TABLE --
+# Synchronized Tables aka SyncTables
+
+A synchronized table is basically a small in\-memory key:value store that is replicated across many web browsers and a cocalc project, and usually persisted in the database. The keys are strings and the values are JSON-able objects. Some of our synctables are defined by a PostgreSQL table and rules that grant a user permission to read or write to a defined subset of the table. There are also ephemeral synctables, which are not persisted to the database, e.g., the location of user cursors in a document.
+
+A web browser can directly manage a synctable via queries \(through a hub\) to the database, e.g., the account settings and list of user projects are dealt with this way.
+
+For file editing, the synctable is managed by the project, and all web browsers connect via a websocket to the project. The project ensures that the syntable state is eventually identical for all browsers to its own state, and is also responsible for persisting data longterm to the database. It does NOT setup a changefeed for file editing with the database, since all file editing goes through the project, hence it is the only one that changes the database table of file editing state.
+
+```mermaid
+graph TD;
+  A[Web Browsers...] -- WebSocket --> B[The Project Home Base];
+  D -- TCP Socket --> B;
+  A -- Queries --> D[Hubs...];
+  D -- SQL & LISTEN/NOTIFY --> C[(The PostgreSQL Database)];
+  G[Compute Servers...] -- WebSocket --> B;
+  A -- WebSocket --> G;
+
+  subgraph SyncTable Architecture
+    E((Ephemeral SyncTables))
+    F((Persistent SyncTables))
+    G
+    A
+    B
+  end
+
+  style E fill:#f9f,stroke:#333,stroke-width:2px
+  style F fill:#ff9,stroke:#333,stroke-width:2px
+  style B fill:#afa,stroke:#333,stroke-width:2px
+  style G fill:#f88,stroke:#333,stroke-width:2px
+  style C fill:#ccf,stroke:#333,stroke-width:2px
+  style D fill:#ffb,stroke:#333,stroke-width:2px
+```
+
+The direction of the arrow indicates which side _initiates_ the connection; in most cases data flows in both directions,
+possibly with a realtime push model (due to persistent connections).
+
+## SyncTables: Motivation and Broader Context
+
+Realtime synchronized text editing and editing complicated data structures like those in Jupyter notebooks is **not** done directly using synctables! Instead, synctables are a low level primitive on which we build those more complicated synchronized documents.
+
+### Global State
+
+We do use synctables to manage various aspects of user state that directly reflects the contents of the database, including:
+
+- all (or recent!) projects a user is a collaborator on,
+- the log of activity in an open project,
+- account settings for a user,
+- files that were recently active in some project you collaborate on
+
+These are all managed via a direct connection between the web browser and a backend hub, which connects to the database and uses PostgreSQL LISTEN/NOTIFY to get realtime updates whenever the database changes. It is not necessary to that if one web browser makes a change, e.g., to account settings, that everybody else sees that as quickly as possible; also, the volume of such traffic is relatively low.
+
+### File Editing State
+
+In contrast, when actively editing a file, the higher level SyncDoc data structures create a synctables that is being populated with new patches every second or two, and these must be made visible to
+all other clients as quickly as possible. Moreover, when evaluating code in a Jupyter notebook, a synctable changes to reflect that you want to evaluate code, and is then updated again with a new patch with the result of that code evaluation -- this must all happen quickly, and can't involve the database as part of the data flow. Instead, the browsers and home base communicate directly via a websocket, and the patches are persisted to the database (in big chunks) in the background.
+
+## Protocol Used to Synchronize SyncTables
+
+Synctables exist in three places:
+
+- Web Browsers
+- The Project Home Base
+- Compute Servers
+
+They are _eventually consistent_, in the sense that if everybody stops making changes and all network connections are working, then eventually all copies of the same table \(i.e., defined by the same query\) will be the same.
+
+There is no fundamental reason regarding the algorithm for not syncing between browsers directly. What is the algorithm though?
+
+### Database Backed Synctables
+
+For synctables that directly reflect the PostgreSQL database, the client writes changes to the hub until they succeed, and the hub listens using LISTEN/NOTIFY for changes to the relevant table in the database, and if they are relevant to the user, sends an update message. Doing this efficiently in general is probably impossible, but we have a pretty explicit list of queries and tables, and special data structures to make this efficient.
+
+The browser client writes changes to the hub until success.
+
+```mermaid
+graph TD;
+  A[Web Browsers...] <--Websocket--> B[Hub];
+  B <--SELECT/INSERT/UPDATE/LISTEN/NOTIFY--> C[(Database)]
+  D[Project Home Base] <--Websocket--> B;
+
+  subgraph Clients of Database Backed SyncTables
+    A
+    D
+    E[Compute Servers...] <--WebSocket-->D
+  end
+```
+
+### Project Backed Synctable Protocol
+
+As mentioned above, there is one master \(the home base\) and a bunch of clients. We do not currently do any browser\-to\-browser synchronization of synctables, so when collaboratively editing documents, all data goes from the browser back to the project home base, and is then broadcast back to the other browsers.
+
+```mermaid
+graph TD;
+  A[Web Browsers...] <---> B[Project Home Base];
+  C[Compute Servers...] <---> B;
+  B -.Non-Ephemeral Data.-> H[Hub] --> D[(Database)];
+  B -.Ephemeral Data.-> N[ /dev/null]
+
+  subgraph Clients of Project-Backed SyncTables
+    A
+    C
+  end
+
+```
+
+Consider a synctable $T_p$ in the project home base $p$ and the corresponding
+synctable $T_c$ in a web browser or compute server client $c$. These are key\-value stores, and either synctable may be modified at any time. There is a persistent websocket connection between the project and browser, but we assume it can go down at any time,
+but eventually comes back. Assume that all relevant data is stored in memory in
+both the project and web browser, since longterm persistent is not relevant to this protocol.
+
+Our goal is to periodically do a sync operation involving $T_p$ and $T_c$, which doesn't require blocking writes on either side, but after which the state of both will be the same if there are no changes to either side.  Moreover, when there are conflicts, we want "last change wins", where time is defined as follows.  We assume that $p$ and $c$ have synchronized their clocks within a second or so, which is fine, given our requirements \(ping times should be far less than 1 second\), and easy to do via a ping.   If between sync operations the same key has different values set, then we resolve the conflict by selecting the one that was changed most recently, with any tie being broken by the project winning.
+
+**NOTE:** This is not a distributed computing paper, it's a simple real life protocol.  Time exists.
+
+First we assume that the network connection is robust and explain how the protocol works.  Then we explain what we do to fix things when the network connection goes down and the client reconnects.  
+
+#### Robust Network
+
+Assume that the network is working perfectly.   Each client keeps track of the following:
+
+- **value:**  the key:value mapping \(we use immutable.js to implement this\)
+- **changes:** a map from keys that this client has changed but not yet saved to the timestamp when they  made the change. Initially this is empty.
+- **versions:** a map from all keys to when they were last changed \(or time when table was initialized\)
+
+When a participant _makes a change_ to their copy of the synctable, they do the following:
+
+- update **value**\[key\] \(which could include deleting the value\)
+
+- set **changes**\[key\] = time of change.  \(In the code we add 1ms enough times to the realtime so that changes\[key\] are locally distinct, but I don't see why that is needed.\)
+
+- The project assigns **versions**\[key\] and immediately broadcasts to all connected clients the new **value**\[key\] and its version.  The browser sets **versions**\[key\] to 0.
+
+When a browser saves their changes to the project, they send the following to the project for every key where **changes**\[key\] is set:
+
+- **value**\[key\]   \-\- the value.  This also determines the key since it the primary key.
+- **time = changes**\[key\] \-\- when browser made the change to value\[key\]
+
+The project sends a message with the above data, and assuming the send succeeds, it clears the **changes** variable, assuming that the data was sent.  
+
+**NOTE:** Our implementation does verify that the send happens \(write to the websocket succeeds\), but does not wait for an explicit acknowledgement back confirming that the data was received and processed by the project.   I think the idea is that every reason for the project to not receive the data would **also** result in the websocket connection breaking and everything resetting anyways.
+
+The project then receives a message with the above data and does the following \(see `apply_changes_from_browser_client`\):
+
+- if the **changes**\[key\] is $\geq$ **versions**\[key\], make the change, recording the new value, versions and changes values.
+
+We do the above for all keys, then broadcast a message to all connected clients with the new values and times.  The clients then receive those broadcast message and for each key, do the following:
+
+- if the **changes**\[key\] is $\geq$ **versions**\[key\], make the change, recording the new value and version.
+
+**NOTE:** We have not implemented deleting from a synctable yet, and there's code that awkwardly gets around this, e.g., by using a sentinel value.  For collab editing we don't need delete, since all we are saving is patches, which we never delete \(unless deleting everything\).   I don't see any reason why implementing delete would be hard though.
+
+**NOTE:**  Maybe the comparison should be $>$ instead of $\geq$ because in the case of a tie, the project is going to send out the version again, and then the other client with the same timestamp will receive and change their result. It works because the other client does change their result, but it's extra work and a bit nerve racking, and it would just be more efficient to break the tie in the other direction.
+
+#### Network Connection Breaks
+
+Next we consider the various situation where the network connection breaks, the project restarts entirely, etc..  During that time, we assume that every table may be getting changed \(e.g., users are still typing away\), so we can't just reset everything.   
+
+After something breaks \(network, project, etc.\), a client connects to the project and the following happens:
+
+- the project sends the entire table, which includes key/value pairs, and also their versions.  For an ephemeral table, e.g., cursors, ipywidgets, etc., this is empty.  For a table backed by the database, e.g., directory listings, this would be the latest version of the relevant data from the database and the versions are all reset to the time the table was initialized again in the project. 
+- the client then goes through this table and for each key where the version is bigger $\geq$ to what they have, the value and version is updated \(as above\).
+- for each key that the client knows about and for which they did not change it when offline \(so it's not already marked to send out\), we set changes\[key\] to now, so that key will get sent to the server.    E.g., if we have an ephemeral table and the project side restarts, this makes it so everything in all clients gets sent to the project on the next save, and who wins is somewhat random.
+  - **NOTE**: For an ephemeral table, if one client changes a key when the project is down and nobody else does, then that one client would have the oldest timestamp for that change, and all the other clients, with an older version of that data, would overwrite the newer version.  _That's not optimal and we should probably change this._ Ephemeral tables are typically for things like cursors \(or ipywidgets\) when editing a document, so the impact of this might be a glitch for 1 second while reconnecting, and there's probably other much weirder stuff going on at the same time.
+
+**NOTE:** If the table is entirely reset to the database and the browser has made changes while waiting to connect, those would be lost, because the versions that the project assigns in this case are when the table is initialized again in the project.   There's probably applications where this is bad.  However, in cocalc it isn't a problem: for collaborative editing we never change entries in the table, instead just make new ones \(which can't clash\); for listings, those are only created by the project.
+
+### Compute Servers
+
+Our new goal is that compute servers can also act like the project.  In fact a large number of web browsers connect to a compute server, it manages sync with all of them, then periodically sends a big single update to the project.   This would allow for best security, scalability, etc., where a single project could have hundreds of notebooks run at once \(say\), across several compute servers, with realtime sync, and many clients.
+
+```mermaid
+graph TD;
+  A[Web Browsers...] <---> B[Project Home Base];
+  C[Compute Servers...] <---> B;
+  B -.Non-Ephemeral Data.-> H[Hub] --> D[(Database)];
+  B -.Ephemeral Data.-> N[ /dev/null]
+  A <---> C
+
+  subgraph Clients of Project-Backed SyncTables
+    A
+    C
+  end
+```
 
 ## Defined by an object query
 
@@ -8,21 +190,26 @@
 
 ## Methods
 
-- constructor(query): query = the name of a table (or a more complicated object)
+- **constructor\(query\):** query = the name of a table \(or a more complicated object\)
 
-- set(map): Set the given keys of map to their values; one key must be
-  the primary key for the table. NOTE: Computed primary keys will
-  get automatically filled in; these are keys in schema.coffee,
-  where the set query looks like this say:
-  (obj, db) -> db.sha1(obj.project_id, obj.path)
-- get(): Current value of the query, as an immutable.js Map from
+- **set\(map\):** Set the given keys of map to their values; one key must be
+  the primary key for the table. NOTE: Computed primary keys will get automatically filled in; these are keys in `packages/util/db-schema`
+  where the set query looks like this:
+  `(obj, db) -> db.sha1(obj.project_id, obj.path)`
+
+- **get\(\):** Current value of the query, as an immutable.js Map from
   the primary key to the records, which are also immutable.js Maps.
-- get(key): The record with given key, as an immutable Map.
-- get(keys): Immutable Map from given keys to the corresponding records.
-- get_one(): Returns one record as an immutable Map (useful if there
-  is only one record)
 
-- close(): Frees up resources, stops syncing, don't use object further
+- **get\(key\):** The record with given key, as an immutable Map.
+
+- **get\(keys\):** Immutable Map from given keys to the corresponding records.
+
+- **get\_one\(\):** Returns one record as an immutable Map \(useful if there
+  is only one record\)
+
+- **close\(\):** Frees up resources, stops syncing, don't use object further
+
+- **save\(\):** Sync all changes to the database or project home base
 
 ## Events
 
@@ -43,17 +230,25 @@
 
 A SyncTable is a finite state machine as follows:
 
-                          -------------------<------------------
-                         \|/                                   |
-    [connecting] --> [connected]  -->  [disconnected]  --> [reconnecting]
+```mermaid
+stateDiagram-v2
+    [*] --> connecting
+    connecting --> connected
+    connected --> disconnected
+    disconnected --> reconnecting
+    reconnecting --> connecting
 
-Also, there is a final state called 'closed', that the SyncTable moves to when
+    connecting --> closed
+    connected --> closed
+    disconnected --> closed
+    reconnecting --> closed
+```
+
+There is a final state called 'closed', that the SyncTable moves to when
 it will not be used further; this frees up all connections and used memory.
 The table can't be used after it is closed. The only way to get to the
 closed state is to explicitly call close() on the table; otherwise, the
 table will keep attempting to connect and work, until it works.
-
-    (anything)  --> [closed]
 
 - connecting -- connecting to the backend, and have never connected before.
 
@@ -106,3 +301,4 @@ main thing this function deals with below.
 
 3. We use a stable version, since otherwise things will randomly break if the
    key is an object.
+

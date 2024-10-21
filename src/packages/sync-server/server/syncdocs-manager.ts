@@ -4,7 +4,13 @@
  */
 
 /*
-Backend project support for using syncdocs.
+Backend support for using syncdocs.  If a client opens a synctable with
+table='syncstrings', then a corresponding SyncDoc gets created here, so
+that its possible to edit the actual file on disk that corresponds to
+that entry in the syncstrings table.  This is done automatically, rather
+than requiring the frontend client to somehow configure this.
+
+---
 
 This is mainly responsible for:
 
@@ -16,12 +22,12 @@ This is mainly responsible for:
 import { SyncTable } from "@cocalc/sync/table";
 import { SyncDB } from "@cocalc/sync/editor/db/sync";
 import { SyncString } from "@cocalc/sync/editor/string/sync";
-import type Client from "@cocalc/sync-client";
+import type { Client } from "@cocalc/sync/client/types";
 import { once } from "@cocalc/util/async-utils";
 import { filename_extension, original_path } from "@cocalc/util/misc";
-import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import { EventEmitter } from "events";
 import { COMPUTER_SERVER_DB_NAME } from "@cocalc/util/compute/manager";
+import { initJupyterRedux, removeJupyterRedux } from "@cocalc/jupyter/kernel";
 import computeServerOpenFileTracking from "./compute-server-open-file-tracking";
 import { getLogger } from "@cocalc/backend/logger";
 
@@ -144,7 +150,7 @@ const syncDocs = new SyncDocs();
 // instead of syncdoc_metadata (say) because it was created when we only
 // used strings for sync.
 
-export function init_syncdoc(client: Client, synctable: SyncTable): void {
+export function initSyncDoc(client: Client, synctable: SyncTable): void {
   if (synctable.get_table() !== "syncstrings") {
     throw Error("table must be 'syncstrings'");
   }
@@ -153,34 +159,38 @@ export function init_syncdoc(client: Client, synctable: SyncTable): void {
   }
   // It's the right type of table and not closed.  Now do
   // the real setup work (without blocking).
-  init_syncdoc_async(client, synctable);
+  initSyncDocAsync(client, synctable);
 }
 
 // If there is an already existing syncdoc for this path,
 // return it; otherwise, return undefined.  This is useful
 // for getting a reference to a syncdoc, e.g., for prettier.
-export function get_syncdoc(path: string): SyncDoc | undefined {
+export function getSyncDoc(path: string): SyncDoc | undefined {
   return syncDocs.get(path);
 }
 
 export function getSyncDocFromSyncTable(synctable: SyncTable) {
-  const { opts } = get_type_and_opts(synctable);
-  return get_syncdoc(opts.path);
+  const { opts } = getTypeAndOpts(synctable);
+  return getSyncDoc(opts.path);
 }
 
-async function init_syncdoc_async(
+async function initSyncDocAsync(
   client: Client,
   synctable: SyncTable,
 ): Promise<void> {
   function log(...args): void {
-    logger.debug("init_syncdoc_async: ", ...args);
+    logger.debug("initSyncDocAsync: ", ...args);
   }
 
   log("waiting until synctable is ready");
-  await wait_until_synctable_ready(synctable);
+  await waitUntilSyncTableReady(synctable);
   log("synctable ready.  Now getting type and opts");
-  const { type, opts } = get_type_and_opts(synctable);
-  const project_id = (opts.project_id = client.client_id());
+  const { type, opts } = getTypeAndOpts(synctable);
+  const project_id = client.client_id();
+  if (project_id == null) {
+    throw Error("client_id must be defined");
+  }
+  opts.project_id = project_id;
   //   log("type = ", type);
   //   log("opts = ", JSON.stringify(opts));
   opts.client = client;
@@ -219,36 +229,36 @@ async function init_syncdoc_async(
   }
 }
 
-async function wait_until_synctable_ready(synctable: SyncTable): Promise<void> {
+async function waitUntilSyncTableReady(synctable: SyncTable): Promise<void> {
   if (synctable.get_state() == "disconnected") {
-    logger.debug("wait_until_synctable_ready: wait for synctable be connected");
+    logger.debug("waitUntilSyncTableReady: wait for synctable be connected");
     await once(synctable, "connected");
   }
 
   const t = synctable.get_one();
   if (t != null) {
-    logger.debug("wait_until_synctable_ready: currently", t.toJS());
+    logger.debug("waitUntilSyncTableReady: currently", t.toJS());
   }
   logger.debug(
-    "wait_until_synctable_ready: wait for document info to get loaded into synctable...",
+    "waitUntilSyncTableReady: wait for document info to get loaded into synctable...",
   );
   // Next wait until there's a document in the synctable, since that will
   // have the path, patch type, etc. in it.  That is set by the frontend.
   function is_ready(): boolean {
     const t = synctable.get_one();
     if (t == null) {
-      logger.debug("wait_until_synctable_ready: is_ready: table is null still");
+      logger.debug("waitUntilSyncTableReady: is_ready: table is null still");
       return false;
     } else {
-      logger.debug("wait_until_synctable_ready: is_ready", JSON.stringify(t));
+      logger.debug("waitUntilSyncTableReady: is_ready", JSON.stringify(t));
       return t.has("path");
     }
   }
   await synctable.wait(is_ready, 0);
-  logger.debug("wait_until_synctable_ready: document info is now in synctable");
+  logger.debug("waitUntilSyncTableReady: document info is now in synctable");
 }
 
-function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
+function getTypeAndOpts(synctable: SyncTable): { type: string; opts: any } {
   const s = synctable.get_one();
   if (s == null) {
     throw Error("synctable must not be empty");
@@ -281,18 +291,18 @@ function get_type_and_opts(synctable: SyncTable): { type: string; opts: any } {
   return { type, opts };
 }
 
-export async function syncdoc_call(path: string, mesg: any): Promise<string> {
-  logger.debug("syncdoc_call", path, mesg);
+export async function callSyncDoc(path: string, mesg: any): Promise<string> {
+  logger.debug("callSyncDoc", path, mesg);
   const doc = syncDocs.get(path);
   if (doc == null) {
-    logger.debug("syncdoc_call -- not open: ", path);
+    logger.debug("callSyncDoc -- not open: ", path);
     return "not open";
   }
   switch (mesg.cmd) {
     case "close":
-      logger.debug("syncdoc_call -- now closing: ", path);
+      logger.debug("callSyncDoc -- now closing: ", path);
       await syncDocs.close(path);
-      logger.debug("syncdoc_call -- closed: ", path);
+      logger.debug("callSyncDoc -- closed: ", path);
       return "successfully closed";
     default:
       throw Error(`unknown command ${mesg.cmd}`);
@@ -301,9 +311,7 @@ export async function syncdoc_call(path: string, mesg: any): Promise<string> {
 
 // This is used when deleting a file/directory
 // filename may be a directory or actual filename
-export async function close_all_syncdocs_in_tree(
-  filename: string,
-): Promise<void> {
-  logger.debug("close_all_syncdocs_in_tree", filename);
+export async function closeAllSyncDocsInTree(filename: string): Promise<void> {
+  logger.debug("closeAllSyncDocsInTree", filename);
   return await syncDocs.closeAll(filename);
 }
