@@ -32,7 +32,7 @@ export function initWebsocketApi({ primus, manager }): void {
         done(resp);
       } catch (err) {
         // console.trace(); log.debug("primus-api error stacktrack", err.stack, err);
-        console.log("primus-api", "request", data, "FAILED", err);
+        log.debug("primus-api", "request", data, "FAILED", err);
         done({ error: err.toString(), status: "error" });
       }
       log.debug(

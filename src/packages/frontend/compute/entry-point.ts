@@ -58,5 +58,7 @@ async function initEntryPointState() {
       state: { time: new Date(), state: "running" },
     },
   }) as any;
-  redux.getActions("projects").setState({ project_map });
+  const actions = redux.getActions("projects");
+  actions.setState({ project_map });
+  actions.open_project({ project_id: "81e0c408-ac65-4114-bad5-5f4b6539bd0e" });
 }

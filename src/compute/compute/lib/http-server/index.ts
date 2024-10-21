@@ -12,6 +12,7 @@ import { path as STATIC_PATH } from "@cocalc/static";
 import { join } from "path";
 import { cacheShortTerm, cacheLongTerm } from "@cocalc/util/http-caching";
 import initWebsocket from "./websocket";
+import initHubWebsocket from "./hub-websocket";
 import initHttpNextApi from "./http-next-api";
 import initRaw from "./raw-server";
 
@@ -38,6 +39,8 @@ export function initHttpServer({
   logger.info({ projectBase });
 
   app.use(projectBase, initWebsocket({ server, projectBase, manager }));
+  
+  app.use("/", initHubWebsocket({ server, manager }));
 
   // CRITICAL: compression must be after websocket above!
   app.use(compression());
@@ -47,10 +50,6 @@ export function initHttpServer({
     res.send(
       `<h1>Compute Server</h1>  <a href="${join("/static", ENTRY_POINT)}">CoCalc App</a> <br/><br/> Open Files: ${files.join(", ")}`,
     );
-  });
-
-  app.get(`${manager.project_id}/settings`, (_req, res) => {
-    res.redirect(join("/static", ENTRY_POINT));
   });
 
   app.use(
@@ -78,6 +77,10 @@ export function initHttpServer({
   const rawUrl = `/${manager.project_id}/raw`;
   logger.debug("raw server at ", { rawUrl });
   app.use(rawUrl, initRaw({ home: manager.home }));
+
+  app.get("*", (_req, res) => {
+    res.redirect(join("/static", ENTRY_POINT));
+  });
 
   server.listen(port, host, () => {
     logger.info(`Server listening http://${host}:${port}`);

@@ -5,7 +5,7 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-
+import { entryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import {
   redux,
   useActions,
@@ -207,6 +207,9 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   }
 
   function onMouseUp(e: React.MouseEvent) {
+    if (entryPoint == "compute") {
+      return;
+    }
     // if middle mouse button has been clicked, close the project
     if (e.button === 1) {
       e.stopPropagation();
@@ -263,6 +266,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
       return {
         label: <ProjectTab project_id={project_id} />,
         key: project_id,
+        closable: entryPoint != "compute",
       };
     });
   }, [openProjects]);

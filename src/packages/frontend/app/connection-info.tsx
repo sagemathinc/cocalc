@@ -50,7 +50,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
               <h4>
                 <FormattedMessage
                   id="connection-info.ping"
-                  defaultMessage="Ping time"
+                  defaultMessage="Ping Time"
                   description={"Ping how long a server takes to respond"}
                 />
               </h4>
@@ -74,7 +74,7 @@ export const ConnectionInfo: React.FC = React.memo(() => {
             <h4>
               <FormattedMessage
                 id="connection-info.hub_server"
-                defaultMessage="Hub server"
+                defaultMessage="Hub Server"
                 description={"Ping how long a server takes to respond"}
               />
             </h4>
