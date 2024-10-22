@@ -1,4 +1,4 @@
-import { Button, Divider, Modal, Spin, Tag } from "antd";
+import { Button, Modal, Spin, Tag } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { currency } from "@cocalc/util/misc";
@@ -30,7 +30,6 @@ export default function Payment({ balance, update, cost }: Props) {
     { id: string; url: string } | null | "loading"
   >("loading");
   const [cancelling, setCancelling] = useState<boolean>(false);
-  const [paying, setPaying] = useState<boolean>(false);
   const [updating, setUpdating] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
   const [lineItems, setLineItems] = useState<LineItem[] | undefined>(undefined);
@@ -151,36 +150,9 @@ export default function Payment({ balance, update, cost }: Props) {
     }
   };
 
-  const handleOk = async () => {
-    if (
-      paying ||
-      !paymentAmount ||
-      paymentAmount < 0 ||
-      (typeof session == "object" && session?.id)
-    ) {
-      return;
-    }
-    try {
-      setPaying(true);
-      // this is a stripe checkout session:
-      // NOTE: we monitor a popup for hitting the
-      // success or cancel url, so they must be
-      // window.location.href.  Also, we can't even
-      // check the URL unless it is same domain.
-      const session0 = await api.createCredit({
-        amount: paymentAmount,
-        success_url: window.location.href,
-        cancel_url: window.location.href,
-      });
-      setSession(session0);
-      paymentPopup(session0.url);
-    } finally {
-      setPaying(false);
-    }
-  };
-
   const handleCancel = () => {
     setIsModalVisible(false);
+    setLineItems(undefined);
   };
 
   function renderBody() {
@@ -218,21 +190,23 @@ export default function Payment({ balance, update, cost }: Props) {
             minAmount={cost}
           />
         )}
-        <Divider plain orientation="left">
-          What Happens Next
-        </Divider>
-        When you click "Add Money..." a new window will appear, where you can
-        enter your payment details.
-        <Button
-          onClick={() => {
-            setLineItems([
-              { description: "CoCalc Credit", amount: paymentAmount },
-            ]);
-          }}
-        >
-          Pay
-        </Button>
-        <StripePayment lineItems={lineItems} />
+        <br />
+        {lineItems == null && (
+          <div style={{ textAlign: "center" }}>
+            <Button
+              size="large"
+              type={lineItems == null ? "primary" : "default"}
+              onClick={() => {
+                setLineItems([
+                  { description: "CoCalc Credit", amount: paymentAmount },
+                ]);
+              }}
+            >
+              Checkout
+            </Button>
+          </div>
+        )}
+        <StripePayment lineItems={lineItems} purpose={"add-credit"} />
       </div>
     );
   }
@@ -251,12 +225,12 @@ export default function Payment({ balance, update, cost }: Props) {
           }
         >
           <Icon name="credit-card" style={{ marginRight: "5px" }} />
-          {session == "loading" && <Spin style={{ margin: "0 15px" }} />}
           {typeof session == "object" && session?.id
             ? `Finish ${cost ? currency(cost) : ""} Payment...`
             : cost
               ? `Add at least ${currency(cost)} (plus tax) to your account...`
               : "Add Money..."}
+          {session == "loading" && <Spin style={{ margin: "0 15px" }} />}
         </Button>
         {typeof session == "object" && session?.id && (
           <Button size="large" disabled={cancelling} onClick={cancelPayment}>
@@ -266,18 +240,6 @@ export default function Payment({ balance, update, cost }: Props) {
         )}
       </Button.Group>
       <Modal
-        okButtonProps={{ disabled: paying }}
-        okText={
-          session != null ? (
-            ""
-          ) : paying || syncing ? (
-            <>
-              Adding Money... <Spin />
-            </>
-          ) : (
-            "Add Money..."
-          )
-        }
         maskClosable={false}
         zIndex={zIndex}
         title={
@@ -287,8 +249,12 @@ export default function Payment({ balance, update, cost }: Props) {
           </>
         }
         open={balance != null && isModalVisible}
-        onOk={handleOk}
         onCancel={handleCancel}
+        footer={[
+          <Button key="close" onClick={handleCancel}>
+            Cancel
+          </Button>,
+        ]}
       >
         {renderBody()}
       </Modal>

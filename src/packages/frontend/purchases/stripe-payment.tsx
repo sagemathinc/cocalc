@@ -7,14 +7,16 @@ import {
 import type { LineItem, PaymentIntentSecret } from "@cocalc/util/stripe/types";
 import { useEffect, useState } from "react";
 import { createPaymentIntent } from "./api";
-import { Spin } from "antd";
+import { Button, Spin } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 
 export default function StripePayment({
   lineItems,
+  purpose,
 }: {
   lineItems?: LineItem[];
+  purpose: string;
 }) {
   const [secret, setSecret] = useState<PaymentIntentSecret | null>(null);
   const [error, setError] = useState<string>("");
@@ -28,6 +30,7 @@ export default function StripePayment({
         setSecret(
           await createPaymentIntent({
             line_items: lineItems,
+            purpose,
           }),
         );
       } catch (err) {
@@ -114,9 +117,17 @@ function PaymentForm({}) {
           layout: "tabs",
         }}
       />
-      <button disabled={isSubmitting || !stripe || !elements} id="submit">
-        <span id="button-text">{isSubmitting ? <Spin /> : "Pay now"}</span>
-      </button>
+      <div style={{ textAlign: "center", marginTop: "15px" }}>
+        <Button
+          size="large"
+          style={{ marginTop: "15px" }}
+          type="primary"
+          disabled={isSubmitting || !stripe || !elements}
+          id="submit"
+        >
+          <span id="button-text">{isSubmitting ? <Spin /> : "Pay Now"}</span>
+        </Button>
+      </div>
       {/* Show any error or success messages */}
       {message && <div id="payment-message">{message}</div>}
     </form>

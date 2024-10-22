@@ -216,6 +216,7 @@ export async function createCredit(opts: {
 
 export async function createPaymentIntent(opts: {
   line_items: LineItem[];
+  purpose: string;
 }): Promise<PaymentIntentSecret> {
   return await api("purchases/create-payment-intent", opts);
 }
