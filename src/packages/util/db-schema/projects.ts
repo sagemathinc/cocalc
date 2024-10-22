@@ -642,7 +642,7 @@ export interface StudentProjectFunctionality {
 }
 
 export interface CourseInfo {
-  type: "student" | "shared" | "nbgrader";
+  type: "student" | "shared" | "nbgrader" | "exam" | "group";
   account_id?: string; // account_id of the student that this project is for.
   project_id: string; // the course project, i.e., project with the .course file
   path: string; // path to the .course file in project_id
