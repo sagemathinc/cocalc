@@ -562,7 +562,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   gotoUser(account_id: string, frameId?: string) {
     const cursors = this.jupyter_actions.syncdb
-      .get_cursors({ maxAge: 0 })
+      .get_cursors({ maxAge: 0, excludeSelf: "never" })
       ?.toJS();
     if (cursors == null) return; // no info
     const locs = cursors[account_id]?.locs;

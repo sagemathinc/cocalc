@@ -53,7 +53,7 @@ export class ComputeServersManager extends EventEmitter {
 
   getComputeServers = () => {
     const servers = {};
-    const cursors = this.sync_db.get_cursors().toJS();
+    const cursors = this.sync_db.get_cursors({ excludeSelf: 'never' }).toJS();
     for (const client_id in cursors) {
       const server = cursors[client_id];
       servers[decodeUUIDtoNum(client_id)] = {
