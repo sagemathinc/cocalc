@@ -27,6 +27,7 @@ import {
   Tooltip,
 } from "antd";
 import type { MouseEventHandler } from "react";
+
 import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { Gap } from "@cocalc/frontend/components/gap";
 import { r_join } from "@cocalc/frontend/components/r_join";
@@ -82,7 +83,7 @@ function parse_bsStyle(props: {
   let type =
     props.bsStyle == null
       ? "default"
-      : (BS_STYLE_TO_TYPE[props.bsStyle] ?? "default");
+      : BS_STYLE_TO_TYPE[props.bsStyle] ?? "default";
 
   let style: React.CSSProperties | undefined = undefined;
   // antd has no analogue of "success" & "warning", it's not clear to me what
@@ -351,9 +352,9 @@ export function Tabs(props: Readonly<TabsProps>) {
 
 export function Tab(props: {
   id?: string;
-  key?;
+  key?: string;
   eventKey: string;
-  title: any;
+  title: string | JSX.Element;
   children?: any;
   style?: React.CSSProperties;
 }): AntdTabItem {

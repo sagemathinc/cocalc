@@ -23,6 +23,7 @@ import {
 } from "@cocalc/util/misc";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { concat, sortBy } from "lodash";
+import { useIntl } from "react-intl";
 
 interface Props {
   name: string;
@@ -39,6 +40,7 @@ export default function AddStudents({
   project_id,
   close,
 }: Props) {
+  const intl = useIntl();
   const addSelectRef = useRef<HTMLSelectElement>(null);
   const studentAddInputRef = useRef(null);
   const actions = useActions<CourseActions>({ name });
@@ -426,6 +428,14 @@ export default function AddStudents({
 
   const rows = add_search.trim().length == 0 && !studentInputFocused ? 1 : 4;
 
+  const placeholder = intl.formatMessage(
+    {
+      id: "course.add-students.textarea.placeholder",
+      defaultMessage: `Add students by {include_name_search, select, true {names or} other {}} email addresses...`,
+    },
+    { include_name_search },
+  );
+
   return (
     <Form onFinish={do_add_search} style={{ marginLeft: "15px" }}>
       <Row>
@@ -433,9 +443,7 @@ export default function AddStudents({
           <Form.Item style={{ margin: "0 0 5px 0" }}>
             <Input.TextArea
               ref={studentAddInputRef}
-              placeholder={`Add students by ${
-                include_name_search ? "names or " : ""
-              } email addresses...`}
+              placeholder={placeholder}
               value={add_search}
               rows={rows}
               onChange={() => student_add_input_onChange()}
