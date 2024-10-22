@@ -6,7 +6,7 @@
 import { Button, Card, Typography } from "antd";
 import { List } from "immutable";
 import { join } from "path";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import {
   CSS,
@@ -73,6 +73,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     dedicated_resources,
     mode,
   }: Readonly<Props>) => {
+    const intl = useIntl();
     const actions: ProjectsActions = useActions("projects");
     const project_actions = useActions({ project_id });
     const account_groups: List<string> =
@@ -383,6 +384,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     if (project == null) {
       return <Loading theme="medium" transparent />;
     }
+
     return (
       <div style={{ maxWidth: "1000px" }}>
         <Title level={4}>
@@ -395,12 +397,12 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           type="secondary"
           ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
         >
-          <FormattedMessage
-            id="project.settings.upgrade-usage.intro"
-            defaultMessage={`This table lists project quotas, their current usage,
-              and their value/limit. Click on a row to show more details about it.
-              If the project is not running, you see the last known quota values.`}
-          />
+          {intl.formatMessage({
+            id: "project.settings.upgrade-usage.intro",
+            defaultMessage: `This table lists project quotas, their current usage, and their value/limit.
+            Click on a row to show more details about it.
+            If the project is not running, you see the last known quota values.`,
+          })}
         </Paragraph>
         {render_run_quota()}
         {render_upgrades_button()}

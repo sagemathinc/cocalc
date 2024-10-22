@@ -3,16 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Row, Col } from "antd";
+import { Alert, Col, Row } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { useTypedRedux, redux } from "../../app-framework";
-import { Loading, TimeAgo } from "../../components";
-import { projects_with_licenses } from "./util";
+import { Virtuoso } from "react-virtuoso";
+
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Loading, TimeAgo } from "@cocalc/frontend/components";
+import { SiteLicense } from "@cocalc/frontend/project/settings/site-license";
+import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { plural, trunc_middle } from "@cocalc/util/misc";
 import { LICENSES_STYLE } from "./managed-licenses";
-import { Virtuoso } from "react-virtuoso";
-import { SelectProject } from "@cocalc/frontend/projects/select-project";
-import { SiteLicense } from "@cocalc/frontend/project/settings/site-license";
+import { projects_with_licenses } from "./util";
 
 export function ProjectsWithLicenses({}) {
   const [project_id, setProjectId] = useState<string | undefined>(undefined);
