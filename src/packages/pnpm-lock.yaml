@@ -498,8 +498,8 @@ importers:
         specifier: ^5.1.1
         version: 5.2.1
       mermaid:
-        specifier: ^10.9.1
-        version: 10.9.1
+        specifier: ^10.9.3
+        version: 10.9.3
       node-forge:
         specifier: ^1.0.0
         version: 1.3.1
@@ -523,7 +523,7 @@ importers:
         version: 7.1.1
       plotly.js:
         specifier: ^2.29.1
-        version: 2.35.2(@rspack/core@1.0.13(@swc/helpers@0.5.13))(mapbox-gl@3.7.0)(webpack@5.95.0)
+        version: 2.35.2(@rspack/core@1.0.13)(mapbox-gl@3.7.0)(webpack@5.95.0)
       project-name-generator:
         specifier: ^2.1.6
         version: 2.1.9
@@ -568,7 +568,7 @@ importers:
         version: 6.7.0(react@18.3.1)(typescript@5.6.3)
       react-plotly.js:
         specifier: ^2.6.0
-        version: 2.6.0(plotly.js@2.35.2(@rspack/core@1.0.13(@swc/helpers@0.5.13))(mapbox-gl@3.7.0)(webpack@5.95.0))(react@18.3.1)
+        version: 2.6.0(plotly.js@2.35.2(@rspack/core@1.0.13)(mapbox-gl@3.7.0)(webpack@5.95.0))(react@18.3.1)
       react-redux:
         specifier: ^8.0.5
         version: 8.1.3(@types/react-dom@18.3.0)(@types/react@18.3.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(redux@5.0.1)
@@ -818,7 +818,7 @@ importers:
         version: 2.1.2
       next:
         specifier: 14.2.15
-        version: 14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.3)
+        version: 14.2.15(@babel/core@7.25.8)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.3)
       nyc:
         specifier: ^15.1.0
         version: 15.1.0
@@ -1359,7 +1359,7 @@ importers:
         version: 0.3.3(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
       '@langchain/community':
         specifier: ^0.3.5
-        version: 0.3.5(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@11.4.0)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@6.0.2)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
+        version: 0.3.5(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@11.4.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.3.11
         version: 0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
@@ -7184,10 +7184,6 @@ packages:
     resolution: {integrity: sha512-5Fytz/IraMjqpwfd34ke28PTVMjZjJG2MPn5t7OE4eUCUNf8BAa7b5WUS9/Qvr6mwOQS7Mk6vdsMno5he+T8Xw==}
     engines: {node: '>= 4'}
 
-  ignore@6.0.2:
-    resolution: {integrity: sha512-InwqeHHN2XpumIkMvpl/DCJVrAHgCsG5+cn1XlnLWGwtZBm8QJfSusItfrwx81CTp5agNZqpKU2J/ccC5nGT4A==}
-    engines: {node: '>= 4'}
-
   image-extensions@1.1.0:
     resolution: {integrity: sha512-P0t7ByhK8Jk9TU05ct/7+f7h8dNuXq5OY4m0IO/T+1aga/qHkpC0Wf472x3FLdq/zFDG17pgapCM3JDTxwZzow==}
     engines: {node: '>=0.10.0'}
@@ -8454,10 +8450,6 @@ packages:
     resolution: {integrity: sha512-dIs5KGy24fbdDhIAg0RxXpFqQp3RwL6wgSMRF9OSuphL/Uc9a4u2/SDJKPLj/zUgtOGKuHrRMrj563+IErj4Cg==}
     engines: {node: '>= 4.0.0'}
 
-  memfs@4.14.0:
-    resolution: {integrity: sha512-JUeY0F/fQZgIod31Ja1eJgiSxLn7BfQlCnqhwXFBzFHEw63OdLK7VJUJ7bnzNsWgCyoUP5tEp1VRY8rDaYzqOA==}
-    engines: {node: '>= 4.0.0'}
-
   memoize-one@4.0.3:
     resolution: {integrity: sha512-QmpUu4KqDmX0plH4u+tf0riMc1KHE1+lw95cMrLlXQAFOx/xnBtwhZ52XJxd9X2O6kwKBqX32kmhbhlobD0cuw==}
 
@@ -8489,8 +8481,8 @@ packages:
     resolution: {integrity: sha512-8q7VEgMJW4J8tcfVPy8g09NcQwZdbwFEqhe/WZkoIzjn/3TGDwtOCYtXGxA3O8tPzpczCCDgv+P2P5y00ZJOOg==}
     engines: {node: '>= 8'}
 
-  mermaid@10.9.1:
-    resolution: {integrity: sha512-Mx45Obds5W1UkW1nv/7dHRsbfMM1aOKA2+Pxs/IGHNonygDHwmng8xTHyS9z4KWVi0rbko8gjiBmuwwXQ7tiNA==}
+  mermaid@10.9.3:
+    resolution: {integrity: sha512-V80X1isSEvAewIL3xhmz/rVmc27CVljcsbWxkxlWJWY/1kQa4XOABqpDl2qQLGKzpKm6WbTfUEKImBlUfFYArw==}
 
   methods@1.1.2:
     resolution: {integrity: sha512-iclAHeNqNm68zFtnZ0e+1L2yUIdvzNoauKU4WBA3VvH/vPFieF7qfRlwUZU+DA9P9bPXIS90ulxoUoCH23sV2w==}
@@ -12981,10 +12973,6 @@ snapshots:
     dependencies:
       tslib: 2.7.0
 
-  '@jsonjoy.com/base64@1.1.2(tslib@2.8.0)':
-    dependencies:
-      tslib: 2.8.0
-
   '@jsonjoy.com/json-pack@1.1.0(tslib@2.7.0)':
     dependencies:
       '@jsonjoy.com/base64': 1.1.2(tslib@2.7.0)
@@ -12993,21 +12981,9 @@ snapshots:
       thingies: 1.21.0(tslib@2.7.0)
       tslib: 2.7.0
 
-  '@jsonjoy.com/json-pack@1.1.0(tslib@2.8.0)':
-    dependencies:
-      '@jsonjoy.com/base64': 1.1.2(tslib@2.8.0)
-      '@jsonjoy.com/util': 1.5.0(tslib@2.8.0)
-      hyperdyperid: 1.2.0
-      thingies: 1.21.0(tslib@2.8.0)
-      tslib: 2.8.0
-
   '@jsonjoy.com/util@1.5.0(tslib@2.7.0)':
     dependencies:
       tslib: 2.7.0
-
-  '@jsonjoy.com/util@1.5.0(tslib@2.8.0)':
-    dependencies:
-      tslib: 2.8.0
 
   '@juggle/resize-observer@3.4.0': {}
 
@@ -13153,7 +13129,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@langchain/community@0.3.5(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@11.4.0)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@6.0.2)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
+  '@langchain/community@0.3.5(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@11.4.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
     dependencies:
       '@langchain/core': 0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.3.7(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
@@ -13161,7 +13137,7 @@ snapshots:
       expr-eval: 2.0.2
       flat: 5.0.2
       js-yaml: 4.1.0
-      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@6.0.2)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
+      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
       langsmith: 0.1.65(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       uuid: 10.0.0
       zod: 3.23.8
@@ -13172,10 +13148,9 @@ snapshots:
       '@qdrant/js-client-rest': 1.12.0(typescript@5.6.3)
       better-sqlite3: 11.4.0
       cheerio: 1.0.0
-      d3-dsv: 3.0.1
       google-auth-library: 9.14.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
-      ignore: 6.0.2
+      ignore: 5.3.1
       jsonwebtoken: 9.0.2
       lodash: 4.17.21
       pg: 8.13.0
@@ -18077,9 +18052,6 @@ snapshots:
 
   ignore@5.3.1: {}
 
-  ignore@6.0.2:
-    optional: true
-
   image-extensions@1.1.0: {}
 
   image-size@0.5.5:
@@ -19133,7 +19105,7 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@6.0.2)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
+  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
     dependencies:
       '@langchain/core': 0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.0.34(encoding@0.1.13)
@@ -19154,10 +19126,9 @@ snapshots:
     optionalDependencies:
       axios: 1.7.7
       cheerio: 1.0.0
-      d3-dsv: 3.0.1
       fast-xml-parser: 4.5.0
       handlebars: 4.7.8
-      ignore: 6.0.2
+      ignore: 5.3.1
       ws: 8.18.0
     transitivePeerDependencies:
       - encoding
@@ -19524,13 +19495,6 @@ snapshots:
       tree-dump: 1.0.2(tslib@2.7.0)
       tslib: 2.7.0
 
-  memfs@4.14.0:
-    dependencies:
-      '@jsonjoy.com/json-pack': 1.1.0(tslib@2.8.0)
-      '@jsonjoy.com/util': 1.5.0(tslib@2.8.0)
-      tree-dump: 1.0.2(tslib@2.8.0)
-      tslib: 2.8.0
-
   memoize-one@4.0.3: {}
 
   memoize-one@5.2.1: {}
@@ -19576,7 +19540,7 @@ snapshots:
 
   merge2@1.4.1: {}
 
-  mermaid@10.9.1:
+  mermaid@10.9.3:
     dependencies:
       '@braintree/sanitize-url': 6.0.4
       '@types/d3-scale': 4.0.8
@@ -19989,6 +19953,33 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       styled-jsx: 5.1.1(@babel/core@7.25.2)(react@18.3.1)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 14.2.15
+      '@next/swc-darwin-x64': 14.2.15
+      '@next/swc-linux-arm64-gnu': 14.2.15
+      '@next/swc-linux-arm64-musl': 14.2.15
+      '@next/swc-linux-x64-gnu': 14.2.15
+      '@next/swc-linux-x64-musl': 14.2.15
+      '@next/swc-win32-arm64-msvc': 14.2.15
+      '@next/swc-win32-ia32-msvc': 14.2.15
+      '@next/swc-win32-x64-msvc': 14.2.15
+      '@opentelemetry/api': 1.9.0
+      sass: 1.80.3
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+
+  next@14.2.15(@babel/core@7.25.8)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.3):
+    dependencies:
+      '@next/env': 14.2.15
+      '@swc/helpers': 0.5.5
+      busboy: 1.6.0
+      caniuse-lite: 1.0.30001668
+      graceful-fs: 4.2.11
+      postcss: 8.4.31
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      styled-jsx: 5.1.1(@babel/core@7.25.8)(react@18.3.1)
     optionalDependencies:
       '@next/swc-darwin-arm64': 14.2.15
       '@next/swc-darwin-x64': 14.2.15
@@ -20747,7 +20738,7 @@ snapshots:
 
   pkginfo@0.4.1: {}
 
-  plotly.js@2.35.2(@rspack/core@1.0.13(@swc/helpers@0.5.13))(mapbox-gl@3.7.0)(webpack@5.95.0):
+  plotly.js@2.35.2(@rspack/core@1.0.13)(mapbox-gl@3.7.0)(webpack@5.95.0):
     dependencies:
       '@plotly/d3': 3.8.2
       '@plotly/d3-sankey': 0.7.2
@@ -21585,9 +21576,9 @@ snapshots:
 
   react-lifecycles-compat@3.0.4: {}
 
-  react-plotly.js@2.6.0(plotly.js@2.35.2(@rspack/core@1.0.13(@swc/helpers@0.5.13))(mapbox-gl@3.7.0)(webpack@5.95.0))(react@18.3.1):
+  react-plotly.js@2.6.0(plotly.js@2.35.2(@rspack/core@1.0.13)(mapbox-gl@3.7.0)(webpack@5.95.0))(react@18.3.1):
     dependencies:
-      plotly.js: 2.35.2(@rspack/core@1.0.13(@swc/helpers@0.5.13))(mapbox-gl@3.7.0)(webpack@5.95.0)
+      plotly.js: 2.35.2(@rspack/core@1.0.13)(mapbox-gl@3.7.0)(webpack@5.95.0)
       prop-types: 15.8.1
       react: 18.3.1
 
@@ -22545,6 +22536,13 @@ snapshots:
     optionalDependencies:
       '@babel/core': 7.25.2
 
+  styled-jsx@5.1.1(@babel/core@7.25.8)(react@18.3.1):
+    dependencies:
+      client-only: 0.0.1
+      react: 18.3.1
+    optionalDependencies:
+      '@babel/core': 7.25.8
+
   stylis@4.3.4: {}
 
   superb@3.0.0:
@@ -22724,10 +22722,6 @@ snapshots:
     dependencies:
       tslib: 2.7.0
 
-  thingies@1.21.0(tslib@2.8.0):
-    dependencies:
-      tslib: 2.8.0
-
   three@0.78.0: {}
 
   throttle-debounce@5.0.2: {}
@@ -22803,10 +22797,6 @@ snapshots:
     dependencies:
       tslib: 2.7.0
 
-  tree-dump@1.0.2(tslib@2.8.0):
-    dependencies:
-      tslib: 2.8.0
-
   tree-kill@1.2.2: {}
 
   trim-newlines@3.0.1: {}
@@ -22874,7 +22864,8 @@ snapshots:
 
   tslib@2.7.0: {}
 
-  tslib@2.8.0: {}
+  tslib@2.8.0:
+    optional: true
 
   tsscmp@1.0.6: {}
 
@@ -23309,8 +23300,8 @@ snapshots:
 
   webpack-dev-middleware@7.4.2(webpack@5.95.0):
     dependencies:
-      colorette: 2.0.19
-      memfs: 4.14.0
+      colorette: 2.0.20
+      memfs: 4.13.0
       mime-types: 2.1.35
       on-finished: 2.4.1
       range-parser: 1.2.1
