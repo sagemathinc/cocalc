@@ -16,6 +16,7 @@ import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
+import type { LineItem, PaymentIntentSecret } from "@cocalc/util/stripe/types";
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -211,6 +212,12 @@ export async function createCredit(opts: {
   description?: string;
 }): Promise<any> {
   return await api("purchases/create-credit", opts);
+}
+
+export async function createPaymentIntent(opts: {
+  line_items: LineItem[];
+}): Promise<PaymentIntentSecret> {
+  return await api("purchases/create-payment-intent", opts);
 }
 
 export async function setupAutomaticBilling(opts: {

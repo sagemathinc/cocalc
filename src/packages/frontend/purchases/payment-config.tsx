@@ -47,13 +47,21 @@ export default function PaymentConfig({
         <MoneyStatistic title={"Current Balance"} value={balance} roundDown />
       </div>
       <Divider plain orientation="left">
-        Enter amount in US dollars{" "}
+        Amount in US dollars{" "}
         {minAmount > 0 ? ` (at least ${currency(minAmount)})` : ""}
         <Tooltip
           zIndex={zIndexTip}
-          title={`If you enter more than ${currency(
-            minAmount,
-          )}, your account will be credited.  Credit can be used to purchase anything on our site.  These credits are nonrefundable, but do not expire.`}
+          title={
+            <>
+              {minAmount
+                ? `If you enter more than ${currency(
+                    minAmount,
+                  )}, your account will be credited. `
+                : "Your account will be credited. "}
+              Credit can be used to purchase anything on our site. Credits are
+              nonrefundable, but <b>do not expire</b>.
+            </>
+          }
         >
           <Icon name="question-circle" style={{ marginLeft: "30px" }} />
         </Tooltip>
