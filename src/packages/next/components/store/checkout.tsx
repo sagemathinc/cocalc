@@ -30,12 +30,16 @@ import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ChangeEmailAddress } from "components/account/config/account/email";
-import * as purchasesApi from "@cocalc/frontend/purchases/api";
+import {
+  getShoppingCartCheckoutParams,
+  shoppingCartCheckout,
+} from "@cocalc/frontend/purchases/api";
 import { currency, round2up, round2down } from "@cocalc/util/misc";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ProductColumn } from "./cart";
 import ShowError from "@cocalc/frontend/components/error";
 import { StoreBalanceContext } from "../../lib/balance";
+import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 
 enum PaymentIntent {
   PAY_TOTAL,
@@ -54,16 +58,10 @@ export default function Checkout() {
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
-  const { refreshBalance } = useContext(StoreBalanceContext);
-  const [session, setSession] = useState<{ id: string; url: string } | null>(
-    null,
-  );
-  const updateSession = async () => {
-    const session = await purchasesApi.getCurrentCheckoutSession();
-    setSession(session);
-    return session;
-  };
 
+  const [userSuccessfullyAddedCredit, setUserSuccessfullyAddedCredit] =
+    useState<boolean>(false);
+  const { refreshBalance } = useContext(StoreBalanceContext);
   const [paymentAmount, setPaymentAmount0] = useState<number>(0);
   const setPaymentAmount = (amount: number) => {
     // no matter how this is set, always round it up to nearest penny.
@@ -72,7 +70,7 @@ export default function Checkout() {
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const updateParams = async (intent?) => {
     try {
-      const params = await purchasesApi.getShoppingCartCheckoutParams({
+      const params = await getShoppingCartCheckoutParams({
         ignoreBalance: (intent ?? paymentIntent) == PaymentIntent.PAY_TOTAL,
       });
       const cost = params.total;
@@ -92,64 +90,20 @@ export default function Checkout() {
   };
 
   useEffect(() => {
-    // on load, check for existing payent session.
-    updateSession();
     // on load also get current price, cart, etc.
     updateParams();
-  }, []);
-
-  // handle ?complete -- i.e., what happens after successfully paying
-  // for a purchase - we do ANOTHER completePurchase, and for the second
-  // one no additional payment is required, so in this case user actually
-  // gets the items and goes to the congrats page.  Unless, of course,
-  // they try to be sneaky and add something to their cart right *after*
-  // paying... in which case they will just get asked for additional
-  // money for that last thing. :-)
-  useEffect(() => {
-    if (router.query.complete == null) {
-      // nothing to handle
-      return;
-    }
-    (async () => {
-      // in case webhooks aren't configured, get the payment via sync:
-      try {
-        setCompletingPurchase(true);
-        await purchasesApi.syncPaidInvoices();
-      } catch (err) {
-        console.warn("syncPaidInvoices buying licenses -- issue", err);
-      } finally {
-        setCompletingPurchase(false);
-      }
-      // now do the purchase flow again with money available.
-      completePurchase(false);
-    })();
   }, []);
 
   if (error) {
     return <ShowError error={error} setError={setError} />;
   }
-  async function completePurchase(ignoreBalance: boolean) {
+  async function completePurchase() {
     try {
       setError("");
       setCompletingPurchase(true);
-      const curSession = await updateSession();
-      if (curSession != null || !isMounted.current) {
-        // there is already a stripe checkout session that hasn't been finished, so let's
-        // not cause confusion by creating another one.
-        // User will see a big alert with a link to finish this one, since updateSession
-        // sets the session state.
-        return;
-      }
-      // This api call tells the backend, "make a session that, when successfully finished, results in
-      // buying everything in my shopping cart", or, if it returns {done:true}, then
-      // It succeeds if the purchase goes through.
-      const currentUrl = window.location.href.split("?")[0];
-      const success_url = `${currentUrl}?complete=true`;
-      const result = await purchasesApi.shoppingCartCheckout({
-        success_url,
-        cancel_url: currentUrl,
+      const result = await shoppingCartCheckout({
+        success_url: "",
         paymentAmount,
-        ignoreBalance,
       });
       if (result.done) {
         // done -- nothing further to do!
@@ -158,28 +112,25 @@ export default function Checkout() {
         }
         return;
       }
-      // payment is required to complete the purchase, since user doesn't
-      // have enough credit.
-      window.location = result.session.url as any;
+      throw Error(
+        "Insufficient credit to complete the purchase. Please refresh your browser and try again or contact support.",
+      );
     } catch (err) {
       // The purchase failed.
       setError(err.message);
+      setCompletingPurchase(false);
     } finally {
       refreshBalance();
-      if (!isMounted.current) return;
-      setCompletingPurchase(false);
+      if (!isMounted.current) {
+        return;
+      }
+      // do NOT set completing purchase back, since the
+      // above router.push
+      // will move to next page, but we don't want to
+      // see the complete purchase button
+      // again ever... unless there is an error.
     }
   }
-
-  const cancelPurchaseInProgress = async () => {
-    try {
-      await purchasesApi.cancelCurrentCheckoutSession();
-      updateSession();
-      updateParams();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
 
   if (params == null) {
     return (
@@ -201,30 +152,7 @@ export default function Checkout() {
 
   return (
     <>
-      {session != null && (
-        <div style={{ textAlign: "center" }}>
-          <Alert
-            style={{ margin: "30px", display: "inline-block" }}
-            type="warning"
-            message={<h2>Purchase in Progress</h2>}
-            description={
-              <div style={{ fontSize: "14pt", width: "450px" }}>
-                <Divider />
-                <p>
-                  <Button href={session.url} type="primary" size="large">
-                    Complete Purchase
-                  </Button>
-                </p>
-                or
-                <p style={{ marginTop: "15px" }}>
-                  <Button onClick={cancelPurchaseInProgress}>Cancel</Button>
-                </p>
-              </div>
-            }
-          />
-        </div>
-      )}
-      <div style={session != null ? { opacity: 0.4 } : undefined}>
+      <div>
         <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
         {params.cart.length == 0 && (
           <div style={{ maxWidth: "800px", margin: "auto" }}>
@@ -307,56 +235,55 @@ export default function Checkout() {
               />
               <div style={{ textAlign: "center" }}>
                 <Divider />
-                <Button
-                  disabled={
-                    params?.total == 0 ||
-                    completingPurchase ||
-                    !profile?.email_address ||
-                    session != null
-                  }
-                  style={{ marginTop: "7px", marginBottom: "15px" }}
-                  size="large"
-                  type="primary"
-                  onClick={() =>
-                    completePurchase(paymentIntent === PaymentIntent.PAY_TOTAL)
-                  }
-                >
-                  <Icon name="credit-card" />{" "}
-                  {mode == "completing" && (
-                    <>
-                      Completing Purchase
-                      <Spin style={{ marginLeft: "10px" }} />
-                    </>
-                  )}
-                  {mode == "complete" &&
-                    `Complete Purchase${
-                      session != null ? " (finish payment first)" : ""
-                    }`}
-                  {mode == "add" &&
-                    `Add ${currency(paymentAmount)} credit to your account`}
-                </Button>
+                {mode != "add" && (
+                  <Button
+                    disabled={
+                      mode == "add" ||
+                      params?.total == 0 ||
+                      completingPurchase ||
+                      !profile?.email_address
+                    }
+                    style={{ marginTop: "7px", marginBottom: "15px" }}
+                    size="large"
+                    type="primary"
+                    onClick={() => completePurchase()}
+                  >
+                    <Icon name="credit-card" />{" "}
+                    {mode == "completing" && (
+                      <>
+                        Transferring the items in your cart to your account...
+                        <Spin style={{ marginLeft: "10px" }} />
+                      </>
+                    )}
+                    {mode == "complete" && "Completed Purchase"}
+                  </Button>
+                )}
+              </div>
+              <div>
+                <StripePayment
+                  disabled={userSuccessfullyAddedCredit}
+                  style={{ maxWidth: "600px", margin: "30px auto" }}
+                  amount={paymentAmount}
+                  purpose="store-checkout"
+                  onFinished={() => {
+                    setUserSuccessfullyAddedCredit(true);
+                    // user paid successfully and money should be in their account
+                    refreshBalance();
+                    if (!isMounted.current) {
+                      return;
+                    }
+                    // now do the purchase flow with money available.
+                    completePurchase();
+                  }}
+                />
               </div>
               {completingPurchase ||
               params == null ||
               paymentAmount != params.minPayment ? null : (
                 <div style={{ color: "#666", marginTop: "15px" }}>
                   NOTE: There is a minimum transaction amount of{" "}
-                  {currency(params.minPayment)}.
-                </div>
-              )}
-              {mode == "add" && (
-                <div>
-                  <b>DO NOT ADD MONEY TO COMPLETE YOUR PURCHASE TWICE:</b>{" "}
-                  <div style={{ color: "#666" }}>
-                    If you pay us, and the money doesn't immediately show up,
-                    wait a minute and refresh your browser rather than going
-                    through the entire process of paying us again. If you pay
-                    us, we will definitely receive the money, but money transfer
-                    is not always instant. Instead of just trying to pay us
-                    again, wait a little and refresh your browser or{" "}
-                    <A href="/support/new">contact us</A>. Your shopping cart
-                    contents won't be lost.
-                  </div>
+                  {currency(params.minPayment)}. Extra money you deposit for
+                  this purchase can be used toward future purchases.
                 </div>
               )}
             </Card>
@@ -713,7 +640,7 @@ export function ExplainPaymentSituation({
           {curBalance}
           Complete this purchase by adding {currency(chargeAmount)} to your
           account.{" "}
-          {chargeAmount > total && (
+          {chargeAmount > total && params.minBalance != 0 && (
             <>
               Your account balance must always be at least{" "}
               {currency(params.minBalance)}.

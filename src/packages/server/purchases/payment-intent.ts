@@ -41,6 +41,8 @@ export async function createPaymentIntent({
     throw Error("purpose must be set");
   }
 
+  // packages/frontend/purchases/stripe-payment.tsx assumes that this interval below
+  // is 2seconds or less.
   throttle({ account_id, endpoint: "create-payment-intent", interval: 2000 });
 
   await sanityCheckAmount(amount);

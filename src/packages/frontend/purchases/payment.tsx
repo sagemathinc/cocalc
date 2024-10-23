@@ -31,8 +31,6 @@ export default function Payment({ balance, update, cost }: Props) {
   const [cancelling, setCancelling] = useState<boolean>(false);
   const [updating, setUpdating] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
-  const [amount, setAmount] = useState<number>(0);
-
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
     (async () => {
@@ -151,7 +149,9 @@ export default function Payment({ balance, update, cost }: Props) {
 
   const handleCancel = () => {
     setIsModalVisible(false);
-    setAmount(0);
+    setPaymentAmount(
+      Math.max(DEFAULT_AMOUNT, balance != null && balance < 0 ? -balance : 0),
+    );
   };
 
   function renderBody() {
@@ -190,25 +190,11 @@ export default function Payment({ balance, update, cost }: Props) {
           />
         )}
         <br />
-        {!amount && (
-          <div style={{ textAlign: "center" }}>
-            <Button
-              disabled={!paymentAmount}
-              size="large"
-              type={!amount ? "primary" : "default"}
-              onClick={() => {
-                setAmount(paymentAmount);
-              }}
-            >
-              Select Payment Method
-            </Button>
-          </div>
-        )}
-        {!!amount && (
+        {!!paymentAmount && (
           <div>
             <Divider />
             <StripePayment
-              amount={amount}
+              amount={paymentAmount}
               description="Add money to your account."
               purpose={"add-credit"}
               onFinished={() => {
@@ -251,6 +237,7 @@ export default function Payment({ balance, update, cost }: Props) {
         )}
       </Button.Group>
       <Modal
+        width={700}
         maskClosable={false}
         zIndex={zIndex}
         title={

@@ -5,50 +5,74 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPaymentIntent, processPaymentIntents } from "./api";
 import { Button, Spin } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
+import { currency } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { debounce } from "lodash";
+
+const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
 export default function StripePayment({
   amount,
-  description,
-  purpose,
+  description = "",
+  purpose = "add-credit",
   onFinished,
+  style,
+  disabled,
 }: {
+  // it is highly recommend to set all fields, but not required!
   amount?: number;
-  description: string;
-  purpose: string;
-  onFinished: Function;
+  description?: string;
+  purpose?: string;
+  onFinished?: Function;
+  style?;
+  disabled?: boolean;
 }) {
   const [secret, setSecret] = useState<PaymentIntentSecret | null>(null);
   const [error, setError] = useState<string>("");
+  const [payAmount, setPayAmount] = useState<number | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const updateSecret = useCallback(
+    debounce(
+      reuseInFlight(async ({ amount, description, purpose }) => {
+        try {
+          setError("");
+          setLoading(true);
+          setSecret(
+            await createPaymentIntent({
+              amount,
+              description,
+              purpose,
+            }),
+          );
+          setPayAmount(amount);
+        } catch (err) {
+          setError(`${err}`);
+        } finally {
+          setLoading(false);
+        }
+      }),
+      PAYMENT_UPDATE_DEBOUNCE,
+      { leading: true, trailing: true },
+    ),
+    [],
+  );
 
   useEffect(() => {
     if (!amount) {
       return;
     }
-    const init = async () => {
-      try {
-        setError("");
-        setSecret(
-          await createPaymentIntent({
-            amount,
-            description,
-            purpose,
-          }),
-        );
-      } catch (err) {
-        setError(`${err}`);
-      }
-    };
-    init();
-  }, [amount, description]);
+    updateSecret({ amount, description, purpose });
+  }, [amount, description, purpose]);
 
   if (error) {
-    return <ShowError error={error} setError={setError} />;
+    return <ShowError style={style} error={error} setError={setError} />;
   }
 
   if (!amount) {
@@ -56,7 +80,7 @@ export default function StripePayment({
   }
 
   if (secret == null) {
-    return <BigSpin />;
+    return <BigSpin style={style} />;
   }
 
   return (
@@ -70,14 +94,20 @@ export default function StripePayment({
       }}
       stripe={loadStripe()}
     >
-      <PaymentForm onFinished={onFinished} />
+      <PaymentForm
+        style={style}
+        onFinished={onFinished}
+        amount={payAmount}
+        disabled={disabled || loading || payAmount != amount}
+      />
     </Elements>
   );
 }
 
-function PaymentForm({ onFinished }) {
+function PaymentForm({ style, amount, onFinished, disabled }) {
   const [message, setMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
   const stripe = useStripe();
   const elements = useElements();
   const [ready, setReady] = useState<boolean>(false);
@@ -125,7 +155,8 @@ function PaymentForm({ onFinished }) {
         }
       }
       if (!error) {
-        onFinished();
+        setSuccess(true);
+        onFinished?.();
         return;
       }
       if (error.type === "card_error" || error.type === "validation_error") {
@@ -139,7 +170,7 @@ function PaymentForm({ onFinished }) {
   };
 
   return (
-    <div>
+    <div style={style}>
       {!ready && <BigSpin />}
       <PaymentElement
         onReady={() => {
@@ -156,14 +187,25 @@ function PaymentForm({ onFinished }) {
             size="large"
             style={{ marginTop: "15px", fontSize: "14pt" }}
             type="primary"
-            disabled={isSubmitting || !stripe || !elements || !ready || !!message}
+            disabled={
+              success ||
+              disabled ||
+              isSubmitting ||
+              !stripe ||
+              !elements ||
+              !ready ||
+              !!message
+            }
             id="submit"
             onClick={handleSubmit}
           >
-            <span id="button-text">
-              Confirm Payment{" "}
-              {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
-            </span>
+            {!success && (
+              <>
+                Confirm {currency(amount)} Payment{" "}
+                {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
+              </>
+            )}
+            {success && <>Purchase Successfully Completed!</>}
           </Button>
         </div>
       )}
@@ -177,9 +219,9 @@ function PaymentForm({ onFinished }) {
   );
 }
 
-function BigSpin() {
+function BigSpin({ style }: { style? }) {
   return (
-    <div style={{ textAlign: "center" }}>
+    <div style={{ ...style, textAlign: "center" }}>
       <Spin tip="Loading" size="large">
         <div
           style={{
