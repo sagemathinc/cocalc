@@ -16,6 +16,5 @@ export const ROOT_STYLE: CSS = {
   paddingLeft: "20px",
   paddingRight: "20px",
   maxWidth: "100%",
-  width: "1100px",
-  margin: "auto",
+  margin: "0 auto",
 } as const;

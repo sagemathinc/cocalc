@@ -31,6 +31,7 @@ import {
 } from "./components";
 import { CGroupInfo, DUState, PTStats, ProcessRow } from "./types";
 import { DETAILS_BTN_TEXT, SSH_KEYS_DOC } from "./utils";
+import { ROOT_STYLE } from "../servers/consts";
 
 interface Props {
   any_alerts: () => boolean;
@@ -518,12 +519,10 @@ export function Full(props: Readonly<Props>): JSX.Element {
   }
 
   return (
-    <Row style={{ padding: "15px 15px 0 15px" }}>
-      <Col md={12}>
-        {render_not_running()}
-        {render_error()}
-        {render_body()}
-      </Col>
-    </Row>
+    <div style={ROOT_STYLE}>
+      {render_not_running()}
+      {render_error()}
+      {render_body()}
+    </div>
   );
 }

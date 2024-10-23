@@ -73,14 +73,7 @@ export function ProjectCollaboratorsPage(): JSX.Element {
   }
 
   return (
-    <div
-      style={{
-        ...ROOT_STYLE,
-        width: "1000px",
-        maxWidth: "100%",
-        margin: "auto",
-      }}
-    >
+    <div style={ROOT_STYLE}>
       <Title level={2}>
         <Icon name={ICON_USERS} /> {intl.formatMessage(labels.users)}
       </Title>

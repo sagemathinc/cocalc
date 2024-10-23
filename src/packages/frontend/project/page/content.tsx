@@ -59,7 +59,7 @@ import getUrlTransform from "./url-transform";
 const DEFAULT_CHAT_WIDTH = IS_MOBILE ? 0.5 : 0.3;
 
 const MAIN_STYLE: React.CSSProperties = {
-  overflowX: "hidden",
+  overflowX: "auto",
   flex: "1 1 auto",
   height: 0,
   position: "relative",

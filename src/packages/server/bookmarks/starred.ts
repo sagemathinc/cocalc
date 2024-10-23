@@ -28,7 +28,7 @@ export async function saveStarredFilesBookmarks({
 }: SaveStarredFilesBoookmarksProps): Promise<string[]> {
   if (account_id === project_id) {
     throw new Error(
-      `When using a project level API key, you have to set the 'account_id' field.`,
+      `As of now, you cannot use a project-level API key to modify account specific bookmarks. Use the account level API key!`,
     );
   }
 
