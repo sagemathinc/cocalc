@@ -196,6 +196,7 @@ export interface Purchase {
   service: Service;
   description: Description;
   invoice_id?: string;
+  payment_intent_id?: string;
   project_id?: string;
   tag?: string;
   day_statement_id?: number;
@@ -242,8 +243,8 @@ Table({
       desc: "When the purchase stops being active.  For metered purchases, it's when the purchase finished being charged, in which case the cost field should be equal to the length of the period times the cost_per_hour.",
     },
     invoice_id: {
-      title: "Invoice Id",
-      desc: "The id of the stripe invoice that was sent that included this item.  Legacy: if paid via a payment intent, this will be the id of a payment intent instead, and it will start with pi_.",
+      title: "Stripe Invoice Id or Payment Intent Id",
+      desc: "The id of the stripe invoice that was sent that included this item.  If paid via a payment intent, this will be the id of a payment intent instead, and it will start with pi_.",
       type: "string",
     },
     project_id: {
@@ -290,6 +291,11 @@ Table({
     desc: "Purchase Log",
     primary_key: "id",
     pg_indexes: ["account_id", "time", "project_id"],
+    pg_unique_indexes: [
+      // having two entries with same invoice_id or id would be very bad, since that
+      // would mean user got money twice for one payment!
+      "invoice_id",
+    ],
     user_query: {
       get: {
         pg_where: [{ "account_id = $::UUID": "account_id" }],

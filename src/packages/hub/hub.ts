@@ -307,9 +307,7 @@ async function startServer(): Promise<void> {
         if (childProcess.pid) {
           try {
             process.kill(-childProcess.pid, "SIGKILL");
-          } catch (err) {
-            console.error("Failed to kill child process:", err);
-          }
+          } catch (_err) {}
         }
       }, 120000);
     }

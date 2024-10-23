@@ -211,7 +211,10 @@ export default function Payment({ balance, update, cost }: Props) {
               amount={amount}
               description="Add money to your account."
               purpose={"add-credit"}
-              onFinished={handleCancel}
+              onFinished={() => {
+                update?.();
+                handleCancel();
+              }}
             />
           </div>
         )}

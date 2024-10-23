@@ -6,10 +6,11 @@ import {
 } from "@stripe/react-stripe-js";
 import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
 import { useEffect, useState } from "react";
-import { createPaymentIntent } from "./api";
+import { createPaymentIntent, processPaymentIntents } from "./api";
 import { Button, Spin } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
+import { delay } from "awaiting";
 
 export default function StripePayment({
   amount,
@@ -97,10 +98,22 @@ function PaymentForm({ onFinished }) {
         elements,
         redirect: "if_required",
         confirmParams: {
+          // TODO: this URL needs to trigger processing payment intents...
           return_url: location.href,
         },
       });
 
+      try {
+        await processPaymentIntents();
+      } catch (_err) {
+        await delay(15000);
+        try {
+          await processPaymentIntents();
+        } catch (_err) {
+          // still failing -- user can view the "payment status" panel,
+          // and that will deal with anything that was missed.
+        }
+      }
       if (!error) {
         onFinished();
         return;
@@ -137,7 +150,10 @@ function PaymentForm({ onFinished }) {
             id="submit"
             onClick={handleSubmit}
           >
-            <span id="button-text"> Pay Now {isSubmitting && <Spin />}</span>
+            <span id="button-text">
+              {" "}
+              Pay Now {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
+            </span>
           </Button>
         </div>
       )}

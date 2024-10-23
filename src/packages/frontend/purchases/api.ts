@@ -222,6 +222,10 @@ export async function createPaymentIntent(opts: {
   return await api("purchases/create-payment-intent", opts);
 }
 
+export async function processPaymentIntents(): Promise<{ count: number }> {
+  return await api("purchases/process-payment-intents");
+}
+
 export async function setupAutomaticBilling(opts: {
   success_url: string;
   cancel_url?: string;

@@ -2,7 +2,7 @@
  */
 
 import getAccountId from "lib/account/get-account";
-import createPaymentIntent from "@cocalc/server/purchases//create-payment-intent";
+import { createPaymentIntent } from "@cocalc/server/purchases/payment-intent";
 import getParams from "lib/api/get-params";
 import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
 
