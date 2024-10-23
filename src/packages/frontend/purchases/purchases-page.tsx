@@ -1,7 +1,6 @@
 import { Checkbox, Collapse, CollapseProps, Divider, Tooltip } from "antd";
 import dayjs from "dayjs";
-import { useState } from "react";
-
+import { useRef, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { MAX_API_LIMIT } from "@cocalc/util/db-schema/purchases";
 import AccountStatus from "./account-status";
@@ -18,6 +17,7 @@ export default function PurchasesPage() {
   const [activeKey, setActiveKey] = useState<Key>(cache.activeKey);
   const [group, setGroup] = useState<boolean>(false);
   const [activeOnly, setActiveOnly] = useState<boolean>(false);
+  const refreshPurchasesRef = useRef<any>(null);
 
   const items: CollapseProps["items"] = [
     {
@@ -54,7 +54,11 @@ export default function PurchasesPage() {
 
   return (
     <div>
-      <AccountStatus />
+      <AccountStatus
+        onRefresh={() => {
+          refreshPurchasesRef.current?.();
+        }}
+      />
       <Divider style={{ marginTop: "30px" }}>
         Transactions During the Last Day
       </Divider>
@@ -84,6 +88,7 @@ export default function PurchasesPage() {
         showBalance
         activeOnly={!group && activeOnly}
         group={group}
+        refreshRef={refreshPurchasesRef}
       />
       <Divider style={{ marginTop: "30px" }}>
         All Transactions, Spending Limits, and Plots

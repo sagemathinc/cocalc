@@ -7,6 +7,8 @@ import {
 import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/server/api/throttle";
 import createCredit from "./create-credit";
+import getPool from "@cocalc/database/pool";
+import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 
 const logger = getLogger("purchases:create-payment-intent");
 
@@ -73,14 +75,14 @@ export async function createPaymentIntent({
     await stripe.paymentIntents.update(paymentIntent.id, {
       amount: amountStripe,
       description,
-      metadata: { purpose },
+      metadata: { purpose, account_id },
     });
   } else {
     paymentIntent = await stripe.paymentIntents.create({
       customer,
       amount: amountStripe,
       currency: "usd",
-      metadata: { purpose },
+      metadata: { purpose, account_id },
     });
   }
 
@@ -149,19 +151,41 @@ export async function processPaymentIntents(account_id): Promise<number> {
       continue;
     }
     seen.add(paymentIntent.id);
-    if (
-      paymentIntent.status == "succeeded" &&
-      paymentIntent.metadata["processed"] != "true" &&
-      paymentIntent.metadata["purpose"]
-    ) {
-      const id = await processPaymentIntent({ account_id, paymentIntent });
-      purchase_ids.add(id);
+    if (isReadyToProcess(paymentIntent)) {
+      const id = await processPaymentIntent(paymentIntent);
+      if (id) {
+        purchase_ids.add(id);
+      }
     }
   }
   return purchase_ids.size;
 }
 
-async function processPaymentIntent({ account_id, paymentIntent }) {
+function isReadyToProcess(paymentIntent) {
+  return (
+    paymentIntent.status == "succeeded" &&
+    paymentIntent.metadata["processed"] != "true" &&
+    paymentIntent.metadata["purpose"]
+  );
+}
+
+async function processPaymentIntent(paymentIntent) {
+  let account_id = paymentIntent.metadata.account_id;
+  logger.debug("processPaymentIntent", { id: paymentIntent.id, account_id });
+  if (!account_id) {
+    // this should never happen, but in case it does, we  lookup the account_id
+    // in our database, based on the customer id.
+    account_id = await getAccountIdFromStripeCustomerId(paymentIntent.customer);
+    if (!account_id) {
+      // no possible way to process this.
+      logger.debug(
+        "processPaymentIntent: unknown stripe customer",
+        paymentIntent.customer,
+      );
+      return;
+    }
+  }
+
   // credit the account.  If the account was already credited for this (e.g.,
   // by another process doing this at the same time), that should be detected
   // and is a no-op.
@@ -178,4 +202,69 @@ async function processPaymentIntent({ account_id, paymentIntent }) {
   });
 
   return id;
+}
+
+// This allows for a periodic check that we have processed all recent payment
+// intents across all users.  It should be called periodically.
+// This should be called periodically as a maintenance task.
+export async function processAllRecentPaymentIntents(): Promise<number> {
+  const stripe = await getConn();
+
+  // payments that might have been missed. This might miss something from up to 1-2 minutes ago
+  // due to time to update the index, but that is fine given the point of this function.
+  // We also use a small limit, since in almost all cases this will be empty, and if it is
+  // not empty, we would just call it again to get more results.
+  const query = `status:"succeeded" AND -metadata["processed"]:"true" -metadata["purpose"]:null`;
+  const paymentIntents = await stripe.paymentIntents.search({
+    query,
+    limit: 10,
+  });
+  logger.debug(
+    `processAllRecentPaymentIntents: considering ${paymentIntents.data.length} payments...`,
+  );
+  const purchase_ids = new Set<number>([]);
+  for (const paymentIntent of paymentIntents.data) {
+    if (isReadyToProcess(paymentIntent)) {
+      const id = await processPaymentIntent(paymentIntent);
+      if (id) {
+        purchase_ids.add(id);
+      }
+    }
+  }
+  return purchase_ids.size;
+}
+
+// this gets the account_id with a given stripe_id....
+export async function getAccountIdFromStripeCustomerId(
+  customer: string,
+): Promise<string | undefined> {
+  const pool = getPool();
+  // I think this is a linear search on the entire accounts table, probably.
+  // This should basically never happen, but I'm implementing it just
+  // in case.
+  const { rows } = await pool.query(
+    "SELECT account_id FROM accounts WHERE stripe_customer_id=$1",
+    [customer],
+  );
+  if (rows.length == 1) {
+    // clear answer and done
+    return rows[0]?.account_id;
+  }
+  // Next query stripe itself:
+  const stripe = await getConn();
+  try {
+    const customerObject = await stripe.customers.retrieve(customer);
+    const account_id = customerObject["metadata"]?.["account_id"];
+    if (account_id && (await isValidAccount(account_id))) {
+      // check if it is valid, because, e.g., stripe might have all kinds
+      // of crazy data... e.g., all dev servers use the SAME stripe testing
+      // account.  Also the account could be purged from our records, so
+      // no further processing is possible.
+      return account_id;
+    }
+  } catch (_err) {
+    // ddidn't find via stripe
+  }
+  // at least try the first result if there is more than 1, or return undefined.
+  return rows[0]?.account_id;
 }

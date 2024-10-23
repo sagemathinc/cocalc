@@ -105,13 +105,23 @@ function PaymentForm({ onFinished }) {
 
       try {
         await processPaymentIntents();
-      } catch (_err) {
+      } catch (err) {
+        console.warn("issue processing payment", err);
+        // would usually be due to throttling, but could be network went down or
+        // cocalc went down at exactly the wrong time.
+        console.log("try again in 15s...");
         await delay(15000);
         try {
           await processPaymentIntents();
-        } catch (_err) {
-          // still failing -- user can view the "payment status" panel,
-          // and that will deal with anything that was missed.
+        } catch (err) {
+          console.warn("still failing to processing payment", err);
+          setMessage(
+            `Your payment appears to have went through, but CoCalc has not yet received the funds.  Please close this dialog and check the payment status panel. ${err}`,
+          );
+          return;
+          // still failing -- a backend maintenance task does
+          // handle any missed payments within a few minutes.
+          // And also there is the "payment status" panel.
         }
       }
       if (!error) {
@@ -146,19 +156,23 @@ function PaymentForm({ onFinished }) {
             size="large"
             style={{ marginTop: "15px", fontSize: "14pt" }}
             type="primary"
-            disabled={isSubmitting || !stripe || !elements || !ready}
+            disabled={isSubmitting || !stripe || !elements || !ready || !!message}
             id="submit"
             onClick={handleSubmit}
           >
             <span id="button-text">
-              {" "}
-              Pay Now {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
+              Confirm Payment{" "}
+              {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
             </span>
           </Button>
         </div>
       )}
-      {/* Show any error or success messages */}
-      {message && <div id="payment-message">{message}</div>}
+      {/* Show error message */}
+      <ShowError
+        error={message}
+        style={{ marginTop: "15px" }}
+        setError={setMessage}
+      />
     </div>
   );
 }

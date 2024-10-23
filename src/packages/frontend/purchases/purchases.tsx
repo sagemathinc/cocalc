@@ -9,10 +9,8 @@ import {
   Tooltip,
 } from "antd";
 import { CSSProperties, useEffect, useState } from "react";
-
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Next from "@cocalc/frontend/components/next";
@@ -185,6 +183,7 @@ export function PurchasesTable({
   limit = DEFAULT_LIMIT,
   filename,
   activeOnly,
+  refreshRef,
 }: Props & {
   thisMonth?: boolean;
   cutoff?: Date;
@@ -196,6 +195,7 @@ export function PurchasesTable({
   limit?: number;
   filename?: string;
   activeOnly?: boolean;
+  refreshRef?;
 }) {
   const [purchaseRecords, setPurchaseRecords] = useState<
     Partial<Purchase & { sum?: number }>[] | null
@@ -262,6 +262,9 @@ export function PurchasesTable({
     await getPurchaseRecords();
     await getBalance();
   };
+  if (refreshRef != null) {
+    refreshRef.current = refreshRecords;
+  }
 
   useEffect(() => {
     getBalance();
@@ -496,12 +499,12 @@ function DetailedPurchaseTable({
                     period_end={period_end}
                   />
                   {invoice_id && (
-                    <div
-                      style={{ marginLeft: "15px", display: "inline-block" }}
-                    >
+                    <div style={{ marginLeft: "15px", float: "right" }}>
                       {admin && id != null && <AdminRefund purchase_id={id} />}
                       {!admin && (
-                        <A
+                        <Button
+                          type="link"
+                          target="_blank"
                           href={getSupportURL({
                             body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
                             subject: `Refund Request: Transaction ${id}`,
@@ -510,7 +513,7 @@ function DetailedPurchaseTable({
                           })}
                         >
                           <Icon name="external-link" /> Refund
-                        </A>
+                        </Button>
                       )}
                       <InvoiceLink invoice_id={invoice_id} />
                     </div>
