@@ -65,11 +65,11 @@ export default function StripePayment({
   );
 
   useEffect(() => {
-    if (!amount) {
+    if (!amount || disabled) {
       return;
     }
     updateSecret({ amount, description, purpose });
-  }, [amount, description, purpose]);
+  }, [amount, description, purpose, disabled]);
 
   if (error) {
     return <ShowError style={style} error={error} setError={setError} />;
@@ -80,6 +80,9 @@ export default function StripePayment({
   }
 
   if (secret == null) {
+    if (disabled) {
+      return null;
+    }
     return <BigSpin style={style} />;
   }
 

@@ -10,7 +10,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { redux } from "@cocalc/frontend/app-framework";
 import PayLink from "./pay-link";
 import Transfer from "./transfer";
-import { currency } from "@cocalc/util/misc";
+import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -128,20 +128,21 @@ export default function PayNow({
                 />
               </div>
             )}
-            {!allowed && (
-              <Button size="large" onClick={() => update(true)} type="primary">
-                <Icon name="credit-card" /> Add{" "}
-                {chargeAmount ? currency(chargeAmount) : ""} Credit to Your
-                Account...
-              </Button>
-            )}
+            <StripePayment
+              amount={chargeAmount}
+              description="Pay fee for access to a course."
+              purpose={`student-pay-${project_id}`}
+              onFinished={async () => {
+                await update(true);
+                await completePurchase();
+              }}
+            />
           </div>
           {!allowed && reason && (
             <Alert
               style={{ marginTop: "15px" }}
               type="warning"
               showIcon
-              message="Add Credit"
               description={reason}
             />
           )}
