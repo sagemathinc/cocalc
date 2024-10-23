@@ -27,9 +27,10 @@ Table({
       type: "string",
       desc: "(optional) path to a specific file in the project",
     },
-    payload: {
-      type: "map",
-      desc: "a JSON-type data for this bookmark, e.g. a list of strings for IDs",
+    stars: {
+      type: "array",
+      pg_type: "TEXT[]",
+      desc: " a list of strings of paths or IDs",
     },
     last_edited: {
       type: "timestamp",

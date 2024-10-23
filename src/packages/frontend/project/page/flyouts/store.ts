@@ -8,8 +8,12 @@ import { useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
 import api from "@cocalc/frontend/client/api";
-import { STARRED } from "@cocalc/util/consts/bookmarks";
-import { GetStarredBookmarks } from "@cocalc/util/types/bookmarks";
+import { STARRED_FILES } from "@cocalc/util/consts/bookmarks";
+import {
+  GetStarredBookmarks,
+  GetStarredBookmarksPayload,
+  SetStarredBookmarks,
+} from "@cocalc/util/types/bookmarks";
 import {
   FlyoutActiveStarred,
   getFlyoutActiveStarred,
@@ -44,13 +48,14 @@ export function useStarredFilesManager(project_id: string) {
     storeStarred(next);
   }
 
-  async function storeStarred(starred: string[]) {
+  async function storeStarred(stars: string[]) {
     try {
-      await api("bookmarks/set", {
-        type: STARRED,
+      const payload: SetStarredBookmarks = {
+        type: STARRED_FILES,
         project_id,
-        payload: starred,
-      });
+        stars,
+      };
+      await api("bookmarks/set", payload);
     } catch (err) {
       console.error("api error", err);
     }
@@ -61,36 +66,37 @@ export function useStarredFilesManager(project_id: string) {
   const updateStarred = throttle(
     async () => {
       try {
-        const data: GetStarredBookmarks = await api("bookmarks/get", {
-          type: STARRED,
+        const payload: GetStarredBookmarksPayload = {
+          type: STARRED_FILES,
           project_id,
-        });
+        };
+        const data: GetStarredBookmarks = await api("bookmarks/get", payload);
 
         const { type, status } = data;
 
-        if (type !== STARRED) {
+        if (type !== STARRED_FILES) {
           console.error(
-            `flyout/store/starred type must be ${STARRED} but we got`,
+            `flyout/store/starred type must be ${STARRED_FILES} but we got`,
             type,
           );
           return;
         }
 
         if (status === "success") {
-          const { payload } = data;
+          const { stars } = data;
           if (
-            Array.isArray(payload) &&
-            payload.every((x) => typeof x === "string")
+            Array.isArray(stars) &&
+            stars.every((x) => typeof x === "string")
           ) {
-            payload.sort(); // sorted for the xor check below
-            const next = sortBy(uniq(merge(starred, payload)));
+            stars.sort(); // sorted for the xor check below
+            const next = sortBy(uniq(merge(starred, stars)));
             setStarredLS(next);
-            if (xor(payload, next).length > 0) {
+            if (xor(stars, next).length > 0) {
               // if there is a change (e.g. nothing in the database stored yet), store the stars
               await storeStarred(next);
             }
           } else {
-            console.error("flyout/store/starred invalid payload", payload);
+            console.error("flyout/store/starred invalid payload", stars);
           }
         } else if (status === "error") {
           const { error } = data;

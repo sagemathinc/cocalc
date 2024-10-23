@@ -9,8 +9,12 @@ import {
   LoadStarredFilesBookmarksProps,
   SaveStarredFilesBoookmarksProps,
 } from "@cocalc/server/bookmarks/starred";
-import { STARRED } from "@cocalc/util/consts/bookmarks";
-import { GetStarredBookmarks } from "@cocalc/util/types/bookmarks";
+import { MAX_STARS, STARRED_FILES } from "@cocalc/util/consts/bookmarks";
+import {
+  GetStarredBookmarks,
+  GetStarredBookmarksPayload,
+  SetStarredBookmarks,
+} from "@cocalc/util/types/bookmarks";
 import { ProjectIdSchema } from "./projects/common";
 
 const ERROR = z.object({
@@ -18,43 +22,53 @@ const ERROR = z.object({
   error: z.string(),
 });
 
-const COMMON_STARRED = z.object({
+const COMMON_STARS = z.object({
   project_id: ProjectIdSchema,
-  type: z.literal(STARRED),
+  type: z.literal(STARRED_FILES),
 });
 
-export const BookmarkSetInputSchema = COMMON_STARRED.extend({
-  payload: z.string().array(),
-});
+export const BookmarkSetInputSchema = COMMON_STARS.extend({
+  stars: z
+    .string()
+    .array()
+    .max(MAX_STARS)
+    .describe("List of file paths or IDs"),
+}).describe("Set the list of starred items to the given list of stars.");
 
 export const BookmarkSetOutputSchema = z.union([
-  COMMON_STARRED.merge(z.object({ status: z.literal("success") })),
+  COMMON_STARS.merge(z.object({ status: z.literal("success") })),
   ERROR,
 ]);
 
-export const BookmarkAddInputSchema = BookmarkSetInputSchema;
+export const BookmarkAddInputSchema = BookmarkSetInputSchema.describe(
+  "Add a list of starred items to the list of bookmarks.",
+);
 export const BookmarkAddOutputSchema = BookmarkSetOutputSchema;
 
-export const BookmarkRemoveInputSchema = BookmarkSetInputSchema;
+export const BookmarkRemoveInputSchema = BookmarkSetInputSchema.describe(
+  "Remove a list of starred items from the given list of bookmarks.",
+);
 export const BookmarkRemoveOutputSchema = BookmarkSetOutputSchema;
 
-export const BookmarkGetInputSchema = COMMON_STARRED;
+export const BookmarkGetInputSchema = COMMON_STARS.describe(
+  "Get the list of starred items for the given project ID and your account.",
+);
 export const BookmarkGetOutputSchema = z.union([
   z
     .object({
       status: z.literal("success"),
-      payload: z
+      stars: z
         .array(z.string())
         .describe(
-          "Array of file path strings, as they are in the starred tabs flyout",
+          "Array of IDs or file path strings, as they are in the starred tabs flyout",
         ),
       last_edited: z
         .number()
         .optional()
         .describe("UNIX epoch timestamp, when bookmark was last edited"),
     })
-    .merge(COMMON_STARRED),
-  ERROR.merge(COMMON_STARRED),
+    .merge(COMMON_STARS),
+  ERROR.merge(COMMON_STARS),
 ]);
 
 export type BookmarkSetInputType = z.infer<typeof BookmarkSetInputSchema>;
@@ -68,9 +82,13 @@ export type BookmarkGetOutputType = z.infer<typeof BookmarkGetOutputSchema>;
 
 // consistency checks
 export const _1: Omit<SaveStarredFilesBoookmarksProps, "mode" | "account_id"> =
-  {} as Omit<BookmarkSetInputType, typeof STARRED>;
+  {} as Omit<BookmarkSetInputType, typeof STARRED_FILES>;
 
 export const _2: Omit<LoadStarredFilesBookmarksProps, "account_id"> =
-  {} as Omit<BookmarkGetInputType, typeof STARRED>;
+  {} as Omit<BookmarkGetInputType, typeof STARRED_FILES>;
 
 export const _3: BookmarkGetOutputType = {} as GetStarredBookmarks;
+
+export const _4: BookmarkSetInputType = {} as SetStarredBookmarks;
+
+export const _5: BookmarkGetInputType = {} as GetStarredBookmarksPayload;

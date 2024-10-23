@@ -3,24 +3,17 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-/*
-Run code in a project.
-*/
-
 import { Request } from "express";
 
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import getAccountId from "lib/account/get-account";
-import getParams from "lib/api/get-params";
-
+import { loadStarredFilesBookmarks } from "@cocalc/server/bookmarks/starred";
+import { STARRED_FILES } from "@cocalc/util/consts/bookmarks";
 import { apiRoute, apiRouteOperation } from "lib/api";
+import { processGetRequest } from "lib/api/bookmarks";
 import {
-  BookmarkGetOutputSchema,
   BookmarkGetInputSchema,
+  BookmarkGetOutputSchema,
   BookmarkGetOutputType,
 } from "lib/api/schema/bookmarks";
-import { loadStarredFilesBookmarks } from "@cocalc/server/bookmarks/starred";
-import { STARRED } from "@cocalc/util/consts/bookmarks";
 
 async function handle(req, res) {
   try {
@@ -32,19 +25,11 @@ async function handle(req, res) {
 }
 
 async function get(req: Request): Promise<BookmarkGetOutputType> {
-  const account_id = await getAccountId(req);
-  if (!account_id) {
-    throw Error("must be signed in");
-  }
-  const { project_id, type } = BookmarkGetInputSchema.parse(getParams(req));
+  const { project_id, account_id, type } = await processGetRequest(req);
 
   switch (type) {
-    case STARRED: {
-      if (!(await isCollaborator({ account_id, project_id }))) {
-        throw Error("user must be a collaborator on the project");
-      }
-
-      const { payload, last_edited } = await loadStarredFilesBookmarks({
+    case STARRED_FILES: {
+      const { stars, last_edited } = await loadStarredFilesBookmarks({
         project_id,
         account_id,
       });
@@ -52,7 +37,7 @@ async function get(req: Request): Promise<BookmarkGetOutputType> {
       return {
         type,
         project_id,
-        payload,
+        stars,
         last_edited,
         status: "success",
       };
