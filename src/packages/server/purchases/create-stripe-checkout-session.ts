@@ -14,7 +14,7 @@ import type { Stripe } from "stripe";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
-import { currency } from "@cocalc/util/misc";
+import { currency, round2 } from "@cocalc/util/misc";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/server/api/throttle";
 
@@ -257,12 +257,12 @@ export async function sanityCheckAmount(amount) {
   );
   if (amount < minAllowed) {
     throw Error(
-      `Amount ${currency(amount)} must be at least ${currency(minAllowed)}.`,
+      `Amount ${currency(round2(amount))} must be at least ${currency(minAllowed)}.`,
     );
   }
   if (amount > MAX_COST) {
     throw Error(
-      `Amount ${currency(amount)} exceeds the maximum allowed amount of ${currency(MAX_COST)}. Please contact support.`,
+      `Amount ${currency(round2(amount))} exceeds the maximum allowed amount of ${currency(MAX_COST)}.  Please contact support.`,
     );
   }
 }

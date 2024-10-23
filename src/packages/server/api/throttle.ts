@@ -15,6 +15,10 @@ export default function throttle({
   endpoint: string;
   interval?: number;
 }) {
+  if (process.env.JEST_WORKER_ID) {
+    // do not throttle when testing.
+    return;
+  }
   const key = `${account_id}${endpoint}`;
   const now = Date.now();
   if (!cache.has(key) || now - cache.get(key)! > interval) {

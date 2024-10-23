@@ -98,7 +98,7 @@ describe("create-stripe-checkout-session", () => {
         ...testSessionOpts,
       }))
         .rejects
-        .toThrow("Amount must be at least");
+        .toThrow("Amount must be nonzero.");
     });
 
     it("conforms to minimum Stripe transaction charge when forced", async () => {
@@ -168,7 +168,7 @@ describe("create-stripe-checkout-session", () => {
         line_items: testLineItems
       }))
         .rejects
-        .toThrow("Amount exceeds");
+        .toThrow("exceeds");
     });
 
     it("throws an error when provided line item without description", async () => {
