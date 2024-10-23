@@ -5,12 +5,13 @@
 
 import { Alert, Row, Col } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { useTypedRedux, redux } from "../../app-framework";
-import { Loading, TimeAgo } from "../../components";
+import { Virtuoso } from "react-virtuoso";
+
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
+import { Loading, TimeAgo } from "@cocalc/frontend/components";
 import { projects_with_licenses } from "./util";
 import { plural, trunc_middle } from "@cocalc/util/misc";
 import { LICENSES_STYLE } from "./managed-licenses";
-import { Virtuoso } from "react-virtuoso";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import { SiteLicense } from "@cocalc/frontend/project/settings/site-license";
 
@@ -33,8 +34,13 @@ export function ProjectsWithLicenses({}) {
     }
   }, []);
 
+  function sanitize(s: any): string {
+    return typeof s === "string" ? s : "";
+  }
+
   function row_renderer({ index }) {
     const { project_id, last_edited, num_licenses } = projects[index];
+    const project_title = sanitize(project_map?.getIn([project_id, "title"]));
     return (
       <Row
         key={projects[index]?.project_id}
@@ -44,9 +50,7 @@ export function ProjectsWithLicenses({}) {
         }}
       >
         <Col span={12} style={{ paddingLeft: "15px" }}>
-          <a>
-            {trunc_middle(project_map?.getIn([project_id, "title"]) ?? "", 80)}
-          </a>
+          <a>{trunc_middle(project_title, 80)}</a>
         </Col>
         <Col span={6}>
           {num_licenses} {plural(num_licenses, "License")}
