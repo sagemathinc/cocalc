@@ -454,3 +454,11 @@ export async function studentPayTransfer(opts: {
 }): Promise<{ url: string }> {
   return await api("purchases/student-pay-transfer", opts);
 }
+
+// will give error if user is not signed in - they can't make a purchase anyways in that case.
+export async function getStripePublishableKey(): Promise<string> {
+  const { stripe_publishable_key } = await api(
+    "purchases/get-stripe-publishable-key",
+  );
+  return stripe_publishable_key as string;
+}
