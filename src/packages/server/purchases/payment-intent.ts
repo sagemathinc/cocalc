@@ -234,6 +234,14 @@ export async function processAllRecentPaymentIntents(): Promise<number> {
   return purchase_ids.size;
 }
 
+export async function maintainPaymentIntents() {
+  logger.debug("maintainPaymentIntents");
+  // Right now we just call this. We could put in a longer interval between
+  // calls (i.e. refuse to call too frequently if necessary).  Right now
+  // this gets called every 5 minutes, which seems fine.
+  await processAllRecentPaymentIntents();
+}
+
 // this gets the account_id with a given stripe_id....
 export async function getAccountIdFromStripeCustomerId(
   customer: string,
