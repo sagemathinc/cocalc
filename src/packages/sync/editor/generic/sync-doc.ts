@@ -530,7 +530,7 @@ export class SyncDoc extends EventEmitter {
       maxAge: COMPUTE_THRESH_MS,
       // don't exclude self since getComputeServerId called from the compute
       // server also to know if it is the chosen one.
-      excludeSelf: false,
+      excludeSelf: "never",
     });
     const dbg = this.dbg("getComputeServerId");
     dbg("num cursors = ", cursors.size);
@@ -549,6 +549,7 @@ export class SyncDoc extends EventEmitter {
         }
       }
     }
+
     return isFinite(minId) ? minId : 0;
   };
 
@@ -1884,13 +1885,21 @@ export class SyncDoc extends EventEmitter {
 
   /* Returns *immutable* Map from account_id to list
      of cursor positions, if cursors are enabled.
+
+     - excludeSelf: do not include our own cursor
+     - maxAge: only include cursors that have been updated with maxAge ms from now.
   */
-  public get_cursors = ({
+  get_cursors = ({
     maxAge = 60 * 1000,
-    excludeSelf = true,
+    // excludeSelf:
+    // 'always' -- *always* exclude self
+    // 'never' -- never exclude self
+    // 'heuristic' -- exclude self is older than last set from here, e.g., useful on
+    // frontend so we don't see our own cursor unless more than one browser.
+    excludeSelf = "always",
   }: {
     maxAge?: number;
-    excludeSelf?: boolean;
+    excludeSelf?: "always" | "never" | "heuristic";
   } = {}): Map<string, any> => {
     this.assert_not_closed("get_cursors");
     if (!this.cursors) {
@@ -1901,12 +1910,15 @@ export class SyncDoc extends EventEmitter {
     }
     const account_id: string = this.client_id();
     let map = this.cursor_map;
-    if (
-      (excludeSelf && map.has(account_id)) ||
-      this.cursor_last_time >=
-        (map.getIn([account_id, "time"], new Date(0)) as Date)
-    ) {
-      map = map.delete(account_id);
+    if (map.has(account_id) && excludeSelf != "never") {
+      if (
+        excludeSelf == "always" ||
+        (excludeSelf == "heuristic" &&
+          this.cursor_last_time >=
+            (map.getIn([account_id, "time"], new Date(0)) as Date))
+      ) {
+        map = map.delete(account_id);
+      }
     }
     // Remove any old cursors, where "old" is by default more than maxAge old.
     const now = Date.now();
@@ -1939,7 +1951,7 @@ export class SyncDoc extends EventEmitter {
   /* Set settings map.  Used for custom configuration just for
      this one file, e.g., overloading the spell checker language.
    */
-  public set_settings = async (obj): Promise<void> => {
+  set_settings = async (obj): Promise<void> => {
     this.assert_is_ready("set_settings");
     await this.set_syncstring_table({
       settings: obj,

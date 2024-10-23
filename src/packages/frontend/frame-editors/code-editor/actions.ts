@@ -1150,9 +1150,11 @@ export class Actions<
     let cursors: Map<string, List<Map<string, any>>> = Map();
     this._syncstring
       .get_cursors({
-        excludeSelf: !redux
+        excludeSelf: redux
           .getStore("account")
-          .getIn(["editor_settings", "show_my_other_cursors"]),
+          .getIn(["editor_settings", "show_my_other_cursors"])
+          ? "heuristic"
+          : "always",
       })
       .forEach((info, account_id) => {
         info.get("locs").forEach((loc) => {
@@ -1198,7 +1200,7 @@ export class Actions<
     }
     const omit_lines: SetMap = {};
     const cursors = this._syncstring.get_cursors?.({
-      excludeSelf: false,
+      excludeSelf: "never",
       maxAge: 3 * 60 * 1000,
     }); // there are situations where get_cursors isn't defined (seen this).
     if (cursors) {

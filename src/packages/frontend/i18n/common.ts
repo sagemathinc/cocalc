@@ -578,6 +578,14 @@ export const labels = defineMessages({
     id: "labels.color",
     defaultMessage: "Color",
   },
+  configuration: {
+    id: "labels.configuraion",
+    defaultMessage: "Configuration",
+  },
+  configuration_short: {
+    id: "labels.configuraion.short",
+    defaultMessage: "Config",
+  },
 });
 
 export const menu = defineMessages({
@@ -1370,5 +1378,56 @@ export const dialogs = defineMessages({
   client_project_exec_start_first: {
     id: "client.project.exec.start_first",
     defaultMessage: "You must start the project first",
+  },
+});
+
+export const course = defineMessages({
+  assignments: {
+    id: "course.assignments",
+    defaultMessage: "Assignments",
+  },
+  handouts: {
+    id: "course.handouts",
+    defaultMessage: "Handouts",
+  },
+  actions: {
+    id: "course.actions",
+    defaultMessage: "Actions",
+  },
+  shared_project: {
+    id: "course.shared_project",
+    defaultMessage: "Shared Project",
+  },
+  students: {
+    id: "course.students",
+    defaultMessage: "Students",
+  },
+  add_students: {
+    id: "course.add_students",
+    defaultMessage: "Add Students",
+  },
+  add_students_tooltip: {
+    id: "course.add_students_tooltip",
+    defaultMessage: "Add one or more students to this course.",
+  },
+  show_deleted_students_msg: {
+    id: "course.show_deleted_students.msg",
+    defaultMessage: `{show, select, true {show} other {hide}}
+    {num_deleted} deleted
+    {num_deleted, plural, one {student} other {students}}`,
+  },
+  show_deleted_students_tooltip: {
+    id: "course.show_deleted_students.tooltip",
+    defaultMessage: `{show, select,
+    true {Click here to hide deleted students from the bottom of the list of students.}
+    other {Click here to show all deleted students at the bottom of the list.  You can then click on the student and click undelete if necessary.}}`,
+  },
+  create_shared_project: {
+    id: "course.create_shared_project",
+    defaultMessage: "Create Shared Project",
+  },
+  delete_shared_project: {
+    id: "course.delete_shared_project",
+    defaultMessage: "Delete Shared Project",
   },
 });

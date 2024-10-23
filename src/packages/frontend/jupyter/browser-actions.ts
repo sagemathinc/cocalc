@@ -326,9 +326,11 @@ export class JupyterActions extends JupyterActions0 {
     ) {
       return;
     }
-    const excludeSelf = !this.redux
+    const excludeSelf = this.redux
       .getStore("account")
-      .getIn(["editor_settings", "show_my_other_cursors"]);
+      .getIn(["editor_settings", "show_my_other_cursors"])
+      ? "heuristic"
+      : "always";
     const cursors = this.syncdb.get_cursors({ excludeSelf });
     const cells = this.cursor_manager.process(this.store.get("cells"), cursors);
     if (cells != null) {

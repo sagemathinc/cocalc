@@ -218,6 +218,31 @@ function ProjectTab({ project_id }: ProjectTabProps) {
     }
   }
 
+  const ws = <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>;
+
+  if (entryPoint == "compute") {
+    return (
+      <div style={{ width: "80vw" }}>
+        {ws}
+        <div
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            textAlign: "center",
+            width: "100%",
+          }}
+          onClick={click_title}
+        >
+          {icon}
+          {renderNoInternet()}
+          {renderAvatar()}{" "}
+          <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
+        </div>
+      </div>
+    );
+  }
+
   const body = (
     <div onMouseUp={onMouseUp} style={width != null ? { width } : undefined}>
       <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>
@@ -322,7 +347,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
             onChange={(project_id) => {
               actions.set_active_tab(project_id);
             }}
-            type={"editable-card"}
+            type={entryPoint == "compute" ? "card" : "editable-card"}
             renderTabBar={renderTabBar}
             items={items}
           />

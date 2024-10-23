@@ -87,7 +87,7 @@ export function ProjectLicenses({ project_id }): JSX.Element {
   }
 
   return (
-    <div style={{ ...ROOT_STYLE, maxWidth: undefined }}>
+    <div style={ROOT_STYLE}>
       <Title level={2}>
         <Icon name={ICON_UPGRADES} />{" "}
         <FormattedMessage

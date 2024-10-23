@@ -34,7 +34,7 @@ webpack website.  Differences include:
 
 "use strict";
 
-import { ProvidePlugin } from "@rspack/core";
+import { ProvidePlugin, SwcJsMinimizerRspackPlugin } from "@rspack/core";
 import type { WebpackPluginInstance } from "@rspack/core";
 import { resolve as path_resolve } from "path";
 import { execSync } from "child_process";
@@ -58,7 +58,7 @@ interface Options {
   middleware?: boolean;
 }
 
-export default function getConfig({ middleware }: Options = {}) {
+export default function getConfig({ middleware }: Options = {}): any {
   // Determine the git revision hash:
   const COCALC_GIT_REVISION = execSync("git rev-parse HEAD").toString().trim();
   const COCALC_GITHUB_REPO = "https://github.com/sagemathinc/cocalc";
@@ -223,6 +223,26 @@ export default function getConfig({ middleware }: Options = {}) {
     plugins,
     devServer: {
       hot: true,
+    },
+
+    optimization: {
+      minimizer: [
+        // See https://github.com/web-infra-dev/rspack/issues/7034
+        new SwcJsMinimizerRspackPlugin({
+          minimizerOptions: {
+            mangle: {
+              // Needed to prevent Safari bug
+              // https://bugs.webkit.org/show_bug.cgi?id=220517
+              keep_fnames: true,
+            },
+            compress: {
+              // Needed to prevent Safari bug
+              // https://bugs.webkit.org/show_bug.cgi?id=220517
+              keep_fnames: true,
+            },
+          },
+        }),
+      ],
     },
   };
 
