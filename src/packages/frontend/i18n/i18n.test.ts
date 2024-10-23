@@ -1,4 +1,4 @@
-import { editor, jupyter, labels, menu } from "./common";
+import { editor, jupyter, labels, menu, course } from "./common";
 import type { IntlMessage } from "./index";
 
 export type Data = { [key in string]: IntlMessage };
@@ -11,6 +11,7 @@ describe("i18n", () => {
     { data: editor, prefix: "editor." },
     { data: jupyter.editor, prefix: "jupyter.editor." },
     { data: jupyter.commands, prefix: "jupyter.commands." },
+    { data: course, prefix: "course." },
   ] as const;
 
   tests.forEach(({ data, prefix }) => {

@@ -25,7 +25,7 @@ import {
 import type { IntlMessage } from "@cocalc/util/i18n/types";
 import { unreachable } from "@cocalc/util/misc";
 
-export { dialogs, editor, jupyter, labels, menu } from "./common";
+export { dialogs, editor, jupyter, labels, menu, course } from "./common";
 
 export {
   DEFAULT_LOCALE,

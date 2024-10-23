@@ -8,6 +8,7 @@
 
 import { Button, Card, Popover } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   redux,
@@ -18,6 +19,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
@@ -31,7 +33,6 @@ import {
 } from "@cocalc/util/upgrades/quota";
 import { isBoostLicense } from "@cocalc/util/upgrades/utils";
 import { SiteLicense as SiteLicenseT } from "./types";
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 
 interface Props {
   project_id: string;
@@ -232,8 +233,10 @@ export function SiteLicense({
       <>
         {isFlyout && haveLicenses ? (
           <Paragraph type="secondary" style={{ padding: "5px" }}>
-            Information about attached licenses. Click on a row to expand
-            details.
+            <FormattedMessage
+              id="project.settings.site-license.body.info"
+              defaultMessage={`Information about attached licenses. Click on a row to expand details.`}
+            />
           </Paragraph>
         ) : undefined}
         {render_current_licenses()}

@@ -7,22 +7,23 @@
 Spec for editing courses via a frame tree.
 */
 
+import { COMMANDS } from "@cocalc/frontend/course/commands";
+import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
+import { menu } from "@cocalc/frontend/i18n";
+import { course, labels } from "@cocalc/frontend/i18n";
 import { set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
+import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import {
+  Actions,
   Assignments,
   Configuration,
+  Handouts,
   SharedProject,
   Students,
-  Handouts,
-  Actions,
 } from "./course-panels";
-import { EditorDescription } from "../frame-tree/types";
-import { addEditorMenus } from "@cocalc/frontend/frame-editors/frame-tree/commands";
-import { menu } from "@cocalc/frontend/i18n";
-import { COMMANDS } from "@cocalc/frontend/course/commands";
 
 const commands = set([
   "decrease_font_size",
@@ -65,7 +66,7 @@ const COURSE_MENUS = {
     },
   },
   action: {
-    label: "Actions",
+    label: course.actions,
     pos: 1.2,
     entries: {
       projectsActions: [
@@ -109,8 +110,8 @@ initMenus();
 
 const course_students: EditorDescription = {
   type: "course-students",
-  short: "Students",
-  name: "Students",
+  short: course.students,
+  name: course.students,
   icon: "users",
   component: Students,
   commands,
@@ -119,8 +120,8 @@ const course_students: EditorDescription = {
 
 const course_assignments: EditorDescription = {
   type: "course-assignments",
-  short: "Assignments",
-  name: "Assignments",
+  short: course.assignments,
+  name: course.assignments,
   icon: "share-square",
   component: Assignments,
   commands,
@@ -129,8 +130,8 @@ const course_assignments: EditorDescription = {
 
 const course_handouts: EditorDescription = {
   type: "course-handouts",
-  short: "Handouts",
-  name: "Handouts",
+  short: course.handouts,
+  name: course.handouts,
   icon: "copy",
   component: Handouts,
   commands,
@@ -139,8 +140,8 @@ const course_handouts: EditorDescription = {
 
 const course_configuration: EditorDescription = {
   type: "course-configuration",
-  short: "Config",
-  name: "Configuration",
+  short: labels.configuration_short,
+  name: labels.configuration,
   icon: "cogs",
   component: Configuration,
   commands,
@@ -149,8 +150,8 @@ const course_configuration: EditorDescription = {
 
 const course_actions: EditorDescription = {
   type: "course-actions",
-  short: "Actions",
-  name: "Actions",
+  short: course.actions,
+  name: course.actions,
   icon: "bolt",
   component: Actions,
   commands,
@@ -159,8 +160,8 @@ const course_actions: EditorDescription = {
 
 const course_shared_project: EditorDescription = {
   type: "course-shared_project",
-  short: "Shared",
-  name: "Shared Project",
+  short: labels.shared,
+  name: course.shared_project,
   icon: "share-square",
   component: SharedProject,
   commands,

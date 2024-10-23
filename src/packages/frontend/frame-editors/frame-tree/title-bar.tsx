@@ -12,6 +12,7 @@ import { Button, Input, InputNumber, Popover, Tooltip } from "antd";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
@@ -110,6 +111,7 @@ const title_bar_style: CSS = {
   display: "flex",
 } as const;
 
+// This is characters
 const MAX_TITLE_WIDTH = 20;
 const MAX_TITLE_WIDTH_INACTIVE = 40;
 
@@ -118,7 +120,7 @@ const TITLE_STYLE: CSS = {
   fontSize: "11pt",
   whiteSpace: "nowrap",
   display: "inline-block",
-  maxWidth: `${MAX_TITLE_WIDTH + 2}ex`,
+  maxWidth: "100%",
   overflow: "hidden",
   fontWeight: 500,
 } as const;
@@ -706,8 +708,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-                ? intl.formatMessage(label)
-                : label
+              ? intl.formatMessage(label)
+              : label
           }
           items={v}
         />
@@ -968,13 +970,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         }
       }
     }
-    const label = (
-      <span>
-        {trunc_middle(
-          title,
-          is_active ? MAX_TITLE_WIDTH : MAX_TITLE_WIDTH_INACTIVE,
-        )}
-      </span>
+
+    const label = trunc_middle(
+      title,
+      is_active ? MAX_TITLE_WIDTH : MAX_TITLE_WIDTH_INACTIVE,
     );
 
     if (props.title == null && is_active) {
@@ -993,6 +992,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         {label}
       </div>
     );
+
     if (title.length >= MAX_TITLE_WIDTH) {
       return (
         <Tooltip title={title} key="title">
