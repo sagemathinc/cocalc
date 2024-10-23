@@ -4,7 +4,7 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import type { LineItem, PaymentIntentSecret } from "@cocalc/util/stripe/types";
+import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
 import { useEffect, useState } from "react";
 import { createPaymentIntent } from "./api";
 import { Button, Spin } from "antd";
@@ -12,16 +12,21 @@ import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 
 export default function StripePayment({
-  lineItems,
+  amount,
+  description,
   purpose,
+  onFinished,
 }: {
-  lineItems?: LineItem[];
+  amount?: number;
+  description: string;
   purpose: string;
+  onFinished: Function;
 }) {
   const [secret, setSecret] = useState<PaymentIntentSecret | null>(null);
   const [error, setError] = useState<string>("");
+
   useEffect(() => {
-    if (lineItems == null || lineItems.length == 0) {
+    if (!amount) {
       return;
     }
     const init = async () => {
@@ -29,7 +34,8 @@ export default function StripePayment({
         setError("");
         setSecret(
           await createPaymentIntent({
-            line_items: lineItems,
+            amount,
+            description,
             purpose,
           }),
         );
@@ -38,18 +44,18 @@ export default function StripePayment({
       }
     };
     init();
-  }, [lineItems]);
+  }, [amount, description]);
 
   if (error) {
     return <ShowError error={error} setError={setError} />;
   }
 
-  if (lineItems == null || lineItems.length == 0) {
+  if (!amount) {
     return null;
   }
 
   if (secret == null) {
-    return <Spin />;
+    return <BigSpin />;
   }
 
   return (
@@ -59,20 +65,21 @@ export default function StripePayment({
         appearance: {
           theme: "stripe",
         },
-        loader: "auto",
+        loader: "never",
       }}
       stripe={loadStripe()}
     >
-      <PaymentForm />
+      <PaymentForm onFinished={onFinished} />
     </Elements>
   );
 }
 
-function PaymentForm({}) {
+function PaymentForm({ onFinished }) {
   const [message, setMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const stripe = useStripe();
   const elements = useElements();
+  const [ready, setReady] = useState<boolean>(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -83,53 +90,75 @@ function PaymentForm({}) {
       return;
     }
 
-    setIsSubmitting(true);
+    try {
+      setIsSubmitting(true);
 
-    const { error } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        // Make sure to change this to your payment completion page
-        return_url: "http://localhost:3000/complete",
-      },
-    });
+      const { error } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
+        confirmParams: {
+          return_url: location.href,
+        },
+      });
 
-    // This point will only be reached if there is an immediate error when
-    // confirming the payment. Otherwise, your customer will be redirected to
-    // your `return_url`. For some payment methods like iDEAL, your customer will
-    // be redirected to an intermediate site first to authorize the payment, then
-    // redirected to the `return_url`.
-    if (error.type === "card_error" || error.type === "validation_error") {
-      setMessage(error.message);
-    } else {
-      setMessage("An unexpected error occurred.");
+      if (!error) {
+        onFinished();
+        return;
+      }
+      if (error.type === "card_error" || error.type === "validation_error") {
+        setMessage(error.message);
+      } else {
+        setMessage("An unexpected error occurred.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
 
   return (
-    <form id="payment-form" onSubmit={handleSubmit}>
-      <h2>Add Money to Your Account</h2>
-      <br />
+    <div>
+      {!ready && <BigSpin />}
       <PaymentElement
+        onReady={() => {
+          setReady(true);
+        }}
         id="payment-element"
         options={{
           layout: "tabs",
         }}
       />
-      <div style={{ textAlign: "center", marginTop: "15px" }}>
-        <Button
-          size="large"
-          style={{ marginTop: "15px" }}
-          type="primary"
-          disabled={isSubmitting || !stripe || !elements}
-          id="submit"
-        >
-          <span id="button-text">{isSubmitting ? <Spin /> : "Pay Now"}</span>
-        </Button>
-      </div>
+      {ready && (
+        <div style={{ textAlign: "center", marginTop: "15px" }}>
+          <Button
+            size="large"
+            style={{ marginTop: "15px", fontSize: "14pt" }}
+            type="primary"
+            disabled={isSubmitting || !stripe || !elements || !ready}
+            id="submit"
+            onClick={handleSubmit}
+          >
+            <span id="button-text"> Pay Now {isSubmitting && <Spin />}</span>
+          </Button>
+        </div>
+      )}
       {/* Show any error or success messages */}
       {message && <div id="payment-message">{message}</div>}
-    </form>
+    </div>
+  );
+}
+
+function BigSpin() {
+  return (
+    <div style={{ textAlign: "center" }}>
+      <Spin tip="Loading" size="large">
+        <div
+          style={{
+            padding: 50,
+            background: "rgba(0, 0, 0, 0.05)",
+            borderRadius: 4,
+          }}
+        />
+      </Spin>
+    </div>
   );
 }

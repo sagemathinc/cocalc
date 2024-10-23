@@ -20,10 +20,11 @@ async function get(req): Promise<PaymentIntentSecret> {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { line_items, purpose } = getParams(req);
+  const { amount, description, purpose } = getParams(req);
   return await createPaymentIntent({
     account_id,
-    line_items,
+    amount,
+    description,
     purpose,
   });
 }

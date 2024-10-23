@@ -1,4 +1,4 @@
-import { Button, Modal, Spin, Tag } from "antd";
+import { Button, Divider, Modal, Spin, Tag } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { currency } from "@cocalc/util/misc";
@@ -8,7 +8,6 @@ import { delay } from "awaiting";
 import * as api from "./api";
 import PaymentConfig from "./payment-config";
 import StripePayment from "./stripe-payment";
-import type { LineItem } from "@cocalc/util/stripe/types";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -32,7 +31,7 @@ export default function Payment({ balance, update, cost }: Props) {
   const [cancelling, setCancelling] = useState<boolean>(false);
   const [updating, setUpdating] = useState<boolean>(false);
   const [syncing, setSyncing] = useState<boolean>(false);
-  const [lineItems, setLineItems] = useState<LineItem[] | undefined>(undefined);
+  const [amount, setAmount] = useState<number>(0);
 
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
@@ -152,7 +151,7 @@ export default function Payment({ balance, update, cost }: Props) {
 
   const handleCancel = () => {
     setIsModalVisible(false);
-    setLineItems(undefined);
+    setAmount(0);
   };
 
   function renderBody() {
@@ -191,22 +190,31 @@ export default function Payment({ balance, update, cost }: Props) {
           />
         )}
         <br />
-        {lineItems == null && (
+        {!amount && (
           <div style={{ textAlign: "center" }}>
             <Button
+              disabled={!paymentAmount}
               size="large"
-              type={lineItems == null ? "primary" : "default"}
+              type={!amount ? "primary" : "default"}
               onClick={() => {
-                setLineItems([
-                  { description: "CoCalc Credit", amount: paymentAmount },
-                ]);
+                setAmount(paymentAmount);
               }}
             >
-              Checkout
+              Select Payment Method
             </Button>
           </div>
         )}
-        <StripePayment lineItems={lineItems} purpose={"add-credit"} />
+        {!!amount && (
+          <div>
+            <Divider />
+            <StripePayment
+              amount={amount}
+              description="Add money to your account."
+              purpose={"add-credit"}
+              onFinished={handleCancel}
+            />
+          </div>
+        )}
       </div>
     );
   }
