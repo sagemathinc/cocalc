@@ -115,28 +115,21 @@ export async function isPurchaseAllowed({
     const { pay_as_you_go_min_payment } = await getServerSettings();
     const required = round2up(cost - (balance - minBalance));
     const chargeAmount = Math.max(pay_as_you_go_min_payment, required);
-    let reason = ` Please add at least ${currency(
-      round2up(chargeAmount),
-    )} to your account. `;
+    const v = [`Please pay ${currency(round2up(chargeAmount))}`];
     if (balance) {
-      reason = `You do not have enough credits to spend up to ${currency(
-        cost,
-      )} since your balance is ${currency(
-        round2down(balance),
-      )}, and this would cause your balance to go below your allowed minimum of ${currency(
-        minBalance,
-      )}.  ${reason}${
-        required < pay_as_you_go_min_payment
-          ? " There is a minimum payment of " +
-            currency(pay_as_you_go_min_payment) +
-            "."
-          : ""
-      }`;
+      v.push(`Your Balance: ${currency(round2down(balance))}`);
+      v.push(`Required: ${currency(cost)}`);
+      if (minBalance) {
+        v.push(`Minimum Allowed Balance: ${currency(minBalance)}`);
+      }
+      if (required < pay_as_you_go_min_payment) {
+        v.push(`Minimum Payment: ${currency(pay_as_you_go_min_payment)}`);
+      }
     }
     return {
       allowed: false,
       chargeAmount,
-      reason,
+      reason: v.join(", "),
     };
   }
   // Next check that the quota for the specific service is not exceeded.

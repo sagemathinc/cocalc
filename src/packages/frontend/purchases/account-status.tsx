@@ -21,9 +21,11 @@ import Refresh from "./refresh";
 export default function AccountStatus({
   compact,
   style,
+  onRefresh,
 }: {
   compact?: boolean;
   style?;
+  onRefresh?: () => void;
 }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [balance, setBalance] = useState<number | null>(null);
@@ -47,6 +49,7 @@ export default function AccountStatus({
 
   const handleRefresh = async () => {
     try {
+      onRefresh?.();
       setLoading(true);
       setBalance(null);
       setPendingBalance(null);

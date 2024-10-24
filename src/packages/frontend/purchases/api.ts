@@ -16,6 +16,7 @@ import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
+import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -204,13 +205,16 @@ export async function getChargesByService() {
   return await api("purchases/get-charges-by-service");
 }
 
-export async function createCredit(opts: {
+export async function createPaymentIntent(opts: {
   amount: number;
-  success_url: string;
-  cancel_url?: string;
   description?: string;
-}): Promise<any> {
-  return await api("purchases/create-credit", opts);
+  purpose: string;
+}): Promise<PaymentIntentSecret> {
+  return await api("purchases/create-payment-intent", opts);
+}
+
+export async function processPaymentIntents(): Promise<{ count: number }> {
+  return await api("purchases/process-payment-intents");
 }
 
 export async function setupAutomaticBilling(opts: {
@@ -440,4 +444,12 @@ export async function studentPayTransfer(opts: {
   paid_project_id: string;
 }): Promise<{ url: string }> {
   return await api("purchases/student-pay-transfer", opts);
+}
+
+// will give error if user is not signed in - they can't make a purchase anyways in that case.
+export async function getStripePublishableKey(): Promise<string> {
+  const { stripe_publishable_key } = await api(
+    "purchases/get-stripe-publishable-key",
+  );
+  return stripe_publishable_key as string;
 }

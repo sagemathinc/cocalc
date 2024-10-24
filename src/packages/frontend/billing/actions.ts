@@ -48,14 +48,16 @@ export class BillingActions extends Actions<BillingStoreState> {
     const is_commercial = redux
       .getStore("customize")
       .get("is_commercial", false);
-    if (!is_commercial) return;
+    if (!is_commercial) {
+      return;
+    }
     this.setState({ action: "Updating billing information" });
     try {
       const resp = await this.stripe.get_customer();
       if (!resp.stripe_publishable_key) {
         this.setState({ no_stripe: true });
         throw Error(
-          "WARNING: Stripe is not configured -- billing not available"
+          "WARNING: Stripe is not configured -- billing not available",
         );
       }
       this.setState({
@@ -111,7 +113,7 @@ export class BillingActions extends Actions<BillingStoreState> {
     await this.stripe_action(
       this.stripe.delete_source,
       "Deleting a payment method",
-      card_id
+      card_id,
     );
   }
 
@@ -119,7 +121,7 @@ export class BillingActions extends Actions<BillingStoreState> {
     await this.stripe_action(
       this.stripe.set_default_source,
       "Setting payment method as default",
-      card_id
+      card_id,
     );
   }
 
@@ -127,7 +129,7 @@ export class BillingActions extends Actions<BillingStoreState> {
     await this.stripe_action(
       this.stripe.create_source,
       "Creating a new payment method (sending token)",
-      token
+      token,
     );
   }
 
@@ -135,7 +137,7 @@ export class BillingActions extends Actions<BillingStoreState> {
     await this.stripe_action(
       this.stripe.cancel_subscription,
       "Cancel a subscription",
-      { subscription_id }
+      { subscription_id },
     );
   }
 
@@ -166,7 +168,7 @@ export class BillingActions extends Actions<BillingStoreState> {
     await this.stripe_action(
       this.stripe.create_subscription,
       "Create a subscription",
-      opts
+      opts,
     );
     this.last_subscription_attempt = { timestamp: server_time(), plan };
   }
@@ -176,7 +178,7 @@ export class BillingActions extends Actions<BillingStoreState> {
       const coupon = await this.stripe_action(
         this.stripe.get_coupon,
         `Applying coupon: ${coupon_id}`,
-        coupon_id
+        coupon_id,
       );
       const applied_coupons = this.store
         .get("applied_coupons", Map<string, any>())
@@ -232,7 +234,7 @@ export class BillingActions extends Actions<BillingStoreState> {
   // Set this while we are paying for the course.
   public set_is_paying_for_course(
     project_id: string,
-    is_paying: boolean
+    is_paying: boolean,
   ): void {
     let course_pay = this.store.get("course_pay");
     let continue_first_purchase = this.store.get("continue_first_purchase");
@@ -265,7 +267,7 @@ export class BillingActions extends Actions<BillingStoreState> {
     const managed_license_ids = fromJS(
       v
         .filter((x) => x.expires == null || x.expires >= day_ago)
-        .map((x) => x.id)
+        .map((x) => x.id),
     ) as any;
 
     const x: { [license_id: string]: object } = {};

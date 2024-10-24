@@ -27,6 +27,7 @@ import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import getAccountId from "lib/account/get-account";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
+import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 
 const STYLE = { margin: "30px auto", maxWidth: "600px", fontSize: "14pt" };
 
@@ -157,7 +158,7 @@ function Dialog({
 }
 
 function HandleToken({ token }) {
-  const { calling, result, error } = useAPI("token-action", { token });
+  const { calling, result, error, call } = useAPI("token-action", { token });
 
   return (
     <div>
@@ -168,23 +169,29 @@ function HandleToken({ token }) {
       )}
       {error && <Alert showIcon style={STYLE} type="error" message={error} />}
       {!calling && result != null && !error && (
-        <RenderResult data={result.data} />
+        <RenderResult data={result.data} call={call} />
       )}
     </div>
   );
 }
 
-function RenderResult({ data }: { data: any }) {
-  if (data?.type == "create-credit") {
-    const { session, instructions } = data;
+function RenderResult({ data, call }: { data; call }) {
+  const [finishedPaying, setFinishedPaying] = useState<boolean>(false);
+
+  if (data?.pay != null) {
     return (
-      <Alert
-        showIcon
-        style={STYLE}
-        type="warning"
-        message="Make a Payment"
-        description={<a href={session.url}>{instructions}</a>}
-      />
+      <Card style={STYLE} title="Make a Payment">
+        <div>
+          <StripePayment
+            disabled={finishedPaying}
+            {...data.pay}
+            onFinished={() => {
+              setFinishedPaying(true);
+              call();
+            }}
+          />
+        </div>
+      </Card>
     );
   } else {
     return (
@@ -192,7 +199,7 @@ function RenderResult({ data }: { data: any }) {
         showIcon
         style={STYLE}
         type="success"
-        message="Success!"
+        message="Success! Thank you very much."
         description={data?.text ? <Markdown value={data?.text} /> : undefined}
       />
     );

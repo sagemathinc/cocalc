@@ -25,6 +25,7 @@ export default async function createCredit({
   client,
 }: {
   account_id: string;
+  // id of Stripe invoice or payment intent.
   invoice_id?: string;
   amount: number;
   notes?: string;
@@ -44,13 +45,13 @@ export default async function createCredit({
   if (invoice_id) {
     const x = await pool.query(
       "SELECT id FROM purchases WHERE invoice_id=$1 AND service='credit'",
-      [invoice_id]
+      [invoice_id],
     );
     if (x.rows.length > 0) {
       logger.debug(
         "createCredit",
         { invoice_id },
-        " already exists, so doing nothing further (this credit was already processed)"
+        " already exists, so doing nothing further (this credit was already processed)",
       );
       return x.rows[0].id;
     }
@@ -66,7 +67,7 @@ export default async function createCredit({
       invoice_id,
       notes,
       tag,
-    ]
+    ],
   );
   await updatePending(account_id, client);
 
@@ -82,7 +83,7 @@ async function updatePending(account_id, client) {
     // bit of temporary credit.
     logger.debug(
       "createCredit -- WARNING -- nonfatal error updating pending purchases",
-      err
+      err,
     );
   }
 }
