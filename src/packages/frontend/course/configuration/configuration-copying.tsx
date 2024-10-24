@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+/*
 Configuration copying.
 
 - Select one or more other course files
@@ -7,12 +12,12 @@ Configuration copying.
   - use the "search all files you edited in the last year" feature (that's in projects)
   - use find command in specific project: find . -xdev -type f \( -name "*.course" ! -name ".*" \)
   - a name field (for customizing things)
-  
+
 - Select which configuration to share (and parameters)
 
-- Click a button to copy the configuration from this course 
+- Click a button to copy the configuration from this course
   to the target courses.
-  
+
 - For title and description, config could be a template based on course name or filename.
 */
 
@@ -28,17 +33,24 @@ import {
   Spin,
   Tooltip,
 } from "antd";
-import ShowError from "@cocalc/frontend/components/error";
-import { Icon } from "@cocalc/frontend/components";
 import { useMemo, useState } from "react";
-import { pathExists } from "@cocalc/frontend/project/directory-selector";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useIntl } from "react-intl";
+
+import {
+  redux,
+  useFrameContext,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
 import { COMMANDS } from "@cocalc/frontend/course/commands";
-import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { plural } from "@cocalc/util/misc";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
+import { IntlMessage } from "@cocalc/frontend/i18n";
+import { pathExists } from "@cocalc/frontend/project/directory-selector";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
+import { isIntlMessage } from "@cocalc/util/i18n";
+import { plural } from "@cocalc/util/misc";
 import { CONFIGURATION_GROUPS, ConfigurationGroup } from "./actions";
-import { useFrameContext } from "@cocalc/frontend/app-framework";
 
 export type CopyConfigurationOptions = {
   [K in ConfigurationGroup]?: boolean;
@@ -319,13 +331,23 @@ function getOptions(settings) {
 }
 
 function ConfigOptions({ settings, actions, numOptions }) {
+  const intl = useIntl();
+
+  function formatMesg(msg: string | IntlMessage): string {
+    if (isIntlMessage(msg)) {
+      return intl.formatMessage(msg);
+    } else {
+      return msg;
+    }
+  }
+
   const options = getOptions(settings);
   const v: JSX.Element[] = [];
   for (const option of CONFIGURATION_GROUPS) {
     const { title, label, icon } = COMMANDS[option] ?? {};
     v.push(
       <div key={option}>
-        <Tooltip title={title} mouseEnterDelay={1}>
+        <Tooltip title={formatMesg(title)} mouseEnterDelay={1}>
           <Checkbox
             checked={options[option]}
             onChange={(e) => {
@@ -336,7 +358,7 @@ function ConfigOptions({ settings, actions, numOptions }) {
               actions.set({ copy_config_options, table: "settings" });
             }}
           >
-            <Icon name={icon} /> {label}
+            <Icon name={icon} /> {formatMesg(label)}
           </Checkbox>
         </Tooltip>
       </div>,

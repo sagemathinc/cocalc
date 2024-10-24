@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+/*
 Add special commands and menus, typically for a specific type of functionality, e.g.,
 Jupyter notebooks or text formatting.
 
@@ -42,17 +47,19 @@ export function addEditorMenus({
   getCommand: (name) => Partial<Command>;
 }) {
   const MENUS: Menus = {};
+  // Q: why do we pick only these properties?
   const COMMANDS: {
-    [name: string]: {
-      group: string;
-      pos: number;
-      children?;
-      label?;
-      icon?;
-      iconRotate?;
-      onClick?;
-      disabled?;
-    };
+    [name: string]: Pick<
+      Command,
+      | "group"
+      | "pos"
+      | "children"
+      | "label"
+      | "icon"
+      | "iconRotate"
+      | "onClick"
+      | "disabled"
+    >;
   } = {};
   for (const menuName in editorMenus) {
     const menu = editorMenus[menuName];

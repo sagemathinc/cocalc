@@ -3,19 +3,22 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Card, Row, Col, Space } from "antd";
+import { Button, Card, Col, Row, Space } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { useActions, useStore } from "@cocalc/frontend/app-framework";
-import { plural } from "@cocalc/util/misc";
 import { Icon } from "@cocalc/frontend/components";
-import { CourseActions } from "../actions";
+import { course } from "@cocalc/frontend/i18n";
 import type { ProjectMap } from "@cocalc/frontend/todo-types";
+import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
+import { plural } from "@cocalc/util/misc";
+import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { DeleteAllStudentProjects } from "./delete-all-student-projects";
 import { DeleteAllStudents } from "./delete-all-students";
-import { TerminalCommandPanel } from "./terminal-command";
-import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import EmptyTrash from "./empty-trash";
-import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
+import { StudentProjectsStartStopPanel } from "./start-stop-panel";
+import { TerminalCommandPanel } from "./terminal-command";
 
 interface Props {
   name: string;
@@ -80,6 +83,8 @@ export function StartAllProjects({ name, project_map }) {
 }
 
 export function ExportGrades({ actions, close }: { actions; close? }) {
+  const intl = useIntl();
+
   async function save_grades_to_csv() {
     await actions.export.to_csv();
     close?.();
@@ -99,7 +104,7 @@ export function ExportGrades({ actions, close }: { actions; close? }) {
     <Card
       title={
         <>
-          <Icon name="table" /> Export Grades
+          <Icon name="table" /> {intl.formatMessage(course.export_grades)}
         </>
       }
     >
@@ -140,11 +145,14 @@ export function ReconfigureAllProjects({
   actions;
   configuring_projects?: boolean;
 }) {
+  const intl = useIntl();
+
   return (
     <Card
       title={
         <>
-          <Icon name="envelope" /> Reconfigure all Projects
+          <Icon name="envelope" />{" "}
+          {intl.formatMessage(course.reconfigure_all_projects)}
         </>
       }
     >
@@ -159,7 +167,7 @@ export function ReconfigureAllProjects({
         }}
       >
         {configuring_projects ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
-        Reconfigure all Projects
+        {intl.formatMessage(course.reconfigure_all_projects)}
       </Button>
     </Card>
   );
@@ -172,11 +180,13 @@ export function ResendInvites({
   actions;
   reinviting_students?;
 }) {
+  const intl = useIntl();
+
   return (
     <Card
       title={
         <>
-          <Icon name="envelope" /> Resend Outstanding Email Invites
+          <Icon name="envelope" /> {intl.formatMessage(course.resend_invites)}
         </>
       }
     >
@@ -198,24 +208,30 @@ export function ResendInvites({
 }
 
 export function CopyMissingHandoutsAndAssignments({ actions }) {
+  const intl = useIntl();
   return (
     <Card
       title={
         <>
-          <Icon name="share-square" /> Copy Missing Handouts and Assignments
+          <Icon name="share-square" />{" "}
+          {intl.formatMessage(course.copy_missing_handouts_assignments)}
         </>
       }
     >
-      If you <b>add new students</b> to your course, you can click this button
-      to ensure they have all the assignments and handouts that you have already
-      assigned to other students in the course.
+      <FormattedMessage
+        id="course.actions-panel.copy-missing-handouts-assignments"
+        defaultMessage={`If you <b>add new students</b> to your course,
+          you can click this button to ensure they have all the assignments and handouts
+          that you have already assigned to other students in the course.`}
+      />
       <hr />
       <Button
         onClick={() => {
           actions.configuration.push_missing_handouts_and_assignments();
         }}
       >
-        <Icon name="share-square" /> Copy Missing Handouts and Assignments
+        <Icon name="share-square" />{" "}
+        {intl.formatMessage(course.copy_missing_handouts_assignments)}
       </Button>
     </Card>
   );

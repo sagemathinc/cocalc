@@ -1,42 +1,52 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Alert, Modal } from "antd";
-import type { StudentsMap } from "./store";
-import type { UserMap } from "@cocalc/frontend/todo-types";
-import AddStudents from "@cocalc/frontend/course/students/add-students";
+import { useIntl } from "react-intl";
+
+import { AppRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import {
-  ReconfigureAllProjects,
-  StartAllProjects,
-  ExportGrades,
-  ResendInvites,
-  CopyMissingHandoutsAndAssignments,
-} from "@cocalc/frontend/course/configuration/actions-panel";
-import type { ProjectMap } from "@cocalc/frontend/todo-types";
-import { TerminalCommandPanel } from "@cocalc/frontend/course/configuration/terminal-command";
-import EmptyTrash from "@cocalc/frontend/course/configuration/empty-trash";
+import { AddAssignments } from "@cocalc/frontend/course/assignments/assignments-panel";
+import { COMMANDS } from "@cocalc/frontend/course/commands";
 import { DeleteAllStudentProjects } from "@cocalc/frontend/course/configuration//delete-all-student-projects";
 import { DeleteAllStudents } from "@cocalc/frontend/course/configuration//delete-all-students";
-import { DeleteSharedProjectPanel } from "@cocalc/frontend/course/shared-project/delete-shared-project";
-import { SharedProjectPanel } from "@cocalc/frontend/course/shared-project/shared-project-panel";
+import {
+  CopyMissingHandoutsAndAssignments,
+  ExportGrades,
+  ReconfigureAllProjects,
+  ResendInvites,
+  StartAllProjects,
+} from "@cocalc/frontend/course/configuration/actions-panel";
+import ConfigurationCopying from "@cocalc/frontend/course/configuration/configuration-copying";
 import {
   CollaboratorPolicy,
+  ConfigureSoftwareEnvironment,
   EmailInvitation,
   EnvVariables,
   NetworkFilesystem,
   RestrictStudentProjects,
   TitleAndDescription,
   UpgradeConfiguration,
-  ConfigureSoftwareEnvironment,
 } from "@cocalc/frontend/course/configuration/configuration-panel";
-import ConfigurationCopying from "@cocalc/frontend/course/configuration/configuration-copying";
-import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
+import EmptyTrash from "@cocalc/frontend/course/configuration/empty-trash";
 import { Nbgrader } from "@cocalc/frontend/course/configuration/nbgrader";
-import { AddAssignments } from "@cocalc/frontend/course/assignments/assignments-panel";
+import { Parallel } from "@cocalc/frontend/course/configuration/parallel";
+import { TerminalCommandPanel } from "@cocalc/frontend/course/configuration/terminal-command";
 import { AddHandouts } from "@cocalc/frontend/course/handouts/handouts-panel";
-import { COMMANDS } from "@cocalc/frontend/course/commands";
+import { DeleteSharedProjectPanel } from "@cocalc/frontend/course/shared-project/delete-shared-project";
+import { SharedProjectPanel } from "@cocalc/frontend/course/shared-project/shared-project-panel";
+import AddStudents from "@cocalc/frontend/course/students/add-students";
+import { isIntlMessage } from "@cocalc/frontend/i18n";
+import type { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { CourseEditorActions } from "../frame-editors/course-editor/actions";
+import { CourseActions } from "./actions";
+import type { CourseSettingsRecord, StudentsMap } from "./store";
 
 interface Props {
-  frameActions;
-  actions;
+  frameActions: CourseEditorActions;
+  actions: CourseActions;
   modal?: string;
   name: string;
   students?: StudentsMap;
@@ -46,11 +56,12 @@ interface Props {
   path: string;
   configuring_projects?: boolean;
   reinviting_students?: boolean;
-  settings;
-  redux;
+  settings?: CourseSettingsRecord;
+  redux: AppRedux;
 }
 
 export default function Modals(props: Props) {
+  const intl = useIntl();
   const { students, user_map, project_map, modal } = props;
   if (students == null || user_map == null || project_map == null || !modal) {
     return null;
@@ -70,7 +81,8 @@ export default function Modals(props: Props) {
       title={
         title ? (
           <>
-            {icon && <Icon name={icon} />} {title}
+            {icon && <Icon name={icon} />}{" "}
+            {isIntlMessage(title) ? intl.formatMessage(title) : title}
           </>
         ) : undefined
       }
@@ -86,7 +98,6 @@ export default function Modals(props: Props) {
       />
     </Modal>
   );
-  return null;
 }
 
 function getModal(modal: string) {
