@@ -12,32 +12,32 @@ extra things for all crm_ tables to ensure safety, e.g., ensuring admin.
 import { FieldSpec, Table } from "./types";
 import { blue, green, red, yellow } from "@ant-design/colors";
 
-export const NOTES = {
+export const NOTES: FieldSpec = {
   type: "string",
   desc: "Open ended text in markdown about this item.",
   render: {
     type: "markdown",
     editable: true,
   },
-} as FieldSpec;
+} as const;
 
-export const ID = {
+export const ID: FieldSpec = {
   type: "integer",
   desc: "Automatically generated sequential id that uniquely determines this row.",
   pg_type: "SERIAL UNIQUE",
   noCoerce: true,
-} as FieldSpec;
+} as const;
 
 const TAG_TYPE = `INTEGER[]`;
 
-const TAGS_FIELD = {
+const TAGS_FIELD: FieldSpec = {
   type: "array",
   pg_type: TAG_TYPE,
   desc: "Tags applied to this record.",
   render: { type: "tags", editable: true },
-} as FieldSpec;
+} as const;
 
-const PRORITIES_FIELD = {
+const PRORITIES_FIELD: FieldSpec = {
   type: "string",
   pg_type: "VARCHAR(30)",
   desc: "Priority of this record",
@@ -48,9 +48,9 @@ const PRORITIES_FIELD = {
     colors: [yellow[5], blue[5], green[5], red[5]],
     priority: true,
   },
-} as FieldSpec;
+} as const;
 
-const STATUS_FIELD = {
+const STATUS_FIELD: FieldSpec = {
   type: "string",
   pg_type: "VARCHAR(30)",
   desc: "Status of this record",
@@ -60,32 +60,32 @@ const STATUS_FIELD = {
     options: ["new", "open", "pending", "active", "solved"],
     colors: [yellow[5], red[5], green[5], blue[5], "#888"],
   },
-} as FieldSpec;
+} as const;
 
-export const CREATED = {
+export const CREATED: FieldSpec = {
   type: "timestamp",
   desc: "When the record was created.",
-} as FieldSpec;
+} as const;
 
-export const LAST_EDITED = {
+export const LAST_EDITED: FieldSpec = {
   type: "timestamp",
   desc: "When this record was last edited.",
-} as FieldSpec;
+} as const;
 
-const LAST_MODIFIED_BY = {
+const LAST_MODIFIED_BY: FieldSpec = {
   type: "uuid",
   desc: "Account that last modified this task.",
   render: { type: "account" },
-} as FieldSpec;
+} as const;
 
-const ASSIGNEE = {
+const ASSIGNEE: FieldSpec = {
   type: "uuid",
   desc: "Account that is responsible for resolving this.",
   render: {
     type: "assignee",
     editable: true,
   },
-} as FieldSpec;
+} as const;
 
 Table({
   name: "crm_people",

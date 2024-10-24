@@ -439,13 +439,15 @@ export function plural(
 
 const ELLIPSIS = "…";
 // "foobar" --> "foo…"
-export function trunc(s, max_length = 1024, ellipsis = ELLIPSIS) {
-  if (s == null) {
-    return s;
+export function trunc<T>(
+  sArg: T,
+  max_length = 1024,
+  ellipsis = ELLIPSIS,
+): string | T {
+  if (sArg == null) {
+    return sArg;
   }
-  if (typeof s !== "string") {
-    s = `${s}`;
-  }
+  const s = typeof sArg !== "string" ? `${sArg}` : sArg;
   if (s.length > max_length) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");
@@ -457,13 +459,15 @@ export function trunc(s, max_length = 1024, ellipsis = ELLIPSIS) {
 }
 
 // "foobar" --> "fo…ar"
-export function trunc_middle(s, max_length = 1024, ellipsis = ELLIPSIS) {
-  if (s == null) {
-    return s;
+export function trunc_middle<T>(
+  sArg: T,
+  max_length = 1024,
+  ellipsis = ELLIPSIS,
+): T | string {
+  if (sArg == null) {
+    return sArg;
   }
-  if (typeof s !== "string") {
-    s = `${s}`;
-  }
+  const s = typeof sArg !== "string" ? `${sArg}` : sArg;
   if (s.length <= max_length) {
     return s;
   }
@@ -479,13 +483,15 @@ export function trunc_middle(s, max_length = 1024, ellipsis = ELLIPSIS) {
 }
 
 // "foobar" --> "…bar"
-export function trunc_left(s, max_length = 1024, ellipsis = ELLIPSIS) {
-  if (s == null) {
-    return s;
+export function trunc_left<T>(
+  sArg: T,
+  max_length = 1024,
+  ellipsis = ELLIPSIS,
+): T | string {
+  if (sArg == null) {
+    return sArg;
   }
-  if (typeof s !== "string") {
-    s = `${s}`;
-  }
+  const s = typeof sArg !== "string" ? `${sArg}` : sArg;
   if (s.length > max_length) {
     if (max_length < 1) {
       throw new Error("ValueError: max_length must be >= 1");

@@ -8,6 +8,7 @@ import { getAccountIdFromApiKey } from "@cocalc/server/auth/api";
 import { getRememberMeHash } from "@cocalc/server/auth/remember-me";
 import getLogger from "@cocalc/backend/logger";
 import isBanned from "@cocalc/server/accounts/is-banned";
+import { trunc } from "@cocalc/util/misc";
 
 const logger = getLogger("server:get-account");
 
@@ -34,10 +35,9 @@ export default async function getAccountId(
   // get expire field as well (since it is usually there) so that the result isn't empty
   // (hence not cached) when a cookie has expired.
   const hash = getRememberMeHash(req);
-  logger.debug("hash = ", hash, {
-    auth: req.header("Authorization"),
-    headers: JSON.stringify(req.headers),
-  });
+  logger.debug(
+    `hash: ${trunc(hash, 10)} auth: ${trunc(req.header("Authorization"), 10)}`,
+  );
   if (!hash) {
     // not signed in via a cookie.
     // What about an api key?
