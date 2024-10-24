@@ -1,11 +1,34 @@
-import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
-import { course } from "@cocalc/frontend/i18n";
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
 
-export const COMMANDS = {
+import { defineMessage } from "react-intl";
+
+import type { CourseEditorActions } from "@cocalc/frontend/frame-editors/course-editor/actions";
+import { course, IntlMessage } from "@cocalc/frontend/i18n";
+import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
+
+// ATTN: the COMMANDS configuration is not only used in the menu (using ManageCommands),
+// but also directly in some dialogs. Hence this is a subset from the Command type.
+type Command = {
+  title: string | IntlMessage;
+  label: string | IntlMessage;
+  onClick: (arg: { props: { actions: CourseEditorActions } }) => void;
+  icon: string;
+  button: string | IntlMessage;
+};
+
+export const COMMANDS: { [name: string]: Command } = {
   "add-students": {
     icon: "users",
     label: course.add_students,
-    button: "+Student",
+    button: defineMessage({
+      id: "course.commands.add-students.button",
+      defaultMessage: "+Student",
+      description:
+        "Adding Students in a course. A short label on a button, starting with a + sign.",
+    }),
     title: course.add_students_tooltip,
     onClick: ({ props }) => {
       const { actions } = props;
@@ -14,9 +37,21 @@ export const COMMANDS = {
   },
   "add-assignments": {
     icon: "share-square",
-    label: "Add Assignments",
-    button: "+Assignment",
-    title: "Add one or more assignments to this course.",
+    label: defineMessage({
+      id: "course.commands.add-assignments.label",
+      defaultMessage: "Add Assignments",
+      description: "Adding an assignment in a course",
+    }),
+    button: defineMessage({
+      id: "course.commands.add-assignments.button",
+      defaultMessage: "+Assignment",
+      description:
+        "Adding an assignment in a course.  A short label on a button, starting with a + sign.",
+    }),
+    title: defineMessage({
+      id: "course.commands.add-assignments.tooltip",
+      defaultMessage: "Add one or more assignments to this course.",
+    }),
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("add-assignments");
@@ -24,9 +59,21 @@ export const COMMANDS = {
   },
   "add-handouts": {
     icon: "text1",
-    label: "Add Handouts",
-    button: "+Handouts",
-    title: "Add one or more handouts to this course.",
+    label: defineMessage({
+      id: "course.commands.add-handouts.label",
+      defaultMessage: "Add Handouts",
+      description: "Adding a handout in a course.",
+    }),
+    button: defineMessage({
+      id: "course.commands.add-handouts.button",
+      defaultMessage: "+Handouts",
+      description:
+        "Adding a handout in a course.  A short label on a button, starting with a + sign.",
+    }),
+    title: defineMessage({
+      id: "course.commands.add-handouts.tooltip",
+      defaultMessage: "Add one or more handouts to this course.",
+    }),
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("add-handouts");
@@ -269,4 +316,4 @@ export const COMMANDS = {
       actions.setModal("create-shared-project");
     },
   },
-};
+} as const;
