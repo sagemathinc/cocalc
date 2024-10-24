@@ -205,15 +205,6 @@ export async function getChargesByService() {
   return await api("purchases/get-charges-by-service");
 }
 
-export async function createCredit(opts: {
-  amount: number;
-  success_url: string;
-  cancel_url?: string;
-  description?: string;
-}): Promise<any> {
-  return await api("purchases/create-credit", opts);
-}
-
 export async function createPaymentIntent(opts: {
   amount: number;
   description?: string;

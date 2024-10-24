@@ -118,10 +118,6 @@ export class PurchasesClient {
     return await purchasesApi.getChargesByService();
   }
 
-  async createCredit(opts): Promise<any> {
-    return await purchasesApi.createCredit(opts);
-  }
-
   async getCurrentCheckoutSession() {
     return await purchasesApi.getCurrentCheckoutSession();
   }
