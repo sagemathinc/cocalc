@@ -114,7 +114,7 @@ export default function StudentPay({ actions, settings }) {
           reset();
         }}
       >
-        Cancel
+        Close
       </Button>
       <Button
         disabled={
@@ -124,7 +124,6 @@ export default function StudentPay({ actions, settings }) {
         type="primary"
         onClick={() => {
           actions.configuration.setStudentPay({ info, when, cost });
-          setShowStudentPay(false);
         }}
       >
         Save Changes

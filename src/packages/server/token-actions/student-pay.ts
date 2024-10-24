@@ -1,7 +1,5 @@
-import createStripeCheckoutSession from "@cocalc/server/purchases/create-stripe-checkout-session";
 import { currency, round2up, round2down } from "@cocalc/util/misc";
 import getName from "@cocalc/server/accounts/get-name";
-import { getTokenUrl } from "./create";
 import studentPayPurchase from "@cocalc/server/purchases/student-pay";
 import type { Description } from "@cocalc/util/db-schema/token-actions";
 import getPool from "@cocalc/database/pool";
@@ -16,26 +14,16 @@ export async function studentPay(token, description, account_id): Promise<any> {
     const amount = description.due;
     const user = await getName(account_id);
     const studentName = await getName(description.account_id);
-    const url = await getTokenUrl(token);
-    const session = await createStripeCheckoutSession({
-      account_id,
-      line_items: [
-        {
-          amount,
-          description: `Add ${currency(
-            amount,
-            2,
-          )} to your account (signed in as ${user}).`,
-        },
-      ],
-      success_url: url,
-      cancel_url: url,
-      force: true,
-      token,
-    });
     return {
       type: "create-credit",
-      session,
+      pay: {
+        amount,
+        description: `Add ${currency(
+          amount,
+          2,
+        )} to your account (signed in as ${user}) to pay the course fee for ${studentName}.`,
+        purpose: `student-pay-${token}`,
+      },
       instructions: `Click here to deposit ${currency(
         amount,
         2,
@@ -117,13 +105,10 @@ export async function extraInfo(description: Description, account_id?: string) {
     details: `
 - The course fee of ${currency(round2up(cost))} ${
       name ? `for ${name} ` : ""
-    } has not yet been paid to upgrade the project.${
+    } has not yet been paid.${
       due == 0
         ? "\n\n- You can pay this now from your current balance without having to add money to your account."
-        : `\n\n- To pay you will first have to add \\${currency(
-            due,
-            2,
-          )} to your account.`
+        : `\n\n- You can pay the amount due \\${currency(due, 2)} below.`
     } \n\n- Your balance is \\${currency(round2down(balance), 2)}${
       minBalance < 0
         ? `, which must stay above \\${currency(round2down(minBalance), 2)}`
@@ -131,8 +116,7 @@ export async function extraInfo(description: Description, account_id?: string) {
     }
     ${minPayment}
 `,
-    okText:
-      due > 0 ? `Add ${currency(due, 2)} to my account` : "Pay course fee",
+    okText: "Pay course fee",
     icon: "graduation-cap",
   };
 }
