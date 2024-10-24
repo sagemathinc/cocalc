@@ -253,6 +253,7 @@ export class PassportLogin {
     const exclusiveDomains = strategy.info?.exclusive_domains ?? [];
     if (!isEmpty(exclusiveDomains)) {
       for (const email of opts.emails ?? []) {
+        FIX ME
         const emailDomain = getEmailDomain(email.toLowerCase());
         for (const ssoDomain of exclusiveDomains) {
           if (emailBelongsToDomain(emailDomain, ssoDomain)) {
@@ -268,6 +269,7 @@ export class PassportLogin {
   private checkEmailExclusiveSSO(email_address: string): boolean {
     const emailDomain = getEmailDomain(email_address.toLowerCase());
     for (const strategyName in this.opts.passports) {
+      FIX ME
       const strategy = this.opts.passports[strategyName];
       for (const ssoDomain of strategy.info?.exclusive_domains ?? []) {
         if (emailBelongsToDomain(emailDomain, ssoDomain)) {
