@@ -810,7 +810,7 @@ export function welcome_email(opts): void {
 
   if (opts.to == null) {
     // users can sign up without an email address. ignore this.
-    typeof opts.cb === "function" ? opts.cb(undefined) : undefined;
+    opts.cb?.();
     return;
   }
 
@@ -827,7 +827,10 @@ export function welcome_email(opts): void {
 
   if (opts.only_verify) {
     // only send the verification email, if settings.verify_emails is true
-    if (!verify_emails) return;
+    if (!verify_emails) {
+      opts.cb?.();
+      return;
+    }
     subject = `Verify your email address on ${site_name} (${dns})`;
     body = verify_email_html(token_url);
     category = "verify";

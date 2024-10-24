@@ -102,6 +102,32 @@ export default function StudentPay({ actions, settings }) {
     return <Spin />;
   }
 
+  const buttons = showStudentPay ? (
+    <Space style={{ margin: "10px 0", float: "right" }}>
+      <Button
+        onClick={() => {
+          setShowStudentPay(false);
+          reset();
+        }}
+      >
+        Cancel
+      </Button>
+      <Button
+        disabled={
+          isEqual(info, settings.get("payInfo")?.toJS()) &&
+          when.isSame(dayjs(settings.get("pay")))
+        }
+        type="primary"
+        onClick={() => {
+          actions.configuration.setStudentPay({ info, when, cost });
+          setShowStudentPay(false);
+        }}
+      >
+        Save Changes
+      </Button>
+    </Space>
+  ) : undefined;
+
   return (
     <Card
       style={!paySelected ? { background: "#fcf8e3" } : undefined}
@@ -135,6 +161,7 @@ export default function StudentPay({ actions, settings }) {
       </Checkbox>
       {settings?.get("student_pay") && (
         <div>
+          {buttons}
           <Space style={{ margin: "10px 0" }}>
             <Button
               disabled={showStudentPay}
@@ -144,31 +171,6 @@ export default function StudentPay({ actions, settings }) {
             >
               <Icon name="credit-card" /> Start and end dates and upgrades...
             </Button>
-            {showStudentPay && (
-              <>
-                <Button
-                  onClick={() => {
-                    setShowStudentPay(false);
-                    reset();
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  disabled={
-                    isEqual(info, settings.get("payInfo")?.toJS()) &&
-                    when.isSame(dayjs(settings.get("pay")))
-                  }
-                  type="primary"
-                  onClick={() => {
-                    actions.configuration.setStudentPay({ info, when, cost });
-                    setShowStudentPay(false);
-                  }}
-                >
-                  Save Changes
-                </Button>
-              </>
-            )}
           </Space>
           <div>
             {showStudentPay && (
@@ -214,8 +216,10 @@ export default function StudentPay({ actions, settings }) {
                         setWhen={setWhen}
                         cost={cost}
                         minPayment={minPayment}
+                        info={info}
                       />
                     )}
+                    {buttons}
                   </div>
                 }
               />
@@ -252,7 +256,8 @@ function StudentPayCheckboxLabel({ settings, when }) {
   }
 }
 
-function RequireStudentsPayWhen({ when, setWhen, cost, minPayment }) {
+function RequireStudentsPayWhen({ when, setWhen, cost, minPayment, info }) {
+  const start = dayjs(info.start);
   return (
     <div style={{ marginBottom: "15px" }}>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
@@ -260,7 +265,10 @@ function RequireStudentsPayWhen({ when, setWhen, cost, minPayment }) {
           changeOnBlur
           showToday
           allowClear={false}
-          disabledDate={(current) => current < dayjs().subtract(1, "day")}
+          disabledDate={(current) =>
+            current < start.subtract(1, "day") ||
+            current >= start.add(21, "day")
+          }
           defaultValue={when}
           onChange={(date) => {
             setWhen(date ?? dayjs());

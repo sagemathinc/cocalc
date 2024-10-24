@@ -1023,7 +1023,9 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   gotoUser(account_id: string, frameId?: string) {
-    const cursors = this._syncstring.get_cursors({ maxAge: 0 })?.toJS();
+    const cursors = this._syncstring
+      .get_cursors({ maxAge: 0, excludeSelf: "never" })
+      ?.toJS();
     if (cursors == null) return; // no info
     const locs = cursors[account_id]?.locs;
     for (const loc of locs) {

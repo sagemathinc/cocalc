@@ -533,6 +533,14 @@ export class TaskActions extends Actions<TaskState> {
     this.set_local_task_state(task_id, { editing_desc: false });
   }
 
+  isEditing = () => {
+    const task_id = this.getFrameData("current_task_id");
+    return !!this.getFrameData("local_task_state")?.getIn([
+      task_id,
+      "editing_desc",
+    ]);
+  };
+
   // null=unselect all.
   public edit_desc(task_id: string | undefined | null): void {
     // close any that were currently in edit state before opening new one

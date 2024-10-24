@@ -45,7 +45,7 @@ export function Impersonate(props: Readonly<Props>) {
       return <Loading />;
     }
     // lang_temp: https://github.com/sagemathinc/cocalc/issues/7782
-    const link = join(appBasePath, `app?auth_token=${auth_token}&lang_temp=en`);
+    const link = join(appBasePath, `auth/impersonate?auth_token=${auth_token}&lang_temp=en`);
     return (
       <div>
         <a href={link} target="_blank" rel="noopener noreferrer">

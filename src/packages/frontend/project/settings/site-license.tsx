@@ -19,6 +19,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
+import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
@@ -60,8 +61,11 @@ export async function applyLicense(opts: ALOpts): Promise<void> {
   }
 }
 
-export const SiteLicense: React.FC<Props> = (props: Props) => {
-  const { project_id, site_license, mode = "project" } = props;
+export function SiteLicense({
+  project_id,
+  site_license,
+  mode = "project",
+}: Props) {
   const isFlyout = mode === "flyout";
 
   const intl = useIntl();
@@ -191,21 +195,36 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
         <Icon name="key" /> {intl.formatMessage(labels.licenses)}
         {isFlyout ? (
           <span style={{ float: "right" }}>{render_extra()}</span>
-        ) : undefined}
+        ) : (
+          <>
+            {" "}
+            - <ProjectTitle project_id={project_id} />
+          </>
+        )}
       </Title>
     );
   }
 
   function render_extra(): Rendered {
     return (
-      <Popover
-        content={LICENSE_INFORMATION}
-        trigger={["click"]}
-        placement="rightTop"
-        title="License information"
-      >
-        <Icon name="question-circle" />
-      </Popover>
+      <>
+        <Button
+          href="https://youtu.be/kQv26e27ksY"
+          target="_new"
+          style={{ marginRight: "15px" }}
+        >
+          <Icon name="youtube" style={{ color: "red" }} />
+          Tutorial
+        </Button>
+        <Popover
+          content={LICENSE_INFORMATION}
+          trigger={["click"]}
+          placement="rightTop"
+          title="License information"
+        >
+          <Icon name="question-circle" />
+        </Popover>
+      </>
     );
   }
 
@@ -214,8 +233,10 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
       <>
         {isFlyout && haveLicenses ? (
           <Paragraph type="secondary" style={{ padding: "5px" }}>
-            Information about attached licenses. Click on a row to expand
-            details.
+            <FormattedMessage
+              id="project.settings.site-license.body.info"
+              defaultMessage={`Information about attached licenses. Click on a row to expand details.`}
+            />
           </Paragraph>
         ) : undefined}
         {render_current_licenses()}
@@ -267,4 +288,4 @@ export const SiteLicense: React.FC<Props> = (props: Props) => {
       </Card>
     );
   }
-};
+}

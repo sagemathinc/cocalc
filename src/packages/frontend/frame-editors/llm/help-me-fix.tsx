@@ -7,7 +7,6 @@ import { Alert, Button, Space } from "antd";
 import type { BaseButtonProps } from "antd/lib/button/button";
 import { CSSProperties, useState } from "react";
 import useAsyncEffect from "use-async-effect";
-
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { AIAvatar, RawPrompt } from "@cocalc/frontend/components";

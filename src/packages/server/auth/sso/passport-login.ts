@@ -40,6 +40,7 @@ import accountCreationActions from "@cocalc/server/accounts/account-creation-act
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import { legacyManageApiKey } from "@cocalc/server/api/manage";
+import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
 import generateHash from "@cocalc/server/auth/hash";
 import { createRememberMeCookie } from "@cocalc/server/auth/remember-me";
 import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
@@ -71,7 +72,6 @@ export class PassportLogin {
     this.database = opts.database;
     this.record_sign_in = opts.record_sign_in;
 
-    // TODO: untangle this, make each param a field in this object
     this.opts = opts;
 
     L({
@@ -157,8 +157,16 @@ export class PassportLogin {
       //  last step: set remember me cookie (for a  new sign in)
       await this.handleNewSignIn(this.opts, locals);
       // no exceptions → we're all good
+
       L(`redirect the client to '${locals.target}'`);
-      this.opts.res.redirect(locals.target);
+      // Doing a 302 redirect does NOT work because it doesn't send the cookie, due to
+      // sameSite = 'strict'!!!
+      // this.opts.res.redirect(locals.target);
+      // See https://stackoverflow.com/questions/66675803/samesite-strict-cookies-are-not-included-in-302-redirects-when-user-clicks-link
+      // WARNING: a 302 appears to work in dev mode, but that's only because
+      // of all the hot module loading complexity.  Also, I could not get a meta redirect to work,
+      // so had to use Javascript.
+      clientSideRedirect({ res: this.opts.res, target: this.opts.site_url });
     } catch (err) {
       // this error is used to signal that the user has done something wrong (in a general sense)
       // and it shouldn't be the code or how it handles the returned data.
@@ -405,7 +413,7 @@ export class PassportLogin {
     opts: PassportLoginOpts,
     email_address: string | undefined,
   ): Promise<string> {
-    return await cb2(this.database.create_account, {
+    return await cb2(this.database.create_sso_account, {
       first_name: opts.first_name,
       last_name: opts.last_name,
       email_address,
@@ -434,7 +442,7 @@ export class PassportLogin {
     locals.account_id = await this.create_account(opts, locals.email_address);
     locals.new_account_created = true;
 
-    // if we know the email address provided by the SSO strategy,
+    // if we know the email address provided by t
     // we execute the account creation actions and set the address to be verified
     await accountCreationActions({
       email_address: locals.email_address,
@@ -572,8 +580,9 @@ export class PassportLogin {
   }
 
   // If we did end up here, and there wasn't already a valid remember me cookie,
-  // we signed in a user. We record that and set the remember me cookie
-  // SSO strategies can configure the expiration of that cookie – e.g. super paranoid ones can set this to 1 day.
+  // we signed in a user. We record that and set the remember me cookie.
+  // SSO strategies can configure the expiration of that cookie – e.g. super
+  // paranoid ones can set this to 1 day.
   private async handleNewSignIn(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals,
@@ -582,19 +591,22 @@ export class PassportLogin {
     const L = logger.extend("handle_new_sign_in").debug;
 
     // make TS happy
-    if (locals.account_id == null) throw new Error("locals.account_id is null");
+    if (locals.account_id == null) {
+      throw new Error("locals.account_id is null");
+    }
 
     L("passport created: set remember_me cookie, so user gets logged in");
 
-    L(`create remember_me cookie in database. ttl=${opts.cookie_ttl_s}s`);
+    L(`create remember_me cookie in database: ttl=${opts.cookie_ttl_s}s`);
     const { value, ttl_s } = await createRememberMeCookie(
       locals.account_id,
       opts.cookie_ttl_s,
     );
 
-    L(`set remember_me cookie in client. ttl=${ttl_s}s`);
+    L(`actually set remember_me cookie in client. ttl=${ttl_s}s`);
     locals.cookies.set(REMEMBER_ME_COOKIE_NAME, value, {
       maxAge: ttl_s * 1000,
+      sameSite: "strict",
     });
   }
 }

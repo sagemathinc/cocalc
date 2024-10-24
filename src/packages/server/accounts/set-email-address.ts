@@ -32,12 +32,20 @@ import accountCreationActions, {
   creationActionsDone,
 } from "./account-creation-actions";
 import sendEmailVerification from "./send-email-verification";
+import { getLogger } from "@cocalc/backend/logger";
 
-export default async function setEmailAddress(
-  account_id: string,
-  email_address: string,
-  password: string,
-): Promise<void> {
+const log = getLogger("server:accounts:email-address");
+
+export default async function setEmailAddress({
+  account_id,
+  email_address,
+  password,
+}: {
+  account_id: string;
+  email_address: string;
+  password: string;
+}): Promise<void> {
+  log.debug("setEmailAddress", account_id, email_address);
   if (!isValidUUID(account_id)) {
     throw Error("account_id is not valid");
   }
@@ -139,6 +147,6 @@ export default async function setEmailAddress(
   // we do this at the very end, since we don't want an error sending the verification email
   // disrupt the account creation process above
   if (email_address_verified?.[email_address] == null) {
-    await sendEmailVerification(account_id, email_address);
+    await sendEmailVerification(account_id);
   }
 }

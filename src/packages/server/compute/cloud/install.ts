@@ -125,6 +125,9 @@ systemctl restart docker
 `;
 }
 
+// NOTE: we absolutely DO need "# Allow root to use FUSE mount of user" below.
+// This is needed so that we can do a very fast bind mount as root of fast
+// scratch directories on top of the slower fuse mounted home directory.
 export function installUser() {
   return `
 # Create the "user" if they do not already exist:
@@ -138,7 +141,7 @@ if ! id -u user >/dev/null 2>&1; then
   # Allow to be root
   echo '%user ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
-  # Allow to use FUSE
+  # Allow root to use FUSE mount of user
   sed -i 's/#user_allow_other/user_allow_other/g' /etc/fuse.conf
 
 fi
@@ -340,7 +343,7 @@ chown ${UID}:${UID} -R /cocalc/conf
 /*
 THIS works to install CUDA
 
-https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=22.04&target_type=deb_network
+https://developer.nvidia.com/cuda-downloads?target_os=Linux&target_arch=x86_64&Distribution=Ubuntu&target_version=24.04&target_type=deb_network
 
 (NOTE: K80's don't work since they are too old and not supported!)
 
@@ -357,7 +360,7 @@ Links to all versions: https://developer.nvidia.com/cuda-toolkit-archive
 
 export function installCuda() {
   return `
-curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+curl -o cuda-keyring.deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
 dpkg -i cuda-keyring.deb
 rm cuda-keyring.deb
 apt-get update -y

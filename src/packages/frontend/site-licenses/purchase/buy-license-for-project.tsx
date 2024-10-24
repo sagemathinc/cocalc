@@ -5,7 +5,6 @@
 
 import { Button, Space } from "antd";
 import { join } from "path";
-
 import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -20,9 +19,10 @@ interface Props {
   style?: CSS;
   size?: "small" | "middle" | "large";
   wrap?: boolean;
+  noVoucher?: boolean;
 }
 
-export const BuyLicenseForProject: React.FC<Props> = ({
+export function BuyLicenseForProject({
   project_id,
   buyText = "Buy a license",
   voucherText = "Redeem a voucher",
@@ -30,7 +30,8 @@ export const BuyLicenseForProject: React.FC<Props> = ({
   style,
   size = "large",
   wrap = false,
-}: Props) => {
+  noVoucher,
+}: Props) {
   const commercial = useTypedRedux("customize", "commercial");
 
   function url(path): string {
@@ -102,8 +103,8 @@ export const BuyLicenseForProject: React.FC<Props> = ({
     return (
       <Space wrap={wrap}>
         {renderBuyButton()}
-        {renderVoucherButton()}
+        {!noVoucher && renderVoucherButton()}
       </Space>
     );
   }
-};
+}

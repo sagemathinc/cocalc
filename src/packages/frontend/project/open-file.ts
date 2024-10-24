@@ -93,16 +93,12 @@ export async function open_file(
     return;
   }
 
-  let store = actions.get_store();
-  if (store == undefined) {
-    return;
-  }
-
   // ensure the project is opened -- otherwise the modal to start the project won't appear.
   redux.getActions("projects").open_project({ project_id: actions.project_id });
 
-  let open_files = store.get("open_files");
-  const alreadyOpened = open_files.has(opts.path);
+  const tabIsOpened = () =>
+    !!actions.get_store()?.get("open_files")?.has(opts.path);
+  const alreadyOpened = tabIsOpened();
 
   if (!alreadyOpened) {
     // Make the visible tab itself appear ASAP (just the tab at the top,
@@ -140,6 +136,9 @@ export async function open_file(
   }
 
   const intl = await getIntl();
+  if (!tabIsOpened()) {
+    return;
+  }
   const what = intl.formatMessage(dialogs.project_open_file_what, {
     path: opts.path,
   });
@@ -147,6 +146,9 @@ export async function open_file(
   if (!(await ensure_project_running(actions.project_id, what))) {
     if (!actions.open_files) return; // closed
     actions.open_files.delete(opts.path);
+    return;
+  }
+  if (!tabIsOpened()) {
     return;
   }
 
@@ -160,6 +162,9 @@ export async function open_file(
       project_id: actions.project_id,
       path: opts.path,
     });
+    if (!tabIsOpened()) {
+      return;
+    }
     if (opts.path != realpath) {
       if (!actions.open_files) return; // closed
       alert_message({
@@ -176,20 +181,13 @@ export async function open_file(
   }
   let ext = opts.ext ?? filename_extension_notilde(opts.path).toLowerCase();
 
-  // Returns true if the project is closed or the file tab is now closed.
-  function is_closed(): boolean {
-    const store = actions.get_store();
-    // if store isn't defined (so project closed) *or*
-    // open_files doesn't have path in since tab got closed
-    // (see https://github.com/sagemathinc/cocalc/issues/4692):
-    return store?.getIn(["open_files", opts.path]) == null;
-  }
-
   // Next get the group.
   let group: string;
   try {
     group = await get_my_group(actions.project_id);
-    if (is_closed()) return;
+    if (!tabIsOpened()) {
+      return;
+    }
   } catch (err) {
     actions.set_activity({
       id: uuid(),
@@ -197,6 +195,12 @@ export async function open_file(
     });
     return;
   }
+
+  let store = actions.get_store();
+  if (store == null) {
+    return;
+  }
+
   const is_public = group === "public";
 
   if (!is_public) {
@@ -204,7 +208,9 @@ export async function open_file(
     // to only do this if not public, since again, if public we
     // are not even using the project (it is all client side).
     const can_open_file = await store.can_open_file_ext(ext, actions);
-    if (is_closed()) return;
+    if (!tabIsOpened()) {
+      return;
+    }
     if (!can_open_file) {
       const site_name =
         redux.getStore("customize").get("site_name") || SITE_NAME;
@@ -223,6 +229,9 @@ export async function open_file(
     // know anything about the state of the project).
     try {
       await callback(actions._ensure_project_is_open.bind(actions));
+      if (!tabIsOpened()) {
+        return;
+      }
     } catch (err) {
       actions.set_activity({
         id: uuid(),
@@ -230,7 +239,9 @@ export async function open_file(
       });
       return;
     }
-    if (is_closed()) return;
+    if (!tabIsOpened()) {
+      return;
+    }
   }
 
   if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
@@ -244,12 +255,14 @@ export async function open_file(
   }
 
   store = actions.get_store(); // because async stuff happened above.
-  if (store == undefined) return;
+  if (store == undefined) {
+    return;
+  }
 
   // Only generate the editor component if we don't have it already
   // Also regenerate if view type (public/not-public) changes.
   // (TODO: get rid of that change code since public is deprecated)
-  open_files = store.get("open_files");
+  const open_files = store.get("open_files");
   if (open_files == null || actions.open_files == null) {
     // project is closing
     return;
@@ -277,6 +290,7 @@ export async function open_file(
   }
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
+
   if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
     let path = opts.path;
     if (path.endsWith(".term")) {
@@ -297,6 +311,9 @@ export async function open_file(
       });
       return;
     }
+  }
+  if (!tabIsOpened()) {
+    return;
   }
 
   if (opts.foreground) {

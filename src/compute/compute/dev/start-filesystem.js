@@ -47,7 +47,8 @@ async function main() {
     exports.fs = await mountProject({
       project_id: process.env.PROJECT_ID,
       path: PROJECT_HOME,
-      options: { mountOptions: { allowOther: true, nonEmpty: true } },
+      // NOTE: allowOther is disabled by default on Ubuntu and we do not need it. 
+      options: { mountOptions: { allowOther: false, nonEmpty: true } },
       unionfs,
       readTrackingFile: process.env.READ_TRACKING_FILE,
       exclude,
@@ -58,8 +59,9 @@ async function main() {
     });
     unmount = exports.fs.unmount;
   } catch (err) {
-    console.log("something went wrong ", err);
+    console.trace("something went wrong ", err);
     exitHandler();
+    return;
   }
 
   const info = () => {

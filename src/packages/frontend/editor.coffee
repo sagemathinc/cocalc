@@ -7,13 +7,9 @@ $ = window.$
 
 # Do this first, before any templates are initialized (e.g., elsewhere too).
 
-templates_html = \
-  require("./console.html").default +
-  require("./editor.html").default +
-  require("./sagews/interact.html").default +
-  require("./sagews/3d.html").default +
-  require("./sagews/d3.html").default;
-$("body").append(templates_html);
+{TEMPLATES_HTML} = require("./editor-templates")
+
+$("body").append(TEMPLATES_HTML);
 
 templates = $("#webapp-editor-templates")
 

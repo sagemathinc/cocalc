@@ -168,7 +168,7 @@ const EmailVerification: React.FC<VeryProps> = (props: VeryProps) => {
         return new Date(when);
       } catch (err) {
         console.warn(
-          `Error converting verified email time: ${when} – considering it as verified, though.`
+          `Error converting verified email time: ${when} – considering it as verified, though.`,
         );
         return true;
       }
@@ -179,9 +179,7 @@ const EmailVerification: React.FC<VeryProps> = (props: VeryProps) => {
   async function sendVerificationEmail() {
     setEmailSent(true);
     try {
-      apiPost("/accounts/send-verification-email", {
-        email_address: account?.email_address,
-      });
+      apiPost("/accounts/send-verification-email", {});
       setEmailSentSuccess(true);
     } catch (err) {
       setEmailSentError(`${err}`);

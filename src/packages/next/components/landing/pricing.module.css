@@ -1,0 +1,10 @@
+.item {
+  cursor: pointer;
+  position: relative;
+  transition: 0.1s;
+  top: 0;
+}
+
+.item:hover {
+  top: -5px;
+}

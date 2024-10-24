@@ -9,7 +9,6 @@ export const account_creation_failed: any;
 export const delete_account: any;
 export const account_deleted: any;
 export const sign_in: any;
-export const sign_in_using_auth_token: any;
 export const remember_me_failed: any;
 export const sign_in_failed: any;
 export const signed_in: any;

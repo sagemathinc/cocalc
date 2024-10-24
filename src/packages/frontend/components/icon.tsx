@@ -531,6 +531,7 @@ const IconSpec: { [name: string]: any } = {
   server: CloudServerOutlined,
   servers: { IconFont: "servers" },
   "sign-in": LoginOutlined,
+  "sign-out-alt": LoginOutlined, // Yes, since the logout one breaks darkreader, weirdly! they both look reasonable.
   sitemap: ClusterOutlined,
   "share-square": ShareAltOutlined,
   "shopping-cart": ShoppingCartOutlined,

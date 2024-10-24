@@ -338,9 +338,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         return await update_account_and_passport(@, opts)
 
     ###
-    Account creation, deletion, existence
+    Creating an account using SSO only.
+    This needs to be rewritten in @cocalc/server like
+    all the other account creation.  This is horrible
+    because 
     ###
-    create_account: (opts={}) =>
+    create_sso_account: (opts={}) =>
         opts = defaults opts,
             first_name        : undefined
             last_name         : undefined
@@ -357,7 +360,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             usage_intent      : undefined
             cb                : required       # cb(err, account_id)
 
-        dbg = @_dbg("create_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti_id}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
+        dbg = @_dbg("create_sso_account(#{opts.first_name}, #{opts.last_name}, #{opts.lti_id}, #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id}), #{opts.usage_intent}")
         dbg()
 
         for name in ['first_name', 'last_name']
@@ -974,27 +977,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 @record_file_use(project_id:opts.project_id, path:opts.path, action:opts.action, account_id:opts.account_id, cb:cb)
         ], (err)->opts.cb?(err))
 
-    ###
-    Rememberme cookie functionality
-    ###
-    # Save remember me info in the database
-    save_remember_me: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            hash       : required
-            value      : required
-            ttl        : required
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @_query
-            query : 'INSERT INTO remember_me'
-            values :
-                'hash       :: TEXT      ' : opts.hash.slice(0,127)
-                'value      :: JSONB     ' : opts.value
-                'expire     :: TIMESTAMP ' : expire_time(opts.ttl)
-                'account_id :: UUID      ' : opts.account_id
-            conflict : 'hash'
-            cb       : opts.cb
 
     # Invalidate all outstanding remember me cookies for the given account by
     # deleting them from the remember_me key:value store.
