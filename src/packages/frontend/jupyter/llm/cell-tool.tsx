@@ -431,49 +431,65 @@ export function LLMCellTool({ actions, id, style, llmTools }: Props) {
 
   function renderDropdown() {
     return (
-      <Dropdown
-        trigger={["click"]}
-        mouseLeaveDelay={1.5}
-        menu={{
-          items: (Object.entries(ACTIONS) as Entries<typeof ACTIONS>).map(
-            ([mode, action]) => {
-              return {
-                key: mode,
-                label: (
-                  <Tooltip
-                    title={intl.formatMessage(action.descr)}
-                    placement={"left"}
-                  >
-                    <Icon name={action.icon} style={{ marginRight: "5px" }} />{" "}
-                    {intl.formatMessage(action.label)}
-                  </Tooltip>
-                ),
-                onClick: () => setMode(mode as Mode),
-              };
-            },
-          ),
-        }}
+      <Tooltip
+        title={intl.formatMessage({
+          id: "jupyter.llm.cell-tool.assistant.title",
+          defaultMessage: "Use AI assistant on this cell",
+        })}
       >
-        <Tooltip
-          title={intl.formatMessage({
-            id: "jupyter.llm.cell-tool.assistant.title",
-            defaultMessage: "Use AI assitant on this cell",
-          })}
-        >
+        <Space.Compact>
           <Button
             disabled={isQuerying}
             type="text"
             size="small"
             style={CODE_BAR_BTN_STYLE}
             icon={<AIAvatar size={14} style={{ top: "1px" }} />}
+            onClick={() => {
+              actions
+                ?.getFrameActions()
+                ?.manageCommands?.searchCommands("chatgpt")[0]
+                ?.onClick();
+            }}
           >
-            <Space size="small">
-              {intl.formatMessage(labels.assistant)}
-              <Icon name="angle-down" />
-            </Space>
+            {intl.formatMessage(labels.assistant)}
           </Button>
-        </Tooltip>
-      </Dropdown>
+          <Dropdown
+            trigger={["click"]}
+            mouseLeaveDelay={1.5}
+            menu={{
+              items: (Object.entries(ACTIONS) as Entries<typeof ACTIONS>).map(
+                ([mode, action]) => {
+                  return {
+                    key: mode,
+                    label: (
+                      <Tooltip
+                        title={intl.formatMessage(action.descr)}
+                        placement={"left"}
+                      >
+                        <Icon
+                          name={action.icon}
+                          style={{ marginRight: "5px" }}
+                        />{" "}
+                        {intl.formatMessage(action.label)}
+                      </Tooltip>
+                    ),
+                    onClick: () => setMode(mode as Mode),
+                  };
+                },
+              ),
+            }}
+          >
+            <Button
+              disabled={isQuerying}
+              type="text"
+              size="small"
+              style={CODE_BAR_BTN_STYLE}
+            >
+              <Icon name="angle-down" />
+            </Button>
+          </Dropdown>
+        </Space.Compact>
+      </Tooltip>
     );
   }
 

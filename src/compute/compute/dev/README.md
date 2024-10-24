@@ -47,3 +47,16 @@ For debugging set the DEBUG env variable to different things according to the de
 DEBUG_CONSOLE=yes DEBUG=* ./2-syncfs.sh
 ```
 
+### Console
+
+Once you have everything setup you can get an interactive console by doing this instead of [3\-compute.sh](http://3-compute.sh): 
+
+```sh
+~/cocalc/src/compute/compute/dev$ . env.sh
+~/cocalc/src/compute/compute/dev$ node
+Welcome to Node.js v18.17.1.
+Type ".help" for more information.
+> manager = require('./start-compute.js').manager
+
+```
+

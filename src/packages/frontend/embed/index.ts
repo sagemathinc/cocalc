@@ -13,6 +13,8 @@ console.log("Embed mode");
 // Load/initialize Redux-based react functionality
 import "@cocalc/frontend/client/client";
 import { redux } from "../app-framework";
+import { setEntryPoint } from "@cocalc/frontend/app-framework/entry-point";
+
 import "../jquery-plugins";
 
 // Initialize app stores, actions, etc.
@@ -21,7 +23,6 @@ import { init as initApp } from "../app/init";
 import { init as initProjects } from "../projects";
 import { init as initMarkdown } from "../markdown/markdown-input/main";
 import { init as initCrashBanner } from "../crash-banner";
-
 
 // Do not delete this without first looking at https://github.com/sagemathinc/cocalc/issues/5390
 // This import of codemirror forces the initial full load of codemirror
@@ -32,6 +33,7 @@ import { init as initLast } from "../last";
 import { render } from "../app/render";
 
 export async function init() {
+  setEntryPoint("embed");
   initAccount(redux);
   initApp();
   initProjects();

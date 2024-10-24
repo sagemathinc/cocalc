@@ -71,4 +71,7 @@ export class ClientTest extends EventEmitter {
     // not implemented yet in general
     return undefined;
   };
+
+  // a random uuid...
+  client_id = () => "3fa218e5-7196-4020-8b30-e2127847cc4f";
 }

@@ -13,7 +13,6 @@ import type { DiskUsage as DF_DiskUsage } from "diskusage";
 import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
-
 import { ProcessStats } from "@cocalc/backend/process-stats";
 import { get_kernel_by_pid } from "@cocalc/jupyter/kernel";
 import { pidToPath as terminalPidToPath } from "@cocalc/terminal";
@@ -25,11 +24,10 @@ import {
   Processes,
   ProjectInfo,
 } from "@cocalc/util/types/project-info/types";
-import { get_path_for_pid as x11_pid2path } from "../x11/server";
-//import { get_sage_path } from "../sage_session"
-import { getLogger } from "../logger";
+import { get_path_for_pid as x11_pid2path } from "@cocalc/sync-server/x11";
+import { getLogger } from "@cocalc/backend/logger";
 
-const L = getLogger("project-info:server").debug;
+const L = getLogger("sync-server:project-info:server").debug;
 
 // function is_in_dev_project() {
 //   return process.env.SMC_LOCAL_HUB_HOME != null;

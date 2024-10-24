@@ -14,6 +14,7 @@ import { COCALC_MINIMAL } from "./fullscreen";
 
 // Load/initialize Redux-based react functionality
 import { redux } from "./app-framework";
+import { setEntryPoint } from "@cocalc/frontend/app-framework/entry-point";
 
 // Systemwide notifications that are broadcast to all users (and set by admins)
 import "./system-notifications";
@@ -50,6 +51,7 @@ import { init as initLast } from "./last";
 import { render } from "./app/render";
 
 export async function init() {
+  setEntryPoint("app");
   initAccount(redux);
   initApp();
   initProjects();

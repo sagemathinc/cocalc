@@ -60,4 +60,6 @@ export async function initListings({
     existsSync,
     getLogger,
   });
+
+  return table;
 }

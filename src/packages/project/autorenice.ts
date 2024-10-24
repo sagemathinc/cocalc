@@ -13,7 +13,10 @@ import { reverse, sortBy } from "lodash";
 import { setPriority } from "node:os";
 
 import { getLogger } from "./logger";
-import { ProjectInfoServer, get_ProjectInfoServer } from "./project-info";
+import {
+  ProjectInfoServer,
+  get_ProjectInfoServer,
+} from "@cocalc/sync-server/monitor/activity";
 import {
   Process,
   Processes,
