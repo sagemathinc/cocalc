@@ -1,19 +1,12 @@
 import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
+import { course } from "@cocalc/frontend/i18n";
 
-interface Command {
-  icon: string;
-  label: string;
-  button: string;
-  title: string;
-  onClick: any;
-}
-
-export const COMMANDS: { [name: string]: Command } = {
+export const COMMANDS = {
   "add-students": {
     icon: "users",
-    label: "Add Students",
+    label: course.add_students,
     button: "+Student",
-    title: "Add one or more students to this course.",
+    title: course.add_students_tooltip,
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("add-students");
@@ -256,7 +249,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "delete-shared-project": {
     icon: "trash",
-    label: "Delete Shared Project",
+    label: course.delete_shared_project,
     button: "Delete",
     title:
       "Student projects will not be deleted. If you make a mistake, students can still be undeleted from the Student tab or using TimeTravel.",
@@ -267,10 +260,10 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "create-shared-project": {
     icon: "users",
-    label: "Create Shared Project",
+    label: course.create_shared_project,
     button: "Shared",
     title:
-      "Create a single common shared project, which everybody -- students and all collaborators on this project (your TAs and other instructors) -- have write access to.",
+      "Create a single common shared project, which everybody – students and all collaborators on this project (your TAs and other instructors) – have write access to.",
     onClick: ({ props }) => {
       const { actions } = props;
       actions.setModal("create-shared-project");
