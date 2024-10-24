@@ -3,16 +3,18 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { AppRedux, useRedux } from "@cocalc/frontend/app-framework";
-import { useEffect, useMemo, useState } from "react";
-import { Icon, Gap, Tip } from "@cocalc/frontend/components";
-import ScrollableList from "@cocalc/frontend/components/scrollable-list";
-import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
-import * as misc from "@cocalc/util/misc";
-import { search_match, search_split } from "@cocalc/util/misc";
 import { Alert, Col, Input, Row } from "antd";
 import { Set } from "immutable";
 import { isEqual } from "lodash";
+import { useEffect, useMemo, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { AppRedux, useRedux } from "@cocalc/frontend/app-framework";
+import { Gap, Icon, Tip } from "@cocalc/frontend/components";
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
+import { course } from "@cocalc/frontend/i18n";
+import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { search_match, search_split } from "@cocalc/util/misc";
 import type { CourseActions } from "../actions";
 import {
   AssignmentsMap,
@@ -23,8 +25,8 @@ import {
   StudentsMap,
 } from "../store";
 import * as util from "../util";
-import { Student, StudentNameDescription } from "./students-panel-student";
 import AddStudents from "./add-students";
+import { Student, StudentNameDescription } from "./students-panel-student";
 
 interface StudentsPanelReactProps {
   frame_id?: string; // used for state caching
@@ -57,6 +59,8 @@ export function StudentsPanel({
   assignments,
   frameActions,
 }: StudentsPanelReactProps) {
+  const intl = useIntl();
+
   const expanded_students: Set<string> | undefined = useRedux(
     name,
     "expanded_students",
@@ -343,17 +347,28 @@ export function StudentsPanel({
           message={
             <b>
               <a onClick={() => frameActions.setModal("add-students")}>
-                Add Students to your Course
+                <FormattedMessage
+                  id="course.students-panel.no_students.title"
+                  defaultMessage="Add Students to your Course"
+                />
               </a>
             </b>
           }
           description={
             <div>
-              <a onClick={() => frameActions.setModal("add-students")}>
-                Add some students
-              </a>{" "}
-              to your course by entering their email addresses in the box in the
-              upper right, then click on Search.
+              <FormattedMessage
+                id="course.students-panel.no_students.descr"
+                defaultMessage={`<A>Add some students</A> to your course
+                  by entering their email addresses in the box in the upper right,
+                  then click on Search.`}
+                values={{
+                  A: (c) => (
+                    <a onClick={() => frameActions.setModal("add-students")}>
+                      {c}
+                    </a>
+                  ),
+                }}
+              />
             </div>
           }
         />
@@ -361,16 +376,21 @@ export function StudentsPanel({
     );
   }
 
-  function render_show_deleted(num_deleted) {
+  function render_show_deleted(num_deleted: number) {
     if (show_deleted) {
       return (
         <a onClick={() => set_show_deleted(false)}>
           <Tip
             placement="left"
             title="Hide deleted"
-            tip="Click here to hide deleted students from the bottom of the list of students."
+            tip={intl.formatMessage(course.show_deleted_students_tooltip, {
+              show: false,
+            })}
           >
-            (hide {num_deleted} deleted {misc.plural(num_deleted, "student")})
+            {intl.formatMessage(course.show_deleted_students_msg, {
+              num_deleted,
+              show: false,
+            })}
           </Tip>
         </a>
       );
@@ -385,9 +405,14 @@ export function StudentsPanel({
           <Tip
             placement="left"
             title="Show deleted"
-            tip="Click here to show all deleted students at the bottom of the list.  You can then click on the student and click undelete if necessary."
+            tip={intl.formatMessage(course.show_deleted_students_tooltip, {
+              show: true,
+            })}
           >
-            (show {num_deleted} deleted {misc.plural(num_deleted, "student")})
+            {intl.formatMessage(course.show_deleted_students_msg, {
+              num_deleted,
+              show: true,
+            })}
           </Tip>
         </a>
       );

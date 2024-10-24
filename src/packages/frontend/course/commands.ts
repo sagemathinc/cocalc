@@ -1,6 +1,14 @@
 import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
 
-export const COMMANDS = {
+interface Command {
+  icon: string;
+  label: string;
+  button: string;
+  title: string;
+  onClick: any;
+}
+
+export const COMMANDS: { [name: string]: Command } = {
   "add-students": {
     icon: "users",
     label: "Add Students",

@@ -63,7 +63,10 @@ export const GoogleStrategyConf: StrategyConf = {
 // Get these here:
 //      https://github.com/settings/applications/new
 // You must then put them in the database, via
-//   db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+//   ~/cocalc/src/packages/server$ node
+//   > db = require('@cocalc/database').db()
+//   db.set_passport_settings({strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log})
+//
 
 export const GithubStrategyConf: StrategyConf = {
   name: "github",

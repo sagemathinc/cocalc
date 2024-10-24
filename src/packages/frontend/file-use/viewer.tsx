@@ -123,9 +123,7 @@ export default function FileUseViewer({
   }
 
   function render_mark_all_read_button() {
-    return (
-      <MarkAll<"read"> how={"read"} onClick={() => click_mark_all_read()} />
-    );
+    return <MarkAll how={"seen"} onClick={() => click_mark_all_read()} />;
   }
 
   function open_selected(): void {
@@ -136,7 +134,7 @@ export default function FileUseViewer({
       x.get("project_id"),
       x.get("path"),
       x.get("show_chat", false),
-      redux
+      redux,
     );
   }
 
@@ -147,7 +145,7 @@ export default function FileUseViewer({
       if (theSearch) {
         const s = search_split(theSearch.toLowerCase());
         visibleListRef.current = visibleListRef.current.filter((info) =>
-          search_match(info.get("search"), s)
+          search_match(info.get("search"), s),
         );
         numMissingRef.current =
           file_use_list.size - visibleListRef.current.size;

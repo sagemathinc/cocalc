@@ -78,9 +78,19 @@ export default async function search({
   // One special case: when the query is just an email address or uuid.
   // We just return that account or empty list if no match.
   if (isValidUUID(query)) {
-    logger.debug("get user by account_id");
+    logger.debug("get user by account_id or project_id");
     const user = process(await getUserByAccountId(query), admin, false);
-    return user ? [user] : [];
+    const result: User[] = user ? [user] : [];
+    if (result.length == 0 && admin) {
+      // try project_id
+      for (const collab of await getCollaborators(query)) {
+        const u = process(collab, admin, false);
+        if (u != null) {
+          result.push(u);
+        }
+      }
+    }
+    return result;
   }
   if (isValidEmailAddress(query)) {
     logger.debug("get user by email address");
@@ -111,7 +121,7 @@ export default async function search({
     matches = await getUsersByStringQueries(
       string_queries,
       admin,
-      limit - matches.length
+      limit - matches.length,
     );
     for (const user of matches) {
       const x = process(user, admin, false);
@@ -125,8 +135,8 @@ export default async function search({
     (a, b) =>
       -cmp(
         Math.max(a.last_active ?? 0, a.created ?? 0),
-        Math.max(b.last_active ?? 0, b.created ?? 0)
-      )
+        Math.max(b.last_active ?? 0, b.created ?? 0),
+      ),
   );
   return results;
 }
@@ -134,9 +144,11 @@ export default async function search({
 function process(
   user: DBUser | undefined,
   admin: boolean = false,
-  isEmailSearch: boolean
+  isEmailSearch: boolean,
 ): User | undefined {
-  if (user == null) return undefined;
+  if (user == null) {
+    return undefined;
+  }
   const x: any = { ...user };
   if (x.email_address && x.email_address_verified) {
     x.email_address_verified =
@@ -156,30 +168,46 @@ const FIELDS =
   " account_id, first_name, last_name, name, email_address, last_active, created, banned, email_address_verified ";
 
 async function getUserByEmailAddress(
-  email_address: string
+  email_address: string,
 ): Promise<DBUser | undefined> {
   const pool = getPool("medium");
   const { rows } = await pool.query(
     `SELECT ${FIELDS} FROM accounts WHERE email_address=$1`,
-    [email_address.toLowerCase()]
+    [email_address.toLowerCase()],
   );
   return rows[0];
 }
 
 async function getUserByAccountId(
-  account_id: string
+  account_id: string,
 ): Promise<DBUser | undefined> {
   const pool = getPool("medium");
   const { rows } = await pool.query(
     `SELECT ${FIELDS} FROM accounts WHERE account_id=$1`,
-    [account_id.toLowerCase()]
+    [account_id.toLowerCase()],
   );
   return rows[0];
 }
 
+// only for admin search
+async function getCollaborators(project_id: string): Promise<DBUser[]> {
+  const pool = getPool("medium");
+  let subQuery = `SELECT jsonb_object_keys(users) AS account_id FROM projects WHERE project_id=$1`;
+  const queryParams = [project_id];
+  const fields = FIELDS.split(",")
+    .map((x) => `accounts.${x.trim()}`)
+    .join(", ");
+  const result = await pool.query(
+    `SELECT ${fields} FROM accounts, (${subQuery}) 
+        AS users WHERE accounts.account_id=users.account_id::UUID`,
+    queryParams,
+  );
+  return result.rows;
+}
+
 async function getUsersByEmailAddresses(
   email_queries: string[],
-  limit: number
+  limit: number,
 ): Promise<DBUser[]> {
   logger.debug("getUsersByEmailAddresses", email_queries);
   if (email_queries.length == 0 || limit <= 0) return [];
@@ -187,7 +215,7 @@ async function getUsersByEmailAddresses(
   const pool = getPool("medium");
   const { rows } = await pool.query(
     `SELECT ${FIELDS} FROM accounts WHERE email_address = ANY($1::TEXT[]) AND deleted IS NULL`,
-    [email_queries]
+    [email_queries],
   );
   return rows;
 }
@@ -195,7 +223,7 @@ async function getUsersByEmailAddresses(
 async function getUsersByStringQueries(
   string_queries: string[][],
   admin: boolean,
-  limit: number
+  limit: number,
 ): Promise<DBUser[]> {
   logger.debug("getUsersByStringQueries", string_queries);
   if (limit <= 0 || string_queries.length <= 0) {
@@ -216,7 +244,7 @@ async function getUsersByStringQueries(
       v.push(
         `(lower(first_name) LIKE $${i}::TEXT OR lower(last_name) LIKE $${i}::TEXT OR '@' || lower(name) LIKE $${i}::TEXT ${
           admin ? `OR lower(email_address) LIKE $${i}::TEXT` : ""
-        })`
+        })`,
       );
       params.push(`%${s}%`);
       i += 1;
@@ -225,7 +253,7 @@ async function getUsersByStringQueries(
   }
 
   let query = `SELECT ${FIELDS} FROM accounts WHERE deleted IS NOT TRUE AND (${where.join(
-    " OR "
+    " OR ",
   )})`;
 
   if (!admin) {

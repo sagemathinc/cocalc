@@ -8,7 +8,6 @@ import { debounce } from "lodash";
 
 import {
   CSS,
-  ReactDOM,
   redux,
   useActions,
   useEffect,
@@ -61,7 +60,7 @@ export function TerminalFlyout({
   const account_id = useTypedRedux("account", "account_id");
   const terminal = useTypedRedux("account", "terminal");
   const terminalRef = useRef<Terminal | undefined>(undefined);
-  const terminalDOMRef = useRef<any>(null);
+  const terminalDOMRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useIsMountedRef();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
@@ -89,13 +88,11 @@ export function TerminalFlyout({
   const id = `flyout::${hash}`; // TODO what exactly is the ID? arbitrary or a path?
   useEffect(() => {
     if (compute_server_id) {
-      redux
-        .getProjectActions(project_id)
-        .setComputeServerIdForFile({
-          path: terminal_path,
-          compute_server_id,
-          confirm: false,
-        });
+      redux.getProjectActions(project_id).setComputeServerIdForFile({
+        path: terminal_path,
+        compute_server_id,
+        confirm: false,
+      });
     }
   }, [terminal_path]);
 
@@ -189,7 +186,7 @@ export function TerminalFlyout({
 
   function init_terminal(): void {
     if (!is_visible) return;
-    const node: any = ReactDOM.findDOMNode(terminalDOMRef.current);
+    const node = terminalDOMRef.current;
     if (node == null) {
       // happens, e.g., when terminals are disabled.
       return;

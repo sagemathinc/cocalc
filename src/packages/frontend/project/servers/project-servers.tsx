@@ -5,16 +5,25 @@
 
 import { Col, Divider, Modal, Row, Tabs, TabsProps } from "antd";
 import { Gutter } from "antd/es/grid/row";
-import { useProjectContext } from "@cocalc/frontend/project/context";
+import { FormattedMessage } from "react-intl";
+
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
 import {
+  cloudFilesystemsEnabled,
   ComputeServerDocs,
   ComputeServers,
   computeServersEnabled,
-  cloudFilesystemsEnabled,
 } from "@cocalc/frontend/compute";
+import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
+import {
+  getServerTab,
+  setServerTab,
+  TabName,
+} from "@cocalc/frontend/compute/tab";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { R_IDE } from "@cocalc/util/consts/ui";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { NamedServerPanel } from "../named-server-panel";
@@ -22,14 +31,6 @@ import { NewFileButton } from "../new/new-file-button";
 import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
-import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
-import {
-  getServerTab,
-  setServerTab,
-  TabName,
-} from "@cocalc/frontend/compute/tab";
-import { FormattedMessage } from "react-intl";
-import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 
 // Antd's 24 grid system
 const md = 6;
@@ -243,7 +244,7 @@ export function ProjectServers() {
   }
 
   return (
-    <div style={{ ...ROOT_STYLE, margin: "0 auto" }}>
+    <div style={ROOT_STYLE}>
       <Title level={2}>
         <Icon name={ICON_NAME} /> {TITLE}
       </Title>
