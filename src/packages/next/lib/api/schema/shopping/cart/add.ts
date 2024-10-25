@@ -13,8 +13,8 @@ const LicenseRangeSchema = z
   .array(z.string())
   .length(2)
   .describe(
-    `Array of two ISO 8601-formatted timestamps. The first element indicates the start 
-     date of the license, and the second indicates the end date. Used when the \`period\` 
+    `Array of two ISO 8601-formatted timestamps. The first element indicates the start
+     date of the license, and the second indicates the end date. Used when the \`period\`
      field is set to \`range\`.`,
   );
 
@@ -39,8 +39,8 @@ export const ShoppingCartAddInputSchema = z
       .number()
       .min(0)
       .describe(
-        `Existing shopping cart item id. If \`purchased\` is true, this puts a new copy 
-         of the purchased item in the cart. Otherwise, this adds an item to the cart that 
+        `Existing shopping cart item id. If \`purchased\` is true, this puts a new copy
+         of the purchased item in the cart. Otherwise, this adds an item to the cart that
          was saved for later. If this parameter is not specified, the \`product\` field
          must be populated.`,
       )
@@ -58,7 +58,7 @@ export const ShoppingCartAddInputSchema = z
           description: LicenseDescriptionSchema.optional(),
           range: LicenseRangeSchema.optional(),
           period: z.enum(["range", "monthly", "yearly"]).describe(
-            `Period for which this license is to be applied. If \`range\` is selected, 
+            `Period for which this license is to be applied. If \`range\` is selected,
                the \`range\` field must be populated in this request.`,
           ),
           type: z.enum(["quota"]).describe("License type"),
@@ -71,8 +71,8 @@ export const ShoppingCartAddInputSchema = z
             description: LicenseDescriptionSchema,
             range: LicenseRangeSchema,
             period: z.enum(["range"]).describe(
-              `License period for the virtual machine. Note that such licenses may only 
-               be purchased for a particular time period as specified in the \`range\` 
+              `License period for the virtual machine. Note that such licenses may only
+               be purchased for a particular time period as specified in the \`range\`
                field.`,
             ),
             type: z.enum(["vm"]).describe("License type"),
@@ -94,7 +94,7 @@ export const ShoppingCartAddInputSchema = z
             title: LicenseTitleSchema,
             description: LicenseDescriptionSchema,
             period: z.enum(["monthly"]).describe(
-              `License period for the dedicated disk. Note that such licenses may only 
+              `License period for the dedicated disk. Note that such licenses may only
                be purchased on a monthly basis.`,
             ),
             type: z.enum(["disk"]).describe("License type"),
@@ -126,9 +126,10 @@ export const ShoppingCartAddInputSchema = z
       ])
       .describe(
         `This field is used to specify details appropriate to the product being purchased.
-         For cash vouchers, this includes the voucher amount and for licenses, this is a 
+         For cash vouchers, this includes the voucher amount and for licenses, this is a
          JSON object specifying license details (duration, memory, project count, etc.)`,
-      ),
+      )
+      .nullish(),
     purchased: z.boolean().nullish(),
   })
   .describe("Adds a license to the shopping cart.");

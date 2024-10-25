@@ -101,20 +101,10 @@ export default function Checkout() {
     try {
       setError("");
       setCompletingPurchase(true);
-      const result = await shoppingCartCheckout({
-        success_url: "",
-        paymentAmount,
-      });
-      if (result.done) {
-        // done -- nothing further to do!
-        if (isMounted.current) {
-          router.push("/store/congrats");
-        }
-        return;
+      await shoppingCartCheckout();
+      if (isMounted.current) {
+        router.push("/store/congrats");
       }
-      throw Error(
-        "Insufficient credit to complete the purchase. Please refresh your browser and try again or contact support.",
-      );
     } catch (err) {
       // The purchase failed.
       setError(err.message);
@@ -259,24 +249,25 @@ export default function Checkout() {
                   </Button>
                 )}
               </div>
-              <div>
-                <StripePayment
-                  disabled={userSuccessfullyAddedCredit}
-                  style={{ maxWidth: "600px", margin: "30px auto" }}
-                  amount={paymentAmount}
-                  purpose="store-checkout"
-                  onFinished={() => {
-                    setUserSuccessfullyAddedCredit(true);
-                    // user paid successfully and money should be in their account
-                    refreshBalance();
-                    if (!isMounted.current) {
-                      return;
-                    }
-                    // now do the purchase flow with money available.
-                    completePurchase();
-                  }}
-                />
-              </div>
+              {!userSuccessfullyAddedCredit && (
+                <div>
+                  <StripePayment
+                    style={{ maxWidth: "600px", margin: "30px auto" }}
+                    amount={paymentAmount}
+                    purpose="store-checkout"
+                    onFinished={() => {
+                      setUserSuccessfullyAddedCredit(true);
+                      // user paid successfully and money should be in their account
+                      refreshBalance();
+                      if (!isMounted.current) {
+                        return;
+                      }
+                      // now do the purchase flow with money available.
+                      completePurchase();
+                    }}
+                  />
+                </div>
+              )}
               {completingPurchase ||
               params == null ||
               paymentAmount != params.minPayment ? null : (
@@ -638,8 +629,8 @@ export function ExplainPaymentSituation({
       description={
         <>
           {curBalance}
-          Complete this purchase by adding {currency(chargeAmount)} to your
-          account.{" "}
+          To complete this purchase you must pay at least{" "}
+          {currency(chargeAmount)}.{" "}
           {chargeAmount > total && params.minBalance != 0 && (
             <>
               Your account balance must always be at least{" "}

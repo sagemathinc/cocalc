@@ -103,7 +103,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     try {
       await resumeSubscription({ account_id, subscription_id });
     } catch (e) {
-      expect(e.message).toMatch("Please add at least");
+      expect(e.message).toMatch("Please pay");
     }
   });
 });

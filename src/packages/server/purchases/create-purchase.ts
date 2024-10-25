@@ -9,7 +9,8 @@ import { getClosingDay } from "./closing-date";
 const logger = getLogger("purchase:create-purchase");
 
 /*
-Creates the requested purchase if possible, given the user's quota.  If not, throws an exception.
+Creates the requested purchase.  Makes no quota or balance checks.  This is called only
+when the backend code has decided to allow this purchase.
 */
 interface Options {
   account_id: string;
@@ -50,7 +51,7 @@ export default async function createPurchase(opts: Options): Promise<number> {
   } = opts;
   if (cost == null) {
     if (period_start == null) {
-      throw Error("if cost is not set, then  period_start must be set");
+      throw Error("if cost is not set, then period_start must be set");
     }
     if (cost_so_far != null && cost_per_hour != null) {
       throw Error(

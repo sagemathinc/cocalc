@@ -44,13 +44,25 @@ export default function StripePayment({
         try {
           setError("");
           setLoading(true);
-          setSecret(
-            await createPaymentIntent({
-              amount,
-              description,
-              purpose,
-            }),
-          );
+          let secret;
+          let attempts = 3;
+          for (let i = 0; i < attempts; i++) {
+            try {
+              secret = await createPaymentIntent({
+                amount,
+                description,
+                purpose,
+              });
+              break;
+            } catch (err) {
+              if (i >= attempts - 1) {
+                throw err;
+              } else {
+                await delay(PAYMENT_UPDATE_DEBOUNCE);
+              }
+            }
+          }
+          setSecret(secret);
           setPayAmount(amount);
         } catch (err) {
           setError(`${err}`);
@@ -188,7 +200,7 @@ function PaymentForm({ style, amount, onFinished, disabled }) {
         <div style={{ textAlign: "center", marginTop: "15px" }}>
           <Button
             size="large"
-            style={{ marginTop: "15px", fontSize: "14pt" }}
+            style={{ marginTop: "15px", fontSize: "14pt", padding: "25px" }}
             type="primary"
             disabled={
               success ||

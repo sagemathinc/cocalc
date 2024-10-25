@@ -303,15 +303,8 @@ export async function cancelCurrentCheckoutSession() {
   await api("purchases/cancel-current-checkout-session");
 }
 
-export async function shoppingCartCheckout(opts: {
-  success_url: string;
-  cancel_url?: string;
-  paymentAmount?: number;
-  ignoreBalance?: boolean;
-}): Promise<
-  { done: true } | { done: false; session: { url: string; id: string } }
-> {
-  return await api("purchases/shopping-cart-checkout", opts);
+export async function shoppingCartCheckout() {
+  await api("purchases/shopping-cart-checkout");
 }
 
 export async function getShoppingCartCheckoutParams(

@@ -1,6 +1,5 @@
 import getAccountId from "lib/account/get-account";
 import { getShoppingCartCheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
-import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
   try {
@@ -16,6 +15,5 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  const { ignoreBalance } = getParams(req);
-  return await getShoppingCartCheckoutParams(account_id, { ignoreBalance });
+  return await getShoppingCartCheckoutParams(account_id);
 }
