@@ -59,7 +59,7 @@ export default function PurchasesPage() {
           refreshPurchasesRef.current?.();
         }}
       />
-      <Divider style={{ marginTop: "30px" }}>
+      <Divider orientation="left" style={{ marginTop: "30px" }}>
         Transactions During the Last Day
       </Divider>
       <div>
@@ -90,7 +90,7 @@ export default function PurchasesPage() {
         group={group}
         refreshRef={refreshPurchasesRef}
       />
-      <Divider style={{ marginTop: "30px" }}>
+      <Divider orientation="left" style={{ marginTop: "30px" }}>
         All Transactions, Spending Limits, and Plots
       </Divider>
       <Collapse

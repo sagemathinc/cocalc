@@ -3,8 +3,7 @@
 This is your balance, limit and spending rate.
 */
 
-import { Alert, Card, Space } from "antd";
-import { SettingBox } from "@cocalc/frontend/components/setting-box";
+import { Alert, Card, Divider, Space } from "antd";
 import MinBalance from "./min-balance";
 import Balance from "./balance";
 import SpendRate from "./spend-rate";
@@ -17,6 +16,7 @@ import {
 } from "./api";
 import Config from "./config";
 import Refresh from "./refresh";
+import { currency, round2down } from "@cocalc/util/misc";
 
 export default function AccountStatus({
   compact,
@@ -73,20 +73,16 @@ export default function AccountStatus({
   }, []);
 
   return (
-    <SettingBox
-      icon="dashboard"
-      title={
-        <span style={{ marginLeft: "5px" }}>
-          Balance
-          <Refresh
-            handleRefresh={handleRefresh}
-            disabled={loading}
-            style={{ float: "right" }}
-          />
-        </span>
-      }
-      style={style}
-    >
+    <div style={style}>
+      <Refresh
+        handleRefresh={handleRefresh}
+        disabled={loading}
+        style={{ float: "right" }}
+      />
+      <Divider orientation="left">
+        Balance
+        {balance != null ? `: ${currency(round2down(balance))}` : undefined}
+      </Divider>
       {error && (
         <Alert
           type="error"
@@ -95,29 +91,36 @@ export default function AccountStatus({
         />
       )}
       <div style={{ textAlign: "center" }}>
-        <Space style={{ margin: "auto", alignItems: "flex-start" }}>
+        <div style={{ maxWidth: "800px", margin: "15px auto" }}>
           <Balance
             balance={balance}
             pendingBalance={pendingBalance}
             refresh={handleRefresh}
+            showTransferLink
           />
-          <div style={{ width: "30px" }} />
-          <Card>
-            <div style={{ color: "#888", marginBottom: "10px" }}>
-              Subscription Payments
-            </div>
-            <Config style={{ flexDirection: "column" }} />
-          </Card>
-          <div style={{ width: "30px" }} />
-          <SpendRate spendRate={spendRate} />
-          {!compact && (
-            <>
-              <MinBalance minBalance={minBalance} />
-              <div style={{ width: "30px" }} />
-            </>
-          )}
-        </Space>
+        </div>
       </div>
-    </SettingBox>
+      <Divider orientation="left">Automatic Purchases</Divider>
+      <div>
+        <div style={{ margin: "auto", maxWidth: "800px" }}>
+          <Space style={{ alignItems: "flex-start" }}>
+            <Card>
+              <div style={{ color: "#888", marginBottom: "10px" }}>
+                Subscription Payments
+              </div>
+              <Config style={{ flexDirection: "column" }} />
+            </Card>
+            <div style={{ width: "30px" }} />
+            <SpendRate spendRate={spendRate} />
+            {!compact && (
+              <>
+                <div style={{ width: "30px" }} />
+                <MinBalance minBalance={minBalance} />
+              </>
+            )}
+          </Space>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Alert, Card, Tooltip, Space, Spin } from "antd";
+import { Alert, Card, Tooltip, Spin } from "antd";
 import { zIndexTip } from "./zindex";
 import MoneyStatistic from "./money-statistic";
 import { currency } from "@cocalc/util/misc";
@@ -12,6 +12,7 @@ interface Props {
   refresh?: () => Promise<void>;
   cost?: number; // optional amount of money we want right now
   pendingBalance?: number | null;
+  showTransferLink?: boolean;
 }
 
 export default function Balance({
@@ -20,6 +21,7 @@ export default function Balance({
   refresh,
   cost,
   pendingBalance,
+  showTransferLink,
 }: Props) {
   let body;
   if (balance == null) {
@@ -51,7 +53,6 @@ export default function Balance({
     }
     body = (
       <>
-        <Space style={{ marginBottom: "5px" }}>{stat}</Space>
         <Payment balance={balance} update={refresh} cost={cost} />
         {pendingBalance != null && pendingBalance < 0 && (
           <Tooltip title="Pending charges are not included in your spending limit.  They need to be paid soon by a credit to your account.">
@@ -81,7 +82,7 @@ export default function Balance({
             </div>
           </Tooltip>
         )}
-        {balance > 0 && (
+        {showTransferLink && balance > 0 && (
           <div style={{ fontSize: "12pt", marginTop: "5px" }}>
             <Next href={"store/vouchers"}>Transfer</Next>
           </div>

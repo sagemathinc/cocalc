@@ -86,7 +86,7 @@ export default function PayAsYouGoModal({}) {
           style={{ margin: "15px 0" }}
           showIcon
           type="success"
-          description={<>Thanks, your purchase should now be allowed!</>}
+          description={<>Thanks! Your purchase should now be complete.</>}
         />
       )}
       {storeState.cost_per_hour != null && (

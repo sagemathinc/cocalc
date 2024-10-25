@@ -115,7 +115,7 @@ export async function isPurchaseAllowed({
     const { pay_as_you_go_min_payment } = await getServerSettings();
     const required = round2up(cost - (balance - minBalance));
     const chargeAmount = Math.max(pay_as_you_go_min_payment, required);
-    const v = [`Please pay ${currency(round2up(chargeAmount))}`];
+    const v: string[] = [];
     if (balance) {
       v.push(`Your Balance: ${currency(round2down(balance))}`);
       v.push(`Required: ${currency(cost)}`);
@@ -129,7 +129,7 @@ export async function isPurchaseAllowed({
     return {
       allowed: false,
       chargeAmount,
-      reason: v.join(", "),
+      reason: `Please pay ${currency(round2up(chargeAmount))}${v.length > 0 ? ": " : ""} ${v.join(", ")}`,
     };
   }
   // Next check that the quota for the specific service is not exceeded.

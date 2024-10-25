@@ -30,7 +30,11 @@ export default function PaymentConfig({
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
   const updateMinPayment = () => {
     (async () => {
-      setMinPayment(await api.getMinimumPayment());
+      const minPayment = await api.getMinimumPayment();
+      setMinPayment(minPayment);
+      if (paymentAmount < minPayment) {
+        setPaymentAmount(minPayment);
+      }
     })();
   };
   useEffect(() => {
@@ -100,6 +104,11 @@ export default function PaymentConfig({
             {20 >= Math.max(minAmount, minPayment) && (
               <Preset amount={20} setPaymentAmount={setPaymentAmount}>
                 $20
+              </Preset>
+            )}
+            {50 >= Math.max(minAmount, minPayment) && (
+              <Preset amount={50} setPaymentAmount={setPaymentAmount}>
+                $50
               </Preset>
             )}
             {100 >= Math.max(minAmount, minPayment) && (
