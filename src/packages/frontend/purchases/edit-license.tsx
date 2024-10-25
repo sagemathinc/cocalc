@@ -4,7 +4,7 @@ of a license **they purchased**.  They may have to pay for changes they
 make, or get a refund.
 */
 
-import { Alert, Button, Card, Divider, Popconfirm, Spin, Tooltip } from "antd";
+import { Alert, Button, Card, Divider, Spin, Tooltip } from "antd";
 import ShowError from "@cocalc/frontend/components/error";
 import { useEffect, useState } from "react";
 import {
@@ -161,81 +161,72 @@ export default function EditLicense({ license_id, refresh }: Props) {
               >
                 Cancel
               </Button>
-              <Popconfirm
-                zIndex={1900}
-                title="Change the license"
-                description="Are you sure to change this license?"
-                onConfirm={async () => {
-                  const changes = getChanges(info, modifiedInfo);
-                  const service = "edit-license";
-                  try {
-                    setMakingChange(true);
-                    const { allowed, reason } = await isPurchaseAllowed(
-                      service,
-                      cost,
-                    );
-                    if (!allowed) {
-                      await webapp_client.purchases_client.quotaModal({
-                        service,
-                        reason,
-                        allowed,
-                        cost,
-                      });
-                    }
-                    if ((await isPurchaseAllowed(service, cost)).allowed) {
-                      await editLicense({ license_id, changes });
-                      refresh?.();
-                      setLicense(null);
-                    } else {
-                      throw Error("unable to complete purchase");
-                    }
-                  } catch (err) {
-                    setEditError(`${err}`);
-                  } finally {
-                    setMakingChange(false);
-                  }
-                }}
-                okText="Yes"
-                cancelText="No"
+              <Tooltip
+                placement={"right"}
+                zIndex={1800}
+                title={
+                  isSubscription && cost != 0 ? (
+                    <div>
+                      The change amount is the cost of the new license minus the
+                      value of your existing license for the rest of the current
+                      subscription period (i.e., until{" "}
+                      <TimeAgo date={info.end} />
+                      ). There are no transaction fees.
+                    </div>
+                  ) : len(getChanges(info ?? {}, modifiedInfo ?? {})) == 0 ? (
+                    <div>Please edit the license below.</div>
+                  ) : undefined
+                }
               >
-                <Tooltip
-                  placement={"right"}
-                  zIndex={1800}
-                  title={
-                    isSubscription && cost != 0 ? (
-                      <div>
-                        The change amount is the cost of the new license minus
-                        the value of your existing license for the rest of the
-                        current subscription period (i.e., until{" "}
-                        <TimeAgo date={info.end} />
-                        ). There are no transaction fees.
-                      </div>
-                    ) : (
-                      <div>Please edit the license below.</div>
-                    )
+                <Button
+                  style={{ marginRight: "8px" }}
+                  disabled={
+                    makingChange ||
+                    len(getChanges(info ?? {}, modifiedInfo ?? {})) == 0
                   }
-                >
-                  <Button
-                    style={{ marginRight: "8px" }}
-                    disabled={
-                      makingChange ||
-                      len(getChanges(info ?? {}, modifiedInfo ?? {})) == 0
+                  type="primary"
+                  onClick={async () => {
+                    const changes = getChanges(info, modifiedInfo);
+                    const service = "edit-license";
+                    try {
+                      setMakingChange(true);
+                      const { allowed, reason } = await isPurchaseAllowed(
+                        service,
+                        cost,
+                      );
+                      if (!allowed) {
+                        await webapp_client.purchases_client.quotaModal({
+                          service,
+                          reason,
+                          allowed,
+                          cost,
+                        });
+                      }
+                      if ((await isPurchaseAllowed(service, cost)).allowed) {
+                        await editLicense({ license_id, changes });
+                        refresh?.();
+                        setLicense(null);
+                      } else {
+                        throw Error("unable to complete purchase");
+                      }
+                    } catch (err) {
+                      setEditError(`${err}`);
+                    } finally {
+                      setMakingChange(false);
                     }
-                    type="primary"
-                  >
-                    {cost > 0 && <>Change License -- pay {currency(cost)}</>}
-                    {cost < 0 && (
-                      <>
-                        Change License -- your account will be credited{" "}
-                        {currency(-cost)}
-                      </>
-                    )}
-                    {cost == 0 && (
-                      <>Edit license below -- no charge right now</>
-                    )}
-                  </Button>
-                </Tooltip>
-              </Popconfirm>
+                  }}
+                >
+                  {cost > 0 && <>Change License -- pay {currency(cost)}</>}
+                  {cost < 0 && (
+                    <>
+                      Change License -- your account will be credited{" "}
+                      {currency(-cost)}
+                    </>
+                  )}
+                  {cost == 0 && <>Edit license below -- no charge right now</>}
+                  {makingChange && <Spin style={{ marginLeft: "15px" }} />}
+                </Button>
+              </Tooltip>
             </div>
           }
           style={{ maxWidth: "600px", margin: "auto" }}

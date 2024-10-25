@@ -94,6 +94,17 @@ export async function createPaymentIntent({
 export async function getOpenPaymentIntent({ customer, purpose }) {
   const stripe = await getConn();
   // we just want the most recent one that requires_payment_method, if any.
+  const recentPaymentIntents = await stripe.paymentIntents.list({ customer });
+  for (const intent of recentPaymentIntents.data) {
+    if (
+      intent.status == "requires_payment_method" &&
+      intent.metadata.purpose == purpose
+    ) {
+      return intent;
+    }
+  }
+
+  // note that the query index is only updated *after a few seconds* so NOT reliable.
   // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
   const query = `customer:"${customer}" AND metadata["purpose"]:"${purpose}" AND status:"requires_payment_method"`;
   const x = await stripe.paymentIntents.search({

@@ -34,6 +34,11 @@ export default function PayAsYouGoModal({}) {
       storeState.service as Service,
       storeState.cost,
     );
+    if (x?.allowed) {
+      // done -- close the modal
+      handleOk();
+      return;
+    }
     actions.setState({ pay_as_you_go: { ...storeState, ...x } as any });
   };
   const handleCancel = () => {

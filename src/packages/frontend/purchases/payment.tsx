@@ -12,7 +12,7 @@ export const zIndexTip = zIndex + 1;
 
 interface Props {
   balance: number;
-  update?: () => Promise<void>;
+  update?: Function;
   cost?: number; // optional amount that we want to encourage the user to pay
 }
 
