@@ -77,7 +77,8 @@ function getUntrustedType(kernelspec: KernelSpec | undefined, types: string[]) {
 }
 
 function getTypeToRender(kernelspec, types: string[]): string {
-  if (kernelspec.language?.startsWith("sage")) {
+  if (kernelspec?.language?.startsWith("sage")) {
+    // kernelspec might not be defined initially.
     // special case because sage's text/html is horrible.
     if (
       (types.includes("text/html") || types.includes("iframe")) &&
