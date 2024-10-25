@@ -38,7 +38,7 @@ const logger = getLogger("purchases:shopping-cart-checkout");
 // done discretely once per day, and you would likely just have to retry
 // your purchase.  There is a very slight potential abuse where a user might
 // use the api to get a one time $1 discount by abusing this....
-const ALLOWED_SLACK = 1; // off by up to a dollar
+export const ALLOWED_SLACK = 1; // off by up to a dollar
 
 export interface CheckoutCartItem extends ShoppingCartItem {
   cost: CostInputPeriod;

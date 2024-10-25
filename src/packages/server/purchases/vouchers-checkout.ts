@@ -1,6 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
-import createStripeCheckoutSession from "./create-stripe-checkout-session";
-import { getCheckoutCart } from "./shopping-cart-checkout";
+import { ALLOWED_SLACK, getCheckoutCart } from "./shopping-cart-checkout";
 import getMinBalance from "./get-min-balance";
 import getBalance from "./get-balance";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -8,17 +7,15 @@ import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import type { CheckoutParams } from "./shopping-cart-checkout";
 import createVouchers from "@cocalc/server/vouchers/create-vouchers";
 import type { WhenPay } from "@cocalc/util/vouchers";
+import { currency } from "@cocalc/util/misc";
+
 const logger = getLogger("purchases:vouchers-checkout");
 
 export default async function vouchersCheckout({
   account_id,
-  success_url,
-  cancel_url,
   config,
 }: {
   account_id: string;
-  success_url: string;
-  cancel_url?: string;
   config: {
     count: number;
     expire: Date;
@@ -36,44 +33,33 @@ export default async function vouchersCheckout({
 }) {
   logger.debug({
     account_id,
-    success_url,
-    cancel_url,
     config,
   });
 
   if (!config.count || config.count < 0) {
-    throw Error("config.count must be positive");
+    throw Error(`config.count (=${config.count}) must be positive`);
   }
 
   if (config.whenPay == "admin") {
-    const info = await createVouchers({
+    await createVouchers({
       ...config,
       account_id,
     });
-    return { done: true, info };
+    return;
   }
 
   const params = await getVoucherCartCheckoutParams(account_id, config.count);
-  if (params.chargeAmount <= 0) {
-    const info = await createVouchers({
+  if (params.amountDue <= ALLOWED_SLACK) {
+    await createVouchers({
       ...config,
       account_id,
     });
-    return { done: true, info };
+    return;
   }
 
-  const session = await createStripeCheckoutSession({
-    account_id,
-    success_url,
-    cancel_url,
-    line_items: [{
-      amount: params.chargeAmount,
-      description: "Credit Account to Complete Voucher Purchase",
-    }],
-  });
-  // make a stripe checkout session from the chargeAmount.
-  // When it gets paid, user gets their purchases.
-  return { done: false, session };
+  throw Error(
+    `Insufficient credit on your account to complete the purchase (you need ${currency(params.chargeAmount)}). Please refresh your browser and try again or contact support.`,
+  );
 }
 
 export async function getVoucherCheckoutCart(account_id) {
@@ -82,13 +68,13 @@ export async function getVoucherCheckoutCart(account_id) {
     (item) =>
       item.checked &&
       (item.description?.["period"] == "range" ||
-        item.product == "cash-voucher")
+        item.product == "cash-voucher"),
   );
 }
 
 export async function getVoucherCartCheckoutParams(
   account_id: string,
-  count: number
+  count: number,
 ): Promise<CheckoutParams> {
   if (!count) {
     throw Error("count must be specified");

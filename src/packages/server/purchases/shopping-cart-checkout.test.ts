@@ -81,7 +81,7 @@ describe("shopping-cart-checkout", () => {
         Promise.resolve({
           balance: NaN,
           minPayment: NaN,
-          amountDue: NaN,
+          amountDue: 0.0,
           chargeAmount: 0.0,
           total: NaN,
           minBalance: NaN,

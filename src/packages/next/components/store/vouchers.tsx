@@ -12,7 +12,6 @@ import {
   Button,
   Col,
   DatePicker,
-  Divider,
   Form,
   Input,
   InputNumber,
@@ -44,8 +43,6 @@ import vouchers, {
   WhenPay,
 } from "@cocalc/util/vouchers";
 import {
-  getCurrentCheckoutSession,
-  cancelCurrentCheckoutSession,
   getVoucherCartCheckoutParams,
   vouchersCheckout,
   syncPaidInvoices,
@@ -54,6 +51,7 @@ import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-chec
 import { ExplainPaymentSituation } from "./checkout";
 import AddCashVoucher from "./add-cash-voucher";
 import { StoreBalanceContext } from "../../lib/balance";
+import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 
 interface Config {
   whenPay: WhenPay;
@@ -75,6 +73,8 @@ export default function CreateVouchers() {
   const { refreshBalance } = useContext(StoreBalanceContext);
   const [orderError, setOrderError] = useState<string>("");
   const [subTotal, setSubTotal] = useState<number>(0);
+  const [userSuccessfullyAddedCredit, setUserSuccessfullyAddedCredit] =
+    useState<boolean>(false);
 
   // user configurable options: start
   const [query, setQuery0] = useState<Config>(() => {
@@ -138,18 +138,7 @@ export default function CreateVouchers() {
   // This is very similar to checkout.tsx, but I couldn't think of a good way to
   // avoid dup, and vouchers are *barely* used.
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
-  const [session, setSession] = useState<{ id: string; url: string } | null>(
-    null,
-  );
-  const updateSession = async () => {
-    const session = await getCurrentCheckoutSession();
-    setSession(session);
-    return session;
-  };
-  useEffect(() => {
-    // on load, check for existing payent session.
-    updateSession();
-  }, []);
+
   useEffect(() => {
     if (router.query.complete == null) {
       // nothing to handle
@@ -172,27 +161,10 @@ export default function CreateVouchers() {
     try {
       setOrderError("");
       setCompletingPurchase(true);
-      const curSession = await updateSession();
-      if (curSession != null || !isMounted.current) {
-        // there is already a stripe checkout session that hasn't been finished, so let's
-        // not cause confusion by creating another one.
-        // User will see a big alert with a link to finish this one, since updateSession
-        // sets the session state.
+      if (!isMounted.current) {
         return;
       }
-      // This api call tells the backend, "make a session that, when successfully finished, results in
-      // buying everything in my shopping cart", or, if it returns {done:true}, then
-      // It succeeds if the purchase goes through.
-      const currentUrl = window.location.href;
-      const success_url = `${currentUrl}${
-        currentUrl.includes("?") ? "&" : "?"
-      }complete=true`;
-      // This api call: "create requested vouchers from everything in my
-      // shopping cart that is not a subscription" if possible; otherwise, give me a stripe
-      // checkout session for the right amount.
-      const result = await vouchersCheckout({
-        success_url,
-        cancel_url: currentUrl,
+      await vouchersCheckout({
         config: {
           count: numVouchers ?? 1,
           expire: expire.toDate(),
@@ -208,33 +180,17 @@ export default function CreateVouchers() {
           },
         },
       });
-      if (result.done) {
-        // done -- nothing further to do!
-        if (isMounted.current) {
-          router.push("/store/congrats");
-        }
-        return;
+      if (isMounted.current) {
+        router.push("/store/congrats");
       }
-      // payment is required to complete the purchase, since user doesn't
-      // have enough credit.
-      window.location = result.session.url as any;
     } catch (err) {
       // The purchase failed.
       setOrderError(err.message);
     } finally {
-      refreshBalance();
+      await refreshBalance();
       if (!isMounted.current) return;
-      setCompletingPurchase(false);
     }
   }
-  const cancelPurchaseInProgress = async () => {
-    try {
-      await cancelCurrentCheckoutSession();
-      updateSession();
-    } catch (err) {
-      setOrderError(err.message);
-    }
-  };
   // Handling payment -- end
   //////
 
@@ -281,32 +237,6 @@ export default function CreateVouchers() {
     return x;
   }, [cart]);
 
-  if (session?.url != null) {
-    return (
-      <div style={{ textAlign: "center" }}>
-        <Alert
-          style={{ margin: "30px", display: "inline-block" }}
-          type="warning"
-          message={<h2>Purchase in Progress</h2>}
-          description={
-            <div style={{ fontSize: "14pt", width: "450px" }}>
-              <Divider />
-              <p>
-                <Button href={session.url} type="primary" size="large">
-                  Complete Purchase
-                </Button>
-              </p>
-              or
-              <p style={{ marginTop: "15px" }}>
-                <Button onClick={cancelPurchaseInProgress}>Cancel</Button>
-              </p>
-            </div>
-          }
-        />
-      </div>
-    );
-  }
-
   if (cart0.error) {
     return <Alert type="error" message={cart.error} />;
   }
@@ -326,32 +256,6 @@ export default function CreateVouchers() {
     expire == null ||
     subTotal == 0 ||
     !profile?.email_address;
-
-  function CreateVouchersButton() {
-    const v = plural(numVouchers ?? 0, "Voucher Code");
-    return (
-      <Button
-        disabled={disabled}
-        style={{ marginTop: "7px", marginBottom: "15px" }}
-        size="large"
-        type="primary"
-        onClick={completePurchase}
-      >
-        {completingPurchase ? (
-          <Loading delay={0}>
-            Creating {numVouchers ?? 0} {v}...
-          </Loading>
-        ) : (
-          <>
-            Create {numVouchers ?? 0} {v}
-            {whenPay == "now"}
-            {whenPay == "admin" && " (no charge)"}
-            {!title?.trim() && " (enter description above!)"}
-          </>
-        )}
-      </Button>
-    );
-  }
 
   function EmptyCart() {
     return (
@@ -531,7 +435,7 @@ export default function CreateVouchers() {
               color: !title ? "darkred" : undefined,
             }}
           >
-            <Check done={!!title.trim()} /> Customize
+            <Check done={!!title.trim()} /> Description
           </h4>
           <Paragraph style={{ color: "#666" }}>
             <div
@@ -640,18 +544,10 @@ export default function CreateVouchers() {
           <Check done={!disabled} /> Create Your{" "}
           {plural(numVouchers ?? 0, "Voucher Code")}
         </h4>
-        {numVouchers != null && (
+        {numVouchers != null && params != null && (
           <div style={{ fontSize: "12pt" }}>
-            {params != null && (
-              <ExplainPaymentSituation
-                params={params}
-                style={{ margin: "15px 0" }}
-              />
-            )}
             <Row>
-              <Col sm={12}>
-                <CreateVouchersButton />
-              </Col>
+              <Col sm={12}></Col>
               <Col sm={12}>
                 <div style={{ fontSize: "15pt" }}>
                   <TotalCost
@@ -664,6 +560,28 @@ export default function CreateVouchers() {
                 </div>
               </Col>
             </Row>
+            <ExplainPaymentSituation
+              params={params}
+              style={{ margin: "15px 0" }}
+            />
+            {params.chargeAmount > 0 && !userSuccessfullyAddedCredit && (
+              <StripePayment
+                style={{ maxWidth: "600px", margin: "30px auto" }}
+                amount={params.chargeAmount}
+                purpose={"buy-vouchers"}
+                description={`CoCalc Voucher Codes: ${title.slice(0, 250)}`}
+                onFinished={async () => {
+                  setUserSuccessfullyAddedCredit(true);
+                  // user paid successfully and money should be in their account
+                  await refreshBalance();
+                  if (!isMounted.current) {
+                    return;
+                  }
+                  // now do the purchase flow with money available.
+                  await completePurchase();
+                }}
+              />
+            )}
           </div>
         )}
       </>

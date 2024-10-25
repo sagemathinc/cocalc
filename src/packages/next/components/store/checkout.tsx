@@ -255,15 +255,15 @@ export default function Checkout() {
                     style={{ maxWidth: "600px", margin: "30px auto" }}
                     amount={paymentAmount}
                     purpose="store-checkout"
-                    onFinished={() => {
+                    onFinished={async () => {
                       setUserSuccessfullyAddedCredit(true);
                       // user paid successfully and money should be in their account
-                      refreshBalance();
+                      await refreshBalance();
                       if (!isMounted.current) {
                         return;
                       }
                       // now do the purchase flow with money available.
-                      completePurchase();
+                      await completePurchase();
                     }}
                   />
                 </div>
