@@ -290,11 +290,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   }
 
-  public async set_project_course_info({
+  set_project_course_info = async ({
     project_id,
     course_project_id,
     path,
-    pay,
+    pay = "",
     payInfo,
     account_id,
     email_address,
@@ -306,15 +306,15 @@ export class ProjectsActions extends Actions<ProjectsState> {
     project_id: string;
     course_project_id: string;
     path: string;
-    pay: Date | string;
+    pay?: Date | string;
     payInfo?: PurchaseInfo | null;
     account_id?: string | null;
     email_address?: string | null;
-    datastore: Datastore;
-    type: "student" | "shared" | "nbgrader";
+    datastore?: Datastore;
+    type: "student" | "shared" | "nbgrader" | "exam" | "group";
     student_project_functionality?: StudentProjectFunctionality | null;
     envvars?: EnvVars;
-  }): Promise<void | { course: null | CourseInfo }> {
+  }): Promise<void | { course: null | CourseInfo }> => {
     if (!(await this.have_project(project_id))) {
       const msg = `Can't set course info -- you are not a collaborator on project '${project_id}'.`;
       console.warn(msg);
@@ -350,7 +350,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       return;
     }
     return await api("projects/course/set-course-info", { project_id, course });
-  }
+  };
 
   // Create a new project; returns the project_id of the new project.
   public async create_project(opts: {

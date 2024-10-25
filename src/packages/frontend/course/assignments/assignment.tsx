@@ -16,7 +16,7 @@ import { capitalize, trunc_middle } from "@cocalc/util/misc";
 import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
 import { ReactElement, useState } from "react";
 import { DebounceInput } from "react-debounce-input";
-import { CourseActions } from "../actions";
+import type { CourseActions } from "../actions";
 import { BigTime, Progress } from "../common";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
 import {
@@ -39,6 +39,7 @@ import { STUDENT_SUBDIR } from "./consts";
 import { StudentListForAssignment } from "./assignment-student-list";
 import { ConfigurePeerGrading } from "./configure-peer";
 import { SkipCopy } from "./skip";
+import Location from "./location";
 
 interface AssignmentProps {
   active_feedback_edits: IsGradingMap;
@@ -268,7 +269,12 @@ export function Assignment({
     };
     v.push(
       <Row key="header3" style={{ ...bottom, marginTop: "15px" }}>
-        <Col md={4}>{render_open_button()}</Col>
+        <Col md={4}>
+          <Space wrap>
+            {render_open_button()}
+            <Location assignment={assignment} actions={actions} />
+          </Space>
+        </Col>
         <Col md={20}>
           <Row>
             <Col md={12} style={{ fontSize: "14px" }} key="due">
@@ -431,10 +437,10 @@ export function Assignment({
             <Icon name="folder-open" /> Open Folder
           </span>
         }
-        tip="Open the directory in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."
+        tip="Open the folder in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."
       >
         <Button onClick={open_assignment_path}>
-          <Icon name="folder-open" /> Open...
+          <Icon name="folder-open" /> Open
         </Button>
       </Tip>
     );
@@ -451,10 +457,7 @@ export function Assignment({
     const last_assignment = assignment.get("last_assignment");
     // Primary if it hasn't been assigned before or if it hasn't started assigning.
     let type;
-    if (
-      !last_assignment ||
-      !(last_assignment.get("time") || last_assignment.get("start"))
-    ) {
+    if (!last_assignment) {
       type = "primary";
     } else {
       type = "default";

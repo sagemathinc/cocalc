@@ -37,7 +37,7 @@ import {
 } from "@cocalc/util/misc";
 import { delay, map } from "awaiting";
 import { debounce } from "lodash";
-import { Map } from "immutable";
+import { Map as iMap } from "immutable";
 import { CourseActions } from "../actions";
 import { export_assignment } from "../export/export-assignment";
 import { export_student_file_use_times } from "../export/file-use-times";
@@ -47,6 +47,7 @@ import {
   CourseStore,
   get_nbgrader_score,
   NBgraderRunInfo,
+  AssignmentLocation,
 } from "../store";
 import {
   AssignmentCopyType,
@@ -72,6 +73,7 @@ import {
   DUE_DATE_FILENAME,
 } from "./consts";
 import { COPY_TIMEOUT_MS } from "../consts";
+import { getLocation } from "./location";
 
 const UPDATE_DUE_DATE_FILENAME_DEBOUNCE_MS = 3000;
 
@@ -214,7 +216,7 @@ export class AssignmentsActions {
     }
     // Annoying that we have to convert to JS here and cast,
     // but the set below seems to require it.
-    let grades = assignment.get("grades", Map()).toJS() as {
+    let grades = assignment.get("grades", iMap()).toJS() as {
       [student_id: string]: string;
     };
     grades[student_id] = grade;
@@ -243,7 +245,7 @@ export class AssignmentsActions {
     }
     // Annoying that we have to convert to JS here and cast,
     // but the set below seems to require it.
-    let comments = assignment.get("comments", Map()).toJS() as {
+    let comments = assignment.get("comments", iMap()).toJS() as {
       [student_id: string]: string;
     };
     comments[student_id] = comment;
@@ -356,14 +358,11 @@ export class AssignmentsActions {
     });
     if (!student || !assignment) return;
     const content = this.dueDateFileContent(assignment_id);
-    const project_id = student.get("project_id");
-    if (!project_id) return;
+    const project_id = this.getProjectId({ assignment, student });
+    if (!project_id) {
+      return;
+    }
     const path = join(assignment.get("target_path"), DUE_DATE_FILENAME);
-    console.log({
-      project_id,
-      path,
-      content,
-    });
     await webapp_client.project_client.write_text_file({
       project_id,
       path,
@@ -441,12 +440,6 @@ export class AssignmentsActions {
     });
     if (!student || !assignment) return;
     const student_name = store.get_student_name(student_id);
-    const student_project_id = student.get("project_id");
-    if (student_project_id == null) {
-      // nothing to do
-      this.course_actions.clear_activity(id);
-      return;
-    }
     const target_path = join(
       assignment.get("collect_path"),
       student.get("student_id"),
@@ -456,6 +449,15 @@ export class AssignmentsActions {
       desc: `Copying assignment from ${student_name}`,
     });
     try {
+      const student_project_id = this.getProjectId({
+        assignment,
+        student,
+      });
+      if (student_project_id == null) {
+        // nothing to do
+        this.course_actions.clear_activity(id);
+        return;
+      }
       await webapp_client.project_client.copy_path_between_projects({
         src_project_id: student_project_id,
         src_path: assignment.get("target_path"),
@@ -512,7 +514,7 @@ export class AssignmentsActions {
     const grade = store.get_grade(assignment_id, student_id);
     const comments = store.get_comments(assignment_id, student_id);
     const student_name = store.get_student_name(student_id);
-    const student_project_id = student.get("project_id");
+    const student_project_id = this.getProjectId({ assignment, student });
 
     // if skip_grading is true, this means there *might* no be a "grade" given,
     // but instead some grading inside the files or an external tool is used.
@@ -828,22 +830,12 @@ ${details}
       id,
       desc: `Copying assignment to ${student_name}`,
     });
-    let student_project_id: string | undefined = student.get("project_id");
     const src_path = this.assignment_src_path(assignment);
     try {
-      if (student_project_id == null) {
-        this.course_actions.set_activity({
-          id,
-          desc: `${student_name}'s project doesn't exist, so creating it.`,
-        });
-        student_project_id =
-          await this.course_actions.student_projects.create_student_project(
-            student_id,
-          );
-        if (!student_project_id) {
-          throw Error("failed to create project");
-        }
-      }
+      const student_project_id = await this.getOrCreateProjectId({
+        assignment,
+        student,
+      });
       if (create_due_date_file) {
         await this.copy_assignment_create_due_date_file(assignment_id);
       }
@@ -1091,10 +1083,10 @@ ${details}
     const id = this.course_actions.set_activity({
       desc: "Parsing peer grading",
     });
-    const allGrades = assignment.get("grades", Map()).toJS() as {
+    const allGrades = assignment.get("grades", iMap()).toJS() as {
       [student_id: string]: string;
     };
-    const allComments = assignment.get("comments", Map()).toJS() as {
+    const allComments = assignment.get("comments", iMap()).toJS() as {
       [student_id: string]: string;
     };
     // compute missing grades
@@ -1328,7 +1320,10 @@ ${details}
       return;
     }
 
-    const student_project_id = student.get("project_id");
+    const student_project_id = this.getProjectId({
+      assignment,
+      student,
+    });
     if (!student_project_id) {
       finish();
       return;
@@ -1499,7 +1494,7 @@ ${details}
       student_id,
     });
     if (assignment == null || student == null) return;
-    const student_project_id = student.get("project_id");
+    const student_project_id = this.getProjectId({ assignment, student });
     if (student_project_id == null) {
       this.course_actions.set_error(
         "open_assignment: student project not yet created",
@@ -1800,7 +1795,7 @@ ${details}
     }
 
     const scores: any = assignment
-      .getIn(["nbgrader_scores", student_id], Map())
+      .getIn(["nbgrader_scores", student_id], iMap())
       .toJS();
     let x: any = scores[filename];
     if (x == null) {
@@ -1896,7 +1891,7 @@ ${details}
     ]);
 
     const course_project_id = store.get("course_project_id");
-    const student_project_id = student.get("project_id");
+    const student_project_id = this.getProjectId({ assignment, student });
 
     let grade_project_id: string;
     let student_path: string;
@@ -2201,7 +2196,7 @@ ${details}
     const store = this.get_store();
     let nbgrader_run_info: NBgraderRunInfo = store.get(
       "nbgrader_run_info",
-      Map(),
+      iMap(),
     );
     const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
     nbgrader_run_info = nbgrader_run_info.set(key, webapp_client.server_time());
@@ -2215,7 +2210,7 @@ ${details}
     const store = this.get_store();
     let nbgrader_run_info: NBgraderRunInfo = store.get(
       "nbgrader_run_info",
-      Map<string, number>(),
+      iMap<string, number>(),
     );
     const key = student_id ? `${assignment_id}-${student_id}` : assignment_id;
     nbgrader_run_info = nbgrader_run_info.delete(key);
@@ -2296,5 +2291,72 @@ ${details}
     } finally {
       set_activity({ id });
     }
+  };
+
+  setLocation = (assignment_id: string, location: AssignmentLocation) => {
+    this.course_actions.set({ table: "assignments", assignment_id, location });
+  };
+
+  getProjectId = ({
+    assignment,
+    student,
+  }: {
+    assignment;
+    student;
+  }): string | null | undefined => {
+    const location = getLocation(assignment);
+    if (location == "group") {
+      const group = assignment.getIn(["groups", student.get("student_id")]);
+      if (group != null) {
+        return assignment.getIn(["group_projects", group]);
+      }
+      return null;
+    } else if (location == "exam") {
+      return assignment.getIn(["exam_projects", student.get("student_id")]);
+    } else {
+      return student.get("project_id");
+    }
+  };
+
+  private getOrCreateProjectId = async ({
+    assignment,
+    student,
+  }: {
+    assignment;
+    student;
+    create?: boolean;
+  }): Promise<string> => {
+    let student_project_id = this.getProjectId({ assignment, student });
+    if (student_project_id != null) {
+      return student_project_id;
+    }
+    const location = getLocation(assignment);
+    const student_id = student.get("student_id");
+    const assignment_id = assignment.get("assignment_id");
+    let project_id;
+    if (location == "individual") {
+      project_id =
+        await this.course_actions.student_projects.create_student_project(
+          student_id,
+        );
+    } else if (location == "exam") {
+      project_id =
+        await this.course_actions.student_projects.createProjectForStudentUse({
+          student_id,
+          type: "exam",
+        });
+      const exam_projects = assignment.get("exam_projects") ?? iMap({});
+      this.set_assignment_field(
+        assignment_id,
+        "exam_projects",
+        exam_projects.set(student_id, project_id),
+      );
+    } else if (location == "group") {
+      throw Error("create group project: not implemented");
+    }
+    if (!project_id) {
+      throw Error("failed to create project");
+    }
+    return project_id;
   };
 }

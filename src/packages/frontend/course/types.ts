@@ -8,7 +8,11 @@ import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import type { CopyConfigurationOptions, CopyConfigurationTargets } from "./configuration/configuration-copying";
+import type {
+  CopyConfigurationOptions,
+  CopyConfigurationTargets,
+} from "./configuration/configuration-copying";
+import type { AssignmentLocation } from "./store";
 
 export interface SyncDBRecordBase {
   table: string;
@@ -58,6 +62,11 @@ export interface SyncDBRecordAssignment {
   nbgrader?: boolean; // Very likely to be using nbgrader for this assignment (heuristic: existence of foo.ipynb and student/foo.ipynb)
   description?: string;
   title?: string;
+  location?: AssignmentLocation;
+  exam_projects?: { [student_id: string]: string };
+  group_projects?: { [group: string]: string };
+
+  groups?: { [student_id: string]: string };
   grades?: { [student_id: string]: string };
   comments?: { [student_id: string]: string };
   nbgrader_scores?: {
