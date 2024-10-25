@@ -6,17 +6,15 @@ See https://stripe.com/docs/api/checkout/sessions
 
 import getConn from "@cocalc/server/stripe/connection";
 import getPool from "@cocalc/database/pool";
-import stripeName from "@cocalc/util/stripe/name";
-import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getLogger from "@cocalc/backend/logger";
 import type { Stripe } from "stripe";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
-import { currency, round2 } from "@cocalc/util/misc";
+import { currency } from "@cocalc/util/misc";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/server/api/throttle";
+import { getStripeCustomerId, sanityCheckAmount } from "./stripe-util";
 
 const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 const logger = getLogger("purchases:create-stripe-checkout-session");
@@ -130,65 +128,6 @@ export const setStripeCheckoutSession = async ({ account_id, session }) => {
   );
 };
 
-export const getStripeCustomerId = async ({
-  account_id,
-  create,
-}: {
-  account_id: string;
-  create: boolean;
-}): Promise<string | undefined> => {
-  const db = getPool();
-  const { rows } = await db.query(
-    "SELECT stripe_customer_id FROM accounts WHERE account_id=$1",
-    [account_id],
-  );
-  const stripe_customer_id = rows[0]?.stripe_customer_id;
-  if (stripe_customer_id) {
-    logger.debug(
-      "getStripeCustomerId",
-      "customer already exists",
-      stripe_customer_id,
-    );
-    return stripe_customer_id;
-  }
-  if (create) {
-    return await createStripeCustomer(account_id);
-  } else {
-    return undefined;
-  }
-};
-
-const createStripeCustomer = async (account_id: string): Promise<string> => {
-  logger.debug("createStripeCustomer", account_id);
-  const db = getPool();
-  const { rows } = await db.query(
-    "SELECT email_address, first_name, last_name FROM accounts WHERE account_id=$1",
-    [account_id],
-  );
-  if (rows.length == 0) {
-    throw Error(`no account ${account_id}`);
-  }
-  const email = rows[0].email_address;
-  const description = stripeName(rows[0].first_name, rows[0].last_name);
-  const stripe = await getConn();
-  const { id } = await stripe.customers.create({
-    description,
-    name: description,
-    email,
-    metadata: {
-      account_id,
-    },
-  });
-  logger.debug("createStripeCustomer", "created ", {
-    id,
-    description,
-    email,
-    account_id,
-  });
-  await setStripeCustomerId(account_id, id);
-  return id;
-};
-
 const getSession = async (
   session_id: string,
 ): Promise<Stripe.Checkout.Session> => {
@@ -245,26 +184,5 @@ export const cancelCurrentSession = async (account_id: string) => {
   }
   // it worked :-)
 };
-
-export async function sanityCheckAmount(amount) {
-  if (!amount) {
-    throw Error("Amount must be nonzero.");
-  }
-  const { pay_as_you_go_min_payment } = await getServerSettings();
-  const minAllowed = Math.max(
-    MINIMUM_STRIPE_TRANSACTION,
-    pay_as_you_go_min_payment ?? 0,
-  );
-  if (amount < minAllowed) {
-    throw Error(
-      `Amount ${currency(round2(amount))} must be at least ${currency(minAllowed)}.`,
-    );
-  }
-  if (amount > MAX_COST) {
-    throw Error(
-      `Amount ${currency(round2(amount))} exceeds the maximum allowed amount of ${currency(MAX_COST)}.  Please contact support.`,
-    );
-  }
-}
 
 export default createStripeCheckoutSession;

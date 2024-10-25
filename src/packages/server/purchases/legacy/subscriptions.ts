@@ -1,5 +1,5 @@
 import getConn from "@cocalc/server/stripe/connection";
-import { getStripeCustomerId } from "../create-stripe-checkout-session";
+import { getStripeCustomerId } from "../stripe-util";
 import createSubscription from "../create-subscription";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import { getNextClosingDateAfter } from "../closing-date";

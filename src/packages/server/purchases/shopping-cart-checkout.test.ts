@@ -5,9 +5,6 @@
 
 // Declare mock constants to account for Jest function hoisting
 //
-const mockCreateStripeCheckoutSession = jest.fn() as jest.MockedFunction<
-  typeof createStripeCheckoutSession
->;
 const mockGetCart = jest.fn() as jest.MockedFunction<typeof getCart>;
 const mockPurchaseShoppingCartItem = jest.fn() as jest.MockedFunction<
   typeof purchaseShoppingCartItem
@@ -26,7 +23,6 @@ import {
   SiteLicenseDescriptionDB,
 } from "@cocalc/util/upgrades/shopping";
 
-import createStripeCheckoutSession from "./create-stripe-checkout-session";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 
 // System under test
@@ -51,10 +47,6 @@ jest.mock("@cocalc/server/shopping/cart/get", () => ({
 jest.mock("./purchase-shopping-cart-item", () => ({
   __esModule: true,
   default: mockPurchaseShoppingCartItem,
-}));
-jest.mock("./create-stripe-checkout-session", () => ({
-  __esModule: true,
-  default: mockCreateStripeCheckoutSession,
 }));
 
 afterEach(() => {

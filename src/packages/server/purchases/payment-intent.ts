@@ -1,9 +1,6 @@
 import getConn from "@cocalc/server/stripe/connection";
 import getLogger from "@cocalc/backend/logger";
-import {
-  getStripeCustomerId,
-  sanityCheckAmount,
-} from ".//create-stripe-checkout-session";
+import { getStripeCustomerId, sanityCheckAmount } from "./stripe-util";
 import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/server/api/throttle";
 import createCredit from "./create-credit";
