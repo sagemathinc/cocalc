@@ -81,11 +81,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "title-and-description": {
     icon: "header",
-    label: defineMessage({
-      id: "course.commands.title-and-description.label",
-      defaultMessage: "Course Title and Description",
-      description: "title and description of a course for students.",
-    }),
+    label: course.title_and_description_label,
     button: labels.title,
     title: defineMessage({
       id: "course.commands.title-and-description.tooltip",
@@ -99,10 +95,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "email-invitation": {
     icon: "mail",
-    label: defineMessage({
-      id: "course.commands.email-invitation.label",
-      defaultMessage: "Email Invitation",
-    }),
+    label: course.email_invitation_label,
     button: labels.invite,
     title: defineMessage({
       id: "course.commands.email-invitation.tooltip",

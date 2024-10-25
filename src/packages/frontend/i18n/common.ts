@@ -1511,4 +1511,13 @@ export const course = defineMessages({
     id: "course.copy_missing_handouts_assignments",
     defaultMessage: "Copy Missing Handouts and Assignments",
   },
+  title_and_description_label: {
+    id: "course.commands.title-and-description.label",
+    defaultMessage: "Course Title and Description",
+    description: "title and description of a course for students.",
+  },
+  email_invitation_label: {
+    id: "course.commands.email-invitation.label",
+    defaultMessage: "Email Invitation",
+  },
 });

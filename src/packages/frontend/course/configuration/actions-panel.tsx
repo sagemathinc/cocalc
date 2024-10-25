@@ -11,7 +11,6 @@ import { Icon } from "@cocalc/frontend/components";
 import { course } from "@cocalc/frontend/i18n";
 import type { ProjectMap } from "@cocalc/frontend/todo-types";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
-import { plural } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { DeleteAllStudentProjects } from "./delete-all-student-projects";
@@ -190,9 +189,13 @@ export function ResendInvites({
         </>
       }
     >
-      Send another email to every student who didn't sign up yet. This sends a
-      maximum of one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
-      {plural(RESEND_INVITE_INTERVAL_DAYS, "day")}.
+      <FormattedMessage
+        id="course.actions-panel.resend-invite.info"
+        defaultMessage={`Send another email to every student who didn't sign up yet.
+        This sends a maximum of one email every {days}
+        {days, plural, one {day} other {days}}.`}
+        values={{ days: RESEND_INVITE_INTERVAL_DAYS }}
+      />
       <hr />
       <Button
         disabled={reinviting_students}
@@ -201,7 +204,11 @@ export function ResendInvites({
         }}
       >
         {reinviting_students ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
-        Reinvite students
+        <FormattedMessage
+          id="course.actions-panel.resend-invite.button"
+          defaultMessage={"Reinvite students"}
+          description={"Resending email invitiatons to students in a course."}
+        />
       </Button>
     </Card>
   );
