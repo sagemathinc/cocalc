@@ -234,7 +234,7 @@ function PaymentForm({ style, amount, onFinished, disabled }) {
   );
 }
 
-function BigSpin({ style }: { style? }) {
+export function BigSpin({ style }: { style? }) {
   return (
     <div style={{ ...style, textAlign: "center" }}>
       <Spin tip="Loading" size="large">
@@ -249,3 +249,5 @@ function BigSpin({ style }: { style? }) {
     </div>
   );
 }
+
+

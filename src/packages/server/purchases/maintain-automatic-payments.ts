@@ -38,8 +38,16 @@ smc=# \d accounts
 
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { collectPayment } from "./stripe-usage-based-subscription";
+import {
+  collectPayment,
+  hasUsageSubscription,
+} from "./stripe-usage-based-subscription";
 import { getServerSettings } from "@cocalc/database/settings";
+import {
+  createPaymentIntent,
+  hasPaymentMethod,
+} from "@cocalc/server/purchases/payment-intent";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchase:maintain-automatic-payments");
 
@@ -92,14 +100,8 @@ export default async function maintainAutomaticPayments() {
   const { rows } = await pool.query(QUERY);
   logger.debug("Got ", rows.length, " statements to automatically pay");
   for (const { time, account_id, balance, statement_id } of rows) {
-    logger.debug(
-      "Paying statement ",
-      { statement_id },
-      " with balance ",
-      balance,
-      " from ",
-      time,
-    );
+    const description = `Paying statement ${statement_id} with balance ${currency(balance)} from ${time}`;
+    logger.debug(description);
     try {
       // disabling this since it seems potentially very confusing:
       //       // Determine sum of credits that user explicitly paid *after* the statement date.
@@ -143,7 +145,24 @@ export default async function maintainAutomaticPayments() {
         if (mockCollectPayment != null) {
           await mockCollectPayment({ account_id, amount });
         } else {
-          await collectPayment({ account_id, amount });
+          if (await hasUsageBasedSubscriptionButNoPaymentMethods(account_id)) {
+            // deprecated way -- but there are ~500 customers with this for initial
+            // rollout, so continue to support it.
+            try {
+              await collectPayment({ account_id, amount });
+              continue;
+            } catch (err) {
+              logger.debug(`WARNING -- usage based didn't work: ${err}`);
+            }
+          }
+          // Modern way: this will always "work", but we might not get the money until later.
+          await createPaymentIntent({
+            confirm: true,
+            account_id,
+            amount,
+            purpose: `statement-${statement_id}`,
+            description,
+          });
         }
       }
     } catch (err) {
@@ -155,6 +174,20 @@ export default async function maintainAutomaticPayments() {
 // This is a hook to mock payment collection, which is very helpful for unit testing,
 // so we know exactly what happened and don't have to involve stripe...
 let mockCollectPayment: null | typeof collectPayment = null;
-export function setMockCollectPayment(f: typeof collectPayment) {
+export function setMockCollectPayment(f: any) {
   mockCollectPayment = f;
+}
+
+export async function hasUsageBasedSubscriptionButNoPaymentMethods(
+  account_id: string,
+) {
+  if (!(await hasUsageSubscription(account_id))) {
+    // doesn't have a usage based subscription
+    return false;
+  }
+  if (await hasPaymentMethod(account_id)) {
+    // has a payment method
+    return false;
+  }
+  return true;
 }

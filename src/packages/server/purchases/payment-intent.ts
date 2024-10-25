@@ -6,8 +6,10 @@ import throttle from "@cocalc/server/api/throttle";
 import createCredit from "./create-credit";
 import getPool from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
+import base_path from "@cocalc/backend/base-path";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
-const logger = getLogger("purchases:create-payment-intent");
+const logger = getLogger("purchases:payment-intent");
 
 // create a new or modify the unfinished payment into
 // with the given purpose.   If called again with the
@@ -19,6 +21,8 @@ export async function createPaymentIntent({
   purpose,
   amount,
   description,
+  confirm,
+  return_url,
 }: {
   // user created the payment intent -- assumed already authenticated/valid
   account_id: string;
@@ -27,12 +31,15 @@ export async function createPaymentIntent({
   amount: number;
   // arbitrary string to show to the user
   description?: string;
+  confirm?: boolean;
+  return_url?: string;
 }): Promise<PaymentIntentSecret> {
   logger.debug("createPaymentIntent", {
     account_id,
     amount,
     purpose,
     description,
+    return_url,
   });
   if (!purpose) {
     throw Error("purpose must be set");
@@ -59,8 +66,6 @@ export async function createPaymentIntent({
         enabled: true,
         features: {
           payment_method_redisplay: "enabled",
-          payment_method_save: "enabled",
-          payment_method_save_usage: "off_session",
           payment_method_remove: "enabled",
         },
       },
@@ -74,21 +79,97 @@ export async function createPaymentIntent({
     await stripe.paymentIntents.update(paymentIntent.id, {
       amount: amountStripe,
       description,
-      metadata: { purpose, account_id },
+      metadata: { purpose, account_id, confirm: `${confirm}` },
     });
   } else {
-    paymentIntent = await stripe.paymentIntents.create({
-      customer,
-      amount: amountStripe,
-      currency: "usd",
-      metadata: { purpose, account_id },
-    });
+    let success = false;
+    if (confirm) {
+      if (!return_url) {
+        const { dns } = await getServerSettings();
+        return_url = `https://${dns}${base_path}`;
+      }
+      let id = "";
+      // attempt to pay immediately using an available payment method.
+      for (const payment_method of await getPaymentMethods({ customer })) {
+        try {
+          if (id) {
+            paymentIntent = await stripe.paymentIntents.confirm(id, {
+              payment_method,
+              return_url,
+            });
+          } else {
+            paymentIntent = await stripe.paymentIntents.create({
+              customer,
+              amount: amountStripe,
+              currency: "usd",
+              metadata: { purpose, account_id, confirm: `${confirm}` },
+              setup_future_usage: "off_session",
+              confirm,
+              return_url,
+              payment_method,
+            });
+          }
+          success = true;
+          // it worked -- if it finished, add money to the user's purchases log in our database.
+          // It may have worked but still require more steps by the user.
+          await processPaymentIntents(account_id);
+          break;
+        } catch (err) {
+          logger.debug("createPaymentIntent -- confirm: ", err.raw.message);
+          // save the id so we can use it in the loop above for the other attempts
+          id = err.raw.payment_intent.id;
+        }
+      }
+      if (!success && id) {
+        paymentIntent = await stripe.paymentIntents.retrieve(id);
+        success = true;
+      }
+    }
+    if (!success) {
+      // create the payment intent - we will directly bug the user to pay
+      // this in other ways, since they have nothing setup that can provide
+      // an automatic payment.
+      paymentIntent = await stripe.paymentIntents.create({
+        customer,
+        amount: amountStripe,
+        currency: "usd",
+        metadata: { purpose, account_id, confirm: `${confirm}` },
+        setup_future_usage: "off_session",
+      });
+    }
   }
 
   return {
     clientSecret: paymentIntent.client_secret!,
     customerSessionClientSecret: customerSession.client_secret,
   };
+}
+
+// returns first ~10 distinct payment method ids, with the default first if there
+// is a default.
+export async function getPaymentMethods({ customer }): Promise<string[]> {
+  const stripe = await getConn();
+  const paymentMethods: string[] = [];
+
+  const c = await stripe.customers.retrieve(customer);
+  const id = (c as any)?.invoice_settings?.default_payment_method;
+  if (id) {
+    paymentMethods.push(id);
+  }
+
+  // no default, so what do they have?
+  const { data } = await stripe.customers.listPaymentMethods(customer);
+  for (const { id } of data) {
+    if (!paymentMethods.includes(id)) {
+      paymentMethods.push(id);
+    }
+  }
+  return paymentMethods;
+}
+
+export async function hasPaymentMethod(account_id: string) {
+  const customer = await getStripeCustomerId({ account_id, create: true });
+  return (await getPaymentMethods({ customer })).length > 0;
 }
 
 export async function getOpenPaymentIntent({ customer, purpose }) {
