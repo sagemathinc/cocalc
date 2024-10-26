@@ -76,6 +76,7 @@ export default function CopyToClipBoard({
         style={{
           width: inputWidth ?? `${(display ?? value).length + 8}ex`,
           fontFamily: "monospace",
+          ...inputStyle,
         }}
         readOnly
         size={size}
@@ -85,11 +86,13 @@ export default function CopyToClipBoard({
       {!before ? copy : undefined}
     </Space.Compact>
   );
-  if (!label) return <div style={style}>{input}</div>;
+  if (!label) {
+    return <div style={style}>{input}</div>;
+  }
   return (
     <div style={{ display: "flex", ...style }}>
       <div style={{ ...LABEL_STYLE, ...labelStyle }}>{label}</div>{" "}
-      <div style={{ ...INPUT_STYLE, ...inputStyle }}>{input}</div>
+      <div style={{ ...INPUT_STYLE }}>{input}</div>
     </div>
   );
 }

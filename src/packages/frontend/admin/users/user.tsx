@@ -7,10 +7,10 @@
 Display of basic information about a user, with link to get more information about that user.
 */
 
-import { Icon, Gap, TimeAgo } from "@cocalc/frontend/components";
+import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
 import { capitalize } from "@cocalc/util/misc";
-import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
+import { Card, Space, Tag } from "antd";
 import { User } from "@cocalc/frontend/frame-editors/generic/client";
 import { Projects } from "./projects";
 import { Impersonate } from "./impersonate";
@@ -76,14 +76,14 @@ export class UserResult extends Component<Props, State> {
 
   render_created(): Rendered {
     if (!this.props.created) {
-      return <span>unknown</span>;
+      return <span>ancient times</span>;
     }
     return <TimeAgo date={this.props.created} />;
   }
 
   render_last_active(): Rendered {
     if (!this.props.last_active) {
-      return <span>unknown</span>;
+      return <span>never</span>;
     }
     return <TimeAgo date={this.props.last_active} />;
   }
@@ -93,13 +93,15 @@ export class UserResult extends Component<Props, State> {
       return;
     }
     return (
-      <div style={{ margin: "15px 0" }}>
-        <Money account_id={this.props.account_id} />
-        <div style={{ height: "15px" }} />
-        <PayAsYouGoMinBalance account_id={this.props.account_id} />
-        <div style={{ height: "15px" }} />
-        <PurchasesButton account_id={this.props.account_id} />
-      </div>
+      <Card title="Purchases">
+        <div style={{ margin: "15px 0" }}>
+          <Money account_id={this.props.account_id} />
+          <div style={{ height: "15px" }} />
+          <PayAsYouGoMinBalance account_id={this.props.account_id} />
+          <div style={{ height: "15px" }} />
+          <PurchasesButton account_id={this.props.account_id} />
+        </div>
+      </Card>
     );
   }
 
@@ -132,7 +134,11 @@ export class UserResult extends Component<Props, State> {
     if (!this.state.password) {
       return;
     }
-    return <PasswordReset email_address={this.props.email_address} />;
+    return (
+      <Card title="Password">
+        <PasswordReset email_address={this.props.email_address} />
+      </Card>
+    );
   }
 
   render_ban(): Rendered {
@@ -140,11 +146,20 @@ export class UserResult extends Component<Props, State> {
       return;
     }
     return (
-      <Ban
-        account_id={this.props.account_id}
-        banned={this.props.banned}
-        name={`${this.props.first_name} ${this.props.last_name} ${this.props.email_address}`}
-      />
+      <Card
+        title={
+          <>
+            Ban {this.props.first_name} {this.props.last_name}{" "}
+            {this.props.email_address}
+          </>
+        }
+      >
+        <Ban
+          account_id={this.props.account_id}
+          banned={this.props.banned}
+          name={`${this.props.first_name} ${this.props.last_name} ${this.props.email_address}`}
+        />
+      </Card>
     );
   }
 
@@ -159,32 +174,24 @@ export class UserResult extends Component<Props, State> {
   render_more_link(name: More): Rendered {
     // sorry about the any below; I could NOT get typescript to work.
     return (
-      <a
-        style={{ cursor: "pointer" }}
-        onClick={() => (this as any).setState({ [name]: !this.state[name] })}
+      <Tag.CheckableTag
+        checked={this.state[name]}
+        onChange={() => (this as any).setState({ [name]: !this.state[name] })}
       >
-        {this.render_caret(this.state[name])} {capitalize(name)}
-      </a>
+        {capitalize(name)}
+      </Tag.CheckableTag>
     );
   }
 
   render_more_links(): Rendered {
     return (
-      <div>
+      <Space style={{ marginTop: "5px" }}>
         {this.render_more_link("projects")}
-        <Gap />
-        <Gap />
         {this.render_more_link("purchases")}
-        <Gap />
-        <Gap />
         {this.render_more_link("impersonate")}
-        <Gap />
-        <Gap />
         {this.render_more_link("password")}
-        <Gap />
-        <Gap />
         {this.render_more_link("ban")}
-      </div>
+      </Space>
     );
   }
 
@@ -204,83 +211,49 @@ export class UserResult extends Component<Props, State> {
     );
   }
 
-  render_row(): Rendered {
+  render(): Rendered {
     return (
-      <div>
-        <Row style={{ borderTop: "1px solid #ccc" }}>
-          <Col md={1} style={{ overflow: "auto" }}>
-            {this.props.first_name}
-          </Col>
-          <Col md={1} style={{ overflow: "auto" }}>
-            {this.props.last_name}
-          </Col>
-          <Col md={2} style={{ overflow: "auto" }}>
-            {this.props.email_address}
-          </Col>
-          <Col md={2}>
-            {this.render_last_active()} ({this.render_created()})
-          </Col>
-          <Col md={4}>{this.render_more_links()}</Col>
-          <Col md={2} style={{ overflow: "auto" }}>
-            <div
-              style={{
-                paddingTop: "8px",
-                overflowX: "scroll",
-              }}
-            >
-              <CopyToClipBoard
-                before
-                value={this.props.account_id}
-                size="small"
-              />
-              {this.render_banned()}
+      <Card
+        style={{ margin: "15px 0", background: "#fafafa" }}
+        styles={{
+          body: { padding: "0 24px" },
+          title: { padding: "0" },
+        }}
+        title={
+          <div>
+            <div style={{ float: "right", color: "#666" }}>
+              Active {this.render_last_active()} (Created{" "}
+              {this.render_created()})
             </div>
-          </Col>
-        </Row>
+            <Space style={{ color: "#666" }}>
+              {this.props.first_name} {this.props.last_name}{" "}
+              {this.props.email_address ? (
+                <CopyToClipBoard
+                  value={this.props.email_address}
+                  inputStyle={{ color: "#666" }}
+                />
+              ) : (
+                "NO Email"
+              )}
+            </Space>
+          </div>
+        }
+      >
+        <div style={{ float: "right" }}>
+          <CopyToClipBoard
+            inputStyle={{ color: "#666" }}
+            before
+            value={this.props.account_id}
+          />
+          {this.render_banned()}
+        </div>
+        {this.render_more_links()}
         {this.render_impersonate()}
         {this.render_password()}
         {this.render_ban()}
         {this.render_projects()}
         {this.render_purchases()}
-      </div>
+      </Card>
     );
-  }
-
-  render_row_header(): Rendered {
-    return (
-      <div style={{ color: "#666" }}>
-        <Row>
-          <Col md={1} style={{ overflow: "auto" }}>
-            <b>{this.props.first_name}</b>
-          </Col>
-          <Col md={1} style={{ overflow: "auto" }}>
-            <b>{this.props.last_name}</b>
-          </Col>
-          <Col md={2} style={{ overflow: "auto" }}>
-            <b>{this.props.email_address}</b>
-          </Col>
-          <Col md={2}>
-            <b>
-              {this.props.last_active} ({this.props.created}){" "}
-              <Icon name="caret-down" />{" "}
-            </b>
-          </Col>
-          <Col md={4}>
-            <b>More...</b>
-          </Col>
-          <Col md={2}>
-            <b>{this.props.account_id}</b>
-          </Col>
-        </Row>
-      </div>
-    );
-  }
-
-  render(): Rendered {
-    if (this.props.header) {
-      return this.render_row_header();
-    } else {
-      return this.render_row();
-    }
   }
 }

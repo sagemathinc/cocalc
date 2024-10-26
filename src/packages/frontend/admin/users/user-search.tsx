@@ -85,21 +85,6 @@ class UserSearch extends Component<ReduxProps> {
     );
   }
 
-  render_user_header(): Rendered {
-    return (
-      <UserResult
-        key={"header"}
-        header={true}
-        first_name="First"
-        last_name="Last"
-        email_address="Email"
-        created="Created"
-        last_active="Active"
-        account_id="Account ID"
-      />
-    );
-  }
-
   render_user(user: User): Rendered {
     return <UserResult key={user.account_id} {...user} />;
   }
@@ -108,7 +93,7 @@ class UserSearch extends Component<ReduxProps> {
     if (!this.props.result || this.props.result.size == 0) {
       return null;
     }
-    const v: Rendered[] = [this.render_user_header()];
+    const v: Rendered[] = [];
     this.props.result.forEach((user) => {
       v.push(this.render_user(user.toJS()));
     });

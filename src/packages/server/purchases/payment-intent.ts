@@ -1,7 +1,10 @@
 import getConn from "@cocalc/server/stripe/connection";
 import getLogger from "@cocalc/backend/logger";
 import { getStripeCustomerId, sanityCheckAmount } from "./stripe-util";
-import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
+import type {
+  PaymentIntentSecret,
+  PaymentIntentCancelReason,
+} from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/server/api/throttle";
 import createCredit from "./create-credit";
 import getPool from "@cocalc/database/pool";
@@ -23,6 +26,7 @@ export async function createPaymentIntent({
   description,
   confirm,
   return_url,
+  metadata,
 }: {
   // user created the payment intent -- assumed already authenticated/valid
   account_id: string;
@@ -33,6 +37,9 @@ export async function createPaymentIntent({
   description?: string;
   confirm?: boolean;
   return_url?: string;
+  // optional extra metadata: do NOT use 'purpose', 'account_id', 'confirm' or 'processed'.
+  // as a key.
+  metadata?: { [key: string]: string };
 }): Promise<PaymentIntentSecret> {
   logger.debug("createPaymentIntent", {
     account_id,
@@ -43,6 +50,16 @@ export async function createPaymentIntent({
   });
   if (!purpose) {
     throw Error("purpose must be set");
+  }
+  if (
+    metadata?.purpose != null ||
+    metadata?.account_id != null ||
+    metadata?.confirm != null ||
+    metadata?.processed != null
+  ) {
+    throw Error(
+      "metadata must not include 'purpose', 'account_id', 'confirm' or 'processed' as a key",
+    );
   }
 
   // packages/frontend/purchases/stripe-payment.tsx assumes that this interval below
@@ -75,7 +92,8 @@ export async function createPaymentIntent({
       });
 
   let paymentIntent;
-  const metadata = {
+  metadata = {
+    ...metadata,
     purpose,
     account_id,
     ...(confirm ? { confirm: "true" } : undefined),
@@ -398,7 +416,7 @@ export async function getAccountIdFromStripeCustomerId(
 // These are all purchases for a specific user that *should* get
 // paid ASAP, but haven't for some reason (e.g., no card, broken card,
 // bank tranfser, etc.).
-export async function getAllOpenConfirmPaymentIntents(account_id: string) {
+export async function getAllOpenPaymentIntents(account_id: string) {
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) {
     return [];
@@ -424,4 +442,16 @@ export async function getAllOpenConfirmPaymentIntents(account_id: string) {
     }
     return false;
   });
+}
+
+// This is meant to be used only by admins
+export async function cancelPaymentIntent({
+  id,
+  reason,
+}: {
+  id: string;
+  reason: PaymentIntentCancelReason;
+}) {
+  const stripe = await getConn();
+  await stripe.paymentIntents.cancel(id, { cancellation_reason: reason });
 }

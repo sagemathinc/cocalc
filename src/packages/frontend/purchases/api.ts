@@ -16,7 +16,10 @@ import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
-import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
+import type {
+  PaymentIntentSecret,
+  PaymentIntentCancelReason,
+} from "@cocalc/util/stripe/types";
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -209,6 +212,8 @@ export async function createPaymentIntent(opts: {
   amount: number;
   description?: string;
   purpose: string;
+  // admins can optionally set a different user account id to charge them
+  user_account_id?: string;
 }): Promise<PaymentIntentSecret> {
   return await api("purchases/create-payment-intent", opts);
 }
@@ -443,7 +448,21 @@ export async function getStripePublishableKey(): Promise<string> {
   return stripe_publishable_key as string;
 }
 
-export async function getOpenPaymentIntents() {
-  const { data } = await api("purchases/get-open-payment-intents");
+export async function getOpenPaymentIntents(
+  opts: {
+    // only admins can use this -- if given, gets the open payments for that user.
+    user_account_id?: string;
+  } = {},
+) {
+  const { data } = await api("purchases/get-open-payment-intents", opts);
   return data;
 }
+
+// only admins can do this
+export async function cancelPaymentIntent(opts: {
+  id: string;
+  reason: PaymentIntentCancelReason;
+}) {
+  await api("purchases/cancel-payment-intent", opts);
+}
+

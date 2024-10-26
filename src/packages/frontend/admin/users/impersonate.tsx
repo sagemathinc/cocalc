@@ -3,9 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "antd";
+import { Card } from "antd";
 import { join } from "path";
-
 import { Rendered, useEffect, useState } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -25,9 +24,8 @@ export function Impersonate(props: Readonly<Props>) {
 
   async function get_token(): Promise<void> {
     try {
-      const auth_token = await webapp_client.admin_client.get_user_auth_token(
-        account_id,
-      );
+      const auth_token =
+        await webapp_client.admin_client.get_user_auth_token(account_id);
       set_auth_token(auth_token);
       set_err(null);
     } catch (err) {
@@ -45,7 +43,10 @@ export function Impersonate(props: Readonly<Props>) {
       return <Loading />;
     }
     // lang_temp: https://github.com/sagemathinc/cocalc/issues/7782
-    const link = join(appBasePath, `auth/impersonate?auth_token=${auth_token}&lang_temp=en`);
+    const link = join(
+      appBasePath,
+      `auth/impersonate?auth_token=${auth_token}&lang_temp=en`,
+    );
     return (
       <div>
         <a href={link} target="_blank" rel="noopener noreferrer">
@@ -74,20 +75,15 @@ export function Impersonate(props: Readonly<Props>) {
   }
 
   return (
-    <Alert
-      type="warning"
-      style={{ margin: "15px" }}
-      message={
-        <b>
-          Impersonate user "{first_name} {last_name}"
-        </b>
-      }
-      description={
+    <Card
+      title={
         <>
-          {render_err()}
-          {render_link()}
+          Impersonate user "{first_name} {last_name}"
         </>
       }
-    />
+    >
+      {render_err()}
+      {render_link()}
+    </Card>
   );
 }
