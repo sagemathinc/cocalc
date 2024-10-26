@@ -14,6 +14,7 @@ import { delay } from "awaiting";
 import { currency } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
 const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
@@ -119,6 +120,45 @@ export default function StripePayment({
   );
 }
 
+export function FinishStripePayment({
+  paymentIntent,
+  style,
+  onFinished,
+}: {
+  paymentIntent;
+  style?;
+  onFinished?;
+}) {
+  const [error, setError] = useState<string>("");
+
+  if (error) {
+    return <ShowError style={style} error={error} setError={setError} />;
+  }
+
+  return (
+    <Elements
+      options={{
+        clientSecret: paymentIntent.client_secret,
+        appearance: {
+          theme: "stripe",
+        },
+        loader: "never",
+      }}
+      stripe={loadStripe()}
+    >
+      <PaymentForm
+        style={style}
+        onFinished={onFinished}
+        amount={paymentIntent.amount / 100}
+        disabled={
+          paymentIntent.status == "succeeded" ||
+          paymentIntent.status == "canceled"
+        }
+      />
+    </Elements>
+  );
+}
+
 function PaymentForm({ style, amount, onFinished, disabled }) {
   const [message, setMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -143,8 +183,9 @@ function PaymentForm({ style, amount, onFinished, disabled }) {
         elements,
         redirect: "if_required",
         confirmParams: {
-          // TODO: this URL needs to trigger processing payment intents...
-          return_url: location.href,
+          // because we use strict auth cookies, this can't be a page that requires
+          // sign in.  
+          return_url: `${window.location.origin}${appBasePath}`,
         },
       });
 
@@ -249,5 +290,3 @@ export function BigSpin({ style }: { style? }) {
     </div>
   );
 }
-
-

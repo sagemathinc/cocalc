@@ -19,6 +19,7 @@ interface Props {
 export default function Payment({ balance, update, cost }: Props) {
   const [paymentAmount, setPaymentAmount] = useState<number | null>(null);
   const [finished, setFinished] = useState<boolean>(false);
+  const [initialized, setInitialized] = useState<boolean>(false);
 
   useEffect(() => {
     (async () => {
@@ -31,10 +32,11 @@ export default function Payment({ balance, update, cost }: Props) {
               balance != null && balance < 0 ? -balance : 0,
             ),
       );
+      setInitialized(true);
     })();
   }, [balance, cost]);
 
-  if (paymentAmount == null) {
+  if (!initialized) {
     return <Spin />;
   }
 
@@ -60,7 +62,7 @@ export default function Payment({ balance, update, cost }: Props) {
             <Divider />
             <StripePayment
               amount={paymentAmount}
-              description="Add money to your account."
+              description={`Manually add ${currency(paymentAmount)} to your account from within the CoCalc app.`}
               purpose={"add-credit"}
               onFinished={() => {
                 update?.();

@@ -59,27 +59,34 @@ export async function createPaymentIntent({
   }
   logger.debug("createPaymentIntent", { customer });
 
-  const customerSession = await stripe.customerSessions.create({
-    customer,
-    components: {
-      payment_element: {
-        enabled: true,
-        features: {
-          payment_method_redisplay: "enabled",
-          payment_method_remove: "enabled",
+  const customerSession = confirm
+    ? undefined
+    : await stripe.customerSessions.create({
+        customer,
+        components: {
+          payment_element: {
+            enabled: true,
+            features: {
+              payment_method_redisplay: "enabled",
+              payment_method_remove: "enabled",
+            },
+          },
         },
-      },
-    },
-  });
+      });
 
   let paymentIntent;
+  const metadata = {
+    purpose,
+    account_id,
+    ...(confirm ? { confirm: "true" } : undefined),
+  };
   const intent = await getOpenPaymentIntent({ customer, purpose, confirm });
   if (intent != null) {
     paymentIntent = intent;
     await stripe.paymentIntents.update(paymentIntent.id, {
       amount: amountStripe,
       description,
-      metadata: { purpose, account_id, confirm: `${confirm}` },
+      metadata,
     });
   } else {
     let success = false;
@@ -101,8 +108,9 @@ export async function createPaymentIntent({
             paymentIntent = await stripe.paymentIntents.create({
               customer,
               amount: amountStripe,
+              description,
               currency: "usd",
-              metadata: { purpose, account_id, confirm: `${confirm}` },
+              metadata,
               setup_future_usage: "off_session",
               confirm,
               return_url,
@@ -132,8 +140,9 @@ export async function createPaymentIntent({
       paymentIntent = await stripe.paymentIntents.create({
         customer,
         amount: amountStripe,
+        description,
         currency: "usd",
-        metadata: { purpose, account_id, confirm: `${confirm}` },
+        metadata,
         setup_future_usage: "off_session",
       });
     }
@@ -141,7 +150,7 @@ export async function createPaymentIntent({
 
   return {
     clientSecret: paymentIntent.client_secret!,
-    customerSessionClientSecret: customerSession.client_secret,
+    customerSessionClientSecret: customerSession?.client_secret,
   };
 }
 
@@ -397,18 +406,22 @@ export async function getAllOpenConfirmPaymentIntents(account_id: string) {
 
   // note that the query index is only updated *after a few seconds* so NOT reliable.
   // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
-  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND metadata["confirm"]:"true" AND -status:"succeeded" AND -status:"canceled"`;
+  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" AND -status:"canceled"`;
   const stripe = await getConn();
   const x = await stripe.paymentIntents.search({
     query,
     limit: 100, // should usually be very small, e.g., 0, 1 or 2.
   });
   // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"
-  return x.data.filter(
-    (intent) =>
-      intent.status != "succeeded" &&
-      intent.status != "canceled" &&
-      intent.metadata.purpose &&
-      intent.metadata.confirm,
-  );
+  return x.data.filter((intent) => {
+    if (!intent.metadata.purpose) {
+      return false;
+    }
+    if (intent.metadata.confirm) {
+      return intent.status != "succeeded" && intent.status != "canceled";
+    } else {
+      return intent.status != "requires_payment_method";
+    }
+    return false;
+  });
 }

@@ -7,7 +7,7 @@ import { Alert, Card, Divider, Space } from "antd";
 import MinBalance from "./min-balance";
 import Balance from "./balance";
 import SpendRate from "./spend-rate";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getBalance as getBalanceUsingApi,
   getPendingBalance as getPendingBalanceUsingApi,
@@ -17,6 +17,9 @@ import {
 import Config from "./config";
 import Refresh from "./refresh";
 import { currency, round2down } from "@cocalc/util/misc";
+import IncompletePayments from "./incomplete-payments";
+
+const MAX_WIDTH = "900px";
 
 export default function AccountStatus({
   compact,
@@ -47,6 +50,8 @@ export default function AccountStatus({
     setMinBalance(await getMinBalanceUsingApi());
   };
 
+  const refreshPaymentsRef = useRef<any>(null);
+
   const handleRefresh = async () => {
     try {
       onRefresh?.();
@@ -56,6 +61,7 @@ export default function AccountStatus({
       setMinBalance(null);
       setSpendRate(null);
       setError("");
+      refreshPaymentsRef.current?.();
       await Promise.all([
         getSpendRate(),
         getBalance(),
@@ -91,7 +97,7 @@ export default function AccountStatus({
         />
       )}
       <div style={{ textAlign: "center" }}>
-        <div style={{ maxWidth: "800px", margin: "15px auto" }}>
+        <div style={{ maxWidth: MAX_WIDTH, margin: "15px auto" }}>
           <Balance
             balance={balance}
             pendingBalance={pendingBalance}
@@ -100,9 +106,18 @@ export default function AccountStatus({
           />
         </div>
       </div>
+      <Divider orientation="left">Incomplete Payments</Divider>
+      <div style={{ textAlign: "center" }}>
+        <div style={{ maxWidth: MAX_WIDTH, margin: "15px auto" }}>
+          <IncompletePayments
+            refresh={handleRefresh}
+            refreshPaymentsRef={refreshPaymentsRef}
+          />
+        </div>
+      </div>
       <Divider orientation="left">Automatic Purchases</Divider>
       <div>
-        <div style={{ margin: "auto", maxWidth: "800px" }}>
+        <div style={{ margin: "auto", maxWidth: MAX_WIDTH }}>
           <Space style={{ alignItems: "flex-start" }}>
             <Card>
               <div style={{ color: "#888", marginBottom: "10px" }}>

@@ -15,7 +15,7 @@ const DEFAULT_AMOUNT = 10;
 interface Props {
   balance?: number; // current account balance
   minAmount?: number; // minimal amount that user must add
-  paymentAmount: number;
+  paymentAmount?: number | null;
   totalCost?: number; // optional exact amount of the entire purchase -- just results in another preset tag
   setPaymentAmount: (paymentAmount: number) => void;
 }
@@ -32,7 +32,7 @@ export default function PaymentConfig({
     (async () => {
       const minPayment = await api.getMinimumPayment();
       setMinPayment(minPayment);
-      if (paymentAmount < minPayment) {
+      if (paymentAmount != null && paymentAmount < minPayment) {
         setPaymentAmount(minPayment);
       }
     })();

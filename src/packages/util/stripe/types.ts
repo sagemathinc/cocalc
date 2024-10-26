@@ -5,5 +5,5 @@ export interface LineItem {
 
 export interface PaymentIntentSecret {
   clientSecret: string;
-  customerSessionClientSecret: string;
+  customerSessionClientSecret?: string;
 }

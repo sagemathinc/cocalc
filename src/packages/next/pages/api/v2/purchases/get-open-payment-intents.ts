@@ -19,7 +19,7 @@ async function get(req) {
   throttle({
     account_id,
     endpoint: "get-open-payment-intents",
-    interval: 10000,
+    interval: 2000,
   });
   const data = await getAllOpenConfirmPaymentIntents(account_id);
   return { success: true, data };
