@@ -73,7 +73,7 @@ export async function createPaymentIntent({
   });
 
   let paymentIntent;
-  const intent = await getOpenPaymentIntent({ customer, purpose });
+  const intent = await getOpenPaymentIntent({ customer, purpose, confirm });
   if (intent != null) {
     paymentIntent = intent;
     await stripe.paymentIntents.update(paymentIntent.id, {
@@ -172,22 +172,43 @@ export async function hasPaymentMethod(account_id: string) {
   return (await getPaymentMethods({ customer })).length > 0;
 }
 
-export async function getOpenPaymentIntent({ customer, purpose }) {
+function isOpenPaymentIntent(intent) {
+  if (
+    intent.metadata.confirm &&
+    intent.status != "succeeded" &&
+    intent.status != "canceled"
+  ) {
+    // for automatic confirm payments, anything not succeeded or canceled should
+    // be the one returned for a given purpose.  There is only supposed to be at most one
+    // unfinished with a given purpose *ever* at once for automatic payments.
+    return true;
+  }
+  if (!intent.metadata.confirm && intent.status == "requires_payment_method") {
+    // for one off payments need something with the purpose that hasn't started being paid.
+    return true;
+  }
+  return false;
+}
+
+export async function getOpenPaymentIntent({ customer, purpose, confirm }) {
   const stripe = await getConn();
   // we just want the most recent one that requires_payment_method, if any.
   const recentPaymentIntents = await stripe.paymentIntents.list({ customer });
   for (const intent of recentPaymentIntents.data) {
-    if (
-      intent.status == "requires_payment_method" &&
-      intent.metadata.purpose == purpose
-    ) {
+    if (intent.metadata.purpose != purpose) {
+      continue;
+    }
+    if (isOpenPaymentIntent(intent)) {
       return intent;
     }
   }
 
   // note that the query index is only updated *after a few seconds* so NOT reliable.
   // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
-  const query = `customer:"${customer}" AND metadata["purpose"]:"${purpose}" AND status:"requires_payment_method"`;
+  let query = `customer:"${customer}" AND metadata["purpose"]:"${purpose}" AND status:"requires_payment_method"`;
+  if (confirm) {
+    query += ' AND metadata["confirm"]:"true"';
+  }
   const x = await stripe.paymentIntents.search({
     query,
     limit: 10,
@@ -196,10 +217,7 @@ export async function getOpenPaymentIntent({ customer, purpose }) {
   // (or maybe longer) after a payment completes, so we check each returned one
   // until finding one that really can be used.
   for (const intent of x.data) {
-    if (
-      intent.status == "requires_payment_method" &&
-      intent.metadata.purpose == purpose
-    ) {
+    if (isOpenPaymentIntent(intent)) {
       return intent;
     }
   }
@@ -366,4 +384,31 @@ export async function getAccountIdFromStripeCustomerId(
   }
   // at least try the first result if there is more than 1, or return undefined.
   return rows[0]?.account_id;
+}
+
+// These are all purchases for a specific user that *should* get
+// paid ASAP, but haven't for some reason (e.g., no card, broken card,
+// bank tranfser, etc.).
+export async function getAllOpenConfirmPaymentIntents(account_id: string) {
+  const customer = await getStripeCustomerId({ account_id, create: false });
+  if (!customer) {
+    return [];
+  }
+
+  // note that the query index is only updated *after a few seconds* so NOT reliable.
+  // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
+  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND metadata["confirm"]:"true" AND -status:"succeeded" AND -status:"canceled"`;
+  const stripe = await getConn();
+  const x = await stripe.paymentIntents.search({
+    query,
+    limit: 100, // should usually be very small, e.g., 0, 1 or 2.
+  });
+  // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"
+  return x.data.filter(
+    (intent) =>
+      intent.status != "succeeded" &&
+      intent.status != "canceled" &&
+      intent.metadata.purpose &&
+      intent.metadata.confirm,
+  );
 }

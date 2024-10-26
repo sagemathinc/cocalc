@@ -442,3 +442,8 @@ export async function getStripePublishableKey(): Promise<string> {
   );
   return stripe_publishable_key as string;
 }
+
+export async function getOpenPaymentIntents() {
+  const { data } = await api("purchases/get-open-payment-intents");
+  return data;
+}
