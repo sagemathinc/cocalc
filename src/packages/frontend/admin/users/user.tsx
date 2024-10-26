@@ -7,11 +7,11 @@
 Display of basic information about a user, with link to get more information about that user.
 */
 
-import { Icon, TimeAgo } from "@cocalc/frontend/components";
-import { Component, Rendered } from "@cocalc/frontend/app-framework";
+import { useState } from "react";
+import { TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 import { Card, Space, Tag } from "antd";
-import { User } from "@cocalc/frontend/frame-editors/generic/client";
+import type { User } from "@cocalc/frontend/frame-editors/generic/client";
 import { Projects } from "./projects";
 import { Impersonate } from "./impersonate";
 import { PasswordReset } from "./password-reset";
@@ -30,23 +30,6 @@ interface State {
   ban: boolean;
 }
 
-interface HeaderProps {
-  header: true;
-  first_name: string;
-  last_name: string;
-  email_address: string;
-  created: string;
-  last_active: string;
-  account_id: string;
-  banned?: undefined;
-}
-
-interface UserProps extends User {
-  header?: false;
-}
-
-type Props = HeaderProps | UserProps;
-
 type More =
   | "projects"
   | "purchases"
@@ -55,205 +38,149 @@ type More =
   | "password"
   | "ban";
 
-const MORE: More[] = [
-  "projects",
-  "purchases",
-  "activity",
-  "impersonate",
-  "password",
-  "ban",
-];
+export function UserResult({
+  first_name,
+  last_name,
+  email_address,
+  created,
+  last_active,
+  account_id,
+  banned,
+}: User) {
+  const [state, setState] = useState<State>({
+    projects: false,
+    purchases: false,
+    activity: false,
+    impersonate: false,
+    password: false,
+    ban: false,
+  });
 
-export class UserResult extends Component<Props, State> {
-  constructor(props, state) {
-    super(props, state);
-    const x: any = {};
-    for (const name of MORE) {
-      x[name] = false;
-    }
-    this.state = x as State;
-  }
-
-  render_created(): Rendered {
-    if (!this.props.created) {
+  const renderCreated = () => {
+    if (!created) {
       return <span>ancient times</span>;
     }
-    return <TimeAgo date={this.props.created} />;
-  }
+    return <TimeAgo date={created} />;
+  };
 
-  render_last_active(): Rendered {
-    if (!this.props.last_active) {
+  const renderLastActive = () => {
+    if (!last_active) {
       return <span>never</span>;
     }
-    return <TimeAgo date={this.props.last_active} />;
-  }
+    return <TimeAgo date={last_active} />;
+  };
 
-  render_purchases(): Rendered {
-    if (!this.state.purchases) {
-      return;
-    }
-    return (
-      <Card title="Purchases">
-        <div style={{ margin: "15px 0" }}>
-          <Money account_id={this.props.account_id} />
-          <div style={{ height: "15px" }} />
-          <PayAsYouGoMinBalance account_id={this.props.account_id} />
-          <div style={{ height: "15px" }} />
-          <PurchasesButton account_id={this.props.account_id} />
-        </div>
-      </Card>
-    );
-  }
-
-  render_projects(): Rendered {
-    if (!this.state.projects) {
-      return;
-    }
-    return (
-      <Projects
-        account_id={this.props.account_id}
-        title={`Recently active projects that ${this.props.first_name} ${this.props.last_name} collaborates on`}
-      />
-    );
-  }
-
-  render_impersonate(): Rendered {
-    if (!this.state.impersonate) {
-      return;
-    }
-    return (
-      <Impersonate
-        account_id={this.props.account_id}
-        first_name={this.props.first_name ?? ""}
-        last_name={this.props.last_name ?? ""}
-      />
-    );
-  }
-
-  render_password(): Rendered {
-    if (!this.state.password) {
-      return;
-    }
-    return (
-      <Card title="Password">
-        <PasswordReset email_address={this.props.email_address} />
-      </Card>
-    );
-  }
-
-  render_ban(): Rendered {
-    if (!this.state.ban) {
-      return;
-    }
-    return (
-      <Card
-        title={
-          <>
-            Ban {this.props.first_name} {this.props.last_name}{" "}
-            {this.props.email_address}
-          </>
-        }
-      >
-        <Ban
-          account_id={this.props.account_id}
-          banned={this.props.banned}
-          name={`${this.props.first_name} ${this.props.last_name} ${this.props.email_address}`}
-        />
-      </Card>
-    );
-  }
-
-  render_caret(show: boolean): Rendered {
-    if (show) {
-      return <Icon name="caret-down" />;
-    } else {
-      return <Icon name="caret-right" />;
-    }
-  }
-
-  render_more_link(name: More): Rendered {
-    // sorry about the any below; I could NOT get typescript to work.
+  const renderMoreLink = (name: More) => {
     return (
       <Tag.CheckableTag
-        checked={this.state[name]}
-        onChange={() => (this as any).setState({ [name]: !this.state[name] })}
+        style={{ fontSize: "11pt" }}
+        checked={state[name]}
+        onChange={() => setState({ ...state, [name]: !state[name] })}
       >
         {capitalize(name)}
       </Tag.CheckableTag>
     );
-  }
+  };
 
-  render_more_links(): Rendered {
-    return (
-      <Space style={{ marginTop: "5px" }}>
-        {this.render_more_link("projects")}
-        {this.render_more_link("purchases")}
-        {this.render_more_link("impersonate")}
-        {this.render_more_link("password")}
-        {this.render_more_link("ban")}
-      </Space>
-    );
-  }
-
-  render_banned(): Rendered {
-    if (!this.props.banned) return;
-    return (
-      <div
-        style={{
-          fontSize: "10pt",
-          color: "white",
-          paddingLeft: "5px",
-          background: "red",
-        }}
-      >
-        BANNED
-      </div>
-    );
-  }
-
-  render(): Rendered {
-    return (
-      <Card
-        style={{ margin: "15px 0", background: "#fafafa" }}
-        styles={{
-          body: { padding: "0 24px" },
-          title: { padding: "0" },
-        }}
-        title={
-          <div>
-            <div style={{ float: "right", color: "#666" }}>
-              Active {this.render_last_active()} (Created{" "}
-              {this.render_created()})
-            </div>
-            <Space style={{ color: "#666" }}>
-              {this.props.first_name} {this.props.last_name}{" "}
-              {this.props.email_address ? (
-                <CopyToClipBoard
-                  value={this.props.email_address}
-                  inputStyle={{ color: "#666" }}
-                />
-              ) : (
-                "NO Email"
-              )}
-            </Space>
+  return (
+    <Card
+      style={{ margin: "15px 0", background: "#fafafa" }}
+      styles={{
+        body: { padding: "0 24px" },
+        title: { padding: "0" },
+      }}
+      title={
+        <div>
+          <div style={{ float: "right", color: "#666" }}>
+            Active {renderLastActive()} (Created {renderCreated()})
           </div>
-        }
-      >
-        <div style={{ float: "right" }}>
-          <CopyToClipBoard
-            inputStyle={{ color: "#666" }}
-            before
-            value={this.props.account_id}
-          />
-          {this.render_banned()}
+          <Space style={{ color: "#666" }}>
+            {first_name} {last_name}{" "}
+            {email_address ? (
+              <CopyToClipBoard
+                style={{ color: "#666" }}
+                value={email_address}
+              />
+            ) : (
+              "NO Email"
+            )}
+          </Space>
         </div>
-        {this.render_more_links()}
-        {this.render_impersonate()}
-        {this.render_password()}
-        {this.render_ban()}
-        {this.render_projects()}
-        {this.render_purchases()}
-      </Card>
-    );
-  }
+      }
+    >
+      <div style={{ float: "right" }}>
+        <CopyToClipBoard
+          copyTip={"Copied account_id!"}
+          style={{ color: "#666" }}
+          before
+          value={account_id}
+        />
+        {banned && (
+          <div
+            style={{
+              fontSize: "10pt",
+              color: "white",
+              paddingLeft: "5px",
+              background: "red",
+            }}
+          >
+            BANNED
+          </div>
+        )}
+      </div>
+      <Space style={{ marginTop: "5px" }}>
+        {renderMoreLink("projects")}
+        {renderMoreLink("purchases")}
+        {renderMoreLink("impersonate")}
+        {renderMoreLink("password")}
+        {renderMoreLink("ban")}
+      </Space>
+      {state.impersonate && (
+        <Impersonate
+          account_id={account_id}
+          first_name={first_name ?? ""}
+          last_name={last_name ?? ""}
+        />
+      )}
+      {state.password && (
+        <Card title="Password">
+          <PasswordReset email_address={email_address} />
+        </Card>
+      )}
+      {state.ban && (
+        <Card
+          title={
+            <>
+              Ban {first_name} {last_name} {email_address}
+            </>
+          }
+        >
+          <Ban
+            account_id={account_id}
+            banned={banned}
+            name={`${first_name} ${last_name} ${email_address}`}
+          />
+        </Card>
+      )}
+      {state.projects && (
+        <Projects
+          account_id={account_id}
+          title={`Recently active projects that ${first_name} ${last_name} collaborates on`}
+        />
+      )}
+      {state.purchases && (
+        <Card title="Purchases">
+          <div style={{ margin: "15px 0" }}>
+            <Money account_id={account_id} />
+            <div style={{ height: "15px" }} />
+            <PayAsYouGoMinBalance account_id={account_id} />
+            <div style={{ height: "15px" }} />
+            <PurchasesButton account_id={account_id} />
+          </div>
+        </Card>
+      )}
+    </Card>
+  );
 }
+
+export default UserResult;

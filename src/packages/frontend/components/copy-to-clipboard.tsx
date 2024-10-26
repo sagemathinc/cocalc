@@ -21,6 +21,7 @@ interface Props {
   inputWidth?: string;
   size?: "large" | "middle" | "small";
   before?: boolean;
+  copyTip?: string;
 }
 
 const INPUT_STYLE: CSS = { display: "inline-block", flex: 1 } as const;
@@ -44,6 +45,7 @@ export default function CopyToClipBoard({
   inputStyle,
   outerStyle,
   inputWidth,
+  copyTip,
   before,
 }: Props) {
   const [copied, setCopied] = useState<boolean>(false);
@@ -60,7 +62,7 @@ export default function CopyToClipBoard({
     );
     if (!copied) return btn;
     return (
-      <Tooltip title="Copied!" defaultOpen>
+      <Tooltip title={copyTip ?? "Copied!"} defaultOpen>
         {btn}
       </Tooltip>
     );
