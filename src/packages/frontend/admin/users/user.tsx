@@ -47,6 +47,7 @@ export function UserResult({
   account_id,
   banned,
 }: User) {
+  const [details, setDetails] = useState<boolean>(false);
   const [state, setState] = useState<State>({
     projects: false,
     purchases: false,
@@ -90,7 +91,7 @@ export function UserResult({
         title: { padding: "0" },
       }}
       title={
-        <div>
+        <div style={{ cursor: "pointer" }} onClick={() => setDetails(true)}>
           <div style={{ float: "right", color: "#666" }}>
             Active {renderLastActive()} (Created {renderCreated()})
           </div>
@@ -108,76 +109,80 @@ export function UserResult({
         </div>
       }
     >
-      <div style={{ float: "right" }}>
-        <CopyToClipBoard
-          copyTip={"Copied account_id!"}
-          style={{ color: "#666" }}
-          before
-          value={account_id}
-        />
-        {banned && (
-          <div
-            style={{
-              fontSize: "10pt",
-              color: "white",
-              paddingLeft: "5px",
-              background: "red",
-            }}
-          >
-            BANNED
+      {details && (
+        <div>
+          <div style={{ float: "right" }}>
+            <CopyToClipBoard
+              copyTip={"Copied account_id!"}
+              style={{ color: "#666" }}
+              before
+              value={account_id}
+            />
+            {banned && (
+              <div
+                style={{
+                  fontSize: "10pt",
+                  color: "white",
+                  paddingLeft: "5px",
+                  background: "red",
+                }}
+              >
+                BANNED
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <Space style={{ marginTop: "5px" }}>
-        {renderMoreLink("projects")}
-        {renderMoreLink("purchases")}
-        {renderMoreLink("impersonate")}
-        {renderMoreLink("password")}
-        {renderMoreLink("ban")}
-      </Space>
-      {state.impersonate && (
-        <Impersonate
-          account_id={account_id}
-          first_name={first_name ?? ""}
-          last_name={last_name ?? ""}
-        />
-      )}
-      {state.password && (
-        <Card title="Password">
-          <PasswordReset email_address={email_address} />
-        </Card>
-      )}
-      {state.ban && (
-        <Card
-          title={
-            <>
-              Ban {first_name} {last_name} {email_address}
-            </>
-          }
-        >
-          <Ban
-            account_id={account_id}
-            banned={banned}
-            name={`${first_name} ${last_name} ${email_address}`}
-          />
-        </Card>
-      )}
-      {state.projects && (
-        <Projects
-          account_id={account_id}
-          title={`Recently active projects that ${first_name} ${last_name} collaborates on`}
-        />
-      )}
-      {state.purchases && (
-        <Card title="Purchases">
-          <div style={{ margin: "15px 0" }}>
-            <Money account_id={account_id} />
-            <div style={{ height: "15px" }} />
-            <PayAsYouGoMinBalance account_id={account_id} />
-            <div style={{ height: "15px" }} />
-            <PurchasesButton account_id={account_id} />
-          </div>
-        </Card>
+          <Space style={{ marginTop: "5px" }}>
+            {renderMoreLink("impersonate")}
+            {renderMoreLink("password")}
+            {renderMoreLink("ban")}
+            {renderMoreLink("projects")}
+            {renderMoreLink("purchases")}
+          </Space>
+          {state.impersonate && (
+            <Impersonate
+              account_id={account_id}
+              first_name={first_name ?? ""}
+              last_name={last_name ?? ""}
+            />
+          )}
+          {state.password && (
+            <Card title="Password">
+              <PasswordReset email_address={email_address} />
+            </Card>
+          )}
+          {state.ban && (
+            <Card
+              title={
+                <>
+                  Ban {first_name} {last_name} {email_address}
+                </>
+              }
+            >
+              <Ban
+                account_id={account_id}
+                banned={banned}
+                name={`${first_name} ${last_name} ${email_address}`}
+              />
+            </Card>
+          )}
+          {state.projects && (
+            <Projects
+              account_id={account_id}
+              title={`Recently active projects that ${first_name} ${last_name} collaborates on`}
+            />
+          )}
+          {state.purchases && (
+            <Card title="Purchases">
+              <div style={{ margin: "15px 0" }}>
+                <Money account_id={account_id} />
+                <div style={{ height: "15px" }} />
+                <PayAsYouGoMinBalance account_id={account_id} />
+                <div style={{ height: "15px" }} />
+                <PurchasesButton account_id={account_id} />
+              </div>
+            </Card>
+          )}
+        </div>
       )}
     </Card>
   );
