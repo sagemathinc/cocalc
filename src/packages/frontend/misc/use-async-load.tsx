@@ -18,7 +18,7 @@ import { debounce, throttle } from "lodash";
 import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Options<T> {
-  f: () => Promise<T>;
+  f?: () => Promise<T>;
   debounceWait?: number;
   debounceOptions?;
   throttleWait?: number;
@@ -40,6 +40,10 @@ export default function useAsyncLoad<T>({
   const [result, setResult] = useState<T | null>(null);
 
   const callF = useMemo(() => {
+    if (f == null) {
+      // no-op for now
+      return () => {};
+    }
     const g = reuseInFlight(async () => {
       try {
         setError("");

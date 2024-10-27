@@ -8,8 +8,11 @@ export interface PaymentIntentSecret {
   customerSessionClientSecret?: string;
 }
 
-export type PaymentIntentCancelReason =
-  | "duplicate"
-  | "fraudulent"
-  | "requested_by_customer"
-  | "abandoned";
+export const PAYMENT_INTENT_REASONS = [
+  "duplicate",
+  "fraudulent",
+  "requested_by_customer",
+  "abandoned",
+];
+
+export type PaymentIntentCancelReason = (typeof PAYMENT_INTENT_REASONS)[number];

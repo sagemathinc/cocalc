@@ -1,22 +1,27 @@
-import { type CSSProperties } from "react";
-import { getOpenPaymentIntents } from "./api";
+import { type CSSProperties, useState } from "react";
+import { cancelPaymentIntent, getOpenPaymentIntents } from "./api";
 import useAsyncLoad from "@cocalc/frontend/misc/use-async-load";
-import { Alert, Table } from "antd";
+import { Alert, Button, Popconfirm, Select, Space, Table } from "antd";
 import { FinishStripePayment } from "./stripe-payment";
-import { currency, plural } from "@cocalc/util/misc";
+import { capitalize, currency, plural, replace_all } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
+import ShowError from "@cocalc/frontend/components/error";
+import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
 
 interface Props {
   style?: CSSProperties;
   refresh?: () => Promise<void>;
   refreshPaymentsRef?;
+  // if you are an admin and want to view a different user's incomplete payments
+  account_id?: string;
 }
 
 export default function IncompletePayments({
   refresh,
   style,
   refreshPaymentsRef,
+  account_id,
 }: Props) {
   const {
     component,
@@ -24,7 +29,7 @@ export default function IncompletePayments({
     loading,
     refresh: reload,
   } = useAsyncLoad<any>({
-    f: getOpenPaymentIntents,
+    f: async () => getOpenPaymentIntents({ user_account_id: account_id }),
     throttleWait: 5000,
     refreshStyle: { float: "right", margin: "5px 0 0 15px" },
   });
@@ -52,7 +57,7 @@ export default function IncompletePayments({
           style={{ margin: "15px 0", textAlign: "left" }}
           showIcon
           type="warning"
-          message={`You have ${result?.length} incomplete outstanding ${plural(result?.length, "payment")}.  Successful payments take a few minutes to process.`}
+          message={`${account_id ? "User has " : "You have "} ${result?.length} incomplete outstanding ${plural(result?.length, "payment")}.  Successful payments take a few minutes to process.`}
         />
       )}
       {result?.length > 0 && (
@@ -62,13 +67,14 @@ export default function IncompletePayments({
             reload();
             refresh?.();
           }}
+          account_id={account_id}
         />
       )}
     </div>
   );
 }
 
-function PaymentIntentsTable({ paymentIntents, onFinished }) {
+function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
   const columns = [
     {
       title: "Amount",
@@ -189,13 +195,83 @@ function PaymentIntentsTable({ paymentIntents, onFinished }) {
             record.intent.status != "processing"
           );
         },
-        expandedRowRender: (record: any) => (
-          <FinishStripePayment
-            onFinished={onFinished}
-            paymentIntent={record.intent}
-          />
-        ),
+        expandedRowRender: (record: any) => {
+          if (!account_id) {
+            return (
+              <FinishStripePayment
+                onFinished={onFinished}
+                paymentIntent={record.intent}
+              />
+            );
+          } else {
+            // admin
+            return (
+              <AdminCancelPayment
+                id={record.intent.id}
+                onFinished={onFinished}
+              />
+            );
+          }
+        },
       }}
     />
+  );
+}
+
+function AdminCancelPayment({ id, onFinished }) {
+  const [reason, setReason] = useState<string>("");
+  const [error, setError] = useState<string>("");
+
+  const doCancel = async () => {
+    try {
+      setError("");
+      await cancelPaymentIntent({ id, reason });
+      onFinished?.();
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+
+  return (
+    <div>
+      <Space>
+        <Select
+          style={{ width: "300px" }}
+          options={PAYMENT_INTENT_REASONS.map((value) => {
+            return { value, label: capitalize(replace_all(value, "_", " ")) };
+          })}
+          value={reason}
+          onChange={setReason}
+        />
+        <Popconfirm
+          title="Cancel the Payment Request"
+          description="Are you sure to cancel this payment request?"
+          onConfirm={doCancel}
+          cancelText="No"
+        >
+          <Button type="primary" disabled={!reason}>
+            Cancel Payment...
+          </Button>
+        </Popconfirm>
+      </Space>
+      <br />
+      <ShowError error={error} setError={setError} />
+    </div>
+  );
+}
+
+export function IncompletePaymentsButton(props: Props) {
+  const [show, setShow] = useState<boolean>(false);
+  return (
+    <div>
+      <Button onClick={() => setShow(!show)}>
+        <Icon name="credit-card" /> Incomplete Payments...
+      </Button>
+      {show && (
+        <div style={{ marginTop: "8px" }}>
+          <IncompletePayments {...props} />
+        </div>
+      )}
+    </div>
   );
 }

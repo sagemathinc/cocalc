@@ -8,7 +8,7 @@ Display of basic information about a user, with link to get more information abo
 */
 
 import { useState } from "react";
-import { TimeAgo } from "@cocalc/frontend/components";
+import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { capitalize } from "@cocalc/util/misc";
 import { Card, Space, Tag } from "antd";
 import type { User } from "@cocalc/frontend/frame-editors/generic/client";
@@ -18,6 +18,8 @@ import { PasswordReset } from "./password-reset";
 import { Ban } from "./ban";
 import PayAsYouGoMinBalance from "@cocalc/frontend/frame-editors/crm-editor/users/pay-as-you-go-min-balance";
 import { PurchasesButton } from "@cocalc/frontend/purchases/purchases";
+import { IncompletePaymentsButton } from "@cocalc/frontend/purchases/incomplete-payments";
+import { CreatePaymentButton } from "./create-payment";
 import { CopyToClipBoard } from "@cocalc/frontend/components";
 import Money from "./money";
 
@@ -91,7 +93,15 @@ export function UserResult({
         title: { padding: "0" },
       }}
       title={
-        <div style={{ cursor: "pointer" }} onClick={() => setDetails(true)}>
+        <div
+          style={{ cursor: "pointer" }}
+          onClick={details ? undefined : () => setDetails(true)}
+        >
+          <Icon
+            onClick={() => setDetails(!details)}
+            name={details ? "minus-square" : "plus-square"}
+            style={{ marginRight: "15px" }}
+          />
           <div style={{ float: "right", color: "#666" }}>
             Active {renderLastActive()} (Created {renderCreated()})
           </div>
@@ -179,6 +189,10 @@ export function UserResult({
                 <PayAsYouGoMinBalance account_id={account_id} />
                 <div style={{ height: "15px" }} />
                 <PurchasesButton account_id={account_id} />
+                <div style={{ height: "15px" }} />
+                <IncompletePaymentsButton account_id={account_id} />
+                <div style={{ height: "15px" }} />
+                <CreatePaymentButton account_id={account_id} />
               </div>
             </Card>
           )}
