@@ -12,40 +12,42 @@ import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import base_path from "@cocalc/backend/base-path";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
+export interface LineItem {
+  amount: number; // amount in US Dollars
+  description: string;
+}
+
 const logger = getLogger("purchases:payment-intent");
 
-// create a new or modify the unfinished payment into
-// with the given purpose.   If called again with the
-// same purpose, but other parameters, then updates the
-// existing one.
-
-export async function createPaymentIntent({
+export async function createInvoice({
   account_id,
   purpose,
   amount,
   description,
+  lineItems = [],
   confirm,
   return_url,
   metadata,
 }: {
-  // user created the payment intent -- assumed already authenticated/valid
   account_id: string;
   purpose: string;
   // amount of money in dollars.
   amount: number;
   // arbitrary string to show to the user
   description?: string;
+  lineItems: LineItem[];
   confirm?: boolean;
   return_url?: string;
   // optional extra metadata: do NOT use 'purpose', 'account_id', 'confirm' or 'processed'.
   // as a key.
   metadata?: { [key: string]: string };
-}): Promise<PaymentIntentSecret> {
-  logger.debug("createPaymentIntent", {
+}) {
+  logger.debug("createInvoice", {
     account_id,
     amount,
     purpose,
     description,
+    lineItems,
     return_url,
   });
   if (!purpose) {
@@ -67,13 +69,147 @@ export async function createPaymentIntent({
   throttle({ account_id, endpoint: "create-payment-intent", interval: 2000 });
 
   await sanityCheckAmount(amount);
-  const amountStripe = Math.ceil(amount * 100);
 
+  const amountStripe = Math.ceil(amount * 100);
   const stripe = await getConn();
   const customer = await getStripeCustomerId({ account_id, create: true });
   if (!customer) {
     throw Error("bug");
   }
+
+  logger.debug("createInvoice", { customer });
+
+  metadata = {
+    ...metadata,
+    purpose,
+    account_id,
+    ...(confirm ? { confirm: "true" } : undefined),
+  };
+
+  // TODO: [ ] sanity check lineItems !!
+
+  // TODO: this is just a first attempt to see how this works.
+  // create invoice
+  const invoice = await stripe.invoices.create({
+    customer,
+    auto_advance: false,
+    description,
+    metadata,
+    automatic_tax: { enabled: true },
+    currency: "usd",
+  });
+  let total = 0;
+  for (const lineItem of lineItems) {
+    const lineItemAmount = Math.ceil(lineItem.amount * 100);
+    total += lineItemAmount;
+    await stripe.invoiceItems.create({
+      customer,
+      amount: lineItemAmount,
+      currency: "usd",
+      description: lineItem.description,
+      invoice: invoice.id,
+    });
+  }
+  const credit = amountStripe - total;
+  if (credit) {
+    // add one more line item to make the grand total be equal to amountStripe
+    await stripe.invoiceItems.create({
+      customer,
+      amount: credit,
+      currency: "usd",
+      description:
+        credit < 0
+          ? "Use existing CoCalc account credit"
+          : "Add to CoCalc account credit",
+      invoice: invoice.id,
+    });
+  }
+  const finalizedInvoice = await stripe.invoices.finalizeInvoice(invoice.id, {
+    auto_advance: false,
+  });
+  // as because again stripe typings are wrong (?)
+  const payment_intent = finalizedInvoice.payment_intent as string | undefined;
+  if (!payment_intent) {
+    throw Error("payment intent should have been created but wasn't");
+  }
+  await stripe.paymentIntents.update(payment_intent, {
+    description,
+    metadata,
+  });
+  if (confirm) {
+    return await stripe.invoices.pay(finalizedInvoice.id);
+  }
+  return finalizedInvoice;
+}
+
+// create a new or modify the unfinished payment into
+// with the given purpose.   If called again with the
+// same purpose, but other parameters, then updates the
+// existing one.
+
+export async function createPaymentIntent({
+  account_id,
+  purpose,
+  amount,
+  description,
+  lineItems,
+  confirm,
+  return_url,
+  metadata,
+}: {
+  // user created the payment intent -- assumed already authenticated/valid
+  account_id: string;
+  purpose: string;
+  // amount of money in dollars.
+  amount: number;
+  // arbitrary string to show to the user
+  description?: string;
+  // if given, first generate an invoice with these line items.
+  // NOTE: the amount charged is always specified by the amount input.
+  // We list each item here and if the total is different than amount, then
+  // we add another line item to adjust it.
+  lineItems?: LineItem[];
+  confirm?: boolean;
+  return_url?: string;
+  // optional extra metadata: do NOT use 'purpose', 'account_id', 'confirm' or 'processed'.
+  // as a key.
+  metadata?: { [key: string]: string };
+}): Promise<PaymentIntentSecret> {
+  logger.debug("createPaymentIntent", {
+    account_id,
+    amount,
+    purpose,
+    description,
+    lineItems,
+    return_url,
+  });
+  if (!purpose) {
+    throw Error("purpose must be set");
+  }
+  if (
+    metadata?.purpose != null ||
+    metadata?.account_id != null ||
+    metadata?.confirm != null ||
+    metadata?.processed != null
+  ) {
+    throw Error(
+      "metadata must not include 'purpose', 'account_id', 'confirm' or 'processed' as a key",
+    );
+  }
+
+  // packages/frontend/purchases/stripe-payment.tsx assumes that this interval below
+  // is 2seconds or less.
+  throttle({ account_id, endpoint: "create-payment-intent", interval: 2000 });
+
+  await sanityCheckAmount(amount);
+
+  const amountStripe = Math.ceil(amount * 100);
+  const stripe = await getConn();
+  const customer = await getStripeCustomerId({ account_id, create: true });
+  if (!customer) {
+    throw Error("bug");
+  }
+
   logger.debug("createPaymentIntent", { customer });
 
   const customerSession = confirm
@@ -98,6 +234,7 @@ export async function createPaymentIntent({
     account_id,
     ...(confirm ? { confirm: "true" } : undefined),
   };
+
   const intent = await getOpenPaymentIntent({ customer, purpose, confirm });
   if (intent != null) {
     paymentIntent = intent;
@@ -453,5 +590,7 @@ export async function cancelPaymentIntent({
   reason: PaymentIntentCancelReason;
 }) {
   const stripe = await getConn();
-  await stripe.paymentIntents.cancel(id, { cancellation_reason: reason });
+  await stripe.paymentIntents.cancel(id, {
+    cancellation_reason: reason as any,
+  });
 }
