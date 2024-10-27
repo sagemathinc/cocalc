@@ -1,13 +1,23 @@
+/*
+- Define what you want to buy and how.
+- See an itemized invoice.
+- Commit to making that purchase (or delete it)
+- Invoice is then finalized and payments attempted if you have a default payment method.
+- If you do not have a payment method, get shown a StripeElements UI to enter or select one
+- Once payment succeeds, process the invoice, which means getting the thing and also adding/removing credit from user's account.
+- In case of pay-as-you-go and subscriptions, if payment doesn't succeed long enough, take action.
+*/
+
 import {
   Elements,
   PaymentElement,
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import type { PaymentIntentSecret } from "@cocalc/util/stripe/types";
+import type { LineItem, PaymentIntentSecret } from "@cocalc/util/stripe/types";
 import { useCallback, useEffect, useState } from "react";
 import { createPaymentIntent, processPaymentIntents } from "./api";
-import { Button, Spin } from "antd";
+import { Button, Card, Spin } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
@@ -15,12 +25,14 @@ import { currency } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { creditLineItem } from "@cocalc/util/upgrades/describe";
 
 const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
 export default function StripePayment({
   amount,
   description = "",
+  lineItems = [],
   purpose = "add-credit",
   onFinished,
   style,
@@ -29,10 +41,70 @@ export default function StripePayment({
   // it is highly recommend to set all fields, but not required!
   amount?: number;
   description?: string;
+  lineItems?: LineItem[];
   purpose?: string;
   onFinished?: Function;
   style?;
   disabled?: boolean;
+}) {
+  const [checkout, setCheckout] = useState<boolean>(false);
+  if (!amount) {
+    // no payment needed.
+    return null;
+  }
+  const credit = creditLineItem({ lineItems, amount });
+
+  return (
+    <Card style={{ textAlign: "left" }}>
+      <pre>
+        {JSON.stringify(
+          {
+            amount,
+            description,
+            lineItems: (credit ? lineItems.concat([credit]) : lineItems).concat(
+              [{ description: "Applicable tax (checkout to update)", amount: 0 }],
+            ),
+            purpose,
+          },
+          undefined,
+          2,
+        )}
+      </pre>
+      {!checkout && (
+        <div style={{ textAlign: "center", marginTop: "15px" }}>
+          <Button
+            type="primary"
+            onClick={() => setCheckout(true)}
+            size="large"
+            style={{ marginTop: "15px", fontSize: "14pt", padding: "25px" }}
+          >
+            Checkout
+          </Button>
+        </div>
+      )}
+      {checkout && (
+        <Checkout
+          {...{
+            amount,
+            description,
+            purpose,
+            onFinished,
+            style,
+            disabled,
+          }}
+        />
+      )}
+    </Card>
+  );
+}
+
+function Checkout({
+  amount,
+  description,
+  purpose,
+  onFinished,
+  style,
+  disabled,
 }) {
   const [secret, setSecret] = useState<PaymentIntentSecret | null>(null);
   const [error, setError] = useState<string>("");
@@ -184,7 +256,7 @@ function PaymentForm({ style, amount, onFinished, disabled }) {
         redirect: "if_required",
         confirmParams: {
           // because we use strict auth cookies, this can't be a page that requires
-          // sign in.  
+          // sign in.
           return_url: `${window.location.origin}${appBasePath}`,
         },
       });
@@ -238,32 +310,21 @@ function PaymentForm({ style, amount, onFinished, disabled }) {
         }}
       />
       {ready && (
-        <div style={{ textAlign: "center", marginTop: "15px" }}>
-          <Button
-            size="large"
-            style={{ marginTop: "15px", fontSize: "14pt", padding: "25px" }}
-            type="primary"
-            disabled={
-              success ||
-              disabled ||
-              isSubmitting ||
-              !stripe ||
-              !elements ||
-              !ready ||
-              !!message
-            }
-            id="submit"
-            onClick={handleSubmit}
-          >
-            {!success && (
-              <>
-                Confirm {currency(amount)} Payment{" "}
-                {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
-              </>
-            )}
-            {success && <>Purchase Successfully Completed!</>}
-          </Button>
-        </div>
+        <ConfirmButton
+          disabled={
+            success ||
+            disabled ||
+            isSubmitting ||
+            !stripe ||
+            !elements ||
+            !ready ||
+            !!message
+          }
+          onClick={handleSubmit}
+          total={amount}
+          success={success}
+          isSubmitting={isSubmitting}
+        />
       )}
       {/* Show error message */}
       <ShowError
@@ -271,6 +332,40 @@ function PaymentForm({ style, amount, onFinished, disabled }) {
         style={{ marginTop: "15px" }}
         setError={setMessage}
       />
+    </div>
+  );
+}
+
+function ConfirmButton({
+  disabled,
+  onClick,
+  total,
+  success,
+  isSubmitting,
+}: {
+  disabled?: boolean;
+  onClick;
+  total;
+  success?: boolean;
+  isSubmitting?: boolean;
+}) {
+  return (
+    <div style={{ textAlign: "center", marginTop: "15px" }}>
+      <Button
+        size="large"
+        style={{ marginTop: "15px", fontSize: "14pt", padding: "25px" }}
+        type="primary"
+        disabled={disabled}
+        onClick={onClick}
+      >
+        {!success && (
+          <>
+            Confirm {currency(total)} Payment{" "}
+            {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
+          </>
+        )}
+        {success && <>Purchase Successfully Completed!</>}
+      </Button>
     </div>
   );
 }

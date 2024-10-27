@@ -34,12 +34,13 @@ import {
   getShoppingCartCheckoutParams,
   shoppingCartCheckout,
 } from "@cocalc/frontend/purchases/api";
-import { currency, round2up, round2down } from "@cocalc/util/misc";
-import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
+import { currency, plural, round2up, round2down } from "@cocalc/util/misc";
+import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import { ProductColumn } from "./cart";
 import ShowError from "@cocalc/frontend/components/error";
 import { StoreBalanceContext } from "../../lib/balance";
 import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
+import { toFriendlyDescription } from "@cocalc/util/upgrades/describe";
 
 enum PaymentIntent {
   PAY_TOTAL,
@@ -50,6 +51,7 @@ export default function Checkout() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
+  const [completedPurchase, setCompletedPurchase] = useState<boolean>(false);
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(
     PaymentIntent.APPLY_BALANCE,
   );
@@ -102,6 +104,7 @@ export default function Checkout() {
       setError("");
       setCompletingPurchase(true);
       await shoppingCartCheckout();
+      setCompletedPurchase(true);
       if (isMounted.current) {
         router.push("/store/congrats");
       }
@@ -136,6 +139,8 @@ export default function Checkout() {
     mode = "completing";
   } else if (params == null || paymentAmount == 0) {
     mode = "complete";
+  } else if (completedPurchase) {
+    mode = "completed";
   } else {
     mode = "add";
   }
@@ -245,15 +250,23 @@ export default function Checkout() {
                         <Spin style={{ marginLeft: "10px" }} />
                       </>
                     )}
-                    {mode == "complete" && "Completed Purchase"}
+                    {mode == "complete" && "Complete Purchase"}
+                    {mode == "completed" && "Completed Purchase"}
                   </Button>
                 )}
               </div>
               {!userSuccessfullyAddedCredit && (
                 <div>
                   <StripePayment
+                    description={`Purchasing ${params.cart.length} ${plural(params.cart, "item")} in the CoCalc store.`}
                     style={{ maxWidth: "600px", margin: "30px auto" }}
                     amount={paymentAmount}
+                    lineItems={params.cart.map((x) => {
+                      return {
+                        description: toFriendlyDescription(x.description),
+                        amount: x.lineItemAmount,
+                      };
+                    })}
                     purpose="store-checkout"
                     onFinished={async () => {
                       setUserSuccessfullyAddedCredit(true);

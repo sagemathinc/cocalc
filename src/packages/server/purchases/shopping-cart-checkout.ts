@@ -1,26 +1,12 @@
 import getLogger from "@cocalc/backend/logger";
-
 import { getTransactionClient } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-
 import getCart from "@cocalc/server/shopping/cart/get";
-
-import {
-  CashVoucher,
-  Item as ShoppingCartItem,
-} from "@cocalc/util/db-schema/shopping-cart-items";
-import {
-  dedicatedDiskDisplay,
-  dedicatedVmDisplay,
-} from "@cocalc/util/upgrades/utils";
-import { describe_quota } from "@cocalc/util/licenses/describe-quota";
+import { Item as ShoppingCartItem } from "@cocalc/util/db-schema/shopping-cart-items";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
-import {
-  ComputeCostProps,
-  SiteLicenseDescriptionDB,
-} from "@cocalc/util/upgrades/shopping";
+import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 import { currency, round2up } from "@cocalc/util/misc";
 import getMinBalance from "./get-min-balance";
 import getBalance from "./get-balance";
@@ -42,6 +28,7 @@ export const ALLOWED_SLACK = 1; // off by up to a dollar
 
 export interface CheckoutCartItem extends ShoppingCartItem {
   cost: CostInputPeriod;
+  lineItemAmount: number;
 }
 
 export interface CheckoutParams {
@@ -53,25 +40,6 @@ export interface CheckoutParams {
   minBalance: number; // min allowed balance for this user
   cart; // big object that describes actual contents of the cart
 }
-
-export const toFriendlyDescription = (
-  description: SiteLicenseDescriptionDB | CashVoucher,
-): string => {
-  switch (description.type) {
-    case "disk":
-      return `Dedicated Disk (${dedicatedDiskDisplay(
-        description.dedicated_disk,
-      )})`;
-    case "vm":
-      return `Dedicated VM ${dedicatedVmDisplay(description.dedicated_vm)}`;
-    case "quota":
-      return describe_quota(description);
-    case "cash-voucher":
-      return `${currency((description as CashVoucher).amount)} account credit`;
-    default:
-      return "Credit account to complete store purchase";
-  }
-};
 
 export const shoppingCartCheckout = async ({
   account_id,
@@ -140,6 +108,7 @@ export const getCheckoutCart = async (
     if (itemCost == null) {
       throw Error("bug cost must not be null");
     }
+    let lineItemAmount;
     if (
       cartItem.description.type != "cash-voucher" &&
       cartItem.description.period != "range"
@@ -148,14 +117,16 @@ export const getCheckoutCart = async (
       const x = await getInitialCostForSubscription(cartItem);
       const firstPeriodCost = x.cost.cost;
       itemCost.cost_sub_first_period = firstPeriodCost;
-      total += round2up(firstPeriodCost);
+      lineItemAmount = round2up(firstPeriodCost);
     } else {
-      total += round2up(itemCost.cost);
+      lineItemAmount = round2up(itemCost.cost);
     }
+    total += lineItemAmount;
 
     chargeableCart.push({
       ...cartItem,
       cost: itemCost,
+      lineItemAmount,
     });
   }
   return { total: round2up(total), cart: chargeableCart };

@@ -4,6 +4,7 @@ import { getStripeCustomerId, sanityCheckAmount } from "./stripe-util";
 import type {
   PaymentIntentSecret,
   PaymentIntentCancelReason,
+  LineItem,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/server/api/throttle";
 import createCredit from "./create-credit";
@@ -11,11 +12,7 @@ import getPool from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import base_path from "@cocalc/backend/base-path";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-
-export interface LineItem {
-  amount: number; // amount in US Dollars
-  description: string;
-}
+import { creditLineItem } from "@cocalc/util/upgrades/describe";
 
 const logger = getLogger("purchases:payment-intent");
 
@@ -70,7 +67,6 @@ export async function createInvoice({
 
   await sanityCheckAmount(amount);
 
-  const amountStripe = Math.ceil(amount * 100);
   const stripe = await getConn();
   const customer = await getStripeCustomerId({ account_id, create: true });
   if (!customer) {
@@ -98,10 +94,8 @@ export async function createInvoice({
     automatic_tax: { enabled: true },
     currency: "usd",
   });
-  let total = 0;
   for (const lineItem of lineItems) {
     const lineItemAmount = Math.ceil(lineItem.amount * 100);
-    total += lineItemAmount;
     await stripe.invoiceItems.create({
       customer,
       amount: lineItemAmount,
@@ -110,17 +104,14 @@ export async function createInvoice({
       invoice: invoice.id,
     });
   }
-  const credit = amountStripe - total;
+  const credit = creditLineItem({ lineItems, amount });
   if (credit) {
-    // add one more line item to make the grand total be equal to amountStripe
+    // add one more line item to make the grand total be equal to amount
     await stripe.invoiceItems.create({
+      description: credit.description,
+      amount: Math.ceil(amount * 100),
       customer,
-      amount: credit,
       currency: "usd",
-      description:
-        credit < 0
-          ? "Use existing CoCalc account credit"
-          : "Add to CoCalc account credit",
       invoice: invoice.id,
     });
   }

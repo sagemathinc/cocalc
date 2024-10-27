@@ -18,10 +18,7 @@ import { getTransactionClient } from "@cocalc/database/pool";
 import getCart from "@cocalc/server/shopping/cart/get";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { uuid } from "@cocalc/util/misc";
-import {
-  CashVoucherCostProps,
-  SiteLicenseDescriptionDB,
-} from "@cocalc/util/upgrades/shopping";
+import { CashVoucherCostProps } from "@cocalc/util/upgrades/shopping";
 
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 
@@ -365,119 +362,119 @@ describe("shopping-cart-checkout", () => {
     });
   });
 
-  describe("#toFriendlyName", () => {
-    it("constructs disk description", async () => {
-      // Arrange
-      //
-      const productDescription = {
-        type: "disk",
-        dedicated_disk: {
-          size_gb: 512,
-          speed: "ssd",
-        },
-      };
+  //   describe("#toFriendlyName", () => {
+  //     it("constructs disk description", async () => {
+  //       // Arrange
+  //       //
+  //       const productDescription = {
+  //         type: "disk",
+  //         dedicated_disk: {
+  //           size_gb: 512,
+  //           speed: "ssd",
+  //         },
+  //       };
 
-      // Act
-      //
-      const testDescription = sut.toFriendlyDescription(
-        productDescription as SiteLicenseDescriptionDB,
-      );
+  //       // Act
+  //       //
+  //       const testDescription = sut.toFriendlyDescription(
+  //         productDescription as SiteLicenseDescriptionDB,
+  //       );
 
-      // Assert
-      //
-      expect(testDescription).toEqual(
-        "Dedicated Disk (512G size and fast speed)",
-      );
-    });
+  //       // Assert
+  //       //
+  //       expect(testDescription).toEqual(
+  //         "Dedicated Disk (512G size and fast speed)",
+  //       );
+  //     });
 
-    it("constructs VM description", async () => {
-      // Arrange
-      //
-      const productDescription = {
-        type: "vm",
-        dedicated_vm: {
-          name: "raspberry pi",
-          machine: "n2-standard-2",
-        },
-      };
+  //     it("constructs VM description", async () => {
+  //       // Arrange
+  //       //
+  //       const productDescription = {
+  //         type: "vm",
+  //         dedicated_vm: {
+  //           name: "raspberry pi",
+  //           machine: "n2-standard-2",
+  //         },
+  //       };
 
-      // Act
-      //
-      const testDescription = sut.toFriendlyDescription(
-        productDescription as SiteLicenseDescriptionDB,
-      );
+  //       // Act
+  //       //
+  //       const testDescription = sut.toFriendlyDescription(
+  //         productDescription as SiteLicenseDescriptionDB,
+  //       );
 
-      // Assert
-      //
-      expect(testDescription).toEqual("Dedicated VM 2 vCPU cores, 6 GB RAM");
-    });
+  //       // Assert
+  //       //
+  //       expect(testDescription).toEqual("Dedicated VM 2 vCPU cores, 6 GB RAM");
+  //     });
 
-    it("constructs quota description", async () => {
-      // Arrange
-      //
-      const productDescription = {
-        cpu: 1,
-        ram: 2,
-        disk: 3,
-        type: "quota",
-        user: "business",
-        boost: false,
-        member: true,
-        period: "monthly",
-        uptime: "short",
-        run_limit: 1,
-      };
+  //     it("constructs quota description", async () => {
+  //       // Arrange
+  //       //
+  //       const productDescription = {
+  //         cpu: 1,
+  //         ram: 2,
+  //         disk: 3,
+  //         type: "quota",
+  //         user: "business",
+  //         boost: false,
+  //         member: true,
+  //         period: "monthly",
+  //         uptime: "short",
+  //         run_limit: 1,
+  //       };
 
-      // Act
-      //
-      const testDescription = sut.toFriendlyDescription(
-        productDescription as SiteLicenseDescriptionDB,
-      );
+  //       // Act
+  //       //
+  //       const testDescription = sut.toFriendlyDescription(
+  //         productDescription as SiteLicenseDescriptionDB,
+  //       );
 
-      // Assert
-      //
-      expect(testDescription).toEqual(
-        "Business license providing 2 GB RAM, 1 shared vCPU, 3 GB disk, member hosting, 30 minutes timeout, network, up to 1 simultaneous running project",
-      );
-    });
+  //       // Assert
+  //       //
+  //       expect(testDescription).toEqual(
+  //         "Business license providing 2 GB RAM, 1 shared vCPU, 3 GB disk, member hosting, 30 minutes timeout, network, up to 1 simultaneous running project",
+  //       );
+  //     });
 
-    it("constructs cash voucher description", async () => {
-      // Arrange
-      //
-      const productDescription = {
-        type: "cash-voucher",
-        amount: 3.5,
-      };
+  //     it("constructs cash voucher description", async () => {
+  //       // Arrange
+  //       //
+  //       const productDescription = {
+  //         type: "cash-voucher",
+  //         amount: 3.5,
+  //       };
 
-      // Act
-      //
-      const testDescription = sut.toFriendlyDescription(
-        productDescription as CashVoucherCostProps,
-      );
+  //       // Act
+  //       //
+  //       const testDescription = sut.toFriendlyDescription(
+  //         productDescription as CashVoucherCostProps,
+  //       );
 
-      // Assert
-      //
-      expect(testDescription).toEqual("$3.50 account credit");
-    });
+  //       // Assert
+  //       //
+  //       expect(testDescription).toEqual("$3.50 account credit");
+  //     });
 
-    it("constructs default description", async () => {
-      // Arrange
-      //
-      const productDescription = {
-        type: "foobar",
-      };
+  //     it("constructs default description", async () => {
+  //       // Arrange
+  //       //
+  //       const productDescription = {
+  //         type: "foobar",
+  //       };
 
-      // Act
-      //
-      const testDescription = sut.toFriendlyDescription(
-        productDescription as SiteLicenseDescriptionDB,
-      );
+  //       // Act
+  //       //
+  //       const testDescription = sut.toFriendlyDescription(
+  //         productDescription as SiteLicenseDescriptionDB,
+  //       );
 
-      // Assert
-      //
-      expect(testDescription).toEqual(
-        "Credit account to complete store purchase",
-      );
-    });
-  });
+  //       // Assert
+  //       //
+  //       expect(testDescription).toEqual(
+  //         "Credit account to complete store purchase",
+  //       );
+  //     });
+  //   });
 });

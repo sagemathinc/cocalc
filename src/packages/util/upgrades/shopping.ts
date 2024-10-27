@@ -17,14 +17,14 @@ export type DiskCostProps = {
   type: "disk";
   dedicated_disk: DedicatedDisk;
   period: Period;
-}
+};
 
 export type VMCostProps = {
   type: "vm";
   period: "range";
   range: DateRange;
   dedicated_vm: DedicatedVM;
-}
+};
 
 export type QuotaCostProps = {
   type: "quota";
@@ -39,18 +39,18 @@ export type QuotaCostProps = {
   member: boolean;
   uptime: keyof typeof LicenseIdleTimeouts | "always_running";
   boost?: boolean;
-}
+};
 
 export type CashVoucherCostProps = {
   type: "cash-voucher";
   amount: number;
-}
+};
 
 export type ComputeCostProps =
   | CashVoucherCostProps
   | DiskCostProps
   | QuotaCostProps
-  | VMCostProps
+  | VMCostProps;
 
 export type ComputeCostPropsTypes = ComputeCostProps["type"];
 
@@ -59,7 +59,8 @@ export interface CustomDescription {
   description?: string; // user can change this
 }
 
-export interface QuotaCostPropsDB extends Omit<QuotaCostProps, 'range'|'always_running'> {
+export interface QuotaCostPropsDB
+  extends Omit<QuotaCostProps, "range" | "always_running"> {
   range?: readonly [string, string]; // should be converted to [Date, Date]
   always_running?: boolean;
 }
@@ -70,4 +71,3 @@ export type SiteLicenseDescriptionDB =
   | (QuotaCostPropsDB & CustomDescription)
   | (VMCostProps & CustomDescription)
   | (DiskCostProps & CustomDescription);
-
