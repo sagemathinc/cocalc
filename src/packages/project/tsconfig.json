@@ -16,6 +16,7 @@
     { "path": "../sync" },
     { "path": "../sync-client" },
     { "path": "../sync-fs" },
+    { "path": "../sync-server" },
     { "path": "../terminal" },
     { "path": "../util" }
   ]

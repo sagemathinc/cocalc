@@ -16,7 +16,6 @@ if (typeof window !== "undefined" && window !== null) {
 }
 
 import * as immutable from "immutable";
-
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   AppRedux,
@@ -557,12 +556,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
           ? listing.find((val) => val.get("name") === name)
           : undefined,
     };
-  };
-
-  get_raw_link = (path) => {
-    let url = document.URL;
-    url = url.slice(0, url.indexOf("/projects/"));
-    return `${url}/${this.project_id}/raw/${misc.encode_path(path)}`;
   };
 
   // returns false, if this project isn't capable of opening a file with the given extension

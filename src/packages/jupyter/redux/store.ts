@@ -136,7 +136,10 @@ export class JupyterStore extends Store<JupyterStoreState> {
     // TODO: We use unsafe_getIn because maybe the cell type isn't spelled out yet, or our typescript isn't good enough.
     const type = this.unsafe_getIn(["cells", id, "cell_type"], "code");
     if (type != "markdown" && type != "code" && type != "raw") {
-      throw Error(`invalid cell type ${type} for cell ${id}`);
+      console.warn(
+        `Jupyter: invalid cell type ${type} for cell ${id} -- falling back to raw`,
+      );
+      return "raw";
     }
     return type;
   }

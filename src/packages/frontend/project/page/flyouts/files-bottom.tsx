@@ -29,7 +29,7 @@ import {
   DirectoryListing,
   DirectoryListingEntry,
 } from "@cocalc/frontend/project/explorer/types";
-import { url_href } from "@cocalc/frontend/project/utils";
+import rawUrl from "@cocalc/frontend/lib/raw-url";
 import {
   filename_extension,
   human_readable_size,
@@ -191,7 +191,7 @@ export function FilesBottom({
     const ext = (filename_extension(name) ?? "").toLowerCase();
     const showView = VIEWABLE_FILE_EXT.includes(ext);
     // the "href" part makes the link right-click copyable
-    const url = url_href(project_id, full_path);
+    const url = rawUrl({ project_id, path: full_path });
     const showDownload = !student_project_functionality.disableActions;
     const sizeStr = human_readable_size(size);
 
@@ -309,7 +309,7 @@ export function FilesBottom({
       const name = singleFile.name;
       const iconName = singleFile.isdir
         ? "folder"
-        : file_options(name)?.icon ?? "file";
+        : (file_options(name)?.icon ?? "file");
       return (
         <div style={{ whiteSpace: "nowrap" }} title={name}>
           <Icon name={iconName} /> {trunc_middle(name, 20)}

@@ -29,7 +29,7 @@ import {
   isDisabledSnapshots,
 } from "@cocalc/frontend/project/explorer/action-bar";
 import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
-import { url_href } from "@cocalc/frontend/project/utils";
+import rawUrl from "@cocalc/frontend/lib/raw-url";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import {
   filename_extension,
@@ -238,8 +238,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       ? item.isopen
         ? { fontWeight: "bold" }
         : item.isdir
-        ? undefined
-        : { color: COLORS.FILE_EXT }
+          ? undefined
+          : { color: COLORS.FILE_EXT }
       : undefined;
 
     return (
@@ -287,8 +287,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           ? "check-square"
           : "square"
         : item.isdir
-        ? "folder-open"
-        : file_options(item.name)?.icon ?? "file");
+          ? "folder-open"
+          : (file_options(item.name)?.icon ?? "file"));
 
     return (
       <Icon
@@ -410,8 +410,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     const actionNames = multiple
       ? ACTION_BUTTONS_MULTI
       : isdir
-      ? ACTION_BUTTONS_DIR
-      : ACTION_BUTTONS_FILE;
+        ? ACTION_BUTTONS_DIR
+        : ACTION_BUTTONS_FILE;
     for (const name of actionNames) {
       if (name === "download" && !item.isdir) continue;
       const disabled =
@@ -500,7 +500,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       const full_path = path_to_file(current_path, name);
       const ext = (filename_extension(name) ?? "").toLowerCase();
       const showView = VIEWABLE_FILE_EXT.includes(ext);
-      const url = url_href(project_id, full_path);
+      const url = rawUrl({ project_id, path: full_path });
 
       ctx.push({ key: "divide-download", type: "divider" });
 
@@ -533,10 +533,10 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         ? FILE_ITEM_ACTIVE_STYLE_2
         : {}
       : item.isopen
-      ? item.isactive
-        ? FILE_ITEM_ACTIVE_STYLE
-        : FILE_ITEM_OPENED_STYLE
-      : {};
+        ? item.isactive
+          ? FILE_ITEM_ACTIVE_STYLE
+          : FILE_ITEM_OPENED_STYLE
+        : {};
 
   return (
     <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>

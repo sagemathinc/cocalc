@@ -10,7 +10,7 @@ between project and browser client.
 TODO:
 
 - [ ] If initial query fails, need to raise exception.  Right now it gets
-silently swallowed in persistent mode...
+      silently swallowed in persistent mode...
 */
 
 // How long to wait from when we hit 0 clients until closing this channel.
@@ -51,8 +51,10 @@ import {
 // @ts-ignore -- typescript nonsense.
 const _ = set_debug;
 
-import { init_syncdoc, getSyncDocFromSyncTable } from "./sync-doc";
-import { key, register_synctable } from "./open-synctables";
+import {
+  key,
+  register_synctable,
+} from "@cocalc/sync-server/server/open-synctables";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { once } from "@cocalc/util/async-utils";
 import { delay } from "awaiting";
@@ -62,8 +64,12 @@ import { register_project_info_table } from "./project-info";
 import { register_project_status_table } from "./project-status";
 import { register_usage_info_table } from "./usage-info";
 import type { MergeType } from "@cocalc/sync/table/synctable";
-import Client from "@cocalc/sync-client";
+import type { Client } from "@cocalc/sync/client/types";
 import { getJupyterRedux } from "@cocalc/jupyter/kernel";
+import {
+  initSyncDoc,
+  getSyncDocFromSyncTable,
+} from "@cocalc/sync-server/server/syncdocs-manager";
 
 type Query = { [key: string]: any };
 
@@ -237,7 +243,7 @@ class SyncTableChannel {
     }
     if (this.synctable.table === "syncstrings") {
       this.log("init_synctable -- syncstrings: also initialize syncdoc...");
-      init_syncdoc(this.client, this.synctable);
+      initSyncDoc(this.client, this.synctable);
     }
 
     this.synctable.on(
@@ -460,6 +466,10 @@ class SyncTableChannel {
     if (this.closed || this.closing) {
       return; // closing or already closed
     }
+    if (this.synctable == null) {
+      this.log("save_if_possible: not initialized yet");
+      return;
+    }
     this.log("save_if_possible: saves changes to database");
     await this.synctable.save();
     if (this.synctable.table === "syncstrings") {
@@ -517,8 +527,8 @@ class SyncTableChannel {
     this.log("close: closing");
     this.closing = true;
     delete synctable_channels[this.name];
-    this.channel.destroy();
-    this.synctable.close_no_async();
+    this.channel?.destroy();
+    this.synctable?.close_no_async();
     this.log("close: closed");
     close(this); // don't call this.log after this!
     this.closed = true;
@@ -592,7 +602,6 @@ async function synctable_channel0(
     } else if (query?.project_status != null) {
       register_project_status_table(
         synctable_channels[name].get_synctable(),
-        logger,
         client.client_id(),
       );
     } else if (query?.usage_info != null) {

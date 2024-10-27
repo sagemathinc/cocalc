@@ -9,8 +9,11 @@
 import { SyncTable, SyncTableState } from "@cocalc/sync/table";
 import { once } from "@cocalc/util/async-utils";
 import { close, merge } from "@cocalc/util/misc";
-import { UsageInfoServer } from "../usage-info";
-import type { ImmutableUsageInfo, UsageInfo } from "@cocalc/util/types/project-usage-info";
+import { UsageInfoServer } from "@cocalc/sync-server/monitor/usage";
+import type {
+  ImmutableUsageInfo,
+  UsageInfo,
+} from "@cocalc/util/types/project-usage-info";
 import { getLogger } from "@cocalc/backend/logger";
 
 const L = getLogger("sync:usage-info");
@@ -85,7 +88,7 @@ class UsageInfoTable {
   async set(obj: { path: string; usage?: UsageInfo }): Promise<void> {
     this.get_table().set(
       merge({ project_id: this.project_id }, obj),
-      "shallow"
+      "shallow",
     );
     await this.get_table().save();
   }
@@ -167,7 +170,7 @@ class UsageInfoTable {
 let usage_info_table: UsageInfoTable | undefined = undefined;
 export function register_usage_info_table(
   table: SyncTable,
-  project_id: string
+  project_id: string,
 ): void {
   L.debug("register_usage_info_table");
   if (usage_info_table != null) {

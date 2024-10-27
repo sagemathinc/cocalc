@@ -6,9 +6,11 @@
 import { AccountPage } from "@cocalc/frontend/account/account-page";
 import { AdminPage } from "@cocalc/frontend/admin";
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import { entryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import {
   CSS,
   React,
+  redux,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -64,9 +66,16 @@ export const ActiveContent: React.FC = React.memo(() => {
     v.push(
       <div key={project_id} className={cls}>
         {x}
-      </div>
+      </div>,
     );
   });
+
+  if (entryPoint == "compute") {
+    const project_id = redux
+      .getStore("customize")
+      .getIn(["compute_server", "project_id"]) as string;
+    return <ProjectPage project_id={project_id} is_active={true} />;
+  }
 
   if (get_api_key) {
     // Only render the account page which has the message for allowing api access:
@@ -100,7 +109,7 @@ export const ActiveContent: React.FC = React.memo(() => {
             </A>
             .
           </Alert>
-        </div>
+        </div>,
       );
     }
   }

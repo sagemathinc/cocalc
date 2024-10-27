@@ -6,7 +6,6 @@
 import { fromJS } from "immutable";
 import { useEffect, useMemo, useState } from "react";
 import useAsyncEffect from "use-async-effect";
-
 import { getKernelInfo } from "@cocalc/frontend/components/run-button/kernel-info";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {

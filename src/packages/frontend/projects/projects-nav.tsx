@@ -5,7 +5,7 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-
+import { entryPoint } from "@cocalc/frontend/app-framework/entry-point";
 import {
   redux,
   useActions,
@@ -207,12 +207,40 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   }
 
   function onMouseUp(e: React.MouseEvent) {
+    if (entryPoint == "compute") {
+      return;
+    }
     // if middle mouse button has been clicked, close the project
     if (e.button === 1) {
       e.stopPropagation();
       e.preventDefault();
       pageActions.close_project_tab(project_id);
     }
+  }
+
+  const ws = <div style={nav_style_inner}>{renderWebsocketIndicator()}</div>;
+
+  if (entryPoint == "compute") {
+    return (
+      <div style={{ width: "80vw" }}>
+        {ws}
+        <div
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            textAlign: "center",
+            width: "100%",
+          }}
+          onClick={click_title}
+        >
+          {icon}
+          {renderNoInternet()}
+          {renderAvatar()}{" "}
+          <span style={{ marginLeft: 5, position: "relative" }}>{title}</span>
+        </div>
+      </div>
+    );
   }
 
   const body = (
@@ -263,6 +291,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
       return {
         label: <ProjectTab project_id={project_id} />,
         key: project_id,
+        closable: entryPoint != "compute",
       };
     });
   }, [openProjects]);
@@ -318,7 +347,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
             onChange={(project_id) => {
               actions.set_active_tab(project_id);
             }}
-            type={"editable-card"}
+            type={entryPoint == "compute" ? "card" : "editable-card"}
             renderTabBar={renderTabBar}
             items={items}
           />

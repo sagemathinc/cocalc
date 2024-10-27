@@ -23,7 +23,7 @@ import {
   BlobStoreSqlite,
 } from "@cocalc/jupyter/blobs";
 import { get_kernel_data } from "@cocalc/jupyter/kernel/kernel-data";
-import { get_ProjectStatusServer } from "@cocalc/project/project-status/server";
+import { get_ProjectStatusServer } from "@cocalc/sync-server/monitor/status-and-alerts";
 import { delay } from "awaiting";
 
 const log = getLogger("jupyter-http-server");

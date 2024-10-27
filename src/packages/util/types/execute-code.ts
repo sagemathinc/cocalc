@@ -48,6 +48,8 @@ export interface ExecuteCodeOptions {
   aggregate?: string | number; // if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code (e.g., latex).
   verbose?: boolean; // default true -- impacts amount of logging
   async_call?: boolean; // default false -- if true, return right after the process started (to get the PID) or when it fails.
+  // if ccNewFile is true, cc-new-file [args...] makes blank files if they don't exist (no template). ONLY supported for async version of executeCode (not callback)
+  ccNewFile?: boolean;
 }
 
 export interface ExecuteCodeOptionsAsyncGet {
