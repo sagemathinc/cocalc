@@ -104,7 +104,7 @@ export async function createInvoice({
       invoice: invoice.id,
     });
   }
-  const credit = creditLineItem({ lineItems, amount });
+  const { credit } = creditLineItem({ lineItems, amount });
   if (credit) {
     // add one more line item to make the grand total be equal to amount
     await stripe.invoiceItems.create({

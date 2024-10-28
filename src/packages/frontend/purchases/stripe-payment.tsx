@@ -17,7 +17,7 @@ import {
 import type { LineItem, PaymentIntentSecret } from "@cocalc/util/stripe/types";
 import { useCallback, useEffect, useState } from "react";
 import { createPaymentIntent, processPaymentIntents } from "./api";
-import { Button, Card, Spin } from "antd";
+import { Button, Card, Spin, Table } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
@@ -48,51 +48,48 @@ export default function StripePayment({
   disabled?: boolean;
 }) {
   const [checkout, setCheckout] = useState<boolean>(false);
-  if (!amount) {
+  if (amount == null) {
     // no payment needed.
     return null;
   }
-  const credit = creditLineItem({ lineItems, amount });
+  const { credit, total } = creditLineItem({ lineItems, amount });
+  const amountDue = total + (credit?.amount ?? 0);
+  const excludesTax = amountDue == 0 ? false : true;
+
+  useEffect(() => {
+    setCheckout(false);
+  }, [JSON.stringify(lineItems), amount]);
 
   return (
     <Card style={{ textAlign: "left" }}>
-      <pre>
-        {JSON.stringify(
-          {
-            amount,
-            description,
-            lineItems: (credit ? lineItems.concat([credit]) : lineItems).concat(
-              [{ description: "Applicable tax (checkout to update)", amount: 0 }],
-            ),
-            purpose,
-          },
-          undefined,
-          2,
-        )}
-      </pre>
-      {!checkout && (
-        <div style={{ textAlign: "center", marginTop: "15px" }}>
-          <Button
-            type="primary"
-            onClick={() => setCheckout(true)}
-            size="large"
-            style={{ marginTop: "15px", fontSize: "14pt", padding: "25px" }}
-          >
-            Checkout
-          </Button>
+      <div style={{ margin: "0 0 5px 15px" }}>
+        <b>{description}</b>
+      </div>
+      <LineItemsTable
+        lineItems={credit ? lineItems.concat([credit]) : lineItems}
+      />
+      <div>
+        <div>
+          <TotalLine
+            description={`Amount due${excludesTax ? " (excluding tax)" : ""}`}
+            amount={amountDue}
+          />
         </div>
-      )}
+        {!checkout && <ConfirmButton onClick={() => setCheckout(true)} />}
+      </div>
       {checkout && (
-        <Checkout
-          {...{
-            amount,
-            description,
-            purpose,
-            onFinished,
-            style,
-            disabled,
-          }}
-        />
+        <div>
+          <Checkout
+            {...{
+              amount,
+              description,
+              purpose,
+              onFinished,
+              style,
+              disabled,
+            }}
+          />
+        </div>
       )}
     </Card>
   );
@@ -185,7 +182,6 @@ function Checkout({
       <PaymentForm
         style={style}
         onFinished={onFinished}
-        amount={payAmount}
         disabled={disabled || loading || payAmount != amount}
       />
     </Elements>
@@ -221,7 +217,6 @@ export function FinishStripePayment({
       <PaymentForm
         style={style}
         onFinished={onFinished}
-        amount={paymentIntent.amount / 100}
         disabled={
           paymentIntent.status == "succeeded" ||
           paymentIntent.status == "canceled"
@@ -231,7 +226,7 @@ export function FinishStripePayment({
   );
 }
 
-function PaymentForm({ style, amount, onFinished, disabled }) {
+function PaymentForm({ style, onFinished, disabled }) {
   const [message, setMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -321,7 +316,6 @@ function PaymentForm({ style, amount, onFinished, disabled }) {
             !!message
           }
           onClick={handleSubmit}
-          total={amount}
           success={success}
           isSubmitting={isSubmitting}
         />
@@ -339,13 +333,11 @@ function PaymentForm({ style, amount, onFinished, disabled }) {
 function ConfirmButton({
   disabled,
   onClick,
-  total,
   success,
   isSubmitting,
 }: {
   disabled?: boolean;
   onClick;
-  total;
   success?: boolean;
   isSubmitting?: boolean;
 }) {
@@ -360,7 +352,7 @@ function ConfirmButton({
       >
         {!success && (
           <>
-            Confirm {currency(total)} Payment{" "}
+            Confirm Purchase
             {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
           </>
         )}
@@ -382,6 +374,43 @@ export function BigSpin({ style }: { style? }) {
           }}
         />
       </Spin>
+    </div>
+  );
+}
+
+const LINE_ITEMS_COLUMNS = [
+  {
+    title: "Description",
+    dataIndex: "description",
+    key: "description",
+  } as const,
+  {
+    title: "Amount",
+    dataIndex: "amount",
+    key: "amount",
+    render: (amount) => currency(amount),
+    align: "right",
+  } as const,
+];
+
+function LineItemsTable({ lineItems }) {
+  return (
+    <Table
+      pagination={false}
+      dataSource={lineItems}
+      columns={LINE_ITEMS_COLUMNS}
+    />
+  );
+}
+
+function TotalLine({ description, amount }) {
+  return (
+    <div style={{ display: "flex", margin: "20px 15px 0 0" }}>
+      <div style={{ flex: 0.5 }} />
+      <div style={{ fontWeight: 500, flex: 0.3 }}>{description}</div>
+      <div style={{ flex: 0.2 }}>
+        <div style={{ float: "right" }}>{currency(amount)}</div>
+      </div>
     </div>
   );
 }

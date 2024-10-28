@@ -129,9 +129,6 @@ export default function PaymentConfig({
             addonAfter="$"
           />
         </Space>
-        <div style={{ color: "#888", marginTop: "8px" }}>
-          (amount excludes applicable taxes)
-        </div>
       </div>
     </div>
   );

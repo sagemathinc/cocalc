@@ -1792,7 +1792,10 @@ export function currency(n: number, d?: number) {
   if (n == 0) {
     return `$0.00`;
   }
-  let s = `$${to_money(n ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
+  let s = `$${to_money(Math.abs(n) ?? 0, d ?? (Math.abs(n) < 0.0095 ? 3 : 2))}`;
+  if (n < 0) {
+    s = `-${s}`;
+  }
   if (d == null || d <= 2) {
     return s;
   }

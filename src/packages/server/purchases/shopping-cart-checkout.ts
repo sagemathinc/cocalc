@@ -101,7 +101,7 @@ export const getCheckoutCart = async (
   );
 
   // compute the total cost and also set the costs for each item
-  let total = 0;
+  let totalStripe = 0;
   const chargeableCart: CheckoutCartItem[] = [];
   for (const cartItem of cart) {
     const itemCost = computeCost(cartItem.description as ComputeCostProps);
@@ -121,7 +121,7 @@ export const getCheckoutCart = async (
     } else {
       lineItemAmount = round2up(itemCost.cost);
     }
-    total += lineItemAmount;
+    totalStripe += Math.ceil(100 * lineItemAmount);
 
     chargeableCart.push({
       ...cartItem,
@@ -129,7 +129,7 @@ export const getCheckoutCart = async (
       lineItemAmount,
     });
   }
-  return { total: round2up(total), cart: chargeableCart };
+  return { total: round2up(totalStripe / 100), cart: chargeableCart };
 };
 
 export const getShoppingCartCheckoutParams = async (

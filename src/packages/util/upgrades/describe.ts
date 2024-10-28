@@ -23,22 +23,25 @@ export function creditLineItem({
 }: {
   amount: number;
   lineItems: LineItem[];
-}): LineItem | undefined {
+}): { total: number; credit?: LineItem } {
   const amountStripe = Math.ceil(amount * 100);
-  let total = 0;
+  let totalStripe = 0;
   for (const lineItem of lineItems) {
     const lineItemAmount = Math.ceil(lineItem.amount * 100);
-    total += lineItemAmount;
+    totalStripe += lineItemAmount;
   }
-  const credit = amountStripe - total;
+  const credit = amountStripe - totalStripe;
   if (credit) {
     return {
-      amount: credit / 100,
-      description:
-        credit < 0
-          ? "Apply existing CoCalc account credit"
-          : "Add to CoCalc account credit",
+      total: totalStripe / 100,
+      credit: {
+        amount: credit / 100,
+        description:
+          credit < 0
+            ? "Apply existing CoCalc account credit"
+            : "CoCalc account credit",
+      },
     };
   }
-  return undefined;
+  return { total: totalStripe / 100 };
 }

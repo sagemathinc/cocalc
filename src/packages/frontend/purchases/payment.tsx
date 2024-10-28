@@ -62,7 +62,7 @@ export default function Payment({ balance, update, cost }: Props) {
             <Divider />
             <StripePayment
               amount={paymentAmount}
-              description={`Manually add ${currency(paymentAmount)} to your account from within the CoCalc app.`}
+              description={`Add ${currency(paymentAmount)} to your account from within the CoCalc app.`}
               purpose={"add-credit"}
               onFinished={() => {
                 update?.();

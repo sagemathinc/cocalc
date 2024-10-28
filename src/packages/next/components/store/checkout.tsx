@@ -230,29 +230,18 @@ export default function Checkout() {
               />
               <div style={{ textAlign: "center" }}>
                 <Divider />
-                {mode != "add" && (
-                  <Button
-                    disabled={
-                      mode == "add" ||
-                      params?.total == 0 ||
-                      completingPurchase ||
-                      !profile?.email_address
-                    }
-                    style={{ marginTop: "7px", marginBottom: "15px" }}
-                    size="large"
-                    type="primary"
-                    onClick={() => completePurchase()}
-                  >
-                    <Icon name="credit-card" />{" "}
-                    {mode == "completing" && (
+                {mode == "completing" && (
+                  <Alert
+                    showIcon
+                    style={{ margin: "30px auto", maxWidth: "700px" }}
+                    type="success"
+                    message={
                       <>
                         Transferring the items in your cart to your account...
                         <Spin style={{ marginLeft: "10px" }} />
                       </>
-                    )}
-                    {mode == "complete" && "Complete Purchase"}
-                    {mode == "completed" && "Completed Purchase"}
-                  </Button>
+                    }
+                  />
                 )}
               </div>
               {!userSuccessfullyAddedCredit && (
