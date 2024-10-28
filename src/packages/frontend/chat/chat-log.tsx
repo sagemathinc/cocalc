@@ -540,7 +540,7 @@ export function MessageList({
         // checking on folding state if it isn't a thread.
         const is_folded = is_thread && isFolded(messages, message, account_id);
         const is_thread_body = is_thread && message.get("reply_to") != null;
-        const h = virtuosoHeightsRef.current[index];
+        const h = virtuosoHeightsRef.current?.[index];
 
         return (
           <div
@@ -552,7 +552,7 @@ export function MessageList({
             <DivTempHeight height={h ? `${h}px` : undefined}>
               <Message
                 messages={messages}
-                numChildren={numChildren[message.get("date").valueOf()]}
+                numChildren={numChildren?.[message.get("date").valueOf()]}
                 key={date}
                 index={index}
                 account_id={account_id}
