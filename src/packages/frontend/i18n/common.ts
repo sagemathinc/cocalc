@@ -1520,4 +1520,12 @@ export const course = defineMessages({
     id: "course.commands.email-invitation.label",
     defaultMessage: "Email Invitation",
   },
+  run_terminal_command_title: {
+    id: "course.commands.terminal-command.label",
+    defaultMessage: "Run Terminal Command in all Student Projects",
+  },
+  delete_student_projects: {
+    id: "course.commands.delete-student-projects.title",
+    defaultMessage: "Delete all Student Projects",
+  },
 });

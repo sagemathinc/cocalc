@@ -274,10 +274,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "terminal-command": {
     icon: "terminal",
-    label: defineMessage({
-      id: "course.commands.terminal-command.label",
-      defaultMessage: "Run Terminal Command in all Student Projects",
-    }),
+    label: defineMessage(course.run_terminal_command_title),
     button: labels.terminal,
     title: defineMessage({
       id: "course.commands.terminal-command.tooltip",
@@ -364,10 +361,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "delete-student-projects": {
     icon: "trash",
-    label: defineMessage({
-      id: "course.commands.delete-student-projects.title",
-      defaultMessage: "Delete Student Projects",
-    }),
+    label: defineMessage(course.delete_student_projects),
     button: labels.delete,
     title: defineMessage({
       id: "course.commands.delete-student-projects.tooltip",

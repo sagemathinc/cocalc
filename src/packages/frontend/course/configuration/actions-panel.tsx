@@ -7,7 +7,7 @@ import { Button, Card, Col, Row, Space } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useActions, useStore } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Paragraph } from "@cocalc/frontend/components";
 import { course } from "@cocalc/frontend/i18n";
 import type { ProjectMap } from "@cocalc/frontend/todo-types";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
@@ -107,7 +107,12 @@ export function ExportGrades({ actions, close }: { actions; close? }) {
         </>
       }
     >
-      <div style={{ marginBottom: "10px" }}>Save grades to... </div>
+      <Paragraph style={{ marginBottom: "10px" }}>
+        <FormattedMessage
+          id="course.actions-panel.export-grades.title"
+          defaultMessage="Save grades to..."
+        />
+      </Paragraph>
       <Space>
         <Button onClick={save_grades_to_csv}>
           <Icon name="csv" /> CSV file...
@@ -120,19 +125,26 @@ export function ExportGrades({ actions, close }: { actions; close? }) {
         </Button>
       </Space>
       <hr />
-      <div style={{ color: "#666" }}>
-        Export all the grades you have recorded for students in your course to a
-        csv or Python file.
-        <br />
-        In Microsoft Excel, you can{" "}
-        <a
-          target="_blank"
-          href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba"
-        >
-          import the CSV file
-        </a>
-        .
-      </div>
+      <Paragraph type="secondary">
+        <FormattedMessage
+          id="course.actions-panel.export-grades.info"
+          defaultMessage={`Export all the grades you have recorded for students in your course
+          to a CSV or Python file.
+          {br}
+          In Microsoft Excel, you can <A>import the CSV file</A>.`}
+          values={{
+            A: (c) => (
+              <a
+                target="_blank"
+                href="https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba?ui=en-us&rs=en-us&ad=us"
+              >
+                {c}
+              </a>
+            ),
+            br: <br />,
+          }}
+        />
+      </Paragraph>
     </Card>
   );
 }
@@ -155,9 +167,12 @@ export function ReconfigureAllProjects({
         </>
       }
     >
-      Ensure all projects have the correct students and TA's, titles and
-      descriptions set, etc. This will also resend any outstanding email
-      invitations.
+      <FormattedMessage
+        id="course.actions-panel.reconfigure-all-projects.info"
+        defaultMessage={`Ensure all projects have the correct students and TA's,
+          titles and descriptions set, etc.
+          This will also resend any outstanding email invitations.`}
+      />
       <hr />
       <Button
         disabled={configuring_projects}
