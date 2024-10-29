@@ -50,12 +50,12 @@ export const labels = defineMessages({
   },
   account_first_name: {
     id: "labels.account.first_name",
-    defaultMessage: "First name",
+    defaultMessage: "First Name",
     description: "Label for Account/First name:",
   },
   account_last_name: {
     id: "labels.account.last_name",
-    defaultMessage: "Last name",
+    defaultMessage: "Last Name",
     description: "Label for Account/Last name:",
   },
   account_password: {
@@ -80,7 +80,7 @@ export const labels = defineMessages({
   },
   email_address: {
     id: "labels.email_address",
-    defaultMessage: "Email address",
+    defaultMessage: "Email Address",
     description: "e.g. a label in a form for the email address field",
   },
   frame_editors_title_bar_save_label: {
@@ -479,6 +479,15 @@ export const labels = defineMessages({
     defaultMessage: "Select a kernel",
     description: "A kernel in a Jupyter Notebook",
   },
+  invited: {
+    id: "labels.invited",
+    defaultMessage: "invited",
+    description: "A user of an online service has been invited",
+  },
+  ready: {
+    id: "labels.ready",
+    defaultMessage: "Ready",
+  },
   halt: {
     id: "labels.halt",
     defaultMessage: "Halt",
@@ -492,6 +501,11 @@ export const labels = defineMessages({
   delete: {
     id: "labels.delete",
     defaultMessage: "Delete",
+  },
+  undelete: {
+    id: "labels.undelete",
+    defaultMessage: "Undelete",
+    comment: "Short label on a button, to undo a deletion",
   },
   downloaded: {
     id: "labels.downloaded",
@@ -651,6 +665,24 @@ export const labels = defineMessages({
   keyboard_shortcuts: {
     id: "labels.keyboard_shortcuts",
     defaultMessage: "Keyboard shortcuts",
+  },
+  terms_of_service: {
+    id: "labels.terms_of_service",
+    defaultMessage: "Terms of Service",
+  },
+  last_active: {
+    id: "labels.last_active",
+    defaultMessage: "Last Active",
+  },
+  project_status: {
+    id: "labels.project_status",
+    defaultMessage: "Project Status",
+  },
+  you: {
+    id: "labels.you",
+    defaultMessage: "You",
+    description:
+      "Single word. Referring to the user of this application, i.e. 'you' is the person the given message talks to",
   },
 });
 
@@ -1467,6 +1499,7 @@ export const course = defineMessages({
   students: {
     id: "course.students",
     defaultMessage: "Students",
+    description: "students in a course",
   },
   add_students: {
     id: "course.add_students",

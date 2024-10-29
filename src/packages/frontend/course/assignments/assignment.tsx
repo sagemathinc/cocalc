@@ -3,6 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
+import { ReactElement, useState } from "react";
+import { DebounceInput } from "react-debounce-input";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { AppRedux, useActions } from "@cocalc/frontend/app-framework";
 import {
   DateTimePicker,
@@ -12,10 +17,8 @@ import {
   MarkdownInput,
   Tip,
 } from "@cocalc/frontend/components";
+import { course, labels } from "@cocalc/frontend/i18n";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
-import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
-import { ReactElement, useState } from "react";
-import { DebounceInput } from "react-debounce-input";
 import { CourseActions } from "../actions";
 import { BigTime, Progress } from "../common";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
@@ -35,9 +38,9 @@ import {
   step_verb,
   useButtonSize,
 } from "../util";
-import { STUDENT_SUBDIR } from "./consts";
 import { StudentListForAssignment } from "./assignment-student-list";
 import { ConfigurePeerGrading } from "./configure-peer";
+import { STUDENT_SUBDIR } from "./consts";
 import { SkipCopy } from "./skip";
 
 interface AssignmentProps {
@@ -90,6 +93,7 @@ export function Assignment({
   students,
   user_map,
 }: AssignmentProps) {
+  const intl = useIntl();
   const size = useButtonSize();
 
   const [
@@ -463,6 +467,21 @@ export function Assignment({
       type = "dashed";
     }
 
+    const label = intl.formatMessage({
+      id: "course.assignments.assign.button",
+      defaultMessage: "Assign",
+      description:
+        "Send out files to the given student, they will be copied over to the student project in an online course.",
+    });
+    const you = intl.formatMessage(labels.you);
+    const students = intl.formatMessage(course.students);
+    const tooltip = intl.formatMessage({
+      id: "course.assignments.assign.tooltip",
+      defaultMessage:
+        "Copy the files for this assignment from this project to all other student projects.",
+      description: "Students in an online course",
+    });
+
     return [
       <Button
         key="assign"
@@ -474,13 +493,13 @@ export function Assignment({
         <Tip
           title={
             <span>
-              Assign: <Icon name="user-secret" /> You{" "}
-              <Icon name="arrow-right" /> <Icon name="users" /> Students{" "}
+              {label}: <Icon name="user-secret" /> {you}{" "}
+              <Icon name="arrow-right" /> <Icon name="users" /> {students}{" "}
             </span>
           }
-          tip="Copy the files for this assignment from this project to all other student projects."
+          tip={tooltip}
         >
-          <Icon name="share-square" /> Assign...
+          <Icon name="share-square" /> {label}...
         </Tip>
       </Button>,
       <Progress
@@ -800,9 +819,12 @@ export function Assignment({
   function render_collect_tip() {
     return (
       <span key="normal">
-        Collect an assignment from all of your students. (There is currently no
-        way to schedule collection at a specific time; instead, collection
-        happens when you click the button.)
+        <FormattedMessage
+          id="course.assignments.collect.tooltip"
+          defaultMessage={`Collect an assignment from all of your students.
+          (There is currently no way to schedule collection at a specific time;
+          instead, collection happens when you click the button.)`}
+        />
       </span>
     );
   }
