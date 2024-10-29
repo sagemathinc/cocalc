@@ -14,7 +14,7 @@ import {
 } from "antd";
 import { List, Map, fromJS } from "immutable";
 import { useState } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import {
   CSS,
@@ -23,8 +23,8 @@ import {
   useRedux,
 } from "@cocalc/frontend/app-framework";
 
-import { Gap, Icon } from "@cocalc/frontend/components";
-import { labels } from "@cocalc/frontend/i18n";
+import { Gap, Icon, Paragraph } from "@cocalc/frontend/components";
+import { course, labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
@@ -203,7 +203,8 @@ export function TerminalCommandPanel({ name }: Props) {
   function render_header() {
     return (
       <>
-        <Icon name="terminal" /> Run Terminal Command in all Student Projects
+        <Icon name="terminal" />{" "}
+        {intl.formatMessage(course.run_terminal_command_title)}
       </>
     );
   }
@@ -212,11 +213,15 @@ export function TerminalCommandPanel({ name }: Props) {
     <Card title={render_header()}>
       {render_terminal()}
       <hr />
-      <span style={{ color: "#666" }}>
-        Run a bash terminal command in the home directory of all student
-        projects. Up to {MAX_PARALLEL_TASKS} commands run in parallel, with a
-        timeout of {timeout} minutes.
-      </span>
+      <Paragraph type="secondary">
+        <FormattedMessage
+          id="course.terminal-command.info"
+          defaultMessage={`Run a BASH terminal command in the home directory of all student projects.
+            Up to {MAX_PARALLEL_TASKS} commands run in parallel,
+            with a timeout of {timeout} minutes.`}
+          values={{ MAX_PARALLEL_TASKS, timeout }}
+        />
+      </Paragraph>
     </Card>
   );
 }

@@ -488,6 +488,10 @@ export const labels = defineMessages({
     defaultMessage: "deleted",
     description: "a file has been deleted",
   },
+  delete: {
+    id: "labels.delete",
+    defaultMessage: "Delete",
+  },
   downloaded: {
     id: "labels.downloaded",
     defaultMessage: "downloaded",
@@ -578,6 +582,10 @@ export const labels = defineMessages({
     id: "labels.color",
     defaultMessage: "Color",
   },
+  config: {
+    id: "labels.config",
+    defaultMessage: "Config",
+  },
   configuration: {
     id: "labels.configuraion",
     defaultMessage: "Configuration",
@@ -586,6 +594,59 @@ export const labels = defineMessages({
     id: "labels.configuraion.short",
     defaultMessage: "Config",
   },
+  title: {
+    id: "labels.title",
+    defaultMessage: "Title",
+  },
+  invite: {
+    id: "labels.invite",
+    defaultMessage: "Invite",
+  },
+  limit: {
+    id: "labels.limit",
+    defaultMessage: "Limit",
+  },
+  restrict: {
+    id: "labels.restrict",
+    defaultMessage: "Restrict",
+  },
+  nbgrader: {
+    id: "labels.nbgrader",
+    defaultMessage: "NBgrader",
+  },
+  software: {
+    id: "labels.software",
+    defaultMessage: "Software",
+  },
+  software_environment: {
+    id: "labels.software_environment",
+    defaultMessage: "Software Environment",
+  },
+  cloud_storage_remote_filesystems: {
+    id: "labels.cloud_storage_remote_filesystems",
+    defaultMessage: "Cloud Storage & Remote File Systems",
+  },
+  environment: {
+    id: "labels.environment",
+    defaultMessage: "Environment",
+  },
+  start_all: {
+    id: "labels.start_all",
+    defaultMessage: "Start All",
+  },
+  reconfigure: {
+    id: "labels.reconfigure",
+    defaultMessage: "Reconfigure",
+  },
+  invites: {
+    id: "labels.invites",
+    defaultMessage: "Invites",
+  },
+  trash: {
+    id: "labels.trash",
+    defaultMessage: "Trash",
+  },
+  empty_trash: { id: "labels.empty_trash", defaultMessage: "Empty Trash" },
 });
 
 export const menu = defineMessages({
@@ -1429,5 +1490,42 @@ export const course = defineMessages({
   delete_shared_project: {
     id: "course.delete_shared_project",
     defaultMessage: "Delete Shared Project",
+  },
+  reconfigure_all_projects: {
+    id: "course.reconfigure_all_projects",
+    defaultMessage: "Reconfigure all Projects",
+  },
+  export_grades: {
+    id: "course.export_grades",
+    defaultMessage: "Export Grades",
+  },
+  grades: {
+    id: "course.grades",
+    defaultMessage: "Grades",
+  },
+  resend_invites: {
+    id: "course.resend_invites",
+    defaultMessage: "Resend Outstanding Email Invites",
+  },
+  copy_missing_handouts_assignments: {
+    id: "course.copy_missing_handouts_assignments",
+    defaultMessage: "Copy Missing Handouts and Assignments",
+  },
+  title_and_description_label: {
+    id: "course.commands.title-and-description.label",
+    defaultMessage: "Course Title and Description",
+    description: "title and description of a course for students.",
+  },
+  email_invitation_label: {
+    id: "course.commands.email-invitation.label",
+    defaultMessage: "Email Invitation",
+  },
+  run_terminal_command_title: {
+    id: "course.commands.terminal-command.label",
+    defaultMessage: "Run Terminal Command in all Student Projects",
+  },
+  delete_student_projects: {
+    id: "course.commands.delete-student-projects.title",
+    defaultMessage: "Delete all Student Projects",
   },
 });

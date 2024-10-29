@@ -11,8 +11,11 @@
 import { Button, Card, Form, Switch, Typography } from "antd";
 import { List } from "immutable";
 import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
+
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { Datastore } from "@cocalc/frontend/projects/actions";
 import {
   KUCALC_COCALC_COM,
@@ -33,6 +36,7 @@ export function DatastoreConfig({
   project_id,
   close,
 }: Props) {
+  const intl = useIntl();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_datastore = useTypedRedux("customize", "datastore");
   const [need_save, set_need_save] = useState<boolean>(false);
@@ -95,7 +99,8 @@ export function DatastoreConfig({
       <Card
         title={
           <>
-            <Icon name="database" /> Cloud Storage & Remote File Systems
+            <Icon name="database" />{" "}
+            {intl.formatMessage(labels.cloud_storage_remote_filesystems)}
           </>
         }
       >

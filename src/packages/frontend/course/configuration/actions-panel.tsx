@@ -3,19 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Card, Row, Col, Space } from "antd";
+import { Button, Card, Col, Row, Space } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { useActions, useStore } from "@cocalc/frontend/app-framework";
-import { plural } from "@cocalc/util/misc";
-import { Icon } from "@cocalc/frontend/components";
-import { CourseActions } from "../actions";
+import { Icon, Paragraph } from "@cocalc/frontend/components";
+import { course } from "@cocalc/frontend/i18n";
 import type { ProjectMap } from "@cocalc/frontend/todo-types";
+import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
+import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { DeleteAllStudentProjects } from "./delete-all-student-projects";
 import { DeleteAllStudents } from "./delete-all-students";
-import { TerminalCommandPanel } from "./terminal-command";
-import { StudentProjectsStartStopPanel } from "./start-stop-panel";
 import EmptyTrash from "./empty-trash";
-import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
+import { StudentProjectsStartStopPanel } from "./start-stop-panel";
+import { TerminalCommandPanel } from "./terminal-command";
 
 interface Props {
   name: string;
@@ -80,6 +82,8 @@ export function StartAllProjects({ name, project_map }) {
 }
 
 export function ExportGrades({ actions, close }: { actions; close? }) {
+  const intl = useIntl();
+
   async function save_grades_to_csv() {
     await actions.export.to_csv();
     close?.();
@@ -99,11 +103,16 @@ export function ExportGrades({ actions, close }: { actions; close? }) {
     <Card
       title={
         <>
-          <Icon name="table" /> Export Grades
+          <Icon name="table" /> {intl.formatMessage(course.export_grades)}
         </>
       }
     >
-      <div style={{ marginBottom: "10px" }}>Save grades to... </div>
+      <Paragraph style={{ marginBottom: "10px" }}>
+        <FormattedMessage
+          id="course.actions-panel.export-grades.title"
+          defaultMessage="Save grades to..."
+        />
+      </Paragraph>
       <Space>
         <Button onClick={save_grades_to_csv}>
           <Icon name="csv" /> CSV file...
@@ -116,19 +125,26 @@ export function ExportGrades({ actions, close }: { actions; close? }) {
         </Button>
       </Space>
       <hr />
-      <div style={{ color: "#666" }}>
-        Export all the grades you have recorded for students in your course to a
-        csv or Python file.
-        <br />
-        In Microsoft Excel, you can{" "}
-        <a
-          target="_blank"
-          href="https://support.office.com/en-us/article/Import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba"
-        >
-          import the CSV file
-        </a>
-        .
-      </div>
+      <Paragraph type="secondary">
+        <FormattedMessage
+          id="course.actions-panel.export-grades.info"
+          defaultMessage={`Export all the grades you have recorded for students in your course
+          to a CSV or Python file.
+          {br}
+          In Microsoft Excel, you can <A>import the CSV file</A>.`}
+          values={{
+            A: (c) => (
+              <a
+                target="_blank"
+                href="https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba?ui=en-us&rs=en-us&ad=us"
+              >
+                {c}
+              </a>
+            ),
+            br: <br />,
+          }}
+        />
+      </Paragraph>
     </Card>
   );
 }
@@ -140,17 +156,23 @@ export function ReconfigureAllProjects({
   actions;
   configuring_projects?: boolean;
 }) {
+  const intl = useIntl();
+
   return (
     <Card
       title={
         <>
-          <Icon name="envelope" /> Reconfigure all Projects
+          <Icon name="envelope" />{" "}
+          {intl.formatMessage(course.reconfigure_all_projects)}
         </>
       }
     >
-      Ensure all projects have the correct students and TA's, titles and
-      descriptions set, etc. This will also resend any outstanding email
-      invitations.
+      <FormattedMessage
+        id="course.actions-panel.reconfigure-all-projects.info"
+        defaultMessage={`Ensure all projects have the correct students and TA's,
+          titles and descriptions set, etc.
+          This will also resend any outstanding email invitations.`}
+      />
       <hr />
       <Button
         disabled={configuring_projects}
@@ -159,7 +181,7 @@ export function ReconfigureAllProjects({
         }}
       >
         {configuring_projects ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
-        Reconfigure all Projects
+        {intl.formatMessage(course.reconfigure_all_projects)}
       </Button>
     </Card>
   );
@@ -172,17 +194,23 @@ export function ResendInvites({
   actions;
   reinviting_students?;
 }) {
+  const intl = useIntl();
+
   return (
     <Card
       title={
         <>
-          <Icon name="envelope" /> Resend Outstanding Email Invites
+          <Icon name="envelope" /> {intl.formatMessage(course.resend_invites)}
         </>
       }
     >
-      Send another email to every student who didn't sign up yet. This sends a
-      maximum of one email every {RESEND_INVITE_INTERVAL_DAYS}{" "}
-      {plural(RESEND_INVITE_INTERVAL_DAYS, "day")}.
+      <FormattedMessage
+        id="course.actions-panel.resend-invite.info"
+        defaultMessage={`Send another email to every student who didn't sign up yet.
+        This sends a maximum of one email every {days}
+        {days, plural, one {day} other {days}}.`}
+        values={{ days: RESEND_INVITE_INTERVAL_DAYS }}
+      />
       <hr />
       <Button
         disabled={reinviting_students}
@@ -191,31 +219,41 @@ export function ResendInvites({
         }}
       >
         {reinviting_students ? <Icon name="cocalc-ring" spin /> : undefined}{" "}
-        Reinvite students
+        <FormattedMessage
+          id="course.actions-panel.resend-invite.button"
+          defaultMessage={"Reinvite students"}
+          description={"Resending email invitiatons to students in a course."}
+        />
       </Button>
     </Card>
   );
 }
 
 export function CopyMissingHandoutsAndAssignments({ actions }) {
+  const intl = useIntl();
   return (
     <Card
       title={
         <>
-          <Icon name="share-square" /> Copy Missing Handouts and Assignments
+          <Icon name="share-square" />{" "}
+          {intl.formatMessage(course.copy_missing_handouts_assignments)}
         </>
       }
     >
-      If you <b>add new students</b> to your course, you can click this button
-      to ensure they have all the assignments and handouts that you have already
-      assigned to other students in the course.
+      <FormattedMessage
+        id="course.actions-panel.copy-missing-handouts-assignments"
+        defaultMessage={`If you <b>add new students</b> to your course,
+          you can click this button to ensure they have all the assignments and handouts
+          that you have already assigned to other students in the course.`}
+      />
       <hr />
       <Button
         onClick={() => {
           actions.configuration.push_missing_handouts_and_assignments();
         }}
       >
-        <Icon name="share-square" /> Copy Missing Handouts and Assignments
+        <Icon name="share-square" />{" "}
+        {intl.formatMessage(course.copy_missing_handouts_assignments)}
       </Button>
     </Card>
   );

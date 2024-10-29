@@ -1,8 +1,11 @@
-import { Alert, Button, Card, Row, Col, Popconfirm, Space, Spin } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Alert, Button, Card, Col, Popconfirm, Row, Space, Spin } from "antd";
+import { FormattedMessage } from "react-intl";
+
 import { useActions, useRedux } from "@cocalc/frontend/app-framework";
-import type { CourseActions } from "../actions";
+import { Paragraph } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize } from "@cocalc/util/misc";
+import type { CourseActions } from "../actions";
 
 interface Props {
   name: string;
@@ -64,13 +67,21 @@ export function StudentProjectsStartStopPanel({
     <Card
       title={
         <>
-          <Icon name="bolt" /> Start or Stop all Student Projects
+          <Icon name="bolt" />{" "}
+          <FormattedMessage
+            id="course.start-stop-panel.title"
+            defaultMessage="Start or Stop all Student Projects"
+          />
         </>
       }
     >
       <Row>
         <Col md={18}>
-          {r} of {n} student projects currently running.
+          <FormattedMessage
+            id="course.start-stop-panel.status"
+            defaultMessage={`{r} of {n} student projects currently running.`}
+            values={{ r, n }}
+          />
         </Col>
       </Row>
       <Row style={{ marginTop: "10px" }}>
@@ -79,10 +90,14 @@ export function StudentProjectsStartStopPanel({
             <Popconfirm
               title={
                 <div style={{ maxWidth: "400px" }}>
-                  <b>Are you sure you want to start all student projects?</b>
-                  <br /> This will ensure the projects are already running when
-                  the students open them, and can make assigning and collecting
-                  homework more robust.
+                  <FormattedMessage
+                    id="course.start-stop-panel.confirm"
+                    defaultMessage={`<b>Are you sure you want to start all student projects?</b>
+                    {br}
+                    This will ensure the projects are already running when the students open them,
+                    and can make assigning and collecting homework more robust.`}
+                    values={{ br: <br /> }}
+                  />
                 </div>
               }
               onConfirm={() => {
@@ -94,14 +109,20 @@ export function StudentProjectsStartStopPanel({
                   n === 0 || n === r || action_all_projects_state === "starting"
                 }
               >
-                <Icon name="bolt" /> Start all...
+                <Icon name="bolt" />{" "}
+                <FormattedMessage
+                  id="course.start-stop-panel.start-all.button"
+                  defaultMessage="Start all..."
+                />
               </Button>
             </Popconfirm>
             <Popconfirm
               title={
                 <div style={{ maxWidth: "400px" }}>
-                  Are you sure you want to stop all student projects (this might
-                  be disruptive)?
+                  <FormattedMessage
+                    id="course.start-stop-panel.stop-all.confirm"
+                    defaultMessage="Are you sure you want to stop all student projects (this might be disruptive)?"
+                  />
                 </div>
               }
               onConfirm={() => {
@@ -113,7 +134,11 @@ export function StudentProjectsStartStopPanel({
                   n === 0 || r === 0 || action_all_projects_state === "stopping"
                 }
               >
-                <Icon name="PoweroffOutlined" /> Stop all...
+                <Icon name="PoweroffOutlined" />{" "}
+                <FormattedMessage
+                  id="course.start-stop-panel.stop-all.button"
+                  defaultMessage="Stop all..."
+                />
               </Button>
             </Popconfirm>
           </Space>
@@ -125,13 +150,16 @@ export function StudentProjectsStartStopPanel({
         </Col>
       </Row>
       <hr />
-      <span style={{ color: "#666" }}>
-        Start all projects associated with this course so they are immediately
-        ready for your students to use. For example, you might do this before a
-        computer lab. You can also stop all projects in order to ensure that
-        they do not waste resources or are properly upgraded when next used by
-        students.
-      </span>
+      <Paragraph type="secondary">
+        <FormattedMessage
+          id="course.start-stop-panel.info"
+          defaultMessage={`Start all projects associated with this course,
+            so they are immediately ready for your students to use.
+            For example, you might do this before a computer lab.
+            You can also stop all projects in order to ensure
+            that they do not waste resources or are properly upgraded when next used by students.`}
+        />
+      </Paragraph>
     </Card>
   );
 }
