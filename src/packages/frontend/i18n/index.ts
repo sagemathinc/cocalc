@@ -70,6 +70,8 @@ export function loadLocaleMessages(locale: Locale): Promise<Messages> {
         return import("@cocalc/frontend/i18n/trans/fr_FR.compiled.json");
       case "it":
         return import("@cocalc/frontend/i18n/trans/it_IT.compiled.json");
+      case "nl":
+        return import("@cocalc/frontend/i18n/trans/nl_NL.compiled.json");
       case "ru":
         return import("@cocalc/frontend/i18n/trans/ru_RU.compiled.json");
       case "ja":
