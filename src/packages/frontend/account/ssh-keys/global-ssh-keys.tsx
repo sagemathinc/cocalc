@@ -3,12 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { FormattedMessage } from "react-intl";
+
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { A, Paragraph, Text } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
 import { COLORS } from "@cocalc/util/theme";
-import { FormattedMessage } from "react-intl";
+
 import { SSHKeyAdder } from "./ssh-key-adder";
 import { SSHKeyList } from "./ssh-key-list";
 

@@ -38,19 +38,19 @@ const normalize_key = (value) =>
 // Assumes the key has valid formatting ie.
 // <key-type>[space]<public-key>[space]<comment>
 interface ParsedKey {
-  type: string;
-  pubkey: string;
-  source: string;
-  comments: string;
+  type?: string;
+  pubkey?: string;
+  source?: string;
+  comments?: string;
   error?: string;
   value: string;
 }
-const parse_key = function (value): ParsedKey {
-  const parts = value.split(/\s+/);
+const parse_key = function (value: string): ParsedKey {
+  const parts: string[] = value.split(/\s+/);
   const type = parts[0];
   const pubkey = parts[1];
   const source = parts[2];
-  const comments = parts.slice(3);
+  const comments = parts.slice(3).join(" ");
 
   return { value, type, pubkey, source, comments };
 };
@@ -96,29 +96,33 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
   function submit_form(e?): void {
     let title;
     e?.preventDefault();
-    const validated_key = validate_key(normalize_key(key_value));
-    if (validated_key.error != null) {
-      set_error(validated_key.error);
-      return;
-    } else {
-      set_error(undefined);
+    try {
+      const validated_key = validate_key(normalize_key(key_value));
+      if (validated_key.error != null) {
+        set_error(validated_key.error);
+        return;
+      } else {
+        set_error(undefined);
+      }
+
+      if (key_title) {
+        title = key_title;
+      } else {
+        title = validated_key.source;
+      }
+
+      const { value } = validated_key;
+
+      add_ssh_key({
+        title,
+        value,
+        fingerprint: compute_fingerprint(validated_key.pubkey),
+      });
+
+      cancel_and_close();
+    } catch (err) {
+      set_error(err.toString());
     }
-
-    if (key_title) {
-      title = key_title;
-    } else {
-      title = validated_key.source;
-    }
-
-    const { value } = validated_key;
-
-    add_ssh_key({
-      title,
-      value,
-      fingerprint: compute_fingerprint(validated_key.pubkey),
-    });
-
-    cancel_and_close();
   }
 
   function render_panel() {
