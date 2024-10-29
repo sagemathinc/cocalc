@@ -647,6 +647,10 @@ export const labels = defineMessages({
     defaultMessage: "Trash",
   },
   empty_trash: { id: "labels.empty_trash", defaultMessage: "Empty Trash" },
+  keyboard_shortcuts: {
+    id: "labels.keyboard_shortcuts",
+    defaultMessage: "Keyboard shortcuts"
+  }
 });
 
 export const menu = defineMessages({
