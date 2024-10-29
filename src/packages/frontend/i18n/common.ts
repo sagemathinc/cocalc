@@ -97,6 +97,7 @@ export const labels = defineMessages({
   project_settings_restart_project_confirm_ok: {
     id: "labels.project.settings.restart-project.confirm.ok",
     defaultMessage: "Yes, {task} project",
+    description: 'task is one of "start", "restart", "stop"',
   },
   project_settings_stop_project_ok: {
     id: "labels.project.settings.stop-project.ok",
@@ -649,8 +650,8 @@ export const labels = defineMessages({
   empty_trash: { id: "labels.empty_trash", defaultMessage: "Empty Trash" },
   keyboard_shortcuts: {
     id: "labels.keyboard_shortcuts",
-    defaultMessage: "Keyboard shortcuts"
-  }
+    defaultMessage: "Keyboard shortcuts",
+  },
 });
 
 export const menu = defineMessages({
