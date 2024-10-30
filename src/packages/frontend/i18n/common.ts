@@ -684,6 +684,10 @@ export const labels = defineMessages({
     description:
       "Single word. Referring to the user of this application, i.e. 'you' is the person the given message talks to",
   },
+  open: {
+    id: "labels.open",
+    defaultMessage: "Open",
+  },
 });
 
 export const menu = defineMessages({
@@ -1480,14 +1484,6 @@ export const dialogs = defineMessages({
 });
 
 export const course = defineMessages({
-  assignments: {
-    id: "course.assignments",
-    defaultMessage: "Assignments",
-  },
-  handouts: {
-    id: "course.handouts",
-    defaultMessage: "Handouts",
-  },
   actions: {
     id: "course.actions",
     defaultMessage: "Actions",
@@ -1496,10 +1492,15 @@ export const course = defineMessages({
     id: "course.shared_project",
     defaultMessage: "Shared Project",
   },
+  student: {
+    id: "course.student",
+    defaultMessage: "Student",
+    description: "a student in an online course",
+  },
   students: {
     id: "course.students",
     defaultMessage: "Students",
-    description: "students in a course",
+    description: "students in an online course",
   },
   add_students: {
     id: "course.add_students",
@@ -1565,5 +1566,44 @@ export const course = defineMessages({
   delete_student_projects: {
     id: "course.commands.delete-student-projects.title",
     defaultMessage: "Delete all Student Projects",
+  },
+  assign_button: {
+    id: "course.assignments.assign.button",
+    defaultMessage: "Assign",
+    description:
+      "Send out files to the given student, they will be copied over to the student project in an online course.",
+  },
+  add_assignments: {
+    id: "course.commands.add-assignments.label",
+    defaultMessage: "Add Assignments",
+    description: "Adding an assignment in a course",
+  },
+  assignment: {
+    id: "course.assignment",
+    defaultMessage: "assignment",
+    description:
+      "An assignment in an online course. Consisting of files for students to work with.",
+  },
+  handout: {
+    id: "course.handout",
+    defaultMessage: "handout",
+    description:
+      "A handout in an online course. Consisting of files for students to work with.",
+  },
+  assignments: {
+    id: "course.assignments",
+    defaultMessage: "Assignments",
+    description:
+      "Assignments in an online course. Consisting of files for students to work with.",
+  },
+  handouts: {
+    id: "course.handouts",
+    defaultMessage: "Handouts",
+    description:
+      "Handouts in an online course. Consisting of files for students to work with.",
+  },
+  due_date: {
+    id: "course.due_date",
+    defaultMessage: "Due Date",
   },
 });

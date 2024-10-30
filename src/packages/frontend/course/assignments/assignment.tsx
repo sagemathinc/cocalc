@@ -21,6 +21,7 @@ import { course, labels } from "@cocalc/frontend/i18n";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
 import { BigTime, Progress } from "../common";
+import { STEP_NAMES, STEPS_INTL } from "../common/consts";
 import { NbgraderButton } from "../nbgrader/nbgrader-button";
 import {
   AssignmentRecord,
@@ -32,10 +33,10 @@ import {
 import * as styles from "../styles";
 import { AssignmentCopyStep, AssignmentStatus } from "../types";
 import {
-  STEPS,
   step_direction,
   step_ready,
   step_verb,
+  STEPS,
   useButtonSize,
 } from "../util";
 import { StudentListForAssignment } from "./assignment-student-list";
@@ -129,7 +130,7 @@ export function Assignment({
           <Tip
             placement="top"
             title="Set the due date"
-            tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected on the due date.  You should also tell students when assignments are due (e.g., at the top of the assignment)."
+            tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected on the due date.  {intl.formatMessage(labels.you)} should also tell students when assignments are due (e.g., at the top of the assignment)."
           >
             Due
           </Tip>
@@ -251,7 +252,8 @@ export function Assignment({
         There are no files in this assignment yet. Please{" "}
         <a onClick={open_assignment_path}>open the directory</a> for this
         assignment, then create, upload, or copy any content you want into that
-        directory. You will then be able to send it to all of your students.
+        directory. {intl.formatMessage(labels.you)} will then be able to send it
+        to all of your students.
       </div>
     );
   }
@@ -438,7 +440,7 @@ export function Assignment({
         tip="Open the directory in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment."
       >
         <Button onClick={open_assignment_path}>
-          <Icon name="folder-open" /> Open...
+          <Icon name="folder-open" /> {intl.formatMessage(labels.open)}...
         </Button>
       </Tip>
     );
@@ -467,11 +469,8 @@ export function Assignment({
       type = "dashed";
     }
 
-    const label = intl.formatMessage({
-      id: "course.assignments.assign.button",
-      defaultMessage: "Assign",
-      description:
-        "Send out files to the given student, they will be copied over to the student project in an online course.",
+    const label = intl.formatMessage(STEPS_INTL, {
+      step: STEP_NAMES.indexOf("Assign"),
     });
     const you = intl.formatMessage(labels.you);
     const students = intl.formatMessage(course.students);
@@ -547,7 +546,7 @@ export function Assignment({
     };
     return (
       <Button key="cancel" onClick={cancel} size={size}>
-        Close
+        {intl.formatMessage(labels.close)}
       </Button>
     );
   }
@@ -874,13 +873,18 @@ export function Assignment({
         <Tip
           title={
             <span>
-              Collect: <Icon name="users" /> Students{" "}
-              <Icon name="arrow-right" /> <Icon name="user-secret" /> You
+              Collect: <Icon name="users" />{" "}
+              {intl.formatMessage(course.students)} <Icon name="arrow-right" />{" "}
+              <Icon name="user-secret" /> You
             </span>
           }
           tip={render_collect_tip()}
         >
-          <Icon name="share-square" rotate={"180"} /> Collect...
+          <Icon name="share-square" rotate={"180"} />{" "}
+          {intl.formatMessage(STEPS_INTL, {
+            step: STEP_NAMES.indexOf("Collect"),
+          })}
+          ...
         </Tip>
       </Button>,
       <Progress
@@ -927,6 +931,9 @@ export function Assignment({
     } else {
       type = "primary";
     }
+    const label = intl.formatMessage(STEPS_INTL, {
+      step: STEP_NAMES.indexOf("Peer Assign"),
+    });
     return [
       <Button
         key="peer-assign"
@@ -941,13 +948,14 @@ export function Assignment({
         <Tip
           title={
             <span>
-              Peer Assign: <Icon name="users" /> You <Icon name="arrow-right" />{" "}
-              <Icon name="user-secret" /> Students
+              {label}: <Icon name="users" /> {intl.formatMessage(labels.you)}{" "}
+              <Icon name="arrow-right" /> <Icon name="user-secret" />{" "}
+              {intl.formatMessage(course.students)}
             </span>
           }
           tip={render_peer_assign_tip()}
         >
-          <Icon name="share-square" /> Peer Assign...
+          <Icon name="share-square" /> {label}...
         </Tip>
       </Button>,
       <Progress
@@ -991,6 +999,9 @@ export function Assignment({
       // warning, since we have already collected and this may overwrite
       type = "primary";
     }
+    const label = intl.formatMessage(STEPS_INTL, {
+      step: STEP_NAMES.indexOf("Peer Collect"),
+    });
     return [
       <Button
         key="peer-collect"
@@ -1005,13 +1016,14 @@ export function Assignment({
         <Tip
           title={
             <span>
-              Peer Collect: <Icon name="users" /> Students{" "}
-              <Icon name="arrow-right" /> <Icon name="user-secret" /> You
+              {label}: <Icon name="users" />{" "}
+              {intl.formatMessage(course.students)} <Icon name="arrow-right" />{" "}
+              <Icon name="user-secret" /> You
             </span>
           }
           tip={render_peer_collect_tip()}
         >
-          <Icon name="share-square" rotate="180" /> Peer Collect...
+          <Icon name="share-square" rotate="180" /> {label}...
         </Tip>
       </Button>,
       <Progress
@@ -1093,6 +1105,9 @@ export function Assignment({
     } else {
       type = "primary";
     }
+    const label = intl.formatMessage(STEPS_INTL, {
+      step: STEP_NAMES.indexOf("Return"),
+    });
     return [
       <Button
         key="return"
@@ -1107,13 +1122,14 @@ export function Assignment({
         <Tip
           title={
             <span>
-              Return: <Icon name="user-secret" /> You{" "}
-              <Icon name="arrow-right" /> <Icon name="users" /> Students{" "}
+              {label}: <Icon name="user-secret" /> You{" "}
+              <Icon name="arrow-right" /> <Icon name="users" />{" "}
+              {intl.formatMessage(course.students)}{" "}
             </span>
           }
           tip="Copy the graded versions of files for this assignment from this project to all other student projects."
         >
-          <Icon name="share-square" /> Return...
+          <Icon name="share-square" /> {label}...
         </Tip>
       </Button>,
       <Progress
@@ -1141,11 +1157,18 @@ export function Assignment({
         <Tip
           key="delete"
           placement="left"
-          title="Undelete assignment"
-          tip="Make the assignment visible again in the assignment list and in student grade lists."
+          title={intl.formatMessage({
+            id: "course.assignment.undelete.title",
+            defaultMessage: "Undelete assignment",
+          })}
+          tip={intl.formatMessage({
+            id: "course.assignment.undelete.tooltip",
+            defaultMessage:
+              "Make the assignment visible again in the assignment list and in student grade lists.",
+          })}
         >
           <Button onClick={undelete_assignment}>
-            <Icon name="trash" /> Undelete
+            <Icon name="trash" /> {intl.formatMessage(labels.undelete)}
           </Button>
         </Tip>
       );
@@ -1154,20 +1177,25 @@ export function Assignment({
         <Popconfirm
           title={
             <div style={{ maxWidth: "400px" }}>
-              <b>
-                Are you sure you want to delete "
-                {trunc_middle(assignment.get("path"), 24)}"?
-              </b>
-              <br /> This removes it from the assignment list and student grade
-              lists, but does not delete any files off of disk. You can undelete
-              an assignment later by showing it using the 'Show deleted
-              assignments' button.
+              <FormattedMessage
+                id="course.assignment.delete.confirm.info"
+                defaultMessage={`<b>Are you sure you want to delete {name}"?</b>
+                  {br}
+                  This removes it from the assignment list and student grade lists,
+                  but does not delete any files off of disk.
+                  You can undelete an assignment later by showing it using the 'Show deleted assignments' button.`}
+                values={{
+                  name: trunc_middle(assignment.get("path"), 24),
+                  br: <br />,
+                }}
+              />
             </div>
           }
           onConfirm={delete_assignment}
+          cancelText={intl.formatMessage(labels.cancel)}
         >
           <Button size={size}>
-            <Icon name="trash" /> Delete...
+            <Icon name="trash" /> {intl.formatMessage(labels.delete)}...
           </Button>
         </Popconfirm>
       );

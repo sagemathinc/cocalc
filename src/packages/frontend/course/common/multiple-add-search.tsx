@@ -3,15 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useState } from "react";
 import { Button } from "antd";
+import { useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { Icon } from "@cocalc/frontend/components";
+import { course } from "@cocalc/frontend/i18n";
 import DirectorySelector from "@cocalc/frontend/project/directory-selector";
 import { capitalize, plural } from "@cocalc/util/misc";
+import { ItemName } from "./types";
 
 interface MultipleAddSearchProps {
   addSelected: (keys: string[]) => void; // Submit user selected results add_selected(['paths', 'of', 'folders'])
-  itemName: string;
+  itemName: ItemName;
   err?: string;
   isExcluded: (path: string) => boolean;
   defaultOpen?;
@@ -24,19 +28,52 @@ interface MultipleAddSearchProps {
 // Coupled with Assignments Panel and Handouts Panel
 export function MultipleAddSearch({
   addSelected,
-  itemName = "result",
+  itemName = "assignment",
   isExcluded,
   defaultOpen,
   selectorStyle,
   closable,
 }: MultipleAddSearchProps) {
+  const intl = useIntl();
   const [selecting, setSelecting] = useState<boolean>(defaultOpen);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set([]));
+  const n = selectedItems.size;
 
   function clear() {
     setSelecting(false);
     setSelectedItems(new Set([]));
   }
+
+  function label(): string {
+    switch (itemName) {
+      case "assignment":
+        return intl.formatMessage(course.assignment);
+      case "handout":
+        return intl.formatMessage(course.handout);
+      default:
+        return itemName;
+    }
+  }
+
+  function labelPlural(): string {
+    if (n === 1) return label();
+    switch (itemName) {
+      case "assignment":
+        return intl.formatMessage(course.assignments);
+      case "handout":
+        return intl.formatMessage(course.handouts);
+      default:
+        return plural(n, label());
+    }
+  }
+
+  const title = intl.formatMessage(
+    {
+      id: "course.multiple-add-search.directory-selector.title",
+      defaultMessage: `Select one or more {name} folders`,
+    },
+    { name: label() },
+  );
 
   return (
     <div>
@@ -45,7 +82,11 @@ export function MultipleAddSearch({
         disabled={selecting}
         onClick={() => setSelecting(true)}
       >
-        Add {capitalize(itemName)}...
+        <FormattedMessage
+          id="course.multiple-add-search.directory-selector.button"
+          defaultMessage={`Add {name}...`}
+          values={{ name: capitalize(label()) }}
+        />
       </Button>
       {selecting && (
         <DirectorySelector
@@ -59,7 +100,7 @@ export function MultipleAddSearch({
             boxShadow: "8px 8px 4px #888",
             ...selectorStyle,
           }}
-          title={`Select one or more ${itemName} folders`}
+          title={title}
           onMultiSelect={setSelectedItems}
           onClose={clear}
           isExcluded={(path) => {
@@ -74,19 +115,23 @@ export function MultipleAddSearch({
       {selecting && (
         <Button
           type="primary"
-          disabled={selectedItems.size == 0}
+          disabled={n == 0}
           onClick={() => {
             addSelected(Array.from(selectedItems));
             clear();
           }}
         >
           <Icon name="plus" />
-          {selectedItems.size == 0
-            ? "Select one or more directories"
-            : `Add ${selectedItems.size} ${plural(
-                selectedItems.size,
-                capitalize(itemName),
-              )}`}
+          <FormattedMessage
+            id="course.multiple-add-search.directory-selector.add_button"
+            defaultMessage={`{n, select,
+              0 {Select one or more directories}
+              other {Add {n} {name}}}`}
+            values={{
+              n,
+              name: labelPlural(),
+            }}
+          />
         </Button>
       )}
     </div>

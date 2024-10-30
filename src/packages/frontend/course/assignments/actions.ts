@@ -8,8 +8,12 @@ Actions involving working with assignments:
   - assigning, collecting, setting feedback, etc.
 */
 
-import { redux } from "@cocalc/frontend/app-framework";
+import { delay, map } from "awaiting";
+import { Map } from "immutable";
+import { debounce } from "lodash";
 import { join } from "path";
+
+import { redux } from "@cocalc/frontend/app-framework";
 import {
   exec,
   start_project,
@@ -35,10 +39,8 @@ import {
   trunc,
   uuid,
 } from "@cocalc/util/misc";
-import { delay, map } from "awaiting";
-import { debounce } from "lodash";
-import { Map } from "immutable";
 import { CourseActions } from "../actions";
+import { COPY_TIMEOUT_MS } from "../consts";
 import { export_assignment } from "../export/export-assignment";
 import { export_student_file_use_times } from "../export/file-use-times";
 import { grading_state } from "../nbgrader/util";
@@ -66,12 +68,11 @@ import {
   NBGRADER_MAX_OUTPUT_PER_CELL,
   NBGRADER_TIMEOUT_MS,
   PEER_GRADING_GUIDE_FILENAME,
-  STUDENT_SUBDIR,
-  PEER_GRADING_GUIDELINES_GRADE_MARKER,
   PEER_GRADING_GUIDELINES_COMMENT_MARKER,
-  DUE_DATE_FILENAME,
+  PEER_GRADING_GUIDELINES_GRADE_MARKER,
+  STUDENT_SUBDIR,
 } from "./consts";
-import { COPY_TIMEOUT_MS } from "../consts";
+import { DUE_DATE_FILENAME } from "../common/consts";
 
 const UPDATE_DUE_DATE_FILENAME_DEBOUNCE_MS = 3000;
 
@@ -1681,8 +1682,9 @@ ${details}
     ungraded_only?: boolean,
   ): Promise<void> => {
     // console.log("run_nbgrader_for_all_students", assignment_id);
-    const instructor_ipynb_files =
-      await this.nbgrader_instructor_ipynb_files(assignment_id);
+    const instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
+      assignment_id,
+    );
     if (this.course_actions.is_closed()) return;
     const store = this.get_store();
     const nbgrader_scores = store.getIn([
@@ -1933,8 +1935,9 @@ ${details}
       : `${store.get_student_name(student_id)}'s project`;
 
     if (instructor_ipynb_files == null) {
-      instructor_ipynb_files =
-        await this.nbgrader_instructor_ipynb_files(assignment_id);
+      instructor_ipynb_files = await this.nbgrader_instructor_ipynb_files(
+        assignment_id,
+      );
       if (this.course_actions.is_closed()) return;
     }
     if (len(instructor_ipynb_files) == 0) {
