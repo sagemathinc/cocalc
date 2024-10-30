@@ -5,7 +5,7 @@ import {
 } from "./auth-check-required-sso";
 import { Strategy } from "./types/sso";
 
-const SSO = {
+const SSO: Readonly<Omit<Strategy, "name" | "exclusiveDomains">> = {
   display: "",
   backgroundColor: "",
   public: false,

@@ -15,23 +15,24 @@ Sign up for a new account:
 5. Sign user in
 */
 
-import { v4 } from "uuid";
 import { Request, Response } from "express";
-import {
-  len,
-  is_valid_email_address as isValidEmailAddress,
-} from "@cocalc/util/misc";
-import isAccountAvailable from "@cocalc/server/auth/is-account-available";
-import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
-import createAccount from "@cocalc/server/accounts/create-account";
-import { getAccount, signUserIn } from "./sign-in";
-import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
-import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
+import { v4 } from "uuid";
+
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import getParams from "lib/api/get-params";
-import reCaptcha from "@cocalc/server/auth/recaptcha";
-import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
+import createAccount from "@cocalc/server/accounts/create-account";
+import isAccountAvailable from "@cocalc/server/auth/is-account-available";
 import passwordStrength from "@cocalc/server/auth/password-strength";
+import reCaptcha from "@cocalc/server/auth/recaptcha";
+import { isExclusiveSSOEmail } from "@cocalc/server/auth/throttle";
+import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
+import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
+import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
+import {
+  is_valid_email_address as isValidEmailAddress,
+  len,
+} from "@cocalc/util/misc";
+import getParams from "lib/api/get-params";
+import { getAccount, signUserIn } from "./sign-in";
 
 interface Issues {
   terms?: string;
@@ -128,11 +129,12 @@ export default async function signUp(req: Request, res: Response) {
       });
       return;
     }
-    const exclusive = await isDomainExclusiveSSO(email);
+    const exclusive = await isExclusiveSSOEmail(email);
     if (exclusive) {
+      const name = exclusive.display ?? exclusive.name;
       res.json({
         issues: {
-          email: `To sign up with "@${exclusive}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
+          email: `To sign up with "@${name}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
         },
       });
       return;

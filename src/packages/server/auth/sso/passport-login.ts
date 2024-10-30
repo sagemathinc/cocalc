@@ -21,7 +21,6 @@
 
 import Cookies from "cookies";
 import * as _ from "lodash";
-import { isEmpty } from "lodash";
 
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import base_path from "@cocalc/backend/base-path";
@@ -247,34 +246,38 @@ export class PassportLogin {
     });
   }
 
-  // this checks if the login info contains an email address, which belongs to an exclusive SSO strategy
-  private checkExclusiveSSO(opts: PassportLoginOpts): boolean {
-    const strategy = opts.passports[opts.strategyName];
+  private emailBelongsToStrategy(
+    email_address: string,
+    strategy: PassportStrategyDB,
+  ): boolean {
     const exclusiveDomains = strategy.info?.exclusive_domains ?? [];
-    if (!isEmpty(exclusiveDomains)) {
-      for (const email of opts.emails ?? []) {
-        FIX ME
-        const emailDomain = getEmailDomain(email.toLowerCase());
-        for (const ssoDomain of exclusiveDomains) {
-          if (emailBelongsToDomain(emailDomain, ssoDomain)) {
-            return true;
-          }
-        }
+    const emailDomain = getEmailDomain(email_address.toLowerCase());
+    for (const ssoDomain of exclusiveDomains) {
+      if (ssoDomain === "*" || emailBelongsToDomain(emailDomain, ssoDomain)) {
+        return true;
       }
     }
     return false;
   }
 
-  // similar to the above, for a specific email address
+  // this checks if the login info contains an email address, which belongs to an exclusive SSO strategy
+  // this only checks for a single (given) strategy, in the checkPassportExists method.
+  private checkExclusiveSSO(opts: PassportLoginOpts): boolean {
+    const strategy = opts.passports[opts.strategyName];
+    for (const email_address of opts.emails ?? []) {
+      if (this.emailBelongsToStrategy(email_address, strategy)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // similar to the above, for a specific email address. The difference is, this covers all known strategies.
   private checkEmailExclusiveSSO(email_address: string): boolean {
-    const emailDomain = getEmailDomain(email_address.toLowerCase());
     for (const strategyName in this.opts.passports) {
-      FIX ME
       const strategy = this.opts.passports[strategyName];
-      for (const ssoDomain of strategy.info?.exclusive_domains ?? []) {
-        if (emailBelongsToDomain(emailDomain, ssoDomain)) {
-          return true;
-        }
+      if (this.emailBelongsToStrategy(email_address, strategy)) {
+        return true;
       }
     }
     return false;

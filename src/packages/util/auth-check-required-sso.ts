@@ -25,7 +25,7 @@ interface Opts {
 export function checkRequiredSSO(opts: Opts): Strategy | undefined {
   const { email, strategies, specificStrategy } = opts;
   // if the domain of email is contained in any of the strategie's exclusiveDomain array, return that strategy's name
-  if (email == null) return;
+  if (!email) return;
   if (strategies == null || strategies.length === 0) return;
   if (email.indexOf("@") === -1) return;
   const emailDomain = getEmailDomain(email);

@@ -23,7 +23,7 @@ const ipLongCache = new LRU<string, number>({
   ttl: 1000 * 60 * 60,
 });
 
-async function isExclusiveEmail(email: string) {
+export async function isExclusiveSSOEmail(email: string) {
   const strategies = await getStrategies();
   return checkRequiredSSO({ email, strategies });
 }
@@ -52,7 +52,7 @@ export async function signInCheck(
   }
   // unless user has an auth token, we check if the email address is part of an exclusive SSO mechanism (and block password sign ins)
   if (!auth_token) {
-    const exclusiveSSO = await isExclusiveEmail(email);
+    const exclusiveSSO = await isExclusiveSSOEmail(email);
     if (exclusiveSSO != null) {
       const name = exclusiveSSO.display ?? exclusiveSSO.name;
       return `You have to sign in using the Single-Sign-On mechanism "${name}" of your institution.`;
