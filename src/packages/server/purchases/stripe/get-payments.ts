@@ -1,6 +1,5 @@
 import getConn from "@cocalc/server/stripe/connection";
 import { getStripeCustomerId } from "./util";
-import { is_date } from "@cocalc/util/misc";
 
 export default async function getPayments({
   account_id,
@@ -10,9 +9,10 @@ export default async function getPayments({
   limit,
 }: {
   account_id: string;
-  // these are all as seconds since epoch, and yes as a *string* or object with numbers.
-  created?: string | { gt?: number; gte?: number; lt?: number; lte?: number };
-  // see https://docs.stripe.com/api/payment_intents/list for meaning of ending_before and starting_after
+  // see https://docs.stripe.com/api/payment_intents/list for meaning of the params,
+  // which we pass on EXACTLY to stripe.  In particular, dates are *seconds* since epoch,
+  // sometimes as strings and sometimes as numbers.
+  created?;
   ending_before?: string;
   starting_after?: string;
   limit?: number;

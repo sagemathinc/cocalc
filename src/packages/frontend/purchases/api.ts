@@ -484,5 +484,3 @@ export async function getPayments(
   return await api("purchases/stripe/get-payments", opts);
 }
 
-window.x = { getPayments };
-
