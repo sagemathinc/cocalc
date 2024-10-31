@@ -449,16 +449,6 @@ export async function getStripePublishableKey(): Promise<string> {
   return stripe_publishable_key as string;
 }
 
-export async function getOpenPaymentIntents(
-  opts: {
-    // only admins can use this -- if given, gets the open payments for that user.
-    user_account_id?: string;
-  } = {},
-) {
-  const { data } = await api("purchases/get-open-payment-intents", opts);
-  return data;
-}
-
 // only admins can do this
 export async function cancelPaymentIntent(opts: {
   id: string;
@@ -466,7 +456,6 @@ export async function cancelPaymentIntent(opts: {
 }) {
   await api("purchases/cancel-payment-intent", opts);
 }
-
 
 export async function getPayments(
   opts: {

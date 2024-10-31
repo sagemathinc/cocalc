@@ -66,7 +66,7 @@ export default function useAsyncLoad<T>({
 
   useEffect(() => {
     callF();
-  }, [counter]);
+  }, [counter, f]);
 
   const refresh = () => setCounter(counter + 1);
 

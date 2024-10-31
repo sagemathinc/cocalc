@@ -60,7 +60,9 @@ export default function PurchasesPage() {
         }}
       />
       <Divider orientation="left" style={{ marginTop: "30px" }}>
-        Transactions During the Last Day
+        <Tooltip title="These are recent payments made within CoCalc using internal CoCalc credit.">
+          Transactions During the Last Day
+        </Tooltip>
       </Divider>
       <div>
         <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
@@ -91,7 +93,9 @@ export default function PurchasesPage() {
         refreshRef={refreshPurchasesRef}
       />
       <Divider orientation="left" style={{ marginTop: "30px" }}>
-        All Transactions, Spending Limits, and Plots
+        <Tooltip title="These are all payments made within CoCalc using internal CoCalc credit.">
+          All Transactions, Spending Limits, and Plots
+        </Tooltip>
       </Divider>
       <Collapse
         destroyInactivePanel /* so that data is refreshed when they are shown */

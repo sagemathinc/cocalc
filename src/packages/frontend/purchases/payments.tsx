@@ -1,7 +1,18 @@
-import { type CSSProperties, useState } from "react";
-import { cancelPaymentIntent, getOpenPaymentIntents } from "./api";
-import useAsyncLoad from "@cocalc/frontend/misc/use-async-load";
-import { Alert, Button, Popconfirm, Select, Space, Table } from "antd";
+import { useEffect, useState } from "react";
+import { cancelPaymentIntent, getPayments } from "./api";
+import {
+  Alert,
+  Button,
+  Divider,
+  Flex,
+  Popconfirm,
+  Select,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Tooltip,
+} from "antd";
 import { FinishStripePayment } from "./stripe-payment";
 import { capitalize, currency, plural, replace_all } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -10,71 +21,150 @@ import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
 
 interface Props {
-  style?: CSSProperties;
   refresh?: () => Promise<void>;
   refreshPaymentsRef?;
   // if you are an admin and want to view a different user's incomplete payments
   account_id?: string;
 }
 
-export default function IncompletePayments({
+export default function Payments({
   refresh,
-  style,
   refreshPaymentsRef,
   account_id,
 }: Props) {
-  const {
-    component,
-    result,
-    loading,
-    refresh: reload,
-  } = useAsyncLoad<any>({
-    f: async () => getOpenPaymentIntents({ user_account_id: account_id }),
-    throttleWait: 5000,
-    refreshStyle: { float: "right", margin: "5px 0 0 15px" },
-  });
+  const [error, setError] = useState<string>("");
+  const [hasLoadedMore, setHasLoadedMore] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [data, setData] = useState<null | any[]>(null);
+  const [hasMore, setHasMore] = useState<boolean | null>(null);
+
+  const loadMore = async (init?) => {
+    try {
+      setError("");
+      setLoading(true);
+      let result;
+      if (init || data == null) {
+        result = await getPayments({
+          user_account_id: account_id,
+          limit: 3,
+        });
+        setData(result.data);
+        setHasLoadedMore(false);
+      } else {
+        result = await getPayments({
+          user_account_id: account_id,
+          starting_after: data[data.length - 1].id,
+          limit: 100,
+        });
+        setData(data.concat(result.data));
+        setHasLoadedMore(true);
+      }
+      setHasMore(result.has_more);
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMore(true);
+  }, [account_id]);
 
   if (refreshPaymentsRef != null) {
-    refreshPaymentsRef.current = reload;
-  }
-
-  if (loading) {
-    return component;
+    refreshPaymentsRef.current = () => {
+      loadMore(true);
+    };
   }
 
   return (
-    <div style={style}>
-      {component}
-      {result?.length == 0 && (
-        <Alert
-          showIcon
-          type="success"
-          message="All outstanding payments are complete!"
-        />
-      )}
-      {result?.length > 0 && (
-        <Alert
-          style={{ margin: "15px 0", textAlign: "left" }}
-          showIcon
-          type="warning"
-          message={`${account_id ? "User has " : "You have "} ${result?.length} incomplete outstanding ${plural(result?.length, "payment")}.  Successful payments take a few minutes to process.`}
-        />
-      )}
-      {result?.length > 0 && (
-        <PaymentIntentsTable
-          paymentIntents={result}
-          onFinished={() => {
-            reload();
-            refresh?.();
+    <div>
+      <Flex>
+        <div style={{ flex: 1 }}>
+          <Divider orientation="left">
+            <Tooltip title="These are cash payments to CoCalc from some outside source.">
+              {describeNumber(data?.length, hasMore, loadMore, loading)}
+            </Tooltip>
+            {loading && <Spin style={{ marginLeft: "15px" }} />}
+          </Divider>
+        </div>
+        <Button
+          style={{ marginTop: "15px" }}
+          type="link"
+          onClick={() => {
+            loadMore(true);
           }}
-          account_id={account_id}
-        />
-      )}
+        >
+          <Icon name="refresh" /> Refresh
+        </Button>
+      </Flex>
+      <div>
+        <ShowError error={error} setError={setError} />
+        {data?.length == 0 && !hasMore && (
+          <Alert showIcon type="info" message="No payments" />
+        )}
+        {data != null && (
+          <>
+            <PaymentIntentsTable
+              paymentIntents={data}
+              onFinished={() => {
+                loadMore(true);
+                refresh?.();
+              }}
+              account_id={account_id}
+              scroll={hasLoadedMore ? { y: 800 } : undefined}
+            />
+            <div style={{ display: "flex" }}>
+              <div style={{ flex: 1 }} />
+              <Button
+                style={{ marginTop: "10px" }}
+                disabled={!hasMore || loading}
+                onClick={() => {
+                  loadMore();
+                }}
+              >
+                {hasMore
+                  ? "Load More..."
+                  : `All ${data.length} ${plural(data.length, "payment")} are loaded`}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
+function describeNumber(n, hasMore, loadMore, loading) {
+  if (n == null) {
+    return "";
+  }
+  if (n == 0) {
+    return "(none yet)";
+  }
+  if (hasMore) {
+    return (
+      <>
+        Most Recent {n} Payments{" "}
+        <Button type="link" disabled={loading} onClick={() => loadMore()}>
+          load more
+        </Button>
+      </>
+    );
+  }
+  return (
+    <>
+      All {n} {plural(n, "Payment")}
+    </>
+  );
+}
+
+function PaymentIntentsTable({
+  paymentIntents,
+  onFinished,
+  account_id,
+  scroll,
+}) {
   const columns = [
     {
       title: "Amount",
@@ -96,7 +186,7 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
                   name="credit-card"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                Fill in your payment details
+                <Tag color="#688ff1">Fill in payment details</Tag>
               </div>
             );
           case "requires_confirmation":
@@ -107,7 +197,7 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
                   rotate="180"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                Confirm payment
+                <Tag color="#688ff1">Confirm payment</Tag>
               </div>
             );
           case "requires_action":
@@ -117,7 +207,7 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
                   name="lock"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                Authenticate your payment method
+                <Tag color="#688ff1">Authenticate your payment</Tag>
               </div>
             );
           case "processing":
@@ -127,7 +217,7 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
                   name="clock"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                Processing your order...
+                <Tag color="#688ff1">Processing your order...</Tag>
               </div>
             );
 
@@ -138,7 +228,7 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
                   name="check-circle"
                   style={{ color: "#33c280", marginRight: "5px" }}
                 />
-                Payment successful
+                <Tag color="green">Payment successful</Tag>
               </div>
             );
 
@@ -149,7 +239,7 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
                   name="warning"
                   style={{ color: "#ed5f74", marginRight: "5px" }}
                 />
-                Your order was canceled
+                <Tag color="#ed5f74">Order was canceled</Tag>
               </div>
             );
 
@@ -183,6 +273,7 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
 
   return (
     <Table
+      scroll={scroll}
       pagination={false}
       dataSource={dataSource}
       columns={columns}
@@ -260,16 +351,16 @@ function AdminCancelPayment({ id, onFinished }) {
   );
 }
 
-export function IncompletePaymentsButton(props: Props) {
+export function PaymentsButton(props: Props) {
   const [show, setShow] = useState<boolean>(false);
   return (
     <div>
       <Button onClick={() => setShow(!show)}>
-        <Icon name="credit-card" /> Incomplete Payments...
+        <Icon name="credit-card" /> Payments...
       </Button>
       {show && (
         <div style={{ marginTop: "8px" }}>
-          <IncompletePayments {...props} />
+          <Payments {...props} />
         </div>
       )}
     </div>

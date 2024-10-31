@@ -17,7 +17,7 @@ import {
 import Config from "./config";
 import Refresh from "./refresh";
 import { currency, round2down } from "@cocalc/util/misc";
-import IncompletePayments from "./incomplete-payments";
+import Payments from "./payments";
 
 const MAX_WIDTH = "900px";
 
@@ -106,15 +106,6 @@ export default function AccountStatus({
           />
         </div>
       </div>
-      <Divider orientation="left">Incomplete Payments</Divider>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ maxWidth: MAX_WIDTH, margin: "15px auto" }}>
-          <IncompletePayments
-            refresh={handleRefresh}
-            refreshPaymentsRef={refreshPaymentsRef}
-          />
-        </div>
-      </div>
       <Divider orientation="left">Automatic Purchases</Divider>
       <div>
         <div style={{ margin: "auto", maxWidth: MAX_WIDTH }}>
@@ -136,6 +127,10 @@ export default function AccountStatus({
           </Space>
         </div>
       </div>
+      <Payments
+        refresh={handleRefresh}
+        refreshPaymentsRef={refreshPaymentsRef}
+      />
     </div>
   );
 }
