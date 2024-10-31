@@ -1,7 +1,7 @@
 import { isValidUUID } from "@cocalc/util/misc";
 import getConn from "@cocalc/server/stripe/connection";
 import { getLogger } from "@cocalc/backend/logger";
-import { getStripeCustomerId } from "@cocalc/server/purchases/stripe-util";
+import { getStripeCustomerId } from "@cocalc/server/purchases/stripe/util";
 
 const log = getLogger("billing:get-invoices");
 

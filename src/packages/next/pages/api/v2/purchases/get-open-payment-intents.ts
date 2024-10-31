@@ -1,6 +1,6 @@
 import getAccountId from "lib/account/get-account";
 import { getAllOpenPaymentIntents } from "@cocalc/server/purchases/payment-intent";
-import throttle from "@cocalc/server/api/throttle";
+import throttle from "@cocalc/util/api/throttle";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
@@ -30,8 +30,7 @@ async function get(req) {
 
   throttle({
     account_id,
-    endpoint: "get-open-payment-intents",
-    interval: 2000,
+    endpoint: "purchases/get-open-payment-intents",
   });
   const data = await getAllOpenPaymentIntents(account_id);
   return { success: true, data };

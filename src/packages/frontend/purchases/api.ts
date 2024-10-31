@@ -20,6 +20,7 @@ import type {
   PaymentIntentSecret,
   PaymentIntentCancelReason,
 } from "@cocalc/util/stripe/types";
+import throttle from "@cocalc/util/api/throttle";
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -465,4 +466,23 @@ export async function cancelPaymentIntent(opts: {
 }) {
   await api("purchases/cancel-payment-intent", opts);
 }
+
+
+export async function getPayments(
+  opts: {
+    // only admins can use this -- if given, gets the open payments for *that* user.
+    user_account_id?: string;
+    // the rest of the parameters are EXACTLY as for this api endpoint for stripe
+    // with all its quirks:   https://docs.stripe.com/api/payment_intents/list
+    created?: string | { gt?: number; gte?: number; lt?: number; lte?: number };
+    ending_before?: string;
+    starting_after?: string;
+    limit?: number;
+  } = {},
+) {
+  throttle({ endpoint: "purchases/stripe/get-payments" });
+  return await api("purchases/stripe/get-payments", opts);
+}
+
+window.x = { getPayments };
 

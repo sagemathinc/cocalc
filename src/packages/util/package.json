@@ -38,6 +38,7 @@
   "dependencies": {
     "@ant-design/colors": "^6.0.0",
     "@cocalc/util": "workspace:*",
+    "@isaacs/ttlcache": "^1.2.1",
     "@types/debug": "^4.1.12",
     "async": "^1.5.2",
     "awaiting": "^3.0.0",

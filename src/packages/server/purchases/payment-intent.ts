@@ -1,12 +1,11 @@
 import getConn from "@cocalc/server/stripe/connection";
 import getLogger from "@cocalc/backend/logger";
-import { getStripeCustomerId, sanityCheckAmount } from "./stripe-util";
+import { getStripeCustomerId, sanityCheckAmount } from "./stripe/util";
 import type {
   PaymentIntentSecret,
   PaymentIntentCancelReason,
   LineItem,
 } from "@cocalc/util/stripe/types";
-import throttle from "@cocalc/server/api/throttle";
 import createCredit from "./create-credit";
 import getPool from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
@@ -60,10 +59,6 @@ export async function createInvoice({
       "metadata must not include 'purpose', 'account_id', 'confirm' or 'processed' as a key",
     );
   }
-
-  // packages/frontend/purchases/stripe-payment.tsx assumes that this interval below
-  // is 2seconds or less.
-  throttle({ account_id, endpoint: "create-payment-intent", interval: 2000 });
 
   await sanityCheckAmount(amount);
 
@@ -187,10 +182,6 @@ export async function createPaymentIntent({
       "metadata must not include 'purpose', 'account_id', 'confirm' or 'processed' as a key",
     );
   }
-
-  // packages/frontend/purchases/stripe-payment.tsx assumes that this interval below
-  // is 2seconds or less.
-  throttle({ account_id, endpoint: "create-payment-intent", interval: 2000 });
 
   await sanityCheckAmount(amount);
 
@@ -380,11 +371,6 @@ export async function getOpenPaymentIntent({ customer, purpose, confirm }) {
 }
 
 export async function processPaymentIntents(account_id): Promise<number> {
-  throttle({
-    account_id,
-    endpoint: "process-payment-intents",
-    interval: 10000,
-  });
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) {
     return 0;
@@ -550,7 +536,7 @@ export async function getAllOpenPaymentIntents(account_id: string) {
     return [];
   }
 
-  // note that the query index is only updated *after a few seconds* so NOT reliable.
+  // note that the query index is only updated *after a few seconds* to hour(s) so NOT reliable immediately!
   // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
   const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" AND -status:"canceled"`;
   const stripe = await getConn();

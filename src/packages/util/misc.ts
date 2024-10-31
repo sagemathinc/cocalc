@@ -2444,13 +2444,23 @@ export function test_valid_jsonpatch(patch: any): boolean {
     return false;
   }
   for (const op of patch) {
-    if (!is_object(op)) return false;
-    if (op.op == null) return false;
-    if (!["add", "remove", "replace", "move", "copy", "test"].includes(op.op)) {
+    if (!is_object(op)) {
       return false;
     }
-    if (op.path == null) return false;
-    if (op.from != null && typeof op.from !== "string") return false;
+    if (op["op"] == null) {
+      return false;
+    }
+    if (
+      !["add", "remove", "replace", "move", "copy", "test"].includes(op["op"])
+    ) {
+      return false;
+    }
+    if (op["path"] == null) {
+      return false;
+    }
+    if (op["from"] != null && typeof op["from"] !== "string") {
+      return false;
+    }
     // we don't test on value
   }
   return true;

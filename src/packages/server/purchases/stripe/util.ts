@@ -9,7 +9,7 @@ import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 
 const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 
-const logger = getLogger("purchases:stripe-util");
+const logger = getLogger("purchases:stripe:util");
 
 async function createStripeCustomer(account_id: string): Promise<string> {
   logger.debug("createStripeCustomer", account_id);

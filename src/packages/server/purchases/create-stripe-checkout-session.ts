@@ -13,8 +13,7 @@ import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";
 import type { LineItem } from "@cocalc/util/stripe/types";
-import throttle from "@cocalc/server/api/throttle";
-import { getStripeCustomerId, sanityCheckAmount } from "./stripe-util";
+import { getStripeCustomerId, sanityCheckAmount } from "./stripe/util";
 
 const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 const logger = getLogger("purchases:create-stripe-checkout-session");
@@ -34,8 +33,6 @@ export const createStripeCheckoutSession = async (
   const { account_id, cancel_url, force, line_items, success_url, token } =
     opts;
   logger.debug("createStripeCheckoutSession", opts);
-
-  throttle({ account_id, endpoint: "create-stripe-checkout", interval: 30000 });
 
   const cartTotal = line_items.reduce(
     (total, line_item) => total + line_item.amount,
