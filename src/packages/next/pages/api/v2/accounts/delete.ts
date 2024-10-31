@@ -4,7 +4,6 @@ Delete the account that the user is currently signed in using.
 
 import getAccountId from "lib/account/get-account";
 import deleteAccount from "@cocalc/server/accounts/delete";
-
 import isPost from "lib/api/is-post";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import { SuccessStatus } from "lib/api/status";
@@ -19,6 +18,8 @@ async function handle(req, res) {
       }
       await deleteAccount(account_id);
       res.json(SuccessStatus);
+    } else {
+      throw Error("must be a POST request");
     }
   } catch (err) {
     res.json({ error: err.message });
