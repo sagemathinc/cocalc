@@ -145,6 +145,8 @@ function loadAntdLocale(locale: Locale): Promise<AntdLocale> {
         return import("antd/locale/zh_CN");
       case "es":
         return import("antd/locale/es_ES");
+      case "nl":
+        return import("antd/locale/nl_NL");
       case "ru":
         return import("antd/locale/ru_RU");
       case "fr":

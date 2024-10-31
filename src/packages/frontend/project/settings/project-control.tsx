@@ -277,7 +277,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
       <div style={{ marginTop: "10px" }}>
         <LabeledRow
           key="cpu-usage"
-          label="Software Environment"
+          label={intl.formatMessage(labels.software_environment)}
           style={rowstyle(true)}
           vertical={isFlyout}
         >

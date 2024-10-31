@@ -204,7 +204,8 @@
     "i18n:extract": "bash ./i18n/bin/extract.sh",
     "i18n:upload": "bash ./i18n/bin/upload.sh",
     "i18n:download": "bash ./i18n/bin/download.sh",
-    "i18n:compile": "bash ./i18n/bin/compile.sh"
+    "i18n:compile": "bash ./i18n/bin/compile.sh",
+    "i18n:unused": "bash ./i18n/bin/unused.sh"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
   "repository": {
