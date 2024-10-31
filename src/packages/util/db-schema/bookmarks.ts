@@ -49,6 +49,7 @@ Table({
           {
             "project_id = $::UUID": "project_id",
             "account_id = $::UUID": "account_id",
+            "type  = $::TEXT": "type",
           },
         ],
         fields: {
