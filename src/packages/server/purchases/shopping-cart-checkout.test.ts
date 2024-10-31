@@ -172,6 +172,7 @@ describe("shopping-cart-checkout", () => {
       const testCart = [
         {
           product: "site-license",
+          lineItemAmount: 1.5,
           checked: true,
           description: testDescription,
         },

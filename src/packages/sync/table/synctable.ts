@@ -378,7 +378,7 @@ export class SyncTable extends EventEmitter {
       //console.log(`set('${this.table}'): ${JSON.stringify(changes.toJS())}`);
     }
     // For sanity!
-    changes = this.do_coerce_types(changes);
+    changes = this.do_coerce_types(changes as any);
     // Ensure that each key is allowed to be set.
     if (this.client_query.set == null) {
       throw Error(`users may not set ${this.table}`);

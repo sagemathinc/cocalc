@@ -383,9 +383,9 @@ export class Changes extends EventEmitter {
         // Inputs to condition come back as JSON, which doesn't know
         // about timestamps, so we convert them to date objects.
         if (op == "=" || op == "==") {
-          f = (x) => new Date(x).valueOf() - val === 0;
+          f = (x) => new Date(x).valueOf() - val.valueOf() === 0;
         } else if (op == "!=" || op == "<>") {
-          f = (x) => new Date(x).valueOf() - val !== 0;
+          f = (x) => new Date(x).valueOf() - val.valueOf() !== 0;
         } else {
           g = opToFunction(op);
           f = (x) => g(new Date(x), val);
