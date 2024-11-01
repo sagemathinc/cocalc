@@ -17,9 +17,9 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import type { LineItem, PaymentIntentSecret } from "@cocalc/util/stripe/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  createPaymentIntent,
+  //createPaymentIntent,
   getCheckoutSession,
   processPaymentIntents,
 } from "./api";
@@ -124,7 +124,7 @@ function StripeCheckout({
               secret = await getCheckoutSession({
                 lineItems,
                 description,
-                purpose,
+                purpose: purpose + "x",
               });
               break;
             } catch (err) {
@@ -163,13 +163,22 @@ function StripeCheckout({
   return (
     <div>
       {loading && <BigSpin />}
-      <EmbeddedCheckoutProvider options={secret} stripe={loadStripe()}>
+      <EmbeddedCheckoutProvider
+        options={{
+          fetchClientSecret: async () => secret.clientSecret,
+          onComplete: () => {
+            onFinished?.();
+          },
+        }}
+        stripe={loadStripe()}
+      >
         <EmbeddedCheckout />
       </EmbeddedCheckoutProvider>
     </div>
   );
 }
 
+/*
 function StripeElements({
   amount,
   description,
@@ -262,6 +271,7 @@ function StripeElements({
     </Elements>
   );
 }
+*/
 
 export function FinishStripePayment({
   paymentIntent,
@@ -469,10 +479,19 @@ const LINE_ITEMS_COLUMNS = [
 ];
 
 function LineItemsTable({ lineItems }) {
+  const dataSource = useMemo(() => {
+    let key = 1;
+    return lineItems.map((x) => {
+      key += 1;
+      return { key, ...x };
+    });
+  }, [lineItems]);
+
   return (
     <Table
+      rowKey={"description"}
       pagination={false}
-      dataSource={lineItems}
+      dataSource={dataSource}
       columns={LINE_ITEMS_COLUMNS}
     />
   );

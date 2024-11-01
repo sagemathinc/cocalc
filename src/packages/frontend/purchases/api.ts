@@ -482,6 +482,5 @@ export async function getCheckoutSession(
   return await api("purchases/stripe/get-checkout-session", opts);
 }
 
-window.x = { getCheckoutSession };
 
 

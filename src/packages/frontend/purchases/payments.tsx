@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cancelPaymentIntent, getPayments } from "./api";
 import {
   Alert,
@@ -14,7 +14,13 @@ import {
   Tooltip,
 } from "antd";
 import { FinishStripePayment } from "./stripe-payment";
-import { capitalize, currency, plural, replace_all } from "@cocalc/util/misc";
+import {
+  capitalize,
+  currency,
+  field_cmp,
+  plural,
+  replace_all,
+} from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
@@ -37,19 +43,47 @@ export default function Payments({
   const [loading, setLoading] = useState<boolean>(false);
   const [data, setData] = useState<null | any[]>(null);
   const [hasMore, setHasMore] = useState<boolean | null>(null);
+  const lastLoadRef = useRef<number>(0);
 
-  const loadMore = async (init?) => {
+  const loadMore = async ({
+    init,
+    reset,
+  }: { init?: boolean; reset?: boolean } = {}) => {
+    const now = Date.now();
+    if (now - lastLoadRef.current < 500) {
+      return;
+    }
+    lastLoadRef.current = now;
+
     try {
       setError("");
       setLoading(true);
       let result;
-      if (init || data == null) {
+      if (init || data == null || reset) {
         result = await getPayments({
           user_account_id: account_id,
-          limit: 3,
+          limit: 5,
         });
-        setData(result.data);
-        setHasLoadedMore(false);
+        if (reset || data == null || data.length == 0) {
+          setData(result.data);
+          setHasLoadedMore(false);
+        } else {
+          // merge into existing data.
+          const x: any = {};
+          for (const y of data) {
+            x[y.id] = y;
+          }
+          for (const y of result.data) {
+            x[y.id] = y;
+          }
+          const v: any[] = [];
+          for (const id in x) {
+            v.push(x[id]);
+          }
+          v.sort(field_cmp("created"));
+          v.reverse();
+          setData(v);
+        }
       } else {
         result = await getPayments({
           user_account_id: account_id,
@@ -68,12 +102,12 @@ export default function Payments({
   };
 
   useEffect(() => {
-    loadMore(true);
+    loadMore({ init: true, reset: true });
   }, [account_id]);
 
   if (refreshPaymentsRef != null) {
     refreshPaymentsRef.current = () => {
-      loadMore(true);
+      loadMore({ init: true });
     };
   }
 
@@ -92,7 +126,7 @@ export default function Payments({
           style={{ marginTop: "15px" }}
           type="link"
           onClick={() => {
-            loadMore(true);
+            loadMore({ init: true });
           }}
         >
           <Icon name="refresh" /> Refresh
@@ -108,7 +142,7 @@ export default function Payments({
             <PaymentIntentsTable
               paymentIntents={data}
               onFinished={() => {
-                loadMore(true);
+                loadMore({ init: true });
                 refresh?.();
               }}
               account_id={account_id}
@@ -277,7 +311,6 @@ function PaymentIntentsTable({
       pagination={false}
       dataSource={dataSource}
       columns={columns}
-      rowKey={({ key }) => key}
       expandable={{
         expandRowByClick: true,
         rowExpandable: (record: any) => {
