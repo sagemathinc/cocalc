@@ -91,7 +91,7 @@ export function set_url(url: string, hash?: string) {
   const query_params = params();
   const full_url = join(
     appBasePath,
-    url + query_params + (hash ?? location.hash)
+    url + query_params + (hash ?? location.hash),
   );
   if (full_url === last_full_url) {
     // nothing to do
@@ -105,7 +105,7 @@ export function set_url(url: string, hash?: string) {
 export function load_target(
   target: string,
   ignore_kiosk: boolean = false,
-  change_history: boolean = true
+  change_history: boolean = true,
 ) {
   if (!target) {
     return;
@@ -125,7 +125,7 @@ export function load_target(
             true,
             ignore_kiosk,
             change_history,
-            Fragment.get()
+            Fragment.get(),
           );
       } else {
         redux.getActions("page").set_active_tab("projects", change_history);
@@ -179,11 +179,11 @@ window.onpopstate = (_) => {
   load_target(
     decodeURIComponent(
       document.location.pathname.slice(
-        appBasePath.length + (appBasePath.endsWith("/") ? 0 : 1)
-      )
+        appBasePath.length + (appBasePath.endsWith("/") ? 0 : 1),
+      ),
     ),
     false,
-    false
+    false,
   );
 };
 
