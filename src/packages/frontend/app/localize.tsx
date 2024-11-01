@@ -110,6 +110,11 @@ export function Localize({ children }: { children: React.ReactNode }) {
                 {ch}
               </Text>
             ),
+            i: (ch) => (
+              <Text italic key={getKey("i")}>
+                {ch}
+              </Text>
+            ),
             p: (ch) => <Paragraph key={getKey("p")}>{ch}</Paragraph>,
             code: (ch) => (
               <Text code key={getKey("code")}>

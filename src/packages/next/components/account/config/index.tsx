@@ -16,7 +16,6 @@ import "./editor/appearance";
 import "./editor/jupyter";
 import "./editor/terminal";
 import "./editor/options";
-import "./editor/keyboard";
 
 import "./system/appearance";
 import "./system/behavior";
