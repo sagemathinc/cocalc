@@ -12,7 +12,22 @@ Sign up for a new account:
 3. Generate a random account_id. Do not check it is not already taken, since that's
    highly unlikely, and the insert in 4 would fail anyways.
 4. Write account to the database.
-5. Sign user in
+5. Sign user in (if not being used via the API).
+
+This can also be used via the API, but the client must have a minimum balance
+of at least - $100.
+
+
+API Usage:
+
+curl -u sk_abcdefQWERTY090900000000: \
+  -d firstName=John00 \
+  -d lastName=Doe00 \
+  -d email=jd@example.com \
+  -d password=xyzabc09090 \
+  -d terms=true https://cocalc.com/api/v2/auth/sign-up
+
+TIP: If you want to pass in an email like jd+1@example.com, use '%2B' in place of '+'.
 */
 
 import { v4 } from "uuid";
@@ -32,6 +47,8 @@ import getParams from "lib/api/get-params";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
 import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
 import passwordStrength from "@cocalc/server/auth/password-strength";
+import assertTrusted from "lib/api/assert-trusted";
+import getAccountId from "lib/account/get-account";
 
 interface Issues {
   terms?: string;
@@ -89,15 +106,40 @@ export default async function signUp(req: Request, res: Response) {
   const { email_signup, anonymous_signup, anonymous_signup_licensed_shares } =
     await getServerSettings();
 
-  try {
-    await reCaptcha(req);
-  } catch (err) {
-    res.json({
-      issues: {
-        reCaptcha: err.message,
-      },
-    });
-    return;
+  const owner_id = await getAccountId(req);
+  if (owner_id) {
+    if (isAnonymous) {
+      res.json({
+        issues: {
+          api: "Creation of anonymous accounts via the API is not allowed.",
+        },
+      });
+      return;
+    }
+    // no captcha required -- api access
+    // We ONLY allow creation without checking the captcha
+    // for trusted users.
+    try {
+      await assertTrusted(owner_id);
+    } catch (err) {
+      res.json({
+        issues: {
+          api: `${err}`,
+        },
+      });
+      return;
+    }
+  } else {
+    try {
+      await reCaptcha(req);
+    } catch (err) {
+      res.json({
+        issues: {
+          reCaptcha: err.message,
+        },
+      });
+      return;
+    }
   }
 
   if (isAnonymous) {
@@ -167,6 +209,7 @@ export default async function signUp(req: Request, res: Response) {
       account_id,
       tags,
       signupReason,
+      owner_id,
     });
 
     if (email) {
@@ -178,21 +221,22 @@ export default async function signUp(req: Request, res: Response) {
         console.log(`WARNING: failed to send welcome email to ${email}`, err);
       }
     }
-
-    await signUserIn(req, res, account_id); // sets a cookie
+    if (!owner_id) {
+      await signUserIn(req, res, account_id); // sets a cookie
+    }
     res.json({ account_id });
   } catch (err) {
     res.json({ error: err.message });
   }
 }
 
-function checkObviousConditions({ terms, email, password }): Issues {
+export function checkObviousConditions({ terms, email, password }): Issues {
   const issues: Issues = {};
   if (!terms) {
     issues.terms = "You must agree to the terms of usage.";
   }
   if (!email || !isValidEmailAddress(email)) {
-    issues.email = "You must provide a valid email address.";
+    issues.email = `You must provide a valid email address -- '${email}' is not valid.`;
   }
   if (!password || password.length < 6) {
     issues.password = "Your password must not be very easy to guess.";
