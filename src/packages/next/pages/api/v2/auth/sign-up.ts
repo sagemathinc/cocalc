@@ -30,25 +30,26 @@ curl -u sk_abcdefQWERTY090900000000: \
 TIP: If you want to pass in an email like jd+1@example.com, use '%2B' in place of '+'.
 */
 
-import { v4 } from "uuid";
 import { Request, Response } from "express";
-import {
-  len,
-  is_valid_email_address as isValidEmailAddress,
-} from "@cocalc/util/misc";
+import { v4 } from "uuid";
+
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import createAccount from "@cocalc/server/accounts/create-account";
 import isAccountAvailable from "@cocalc/server/auth/is-account-available";
 import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
-import createAccount from "@cocalc/server/accounts/create-account";
-import { getAccount, signUserIn } from "./sign-in";
-import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
-import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import getParams from "lib/api/get-params";
-import reCaptcha from "@cocalc/server/auth/recaptcha";
-import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
 import passwordStrength from "@cocalc/server/auth/password-strength";
-import assertTrusted from "lib/api/assert-trusted";
+import reCaptcha from "@cocalc/server/auth/recaptcha";
+import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
+import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
+import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
+import {
+  is_valid_email_address as isValidEmailAddress,
+  len,
+} from "@cocalc/util/misc";
 import getAccountId from "lib/account/get-account";
+import assertTrusted from "lib/api/assert-trusted";
+import getParams from "lib/api/get-params";
+import { getAccount, signUserIn } from "./sign-in";
 
 interface Issues {
   terms?: string;
