@@ -25,9 +25,9 @@ import {
 import { IconRotation } from "@cocalc/frontend/components/icon";
 import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { ShowSupportLink } from "@cocalc/frontend/support";
 import { capitalize, copy_without, field_cmp, split } from "@cocalc/util/misc";
-import { isIntlMessage } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import {
   CommandDescription,
@@ -528,7 +528,7 @@ export const KeyboardShortcuts: React.FC<KeyboardShortcutsProps> = React.memo(
               Command (click to run)
             </Col>
             <Col md={4} sm={4}>
-              Keyboard shortcuts
+              {intl.formatMessage(labels.keyboard_shortcuts)}
             </Col>
           </Row>
         </Grid>

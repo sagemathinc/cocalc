@@ -3,7 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button } from "antd";
+import { Alert, Button, Col, Row } from "antd";
+import { Map, Set } from "immutable";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import {
   AppRedux,
   useActions,
@@ -11,11 +14,11 @@ import {
   useRedux,
   useState,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Gap, Tip } from "@cocalc/frontend/components";
+import { Gap, Icon, Tip } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
+import { course } from "@cocalc/frontend/i18n";
 import { cmp_array } from "@cocalc/util/misc";
-import { Alert, Col, Row } from "antd";
-import { Map, Set } from "immutable";
+
 import { CourseActions } from "../actions";
 import { AddItems, FoldersToolbar } from "../common/folders-tool-bar";
 import {
@@ -52,6 +55,8 @@ export function AssignmentsPanel(props: Props) {
     user_map,
     frameActions,
   } = props;
+
+  const intl = useIntl();
 
   const course_actions = useActions<CourseActions>({ name });
 
@@ -169,8 +174,18 @@ export function AssignmentsPanel(props: Props) {
     return (
       <div style={{ borderBottom: "1px solid #e5e5e5" }}>
         <Row style={{ marginRight: "0px" }}>
-          <Col md={12}>{render_sort_link("dir_name", "Assignment Name")}</Col>
-          <Col md={12}>{render_sort_link("due_date", "Due Date")}</Col>
+          <Col md={12}>
+            {render_sort_link(
+              "dir_name",
+              intl.formatMessage({
+                id: "course.assignments-panel.table-header.assignments",
+                defaultMessage: "Assignment Name",
+              }),
+            )}
+          </Col>
+          <Col md={12}>
+            {render_sort_link("due_date", intl.formatMessage(course.due_date))}
+          </Col>
         </Row>
       </div>
     );
@@ -225,26 +240,39 @@ export function AssignmentsPanel(props: Props) {
           message={
             <b>
               <a onClick={() => frameActions.setModal("add-assignments")}>
-                Add Assignments to your Course
+                <FormattedMessage
+                  id="course.assignments-panel.no_assignments.message"
+                  defaultMessage={"Add Assignments to your Course"}
+                  description={"online course for students"}
+                />
               </a>
             </b>
           }
           description={
             <div>
-              <p>
-                An assignment is a <i>directory</i> of files somewhere in your
-                CoCalc project. You copy the assignment to your students and
-                they work on it; later, you collect it, grade it, and return the
-                graded version to them.
-              </p>
-              <p>
-                <a onClick={() => frameActions.setModal("add-assignments")}>
-                  Add assignments to your course
-                </a>{" "}
-                by clicking "Add Assignment..." above. You can create and select
-                one or more directories and they will become assignments that
-                you can then customize and distribute to your students.
-              </p>
+              <FormattedMessage
+                id="course.assignments-panel.no_assignments.description"
+                defaultMessage={`
+                  <p>
+                    An assignment is a <i>directory</i> of files somewhere in your
+                    CoCalc project. You copy the assignment to your students and
+                    they work on it; later, you collect it, grade it, and return the
+                    graded version to them.
+                  </p>
+                  <p>
+                    <A>Add assignments to your course</A> by clicking "Add Assignment..." above.
+                    You can create and select one or more directories and they will become assignments
+                    that you can then customize and distribute to your students.
+                  </p>`}
+                values={{
+                  A: (c) => (
+                    <a onClick={() => frameActions.setModal("add-assignments")}>
+                      {c}
+                    </a>
+                  ),
+                }}
+                description={"online course for students"}
+              />
             </div>
           }
         />

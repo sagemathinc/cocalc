@@ -824,7 +824,7 @@ importers:
         version: 2.1.2
       next:
         specifier: 14.2.15
-        version: 14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.3)
+        version: 14.2.15(@babel/core@7.25.8)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.4)
       nyc:
         specifier: ^15.1.0
         version: 15.1.0
@@ -1365,7 +1365,7 @@ importers:
         version: 0.3.3(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
       '@langchain/community':
         specifier: ^0.3.5
-        version: 0.3.5(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)
+        version: 0.3.5(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@11.5.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(ws@8.18.0)
       '@langchain/core':
         specifier: ^0.3.11
         version: 0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
@@ -13474,7 +13474,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@langchain/community@0.3.5(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@8.7.0)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.0)(ws@8.18.0)':
+  '@langchain/community@0.3.5(@google-ai/generativelanguage@2.7.0(encoding@0.1.13))(@google-cloud/storage@7.13.0(encoding@0.1.13))(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(@qdrant/js-client-rest@1.12.0(typescript@5.6.3))(axios@1.7.7)(better-sqlite3@11.5.0)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(google-auth-library@9.14.1(encoding@0.1.13))(googleapis@137.1.0(encoding@0.1.13))(handlebars@4.7.8)(ignore@5.3.1)(jsonwebtoken@9.0.2)(lodash@4.17.21)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(pg@8.13.1)(ws@8.18.0)':
     dependencies:
       '@langchain/core': 0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.3.7(@langchain/core@0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8)))(encoding@0.1.13)
@@ -13482,7 +13482,7 @@ snapshots:
       expr-eval: 2.0.2
       flat: 5.0.2
       js-yaml: 4.1.0
-      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
+      langchain: 0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0)
       langsmith: 0.1.65(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       uuid: 10.0.0
       zod: 3.23.8
@@ -13491,9 +13491,9 @@ snapshots:
       '@google-ai/generativelanguage': 2.7.0(encoding@0.1.13)
       '@google-cloud/storage': 7.13.0(encoding@0.1.13)
       '@qdrant/js-client-rest': 1.12.0(typescript@5.6.3)
-      better-sqlite3: 8.7.0
-      cheerio: 1.0.0-rc.10
       d3-dsv: 3.0.1
+      better-sqlite3: 11.5.0
+      cheerio: 1.0.0
       google-auth-library: 9.14.1(encoding@0.1.13)
       googleapis: 137.1.0(encoding@0.1.13)
       ignore: 5.3.1
@@ -19534,7 +19534,7 @@ snapshots:
 
   lambda-cloud-node-api@1.0.1: {}
 
-  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0-rc.10)(d3-dsv@3.0.1)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
+  langchain@0.2.3(axios@1.7.7)(cheerio@1.0.0)(encoding@0.1.13)(fast-xml-parser@4.5.0)(handlebars@4.7.8)(ignore@5.3.1)(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))(ws@8.18.0):
     dependencies:
       '@langchain/core': 0.3.11(openai@4.63.0(encoding@0.1.13)(zod@3.23.8))
       '@langchain/openai': 0.0.34(encoding@0.1.13)
@@ -19554,8 +19554,8 @@ snapshots:
       zod-to-json-schema: 3.23.0(zod@3.23.8)
     optionalDependencies:
       axios: 1.7.7
-      cheerio: 1.0.0-rc.10
       d3-dsv: 3.0.1
+      cheerio: 1.0.0
       fast-xml-parser: 4.5.0
       handlebars: 4.7.8
       ignore: 5.3.1
@@ -20262,6 +20262,33 @@ snapshots:
       '@next/swc-win32-x64-msvc': 14.2.15
       '@opentelemetry/api': 1.9.0
       sass: 1.80.3
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+
+  next@14.2.15(@babel/core@7.25.8)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.4):
+    dependencies:
+      '@next/env': 14.2.15
+      '@swc/helpers': 0.5.5
+      busboy: 1.6.0
+      caniuse-lite: 1.0.30001668
+      graceful-fs: 4.2.11
+      postcss: 8.4.31
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
+      styled-jsx: 5.1.1(@babel/core@7.25.8)(react@18.3.1)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 14.2.15
+      '@next/swc-darwin-x64': 14.2.15
+      '@next/swc-linux-arm64-gnu': 14.2.15
+      '@next/swc-linux-arm64-musl': 14.2.15
+      '@next/swc-linux-x64-gnu': 14.2.15
+      '@next/swc-linux-x64-musl': 14.2.15
+      '@next/swc-win32-arm64-msvc': 14.2.15
+      '@next/swc-win32-ia32-msvc': 14.2.15
+      '@next/swc-win32-x64-msvc': 14.2.15
+      '@opentelemetry/api': 1.9.0
+      sass: 1.80.4
     transitivePeerDependencies:
       - '@babel/core'
       - babel-plugin-macros
@@ -22806,6 +22833,13 @@ snapshots:
       react: 18.3.1
     optionalDependencies:
       '@babel/core': 7.25.2
+
+  styled-jsx@5.1.1(@babel/core@7.25.8)(react@18.3.1):
+    dependencies:
+      client-only: 0.0.1
+      react: 18.3.1
+    optionalDependencies:
+      '@babel/core': 7.25.8
 
   stylis@4.3.4: {}
 

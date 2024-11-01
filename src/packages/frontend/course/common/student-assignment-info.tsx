@@ -5,10 +5,16 @@
 
 import { Button, Col, Row, Space, Spin } from "antd";
 import { ReactNode, useRef, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { useActions } from "@cocalc/frontend/app-framework";
-import { Icon, Markdown, Gap, Tip } from "@cocalc/frontend/components";
+import { Gap, Icon, Markdown, Tip } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
+import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
+import { labels } from "@cocalc/frontend/i18n";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { to_json } from "@cocalc/util/misc";
 import { BigTime } from ".";
 import { CourseActions } from "../actions";
@@ -21,9 +27,7 @@ import {
 } from "../store";
 import { AssignmentCopyType } from "../types";
 import { useButtonSize } from "../util";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
-import ShowError from "@cocalc/frontend/components/error";
+import { STEP_NAMES, Steps, STEPS_INTL, STEPS_INTL_ACTIVE } from "./consts";
 
 interface StudentAssignmentInfoProps {
   name: string;
@@ -49,15 +53,6 @@ interface StudentAssignmentInfoProps {
   nbgrader_run_info?: NBgraderRunInfo;
 }
 
-const STEPS = [
-  "Assign",
-  "Collect",
-  "Peer Assign",
-  "Peer Collect",
-  "Return",
-] as const;
-type Steps = (typeof STEPS)[number];
-
 interface RenderLastProps {
   step: Steps;
   type: AssignmentCopyType;
@@ -74,14 +69,14 @@ const RECOPY_INIT: Record<Steps, false> = {
   "Peer Assign": false,
   Return: false,
   "Peer Collect": false,
-};
+} as const;
 
 function useRecopy(): [
   typeof RECOPY_INIT,
-  (key: keyof typeof RECOPY_INIT, value: boolean) => void,
+  (key: Steps, value: boolean) => void,
 ] {
   const [recopy, set_recopy] = useState<typeof RECOPY_INIT>(RECOPY_INIT);
-  function set(key: keyof typeof RECOPY_INIT, value: boolean) {
+  function set(key: Steps, value: boolean) {
     set_recopy({ ...recopy, [key]: value });
   }
   return [recopy, set];
@@ -100,6 +95,7 @@ export function StudentAssignmentInfo({
   is_editing,
   nbgrader_run_info,
 }: StudentAssignmentInfoProps) {
+  const intl = useIntl();
   const clicked_nbgrader = useRef<Date>();
   const actions = useActions<CourseActions>({ name });
   const size = useButtonSize();
@@ -168,10 +164,15 @@ export function StudentAssignmentInfo({
         />
       );
     } else {
-      const text =
-        (grade ?? "").trim() || (comments ?? "").trim()
-          ? `Grade: ${grade}`
-          : "Enter grade...";
+      const text = intl.formatMessage(
+        {
+          id: "course.student-assignment-info.grade.label",
+          defaultMessage: `{show, select, true {Grade: {grade}} other {Enter grade...}}`,
+          description: "Grade of an assignment in an online course",
+        },
+        { grade, show: !!((grade ?? "").trim() || (comments ?? "").trim()) },
+      );
+
       return (
         <Button
           key="edit"
@@ -325,18 +326,18 @@ export function StudentAssignmentInfo({
   }
 
   function render_open_recopy_confirm(
-    name: Steps,
+    step: Steps,
     copy: Function,
     copy_tip: string,
     placement,
   ) {
-    if (recopy[name]) {
+    if (recopy[step]) {
       const v: JSX.Element[] = [];
       v.push(
         <Button
           key="copy_cancel"
           size={size}
-          onClick={() => set_recopy(name, false)}
+          onClick={() => set_recopy(step, false)}
         >
           Cancel
         </Button>,
@@ -347,18 +348,23 @@ export function StudentAssignmentInfo({
           danger
           size={size}
           onClick={() => {
-            set_recopy(name, false);
+            set_recopy(step, false);
             copy();
           }}
         >
           <Icon
             name="share-square"
-            rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
+            rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
           />{" "}
-          Yes, {name.toLowerCase()} again
+          <FormattedMessage
+            id="course.student-assignment-info.recopy_confirm.label"
+            defaultMessage={`Yes, {activity} again`}
+            description={"Confirm an activity, like 'assign', 'collect', ..."}
+            values={{ activity: step_intl(step, false).toLowerCase() }}
+          />
         </Button>,
       );
-      if (name.toLowerCase() === "assign") {
+      if (step.toLowerCase() === "assign") {
         // inline-block because buttons above are float:left
         v.push(
           <div
@@ -369,7 +375,12 @@ export function StudentAssignmentInfo({
               target="_blank"
               href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
             >
-              What happens when I assign again?
+              {intl.formatMessage({
+                id: "course.student-assignment-info.recopy.what_happens",
+                defaultMessage: "What happens when I assign again?",
+                description:
+                  "Asking the question, what happens if all files are transferred to all students in an online course once again.",
+              })}
             </a>
           </div>,
         );
@@ -381,14 +392,14 @@ export function StudentAssignmentInfo({
           key="copy"
           type="dashed"
           size={size}
-          onClick={() => set_recopy(name, true)}
+          onClick={() => set_recopy(step, true)}
         >
-          <Tip title={name} placement={placement} tip={<span>{copy_tip}</span>}>
+          <Tip title={step} placement={placement} tip={<span>{copy_tip}</span>}>
             <Icon
               name="share-square"
-              rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
+              rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
             />{" "}
-            {name}...
+            {step_intl(step, false)}...
           </Tip>
         </Button>
       );
@@ -396,61 +407,67 @@ export function StudentAssignmentInfo({
   }
 
   function render_open_recopy(
-    name: Steps,
+    step: Steps,
     open,
     copy,
     copy_tip: string,
     open_tip: string,
   ) {
-    const placement = name === "Return" ? "left" : "right";
+    const placement = step === "Return" ? "left" : "right";
     return (
       <div key="open_recopy">
-        {render_open_recopy_confirm(name, copy, copy_tip, placement)}
+        {render_open_recopy_confirm(step, copy, copy_tip, placement)}
         <Gap />
         <Button key="open" size={size} onClick={open}>
           <Tip title="Open assignment" placement={placement} tip={open_tip}>
-            <Icon name="folder-open" /> Open
+            <Icon name="folder-open" /> {intl.formatMessage(labels.open)}
           </Tip>
         </Button>
       </div>
     );
   }
 
-  function render_open_copying(name: Steps, open, stop) {
+  function step_intl(step: Steps, active: boolean): string {
+    return intl.formatMessage(active ? STEPS_INTL_ACTIVE : STEPS_INTL, {
+      step: STEP_NAMES.indexOf(step),
+    });
+  }
+
+  function render_open_copying(step: Steps, open, stop) {
     return (
       <Space key="open_copying" wrap>
         <Button key="copy" disabled={true} size={size}>
-          <Spin /> {name}ing
+          <Spin /> {step_intl(step, true)}
         </Button>
         <Button key="stop" danger onClick={stop} size={size}>
-          Cancel <Icon name="times" />
+          {intl.formatMessage(labels.cancel)} <Icon name="times" />
         </Button>
         <Button key="open" onClick={open} size={size}>
-          <Icon name="folder-open" /> Open
+          <Icon name="folder-open" /> {intl.formatMessage(labels.open)}
         </Button>
       </Space>
     );
   }
 
-  function render_copy(name: string, copy, copy_tip: string) {
+  function render_copy(step: Steps, copy: () => void, copy_tip: string) {
     let placement;
-    if (name === "Return") {
+    if (step === "Return") {
       placement = "left";
     }
     return (
-      <Tip key="copy" title={name} tip={copy_tip} placement={placement}>
+      <Tip key="copy" title={step} tip={copy_tip} placement={placement}>
         <Button onClick={copy} size={size}>
           <Icon
             name="share-square"
-            rotate={name.indexOf("ollect") !== -1 ? "180" : undefined}
+            rotate={step.indexOf("ollect") !== -1 ? "180" : undefined}
           />{" "}
-          {name}
+          {step_intl(step, false)}
         </Button>
       </Tip>
     );
   }
 
-  function render_error(name: string, error) {
+  function render_error(step: Steps, error) {
     if (typeof error !== "string") {
       error = to_json(error);
     }
@@ -462,7 +479,7 @@ export function StudentAssignmentInfo({
     ) {
       error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again.\n${error}`;
     } else {
-      error = `Try to ${name.toLowerCase()} again:\n` + error;
+      error = `Try to ${step.toLowerCase()} again:\n` + error;
     }
     return (
       <ShowError
@@ -543,11 +560,17 @@ export function StudentAssignmentInfo({
           data={info.last_assignment}
           type="assigned"
           enable_copy={true}
-          copy_tip="Copy the assignment from your project to this student's project so they can do their homework."
-          open_tip={
-            "Open the student's copy of this assignment directly in their project. " +
-            "You will be able to see them type, chat with them, leave them hints, etc."
-          }
+          copy_tip={intl.formatMessage({
+            id: "course.student-assignment-info.assignment_col.copy.tooltip",
+            defaultMessage: `Copy the assignment from your project to this student's project so they can do their homework.`,
+            description: "files of a student in an online course",
+          })}
+          open_tip={intl.formatMessage({
+            id: "course.student-assignment-info.assignment_col.open.tooltip",
+            defaultMessage: `Open the student's copy of this assignment directly in their project.
+              You will be able to see them type, chat with them, leave them hints, etc.`,
+            description: "files of a student in an online course",
+          })}
           omit_errors={skip_assignment}
         />
       </Col>
@@ -566,8 +589,18 @@ export function StudentAssignmentInfo({
             data={info.last_collect}
             type="collected"
             enable_copy={info.last_assignment != null || skip_assignment}
-            copy_tip="Copy the assignment from your student's project back to your project so you can grade their work."
-            open_tip="Open the copy of your student's work in your own project, so that you can grade their work."
+            copy_tip={intl.formatMessage({
+              id: "course.student-assignment-info.collect_col.copy.tooltip",
+              defaultMessage:
+                "Copy the assignment from your student's project back to your project so you can grade their work.",
+              description: "files of a student in an online course",
+            })}
+            open_tip={intl.formatMessage({
+              id: "course.student-assignment-info.collect_col.open.tooltip",
+              defaultMessage:
+                "Open the copy of your student's work in your own project, so that you can grade their work.",
+              description: "files of a student in an online course",
+            })}
             omit_errors={skip_collect}
           />
         ) : undefined}
@@ -586,8 +619,18 @@ export function StudentAssignmentInfo({
           data={info.last_peer_assignment}
           type={"peer-assigned"}
           enable_copy={info.last_collect != null}
-          copy_tip="Copy collected assignments from your project to this student's project so they can grade them."
-          open_tip="Open the student's copies of this assignment directly in their project, so you can see what they are peer grading."
+          copy_tip={intl.formatMessage({
+            id: "course.student-assignment-info.peer_assign_col.copy.tooltip",
+            defaultMessage:
+              "Copy collected assignments from your project to this student's project so they can grade them.",
+            description: "files of a student in an online course",
+          })}
+          open_tip={intl.formatMessage({
+            id: "course.student-assignment-info.peer_assign_col.open.tooltip",
+            defaultMessage:
+              "Open the student's copies of this assignment directly in their project, so you can see what they are peer grading.",
+            description: "files of a student in an online course",
+          })}
         />
       </Col>
     );
@@ -603,8 +646,19 @@ export function StudentAssignmentInfo({
           data={info.last_peer_collect}
           type="peer-collected"
           enable_copy={info.last_peer_assignment != null}
-          copy_tip="Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade."
-          open_tip="Open your copy of your student's peer grading work in your own project, so that you can grade their work."
+          copy_tip={intl.formatMessage({
+            id: "course.student-assignment-info.peer_collect_col.copy.tooltip",
+            defaultMessage:
+              "Copy the peer-graded assignments from various student projects back to your project so you can assign their official grade.",
+            description: "files of a student in an online course",
+          })}
+          open_tip={intl.formatMessage({
+            id: "course.student-assignment-info.peer_collect_col.open.tooltip",
+            defaultMessage:
+              "Open your copy of your student's peer grading work in your own project, so that you can grade their work.",
+
+            description: "files of a student in an online course",
+          })}
         />
       </Col>
     );
@@ -635,11 +689,17 @@ export function StudentAssignmentInfo({
             data={info.last_return_graded}
             type="graded"
             enable_copy={info.last_collect != null || skip_collect}
-            copy_tip="Copy the graded assignment back to your student's project."
-            open_tip={
-              "Open the copy of your student's work that you returned to them. " +
-              "This opens the returned assignment directly in their project."
-            }
+            copy_tip={intl.formatMessage({
+              id: "course.student-assignment-info.graded_col.copy.tooltip",
+              defaultMessage: `Copy the graded assignment back to your student's project.`,
+              description: "files of a student in an online course",
+            })}
+            open_tip={intl.formatMessage({
+              id: "course.student-assignment-info.graded_col.open.tooltip",
+              defaultMessage: `Open the copy of your student's work that you returned to them.
+                  This opens the returned assignment directly in their project.`,
+              description: "the files of a student in an online course",
+            })}
           />
         ) : undefined}
       </Col>

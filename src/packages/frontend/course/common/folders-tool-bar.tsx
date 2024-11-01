@@ -3,11 +3,13 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useCallback, useMemo } from "react";
 import { Input, Space } from "antd";
 import type { Map as iMap } from "immutable";
+import { useCallback, useMemo } from "react";
+
 import { SEARCH_STYLE } from "./consts";
 import { MultipleAddSearch } from "./multiple-add-search";
+import { ItemName } from "./types";
 
 interface FoldersToolbarProps {
   search?: string;
@@ -16,7 +18,7 @@ interface FoldersToolbarProps {
   project_id: string;
   items: iMap<string, any>;
   add_folders: (folders: string[]) => void; // add_folders (Iterable<T>)
-  item_name: string;
+  item_name: ItemName;
   plural_item_name: string;
 }
 
@@ -26,7 +28,7 @@ export function FoldersToolbar({
   items,
   add_folders,
   search: propsSearch,
-  item_name = "item",
+  item_name = "assignment",
   plural_item_name = "item",
 }: FoldersToolbarProps) {
   return (
@@ -63,7 +65,7 @@ export function AddItems({
   closable = true,
 }: {
   addItems;
-  itemName: string;
+  itemName: ItemName;
   items;
   defaultOpen?;
   selectorStyle?;

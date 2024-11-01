@@ -11,3 +11,11 @@ simplelocalize upload \
     --uploadFormat simplelocalize-json \
     --overwrite \
     --uploadPath ./i18n/extracted.json
+
+# trigger automatic translations for all new messages
+echo "Started automatic translation for that many languages:"
+curl -s -X 'POST' 'https://api.simplelocalize.io/api/v2/jobs/auto-translate' \
+    -H 'accept: application/json' \
+    -H "X-SimpleLocalize-Token: $SIMPLELOCALIZE_KEY" \
+    -H 'Content-Type: application/json' \
+    -d '{"options": []}' | jq '.data|length'
