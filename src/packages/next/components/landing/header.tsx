@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Layout } from "antd";
+import { Layout, Tooltip } from "antd";
 import Link from "next/link";
 import { join } from "path";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -123,13 +123,11 @@ export default function Header(props: Props) {
           </div>
         </A>
         {account && (
-          <a
-            style={LinkStyle}
-            href={join(basePath, "projects")}
-            title={"View your projects"}
-          >
-            Your Projects
-          </a>
+          <Tooltip title={"Browse all of your projects"}>
+            <a style={LinkStyle} href={join(basePath, "projects")}>
+              Your Projects
+            </a>
+          </Tooltip>
         )}
         {enabledPages?.store && (
           <A href="/store" style={page == "store" ? SelectedStyle : LinkStyle}>
