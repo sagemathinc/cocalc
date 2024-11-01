@@ -187,7 +187,7 @@ class Project extends BaseProject {
     }
   }
 
-  private getProjectSynctable(): any {
+  private getProjectSynctable() {
     // this is all in coffeescript, hence the any type above.
     return db().synctable({
       table: "projects",
