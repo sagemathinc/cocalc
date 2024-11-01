@@ -277,6 +277,7 @@ function PaymentIntentsTable({
       pagination={false}
       dataSource={dataSource}
       columns={columns}
+      rowKey={({ key }) => key}
       expandable={{
         expandRowByClick: true,
         rowExpandable: (record: any) => {

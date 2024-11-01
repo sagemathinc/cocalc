@@ -8,6 +8,10 @@ export interface PaymentIntentSecret {
   customerSessionClientSecret?: string;
 }
 
+export interface CheckoutSessionSecret {
+  clientSecret: string;
+}
+
 export const PAYMENT_INTENT_REASONS = [
   "duplicate",
   "fraudulent",
@@ -16,3 +20,16 @@ export const PAYMENT_INTENT_REASONS = [
 ];
 
 export type PaymentIntentCancelReason = (typeof PAYMENT_INTENT_REASONS)[number];
+
+export interface CheckoutSessionOptions {
+  // unique for open payments - short unique string describing where/what payment is
+  purpose: string;
+  // string to show to the user
+  description: string;
+  // what is being purchased
+  lineItems: LineItem[];
+  return_url?: string;
+  // optional extra metadata: MUST NOT use 'purpose', 'account_id',
+  // 'confirm' or 'processed' as key.  as a key.
+  metadata?: { [key: string]: string };
+}

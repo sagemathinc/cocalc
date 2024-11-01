@@ -9,6 +9,8 @@
 */
 
 import {
+  EmbeddedCheckout,
+  EmbeddedCheckoutProvider,
   Elements,
   PaymentElement,
   useStripe,
@@ -16,7 +18,11 @@ import {
 } from "@stripe/react-stripe-js";
 import type { LineItem, PaymentIntentSecret } from "@cocalc/util/stripe/types";
 import { useCallback, useEffect, useState } from "react";
-import { createPaymentIntent, processPaymentIntents } from "./api";
+import {
+  createPaymentIntent,
+  getCheckoutSession,
+  processPaymentIntents,
+} from "./api";
 import { Button, Card, Spin, Table } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
@@ -77,16 +83,15 @@ export default function StripePayment({
         </div>
         {!checkout && <ConfirmButton onClick={() => setCheckout(true)} />}
       </div>
-      {checkout && (
+      {checkout && !disabled && (
         <div>
-          <Checkout
+          <StripeCheckout
             {...{
-              amount,
+              lineItems: credit ? lineItems.concat([credit]) : lineItems,
               description,
               purpose,
               onFinished,
               style,
-              disabled,
             }}
           />
         </div>
@@ -95,7 +100,77 @@ export default function StripePayment({
   );
 }
 
-function Checkout({
+function StripeCheckout({
+  lineItems,
+  description,
+  purpose,
+  onFinished,
+  style,
+}) {
+  const [secret, setSecret] = useState<PaymentIntentSecret | null>(null);
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const updateSecret = useCallback(
+    debounce(
+      reuseInFlight(async ({ lineItems, description, purpose }) => {
+        try {
+          setError("");
+          setLoading(true);
+          let secret;
+          let attempts = 3;
+          for (let i = 0; i < attempts; i++) {
+            try {
+              secret = await getCheckoutSession({
+                lineItems,
+                description,
+                purpose,
+              });
+              break;
+            } catch (err) {
+              if (i >= attempts - 1) {
+                throw err;
+              } else {
+                await delay(PAYMENT_UPDATE_DEBOUNCE);
+              }
+            }
+          }
+          setSecret(secret);
+        } catch (err) {
+          setError(`${err}`);
+        } finally {
+          setLoading(false);
+        }
+      }),
+      PAYMENT_UPDATE_DEBOUNCE,
+      { leading: true, trailing: true },
+    ),
+    [],
+  );
+
+  useEffect(() => {
+    updateSecret({ lineItems, description, purpose });
+  }, [lineItems, description, purpose]);
+
+  if (error) {
+    return <ShowError style={style} error={error} setError={setError} />;
+  }
+
+  if (secret == null) {
+    return <BigSpin style={style} />;
+  }
+
+  return (
+    <div>
+      {loading && <BigSpin />}
+      <EmbeddedCheckoutProvider options={secret} stripe={loadStripe()}>
+        <EmbeddedCheckout />
+      </EmbeddedCheckoutProvider>
+    </div>
+  );
+}
+
+function StripeElements({
   amount,
   description,
   purpose,

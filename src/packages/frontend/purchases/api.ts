@@ -19,6 +19,8 @@ import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 import type {
   PaymentIntentSecret,
   PaymentIntentCancelReason,
+  CheckoutSessionSecret,
+  CheckoutSessionOptions,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
 
@@ -472,4 +474,14 @@ export async function getPayments(
   throttle({ endpoint: "purchases/stripe/get-payments" });
   return await api("purchases/stripe/get-payments", opts);
 }
+
+export async function getCheckoutSession(
+  opts: CheckoutSessionOptions,
+): Promise<CheckoutSessionSecret> {
+  throttle({ endpoint: "purchases/stripe/get-checkout-session" });
+  return await api("purchases/stripe/get-checkout-session", opts);
+}
+
+window.x = { getCheckoutSession };
+
 
