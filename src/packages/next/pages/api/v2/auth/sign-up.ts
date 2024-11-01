@@ -30,7 +30,6 @@ curl -u sk_abcdefQWERTY090900000000: \
 TIP: If you want to pass in an email like jd+1@example.com, use '%2B' in place of '+'.
 */
 
-import { Request, Response } from "express";
 import { v4 } from "uuid";
 
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -46,18 +45,19 @@ import {
   is_valid_email_address as isValidEmailAddress,
   len,
 } from "@cocalc/util/misc";
+
 import getAccountId from "lib/account/get-account";
+import { apiRoute, apiRouteOperation } from "lib/api";
 import assertTrusted from "lib/api/assert-trusted";
 import getParams from "lib/api/get-params";
+import {
+  SignUpInputSchema,
+  SignUpOutputSchema,
+} from "lib/api/schema/accounts/sign-up";
+import { SignUpIssues } from "lib/types/sign-up";
 import { getAccount, signUserIn } from "./sign-in";
 
-interface Issues {
-  terms?: string;
-  email?: string;
-  password?: string;
-}
-
-export default async function signUp(req: Request, res: Response) {
+export async function signUp(req, res) {
   let {
     terms,
     email,
@@ -231,8 +231,12 @@ export default async function signUp(req: Request, res: Response) {
   }
 }
 
-export function checkObviousConditions({ terms, email, password }): Issues {
-  const issues: Issues = {};
+export function checkObviousConditions({
+  terms,
+  email,
+  password,
+}): SignUpIssues {
+  const issues: SignUpIssues = {};
   if (!terms) {
     issues.terms = "You must agree to the terms of usage.";
   }
@@ -253,3 +257,24 @@ export function checkObviousConditions({ terms, email, password }): Issues {
 async function hasSiteLicenseId(id: string): Promise<boolean> {
   return !!(await getSiteLicenseId(id));
 }
+
+export default apiRoute({
+  signUp: apiRouteOperation({
+    method: "POST",
+    openApiOperation: {
+      tags: ["Accounts", "Admin"],
+    },
+  })
+    .input({
+      contentType: "application/json",
+      body: SignUpInputSchema,
+    })
+    .outputs([
+      {
+        status: 200,
+        contentType: "application/json",
+        body: SignUpOutputSchema,
+      },
+    ])
+    .handler(signUp),
+});
