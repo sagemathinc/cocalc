@@ -6,6 +6,7 @@ import stripeName from "@cocalc/util/stripe/name";
 import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
+import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 
 const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 
@@ -89,4 +90,39 @@ export async function sanityCheckAmount(amount) {
       `Amount ${currency(round2(amount))} exceeds the maximum allowed amount of ${currency(MAX_COST)}.  Please contact support.`,
     );
   }
+}
+
+// this gets the account_id with a given stripe_id....
+export async function getAccountIdFromStripeCustomerId(
+  customer: string,
+): Promise<string | undefined> {
+  const pool = getPool();
+  // I think this is a linear search on the entire accounts table, probably.
+  // This should basically never happen, but I'm implementing it just
+  // in case.
+  const { rows } = await pool.query(
+    "SELECT account_id FROM accounts WHERE stripe_customer_id=$1",
+    [customer],
+  );
+  if (rows.length == 1) {
+    // clear answer and done
+    return rows[0]?.account_id;
+  }
+  // Next query stripe itself:
+  const stripe = await getConn();
+  try {
+    const customerObject = await stripe.customers.retrieve(customer);
+    const account_id = customerObject["metadata"]?.["account_id"];
+    if (account_id && (await isValidAccount(account_id))) {
+      // check if it is valid, because, e.g., stripe might have all kinds
+      // of crazy data... e.g., all dev servers use the SAME stripe testing
+      // account.  Also the account could be purged from our records, so
+      // no further processing is possible.
+      return account_id;
+    }
+  } catch (_err) {
+    // ddidn't find via stripe
+  }
+  // at least try the first result if there is more than 1, or return undefined.
+  return rows[0]?.account_id;
 }

@@ -7,7 +7,7 @@ import getLogger from "@cocalc/backend/logger";
 import maintainAutomaticPayments from "./maintain-automatic-payments";
 import maintainLegacyUpgrades from "./legacy/maintain-legacy-upgrades";
 import { updateAllPendingPurchases } from "@cocalc/server/purchases/update-pending-purchases";
-import { maintainPaymentIntents } from "./payment-intent";
+import { maintainPaymentIntents } from "./stripe/process-payment-intents";
 
 const logger = getLogger("purchases:maintenance");
 

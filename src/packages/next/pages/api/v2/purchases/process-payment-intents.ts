@@ -1,8 +1,5 @@
-/*
- */
-
 import getAccountId from "lib/account/get-account";
-import { processPaymentIntents } from "@cocalc/server/purchases/payment-intent";
+import processPaymentIntents from "@cocalc/server/purchases/stripe/process-payment-intents";
 
 export default async function handle(req, res) {
   try {
@@ -18,5 +15,5 @@ async function get(req) {
   if (account_id == null) {
     throw Error("must be signed in");
   }
-  return { count: await processPaymentIntents(account_id), success: true };
+  return { count: await processPaymentIntents({ account_id }), success: true };
 }

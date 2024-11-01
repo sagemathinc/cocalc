@@ -1,5 +1,6 @@
 import getConn from "@cocalc/server/stripe/connection";
 import { getStripeCustomerId } from "./util";
+import processPaymentIntents from "./process-payment-intents";
 
 export default async function getPayments({
   account_id,
@@ -23,11 +24,18 @@ export default async function getPayments({
   }
 
   const stripe = await getConn();
-  return await stripe.paymentIntents.list({
+  const paymentIntents = await stripe.paymentIntents.list({
     customer,
     created,
     ending_before,
     starting_after,
     limit,
   });
+
+  // if any payments haven't been processed, i.e., credit added to cocalc, do that here:
+  (async () => {
+    await processPaymentIntents({ paymentIntents });
+  })();
+
+  return paymentIntents;
 }
