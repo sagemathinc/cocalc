@@ -124,10 +124,11 @@ function StripeCheckout({
               secret = await getCheckoutSession({
                 lineItems,
                 description,
-                purpose: purpose + "x",
+                purpose,
               });
               break;
             } catch (err) {
+              console.warn("issue getting stripe checkout session", err);
               if (i >= attempts - 1) {
                 throw err;
               } else {
@@ -136,9 +137,12 @@ function StripeCheckout({
             }
           }
           setSecret(secret);
+          // give stripe iframe extra time to load:
+          setTimeout(() => {
+            setLoading(false);
+          }, 2000);
         } catch (err) {
           setError(`${err}`);
-        } finally {
           setLoading(false);
         }
       }),
@@ -172,7 +176,7 @@ function StripeCheckout({
         }}
         stripe={loadStripe()}
       >
-        <EmbeddedCheckout />
+        <EmbeddedCheckout className="cc-stripe-embedded-checkout" />
       </EmbeddedCheckoutProvider>
     </div>
   );
@@ -428,13 +432,7 @@ function ConfirmButton({
 }) {
   return (
     <div style={{ textAlign: "center", marginTop: "15px" }}>
-      <Button
-        size="large"
-        style={{ marginTop: "15px", fontSize: "14pt", padding: "25px" }}
-        type="primary"
-        disabled={disabled}
-        onClick={onClick}
-      >
+      <Button size="large" type="primary" disabled={disabled} onClick={onClick}>
         {!success && (
           <>
             Confirm Purchase

@@ -171,7 +171,7 @@ export default function Payments({
 
 function describeNumber(n, hasMore, loadMore, loading) {
   if (n == null) {
-    return "";
+    return "Payments";
   }
   if (n == 0) {
     return "(none yet)";
