@@ -17,11 +17,16 @@ export async function studentPay(token, description, account_id): Promise<any> {
     return {
       type: "create-credit",
       pay: {
-        amount,
-        description: `Add ${currency(
-          amount,
-          2,
-        )} to your account (signed in as ${user}) to pay the course fee for ${studentName}.`,
+        description: "Pay course fee for ${studentName}",
+        lineItems: [
+          {
+            amount,
+            description: `Add ${currency(
+              amount,
+              2,
+            )} to your account (signed in as ${user}) to pay the course fee for ${studentName}.`,
+          },
+        ],
         purpose: `student-pay-${token}`,
       },
       instructions: `Click here to deposit ${currency(

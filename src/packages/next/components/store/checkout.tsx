@@ -17,7 +17,7 @@ import {
   Spin,
   Table,
 } from "antd";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
@@ -41,6 +41,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import { StoreBalanceContext } from "../../lib/balance";
 import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 import { toFriendlyDescription } from "@cocalc/util/upgrades/describe";
+import { creditLineItem } from "@cocalc/util/upgrades/describe";
 
 enum PaymentIntent {
   PAY_TOTAL,
@@ -90,6 +91,24 @@ export default function Checkout() {
       setError(`${err}`);
     }
   };
+
+  const lineItems = useMemo(() => {
+    if (params?.cart == null) {
+      return [];
+    }
+    const v = params.cart.map((x) => {
+      return {
+        description: toFriendlyDescription(x.description),
+        amount: x.lineItemAmount,
+      };
+    });
+    const { credit } = creditLineItem({ lineItems: v, amount: paymentAmount });
+    if (credit) {
+      // add one more line item to make the grand total be equal to amount
+      v.push(credit);
+    }
+    return v;
+  }, [paymentAmount, params]);
 
   useEffect(() => {
     // on load also get current price, cart, etc.
@@ -211,7 +230,7 @@ export default function Checkout() {
                         await updateParams(intent);
                       }}
                     >
-                      Apply Account Balance Toward Purchase
+                      Apply any credit on your account toward purchase
                     </Checkbox>
                   )}
                 </Col>
@@ -249,13 +268,7 @@ export default function Checkout() {
                   <StripePayment
                     description={`Purchasing ${params.cart.length} ${plural(params.cart, "item")} in the CoCalc store.`}
                     style={{ maxWidth: "600px", margin: "30px auto" }}
-                    amount={paymentAmount}
-                    lineItems={params.cart.map((x) => {
-                      return {
-                        description: toFriendlyDescription(x.description),
-                        amount: x.lineItemAmount,
-                      };
-                    })}
+                    lineItems={lineItems}
                     purpose="store-checkout"
                     onFinished={async () => {
                       setUserSuccessfullyAddedCredit(true);
@@ -617,7 +630,8 @@ export function ExplainPaymentSituation({
         description={
           <>
             {curBalance}
-            Complete this purchase without adding credit to your account.
+            It is possible to complete this purchase using available account
+            credit, so you do not have to make a payment.
           </>
         }
       />

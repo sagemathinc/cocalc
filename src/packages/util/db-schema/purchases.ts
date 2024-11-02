@@ -19,6 +19,7 @@ import { SCHEMA as schema } from "./index";
 import { LanguageServiceCore } from "./llm-utils";
 import type { CourseInfo } from "./projects";
 import { Table } from "./types";
+import type { LineItem } from "@cocalc/util/stripe/types";
 
 export type Reason =
   | "duplicate"
@@ -147,6 +148,9 @@ export interface EditLicense {
 export interface Credit {
   type: "credit";
   voucher_code?: string; // if credit is the result of redeeming a voucher code
+  line_items?: LineItem[];
+  description?: string;
+  purpose?: string;
 }
 
 export interface Refund {

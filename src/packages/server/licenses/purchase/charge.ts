@@ -15,8 +15,6 @@ import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { getProductId } from "./product-id";
 import { getProductMetadata } from "./product-metadata";
 import { getProductName } from "./product-name";
-import createPurchase from "@cocalc/server/purchases/create-purchase";
-import createCredit from "@cocalc/server/purchases/create-credit";
 const logger = getLogger("licenses-charge");
 
 export type Purchase = {
@@ -383,48 +381,3 @@ async function stripeCreateSubscription(
   return { type: "subscription", id, tax_percent };
 }
 
-export async function setPurchaseMetadata(
-  info: PurchaseInfo,
-  purchase: Purchase,
-  metadata: { account_id: string; license_id: string },
-): Promise<void> {
-  const conn = await getConn();
-  switch (purchase.type) {
-    case "subscription":
-      await conn.subscriptions.update(purchase.id, { metadata });
-      break;
-    case "invoice":
-      await conn.invoices.update(purchase.id, { metadata });
-      break;
-    default:
-      throw new Error(`unexpected purchase type ${purchase.type}`);
-  }
-
-  if (info.cost != null) {
-    let cost;
-    if (typeof info.cost == "number") {
-      cost = info.cost;
-    } else {
-      cost = info.cost.cost;
-      // sales tax
-      cost *= 1 + purchase.tax_percent;
-    }
-    const { account_id, license_id } = metadata;
-    const invoice_id = purchase.id;
-    await createPurchase({
-      account_id,
-      cost,
-      service: "license",
-      description: { type: "license", info, license_id, item: {} },
-      invoice_id,
-      tag: "license-purchase",
-      client: null,
-    });
-    await createCredit({
-      account_id,
-      amount: cost,
-      invoice_id,
-      tag: "license-purchase",
-    });
-  }
-}

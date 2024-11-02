@@ -129,7 +129,16 @@ export default function PayNow({
               </div>
             )}
             <StripePayment
-              amount={chargeAmount}
+              lineItems={
+                chargeAmount == null
+                  ? undefined
+                  : [
+                      {
+                        description: `Course fee for project ${project_id}`,
+                        amount: chargeAmount,
+                      },
+                    ]
+              }
               description="Pay fee for access to a course."
               purpose={`student-pay-${project_id}`}
               onFinished={async () => {

@@ -567,9 +567,14 @@ export default function CreateVouchers() {
             {params.chargeAmount > 0 && !userSuccessfullyAddedCredit && (
               <StripePayment
                 style={{ maxWidth: "600px", margin: "30px auto" }}
-                amount={params.chargeAmount}
+                lineItems={[
+                  {
+                    description: `${numVouchers ?? 0} ${plural(numVouchers ?? 0, "Voucher Code")}: ${title.slice(0, 250)}`,
+                    amount: params.chargeAmount,
+                  },
+                ]}
                 purpose={"buy-vouchers"}
-                description={`CoCalc Voucher Codes: ${title.slice(0, 250)}`}
+                description={"Purchase Voucher Codes"}
                 onFinished={async () => {
                   setUserSuccessfullyAddedCredit(true);
                   // user paid successfully and money should be in their account

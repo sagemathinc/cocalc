@@ -32,16 +32,14 @@ import { Button, Card, Spin, Table } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
-import { currency } from "@cocalc/util/misc";
+import { currency, plural } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { creditLineItem } from "@cocalc/util/upgrades/describe";
 
 const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
 export default function StripePayment({
-  amount,
   description = "",
   lineItems = [],
   purpose = "add-credit",
@@ -49,8 +47,6 @@ export default function StripePayment({
   style,
   disabled,
 }: {
-  // it is highly recommend to set all fields, but not required!
-  amount?: number;
   description?: string;
   lineItems?: LineItem[];
   purpose?: string;
@@ -59,31 +55,32 @@ export default function StripePayment({
   disabled?: boolean;
 }) {
   const [checkout, setCheckout] = useState<boolean>(false);
-  if (amount == null) {
+  if (lineItems == null || lineItems.length == 0) {
     // no payment needed.
     return null;
   }
-  const { credit, total } = creditLineItem({ lineItems, amount });
-  const amountDue = total + (credit?.amount ?? 0);
-  const excludesTax = amountDue == 0 ? false : true;
+
+  let totalStripe = 0;
+  for (const lineItem of lineItems) {
+    const lineItemAmountStripe = Math.ceil(lineItem.amount * 100);
+    totalStripe += lineItemAmountStripe;
+  }
 
   useEffect(() => {
     setCheckout(false);
-  }, [JSON.stringify(lineItems), amount]);
+  }, [JSON.stringify(lineItems)]);
 
   return (
     <Card style={{ textAlign: "left" }}>
       <div style={{ margin: "0 0 5px 15px" }}>
         <b>{description}</b>
       </div>
-      <LineItemsTable
-        lineItems={credit ? lineItems.concat([credit]) : lineItems}
-      />
+      <LineItemsTable lineItems={lineItems} />
       <div>
         <div>
           <TotalLine
-            description={`Amount due${excludesTax ? " (excluding tax)" : ""}`}
-            amount={amountDue}
+            description={"Amount due (excluding tax)"}
+            amount={totalStripe / 100}
           />
         </div>
         {!checkout && <ConfirmButton onClick={() => setCheckout(true)} />}
@@ -92,7 +89,7 @@ export default function StripePayment({
         <div>
           <StripeCheckout
             {...{
-              lineItems: credit ? lineItems.concat([credit]) : lineItems,
+              lineItems,
               description,
               purpose,
               onFinished,
@@ -452,11 +449,11 @@ function ConfirmButton({
       <Button size="large" type="primary" disabled={disabled} onClick={onClick}>
         {!success && (
           <>
-            Confirm Payment
+            Confirm Purchase
             {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
           </>
         )}
-        {success && <>Payment Successfully Completed!</>}
+        {success && <>Purchase Successfully Completed!</>}
       </Button>
     </div>
   );
@@ -509,6 +506,22 @@ function LineItemsTable({ lineItems }) {
       dataSource={dataSource}
       columns={LINE_ITEMS_COLUMNS}
     />
+  );
+}
+
+export function LineItemsButton({ lineItems }) {
+  const [show, setShow] = useState<boolean>(false);
+  const n = lineItems?.length ?? 0;
+  if (n == 0) {
+    return null;
+  }
+  return (
+    <>
+      <Button type="link" onClick={() => setShow(!show)}>
+        {show ? "Hide" : `${n} ${plural(n, "Item")}`}
+      </Button>
+      {show && <LineItemsTable lineItems={lineItems} />}
+    </>
   );
 }
 

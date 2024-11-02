@@ -90,6 +90,13 @@ export async function processPaymentIntent(paymentIntent) {
     account_id,
     invoice_id: paymentIntent.id,
     amount: paymentIntent.amount / 100,
+    description: {
+      line_items: paymentIntent.metadata.lineItems
+        ? JSON.parse(paymentIntent.metadata.lineItems)
+        : undefined,
+      description: paymentIntent.description,
+      purpose: paymentIntent.metadata.purpose,
+    },
   });
 
   // make metadata so we won't consider this payment intent ever again

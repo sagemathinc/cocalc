@@ -58,6 +58,7 @@ import Export from "./export";
 import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 import Refresh from "./refresh";
 import ServiceTag from "./service";
+import { LineItemsButton } from "./stripe-payment";
 
 const DEFAULT_LIMIT = 150;
 
@@ -687,13 +688,17 @@ function Description({ description, period_end, service }) {
     return (
       <Space>
         <Tooltip title="Thank you!">
-          Credit{" "}
+          {description?.description ?? "Credit"}
           {description.voucher_code ? (
             <>
-              from voucher <Tag>{description.voucher_code}</Tag>
+              {" "}
+              For voucher <Tag>{description.voucher_code}</Tag>
             </>
           ) : (
             ""
+          )}
+          {description?.line_items != null && (
+            <LineItemsButton lineItems={description.line_items} />
           )}
         </Tooltip>
       </Space>

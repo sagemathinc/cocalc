@@ -27,8 +27,8 @@ export function creditLineItem({
   const amountStripe = Math.ceil(amount * 100);
   let totalStripe = 0;
   for (const lineItem of lineItems) {
-    const lineItemAmount = Math.ceil(lineItem.amount * 100);
-    totalStripe += lineItemAmount;
+    const lineItemAmountStripe = Math.ceil(lineItem.amount * 100);
+    totalStripe += lineItemAmountStripe;
   }
   const credit = amountStripe - totalStripe;
   if (credit) {
@@ -38,7 +38,7 @@ export function creditLineItem({
         amount: credit / 100,
         description:
           credit < 0
-            ? "Apply existing CoCalc account credit"
+            ? "Apply credit from your account toward purchase"
             : "CoCalc account credit",
       },
     };

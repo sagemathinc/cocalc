@@ -23,9 +23,14 @@ export default async function makePayment(
   return {
     type: "create-credit",
     pay: {
-      amount,
-      purpose: `token-${token}`,
       description: `Add ${currency(amount)} to ${user}'s account.`,
+      purpose: `token-${token}`,
+      lineItems: [
+        {
+          description: `${currency(amount)} credit for ${user}'s account.`,
+          amount,
+        },
+      ],
     },
     instructions: `Click here to deposit ${currency(
       amount,

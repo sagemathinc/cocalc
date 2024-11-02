@@ -20,6 +20,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
 import "./purchases.css";
+import { LineItemsButton } from "./stripe-payment";
 
 interface Props {
   refresh?: () => Promise<void>;
@@ -262,6 +263,19 @@ function PaymentIntentsTable({
       title: "Description",
       dataIndex: "description",
       key: "description",
+      render: (description, { intent }) => {
+        if (intent?.metadata?.lineItems) {
+          try {
+            const lineItems = JSON.parse(intent.metadata.lineItems);
+            return (
+              <>
+                {description} <LineItemsButton lineItems={lineItems} />
+              </>
+            );
+          } catch (_err) {}
+        }
+        return <>{description}</>;
+      },
     },
     {
       title: "Date",
