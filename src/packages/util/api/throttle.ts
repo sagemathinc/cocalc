@@ -25,6 +25,11 @@ const THROTTLE = {
     minute: 20,
     hour: 200,
   },
+  "purchases/stripe/get-customer-session": {
+    second: 1,
+    minute: 3,
+    hour: 40,
+  },
 } as const;
 
 const DEFAULTS = {

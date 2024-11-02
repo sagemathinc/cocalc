@@ -139,7 +139,7 @@ export default async function getCheckoutSession({
         shipping: "auto",
       },
       saved_payment_method_options: {
-        allow_redisplay_filters: ["limited", "always"],
+        allow_redisplay_filters: ["limited", "always", "unspecified"],
       },
     });
   }

@@ -16,11 +16,16 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
-import type { LineItem, PaymentIntentSecret } from "@cocalc/util/stripe/types";
+import type {
+  LineItem,
+  PaymentIntentSecret,
+  CustomerSessionSecret,
+} from "@cocalc/util/stripe/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   //createPaymentIntent,
   getCheckoutSession,
+  getCustomerSession,
   processPaymentIntents,
 } from "./api";
 import { Button, Card, Spin, Table } from "antd";
@@ -287,14 +292,27 @@ export function FinishStripePayment({
   onFinished?;
 }) {
   const [error, setError] = useState<string>("");
+  const [customerSession, setCustomerSession] =
+    useState<CustomerSessionSecret | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setCustomerSession(await getCustomerSession());
+    })();
+  }, [paymentIntent]);
 
   if (error) {
     return <ShowError style={style} error={error} setError={setError} />;
   }
 
+  if (customerSession == null) {
+    return <BigSpin style={style} />;
+  }
+
   return (
     <Elements
       options={{
+        ...customerSession,
         clientSecret: paymentIntent.client_secret,
         appearance: {
           theme: "stripe",

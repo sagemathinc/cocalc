@@ -1,4 +1,13 @@
-import { Alert, Button, Flex, Input, InputNumber, Space, Spin } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Flex,
+  Input,
+  InputNumber,
+  Space,
+  Spin,
+} from "antd";
 import { createPaymentIntent } from "@cocalc/frontend/purchases/api";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useRef, useState } from "react";
@@ -41,9 +50,10 @@ export default function CreatePayment({ account_id, onClose }: Props) {
   };
 
   return (
-    <div>
+    <Card title={"Create Purchase"}>
       <Flex gap="middle" style={{ marginBottom: "15px" }}>
         <InputNumber
+          disabled={done || loading}
           min={0}
           max={10000}
           placeholder="Amount..."
@@ -51,6 +61,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
           onChange={setAmount}
         />
         <Input
+          disabled={done || loading}
           style={{ flex: 1 }}
           placeholder="Description..."
           value={description}
@@ -58,7 +69,9 @@ export default function CreatePayment({ account_id, onClose }: Props) {
         />
       </Flex>
       <Space style={{ marginBottom: "15px" }}>
-        {onClose != null && <Button onClick={onClose}>Close</Button>}{" "}
+        {onClose != null && (
+          <Button onClick={onClose}>{done ? "Close" : "Cancel"}</Button>
+        )}{" "}
         <Button
           disabled={
             !!error ||
@@ -83,11 +96,14 @@ export default function CreatePayment({ account_id, onClose }: Props) {
       <ShowError error={error} setError={setError} />
       <br />
       {done && (
-        <Alert
-          style={{ margin: "15px 0" }}
-          type="success"
-          message="Purchase Successfully Created"
-        />
+        <div>
+          <Alert
+            showIcon
+            style={{ marginTop: "15px auto 0 auto", maxWidth: "700px" }}
+            type="success"
+            message="Purchase Successfully Created"
+          />
+        </div>
       )}
       <div>
         <Alert
@@ -111,7 +127,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
           }
         />
       </div>
-    </div>
+    </Card>
   );
 }
 

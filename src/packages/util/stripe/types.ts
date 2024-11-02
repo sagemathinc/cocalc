@@ -12,6 +12,10 @@ export interface CheckoutSessionSecret {
   clientSecret: string;
 }
 
+export interface CustomerSessionSecret {
+  customerSessionClientSecret?: string;
+}
+
 export const PAYMENT_INTENT_REASONS = [
   "duplicate",
   "fraudulent",

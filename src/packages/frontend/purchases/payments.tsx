@@ -25,6 +25,7 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
+import "./purchases.css";
 
 interface Props {
   refresh?: () => Promise<void>;
@@ -308,6 +309,11 @@ function PaymentIntentsTable({
   return (
     <Table
       scroll={scroll}
+      rowClassName={(record) =>
+        record.status != "succeeded" && record.status != "canceled"
+          ? "cc-payments-highlight"
+          : ''
+      }
       pagination={false}
       dataSource={dataSource}
       columns={columns}

@@ -21,6 +21,7 @@ import type {
   PaymentIntentCancelReason,
   CheckoutSessionSecret,
   CheckoutSessionOptions,
+  CustomerSessionSecret,
   StripeData,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
@@ -481,6 +482,11 @@ export async function getCheckoutSession(
 ): Promise<CheckoutSessionSecret> {
   throttle({ endpoint: "purchases/stripe/get-checkout-session" });
   return await api("purchases/stripe/get-checkout-session", opts);
+}
+
+export async function getCustomerSession(): Promise<CustomerSessionSecret> {
+  throttle({ endpoint: "purchases/stripe/get-customer-session" });
+  return await api("purchases/stripe/get-customer-session");
 }
 
 export async function getPaymentMethods2(
