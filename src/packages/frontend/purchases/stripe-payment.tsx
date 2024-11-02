@@ -83,7 +83,17 @@ export default function StripePayment({
             amount={totalStripe / 100}
           />
         </div>
-        {!checkout && <ConfirmButton onClick={() => setCheckout(true)} />}
+        {!checkout && (
+          <ConfirmButton
+            onClick={() => {
+              if (totalStripe <= 0) {
+                // no need to do stripe part at all -- just do next step of whatever purchase is happening.
+                onFinished?.();
+              }
+              setCheckout(true);
+            }}
+          />
+        )}
       </div>
       {checkout && !disabled && (
         <div>
@@ -485,7 +495,9 @@ const LINE_ITEMS_COLUMNS = [
     title: "Amount",
     dataIndex: "amount",
     key: "amount",
-    render: (amount) => currency(amount),
+    render: (amount) => (
+      <div style={{ whiteSpace: "nowrap" }}>{currency(amount)}</div>
+    ),
     align: "right",
   } as const,
 ];
@@ -509,19 +521,19 @@ function LineItemsTable({ lineItems }) {
   );
 }
 
-export function LineItemsButton({ lineItems }) {
+export function LineItemsButton({ lineItems, style }: { lineItems?; style? }) {
   const [show, setShow] = useState<boolean>(false);
   const n = lineItems?.length ?? 0;
   if (n == 0) {
     return null;
   }
   return (
-    <>
+    <div style={{ display: "inline-block", maxWidth: "500px", ...style }}>
       <Button type="link" onClick={() => setShow(!show)}>
         {show ? "Hide" : `${n} ${plural(n, "Item")}`}
       </Button>
       {show && <LineItemsTable lineItems={lineItems} />}
-    </>
+    </div>
   );
 }
 

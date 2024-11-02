@@ -500,10 +500,11 @@ function DetailedPurchaseTable({
                     period_end={period_end}
                   />
                   {invoice_id && (
-                    <div style={{ marginLeft: "15px", float: "right" }}>
+                    <div style={{ float: "right", marginLeft: "5px" }}>
                       {admin && id != null && <AdminRefund purchase_id={id} />}
                       {!admin && (
                         <Button
+                          size="small"
                           type="link"
                           target="_blank"
                           href={getSupportURL({
@@ -889,6 +890,7 @@ function InvoiceLink({ invoice_id }) {
   const [unknown, setUnknown] = useState<boolean>(false);
   return (
     <Button
+      size="small"
       disabled={unknown}
       type="link"
       onClick={async () => {

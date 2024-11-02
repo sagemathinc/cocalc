@@ -230,7 +230,7 @@ export default function Checkout() {
                         await updateParams(intent);
                       }}
                     >
-                      Apply any credit on your account toward purchase
+                      Apply credit on your account toward purchase
                     </Checkbox>
                   )}
                 </Col>

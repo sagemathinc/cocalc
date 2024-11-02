@@ -4,10 +4,12 @@ import { getStripeCustomerId, sanityCheckAmount } from "./util";
 import type {
   CheckoutSessionSecret,
   CheckoutSessionOptions,
+  LineItem,
 } from "@cocalc/util/stripe/types";
 import base_path from "@cocalc/backend/base-path";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { isEqual } from "lodash";
+import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
 
@@ -101,7 +103,7 @@ export default async function getCheckoutSession({
     session = await stripe.checkout.sessions.create({
       customer,
       ui_mode: "embedded",
-      line_items: lineItems.map(({ amount, description }) => {
+      line_items: accountForCredit(lineItems).map(({ amount, description }) => {
         return {
           price_data: {
             unit_amount: Math.ceil(amount * 100),
@@ -149,4 +151,46 @@ export default async function getCheckoutSession({
   }
 
   return { clientSecret: session.client_secret };
+}
+
+function accountForCredit(lineItems: LineItem[]): LineItem[] {
+  let credit = 0;
+  let total = 0;
+  for (const item of lineItems) {
+    const amount = Math.ceil(100 * item.amount);
+    if (item.amount < 0) {
+      credit += Math.abs(amount);
+    }
+    total += amount;
+  }
+  if (credit == 0) {
+    // no credits
+    return lineItems;
+  }
+  if (total <= 0) {
+    throw Error("invalid payment: credits exceed charges");
+  }
+  // reduce charges to use up the credits
+  const newLineItems: LineItem[] = [];
+  for (const item of lineItems) {
+    const amount = Math.ceil(100 * item.amount);
+    if (amount < 0) {
+      // a credit
+      continue;
+    }
+    const creditToUse = Math.min(amount, credit);
+    if (creditToUse == 0) {
+      newLineItems.push(item);
+    } else {
+      const amount2 = amount - creditToUse;
+      credit -= creditToUse;
+      newLineItems.push({
+        description:
+          item.description +
+          ` (${currency(creditToUse / 100)} credit deducted)`,
+        amount: amount2 / 100,
+      });
+    }
+  }
+  return newLineItems;
 }
