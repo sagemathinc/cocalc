@@ -69,7 +69,7 @@ export async function processPaymentIntent(paymentIntent) {
   let account_id = paymentIntent.metadata.account_id;
   logger.debug("processPaymentIntent", { id: paymentIntent.id, account_id });
   if (!account_id) {
-    // this should never happen, but in case it does, we  lookup the account_id
+    // this should never happen, but in case it does, we lookup the account_id
     // in our database, based on the customer id.
     account_id = await getAccountIdFromStripeCustomerId(paymentIntent.customer);
     if (!account_id) {

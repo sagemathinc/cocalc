@@ -1,11 +1,11 @@
-import { Divider, Spin, Tag } from "antd";
+import { Divider, Tag } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { currency } from "@cocalc/util/misc";
 import { zIndexPayAsGo } from "./zindex";
 import * as api from "./api";
 import PaymentConfig from "./payment-config";
-import StripePayment from "./stripe-payment";
+import StripePayment, { BigSpin } from "./stripe-payment";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -37,7 +37,7 @@ export default function Payment({ balance, update, cost }: Props) {
   }, [balance, cost]);
 
   if (!initialized) {
-    return <Spin />;
+    return <BigSpin />;
   }
 
   return (
@@ -45,8 +45,8 @@ export default function Payment({ balance, update, cost }: Props) {
       <h3>
         <Icon name="credit-card" style={{ marginRight: "5px" }} />
         {cost
-          ? `Add at least ${currency(cost)} (plus tax) to your account...`
-          : "Add Money..."}
+          ? `Add at least ${currency(cost)} (plus tax) to your account`
+          : "Add Money"}
       </h3>
       <div>
         {balance != null && (

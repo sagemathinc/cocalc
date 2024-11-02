@@ -33,3 +33,10 @@ export interface CheckoutSessionOptions {
   // 'confirm' or 'processed' as key.  as a key.
   metadata?: { [key: string]: string };
 }
+
+export interface StripeData {
+  has_more: boolean;
+  data: any[];
+  object: "list";
+  url?: string;
+}

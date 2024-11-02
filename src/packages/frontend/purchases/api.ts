@@ -21,6 +21,7 @@ import type {
   PaymentIntentCancelReason,
   CheckoutSessionSecret,
   CheckoutSessionOptions,
+  StripeData,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
 
@@ -470,7 +471,7 @@ export async function getPayments(
     starting_after?: string;
     limit?: number;
   } = {},
-) {
+): Promise<StripeData> {
   throttle({ endpoint: "purchases/stripe/get-payments" });
   return await api("purchases/stripe/get-payments", opts);
 }
@@ -482,5 +483,14 @@ export async function getCheckoutSession(
   return await api("purchases/stripe/get-checkout-session", opts);
 }
 
-
-
+export async function getPaymentMethods2(
+  opts: {
+    user_account_id?: string;
+    ending_before?: string;
+    starting_after?: string;
+    limit?: number;
+  } = {},
+): Promise<StripeData> {
+  throttle({ endpoint: "purchases/stripe/get-payment-methods" });
+  return await api("purchases/stripe/get-payment-methods", opts);
+}

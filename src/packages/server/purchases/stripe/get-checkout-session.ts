@@ -7,6 +7,7 @@ import type {
 } from "@cocalc/util/stripe/types";
 import base_path from "@cocalc/backend/base-path";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { isEqual } from "lodash";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
 
@@ -61,6 +62,7 @@ export default async function getCheckoutSession({
     ...metadata,
     purpose,
     account_id,
+    lineItems: JSON.stringify(lineItems),
   };
 
   if (!return_url) {
@@ -74,8 +76,13 @@ export default async function getCheckoutSession({
   });
   for (const session of openSessions.data) {
     if (session.metadata?.purpose == purpose && session.client_secret) {
-      // TODO!!!! if the line items change, then we expire it and can't use it.
-      return { clientSecret: session.client_secret };
+      if (!isEqual(session.metadata?.lineItems, JSON.stringify(lineItems))) {
+        // The line items or description changed, so we can't use it.
+        await stripe.checkout.sessions.expire(session.id);
+      } else {
+        // we use it -- same line items
+        return { clientSecret: session.client_secret };
+      }
     }
   }
 
@@ -130,6 +137,9 @@ export default async function getCheckoutSession({
         address: "auto",
         name: "auto",
         shipping: "auto",
+      },
+      saved_payment_method_options: {
+        allow_redisplay_filters: ["limited", "always"],
       },
     });
   }
