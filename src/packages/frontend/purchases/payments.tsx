@@ -14,13 +14,7 @@ import {
   Tooltip,
 } from "antd";
 import { FinishStripePayment } from "./stripe-payment";
-import {
-  capitalize,
-  currency,
-  field_cmp,
-  plural,
-  replace_all,
-} from "@cocalc/util/misc";
+import { capitalize, currency, plural, replace_all } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
@@ -63,28 +57,9 @@ export default function Payments({
       if (init || data == null || reset) {
         result = await getPayments({
           user_account_id: account_id,
-          limit: 5,
+          limit: hasLoadedMore ? 100 : 5,
         });
-        if (reset || data == null || data.length == 0) {
-          setData(result.data);
-          setHasLoadedMore(false);
-        } else {
-          // merge into existing data.
-          const x: any = {};
-          for (const y of data) {
-            x[y.id] = y;
-          }
-          for (const y of result.data) {
-            x[y.id] = y;
-          }
-          const v: any[] = [];
-          for (const id in x) {
-            v.push(x[id]);
-          }
-          v.sort(field_cmp("created"));
-          v.reverse();
-          setData(v);
-        }
+        setData(result.data);
       } else {
         result = await getPayments({
           user_account_id: account_id,
@@ -312,7 +287,7 @@ function PaymentIntentsTable({
       rowClassName={(record) =>
         record.status != "succeeded" && record.status != "canceled"
           ? "cc-payments-highlight"
-          : ''
+          : ""
       }
       pagination={false}
       dataSource={dataSource}

@@ -419,8 +419,7 @@ function PaymentForm({ style, onFinished, disabled }) {
             isSubmitting ||
             !stripe ||
             !elements ||
-            !ready ||
-            !!message
+            !ready
           }
           onClick={handleSubmit}
           success={success}
@@ -453,11 +452,11 @@ function ConfirmButton({
       <Button size="large" type="primary" disabled={disabled} onClick={onClick}>
         {!success && (
           <>
-            Confirm Purchase
+            Confirm Payment
             {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
           </>
         )}
-        {success && <>Purchase Successfully Completed!</>}
+        {success && <>Payment Successfully Completed!</>}
       </Button>
     </div>
   );
