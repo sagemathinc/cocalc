@@ -500,7 +500,7 @@ function DetailedPurchaseTable({
                     period_end={period_end}
                   />
                   {invoice_id && (
-                    <div style={{ float: "right", marginLeft: "5px" }}>
+                    <div>
                       {admin && id != null && <AdminRefund purchase_id={id} />}
                       {!admin && (
                         <Button

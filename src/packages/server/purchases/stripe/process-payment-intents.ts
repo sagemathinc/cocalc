@@ -62,7 +62,8 @@ export function isReadyToProcess(paymentIntent) {
   return (
     paymentIntent.status == "succeeded" &&
     paymentIntent.metadata["processed"] != "true" &&
-    paymentIntent.metadata["purpose"]
+    paymentIntent.metadata["purpose"] &&
+    paymentIntent.invoice
   );
 }
 

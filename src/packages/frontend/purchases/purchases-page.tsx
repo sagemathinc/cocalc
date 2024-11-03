@@ -60,7 +60,7 @@ export default function PurchasesPage() {
         }}
       />
       <Divider orientation="left" style={{ marginTop: "30px" }}>
-        <Tooltip title="These are recent payments made within CoCalc using internal CoCalc credit.">
+        <Tooltip title="These are recent purchases made within CoCalc involving internal CoCalc credit.">
           Transactions During the Last Day
         </Tooltip>
       </Divider>
@@ -93,7 +93,7 @@ export default function PurchasesPage() {
         refreshRef={refreshPurchasesRef}
       />
       <Divider orientation="left" style={{ marginTop: "30px" }}>
-        <Tooltip title="These are all payments made within CoCalc using internal CoCalc credit.">
+        <Tooltip title="These are all purchases made within CoCalc using internal CoCalc credit.">
           All Transactions, Spending Limits, and Plots
         </Tooltip>
       </Divider>
