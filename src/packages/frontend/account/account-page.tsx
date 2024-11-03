@@ -27,6 +27,7 @@ import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { labels } from "@cocalc/frontend/i18n";
 import PurchasesPage from "@cocalc/frontend/purchases/purchases-page";
+import PaymentsPage from "@cocalc/frontend/purchases/payments-page";
 import StatementsPage from "@cocalc/frontend/purchases/statements-page";
 import SubscriptionsPage from "@cocalc/frontend/purchases/subscriptions-page";
 import { SupportTickets } from "@cocalc/frontend/support";
@@ -99,6 +100,15 @@ export const AccountPage: React.FC = () => {
           </span>
         ),
         children: active_page === "purchases" && <PurchasesPage />,
+      });
+      items.push({
+        key: "payments",
+        label: (
+          <span>
+            <Icon name="credit-card" /> Payments
+          </span>
+        ),
+        children: active_page === "payments" && <PaymentsPage />,
       });
       items.push({
         key: "subscriptions",

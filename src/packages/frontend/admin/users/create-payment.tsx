@@ -50,7 +50,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
   };
 
   return (
-    <Card title={"Create Purchase"}>
+    <Card title={"Create Payment"}>
       <Flex gap="middle" style={{ marginBottom: "15px" }}>
         <InputNumber
           disabled={done || loading}
@@ -86,9 +86,9 @@ export default function CreatePayment({ account_id, onClose }: Props) {
           onClick={doIt}
         >
           {done ? (
-            <>Created Purchase</>
+            <>Created Payment</>
           ) : (
-            <>Create Purchase {loading && <Spin />}</>
+            <>Create Payment {loading && <Spin />}</>
           )}
         </Button>
       </Space>
@@ -101,7 +101,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
             showIcon
             style={{ marginTop: "15px auto 0 auto", maxWidth: "700px" }}
             type="success"
-            message="Purchase Successfully Created"
+            message="Payment Successfully Created"
           />
         </div>
       )}
@@ -136,7 +136,7 @@ export function CreatePaymentButton(props: Props) {
   return (
     <div>
       <Button onClick={() => setShow(!show)}>
-        <Icon name="credit-card" /> Create Purchase...
+        <Icon name="credit-card" /> Create Payment...
       </Button>
       {show && (
         <div style={{ marginTop: "8px" }}>

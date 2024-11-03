@@ -7,7 +7,7 @@ import { Alert, Card, Divider, Space } from "antd";
 import MinBalance from "./min-balance";
 import Balance from "./balance";
 import SpendRate from "./spend-rate";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getBalance as getBalanceUsingApi,
   getPendingBalance as getPendingBalanceUsingApi,
@@ -17,7 +17,6 @@ import {
 import Config from "./config";
 import Refresh from "./refresh";
 import { currency, round2down } from "@cocalc/util/misc";
-import Payments from "./payments";
 
 const MAX_WIDTH = "900px";
 
@@ -50,8 +49,6 @@ export default function AccountStatus({
     setMinBalance(await getMinBalanceUsingApi());
   };
 
-  const refreshPaymentsRef = useRef<any>(null);
-
   const handleRefresh = async () => {
     try {
       onRefresh?.();
@@ -61,7 +58,6 @@ export default function AccountStatus({
       setMinBalance(null);
       setSpendRate(null);
       setError("");
-      refreshPaymentsRef.current?.();
       await Promise.all([
         getSpendRate(),
         getBalance(),
@@ -127,10 +123,6 @@ export default function AccountStatus({
           </Space>
         </div>
       </div>
-      <Payments
-        refresh={handleRefresh}
-        refreshPaymentsRef={refreshPaymentsRef}
-      />
     </div>
   );
 }
