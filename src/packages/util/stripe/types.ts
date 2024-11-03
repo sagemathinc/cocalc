@@ -1,6 +1,7 @@
 export interface LineItem {
   amount: number; // amount in US Dollars
   description: string;
+  tax?: boolean; // if true, this line item represents tax
 }
 
 export interface PaymentIntentSecret {

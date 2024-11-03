@@ -14,6 +14,7 @@ import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import { getStripeCustomerId, sanityCheckAmount } from "./stripe/util";
+import { decimalToStripe } from "@cocalc/util/stripe/calc";
 
 const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 const logger = getLogger("purchases:create-stripe-checkout-session");
@@ -81,7 +82,7 @@ export const createStripeCheckoutSession = async (
     cancel_url,
     line_items: line_items.map((item) => ({
       price_data: {
-        unit_amount: Math.round(100 * item.amount), // stripe uses pennies not dollars.
+        unit_amount: decimalToStripe(item.amount), // stripe uses pennies not dollars.
         currency: "usd",
         product_data: {
           name: item.description,

@@ -44,6 +44,7 @@
     "awaiting": "^3.0.0",
     "dayjs": "^1.11.11",
     "debug": "^4.3.2",
+    "decimal.js-light": "^2.5.1",
     "events": "3.3.0",
     "get-random-values": "^1.2.0",
     "immutable": "^4.3.0",

@@ -13,6 +13,7 @@ import getBalance from "./get-balance";
 import purchaseShoppingCartItem, {
   getInitialCostForSubscription,
 } from "./purchase-shopping-cart-item";
+import { stripeToDecimal } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:shopping-cart-checkout");
 
@@ -129,7 +130,7 @@ export const getCheckoutCart = async (
       lineItemAmount,
     });
   }
-  return { total: round2up(totalStripe / 100), cart: chargeableCart };
+  return { total: stripeToDecimal(totalStripe), cart: chargeableCart };
 };
 
 export const getShoppingCartCheckoutParams = async (

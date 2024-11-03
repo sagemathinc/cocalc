@@ -3,6 +3,7 @@ import { getStripeCustomerId, getAccountIdFromStripeCustomerId } from "./util";
 import getLogger from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { LineItem } from "@cocalc/util/stripe/types";
+import { stripeToDecimal } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -67,7 +68,9 @@ export function isReadyToProcess(paymentIntent) {
   );
 }
 
-export async function processPaymentIntent(paymentIntent) {
+export async function processPaymentIntent(
+  paymentIntent,
+): Promise<number | undefined> {
   let account_id = paymentIntent.metadata.account_id;
   logger.debug("processPaymentIntent", { id: paymentIntent.id, account_id });
   if (!account_id) {
@@ -84,6 +87,16 @@ export async function processPaymentIntent(paymentIntent) {
     }
   }
 
+  const stripe = await getConn();
+  const invoice = await stripe.invoices.retrieve(paymentIntent.invoice);
+  if (invoice.total_excluding_tax == null) {
+    logger.debug(
+      `WARNING: invoice ${paymentIntent.invoice} total_excluding_tax is not set`,
+    );
+    // [ ] TODO: what should we do when total_excluding_tax? Maybe assume 0? does this happen? why?  probably not if invoice is done.
+    return;
+  }
+
   // credit the account.  If the account was already credited for this (e.g.,
   // by another process doing this at the same time), that should be detected
   // and is a no-op, due to the invoice_id being unique amount purchases records
@@ -91,16 +104,15 @@ export async function processPaymentIntent(paymentIntent) {
   const credit_id = await createCredit({
     account_id,
     invoice_id: paymentIntent.id,
-    amount: paymentIntent.amount / 100,
+    amount: stripeToDecimal(invoice.total_excluding_tax),
     description: {
-      line_items: await getInvoiceLineItems(paymentIntent.invoice),
+      line_items: getInvoiceLineItems(invoice),
       description: paymentIntent.description,
       purpose: paymentIntent.metadata.purpose,
     },
   });
 
   // make metadata so we won't consider this payment intent ever again
-  const stripe = await getConn();
   await stripe.paymentIntents.update(paymentIntent.id, {
     metadata: { ...paymentIntent.metdata, processed: "true", credit_id },
   });
@@ -146,14 +158,20 @@ export async function maintainPaymentIntents() {
   await processAllRecentPaymentIntents();
 }
 
-async function getInvoiceLineItems(invoice_id: string): Promise<LineItem[]> {
-  const stripe = await getConn();
-  const invoice = await stripe.invoices.retrieve(invoice_id);
+function getInvoiceLineItems(invoice): LineItem[] {
   const data = invoice.lines?.data;
   if (data == null) {
     return [];
   }
-  return data.map(({ description, amount }) => {
-    return { description: description ?? "", amount: amount / 100 };
+  const v: LineItem[] = data.map(({ description, amount }) => {
+    return { description: description ?? "", amount: stripeToDecimal(amount) };
   });
+  if (invoice.tax) {
+    v.push({
+      description: "Sales tax",
+      amount: stripeToDecimal(invoice.tax),
+      tax: true,
+    });
+  }
+  return v;
 }

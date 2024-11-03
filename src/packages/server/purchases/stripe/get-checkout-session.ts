@@ -10,6 +10,7 @@ import base_path from "@cocalc/backend/base-path";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { isEqual } from "lodash";
 import { currency } from "@cocalc/util/misc";
+import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
 
@@ -105,7 +106,7 @@ export default async function getCheckoutSession({
       line_items: accountForCredit(lineItems).map(({ amount, description }) => {
         return {
           price_data: {
-            unit_amount: Math.ceil(amount * 100),
+            unit_amount: decimalToStripe(amount),
             currency: "usd",
             product_data: {
               name: description,
@@ -156,7 +157,7 @@ function accountForCredit(lineItems: LineItem[]): LineItem[] {
   let credit = 0;
   let total = 0;
   for (const item of lineItems) {
-    const amount = Math.ceil(100 * item.amount);
+    const amount = decimalToStripe(item.amount);
     if (item.amount < 0) {
       credit += Math.abs(amount);
     }
@@ -172,7 +173,7 @@ function accountForCredit(lineItems: LineItem[]): LineItem[] {
   // reduce charges to use up the credits
   const newLineItems: LineItem[] = [];
   for (const item of lineItems) {
-    const amount = Math.ceil(100 * item.amount);
+    const amount = decimalToStripe(item.amount);
     if (amount < 0) {
       // a credit
       continue;
@@ -186,8 +187,8 @@ function accountForCredit(lineItems: LineItem[]): LineItem[] {
       newLineItems.push({
         description:
           item.description +
-          ` (${currency(creditToUse / 100)} credit deducted from your account)`,
-        amount: amount2 / 100,
+          ` (${currency(stripeToDecimal(creditToUse))} credit deducted from your account)`,
+        amount: stripeToDecimal(amount2),
       });
     }
   }

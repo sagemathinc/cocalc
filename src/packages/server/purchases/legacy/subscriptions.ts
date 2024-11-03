@@ -6,6 +6,7 @@ import { getNextClosingDateAfter } from "../closing-date";
 import dayjs from "dayjs";
 import getLogger from "@cocalc/backend/logger";
 import cancelSubscription from "../cancel-subscription";
+import { stripeToDecimal } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:legacy:subscriptions");
 
@@ -113,7 +114,7 @@ export async function migrateSubscription(sub) {
     logger.debug("create the new subscription that manages this license", {
       license_id,
     });
-    const cost_per_unit = sub.plan.amount / 100;
+    const cost_per_unit = stripeToDecimal(sub.plan.amount);
     const cost = cost_per_unit * (sub.quantity ?? 1);
 
     const subscription_id = await createSubscription(
@@ -222,7 +223,7 @@ export async function updateMigratedSubscriptionPrice(subscription_id: number) {
   const sub = await stripe.subscriptions.retrieve(stripe_id);
   logger.debug({ sub });
   // @ts-ignore
-  const cost_per_unit = sub.plan.amount / 100;
+  const cost_per_unit =stripeToDecimal(sub.plan.amount);
   if (Math.abs(cost - cost_per_unit) > 0.1) {
     logger.debug(
       "cost changed substantially from what we set during migration"

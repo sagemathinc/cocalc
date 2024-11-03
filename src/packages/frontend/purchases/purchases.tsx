@@ -1,6 +1,7 @@
 import {
   Button,
   Checkbox,
+  Flex,
   Popover,
   Space,
   Spin,
@@ -499,27 +500,37 @@ function DetailedPurchaseTable({
                     description={description}
                     period_end={period_end}
                   />
-                  {invoice_id && (
-                    <div>
-                      {admin && id != null && <AdminRefund purchase_id={id} />}
-                      {!admin && (
-                        <Button
-                          size="small"
-                          type="link"
-                          target="_blank"
-                          href={getSupportURL({
-                            body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
-                            subject: `Refund Request: Transaction ${id}`,
-                            type: "purchase",
-                            hideExtra: true,
-                          })}
-                        >
-                          <Icon name="external-link" /> Refund
-                        </Button>
-                      )}
-                      <InvoiceLink invoice_id={invoice_id} />
-                    </div>
-                  )}
+                  <Flex wrap style={{ marginLeft: "-8px" }}>
+                    {description?.["line_items"] != null && (
+                      <LineItemsButton
+                        lineItems={description["line_items"]}
+                        style={{ marginBottom: "15px" }}
+                      />
+                    )}
+                    {invoice_id && (
+                      <Space>
+                        {admin && id != null && (
+                          <AdminRefund purchase_id={id} />
+                        )}
+                        {!admin && (
+                          <Button
+                            size="small"
+                            type="link"
+                            target="_blank"
+                            href={getSupportURL({
+                              body: `I would like to request a full refund for transaction ${id}.\n\nEXPLAIN WHAT HAPPENED.  THANKS!`,
+                              subject: `Refund Request: Transaction ${id}`,
+                              type: "purchase",
+                              hideExtra: true,
+                            })}
+                          >
+                            <Icon name="external-link" /> Refund
+                          </Button>
+                        )}
+                        <InvoiceLink invoice_id={invoice_id} />
+                      </Space>
+                    )}
+                  </Flex>
                   {notes && (
                     <StaticMarkdown
                       style={{ marginTop: "8px" }}
@@ -697,9 +708,6 @@ function Description({ description, period_end, service }) {
             </>
           ) : (
             ""
-          )}
-          {description?.line_items != null && (
-            <LineItemsButton lineItems={description.line_items} />
           )}
         </Tooltip>
       </Space>

@@ -36,6 +36,7 @@ import { currency, plural } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
 
 const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
@@ -62,7 +63,7 @@ export default function StripePayment({
 
   let totalStripe = 0;
   for (const lineItem of lineItems) {
-    const lineItemAmountStripe = Math.ceil(lineItem.amount * 100);
+    const lineItemAmountStripe = decimalToStripe(lineItem.amount);
     totalStripe += lineItemAmountStripe;
   }
 
@@ -80,7 +81,7 @@ export default function StripePayment({
         <div>
           <TotalLine
             description={"Amount due (excluding tax)"}
-            amount={totalStripe / 100}
+            amount={stripeToDecimal(totalStripe)}
           />
         </div>
         {!checkout && (
@@ -542,10 +543,24 @@ export function LineItemsButton({ lineItems, style }: { lineItems?; style? }) {
   if (n == 0) {
     return null;
   }
+  if (!show) {
+    return (
+      <Button size="small" type="link" onClick={() => setShow(true)}>
+        {n} {plural(n, "Item")}
+      </Button>
+    );
+  }
   return (
-    <div style={{ display: "inline-block", maxWidth: "500px", ...style }}>
-      <Button type="link" onClick={() => setShow(!show)}>
-        {show ? "Hide" : `${n} ${plural(n, "Item")}`}
+    <div
+      style={{
+        display: "inline-block",
+        maxWidth: "450px",
+        width: "100%",
+        ...style,
+      }}
+    >
+      <Button size="small" type="link" onClick={() => setShow(false)}>
+        Hide
       </Button>
       {show && <LineItemsTable lineItems={lineItems} />}
     </div>
