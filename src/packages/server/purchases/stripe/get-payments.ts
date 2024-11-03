@@ -38,3 +38,35 @@ export default async function getPayments({
 
   return paymentIntents;
 }
+
+// These are all (relatively recent) purchases for a specific user that *should* get
+// paid ASAP, but haven't for some reason (e.g., no card, broken card,
+// bank tranfser, etc.).
+export async function getAllOpenPayments(account_id: string) {
+  const customer = await getStripeCustomerId({ account_id, create: false });
+  if (!customer) {
+    return [];
+  }
+
+  // note that the query index is only updated *after a few seconds* to hour(s) so NOT reliable immediately!
+  // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
+  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" AND -status:"canceled"`;
+  const stripe = await getConn();
+  const x = await stripe.paymentIntents.search({
+    query,
+    limit: 100, // should usually be very small, e.g., 0, 1 or 2.
+  });
+  // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"
+  x.data = x.data.filter((intent) => {
+    if (!intent.metadata.purpose) {
+      return false;
+    }
+    if (intent.metadata.confirm) {
+      return intent.status != "succeeded" && intent.status != "canceled";
+    } else {
+      return intent.status != "requires_payment_method";
+    }
+    return false;
+  });
+  return x;
+}

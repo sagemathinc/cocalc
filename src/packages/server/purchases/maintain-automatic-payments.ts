@@ -43,10 +43,8 @@ import {
   hasUsageSubscription,
 } from "./stripe-usage-based-subscription";
 import { getServerSettings } from "@cocalc/database/settings";
-import {
-  createPaymentIntent,
-  hasPaymentMethod,
-} from "@cocalc/server/purchases/payment-intent";
+import createPaymentIntent from "@cocalc/server/purchases/stripe/create-payment-intent";
+import { hasPaymentMethod } from "@cocalc/server/purchases/stripe/get-payment-methods";
 import { currency } from "@cocalc/util/misc";
 
 const logger = getLogger("purchase:maintain-automatic-payments");
@@ -155,11 +153,15 @@ export default async function maintainAutomaticPayments() {
               logger.debug(`WARNING -- usage based didn't work: ${err}`);
             }
           }
-          // Modern way: this will always "work", but we might not get the money until later.
+          // Modern way: this will always eventually "work", but we might not get the money until later.
           await createPaymentIntent({
-            confirm: true,
             account_id,
-            amount,
+            lineItems: [
+              {
+                description: `Credit account to cover balance on statement ${statement_id}`,
+                amount,
+              },
+            ],
             purpose: `statement-${statement_id}`,
             description,
           });

@@ -71,6 +71,7 @@ export async function getStripeCustomerId({
   }
 }
 
+
 export async function sanityCheckAmount(amount) {
   if (!amount) {
     throw Error("Amount must be nonzero.");

@@ -375,7 +375,7 @@ export function PaymentsButton(props: Props) {
   return (
     <div>
       <Button onClick={() => setShow(!show)}>
-        <Icon name="credit-card" /> Payments...
+        <Icon name="credit-card" /> Payments
       </Button>
       {show && (
         <div style={{ marginTop: "8px" }}>

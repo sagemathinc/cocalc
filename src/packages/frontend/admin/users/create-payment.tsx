@@ -36,7 +36,12 @@ export default function CreatePayment({ account_id, onClose }: Props) {
       setLoading(true);
       await createPaymentIntent({
         user_account_id: account_id,
-        amount,
+        lineItems: [
+          {
+            description: `Add credit to account (site admin) -- ${description}`,
+            amount,
+          },
+        ],
         description,
         purpose: purposeRef.current,
       });
@@ -88,7 +93,10 @@ export default function CreatePayment({ account_id, onClose }: Props) {
           {done ? (
             <>Created Payment</>
           ) : (
-            <>Create Payment {loading && <Spin />}</>
+            <>
+              Create Payment{" "}
+              {loading && <Spin style={{ marginLeft: "15px" }} />}
+            </>
           )}
         </Button>
       </Space>
@@ -99,7 +107,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
         <div>
           <Alert
             showIcon
-            style={{ marginTop: "15px auto 0 auto", maxWidth: "700px" }}
+            style={{ margin: "15px auto 0 auto", maxWidth: "700px" }}
             type="success"
             message="Payment Successfully Created"
           />
@@ -114,15 +122,14 @@ export default function CreatePayment({ account_id, onClose }: Props) {
               User will be charged{" "}
               {typeof amount == "number"
                 ? currency(amount)
-                : "the amount you enter"}
-              , in exactly the same way automatic payments work. When the
-              payment is completed a credit will be added to their account. If
-              they have an automatic payment method on file (e.g. a credit
-              card), then this will be nearly instant, but if they do not they
-              may have a pending payment until they explicitly add a card or
-              take other steps. Click the "Incomplete payments..." button above
-              to see the status of any incomplicate payments or cancel one
-              before it is done.
+                : "the amount you enter "}
+              (+ sales tax), in exactly the same way automatic payments work.
+              When the payment is completed a credit will be added to their
+              account. If they have an automatic payment method on file (e.g. a
+              credit card), then this will be nearly instant, but if they do not
+              they may have a pending payment until they explicitly add a card
+              or take other steps. Click the "Payments" button above to see the
+              status of any payments.
             </>
           }
         />
@@ -136,7 +143,7 @@ export function CreatePaymentButton(props: Props) {
   return (
     <div>
       <Button onClick={() => setShow(!show)}>
-        <Icon name="credit-card" /> Create Payment...
+        <Icon name="credit-card" /> Create Payment
       </Button>
       {show && (
         <div style={{ marginTop: "8px" }}>

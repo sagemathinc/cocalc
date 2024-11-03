@@ -23,7 +23,6 @@ import type {
 } from "@cocalc/util/stripe/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  //createPaymentIntent,
   getCheckoutSession,
   getCustomerSession,
   processPaymentIntents,
@@ -546,7 +545,7 @@ export function LineItemsButton({ lineItems, style }: { lineItems?; style? }) {
   if (!show) {
     return (
       <Button size="small" type="link" onClick={() => setShow(true)}>
-        {n} {plural(n, "Item")}
+        {n} {plural(n, "Line Item")}
       </Button>
     );
   }

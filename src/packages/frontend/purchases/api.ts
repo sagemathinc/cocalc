@@ -23,6 +23,7 @@ import type {
   CheckoutSessionOptions,
   CustomerSessionSecret,
   StripeData,
+  LineItem,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
 
@@ -214,9 +215,9 @@ export async function getChargesByService() {
 }
 
 export async function createPaymentIntent(opts: {
-  amount: number;
-  description?: string;
+  description: string;
   purpose: string;
+  lineItems: LineItem[];
   // admins can optionally set a different user account id to charge them
   user_account_id?: string;
 }): Promise<PaymentIntentSecret> {
@@ -475,6 +476,16 @@ export async function getPayments(
 ): Promise<StripeData> {
   throttle({ endpoint: "purchases/stripe/get-payments" });
   return await api("purchases/stripe/get-payments", opts);
+}
+
+export async function getOpenPayments(
+  opts: {
+    // only admins can use this -- if given, gets the open payments for *that* user.
+    user_account_id?: string;
+  } = {},
+): Promise<StripeData> {
+  throttle({ endpoint: "purchases/stripe/get-open-payments" });
+  return await api("purchases/stripe/get-open-payments", opts);
 }
 
 export async function getCheckoutSession(

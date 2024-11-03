@@ -1,5 +1,5 @@
 import getAccountId from "lib/account/get-account";
-import { cancelPaymentIntent } from "@cocalc/server/purchases/payment-intent";
+import { cancelPaymentIntent } from "@cocalc/server/purchases/stripe/create-payment-intent";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 

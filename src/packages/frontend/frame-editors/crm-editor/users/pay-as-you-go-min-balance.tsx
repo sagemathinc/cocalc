@@ -42,7 +42,7 @@ export default function PayAsYouGoMinBalance({ account_id }) {
           }
         }}
       >
-        <Icon name="credit-card" /> Minimum Allowed Balance...{" "}
+        <Icon name="credit-card" /> Minimum Allowed Balance{" "}
         {loading && <Spin delay={500} />}
       </Button>
       {lastSaved != null && (

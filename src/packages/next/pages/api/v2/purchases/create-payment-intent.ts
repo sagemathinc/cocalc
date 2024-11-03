@@ -1,5 +1,5 @@
 import getAccountId from "lib/account/get-account";
-import { createPaymentIntent } from "@cocalc/server/purchases/payment-intent";
+import createPaymentIntent from "@cocalc/server/purchases/stripe/create-payment-intent";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 
@@ -13,7 +13,7 @@ export default async function handle(req, res) {
 }
 
 async function get(req) {
-  const { user_account_id, lineItems, purpose } = getParams(req);
+  const { user_account_id, lineItems, purpose, description } = getParams(req);
   if (user_account_id) {
     // admin version
     const admin_account_id = await getAccountId(req);
@@ -23,10 +23,10 @@ async function get(req) {
     if (!(await userIsInGroup(admin_account_id, "admin"))) {
       throw Error("only admins can create a payment");
     }
-    return await createPaymentIntent({
+    await createPaymentIntent({
       account_id: user_account_id,
       lineItems,
-      confirm: true,
+      description,
       purpose,
       metadata: { admin_account_id },
     });
@@ -35,10 +35,12 @@ async function get(req) {
     if (account_id == null) {
       throw Error("must be signed in");
     }
-    return await createPaymentIntent({
+    await createPaymentIntent({
       account_id,
+      description,
       lineItems,
       purpose,
     });
   }
+  return { success: true };
 }
