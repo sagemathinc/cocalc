@@ -64,7 +64,6 @@ export default async function getCheckoutSession({
     ...metadata,
     purpose,
     account_id,
-    lineItems: JSON.stringify(lineItems),
   };
 
   if (!return_url) {
@@ -187,7 +186,7 @@ function accountForCredit(lineItems: LineItem[]): LineItem[] {
       newLineItems.push({
         description:
           item.description +
-          ` (${currency(creditToUse / 100)} credit deducted)`,
+          ` (${currency(creditToUse / 100)} credit deducted from your account)`,
         amount: amount2 / 100,
       });
     }

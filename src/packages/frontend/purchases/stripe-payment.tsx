@@ -85,6 +85,7 @@ export default function StripePayment({
         </div>
         {!checkout && (
           <ConfirmButton
+            isPayment={totalStripe > 0}
             onClick={() => {
               if (totalStripe <= 0) {
                 // no need to do stripe part at all -- just do next step of whatever purchase is happening.
@@ -420,6 +421,7 @@ function PaymentForm({ style, onFinished, disabled }) {
       />
       {ready && (
         <ConfirmButton
+          isPayment
           disabled={
             success ||
             disabled ||
@@ -448,18 +450,32 @@ function ConfirmButton({
   onClick,
   success,
   isSubmitting,
+  isPayment,
 }: {
   disabled?: boolean;
   onClick;
   success?: boolean;
   isSubmitting?: boolean;
+  isPayment?: boolean;
 }) {
   return (
     <div style={{ textAlign: "center", marginTop: "15px" }}>
-      <Button size="large" type="primary" disabled={disabled} onClick={onClick}>
+      <Button
+        size="large"
+        style={
+          {
+            width: "378px",
+            height: "44px",
+            maxWidth: "100%",
+          } /* button sized to match stripe's */
+        }
+        type="primary"
+        disabled={disabled}
+        onClick={onClick}
+      >
         {!success && (
           <>
-            Confirm Purchase
+            {isPayment ? "Pay" : "Purchase"}
             {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
           </>
         )}
@@ -510,10 +526,9 @@ function LineItemsTable({ lineItems }) {
       return { key, ...x };
     });
   }, [lineItems]);
-
   return (
     <Table
-      rowKey={"description"}
+      rowKey={"key"}
       pagination={false}
       dataSource={dataSource}
       columns={LINE_ITEMS_COLUMNS}

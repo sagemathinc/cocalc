@@ -2,6 +2,7 @@ import getConn from "@cocalc/server/stripe/connection";
 import { getStripeCustomerId, getAccountIdFromStripeCustomerId } from "./util";
 import getLogger from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
+import { LineItem } from "@cocalc/util/stripe/types";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -86,14 +87,12 @@ export async function processPaymentIntent(paymentIntent) {
   // by another process doing this at the same time), that should be detected
   // and is a no-op, due to the invoice_id being unique amount purchases records
   // for this account (MAKE SURE!).
-  const id = await createCredit({
+  const credit_id = await createCredit({
     account_id,
     invoice_id: paymentIntent.id,
     amount: paymentIntent.amount / 100,
     description: {
-      line_items: paymentIntent.metadata.lineItems
-        ? JSON.parse(paymentIntent.metadata.lineItems)
-        : undefined,
+      line_items: await getInvoiceLineItems(paymentIntent.invoice),
       description: paymentIntent.description,
       purpose: paymentIntent.metadata.purpose,
     },
@@ -102,10 +101,10 @@ export async function processPaymentIntent(paymentIntent) {
   // make metadata so we won't consider this payment intent ever again
   const stripe = await getConn();
   await stripe.paymentIntents.update(paymentIntent.id, {
-    metadata: { ...paymentIntent.metdata, processed: "true" },
+    metadata: { ...paymentIntent.metdata, processed: "true", credit_id },
   });
 
-  return id;
+  return credit_id;
 }
 
 // This allows for a periodic check that we have processed all recent payment
@@ -144,4 +143,16 @@ export async function maintainPaymentIntents() {
   // calls (i.e. refuse to call too frequently if necessary).  Right now
   // this gets called every 5 minutes, which seems fine.
   await processAllRecentPaymentIntents();
+}
+
+async function getInvoiceLineItems(invoice_id: string): Promise<LineItem[]> {
+  const stripe = await getConn();
+  const invoice = await stripe.invoices.retrieve(invoice_id);
+  const data = invoice.lines?.data;
+  if (data == null) {
+    return [];
+  }
+  return data.map(({ description, amount }) => {
+    return { description: description ?? "", amount: amount / 100 };
+  });
 }
