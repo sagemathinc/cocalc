@@ -7,9 +7,9 @@
 Add a cash voucher to your shopping cart.
 */
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { round2up, round4 } from "@cocalc/util/misc";
+import { round2up } from "@cocalc/util/misc";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { Alert, Button, Tooltip } from "antd";
+import { Alert, Button } from "antd";
 import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
@@ -35,7 +35,6 @@ export function AddBox(props: Props) {
     dedicatedItem = false,
     noAccount,
   } = props;
-  // console.log({ cost });
   if (cost?.input.type == "cash-voucher") {
     return null;
   }
@@ -57,9 +56,16 @@ export function AddBox(props: Props) {
     }
     const costPer = periodicCost(cost) / cost.input.quantity;
     return (
-      <Tooltip title={`$${round4(costPer)} per project`}>
-        <div>{money(round2up(costPer))} per project</div>
-      </Tooltip>
+      <div
+        style={{
+          border: "1px solid orange",
+          margin: "10px",
+          padding: "10px",
+          borderRadius: "10px",
+        }}
+      >
+        {money(round2up(costPer))} per project {cost.period ? cost.period : ""}
+      </div>
     );
   }
 

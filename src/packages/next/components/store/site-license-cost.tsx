@@ -16,7 +16,7 @@ import type {
   Subscription,
 } from "@cocalc/util/licenses/purchase/types";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { plural, round2, round4, round2up } from "@cocalc/util/misc";
+import { plural, round2, round2up } from "@cocalc/util/misc";
 import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
 import {
   dedicatedDiskDisplay,
@@ -81,8 +81,7 @@ export function DisplayCost({
     <span>
       {describeItem({ info: cost.input })}
       <hr />
-      <Icon name="money-check" /> Cost:{" "}
-      <Tooltip title={`$${round4(periodicCost(cost))}`}>{desc}</Tooltip>
+      <Icon name="money-check" /> Total Cost: {desc}
     </span>
   );
 }
