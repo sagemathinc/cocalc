@@ -157,18 +157,6 @@ export const AccountPage: React.FC = () => {
       ),
       children: active_page === "public-files" && <PublicPaths />,
     });
-    if (is_commercial && kucalc === KUCALC_COCALC_COM) {
-      items.push({
-        key: "upgrades",
-        label: (
-          <span>
-            <Icon name="arrow-circle-up" />{" "}
-            {intl.formatMessage(labels.upgrades)}
-          </span>
-        ),
-        children: active_page === "upgrades" && <UpgradesPage />,
-      });
-    }
     if (cloudFilesystemsEnabled()) {
       items.push({
         key: "cloud-filesystems",
@@ -181,7 +169,19 @@ export const AccountPage: React.FC = () => {
         children: <CloudFilesystems />,
       });
     }
-
+    if (is_commercial && kucalc === KUCALC_COCALC_COM) {
+      // these have been deprecated for ~ 5 years, but some customers still have them.
+      items.push({
+        key: "upgrades",
+        label: (
+          <span>
+            <Icon name="arrow-circle-up" />{" "}
+            {intl.formatMessage(labels.upgrades)}
+          </span>
+        ),
+        children: active_page === "upgrades" && <UpgradesPage />,
+      });
+    }
     return items;
   }
 

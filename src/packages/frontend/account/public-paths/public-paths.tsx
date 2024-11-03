@@ -246,7 +246,7 @@ export const PublicPaths: React.FC = () => {
         message={
           <FormattedMessage
             id="account.public-paths.banner"
-            defaultMessage={`This is an overview of your public files.
+            defaultMessage={`This is an overview of your published files.
             <A>Visit this page for more details...</A>`}
             values={{
               A: (c) => (
