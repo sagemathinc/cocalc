@@ -16,6 +16,7 @@ import { getProductId } from "./product-id";
 import { getProductMetadata } from "./product-metadata";
 import { getProductName } from "./product-name";
 const logger = getLogger("licenses-charge");
+import { decimalToStripe } from "@cocalc/util/stripe/calc";
 
 export type Purchase = {
   type: "invoice" | "subscription"; // what was purchased
@@ -40,10 +41,10 @@ export async function chargeUser(
 
 export function unitAmount(info: PurchaseInfo): number {
   if (info.type == "vouchers") {
-    return Math.round(info.cost * 100);
+    return decimalToStripe(info.cost);
   }
   if (info.cost == null) throw Error("cost must be defined");
-  return Math.round(info.cost.cost_per_unit * 100);
+  return decimalToStripe(info.cost.cost_per_unit);
 }
 
 async function stripeCreatePrice(info: PurchaseInfo): Promise<void> {
@@ -86,12 +87,12 @@ async function stripeCreatePriceSubscriptions({
     // create the two recurring subscription costs.
     await conn.prices.create({
       ...common,
-      unit_amount: Math.round(info.cost.cost_sub_month * 100),
+      unit_amount: decimalToStripe(info.cost.cost_sub_month),
       recurring: { interval: "month" },
     });
     await conn.prices.create({
       ...common,
-      unit_amount: Math.round(info.cost.cost_sub_year * 100),
+      unit_amount: decimalToStripe(info.cost.cost_sub_year),
       recurring: { interval: "year" },
     });
   } else if (type === "disk" || type === "vm") {
@@ -380,4 +381,3 @@ async function stripeCreateSubscription(
 
   return { type: "subscription", id, tax_percent };
 }
-

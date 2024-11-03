@@ -13,7 +13,7 @@ export default async function handle(req, res) {
 }
 
 async function get(req) {
-  const { user_account_id, amount, description, purpose } = getParams(req);
+  const { user_account_id, lineItems, purpose } = getParams(req);
   if (user_account_id) {
     // admin version
     const admin_account_id = await getAccountId(req);
@@ -23,11 +23,9 @@ async function get(req) {
     if (!(await userIsInGroup(admin_account_id, "admin"))) {
       throw Error("only admins can create a payment");
     }
-    const { user_account_id, amount, description } = getParams(req);
     return await createPaymentIntent({
       account_id: user_account_id,
-      amount,
-      description,
+      lineItems,
       confirm: true,
       purpose,
       metadata: { admin_account_id },
@@ -39,8 +37,7 @@ async function get(req) {
     }
     return await createPaymentIntent({
       account_id,
-      amount,
-      description,
+      lineItems,
       purpose,
     });
   }
