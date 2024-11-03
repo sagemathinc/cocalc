@@ -38,7 +38,6 @@ import { AccountPreferences } from "./account-preferences";
 import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
-import { SSHKeysPage } from "./ssh-keys/global-ssh-keys";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 
@@ -53,7 +52,6 @@ export const AccountPage: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const kucalc = useTypedRedux("customize", "kucalc");
-  const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
 
@@ -138,17 +136,6 @@ export const AccountPage: React.FC = () => {
       });
     }
 
-    if (ssh_gateway || kucalc === KUCALC_COCALC_COM) {
-      items.push({
-        key: "ssh-keys",
-        label: (
-          <span>
-            <Icon name="key" /> {intl.formatMessage(labels.ssh_keys)}
-          </span>
-        ),
-        children: active_page === "ssh-keys" && <SSHKeysPage />,
-      });
-    }
     if (is_commercial) {
       items.push({
         key: "support",

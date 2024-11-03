@@ -192,13 +192,7 @@ export function parse_target(target?: string):
   | { page: "project"; target: string }
   | {
       page: "account";
-      tab:
-        | "account"
-        | "billing"
-        | "upgrades"
-        | "licenses"
-        | "support"
-        | "ssh-keys";
+      tab: "account" | "billing" | "upgrades" | "licenses" | "support";
     }
   | {
       page: "notifications";
@@ -222,7 +216,6 @@ export function parse_target(target?: string):
         case "upgrades":
         case "licenses":
         case "support":
-        case "ssh-keys":
           return {
             page: "account",
             tab: segments[1] as
@@ -230,8 +223,7 @@ export function parse_target(target?: string):
               | "billing"
               | "upgrades"
               | "licenses"
-              | "support"
-              | "ssh-keys",
+              | "support",
           };
         default:
           return { page: "account", tab: "account" };

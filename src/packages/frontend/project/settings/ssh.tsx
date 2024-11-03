@@ -5,10 +5,8 @@
 
 import { Typography } from "antd";
 import { replace } from "lodash";
-
-import { SSHKeyAdder } from "@cocalc/frontend/account/ssh-keys/ssh-key-adder";
-import { SSHKeyList } from "@cocalc/frontend/account/ssh-keys/ssh-key-list";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import SSHKeyList from "@cocalc/frontend/account/ssh-keys/ssh-key-list";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Project } from "./types";
@@ -30,11 +28,6 @@ export function SSHPanel({ project, mode = "project" }: Props) {
   );
 
   const project_id = project.get("project_id");
-
-  function add_ssh_key(opts) {
-    opts.project_id = project_id;
-    redux.getActions("projects").add_ssh_key_to_project(opts);
-  }
 
   function render_fingerprint() {
     // we ignore empty strings as well
@@ -101,19 +94,6 @@ export function SSHPanel({ project, mode = "project" }: Props) {
           remove an ssh key.
         </p>
       </>
-      <SSHKeyAdder
-        add_ssh_key={add_ssh_key}
-        toggleable={true}
-        style={{ marginBottom: "10px" }}
-        extra={
-          <p>
-            If you want to use the same SSH key for all your projects and
-            compute servers, add it using the "SSH Keys" tab under Account
-            Settings. If you have done that, there is no need to also configure
-            an SSH key here.
-          </p>
-        }
-      />
       {render_ssh_notice()}
     </SSHKeyList>
   );
