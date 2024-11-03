@@ -3,67 +3,46 @@
 This is your balance, limit and spending rate.
 */
 
-import { Alert, Card, Divider, Space } from "antd";
-import MinBalance from "./min-balance";
+import { Divider } from "antd";
 import Balance from "./balance";
-import SpendRate from "./spend-rate";
 import { useEffect, useState } from "react";
 import {
   getBalance as getBalanceUsingApi,
   getPendingBalance as getPendingBalanceUsingApi,
-  getMinBalance as getMinBalanceUsingApi,
-  getSpendRate as getSpendRateUsingApi,
 } from "./api";
-import Config from "./config";
 import Refresh from "./refresh";
 import { currency, round2down } from "@cocalc/util/misc";
+import ShowError from "@cocalc/frontend/components/error";
 
 const MAX_WIDTH = "900px";
 
 export default function AccountStatus({
-  compact,
   style,
   onRefresh,
 }: {
-  compact?: boolean;
   style?;
   onRefresh?: () => void;
 }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [balance, setBalance] = useState<number | null>(null);
   const [pendingBalance, setPendingBalance] = useState<number | null>(null);
-  const [minBalance, setMinBalance] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
-  const [spendRate, setSpendRate] = useState<number | null>(null);
 
-  const getSpendRate = async () => {
-    setSpendRate(await getSpendRateUsingApi());
-  };
   const getBalance = async () => {
     setBalance(await getBalanceUsingApi());
   };
   const getPendingBalance = async () => {
     setPendingBalance(await getPendingBalanceUsingApi());
   };
-  const getMinBalance = async () => {
-    setMinBalance(await getMinBalanceUsingApi());
-  };
 
   const handleRefresh = async () => {
     try {
       onRefresh?.();
+      setError("");
       setLoading(true);
       setBalance(null);
       setPendingBalance(null);
-      setMinBalance(null);
-      setSpendRate(null);
-      setError("");
-      await Promise.all([
-        getSpendRate(),
-        getBalance(),
-        getMinBalance(),
-        getPendingBalance(),
-      ]);
+      await Promise.all([getBalance(), getPendingBalance()]);
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -85,13 +64,11 @@ export default function AccountStatus({
         Balance
         {balance != null ? `: ${currency(round2down(balance))}` : undefined}
       </Divider>
-      {error && (
-        <Alert
-          type="error"
-          description={error}
-          style={{ marginBottom: "15px" }}
-        />
-      )}
+      <ShowError
+        error={error}
+        setError={setError}
+        style={{ marginBottom: "15px" }}
+      />
       <div style={{ textAlign: "center" }}>
         <div style={{ maxWidth: MAX_WIDTH, margin: "15px auto" }}>
           <Balance
@@ -100,27 +77,6 @@ export default function AccountStatus({
             refresh={handleRefresh}
             showTransferLink
           />
-        </div>
-      </div>
-      <Divider orientation="left">Automatic Purchases</Divider>
-      <div>
-        <div style={{ margin: "auto", maxWidth: MAX_WIDTH }}>
-          <Space style={{ alignItems: "flex-start" }}>
-            <Card>
-              <div style={{ color: "#888", marginBottom: "10px" }}>
-                Subscription Payments
-              </div>
-              <Config style={{ flexDirection: "column" }} />
-            </Card>
-            <div style={{ width: "30px" }} />
-            <SpendRate spendRate={spendRate} />
-            {!compact && (
-              <>
-                <div style={{ width: "30px" }} />
-                <MinBalance minBalance={minBalance} />
-              </>
-            )}
-          </Space>
         </div>
       </div>
     </div>

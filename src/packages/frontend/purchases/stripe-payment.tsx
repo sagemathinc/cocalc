@@ -317,6 +317,15 @@ export function FinishStripePayment({
     return <BigSpin style={style} />;
   }
 
+  console.log("options", {
+    ...customerSession,
+    clientSecret: paymentIntent.client_secret,
+    appearance: {
+      theme: "stripe",
+    },
+    loader: "never",
+  });
+
   return (
     <Elements
       options={{
