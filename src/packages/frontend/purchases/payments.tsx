@@ -20,6 +20,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
 import "./purchases.css";
+import { describeNumberOf } from "./util";
 
 interface Props {
   refresh?: () => Promise<void>;
@@ -93,7 +94,13 @@ export default function Payments({
         <div style={{ flex: 1 }}>
           <Divider orientation="left">
             <Tooltip title="These are cash payments to CoCalc from some outside source.">
-              {describeNumber(data?.length, hasMore, loadMore, loading)}
+              {describeNumberOf({
+                n: data?.length,
+                hasMore,
+                loadMore,
+                loading,
+                type: "payment",
+              })}
             </Tooltip>
             {loading && <Spin style={{ marginLeft: "15px" }} />}
           </Divider>
@@ -142,30 +149,6 @@ export default function Payments({
         )}
       </div>
     </div>
-  );
-}
-
-function describeNumber(n, hasMore, loadMore, loading) {
-  if (n == null) {
-    return "Payments";
-  }
-  if (n == 0) {
-    return "(none yet)";
-  }
-  if (hasMore) {
-    return (
-      <>
-        Most Recent {n} Payments{" "}
-        <Button type="link" disabled={loading} onClick={() => loadMore()}>
-          load more
-        </Button>
-      </>
-    );
-  }
-  return (
-    <>
-      All {n} {plural(n, "Payment")}
-    </>
   );
 }
 

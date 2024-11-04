@@ -75,7 +75,7 @@ export const AccountPage: React.FC = () => {
       key: "account",
       label: (
         <span>
-          <Icon name="wrench" /> {intl.formatMessage(labels.preferences)}
+          <Icon name="address-card" /> {intl.formatMessage(labels.preferences)}
         </span>
       ),
       children: (active_page == null || active_page === "account") && (
@@ -96,7 +96,7 @@ export const AccountPage: React.FC = () => {
         key: "purchases",
         label: (
           <span>
-            <Icon name="money" /> {intl.formatMessage(labels.purchases)}
+            <Icon name="credit-card" /> {intl.formatMessage(labels.purchases)}
           </span>
         ),
         children: active_page === "purchases" && <PurchasesPage />,
@@ -105,19 +105,10 @@ export const AccountPage: React.FC = () => {
         key: "payments",
         label: (
           <span>
-            <Icon name="credit-card" /> Payments
+            <Icon name="cc-visa" /> Payments
           </span>
         ),
         children: active_page === "payments" && <PaymentsPage />,
-      });
-      items.push({
-        key: "subscriptions",
-        label: (
-          <span>
-            <Icon name="calendar" /> {intl.formatMessage(labels.subscriptions)}
-          </span>
-        ),
-        children: active_page === "subscriptions" && <SubscriptionsPage />,
       });
       items.push({
         key: "statements",
@@ -127,6 +118,15 @@ export const AccountPage: React.FC = () => {
           </span>
         ),
         children: active_page === "statements" && <StatementsPage />,
+      });
+      items.push({
+        key: "subscriptions",
+        label: (
+          <span>
+            <Icon name="calendar" /> {intl.formatMessage(labels.subscriptions)}
+          </span>
+        ),
+        children: active_page === "subscriptions" && <SubscriptionsPage />,
       });
     }
 

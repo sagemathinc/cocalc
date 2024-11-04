@@ -1,6 +1,8 @@
 import {
   Button,
+  Card,
   Checkbox,
+  Divider,
   Flex,
   Popover,
   Space,
@@ -15,7 +17,6 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Next from "@cocalc/frontend/components/next";
-import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import {
   ComputeServerDescription,
@@ -60,8 +61,9 @@ import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 import Refresh from "./refresh";
 import ServiceTag from "./service";
 import { LineItemsButton } from "./stripe-payment";
+import { describeNumberOf } from "./util";
 
-const DEFAULT_LIMIT = 150;
+const DEFAULT_LIMIT = 5;
 
 interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
@@ -69,6 +71,7 @@ interface Props {
   day_statement_id?: number; // if given, restrict to purchases on this day statement.
   month_statement_id?: number; // if given, restrict to purchases on this month statement.
   account_id?: string; // used by admins to specify a different user
+  noTitle?: boolean;
 }
 
 export default function Purchases(props: Props) {
@@ -85,87 +88,95 @@ function Purchases0({
   day_statement_id,
   month_statement_id,
   account_id,
+  noTitle,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
   const [activeOnly, setActiveOnly] = useState<boolean>(false);
-  const [thisMonth, setThisMonth] = useState<boolean>(true);
+  const [thisMonth, setThisMonth] = useState<boolean>(false);
   const [noStatement, setNoStatement] = useState<boolean>(false);
 
   return (
-    <SettingBox
-      title={
-        <>
-          {account_id && (
-            <Avatar account_id={account_id} style={{ marginRight: "15px" }} />
-          )}
-          {project_id ? (
-            <span>
+    <div>
+      <Card
+        title={
+          noTitle ? undefined : (
+            <>
+              {account_id && (
+                <Avatar
+                  account_id={account_id}
+                  style={{ marginRight: "15px" }}
+                />
+              )}
               {project_id ? (
-                <a onClick={() => load_target("settings/purchases")}>
-                  Purchases
-                </a>
+                <span>
+                  {project_id ? (
+                    <a onClick={() => load_target("settings/purchases")}>
+                      Purchases
+                    </a>
+                  ) : (
+                    "Purchases"
+                  )}{" "}
+                  in <ProjectTitle project_id={project_id} trunc={30} />
+                </span>
               ) : (
-                "Purchases"
-              )}{" "}
-              in <ProjectTitle project_id={project_id} trunc={30} />
-            </span>
-          ) : (
-            <span>
-              <Icon name="table" /> Transactions
-            </span>
-          )}
-        </>
-      }
-    >
-      <div>
-        <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
-          <Checkbox
-            checked={group}
-            onChange={(e) => setGroup(e.target.checked)}
-          >
-            Group by service and project
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show transactions from your current billing month.">
-          <Checkbox
-            checked={thisMonth}
-            onChange={(e) => setThisMonth(e.target.checked)}
-          >
-            Current billing month
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show transactions that are not on any daily or monthly statement. These should all be from today.">
-          <Checkbox
-            checked={noStatement}
-            onChange={(e) => setNoStatement(e.target.checked)}
-          >
-            Not on any statement yet
-          </Checkbox>
-        </Tooltip>
-        <Tooltip title="Only show unfinished active purchases">
-          <Checkbox
-            disabled={group}
-            checked={!group && activeOnly}
-            onChange={(e) => setActiveOnly(e.target.checked)}
-          >
-            Only Show Active
-          </Checkbox>
-        </Tooltip>
-      </div>
-      <PurchasesTable
-        project_id={project_id}
-        account_id={account_id}
-        group={group}
-        thisMonth={thisMonth}
-        day_statement_id={day_statement_id}
-        month_statement_id={month_statement_id}
-        noStatement={noStatement}
-        showBalance
-        showTotal
-        showRefresh
-        activeOnly={activeOnly}
-      />
-    </SettingBox>
+                <span>
+                  <Icon name="credit-card" /> Purchases
+                </span>
+              )}
+            </>
+          )
+        }
+      >
+        <div>
+          <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
+            <Checkbox
+              checked={group}
+              onChange={(e) => setGroup(e.target.checked)}
+            >
+              Group by service and project
+            </Checkbox>
+          </Tooltip>
+          <Tooltip title="Only show transactions from your current billing month.">
+            <Checkbox
+              checked={thisMonth}
+              onChange={(e) => setThisMonth(e.target.checked)}
+            >
+              Current billing month
+            </Checkbox>
+          </Tooltip>
+          <Tooltip title="Only show transactions that are not on any daily or monthly statement. These should all be from today.">
+            <Checkbox
+              checked={noStatement}
+              onChange={(e) => setNoStatement(e.target.checked)}
+            >
+              Not on any statement yet
+            </Checkbox>
+          </Tooltip>
+          <Tooltip title="Only show unfinished active purchases">
+            <Checkbox
+              disabled={group}
+              checked={!group && activeOnly}
+              onChange={(e) => setActiveOnly(e.target.checked)}
+            >
+              Only Show Active
+            </Checkbox>
+          </Tooltip>
+        </div>
+        <PurchasesTable
+          project_id={project_id}
+          account_id={account_id}
+          group={group}
+          thisMonth={thisMonth}
+          day_statement_id={day_statement_id}
+          month_statement_id={month_statement_id}
+          noStatement={noStatement}
+          showBalance
+          showTotal
+          showRefresh
+          activeOnly={activeOnly}
+        />
+      </Card>
+    </div>
   );
 }
 
@@ -182,7 +193,6 @@ export function PurchasesTable({
   showTotal,
   showRefresh,
   style,
-  limit = DEFAULT_LIMIT,
   filename,
   activeOnly,
   refreshRef,
@@ -194,11 +204,11 @@ export function PurchasesTable({
   showTotal?: boolean;
   showRefresh?: boolean;
   style?: CSSProperties;
-  limit?: number;
   filename?: string;
   activeOnly?: boolean;
   refreshRef?;
 }) {
+  const [loading, setLoading] = useState<boolean>(false);
   const [purchaseRecords, setPurchaseRecords] = useState<
     Partial<Purchase & { sum?: number }>[] | null
   >(null);
@@ -213,14 +223,8 @@ export function PurchasesTable({
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
   const [balance, setBalance] = useState<number>(0);
-
-  const getNextPage = () => {
-    setOffset((prevOffset) => prevOffset + limit);
-  };
-
-  const getPrevPage = () => {
-    setOffset((prevOffset) => Math.max(prevOffset - limit, 0));
-  };
+  const [hasMore, setHasMore] = useState<boolean>(true); // todo
+  const [limit, setLimit] = useState<number>(DEFAULT_LIMIT);
 
   const getBalance = async () => {
     try {
@@ -234,18 +238,18 @@ export function PurchasesTable({
     }
   };
 
-  const getPurchaseRecords = async () => {
+  const loadMore = async ({ init }: { init? } = {}) => {
     try {
-      setPurchaseRecords(null);
-
+      setError("");
+      setLoading(true);
       const opts = {
         cutoff,
         day_statement_id,
         month_statement_id,
         group,
-        limit,
+        limit: init ? DEFAULT_LIMIT : limit,
         no_statement: noStatement,
-        offset,
+        offset: init ? 0 : offset,
         project_id,
         service,
         thisMonth,
@@ -254,14 +258,30 @@ export function PurchasesTable({
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
 
-      setPurchaseRecords(x);
+      // TODO: need getPurchases to tell if there are more or not.
+      setHasMore(true);
+
+      if (init) {
+        setPurchaseRecords(x);
+        setOffset(DEFAULT_LIMIT);
+      } else {
+        // [ ] TODO -- need to merge them together
+        setPurchaseRecords((purchaseRecords ?? []).concat(x));
+        // for next time:
+        setOffset(offset + limit);
+      }
+      setLimit(100);
     } catch (err) {
       setError(`${err}`);
+    } finally {
+      setLoading(false);
     }
   };
 
   const refreshRecords = async () => {
-    await getPurchaseRecords();
+    // [ ] TODO: this needs to instead get only recent records (that could have possibly
+    // changed or been added) and update them.
+    await loadMore({ init: true });
     await getBalance();
   };
   if (refreshRef != null) {
@@ -269,12 +289,13 @@ export function PurchasesTable({
   }
 
   useEffect(() => {
+    loadMore({ init: true });
     getBalance();
   }, []);
 
   useEffect(() => {
-    getPurchaseRecords();
-  }, [group, limit, noStatement, offset, project_id, service, thisMonth]);
+    refreshRecords();
+  }, [group, noStatement, project_id, service, thisMonth]);
 
   useEffect(() => {
     if (purchaseRecords == null) {
@@ -317,6 +338,31 @@ export function PurchasesTable({
 
   return (
     <div style={style}>
+      <Flex>
+        <div style={{ flex: 1 }}>
+          <Divider orientation="left">
+            <Tooltip title="These are transactions made within CoCalc, which includes all purchases and credits resulting from payments.">
+              {describeNumberOf({
+                n: purchases?.length,
+                hasMore,
+                loadMore,
+                loading,
+                type: "purchase",
+              })}
+            </Tooltip>
+            {loading && <Spin style={{ marginLeft: "15px" }} />}
+          </Divider>
+        </div>
+        <Button
+          style={{ marginTop: "15px" }}
+          type="link"
+          onClick={() => {
+            loadMore({ init: true });
+          }}
+        >
+          <Icon name="refresh" /> Refresh
+        </Button>
+      </Flex>
       <div>
         <ShowError error={error} setError={setError} />
         <div style={{ display: "flex" }}>
@@ -343,29 +389,6 @@ export function PurchasesTable({
           alignItems: "center",
         }}
       >
-        {purchases &&
-          !thisMonth &&
-          purchases.length > 0 &&
-          (purchases.length >= limit || offset > 0) && (
-            <div style={{ marginRight: "10px" }}>
-              Page {Math.floor(offset / limit) + 1}
-            </div>
-          )}
-        {!thisMonth && offset > 0 && (
-          <Button
-            type="default"
-            onClick={getPrevPage}
-            style={{ marginRight: "8px" }}
-          >
-            Previous
-          </Button>
-        )}
-        {!thisMonth && purchases && purchases.length >= limit && (
-          <Button type="default" onClick={getNextPage}>
-            Next
-          </Button>
-        )}
-
         {(day_statement_id != null || month_statement_id != null) && (
           <EmailStatement
             style={{ marginLeft: "8px" }}
@@ -472,7 +495,7 @@ function DetailedPurchaseTable({
     <div style={{ overflow: "auto" }}>
       <div style={{ minWidth: "1000px" }}>
         <Table
-          scroll={{ y: 400 }}
+          scroll={purchases.length > DEFAULT_LIMIT ? { y: 400 } : undefined}
           pagination={false}
           dataSource={purchases}
           rowKey="id"

@@ -1,8 +1,7 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useState } from "react";
-import { Alert, Button, Checkbox, Spin } from "antd";
+import { Alert, Button, Card, Checkbox, Spin } from "antd";
 import Plot from "@cocalc/frontend/components/plotly";
-import { SettingBox } from "@cocalc/frontend/components/setting-box";
 
 const LIMIT = 60; // ~2 months
 
@@ -70,10 +69,7 @@ export default function CostBarChart({}) {
   }
 
   return (
-    <SettingBox
-      icon="line-chart"
-      title={<span style={{ marginLeft: "5px" }}>Spend</span>}
-    >
+    <Card>
       <Checkbox
         checked={cumulative}
         onChange={(e) => setCumulative(e.target.checked)}
@@ -115,6 +111,6 @@ export default function CostBarChart({}) {
       {error && (
         <Alert type="error" description={error} onClose={updateData} closable />
       )}
-    </SettingBox>
+    </Card>
   );
 }
