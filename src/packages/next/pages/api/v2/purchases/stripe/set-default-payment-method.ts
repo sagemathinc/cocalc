@@ -19,7 +19,7 @@ export default async function handle(req, res) {
 async function set(req): Promise<{ success: true }> {
   const account_id = await getAccountId(req);
   if (account_id == null) {
-    throw Error("must be signed in to set stripe default card");
+    throw Error("must be signed in to set stripe default payment method");
   }
   throttle({ account_id, endpoint: "purchases/stripe/set-default-payment-method" });
   const { default_payment_method } = getParams(req);

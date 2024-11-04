@@ -515,3 +515,11 @@ export async function setDefaultPaymentMethod(opts: {
   throttle({ endpoint: "purchases/stripe/set-default-payment-method" });
   return await api("purchases/stripe/set-default-payment-method", opts);
 }
+
+export async function deletePaymentMethod(opts: {
+  // id of a payment method to delete
+  payment_method: string;
+}) {
+  throttle({ endpoint: "purchases/stripe/delete-payment-method" });
+  return await api("purchases/stripe/delete-payment-method", opts);
+}

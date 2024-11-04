@@ -1,14 +1,25 @@
-import { Button, Divider, Flex, Spin, Space, Table, Tag } from "antd";
+import {
+  Button,
+  Divider,
+  Flex,
+  Popconfirm,
+  Spin,
+  Space,
+  Table,
+  Tag,
+} from "antd";
 import { useEffect, useState } from "react";
 import {
   getPaymentMethods,
   setDefaultPaymentMethod as setDefaultPaymentMethodUsingApi,
+  deletePaymentMethod,
 } from "./api";
 import { BigSpin } from "./stripe-payment";
 import { describeNumberOf } from "./util";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon, isIconName } from "@cocalc/frontend/components/icon";
-import { capitalize } from "@cocalc/util/misc";
+import { capitalize, path_to_title } from "@cocalc/util/misc";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 type PaymentMethod = any;
 
@@ -119,6 +130,8 @@ export default function PaymentMethods() {
                   loading={loading}
                   setLoading={setLoading}
                   setDefaultPaymentMethod={setDefaultPaymentMethod}
+                  paymentMethods={paymentMethods}
+                  setPaymentMethods={setPaymentMethods}
                 />
               ),
               width: 200,
@@ -126,7 +139,13 @@ export default function PaymentMethods() {
           ]}
           expandable={{
             expandedRowRender: (record: any) => {
-              return <pre>{JSON.stringify(record, undefined, 2)}</pre>;
+              return (
+                <StaticMarkdown
+                  value={
+                    "```json\n" + JSON.stringify(record, undefined, 2) + "\n```"
+                  }
+                />
+              );
             },
           }}
         />
@@ -142,6 +161,8 @@ function PaymentMethodControls({
   setLoading,
   setError,
   setDefaultPaymentMethod,
+  paymentMethods,
+  setPaymentMethods,
 }) {
   return (
     <Space>
@@ -165,41 +186,92 @@ function PaymentMethodControls({
       >
         Set as Default
       </Button>
-      <Button
-        disabled={loading}
-        danger
-        type="text"
-        onClick={() => {
-          console.log("delete", paymentMethod);
+      <Popconfirm
+        title="Are you sure?"
+        description="Deleting this PaymentMethod means it can no longer be used for payments."
+        onConfirm={async () => {
+          try {
+            setError("");
+            setLoading(true);
+            await deletePaymentMethod({
+              payment_method: paymentMethod.id,
+            });
+            setPaymentMethods(
+              paymentMethods.filter((x) => x.id != paymentMethod.id),
+            );
+          } catch (err) {
+            setError(`${err}`);
+          } finally {
+            setLoading(false);
+          }
         }}
+        okText="Yes"
+        cancelText="No"
       >
-        Delete
-      </Button>
+        <Button disabled={loading} danger type="text">
+          Delete
+        </Button>
+      </Popconfirm>
     </Space>
   );
 }
+
+function toTitle(x) {
+  if (!x) {
+    return "Unknown";
+  }
+  if (x == "cashapp") {
+    return "Cash App Pay";
+  }
+  return path_to_title(x)
+    .split(/\s+/g)
+    .map((word) => capitalize(word))
+    .join(" ");
+}
+
+const DOTS = "••••";
+
 function PaymentMethod({ paymentMethod }) {
   switch (paymentMethod.type) {
     case "card":
       return <Card paymentMethod={paymentMethod} />;
+    case "us_bank_account":
+      return (
+        <PaymentTitle icon="bank">
+          {paymentMethod.us_bank_account.bank_name} {DOTS}{" "}
+          {paymentMethod.us_bank_account.last4}
+        </PaymentTitle>
+      );
     default:
-      return <div>{capitalize(paymentMethod.type)}</div>;
+      return (
+        <PaymentTitle icon="money-check">
+          {toTitle(paymentMethod.type)}
+        </PaymentTitle>
+      );
   }
 }
 
 function Card({ paymentMethod }) {
-  const iconName = `cc-${paymentMethod.card.brand}`;
-  const icon = isIconName(iconName) ? <Icon name={iconName} /> : undefined;
   return (
     <Flex>
-      <b style={{ fontSize: "13pt" }}>
-        {icon} {capitalize(paymentMethod.card.brand)} ••••{" "}
-        {paymentMethod.card.last4}
-      </b>
+      <PaymentTitle icon={`cc-${paymentMethod.card.brand}`}>
+        {toTitle(paymentMethod.card.brand)} {DOTS} {paymentMethod.card.last4}
+      </PaymentTitle>
       <div style={{ flex: 1 }} />
       <div style={{ color: "#666", fontSize: "13pt" }}>
         Expires {paymentMethod.card.exp_month} / {paymentMethod.card.exp_year}
       </div>
     </Flex>
+  );
+}
+
+function PaymentTitle({ children, icon }) {
+  return (
+    <b style={{ fontSize: "12pt", color: "#666" }}>
+      {isIconName(icon) ? (
+        <Icon name={icon} style={{ marginRight: "15px", color: "darkblue" }} />
+      ) : undefined}{" "}
+      {children}
+    </b>
   );
 }
