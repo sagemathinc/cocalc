@@ -45,3 +45,7 @@ export interface StripeData {
   object: "list";
   url?: string;
 }
+
+export interface PaymentMethodData extends StripeData {
+  default_payment_method?: string;
+}

@@ -23,6 +23,7 @@ import type {
   CheckoutSessionOptions,
   CustomerSessionSecret,
   StripeData,
+  PaymentMethodData,
   LineItem,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
@@ -502,7 +503,15 @@ export async function getPaymentMethods(
     starting_after?: string;
     limit?: number;
   } = {},
-): Promise<StripeData> {
+): Promise<PaymentMethodData> {
   throttle({ endpoint: "purchases/stripe/get-payment-methods" });
   return await api("purchases/stripe/get-payment-methods", opts);
+}
+
+export async function setDefaultPaymentMethod(opts: {
+  // id of a payment method
+  default_payment_method: string;
+}) {
+  throttle({ endpoint: "purchases/stripe/set-default-payment-method" });
+  return await api("purchases/stripe/set-default-payment-method", opts);
 }

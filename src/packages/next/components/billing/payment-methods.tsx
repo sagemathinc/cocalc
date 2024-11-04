@@ -70,7 +70,7 @@ function PaymentSourceActions({ onChange, default_source, brand, last4, id }) {
           onConfirm={async () => {
             try {
               setError("");
-              await apiPost("/billing/set-default-source", {
+              await apiPost("/purchases/stripe/set-default-source", {
                 default_source: id,
               });
               if (!isMounted.current) return;

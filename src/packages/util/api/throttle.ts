@@ -33,7 +33,7 @@ const THROTTLE = {
 } as const;
 
 const DEFAULTS = {
-  second: 1,
+  second: 3,
   minute: 15,
   hour: 200,
 } as const;
@@ -111,9 +111,9 @@ function process(
   }
   if (v.length >= maxPerInterval) {
     const wait = Math.ceil((v[0] - cutoff) / 1000);
-    throw Error(
-      `too many requests to ${endpoint}; try again in ${wait} ${plural(wait, "second")} (rule: at most ${maxPerInterval} ${plural(maxPerInterval, "request")} per ${interval})`,
-    );
+    const mesg = `too many requests to ${endpoint}; try again in ${wait} ${plural(wait, "second")} (rule: at most ${maxPerInterval} ${plural(maxPerInterval, "request")} per ${interval})`;
+    // console.trace(mesg);
+    throw Error(mesg);
   }
   v.push(now);
 }

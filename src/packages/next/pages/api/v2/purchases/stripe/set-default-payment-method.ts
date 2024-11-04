@@ -1,10 +1,11 @@
 /*
-Set default payment source for signed in customer.
+Set default payment method for signed in customer.
 */
 
-import setDefaultSource from "@cocalc/server/billing/set-default-source";
+import setDefaultPaymentMethod from "@cocalc/server/purchases/stripe/set-default-payment-method";
 import getAccountId from "lib/account/get-account";
 import getParams from "lib/api/get-params";
+import throttle from "@cocalc/util/api/throttle";
 
 export default async function handle(req, res) {
   try {
@@ -20,10 +21,11 @@ async function set(req): Promise<{ success: true }> {
   if (account_id == null) {
     throw Error("must be signed in to set stripe default card");
   }
-  const { default_source } = getParams(req);
-  if (!default_source) {
+  throttle({ account_id, endpoint: "purchases/stripe/set-default-payment-method" });
+  const { default_payment_method } = getParams(req);
+  if (!default_payment_method) {
     throw Error("must specify the default source");
   }
-  await setDefaultSource(account_id, default_source);
+  await setDefaultPaymentMethod({ account_id, default_payment_method });
   return { success: true };
 }
