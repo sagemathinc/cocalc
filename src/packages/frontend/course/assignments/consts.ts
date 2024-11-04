@@ -45,7 +45,3 @@ ${PEER_GRADING_GUIDELINES_GRADE_MARKER}
 ${PEER_GRADING_GUIDELINES_COMMENT_MARKER}
 
 `;
-
-// this could get translated somehow...
-export const DUE_DATE_FILENAME = "DUE_DATE.txt";
-

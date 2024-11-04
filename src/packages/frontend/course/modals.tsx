@@ -38,7 +38,7 @@ import { AddHandouts } from "@cocalc/frontend/course/handouts/handouts-panel";
 import { DeleteSharedProjectPanel } from "@cocalc/frontend/course/shared-project/delete-shared-project";
 import { SharedProjectPanel } from "@cocalc/frontend/course/shared-project/shared-project-panel";
 import AddStudents from "@cocalc/frontend/course/students/add-students";
-import { isIntlMessage } from "@cocalc/frontend/i18n";
+import { course, isIntlMessage } from "@cocalc/frontend/i18n";
 import type { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
 import { CourseEditorActions } from "../frame-editors/course-editor/actions";
 import { CourseActions } from "./actions";
@@ -108,7 +108,7 @@ function getModal(modal: string) {
     case "add-assignments":
       return {
         Body: AddAssignments,
-        title: "Add Assignments",
+        title: course.add_assignments,
         icon: "share-square",
       };
     case "add-handouts":

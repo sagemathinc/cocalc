@@ -2,28 +2,32 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
-
+import { SizeType } from "antd/lib/config-provider/SizeContext";
 import { Map } from "immutable";
+import { IntlShape } from "react-intl";
+
 import {
   TypedMap,
   useEffect,
   useState,
   useWindowDimensions,
-} from "../app-framework";
-import { StudentsMap } from "./store";
-import { AssignmentCopyStep } from "./types";
+} from "@cocalc/frontend/app-framework";
+import { IconName } from "@cocalc/frontend/components/icon";
+import { labels } from "@cocalc/frontend/i18n";
+import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import {
+  cmp,
   defaults,
+  merge,
   required,
   search_match,
   search_split,
   separate_file_extension,
-  merge,
-  cmp,
 } from "@cocalc/util/misc";
-import { IconName } from "@cocalc/frontend/components/icon";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { SizeType } from "antd/lib/config-provider/SizeContext";
+import { ProjectsStore } from "../projects/store";
+import { UserMap } from "../todo-types";
+import { StudentsMap } from "./store";
+import { AssignmentCopyStep } from "./types";
 
 // Pure functions used in the course manager
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
@@ -117,7 +121,12 @@ export function step_ready(step: AssignmentCopyStep, n) {
 //    hosting       : string
 //    email_address : string
 // }
-export function parse_students(student_map: StudentsMap, user_map, redux) {
+export function parse_students(
+  student_map: StudentsMap,
+  user_map: UserMap,
+  redux,
+  intl: IntlShape,
+) {
   const v = immutable_to_list(student_map, "student_id");
   for (const x of v) {
     if (x.account_id != null) {
@@ -138,7 +147,7 @@ export function parse_students(student_map: StudentsMap, user_map, redux) {
         }
       }
     }
-    const { description, state } = projectStatus(x.project_id, redux);
+    const { description, state } = projectStatus(x.project_id, redux, intl);
     x.hosting = description + state;
 
     if (x.first_name == null) {
@@ -316,6 +325,7 @@ interface ProjectStatus {
 export function projectStatus(
   project_id: string | undefined,
   redux,
+  intl: IntlShape,
 ): ProjectStatus {
   if (!project_id) {
     return { description: "(not created)", icon: "hourglass-half", state: "" };
@@ -324,26 +334,43 @@ export function projectStatus(
   const state = ` (${store.get_state(project_id)})`;
   const kucalc = redux.getStore("customize").get("kucalc");
   if (kucalc === KUCALC_COCALC_COM) {
-    return projectStatusCoCalcCom({ project_id, state, store });
+    return projectStatusCoCalcCom({ project_id, state, store, intl });
   } else {
+    const tip = intl.formatMessage({
+      id: "course.util.project_status.ready",
+      defaultMessage: "Project exists and is ready.",
+    });
     return {
       icon: "exclamation-triangle",
-      description: "Ready",
-      tip: "Project exists and is ready.",
+      description: intl.formatMessage(labels.ready),
+      tip,
       state,
     };
   }
 }
 
-function projectStatusCoCalcCom(opts): ProjectStatus {
-  const { project_id, state, store } = opts;
+function projectStatusCoCalcCom({
+  project_id,
+  state,
+  store,
+  intl,
+}: {
+  project_id: string;
+  state: string;
+  store: ProjectsStore;
+  intl: IntlShape;
+}): ProjectStatus {
   const upgrades = store.get_total_project_quotas(project_id);
   if (upgrades == null) {
     // user opening the course, but isn't a collaborator on
     // this student project for some reason.  This will get fixed
     // when configure all projects runs.
+    const description = intl.formatMessage({
+      id: "course.util.status-cocalc-com.project_not_available",
+      defaultMessage: "(not available)",
+    });
     return {
-      description: "(not available)",
+      description,
       icon: "question-circle",
       state: "",
     };
@@ -359,19 +386,34 @@ function projectStatusCoCalcCom(opts): ProjectStatus {
   }
   const licenses = store.get_site_license_ids(project_id);
   if (licenses.length > 0) {
+    const description = intl.formatMessage({
+      id: "course.util.status-cocalc-com.licensed.description",
+      defaultMessage: "Licensed",
+    });
+    const tip = intl.formatMessage({
+      id: "course.util.status-cocalc-com.licensed.tooltip",
+      defaultMessage:
+        "Project is properly licensed and should work well. Thank you!",
+    });
+    return { description, icon: "check", state, tip };
+  } else {
+    const description = intl.formatMessage({
+      id: "course.util.status-cocalc-com.free.description",
+      defaultMessage: "Free Trial",
+    });
+    const tip = intl.formatMessage({
+      id: "course.util.status-cocalc-com.free.tooltip",
+      defaultMessage: `Project is a trial project hosted on a free server,
+      so it may be overloaded and will be rebooted frequently.
+      Please upgrade in course configuration.`,
+    });
     return {
-      description: "Licensed",
-      icon: "check",
+      description,
+      icon: "exclamation-triangle",
       state,
-      tip: "Project is properly licensed and should work well. Thank you!",
+      tip,
     };
   }
-  return {
-    description: "Free Trial",
-    icon: "exclamation-triangle",
-    state,
-    tip: "Project is a trial project hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course configuration.",
-  };
 }
 
 // the list of assignments, in particular with peer grading, has a large number of buttons

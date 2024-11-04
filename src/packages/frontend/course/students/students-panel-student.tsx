@@ -2,12 +2,6 @@
  *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
-
-import { Icon, MarkdownInput, TimeAgo, Tip } from "@cocalc/frontend/components";
-import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
-import { User } from "@cocalc/frontend/users";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { trunc_middle, search_split, search_match } from "@cocalc/util/misc";
 import {
   Button,
   Card,
@@ -19,6 +13,21 @@ import {
   Tooltip,
 } from "antd";
 import { useEffect, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import {
+  Icon,
+  MarkdownInput,
+  Text,
+  TimeAgo,
+  Tip,
+} from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
+import { User } from "@cocalc/frontend/users";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { search_match, search_split, trunc_middle } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { StudentAssignmentInfo, StudentAssignmentInfoHeader } from "../common";
 import {
@@ -79,6 +88,7 @@ export function Student({
   nbgrader_run_info,
   assignmentFilter,
 }: StudentProps) {
+  const intl = useIntl();
   const actions: CourseActions = redux.getActions(name);
   const store = actions.get_store();
   if (store == null) throw Error("store must be defined");
@@ -163,7 +173,11 @@ export function Student({
       );
     }
     const name = store.get_student_name(student.get("student_id"));
-    return <span>{name} (invited)</span>;
+    return (
+      <span>
+        {name} ({intl.formatMessage(labels.invited)})
+      </span>
+    );
   }
 
   function render_student_email() {
@@ -198,7 +212,13 @@ export function Student({
     }
     if (!hasAccount) {
       return (
-        <span style={{ color: "#666" }}>(has not created account yet)</span>
+        <span style={{ color: COLORS.GRAY_M }}>
+          <FormattedMessage
+            id="course.students-panel-student.last_active.no_account"
+            defaultMessage="(has not created account yet)"
+            description="The student in the online course has no account yet"
+          />
+        </span>
       );
     }
     const student_project_id = student.get("project_id");
@@ -222,12 +242,12 @@ export function Student({
     if (last_active) {
       // student has definitely been active (and we know about this project).
       return (
-        <span style={{ color: "#666" }}>
+        <Text type="secondary">
           (last used project <TimeAgo date={last_active} />)
-        </span>
+        </Text>
       );
     } else {
-      return <span style={{ color: "#666" }}>(has never used project)</span>;
+      return <Text type="secondary">(has never used project)</Text>;
     }
   }
 
@@ -235,6 +255,7 @@ export function Student({
     const { description, tip, state, icon } = util.projectStatus(
       student.get("project_id"),
       redux,
+      intl,
     );
     return (
       <Tip
@@ -246,7 +267,7 @@ export function Student({
         }
         tip={tip}
       >
-        <span style={{ color: "#888", cursor: "pointer" }}>
+        <span style={{ color: COLORS.GRAY_M, cursor: "pointer" }}>
           <Icon name={icon} /> {description}
           {state}
         </span>
@@ -275,26 +296,41 @@ export function Student({
     // to attempt creation again by clicking the create button.
     const student_project_id = student.get("project_id");
     if (student_project_id != null) {
+      const accessMsg = intl.formatMessage({
+        id: "course.student-panel.project_access.access_button",
+        defaultMessage: "Open student project",
+      });
       return (
         <Button onClick={open_project} size={size}>
           <Tip
             placement="right"
-            title="Student project"
-            tip="Open the course project for this student."
+            title={accessMsg}
+            tip={intl.formatMessage({
+              id: "course.student-panel.project_access.access_button.tooltip",
+              defaultMessage: "Open the course project for this student.",
+            })}
           >
-            <Icon name="edit" /> Open student project
+            <Icon name="edit" /> {accessMsg}
           </Tip>
         </Button>
       );
     } else {
+      const createMsg = intl.formatMessage({
+        id: "course.student-panel.project_access.create_button",
+        defaultMessage: "Create student project",
+      });
       return (
         <Tip
           placement="right"
-          title="Create the student project"
-          tip="Create a new project for this student, then add the student as a collaborator, and also add any collaborators on the project containing this course."
+          title={createMsg}
+          tip={intl.formatMessage({
+            id: "course.student-panel.project_access.create_button.tooltip",
+            defaultMessage:
+              "Create a new project for this student, then add the student as a collaborator, and also add any collaborators on the project containing this course.",
+          })}
         >
           <Button onClick={create_project} size={size}>
-            <Icon name="plus-circle" /> Create student project
+            <Icon name="plus-circle" /> {createMsg}
           </Button>
         </Tip>
       );
@@ -315,7 +351,7 @@ export function Student({
       return (
         <Space>
           <Button onClick={cancel_student_edit} size={size}>
-            Cancel
+            {intl.formatMessage(labels.cancel)}
           </Button>
           <Button
             onClick={save_student_changes}
@@ -323,14 +359,19 @@ export function Student({
             disabled={disable_save}
             size={size}
           >
-            <Icon name="save" /> Save
+            <Icon name="save" /> {intl.formatMessage(labels.save)}
           </Button>
         </Space>
       );
     } else {
       return (
         <Button onClick={show_edit_name_dialogue} size={size}>
-          <Icon name="address-card" /> Edit student...
+          <Icon name="address-card" />{" "}
+          <FormattedMessage
+            id="course.students-panel-student.edit_student.button"
+            defaultMessage="Edit student..."
+            description="Button label to open a dialog to modify data about a student in an online course"
+          />
         </Button>
       );
     }
@@ -383,7 +424,7 @@ export function Student({
     if (student.get("deleted")) {
       return (
         <Button onClick={undelete_student} size={size}>
-          <Icon name="trash" /> Undelete
+          <Icon name="trash" /> {intl.formatMessage(labels.undelete)}
         </Button>
       );
     } else {
@@ -391,15 +432,19 @@ export function Student({
         <Popconfirm
           title={
             <div style={{ maxWidth: "400px" }}>
-              Are you sure you want to delete "{render_student_name()}"? All
-              grades and other data about them will be removed, but you can
-              still undelete them.
+              <FormattedMessage
+                id="course.student-panel.delete-student.confirm"
+                defaultMessage={`Are you sure you want to delete "{name}"?
+                All grades and other data about them will be removed,
+                but you can still undelete them.`}
+                values={{ name: render_student_name() }}
+              />
             </div>
           }
           onConfirm={() => delete_student(false)}
         >
           <Button size={size}>
-            <Icon name="trash" /> Delete...
+            <Icon name="trash" /> {intl.formatMessage(labels.delete)}...
           </Button>
         </Popconfirm>
       );
@@ -413,7 +458,13 @@ export function Student({
     const allowResending =
       !last_email_invite || new Date(last_email_invite) < RESEND_INVITE_BEFORE;
 
-    const msg = allowResending ? "Resend invitation" : "Recently invited";
+    const msg = intl.formatMessage(
+      {
+        id: "course.student-panel.resend_invitation.button",
+        defaultMessage: `{allowResending, select, true {Resend invitation} other {Recently invited}}`,
+      },
+      { allowResending },
+    );
     const when =
       last_email_invite != null
         ? `Last invitation sent on ${new Date(
@@ -524,14 +575,32 @@ export function Student({
   }
 
   function render_note() {
+    const title = intl.formatMessage({
+      id: "course.students-panel-student.note.title",
+      defaultMessage: "Private Student Notes",
+      description: "About a student in an online course",
+    });
+    const tooltipTitle = intl.formatMessage({
+      id: "course.students-panel-student.note.tooltip.title",
+      defaultMessage: "Notes about this student",
+      description: "About a student in an online course",
+    });
+    const tooltip = intl.formatMessage({
+      id: "course.students-panel-student.note.tooltip",
+      defaultMessage:
+        "Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.",
+      description: "About a student in an online course",
+    });
+    const placeholder = intl.formatMessage({
+      id: "course.students-panel-student.note.placeholder",
+      defaultMessage: "Notes about student (not visible to student)",
+      description: "About a student in an online course",
+    });
     return (
       <Row key="note" style={styles.note}>
         <Col xs={4}>
-          <Tip
-            title="Notes about this student"
-            tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc."
-          >
-            Private Student Notes
+          <Tip title={tooltipTitle} tip={tooltip}>
+            {title}
           </Tip>
         </Col>
         <Col xs={20}>
@@ -539,7 +608,7 @@ export function Student({
             persist_id={student.get("student_id") + "note"}
             attach_to={name}
             rows={6}
-            placeholder="Notes about student (not visible to student)"
+            placeholder={placeholder}
             default_value={student.get("note")}
             on_save={(value) =>
               actions.students.set_student_note(
@@ -591,14 +660,27 @@ export function Student({
   }
 
   function render_push_missing_handouts_and_assignments() {
+    const title = intl.formatMessage({
+      id: "course.students-panel-student.catch-up.title",
+      defaultMessage: "Catch up this student",
+      description:
+        "Copy all not yet sent files to this student in an online course",
+    });
+    const tooltip = intl.formatMessage({
+      id: "course.students-panel-student.catch-up.tooltip",
+      defaultMessage:
+        "Copy any assignments and handouts to this student that have been copied to at least one other student",
+      description: "Files for a student in an online course",
+    });
+
     return (
       <Row key="catchup" style={{ marginTop: "15px" }}>
         <Col xs={4}>
-          <Tip
-            title="Catch up this student"
-            tip="Copy any assignments and handouts to this student that have been copied to at least one other student"
-          >
-            Copy missing assignments and handouts
+          <Tip title={title} tip={tooltip}>
+            <FormattedMessage
+              id="course.students-panel-student.catch-up.info"
+              defaultMessage={"Copy missing assignments and handouts"}
+            />
           </Tip>
         </Col>
         <Col xs={8}>
@@ -609,7 +691,7 @@ export function Student({
               )
             }
           >
-            <Icon name="share-square" /> Catch up this student
+            <Icon name="share-square" /> {title}
           </Button>
         </Col>
       </Row>

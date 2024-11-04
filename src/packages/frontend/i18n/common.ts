@@ -50,12 +50,12 @@ export const labels = defineMessages({
   },
   account_first_name: {
     id: "labels.account.first_name",
-    defaultMessage: "First name",
+    defaultMessage: "First Name",
     description: "Label for Account/First name:",
   },
   account_last_name: {
     id: "labels.account.last_name",
-    defaultMessage: "Last name",
+    defaultMessage: "Last Name",
     description: "Label for Account/Last name:",
   },
   account_password: {
@@ -80,7 +80,7 @@ export const labels = defineMessages({
   },
   email_address: {
     id: "labels.email_address",
-    defaultMessage: "Email address",
+    defaultMessage: "Email Address",
     description: "e.g. a label in a form for the email address field",
   },
   frame_editors_title_bar_save_label: {
@@ -97,6 +97,7 @@ export const labels = defineMessages({
   project_settings_restart_project_confirm_ok: {
     id: "labels.project.settings.restart-project.confirm.ok",
     defaultMessage: "Yes, {task} project",
+    description: 'task is one of "start", "restart", "stop"',
   },
   project_settings_stop_project_ok: {
     id: "labels.project.settings.stop-project.ok",
@@ -478,6 +479,15 @@ export const labels = defineMessages({
     defaultMessage: "Select a kernel",
     description: "A kernel in a Jupyter Notebook",
   },
+  invited: {
+    id: "labels.invited",
+    defaultMessage: "invited",
+    description: "A user of an online service has been invited",
+  },
+  ready: {
+    id: "labels.ready",
+    defaultMessage: "Ready",
+  },
   halt: {
     id: "labels.halt",
     defaultMessage: "Halt",
@@ -491,6 +501,11 @@ export const labels = defineMessages({
   delete: {
     id: "labels.delete",
     defaultMessage: "Delete",
+  },
+  undelete: {
+    id: "labels.undelete",
+    defaultMessage: "Undelete",
+    comment: "Short label on a button, to undo a deletion",
   },
   downloaded: {
     id: "labels.downloaded",
@@ -647,6 +662,32 @@ export const labels = defineMessages({
     defaultMessage: "Trash",
   },
   empty_trash: { id: "labels.empty_trash", defaultMessage: "Empty Trash" },
+  keyboard_shortcuts: {
+    id: "labels.keyboard_shortcuts",
+    defaultMessage: "Keyboard shortcuts",
+  },
+  terms_of_service: {
+    id: "labels.terms_of_service",
+    defaultMessage: "Terms of Service",
+  },
+  last_active: {
+    id: "labels.last_active",
+    defaultMessage: "Last Active",
+  },
+  project_status: {
+    id: "labels.project_status",
+    defaultMessage: "Project Status",
+  },
+  you: {
+    id: "labels.you",
+    defaultMessage: "You",
+    description:
+      "Single word. Referring to the user of this application, i.e. 'you' is the person the given message talks to",
+  },
+  open: {
+    id: "labels.open",
+    defaultMessage: "Open",
+  },
 });
 
 export const menu = defineMessages({
@@ -1443,14 +1484,6 @@ export const dialogs = defineMessages({
 });
 
 export const course = defineMessages({
-  assignments: {
-    id: "course.assignments",
-    defaultMessage: "Assignments",
-  },
-  handouts: {
-    id: "course.handouts",
-    defaultMessage: "Handouts",
-  },
   actions: {
     id: "course.actions",
     defaultMessage: "Actions",
@@ -1459,9 +1492,15 @@ export const course = defineMessages({
     id: "course.shared_project",
     defaultMessage: "Shared Project",
   },
+  student: {
+    id: "course.student",
+    defaultMessage: "Student",
+    description: "a student in an online course",
+  },
   students: {
     id: "course.students",
     defaultMessage: "Students",
+    description: "students in an online course",
   },
   add_students: {
     id: "course.add_students",
@@ -1527,5 +1566,44 @@ export const course = defineMessages({
   delete_student_projects: {
     id: "course.commands.delete-student-projects.title",
     defaultMessage: "Delete all Student Projects",
+  },
+  assign_button: {
+    id: "course.assignments.assign.button",
+    defaultMessage: "Assign",
+    description:
+      "Send out files to the given student, they will be copied over to the student project in an online course.",
+  },
+  add_assignments: {
+    id: "course.commands.add-assignments.label",
+    defaultMessage: "Add Assignments",
+    description: "Adding an assignment in a course",
+  },
+  assignment: {
+    id: "course.assignment",
+    defaultMessage: "assignment",
+    description:
+      "An assignment in an online course. Consisting of files for students to work with.",
+  },
+  handout: {
+    id: "course.handout",
+    defaultMessage: "handout",
+    description:
+      "A handout in an online course. Consisting of files for students to work with.",
+  },
+  assignments: {
+    id: "course.assignments",
+    defaultMessage: "Assignments",
+    description:
+      "Assignments in an online course. Consisting of files for students to work with.",
+  },
+  handouts: {
+    id: "course.handouts",
+    defaultMessage: "Handouts",
+    description:
+      "Handouts in an online course. Consisting of files for students to work with.",
+  },
+  due_date: {
+    id: "course.due_date",
+    defaultMessage: "Due Date",
   },
 });
