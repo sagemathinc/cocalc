@@ -37,11 +37,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "add-assignments": {
     icon: "share-square",
-    label: defineMessage({
-      id: "course.commands.add-assignments.label",
-      defaultMessage: "Add Assignments",
-      description: "Adding an assignment in a course",
-    }),
+    label: course.add_assignments,
     button: defineMessage({
       id: "course.commands.add-assignments.button",
       defaultMessage: "+Assignment",

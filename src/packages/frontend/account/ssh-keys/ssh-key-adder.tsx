@@ -5,9 +5,11 @@
 
 import { Button, Card, Input, Space } from "antd";
 import { useState } from "react";
-import { A, ErrorDisplay, Icon } from "@cocalc/frontend/components";
+import { useIntl } from "react-intl";
 
-// Sibling Libraries
+import { A, ErrorDisplay, Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+
 import { compute_fingerprint } from "./fingerprint";
 
 const ALLOWED_SSH_TYPES = [
@@ -17,7 +19,7 @@ const ALLOWED_SSH_TYPES = [
   "ecdsa-sha2-nistp256",
   "ecdsa-sha2-nistp384",
   "ecdsa-sha2-nistp521",
-];
+] as const;
 
 const ALLOWED_SSH_TYPES_DESCRIPTION =
   ALLOWED_SSH_TYPES.slice(0, -1).join(", ") +
@@ -36,26 +38,26 @@ const normalize_key = (value) =>
 // Assumes the key has valid formatting ie.
 // <key-type>[space]<public-key>[space]<comment>
 interface ParsedKey {
-  type: string;
-  pubkey: string;
-  source: string;
-  comments: string;
+  type?: string;
+  pubkey?: string;
+  source?: string;
+  comments?: string;
   error?: string;
   value: string;
 }
-const parse_key = function (value): ParsedKey {
-  const parts = value.split(/\s+/);
+const parse_key = function (value: string): ParsedKey {
+  const parts: string[] = value.split(/\s+/);
   const type = parts[0];
   const pubkey = parts[1];
   const source = parts[2];
-  const comments = parts.slice(3);
+  const comments = parts.slice(3).join(" ");
 
   return { value, type, pubkey, source, comments };
 };
 
 const validate_key = function (value): ParsedKey {
   const key = parse_key(value);
-  if (!ALLOWED_SSH_TYPES.includes(key.type)) {
+  if (!ALLOWED_SSH_TYPES.includes(key.type as any)) {
     key.error = "Invalid key or type not supported";
   } else {
     delete key.error;
@@ -73,10 +75,16 @@ interface Props {
 
 export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
   const { add_ssh_key, toggleable, style, extra } = props;
+  const intl = useIntl();
   const [key_title, set_key_title] = useState<string>("");
   const [key_value, set_key_value] = useState<string>("");
   const [show_panel, set_show_panel] = useState<boolean>(false);
   const [error, set_error] = useState<undefined | string>(undefined);
+
+  const addKey = intl.formatMessage({
+    id: "account.ssh-key-adder.button",
+    defaultMessage: "Add SSH Key",
+  });
 
   function cancel_and_close() {
     set_key_title("");
@@ -88,29 +96,33 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
   function submit_form(e?): void {
     let title;
     e?.preventDefault();
-    const validated_key = validate_key(normalize_key(key_value));
-    if (validated_key.error != null) {
-      set_error(validated_key.error);
-      return;
-    } else {
-      set_error(undefined);
+    try {
+      const validated_key = validate_key(normalize_key(key_value));
+      if (validated_key.error != null) {
+        set_error(validated_key.error);
+        return;
+      } else {
+        set_error(undefined);
+      }
+
+      if (key_title) {
+        title = key_title;
+      } else {
+        title = validated_key.source;
+      }
+
+      const { value } = validated_key;
+
+      add_ssh_key({
+        title,
+        value,
+        fingerprint: compute_fingerprint(validated_key.pubkey),
+      });
+
+      cancel_and_close();
+    } catch (err) {
+      set_error(err.toString());
     }
-
-    if (key_title) {
-      title = key_title;
-    } else {
-      title = validated_key.source;
-    }
-
-    const { value } = validated_key;
-
-    add_ssh_key({
-      title,
-      value,
-      fingerprint: compute_fingerprint(validated_key.pubkey),
-    });
-
-    cancel_and_close();
   }
 
   function render_panel() {
@@ -118,8 +130,18 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
       <Card
         title={
           <>
-            <Icon name="plus-circle" /> Add an{" "}
-            <A href="https://doc.cocalc.com/account/ssh.html">SSH key</A>
+            <Icon name="plus-circle" />{" "}
+            {intl.formatMessage(
+              {
+                id: "account.ssh-key-adder.title",
+                defaultMessage: "Add an <A>SSH key</A>",
+              },
+              {
+                A: (c) => (
+                  <A href="https://doc.cocalc.com/account/ssh.html">{c}</A>
+                ),
+              },
+            )}
           </>
         }
         style={style}
@@ -131,9 +153,11 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
             id="ssh-title"
             value={key_title}
             onChange={(e) => set_key_title(e.target.value)}
-            placeholder={
-              "Choose a name for this ssh key to help you keep track of it..."
-            }
+            placeholder={intl.formatMessage({
+              id: "account.ssh-key-adder.placeholder",
+              defaultMessage:
+                "Choose a name for this ssh key to help you keep track of it...",
+            })}
           />
           <div style={{ marginTop: "15px" }}>
             Key
@@ -155,14 +179,16 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
         <div style={{ marginTop: "15px" }}>
           <Space>
             {toggleable ? (
-              <Button onClick={cancel_and_close}>Cancel</Button>
+              <Button onClick={cancel_and_close}>
+                {intl.formatMessage(labels.cancel)}
+              </Button>
             ) : undefined}
             <Button
               type="primary"
               onClick={submit_form}
               disabled={key_value.length < 10}
             >
-              Add SSH Key
+              {addKey}
             </Button>
           </Space>
           {error && (
@@ -180,7 +206,7 @@ export const SSHKeyAdder: React.FC<Props> = (props: Props) => {
   function render_open_button() {
     return (
       <Button onClick={() => set_show_panel(true)} style={style}>
-        <Icon name="terminal" /> Add SSH Key...
+        <Icon name="terminal" /> {addKey}...
       </Button>
     );
   }

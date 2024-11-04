@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Layout } from "antd";
+import { Layout, Tooltip } from "antd";
 import { GetServerSidePropsContext } from "next";
 import { join } from "path";
 import { getRecentHeadlines } from "@cocalc/database/postgres/news";
@@ -82,11 +82,13 @@ export default function Home(props: Props) {
       >
         <Title level={1} style={{ color: COLORS.GRAY }}>
           Signed in as{" "}
-          <A href="/config">
-            {`${account.first_name} ${account.last_name} ${
-              account.name ? "(@" + account.name + ")" : ""
-            }`}
-          </A>
+          <Tooltip title={"View all your account settings"} placement={"right"}>
+            <a href={join(basePath, "settings")}>
+              {`${account.first_name} ${account.last_name} ${
+                account.name ? "(@" + account.name + ")" : ""
+              }`}
+            </a>
+          </Tooltip>
         </Title>
         <Paragraph style={{ fontSize: "11pt", margin: "15px 0" }}>
           {isCommercial && account && !account.is_anonymous && (

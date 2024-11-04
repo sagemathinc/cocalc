@@ -59,7 +59,11 @@ export async function set_account_info_if_different(
   const columns = ["email_address", "first_name", "last_name"];
 
   // this could throw an error for "no such account"
-  const account = await get_account(opts.db, opts.account_id, columns);
+  const account = await get_account<{
+    email_address: string;
+    first_name: string;
+    last_name: string;
+  }>(opts.db, opts.account_id, columns);
 
   const do_set: { [field: string]: string } = {};
   let do_email: string | undefined = undefined;
@@ -109,11 +113,12 @@ export async function set_account(
   });
 }
 
-export async function get_account(
+// TODO typing: pick the column fields from the actual account type stored in the database
+export async function get_account<T>(
   db: PostgreSQL,
   account_id: string,
   columns: string[],
-): Promise<void> {
+): Promise<T> {
   return await callback2(db.get_account.bind(db), {
     account_id,
     columns,
@@ -137,4 +142,14 @@ export async function set_email_address_verified(
     jsonb_set: { email_address_verified: { [email_address]: new Date() } },
     where: { "account_id = $::UUID": account_id },
   });
+}
+
+export async function is_admin(
+  db: PostgreSQL,
+  account_id: string,
+): Promise<boolean> {
+  const { groups } = await get_account<{ groups?: string[] }>(db, account_id, [
+    "groups",
+  ]);
+  return Array.isArray(groups) && groups.includes("admin");
 }

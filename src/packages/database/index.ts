@@ -13,6 +13,8 @@ COPYRIGHT : (c) 2021 SageMath, Inc.
 
 import { setupRecordConnectErrors } from "./postgres/record-connect-error";
 
+import { PostgreSQL } from "./postgres/types";
+
 const base = require("./postgres-base");
 
 export const {
@@ -29,8 +31,9 @@ export const {
 // Each of the following calls composes the PostgreSQL class with further important functionality.
 // Order matters.
 
-let theDB: any = undefined;
-export function db(opts = {}) {
+let theDB: PostgreSQL | undefined = undefined;
+
+export function db(opts = {}): PostgreSQL {
   if (theDB === undefined) {
     let PostgreSQL = base.PostgreSQL;
 
@@ -45,13 +48,17 @@ export function db(opts = {}) {
         PostgreSQL,
       );
     }
-    theDB = new PostgreSQL(opts);
-    setupRecordConnectErrors(theDB);
+    const theDBnew = new PostgreSQL(opts);
+    setupRecordConnectErrors(theDBnew);
+    theDB = theDBnew;
   }
 
+  if (theDB == null) {
+    throw new Error("Fatal error setting up PostgreSQL instance");
+  }
   return theDB;
 }
 
 import getPool from "./pool";
-export { getPool };
 export { stripNullFields } from "./postgres/util";
+export { getPool };

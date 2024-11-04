@@ -3,9 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Checkbox, Spin, Table } from "antd";
+import { Alert, Button, Checkbox, Space, Spin, Table } from "antd";
 import { join } from "path";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import {
   React,
@@ -17,7 +17,7 @@ import {
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { A, Gap, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import { A, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { Footer } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -240,25 +240,39 @@ export const PublicPaths: React.FC = () => {
     <div style={{ marginBottom: "64px" }}>
       <Alert
         showIcon
-        style={{ maxWidth: "600px", margin: "30px auto" }}
+        style={{ margin: "30px auto" }}
         type="info"
+        banner
         message={
-          <>
-            This is an overview of your public files.{" "}
-            <A href={join(appBasePath, "share", "accounts", account_id)}>
-              Visit this page for more details...
-            </A>
-          </>
+          <FormattedMessage
+            id="account.public-paths.banner"
+            defaultMessage={`This is an overview of your public files.
+            <A>Visit this page for more details...</A>`}
+            values={{
+              A: (c) => (
+                <A href={join(appBasePath, "share", "accounts", account_id)}>
+                  {c}
+                </A>
+              ),
+            }}
+          />
         }
       />
       <Button onClick={fetch} disabled={loading} style={{ float: "right" }}>
-        <Icon name="redo" />
-        <Gap /> <Gap /> {loading ? "Loading..." : "Refresh"}
+        <Space>
+          <Icon name="redo" />
+          {intl.formatMessage(loading ? labels.loading : labels.refresh)}
+        </Space>
       </Button>
       <h2>
         {intl.formatMessage(labels.published_files)} ({paths?.length ?? "?"})
       </h2>
-      Files that have been published in any project that you have actively used.
+      <FormattedMessage
+        id="account.public-paths.info"
+        defaultMessage={
+          "Files that have been published in any project that you have actively used."
+        }
+      />
       <br />
       <br />
       {loading && <Loading />}
