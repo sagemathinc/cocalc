@@ -977,7 +977,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
 
     if (props.title == null && is_active) {
-      return label;
+      return <>{label}</>;
     }
 
     const body = (

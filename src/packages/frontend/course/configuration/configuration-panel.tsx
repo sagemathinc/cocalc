@@ -3,8 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Card, Col, Row, Spin } from "antd";
 import { debounce } from "lodash";
-import { Card, Row, Col, Spin } from "antd";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import {
   redux,
   useActions,
@@ -12,27 +14,29 @@ import {
   useStore,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { contains_url } from "@cocalc/util/misc";
 import {
   Icon,
   LabeledRow,
   MarkdownInput,
   TextInput,
 } from "@cocalc/frontend/components";
-import { StudentProjectUpgrades } from "./upgrades";
+import ShowError from "@cocalc/frontend/components/error";
+import { course } from "@cocalc/frontend/i18n";
+import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
+import { contains_url } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord, CourseStore } from "../store";
+import ConfigurationCopying from "./configuration-copying";
+import { CustomizeStudentProjectFunctionality } from "./customize-student-project-functionality";
+import { DatastoreConfig } from "./datastore-config";
+import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
+import { EnvironmentVariablesConfig } from "./envvars-config";
 import { Nbgrader } from "./nbgrader";
 import { Parallel } from "./parallel";
-import { DisableStudentCollaboratorsPanel } from "./disable-collaborators";
-import { CustomizeStudentProjectFunctionality } from "./customize-student-project-functionality";
-import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
-import { DatastoreConfig } from "./datastore-config";
-import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
-import { EnvironmentVariablesConfig } from "./envvars-config";
 import StudentPay from "./student-pay";
-import ConfigurationCopying from "./configuration-copying";
-import ShowError from "@cocalc/frontend/components/error";
+import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
+import { StudentProjectUpgrades } from "./upgrades";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   name: string;
@@ -175,7 +179,11 @@ export function UpgradeConfiguration({
     <Card
       title={
         <>
-          <Icon name="gears" /> Configure Upgrades
+          <Icon name="gears" />{" "}
+          <FormattedMessage
+            id="course.configuration.configure_upgrades.title"
+            defaultMessage={"Configure Upgrades"}
+          />
         </>
       }
     >
@@ -187,6 +195,7 @@ export function UpgradeConfiguration({
 }
 
 export function TitleAndDescription({ actions, settings, name }) {
+  const intl = useIntl();
   if (settings == null) {
     return <Spin />;
   }
@@ -194,7 +203,8 @@ export function TitleAndDescription({ actions, settings, name }) {
     <Card
       title={
         <>
-          <Icon name="header" /> Course Title and Description
+          <Icon name="header" />{" "}
+          {intl.formatMessage(course.title_and_description_label)}
         </>
       }
     >
@@ -214,19 +224,24 @@ export function TitleAndDescription({ actions, settings, name }) {
         />
       </LabeledRow>
       <hr />
-      <span style={{ color: "#666" }}>
-        Set the course title and description here. When you change the title or
-        description, the corresponding title and description of each student
-        project will be updated. The description is set to this description, and
-        the title is set to the student name followed by this title. Use the
-        description to provide additional information about the course, e.g., a
-        link to the main course website.
+      <span style={{ color: COLORS.GRAY_M }}>
+        <FormattedMessage
+          id="course.configuration.title_and_description.info"
+          defaultMessage={`Set the course title and description here.
+          When you change the title or description,
+          the corresponding title and description of each student project will be updated.
+          The description is set to this description,
+          and the title is set to the student name followed by this title.
+          Use the description to provide additional information about the course,
+          e.g., a link to the main course website.`}
+        />
       </span>
     </Card>
   );
 }
 
 export function EmailInvitation({ actions, redux, project_id, name }) {
+  const intl = useIntl();
   const [error, setError] = useState<string>("");
   const store = useStore<CourseStore>({ name });
 
@@ -237,7 +252,11 @@ export function EmailInvitation({ actions, redux, project_id, name }) {
         .allow_urls_in_emails(project_id);
       if (!allow_urls && contains_url(value)) {
         setError(
-          "URLs in emails are not allowed for free trial projects.  Please upgrade or delete the URL. This is an anti-spam measure.",
+          intl.formatMessage({
+            id: "course.configuration.email_invitation.url_error",
+            defaultMessage:
+              "URLs in emails are not allowed for free trial projects.  Please upgrade or delete the URL. This is an anti-spam measure.",
+          }),
         );
       } else {
         setError("");
@@ -247,13 +266,12 @@ export function EmailInvitation({ actions, redux, project_id, name }) {
     { leading: true, trailing: true },
   );
 
-  const template_instr =
-    " Also, {title} will be replaced by the title of the course and {name} by your name.";
   return (
     <Card
       title={
         <>
-          <Icon name="envelope" /> Email Invitation
+          <Icon name="envelope" />{" "}
+          {intl.formatMessage(course.email_invitation_label)}
         </>
       }
     >
@@ -277,10 +295,14 @@ export function EmailInvitation({ actions, redux, project_id, name }) {
         />
       </div>
       <hr />
-      <span style={{ color: "#666" }}>
-        If you add a student to this course using their email address, and they
-        do not have a CoCalc account, then they will receive this email
-        invitation. {template_instr}
+      <span style={{ color: COLORS.GRAY_M }}>
+        <FormattedMessage
+          id="course.configuration.email_invitation.info"
+          defaultMessage={`If you add a student to this course using their email address,
+          and they do not have a CoCalc account, then they will receive this email invitation.
+          Also, {title} will be replaced by the title of the course and {name} by your name.`}
+          description="Information message. Do not translate '{title}' and '{name}' as they are template variables."
+        />
       </span>
     </Card>
   );

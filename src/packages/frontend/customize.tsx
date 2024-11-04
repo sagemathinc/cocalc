@@ -8,6 +8,7 @@
 
 import { fromJS, List, Map } from "immutable";
 import { join } from "path";
+import { useIntl } from "react-intl";
 
 import {
   Actions,
@@ -32,6 +33,7 @@ import {
 } from "@cocalc/frontend/components";
 import { getGoogleCloudImages, getImages } from "@cocalc/frontend/compute/api";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { labels, Locale } from "@cocalc/frontend/i18n";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import {
   ComputeImage,
@@ -57,7 +59,6 @@ import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { DefaultQuotaSetting, Upgrades } from "@cocalc/util/upgrades/quota";
-import { Locale } from "./i18n";
 export { TermsOfService } from "@cocalc/frontend/customize/terms-of-service";
 
 // this sets UI modes for using a kubernetes based back-end
@@ -331,7 +332,7 @@ function process_customize(obj) {
   for (const k in site_settings_conf) {
     const v = site_settings_conf[k];
     obj[k] =
-      obj[k] != null ? obj[k] : (v.to_val?.(v.default, obj_orig) ?? v.default);
+      obj[k] != null ? obj[k] : v.to_val?.(v.default, obj_orig) ?? v.default;
   }
   // the llm markup special case
   obj.llm_markup = obj_orig._llm_markup ?? 30;
@@ -566,6 +567,7 @@ export function AccountCreationEmailInstructions() {
 }
 
 export const Footer: React.FC = React.memo(() => {
+  const intl = useIntl();
   const on = useTypedRedux("customize", "organization_name");
   const tos = useTypedRedux("customize", "terms_of_service_url");
 
@@ -579,16 +581,32 @@ export const Footer: React.FC = React.memo(() => {
     paddingBottom: `${UNIT}px`,
   };
 
+  const systemStatus = intl.formatMessage({
+    id: "customize.footer.system-status",
+    defaultMessage: "System Status",
+  });
+
+  const name = intl.formatMessage(
+    {
+      id: "customize.footer.name",
+      defaultMessage: "{name} by {organizationName}",
+    },
+    {
+      name: <SiteName />,
+      organizationName,
+    },
+  );
+
   function contents() {
     const elements = [
       <A key="name" href={appBasePath}>
-        <SiteName /> by {organizationName}
+        {name}
       </A>,
       <A key="status" href={SystemStatusUrl}>
-        System Status
+        {systemStatus}
       </A>,
       <A key="tos" href={TOSurl}>
-        Terms of Service
+        {intl.formatMessage(labels.terms_of_service)}
       </A>,
       <HelpEmailLink key="help" />,
       <span key="year" title={webappVersionInfo}>

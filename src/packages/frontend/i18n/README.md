@@ -55,6 +55,16 @@ After introducing new messages, these are the steps to get all translations into
 
 Note: if just a translation has been updated, you only need to do the `i18n:download` & `i18n:compile` steps.
 
+### Unused keys
+
+Development goes on, and it might happen that keys are no longer in use.
+That alone does not cause any problems, but it might be nice to just get rid of them.
+Run `i18n:unused` to check or optionally delete these keys.
+
+```bash
+$ pnpm run i18n:unused [delete]
+```
+
 Ref:
 
 - https://formatjs.io/docs/react-intl/components

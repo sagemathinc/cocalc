@@ -196,28 +196,30 @@ export async function deleteUser(project_id: string): Promise<void> {
   }
 }
 
+const ENV_VARS_DELETE = [
+  "PGDATA",
+  "PGHOST",
+  "PGUSER",
+  "PGDATABASE",
+  "PROJECTS",
+  "BASE_PATH",
+  "PORT",
+  "DATA",
+  "LOGS",
+  "PWD",
+  "LINES",
+  "COLUMNS",
+  "LS_COLORS",
+  "INIT_CWD",
+  "DEBUG_FILE",
+] as const;
+
 export function sanitizedEnv(env: { [key: string]: string | undefined }): {
   [key: string]: string;
 } {
   const env2 = { ...env };
   // Remove some potentially confusing env variables
-  for (const key of [
-    "PGDATA",
-    "PGHOST",
-    "PGUSER",
-    "PGDATABASE",
-    "PROJECTS",
-    "BASE_PATH",
-    "PORT",
-    "DATA",
-    "LOGS",
-    "PWD",
-    "LINES",
-    "COLUMNS",
-    "LS_COLORS",
-    "INIT_CWD",
-    "DEBUG_FILE",
-  ]) {
+  for (const key of ENV_VARS_DELETE) {
     delete env2[key];
   }
   // Comment about stripping things starting with /root:

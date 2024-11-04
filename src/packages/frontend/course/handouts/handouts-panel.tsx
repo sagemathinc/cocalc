@@ -3,19 +3,22 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useRedux } from "@cocalc/frontend/app-framework";
-import { useState } from "react";
-import ScrollableList from "@cocalc/frontend/components/scrollable-list";
-import { cmp } from "@cocalc/util/misc";
 import { Alert, Button } from "antd";
 import { Set } from "immutable";
+import { useState } from "react";
+import { useIntl } from "react-intl";
+
+// CoCalc and course components
+import { useRedux } from "@cocalc/frontend/app-framework";
+import ScrollableList from "@cocalc/frontend/components/scrollable-list";
+import { course } from "@cocalc/frontend/i18n";
+import { cmp } from "@cocalc/util/misc";
 import { Icon, Tip } from "../../components";
 import { UserMap } from "../../todo-types";
 import { CourseActions } from "../actions";
 import { AddItems, FoldersToolbar } from "../common/folders-tool-bar";
 import { HandoutRecord, HandoutsMap, StudentsMap } from "../store";
 import * as styles from "../styles";
-// CoCalc and course components
 import * as util from "../util";
 import { Handout } from "./handout";
 
@@ -226,6 +229,8 @@ export function HandoutsPanel({
 }
 
 export function HandoutsPanelHeader(props: { n: number }) {
+  const intl = useIntl();
+
   return (
     <Tip
       delayShow={1300}
@@ -233,7 +238,8 @@ export function HandoutsPanelHeader(props: { n: number }) {
       tip="This tab lists all of the handouts associated with your course."
     >
       <span>
-        <Icon name="files" /> Handouts {props.n != null ? ` (${props.n})` : ""}
+        <Icon name="files" /> {intl.formatMessage(course.handouts)}{" "}
+        {props.n != null ? ` (${props.n})` : ""}
       </span>
     </Tip>
   );

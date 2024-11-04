@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useIntl } from "react-intl";
+
 // CoCalc libraries
 import { AppRedux, useMemo } from "@cocalc/frontend/app-framework";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
@@ -44,8 +46,10 @@ export function StudentListForAssignment({
   nbgrader_run_info,
   search,
 }: StudentListForAssignmentProps) {
+  const intl = useIntl();
+
   const student_list: string[] = useMemo(() => {
-    const v0 = util.parse_students(students, user_map, redux);
+    const v0 = util.parse_students(students, user_map, redux, intl);
     const store = get_store();
 
     // Remove deleted students or students not matching the search

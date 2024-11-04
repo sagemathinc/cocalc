@@ -121,9 +121,9 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
         content: (
           <>
             <div>
-              Save this secret key somewhere safe. You won't be able to view it
-              again here. If you lose this secret key, you'll need to generate a
-              new one.
+              Save this secret key somewhere safe.{" "}
+              <b>You won't be able to view it again here.</b> If you lose this
+              secret key, you'll need to generate a new one.
             </div>
             <div style={{ marginTop: 16 }}>
               <strong>Secret API Key</strong>{" "}

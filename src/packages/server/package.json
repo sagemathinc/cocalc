@@ -7,6 +7,7 @@
     "./auth/*": "./dist/auth/*.js",
     "./api/*": "./dist/api/*.js",
     "./accounts/*": "./dist/accounts/*.js",
+    "./bookmarks/*": "./dist/bookmarks/*.js",
     "./compute/*": "./dist/compute/*.js",
     "./compute/maintenance": "./dist/compute/maintenance/index.js",
     "./database/*": "./dist/database/*.js",
@@ -38,7 +39,7 @@
   "dependencies": {
     "@cocalc/backend": "workspace:*",
     "@cocalc/database": "workspace:*",
-    "@cocalc/gcloud-pricing-calculator": "^1.12.6",
+    "@cocalc/gcloud-pricing-calculator": "^1.13.0",
     "@cocalc/server": "workspace:*",
     "@cocalc/util": "workspace:*",
     "@google-ai/generativelanguage": "^2.7.0",

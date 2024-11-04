@@ -2,18 +2,20 @@
 Component for adding one or more students to the course.
 */
 
+import { Button, Checkbox, Col, Flex, Form, Input, Row, Space } from "antd";
+import { concat, sortBy } from "lodash";
 import { useEffect, useRef, useState } from "react";
-import type { CourseActions } from "../actions";
+import { useIntl } from "react-intl";
+
 import {
   redux,
   useActions,
   useIsMountedRef,
 } from "@cocalc/frontend/app-framework";
-import { Button, Col, Form, Input, Row, Checkbox, Flex, Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
-import type { StudentsMap } from "../store";
 import type { UserMap } from "@cocalc/frontend/todo-types";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   dict,
   is_valid_uuid_string,
@@ -21,9 +23,8 @@ import {
   parse_user_search,
   trunc,
 } from "@cocalc/util/misc";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { concat, sortBy } from "lodash";
-import { useIntl } from "react-intl";
+import type { CourseActions } from "../actions";
+import type { StudentsMap } from "../store";
 
 interface Props {
   name: string;

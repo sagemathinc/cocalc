@@ -17,10 +17,14 @@ const A_STYLE: CSS = {
 export function Tagline({ value, style }: { value?: string; style? }) {
   function renderContent() {
     if (value) {
-      return <SanitizedMarkdown value={value} anchorStyle={A_STYLE} />;
+      return (
+        <div style={{ margin: "5px 0 -15px 0" }}>
+          <SanitizedMarkdown value={value} anchorStyle={A_STYLE} />
+        </div>
+      );
     } else {
       return (
-        <>
+        <div style={{ margin: "5px 0 5px 0" }}>
           CoCalc Runs Your{" "}
           <A href="/features/jupyter-notebook" style={A_STYLE}>
             Jupyter Notebooks
@@ -34,7 +38,7 @@ export function Tagline({ value, style }: { value?: string; style? }) {
             CPUs and GPUs
           </A>
           !
-        </>
+        </div>
       );
     }
   }

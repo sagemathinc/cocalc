@@ -242,6 +242,12 @@ Table({
         editable: true,
       },
     },
+    owner_id: {
+      type: "uuid",
+      desc: "If one user (owner_id) creates an account for another user via the API, then this records who created the account.  They may have special privileges at some point.",
+      render: { type: "account" },
+      title: "Owner",
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -518,6 +524,7 @@ Table({
           notes: null,
           salesloft_id: null,
           sign_up_usage_intent: null,
+          owner_id: null,
         },
       },
       set: {

@@ -12,7 +12,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { AppRedux, useRedux } from "@cocalc/frontend/app-framework";
 import { Gap, Icon, Tip } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
-import { course } from "@cocalc/frontend/i18n";
+import { course, labels } from "@cocalc/frontend/i18n";
 import { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
 import { search_match, search_split } from "@cocalc/util/misc";
 import type { CourseActions } from "../actions";
@@ -106,7 +106,7 @@ export function StudentsPanel({
 
   // this updates a JS list from the ever changing user_map immutableMap
   useEffect(() => {
-    const v = util.parse_students(students, user_map, redux);
+    const v = util.parse_students(students, user_map, redux, intl);
     if (!isEqual(v, students_unordered)) {
       set_students_unordered(v);
     }
@@ -192,7 +192,10 @@ export function StudentsPanel({
           <Col md={6}>
             <Input.Search
               allowClear
-              placeholder="Filter existing students..."
+              placeholder={intl.formatMessage({
+                id: "course.students-panel.filter_students.placeholder",
+                defaultMessage: "Filter existing students...",
+              })}
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
             />
@@ -200,7 +203,13 @@ export function StudentsPanel({
           <Col md={6}>
             {num_omitted ? (
               <h5 style={{ marginLeft: "15px" }}>
-                (Omitting {num_omitted} students)
+                {intl.formatMessage(
+                  {
+                    id: "course.students-panel.filter_students.info",
+                    defaultMessage: "(Omitting {num_omitted} students)",
+                  },
+                  { num_omitted },
+                )}
               </h5>
             ) : undefined}
           </Col>
@@ -251,20 +260,26 @@ export function StudentsPanel({
 
   function render_student_table_header(num_deleted: number) {
     // HACK: that marginRight is to get things to line up with students.
+    const firstName = intl.formatMessage(labels.account_first_name);
+    const lastName = intl.formatMessage(labels.account_last_name);
+    const lastActive = intl.formatMessage(labels.last_active);
+    const projectStatus = intl.formatMessage(labels.project_status);
+    const emailAddress = intl.formatMessage(labels.email_address);
+
     return (
       <div>
         <Row style={{ marginRight: 0 }}>
           <Col md={6}>
             <div style={{ display: "inline-block", width: "50%" }}>
-              {render_sort_link("first_name", "First Name")}
+              {render_sort_link("first_name", firstName)}
             </div>
             <div style={{ display: "inline-block" }}>
-              {render_sort_link("last_name", "Last Name")}
+              {render_sort_link("last_name", lastName)}
             </div>
           </Col>
-          <Col md={4}>{render_sort_link("email", "Email Address")}</Col>
-          <Col md={8}>{render_sort_link("last_active", "Last Active")}</Col>
-          <Col md={3}>{render_sort_link("hosting", "Project Status")}</Col>
+          <Col md={4}>{render_sort_link("email", emailAddress)}</Col>
+          <Col md={8}>{render_sort_link("last_active", lastActive)}</Col>
+          <Col md={3}>{render_sort_link("hosting", projectStatus)}</Col>
           <Col md={3}>
             {num_deleted ? render_show_deleted(num_deleted) : undefined}
           </Col>
