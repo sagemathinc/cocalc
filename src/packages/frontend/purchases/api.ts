@@ -199,11 +199,6 @@ export async function getCostPerDay(opts: { limit?: number; offset?: number }) {
   return await api("purchases/get-cost-per-day", opts);
 }
 
-// Get all the stripe payment info about a given user.
-export async function getPaymentMethods() {
-  return await api("billing/get-payment-methods");
-}
-
 // Get all the stripe information about a given user.
 export async function getCustomer() {
   return await api("billing/get-customer");
@@ -500,7 +495,7 @@ export async function getCustomerSession(): Promise<CustomerSessionSecret> {
   return await api("purchases/stripe/get-customer-session");
 }
 
-export async function getPaymentMethods2(
+export async function getPaymentMethods(
   opts: {
     user_account_id?: string;
     ending_before?: string;

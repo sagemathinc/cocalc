@@ -14,7 +14,7 @@ import {
   Tooltip,
 } from "antd";
 import { FinishStripePayment } from "./stripe-payment";
-import { capitalize, currency, plural, replace_all } from "@cocalc/util/misc";
+import { capitalize, currency, replace_all } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
@@ -131,20 +131,6 @@ export default function Payments({
               account_id={account_id}
               scroll={hasLoadedMore ? { y: 800 } : undefined}
             />
-            <div style={{ display: "flex" }}>
-              <div style={{ flex: 1 }} />
-              <Button
-                style={{ marginTop: "10px" }}
-                disabled={!hasMore || loading}
-                onClick={() => {
-                  loadMore();
-                }}
-              >
-                {hasMore
-                  ? "Load More..."
-                  : `All ${data.length} ${plural(data.length, "payment")} are loaded`}
-              </Button>
-            </div>
           </>
         )}
       </div>

@@ -106,10 +106,6 @@ export class PurchasesClient {
     await waitUntilPayAsYouGoModalCloses();
   }
 
-  async getPaymentMethods() {
-    return await purchasesApi.getPaymentMethods();
-  }
-
   async getCustomer() {
     return await purchasesApi.getCustomer();
   }
