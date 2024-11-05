@@ -20,6 +20,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { capitalize, path_to_title } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { AddPaymentMethodButton } from "./stripe-payment";
 
 type PaymentMethod = any;
 
@@ -98,6 +99,7 @@ export default function PaymentMethods() {
         </Button>
       </Flex>
       <ShowError error={error} setError={setError} />
+
       {paymentMethods != null && (
         <Table
           dataSource={paymentMethods}
@@ -105,7 +107,14 @@ export default function PaymentMethods() {
           rowKey={"id"}
           columns={[
             {
-              title: "Payment Method",
+              title: (
+                <>
+                  Payment Method{" "}
+                  <span style={{ marginLeft: "30px" }}>
+                    <AddPaymentMethodButton />
+                  </span>
+                </>
+              ),
               dataIndex: "id",
               key: "id",
               render: (_, record) => <PaymentMethod paymentMethod={record} />,

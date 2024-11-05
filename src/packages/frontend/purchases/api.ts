@@ -4,7 +4,7 @@ Functions for interfacing with the purchases functionality.
 Some of these are only used by the nextjs app!
 */
 
-import api from "@cocalc/frontend/client/api";
+import api0 from "@cocalc/frontend/client/api";
 import type {
   Purchase,
   Reason,
@@ -27,6 +27,11 @@ import type {
   LineItem,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
+
+async function api(endpoint: string, args?: object) {
+  throttle({ endpoint });
+  return await api0(endpoint, args);
+}
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -217,11 +222,17 @@ export async function createPaymentIntent(opts: {
   // admins can optionally set a different user account id to charge them
   user_account_id?: string;
 }): Promise<PaymentIntentSecret> {
-  return await api("purchases/create-payment-intent", opts);
+  return await api("purchases/stripe/create-payment-intent", opts);
 }
 
 export async function processPaymentIntents(): Promise<{ count: number }> {
-  return await api("purchases/process-payment-intents");
+  return await api("purchases/stripe/process-payment-intents");
+}
+
+export async function createSetupIntent(opts: {
+  description: string;
+}): Promise<{ clientSecret: string }> {
+  return await api("purchases/stripe/create-setup-intent", opts);
 }
 
 export async function setupAutomaticBilling(opts: {
@@ -455,7 +466,7 @@ export async function cancelPaymentIntent(opts: {
   id: string;
   reason: PaymentIntentCancelReason;
 }) {
-  await api("purchases/cancel-payment-intent", opts);
+  await api("purchases/stripe/cancel-payment-intent", opts);
 }
 
 export async function getPayments(
@@ -470,7 +481,6 @@ export async function getPayments(
     limit?: number;
   } = {},
 ): Promise<StripeData> {
-  throttle({ endpoint: "purchases/stripe/get-payments" });
   return await api("purchases/stripe/get-payments", opts);
 }
 
@@ -480,19 +490,16 @@ export async function getOpenPayments(
     user_account_id?: string;
   } = {},
 ): Promise<StripeData> {
-  throttle({ endpoint: "purchases/stripe/get-open-payments" });
   return await api("purchases/stripe/get-open-payments", opts);
 }
 
 export async function getCheckoutSession(
   opts: CheckoutSessionOptions,
 ): Promise<CheckoutSessionSecret> {
-  throttle({ endpoint: "purchases/stripe/get-checkout-session" });
   return await api("purchases/stripe/get-checkout-session", opts);
 }
 
 export async function getCustomerSession(): Promise<CustomerSessionSecret> {
-  throttle({ endpoint: "purchases/stripe/get-customer-session" });
   return await api("purchases/stripe/get-customer-session");
 }
 
@@ -504,7 +511,6 @@ export async function getPaymentMethods(
     limit?: number;
   } = {},
 ): Promise<PaymentMethodData> {
-  throttle({ endpoint: "purchases/stripe/get-payment-methods" });
   return await api("purchases/stripe/get-payment-methods", opts);
 }
 
@@ -512,7 +518,6 @@ export async function setDefaultPaymentMethod(opts: {
   // id of a payment method
   default_payment_method: string;
 }) {
-  throttle({ endpoint: "purchases/stripe/set-default-payment-method" });
   return await api("purchases/stripe/set-default-payment-method", opts);
 }
 
@@ -520,6 +525,5 @@ export async function deletePaymentMethod(opts: {
   // id of a payment method to delete
   payment_method: string;
 }) {
-  throttle({ endpoint: "purchases/stripe/delete-payment-method" });
   return await api("purchases/stripe/delete-payment-method", opts);
 }

@@ -7,7 +7,7 @@ export function describeNumberOf({ n, hasMore, loadMore, loading, type }) {
     return type;
   }
   if (n == 0) {
-    return "(none yet)";
+    return <>No {plural(0, type)}</>;
   }
   if (hasMore) {
     return (
@@ -18,6 +18,9 @@ export function describeNumberOf({ n, hasMore, loadMore, loading, type }) {
         </Button>
       </>
     );
+  }
+  if (n == 1) {
+    return <>{type}</>;
   }
   return (
     <>

@@ -23,11 +23,12 @@ import type {
 } from "@cocalc/util/stripe/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  createSetupIntent,
   getCheckoutSession,
   getCustomerSession,
   processPaymentIntents,
 } from "./api";
-import { Button, Card, Spin, Table } from "antd";
+import { Button, Card, Modal, Spin, Table } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
@@ -36,6 +37,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
@@ -85,7 +87,9 @@ export default function StripePayment({
         </div>
         {!checkout && (
           <ConfirmButton
-            isPayment={totalStripe > 0}
+            label={
+              totalStripe > 0 ? "Continue" : "Purchase using CoCalc Credits"
+            }
             onClick={() => {
               if (totalStripe <= 0) {
                 // no need to do stripe part at all -- just do next step of whatever purchase is happening.
@@ -153,7 +157,7 @@ function StripeCheckout({
           // give stripe iframe extra time to load:
           setTimeout(() => {
             setLoading(false);
-          }, 2000);
+          }, 3000);
         } catch (err) {
           setError(`${err}`);
           setLoading(false);
@@ -195,101 +199,6 @@ function StripeCheckout({
   );
 }
 
-/*
-function StripeElements({
-  amount,
-  description,
-  purpose,
-  onFinished,
-  style,
-  disabled,
-}) {
-  const [secret, setSecret] = useState<PaymentIntentSecret | null>(null);
-  const [error, setError] = useState<string>("");
-  const [payAmount, setPayAmount] = useState<number | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-
-  const updateSecret = useCallback(
-    debounce(
-      reuseInFlight(async ({ amount, description, purpose }) => {
-        try {
-          setError("");
-          setLoading(true);
-          let secret;
-          let attempts = 3;
-          for (let i = 0; i < attempts; i++) {
-            try {
-              secret = await createPaymentIntent({
-                amount,
-                description,
-                purpose,
-              });
-              break;
-            } catch (err) {
-              if (i >= attempts - 1) {
-                throw err;
-              } else {
-                await delay(PAYMENT_UPDATE_DEBOUNCE);
-              }
-            }
-          }
-          setSecret(secret);
-          setPayAmount(amount);
-        } catch (err) {
-          setError(`${err}`);
-        } finally {
-          setLoading(false);
-        }
-      }),
-      PAYMENT_UPDATE_DEBOUNCE,
-      { leading: true, trailing: true },
-    ),
-    [],
-  );
-
-  useEffect(() => {
-    if (!amount || disabled) {
-      return;
-    }
-    updateSecret({ amount, description, purpose });
-  }, [amount, description, purpose, disabled]);
-
-  if (error) {
-    return <ShowError style={style} error={error} setError={setError} />;
-  }
-
-  if (!amount) {
-    return null;
-  }
-
-  if (secret == null) {
-    if (disabled) {
-      return null;
-    }
-    return <BigSpin style={style} />;
-  }
-
-  return (
-    <Elements
-      options={{
-        ...secret,
-        appearance: {
-          theme: "stripe",
-        },
-        loader: "never",
-      }}
-      stripe={loadStripe()}
-    >
-      <PaymentForm
-        style={style}
-        onFinished={onFinished}
-        disabled={disabled || loading || payAmount != amount}
-      />
-    </Elements>
-  );
-}
-*/
-
 export function FinishStripePayment({
   paymentIntent,
   style,
@@ -316,15 +225,6 @@ export function FinishStripePayment({
   if (customerSession == null) {
     return <BigSpin style={style} />;
   }
-
-  console.log("options", {
-    ...customerSession,
-    clientSecret: paymentIntent.client_secret,
-    appearance: {
-      theme: "stripe",
-    },
-    loader: "never",
-  });
 
   return (
     <Elements
@@ -423,14 +323,13 @@ function PaymentForm({ style, onFinished, disabled }) {
         onReady={() => {
           setReady(true);
         }}
-        id="payment-element"
         options={{
           layout: "tabs",
         }}
       />
       {ready && (
         <ConfirmButton
-          isPayment
+          label={"Continue"}
           disabled={
             success ||
             disabled ||
@@ -459,13 +358,13 @@ function ConfirmButton({
   onClick,
   success,
   isSubmitting,
-  isPayment,
+  label,
 }: {
   disabled?: boolean;
   onClick;
   success?: boolean;
   isSubmitting?: boolean;
-  isPayment?: boolean;
+  label;
 }) {
   return (
     <div style={{ textAlign: "center", marginTop: "15px" }}>
@@ -479,12 +378,12 @@ function ConfirmButton({
           } /* button sized to match stripe's */
         }
         type="primary"
-        disabled={disabled}
+        disabled={disabled || isSubmitting}
         onClick={onClick}
       >
         {!success && (
           <>
-            {isPayment ? "Pay" : "Purchase"}
+            {label}
             {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
           </>
         )}
@@ -583,6 +482,162 @@ function TotalLine({ description, amount }) {
       <div style={{ flex: 0.2 }}>
         <div style={{ float: "right" }}>{currency(amount)}</div>
       </div>
+    </div>
+  );
+}
+
+export function AddPaymentMethodButton({ style }: { style? }) {
+  const [show, setShow] = useState<boolean>(false);
+  const button = (
+    <Button onClick={() => setShow(!show)}>
+      <Icon name="plus-circle" /> Add Payment Method
+    </Button>
+  );
+  if (!show) {
+    return button;
+  }
+  return (
+    <div
+      style={{
+        display: "inline-block",
+        maxWidth: "450px",
+        width: "100%",
+        ...style,
+      }}
+    >
+      {button}
+      {show && (
+        <Modal
+          open
+          title={"Add Payment Method"}
+          onCancel={() => setShow(false)}
+          onOk={() => setShow(false)}
+          footer={[]}
+        >
+          <CollectPaymentMethod onFinished={() => setShow(false)} />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+function CollectPaymentMethod({ style, onFinished }: { style?; onFinished? }) {
+  const [error, setError] = useState<string>("");
+  const [secret, setSecret] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const intent = await createSetupIntent({
+        description: "Add a new payment method.",
+      });
+      setSecret(intent);
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  if (loading) {
+    return <BigSpin style={style} />;
+  }
+
+  if (error) {
+    return (
+      <ShowError
+        style={style}
+        error={error}
+        setError={(error) => {
+          setError(error);
+          load();
+        }}
+      />
+    );
+  }
+
+  if (secret == null) {
+    return <BigSpin style={style} />;
+  }
+
+  return (
+    <Elements
+      options={{
+        ...secret,
+        appearance: {
+          theme: "stripe",
+        },
+        loader: "never",
+      }}
+      stripe={loadStripe()}
+    >
+      <FinishCollectingPaymentMethod
+        style={style}
+        onFinished={onFinished}
+        setError={setError}
+      />
+    </Elements>
+  );
+}
+
+function FinishCollectingPaymentMethod({ style, onFinished, setError }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    setTimeout(() => setLoading(false), 3000);
+  }, []);
+
+  if (!stripe || !elements) {
+    return <BigSpin style={style} />;
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!stripe || !elements) {
+      // Stripe.js hasn't yet loaded.
+      // Make sure to disable form submission until Stripe.js has loaded.
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const { error } = await stripe.confirmSetup({
+        elements,
+        redirect: "if_required",
+        confirmParams: {
+          return_url: `${window.location.origin}${appBasePath}`,
+        },
+      });
+      if (!error) {
+        onFinished?.();
+      } else {
+        setError(error.message ?? "");
+      }
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div style={style}>
+      {loading && <BigSpin />}
+      <PaymentElement />
+      <ConfirmButton
+        disabled={loading}
+        isSubmitting={isSubmitting}
+        onClick={handleSubmit}
+        label={"Save Payment Method"}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import getConn from "@cocalc/server/stripe/connection";
 import getLogger from "@cocalc/backend/logger";
-import { getStripeCustomerId, sanityCheckAmount } from "./util";
+import { defaultReturnUrl, getStripeCustomerId, sanityCheckAmount } from "./util";
 import type {
   LineItem,
   PaymentIntentCancelReason,
@@ -10,8 +10,6 @@ import {
   processPaymentIntent,
 } from "./process-payment-intents";
 import { decimalToStripe, grandTotal } from "@cocalc/util/stripe/calc";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import basePath from "@cocalc/backend/base-path";
 
 const logger = getLogger("purchases:stripe:create-payment-intent");
 
@@ -71,8 +69,7 @@ export default async function createPaymentIntent({
   };
 
   if (!return_url) {
-    const { dns } = await getServerSettings();
-    return_url = `https://${dns}${basePath}`;
+    return_url = await defaultReturnUrl();
   }
 
   let invoice = await stripe.invoices.create({
