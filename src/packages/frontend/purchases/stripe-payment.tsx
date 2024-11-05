@@ -109,8 +109,7 @@ export default function StripePayment({
               totalStripe > 0 && (
                 <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
                   <ConfirmButton
-                    disabled={hasPaymentMethods == null}
-                    isSubmitting={loading}
+                    isSubmitting={loading || hasPaymentMethods == null}
                     label={"1-Click Checkout"}
                     onClick={async () => {
                       try {
