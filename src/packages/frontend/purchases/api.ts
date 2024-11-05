@@ -503,6 +503,13 @@ export async function getCustomerSession(): Promise<CustomerSessionSecret> {
   return await api("purchases/stripe/get-customer-session");
 }
 
+export async function getPaymentMethod(opts: {
+  id: string;
+  user_account_id?: string;
+}) {
+  return await api("purchases/stripe/get-payment-method", opts);
+}
+
 export async function getPaymentMethods(
   opts: {
     user_account_id?: string;

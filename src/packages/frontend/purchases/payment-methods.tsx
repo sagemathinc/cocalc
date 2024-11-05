@@ -239,7 +239,13 @@ function toTitle(x) {
 
 const DOTS = "••••";
 
-function PaymentMethod({ paymentMethod, isDefault }) {
+export function PaymentMethod({
+  paymentMethod,
+  isDefault,
+}: {
+  paymentMethod;
+  isDefault?;
+}) {
   switch (paymentMethod.type) {
     case "card":
       const icon = `cc-${paymentMethod.card.brand}`;

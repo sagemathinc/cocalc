@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { cancelPaymentIntent, getPayments } from "./api";
+import { cancelPaymentIntent, getPaymentMethod, getPayments } from "./api";
 import {
   Alert,
   Button,
@@ -21,6 +21,8 @@ import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
 import "./purchases.css";
 import { describeNumberOf } from "./util";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { PaymentMethod } from "./payment-methods";
 
 interface Props {
   refresh?: () => Promise<void>;
@@ -257,12 +259,12 @@ function PaymentIntentsTable({
   return (
     <Table
       scroll={scroll}
-      rowClassName={(record) =>
+      rowClassName={(paymentIntent: any) =>
         [
           "requires_payment_method",
           "requires_confirmation",
           "requires_action",
-        ].includes(record.status)
+        ].includes(paymentIntent.status)
           ? "cc-payments-highlight"
           : ""
       }
@@ -271,33 +273,75 @@ function PaymentIntentsTable({
       columns={columns}
       expandable={{
         expandRowByClick: true,
-        rowExpandable: (record: any) => {
-          return (
-            record.intent.status != "succeeded" &&
-            record.intent.status != "canceled" &&
-            record.intent.status != "processing"
-          );
-        },
-        expandedRowRender: (record: any) => {
-          if (!account_id) {
-            return (
-              <FinishStripePayment
-                onFinished={onFinished}
-                paymentIntent={record.intent}
-              />
-            );
-          } else {
-            // admin
-            return (
-              <AdminCancelPayment
-                id={record.intent.id}
-                onFinished={onFinished}
-              />
-            );
-          }
-        },
+        expandedRowRender: ({ intent: paymentIntent }) => (
+          <PaymentDetails
+            paymentIntent={paymentIntent}
+            onFinished={onFinished}
+            account_id={account_id}
+          />
+        ),
       }}
     />
+  );
+}
+
+function PaymentDetails({ paymentIntent, account_id, onFinished }) {
+  const isAdmin = !!account_id;
+  const [paymentMethod, setPaymentMethod] = useState<any>(null);
+  const [error, setError] = useState<string>("");
+
+  useEffect(() => {
+    const { payment_method } = paymentIntent;
+    if (!payment_method) {
+      return;
+    }
+    (async () => {
+      try {
+        setPaymentMethod(
+          await getPaymentMethod({
+            user_account_id: account_id,
+            id: payment_method,
+          }),
+        );
+      } catch (err) {
+        setError(`${err}`);
+      }
+    })();
+  }, [paymentIntent, account_id]);
+
+  return (
+    <div>
+      {needsAttention(paymentIntent) && (
+        <>
+          {!isAdmin && (
+            <FinishStripePayment
+              onFinished={onFinished}
+              paymentIntent={paymentIntent}
+            />
+          )}
+          {isAdmin && (
+            <AdminCancelPayment id={paymentIntent.id} onFinished={onFinished} />
+          )}
+        </>
+      )}
+      {paymentMethod == null && <Spin />}
+      {paymentMethod && <PaymentMethod paymentMethod={paymentMethod} />}
+      <ShowError error={error} setError={setError} />
+      <StaticMarkdown
+        style={{ margin: "15px 0" }}
+        value={
+          "```json\n" + JSON.stringify(paymentIntent, undefined, 2) + "\n```"
+        }
+      />
+    </div>
+  );
+}
+
+function needsAttention(paymentIntent) {
+  return (
+    paymentIntent.status != "succeeded" &&
+    paymentIntent.status != "canceled" &&
+    paymentIntent.status != "processing"
   );
 }
 

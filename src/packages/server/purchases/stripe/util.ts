@@ -51,7 +51,7 @@ export async function getStripeCustomerId({
   account_id: string;
   create: boolean;
 }): Promise<string | undefined> {
-  const db = getPool();
+  const db = getPool("long");
   const { rows } = await db.query(
     "SELECT stripe_customer_id FROM accounts WHERE account_id=$1",
     [account_id],

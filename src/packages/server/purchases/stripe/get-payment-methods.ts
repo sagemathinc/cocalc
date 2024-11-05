@@ -47,3 +47,18 @@ export async function hasPaymentMethod(account_id: string) {
   });
   return methods.data.length >= 1;
 }
+
+export async function getPaymentMethod({
+  account_id,
+  id,
+}: {
+  account_id: string;
+  id: string;
+}) {
+  const stripe = await getConn();
+  const customer = await getStripeCustomerId({ account_id, create: false });
+  if (!customer) {
+    throw Error("no such payment method -- user doesn't have stripe identity");
+  }
+  return await stripe.customers.retrievePaymentMethod(customer, id);
+}
