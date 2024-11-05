@@ -23,9 +23,11 @@ import type {
 } from "@cocalc/util/stripe/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  createPaymentIntent,
   createSetupIntent,
   getCheckoutSession,
   getCustomerSession,
+  getPaymentMethods,
   processPaymentIntents,
 } from "./api";
 import { Button, Card, Modal, Space, Spin, Table, Tooltip } from "antd";
@@ -56,7 +58,22 @@ export default function StripePayment({
   style?;
   disabled?: boolean;
 }) {
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
   const [checkout, setCheckout] = useState<boolean>(false);
+  const [hasPaymentMethods, setHasPaymentMethods] = useState<boolean | null>(
+    null,
+  );
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const x = await getPaymentMethods({ limit: 1 });
+        setHasPaymentMethods(x.data.length > 0);
+      } catch (_err) {}
+    })();
+  }, []);
+
   if (lineItems == null || lineItems.length == 0) {
     // no payment needed.
     return null;
@@ -87,13 +104,35 @@ export default function StripePayment({
         </div>
         <div style={{ textAlign: "center" }}>
           <Space>
-            {!checkout && totalStripe > 0 && (
-              <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
-                <ConfirmButton label={"1-Click Checkout"} onClick={() => {}} />
-              </Tooltip>
-            )}
+            {(hasPaymentMethods === true || hasPaymentMethods == null) &&
+              !checkout &&
+              totalStripe > 0 && (
+                <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
+                  <ConfirmButton
+                    disabled={hasPaymentMethods == null}
+                    isSubmitting={loading}
+                    label={"1-Click Checkout"}
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        await createPaymentIntent({
+                          description,
+                          lineItems,
+                          purpose,
+                        });
+                        onFinished?.();
+                      } catch (err) {
+                        setError(`${err}`);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                  />
+                </Tooltip>
+              )}
             {!checkout && (
               <ConfirmButton
+                disabled={loading}
                 label={
                   totalStripe > 0 ? "Continue" : "Purchase using CoCalc Credits"
                 }
@@ -108,6 +147,11 @@ export default function StripePayment({
             )}
           </Space>
         </div>
+        <ShowError
+          style={{ margin: "15px 0" }}
+          error={error}
+          setError={setError}
+        />
       </div>
       {checkout && !disabled && (
         <div>
