@@ -6,7 +6,6 @@
 import { Button, Col, Grid, Row } from "antd";
 import { join } from "path";
 import { useEffect, useState } from "react";
-
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { DOC_AI } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
@@ -60,6 +59,11 @@ export function CoCalcComFeatures() {
         alt={"Two browser windows editing the same Jupyter notebook"}
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
         belowWide={true}
+        icons={[
+          { icon: "jupyter", link: "/features/jupyter-notebook" },
+          { icon: "tex", title: "LaTeX", link: "/features/latex-editor" },
+          { icon: "slides", title: "Whiteboard", link: "/features/whiteboard" },
+        ]}
       >
         <Paragraph>
           With {siteName}, you can easily collaborate with colleagues, students,
@@ -104,6 +108,19 @@ export function CoCalcComFeatures() {
         anchor="a-teaching"
         alt={"Two browser windows editing the same Jupyter notebook"}
         style={{ backgroundColor: COLORS.ANTD_BG_BLUE_L }}
+        icons={[
+          {
+            icon: "users",
+            title: "Course Management",
+            link: "https://doc.cocalc.com/teaching-instructors.html",
+          },
+          {
+            icon: "graduation-cap",
+            title: "NBGrader",
+            link: "https://doc.cocalc.com/teaching-nbgrader.html",
+          },
+          { icon: "slides", title: "Slides", link: "/features/whiteboard" },
+        ]}
       >
         <Paragraph>
           You can think of {siteName} as{" "}
@@ -549,6 +566,14 @@ export function CoCalcComFeatures() {
         anchor="a-realtimesync"
         alt={"Two browser windows editing the same Jupyter notebook"}
         style={{ backgroundColor: COLORS.YELL_LLL }}
+        icons={[
+          { icon: "julia", link: "/features/julia" },
+          { icon: "linux", link: "/features/linux" },
+          { icon: "python", link: "/features/python" },
+          { icon: "r", link: "/features/r-statistical-software" },
+          { icon: "sagemath", title: "SageMath", link: "/features/sage" },
+          { icon: "octave", link: "/features/octave" },
+        ]}
       >
         <Paragraph>
           {siteName} supports many{" "}
