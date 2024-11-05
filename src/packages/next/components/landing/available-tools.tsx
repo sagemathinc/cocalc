@@ -28,7 +28,7 @@ export function AvailableTools(props: Props) {
   return (
     <Info
       level={LANDING_HEADER_LEVEL}
-      title="Jupyter, SageMath, LateX, and Linux"
+      title="Jupyter, SageMath, LaTeX, and Linux"
       icon="wrench"
       anchor="available-tools"
       style={{ ...style }}
