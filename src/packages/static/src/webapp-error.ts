@@ -93,7 +93,8 @@ function isWhitelisted({ error }): boolean {
   try {
     if (
       error?.stack?.includes("jupyter/output-messages") ||
-      error?.stack?.includes("jupyterGetElt")
+      error?.stack?.includes("jupyterGetElt") ||
+      error?.stack?.includes("run_inline_js")
     ) {
       // see https://github.com/sagemathinc/cocalc/issues/7993
       // we should never show a popup cocalc crash when a jupyter message results
