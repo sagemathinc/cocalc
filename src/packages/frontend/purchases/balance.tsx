@@ -65,7 +65,7 @@ export default function Balance({
             onClick={() => setAdd(true)}
             style={{ marginTop: "5px" }}
           >
-            Add Money...
+            Make a Payment
           </Button>
           {showTransferLink && balance > 0 && (
             <div style={{ marginTop: "5px" }}>

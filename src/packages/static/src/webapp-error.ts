@@ -62,7 +62,7 @@ function handleError(event) {
       url,
       stack,
       showLoadFail,
-    })
+    }),
   );
 }
 
@@ -74,7 +74,7 @@ export default function init() {
     createRoot(crashContainer).render(React.createElement(Crash));
   } else {
     throw Error(
-      "there must be a div with id cocalc-crash-container in the document!"
+      "there must be a div with id cocalc-crash-container in the document!",
     );
   }
 
@@ -91,6 +91,16 @@ export function startedUp() {
 
 function isWhitelisted({ error }): boolean {
   try {
+    if (
+      error?.stack?.includes("jupyter/output-messages") ||
+      error?.stack?.includes("jupyterGetElt")
+    ) {
+      // see https://github.com/sagemathinc/cocalc/issues/7993
+      // we should never show a popup cocalc crash when a jupyter message results
+      // in a crash, since this is user level code.
+      // "jupyter/output-messages" only works in dev mode, whereas jupyterGetElt works in prod.
+      return true;
+    }
     if (error?.stack?.includes("Bokeh")) {
       // see https://github.com/sagemathinc/cocalc/issues/6507
       return true;

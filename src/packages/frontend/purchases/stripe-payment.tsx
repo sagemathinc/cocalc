@@ -28,7 +28,7 @@ import {
   getCustomerSession,
   processPaymentIntents,
 } from "./api";
-import { Button, Card, Modal, Spin, Table } from "antd";
+import { Button, Card, Modal, Space, Spin, Table, Tooltip } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
@@ -85,20 +85,29 @@ export default function StripePayment({
             amount={stripeToDecimal(totalStripe)}
           />
         </div>
-        {!checkout && (
-          <ConfirmButton
-            label={
-              totalStripe > 0 ? "Continue" : "Purchase using CoCalc Credits"
-            }
-            onClick={() => {
-              if (totalStripe <= 0) {
-                // no need to do stripe part at all -- just do next step of whatever purchase is happening.
-                onFinished?.();
-              }
-              setCheckout(true);
-            }}
-          />
-        )}
+        <div style={{ textAlign: "center" }}>
+          <Space>
+            {!checkout && totalStripe > 0 && (
+              <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
+                <ConfirmButton label={"1-Click Checkout"} onClick={() => {}} />
+              </Tooltip>
+            )}
+            {!checkout && (
+              <ConfirmButton
+                label={
+                  totalStripe > 0 ? "Continue" : "Purchase using CoCalc Credits"
+                }
+                onClick={() => {
+                  if (totalStripe <= 0) {
+                    // no need to do stripe part at all -- just do next step of whatever purchase is happening.
+                    onFinished?.();
+                  }
+                  setCheckout(true);
+                }}
+              />
+            )}
+          </Space>
+        </div>
       </div>
       {checkout && !disabled && (
         <div>
@@ -372,7 +381,7 @@ function ConfirmButton({
         size="large"
         style={
           {
-            width: "378px",
+            minWidth: "150px",
             height: "44px",
             maxWidth: "100%",
           } /* button sized to match stripe's */
@@ -486,7 +495,13 @@ function TotalLine({ description, amount }) {
   );
 }
 
-export function AddPaymentMethodButton({ style }: { style? }) {
+export function AddPaymentMethodButton({
+  style,
+  onFinished,
+}: {
+  style?;
+  onFinished?;
+}) {
   const [show, setShow] = useState<boolean>(false);
   const button = (
     <Button onClick={() => setShow(!show)}>
@@ -514,7 +529,12 @@ export function AddPaymentMethodButton({ style }: { style? }) {
           onOk={() => setShow(false)}
           footer={[]}
         >
-          <CollectPaymentMethod onFinished={() => setShow(false)} />
+          <CollectPaymentMethod
+            onFinished={() => {
+              setShow(false);
+              onFinished?.();
+            }}
+          />
         </Modal>
       )}
     </div>

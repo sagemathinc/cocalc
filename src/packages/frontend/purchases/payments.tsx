@@ -258,7 +258,11 @@ function PaymentIntentsTable({
     <Table
       scroll={scroll}
       rowClassName={(record) =>
-        record.status != "succeeded" && record.status != "canceled"
+        [
+          "requires_payment_method",
+          "requires_confirmation",
+          "requires_action",
+        ].includes(record.status)
           ? "cc-payments-highlight"
           : ""
       }
