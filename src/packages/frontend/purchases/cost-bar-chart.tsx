@@ -1,7 +1,8 @@
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Checkbox, Spin } from "antd";
+import { Button, Card, Checkbox, Spin } from "antd";
 import Plot from "@cocalc/frontend/components/plotly";
+import ShowError from "@cocalc/frontend/components/error";
 
 const LIMIT = 60; // ~2 months
 
@@ -108,9 +109,7 @@ export default function CostBarChart({}) {
           }}
         />
       )}
-      {error && (
-        <Alert type="error" description={error} onClose={updateData} closable />
-      )}
+      <ShowError error={error} setError={setError} />
     </Card>
   );
 }

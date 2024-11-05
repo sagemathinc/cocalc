@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cancelPaymentIntent, getPaymentMethod, getPayments } from "./api";
 import {
   Alert,
@@ -23,6 +23,8 @@ import "./purchases.css";
 import { describeNumberOf } from "./util";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { PaymentMethod } from "./payment-methods";
+import SpendPlot from "./spend-plot";
+import { field_cmp } from "@cocalc/util/misc";
 
 interface Props {
   refresh?: () => Promise<void>;
@@ -131,8 +133,9 @@ export default function Payments({
                 refresh?.();
               }}
               account_id={account_id}
-              scroll={hasLoadedMore ? { y: 800 } : undefined}
+              scroll={hasLoadedMore ? { y: 400 } : undefined}
             />
+            <PaymentsPlot data={data} />
           </>
         )}
       </div>
@@ -400,5 +403,22 @@ export function PaymentsButton(props: Props) {
         </div>
       )}
     </div>
+  );
+}
+
+function PaymentsPlot({ data: data0 }) {
+  const data = useMemo(() => {
+    const v = data0.map(({ amount, created }) => {
+      return { amount: amount / 100, date: new Date(created * 1000) };
+    });
+    v.sort(field_cmp("date"));
+    return v;
+  }, [data0]);
+  return (
+    <SpendPlot
+      data={data}
+      title={"Payments to CoCalc Shown Above"}
+      style={{ margin: "15px 0" }}
+    />
   );
 }
