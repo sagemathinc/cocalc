@@ -101,6 +101,12 @@ function isWhitelisted({ error }): boolean {
       // "jupyter/output-messages" only works in dev mode, whereas jupyterGetElt works in prod.
       return true;
     }
+    if (error?.stack?.includes("TypeError: $(...).")) {
+      // see https://github.com/sagemathinc/cocalc/issues/7993
+      // Getting Application Error: Uncaught TypeError: $(...).popover is not a function when opening old plotly
+      // notebook used elsewhere.  It's somehow assuming jquery?  Just running it will then work.
+      return true;
+    }
     if (error?.stack?.includes("Bokeh")) {
       // see https://github.com/sagemathinc/cocalc/issues/6507
       return true;
