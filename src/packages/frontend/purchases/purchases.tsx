@@ -62,8 +62,9 @@ import Refresh from "./refresh";
 import ServiceTag from "./service";
 import { LineItemsButton } from "./line-items";
 import { describeNumberOf } from "./util";
+import PurchasesPlot from "./purchases-plot";
 
-const DEFAULT_LIMIT = 5;
+const DEFAULT_LIMIT = 10;
 
 interface Props {
   project_id?: string; // if given, restrict to only purchases that are for things in this project
@@ -419,6 +420,7 @@ export function PurchasesTable({
           <span>Current Balance: {currency(round2down(balance))}</span>
         )}
       </div>
+      {!group && purchases != null && <PurchasesPlot purchases={purchases} />}
     </div>
   );
 }
@@ -495,7 +497,7 @@ function DetailedPurchaseTable({
     <div style={{ overflow: "auto" }}>
       <div style={{ minWidth: "1000px" }}>
         <Table
-          scroll={purchases.length > DEFAULT_LIMIT ? { y: 400 } : undefined}
+          scroll={{ y: 400 }}
           pagination={false}
           dataSource={purchases}
           rowKey="id"

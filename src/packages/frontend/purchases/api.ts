@@ -37,10 +37,22 @@ async function api(endpoint: string, args?: object) {
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
 // we call them.
-const cache = new LRU<string, any>({
+const _longCache = new LRU<string, any>({
   ttl: 15 * 60 * 1000,
   max: 100,
 });
+
+function longCache(f, name) {
+  return reuseInFlight(async (...args) => {
+    const key = `${name}-${JSON.stringify(args)}`;
+    if (_longCache.has(key)) {
+      return _longCache.get(key);
+    }
+    const value = await f(...args);
+    _longCache.set(key, value);
+    return value;
+  });
+}
 
 const _shortCache = new LRU<string, any>({
   ttl: 3 * 1000,
@@ -274,25 +286,21 @@ export async function getUnpaidInvoices(): Promise<any[]> {
 //   If service is 'credit', then returns the min allowed credit.
 //   If service is 'openai...' it returns an object {prompt_tokens: number; completion_tokens: number} with the current cost per token in USD.
 //   service can be an array, in which case returns map from service name to cost.
-export async function getServiceCost(service: Service) {
+export const getServiceCost = longCache(async (service: Service) => {
   return await api("purchases/get-service-cost", { service });
-}
+}, "get-service-cost");
 
-export async function getServiceCosts(
-  services: Service[],
-): Promise<{ [service: string]: any }> {
-  return await api("purchases/get-service-cost", { service: services });
-}
+export const getServiceCosts = longCache(
+  async (services: Service[]): Promise<{ [service: string]: any }> => {
+    return await api("purchases/get-service-cost", { service: services });
+  },
+  "get-service-cost",
+);
 
-export async function getMinimumPayment(): Promise<number> {
-  const key = "getMinimumPayment";
-  if (cache.has(key)) {
-    return cache.get(key)!;
-  }
-  const minPayment = (await getServiceCost("credit")) as number;
-  cache.set(key, minPayment);
-  return minPayment;
-}
+export const getMinimumPayment = longCache(
+  async () => (await getServiceCost("credit")) as number,
+  "get-minimum-payment",
+);
 
 export async function setPayAsYouGoProjectQuotas(
   project_id: string,
@@ -301,30 +309,20 @@ export async function setPayAsYouGoProjectQuotas(
   await api("purchases/set-project-quota", { project_id, quota });
 }
 
-export async function getPayAsYouGoMaxProjectQuotas(): Promise<ProjectQuota> {
-  const key = "getPayAsYouGoMaxProjectQuotas";
-  if (cache.has(key)) {
-    return cache.get(key)!;
-  }
-  const m = await api("purchases/get-max-project-quotas");
-  cache.set(key, m);
-  return m;
-}
+export const getPayAsYouGoMaxProjectQuotas = longCache(
+  async () => await api("purchases/get-max-project-quotas"),
+  "get-max-project-quotas",
+);
 
-export async function getPayAsYouGoPricesProjectQuotas(): Promise<{
-  cores: number;
-  disk_quota: number;
-  memory: number;
-  member_host: number;
-}> {
-  const key = "getPayAsYouGoPricesProjectQuotas";
-  if (cache.has(key)) {
-    return cache.get(key)!;
-  }
-  const m = await api("purchases/get-prices-project-quotas");
-  cache.set(key, m);
-  return m;
-}
+export const getPayAsYouGoPricesProjectQuotas = longCache(
+  async (): Promise<{
+    cores: number;
+    disk_quota: number;
+    memory: number;
+    member_host: number;
+  }> => await api("purchases/get-prices-project-quotas"),
+  "get-prices-project-quotas",
+);
 
 // returns number of invoices that resulted in new money
 export async function syncPaidInvoices(): Promise<number> {

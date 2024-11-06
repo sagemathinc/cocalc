@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, Checkbox, Flex } from "antd";
+import { Card, Tooltip } from "antd";
 import Plot from "@cocalc/frontend/components/plotly";
 import ShowError from "@cocalc/frontend/components/error";
 
@@ -7,36 +7,25 @@ interface Props {
   title?;
   data: { date: Date; amount: number }[];
   style?;
+  description?;
 }
 
-export default function SpendPlot({ data, title, style }: Props) {
+export default function SpendPlot({ data, title, description, style }: Props) {
   const [error, setError] = useState<string>("");
-  const [cumulative, setCumulative] = useState<boolean>(true);
 
   const plotData = useMemo(() => {
     const x = data.map(({ date }) => date);
     const y = data.map(({ amount }) => amount);
-    if (cumulative) {
-      return [
-        {
-          type: "area",
-          x,
-          y: cumSum(y),
-          name: "Cumulative Cost",
-          fill: "tozeroy",
-        },
-      ];
-    } else {
-      return [
-        {
-          type: "bar",
-          x,
-          y,
-          name: "Amount",
-        },
-      ];
-    }
-  }, [data, cumulative]);
+    return [
+      {
+        type: "area",
+        x,
+        y: cumSum(y),
+        name: "Cost",
+        fill: "tozeroy",
+      },
+    ];
+  }, [data]);
 
   const currency = " (US Dollars)";
 
@@ -44,16 +33,9 @@ export default function SpendPlot({ data, title, style }: Props) {
     <Card
       style={style}
       title={
-        <Flex>
-          {(cumulative ? "Total " : "") + ((title ?? " Amount ") + currency)}
-          <div style={{ flex: 1 }} />
-          <Checkbox
-            checked={cumulative}
-            onChange={(e) => setCumulative(e.target.checked)}
-          >
-            Cumulative Amount
-          </Checkbox>
-        </Flex>
+        <Tooltip title={description}>
+          {(title ?? " Amount ") + currency}
+        </Tooltip>
       }
     >
       <br />
@@ -64,7 +46,7 @@ export default function SpendPlot({ data, title, style }: Props) {
             title: "Date",
           },
           yaxis: {
-            title: (cumulative ? "Cumulative Amount" : "Amount") + currency,
+            title: "Amount" + currency,
           },
         }}
       />

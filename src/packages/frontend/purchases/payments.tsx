@@ -33,6 +33,8 @@ import { decimalSubtract, stripeToDecimal } from "@cocalc/util/stripe/calc";
 import { LineItemsTable } from "./line-items";
 import dayjs from "dayjs";
 
+const DEFAULT_LIMIT = 10;
+
 interface Props {
   refresh?: () => Promise<void>;
   refreshPaymentsRef?;
@@ -69,7 +71,7 @@ export default function Payments({
       if (init || data == null || reset) {
         result = await getPayments({
           user_account_id: account_id,
-          limit: hasLoadedMore ? 100 : 5,
+          limit: hasLoadedMore ? 100 : DEFAULT_LIMIT,
         });
         setData(result.data);
       } else {
@@ -140,7 +142,7 @@ export default function Payments({
                 refresh?.();
               }}
               account_id={account_id}
-              scroll={hasLoadedMore ? { y: 400 } : undefined}
+              scroll={{ y: 400 }}
             />
             <PaymentsPlot data={data} />
           </>
@@ -518,9 +520,11 @@ export function PaymentsButton(props: Props) {
 
 function PaymentsPlot({ data: data0 }) {
   const data = useMemo(() => {
-    const v = data0.map(({ amount, created }) => {
-      return { amount: amount / 100, date: new Date(created * 1000) };
-    });
+    const v = data0
+      .filter(({ status }) => status == "succeeded")
+      .map(({ amount, created }) => {
+        return { amount: amount / 100, date: new Date(created * 1000) };
+      });
     v.sort(field_cmp("date"));
     return v;
   }, [data0]);
@@ -528,6 +532,9 @@ function PaymentsPlot({ data: data0 }) {
     <SpendPlot
       data={data}
       title={"Payments to CoCalc Shown Above"}
+      description={
+        "This is a plot of the money you have successfully transferred into CoCalc, as listed in the table above."
+      }
       style={{ margin: "15px 0" }}
     />
   );
