@@ -2,7 +2,6 @@ import {
   Button,
   Card,
   Checkbox,
-  Divider,
   Flex,
   Popover,
   Space,
@@ -47,6 +46,7 @@ import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   capitalize,
+  field_cmp,
   currency,
   plural,
   round1,
@@ -61,7 +61,7 @@ import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 import Refresh from "./refresh";
 import ServiceTag from "./service";
 import { LineItemsButton } from "./line-items";
-import { describeNumberOf } from "./util";
+import { describeNumberOf, SectionDivider } from "./util";
 import PurchasesPlot from "./purchases-plot";
 
 const DEFAULT_LIMIT = 10;
@@ -92,9 +92,6 @@ function Purchases0({
   noTitle,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
-  const [activeOnly, setActiveOnly] = useState<boolean>(false);
-  const [thisMonth, setThisMonth] = useState<boolean>(false);
-  const [noStatement, setNoStatement] = useState<boolean>(false);
 
   return (
     <div>
@@ -128,53 +125,27 @@ function Purchases0({
           )
         }
       >
-        <div>
-          <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
-            <Checkbox
-              checked={group}
-              onChange={(e) => setGroup(e.target.checked)}
-            >
-              Group by service and project
-            </Checkbox>
-          </Tooltip>
-          <Tooltip title="Only show transactions from your current billing month.">
-            <Checkbox
-              checked={thisMonth}
-              onChange={(e) => setThisMonth(e.target.checked)}
-            >
-              Current billing month
-            </Checkbox>
-          </Tooltip>
-          <Tooltip title="Only show transactions that are not on any daily or monthly statement. These should all be from today.">
-            <Checkbox
-              checked={noStatement}
-              onChange={(e) => setNoStatement(e.target.checked)}
-            >
-              Not on any statement yet
-            </Checkbox>
-          </Tooltip>
-          <Tooltip title="Only show unfinished active purchases">
-            <Checkbox
-              disabled={group}
-              checked={!group && activeOnly}
-              onChange={(e) => setActiveOnly(e.target.checked)}
-            >
-              Only Show Active
-            </Checkbox>
-          </Tooltip>
-        </div>
+        <Flex>
+          <div style={{ flex: 1 }} />
+          <div>
+            <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
+              <Checkbox
+                checked={group}
+                onChange={(e) => setGroup(e.target.checked)}
+              >
+                Group by service and project
+              </Checkbox>
+            </Tooltip>
+          </div>
+        </Flex>
         <PurchasesTable
           project_id={project_id}
           account_id={account_id}
           group={group}
-          thisMonth={thisMonth}
           day_statement_id={day_statement_id}
           month_statement_id={month_statement_id}
-          noStatement={noStatement}
           showBalance
           showTotal
-          showRefresh
-          activeOnly={activeOnly}
         />
       </Card>
     </div>
@@ -243,33 +214,40 @@ export function PurchasesTable({
     try {
       setError("");
       setLoading(true);
+      const limit0 = group ? 300 : init ? DEFAULT_LIMIT : limit;
       const opts = {
         cutoff,
         day_statement_id,
         month_statement_id,
         group,
-        limit: init ? DEFAULT_LIMIT : limit,
+        limit: limit0 + 1,
         no_statement: noStatement,
         offset: init ? 0 : offset,
         project_id,
         service,
         thisMonth,
       };
-      const x = account_id
+      let x = account_id
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
 
       // TODO: need getPurchases to tell if there are more or not.
-      setHasMore(true);
+      setHasMore(x.length == limit0 + 1);
+      x = x.slice(0, limit0);
 
       if (init) {
         setPurchaseRecords(x);
         setOffset(DEFAULT_LIMIT);
       } else {
-        // [ ] TODO -- need to merge them together
-        setPurchaseRecords((purchaseRecords ?? []).concat(x));
+        const v: { [id: string]: any } = {};
+        for (const z of (purchaseRecords ?? []).concat(x)) {
+          v[(z as any).id] = z;
+        }
+        const v2 = Object.values(v);
+        v2.sort(field_cmp("date"));
         // for next time:
-        setOffset(offset + limit);
+        setOffset(v2.length);
+        setPurchaseRecords(v2);
       }
       setLimit(100);
     } catch (err) {
@@ -328,6 +306,7 @@ export function PurchasesTable({
     }
 
     if (group) {
+      purchases.sort(field_cmp("service"));
       setGroupedPurchases(purchases);
     } else {
       setPurchases(purchases);
@@ -339,36 +318,28 @@ export function PurchasesTable({
 
   return (
     <div style={style}>
-      <Flex>
-        <div style={{ flex: 1 }}>
-          <Divider orientation="left">
-            <Tooltip title="These are transactions made within CoCalc, which includes all purchases and credits resulting from payments.">
-              {describeNumberOf({
+      <SectionDivider
+        loading={loading}
+        onRefresh={() => loadMore({ init: true })}
+      >
+        <Tooltip title="These are transactions made within CoCalc, which includes all purchases and credits resulting from payments.">
+          {group
+            ? "Your Purchases Grouped by Service and Project"
+            : describeNumberOf({
                 n: purchases?.length,
                 hasMore,
                 loadMore,
                 loading,
                 type: "purchase",
               })}
-            </Tooltip>
-            {loading && <Spin style={{ marginLeft: "15px" }} />}
-          </Divider>
-        </div>
-        <Button
-          style={{ marginTop: "15px" }}
-          type="link"
-          onClick={() => {
-            loadMore({ init: true });
-          }}
-        >
-          <Icon name="refresh" /> Refresh
-        </Button>
-      </Flex>
+        </Tooltip>
+      </SectionDivider>
       <div>
         <ShowError error={error} setError={setError} />
         <div style={{ display: "flex" }}>
+          <div style={{ flex: 1 }} />
           <Export
-            style={{ marginRight: "8px" }}
+            style={{ margin: "-8px" }}
             name={
               filename ??
               getFilename({ thisMonth, cutoff, limit, offset, noStatement })

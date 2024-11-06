@@ -1,6 +1,4 @@
 import { useRef } from "react";
-import { Divider } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
 import AccountStatus from "./account-status";
 import AllQuotasConfig from "./all-quotas-config";
 import Purchases from "./purchases";
@@ -17,10 +15,6 @@ export default function PurchasesPage() {
         }}
       />
       <Purchases noTitle />
-      <Divider orientation="left" style={{ marginTop: "30px" }}>
-        <Icon name="line-chart" style={{ marginRight: "8px" }} />
-        Plots
-      </Divider>
       <AllQuotasConfig />
       <Footer />
     </div>
