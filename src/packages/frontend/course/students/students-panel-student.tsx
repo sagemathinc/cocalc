@@ -243,11 +243,22 @@ export function Student({
       // student has definitely been active (and we know about this project).
       return (
         <Text type="secondary">
-          (last used project <TimeAgo date={last_active} />)
+          <FormattedMessage
+            id="course.students-panel-student.last_active.time_ago"
+            defaultMessage={"(last used project {timeago})"}
+            values={{ timeago: <TimeAgo date={last_active} /> }}
+          />
         </Text>
       );
     } else {
-      return <Text type="secondary">(has never used project)</Text>;
+      return (
+        <Text type="secondary">
+          <FormattedMessage
+            id="course.students-panel-student.last_active.never_used_project"
+            defaultMessage={"(has never used project)"}
+          />
+        </Text>
+      );
     }
   }
 

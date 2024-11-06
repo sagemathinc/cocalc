@@ -3,8 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Alert, Button, Card, Divider, Radio, Space } from "antd";
 import { useEffect, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, Markdown } from "@cocalc/frontend/components";
 import {
   ComputeImage,
@@ -19,12 +22,12 @@ import {
   is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
+import { labels } from "@cocalc/frontend/i18n";
 import { SoftwareImageDisplay } from "@cocalc/frontend/project/settings/software-image-display";
 import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { Alert, Button, Card, Divider, Radio, Space } from "antd";
 import { ConfigurationActions } from "./actions";
 
 const CSI_HELP =
@@ -45,6 +48,7 @@ export function StudentProjectSoftwareEnvironment({
   inherit_compute_image,
   close,
 }: Props) {
+  const intl = useIntl();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const customize_software = useTypedRedux("customize", "software");
   const software_envs = customize_software.get("environments");
@@ -107,7 +111,7 @@ export function StudentProjectSoftwareEnvironment({
     if (!changing) {
       return (
         <Button onClick={() => set_changing(true)} disabled={changing}>
-          Change...
+          {intl.formatMessage(labels.change)}...
         </Button>
       );
     } else {
@@ -125,7 +129,7 @@ export function StudentProjectSoftwareEnvironment({
                 set_changing(false);
               }}
             >
-              Cancel
+              {intl.formatMessage(labels.cancel)}
             </Button>
             <Button
               disabled={
@@ -138,7 +142,7 @@ export function StudentProjectSoftwareEnvironment({
                 close?.();
               }}
             >
-              Save
+              {intl.formatMessage(labels.save)}
             </Button>
           </Space>
         </div>
@@ -150,7 +154,9 @@ export function StudentProjectSoftwareEnvironment({
     if (inherit) return;
     return (
       <>
-        <Divider orientation="left">Configure</Divider>
+        <Divider orientation="left">
+          {intl.formatMessage(labels.configuration)}
+        </Divider>
         {render_controls_body()}
       </>
     );
@@ -192,9 +198,15 @@ export function StudentProjectSoftwareEnvironment({
     if (software_image != null && is_custom_image(software_image)) return;
     return (
       <p>
-        If you need additional software or a fully{" "}
-        <A href={CSI_HELP}>customized software environment</A>, please contact{" "}
-        <HelpEmailLink />.
+        <FormattedMessage
+          id="course.student-project-software-environment.help"
+          defaultMessage={`If you need additional software or a fully <A>customized software environment</A>,
+  please contact {help}.`}
+          values={{
+            help: <HelpEmailLink />,
+            A: (c) => <A href={CSI_HELP}>{c}</A>,
+          }}
+        />
       </p>
     );
   }
@@ -208,12 +220,16 @@ export function StudentProjectSoftwareEnvironment({
         value={inherit}
       >
         <Radio style={{ fontWeight: "normal" }} value={true}>
-          <strong>Inherit</strong> student projects software environments from
-          this teacher project
+          <FormattedMessage
+            id="course.student-project-software-environment.inherit.true"
+            defaultMessage={`<strong>Inherit</strong> student projects software environments from this teacher project`}
+          />
         </Radio>
         <Radio style={{ fontWeight: "normal" }} value={false}>
-          <strong>Explicitly</strong> specify student project software
-          environments
+          <FormattedMessage
+            id="course.student-project-software-environment.inherit.false"
+            defaultMessage={`<strong>Explicitly</strong> specify student project software environments`}
+          />
         </Radio>
       </Radio.Group>
     );
@@ -230,13 +246,21 @@ export function StudentProjectSoftwareEnvironment({
     <Card
       title={
         <>
-          <Icon name="laptop" /> Software environment: {current_environment}
+          <Icon name="laptop" />{" "}
+          {intl.formatMessage(labels.software_environment)}:{" "}
+          {current_environment}
         </>
       }
     >
       <p>
-        Student projects will use the following software environment:{" "}
-        <em>{current_environment}</em>
+        <FormattedMessage
+          id="course.student-project-software-environment.status"
+          defaultMessage={`Student projects will use the following software environment: <em>{env}</em>`}
+          values={{
+            em: (c) => <em>{c}</em>,
+            env: current_environment,
+          }}
+        />
       </p>
       {render_description()}
       {render_custom_info()}

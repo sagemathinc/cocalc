@@ -122,10 +122,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "collaborator-policy": {
     icon: "mail",
-    label: defineMessage({
-      id: "course.commands.collaborator-policy.label",
-      defaultMessage: "Collaborator Policy",
-    }),
+    label: course.collaborator_policy,
     button: defineMessage({
       id: "course.commands.collaborator-policy.button",
       defaultMessage: "Collab",
@@ -143,10 +140,7 @@ export const COMMANDS: { [name: string]: Command } = {
   },
   "restrict-student-projects": {
     icon: "lock",
-    label: defineMessage({
-      id: "course.commands.restrict-student-projects.label",
-      defaultMessage: "Restrict Student Projects",
-    }),
+    label: course.restrict_student_projects,
     button: labels.restrict,
     title: defineMessage({
       id: "course.commands.restrict-student-projects.toolteip",
