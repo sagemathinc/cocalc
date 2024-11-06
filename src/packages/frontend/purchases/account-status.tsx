@@ -3,16 +3,15 @@
 This is your balance, limit and spending rate.
 */
 
-import { Divider } from "antd";
 import Balance from "./balance";
 import { useEffect, useState } from "react";
 import {
   getBalance as getBalanceUsingApi,
   getPendingBalance as getPendingBalanceUsingApi,
 } from "./api";
-import Refresh from "./refresh";
 import { currency, round2down } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
+import { SectionDivider } from "./util";
 
 const MAX_WIDTH = "900px";
 
@@ -55,15 +54,10 @@ export default function AccountStatus({
 
   return (
     <div style={style}>
-      <Refresh
-        handleRefresh={handleRefresh}
-        disabled={loading}
-        style={{ float: "right" }}
-      />
-      <Divider orientation="left">
+      <SectionDivider onRefresh={handleRefresh} loading={loading}>
         Balance
         {balance != null ? `: ${currency(round2down(balance))}` : undefined}
-      </Divider>
+      </SectionDivider>
       <ShowError
         error={error}
         setError={setError}

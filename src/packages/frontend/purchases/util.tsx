@@ -1,4 +1,5 @@
-import { Button } from "antd";
+import { Button, Divider, Flex, Spin } from "antd";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize, plural } from "@cocalc/util/misc";
 
 export function describeNumberOf({ n, hasMore, loadMore, loading, type }) {
@@ -26,5 +27,28 @@ export function describeNumberOf({ n, hasMore, loadMore, loading, type }) {
     <>
       All {n} {plural(n, type)}
     </>
+  );
+}
+
+export function SectionDivider({ onRefresh, loading, children }) {
+  return (
+    <Flex>
+      <div style={{ flex: 1 }}>
+        <Divider orientation="left">
+          {children}
+          {loading && <Spin style={{ marginLeft: "15px" }} />}
+        </Divider>
+      </div>
+      <Button
+        disabled={loading}
+        style={{ marginTop: "15px" }}
+        type="link"
+        onClick={() => {
+          onRefresh();
+        }}
+      >
+        <Icon name="refresh" /> Refresh
+      </Button>
+    </Flex>
   );
 }

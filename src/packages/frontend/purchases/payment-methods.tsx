@@ -1,13 +1,4 @@
-import {
-  Button,
-  Divider,
-  Flex,
-  Popconfirm,
-  Spin,
-  Space,
-  Table,
-  Tag,
-} from "antd";
+import { Button, Flex, Popconfirm, Space, Table, Tag } from "antd";
 import { useEffect, useState } from "react";
 import {
   getPaymentMethods,
@@ -15,7 +6,7 @@ import {
   deletePaymentMethod,
 } from "./api";
 import { BigSpin } from "./stripe-payment";
-import { describeNumberOf } from "./util";
+import { describeNumberOf, SectionDivider } from "./util";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { capitalize, path_to_title } from "@cocalc/util/misc";
@@ -73,33 +64,23 @@ export default function PaymentMethods() {
 
   return (
     <div>
-      <Flex>
-        <div style={{ flex: 1 }}>
-          <Divider orientation="left">
-            {describeNumberOf({
-              n: paymentMethods?.length,
-              hasMore,
-              loadMore: () => {
-                loadMore({ paymentMethods, limit: 10 });
-              },
-              loading,
-              type: "Payment Method",
-            })}
-            {loading && <Spin style={{ marginLeft: "15px" }} />}
-          </Divider>
-        </div>
-        <Button
-          style={{ marginTop: "15px" }}
-          type="link"
-          onClick={() => {
-            init({ limit: paymentMethods?.length ?? 5 });
-          }}
-        >
-          <Icon name="refresh" /> Refresh
-        </Button>
-      </Flex>
+      <SectionDivider
+        loading={loading}
+        onRefresh={() => {
+          init({ limit: paymentMethods?.length ?? 5 });
+        }}
+      >
+        {describeNumberOf({
+          n: paymentMethods?.length,
+          hasMore,
+          loadMore: () => {
+            loadMore({ paymentMethods, limit: 10 });
+          },
+          loading,
+          type: "Payment Method",
+        })}
+      </SectionDivider>
       <ShowError error={error} setError={setError} />
-
       {paymentMethods != null && (
         <Table
           dataSource={paymentMethods}

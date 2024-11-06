@@ -17,8 +17,8 @@ import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import Cost from "./pay-as-you-go/cost";
-import Refresh from "./refresh";
 import ServiceTag from "./service";
+import { SectionDivider } from "./util";
 
 export const QUOTA_LIMIT_ICON_NAME = "ColumnHeightOutlined";
 
@@ -34,6 +34,7 @@ interface ServiceQuota {
 
 export default function AllQuotasConfig() {
   const [saving, setSaving] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [serviceQuotas, setServiceQuotas] = useState<ServiceQuota[] | null>(
     null,
@@ -45,6 +46,7 @@ export default function AllQuotasConfig() {
   const getQuotas = async () => {
     let quotas, charges;
     try {
+      setLoading(true);
       [quotas, charges] = await Promise.all([
         webapp_client.purchases_client.getQuotas(),
         webapp_client.purchases_client.getChargesByService(),
@@ -52,6 +54,8 @@ export default function AllQuotasConfig() {
     } catch (err) {
       setError(`${err}`);
       return;
+    } finally {
+      setLoading(false);
     }
     const { services } = quotas;
     const w: { [service: string]: ServiceQuota } = {};
@@ -72,14 +76,18 @@ export default function AllQuotasConfig() {
         quota: services[service] ?? 0,
       };
     }
-    const costs = await getServiceCosts(Object.keys(w) as Service[]);
-    const v: ServiceQuota[] = [];
-    for (const service in costs) {
-      v.push({ ...w[service], cost: costs[service] });
+    try {
+      const costs = await getServiceCosts(Object.keys(w) as Service[]);
+      const v: ServiceQuota[] = [];
+      for (const service in costs) {
+        v.push({ ...w[service], cost: costs[service] });
+      }
+      lastFetchedQuotasRef.current = cloneDeep(v);
+      setServiceQuotas(v);
+      setChanged(false);
+    } finally {
+      setLoading(false);
     }
-    lastFetchedQuotasRef.current = cloneDeep(v);
-    setServiceQuotas(v);
-    setChanged(false);
   };
 
   useEffect(() => {
@@ -190,7 +198,10 @@ export default function AllQuotasConfig() {
   ];
 
   return (
-    <>
+    <div>
+      <SectionDivider onRefresh={handleRefresh} loading={saving || loading}>
+        Pay as You Go Prices and Limits
+      </SectionDivider>
       {error && (
         <Alert
           type="error"
@@ -198,14 +209,6 @@ export default function AllQuotasConfig() {
           style={{ marginBottom: "15px" }}
         />
       )}
-
-      <div style={{ marginLeft: "5px", float: "right" }}>
-        <Refresh
-          handleRefresh={handleRefresh}
-          disabled={saving}
-          style={{ float: "right" }}
-        />
-      </div>
 
       <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
         <b>Your Budget</b>: these are your monthly spending limits to prevent
@@ -243,7 +246,7 @@ export default function AllQuotasConfig() {
           <Spin size="large" delay={500} />
         </div>
       )}
-    </>
+    </div>
   );
 }
 
