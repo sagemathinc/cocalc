@@ -326,14 +326,6 @@ export interface PostgreSQL extends EventEmitter {
   }): Promise<void>;
 
   getStrategiesSSO(): Promise<Strategy[]>;
-}
-
-export interface SetAccountFields {
-  db: PostgreSQL;
-  account_id: string;
-  email_address?: string | undefined;
-  first_name?: string | undefined;
-  last_name?: string | undefined;
 
   user_query_cancel_changefeed(opts: { id: any; cb?: CB }): void;
 
@@ -365,6 +357,14 @@ export interface SetAccountFields {
   projectControl?: (project_id: string) => Project;
 
   ensure_connection_to_project?: (project_id: string, cb?: CB) => Promise<void>;
+}
+
+export interface SetAccountFields {
+  db: PostgreSQL;
+  account_id: string;
+  email_address?: string | undefined;
+  first_name?: string | undefined;
+  last_name?: string | undefined;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

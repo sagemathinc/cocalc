@@ -126,7 +126,7 @@ export async function create_passport(
       `setting other account info ${opts.account_id}: ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`,
     );
     await set_account_info_if_not_set({
-      db: db,
+      db,
       account_id: opts.account_id,
       email_address: opts.email_address,
       first_name: opts.first_name,
