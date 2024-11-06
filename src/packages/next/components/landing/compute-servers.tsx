@@ -30,7 +30,7 @@ export default function ComputeServers() {
       level={LANDING_HEADER_LEVEL}
       title={
         <>
-          Powerful Compute Servers with GPU Options
+          Powerful Compute Servers with Optional GPUs
           <ComputeServerTemplates
             getPopupContainer={() => ref.current}
             style={{ maxWidth: "900px" }}
@@ -49,6 +49,44 @@ export default function ComputeServers() {
         position: "relative",
         overflow: "hidden",
       }}
+      icons={[
+        { icon: "jupyter", link: "/features/jupyter-notebook" },
+        {
+          icon: "nvidia",
+          title: "GPUs",
+          link: "https://doc.cocalc.com/compute_server.html",
+        },
+        {
+          icon: "pytorch",
+          title: "PyTorch",
+          link: "https://doc.cocalc.com/compute_server.html",
+        },
+        {
+          icon: "tensorflow",
+          title: "TensorFlow",
+          link: "https://doc.cocalc.com/compute_server.html",
+        },
+        {
+          icon: "vscode",
+          title: "VS Code",
+          link: "https://doc.cocalc.com/vscode.html",
+        },
+        {
+          icon: "desktop",
+          title: "X11 Desktop",
+          link: "features/x11",
+        },
+        {
+          icon: "terminal",
+          title: "Linux Terminal",
+          link: "features/terminal",
+        },
+        {
+          icon: "julia",
+          title: "Julia & Pluto",
+          link: "/features/julia",
+        },
+      ]}
     >
       <Paragraph>
         Extend your {siteName} projects with powerful{" "}

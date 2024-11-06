@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
+import { Col, Row, Space } from "antd";
 import { CSSProperties, ReactNode } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { COLORS } from "@cocalc/util/theme";
@@ -12,6 +12,8 @@ import { CSS, Paragraph, Title } from "components/misc";
 import { MAX_WIDTH_LANDING } from "lib/config";
 import Image, { StaticImageData } from "./image";
 import { MediaURL } from "./util";
+import { capitalize } from "@cocalc/util/misc";
+import A from "components/misc/A";
 
 const showcase: CSSProperties = {
   width: "100%",
@@ -39,31 +41,55 @@ interface Props {
   video?: string | string[];
   wide?: boolean; // if given image is wide and could use more space or its very hard to see.
   innerRef?;
+  icons?: { icon: string; title?: string; link?: string }[];
 }
 
-export default function Info(props: Readonly<Props>): JSX.Element {
-  const {
-    alt,
-    anchor,
-    below,
-    belowWide = false,
-    caption,
-    children,
-    icon,
-    image,
-    imageComponent,
-    level = 1,
-    narrow = false,
-    style,
-    swapCols,
-    textStyle,
-    textStyleExtra,
-    title,
-    video,
-    wide,
-    innerRef,
-  } = props;
-
+export default function Info({
+  alt,
+  anchor,
+  below,
+  belowWide = false,
+  caption,
+  children,
+  icon,
+  image,
+  imageComponent,
+  level = 1,
+  narrow = false,
+  style,
+  swapCols,
+  textStyle,
+  textStyleExtra,
+  title,
+  video,
+  wide,
+  innerRef,
+  icons,
+}: Props) {
+  function renderIcons() {
+    if (icons == null || icons.length == 0) {
+      return null;
+    }
+    return (
+      <div style={{ margin: "auto" }}>
+        <Space size={"large"}>
+          {icons.map(({ icon, title, link }) => {
+            const elt = (
+              <div style={{ textAlign: "center", color: "#333" }}>
+                <Icon name={icon} style={{ fontSize: "28pt" }} key={icon} />
+                <br />
+                {title ?? capitalize(icon)}
+              </div>
+            );
+            if (link) {
+              return <A href={link}>{elt}</A>;
+            }
+            return elt;
+          })}
+        </Space>
+      </div>
+    );
+  }
   function renderBelow() {
     if (!below) return;
 
@@ -241,6 +267,7 @@ export default function Info(props: Readonly<Props>): JSX.Element {
         >
           {cols}
           {renderBelow()}
+          {renderIcons()}
         </Row>
       </>
     </div>

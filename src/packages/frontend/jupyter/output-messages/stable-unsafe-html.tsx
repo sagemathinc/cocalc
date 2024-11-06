@@ -101,7 +101,7 @@ export default function StableUnsafeHtml({
     if (divRef.current == null) {
       return;
     }
-    const jElt = getElt();
+    const jElt = jupyterGetElt();
     const elt = jElt[0];
     const eltRect = elt.getBoundingClientRect();
     const divRect = divRef.current.getBoundingClientRect();
@@ -200,7 +200,8 @@ export default function StableUnsafeHtml({
     }
   }, []);
 
-  const getElt = () => {
+  // ATTENTION: this name jupyterGetElt is also assumed in src/packages/static/src/webapp-error.ts!!!
+  const jupyterGetElt = () => {
     if (!cache.has(globalKeyRef.current)) {
       const elt = $(
         `<div id="${globalKeyRef.current}" style="border:0;position:absolute;overflow:auto;z-index:${zIndex}"/>${html}</div>`,
@@ -235,14 +236,14 @@ export default function StableUnsafeHtml({
     if (divRef.current == null) {
       return;
     }
-    const elt = getElt();
+    const elt = jupyterGetElt();
     elt.show();
     position();
   };
 
   const hide = () => {
     // unmounting so hide
-    const elt = getElt();
+    const elt = jupyterGetElt();
     elt.hide();
   };
 
@@ -260,7 +261,7 @@ export default function StableUnsafeHtml({
     // html was mutated (e.g., happens with transient messages or and collab), so update the
     // element in place.
     htmlRef.current = html;
-    const elt = getElt();
+    const elt = jupyterGetElt();
     elt.html(html);
   }, [html]);
 
