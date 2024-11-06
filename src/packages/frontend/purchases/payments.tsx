@@ -124,7 +124,7 @@ export default function Payments({
         {data?.length == 0 && !hasMore && (
           <Alert showIcon type="info" message="No payments" />
         )}
-        {data != null && (
+        {data != null && data?.length > 0 && (
           <>
             <PaymentIntentsTable
               paymentIntents={data}

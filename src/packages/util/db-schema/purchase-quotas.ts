@@ -59,11 +59,6 @@ const GOOGLE_AI_COLOR = "#ff4d4f";
 export const QUOTA_SPEC: QuotaSpec = {
   credit: { display: "Credit", noSet: true, color: "green", category: "money" },
   refund: { display: "Refund", noSet: true, color: "red", category: "money" },
-  "project-upgrade": {
-    display: "Project Upgrade",
-    color: "#5bc0de",
-    category: "compute",
-  },
   "compute-server": {
     display: "Compute Server",
     color: "#2196f3",
@@ -225,6 +220,11 @@ export const QUOTA_SPEC: QuotaSpec = {
     display: LLM_USERNAMES["mistral-large-latest"],
     color: "#ff7000", // the orange from their website
     category: "ai",
+  },
+  "project-upgrade": {
+    display: "Project Upgrade",
+    color: "#5bc0de",
+    category: "compute",
   },
 } as const;
 

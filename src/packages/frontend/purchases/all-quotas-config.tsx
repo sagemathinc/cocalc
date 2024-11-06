@@ -8,7 +8,7 @@ and lets you adjust any of them.
 import { Alert, Button, InputNumber, Progress, Spin, Table, Tag } from "antd";
 import { cloneDeep, isEqual } from "lodash";
 import { useEffect, useRef, useState } from "react";
-
+import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -29,6 +29,7 @@ interface ServiceQuota {
   service: Service;
   quota: number;
   current: number;
+  cost?: any;
 }
 
 export default function AllQuotasConfig() {
@@ -53,7 +54,7 @@ export default function AllQuotasConfig() {
       return;
     }
     const { services } = quotas;
-    const v: ServiceQuota[] = [];
+    const w: { [service: string]: ServiceQuota } = {};
     for (const service in QUOTA_SPEC) {
       const spec = QUOTA_SPEC[service];
       if (spec.noSet) continue;
@@ -65,11 +66,16 @@ export default function AllQuotasConfig() {
           continue;
         }
       }
-      v.push({
+      w[service] = {
         current: charges[service] ?? 0,
         service: service as Service,
         quota: services[service] ?? 0,
-      });
+      };
+    }
+    const costs = await getServiceCosts(Object.keys(w) as Service[]);
+    const v: ServiceQuota[] = [];
+    for (const service in costs) {
+      v.push({ ...w[service], cost: costs[service] });
     }
     lastFetchedQuotasRef.current = cloneDeep(v);
     setServiceQuotas(v);
@@ -177,7 +183,9 @@ export default function AllQuotasConfig() {
     {
       title: "Cost",
       align: "center" as "center",
-      render: (_, { service }: ServiceQuota) => <Cost service={service} />,
+      render: (_, { cost, service }: ServiceQuota) => (
+        <Cost service={service} cost={cost} />
+      ),
     },
   ];
 
@@ -223,6 +231,7 @@ export default function AllQuotasConfig() {
       {serviceQuotas != null ? (
         <div style={{ overflow: "auto" }}>
           <Table
+            scroll={{ y: 400 }}
             dataSource={serviceQuotas}
             columns={columns}
             pagination={false}
