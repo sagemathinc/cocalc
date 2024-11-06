@@ -2,6 +2,7 @@ import getAccountId from "lib/account/get-account";
 import createPaymentIntent from "@cocalc/server/purchases/stripe/create-payment-intent";
 import getParams from "lib/api/get-params";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
+import throttle from "@cocalc/util/api/throttle";
 
 export default async function handle(req, res) {
   try {
@@ -20,6 +21,10 @@ async function get(req) {
     if (admin_account_id == null) {
       throw Error("must be signed in");
     }
+    throttle({
+      account_id: admin_account_id,
+      endpoint: "purchases/stripe/create-payment-intent",
+    });
     if (!(await userIsInGroup(admin_account_id, "admin"))) {
       throw Error("only admins can create a payment");
     }
@@ -35,6 +40,10 @@ async function get(req) {
     if (account_id == null) {
       throw Error("must be signed in");
     }
+    throttle({
+      account_id,
+      endpoint: "purchases/stripe/create-payment-intent",
+    });
     await createPaymentIntent({
       account_id,
       description,

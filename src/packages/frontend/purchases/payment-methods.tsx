@@ -1,13 +1,4 @@
-import {
-  Button,
-  Divider,
-  Flex,
-  Popconfirm,
-  Spin,
-  Space,
-  Table,
-  Tag,
-} from "antd";
+import { Button, Flex, Popconfirm, Space, Table, Tag } from "antd";
 import { useEffect, useState } from "react";
 import {
   getPaymentMethods,
@@ -15,11 +6,12 @@ import {
   deletePaymentMethod,
 } from "./api";
 import { BigSpin } from "./stripe-payment";
-import { describeNumberOf } from "./util";
+import { describeNumberOf, SectionDivider } from "./util";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { capitalize, path_to_title } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { AddPaymentMethodButton } from "./stripe-payment";
 
 type PaymentMethod = any;
 
@@ -72,31 +64,22 @@ export default function PaymentMethods() {
 
   return (
     <div>
-      <Flex>
-        <div style={{ flex: 1 }}>
-          <Divider orientation="left">
-            {describeNumberOf({
-              n: paymentMethods?.length,
-              hasMore,
-              loadMore: () => {
-                loadMore({ paymentMethods, limit: 10 });
-              },
-              loading,
-              type: "Payment Method",
-            })}
-            {loading && <Spin style={{ marginLeft: "15px" }} />}
-          </Divider>
-        </div>
-        <Button
-          style={{ marginTop: "15px" }}
-          type="link"
-          onClick={() => {
-            init({ limit: paymentMethods?.length ?? 5 });
-          }}
-        >
-          <Icon name="refresh" /> Refresh
-        </Button>
-      </Flex>
+      <SectionDivider
+        loading={loading}
+        onRefresh={() => {
+          init({ limit: paymentMethods?.length ?? 5 });
+        }}
+      >
+        {describeNumberOf({
+          n: paymentMethods?.length,
+          hasMore,
+          loadMore: () => {
+            loadMore({ paymentMethods, limit: 10 });
+          },
+          loading,
+          type: "Payment Method",
+        })}
+      </SectionDivider>
       <ShowError error={error} setError={setError} />
       {paymentMethods != null && (
         <Table
@@ -105,20 +88,26 @@ export default function PaymentMethods() {
           rowKey={"id"}
           columns={[
             {
-              title: "Payment Method",
+              title: (
+                <>
+                  Payment Method{" "}
+                  <span style={{ marginLeft: "30px" }}>
+                    <AddPaymentMethodButton
+                      onFinished={() => {
+                        init({ limit: paymentMethods.length + 1 });
+                      }}
+                    />
+                  </span>
+                </>
+              ),
               dataIndex: "id",
               key: "id",
-              render: (_, record) => <PaymentMethod paymentMethod={record} />,
-            },
-            {
-              width: 100,
-              render: (_, { id }) => {
-                if (defaultPaymentMethod == id) {
-                  return <Tag color="blue">Default</Tag>;
-                } else {
-                  return null;
-                }
-              },
+              render: (_, record) => (
+                <PaymentMethod
+                  paymentMethod={record}
+                  isDefault={defaultPaymentMethod == record.id}
+                />
+              ),
             },
             {
               title: <div style={{ marginLeft: "15px" }}>Actions</div>,
@@ -231,47 +220,120 @@ function toTitle(x) {
 
 const DOTS = "••••";
 
-function PaymentMethod({ paymentMethod }) {
+export function PaymentMethod({
+  paymentMethod,
+  isDefault,
+}: {
+  paymentMethod;
+  isDefault?;
+}) {
   switch (paymentMethod.type) {
     case "card":
-      return <Card paymentMethod={paymentMethod} />;
+      const icon = `cc-${paymentMethod.card.brand}`;
+      return (
+        <Flex>
+          <PaymentTitle
+            icon={isIconName(icon) ? icon : "credit-card"}
+            isDefault={isDefault}
+          >
+            {toTitle(
+              paymentMethod.card.display_brand ?? paymentMethod.card.brand,
+            )}{" "}
+            {DOTS} {paymentMethod.card.last4}
+          </PaymentTitle>
+          <div style={{ flex: 1 }} />
+          <div style={{ color: "#666", fontSize: "13pt" }}>
+            Expires {paymentMethod.card.exp_month} /{" "}
+            {paymentMethod.card.exp_year}
+          </div>
+        </Flex>
+      );
     case "us_bank_account":
       return (
-        <PaymentTitle icon="bank">
+        <PaymentTitle icon="bank" isDefault={isDefault}>
           {paymentMethod.us_bank_account.bank_name} {DOTS}{" "}
           {paymentMethod.us_bank_account.last4}
         </PaymentTitle>
       );
-    default:
+    case "cashapp":
       return (
-        <PaymentTitle icon="money-check">
+        <PaymentTitle isDefault={isDefault}>
+          <IconLetter
+            style={{
+              fontStyle: "italic",
+              background: "#00d64f",
+              color: "white",
+            }}
+          >
+            $
+          </IconLetter>{" "}
+          Cash App Pay
+        </PaymentTitle>
+      );
+    case "link":
+      return (
+        <PaymentTitle isDefault={isDefault}>
+          <IconLetter
+            style={{
+              background: "#00d66f",
+              color: "black",
+              fontWeight: "bold",
+            }}
+          >
+            &gt;
+          </IconLetter>{" "}
+          {toTitle(paymentMethod.type)}{" "}
+          {paymentMethod.link?.email ? ` - ${paymentMethod.link?.email}` : ""}
+        </PaymentTitle>
+      );
+    default:
+      // some things have this
+      const last4 = paymentMethod[paymentMethod.type]?.["last4"];
+      return (
+        <PaymentTitle icon="money-check" isDefault={isDefault}>
           {toTitle(paymentMethod.type)}
+          {last4 != null ? ` ${DOTS} ${last4}` : ""}
         </PaymentTitle>
       );
   }
 }
 
-function Card({ paymentMethod }) {
+function IconLetter({ style, children }) {
   return (
-    <Flex>
-      <PaymentTitle icon={`cc-${paymentMethod.card.brand}`}>
-        {toTitle(paymentMethod.card.brand)} {DOTS} {paymentMethod.card.last4}
-      </PaymentTitle>
-      <div style={{ flex: 1 }} />
-      <div style={{ color: "#666", fontSize: "13pt" }}>
-        Expires {paymentMethod.card.exp_month} / {paymentMethod.card.exp_year}
-      </div>
-    </Flex>
+    <div
+      style={{
+        display: "inline-block",
+        width: "20px",
+        padding: "5px",
+        marginRight: "5px",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
   );
 }
 
-function PaymentTitle({ children, icon }) {
+function PaymentTitle({
+  children,
+  icon,
+  isDefault,
+}: {
+  children;
+  icon?;
+  isDefault?;
+}) {
   return (
     <b style={{ fontSize: "12pt", color: "#666" }}>
-      {isIconName(icon) ? (
-        <Icon name={icon} style={{ marginRight: "15px", color: "darkblue" }} />
-      ) : undefined}{" "}
+      {icon != null && (
+        <Icon name={icon} style={{ width: "25px", color: "darkblue" }} />
+      )}{" "}
       {children}
+      {!!isDefault && (
+        <Tag color="blue" style={{ marginLeft: "15px" }}>
+          Default
+        </Tag>
+      )}
     </b>
   );
 }

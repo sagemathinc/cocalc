@@ -17,6 +17,11 @@ export function decimalMultiply(a: number, b: number): number {
   return ab;
 }
 
+export function decimalDivide(a: number, b: number): number {
+  const ab = new Decimal(a).div(new Decimal(b)).toNumber();
+  return ab;
+}
+
 export function grandTotal(cartItems: LineItem[]): number {
   let t = new Decimal(0);
   for (const { amount } of cartItems) {

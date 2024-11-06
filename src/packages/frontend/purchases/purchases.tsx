@@ -1041,7 +1041,7 @@ export function PurchasesButton(props: Props) {
   return (
     <div>
       <Button onClick={() => setShow(!show)}>
-        <Icon name="table" /> Transactions
+        <Icon name="table" /> Purchases
       </Button>
       {show && (
         <div style={{ marginTop: "8px" }}>

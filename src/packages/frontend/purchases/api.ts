@@ -4,7 +4,7 @@ Functions for interfacing with the purchases functionality.
 Some of these are only used by the nextjs app!
 */
 
-import api from "@cocalc/frontend/client/api";
+import api0 from "@cocalc/frontend/client/api";
 import type {
   Purchase,
   Reason,
@@ -27,6 +27,12 @@ import type {
   LineItem,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+
+async function api(endpoint: string, args?: object) {
+  throttle({ endpoint });
+  return await api0(endpoint, args);
+}
 
 // We cache some results below using this cache, since they are general settings
 // that rarely change, and it is nice to not have to worry about how often
@@ -36,9 +42,28 @@ const cache = new LRU<string, any>({
   max: 100,
 });
 
-export async function getBalance(): Promise<number> {
-  return await api("purchases/get-balance");
+const _shortCache = new LRU<string, any>({
+  ttl: 3 * 1000,
+  max: 100,
+});
+
+function shortCache(f, name) {
+  return reuseInFlight(async (...args) => {
+    const key = `${name}-${JSON.stringify(args)}`;
+    if (_shortCache.has(key)) {
+      return _shortCache.get(key);
+    }
+    const value = await f(...args);
+    _shortCache.set(key, value);
+    return value;
+  });
 }
+
+// getBalance is called a LOT, so we cache the result
+// for 5s and reuseinflight.
+export const getBalance = shortCache(async (): Promise<number> => {
+  return await api("purchases/get-balance");
+}, "get-balance");
 
 // Admins can get balance for any specified user -- error if called by non-admin.
 // account_id is required.
@@ -46,9 +71,9 @@ export async function getBalanceAdmin(account_id: string) {
   return await api("purchases/get-balance-admin", { account_id });
 }
 
-export async function getPendingBalance(): Promise<number> {
+export const getPendingBalance = shortCache(async (): Promise<number> => {
   return await api("purchases/get-pending-balance");
-}
+}, "get-pending-balance");
 
 export async function getSpendRate(): Promise<number> {
   return await api("purchases/get-spend-rate");
@@ -107,9 +132,9 @@ function parsePurchaseDates(v): Partial<Purchase>[] {
   return v;
 }
 
-export async function getPurchases(opts: PurchasesOptions) {
+export const getPurchases = shortCache(async (opts: PurchasesOptions) => {
   return parsePurchaseDates(await api("purchases/get-purchases", opts));
-}
+}, "get-purchases");
 
 // Admins can get purchases for any specified user -- error if called by non-admin.
 // Same options as getPurchases, but specify the account_id.
@@ -217,11 +242,17 @@ export async function createPaymentIntent(opts: {
   // admins can optionally set a different user account id to charge them
   user_account_id?: string;
 }): Promise<PaymentIntentSecret> {
-  return await api("purchases/create-payment-intent", opts);
+  return await api("purchases/stripe/create-payment-intent", opts);
 }
 
 export async function processPaymentIntents(): Promise<{ count: number }> {
-  return await api("purchases/process-payment-intents");
+  return await api("purchases/stripe/process-payment-intents");
+}
+
+export async function createSetupIntent(opts: {
+  description: string;
+}): Promise<{ clientSecret: string }> {
+  return await api("purchases/stripe/create-setup-intent", opts);
 }
 
 export async function setupAutomaticBilling(opts: {
@@ -242,8 +273,15 @@ export async function getUnpaidInvoices(): Promise<any[]> {
 // OUTPUT:
 //   If service is 'credit', then returns the min allowed credit.
 //   If service is 'openai...' it returns an object {prompt_tokens: number; completion_tokens: number} with the current cost per token in USD.
-export async function getServiceCost(service: Service): Promise<any> {
+//   service can be an array, in which case returns map from service name to cost.
+export async function getServiceCost(service: Service) {
   return await api("purchases/get-service-cost", { service });
+}
+
+export async function getServiceCosts(
+  services: Service[],
+): Promise<{ [service: string]: any }> {
+  return await api("purchases/get-service-cost", { service: services });
 }
 
 export async function getMinimumPayment(): Promise<number> {
@@ -455,7 +493,7 @@ export async function cancelPaymentIntent(opts: {
   id: string;
   reason: PaymentIntentCancelReason;
 }) {
-  await api("purchases/cancel-payment-intent", opts);
+  await api("purchases/stripe/cancel-payment-intent", opts);
 }
 
 export async function getPayments(
@@ -470,7 +508,6 @@ export async function getPayments(
     limit?: number;
   } = {},
 ): Promise<StripeData> {
-  throttle({ endpoint: "purchases/stripe/get-payments" });
   return await api("purchases/stripe/get-payments", opts);
 }
 
@@ -480,20 +517,24 @@ export async function getOpenPayments(
     user_account_id?: string;
   } = {},
 ): Promise<StripeData> {
-  throttle({ endpoint: "purchases/stripe/get-open-payments" });
   return await api("purchases/stripe/get-open-payments", opts);
 }
 
 export async function getCheckoutSession(
   opts: CheckoutSessionOptions,
 ): Promise<CheckoutSessionSecret> {
-  throttle({ endpoint: "purchases/stripe/get-checkout-session" });
   return await api("purchases/stripe/get-checkout-session", opts);
 }
 
 export async function getCustomerSession(): Promise<CustomerSessionSecret> {
-  throttle({ endpoint: "purchases/stripe/get-customer-session" });
   return await api("purchases/stripe/get-customer-session");
+}
+
+export async function getPaymentMethod(opts: {
+  id: string;
+  user_account_id?: string;
+}) {
+  return await api("purchases/stripe/get-payment-method", opts);
 }
 
 export async function getPaymentMethods(
@@ -504,7 +545,6 @@ export async function getPaymentMethods(
     limit?: number;
   } = {},
 ): Promise<PaymentMethodData> {
-  throttle({ endpoint: "purchases/stripe/get-payment-methods" });
   return await api("purchases/stripe/get-payment-methods", opts);
 }
 
@@ -512,7 +552,6 @@ export async function setDefaultPaymentMethod(opts: {
   // id of a payment method
   default_payment_method: string;
 }) {
-  throttle({ endpoint: "purchases/stripe/set-default-payment-method" });
   return await api("purchases/stripe/set-default-payment-method", opts);
 }
 
@@ -520,6 +559,5 @@ export async function deletePaymentMethod(opts: {
   // id of a payment method to delete
   payment_method: string;
 }) {
-  throttle({ endpoint: "purchases/stripe/delete-payment-method" });
   return await api("purchases/stripe/delete-payment-method", opts);
 }

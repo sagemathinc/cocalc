@@ -1,8 +1,8 @@
-import { Card, Divider } from "antd";
 import { useRef } from "react";
+import { Divider } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import AccountStatus from "./account-status";
-import Quotas, { QUOTA_LIMIT_ICON_NAME } from "./all-quotas-config";
+import AllQuotasConfig from "./all-quotas-config";
 import CostBarChart from "./cost-bar-chart";
 import Purchases from "./purchases";
 import { Footer } from "../customize";
@@ -23,13 +23,7 @@ export default function PurchasesPage() {
         Plots
       </Divider>
       <CostBarChart />
-      <Divider orientation="left" style={{ marginTop: "30px" }}>
-        <Icon name={QUOTA_LIMIT_ICON_NAME} style={{ marginRight: "8px" }} />{" "}
-        Limits
-      </Divider>
-      <Card>
-        <Quotas />
-      </Card>
+      <AllQuotasConfig />
       <Footer />
     </div>
   );

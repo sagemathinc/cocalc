@@ -7,6 +7,7 @@ import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
+import basePath from "@cocalc/backend/base-path";
 
 const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 
@@ -50,7 +51,7 @@ export async function getStripeCustomerId({
   account_id: string;
   create: boolean;
 }): Promise<string | undefined> {
-  const db = getPool();
+  const db = getPool("long");
   const { rows } = await db.query(
     "SELECT stripe_customer_id FROM accounts WHERE account_id=$1",
     [account_id],
@@ -70,7 +71,6 @@ export async function getStripeCustomerId({
     return undefined;
   }
 }
-
 
 export async function sanityCheckAmount(amount) {
   if (!amount) {
@@ -126,4 +126,11 @@ export async function getAccountIdFromStripeCustomerId(
   }
   // at least try the first result if there is more than 1, or return undefined.
   return rows[0]?.account_id;
+}
+
+// [ ] TODO!
+export async function defaultReturnUrl() {
+  const { dns } = await getServerSettings();
+  const return_url = `https://${dns}${basePath}`;
+  return return_url;
 }

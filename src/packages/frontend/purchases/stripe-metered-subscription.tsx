@@ -1,3 +1,11 @@
+/*
+These are being deprecated but 500+ are setup, so we're going to support having them exist if there
+is no other payment method on file, and allowing users to disable it if they have it already.
+Users without one setup will never see this button.
+
+After a while -- when the 500+ is MUCH smaller, we may manually remove this.
+*/
+
 import { Alert, Button, Popconfirm, Spin } from "antd";
 import { delay } from "awaiting";
 import { CSSProperties, useState } from "react";
@@ -32,6 +40,12 @@ export default function StripeMeteredSubscription({ style }: Props) {
     "account",
     "stripe_checkout_session",
   )?.toJS();
+
+  if (!stripe_usage_subscription) {
+    // due to deprecation, nothing to do except in the case of REMOVING existing setup.
+    return null;
+  }
+
   const legacyCard = !!stripe_usage_subscription?.startsWith("card");
 
   const doDisable = async () => {
@@ -227,10 +241,9 @@ export default function StripeMeteredSubscription({ style }: Props) {
               <div style={{ maxWidth: "400px" }}>
                 <FormattedMessage
                   id="purchases.automatic-payments.have-automatic-payments.message"
-                  defaultMessage={`You have automatic payments enabled. Would you like to disable
-                    them? {warning}
-                    You can reenable automatic payments at any time, and you can
-                    resume a canceled subscription easily later.`}
+                  defaultMessage={
+                    "You have legacy automatic payments configured.  We recommend that you disable legacy automatic payments, and instead explicitly add a payment method below."
+                  }
                   values={{ warning }}
                 />
               </div>

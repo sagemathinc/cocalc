@@ -3,7 +3,7 @@
 This is your balance, limit and spending rate.
 */
 
-import { Card, Divider, Space } from "antd";
+import { Card, Space } from "antd";
 import MinBalance from "./min-balance";
 import SpendRate from "./spend-rate";
 import { useEffect, useState } from "react";
@@ -12,8 +12,8 @@ import {
   getSpendRate as getSpendRateUsingApi,
 } from "./api";
 import Config from "./config";
-import Refresh from "./refresh";
 import ShowError from "@cocalc/frontend/components/error";
+import { SectionDivider } from "./util";
 
 const MAX_WIDTH = "900px";
 
@@ -55,17 +55,14 @@ export default function AutomaticPayments({
 
   return (
     <div style={style}>
-      <Refresh
-        handleRefresh={handleRefresh}
-        disabled={loading}
-        style={{ float: "right" }}
-      />
+      <SectionDivider onRefresh={handleRefresh} loading={loading}>
+        Automatic Payments
+      </SectionDivider>
       <ShowError
         error={error}
         setError={setError}
         style={{ marginBottom: "15px" }}
       />
-      <Divider orientation="left">Automatic Payments</Divider>
       <div>
         <div style={{ margin: "auto", maxWidth: MAX_WIDTH }}>
           <Space style={{ alignItems: "flex-start" }}>

@@ -22,10 +22,11 @@ const cache = new LRU<string, any>({
 interface Props {
   service: Service;
   inline?: boolean; // just show minimal cost desc.
+  cost?: any;
 }
 
-export default function Cost({ inline, service }: Props) {
-  const [cost, setCost] = useState<any>(cache.get(service));
+export default function Cost({ inline, service, cost: cost0 }: Props) {
+  const [cost, setCost] = useState<any>(cost0 ?? cache.get(service));
   const [error, setError] = useState<string>("");
 
   const getCost = async () => {
@@ -247,7 +248,8 @@ export function GoogleNetworkCost({ markup: markup0 }: { markup?: number }) {
       markup on exactly what{" "}
       <A href="https://cloud.google.com/vpc/network-pricing">
         Google charges for network usage.
-      </A>
+      </A>{" "}
+      It can take up to 3 days for networking charges to be reported.
     </>
   );
 }

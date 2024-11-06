@@ -13,6 +13,7 @@ import { Alert, Button } from "antd";
 import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { decimalDivide } from "@cocalc/util/stripe/calc";
 
 interface Props {
   cost?: CostInputPeriod;
@@ -54,7 +55,7 @@ export function AddBox(props: Props) {
     if (dedicatedItem || cost.input.quantity == null) {
       return;
     }
-    const costPer = periodicCost(cost) / cost.input.quantity;
+    const costPer = decimalDivide(periodicCost(cost), cost.input.quantity);
     return (
       <div
         style={{
@@ -64,7 +65,8 @@ export function AddBox(props: Props) {
           borderRadius: "10px",
         }}
       >
-        {money(round2up(costPer))} per project {cost.period ? cost.period : ""}
+        {money(round2up(costPer))} per project{" "}
+        {!!cost.period && cost.period != "range" ? cost.period : ""}
       </div>
     );
   }
