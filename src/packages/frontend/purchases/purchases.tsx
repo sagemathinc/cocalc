@@ -1,8 +1,10 @@
 import {
+  Alert,
   Button,
   Card,
   Checkbox,
   Flex,
+  Input,
   Popover,
   Space,
   Spin,
@@ -10,7 +12,14 @@ import {
   Tag,
   Tooltip,
 } from "antd";
-import { CSSProperties, useEffect, useState } from "react";
+import {
+  CSSProperties,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  MutableRefObject,
+} from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
@@ -64,6 +73,8 @@ import ServiceTag from "./service";
 import { LineItemsButton } from "./line-items";
 import { describeNumberOf, SectionDivider } from "./util";
 import PurchasesPlot from "./purchases-plot";
+import searchFilter from "@cocalc/frontend/search/filter";
+import { debounce } from "lodash";
 
 const DEFAULT_LIMIT = 10;
 
@@ -153,6 +164,10 @@ function Purchases0({
   );
 }
 
+type PurchaseItem = Partial<
+  Purchase & { sum?: number; filter?: string; balance?: number }
+>;
+
 export function PurchasesTable({
   account_id,
   project_id,
@@ -182,14 +197,15 @@ export function PurchasesTable({
   refreshRef?;
 }) {
   const [loading, setLoading] = useState<boolean>(false);
-  const [purchaseRecords, setPurchaseRecords] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
-  >(null);
-  const [purchases, setPurchases] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
+  const [purchaseRecords, setPurchaseRecords] = useState<PurchaseItem[] | null>(
+    null,
+  );
+  const [purchases, setPurchases] = useState<PurchaseItem[] | null>(null);
+  const [filteredPurchases, setFilteredPurchases] = useState<
+    PurchaseItem[] | null
   >(null);
   const [groupedPurchases, setGroupedPurchases] = useState<
-    Partial<Purchase & { sum?: number }>[] | null
+    PurchaseItem[] | null
   >(null);
   const [error, setError] = useState<string>("");
   const [offset, setOffset] = useState<number>(0);
@@ -198,6 +214,10 @@ export function PurchasesTable({
   const [balance, setBalance] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true); // todo
   const [limit, setLimit] = useState<number>(DEFAULT_LIMIT);
+  const [filter, setFilter] = useState<string>("");
+  const searchFilterRef = useRef<any>(null) as MutableRefObject<
+    (string) => Promise<PurchaseItem[]> | null
+  >;
 
   const getBalance = async () => {
     try {
@@ -248,13 +268,21 @@ export function PurchasesTable({
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
 
+      for (const purchase of x) {
+        getFilter(purchase);
+      }
+
       // TODO: need getPurchases to tell if there are more or not.
       setHasMore(x.length == limit0 + 1);
       x = x.slice(0, limit0);
 
       if (init) {
-        setPurchaseRecords(x);
         setOffset(DEFAULT_LIMIT);
+        searchFilterRef.current = await searchFilter({
+          data: x,
+          toString: getFilter,
+        });
+        setPurchaseRecords(x); // put after creating filter so will update view
       } else {
         const v: { [id: string]: any } = {};
         for (const z of (purchaseRecords ?? []).concat(x)) {
@@ -265,7 +293,11 @@ export function PurchasesTable({
         v2.reverse();
         // for next time:
         setOffset(v2.length);
-        setPurchaseRecords(v2);
+        searchFilterRef.current = await searchFilter<PurchaseItem>({
+          data: v2,
+          toString: getFilter,
+        });
+        setPurchaseRecords(v2); // put after creating filter so will update view
       }
       setLimit(100);
     } catch (err) {
@@ -274,6 +306,20 @@ export function PurchasesTable({
       setLoading(false);
     }
   };
+
+  useMemo(() => {
+    if (
+      searchFilterRef.current == null ||
+      !filter?.trim() ||
+      purchases == null
+    ) {
+      setFilteredPurchases(purchases);
+      return;
+    }
+    (async () => {
+      setFilteredPurchases(await searchFilterRef.current(filter));
+    })();
+  }, [filter, purchases]);
 
   const refreshRecords = async () => {
     // [ ] TODO: this needs to instead get only recent records (that could have possibly
@@ -303,7 +349,7 @@ export function PurchasesTable({
 
     let b = balance;
     let t = 0;
-    const purchases: Partial<Purchase & { balance: number }>[] = [];
+    const purchases: PurchaseItem[] = [];
     for (const row of purchaseRecords) {
       if (activeOnly && row.cost != null) {
         continue;
@@ -352,26 +398,45 @@ export function PurchasesTable({
               })}
         </Tooltip>
       </SectionDivider>
-      <div>
-        <ShowError error={error} setError={setError} />
-        <div style={{ display: "flex" }}>
-          <div style={{ flex: 1 }} />
-          <Export
-            style={{ margin: "-8px" }}
-            name={
-              filename ??
-              getFilename({ thisMonth, cutoff, limit, offset, noStatement })
-            }
-            data={purchases}
-          />
-          {showRefresh && (
-            <Refresh
-              handleRefresh={refreshRecords}
-              style={{ marginRight: "8px" }}
+      <ShowError error={error} setError={setError} />
+      <Flex>
+        {!group && (
+          <>
+            <Input.Search
+              allowClear
+              placeholder="Filter purchases..."
+              style={{ maxWidth: "400px" }}
+              onChange={debounce((e) => setFilter(e.target.value ?? ""), 250)}
             />
-          )}
-        </div>
-      </div>
+            {filter?.trim() &&
+              filteredPurchases != null &&
+              purchases != null &&
+              filteredPurchases.length != purchases.length && (
+                <Alert
+                  style={{ margin: "-5px 0 0 15px" }}
+                  showIcon
+                  type="warning"
+                  message={`Showing ${filteredPurchases.length} matching ${plural(filteredPurchases.length, "purchase")} and hiding ${purchases.length - filteredPurchases.length} ${plural(purchases.length - filteredPurchases.length, "purchase")}.`}
+                />
+              )}
+          </>
+        )}
+        <div style={{ flex: 1 }} />
+        <Export
+          style={{ margin: "-8px" }}
+          name={
+            filename ??
+            getFilename({ thisMonth, cutoff, limit, offset, noStatement })
+          }
+          data={purchases}
+        />
+        {showRefresh && (
+          <Refresh
+            handleRefresh={refreshRecords}
+            style={{ marginRight: "8px" }}
+          />
+        )}
+      </Flex>
       <div
         style={{
           display: "flex",
@@ -390,7 +455,10 @@ export function PurchasesTable({
         {group ? (
           <GroupedPurchaseTable purchases={groupedPurchases} />
         ) : (
-          <DetailedPurchaseTable purchases={purchases} admin={!!account_id} />
+          <DetailedPurchaseTable
+            purchases={filteredPurchases}
+            admin={!!account_id}
+          />
         )}
       </div>
       <div
@@ -402,14 +470,16 @@ export function PurchasesTable({
           alignItems: "center",
         }}
       >
-        {showTotal && total != null && (
+        {showTotal && total != null && !filter?.trim() && (
           <span>Total of Displayed Costs: {currency(-total)}</span>
         )}
-        {showBalance && balance != null && (
+        {showBalance && balance != null && !filter?.trim() && (
           <span>Current Balance: {currency(round2down(balance))}</span>
         )}
       </div>
-      {!group && purchases != null && <PurchasesPlot purchases={purchases} />}
+      {!group && purchases != null && (
+        <PurchasesPlot purchases={filteredPurchases ?? purchases} />
+      )}
     </div>
   );
 }
@@ -476,7 +546,7 @@ function DetailedPurchaseTable({
   purchases,
   admin,
 }: {
-  purchases: Partial<Purchase & { balance?: number }>[] | null;
+  purchases: PurchaseItem[] | null;
   admin: boolean;
 }) {
   if (purchases == null) {
@@ -1044,7 +1114,7 @@ export function PurchasesButton(props: Props) {
 }
 
 // this should match with sql formula in server/purchases/get-balance.ts
-function getCost(row: Partial<Purchase>) {
+function getCost(row: PurchaseItem) {
   if (row.cost != null) {
     return row.cost;
   }
@@ -1135,4 +1205,11 @@ function Period({ record }) {
     }
   }
   return null;
+}
+
+function getFilter(purchase) {
+  if (purchase.filter == null) {
+    purchase.filter = JSON.stringify(purchase).toLowerCase();
+  }
+  return purchase.filter;
 }

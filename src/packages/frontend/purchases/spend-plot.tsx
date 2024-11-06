@@ -34,7 +34,7 @@ export default function SpendPlot({ data, title, description, style }: Props) {
       style={style}
       title={
         <Tooltip title={description}>
-          {(title ?? " Amount ") + currency}
+          {title ?? " Amount"}
         </Tooltip>
       }
     >
