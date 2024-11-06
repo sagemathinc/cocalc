@@ -215,7 +215,23 @@ export function PurchasesTable({
     try {
       setError("");
       setLoading(true);
-      const limit0 = group ? 300 : init ? DEFAULT_LIMIT : limit;
+
+      let limit0;
+      if (group) {
+        limit0 = 300;
+      } else {
+        if (purchaseRecords == null) {
+          limit0 = DEFAULT_LIMIT;
+        } else if (init) {
+          limit0 = Math.max(
+            DEFAULT_LIMIT,
+            Math.min(100, purchaseRecords.length),
+          );
+        } else {
+          limit0 = limit;
+        }
+      }
+
       const opts = {
         cutoff,
         day_statement_id,
@@ -245,7 +261,8 @@ export function PurchasesTable({
           v[(z as any).id] = z;
         }
         const v2 = Object.values(v);
-        v2.sort(field_cmp("date"));
+        v2.sort(field_cmp("id"));
+        v2.reverse();
         // for next time:
         setOffset(v2.length);
         setPurchaseRecords(v2);
