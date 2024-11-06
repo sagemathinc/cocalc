@@ -1606,4 +1606,8 @@ export const course = defineMessages({
     id: "course.due_date",
     defaultMessage: "Due Date",
   },
+  distribute: {
+    id :"course.distribute",
+    defaultMessage: "Distribute"
+  }
 });
