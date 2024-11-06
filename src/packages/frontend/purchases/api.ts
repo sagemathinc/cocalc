@@ -27,6 +27,7 @@ import type {
   LineItem,
 } from "@cocalc/util/stripe/types";
 import throttle from "@cocalc/util/api/throttle";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 async function api(endpoint: string, args?: object) {
   throttle({ endpoint });
@@ -41,10 +42,28 @@ const cache = new LRU<string, any>({
   max: 100,
 });
 
-export async function getBalance(): Promise<number> {
-  console.log("getBalance");
-  return await api("purchases/get-balance");
+const _shortCache = new LRU<string, any>({
+  ttl: 3 * 1000,
+  max: 100,
+});
+
+function shortCache(f, name) {
+  return reuseInFlight(async (...args) => {
+    const key = `${name}-${JSON.stringify(args)}`;
+    if (_shortCache.has(key)) {
+      return _shortCache.get(key);
+    }
+    const value = await f(...args);
+    _shortCache.set(key, value);
+    return value;
+  });
 }
+
+// getBalance is called a LOT, so we cache the result
+// for 5s and reuseinflight.
+export const getBalance = shortCache(async (): Promise<number> => {
+  return await api("purchases/get-balance");
+}, "get-balance");
 
 // Admins can get balance for any specified user -- error if called by non-admin.
 // account_id is required.
@@ -52,9 +71,9 @@ export async function getBalanceAdmin(account_id: string) {
   return await api("purchases/get-balance-admin", { account_id });
 }
 
-export async function getPendingBalance(): Promise<number> {
+export const getPendingBalance = shortCache(async (): Promise<number> => {
   return await api("purchases/get-pending-balance");
-}
+}, "get-pending-balance");
 
 export async function getSpendRate(): Promise<number> {
   return await api("purchases/get-spend-rate");
@@ -113,9 +132,9 @@ function parsePurchaseDates(v): Partial<Purchase>[] {
   return v;
 }
 
-export async function getPurchases(opts: PurchasesOptions) {
+export const getPurchases = shortCache(async (opts: PurchasesOptions) => {
   return parsePurchaseDates(await api("purchases/get-purchases", opts));
-}
+}, "get-purchases");
 
 // Admins can get purchases for any specified user -- error if called by non-admin.
 // Same options as getPurchases, but specify the account_id.
