@@ -1807,7 +1807,7 @@ export function currency(n: number, d?: number) {
   }
   // strip excessive 0's off the end
   const i = s.indexOf(".");
-  while (s[s.length - 1] == "0" && i <= s.length - 2) {
+  while (s[s.length - 1] == "0" && i <= s.length - (d ?? 2)) {
     s = s.slice(0, s.length - 1);
   }
   return s;

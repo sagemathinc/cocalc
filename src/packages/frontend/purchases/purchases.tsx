@@ -53,6 +53,7 @@ import {
   round2down,
   round4,
 } from "@cocalc/util/misc";
+import { decimalAdd } from "@cocalc/util/stripe/calc";
 import AdminRefund from "./admin-refund";
 import * as api from "./api";
 import EmailStatement from "./email-statement";
@@ -299,10 +300,10 @@ export function PurchasesTable({
         // or the balance
         continue;
       }
-      b += cost;
+      b = decimalAdd(b, cost);
 
       // Compute total cost
-      t += cost;
+      t = decimalAdd(t, cost);
     }
 
     if (group) {
@@ -939,7 +940,7 @@ function Amount({ record }) {
   if (cost != null) {
     const amount = -cost;
     return (
-      <Tooltip title={` (USD): $${round4(amount)}`}>
+      <Tooltip title={` (USD): ${currency(round4(amount), 4)}`}>
         <span
           style={{
             ...getAmountStyle(amount),
@@ -979,7 +980,7 @@ function Pending({ record }) {
 function Balance({ balance }) {
   if (balance != null) {
     return (
-      <Tooltip title={` (USD): $${round4(balance)}`}>
+      <Tooltip title={` (USD): ${currency(round4(balance), 4)}`}>
         <span style={getAmountStyle(balance)}>
           {currency(round2down(balance), 2)}
         </span>

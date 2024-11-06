@@ -13,18 +13,19 @@ export function stripeToDecimal(amountStripe: number): number {
 }
 
 export function decimalMultiply(a: number, b: number): number {
-  const ab = new Decimal(a).mul(new Decimal(b)).toNumber();
-  return ab;
+  return new Decimal(a).mul(new Decimal(b)).toNumber();
 }
 
 export function decimalDivide(a: number, b: number): number {
-  const ab = new Decimal(a).div(new Decimal(b)).toNumber();
-  return ab;
+  return new Decimal(a).div(new Decimal(b)).toNumber();
 }
 
 export function decimalSubtract(a: number, b: number): number {
-  const ab = new Decimal(a).sub(new Decimal(b)).toNumber();
-  return ab;
+  return new Decimal(a).sub(new Decimal(b)).toNumber();
+}
+
+export function decimalAdd(a: number, b: number): number {
+  return new Decimal(a).add(new Decimal(b)).toNumber();
 }
 
 export function grandTotal(cartItems: LineItem[]): number {
