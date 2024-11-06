@@ -22,6 +22,11 @@ export const labels = defineMessages({
     defaultMessage: "Reset",
     description: "A 'Reset' button on a small confirmation modal dialog",
   },
+  edit: {
+    id: "labels.edit",
+    defaultMessage: "Edit",
+    description: "Short label on a button to edit a text field.",
+  },
   other: {
     id: "labels.other",
     defaultMessage: "Other",
@@ -1607,7 +1612,7 @@ export const course = defineMessages({
     defaultMessage: "Due Date",
   },
   distribute: {
-    id :"course.distribute",
-    defaultMessage: "Distribute"
-  }
+    id: "course.distribute",
+    defaultMessage: "Distribute",
+  },
 });
