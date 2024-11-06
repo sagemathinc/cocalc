@@ -21,7 +21,7 @@ import type {
   PaymentIntentSecret,
   CustomerSessionSecret,
 } from "@cocalc/util/stripe/types";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   createPaymentIntent,
   createSetupIntent,
@@ -30,16 +30,16 @@ import {
   getPaymentMethods,
   processPaymentIntents,
 } from "./api";
-import { Button, Card, Modal, Space, Spin, Table, Tooltip } from "antd";
+import { Button, Card, Modal, Space, Spin, Tooltip } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
-import { currency, plural } from "@cocalc/util/misc";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { LineItemsTable } from "./line-items";
 
 const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
@@ -94,14 +94,14 @@ export default function StripePayment({
       <div style={{ margin: "0 0 5px 15px" }}>
         <b>{description}</b>
       </div>
-      <LineItemsTable lineItems={lineItems} />
+      <LineItemsTable
+        lineItems={lineItems.concat({
+          description: "Amount due (excluding tax)",
+          amount: stripeToDecimal(totalStripe),
+          extra: true,
+        })}
+      />
       <div>
-        <div>
-          <TotalLine
-            description={"Amount due (excluding tax)"}
-            amount={stripeToDecimal(totalStripe)}
-          />
-        </div>
         <div style={{ textAlign: "center" }}>
           <Space>
             {(hasPaymentMethods === true || hasPaymentMethods == null) &&
@@ -457,83 +457,6 @@ export function BigSpin({ style }: { style? }) {
           }}
         />
       </Spin>
-    </div>
-  );
-}
-
-const LINE_ITEMS_COLUMNS = [
-  {
-    title: "Description",
-    dataIndex: "description",
-    key: "description",
-  } as const,
-  {
-    title: "Amount",
-    dataIndex: "amount",
-    key: "amount",
-    render: (amount) => (
-      <div style={{ whiteSpace: "nowrap" }}>{currency(amount)}</div>
-    ),
-    align: "right",
-  } as const,
-];
-
-function LineItemsTable({ lineItems }) {
-  const dataSource = useMemo(() => {
-    let key = 1;
-    return lineItems.map((x) => {
-      key += 1;
-      return { key, ...x };
-    });
-  }, [lineItems]);
-  return (
-    <Table
-      rowKey={"key"}
-      pagination={false}
-      dataSource={dataSource}
-      columns={LINE_ITEMS_COLUMNS}
-    />
-  );
-}
-
-export function LineItemsButton({ lineItems, style }: { lineItems?; style? }) {
-  const [show, setShow] = useState<boolean>(false);
-  const n = lineItems?.length ?? 0;
-  if (n == 0) {
-    return null;
-  }
-  if (!show) {
-    return (
-      <Button size="small" type="link" onClick={() => setShow(true)}>
-        {n} {plural(n, "Line Item")}
-      </Button>
-    );
-  }
-  return (
-    <div
-      style={{
-        display: "inline-block",
-        maxWidth: "450px",
-        width: "100%",
-        ...style,
-      }}
-    >
-      <Button size="small" type="link" onClick={() => setShow(false)}>
-        Hide
-      </Button>
-      {show && <LineItemsTable lineItems={lineItems} />}
-    </div>
-  );
-}
-
-function TotalLine({ description, amount }) {
-  return (
-    <div style={{ display: "flex", margin: "20px 15px 0 0" }}>
-      <div style={{ flex: 0.5 }} />
-      <div style={{ fontWeight: 500, flex: 0.3 }}>{description}</div>
-      <div style={{ flex: 0.2 }}>
-        <div style={{ float: "right" }}>{currency(amount)}</div>
-      </div>
     </div>
   );
 }

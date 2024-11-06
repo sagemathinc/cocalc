@@ -14,13 +14,15 @@ import { useRef, useState } from "react";
 import { currency } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 
+const DEFAULT_PAYMENT = 10;
+
 interface Props {
   account_id: string;
   onClose?: () => void;
 }
 
 export default function CreatePayment({ account_id, onClose }: Props) {
-  const [amount, setAmount] = useState<number | null | string>(null);
+  const [amount, setAmount] = useState<number | null | string>(DEFAULT_PAYMENT);
   const [description, setDescription] = useState<string>("");
   const purposeRef = useRef<string>(`admin-${Date.now()}`);
   const [loading, setLoading] = useState<boolean>(false);
@@ -57,20 +59,22 @@ export default function CreatePayment({ account_id, onClose }: Props) {
   return (
     <Card title={"Create Payment"}>
       <Flex gap="middle" style={{ marginBottom: "15px" }}>
+        <Input
+          disabled={done || loading}
+          style={{ flex: 1, maxWidth: "400px" }}
+          placeholder="Description..."
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
         <InputNumber
           disabled={done || loading}
           min={0}
           max={10000}
+          addonAfter="$"
           placeholder="Amount..."
+          style={{ maxWidth: "100px" }}
           value={amount}
           onChange={setAmount}
-        />
-        <Input
-          disabled={done || loading}
-          style={{ flex: 1 }}
-          placeholder="Description..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
         />
       </Flex>
       <Space style={{ marginBottom: "15px" }}>

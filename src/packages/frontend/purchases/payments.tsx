@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { cancelPaymentIntent, getPaymentMethod, getPayments } from "./api";
+import {
+  cancelPaymentIntent,
+  getInvoice,
+  getPaymentMethod,
+  getPayments,
+} from "./api";
 import {
   Alert,
   Button,
@@ -20,11 +25,13 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
 import "./purchases.css";
-import { describeNumberOf } from "./util";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { describeNumberOf, RawJson } from "./util";
 import { PaymentMethod } from "./payment-methods";
 import SpendPlot from "./spend-plot";
 import { field_cmp } from "@cocalc/util/misc";
+import { decimalSubtract, stripeToDecimal } from "@cocalc/util/stripe/calc";
+import { LineItemsTable } from "./line-items";
+import dayjs from "dayjs";
 
 interface Props {
   refresh?: () => Promise<void>;
@@ -291,25 +298,52 @@ function PaymentIntentsTable({
 function PaymentDetails({ paymentIntent, account_id, onFinished }) {
   const isAdmin = !!account_id;
   const [paymentMethod, setPaymentMethod] = useState<any>(null);
+  const [invoice, setInvoice] = useState<any>(null);
   const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
 
-  useEffect(() => {
+  const updatePaymentMethod = async () => {
     const { payment_method } = paymentIntent;
     if (!payment_method) {
       return;
     }
-    (async () => {
-      try {
-        setPaymentMethod(
-          await getPaymentMethod({
-            user_account_id: account_id,
-            id: payment_method,
-          }),
-        );
-      } catch (err) {
+    try {
+      setPaymentMethod(
+        await getPaymentMethod({
+          user_account_id: account_id,
+          id: payment_method,
+        }),
+      );
+    } catch (err) {
+      const error = `${err}`;
+      // Invalid request I think means the payment method was deleted.
+      if (!error.includes("Invalid request")) {
         setError(`${err}`);
       }
-    })();
+    }
+  };
+  const updateInvoice = async () => {
+    const { invoice: invoice_id } = paymentIntent;
+    if (!invoice_id) {
+      return;
+    }
+    try {
+      setInvoice(await getInvoice(invoice_id));
+    } catch (err) {
+      setError(`${err}`);
+    }
+  };
+  const update = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([updatePaymentMethod(), updateInvoice()]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    update();
   }, [paymentIntent, account_id]);
 
   return (
@@ -327,17 +361,93 @@ function PaymentDetails({ paymentIntent, account_id, onFinished }) {
           )}
         </>
       )}
-      {paymentMethod == null && <Spin />}
-      {paymentMethod && <PaymentMethod paymentMethod={paymentMethod} />}
+      {loading && <Spin />}
       <ShowError error={error} setError={setError} />
-      <StaticMarkdown
-        style={{ margin: "15px 0" }}
-        value={
-          "```json\n" + JSON.stringify(paymentIntent, undefined, 2) + "\n```"
-        }
-      />
+      <Space style={{ marginLeft: "30px", float: "right" }}>
+        <RawJson value={paymentIntent} />
+        <InvoiceLink invoice={invoice} />
+      </Space>
+      {paymentMethod && (
+        <div>
+          <PaymentMethod paymentMethod={paymentMethod} compact />
+        </div>
+      )}
+      {invoice && (
+        <div>
+          <Invoice invoice={invoice} />
+        </div>
+      )}
     </div>
   );
+}
+
+function InvoiceLink({ invoice }) {
+  if (invoice == null) {
+    return null;
+  }
+  const due =
+    invoice.due_date ??
+    invoice.status_transitions?.finalized_at ??
+    invoice.created;
+  const dueDate = due ? dayjs(due * 1000) : dayjs();
+  const now = dayjs();
+  // "Invoice URLs expire 30 days after the due date."
+  // https://docs.stripe.com/invoicing/hosted-invoice-page
+  const isExpired = now.diff(dueDate, "days") > 30;
+  return (
+    <Button
+      disabled={isExpired}
+      href={invoice.hosted_invoice_url}
+      type="link"
+      target="_blank"
+    >
+      <Icon name="external-link" /> Invoice{" "}
+      {isExpired ? " (expired)" : undefined}
+    </Button>
+  );
+}
+function Invoice({ invoice }) {
+  const lineItems = invoice.lines?.data.map(({ amount, description }) => {
+    return { description, amount: stripeToDecimal(amount) };
+  });
+  if (invoice.subtotal != null) {
+    lineItems.push({
+      extra: true,
+      description: "Subtotal",
+      amount: stripeToDecimal(invoice.subtotal),
+    });
+  }
+  if (invoice.tax != null) {
+    lineItems.push({
+      extra: true,
+      description: "Tax",
+      amount: stripeToDecimal(invoice.tax),
+    });
+  }
+  if (invoice.total != null) {
+    lineItems.push({
+      extra: true,
+      description: "Total",
+      amount: stripeToDecimal(invoice.total),
+    });
+  }
+  if (invoice.amount_paid != null) {
+    lineItems.push({
+      extra: true,
+      description: "Amount paid",
+      amount: stripeToDecimal(-invoice.amount_paid),
+    });
+  }
+  if (invoice.total != null && invoice.amount_paid != null) {
+    lineItems.push({
+      extra: true,
+      description: "Amount due",
+      amount: stripeToDecimal(
+        decimalSubtract(invoice.total, invoice.amount_paid),
+      ),
+    });
+  }
+  return <LineItemsTable lineItems={lineItems} />;
 }
 
 function needsAttention(paymentIntent) {

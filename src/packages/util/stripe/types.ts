@@ -2,6 +2,7 @@ export interface LineItem {
   amount: number; // amount in US Dollars
   description: string;
   tax?: boolean; // if true, this line item represents tax
+  extra?: boolean; // if true, should render as an "extra" line item at the bottom, e.g., "Total" on a receipt. Mainly for rendering invoices, etc.
 }
 
 export interface PaymentIntentSecret {

@@ -6,11 +6,10 @@ import {
   deletePaymentMethod,
 } from "./api";
 import { BigSpin } from "./stripe-payment";
-import { describeNumberOf, SectionDivider } from "./util";
+import { describeNumberOf, SectionDivider, RawJson } from "./util";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { capitalize, path_to_title } from "@cocalc/util/misc";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { AddPaymentMethodButton } from "./stripe-payment";
 
 type PaymentMethod = any;
@@ -128,13 +127,7 @@ export default function PaymentMethods() {
           ]}
           expandable={{
             expandedRowRender: (record: any) => {
-              return (
-                <StaticMarkdown
-                  value={
-                    "```json\n" + JSON.stringify(record, undefined, 2) + "\n```"
-                  }
-                />
-              );
+              return <RawJson value={record} defaultOpen />;
             },
           }}
         />
@@ -223,24 +216,32 @@ const DOTS = "••••";
 export function PaymentMethod({
   paymentMethod,
   isDefault,
+  compact,
 }: {
   paymentMethod;
   isDefault?;
+  compact?: boolean;
 }) {
   switch (paymentMethod.type) {
     case "card":
       const icon = `cc-${paymentMethod.card.brand}`;
+      const title = (
+        <PaymentTitle
+          icon={isIconName(icon) ? icon : "credit-card"}
+          isDefault={isDefault}
+        >
+          {toTitle(
+            paymentMethod.card.display_brand ?? paymentMethod.card.brand,
+          )}{" "}
+          {DOTS} {paymentMethod.card.last4}
+        </PaymentTitle>
+      );
+      if (compact) {
+        return title;
+      }
       return (
         <Flex>
-          <PaymentTitle
-            icon={isIconName(icon) ? icon : "credit-card"}
-            isDefault={isDefault}
-          >
-            {toTitle(
-              paymentMethod.card.display_brand ?? paymentMethod.card.brand,
-            )}{" "}
-            {DOTS} {paymentMethod.card.last4}
-          </PaymentTitle>
+          {title}
           <div style={{ flex: 1 }} />
           <div style={{ color: "#666", fontSize: "13pt" }}>
             Expires {paymentMethod.card.exp_month} /{" "}

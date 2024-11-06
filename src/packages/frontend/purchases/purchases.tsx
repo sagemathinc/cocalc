@@ -60,7 +60,7 @@ import Export from "./export";
 import DynamicallyUpdatingCost from "./pay-as-you-go/dynamically-updating-cost";
 import Refresh from "./refresh";
 import ServiceTag from "./service";
-import { LineItemsButton } from "./stripe-payment";
+import { LineItemsButton } from "./line-items";
 import { describeNumberOf } from "./util";
 
 const DEFAULT_LIMIT = 5;

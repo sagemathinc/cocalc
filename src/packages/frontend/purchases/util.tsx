@@ -1,6 +1,8 @@
 import { Button, Divider, Flex, Spin } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize, plural } from "@cocalc/util/misc";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { useState } from "react";
 
 export function describeNumberOf({ n, hasMore, loadMore, loading, type }) {
   type = capitalize(type);
@@ -25,7 +27,7 @@ export function describeNumberOf({ n, hasMore, loadMore, loading, type }) {
   }
   return (
     <>
-      All {n} {plural(n, type)}
+      {n} {plural(n, type)}
     </>
   );
 }
@@ -50,5 +52,37 @@ export function SectionDivider({ onRefresh, loading, children }) {
         <Icon name="refresh" /> Refresh
       </Button>
     </Flex>
+  );
+}
+
+export function RawJson({
+  value,
+  style,
+  label = "Raw",
+  defaultOpen,
+}: {
+  value: object;
+  style?;
+  label?;
+  defaultOpen?: boolean;
+}) {
+  const [show, setShow] = useState<boolean>(!!defaultOpen);
+  return (
+    <>
+      <Button
+        type="link"
+        onClick={() => setShow(!show)}
+        style={{ marginLeft: "-15px" }}
+      >
+        <Icon name={show ? "angle-down" : "angle-right"} /> {label}
+      </Button>
+      {show && (
+        <div style={style}>
+          <StaticMarkdown
+            value={"```json\n" + JSON.stringify(value, undefined, 2) + "\n```"}
+          />
+        </div>
+      )}
+    </>
   );
 }
