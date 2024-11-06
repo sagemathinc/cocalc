@@ -19,7 +19,7 @@ export default async function createPaymentIntent({
   account_id,
   purpose,
   description,
-  lineItems = [],
+  lineItems,
   return_url,
   metadata,
 }: {
