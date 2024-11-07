@@ -8,11 +8,14 @@
  * TODO: internationalize this formatter -- see https://www.npmjs.com/package/react-timeago
  */
 
-import React, { CSSProperties as CSS } from "react";
-import { default as UpstreamTimeAgo } from "react-timeago";
-import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
-import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
 import { Popover, Radio } from "antd";
+import React, { CSSProperties as CSS } from "react";
+import { useIntl } from "react-intl";
+import { default as UpstreamTimeAgo } from "react-timeago";
+
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { labels } from "@cocalc/frontend/i18n";
+import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
 
 function timeago_formatter(value, unit, suffix, _date) {
   if (value === 0) {
@@ -220,6 +223,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
 );
 
 function ToggleRelativeAndAbsolute({}) {
+  const intl = useIntl();
   const other = useTypedRedux("account", "other_settings");
   const absolute = other?.get("time_ago_absolute") ?? false;
 
@@ -236,8 +240,8 @@ function ToggleRelativeAndAbsolute({}) {
         buttonStyle="solid"
         size="small"
       >
-        <Radio value="relative">Relative</Radio>
-        <Radio value="absolute">Absolute</Radio>
+        <Radio value="relative">{intl.formatMessage(labels.relative)}</Radio>
+        <Radio value="absolute">{intl.formatMessage(labels.absolute)}</Radio>
       </Radio.Group>
     </div>
   );
