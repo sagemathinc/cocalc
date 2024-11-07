@@ -34,7 +34,7 @@ export default function PurchasesPlot({ purchases }) {
           <div style={{ flex: 1 }} />
           <Tooltip title="Show plot only of credits.  If unchecked only charges are included.">
             <Checkbox
-              value={credits}
+              checked={credits}
               onChange={(e) => setCredits(e.target.checked)}
             >
               Credits

@@ -173,7 +173,21 @@ function PaymentIntentsTable({
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => {
+      render: (status, { intent }) => {
+        if (intent.metadata.refund_date) {
+          return (
+            <Space direction="vertical" size="small">
+              <div>
+                <Tag>Refunded</Tag>{" "}
+                <TimeAgo date={parseInt(intent.metadata.refund_date)} />
+              </div>
+              <Tag>{intent.metadata.refund_reason}</Tag>
+              {!!intent.metadata.refund_notes && (
+                <div>{intent.metadata.refund_notes}</div>
+              )}
+            </Space>
+          );
+        }
         // colors below are from https://docs.stripe.com/payments/paymentintents/lifecycle
         switch (status) {
           case "requires_payment_method":

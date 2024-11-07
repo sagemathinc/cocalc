@@ -35,7 +35,7 @@ export default async function createRefund(opts: {
   ) {
     // don't trust typescript, since used via api...
     throw Error(
-      `reason must be one of "duplicate", "fraudulent", "requested_by_customer" or "other"`
+      `reason must be one of "duplicate", "fraudulent", "requested_by_customer" or "other"`,
     );
   }
 
@@ -43,13 +43,13 @@ export default async function createRefund(opts: {
   const pool = getPool();
   const { rows: purchases } = await pool.query(
     "SELECT account_id, invoice_id, service, cost FROM purchases WHERE id=$1",
-    [purchase_id]
+    [purchase_id],
   );
   if (purchases.length == 0) {
     throw Error(`no purchase with id ${purchase_id}`);
   }
   logger.debug("got ", purchases);
-  const {
+  let {
     invoice_id,
     service,
     cost,
@@ -57,21 +57,29 @@ export default async function createRefund(opts: {
   } = purchases[0];
   if (service != "credit") {
     throw Error(
-      `only credits can be refunded, but this purchase is of service type '${service}'`
+      `only credits can be refunded, but this purchase is of service type '${service}'`,
     );
   }
   if (!invoice_id) {
     throw Error("only credits with an invoice_id can be refunded");
   }
-
-  logger.debug("get the invoice");
   const stripe = await getConn();
+
+  let paymentIntentId = "";
+  if (invoice_id.startsWith("pi_")) {
+    paymentIntentId = invoice_id;
+    // it's actually a payment intent id (not an invoice_id), so we have to grab that and get the invoice from there.
+    const intent = await stripe.paymentIntents.retrieve(invoice_id);
+    invoice_id = intent.invoice;
+  }
+
+  logger.debug("get the invoice_id", invoice_id);
   const invoice = await stripe.invoices.retrieve(invoice_id);
   const { charge } = invoice;
   logger.debug("got invoice charge = ", { charge });
   if (!charge || typeof charge != "string") {
     throw Error(
-      "corresponding invoice does not have a charge -- i.e., it was not paid in a way that we can refund."
+      "corresponding invoice does not have a charge -- i.e., it was not paid in a way that we can refund.",
     );
   }
 
@@ -96,6 +104,17 @@ export default async function createRefund(opts: {
       reason: reason != "other" ? reason : undefined,
     });
     await client.query("COMMIT");
+
+    if (paymentIntentId) {
+      await stripe.paymentIntents.update(paymentIntentId, {
+        metadata: {
+          refund_date: Date.now(),
+          refund_reason: reason,
+          refund_notes: notes,
+        },
+      });
+    }
+
     // put actual information about refund id in the database.
     // It's fine doing this after the commit, since the refund.id
     // is not ever used; it just seems like a good idea to include
@@ -112,10 +131,10 @@ export default async function createRefund(opts: {
         const { help_email: from, site_name: siteName } =
           await getServerSettings();
         const subject = `${siteName} Refund of Transaction ${purchase_id} for ${currency(
-          Math.abs(cost)
+          Math.abs(cost),
         )} + tax`;
         const html = `${siteName} has refunded your credit of ${currency(
-          Math.abs(cost)
+          Math.abs(cost),
         )} + tax from transaction ${purchase_id}.
         This refund will appear immediately in your ${siteName} account,
         and should post on your credit card or bank statement within 5-10 days.

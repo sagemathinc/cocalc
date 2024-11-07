@@ -13,9 +13,10 @@ I had implemented this and realized that its super hard to get right given tax, 
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useState } from "react";
-import { Button, Modal, Input, Select, Form, Divider, Spin } from "antd";
+import { Button, Modal, Input, Select, Form, Divider } from "antd";
 import { adminCreateRefund } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
+import { BigSpin } from "./stripe-payment";
 
 const labelStyle = { width: "60px" } as const;
 
@@ -26,6 +27,7 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
   const [form] = Form.useForm(); // Add this line
 
   const showModal = () => {
+    setError("");
     setIsModalVisible(true);
   };
 
@@ -43,6 +45,7 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
   };
 
   const handleCancel = () => {
+    setError("");
     setIsModalVisible(false);
   };
 
@@ -85,10 +88,10 @@ export default function AdminRefund({ purchase_id }: { purchase_id: number }) {
             for the original payment won't be returned, but there are no
             additional fees for the refund. This refund will use the latest
             Stripe-provided exchange rate, which may differ from the original
-            rate.  (Partial refunds are not implemented.)
+            rate. (Partial refunds are not implemented.)
           </div>
         </Form>
-        {refunding && <Spin />}
+        {refunding && <BigSpin />}
         <ShowError error={error} setError={setError} />
       </Modal>
     </>
