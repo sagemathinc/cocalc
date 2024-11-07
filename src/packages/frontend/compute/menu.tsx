@@ -94,10 +94,10 @@ function getItems({
     disabled: !is_owner,
     label: "Edit Title and Color",
   };
-  const stateControl = {
-    key: "state-control",
+  const automaticShutdown = {
+    key: "automatic-shutdown",
     icon: <Icon name="stopwatch" />,
-    disabled: !is_owner,
+    disabled: server.cloud == "onprem",
     label: "Edit Automatic Shutdown",
   };
   const jupyterlab = {
@@ -305,7 +305,7 @@ function getItems({
     settings,
     options,
     clone,
-    stateControl,
+    automaticShutdown,
     {
       type: "divider",
     },
@@ -493,7 +493,7 @@ export default function Menu({
             );
             break;
 
-          case "state-control":
+          case "automatic-shutdown":
             setModal(
               <AutomaticShutdownModal
                 id={id}

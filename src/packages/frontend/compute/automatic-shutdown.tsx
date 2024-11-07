@@ -40,8 +40,8 @@ function AutomaticShutdown({ id, project_id }) {
 
   useEffect(() => {
     if (server.automatic_shutdown) {
-      setCommand(server.automatic_shutdown.command ?? "");
-      setExitCode(server.automatic_shutdown.exit_code ?? null);
+      setCommand(server.automatic_shutdown?.command ?? "");
+      setExitCode(server.automatic_shutdown?.exit_code ?? null);
     }
   }, [server?.automatic_shutdown]);
 
@@ -107,8 +107,8 @@ function AutomaticShutdown({ id, project_id }) {
             saving ||
             !command ||
             exit_code == null ||
-            (server.automatic_shutdown.command == command &&
-              server.automatic_shutdown.exit_code == exit_code)
+            (server.automatic_shutdown?.command == command &&
+              server.automatic_shutdown?.exit_code == exit_code)
           }
           type="primary"
           onClick={() => {

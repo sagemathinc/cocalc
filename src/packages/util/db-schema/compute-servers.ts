@@ -51,7 +51,8 @@ export interface AutomaticShutdown {
   // compute server turns off. If it contains the deprovision
   // string, then it deprovisions.
   command: string;
-  args: string[];
+  // timeout in seconds for running the command
+  timeout?: number;
   // how often to run the command
   interval_minutes?: number;
   // retry this many times before giving up on running the command and turning machine off.
@@ -59,7 +60,7 @@ export interface AutomaticShutdown {
   // turn server off when the script exits with this code.
   exit_code?: number;
   // action: 'shtudown', 'deprovision', 'restart'
-  action?: 'shutdown' | 'deprovision', 'restart'
+  action?: "shutdown" | "deprovision" | "restart";
 }
 
 interface ProxyRoute {
