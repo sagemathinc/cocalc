@@ -77,7 +77,8 @@ export default function OnPremCloudConfiguration({
   if (!editable || !project_id) {
     return (
       <div>
-        Self Hosted {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux VM
+        Self Hosted {configuration.arch == "arm64" ? "ARM64" : "x86_64"} Linux
+        VM
         {configuration.gpu ? " that has an NVIDIA GPU" : ""}.
       </div>
     );
@@ -209,7 +210,7 @@ function Image(props) {
         {...props}
         gpu={!!props.configuration.gpu}
         arch={props.configuration.arch}
-        maxDockerSizeGb={3}
+        warnBigGb={4}
       />
       <div style={{ color: "#666", marginTop: "5px" }}>
         <ImageDescription configuration={props.configuration} />
