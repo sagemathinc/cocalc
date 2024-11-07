@@ -45,6 +45,23 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
+export interface AutomaticShutdown {
+  // run the command with given args on the compute server.
+  // if the output contains the the trigger string, then the
+  // compute server turns off. If it contains the deprovision
+  // string, then it deprovisions.
+  command: string;
+  args: string[];
+  // how often to run the command
+  interval_minutes?: number;
+  // retry this many times before giving up on running the command and turning machine off.
+  retries?: number;
+  // turn server off when the script exits with this code.
+  exit_code?: number;
+  // action: 'shtudown', 'deprovision', 'restart'
+  action?: 'shutdown' | 'deprovision', 'restart'
+}
+
 interface ProxyRoute {
   path: string;
   target: string;
@@ -642,6 +659,7 @@ export interface ComputeServerUserInfo {
   error?: string;
   state?: State;
   idle_timeout?: number;
+  automatic_shutdown?: AutomaticShutdown;
   // google-cloud has a new "Time limit" either by hour or by date, which seems like a great idea!
   // time_limit
   autorestart?: boolean;
@@ -689,6 +707,7 @@ Table({
           error: null,
           state: null,
           idle_timeout: null,
+          automatic_shutdown: null,
           autorestart: null,
           cloud: null,
           configuration: null,
@@ -716,6 +735,7 @@ Table({
           position: true,
           error: true, // easily clear the error
           notes: true,
+          automatic_shutdown: true,
         },
       },
     },
@@ -783,6 +803,11 @@ Table({
     idle_timeout: {
       type: "number",
       desc: "The idle timeout in seconds of this compute server. If set to 0, never turn it off automatically.  The compute server idle timeouts if none of the tabs it is providing are actively touched through the web UI.",
+    },
+    automatic_shutdown: {
+      type: "map",
+      pg_type: "jsonb",
+      desc: "Configuration to control various aspects of the state of the compute server via a background maintenance task.",
     },
     autorestart: {
       type: "boolean",
@@ -895,6 +920,7 @@ Table({
           deleted: true,
           notes: true,
           template: true,
+          state_control: null,
         },
       },
     },

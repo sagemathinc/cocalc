@@ -21,6 +21,7 @@ import getTitle from "./get-title";
 import { AppLauncherModal } from "./launcher";
 import { SerialLogModal } from "./serial-port-output";
 import { TitleColorModal } from "./title-color";
+import { AutomaticShutdownModal } from "./automatic-shutdown";
 
 function getServer({ id, project_id }) {
   return redux
@@ -93,6 +94,12 @@ function getItems({
     disabled: !is_owner,
     label: "Edit Title and Color",
   };
+  const stateControl = {
+    key: "state-control",
+    icon: <Icon name="stopwatch" />,
+    disabled: !is_owner,
+    label: "Edit Automatic Shutdown",
+  };
   const jupyterlab = {
     key: "top-jupyterlab",
     label: "JupyterLab",
@@ -113,7 +120,7 @@ function getItems({
   };
   const xpra = {
     key: "xpra",
-    label: "Desktop",
+    label: "X11 Desktop",
     icon: <Icon name="desktop" />,
     disabled:
       apps["xpra"] == null ||
@@ -266,7 +273,7 @@ function getItems({
   const clone = {
     key: "clone",
     icon: <Icon name="copy" />,
-    label: "Clone...",
+    label: "Clone Server Configuration",
   };
 
   return [
@@ -298,6 +305,7 @@ function getItems({
     settings,
     options,
     clone,
+    stateControl,
     {
       type: "divider",
     },
@@ -482,6 +490,16 @@ export default function Menu({
           case "title-color":
             setModal(
               <TitleColorModal id={id} project_id={project_id} close={close} />,
+            );
+            break;
+
+          case "state-control":
+            setModal(
+              <AutomaticShutdownModal
+                id={id}
+                project_id={project_id}
+                close={close}
+              />,
             );
             break;
 
