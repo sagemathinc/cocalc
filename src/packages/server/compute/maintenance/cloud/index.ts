@@ -9,6 +9,8 @@ import stateSync from "./state-sync";
 import getLogger from "@cocalc/backend/logger";
 import { hyperstackMaintenance } from "./hyperstack";
 
+import automaticShutdown from "./automatic-shutdown";
+
 const logger = getLogger("server:compute:maintenance:cloud");
 
 const MANAGE_CLOUD_SYNC_INTERVAL_MS = 30 * 1000; // every 30 seconds
@@ -27,6 +29,8 @@ async function startMaintenance() {
   setInterval(stateSyncMaintenance, MANAGE_CLOUD_SYNC_INTERVAL_MS);
 
   setInterval(hyperstackMaintenance, HYPERSTACK_SYNC_INTERVAL_MS);
+
+  setInterval(automaticShutdown, 60 * 1000);
 }
 
 let running = false;
