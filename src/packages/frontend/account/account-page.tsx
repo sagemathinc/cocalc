@@ -263,7 +263,7 @@ export const AccountPage: React.FC = () => {
             selectedKeys={[active_page]}
             mode="vertical"
             items={tabs}
-            style={{ width: 175, background: "#00000005", height: "100vh" }}
+            style={{ width: 183, background: "#00000005", height: "100vh" }}
           />
         </div>
         <div

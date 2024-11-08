@@ -89,6 +89,11 @@ export default function StripePayment({
     setCheckout(false);
   }, [JSON.stringify(lineItems)]);
 
+  const showOneClick =
+    (hasPaymentMethods === true || hasPaymentMethods == null) &&
+    !checkout &&
+    totalStripe > 0;
+
   return (
     <Card style={{ textAlign: "left" }}>
       <div style={{ margin: "0 0 5px 15px" }}>
@@ -104,33 +109,32 @@ export default function StripePayment({
       <div>
         <div style={{ textAlign: "center" }}>
           <Space>
-            {(hasPaymentMethods === true || hasPaymentMethods == null) &&
-              !checkout &&
-              totalStripe > 0 && (
-                <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
-                  <ConfirmButton
-                    isSubmitting={loading || hasPaymentMethods == null}
-                    label={"1-Click Checkout"}
-                    onClick={async () => {
-                      try {
-                        setLoading(true);
-                        await createPaymentIntent({
-                          description,
-                          lineItems,
-                          purpose,
-                        });
-                        onFinished?.();
-                      } catch (err) {
-                        setError(`${err}`);
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                  />
-                </Tooltip>
-              )}
+            {showOneClick && (
+              <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
+                <ConfirmButton
+                  isSubmitting={loading || hasPaymentMethods == null}
+                  label={"1-Click Checkout"}
+                  onClick={async () => {
+                    try {
+                      setLoading(true);
+                      await createPaymentIntent({
+                        description,
+                        lineItems,
+                        purpose,
+                      });
+                      onFinished?.();
+                    } catch (err) {
+                      setError(`${err}`);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                />
+              </Tooltip>
+            )}
             {!checkout && (
               <ConfirmButton
+                notPrimary={showOneClick}
                 disabled={loading}
                 label={
                   totalStripe > 0 ? "Continue" : "Purchase using CoCalc Credits"
@@ -411,12 +415,14 @@ function ConfirmButton({
   success,
   isSubmitting,
   label,
+  notPrimary,
 }: {
   disabled?: boolean;
   onClick;
   success?: boolean;
   isSubmitting?: boolean;
   label;
+  notPrimary?: boolean;
 }) {
   return (
     <div style={{ textAlign: "center", marginTop: "15px" }}>
@@ -429,7 +435,7 @@ function ConfirmButton({
             maxWidth: "100%",
           } /* button sized to match stripe's */
         }
-        type="primary"
+        type={notPrimary ? undefined : "primary"}
         disabled={disabled || isSubmitting}
         onClick={onClick}
       >
