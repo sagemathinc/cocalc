@@ -49,8 +49,10 @@ export default function Redeem({ customize, id }: Props) {
       setState("redeeming");
       // This api call tells the backend, "create requested vouchers from everything in my
       // shopping cart that is not a subscription."
+      const v = code.split("/");
+      const c = v[v.length - 1]?.trim();
       const createdItems = await apiPost("/vouchers/redeem", {
-        code: code.trim(),
+        code: c,
         project_id,
       });
       if (!isMounted.current) return;
@@ -87,8 +89,8 @@ export default function Redeem({ customize, id }: Props) {
             {profile == null && <Loading />}
             {profile != null && !profile.account_id && !signedIn && (
               <Card>
-                <div style={{ fontSize: "75px", textAlign: "center" }} >
-                  <Icon name="gift2"/>
+                <div style={{ fontSize: "75px", textAlign: "center" }}>
+                  <Icon name="gift2" />
                 </div>
                 <InPlaceSignInOrUp
                   title="Redeem Voucher"
