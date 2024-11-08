@@ -22,7 +22,6 @@ interface Options {
   doubleClick?: boolean;
 }
 
-console.log("defining process_smc_links jquery plugin");
 // @ts-ignore
 $.fn.process_smc_links = function (opts: Options) {
   // @ts-ignore
