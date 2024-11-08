@@ -6,7 +6,6 @@
 import { Alert, Button, Checkbox, Space, Spin, Table } from "antd";
 import { join } from "path";
 import { FormattedMessage, useIntl } from "react-intl";
-
 import {
   React,
   redux,
@@ -19,7 +18,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { A, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
-import { Footer } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
@@ -284,8 +282,6 @@ export const PublicPaths: React.FC = () => {
         <Table rowKey="id" columns={COLUMNS} dataSource={paths} />
       )}
       <UnpublishEverything data={data} refresh={fetch} />
-      <br />
-      <Footer />
     </div>
   );
 };

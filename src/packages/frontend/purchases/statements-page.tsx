@@ -4,7 +4,6 @@ import Statements from "./statements";
 import Statement from "./statement";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Config from "./config";
-import { Footer } from "../customize";
 
 type Key = string[] | string | number[] | number;
 
@@ -61,7 +60,6 @@ export default function StatementsPage() {
         }}
         items={items}
       />
-      <Footer />
     </div>
   );
 }

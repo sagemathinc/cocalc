@@ -11,10 +11,10 @@ and configuration.
 */
 
 import { useEffect } from "react";
-import { Space } from "antd";
+import { Flex, Menu, Space } from "antd";
 import { useIntl } from "react-intl";
 import { SignOut } from "@cocalc/frontend/account/sign-out";
-import { AntdTabItem, Col, Row, Tabs } from "@cocalc/frontend/antd-bootstrap";
+import { AntdTabItem } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
   redux,
@@ -41,6 +41,7 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { UpgradesPage } from "./upgrades/upgrades-page";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Footer } from "@cocalc/frontend/customize";
 
 export const AccountPage: React.FC = () => {
   const intl = useIntl();
@@ -48,7 +49,7 @@ export const AccountPage: React.FC = () => {
   const { width: windowWidth } = useWindowDimensions();
   const isWide = windowWidth > 800;
 
-  const active_page = useTypedRedux("account", "active_page");
+  const active_page = useTypedRedux("account", "active_page") ?? "account";
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
@@ -172,11 +173,11 @@ export const AccountPage: React.FC = () => {
         key: "cloud-filesystems",
         label: (
           <>
-            <Icon name="disk-round" />{" "}
+            <Icon name="server" style={{ marginRight: "5px" }} />
             {intl.formatMessage(labels.cloud_file_system)}
           </>
         ),
-        children: <CloudFilesystems />,
+        children: <CloudFilesystems noTitle />,
       });
     }
     if (is_commercial && kucalc === KUCALC_COCALC_COM) {
@@ -225,25 +226,66 @@ export const AccountPage: React.FC = () => {
       ...render_special_tabs(),
     ];
 
+    // NOTE: This is a bit weird, since I rewrote it form antd Tabs
+    // to an antd Menu, but didn't change any of the above.
+    // Antd Menu has a notion of children and submenus, which we *could*
+    // use but aren't using yet.
+    const children = {};
+    const titles = {};
+    for (const tab of tabs) {
+      children[tab.key] = tab.children;
+      titles[tab.key] = tab.label;
+      delete tab.children;
+    }
+
     return (
-      <Row>
-        <Col md={12}>
-          <Tabs
-            activeKey={active_page ?? "account"}
-            onSelect={handle_select}
-            animation={false}
-            tabBarExtraContent={renderExtraContent()}
+      <div className="smc-vfill" style={{ flexDirection: "row" }}>
+        <div
+          style={{
+            background: "#00000005",
+            borderRight: "1px solid rgba(5, 5, 5, 0.06)",
+          }}
+        >
+          <div
+            style={{
+              textAlign: "center",
+              margin: "15px 0",
+              fontSize: "11pt",
+            }}
+          >
+            <b>Account Configuration</b>
+          </div>
+          <Menu
+            onClick={(e) => {
+              console.log("click ", e.key);
+              handle_select(e.key);
+            }}
+            selectedKeys={[active_page]}
+            mode="vertical"
             items={tabs}
+            style={{ width: 175, background: "#00000005", height: "100vh" }}
           />
-        </Col>
-      </Row>
+        </div>
+        <div
+          className="smc-vfill"
+          style={{ overflow: "auto", paddingLeft: "15px" }}
+        >
+          <Flex style={{ marginTop: "5px" }}>
+            <h2>{titles[active_page]}</h2>
+            <div style={{ flex: 1 }} />
+            {renderExtraContent()}
+          </Flex>
+          {children[active_page]}
+          <Footer />
+        </div>
+      </div>
     );
   }
 
   return (
     <div
       className="smc-vfill"
-      style={{ overflow: "auto", paddingLeft: "5%", paddingRight: "5%" }}
+      style={{ overflow: "auto", paddingRight: "15px" }}
     >
       {is_logged_in && !get_api_key ? (
         render_logged_in_view()

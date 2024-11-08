@@ -3,12 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Form, Switch, Tooltip } from "antd";
-import { FormattedMessage } from "react-intl";
+import { Flex, Form, Switch, Tooltip } from "antd";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
-import { Footer } from "@cocalc/frontend/customize";
 import track from "@cocalc/frontend/user-tracking";
 import { EditorSettings } from "./editor-settings/editor-settings";
 import { KeyboardSettings } from "./keyboard-settings";
@@ -82,7 +80,7 @@ export const AccountPreferences: React.FC = () => {
   function renderDarkMode(): JSX.Element {
     return (
       <Tooltip title="Enable dark mode across the entire user interface. See further dark mode configuration below.">
-        <Form>
+        <Form style={{ height: "37px" }}>
           <Form.Item
             label={
               <div
@@ -124,13 +122,10 @@ export const AccountPreferences: React.FC = () => {
   function render_all_settings(): JSX.Element {
     return (
       <>
-        <div style={{ float: "right" }}>{renderDarkMode()}</div>
-        <h2>
-          <FormattedMessage
-            id="account.account_preferences.title"
-            defaultMessage={"Account Preferences"}
-          />
-        </h2>
+        <Flex>
+          <div style={{ flex: 1 }} />
+          {renderDarkMode()}
+        </Flex>
         <Row>
           <Col xs={12} md={6}>
             {render_account_settings()}
@@ -149,13 +144,12 @@ export const AccountPreferences: React.FC = () => {
             <KeyboardSettings />
           </Col>
         </Row>
-        <Footer />
       </>
     );
   }
 
   return (
-    <div style={{ marginTop: "1em" }}>
+    <div>
       <TableError />
       {is_anonymous ? render_account_settings() : render_all_settings()}
     </div>

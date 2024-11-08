@@ -6,7 +6,6 @@
 import { FormattedMessage } from "react-intl";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { A, Paragraph, Text } from "@cocalc/frontend/components";
-import { Footer } from "@cocalc/frontend/customize";
 import { COLORS } from "@cocalc/util/theme";
 
 import SSHKeyList from "./ssh-key-list";
@@ -50,7 +49,6 @@ export default function GlobalSSHKeys() {
           />
         </Paragraph>
       </SSHKeyList>
-      <Footer />
     </div>
   );
 }

@@ -35,9 +35,10 @@ export type CloudFilesystems = {
 interface Props {
   // if not given, shows global list across all projects you collab on
   project_id?: string;
+  noTitle?: boolean;
 }
 
-export default function CloudFilesystems({ project_id }: Props) {
+export default function CloudFilesystems({ project_id, noTitle }: Props) {
   const { val: counter, inc: refresh } = useCounter();
   const [error, setError] = useState<string>("");
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -152,11 +153,10 @@ export default function CloudFilesystems({ project_id }: Props) {
     <div>
       <RefreshButton
         refresh={refresh}
-        style={{ position: "absolute", right: 0 }}
+        style={{ float: "right" }}
         refreshing={refreshing}
       />
-      <h2 style={{ textAlign: "center" }}>Cloud File Systems</h2>
-
+      {!noTitle && <h2 style={{ textAlign: "center" }}>Cloud File Systems</h2>}
       <div
         style={{
           margin: "15px auto 30px auto",
