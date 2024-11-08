@@ -54,7 +54,7 @@ function AutomaticShutdown({ id, project_id }) {
 
   useEffect(() => {
     if (server.automatic_shutdown) {
-      if (command == null) {
+      if (!command) {
         setCommand(server.automatic_shutdown?.command ?? "");
       }
       if (attempts == null) {
