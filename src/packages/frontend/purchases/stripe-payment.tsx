@@ -113,7 +113,9 @@ export default function StripePayment({
               <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
                 <ConfirmButton
                   isSubmitting={loading || hasPaymentMethods == null}
-                  label={"1-Click Checkout"}
+                  label={
+                    "Buy Now With 1-Click" /* amazon's patent expired in 2017 */
+                  }
                   onClick={async () => {
                     try {
                       setLoading(true);

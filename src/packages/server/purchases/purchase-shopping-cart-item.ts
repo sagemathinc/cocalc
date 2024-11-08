@@ -205,11 +205,14 @@ export async function getInitialCostForSubscription(
 async function markItemPurchased(item, license_id: string, client: PoolClient) {
   const pool = client ?? getPool();
   await pool.query(
-    "UPDATE shopping_cart_items SET purchased=$3 WHERE account_id=$1 AND id=$2",
+    `
+      UPDATE shopping_cart_items
+      SET purchased = COALESCE(purchased, '{}'::jsonb) || $3::jsonb
+      WHERE account_id = $1 AND id = $2
+    `,
     [item.account_id, item.id, { success: true, time: new Date(), license_id }],
   );
 }
-
 export async function addLicenseToProjectAndRestart(
   project_id: string,
   license_id: string,

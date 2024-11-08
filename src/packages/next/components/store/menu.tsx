@@ -50,12 +50,16 @@ export interface ConfigMenuProps {
 
 export default function ConfigMenu({ main }: ConfigMenuProps) {
   const router = useRouter();
-  const { balance } = useContext(StoreBalanceContext);
+  const { balance, refreshBalance } = useContext(StoreBalanceContext);
 
   const handleMenuItemSelect: MenuProps["onSelect"] = ({ keyPath }) => {
     router.push(`/store/${keyPath[0]}`, undefined, {
       scroll: false,
     });
+    refreshBalance();
+    setTimeout(() => {
+      refreshBalance();
+    }, 7500);
   };
 
   const items: MenuItem[] = [

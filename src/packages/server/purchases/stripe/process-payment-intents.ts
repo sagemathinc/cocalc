@@ -4,6 +4,8 @@ import getLogger from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { LineItem } from "@cocalc/util/stripe/types";
 import { stripeToDecimal } from "@cocalc/util/stripe/calc";
+import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
+import { shoppingCartCheckout } from "@cocalc/server/purchases/shopping-cart-checkout";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -79,6 +81,8 @@ export async function processPaymentIntent(
     account_id = await getAccountIdFromStripeCustomerId(paymentIntent.customer);
     if (!account_id) {
       // no possible way to process this.
+      // This will happen in *test mode* since I use the exact same test credentials with
+      // many unrelated cocalc dev servers and they might all try to process the same payments.
       logger.debug(
         "processPaymentIntent: unknown stripe customer",
         paymentIntent.customer,
@@ -116,6 +120,15 @@ export async function processPaymentIntent(
   await stripe.paymentIntents.update(paymentIntent.id, {
     metadata: { ...paymentIntent.metdata, processed: "true", credit_id },
   });
+
+  if (paymentIntent.metadata.purpose == SHOPPING_CART_CHECKOUT) {
+    // The purpose of this payment was to buy certain items from the store.  We use the credit we just got above
+    // to provision each of those items.
+    await shoppingCartCheckout({
+      account_id,
+      payment_intent: paymentIntent.id,
+    });
+  }
 
   return credit_id;
 }

@@ -97,7 +97,7 @@ export const AccountPage: React.FC = () => {
         key: "purchases",
         label: (
           <span>
-            <Icon name="credit-card" /> {intl.formatMessage(labels.purchases)}
+            <Icon name="money-check" /> {intl.formatMessage(labels.purchases)}
           </span>
         ),
         children: active_page === "purchases" && <PurchasesPage />,
@@ -106,7 +106,7 @@ export const AccountPage: React.FC = () => {
         key: "payments",
         label: (
           <span>
-            <Icon name="cc-visa" /> Payments
+            <Icon name="credit-card" /> Payments
           </span>
         ),
         children: active_page === "payments" && <PaymentsPage />,
@@ -115,7 +115,7 @@ export const AccountPage: React.FC = () => {
         key: "statements",
         label: (
           <span>
-            <Icon name="money" /> {intl.formatMessage(labels.statements)}
+            <Icon name="calendar-week" /> {intl.formatMessage(labels.statements)}
           </span>
         ),
         children: active_page === "statements" && <StatementsPage />,

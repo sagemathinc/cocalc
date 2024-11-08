@@ -1,6 +1,10 @@
 import getConn from "@cocalc/server/stripe/connection";
 import getLogger from "@cocalc/backend/logger";
-import { defaultReturnUrl, getStripeCustomerId, sanityCheckAmount } from "./util";
+import {
+  defaultReturnUrl,
+  getStripeCustomerId,
+  sanityCheckAmount,
+} from "./util";
 import type {
   LineItem,
   PaymentIntentCancelReason,
@@ -10,6 +14,8 @@ import {
   processPaymentIntent,
 } from "./process-payment-intents";
 import { decimalToStripe, grandTotal } from "@cocalc/util/stripe/calc";
+import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
+import setShoppingCartPaymentIntent from "@cocalc/server/shopping/cart/payment-intent";
 
 const logger = getLogger("purchases:stripe:create-payment-intent");
 
@@ -98,6 +104,39 @@ export default async function createPaymentIntent({
   if (!paymentIntentId) {
     throw Error("payment intent should have been created but wasn't");
   }
+
+  if (purpose == SHOPPING_CART_CHECKOUT) {
+    try {
+      await setShoppingCartPaymentIntent({
+        account_id,
+        payment_intent: paymentIntentId,
+      });
+    } catch (err) {
+      // This is bad -- we couldn't properly mark what is being bought, but
+      // the payment intent exists. This could happen if the database went
+      // down.  In this case, we cancel the payment intent (no money has been taken yet!),
+      // and do NOT start the payment below!
+
+      // In the highly unlikely case this failed, that would be bad because the
+      // payment would be left hanging, but we haven't even tried to charge them,
+      // so I think they might have to go out of their way to pay.  They might NOT
+      // get their items automatically if they pay, but they would get their credit
+      // and could buy them later.  So basically double pay is perhaps still possible,
+      // but a user would have to try really, really hard.
+      await cancelPaymentIntent({
+        id: paymentIntentId,
+        reason: "abandoned",
+      });
+
+      // the user will get back an error message.  This should happen when cocalc
+      // is badly broken.  They can try again, but there's no harm in this case.
+      throw err;
+    }
+    // Now in case of shopping, the items in the cart have been moved to a new state
+    // so they can't be bought again, so it's safe to start trying to get the user
+    // to pay us, which is what happens next below.
+  }
+
   await stripe.paymentIntents.update(paymentIntentId, {
     description,
     metadata,

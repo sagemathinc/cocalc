@@ -21,6 +21,9 @@ import type { CourseInfo } from "./projects";
 import { Table } from "./types";
 import type { LineItem } from "@cocalc/util/stripe/types";
 
+// various specific payment purposes.
+export const SHOPPING_CART_CHECKOUT = "shopping-cart-checkout";
+
 export type Reason =
   | "duplicate"
   | "fraudulent"
@@ -184,6 +187,7 @@ export function getAmountStyle(amount: number) {
   return {
     fontWeight: "bold",
     color: amount >= 0 ? "#126bc5" : "#414042",
+    whiteSpace: "nowrap",
   } as const;
 }
 

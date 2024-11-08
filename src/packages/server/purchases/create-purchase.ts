@@ -94,7 +94,7 @@ export default async function createPurchase(opts: Options): Promise<number> {
     ],
   );
   const { id } = rows[0];
-  logger.debug("Created new purchase", "id=", id, "opts = ", opts);
+  logger.debug("Created new purchase", "id=", id);
   ensureClosingDateDefined(account_id);
   return id;
 }

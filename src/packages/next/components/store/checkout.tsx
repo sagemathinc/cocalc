@@ -42,6 +42,7 @@ import { StoreBalanceContext } from "../../lib/balance";
 import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 import { toFriendlyDescription } from "@cocalc/util/upgrades/describe";
 import { creditLineItem } from "@cocalc/util/upgrades/describe";
+import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
 
 enum PaymentIntent {
   PAY_TOTAL,
@@ -269,7 +270,7 @@ export default function Checkout() {
                     description={`Purchasing ${params.cart.length} ${plural(params.cart, "item")} in the CoCalc store.`}
                     style={{ maxWidth: "600px", margin: "30px auto" }}
                     lineItems={lineItems}
-                    purpose="store-checkout"
+                    purpose={SHOPPING_CART_CHECKOUT}
                     onFinished={async () => {
                       setUserSuccessfullyAddedCredit(true);
                       // user paid successfully and money should be in their account

@@ -29,10 +29,18 @@ export interface Item {
   added: Date;
   checked?: boolean;
   purchased?: {
-    success: true;
-    time: Date;
+    // if item has been bought and paid for and allocated
+    success?: true;
+    // when it was bought and paid for
+    time?: Date;
+    // if allocated this is the license that was created
     license_id?: string;
+    // voucher if that was what was bought (instead of a license)
     voucher_id?: number;
+    // when checkout happened, which should trigger payment
+    checkout_time?: Date;
+    // if paying money, the payment intent
+    payment_intent?: string;
   };
   removed?: Date;
   product: ProductType;
