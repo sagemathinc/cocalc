@@ -45,6 +45,11 @@ export interface ImageVersion {
   tested?: boolean;
 }
 
+export const AUTOMATIC_SHUTDOWN_DEFAULTS = {
+  INTERVAL_MINUTES: 1,
+  ATTEMPTS: 3,
+};
+
 export interface AutomaticShutdown {
   // run the command with given args on the compute server.
   // if the output contains the the trigger string, then the
@@ -55,8 +60,8 @@ export interface AutomaticShutdown {
   timeout?: number;
   // how often to run the command
   interval_minutes?: number;
-  // retry this many times before giving up on running the command and turning machine off.
-  retries?: number;
+  // try this many times before giving up on running the command and turning machine off.
+  attempts?: number;
   // turn server off when the script exits with this code.
   exit_code?: number;
   // action: 'shtudown', 'deprovision', 'restart'

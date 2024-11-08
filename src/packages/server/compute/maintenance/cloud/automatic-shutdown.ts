@@ -12,9 +12,10 @@ import { stop, start, deprovision } from "@cocalc/server/compute/control";
 import { uuid } from "@cocalc/util/misc";
 import type { ComputeServerEventLogEntry } from "@cocalc/util/compute/log";
 import type { AutomaticShutdown } from "@cocalc/util/db-schema/compute-servers";
+import { AUTOMATIC_SHUTDOWN_DEFAULTS } from "@cocalc/util/db-schema/compute-servers";
 
-const DEFAULT_INTERVAL_M = 1;
-const DEFAULT_RETRIES = 1;
+const DEFAULT_INTERVAL_M = AUTOMATIC_SHUTDOWN_DEFAULTS.INTERVAL_MINUTES;
+const DEFAULT_ATTEMPTS = AUTOMATIC_SHUTDOWN_DEFAULTS.ATTEMPTS;
 
 const logger = getLogger("server:compute:maintenance:cloud:automatic-shutdown");
 
@@ -27,7 +28,7 @@ export default async function automaticShutdown() {
 }
 
 const lastRun: { [id: number]: number } = {};
-const numRetries: { [id: number]: number } = {};
+const numAttempts: { [id: number]: number } = {};
 
 async function update() {
   const pool = getPool();
@@ -87,14 +88,22 @@ async function updateComputeServer({
       (exit_code != null && resp.exit_code == exit_code) ||
       (exit_code == null && resp.exit_code)
     ) {
-      const { retries = DEFAULT_RETRIES } = automatic_shutdown;
-      const cur = numRetries[id] ?? 0;
-      if (cur < retries) {
-        logger.debug("YES consider shutdown -- will retry:", { id, cur, retries });
-        numRetries[id] = cur + 1;
+      const { attempts = DEFAULT_ATTEMPTS } = automatic_shutdown;
+      const cur = (numAttempts[id] ?? 0) + 1;
+      if (cur < attempts) {
+        logger.debug("YES consider shutdown -- but will retry:", {
+          id,
+          cur,
+          attempts,
+        });
+        numAttempts[id] = cur;
         return;
       }
-      logger.debug("YES consider shutdown -- will kill", { id, cur, retries });
+      logger.debug(
+        "YES consider shutdown -- will do shutdown since all attempts used up",
+        { id, cur, attempts },
+      );
+      delete numAttempts[id];
       await createProjectLogEntry({
         id,
         automatic_shutdown,
@@ -113,7 +122,7 @@ async function updateComputeServer({
     } else {
       // success
       logger.debug("do NOT shutdown", { id });
-      numRetries[id] = 0;
+      delete numAttempts[id];
     }
   } catch (err) {
     logger.debug(
