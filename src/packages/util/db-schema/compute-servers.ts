@@ -65,7 +65,7 @@ export interface AutomaticShutdown {
   // turn server off when the script exits with this code.
   exit_code?: number;
   // action: 'shtudown', 'deprovision', 'restart'
-  action?: "shutdown" | "deprovision" | "restart";
+  action?: "shutdown" | "deprovision" | "restart" | "suspend";
 }
 
 interface ProxyRoute {

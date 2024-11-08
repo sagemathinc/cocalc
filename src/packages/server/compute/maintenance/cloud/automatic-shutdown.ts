@@ -8,7 +8,12 @@ gets called once every minute.
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import callProject from "@cocalc/server/projects/call";
-import { stop, start, deprovision } from "@cocalc/server/compute/control";
+import {
+  deprovision,
+  suspend,
+  start,
+  stop,
+} from "@cocalc/server/compute/control";
 import { uuid } from "@cocalc/util/misc";
 import type { ComputeServerEventLogEntry } from "@cocalc/util/compute/log";
 import type { AutomaticShutdown } from "@cocalc/util/db-schema/compute-servers";
@@ -78,6 +83,9 @@ async function updateComputeServer({
           err_on_exit: false,
         },
       });
+      if (resp.event == "error") {
+        throw Error(resp.error);
+      }
       logger.debug("ran a check", { id, resp });
     } catch (err) {
       logger.debug(`failed to run check: ${err}`);
@@ -110,14 +118,18 @@ async function updateComputeServer({
         account_id,
         project_id,
       });
-      // do the action.
-      // always stop first
-      await stop({ account_id, id });
-      // then possibly delete or start:
-      if (action == "restart") {
-        await start({ account_id, id });
-      } else if (action == "deprovision") {
-        await deprovision({ account_id, id });
+      if (action == "suspend") {
+        await suspend({ account_id, id });
+      } else {
+        // do the action.
+        // always stop first
+        await stop({ account_id, id });
+        // then possibly delete or start:
+        if (action == "restart") {
+          await start({ account_id, id });
+        } else if (action == "deprovision") {
+          await deprovision({ account_id, id });
+        }
       }
     } else {
       // success
