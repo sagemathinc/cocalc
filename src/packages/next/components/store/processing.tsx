@@ -7,15 +7,17 @@ import ShowError from "@cocalc/frontend/components/error";
 import { Alert, Button, Divider, Spin, Table } from "antd";
 import Loading from "components/share/loading";
 import useIsMounted from "lib/hooks/mounted";
-import A from "components/misc/A";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import Payments from "@cocalc/frontend/purchases/payments";
 import { getColumns } from "./checkout";
 import { getShoppingCartCheckoutParams } from "@cocalc/frontend/purchases/api";
+import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
+import { useRouter } from "next/router";
 
 export default function Processing() {
+  const router = useRouter();
   const [finished, setFinished] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -95,12 +97,24 @@ export default function Processing() {
           description=<>
             Congratulations, all your purchases have been processed and are
             ready to use!
-            <br />
-            <br />
-            <A href="/store/congrats">Congrats! View Your Items...</A>
+            <div style={{ textAlign: "center", marginTop: "30px" }}>
+              <Button
+                size="large"
+                type="primary"
+                onClick={() => {
+                  router.push("/store/congrats");
+                }}
+              >
+                Congrats! View Your Items...
+              </Button>
+            </div>
           </>
         />
       );
+    }
+
+    if (params?.cart == null) {
+      return null;
     }
 
     return (
@@ -109,15 +123,17 @@ export default function Processing() {
           type="warning"
           showIcon
           style={{ margin: "30px auto", maxWidth: "700px" }}
-          message="Action Required"
+          message="Status"
           description=<>
-            Ensure outstanding payments listed below go through so that your
-            items can be added to your account.
+            Your items will be added to your account when the outstanding
+            payments listed below go through. You can update any payment
+            configuration or cancel an unfinished order below.
           </>
         />
 
         <Payments
-          created={{ gt: Math.round(Date.now() / 1000 - 3600) }}
+          unfinished
+          purpose={SHOPPING_CART_CHECKOUT}
           refresh={() => {
             refreshRef.current();
           }}
@@ -144,7 +160,7 @@ export default function Processing() {
     <div>
       <Button
         style={{ float: "right" }}
-        disabled={loading}
+        disabled={loading || finished}
         onClick={() => {
           refreshRef.current();
         }}

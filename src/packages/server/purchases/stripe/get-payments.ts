@@ -9,6 +9,7 @@ export default async function getPayments({
   ending_before,
   starting_after,
   limit,
+  unfinished,
 }: {
   account_id: string;
   // see https://docs.stripe.com/api/payment_intents/list for meaning of the params,
@@ -18,7 +19,14 @@ export default async function getPayments({
   ending_before?: string;
   starting_after?: string;
   limit?: number;
+  // if given, ignore all other parameters and get all payments (up to 100 at least) during
+  // the last month that are not in a finalized state, i.e., they could use attention.
+  unfinished?: boolean;
 }): Promise<StripeData> {
+  if (unfinished) {
+    return await getAllOpenPayments(account_id);
+  }
+
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) {
     return { has_more: false, data: [], object: "list" };
@@ -41,11 +49,13 @@ export default async function getPayments({
 
 // These are all (relatively recent) purchases for a specific user that *should* get
 // paid ASAP, but haven't for some reason (e.g., no card, broken card,
-// bank tranfser, etc.).
-export async function getAllOpenPayments(account_id: string) {
+// bank transfer, needs payment method, etc.).
+export async function getAllOpenPayments(
+  account_id: string,
+): Promise<StripeData> {
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) {
-    return [];
+    return { has_more: false, data: [], object: "list" };
   }
 
   // note that the query index is only updated *after a few seconds* to hour(s) so NOT reliable immediately!
@@ -58,6 +68,7 @@ export async function getAllOpenPayments(account_id: string) {
   });
   // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"
   x.data = x.data.filter((intent) => {
+    console.log(intent.metadata, intent.status);
     if (!intent.metadata.purpose) {
       return false;
     }
@@ -68,5 +79,5 @@ export async function getAllOpenPayments(account_id: string) {
     }
     return false;
   });
-  return x;
+  return { has_more: false, data: x.data, object: "list" };
 }

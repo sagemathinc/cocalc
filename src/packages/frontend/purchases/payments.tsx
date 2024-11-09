@@ -40,6 +40,10 @@ interface Props {
   account_id?: string;
   // default created input to api for first load
   created?;
+  // load all unfinished payments (from last 30 days; I think after that it is too late) -- created is ignored
+  unfinished?: boolean;
+  // if given, only show payments with the given purpose
+  purpose?: string;
 }
 
 export default function Payments({
@@ -47,6 +51,8 @@ export default function Payments({
   refreshPaymentsRef,
   account_id,
   created,
+  unfinished,
+  purpose,
 }: Props) {
   const [error, setError] = useState<string>("");
   const [hasLoadedMore, setHasLoadedMore] = useState<boolean>(false);
@@ -69,22 +75,28 @@ export default function Payments({
       setError("");
       setLoading(true);
       let result;
+      let data0;
       if (init || data == null || reset) {
         result = await getPayments({
           user_account_id: account_id,
           limit: hasLoadedMore ? 100 : DEFAULT_LIMIT,
           created,
+          unfinished,
         });
-        setData(result.data);
+        data0 = result.data;
       } else {
         result = await getPayments({
           user_account_id: account_id,
           starting_after: data[data.length - 1].id,
           limit: 100,
         });
-        setData(data.concat(result.data));
+        data0 = data.concat(result.data);
         setHasLoadedMore(true);
       }
+      if (purpose) {
+        data0 = data0.filter((x) => x.metadata?.purpose == purpose);
+      }
+      setData(data0);
       setHasMore(result.has_more);
     } catch (err) {
       setError(`${err}`);
@@ -199,7 +211,7 @@ function PaymentIntentsTable({
                   name="credit-card"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1">Fill in payment details</Tag>
+                <Tag color="#688ff1">Fill in details</Tag>
               </div>
             );
           case "requires_confirmation":
@@ -220,7 +232,7 @@ function PaymentIntentsTable({
                   name="lock"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1">Authenticate your payment</Tag>
+                <Tag color="#688ff1">Authenticate payment</Tag>
               </div>
             );
           case "processing":
@@ -230,7 +242,7 @@ function PaymentIntentsTable({
                   name="clock"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1">Processing your order...</Tag>
+                <Tag color="#688ff1">Processing order...</Tag>
               </div>
             );
 
@@ -252,7 +264,7 @@ function PaymentIntentsTable({
                   name="warning"
                   style={{ color: "#ed5f74", marginRight: "5px" }}
                 />
-                <Tag color="#ed5f74">Order was canceled</Tag>
+                <Tag color="#ed5f74">Order canceled</Tag>
               </div>
             );
 

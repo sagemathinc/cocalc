@@ -57,17 +57,18 @@ export function AddBox(props: Props) {
     }
     const costPer = decimalDivide(periodicCost(cost), cost.input.quantity);
     return (
-      <div
+      <Alert
+        type="warning"
         style={{
-          border: "1px solid orange",
           margin: "10px",
-          padding: "10px",
-          borderRadius: "10px",
         }}
-      >
-        {money(round2up(costPer))} per project{" "}
-        {!!cost.period && cost.period != "range" ? cost.period : ""}
-      </div>
+        message={
+          <>
+            {money(round2up(costPer))} <b>per project</b>{" "}
+            {!!cost.period && cost.period != "range" ? cost.period : ""}
+          </>
+        }
+      />
     );
   }
 

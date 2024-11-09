@@ -6,17 +6,7 @@
 /*
 Checkout -- finalize purchase and pay.
 */
-import {
-  Alert,
-  Button,
-  Card,
-  Checkbox,
-  Divider,
-  Col,
-  Row,
-  Spin,
-  Table,
-} from "antd";
+import { Alert, Button, Card, Checkbox, Divider, Col, Row, Spin } from "antd";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -151,7 +141,6 @@ export default function Checkout() {
     );
   }
 
-  const columns = getColumns();
   let mode;
   if (completingPurchase) {
     mode = "completing";
@@ -188,29 +177,23 @@ export default function Checkout() {
             <br />
             You must have at least one item in{" "}
             <A href="/store/cart">your cart</A> to checkout. Shop for{" "}
-            <A href="/store/site-license">upgrades</A>, a{" "}
-            <A href="/store/boost">license boost</A>, or a{" "}
-            <A href="/dedicated">dedicated VM or disk</A>.
+            <A href="/store/site-license">licenses</A> or{" "}
+            <A href="/store/vouchers">vouchers</A>.
           </div>
         )}
         {params.cart.length > 0 && (
           <>
             <ShowError error={error} setError={setError} />
-            <Card title={<>1. Review Items ({params.cart.length})</>}>
-              <Table
-                showHeader={false}
-                columns={columns}
-                dataSource={params.cart}
-                rowKey={"id"}
-                pagination={{ hideOnSinglePage: true }}
-              />
-              <GetAQuote items={params.cart} />
-            </Card>
-
-            <div style={{ height: "30px" }} />
-
-            <Card title={<>2. Place Your Order</>}>
+            <Card title={<>Place Your Order</>}>
               <Row>
+                <Col sm={12}>
+                  <div style={{ fontSize: "15pt" }}>
+                    <TotalCost totalCost={totalCost} />
+                    <br />
+                    <Terms />
+                  </div>
+                </Col>
+
                 <Col sm={12} style={{ textAlign: "center" }}>
                   {round2down(
                     (params.balance ?? 0) - (params.minBalance ?? 0),
@@ -233,14 +216,8 @@ export default function Checkout() {
                     </Checkbox>
                   )}
                 </Col>
-                <Col sm={12}>
-                  <div style={{ fontSize: "15pt" }}>
-                    <TotalCost totalCost={totalCost} />
-                    <br />
-                    <Terms />
-                  </div>
-                </Col>
               </Row>
+              <GetAQuote items={params.cart} />
 
               <div style={{ textAlign: "center" }}>
                 <Divider />
@@ -315,7 +292,7 @@ export function fullCost(items) {
 function TotalCost({ totalCost }) {
   return (
     <>
-      Total:{" "}
+      Total (excluding tax):{" "}
       <b style={{ float: "right", color: "darkred" }}>{money(totalCost)}</b>
     </>
   );
@@ -399,8 +376,7 @@ function GetAQuote({ items }) {
   return (
     <Paragraph style={{ paddingTop: "15px" }}>
       <A onClick={() => setMore(!more)}>
-        Need a quote, invoice, modified terms, a purchase order, or pay via wire
-        transfer, etc.?
+        Need a quote, invoice or modified terms?
       </A>
       {more && (
         <Paragraph>
@@ -413,9 +389,10 @@ function GetAQuote({ items }) {
                 borderRadius: "5px",
               }}
               type="warning"
-              message={
+              message={"Customized Payment Options"}
+              description={
                 <>
-                  Customized payment is available only for{" "}
+                  Customized payment options are available for{" "}
                   <b>non-subscription purchases over ${MIN_AMOUNT}</b>. Make
                   sure your cost before discounts is over ${MIN_AMOUNT} and{" "}
                   <A href="/store/cart">edit</A> any subscriptions in your cart
@@ -433,15 +410,19 @@ function GetAQuote({ items }) {
                 borderRadius: "5px",
               }}
               type="info"
-              message={
+              message={"Customized Payment Options"}
+              description={
                 <>
                   Click the button below to copy your shopping cart contents to
-                  a support request, and we will take if from there. Note that
-                  the 25% self-service discount is <b>only available</b> when
-                  you purchase from this page.
-                  <div style={{ textAlign: "center", marginTop: "5px" }}>
-                    <Button onClick={createSupportRequest}>
-                      <Icon name="medkit" /> Copy cart to support request
+                  a support request, and we will take if from there!
+                  <div style={{ textAlign: "center", marginTop: "15px" }}>
+                    <Button
+                      type="primary"
+                      size="large"
+                      onClick={createSupportRequest}
+                    >
+                      <Icon name="medkit" /> Copy Shopping Cart to a Support
+                      Request
                     </Button>
                   </div>
                 </>

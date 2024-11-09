@@ -507,6 +507,8 @@ export async function getPayments(
     ending_before?: string;
     starting_after?: string;
     limit?: number;
+    // load all unfinished payments -- all other options are ignored
+    unfinished?: boolean;
   } = {},
 ): Promise<StripeData> {
   return await api("purchases/stripe/get-payments", opts);

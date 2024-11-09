@@ -25,8 +25,14 @@ async function get(req) {
   }
   throttle({ account_id, endpoint: "purchases/stripe/get-payments" });
 
-  const { user_account_id, created, ending_before, starting_after, limit } =
-    getParams(req);
+  const {
+    user_account_id,
+    created,
+    ending_before,
+    starting_after,
+    limit,
+    unfinished,
+  } = getParams(req);
   if (user_account_id) {
     // This user MUST be an admin:
     if (!(await userIsInGroup(account_id, "admin"))) {
@@ -38,6 +44,7 @@ async function get(req) {
       ending_before,
       starting_after,
       limit,
+      unfinished,
     });
   }
 
@@ -47,5 +54,6 @@ async function get(req) {
     ending_before,
     starting_after,
     limit,
+    unfinished,
   });
 }
