@@ -10,12 +10,9 @@
 
 import { Popover, Radio } from "antd";
 import React, { CSSProperties as CSS } from "react";
-import { useIntl } from "react-intl";
 import { default as UpstreamTimeAgo } from "react-timeago";
-
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { labels } from "@cocalc/frontend/i18n";
 import { is_date, is_different as misc_is_different } from "@cocalc/util/misc";
+import useAppContext from "@cocalc/frontend/app/use-context";
 
 function timeago_formatter(value, unit, suffix, _date) {
   if (value === 0) {
@@ -74,7 +71,9 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
   if (live == null) live = true;
 
   if (placement == null) placement = "top";
-  if (time_ago_absolute == null) time_ago_absolute = false;
+  if (time_ago_absolute == null) {
+    time_ago_absolute = false;
+  }
 
   function render_timeago_element(d) {
     // See this bug -- https://github.com/nmn/react-timeago/issues/181
@@ -175,24 +174,18 @@ interface TimeAgoProps {
   live?: boolean; // whether or not to auto-update
   style?: CSS;
   date?;
-  time_ago_absolute?: boolean;
   click_to_toggle?: boolean; // default true
 }
 
 export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
   (props: TimeAgoElementProps) => {
-    const {
-      placement,
-      tip,
-      live,
-      style,
-      date,
-      time_ago_absolute,
-      click_to_toggle = true,
-    } = props;
+    const { placement, tip, live, style, date, click_to_toggle = true } = props;
 
-    const other_settings = useTypedRedux("account", "other_settings");
-    if (date == null) return <></>;
+    const { timeAgoAbsolute, setTimeAgoAbsolute } = useAppContext();
+
+    if (date == null) {
+      return <></>;
+    }
 
     return (
       <TimeAgoElement
@@ -200,11 +193,9 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         placement={placement}
         tip={tip}
         live={live}
-        time_ago_absolute={
-          time_ago_absolute ?? other_settings.get("time_ago_absolute") ?? false
-        }
+        time_ago_absolute={timeAgoAbsolute ?? false}
         style={style}
-        click_to_toggle={click_to_toggle}
+        click_to_toggle={click_to_toggle && setTimeAgoAbsolute != null}
       />
     );
   },
@@ -223,26 +214,35 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
 );
 
 function ToggleRelativeAndAbsolute({}) {
-  const intl = useIntl();
-  const other = useTypedRedux("account", "other_settings");
-  const absolute = other?.get("time_ago_absolute") ?? false;
+  const { timeAgoAbsolute, setTimeAgoAbsolute } = useAppContext();
 
   return (
     <div style={{ marginTop: "10px", textAlign: "center" }}>
       <Radio.Group
+        disabled={setTimeAgoAbsolute == null}
         onChange={() => {
-          redux
-            .getActions("account")
-            .set_other_settings("time_ago_absolute", !absolute);
+          setTimeAgoAbsolute?.(!timeAgoAbsolute);
         }}
-        value={absolute ? "absolute" : "relative"}
+        value={timeAgoAbsolute ? "absolute" : "relative"}
         optionType="button"
         buttonStyle="solid"
         size="small"
       >
-        <Radio value="relative">{intl.formatMessage(labels.relative)}</Radio>
-        <Radio value="absolute">{intl.formatMessage(labels.absolute)}</Radio>
+        <Radio value="relative">Relative</Radio>
+        <Radio value="absolute">Absolute</Radio>
       </Radio.Group>
     </div>
   );
 }
+
+/*
+I had to disable this for now since @cocalc/frontend/i18n doesn't support the nextjs app.
+
+//import { labels } from "@cocalc/frontend/i18n";
+
+ import { useIntl } from "react-intl";
+const intl = useIntl();
+        <Radio value="relative">{intl.formatMessage(labels.relative)}</Radio>
+        <Radio value="absolute">{intl.formatMessage(labels.absolute)}</Radio>
+
+*/

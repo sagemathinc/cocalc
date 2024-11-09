@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   cancelPaymentIntent,
   getInvoice,
@@ -24,11 +24,9 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
-import "./purchases.css";
 import { describeNumberOf, RawJson } from "./util";
 import { PaymentMethod } from "./payment-methods";
-import SpendPlot from "./spend-plot";
-import { field_cmp } from "@cocalc/util/misc";
+//import SpendPlot from "./spend-plot";
 import { decimalSubtract, stripeToDecimal } from "@cocalc/util/stripe/calc";
 import { LineItemsTable } from "./line-items";
 import dayjs from "dayjs";
@@ -144,7 +142,7 @@ export default function Payments({
               account_id={account_id}
               scroll={{ y: 400 }}
             />
-            <PaymentsPlot data={data} />
+            {/*<PaymentsPlot data={data} />*/}
           </>
         )}
       </div>
@@ -285,15 +283,6 @@ function PaymentIntentsTable({
   return (
     <Table
       scroll={scroll}
-      rowClassName={(paymentIntent: any) =>
-        [
-          "requires_payment_method",
-          "requires_confirmation",
-          "requires_action",
-        ].includes(paymentIntent.status)
-          ? "cc-payments-highlight"
-          : ""
-      }
       pagination={false}
       dataSource={dataSource}
       columns={columns}
@@ -532,24 +521,26 @@ export function PaymentsButton(props: Props) {
   );
 }
 
-function PaymentsPlot({ data: data0 }) {
-  const data = useMemo(() => {
-    const v = data0
-      .filter(({ status }) => status == "succeeded")
-      .map(({ amount, created }) => {
-        return { amount: amount / 100, date: new Date(created * 1000) };
-      });
-    v.sort(field_cmp("date"));
-    return v;
-  }, [data0]);
-  return (
-    <SpendPlot
-      data={data}
-      title={"Payments to CoCalc Shown Above"}
-      description={
-        "This is a plot of the money you have successfully transferred into CoCalc, as listed in the table above."
-      }
-      style={{ margin: "15px 0" }}
-    />
-  );
-}
+// Removed for now so it will work on the nextjs site with SSR:
+
+// function PaymentsPlot({ data: data0 }) {
+//   const data = useMemo(() => {
+//     const v = data0
+//       .filter(({ status }) => status == "succeeded")
+//       .map(({ amount, created }) => {
+//         return { amount: amount / 100, date: new Date(created * 1000) };
+//       });
+//     v.sort(field_cmp("date"));
+//     return v;
+//   }, [data0]);
+//   return (
+//     <SpendPlot
+//       data={data}
+//       title={"Payments to CoCalc Shown Above"}
+//       description={
+//         "This is a plot of the money you have successfully transferred into CoCalc, as listed in the table above."
+//       }
+//       style={{ margin: "15px 0" }}
+//     />
+//   );
+// }

@@ -11,6 +11,7 @@ import useIsMounted from "lib/hooks/mounted";
 import A from "components/misc/A";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
+import Payments from "@cocalc/frontend/purchases/payments";
 
 export default function Processing() {
   const [finished, setFinished] = useState<boolean>(false);
@@ -94,6 +95,7 @@ export default function Processing() {
 
     return (
       <>
+        <Payments />
         <pre>{JSON.stringify(payments.result?.data, undefined, 2)}</pre>
         <pre>{JSON.stringify(items.result, undefined, 2)}</pre>
       </>
@@ -111,7 +113,9 @@ export default function Processing() {
       >
         Refresh {loading && <Spin />}
       </Button>
-      <h3><Icon name="run"/> Processing Your Order</h3>
+      <h3>
+        <Icon name="run" /> Processing Your Order
+      </h3>
       {loading && <Loading large center />}
       {renderBody()}
     </div>

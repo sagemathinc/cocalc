@@ -181,7 +181,7 @@ function getInvoiceLineItems(invoice): LineItem[] {
   });
   if (invoice.tax) {
     v.push({
-      description: "Sales tax",
+      description: "Tax",
       amount: stripeToDecimal(invoice.tax),
       tax: true,
     });
