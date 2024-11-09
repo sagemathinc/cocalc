@@ -48,7 +48,6 @@ import {
   syncPaidInvoices,
 } from "@cocalc/frontend/purchases/api";
 import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
-import { ExplainPaymentSituation } from "./checkout";
 import AddCashVoucher from "./add-cash-voucher";
 import { StoreBalanceContext } from "../../lib/balance";
 import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
@@ -560,10 +559,6 @@ export default function CreateVouchers() {
                 </div>
               </Col>
             </Row>
-            <ExplainPaymentSituation
-              params={params}
-              style={{ margin: "15px 0" }}
-            />
             {params.chargeAmount > 0 && !userSuccessfullyAddedCredit && (
               <StripePayment
                 style={{ maxWidth: "600px", margin: "30px auto" }}

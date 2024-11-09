@@ -75,7 +75,7 @@ export default function SiteLicense(props: Props) {
         <Icon name={"key"} style={{ marginRight: "5px" }} />{" "}
         {router.query.id != null
           ? "Edit License in Shopping Cart"
-          : "Buy a License"}
+          : "Configure a License"}
       </Title>
       {router.query.id == null && (
         <div>
@@ -83,10 +83,10 @@ export default function SiteLicense(props: Props) {
             <A href="https://doc.cocalc.com/licenses.html">
               <SiteName /> licenses
             </A>{" "}
-            allow you to upgrade any number of projects to run more quickly,
-            have network access, more disk space and memory. Licenses cover a
-            wide range of use cases, ranging from a single hobbyist project to
-            thousands of simultaneous users across a large organization.
+            allow you to upgrade projects to run more quickly, have network
+            access, more disk space and memory. Licenses cover a wide range of
+            use cases, ranging from a single hobbyist project to thousands of
+            simultaneous users across a large organization.
           </Paragraph>
 
           <Paragraph style={{ fontSize: "12pt" }}>

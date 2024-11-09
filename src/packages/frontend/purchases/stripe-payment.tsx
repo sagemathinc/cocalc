@@ -60,7 +60,7 @@ export default function StripePayment({
 }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [checkout, setCheckout] = useState<boolean>(false);
+  const [requiresPayment, setRequiresPayment] = useState<boolean>(false);
   const [hasPaymentMethods, setHasPaymentMethods] = useState<boolean | null>(
     null,
   );
@@ -86,12 +86,12 @@ export default function StripePayment({
   }
 
   useEffect(() => {
-    setCheckout(false);
+    setRequiresPayment(false);
   }, [JSON.stringify(lineItems)]);
 
   const showOneClick =
     (hasPaymentMethods === true || hasPaymentMethods == null) &&
-    !checkout &&
+    !requiresPayment &&
     totalStripe > 0;
 
   return (
@@ -134,19 +134,21 @@ export default function StripePayment({
                 />
               </Tooltip>
             )}
-            {!checkout && (
+            {!requiresPayment && (
               <ConfirmButton
                 notPrimary={showOneClick}
                 disabled={loading}
                 label={
-                  totalStripe > 0 ? "Continue" : "Purchase using CoCalc Credits"
+                  totalStripe > 0
+                    ? "Continue"
+                    : "Purchase With 1-Click Using CoCalc Credits"
                 }
                 onClick={() => {
                   if (totalStripe <= 0) {
                     // no need to do stripe part at all -- just do next step of whatever purchase is happening.
                     onFinished?.();
                   }
-                  setCheckout(true);
+                  setRequiresPayment(true);
                 }}
               />
             )}
@@ -158,7 +160,7 @@ export default function StripePayment({
           setError={setError}
         />
       </div>
-      {checkout && !disabled && (
+      {requiresPayment && !disabled && (
         <div>
           <StripeCheckout
             {...{

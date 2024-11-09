@@ -17,6 +17,7 @@ import useCustomize from "lib/use-customize";
 import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
+import Processing from "./processing";
 import Congrats from "./congrats";
 import DedicatedResource from "./dedicated";
 import Menu from "./menu";
@@ -34,6 +35,7 @@ interface Props {
     | "dedicated"
     | "cart"
     | "checkout"
+    | "processing"
     | "congrats"
     | "vouchers"
     | undefined
@@ -131,6 +133,8 @@ export default function StoreLayout({ page }: Props) {
         return requireAccount(Cart);
       case "checkout":
         return requireAccount(Checkout);
+      case "processing":
+        return requireAccount(Processing);
       case "vouchers":
         return requireAccount(Vouchers);
       case "congrats":

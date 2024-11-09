@@ -79,6 +79,11 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
       icon: <Icon name="list" />,
     },
     {
+      label: "Processing",
+      key: "processing",
+      icon: <Icon name="run" />,
+    },
+    {
       label: "Congrats",
       key: "congrats",
       icon: <Icon name="check-circle" />,

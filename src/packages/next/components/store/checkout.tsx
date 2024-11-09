@@ -244,10 +244,7 @@ export default function Checkout() {
                 </Col>
               </Row>
 
-              <ExplainPaymentSituation
-                params={params}
-                style={{ margin: "15px 0" }}
-              />
+
               <div style={{ textAlign: "center" }}>
                 <Divider />
                 {mode == "completing" && (
@@ -278,8 +275,14 @@ export default function Checkout() {
                       if (!isMounted.current) {
                         return;
                       }
-                      // now do the purchase flow with money available.
-                      await completePurchase();
+                      if (paymentAmount <= 0) {
+                        // now do the purchase flow with money available.
+                        await completePurchase();
+                      } else {
+                        // actually paid something so processing happens on the backend in response
+                        // to payment completion
+                        router.push("/store/processing");
+                      }
                     }}
                   />
                 </div>
@@ -399,8 +402,8 @@ function GetAQuote({ items }) {
   return (
     <Paragraph style={{ paddingTop: "15px" }}>
       <A onClick={() => setMore(!more)}>
-        Need to obtain a quote, invoice, modified terms, a purchase order, or
-        pay via wire transfer, etc.?
+        Need a quote, invoice, modified terms, a purchase order, or pay via wire
+        transfer, etc.?
       </A>
       {more && (
         <Paragraph>
@@ -418,8 +421,8 @@ function GetAQuote({ items }) {
                   Customized payment is available only for{" "}
                   <b>non-subscription purchases over ${MIN_AMOUNT}</b>. Make
                   sure your cost before discounts is over ${MIN_AMOUNT} and{" "}
-                  <A href="/store/cart">convert</A> any subscriptions in your
-                  cart to explicit date ranges, then try again. If this is
+                  <A href="/store/cart">edit</A> any subscriptions in your cart
+                  to have explicit date ranges, then try again. If this is
                   confusing, <A href="/support/new">make a support request</A>.
                 </>
               }
@@ -601,61 +604,5 @@ function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
     <div>
       For project: <code>{project_id}</code>
     </div>
-  );
-}
-
-export function ExplainPaymentSituation({
-  params,
-  style,
-}: {
-  params: CheckoutParams | null;
-  style?;
-}) {
-  if (params == null) {
-    return <Spin />;
-  }
-  const { balance, chargeAmount, total, minBalance } = params;
-  const curBalance = (
-    <div style={{ float: "right", marginLeft: "30px", fontWeight: "bold" }}>
-      Account Balance: {currency(round2down(balance))}
-      {minBalance ? `, Minimum allowed balance: ${currency(minBalance)}` : ""}
-    </div>
-  );
-
-  if (chargeAmount == 0) {
-    return (
-      <Alert
-        showIcon
-        type="info"
-        style={style}
-        description={
-          <>
-            {curBalance}
-            It is possible to complete this purchase using available account
-            credit, so you do not have to make a payment.
-          </>
-        }
-      />
-    );
-  }
-  return (
-    <Alert
-      showIcon
-      type="info"
-      style={style}
-      description={
-        <>
-          {curBalance}
-          To complete this purchase you must pay at least{" "}
-          {currency(chargeAmount)}.{" "}
-          {chargeAmount > total && params.minBalance != 0 && (
-            <>
-              Your account balance must always be at least{" "}
-              {currency(params.minBalance)}.
-            </>
-          )}
-        </>
-      }
-    />
   );
 }
