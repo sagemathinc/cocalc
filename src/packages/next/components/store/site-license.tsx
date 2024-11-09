@@ -9,7 +9,6 @@ Create a new site license.
 import { Form, Input } from "antd";
 import { isEmpty } from "lodash";
 import { useEffect, useRef, useState } from "react";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";

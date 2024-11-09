@@ -69,6 +69,11 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
       icon: <Icon name="key" />,
     },
     {
+      label: "Vouchers",
+      key: "vouchers",
+      icon: <Icon name="gift" />,
+    },
+    {
       label: "Cart",
       key: "cart",
       icon: <Icon name="shopping-cart" />,
@@ -87,11 +92,6 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
       label: "Congrats",
       key: "congrats",
       icon: <Icon name="check-circle" />,
-    },
-    {
-      label: "Vouchers",
-      key: "vouchers",
-      icon: <Icon name="gift" />,
     },
   ];
 

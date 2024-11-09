@@ -79,7 +79,7 @@ export default function ShoppingCart() {
   }
 
   if (!items) {
-    return <Loading center />;
+    return <Loading large center />;
   }
 
   async function reload() {

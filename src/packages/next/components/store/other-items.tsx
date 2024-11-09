@@ -118,7 +118,7 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
     return <Alert type="error" message={get.error} />;
   }
   if (get.result == null || items == null) {
-    return <Loading center />;
+    return <Loading large center />;
   }
 
   async function reload() {

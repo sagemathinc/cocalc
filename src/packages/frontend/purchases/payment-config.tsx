@@ -1,4 +1,4 @@
-import { Divider, InputNumber, Space, Spin, Tag, Tooltip } from "antd";
+import { Divider, InputNumber, Spin, Tag, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { currency } from "@cocalc/util/misc";
@@ -118,17 +118,15 @@ export default function PaymentConfig({
             )}
           </div>
         )}
-        <Space>
-          <InputNumber
-            min={Math.max(minAmount, minPayment)}
-            max={MAX_COST}
-            precision={2} // for two decimal places
-            step={5}
-            value={paymentAmount}
-            onChange={setPaymentAmount}
-            addonAfter="$"
-          />
-        </Space>
+        <InputNumber
+          min={Math.max(minAmount, minPayment)}
+          max={MAX_COST}
+          precision={2} // for two decimal places
+          step={5}
+          value={paymentAmount}
+          onChange={setPaymentAmount}
+          addonAfter="$"
+        />
       </div>
     </div>
   );

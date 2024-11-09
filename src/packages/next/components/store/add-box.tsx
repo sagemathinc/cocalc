@@ -15,6 +15,17 @@ import { DisplayCost } from "./site-license-cost";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { decimalDivide } from "@cocalc/util/stripe/calc";
 
+export const ADD_STYLE = {
+  display: "inline-block",
+  maxWidth: "550px",
+  background: "white",
+  border: "1px solid #ccc",
+  padding: "10px 20px",
+  borderRadius: "5px",
+  margin: "15px 0",
+  fontSize: "12pt",
+} as const;
+
 interface Props {
   cost?: CostInputPeriod;
   router;
@@ -26,20 +37,19 @@ interface Props {
   noAccount: boolean;
 }
 
-export function AddBox(props: Props) {
-  const {
-    cost,
-    router,
-    form,
-    cartError,
-    setCartError,
-    dedicatedItem = false,
-    noAccount,
-  } = props;
+export function AddBox({
+  cost,
+  router,
+  form,
+  cartError,
+  setCartError,
+  dedicatedItem = false,
+  noAccount,
+  disabled = false,
+}: Props) {
   if (cost?.input.type == "cash-voucher") {
     return null;
   }
-  let disabled = props.disabled ?? false;
   // if any of the fields in cost that start with the string "cost" are NaN, disable submission:
   if (
     !cost ||
@@ -102,18 +112,7 @@ export function AddBox(props: Props) {
 
   return (
     <div style={{ textAlign: "center" }}>
-      <div
-        style={{
-          display: "inline-block",
-          maxWidth: "550px",
-          background: "white",
-          border: "1px solid #ccc",
-          padding: "10px 20px",
-          borderRadius: "5px",
-          margin: "15px 0",
-          fontSize: "12pt",
-        }}
-      >
+      <div style={ADD_STYLE}>
         {cost && <DisplayCost cost={cost} />}
         {cost && costPerProject()}
         {renderButton()}
@@ -132,19 +131,18 @@ interface CartButtonProps {
   variant?: "primary" | "small";
 }
 
-export function AddToCartButton(props: CartButtonProps) {
-  const {
-    cost,
-    form,
-    router,
-    setCartError,
-    cartError,
-    variant = "primary",
-  } = props;
-
+export function AddToCartButton({
+  cost,
+  form,
+  router,
+  setCartError,
+  cartError,
+  variant = "primary",
+  disabled: disabled0,
+}: CartButtonProps) {
   const style = variant === "primary" ? { marginTop: "5px" } : {};
   const disabled =
-    (props.disabled ?? false) || !!cartError || cost == null || cost.cost === 0;
+    (disabled0 ?? false) || !!cartError || cost == null || cost.cost === 0;
 
   return (
     <Button

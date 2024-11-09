@@ -8,53 +8,46 @@ Voucher -- create vouchers from the contents of your shopping cart.
 */
 
 import {
-  Alert,
   Button,
-  Col,
   DatePicker,
   Form,
   Input,
   InputNumber,
   Radio,
-  Row,
-  Table,
   Space,
 } from "antd";
 import dayjs from "dayjs";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural } from "@cocalc/util/misc";
 import A from "components/misc/A";
-import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
-import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
-import { Paragraph } from "components/misc";
-import { fullCost, getColumns, RequireEmailAddress } from "./checkout";
+import { Paragraph, Title } from "components/misc";
+import { RequireEmailAddress } from "./checkout";
 import ShowError from "@cocalc/frontend/components/error";
-import { COLORS } from "@cocalc/util/theme";
 import vouchers, {
   CharSet,
   MAX_VOUCHERS,
+  MAX_VOUCHER_VALUE,
   WhenPay,
 } from "@cocalc/util/vouchers";
 import {
-  getVoucherCartCheckoutParams,
   vouchersCheckout,
   syncPaidInvoices,
 } from "@cocalc/frontend/purchases/api";
-import type { CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
-import AddCashVoucher from "./add-cash-voucher";
 import { StoreBalanceContext } from "../../lib/balance";
-import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
+import { ADD_STYLE } from "./add-box";
+// import { DisplayCost } from "./site-license-cost";
+
+const STYLE = { color: "#666", fontSize: "12pt" } as const;
 
 interface Config {
   whenPay: WhenPay;
   numVouchers: number;
+  amount: number;
   length: number;
   title: string;
   prefix: string;
@@ -70,10 +63,7 @@ export default function CreateVouchers() {
     noCache: true,
   });
   const { refreshBalance } = useContext(StoreBalanceContext);
-  const [orderError, setOrderError] = useState<string>("");
-  const [subTotal, setSubTotal] = useState<number>(0);
-  const [userSuccessfullyAddedCredit, setUserSuccessfullyAddedCredit] =
-    useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
   // user configurable options: start
   const [query, setQuery0] = useState<Config>(() => {
@@ -82,8 +72,9 @@ export default function CreateVouchers() {
       whenPay: typeof q.whenPay == "string" ? (q.whenPay as WhenPay) : "now",
       numVouchers:
         typeof q.numVouchers == "string" ? parseInt(q.numVouchers) : 1,
+      amount: typeof q.amount == "string" ? parseInt(q.amount) : 5,
       length: typeof q.length == "string" ? parseInt(q.length) : 8,
-      title: typeof q.title == "string" ? q.title : "",
+      title: typeof q.title == "string" ? q.title : "My Voucher",
       prefix: typeof q.prefix == "string" ? q.prefix : "",
       postfix: typeof q.postfix == "string" ? q.postfix : "",
       charset: typeof q.charset == "string" ? q.charset : "alphanumeric",
@@ -94,6 +85,7 @@ export default function CreateVouchers() {
   const {
     whenPay,
     numVouchers,
+    amount,
     length,
     title,
     prefix,
@@ -115,22 +107,6 @@ export default function CreateVouchers() {
     });
     setQuery0(query1);
   };
-
-  const [params, setParams] = useState<CheckoutParams | null>(null);
-  const updateParams = async (count, whenPay) => {
-    if (whenPay == "admin" || count == null) {
-      setParams(null);
-      return;
-    }
-    try {
-      setParams(await getVoucherCartCheckoutParams(count));
-    } catch (err) {
-      setOrderError(`${err}`);
-    }
-  };
-  useEffect(() => {
-    updateParams(numVouchers, whenPay);
-  }, [subTotal, numVouchers, whenPay]);
 
   //////
   // Handling payment -- start
@@ -158,7 +134,7 @@ export default function CreateVouchers() {
 
   async function completePurchase() {
     try {
-      setOrderError("");
+      setError("");
       setCompletingPurchase(true);
       if (!isMounted.current) {
         return;
@@ -184,7 +160,7 @@ export default function CreateVouchers() {
       }
     } catch (err) {
       // The purchase failed.
-      setOrderError(err.message);
+      setError(err.message);
     } finally {
       await refreshBalance();
       if (!isMounted.current) return;
@@ -208,118 +184,41 @@ export default function CreateVouchers() {
     }
   }, [whenPay]);
 
-  const cart0 = useAPI("/shopping/cart/get");
-
-  const cart = useMemo(() => {
-    return cart0.result?.filter((item) => {
-      if (item.product == "site-license") {
-        return item.description?.period == "range";
-      }
-      if (item.product == "cash-voucher") {
-        return true;
-      }
-      return false;
-    });
-  }, [cart0.result]);
-
-  const items = useMemo(() => {
-    if (!cart) return undefined;
-    const x: any[] = [];
-    let subTotal = 0;
-    for (const item of cart) {
-      if (!item.checked) continue;
-      item.cost = computeCost(item.description);
-      subTotal += item.cost.cost;
-      x.push(item);
-    }
-    setSubTotal(subTotal);
-    return x;
-  }, [cart]);
-
-  if (cart0.error) {
-    return <Alert type="error" message={cart.error} />;
-  }
-  if (!items) {
-    return <Loading center />;
-  }
-
-  const columns = getColumns({
-    noDiscount: whenPay != "now",
-    voucherPeriod: true,
-  });
-
   const disabled =
     !numVouchers ||
     completingPurchase ||
     !title?.trim() ||
     expire == null ||
-    subTotal == 0 ||
     !profile?.email_address;
 
-  function EmptyCart() {
+  function renderHeading() {
     return (
-      <div style={{ maxWidth: "800px", margin: "auto" }}>
-        <h3>
-          <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />
-          {cart?.length > 0 && (
-            <>
-              Nothing in Your <SiteName />{" "}
-              <A href="/store/cart">Shopping Cart</A> is Selected
-            </>
-          )}
-          {(cart0.result?.length ?? 0) == 0 ? (
-            <>
-              Your <SiteName /> <A href="/store/cart">Shopping Cart</A> is Empty
-            </>
-          ) : (
-            <>
-              Your <SiteName /> <A href="/store/cart">Shopping Cart</A> must
-              contain at least one non-subscription license or cash voucher
-            </>
-          )}
-        </h3>
-        <AddCashVoucher onAdd={() => cart0.call()} defaultExpand />
-        <p style={{ color: "#666" }}>
-          You must have at least one non-subscription item in{" "}
-          <A href="/store/cart">your cart</A> to create vouchers from the items
-          in your shopping cart. Shop for{" "}
-          <A href="/store/site-license">upgrades</A>, a{" "}
-          <A href="/store/boost">license boost</A>, or a{" "}
-          <A href="/dedicated">dedicated VM or disk</A>, and select a specific
-          range of dates. When you{" "}
-          <A href="/redeem">redeem a voucher for shopping cart items</A>, the
-          corresponding licenses start at the redemption date, and last for the
-          same number of days as your shopping cart item. You can also browse
-          all <A href="/vouchers/redeemed">vouchers you have redeemed</A> and
-          track everything about your vouchers in the{" "}
-          <A href="/vouchers">Voucher Center</A>.
-        </p>
+      <div>
+        <Title level={3}>
+          <Icon name={"gift2"} style={{ marginRight: "5px" }} />{" "}
+          {router.query.id != null
+            ? "Edit Voucher in Shopping Cart"
+            : "Configure a Voucher"}
+        </Title>
+        <Paragraph style={STYLE}>
+          Voucher codes can be <A href="/redeem">redeemed</A> for <SiteName />{" "}
+          credit, which does not expire and can be used to purchase anything on
+          the site (licenses, GPU's, etc.). Visit the{" "}
+          <A href="/vouchers">Voucher Center</A> for more about vouchers, and{" "}
+          <A href="https://doc.cocalc.com/vouchers.html">read the docs</A>.
+        </Paragraph>
       </div>
     );
   }
 
-  // this can't just be a component, since it depends on a bunch of scope,
-  function nonemptyCart(items) {
+  function renderVoucherConfig() {
     return (
       <>
-        <ShowError error={orderError} setError={setOrderError} />
         <div>
-          <h3 style={{ fontSize: "16pt" }}>
-            <Icon name={"gift2"} style={{ marginRight: "10px" }} />
-            Create Voucher Codes
-          </h3>
-          <Paragraph style={{ color: "#666" }}>
-            Voucher codes can be <A href="/redeem">redeemed</A> for the{" "}
-            {items.length} {plural(items.length, "license")} listed below. The
-            license start and end dates are shifted to match when the license is
-            redeemed. Visit the <A href="/vouchers">Voucher Center</A> for more
-            about vouchers, and{" "}
-            <A href="https://doc.cocalc.com/vouchers.html">read the docs</A>.
-          </Paragraph>
           {profile?.is_admin && (
             <>
               <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done /> Pay Now
+                <Check done /> Admin: Pay or Free
               </h4>
               <div>
                 <Radio.Group
@@ -341,12 +240,13 @@ export default function CreateVouchers() {
                   </Space>
                 </Radio.Group>
                 <br />
-                <Paragraph style={{ color: "#666" }}>
+                <Paragraph style={STYLE}>
                   {profile?.is_admin && (
                     <>
                       As an admin, you may select the "Admin" option; this is
-                      useful for creating free trials or fulfilling complicated
-                      customer requirements.{" "}
+                      useful for creating free trials, fulfilling complicated
+                      customer requirements and adding credit to your own
+                      account.
                     </>
                   )}
                 </Paragraph>
@@ -354,19 +254,39 @@ export default function CreateVouchers() {
             </>
           )}
           <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-            <Check done={(numVouchers ?? 0) > 0} /> How Many Voucher Codes?
+            <Check done={(numVouchers ?? 0) > 0} /> Value of Each Voucher
           </h4>
-          <Paragraph style={{ color: "#666" }}>
-            Input the number of voucher codes to create{" "}
+          <Paragraph style={STYLE}>
+            Input the value of each voucher:
+            <div style={{ textAlign: "center", marginTop: "15px" }}>
+              <InputNumber
+                size="large"
+                min={5}
+                max={MAX_VOUCHER_VALUE}
+                precision={2} // for two decimal places
+                step={5}
+                value={amount}
+                onChange={(value) => setQuery({ amount: value })}
+                addonAfter="$"
+              />
+            </div>
+          </Paragraph>
+          <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+            <Check done={(numVouchers ?? 0) > 0} /> Number of Voucher Codes
+          </h4>
+          <Paragraph style={STYLE}>
+            Input the number of voucher codes to{" "}
             {whenPay == "now" ? "buy" : "create"} (limit:{" "}
             {MAX_VOUCHERS[whenPay]}):
             <div style={{ textAlign: "center", marginTop: "15px" }}>
               <InputNumber
                 size="large"
+                style={{ width: "250px" }}
                 min={1}
                 max={MAX_VOUCHERS[whenPay]}
                 value={numVouchers}
                 onChange={(value) => setQuery({ numVouchers: value })}
+                addonAfter={`Voucher ${plural(numVouchers, "Code")}`}
               />
             </div>
           </Paragraph>
@@ -376,7 +296,7 @@ export default function CreateVouchers() {
                 <Check done={expire != null} />
                 When Voucher Codes Expire
               </h4>
-              <Paragraph style={{ color: "#666" }}>
+              <Paragraph style={STYLE}>
                 As an admin you can set any expiration date you want for the
                 voucher codes.
               </Paragraph>
@@ -436,7 +356,7 @@ export default function CreateVouchers() {
           >
             <Check done={!!title.trim()} /> Description
           </h4>
-          <Paragraph style={{ color: "#666" }}>
+          <Paragraph style={STYLE}>
             <div
               style={
                 !title
@@ -507,130 +427,34 @@ export default function CreateVouchers() {
             </Space>
           </Paragraph>
         </div>
-
-        <h4 style={{ fontSize: "13pt", marginTop: "15px" }}>
-          <Check done />
-          {(numVouchers ?? 0) == 1
-            ? "Your Voucher"
-            : `Each of Your ${numVouchers ?? 0} Voucher Codes`}{" "}
-          Provides the Following {items.length} {plural(items.length, "Item")}
-        </h4>
-        <Paragraph style={{ color: "#666" }}>
-          These are the licenses with a fixed range of time from your shopping
-          cart (vouchers cannot be used to create subscriptions). When used, the
-          voucher code is redeemed for one or more license starting at the time
-          of redemption and running for the same length of time as each license
-          listed below. The license obtained using this voucher can also be
-          canceled early for a prorated refund resulting in credit to the
-          account holder, or edited to better fit the recipient's requirements.
-        </Paragraph>
-        <div style={{ border: "1px solid #eee" }}>
-          <Table
-            showHeader={false}
-            columns={columns}
-            dataSource={items}
-            rowKey={"id"}
-            pagination={{ hideOnSinglePage: true }}
-          />
-        </div>
-        <Space style={{ marginTop: "15px" }}>
-          <AddCashVoucher onAdd={() => cart0.call()} />
-          <A href="/store/cart">
-            <Button>Edit Cart</Button>
-          </A>
-        </Space>
-        <h4 style={{ fontSize: "13pt", marginTop: "30px" }}>
-          <Check done={!disabled} /> Create Your{" "}
-          {plural(numVouchers ?? 0, "Voucher Code")}
-        </h4>
-        {numVouchers != null && params != null && (
-          <div style={{ fontSize: "12pt" }}>
-            <Row>
-              <Col sm={12}></Col>
-              <Col sm={12}>
-                <div style={{ fontSize: "15pt" }}>
-                  <TotalCost
-                    items={cart}
-                    numVouchers={numVouchers ?? 0}
-                    whenPay={whenPay}
-                  />
-                  <br />
-                  <Terms whenPay={whenPay} />
-                </div>
-              </Col>
-            </Row>
-            {params.chargeAmount > 0 && !userSuccessfullyAddedCredit && (
-              <StripePayment
-                style={{ maxWidth: "600px", margin: "30px auto" }}
-                lineItems={[
-                  {
-                    description: `${numVouchers ?? 0} ${plural(numVouchers ?? 0, "Voucher Code")}: ${title.slice(0, 250)}`,
-                    amount: params.chargeAmount,
-                  },
-                ]}
-                purpose={"buy-vouchers"}
-                description={"Purchase Voucher Codes"}
-                onFinished={async () => {
-                  setUserSuccessfullyAddedCredit(true);
-                  // user paid successfully and money should be in their account
-                  await refreshBalance();
-                  if (!isMounted.current) {
-                    return;
-                  }
-                  // now do the purchase flow with money available.
-                  await completePurchase();
-                }}
-              />
-            )}
-          </div>
-        )}
       </>
+    );
+  }
+
+  function renderAddBox() {
+    return (
+      <div style={{ textAlign: "center" }}>
+        <div style={ADD_STYLE}>
+          <Space>
+            <Button>Cancel</Button>
+            <Button disabled={disabled} type="primary">
+              Add to Cart
+            </Button>
+          </Space>
+        </div>
+      </div>
     );
   }
 
   return (
     <>
+      {renderHeading()}
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
-      {items.length == 0 && <EmptyCart />}
-      {items.length > 0 && nonemptyCart(items)}
-      <ShowError error={orderError} setError={setOrderError} />
+      <ShowError error={error} setError={setError} />
+      {renderAddBox()}
+      {renderVoucherConfig()}
+      {renderAddBox()}
     </>
-  );
-}
-
-function TotalCost({ items, numVouchers, whenPay }) {
-  const cost = numVouchers * fullCost(items);
-  return (
-    <>
-      {whenPay == "now" ? "Total Amount" : "Maximum Amount"}:{" "}
-      <b style={{ float: "right", color: "darkred" }}>{money(cost)}</b>
-    </>
-  );
-}
-
-function Terms({ whenPay }) {
-  return (
-    <Paragraph style={{ color: COLORS.GRAY, fontSize: "10pt" }}>
-      By creating vouchers, you agree to{" "}
-      <A href="/policies/terms" external>
-        our terms of service,
-      </A>{" "}
-      {whenPay == "now" && (
-        <>and agree to pay for the voucher you have requested.</>
-      )}
-      {whenPay == "invoice" && (
-        <>
-          and agree to pay for any voucher codes that are redeemed, up to the
-          maxium amount listed here.
-        </>
-      )}
-      {whenPay == "admin" && (
-        <>
-          and as an admin agree to use the voucher for company purposes. The
-          cash value is listed above.
-        </>
-      )}
-    </Paragraph>
   );
 }
 
