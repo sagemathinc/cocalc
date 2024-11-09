@@ -351,7 +351,10 @@ export async function shoppingCartCheckout() {
 }
 
 export async function getShoppingCartCheckoutParams(
-  opts: { ignoreBalance?: boolean } = {},
+  opts: {
+    payment_intent?: string;
+    processing?: boolean;
+  } = {},
 ) {
   return await api("purchases/get-shopping-cart-checkout-params", opts);
 }

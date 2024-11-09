@@ -17,6 +17,9 @@ interface Options {
   // if payment_intent is set, only return items in the shopping cart that
   // should be purchased using this payment_intent.
   payment_intent?: string;
+  // if true, same as payment_intent being set, but returns results for
+  // all payment_intents.  I.e., everything that is currently processing.
+  processing?: boolean;
 }
 
 export default async function getCart({
@@ -24,6 +27,7 @@ export default async function getCart({
   purchased,
   removed,
   payment_intent,
+  processing,
 }: Options): Promise<Item[]> {
   assertValidAccountID(account_id);
   const pool = getPool();
@@ -31,9 +35,23 @@ export default async function getCart({
   let query;
   const params = [account_id];
   if (!payment_intent) {
-    query = `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased IS ${
-      purchased ? " NOT " : ""
-    } NULL AND removed IS ${removed ? " NOT " : ""} NULL ORDER BY id DESC`;
+    if (processing) {
+      if (purchased || removed) {
+        // cant be already purchased and still processing
+        return [];
+      }
+      query = `
+      SELECT * FROM shopping_cart_items
+         WHERE account_id=$1
+         AND purchased#>>'{success}' IS NULL
+         AND purchased#>>'{payment_intent}' IS NOT NULL
+         AND removed IS NULL ORDER BY id DESC
+     `;
+    } else {
+      query = `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased IS ${
+        purchased ? " NOT " : ""
+      } NULL AND removed IS ${removed ? " NOT " : ""} NULL ORDER BY id DESC`;
+    }
   } else {
     let a;
     if (purchased) {

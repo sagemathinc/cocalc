@@ -100,6 +100,7 @@ export const getCheckoutCart = async (
   // optional filter on shopping cart items; this is useful for the voucher checkout
   filter?: (item) => boolean,
   payment_intent?: string,
+  processing?: boolean,
 ) => {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked.
@@ -108,6 +109,7 @@ export const getCheckoutCart = async (
     purchased: false,
     removed: false,
     payment_intent,
+    processing,
   });
   cart = cart.filter(
     filter ?? ((item) => item.checked && item.product == "site-license"),
@@ -148,6 +150,7 @@ export const getCheckoutCart = async (
 export const getShoppingCartCheckoutParams = async (
   account_id: string,
   payment_intent?: string,
+  processing?: boolean,
 ): Promise<
   CheckoutParams & { minimumPaymentCharge: number; cureAmount: number }
 > => {
@@ -155,6 +158,7 @@ export const getShoppingCartCheckoutParams = async (
     account_id,
     undefined,
     payment_intent,
+    processing,
   );
   const minBalance = await getMinBalance(account_id);
   const balance = await getBalance(account_id);

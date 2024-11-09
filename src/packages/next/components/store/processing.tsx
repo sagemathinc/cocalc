@@ -4,27 +4,43 @@ for the payment to be completed and items to be allocated.
 */
 
 import ShowError from "@cocalc/frontend/components/error";
-import { Alert, Button, Spin } from "antd";
+import { Alert, Button, Divider, Spin, Table } from "antd";
 import Loading from "components/share/loading";
-import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import A from "components/misc/A";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import Payments from "@cocalc/frontend/purchases/payments";
+import { getColumns } from "./checkout";
+import { getShoppingCartCheckoutParams } from "@cocalc/frontend/purchases/api";
 
 export default function Processing() {
   const [finished, setFinished] = useState<boolean>(false);
-  const items = useAPI("/shopping/cart/processing");
-  // get payments created in the last hour
-  const payments = useAPI("purchases/stripe/get-payments", {
-    created: { gt: Math.round(Date.now() / 1000 - 3600) },
-  });
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [params, setParams] = useState<CheckoutParams | null>(null);
+  const refreshPaymentsRef = useRef<any>(null);
+  const updateParams = async () => {
+    try {
+      setError("");
+      setLoading(true);
+      const params = await getShoppingCartCheckoutParams({
+        processing: true,
+      });
+      setParams(params);
+    } catch (err) {
+      setError(`${err}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!items.error && items.result != null && items.result.length == 0) {
+    if (params?.cart != null && params.cart.length == 0) {
       setFinished(true);
     }
-  }, [items]);
+  }, [params]);
 
   const lastRefreshRef = useRef<number>(0);
   const refreshRef = useRef<Function>(() => {});
@@ -34,8 +50,8 @@ export default function Processing() {
       return;
     }
     lastRefreshRef.current = now;
-    items.refresh();
-    payments.refresh();
+    updateParams();
+    refreshPaymentsRef.current?.();
   };
 
   // exponential backoff auto-refresh
@@ -55,7 +71,7 @@ export default function Processing() {
       timeoutRef.current = setTimeout(f, delay);
       refreshRef.current();
     };
-    timeoutRef.current = setTimeout(f, delay);
+    f();
 
     return () => {
       if (timeoutRef.current) {
@@ -65,15 +81,9 @@ export default function Processing() {
     };
   }, [finished]);
 
-  const loading =
-    !items.result || !payments.result || items.calling || payments.calling;
-
   function renderBody() {
-    if (items.error) {
-      return <ShowError error={items.error} />;
-    }
-    if (payments.error) {
-      return <ShowError error={payments.error} />;
+    if (error) {
+      return <ShowError error={error} setError={setError} />;
     }
     if (finished) {
       return (
@@ -95,9 +105,37 @@ export default function Processing() {
 
     return (
       <>
-        <Payments />
-        <pre>{JSON.stringify(payments.result?.data, undefined, 2)}</pre>
-        <pre>{JSON.stringify(items.result, undefined, 2)}</pre>
+        <Alert
+          type="warning"
+          showIcon
+          style={{ margin: "30px auto", maxWidth: "700px" }}
+          message="Action Required"
+          description=<>
+            Ensure outstanding payments listed below go through so that your
+            items can be added to your account.
+          </>
+        />
+
+        <Payments
+          created={{ gt: Math.round(Date.now() / 1000 - 3600) }}
+          refresh={() => {
+            refreshRef.current();
+          }}
+          refreshPaymentsRef={refreshPaymentsRef}
+        />
+
+        <Divider orientation="left" style={{ marginTop: "30px" }}>
+          Your Items
+        </Divider>
+        {params != null && (
+          <Table
+            showHeader={false}
+            columns={getColumns()}
+            dataSource={params?.cart}
+            rowKey={"id"}
+            pagination={{ hideOnSinglePage: true }}
+          />
+        )}
       </>
     );
   }

@@ -74,9 +74,7 @@ export default function Checkout() {
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const updateParams = async (intent?) => {
     try {
-      const params = await getShoppingCartCheckoutParams({
-        ignoreBalance: (intent ?? paymentIntent) == PaymentIntent.PAY_TOTAL,
-      });
+      const params = await getShoppingCartCheckoutParams();
       const cost = params.total;
       setParams(params);
       setTotalCost(round2up(cost));
@@ -243,7 +241,6 @@ export default function Checkout() {
                   </div>
                 </Col>
               </Row>
-
 
               <div style={{ textAlign: "center" }}>
                 <Divider />
@@ -574,16 +571,21 @@ export function getColumns({
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { cost, description, project_id }) => (
-        <>
-          <DescriptionColumn
-            cost={cost}
-            description={description}
-            voucherPeriod={voucherPeriod}
-          />{" "}
-          <ProjectID project_id={project_id} />
-        </>
-      ),
+      render: (_, { cost, description, project_id }) => {
+        if (cost == null) {
+          return null;
+        }
+        return (
+          <>
+            <DescriptionColumn
+              cost={cost}
+              description={description}
+              voucherPeriod={voucherPeriod}
+            />{" "}
+            <ProjectID project_id={project_id} />
+          </>
+        );
+      },
     },
     {
       responsive: ["sm" as "sm"],

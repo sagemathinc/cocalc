@@ -34,16 +34,19 @@ import dayjs from "dayjs";
 const DEFAULT_LIMIT = 10;
 
 interface Props {
-  refresh?: () => Promise<void>;
+  refresh?: Function;
   refreshPaymentsRef?;
   // if you are an admin and want to view a different user's incomplete payments
   account_id?: string;
+  // default created input to api for first load
+  created?;
 }
 
 export default function Payments({
   refresh,
   refreshPaymentsRef,
   account_id,
+  created,
 }: Props) {
   const [error, setError] = useState<string>("");
   const [hasLoadedMore, setHasLoadedMore] = useState<boolean>(false);
@@ -70,6 +73,7 @@ export default function Payments({
         result = await getPayments({
           user_account_id: account_id,
           limit: hasLoadedMore ? 100 : DEFAULT_LIMIT,
+          created,
         });
         setData(result.data);
       } else {
