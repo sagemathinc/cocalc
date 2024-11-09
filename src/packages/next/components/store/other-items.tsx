@@ -33,7 +33,7 @@ interface Props {
 }
 
 export default function OtherItems({ onChange, cart }) {
-  const [tab, setTab] = useState<Tab>("saved-for-later");
+  const [tab, setTab] = useState<Tab>("buy-it-again");
   const [search, setSearch] = useState<string>("");
 
   const items: MenuItem[] = [

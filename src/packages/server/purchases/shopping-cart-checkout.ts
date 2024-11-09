@@ -24,8 +24,9 @@ const logger = getLogger("purchases:shopping-cart-checkout");
 // or possibly slight rounding errors.  Payg is highly unlikely since it's
 // done discretely once per day, and you would likely just have to retry
 // your purchase.  There is a very slight potential abuse where a user might
-// use the api to get a one time $1 discount by abusing this....
-export const ALLOWED_SLACK = 1; // off by up to a dollar
+// use the api to get a one time temporary $3 discount by abusing this.
+// We would still eventually invoice them for this.
+export const ALLOWED_SLACK = 3; // off by up to a dollar
 
 export interface CheckoutCartItem extends ShoppingCartItem {
   cost: CostInputPeriod;

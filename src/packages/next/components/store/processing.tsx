@@ -4,11 +4,13 @@ for the payment to be completed and items to be allocated.
 */
 
 import ShowError from "@cocalc/frontend/components/error";
-import { Alert, Button } from "antd";
+import { Alert, Button, Spin } from "antd";
 import Loading from "components/share/loading";
 import useAPI from "lib/hooks/api";
+import useIsMounted from "lib/hooks/mounted";
 import A from "components/misc/A";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 export default function Processing() {
   const [finished, setFinished] = useState<boolean>(false);
@@ -23,7 +25,47 @@ export default function Processing() {
     }
   }, [items]);
 
-  const loading = !items.result || !payments.result;
+  const lastRefreshRef = useRef<number>(0);
+  const refreshRef = useRef<Function>(() => {});
+  refreshRef.current = () => {
+    const now = Date.now();
+    if (now - lastRefreshRef.current < 3000) {
+      return;
+    }
+    lastRefreshRef.current = now;
+    items.refresh();
+    payments.refresh();
+  };
+
+  // exponential backoff auto-refresh
+  const isMounted = useIsMounted();
+  const timeoutRef = useRef<any>(null);
+  useEffect(() => {
+    if (finished) {
+      // nothing left to do
+      return;
+    }
+    let delay = 5000;
+    const f = () => {
+      if (!isMounted.current) {
+        return;
+      }
+      delay = Math.min(5 * 60 * 1000, 1.3 * delay);
+      timeoutRef.current = setTimeout(f, delay);
+      refreshRef.current();
+    };
+    timeoutRef.current = setTimeout(f, delay);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [finished]);
+
+  const loading =
+    !items.result || !payments.result || items.calling || payments.calling;
 
   function renderBody() {
     if (items.error) {
@@ -32,10 +74,6 @@ export default function Processing() {
     if (payments.error) {
       return <ShowError error={payments.error} />;
     }
-    if (loading) {
-      return <Loading large center />;
-    }
-
     if (finished) {
       return (
         <Alert
@@ -65,14 +103,16 @@ export default function Processing() {
   return (
     <div>
       <Button
+        style={{ float: "right" }}
         disabled={loading}
         onClick={() => {
-          items.refresh();
-          payments.refresh();
+          refreshRef.current();
         }}
       >
-        Refresh
+        Refresh {loading && <Spin />}
       </Button>
+      <h3><Icon name="run"/> Processing Your Order</h3>
+      {loading && <Loading large center />}
       {renderBody()}
     </div>
   );

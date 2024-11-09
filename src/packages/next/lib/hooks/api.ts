@@ -38,6 +38,7 @@ export default function useAPI(
     setCalling(true);
     let result;
     try {
+      setError("");
       result = await apiPost(endpoint1, params1, cache_s);
     } catch (err) {
       if (!isMounted.current) return;
