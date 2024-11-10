@@ -199,32 +199,15 @@ export default function Redeem({ customize, id }: Props) {
                       Once you redeem a voucher code, you can use the
                       corresponding{" "}
                       <A href="/settings/purchases" external>
-                        money
+                        credit
                       </A>{" "}
-                      to make purchases, or the{" "}
-                      <A href="/settings/licenses" external>
-                        licenses
-                      </A>{" "}
-                      to{" "}
-                      <A href="https://doc.cocalc.com/add-lic-project.html">
-                        upgrade your projects.
-                      </A>{" "}
-                      If a license doesn't fit your needs, you can{" "}
-                      <A href="/settings/licenses" external>
-                        easily edit it here
-                      </A>{" "}
-                      including receiving a prorated refund so you can buy
-                      something else, or paying a little more for a more
-                      powerful license.
+                      to make purchases.
                     </p>
                     <p>
                       You can browse{" "}
                       <A href="/vouchers/redeemed">
                         all vouchers you have already redeemed.
                       </A>{" "}
-                      If in a project's settings you click "Redeem Voucher" and
-                      enter a voucher code you already redeemed, then the
-                      corresponding licenses will get added to that project.
                     </p>
                     <p>
                       If you have any questions,{" "}
