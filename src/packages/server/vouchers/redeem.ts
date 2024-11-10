@@ -5,6 +5,12 @@ import { getVoucher } from "./vouchers";
 import { getLogger } from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { getTransactionClient } from "@cocalc/database/pool";
+import sendEmail from "@cocalc/server/email/send-email";
+import { getServerSettings } from "@cocalc/database/settings";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+import { currency } from "@cocalc/util/misc";
+import { join } from "path";
+import basePath from "@cocalc/backend/base-path";
 
 const log = getLogger("server:vouchers:redeem");
 
@@ -76,6 +82,13 @@ export default async function redeemVoucher({
       client,
     });
     await client.query("COMMIT");
+
+    try {
+      sendRedeemAlert({ account_id, voucher, code });
+    } catch (err) {
+      log.debug(`WARNING -- issue sending redeem alert: ${err}`);
+    }
+
     return createdItems;
   } catch (err) {
     await client.query("ROLLBACK");
@@ -85,4 +98,46 @@ export default async function redeemVoucher({
     // end atomic transaction
     client.release();
   }
+}
+
+async function sendRedeemAlert({ account_id, voucher, code }) {
+  const { name, email_address: to } = await getUser(voucher.created_by);
+  if (!to) {
+    return;
+  }
+
+  const { site_name: siteName, dns } = await getServerSettings();
+  const { name: userName, email_address: userEmail } =
+    await getUser(account_id);
+  const url = `https://${dns}${join(basePath, "vouchers")}`;
+
+  const subject = `${siteName} Voucher ${code} Redeemed for ${currency(voucher.cost)}`;
+
+  const text = `
+Hello ${name},
+
+A voucher you created with the code '${code}' was redeemed
+by ${userName} (${userEmail}) for ${currency(voucher.cost)}.
+To the status of all voucher codes for this voucher, see
+
+${url}
+
+
+ -- ${siteName}
+`;
+
+  const html = `
+Hello ${name},
+
+<br/><br/>
+
+A voucher you created with the code '${code}' was redeemed
+by ${userName} ${userEmail ? " (" + userEmail + ") " : ""} for ${currency(voucher.cost)}.
+You can see the status of your vouchers at <a href="${url}">the voucher center</a>.
+
+<br/><br/>
+
+ -- ${siteName}
+`;
+  await sendEmail({ to, subject, text, html });
 }

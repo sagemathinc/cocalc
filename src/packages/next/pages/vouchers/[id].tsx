@@ -175,17 +175,19 @@ export default function VoucherCodes({ customize, id }) {
                 {database.value?.vouchers?.title && (
                   <h3>Title: {database.value.vouchers.title}</h3>
                 )}
-                <div
-                  style={{
-                    margin: "auto",
-                    padding: "15px",
-                    textAlign: "center",
-                    fontSize: "14pt",
-                  }}
-                >
-                  Each Voucher is Worth{" "}
-                  {currency(database.value?.vouchers?.cost)} in credit.
-                </div>
+                {database.value?.vouchers != null && (
+                  <div
+                    style={{
+                      margin: "auto",
+                      padding: "15px",
+                      textAlign: "center",
+                      fontSize: "14pt",
+                    }}
+                  >
+                    Each Voucher is Worth{" "}
+                    {currency(database.value?.vouchers?.cost)} in credit.
+                  </div>
+                )}
                 <Divider />
 
                 {error && (

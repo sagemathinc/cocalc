@@ -181,11 +181,7 @@ export default function Redeem({ customize, id }: Props) {
                     <p>
                       When you redeem a voucher code,{" "}
                       <A href="/settings/purchases" external>
-                        money
-                      </A>{" "}
-                      or{" "}
-                      <A href="/settings/licenses" external>
-                        licenses
+                        credit
                       </A>{" "}
                       will be added to your account
                       {profile?.email_address != null ? (
