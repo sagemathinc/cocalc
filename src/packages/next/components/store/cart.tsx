@@ -35,7 +35,7 @@ import type {
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
   const [updating, setUpdating] = useState<boolean>(false);
-  const [subTotal, setSubTotal] = useState<number>(0);
+  const [numChecked, setNumChecked] = useState<number>(0);
   const router = useRouter();
 
   // most likely, user will checkout next
@@ -50,7 +50,7 @@ export default function ShoppingCart() {
     // TODO deal with errors returned by useAPI
     if (cart.result.error != null) return undefined;
     const x: any[] = [];
-    let subTotal = 0;
+    let numChecked = 0;
     for (const item of cart.result) {
       try {
         item.cost = computeCost(item.description);
@@ -66,11 +66,11 @@ export default function ShoppingCart() {
         continue;
       }
       if (item.checked) {
-        subTotal += item.cost.cost;
+        numChecked += 1;
       }
       x.push(item);
     }
-    setSubTotal(subTotal);
+    setNumChecked(numChecked);
     return x;
   }, [cart.result]);
 
@@ -200,7 +200,7 @@ export default function ShoppingCart() {
       <>
         <div style={{ float: "right" }}>
           <Button
-            disabled={subTotal == 0 || updating}
+            disabled={numChecked == 0 || updating}
             size="large"
             type="primary"
             onClick={() => {

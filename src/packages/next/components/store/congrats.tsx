@@ -164,6 +164,8 @@ export default function Congrats() {
     );
   }
 
+  const licenses = purchases.result.filter((x) => x.purchased.license_id);
+
   return (
     <>
       <div style={{ float: "right" }}>
@@ -177,21 +179,20 @@ export default function Congrats() {
           />{" "}
           Order Complete!
         </h1>
-        {purchases.result.length > 0 && (
+        {licenses.length > 0 && (
           <Card
             style={{ margin: "15px auto", maxWidth: "700px" }}
             title={
               <>
                 <Icon name="key" style={{ marginRight: "15px" }} />
                 Congrats! You recently ordered{" "}
-                {purchases.result.length >= 2 ? "these" : "this"}{" "}
-                {purchases.result.length} <SiteName />{" "}
-                {plural(purchases.result.length, "license")}
+                {licenses.length >= 2 ? "these" : "this"} {licenses.length}{" "}
+                <SiteName /> {plural(licenses.length, "license")}
               </>
             }
           >
             <ul>
-              {purchases.result.map((item) => (
+              {licenses.map((item) => (
                 <li key={item.purchased.license_id}>
                   <License
                     key={item.purchased.license_id}

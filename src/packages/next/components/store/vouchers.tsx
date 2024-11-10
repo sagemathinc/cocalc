@@ -7,17 +7,7 @@
 Voucher -- create vouchers from the contents of your shopping cart.
 */
 
-import {
-  Button,
-  DatePicker,
-  Divider,
-  Form,
-  Input,
-  InputNumber,
-  Radio,
-  Space,
-} from "antd";
-import dayjs from "dayjs";
+import { Button, Divider, Form, Input, InputNumber, Radio, Space } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { currency, plural } from "@cocalc/util/misc";
@@ -49,7 +39,6 @@ interface Config {
   prefix: string;
   postfix: string;
   charset: CharSet;
-  expire: dayjs.Dayjs;
 }
 
 export default function CreateVouchers() {
@@ -73,8 +62,6 @@ export default function CreateVouchers() {
       prefix: typeof q.prefix == "string" ? q.prefix : "",
       postfix: typeof q.postfix == "string" ? q.postfix : "",
       charset: typeof q.charset == "string" ? q.charset : "alphanumeric",
-      expire:
-        typeof q.expire == "string" ? dayjs(q.expire) : dayjs().add(30, "day"),
     };
   });
   const {
@@ -86,14 +73,12 @@ export default function CreateVouchers() {
     prefix,
     postfix,
     charset,
-    expire,
   } = query;
   const setQuery = (obj) => {
     const query1 = { ...query };
     for (const key in obj) {
       const value = obj[key];
-      router.query[key] =
-        key == "expire" ? value.toDate().toISOString() : `${value}`;
+      router.query[key] = `${value}`;
       query1[key] = value;
     }
     router.replace({ query: router.query }, undefined, {
@@ -116,7 +101,6 @@ export default function CreateVouchers() {
         const item = await apiPost("/shopping/cart/get", { id });
         if (item.product == "cash-voucher") {
           const { description } = item;
-          description.expire = dayjs(description.expire);
           form.setFieldsValue(description);
           setQuery(description);
         }
@@ -143,11 +127,7 @@ export default function CreateVouchers() {
     }
   }, [whenPay]);
 
-  const disabled =
-    !numVouchers ||
-    !title?.trim() ||
-    expire == null ||
-    !profile?.email_address;
+  const disabled = !numVouchers || !title?.trim() || !profile?.email_address;
 
   function renderHeading() {
     return (
@@ -225,7 +205,7 @@ export default function CreateVouchers() {
               <Form.Item name="amount" initialValue={amount}>
                 <InputNumber
                   size="large"
-                  min={5}
+                  min={1}
                   max={MAX_VOUCHER_VALUE}
                   precision={2} // for two decimal places
                   step={5}
@@ -254,57 +234,6 @@ export default function CreateVouchers() {
               </Form.Item>
             </div>
           </Paragraph>
-          {whenPay == "admin" && (
-            <>
-              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
-                <Check done={expire != null} />
-                When Voucher Codes Expire
-              </h4>
-              <Paragraph style={STYLE}>
-                As an admin you can set any expiration date you want for the
-                voucher codes.
-              </Paragraph>
-              <Form.Item label="Expire" name="expire" initialValue={expire}>
-                <DatePicker
-                  value={expire}
-                  presets={[
-                    {
-                      label: "+ 7 Days",
-                      value: dayjs().add(7, "d"),
-                    },
-                    {
-                      label: "+ 30 Days",
-                      value: dayjs().add(30, "day"),
-                    },
-                    {
-                      label: "+ 2 months",
-                      value: dayjs().add(2, "months"),
-                    },
-                    {
-                      label: "+ 6 months",
-                      value: dayjs().add(6, "months"),
-                    },
-                    {
-                      label: "+ 1 Year",
-                      value: dayjs().add(1, "year"),
-                    },
-                  ]}
-                  onChange={(expire) => setQuery({ expire })}
-                  disabledDate={(current) => {
-                    if (!current) {
-                      return true;
-                    }
-                    // Can not select days before today and today
-                    if (current < dayjs().endOf("day")) {
-                      return true;
-                    }
-                    // ok
-                    return false;
-                  }}
-                />
-              </Form.Item>
-            </>
-          )}
           <h4
             style={{
               fontSize: "13pt",

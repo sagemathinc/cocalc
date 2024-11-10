@@ -111,11 +111,15 @@ export const COLUMNS = [
     dataIndex: "expire",
     key: "expire",
     align: "center",
-    render: (_, { id, expire }) => (
-      <A href={`/vouchers/${id}`}>
-        <TimeAgo datetime={expire} />
-      </A>
-    ),
+    render: (_, { id, expire }) => {
+      return expire ? (
+        <A href={`/vouchers/${id}`}>
+          <TimeAgo datetime={expire} />
+        </A>
+      ) : (
+        "never"
+      );
+    },
   },
 ] as any;
 
