@@ -29,12 +29,10 @@ const QUERY = {
       created: null,
       active: null,
       expire: null,
-      cancel_by: null,
       title: null,
       count: null,
       cost: null,
       tax: null,
-      cart: null,
       when_pay: null,
       purchased: null,
     },
@@ -119,17 +117,6 @@ export const COLUMNS = [
       </A>
     ),
   },
-  {
-    title: "Cancel By",
-    dataIndex: "cancel_by",
-    key: "cancel_by",
-    align: "center",
-    render: (_, { id, cancel_by }) => (
-      <A href={`/vouchers/${id}`}>
-        <TimeAgo datetime={cancel_by} />
-      </A>
-    ),
-  },
 ] as any;
 
 export default function Created({ customize }) {
@@ -159,7 +146,7 @@ export default function Created({ customize }) {
             {profile != null && !profile.account_id && (
               <Card>
                 <div style={{ fontSize: "75px", textAlign: "center" }}>
-                  <Icon name="gift2"/>
+                  <Icon name="gift2" />
                 </div>
                 <InPlaceSignInOrUp
                   title="Created Vouchers"

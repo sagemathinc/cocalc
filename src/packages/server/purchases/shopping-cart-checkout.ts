@@ -60,7 +60,6 @@ export const shoppingCartCheckout = async ({
     account_id,
     payment_intent,
   );
-  console.log(params);
 
   if (params.amountDue <= ALLOWED_SLACK) {
     // The user has sufficient balance to complete the cart checkout, so we immediately

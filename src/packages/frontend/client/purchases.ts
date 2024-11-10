@@ -156,10 +156,6 @@ export class PurchasesClient {
     return await purchasesApi.getShoppingCartCheckoutParams();
   }
 
-  async getVoucherCartCheckoutParams(count: number) {
-    return await purchasesApi.getVoucherCartCheckoutParams(count);
-  }
-
   async adminGetMinBalance(account_id: string): Promise<number> {
     return await purchasesApi.adminGetMinBalance(account_id);
   }

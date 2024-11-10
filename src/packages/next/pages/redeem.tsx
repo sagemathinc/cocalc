@@ -18,8 +18,6 @@ import { useRouter } from "next/router";
 import apiPost from "lib/api/post";
 import useIsMounted from "lib/hooks/mounted";
 import Loading from "components/share/loading";
-import Project from "components/project/link";
-import License from "components/licenses/license";
 import type { CreatedItem } from "@cocalc/server/vouchers/redeem";
 import { currency } from "@cocalc/util/misc";
 
@@ -40,9 +38,6 @@ export default function Redeem({ customize, id }: Props) {
   const router = useRouter();
   const [createdItems, setCreatedItems] = useState<CreatedItem[] | null>(null);
 
-  // optional project_id to automatically apply all the licenses we get on redeeming the voucher
-  const { project_id } = router.query;
-
   async function redeemCode() {
     try {
       setError("");
@@ -53,7 +48,6 @@ export default function Redeem({ customize, id }: Props) {
       const c = v[v.length - 1]?.trim();
       const createdItems = await apiPost("/vouchers/redeem", {
         code: c,
-        project_id,
       });
       if (!isMounted.current) return;
       setCreatedItems(createdItems);
@@ -155,48 +149,7 @@ export default function Redeem({ customize, id }: Props) {
                       }
                       type="success"
                       description={
-                        <DisplayCreatedItems
-                          createdItems={createdItems}
-                          project_id={project_id}
-                        />
-                      }
-                    />
-                  )}
-                  {project_id && (
-                    <Alert
-                      showIcon
-                      style={{ marginTop: "30px" }}
-                      type={
-                        {
-                          input: "info",
-                          redeeming: "warning",
-                          redeemed: "success",
-                        }[state] as "info" | "warning" | "success"
-                      }
-                      message={
-                        <div style={{ maxWidth: "340px" }}>
-                          {state == "input" && (
-                            <>
-                              The license provided by this voucher will be
-                              automatically applied to your project{" "}
-                              <Project project_id={project_id} />.
-                            </>
-                          )}
-                          {state == "redeeming" && (
-                            <>
-                              Redeeming the voucher and applying the license it
-                              to your project{" "}
-                              <Project project_id={project_id} />
-                              ...
-                            </>
-                          )}
-                          {state == "redeemed" && createdItems != null && (
-                            <DisplayCreatedItems
-                              createdItems={createdItems}
-                              project_id={project_id}
-                            />
-                          )}
-                        </div>
+                        <DisplayCreatedItems createdItems={createdItems} />
                       }
                     />
                   )}
@@ -299,20 +252,20 @@ export default function Redeem({ customize, id }: Props) {
   );
 }
 
-function DisplayCreatedItems({ createdItems, project_id }) {
+function DisplayCreatedItems({ createdItems }) {
   if (createdItems == null) {
     return null;
   }
   return (
     <ol>
       {createdItems.map((item, n) => (
-        <DisplayCreatedItem item={item} project_id={project_id} key={n} />
+        <DisplayCreatedItem item={item} key={n} />
       ))}
     </ol>
   );
 }
 
-function DisplayCreatedItem({ item, project_id }) {
+function DisplayCreatedItem({ item }) {
   if (item.type == "cash") {
     return (
       <li>
@@ -321,23 +274,6 @@ function DisplayCreatedItem({ item, project_id }) {
           to your account
         </A>{" "}
         (transaction id: {item.purchase_id})
-      </li>
-    );
-  } else if (item.type == "license") {
-    return (
-      <li>
-        The following license <License license_id={item.license_id} /> was added{" "}
-        <A href="/settings/licenses" external>
-          to your licenses
-        </A>
-        .
-        {!!project_id && (
-          <>
-            {" "}
-            This license was applied to the project{" "}
-            <Project project_id={project_id} />.
-          </>
-        )}
       </li>
     );
   } else {

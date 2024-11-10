@@ -18,12 +18,11 @@ import {
   Space,
 } from "antd";
 import dayjs from "dayjs";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { currency, plural } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
-import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
 import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title } from "components/misc";
@@ -35,11 +34,6 @@ import vouchers, {
   MAX_VOUCHER_VALUE,
   WhenPay,
 } from "@cocalc/util/vouchers";
-import {
-  vouchersCheckout,
-  syncPaidInvoices,
-} from "@cocalc/frontend/purchases/api";
-import { StoreBalanceContext } from "../../lib/balance";
 import { ADD_STYLE, AddToCartButton } from "./add-box";
 import apiPost from "lib/api/post";
 import Loading from "components/share/loading";
@@ -61,11 +55,9 @@ interface Config {
 export default function CreateVouchers() {
   const [form] = Form.useForm();
   const router = useRouter();
-  const isMounted = useIsMounted();
   const { profile, reload: reloadProfile } = useProfileWithReload({
     noCache: true,
   });
-  const { refreshBalance } = useContext(StoreBalanceContext);
   const [error, setError] = useState<string>("");
 
   // user configurable options: start
@@ -136,67 +128,6 @@ export default function CreateVouchers() {
     })();
   }, []);
 
-  //////
-  // Handling payment -- start
-  // This is very similar to checkout.tsx, but I couldn't think of a good way to
-  // avoid dup, and vouchers are *barely* used.
-  const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
-
-  useEffect(() => {
-    if (router.query.complete == null) {
-      // nothing to handle
-      return;
-    }
-
-    (async () => {
-      // in case webhooks aren't configured, get the payment via sync:
-      try {
-        await syncPaidInvoices();
-      } catch (err) {
-        console.warn("syncPaidInvoices buying vouchers -- issue", err);
-      }
-      // now do the purchase flow again with money available.
-      completePurchase();
-    })();
-  }, []);
-
-  async function completePurchase() {
-    try {
-      setError("");
-      setCompletingPurchase(true);
-      if (!isMounted.current) {
-        return;
-      }
-      await vouchersCheckout({
-        config: {
-          count: numVouchers ?? 1,
-          expire: expire.toDate(),
-          cancelBy: dayjs().add(14, "day").toDate(),
-          active: dayjs().toDate(),
-          title,
-          whenPay,
-          generate: {
-            length,
-            charset,
-            prefix,
-            postfix,
-          },
-        },
-      });
-      if (isMounted.current) {
-        router.push("/store/congrats");
-      }
-    } catch (err) {
-      // The purchase failed.
-      setError(err.message);
-    } finally {
-      await refreshBalance();
-      if (!isMounted.current) return;
-    }
-  }
-  // Handling payment -- end
-  //////
-
   const exampleCodes: string = useMemo(() => {
     return vouchers({ count: 5, length, charset, prefix, postfix }).join(", ");
   }, [length, charset, prefix, postfix]);
@@ -214,7 +145,6 @@ export default function CreateVouchers() {
 
   const disabled =
     !numVouchers ||
-    completingPurchase ||
     !title?.trim() ||
     expire == null ||
     !profile?.email_address;

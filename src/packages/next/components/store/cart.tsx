@@ -15,7 +15,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { capitalize, isValidUUID } from "@cocalc/util/misc";
-import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
+import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -195,40 +195,20 @@ export default function ShoppingCart() {
     );
   }
 
-  function Proceed() {
-    const checkout = (
-      <Button
-        disabled={subTotal == 0 || updating}
-        size="large"
-        type="primary"
-        onClick={() => {
-          router.push("/store/checkout");
-        }}
-      >
-        Proceed to Checkout
-      </Button>
-    );
-    return (
-      <Space>
-        {checkout}
-        <Button
-          disabled={subTotal == 0 || updating}
-          size="large"
-          onClick={() => {
-            router.push("/store/vouchers");
-          }}
-        >
-          Create Vouchers
-        </Button>
-      </Space>
-    );
-  }
-
   function renderItems() {
     return (
       <>
         <div style={{ float: "right" }}>
-          <Proceed />
+          <Button
+            disabled={subTotal == 0 || updating}
+            size="large"
+            type="primary"
+            onClick={() => {
+              router.push("/store/checkout");
+            }}
+          >
+            Proceed to Checkout
+          </Button>
         </div>
         <h3>
           <Icon name={"shopping-cart"} style={{ marginRight: "5px" }} />{" "}

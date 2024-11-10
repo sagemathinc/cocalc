@@ -359,30 +359,6 @@ export async function getShoppingCartCheckoutParams(
   return await api("purchases/get-shopping-cart-checkout-params", opts);
 }
 
-import type { WhenPay } from "@cocalc/util/vouchers";
-
-export async function vouchersCheckout(opts: {
-  config: {
-    count: number;
-    expire: Date;
-    active: Date;
-    cancelBy: Date;
-    title: string;
-    whenPay: WhenPay;
-    generate: {
-      length: number;
-      charset: string;
-      prefix: string;
-      postfix: string;
-    };
-  };
-}) {
-  return await api("purchases/vouchers-checkout", opts);
-}
-
-export async function getVoucherCartCheckoutParams(count: number) {
-  return await api("purchases/get-vouchers-checkout-params", { count });
-}
 // get your own min balance
 export async function getMinBalance(): Promise<number> {
   return await api("purchases/get-min-balance");
