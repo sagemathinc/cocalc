@@ -41,6 +41,8 @@ import {
 } from "@cocalc/frontend/purchases/api";
 import { StoreBalanceContext } from "../../lib/balance";
 import { ADD_STYLE, AddToCartButton } from "./add-box";
+import apiPost from "lib/api/post";
+import Loading from "components/share/loading";
 
 const STYLE = { color: "#666", fontSize: "12pt" } as const;
 
@@ -108,6 +110,31 @@ export default function CreateVouchers() {
     });
     setQuery0(query1);
   };
+
+  const [loading, setLoading] = useState<boolean>(false);
+  useEffect(() => {
+    const { id } = router.query;
+    if (id == null) {
+      return;
+    }
+    // editing something in the shopping cart -- load via an api call
+    (async () => {
+      try {
+        setLoading(true);
+        const item = await apiPost("/shopping/cart/get", { id });
+        if (item.product == "cash-voucher") {
+          const { description } = item;
+          description.expire = dayjs(description.expire);
+          form.setFieldsValue(description);
+          setQuery(description);
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   //////
   // Handling payment -- start
@@ -222,7 +249,7 @@ export default function CreateVouchers() {
         <div>
           {profile?.is_admin && (
             <>
-              <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
+              <h4 style={{ fontSize: "13pt", marginTop: "5px" }}>
                 <Check done /> Admin: Pay or Free
               </h4>
               <div>
@@ -475,6 +502,7 @@ export default function CreateVouchers() {
       {renderHeading()}
       <RequireEmailAddress profile={profile} reloadProfile={reloadProfile} />
       <ShowError error={error} setError={setError} />
+      {loading && <Loading large center />}
       {renderAddBox()}
       {renderVoucherConfig()}
       {renderAddBox()}

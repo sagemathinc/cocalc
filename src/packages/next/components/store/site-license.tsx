@@ -49,8 +49,7 @@ interface Props {
   noAccount: boolean;
 }
 
-export default function SiteLicense(props: Props) {
-  const { noAccount } = props;
+export default function SiteLicense({ noAccount }: Props) {
   const router = useRouter();
   const headerRef = useRef<HTMLHeadingElement>(null);
 

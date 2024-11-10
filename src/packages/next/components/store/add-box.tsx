@@ -18,7 +18,8 @@ import { decimalDivide } from "@cocalc/util/stripe/calc";
 export const ADD_STYLE = {
   display: "inline-block",
   maxWidth: "550px",
-  background: "white",
+  minWidth: "400px",
+  background: "#fafafa",
   border: "1px solid #ccc",
   padding: "10px 20px",
   borderRadius: "5px",
