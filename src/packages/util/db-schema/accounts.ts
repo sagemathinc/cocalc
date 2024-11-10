@@ -17,6 +17,9 @@ import {
 
 import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
 
+export const USER_SEARCH_LIMIT = 250;
+export const ADMIN_SEARCH_LIMIT = 2500;
+
 Table({
   name: "accounts",
   fields: {

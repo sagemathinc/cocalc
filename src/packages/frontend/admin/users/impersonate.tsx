@@ -9,6 +9,7 @@ import { Rendered, useEffect, useState } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { CopyToClipBoard } from "@cocalc/frontend/components";
 
 interface Props {
   account_id: string;
@@ -65,6 +66,16 @@ export function Impersonate({ first_name, last_name, account_id }: Props) {
             new <b>Incognito Window</b>, where you will be signed in as "
             {first_name} {last_name}"...
           </a>
+          <br />
+          <br />
+          or copy the following link and paste it in a different browser:
+          <br />
+          <br />
+          <CopyToClipBoard
+            before
+            inputWidth="500px"
+            value={`${location.origin}${link}`}
+          />
         </div>
         {extraWarning && (
           <Alert
