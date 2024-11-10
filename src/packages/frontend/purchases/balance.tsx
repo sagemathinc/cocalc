@@ -6,6 +6,7 @@ import MoneyStatistic from "./money-statistic";
 import { currency } from "@cocalc/util/misc";
 import Payment from "./payment";
 import Next from "@cocalc/frontend/components/next";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 interface Props {
   balance?: number | null;
@@ -65,6 +66,7 @@ export default function Balance({
             onClick={() => setAdd(true)}
             style={{ marginTop: "5px" }}
           >
+            <Icon name="credit-card" style={{ marginRight: "5px" }} />
             Make a Deposit
           </Button>
           {showTransferLink && balance > 0 && (
@@ -77,6 +79,12 @@ export default function Balance({
     } else {
       body = (
         <>
+          <Button
+            onClick={() => setAdd(false)}
+            style={{ position: "absolute", right: "15px" }}
+          >
+            Cancel
+          </Button>
           <Payment
             balance={balance}
             update={() => {
@@ -85,9 +93,6 @@ export default function Balance({
             }}
             cost={cost}
           />
-          <Button onClick={() => setAdd(false)} style={{ marginTop: "15px" }}>
-            Cancel
-          </Button>
           {pendingBalance != null && pendingBalance < 0 && (
             <Tooltip title="Pending charges are not included in your spending limit.  They need to be paid soon by a credit to your account.">
               <div style={{ maxWidth: "200px", color: "#666" }}>

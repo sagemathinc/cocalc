@@ -86,7 +86,7 @@ export function AddBox({
     if (noAccount) return null;
 
     return (
-      <div style={{ textAlign: "center" }}>
+      <div style={{ textAlign: "center", marginTop: "5px" }}>
         {router.query.id != null && (
           <Button
             size="large"
@@ -140,7 +140,6 @@ export function AddToCartButton({
   variant = "primary",
   disabled: disabled0,
 }: CartButtonProps) {
-  const style = variant === "primary" ? { marginTop: "5px" } : {};
   const disabled =
     (disabled0 ?? false) || !!cartError || cost == null || cost.cost === 0;
 
@@ -149,12 +148,11 @@ export function AddToCartButton({
       size={variant === "small" ? "small" : "large"}
       type="primary"
       htmlType="submit"
-      style={style}
       onClick={() => addToCart({ form, setCartError, router })}
       disabled={disabled}
     >
       {disabled
-        ? "Finish configuring the license..."
+        ? "Finish Configuration"
         : router.query.id != null
           ? "Save Changes"
           : "Add to Cart"}

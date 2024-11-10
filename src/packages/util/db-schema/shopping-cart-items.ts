@@ -19,6 +19,14 @@ export type ProductType = "site-license" | "cash-voucher";
 export interface CashVoucher {
   type: "cash-voucher";
   amount: number;
+  numVouchers: number;
+  whenPay: "now" | "admin";
+  length: number;
+  title: string;
+  prefix: string;
+  postfix: string;
+  charset: string;
+  expire: Date;
 }
 
 export type ProductDescription = SiteLicenseDescriptionDB | CashVoucher;

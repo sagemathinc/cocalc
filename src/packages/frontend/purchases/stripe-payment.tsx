@@ -161,7 +161,7 @@ export default function StripePayment({
         />
       </div>
       {requiresPayment && !disabled && (
-        <div>
+        <div style={{ textAlign: "center" }}>
           <StripeCheckout
             {...{
               lineItems,
@@ -171,6 +171,12 @@ export default function StripePayment({
               style,
             }}
           />
+          <Button
+            onClick={() => setRequiresPayment(false)}
+            style={{ marginTop: "15px" }}
+          >
+            Cancel
+          </Button>
         </div>
       )}
     </Card>
@@ -389,7 +395,7 @@ function PaymentForm({ style, onFinished, disabled }) {
       />
       {ready && (
         <ConfirmButton
-          label={"Continue"}
+          label={<>Continue</>}
           disabled={
             success ||
             disabled ||

@@ -44,6 +44,14 @@ export type QuotaCostProps = {
 export type CashVoucherCostProps = {
   type: "cash-voucher";
   amount: number;
+  numVouchers: number;
+  whenPay: "now" | "admin";
+  length: number;
+  title: string;
+  prefix: string;
+  postfix: string;
+  charset: string;
+  expire: Date;
 };
 
 export type ComputeCostProps =

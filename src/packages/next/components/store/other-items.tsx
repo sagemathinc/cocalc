@@ -104,7 +104,12 @@ function Items({ onChange, cart, tab, search }: ItemsProps) {
     for (const item of get.result) {
       if (search && !search_match(JSON.stringify(item).toLowerCase(), v))
         continue;
-      item.cost = computeCost(item.description);
+      try {
+        item.cost = computeCost(item.description);
+      } catch (_err) {
+        // deprecated, so do not include
+        continue;
+      }
       x.push(item);
     }
     return x;

@@ -10,6 +10,7 @@ Voucher -- create vouchers from the contents of your shopping cart.
 import {
   Button,
   DatePicker,
+  Divider,
   Form,
   Input,
   InputNumber,
@@ -19,7 +20,7 @@ import {
 import dayjs from "dayjs";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { plural } from "@cocalc/util/misc";
+import { currency, plural } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
@@ -39,8 +40,7 @@ import {
   syncPaidInvoices,
 } from "@cocalc/frontend/purchases/api";
 import { StoreBalanceContext } from "../../lib/balance";
-import { ADD_STYLE } from "./add-box";
-// import { DisplayCost } from "./site-license-cost";
+import { ADD_STYLE, AddToCartButton } from "./add-box";
 
 const STYLE = { color: "#666", fontSize: "12pt" } as const;
 
@@ -57,6 +57,7 @@ interface Config {
 }
 
 export default function CreateVouchers() {
+  const [form] = Form.useForm();
   const router = useRouter();
   const isMounted = useIsMounted();
   const { profile, reload: reloadProfile } = useProfileWithReload({
@@ -74,7 +75,7 @@ export default function CreateVouchers() {
         typeof q.numVouchers == "string" ? parseInt(q.numVouchers) : 1,
       amount: typeof q.amount == "string" ? parseInt(q.amount) : 5,
       length: typeof q.length == "string" ? parseInt(q.length) : 8,
-      title: typeof q.title == "string" ? q.title : "My Voucher",
+      title: typeof q.title == "string" ? q.title : "CoCalc Voucher Code",
       prefix: typeof q.prefix == "string" ? q.prefix : "",
       postfix: typeof q.postfix == "string" ? q.postfix : "",
       charset: typeof q.charset == "string" ? q.charset : "alphanumeric",
@@ -201,11 +202,15 @@ export default function CreateVouchers() {
             : "Configure a Voucher"}
         </Title>
         <Paragraph style={STYLE}>
-          Voucher codes can be <A href="/redeem">redeemed</A> for <SiteName />{" "}
-          credit, which does not expire and can be used to purchase anything on
-          the site (licenses, GPU's, etc.). Visit the{" "}
+          Voucher codes are exactly like gift cards. They can be{" "}
+          <A href="/redeem">redeemed</A> by anybody for <SiteName /> credit,
+          which does not expire and can be used to purchase anything on the site
+          (licenses, GPU's, etc.). Visit the{" "}
           <A href="/vouchers">Voucher Center</A> for more about vouchers, and{" "}
-          <A href="https://doc.cocalc.com/vouchers.html">read the docs</A>.
+          <A href="https://doc.cocalc.com/vouchers.html">read the docs</A>. If
+          anything goes wrong with your purchase,{" "}
+          <A href="/support/new">contact support</A> and we will make things
+          right.
         </Paragraph>
       </div>
     );
@@ -213,7 +218,7 @@ export default function CreateVouchers() {
 
   function renderVoucherConfig() {
     return (
-      <>
+      <Form layout="horizontal" form={form}>
         <div>
           {profile?.is_admin && (
             <>
@@ -221,29 +226,31 @@ export default function CreateVouchers() {
                 <Check done /> Admin: Pay or Free
               </h4>
               <div>
-                <Radio.Group
-                  value={whenPay}
-                  onChange={(e) => {
-                    setQuery({ whenPay: e.target.value as WhenPay });
-                  }}
-                >
-                  <Space
-                    direction="vertical"
-                    style={{ margin: "5px 0 15px 15px" }}
+                <Form.Item name="whenPay" initialValue={whenPay}>
+                  <Radio.Group
+                    value={whenPay}
+                    onChange={(e) => {
+                      setQuery({ whenPay: e.target.value as WhenPay });
+                    }}
                   >
-                    <Radio value={"now"}>Pay Now</Radio>
-                    {profile?.is_admin && (
-                      <Radio value={"admin"}>
-                        Admin Vouchers: you will not be charged (admins only)
-                      </Radio>
-                    )}
-                  </Space>
-                </Radio.Group>
+                    <Space
+                      direction="vertical"
+                      style={{ margin: "5px 0 15px 15px" }}
+                    >
+                      <Radio value={"now"}>Pay</Radio>
+                      {profile?.is_admin && (
+                        <Radio value={"admin"}>
+                          Free: you will not be charged (admins only)
+                        </Radio>
+                      )}
+                    </Space>
+                  </Radio.Group>
+                </Form.Item>
                 <br />
                 <Paragraph style={STYLE}>
                   {profile?.is_admin && (
                     <>
-                      As an admin, you may select the "Admin" option; this is
+                      As an admin, you may select the "Free" option; this is
                       useful for creating free trials, fulfilling complicated
                       customer requirements and adding credit to your own
                       account.
@@ -257,37 +264,37 @@ export default function CreateVouchers() {
             <Check done={(numVouchers ?? 0) > 0} /> Value of Each Voucher
           </h4>
           <Paragraph style={STYLE}>
-            Input the value of each voucher:
-            <div style={{ textAlign: "center", marginTop: "15px" }}>
-              <InputNumber
-                size="large"
-                min={5}
-                max={MAX_VOUCHER_VALUE}
-                precision={2} // for two decimal places
-                step={5}
-                value={amount}
-                onChange={(value) => setQuery({ amount: value })}
-                addonAfter="$"
-              />
+            <div style={{ textAlign: "center" }}>
+              <Form.Item name="amount" initialValue={amount}>
+                <InputNumber
+                  size="large"
+                  min={5}
+                  max={MAX_VOUCHER_VALUE}
+                  precision={2} // for two decimal places
+                  step={5}
+                  value={amount}
+                  onChange={(value) => setQuery({ amount: value })}
+                  addonAfter="$"
+                />
+              </Form.Item>
             </div>
           </Paragraph>
           <h4 style={{ fontSize: "13pt", marginTop: "20px" }}>
             <Check done={(numVouchers ?? 0) > 0} /> Number of Voucher Codes
           </h4>
           <Paragraph style={STYLE}>
-            Input the number of voucher codes to{" "}
-            {whenPay == "now" ? "buy" : "create"} (limit:{" "}
-            {MAX_VOUCHERS[whenPay]}):
-            <div style={{ textAlign: "center", marginTop: "15px" }}>
-              <InputNumber
-                size="large"
-                style={{ width: "250px" }}
-                min={1}
-                max={MAX_VOUCHERS[whenPay]}
-                value={numVouchers}
-                onChange={(value) => setQuery({ numVouchers: value })}
-                addonAfter={`Voucher ${plural(numVouchers, "Code")}`}
-              />
+            <div style={{ textAlign: "center" }}>
+              <Form.Item name="numVouchers" initialValue={numVouchers}>
+                <InputNumber
+                  size="large"
+                  style={{ width: "250px" }}
+                  min={1}
+                  max={MAX_VOUCHERS[whenPay]}
+                  value={numVouchers}
+                  onChange={(value) => setQuery({ numVouchers: value })}
+                  addonAfter={`Voucher ${plural(numVouchers, "Code")}`}
+                />
+              </Form.Item>
             </div>
           </Paragraph>
           {whenPay == "admin" && (
@@ -300,51 +307,45 @@ export default function CreateVouchers() {
                 As an admin you can set any expiration date you want for the
                 voucher codes.
               </Paragraph>
-              <Form
-                labelCol={{ span: 9 }}
-                wrapperCol={{ span: 9 }}
-                layout="horizontal"
-              >
-                <Form.Item label="Expire">
-                  <DatePicker
-                    value={expire}
-                    presets={[
-                      {
-                        label: "+ 7 Days",
-                        value: dayjs().add(7, "d"),
-                      },
-                      {
-                        label: "+ 30 Days",
-                        value: dayjs().add(30, "day"),
-                      },
-                      {
-                        label: "+ 2 months",
-                        value: dayjs().add(2, "months"),
-                      },
-                      {
-                        label: "+ 6 months",
-                        value: dayjs().add(6, "months"),
-                      },
-                      {
-                        label: "+ 1 Year",
-                        value: dayjs().add(1, "year"),
-                      },
-                    ]}
-                    onChange={(expire) => setQuery({ expire })}
-                    disabledDate={(current) => {
-                      if (!current) {
-                        return true;
-                      }
-                      // Can not select days before today and today
-                      if (current < dayjs().endOf("day")) {
-                        return true;
-                      }
-                      // ok
-                      return false;
-                    }}
-                  />
-                </Form.Item>
-              </Form>
+              <Form.Item label="Expire" name="expire" initialValue={expire}>
+                <DatePicker
+                  value={expire}
+                  presets={[
+                    {
+                      label: "+ 7 Days",
+                      value: dayjs().add(7, "d"),
+                    },
+                    {
+                      label: "+ 30 Days",
+                      value: dayjs().add(30, "day"),
+                    },
+                    {
+                      label: "+ 2 months",
+                      value: dayjs().add(2, "months"),
+                    },
+                    {
+                      label: "+ 6 months",
+                      value: dayjs().add(6, "months"),
+                    },
+                    {
+                      label: "+ 1 Year",
+                      value: dayjs().add(1, "year"),
+                    },
+                  ]}
+                  onChange={(expire) => setQuery({ expire })}
+                  disabledDate={(current) => {
+                    if (!current) {
+                      return true;
+                    }
+                    // Can not select days before today and today
+                    if (current < dayjs().endOf("day")) {
+                      return true;
+                    }
+                    // ok
+                    return false;
+                  }}
+                />
+              </Form.Item>
             </>
           )}
           <h4
@@ -364,50 +365,52 @@ export default function CreateVouchers() {
                   : undefined
               }
             >
-              <div
-                style={
-                  !title ? { fontWeight: 700, color: "darkred" } : undefined
-                }
-              >
-                Describe this voucher:
-              </div>
-              <Input
-                allowClear
-                style={{ marginBottom: "15px", marginTop: "5px" }}
-                onChange={(e) => setQuery({ title: e.target.value })}
-                value={title}
-                addonBefore={"Description"}
-              />
+              <Form.Item name="title" initialValue={title}>
+                <Input
+                  allowClear
+                  style={{ marginTop: "5px", width: "100%" }}
+                  onChange={(e) => setQuery({ title: e.target.value })}
+                  value={title}
+                  addonBefore={"Description"}
+                />
+              </Form.Item>
             </div>
             Customize how your voucher codes are randomly generated (optional):
             <Space direction="vertical" style={{ marginTop: "5px" }}>
-              <Space>
-                <InputNumber
-                  addonBefore={"Length"}
-                  min={8}
-                  max={16}
-                  onChange={(length) => {
-                    setQuery({ length: length ?? 8 });
-                  }}
-                  value={length}
-                />
-                <Input
-                  maxLength={10 /* also enforced via api */}
-                  onChange={(e) => setQuery({ prefix: e.target.value })}
-                  value={prefix}
-                  addonBefore={"Prefix"}
-                  allowClear
-                />
-                <Input
-                  maxLength={10 /* also enforced via api */}
-                  onChange={(e) => setQuery({ postfix: e.target.value })}
-                  value={postfix}
-                  addonBefore={"Postfix"}
-                  allowClear
-                />{" "}
+              <Space style={{ width: "100%" }}>
+                <Form.Item name="length" initialValue={length}>
+                  <InputNumber
+                    addonBefore={"Length"}
+                    min={8}
+                    max={16}
+                    onChange={(length) => {
+                      setQuery({ length: length ?? 8 });
+                    }}
+                    value={length}
+                  />
+                </Form.Item>
+                <Form.Item name="prefix" initialValue={prefix}>
+                  <Input
+                    maxLength={10 /* also enforced via api */}
+                    onChange={(e) => setQuery({ prefix: e.target.value })}
+                    value={prefix}
+                    addonBefore={"Prefix"}
+                    allowClear
+                  />
+                </Form.Item>
+                <Form.Item name="postfix" initialValue={postfix}>
+                  <Input
+                    maxLength={10 /* also enforced via api */}
+                    onChange={(e) => setQuery({ postfix: e.target.value })}
+                    value={postfix}
+                    addonBefore={"Postfix"}
+                    allowClear
+                  />
+                </Form.Item>
               </Space>
-              <Space>
+              <Form.Item name="charset" initialValue={charset}>
                 <Radio.Group
+                  style={{ width: "100%" }}
                   onChange={(e) => {
                     setQuery({ charset: e.target.value });
                   }}
@@ -419,27 +422,48 @@ export default function CreateVouchers() {
                   <Radio.Button value="lower">lower</Radio.Button>
                   <Radio.Button value="upper">UPPER</Radio.Button>
                 </Radio.Group>
-              </Space>
+              </Form.Item>
               <Space>
-                <div style={{ whiteSpace: "nowrap" }}>Examples:</div>{" "}
+                <div style={{ whiteSpace: "nowrap" }}>
+                  Examples (not the actual codes):
+                </div>{" "}
                 {exampleCodes}
               </Space>
             </Space>
           </Paragraph>
         </div>
-      </>
+      </Form>
     );
   }
 
   function renderAddBox() {
+    if (query == null) {
+      return null;
+    }
+    const cost = { cost: query.amount * query.numVouchers } as any;
     return (
       <div style={{ textAlign: "center" }}>
         <div style={ADD_STYLE}>
+          <div>
+            <b>{query.title}</b>
+            <br />
+            {numVouchers} voucher {plural(numVouchers, "code")} worth{" "}
+            {currency(amount)} {numVouchers > 1 ? "each" : ""}
+            <br />
+            <Icon name="money-check" /> Total Value: USD {currency(cost.cost)}
+            {whenPay == "admin" && <span> (admin -- no actual charge)</span>}
+          </div>
+          <Divider />
           <Space>
-            <Button>Cancel</Button>
-            <Button disabled={disabled} type="primary">
-              Add to Cart
-            </Button>
+            {router.query.id != null && <Button size="large">Cancel</Button>}
+            <AddToCartButton
+              disabled={disabled}
+              cartError={error}
+              cost={cost}
+              form={form}
+              router={router}
+              setCartError={setError}
+            />
           </Space>
         </div>
       </div>

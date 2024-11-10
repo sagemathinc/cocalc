@@ -168,6 +168,14 @@ describe("shopping-cart-checkout", () => {
       const testDescription: CashVoucherCostProps = {
         type: "cash-voucher",
         amount: 1.5,
+        numVouchers: 1,
+        whenPay: "now",
+        length: 8,
+        title: "My Voucher",
+        prefix: "",
+        postfix: "",
+        charset: "alphanumeric",
+        expire: new Date(Date.now() + 1000 * 1000 * 1000),
       };
       const testCart = [
         {

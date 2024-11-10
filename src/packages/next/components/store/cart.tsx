@@ -14,7 +14,7 @@ to use.
 import { Icon } from "@cocalc/frontend/components/icon";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { capitalize, currency, isValidUUID } from "@cocalc/util/misc";
+import { capitalize, isValidUUID } from "@cocalc/util/misc";
 import { Alert, Button, Checkbox, Popconfirm, Space, Table } from "antd";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -370,7 +370,8 @@ const DESCRIPTION_STYLE = {
 
 // Also used externally for showing what a voucher is for in next/pages/vouchers/[id].tsx
 export function DescriptionColumn(props: DCProps) {
-  const { description, style, readOnly } = props;
+  const router = useRouter();
+  const { id, description, style, readOnly } = props;
   if (
     description.type == "disk" ||
     description.type == "vm" ||
@@ -380,12 +381,20 @@ export function DescriptionColumn(props: DCProps) {
   } else if (description.type == "cash-voucher") {
     return (
       <div style={style}>
-        <b style={{ fontSize: "12pt" }}>Cash voucher</b>
+        <b style={{ fontSize: "12pt" }}>Cash Voucher: {description.title}</b>
         <div style={DESCRIPTION_STYLE}>
-          Voucher for {currency(description.amount)}.
+          {describeItem({ info: description })}
         </div>
         {!readOnly && (
           <>
+            <Button
+              style={{ marginRight: "5px" }}
+              onClick={() => {
+                router.push(`/store/vouchers?id=${id}`);
+              }}
+            >
+              <Icon name="pencil" /> Edit
+            </Button>
             <SaveForLater {...props} />
             <DeleteItem {...props} />
           </>
@@ -444,13 +453,9 @@ function DescriptionColumnSiteLicense(props: DCProps) {
   }
 
   // this could rely an the "type" field, but we rather check the data directly
-  function editPage(): "site-license" | "boost" | "dedicated" | "vouchers" {
+  function editPage(): "site-license" | "vouchers" {
     if (input.type == "cash-voucher") {
       return "vouchers";
-    } else if (input.type === "disk" || input.type === "vm") {
-      return "dedicated";
-    } else if (input.boost) {
-      return "boost";
     }
     return "site-license";
   }

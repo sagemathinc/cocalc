@@ -112,7 +112,10 @@ export const getCheckoutCart = async (
     processing,
   });
   cart = cart.filter(
-    filter ?? ((item) => item.checked && item.product == "site-license"),
+    filter ??
+      ((item) =>
+        item.checked &&
+        (item.product == "site-license" || item.product == "cash-voucher")),
   );
 
   // compute the total cost and also set the costs for each item

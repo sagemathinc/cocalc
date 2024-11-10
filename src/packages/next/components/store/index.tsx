@@ -14,12 +14,10 @@ import { StoreBalanceContext } from "lib/balance";
 import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
 import useCustomize from "lib/use-customize";
-import Boost from "./boost";
 import Cart from "./cart";
 import Checkout from "./checkout";
 import Processing from "./processing";
 import Congrats from "./congrats";
-import DedicatedResource from "./dedicated";
 import Menu from "./menu";
 import Overview from "./overview";
 import SiteLicense from "./site-license";
@@ -125,10 +123,6 @@ export default function StoreLayout({ page }: Props) {
     switch (main) {
       case "site-license":
         return <SiteLicense noAccount={noAccount} />;
-      case "boost":
-        return <Boost />;
-      case "dedicated":
-        return <DedicatedResource noAccount={noAccount} />;
       case "cart":
         return requireAccount(Cart);
       case "checkout":

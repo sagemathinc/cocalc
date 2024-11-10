@@ -67,62 +67,18 @@ export const ShoppingCartAddInputSchema = z
         }).describe("Project resource quota license."),
         z
           .object({
-            title: LicenseTitleSchema,
-            description: LicenseDescriptionSchema,
-            range: LicenseRangeSchema,
-            period: z.enum(["range"]).describe(
-              `License period for the virtual machine. Note that such licenses may only
-               be purchased for a particular time period as specified in the \`range\`
-               field.`,
-            ),
-            type: z.enum(["vm"]).describe("License type"),
-            dedicated_vm: z.object({
-              name: z
-                .string()
-                .nullish()
-                .describe("Virtual machine id (derived from the license id)"),
-              machine: z
-                .string()
-                .describe(
-                  "Google Cloud virtual machine type (e.g., `n2-standard-4`).",
-                ),
-            }),
-          })
-          .describe("Dedicated VM license."),
-        z
-          .object({
-            title: LicenseTitleSchema,
-            description: LicenseDescriptionSchema,
-            period: z.enum(["monthly"]).describe(
-              `License period for the dedicated disk. Note that such licenses may only
-               be purchased on a monthly basis.`,
-            ),
-            type: z.enum(["disk"]).describe("License type"),
-            dedicated_disk: z.union([
-              z.object({
-                name: z.string().nullish().describe("Dedicated disk id."),
-                size_gb: z
-                  .number()
-                  .min(1)
-                  .describe("Size of dedicated disk in GB."),
-                speed: z
-                  .enum(["standard", "balanced", "ssd"])
-                  .describe("Desired disk speed."),
-              }),
-              z
-                .boolean()
-                .describe(
-                  "If a boolean value is provided, it must be set to `false`.",
-                ),
-            ]),
-          })
-          .describe("Dedicated disk license."),
-        z
-          .object({
             type: z.enum(["cash-voucher"]),
-            amount: z.number().min(0),
+            amount: z.number().min(0.01),
+            numVouchers: z.number().min(1),
+            whenPay: z.enum(["now", "admin"]),
+            length: z.number().min(1),
+            title: z.string(),
+            prefix: z.string(),
+            postfix: z.string(),
+            charset: z.string(),
+            expire: z.any(),
           })
-          .describe("Used to specify cash voucher amount."),
+          .describe("Used to specify cash voucher."),
       ])
       .describe(
         `This field is used to specify details appropriate to the product being purchased.
