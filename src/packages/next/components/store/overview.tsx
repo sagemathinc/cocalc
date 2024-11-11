@@ -52,12 +52,11 @@ export default function Overview() {
           title="Compute Servers"
         >
           Run Jupyter Notebooks and Linux Terminals on GPUs and high-powered CPU
-          machines with full admin privileges. Pay only for what you actually
-          use.
+          machines with full admin privileges. Pay as you go.
         </Product>
         <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
-          Run CoCalc on your own machine or cluster in order to keep your data
-          on-site and use compute resources that you already have.
+          Self-host <SiteName /> on your own compute resources in order to keep
+          your data on-site.
         </Product>
       </OverviewRow>
       <Paragraph style={{ marginTop: "4em" }}>

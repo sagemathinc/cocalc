@@ -143,7 +143,7 @@ export default function StripePayment({
                 disabled={loading}
                 label={
                   totalStripe > 0
-                    ? "Continue"
+                    ? "Choose Payment Method"
                     : "Purchase With 1-Click Using CoCalc Credits"
                 }
                 onClick={() => {
@@ -401,7 +401,7 @@ function PaymentForm({ style, onFinished, disabled }) {
       />
       {ready && (
         <ConfirmButton
-          label={<>Continue</>}
+          label={<>Choose Payment Method</>}
           disabled={
             success ||
             disabled ||
