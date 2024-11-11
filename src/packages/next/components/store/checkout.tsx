@@ -6,7 +6,20 @@
 /*
 Checkout -- finalize purchase and pay.
 */
-import { Alert, Button, Card, Checkbox, Divider, Col, Row, Spin } from "antd";
+import {
+  Alert,
+  Button,
+  Card,
+  Checkbox,
+  Divider,
+  InputNumber,
+  Col,
+  Row,
+  Space,
+  Slider,
+  Spin,
+  Tooltip,
+} from "antd";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { money } from "@cocalc/util/licenses/purchase/utils";
@@ -33,19 +46,17 @@ import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 import { toFriendlyDescription } from "@cocalc/util/upgrades/describe";
 import { creditLineItem } from "@cocalc/util/upgrades/describe";
 import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
-
-enum PaymentIntent {
-  PAY_TOTAL,
-  APPLY_BALANCE,
-}
+import { decimalSubtract } from "@cocalc/util/stripe/calc";
 
 export default function Checkout() {
   const router = useRouter();
   const isMounted = useIsMounted();
   const [completingPurchase, setCompletingPurchase] = useState<boolean>(false);
   const [completedPurchase, setCompletedPurchase] = useState<boolean>(false);
-  const [paymentIntent, setPaymentIntent] = useState<PaymentIntent>(
-    PaymentIntent.APPLY_BALANCE,
+  const [showApplyCredit, setShowApplyCredit] = useState<boolean>(false);
+  const [applyCredit, setApplyCredit] = useState<number | null>(0);
+  const [lastApplyCredit, setLastApplyCredit] = useState<number | null>(
+    applyCredit,
   );
   const [totalCost, setTotalCost] = useState<number>(0);
   const [error, setError] = useState<string>("");
@@ -62,20 +73,15 @@ export default function Checkout() {
     setPaymentAmount0(round2up(amount));
   };
   const [params, setParams] = useState<CheckoutParams | null>(null);
-  const updateParams = async (intent?) => {
+  const updateParams = async (applyCredit0?: number | null) => {
+    const applyCredit1 = applyCredit0 ?? applyCredit ?? 0;
     try {
       const params = await getShoppingCartCheckoutParams();
       const cost = params.total;
       setParams(params);
       setTotalCost(round2up(cost));
-
-      if ((intent ?? paymentIntent) === PaymentIntent.APPLY_BALANCE) {
-        setPaymentAmount(params.chargeAmount ?? 0);
-      } else {
-        setPaymentAmount(
-          Math.max(Math.max(params.minPayment, cost), params.chargeAmount ?? 0),
-        );
-      }
+      setPaymentAmount(cost - applyCredit1);
+      setLastApplyCredit(applyCredit1);
     } catch (err) {
       setError(`${err}`);
     }
@@ -155,6 +161,76 @@ export default function Checkout() {
     mode = "add";
   }
 
+  function getApplyCreditWarning() {
+    if (params == null) {
+      return null;
+    }
+    const balance = params.balance ?? 0;
+    if (!balance) {
+      return null;
+    }
+    const max = round2down(
+      Math.max(
+        0,
+        Math.min(params.balance, decimalSubtract(totalCost, params.minPayment)),
+      ),
+    );
+    return (
+      <>
+        Between{" "}
+        <a
+          onClick={() => {
+            setApplyCredit(0);
+            updateParams(0);
+          }}
+        >
+          {currency(0)}
+        </a>{" "}
+        and{" "}
+        <a
+          onClick={() => {
+            setApplyCredit(max);
+            updateParams(max);
+          }}
+        >
+          {currency(max)}
+        </a>
+        {totalCost <= params.balance && (
+          <>
+            {" "}
+            or exactly{" "}
+            <Tooltip
+              title={
+                <>
+                  The minimum payment size is {currency(params.minPayment)},
+                  which constrains the amount of credit you can apply.
+                </>
+              }
+            >
+              <a
+                onClick={() => {
+                  setApplyCredit(totalCost);
+                  updateParams(totalCost);
+                }}
+              >
+                {currency(totalCost)}
+              </a>
+            </Tooltip>
+            .
+          </>
+        )}
+        <Slider
+          min={0}
+          max={max}
+          tipFormatter={currency}
+          step={0.01}
+          value={applyCredit ?? 0}
+          onChange={setApplyCredit}
+        />
+      </>
+    );
+  }
+
   return (
     <>
       <div>
@@ -189,42 +265,75 @@ export default function Checkout() {
             <ShowError error={error} setError={setError} />
             <Card title={<>Place Your Order</>}>
               <Row>
-                <Col sm={12} style={{ paddingRight: "15px" }}>
+                <Col
+                  sm={12}
+                  style={{
+                    paddingRight: "30px",
+                    borderRight: "1px solid #ddd",
+                  }}
+                >
+                  {round2down(params.balance ?? 0) > 0 && (
+                    <>
+                      <Checkbox
+                        checked={showApplyCredit}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setShowApplyCredit(true);
+                          } else {
+                            setShowApplyCredit(false);
+                            setApplyCredit(0);
+                            updateParams(0);
+                          }
+                        }}
+                      >
+                        Apply account credit toward purchase
+                      </Checkbox>
+                      {showApplyCredit && (
+                        <div style={{ textAlign: "center", marginTop: "30px" }}>
+                          <Space.Compact>
+                            <InputNumber
+                              value={applyCredit}
+                              disabled={round2down(params.balance ?? 0) <= 0}
+                              min={0}
+                              max={Math.max(
+                                0,
+                                Math.min(totalCost, params.balance),
+                              )}
+                              addonBefore="$"
+                              onChange={(value) => setApplyCredit(value)}
+                              onPressEnter={() => {
+                                updateParams(applyCredit);
+                              }}
+                            />
+                            <Button
+                              type="primary"
+                              disabled={
+                                round2down(params.balance ?? 0) <= 0 ||
+                                applyCredit == lastApplyCredit
+                              }
+                              onClick={() => {
+                                updateParams(applyCredit);
+                              }}
+                            >
+                              Apply
+                            </Button>
+                          </Space.Compact>
+                          <>
+                            <Alert
+                              showIcon
+                              style={{ marginTop: "30px", textAlign: "left" }}
+                              message={getApplyCreditWarning()}
+                            />
+                          </>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Col>
+                <Col sm={12} style={{ paddingLeft: "30px" }}>
                   <div style={{ fontSize: "15pt" }}>
-                    <TotalCost totalCost={totalCost} />
-                    <br />
                     <Terms />
                   </div>
-                </Col>
-
-                <Col sm={12} style={{ paddingLeft: "15px" }}>
-                  {round2down(
-                    (params.balance ?? 0) - (params.minBalance ?? 0),
-                  ) > 0 && (
-                    <Checkbox
-                      style={{ marginTop: "38px", textAlign: "left" }}
-                      checked={paymentIntent == PaymentIntent.APPLY_BALANCE}
-                      onChange={async (e) => {
-                        let intent;
-                        if (e.target.checked) {
-                          intent = PaymentIntent.APPLY_BALANCE;
-                        } else {
-                          intent = PaymentIntent.PAY_TOTAL;
-                        }
-                        setPaymentIntent(intent);
-                        await updateParams(intent);
-                      }}
-                    >
-                      Use your <SiteName /> account credit toward this purchase.
-                      {params.minBalance < 0 ? (
-                        <>
-                          {" "}
-                          Your balance is allowed to go down to{" "}
-                          {currency(params.minBalance)} each month.
-                        </>
-                      ) : undefined}
-                    </Checkbox>
-                  )}
                 </Col>
               </Row>
               <GetAQuote items={params.cart} />
@@ -277,13 +386,20 @@ export default function Checkout() {
                 </div>
               )}
               {completingPurchase ||
+              totalCost >= params.minPayment ||
               params == null ||
               paymentAmount != params.minPayment ? null : (
-                <div style={{ color: "#666", marginTop: "15px" }}>
-                  NOTE: There is a minimum transaction amount of{" "}
-                  {currency(params.minPayment)}. Extra money you deposit for
-                  this purchase can be used toward future purchases.
-                </div>
+                <Alert
+                  type="warning"
+                  style={{ color: "#666", marginTop: "15px" }}
+                  message={
+                    <>
+                      There is a minimum payment amount of{" "}
+                      {currency(params.minPayment)}. Extra money you deposit for
+                      this purchase can be used toward future purchases.
+                    </>
+                  }
+                />
               )}
             </Card>
           </>
@@ -302,15 +418,6 @@ export function fullCost(items) {
     }
   }
   return full_cost;
-}
-
-function TotalCost({ totalCost }) {
-  return (
-    <>
-      Total (excluding tax):{" "}
-      <b style={{ float: "right", color: "darkred" }}>{money(totalCost)}</b>
-    </>
-  );
 }
 
 function Terms() {
@@ -390,9 +497,11 @@ function GetAQuote({ items }) {
 
   return (
     <Paragraph style={{ paddingTop: "15px" }}>
-      <A onClick={() => setMore(!more)}>
-        Need a quote, invoice or modified terms?
-      </A>
+      <div style={{ textAlign: "right" }}>
+        <A onClick={() => setMore(!more)}>
+          Need a quote, invoice or modified terms?
+        </A>
+      </div>
       {more && (
         <Paragraph>
           {fullCost(items) <= MIN_AMOUNT || isSub ? (

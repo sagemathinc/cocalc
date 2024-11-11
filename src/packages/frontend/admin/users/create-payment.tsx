@@ -70,7 +70,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
           disabled={done || loading}
           min={0}
           max={10000}
-          addonAfter="$"
+          addonBefore="$"
           placeholder="Amount..."
           style={{ maxWidth: "100px" }}
           value={amount}

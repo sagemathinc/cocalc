@@ -32,13 +32,31 @@ const EXTRA_LINE_ITEMS_COLUMNS = [
     align: "right",
     dataIndex: "description",
     key: "description",
+    render: (description, { bold }) => (
+      <div
+        style={{
+          fontWeight: bold ? "bold" : undefined,
+          fontSize: bold ? "13pt" : undefined,
+        }}
+      >
+        {description}
+      </div>
+    ),
   } as const,
   {
     title: "",
     dataIndex: "amount",
     key: "amount",
-    render: (amount) => (
-      <div style={{ whiteSpace: "nowrap" }}>{currency(amount)}</div>
+    render: (amount, { bold }) => (
+      <div
+        style={{
+          whiteSpace: "nowrap",
+          fontWeight: bold ? "bold" : undefined,
+          fontSize: bold ? "13pt" : undefined,
+        }}
+      >
+        {currency(amount)}
+      </div>
     ),
     align: "right",
   } as const,

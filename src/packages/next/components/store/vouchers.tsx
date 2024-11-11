@@ -211,7 +211,7 @@ export default function CreateVouchers() {
                   step={5}
                   value={amount}
                   onChange={(value) => setQuery({ amount: value })}
-                  addonAfter="$"
+                  addonBefore="$"
                 />
               </Form.Item>
             </div>

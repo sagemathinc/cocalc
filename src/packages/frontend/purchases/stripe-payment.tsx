@@ -106,6 +106,7 @@ export default function StripePayment({
           description: "Amount due (excluding tax)",
           amount: stripeToDecimal(totalStripe),
           extra: true,
+          bold: true,
         })}
       />
       <div>
