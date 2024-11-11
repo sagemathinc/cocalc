@@ -36,7 +36,7 @@ const DEFAULT_LIMIT = 10;
 interface Props {
   refresh?: Function;
   refreshPaymentsRef?;
-  numPaymentsRefs?;
+  numPaymentsRef?;
   // if you are an admin and want to view a different user's incomplete payments
   account_id?: string;
   // default created input to api for first load
@@ -50,7 +50,7 @@ interface Props {
 export default function Payments({
   refresh,
   refreshPaymentsRef,
-  numPaymentsRefs,
+  numPaymentsRef,
   account_id,
   created,
   unfinished,
@@ -99,7 +99,7 @@ export default function Payments({
         data0 = data0.filter((x) => x.metadata?.purpose == purpose);
       }
       setData(data0);
-      numPaymentsRefs.current = data0.length;
+      numPaymentsRef.current = data0.length;
       setHasMore(result.has_more);
     } catch (err) {
       setError(`${err}`);

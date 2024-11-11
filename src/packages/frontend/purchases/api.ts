@@ -253,6 +253,7 @@ export async function createPaymentIntent(opts: {
   lineItems: LineItem[];
   // admins can optionally set a different user account id to charge them
   user_account_id?: string;
+  metadata?: { [key: string]: string };
 }): Promise<PaymentIntentSecret> {
   return await api("purchases/stripe/create-payment-intent", opts);
 }

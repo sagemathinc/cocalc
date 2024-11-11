@@ -47,6 +47,7 @@ export default function StripePayment({
   description = "",
   lineItems = [],
   purpose = "add-credit",
+  metadata,
   onFinished,
   style,
   disabled,
@@ -54,6 +55,7 @@ export default function StripePayment({
   description?: string;
   lineItems?: LineItem[];
   purpose?: string;
+  metadata?: { [key: string]: string };
   onFinished?: Function;
   style?;
   disabled?: boolean;
@@ -123,6 +125,7 @@ export default function StripePayment({
                         description,
                         lineItems,
                         purpose,
+                        metadata,
                       });
                       onFinished?.();
                     } catch (err) {
@@ -167,6 +170,7 @@ export default function StripePayment({
               lineItems,
               description,
               purpose,
+              metadata,
               onFinished,
               style,
             }}
@@ -187,6 +191,7 @@ function StripeCheckout({
   lineItems,
   description,
   purpose,
+  metadata,
   onFinished,
   style,
 }) {
@@ -208,6 +213,7 @@ function StripeCheckout({
                 lineItems,
                 description,
                 purpose,
+                metadata,
               });
               break;
             } catch (err) {

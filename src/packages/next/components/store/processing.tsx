@@ -26,7 +26,7 @@ export default function Processing() {
   const [loading, setLoading] = useState<boolean>(false);
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const refreshPaymentsRef = useRef<any>(null);
-  const numPaymentsRefs = useRef<number | null>(null);
+  const numPaymentsRef = useRef<number | null>(null);
   const updateParams = async () => {
     try {
       setError("");
@@ -129,7 +129,7 @@ export default function Processing() {
 
     return (
       <>
-        {(numPaymentsRefs.current ?? 0) > 0 && (
+        {(numPaymentsRef.current ?? 0) > 0 && (
           <Alert
             type="warning"
             showIcon
@@ -143,7 +143,7 @@ export default function Processing() {
           />
         )}
 
-        {numPaymentsRefs.current === 0 && (
+        {numPaymentsRef.current === 0 && (
           <Alert
             type="success"
             showIcon
@@ -159,7 +159,7 @@ export default function Processing() {
           refresh={() => {
             refreshRef.current();
           }}
-          numPaymentsRef={numPaymentsRefs}
+          numPaymentsRef={numPaymentsRef}
           refreshPaymentsRef={refreshPaymentsRef}
         />
 

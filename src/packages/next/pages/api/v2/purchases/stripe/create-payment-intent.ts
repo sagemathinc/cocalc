@@ -14,7 +14,8 @@ export default async function handle(req, res) {
 }
 
 async function get(req) {
-  const { user_account_id, lineItems, purpose, description } = getParams(req);
+  const { user_account_id, lineItems, purpose, description, metadata } =
+    getParams(req);
   if (user_account_id) {
     // admin version
     const admin_account_id = await getAccountId(req);
@@ -33,7 +34,7 @@ async function get(req) {
       lineItems,
       description,
       purpose,
-      metadata: { admin_account_id },
+      metadata: { ...metadata, admin_account_id },
     });
   } else {
     const account_id = await getAccountId(req);
@@ -49,6 +50,7 @@ async function get(req) {
       description,
       lineItems,
       purpose,
+      metadata,
     });
   }
   return { success: true };

@@ -88,63 +88,50 @@ export default async function getCheckoutSession({
     }
   }
 
-  let session;
-  if (false) {
-    // just a proof of concept -- will be moved elsewhere for setting up payg or new subscriptions.
-    session = await stripe.checkout.sessions.create({
-      customer,
-      ui_mode: "embedded",
-      mode: "setup",
-      return_url,
-      metadata,
-      currency: "usd",
-    });
-  } else {
-    session = await stripe.checkout.sessions.create({
-      customer,
-      ui_mode: "embedded",
-      line_items: accountForCredit(lineItems).map(({ amount, description }) => {
-        return {
-          price_data: {
-            unit_amount: decimalToStripe(amount),
-            currency: "usd",
-            product_data: {
-              name: description,
-            },
+  const session = await stripe.checkout.sessions.create({
+    customer,
+    ui_mode: "embedded",
+    line_items: accountForCredit(lineItems).map(({ amount, description }) => {
+      return {
+        price_data: {
+          unit_amount: decimalToStripe(amount),
+          currency: "usd",
+          product_data: {
+            name: description,
           },
-          quantity: 1,
-        };
-      }),
-      mode: "payment",
-      return_url,
-      redirect_on_completion: "if_required",
-      automatic_tax: { enabled: true },
+        },
+        quantity: 1,
+      };
+    }),
+    mode: "payment",
+    return_url,
+    redirect_on_completion: "if_required",
+    automatic_tax: { enabled: true },
+    metadata,
+    payment_intent_data: {
+      description,
+      setup_future_usage: "off_session",
       metadata,
-      payment_intent_data: {
-        description,
-        setup_future_usage: "off_session",
+    },
+
+    // not sure we'll use this, but it's a good double check
+    client_reference_id: account_id,
+    invoice_creation: {
+      enabled: true,
+      invoice_data: {
         metadata,
       },
-
-      // not sure we'll use this, but it's a good double check
-      client_reference_id: account_id,
-      invoice_creation: {
-        enabled: true,
-        invoice_data: {
-          metadata,
-        },
-      },
-      tax_id_collection: { enabled: true },
-      customer_update: {
-        address: "auto",
-        name: "auto",
-        shipping: "auto",
-      },
-      saved_payment_method_options: {
-        allow_redisplay_filters: ["limited", "always", "unspecified"],
-      },
-    });
-  }
+    },
+    tax_id_collection: { enabled: true },
+    customer_update: {
+      address: "auto",
+      name: "auto",
+      shipping: "auto",
+    },
+    saved_payment_method_options: {
+      allow_redisplay_filters: ["limited", "always", "unspecified"],
+    },
+  });
 
   if (!session.client_secret) {
     throw Error("unable to create session");

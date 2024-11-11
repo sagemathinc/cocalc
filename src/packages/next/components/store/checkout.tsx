@@ -242,6 +242,9 @@ export default function Checkout() {
                     style={{ maxWidth: "600px", margin: "30px auto" }}
                     lineItems={lineItems}
                     purpose={SHOPPING_CART_CHECKOUT}
+                    metadata={{
+                      cart: JSON.stringify(params.cart.map((item) => item.id)),
+                    }}
                     onFinished={async () => {
                       setUserSuccessfullyAddedCredit(true);
                       // user paid successfully and money should be in their account
