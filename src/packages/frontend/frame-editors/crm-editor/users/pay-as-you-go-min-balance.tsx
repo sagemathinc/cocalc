@@ -33,6 +33,7 @@ export default function PayAsYouGoMinBalance({ account_id }) {
   return (
     <div>
       <Button
+        type={lastSaved != null ? "dashed" : undefined}
         onClick={() => {
           if (minBalance == null || lastSaved == null) {
             getMinBalance();

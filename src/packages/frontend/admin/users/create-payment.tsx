@@ -146,7 +146,7 @@ export function CreatePaymentButton(props: Props) {
   const [show, setShow] = useState<boolean>(false);
   return (
     <div>
-      <Button onClick={() => setShow(!show)}>
+      <Button onClick={() => setShow(!show)} type={show ? "dashed" : undefined}>
         <Icon name="credit-card" /> Create Payment
       </Button>
       {show && (
