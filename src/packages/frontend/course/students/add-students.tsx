@@ -5,7 +5,7 @@ Component for adding one or more students to the course.
 import { Button, Checkbox, Col, Flex, Form, Input, Row, Space } from "antd";
 import { concat, sortBy } from "lodash";
 import { useEffect, useRef, useState } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import {
   redux,
@@ -14,6 +14,7 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
+import { labels } from "@cocalc/frontend/i18n";
 import type { UserMap } from "@cocalc/frontend/todo-types";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
@@ -164,7 +165,10 @@ export default function AddStudents({
     return (
       <Flex vertical={true} align="start" gap={5}>
         <Button onClick={do_add_search} icon={icon} disabled={disabled}>
-          Search (shift+enter)
+          <FormattedMessage
+            id="course.add-students.search-button"
+            defaultMessage="Search (shift+enter)"
+          />
         </Button>
         {!disabled && (
           <Checkbox
@@ -173,7 +177,10 @@ export default function AddStudents({
               set_include_name_search(!include_name_search);
             }}
           >
-            Search by name too
+            <FormattedMessage
+              id="course.add-students.search-students-by-name"
+              defaultMessage="Search by name too"
+            />
           </Checkbox>
         )}
       </Flex>
@@ -306,22 +313,32 @@ export default function AddStudents({
   function get_add_selector_button_text(existing) {
     switch (selected_option_num) {
       case 0:
-        if (existing) {
-          return "Student already added";
-        } else {
-          return "Select student(s)";
-        }
+        return intl.formatMessage(
+          {
+            id: "course.add-students.add-selector-button.case0",
+            defaultMessage: `{existing, select,
+              true {Student already added}
+              other {Select student(s)}}`,
+          },
+          { existing },
+        );
+
       case 1:
-        return "Add student";
+        return intl.formatMessage({
+          id: "course.add-students.add-selector-button.case1",
+          defaultMessage: "Add student",
+        });
       default:
-        switch (selected_option_num) {
-          case 0:
-            return "Select student above";
-          case 1:
-            return "Add selected student";
-          default:
-            return `Add ${selected_option_num} students`;
-        }
+        return intl.formatMessage(
+          {
+            id: "course.add-students.add-selector-button.caseDefault",
+            defaultMessage: `{num, select,
+              0 {Select student above}
+              1 {Add selected student}
+              other {Add {num} students}}`,
+          },
+          { num: selected_option_num },
+        );
     }
   }
 
@@ -354,13 +371,22 @@ export default function AddStudents({
         onClick={() => add_all_students()}
         disabled={options.length === 0}
       >
-        <Icon name={"user-plus"} /> Add all students
+        <Icon name={"user-plus"} />{" "}
+        <FormattedMessage
+          id="course.add-students.add-all-students.button"
+          defaultMessage={"Add all students"}
+          description={"Students in an online course"}
+        />
       </Button>
     );
   }
 
   function render_cancel() {
-    return <Button onClick={() => clear()}>Cancel</Button>;
+    return (
+      <Button onClick={() => clear()}>
+        {intl.formatMessage(labels.cancel)}
+      </Button>
+    );
   }
 
   function render_error_display() {

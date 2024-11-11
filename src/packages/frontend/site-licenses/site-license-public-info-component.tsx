@@ -5,6 +5,7 @@
 
 import { Alert, Button, Input, Popconfirm, Popover } from "antd";
 import { fromJS } from "immutable";
+import { ReactNode } from "react";
 import { DebounceInput } from "react-debounce-input";
 
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -53,7 +54,7 @@ interface Props {
   project_id?: string; // if not given, just provide the public info about the license (nothing about if it is upgrading a specific project or not) -- this is used, e.g., for the course configuration page
   upgrades?: TypedMap<SiteLicensePublicInfoType> | null;
   onRemove?: () => void; // called *before* the license is removed!
-  warn_if?: (info) => void | string;
+  warn_if?: (info) => void | string | ReactNode;
   restartAfterRemove?: boolean; // default false
   tableMode?: boolean; // if true, used via SiteLicensePublicInfoTable
   refresh?: () => void; // called if license is edited.

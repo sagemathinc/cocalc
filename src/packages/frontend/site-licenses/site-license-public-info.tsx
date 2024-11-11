@@ -7,8 +7,9 @@ import { QuestionCircleOutlined } from "@ant-design/icons";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Alert, Button, Popconfirm, Popover, Table, Tag, Tooltip } from "antd";
 import { isEqual } from "lodash";
+import { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import Export from "@cocalc/frontend/purchases/export";
+
 import {
   React,
   redux,
@@ -25,6 +26,7 @@ import {
 } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectState } from "@cocalc/frontend/project/page/project-state-hook";
+import Export from "@cocalc/frontend/purchases/export";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import { cmp, plural, trunc, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -47,7 +49,7 @@ interface PropsTable {
   restartAfterRemove?: boolean; // default false
   showRemoveWarning?: boolean; // default true
   onRemove?: (license_id: string) => void; // called *before* the license is removed!
-  warn_if?: (info, license_id) => void | string;
+  warn_if?: (info, license_id) => void | string | ReactNode;
   mode?: "project" | "flyout";
 }
 
