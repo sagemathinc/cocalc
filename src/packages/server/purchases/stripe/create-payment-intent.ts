@@ -208,7 +208,19 @@ export async function cancelPaymentIntent({
   reason: PaymentIntentCancelReason;
 }) {
   const stripe = await getConn();
-  await stripe.paymentIntents.cancel(id, {
-    cancellation_reason: reason as any,
-  });
+  try {
+    await stripe.paymentIntents.cancel(id, {
+      cancellation_reason: reason as any,
+    });
+  } catch (err) {
+    if (`${err}`.includes("invoice")) {
+      // maybe try voiding the invoice instead?
+      const paymentIntent = await stripe.paymentIntents.retrieve(id);
+      if (typeof paymentIntent.invoice == "string") {
+        await stripe.invoices.voidInvoice(paymentIntent.invoice);
+        return;
+      }
+    }
+    throw err;
+  }
 }

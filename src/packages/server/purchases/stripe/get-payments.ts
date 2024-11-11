@@ -66,9 +66,8 @@ export async function getAllOpenPayments(
     query,
     limit: 100, // should usually be very small, e.g., 0, 1 or 2.
   });
-  // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"
+  // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"  console.log("x = ", x);
   x.data = x.data.filter((intent) => {
-    console.log(intent.metadata, intent.status);
     if (!intent.metadata.purpose) {
       return false;
     }

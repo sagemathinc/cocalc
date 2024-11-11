@@ -119,7 +119,7 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
   const [cost, setCost] = useState<CostInputPeriod | undefined>(undefined);
   const [loading, setLoading] = useState<boolean>(false);
   const [cartError, setCartError] = useState<string>("");
-  const [showExplanations, setShowExplanations] = useState<boolean>(true);
+  const [showExplanations, setShowExplanations] = useState<boolean>(false);
   const [configMode, setConfigMode] = useState<"preset" | "expert">("preset");
   const [form] = Form.useForm();
   const router = useRouter();

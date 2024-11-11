@@ -36,8 +36,6 @@ export async function addToCart({ form, setCartError, router }: Props) {
     product = "site-license";
   }
 
-  console.log("description = ", description);
-
   if (product == "site-license") {
     // exclude extra fields that are for UI only. See https://github.com/sagemathinc/cocalc/issues/6258
     for (const field in description) {
@@ -62,12 +60,6 @@ export async function addToCart({ form, setCartError, router }: Props) {
       // we get the project_id from local storage and save it to the new/edited license
       const project_id = get_local_storage(LS_KEY_LICENSE_PROJECT);
       delete_local_storage(LS_KEY_LICENSE_PROJECT);
-
-      console.log("cart add", {
-        product,
-        description,
-        project_id,
-      });
 
       await apiPost("/shopping/cart/add", {
         product,

@@ -12,7 +12,10 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
 import Payments from "@cocalc/frontend/purchases/payments";
 import { getColumns } from "./checkout";
-import { getShoppingCartCheckoutParams } from "@cocalc/frontend/purchases/api";
+import {
+  getPayments,
+  getShoppingCartCheckoutParams,
+} from "@cocalc/frontend/purchases/api";
 import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
 import { useRouter } from "next/router";
 
@@ -23,10 +26,17 @@ export default function Processing() {
   const [loading, setLoading] = useState<boolean>(false);
   const [params, setParams] = useState<CheckoutParams | null>(null);
   const refreshPaymentsRef = useRef<any>(null);
+  const numPaymentsRefs = useRef<number | null>(null);
   const updateParams = async () => {
     try {
       setError("");
       setLoading(true);
+      // This is entirely to make sure that any recent payments that have succeeded
+      // do get processed, i.e., the items in the cart get sent to the user.  This
+      // would happen without the call (eventually) or may happen due to payment update,
+      // but we want it to happen *now* if possible.
+      await getPayments({ limit: 3 });
+      // Get what has NOT been processed.
       const params = await getShoppingCartCheckoutParams({
         processing: true,
       });
@@ -119,17 +129,29 @@ export default function Processing() {
 
     return (
       <>
-        <Alert
-          type="warning"
-          showIcon
-          style={{ margin: "30px auto", maxWidth: "700px" }}
-          message="Status"
-          description=<>
-            Your items will be added to your account when the outstanding
-            payments listed below go through. You can update any payment
-            configuration or cancel an unfinished order below.
-          </>
-        />
+        {(numPaymentsRefs.current ?? 0) > 0 && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ margin: "30px auto", maxWidth: "700px" }}
+            message="Status"
+            description=<>
+              Your items will be added to your account when the outstanding
+              payment listed below goes through. You can update any payment
+              configuration or cancel an unfinished order below.
+            </>
+          />
+        )}
+
+        {numPaymentsRefs.current === 0 && (
+          <Alert
+            type="success"
+            showIcon
+            style={{ margin: "30px auto", maxWidth: "700px" }}
+            message="Thank you"
+            description=<>Your items should be allocated soon!</>
+          />
+        )}
 
         <Payments
           unfinished
@@ -137,6 +159,7 @@ export default function Processing() {
           refresh={() => {
             refreshRef.current();
           }}
+          numPaymentsRef={numPaymentsRefs}
           refreshPaymentsRef={refreshPaymentsRef}
         />
 
