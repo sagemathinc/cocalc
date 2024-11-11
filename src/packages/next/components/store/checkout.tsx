@@ -243,7 +243,7 @@ export default function Checkout() {
                     lineItems={lineItems}
                     purpose={SHOPPING_CART_CHECKOUT}
                     metadata={{
-                      cart: JSON.stringify(params.cart.map((item) => item.id)),
+                      cart_ids: JSON.stringify(params.cart.map((item) => item.id)),
                     }}
                     onFinished={async () => {
                       setUserSuccessfullyAddedCredit(true);

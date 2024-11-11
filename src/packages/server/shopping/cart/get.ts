@@ -20,6 +20,12 @@ interface Options {
   // if true, same as payment_intent being set, but returns results for
   // all payment_intents.  I.e., everything that is currently processing.
   processing?: boolean;
+  // if cart_id's is set get cart items with ids in this list as an alternative
+  // to getting cart items with the given payment intent.  This is needed because
+  // when using stripe checkout sessions, we don't have a way to set the
+  // payment intent id on cart items in a fully robust way, so we rely on
+  // cart ids via metadata instead when processing.
+  cart_ids?: number[];
 }
 
 export default async function getCart({
@@ -28,12 +34,13 @@ export default async function getCart({
   removed,
   payment_intent,
   processing,
+  cart_ids,
 }: Options): Promise<Item[]> {
   assertValidAccountID(account_id);
   const pool = getPool();
 
   let query;
-  const params = [account_id];
+  const params: any[] = [account_id];
   if (!payment_intent) {
     if (processing) {
       if (purchased || removed) {
@@ -44,9 +51,10 @@ export default async function getCart({
       SELECT * FROM shopping_cart_items
          WHERE account_id=$1
          AND purchased#>>'{success}' IS NULL
-         AND purchased#>>'{payment_intent}' IS NOT NULL
+         AND (purchased#>>'{payment_intent}' IS NOT NULL OR id=ANY($2))
          AND removed IS NULL ORDER BY id DESC
      `;
+      params.push(cart_ids ?? []);
     } else {
       query = `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased IS ${
         purchased ? " NOT " : ""
@@ -59,8 +67,15 @@ export default async function getCart({
     } else {
       a = `purchased#>>'{success}' IS NULL`;
     }
-    query = `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased#>>'{payment_intent}'=$2 AND ${a} AND removed IS ${removed ? " NOT " : ""} NULL ORDER BY id DESC`;
+    query = `
+    SELECT * FROM shopping_cart_items
+       WHERE account_id=$1
+          AND (purchased#>>'{payment_intent}'=$2 OR id=ANY($3))
+          AND ${a}
+          AND removed IS ${removed ? " NOT " : ""} NULL
+          ORDER BY id DESC`;
     params.push(payment_intent);
+    params.push(cart_ids ?? []);
   }
   const { rows } = await pool.query(query, params);
   await ensureValidLicenseIntervals(rows, pool);

@@ -127,6 +127,10 @@ export async function processPaymentIntent(
     await shoppingCartCheckout({
       account_id,
       payment_intent: paymentIntent.id,
+      cart_ids:
+        paymentIntent.metadata.cart_ids != null
+          ? JSON.parse(paymentIntent.metadata.cart_ids)
+          : undefined,
     });
   }
 

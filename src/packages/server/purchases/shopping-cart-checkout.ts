@@ -46,11 +46,14 @@ export interface CheckoutParams {
 export const shoppingCartCheckout = async ({
   account_id,
   payment_intent,
+  cart_ids,
 }: {
   account_id: string;
   // in case items in the cart are partly paid for via stripe, this is the payment intent.
   // shoppingCartCheckout is called right after successfully processing the payment!
   payment_intent?: string;
+  // optional id's of shopping cart items user intends to purchase
+  cart_ids?: number[];
 }) => {
   logger.debug("shoppingCartCheckout", {
     account_id,
@@ -59,6 +62,8 @@ export const shoppingCartCheckout = async ({
   const params = await getShoppingCartCheckoutParams(
     account_id,
     payment_intent,
+    undefined,
+    cart_ids,
   );
 
   if (params.amountDue <= ALLOWED_SLACK) {
@@ -100,6 +105,7 @@ export const getCheckoutCart = async (
   filter?: (item) => boolean,
   payment_intent?: string,
   processing?: boolean,
+  cart_ids?: number[],
 ) => {
   // Get the list of items in the cart that haven't been purchased
   // or saved for later, and are currently checked.
@@ -109,6 +115,7 @@ export const getCheckoutCart = async (
     removed: false,
     payment_intent,
     processing,
+    cart_ids,
   });
   cart = cart.filter(
     filter ??
@@ -153,6 +160,7 @@ export const getShoppingCartCheckoutParams = async (
   account_id: string,
   payment_intent?: string,
   processing?: boolean,
+  cart_ids?: number[],
 ): Promise<
   CheckoutParams & { minimumPaymentCharge: number; cureAmount: number }
 > => {
@@ -161,6 +169,7 @@ export const getShoppingCartCheckoutParams = async (
     undefined,
     payment_intent,
     processing,
+    cart_ids,
   );
   const minBalance = await getMinBalance(account_id);
   const balance = await getBalance(account_id);
