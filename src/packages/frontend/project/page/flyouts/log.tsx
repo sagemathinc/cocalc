@@ -526,7 +526,7 @@ export function LogFlyout({
           actions?.setFlyoutLogDeduplicate(!deduplicate);
         }}
       >
-        <Icon name={icon} />
+        <Icon name={icon} />{" "}
         <FormattedMessage
           id="page.flyouts.log.deduplicate.label"
           description={
