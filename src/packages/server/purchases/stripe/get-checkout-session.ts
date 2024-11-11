@@ -111,7 +111,7 @@ export default async function getCheckoutSession({
     payment_intent_data: {
       description,
       setup_future_usage: "off_session",
-      metadata,
+      metadata: { ...metadata, confirm: "true" },
     },
 
     // not sure we'll use this, but it's a good double check

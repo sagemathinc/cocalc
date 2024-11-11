@@ -1,6 +1,7 @@
 import getConn from "@cocalc/server/stripe/connection";
 import { getStripeCustomerId } from "./util";
 import processPaymentIntents from "./process-payment-intents";
+import setShoppingCartPaymentIntent from "@cocalc/server/shopping/cart/payment-intent";
 import type { StripeData } from "@cocalc/util/stripe/types";
 
 export default async function getPayments({
@@ -78,5 +79,18 @@ export async function getAllOpenPayments(
     }
     return false;
   });
+  for (const intent of x.data) {
+    const cart_ids_json = intent.metadata?.cart_ids;
+    if (!cart_ids_json) {
+      continue;
+    }
+    // make sure these are marked properly as being purchased by this payment in the shopping cart.
+    const cart_ids = JSON.parse(cart_ids_json);
+    await setShoppingCartPaymentIntent({
+      account_id,
+      payment_intent: intent.id,
+      cart_ids,
+    });
+  }
   return { has_more: false, data: x.data, object: "list" };
 }

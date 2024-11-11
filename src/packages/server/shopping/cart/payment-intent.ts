@@ -13,11 +13,23 @@ import getPool from "@cocalc/database/pool";
 export default async function setShoppingCartPaymentIntent({
   account_id,
   payment_intent,
+  cart_ids,
+}: {
+  account_id: string;
+  payment_intent: string;
+  cart_ids?: number[];
 }) {
+  let query = `UPDATE shopping_cart_items SET purchased=$1 WHERE account_id=$2 AND purchased IS NULL AND removed IS NULL`;
+  const params: any[] = [
+    { payment_intent, checkout_time: new Date() },
+    account_id,
+  ];
+  if (cart_ids != null && cart_ids.length > 0) {
+    query += " AND id=ANY($3)";
+    params.push(cart_ids);
+  }
+  console.log({ query, params });
   const pool = getPool();
-  const { rows } = await pool.query(
-    `UPDATE shopping_cart_items SET purchased=$1 WHERE account_id=$2 AND purchased IS NULL AND removed IS NULL`,
-    [{ payment_intent, checkout_time: new Date() }, account_id],
-  );
+  const { rows } = await pool.query(query, params);
   return rows;
 }

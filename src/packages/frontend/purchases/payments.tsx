@@ -99,7 +99,9 @@ export default function Payments({
         data0 = data0.filter((x) => x.metadata?.purpose == purpose);
       }
       setData(data0);
-      numPaymentsRef.current = data0.length;
+      if (numPaymentsRef != null) {
+        numPaymentsRef.current = data0.length;
+      }
       setHasMore(result.has_more);
     } catch (err) {
       setError(`${err}`);
@@ -113,8 +115,8 @@ export default function Payments({
   }, [account_id]);
 
   if (refreshPaymentsRef != null) {
-    refreshPaymentsRef.current = () => {
-      loadMore({ init: true });
+    refreshPaymentsRef.current = async () => {
+      await loadMore({ init: true });
     };
   }
 

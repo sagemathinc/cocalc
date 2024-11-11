@@ -49,21 +49,25 @@ export default function Processing() {
   };
 
   useEffect(() => {
-    if (params?.cart != null && params.cart.length == 0) {
+    if (
+      params?.cart != null &&
+      params.cart.length == 0 &&
+      numPaymentsRef.current === 0
+    ) {
       setFinished(true);
     }
   }, [params]);
 
   const lastRefreshRef = useRef<number>(0);
   const refreshRef = useRef<Function>(() => {});
-  refreshRef.current = () => {
+  refreshRef.current = async () => {
     const now = Date.now();
     if (now - lastRefreshRef.current < 3000) {
       return;
     }
     lastRefreshRef.current = now;
-    updateParams();
-    refreshPaymentsRef.current?.();
+    await updateParams();
+    await refreshPaymentsRef.current?.();
   };
 
   // exponential backoff auto-refresh
@@ -188,7 +192,7 @@ export default function Processing() {
           refreshRef.current();
         }}
       >
-        Refresh {loading && <Spin />}
+        Check Order Status {loading && <Spin />}
       </Button>
       <h3>
         <Icon name="run" /> Processing Your Order
