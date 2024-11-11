@@ -18,11 +18,14 @@ import {
   Typography,
 } from "antd";
 import { delay } from "awaiting";
+import { useEffect, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { CSS, redux, useActions } from "@cocalc/frontend/app-framework";
-import { useEffect, useState } from "react";
 import { A, Icon, Paragraph } from "@cocalc/frontend/components";
 import Next from "@cocalc/frontend/components/next";
+import { labels } from "@cocalc/frontend/i18n";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
@@ -70,6 +73,8 @@ export function StudentProjectUpgrades({
   settings,
   actions,
 }: Props) {
+  const intl = useIntl();
+
   const course_actions = useActions<CourseActions>({ name });
   const [show_site_license, set_show_site_license] = useState<boolean>(false);
 
@@ -94,17 +99,24 @@ export function StudentProjectUpgrades({
     return (
       <div>
         <br />
-        Enter a license key below to automatically apply upgrades from that
-        license to this course project, all student projects, and the shared
-        project whenever they are running. Clear the field below to stop
-        applying those upgrades. Upgrades from the license are only applied when
-        a project is started.{" "}
-        {is_commercial && (
-          <>
-            Create a <ShowSupportLink /> if you need to purchase a license key
-            via a purchase order.
-          </>
-        )}
+        <FormattedMessage
+          id="course.upgrades.site_license_text.info"
+          defaultMessage={`Enter a license key below to automatically apply upgrades from that
+            license to this course project, all student projects, and the shared
+            project whenever they are running. Clear the field below to stop
+            applying those upgrades. Upgrades from the license are only applied when
+            a project is started.`}
+        />{" "}
+        {is_commercial ? (
+          <FormattedMessage
+            id="course.upgrades.site_license_text.info-commercial"
+            defaultMessage={`Create a {support} if you need to purchase a license key
+            via a purchase order.`}
+            values={{
+              support: <ShowSupportLink />,
+            }}
+          />
+        ) : undefined}
         <SiteLicenseInput
           onSave={(license_id) => {
             set_show_site_license(false);
@@ -134,7 +146,14 @@ export function StudentProjectUpgrades({
             (upgradeHostProject ? 1 : 0) +
             (shared_project_id ? 1 : 0);
           if (info.run_limit < n) {
-            return `NOTE: This license can only upgrade ${info.run_limit} simultaneous running projects, but there are ${n} projects associated to this course.`;
+            return (
+              <FormattedMessage
+                id="course.upgrades.render_licenses.note"
+                defaultMessage={`NOTE: This license can only upgrade {run_limit} simultaneous running projects,
+                  but there are {n} projects associated to this course.`}
+                values={{ n, run_limit: info.run_limit }}
+              />
+            );
           }
         }}
       />
@@ -151,9 +170,14 @@ export function StudentProjectUpgrades({
           borderRadius: "5px",
         }}
       >
-        <b>License strategy:</b> Since you have multiple licenses, there are two
-        different ways they can be used, depending on whether you're trying to
-        maximize the number of covered students or the upgrades per students:
+        <FormattedMessage
+          id="course.upgrades.license_strategy.explanation"
+          defaultMessage={`<b>License strategy:</b>
+            Since you have multiple licenses,
+            there are two different ways they can be used,
+            depending on whether you're trying to maximize the number of covered students
+            or the upgrades per students:`}
+        />
         <br />
         <Radio.Group
           disabled={disabled}
@@ -167,28 +191,41 @@ export function StudentProjectUpgrades({
           value={site_license_strategy ?? "serial"}
         >
           <Radio value={"serial"} key={"serial"} style={radioStyle}>
-            <b>Maximize number of covered students:</b> apply one license to
-            each project associated to this course (e.g., you bought a license
-            to handle a few more students who were added your course). If you
-            have more students than license seats, the first students to start
-            their projects will get the upgrades.
+            <FormattedMessage
+              id="course.upgrades.license_strategy.radio.coverage"
+              defaultMessage={`<b>Maximize number of covered students:</b>
+                apply one license to each project associated to this course
+                (e.g., you bought a license to handle a few more students who were added your course).
+                If you have more students than license seats,
+                the first students to start their projects will get the upgrades.`}
+            />
           </Radio>
           <Radio value={"parallel"} key={"parallel"} style={radioStyle}>
-            <b>Maximize upgrades to each project:</b> apply all licenses to all
-            projects associated to this course (e.g., you bought a license to
-            increase the RAM or CPU for all students).
+            <FormattedMessage
+              id="course.upgrades.license_strategy.radio.upgrades"
+              defaultMessage={`  <b>Maximize upgrades to each project:</b>
+                apply all licenses to all projects associated to this course
+                (e.g., you bought a license to increase the RAM or CPU for all students).`}
+            />
           </Radio>
         </Radio.Group>
         <Divider type="horizontal" />
-        <Button
-          onClick={() =>
-            course_actions.configuration.configure_all_projects(true)
-          }
-          size="small"
-        >
-          <Icon name="arrows" /> Redistribute licenses
-        </Button>{" "}
-        – e.g. useful if a license expired
+        <FormattedMessage
+          id="course.upgrades.license_strategy.redistribute"
+          defaultMessage={`<Button>Redistribute licenses</Button> – e.g. useful if a license expired`}
+          values={{
+            Button: (c) => (
+              <Button
+                onClick={() =>
+                  course_actions.configuration.configure_all_projects(true)
+                }
+                size="small"
+              >
+                <Icon name="arrows" /> {c}
+              </Button>
+            ),
+          }}
+        />
       </Paragraph>
     );
   }
@@ -204,12 +241,14 @@ export function StudentProjectUpgrades({
 
     return (
       <div style={{ margin: "15px 0" }}>
-        This project and all student projects will be upgraded using the
-        following{" "}
-        <b>
-          {licenses.length} license{licenses.length > 1 ? "s" : ""}
-        </b>
-        , unless it is expired or in use by too many projects:
+        <FormattedMessage
+          id="course.upgades.current_licenses.info"
+          defaultMessage={`This project and all student projects will be upgraded using the
+          following
+          <b>{n} {n, select, 1 {license} other {licenses}}</b>,
+          unless it is expired or in use by too many projects:`}
+          values={{ n: licenses.length }}
+        />
         <br />
         <div style={{ margin: "15px 0", padding: "0" }}>
           {render_licenses(site_licenses)}
@@ -222,14 +261,20 @@ export function StudentProjectUpgrades({
   function render_remove_all_licenses() {
     return (
       <Popconfirm
-        title={"Remove all licenses from all student projects?"}
+        title={intl.formatMessage({
+          id: "course.upgrades.remove_all_licenses.title",
+          defaultMessage: "Remove all licenses from all student projects?",
+        })}
         onConfirm={async () => {
           try {
             await course_actions.student_projects.remove_all_project_licenses();
             alert_message({
               type: "info",
-              message:
-                "Successfully removed all licenses from student projects.",
+              message: intl.formatMessage({
+                id: "course.upgrades.remove_all_licenses.success",
+                defaultMessage:
+                  "Successfully removed all licenses from student projects.",
+              }),
             });
           } catch (err) {
             alert_message({ type: "error", message: `${err}` });
@@ -237,7 +282,10 @@ export function StudentProjectUpgrades({
         }}
       >
         <Button style={{ marginTop: "15px" }}>
-          Remove licenses from student projects...
+          <FormattedMessage
+            id="course.upgrades.remove_all_licenses"
+            defaultMessage={"Remove licenses from student projects..."}
+          />
         </Button>
       </Popconfirm>
     );
@@ -254,9 +302,13 @@ export function StudentProjectUpgrades({
             disabled={show_site_license}
           >
             <Icon name="key" />{" "}
-            {n == 0
-              ? "Upgrade using a license key"
-              : "Add another license key (more students or better upgrades)"}
+            <FormattedMessage
+              id="course.upgades.site_license.upgrade-button.label"
+              defaultMessage={`{n, select,
+              0 {Upgrade using a license key}
+              other {Add another license key (more students or better upgrades)}}`}
+              values={{ n }}
+            />
             ...
           </Button>
           {render_site_license_text()}
@@ -279,7 +331,12 @@ export function StudentProjectUpgrades({
                   description: settings.get("description") ?? "",
                 }}
               >
-                <Button>Buy a license...</Button>
+                <Button>
+                  <FormattedMessage
+                    id="course.upgrades.site_license.buy-button.label"
+                    defaultMessage={"Buy a license..."}
+                  />
+                </Button>
               </Next>
             </div>
           )}
@@ -302,7 +359,10 @@ export function StudentProjectUpgrades({
         checked={!!institute_pay}
         onChange={handle_institute_pay_checkbox}
       >
-        You or your institute will pay for this course
+        <FormattedMessage
+          id="course.upgrades.checkbox-institute-pays"
+          defaultMessage={"You or your institute will pay for this course"}
+        />
       </Checkbox>
     );
   }
@@ -312,14 +372,22 @@ export function StudentProjectUpgrades({
       <div style={{ marginTop: "15px" }}>
         {render_site_license()}
         <hr />
-        <div style={{ color: "#666" }}>
+        <div style={{ color: COLORS.GRAY_M }}>
           <p>
-            Add or remove upgrades to student projects associated to this
-            course, adding to what is provided for free and what students may
-            have purchased.{" "}
-            <A href="https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgradespay">
-              Help...
-            </A>
+            <FormattedMessage
+              id="course.upgrades.details"
+              defaultMessage={`Add or remove upgrades to student projects associated to this course,
+                adding to what is provided for free and what students may have purchased.
+                <A>Help...</A>`}
+              values={{
+                A: (c) => (
+                  <A href="https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgradespay">
+                    {c}
+                  </A>
+                ),
+              }}
+              description={"Students in an university online course."}
+            />
           </p>
         </div>
       </div>
@@ -332,12 +400,22 @@ export function StudentProjectUpgrades({
 
   function render_title() {
     if (is_onprem) {
-      return <div>Upgrade Student Projects</div>;
+      return (
+        <div>
+          <FormattedMessage
+            id="course.upgrades.onprem.title"
+            defaultMessage={"Upgrade Student Projects"}
+          />
+        </div>
+      );
     } else {
       return (
         <div>
-          <Icon name="dashboard" /> Upgrade all Student Projects (Institute
-          Pays)
+          <Icon name="dashboard" />{" "}
+          <FormattedMessage
+            id="course.upgrades.prod.title"
+            defaultMessage={"Upgrade all Student Projects (Institute Pays)"}
+          />
         </div>
       );
     }
@@ -379,6 +457,7 @@ const ToggleUpgradingHostProject = ({
   actions,
   settings,
 }: ToggleUpgradingHostProjectProps) => {
+  const intl = useIntl();
   const [needSave, setNeedSave] = useState<boolean>(false);
   const upgradeHostProject = settings.get("license_upgrade_host_project");
   const upgrade = upgradeHostProject ?? DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
@@ -388,13 +467,15 @@ const ToggleUpgradingHostProject = ({
     setNeedSave(nextVal != upgrade);
   }, [nextVal, upgrade]);
 
+  const label = intl.formatMessage({
+    id: "course.upgrades.toggle-host.label",
+    defaultMessage: "Upgrade instructor project:",
+  });
+
   function toggle() {
     return (
       <Form layout="inline">
-        <Form.Item
-          label="Upgrade instructor project:"
-          style={{ marginBottom: 0 }}
-        >
+        <Form.Item label={label} style={{ marginBottom: 0 }}>
           <Switch checked={nextVal} onChange={(val) => setNextVal(val)} />
         </Form.Item>
         <Form.Item>
@@ -403,7 +484,7 @@ const ToggleUpgradingHostProject = ({
             type={needSave ? "primary" : undefined}
             onClick={() => actions.set_license_upgrade_host_project(nextVal)}
           >
-            Save
+            {intl.formatMessage(labels.save)}
           </Button>
         </Form.Item>
       </Form>
@@ -417,10 +498,12 @@ const ToggleUpgradingHostProject = ({
       <Typography.Paragraph
         ellipsis={{ expandable: true, rows: 1, symbol: "more" }}
       >
-        If enabled, this instructor project is upgraded using all configured
-        course license(s). Otherwise, explictly add your license to the
-        instructor project. Disabling this options does <i>not</i> remove
-        licenses from the instructor project.
+        {intl.formatMessage({
+          id: "course.upgrades.toggle-host.info",
+          defaultMessage: `If enabled, this instructor project is upgraded using all configured course license(s).
+            Otherwise, explictly add your license to the instructor project.
+            Disabling this options does <i>not</i> remove licenses from the instructor project.`,
+        })}
       </Typography.Paragraph>
     </>
   );
