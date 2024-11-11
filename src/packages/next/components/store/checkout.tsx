@@ -94,6 +94,9 @@ export default function Checkout() {
     const { credit } = creditLineItem({ lineItems: v, amount: paymentAmount });
     if (credit) {
       // add one more line item to make the grand total be equal to amount
+      if (credit.amount > 0) {
+        credit.description = `${credit.description} - to get your balance to the minimum required amount`;
+      }
       v.push(credit);
     }
     return v;
@@ -186,7 +189,7 @@ export default function Checkout() {
             <ShowError error={error} setError={setError} />
             <Card title={<>Place Your Order</>}>
               <Row>
-                <Col sm={12}>
+                <Col sm={12} style={{ paddingRight: "15px" }}>
                   <div style={{ fontSize: "15pt" }}>
                     <TotalCost totalCost={totalCost} />
                     <br />
@@ -194,12 +197,12 @@ export default function Checkout() {
                   </div>
                 </Col>
 
-                <Col sm={12} style={{ textAlign: "center" }}>
+                <Col sm={12} style={{ paddingLeft: "15px" }}>
                   {round2down(
                     (params.balance ?? 0) - (params.minBalance ?? 0),
                   ) > 0 && (
                     <Checkbox
-                      style={{ marginTop: "38px" }}
+                      style={{ marginTop: "38px", textAlign: "left" }}
                       checked={paymentIntent == PaymentIntent.APPLY_BALANCE}
                       onChange={async (e) => {
                         let intent;
@@ -212,7 +215,14 @@ export default function Checkout() {
                         await updateParams(intent);
                       }}
                     >
-                      Apply credit on your account toward purchase
+                      Use your <SiteName /> account credit toward this purchase.
+                      {params.minBalance < 0 ? (
+                        <>
+                          {" "}
+                          Your balance is allowed to go down to{" "}
+                          {currency(params.minBalance)} each month.
+                        </>
+                      ) : undefined}
                     </Checkbox>
                   )}
                 </Col>
@@ -243,7 +253,9 @@ export default function Checkout() {
                     lineItems={lineItems}
                     purpose={SHOPPING_CART_CHECKOUT}
                     metadata={{
-                      cart_ids: JSON.stringify(params.cart.map((item) => item.id)),
+                      cart_ids: JSON.stringify(
+                        params.cart.map((item) => item.id),
+                      ),
                     }}
                     onFinished={async () => {
                       setUserSuccessfullyAddedCredit(true);
