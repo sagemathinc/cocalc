@@ -29,7 +29,9 @@ export default function CreatePayment({ account_id, onClose }: Props) {
   );
   const [amount, setAmount] = useState<number | null>(DEFAULT_PAYMENT);
   const [total, setTotal] = useState<number>(0);
-  const [description, setDescription] = useState<string>("Add credit to account");
+  const [description, setDescription] = useState<string>(
+    "Add credit to account",
+  );
   const purposeRef = useRef<string>(`admin-${Date.now()}`);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -46,7 +48,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
       await createPaymentIntent({
         user_account_id: account_id,
         lineItems,
-        description,
+        description: paymentDescription,
         purpose: purposeRef.current,
       });
       setDone(true);
@@ -148,14 +150,11 @@ export default function CreatePayment({ account_id, onClose }: Props) {
           type="info"
           description={
             <>
-              User will be charged {currency(total)}
-              (+ sales tax), in exactly the same way automatic payments work.
-              When the payment is completed a credit will be added to their
-              account. If they have an automatic payment method on file (e.g. a
-              credit card), then this will be nearly instant, but if they do not
-              they may have a pending payment until they explicitly add a card
-              or take other steps. Click the "Payments" button above to see the
-              status of any payments.
+              User will be charged {currency(total)} (+ tax). When the payment
+              is completed, a credit will be added to the user's account. If
+              they have an automatic payment method on file (e.g. a credit
+              card), then this may be instant. Click the "Payments" button above
+              to see the status of any payments.
             </>
           }
         />
