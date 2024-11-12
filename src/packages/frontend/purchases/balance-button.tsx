@@ -59,7 +59,7 @@ export default function BalanceButton({
       >
         {!minimal && <>Balance: </>}
         {minimal && "("}
-        {balance ? currency(round2down(balance)) : undefined}
+        {balance != null ? currency(round2down(balance)) : undefined}
         {minimal && ")"}
         {!minimal && loading && <Spin style={{ marginLeft: "5px" }} />}
       </Button>

@@ -25,7 +25,7 @@ const EXTRA_LINE_ITEMS_COLUMNS = [
     title: "",
     dataIndex: "",
     key: "",
-    width: "50%",
+    width: "30%",
   } as const,
   {
     title: "",
