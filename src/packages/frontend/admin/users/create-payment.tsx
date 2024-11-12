@@ -13,6 +13,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { useRef, useState } from "react";
 import { currency } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
+import type { LineItem } from "@cocalc/util/stripe/types";
+import { LineItemsTable } from "@cocalc/frontend/purchases/line-items";
 
 const DEFAULT_PAYMENT = 10;
 
@@ -22,12 +24,14 @@ interface Props {
 }
 
 export default function CreatePayment({ account_id, onClose }: Props) {
-  const [amount, setAmount] = useState<number | null | string>(DEFAULT_PAYMENT);
+  const [paymentDescription, setPaymentDescription] = useState<string>("");
+  const [amount, setAmount] = useState<number | null>(DEFAULT_PAYMENT);
   const [description, setDescription] = useState<string>("");
   const purposeRef = useRef<string>(`admin-${Date.now()}`);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [done, setDone] = useState<boolean>(false);
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
 
   const doIt = async () => {
     if (typeof amount != "number") {
@@ -38,12 +42,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
       setLoading(true);
       await createPaymentIntent({
         user_account_id: account_id,
-        lineItems: [
-          {
-            description: `Add credit to account (site admin) -- ${description}`,
-            amount,
-          },
-        ],
+        lineItems,
         description,
         purpose: purposeRef.current,
       });
@@ -58,7 +57,15 @@ export default function CreatePayment({ account_id, onClose }: Props) {
 
   return (
     <Card title={"Create Payment"}>
-      <Flex gap="middle" style={{ marginBottom: "15px" }}>
+      <Input
+        disabled={done || loading}
+        style={{ flex: 1, maxWidth: "700px", marginBottom: "15px" }}
+        placeholder="Payment Description..."
+        value={paymentDescription}
+        onChange={(e) => setPaymentDescription(e.target.value)}
+      />
+      <LineItemsTable lineItems={lineItems} />
+      <Flex gap="middle" style={{ margin: "15px 0" }}>
         <Input
           disabled={done || loading}
           style={{ flex: 1, maxWidth: "400px" }}
@@ -74,8 +81,23 @@ export default function CreatePayment({ account_id, onClose }: Props) {
           placeholder="Amount..."
           style={{ maxWidth: "100px" }}
           value={amount}
-          onChange={setAmount}
+          onChange={(value) =>
+            setAmount(typeof value == "string" ? null : value)
+          }
         />
+        <Button
+          disabled={!amount || !description || loading || done || !!error}
+          onClick={() => {
+            if (!amount) {
+              return;
+            }
+            setLineItems(lineItems.concat([{ amount, description }]));
+            setAmount(DEFAULT_PAYMENT);
+            setDescription("");
+          }}
+        >
+          Add Line Item
+        </Button>
       </Flex>
       <Space style={{ marginBottom: "15px" }}>
         {onClose != null && (
@@ -86,10 +108,8 @@ export default function CreatePayment({ account_id, onClose }: Props) {
             !!error ||
             done ||
             loading ||
-            typeof amount != "number" ||
-            amount < 1 ||
-            amount > 10000 ||
-            !description
+            !paymentDescription ||
+            lineItems.length == 0
           }
           type="primary"
           onClick={doIt}
