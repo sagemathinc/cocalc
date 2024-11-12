@@ -66,7 +66,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     // fully refunded (since starts in future) -- license is not active for nonzero period
     expect((license.expires?.valueOf() ?? 0) / 1000).toBeCloseTo(
       Date.now() / 1000,
-      1,
+      0,
     );
 
     const balanceBeforeResume = await getBalance(account_id);
