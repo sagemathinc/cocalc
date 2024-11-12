@@ -1,8 +1,4 @@
-/* Status of your purchases
-
-This is your balance, limit and spending rate.
-*/
-
+import { Button, Modal, Spin } from "antd";
 import Balance from "./balance";
 import { useEffect, useState } from "react";
 import {
@@ -11,17 +7,15 @@ import {
 } from "./api";
 import { currency, round2down } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
-import { SectionDivider } from "./util";
 
-const MAX_WIDTH = "900px";
-
-export default function AccountStatus({
+export default function BalanceButton({
   style,
   onRefresh,
 }: {
   style?;
   onRefresh?: () => void;
 }) {
+  const [open, setOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [balance, setBalance] = useState<number | null>(null);
   const [pendingBalance, setPendingBalance] = useState<number | null>(null);
@@ -35,12 +29,11 @@ export default function AccountStatus({
   };
 
   const handleRefresh = async () => {
+    console.log("handleRefresh");
     try {
       onRefresh?.();
       setError("");
       setLoading(true);
-      setBalance(null);
-      setPendingBalance(null);
       await Promise.all([getBalance(), getPendingBalance()]);
     } catch (err) {
       setError(`${err}`);
@@ -53,26 +46,45 @@ export default function AccountStatus({
   }, []);
 
   return (
-    <div style={style}>
-      <SectionDivider onRefresh={handleRefresh} loading={loading}>
-        Balance
-        {balance != null ? `: ${currency(round2down(balance))}` : undefined}
-      </SectionDivider>
-      <ShowError
-        error={error}
-        setError={setError}
-        style={{ marginBottom: "15px" }}
-      />
-      <div style={{ textAlign: "center" }}>
-        <div style={{ maxWidth: MAX_WIDTH, margin: "15px auto" }}>
+    <>
+      <Button
+        type="text"
+        style={style}
+        onClick={() => {
+          handleRefresh();
+          setOpen(!open);
+        }}
+      >
+        Balance: {balance ? currency(round2down(balance)) : undefined}{" "}
+        {loading && <Spin />}
+      </Button>
+      <Modal
+        width={700}
+        title={"Balance"}
+        open={open}
+        onOk={() => {
+          setOpen(false);
+          handleRefresh();
+        }}
+        onCancel={() => {
+          setOpen(false);
+          handleRefresh();
+        }}
+      >
+        <div style={{ textAlign: "center" }}>
           <Balance
             balance={balance}
             pendingBalance={pendingBalance}
-            refresh={handleRefresh}
+            refresh={() => {
+              handleRefresh();
+              setTimeout(handleRefresh, 5000);
+              setTimeout(handleRefresh, 15000);
+            }}
             showTransferLink
           />
         </div>
-      </div>
-    </div>
+        <ShowError error={error} setError={setError} />
+      </Modal>
+    </>
   );
 }

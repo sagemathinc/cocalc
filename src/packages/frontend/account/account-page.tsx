@@ -14,6 +14,7 @@ import { useEffect } from "react";
 import { Flex, Menu, Space } from "antd";
 import { useIntl } from "react-intl";
 import { SignOut } from "@cocalc/frontend/account/sign-out";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 import { AntdTabItem } from "@cocalc/frontend/antd-bootstrap";
 import {
   React,
@@ -115,7 +116,8 @@ export const AccountPage: React.FC = () => {
         key: "statements",
         label: (
           <span>
-            <Icon name="calendar-week" /> {intl.formatMessage(labels.statements)}
+            <Icon name="calendar-week" />{" "}
+            {intl.formatMessage(labels.statements)}
           </span>
         ),
         children: active_page === "statements" && <StatementsPage />,
@@ -199,6 +201,7 @@ export const AccountPage: React.FC = () => {
   function renderExtraContent() {
     return (
       <Space>
+        <BalanceButton />
         <I18NSelector isWide={isWide} />
         <SignOut everywhere={false} highlight={true} narrow={!isWide} />
       </Space>

@@ -11,7 +11,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 interface Props {
   balance?: number | null;
   style?: CSSProperties;
-  refresh?: () => Promise<void>;
+  refresh?: Function;
   cost?: number; // optional amount of money we want right now
   pendingBalance?: number | null;
   showTransferLink?: boolean;
@@ -63,11 +63,12 @@ export default function Balance({
           {stat}
           <Button
             type="primary"
+            size="large"
             onClick={() => setAdd(true)}
             style={{ marginTop: "5px" }}
           >
             <Icon name="credit-card" style={{ marginRight: "5px" }} />
-            Make a Deposit
+            Deposit Money
           </Button>
           {showTransferLink && balance > 0 && (
             <div style={{ marginTop: "5px" }}>
