@@ -145,7 +145,7 @@ export default function StripePayment({
                 label={
                   totalStripe > 0
                     ? "Choose Payment Method"
-                    : "Purchase With 1-Click Using CoCalc Credits"
+                    : "Purchase With 1-Click Using Account Credit"
                 }
                 onClick={() => {
                   if (totalStripe <= 0) {

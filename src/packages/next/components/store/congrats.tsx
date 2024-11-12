@@ -187,7 +187,7 @@ export default function Congrats() {
                 <Icon name="key" style={{ marginRight: "15px" }} />
                 Congrats! You recently ordered{" "}
                 {licenses.length >= 2 ? "these" : "this"} {licenses.length}{" "}
-                <SiteName /> {plural(licenses.length, "license")}
+                <SiteName /> {plural(licenses.length, "license")}.
               </>
             }
           >

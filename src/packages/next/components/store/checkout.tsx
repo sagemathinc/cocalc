@@ -97,11 +97,15 @@ export default function Checkout() {
         amount: x.lineItemAmount,
       };
     });
-    const { credit } = creditLineItem({ lineItems: v, amount: paymentAmount });
+    const { credit } = creditLineItem({
+      lineItems: v,
+      amount:
+        paymentAmount > 0 ? Math.max(params.minPayment, paymentAmount) : 0,
+    });
     if (credit) {
       // add one more line item to make the grand total be equal to amount
       if (credit.amount > 0) {
-        credit.description = `${credit.description} - to get your balance to the minimum required amount`;
+        credit.description = `${credit.description} -- adjustment so payment is at least ${currency(params.minPayment)}`;
       }
       v.push(credit);
     }
@@ -388,13 +392,14 @@ export default function Checkout() {
               {completingPurchase ||
               totalCost >= params.minPayment ||
               params == null ||
-              paymentAmount != params.minPayment ? null : (
+              paymentAmount >= params.minPayment ? null : (
                 <Alert
+                  showIcon
                   type="warning"
-                  style={{ color: "#666", marginTop: "15px" }}
+                  style={{ marginTop: "15px" }}
                   message={
                     <>
-                      There is a minimum payment amount of{" "}
+                      The minimum payment amount is{" "}
                       {currency(params.minPayment)}. Extra money you deposit for
                       this purchase can be used toward future purchases.
                     </>
