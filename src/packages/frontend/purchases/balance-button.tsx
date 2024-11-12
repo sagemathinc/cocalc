@@ -11,9 +11,11 @@ import ShowError from "@cocalc/frontend/components/error";
 export default function BalanceButton({
   style,
   onRefresh,
+  minimal = false,
 }: {
   style?;
   onRefresh?: () => void;
+  minimal?: boolean;
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -29,7 +31,6 @@ export default function BalanceButton({
   };
 
   const handleRefresh = async () => {
-    console.log("handleRefresh");
     try {
       onRefresh?.();
       setError("");
@@ -48,6 +49,7 @@ export default function BalanceButton({
   return (
     <>
       <Button
+        size={minimal ? "small" : undefined}
         type="text"
         style={style}
         onClick={() => {
@@ -55,8 +57,11 @@ export default function BalanceButton({
           setOpen(!open);
         }}
       >
-        Balance: {balance ? currency(round2down(balance)) : undefined}{" "}
-        {loading && <Spin />}
+        {!minimal && <>Balance: </>}
+        {minimal && "("}
+        {balance ? currency(round2down(balance)) : undefined}
+        {minimal && ")"}
+        {!minimal && loading && <Spin style={{ marginLeft: "5px" }} />}
       </Button>
       <Modal
         width={700}

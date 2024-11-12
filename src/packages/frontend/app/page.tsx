@@ -46,6 +46,7 @@ import { CookieWarning, LocalStorageWarning, VersionWarning } from "./warnings";
 import { I18NBanner, useShowI18NBanner } from "./i18n-banner";
 import SettingsModal from "./settings-modal";
 import InsecureTestModeBanner from "./insecure-test-mode-banner";
+import BalanceButton from "@cocalc/frontend/purchases/balance-button";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -161,7 +162,12 @@ export const Page: React.FC = () => {
       */
       setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
     } else {
-      label = intl.formatMessage(labels.account);
+      label = (
+        <>
+          {intl.formatMessage(labels.account)}
+          <BalanceButton minimal style={{ marginRight: "-10px" }} />
+        </>
+      );
       style = undefined;
     }
 
