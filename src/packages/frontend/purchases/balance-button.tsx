@@ -62,7 +62,7 @@ export default function BalanceButton({
           <Badge
             count={1}
             size="small"
-            style={{ backgroundColor: "#52c41a" }}
+            style={{ backgroundColor: "#688ff1" }}
           />
         )}
         {!minimal && loading && <Spin style={{ marginLeft: "5px" }} />}

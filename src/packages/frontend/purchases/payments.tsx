@@ -7,6 +7,7 @@ import {
 } from "./api";
 import {
   Alert,
+  Badge,
   Button,
   Divider,
   Flex,
@@ -134,6 +135,12 @@ export default function Payments({
                 type: "payment",
                 adjective: unfinished ? "Unfinished " : "",
               })}
+              {unfinished && (data?.length ?? 0 > 0) && (
+                <Badge
+                  count={data?.length}
+                  style={{ backgroundColor: "#688ff1", marginLeft: "15px" }}
+                />
+              )}
             </Tooltip>
             {loading && <Spin style={{ marginLeft: "15px" }} />}
           </Divider>
