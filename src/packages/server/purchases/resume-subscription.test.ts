@@ -48,7 +48,7 @@ describe("create a subscription, cancel it, then resume it", () => {
 
   it("cancels our subscription, so that we can renew it.  Resume works, since we have money from the cancelation.", async () => {
     const creditToCancel = await creditToCancelSubscription(subscription_id);
-    const balanceBeforeCancel = await getBalance(account_id);
+    const balanceBeforeCancel = await getBalance({ account_id });
     await cancelSubscription({
       account_id,
       subscription_id,
@@ -58,7 +58,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     // ATTN: getting this wrong could result in a loophole where a user can cancel and resume
     // their subscription a large number of times to steal money.   We want to make that not
     // work, but should probably also add some throttling (TODO).
-    expect(-(await getBalance(account_id))).toBeCloseTo(
+    expect(-(await getBalance({ account_id }))).toBeCloseTo(
       balanceBeforeCancel + creditToCancel,
       0.1,
     );
@@ -69,7 +69,7 @@ describe("create a subscription, cancel it, then resume it", () => {
       0,
     );
 
-    const balanceBeforeResume = await getBalance(account_id);
+    const balanceBeforeResume = await getBalance({ account_id });
     const { cost: costToResume } =
       await costToResumeSubscription(subscription_id);
     // now resume:
@@ -78,7 +78,7 @@ describe("create a subscription, cancel it, then resume it", () => {
     expect((await getSubscription(subscription_id)).status).toBe("active");
 
     // and balance is right
-    const balanceAfterResume = await getBalance(account_id);
+    const balanceAfterResume = await getBalance({ account_id });
     expect(balanceBeforeResume - costToResume).toBeCloseTo(
       balanceAfterResume,
       2,

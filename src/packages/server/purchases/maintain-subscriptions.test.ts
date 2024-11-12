@@ -242,7 +242,7 @@ describe("testing cancelAllPendingSubscriptions works as it should", () => {
       client: null,
       cost: x.cost,
     });
-    expect(await getBalance(account_id)).toBeCloseTo(-x.cost, 2);
+    expect(await getBalance({ account_id })).toBeCloseTo(-x.cost, 2);
   });
 
   it("creates a subscription for that license", async () => {
@@ -269,12 +269,12 @@ describe("testing cancelAllPendingSubscriptions works as it should", () => {
   });
 
   it("marks the payment as pending (for testing purposes)", async () => {
-    expect(await getBalance(account_id)).toBeCloseTo(-x.cost, 2);
+    expect(await getBalance({ account_id })).toBeCloseTo(-x.cost, 2);
     const pool = getPool();
     await pool.query("UPDATE purchases SET pending=true WHERE id=$1", [
       x.purchase_id,
     ]);
-    expect(await getBalance(account_id)).toBe(0);
+    expect(await getBalance({ account_id })).toBe(0);
     expect(await getPendingBalance(account_id)).toBeCloseTo(-x.cost, 2);
   });
 

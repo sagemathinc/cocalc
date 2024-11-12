@@ -98,4 +98,7 @@ export interface AccountState {
   email_daily_statements?: boolean;
   [SETTINGS_LANGUAGE_MODEL_KEY]?: LanguageModel;
   i18n: Locale;
+  balance?: number;
+  min_balance?: number;
+  balance_alert?: boolean;
 }

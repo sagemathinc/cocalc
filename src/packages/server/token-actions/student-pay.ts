@@ -89,7 +89,7 @@ export async function extraInfo(description: Description, account_id?: string) {
   // just a backup.
   await syncPaidInvoices(account_id);
 
-  const balance = await getBalance(account_id);
+  const balance = await getBalance({ account_id });
   const balanceAfterPay = balance - cost;
   const minBalance = await getMinBalance(account_id);
   const { pay_as_you_go_min_payment } = await getServerSettings();

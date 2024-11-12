@@ -25,6 +25,9 @@ export class AccountTable extends Table {
       accounts: [
         {
           account_id: null,
+          balance: null,
+          min_balance: null,
+          balance_alert: null,
           email_address: null,
           email_address_verified: null,
           email_address_problem: null,

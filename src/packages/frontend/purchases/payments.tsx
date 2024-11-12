@@ -132,6 +132,7 @@ export default function Payments({
                 loadMore,
                 loading,
                 type: "payment",
+                adjective: unfinished ? "Unfinished " : "",
               })}
             </Tooltip>
             {loading && <Spin style={{ marginLeft: "15px" }} />}

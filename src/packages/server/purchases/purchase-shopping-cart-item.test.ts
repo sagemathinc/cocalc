@@ -89,9 +89,9 @@ describe("create a subscription license and edit it and confirm the subscription
     expect(end.date()).toBe(day);
     // The cost of the license should be far less than the monthly subscription,
     // because of proration and setting the close day above.
-    expect(Math.abs(await getBalance(item.account_id))).toBeLessThan(
-      subs[0].cost * 0.25,
-    );
+    expect(
+      Math.abs(await getBalance({ account_id: item.account_id })),
+    ).toBeLessThan(subs[0].cost * 0.25);
   });
 
   it("cancels subscription and verifies that balance is small", async () => {
@@ -102,7 +102,7 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
   });
 
   it("resumes subscription, then cancels it again, and verifies again that the balance is small", async () => {
@@ -117,7 +117,7 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
   });
 
   it("same test but with different parameters for the subscription, e.g., business and yearly", async () => {
@@ -163,7 +163,7 @@ describe("create a subscription license and edit it and confirm the subscription
     await setClosingDay(item.account_id, day);
 
     // balance starts at 0
-    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
 
     const client = await getPoolClient();
     await purchaseShoppingCartItem(item as any, client);
@@ -176,7 +176,7 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
     await resumeSubscription({
       account_id: item.account_id,
       subscription_id,
@@ -186,6 +186,6 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(await getBalance(item.account_id)).toBeCloseTo(0, 1);
+    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
   });
 });

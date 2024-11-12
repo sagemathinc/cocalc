@@ -26,7 +26,7 @@ export default async function updatePendingPurchases(
     // nothing to do  -- there are no pending purchases
     return;
   }
-  const balance = await getBalance(account_id, client);
+  const balance = await getBalance({ account_id, client });
   // Use approx solution to knapsack problem to mark an (almost) maximal set of
   // purchases as no longer pending.
   const purchase_ids = purchasesToMarkNotPending(rows, balance);

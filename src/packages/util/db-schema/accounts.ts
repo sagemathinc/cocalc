@@ -228,6 +228,25 @@ Table({
         max: 0,
       },
     },
+    balance: {
+      type: "number",
+      pg_type: "REAL",
+      desc: "Last computed balance for this user.  NOT a source of truth.  Meant to ensure all frontend clients show the same thing.  Probably also useful for db queries and maybe analytics.",
+      render: {
+        title: "Account Balance (USD)",
+        type: "number",
+        integer: false,
+        editable: false,
+      },
+    },
+    balance_alert: {
+      type: "boolean",
+      desc: "If true, the UI will very strongly encourage user to open their balance modal.",
+      render: {
+        type: "boolean",
+        editable: true,
+      },
+    },
     stripe_checkout_session: {
       type: "map",
       desc: "Part of the current open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
@@ -382,6 +401,8 @@ Table({
           tags: null,
           tours: null,
           min_balance: null,
+          balance: null,
+          balance_alert: null,
           purchase_closing_day: null,
           stripe_usage_subscription: null,
           email_daily_statements: null,

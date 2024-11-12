@@ -172,7 +172,7 @@ export const getShoppingCartCheckoutParams = async (
     cart_ids,
   );
   const minBalance = await getMinBalance(account_id);
-  const balance = await getBalance(account_id);
+  const balance = await getBalance({account_id});
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
   const { amountDue, chargeAmount, minimumPaymentCharge, cureAmount } =
     getChargeAmount({

@@ -4,18 +4,30 @@ import { capitalize, plural } from "@cocalc/util/misc";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useState } from "react";
 
-export function describeNumberOf({ n, hasMore, loadMore, loading, type }) {
+export function describeNumberOf({
+  n,
+  hasMore,
+  loadMore,
+  loading,
+  type,
+  adjective = "",
+}) {
   type = capitalize(type);
+  adjective = capitalize(adjective);
   if (n == null) {
     return type;
   }
   if (n == 0) {
-    return <>No {plural(0, type)}</>;
+    return (
+      <>
+        No {adjective} {plural(0, type)}
+      </>
+    );
   }
   if (hasMore) {
     return (
       <>
-        Most Recent {n} {plural(n, type)}{" "}
+        Most Recent {n} {adjective} {plural(n, type)}{" "}
         <Button type="link" disabled={loading} onClick={() => loadMore()}>
           load more
         </Button>
@@ -23,11 +35,15 @@ export function describeNumberOf({ n, hasMore, loadMore, loading, type }) {
     );
   }
   if (n == 1) {
-    return <>{type}</>;
+    return (
+      <>
+        {adjective} {type}
+      </>
+    );
   }
   return (
     <>
-      {n} {plural(n, type)}
+      {n} {adjective} {plural(n, type)}
     </>
   );
 }

@@ -15,19 +15,26 @@ compute the sum of the following, over all rows of the table for a given account
 // equal to either a or b!  Or rather, it is a real that is technically equal to one of those numbers, but not as
 // a double.
 export const COST_OR_METERED_COST =
-   "COALESCE(cost::decimal, COALESCE(cost_so_far::decimal, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)::decimal)::real";
+  "COALESCE(cost::decimal, COALESCE(cost_so_far::decimal, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)::decimal)::real";
 
-
-export default async function getBalance(
-  account_id: string,
-  client?: PoolClient,
-): Promise<number> {
+export default async function getBalance({
+  account_id,
+  client,
+}: {
+  account_id: string;
+  client?: PoolClient;
+}): Promise<number> {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING IS NOT true`,
     [account_id],
   );
-  return rows[0]?.balance ?? 0;
+  const balance = rows[0]?.balance ?? 0;
+  await pool.query("UPDATE accounts SET balance=$2 WHERE account_id=$1", [
+    account_id,
+    balance,
+  ]);
+  return balance;
 }
 
 // get sum of the *pending* transactions only for this user.

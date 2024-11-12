@@ -64,7 +64,7 @@ export async function getAllOpenPayments(
 
   // note that the query index is only updated *after a few seconds* to hour(s) so NOT reliable immediately!
   // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
-  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" AND -status:"canceled" AND -metadata['deleted]:"true"'`;
+  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" AND -status:"canceled"`;
   const stripe = await getConn();
   const x = await stripe.paymentIntents.search({
     query,

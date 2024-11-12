@@ -1,12 +1,9 @@
-import { Button, Modal, Spin } from "antd";
-import Balance from "./balance";
+import { Badge, Button, Spin } from "antd";
 import { useEffect, useState } from "react";
-import {
-  getBalance as getBalanceUsingApi,
-  getPendingBalance as getPendingBalanceUsingApi,
-} from "./api";
+import { getBalance as getBalanceUsingApi } from "./api";
 import { currency, round2down } from "@cocalc/util/misc";
-import ShowError from "@cocalc/frontend/components/error";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import BalanceModal from "@cocalc/frontend/purchases/balance-modal";
 
 export default function BalanceButton({
   style,
@@ -19,25 +16,27 @@ export default function BalanceButton({
 }) {
   const [open, setOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [pendingBalance, setPendingBalance] = useState<number | null>(null);
-  const [error, setError] = useState<string>("");
+  const dbBalance = useTypedRedux("account", "balance");
+  const balanceAlert = useTypedRedux("account", "balance_alert");
+  const [balance, setBalance] = useState<number | null>(dbBalance ?? null);
+
+  useEffect(() => {
+    if (dbBalance != null) {
+      setBalance(dbBalance);
+    }
+  }, [dbBalance]);
 
   const getBalance = async () => {
     setBalance(await getBalanceUsingApi());
-  };
-  const getPendingBalance = async () => {
-    setPendingBalance(await getPendingBalanceUsingApi());
   };
 
   const handleRefresh = async () => {
     try {
       onRefresh?.();
-      setError("");
       setLoading(true);
-      await Promise.all([getBalance(), getPendingBalance()]);
+      await getBalance();
     } catch (err) {
-      setError(`${err}`);
+      console.warn("Issue updating balance", err);
     } finally {
       setLoading(false);
     }
@@ -49,6 +48,7 @@ export default function BalanceButton({
   return (
     <>
       <Button
+        danger={balanceAlert}
         size={minimal ? "small" : undefined}
         type="text"
         style={style}
@@ -57,39 +57,19 @@ export default function BalanceButton({
           setOpen(!open);
         }}
       >
+        {minimal && balanceAlert && <Badge count={1} />}
         {!minimal && <>Balance: </>}
         {minimal && "("}
         {balance != null ? currency(round2down(balance)) : undefined}
         {minimal && ")"}
         {!minimal && loading && <Spin style={{ marginLeft: "5px" }} />}
       </Button>
-      <Modal
-        width={700}
-        title={"Balance"}
-        open={open}
-        onOk={() => {
-          setOpen(false);
-          handleRefresh();
-        }}
-        onCancel={() => {
-          setOpen(false);
-          handleRefresh();
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <Balance
-            balance={balance}
-            pendingBalance={pendingBalance}
-            refresh={() => {
-              handleRefresh();
-              setTimeout(handleRefresh, 5000);
-              setTimeout(handleRefresh, 15000);
-            }}
-            showTransferLink
-          />
-        </div>
-        <ShowError error={error} setError={setError} />
-      </Modal>
+      {open && (
+        <BalanceModal
+          onRefresh={handleRefresh}
+          onClose={() => setOpen(false)}
+        />
+      )}
     </>
   );
 }
