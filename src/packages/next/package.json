@@ -80,6 +80,8 @@
     "next": "14.2.15",
     "next-remove-imports": "^1.0.11",
     "next-rest-framework": "6.0.0-beta.4",
+    "next-translate": "^2.6.2",
+    "next-translate-plugin": "^2.6.2",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
     "react": "^18.3.1",

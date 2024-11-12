@@ -17,7 +17,9 @@ const cacheDirectory = join(
 
 const removeImports = require("next-remove-imports")();
 
-module.exports = removeImports({
+const nextTranslate = require('next-translate-plugin')
+
+module.exports = nextTranslate(removeImports({
   basePath,
   swcMinify: true, //  enable faster RUST-based minifier
   env: { BASE_PATH },
@@ -78,4 +80,4 @@ module.exports = removeImports({
     defaultLocale: "en-US",
   },
   poweredByHeader: false, // https://github.com/sagemathinc/cocalc/issues/6101
-});
+}));
