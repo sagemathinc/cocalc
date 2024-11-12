@@ -42,6 +42,9 @@ export default async function getPayments({
     limit,
   });
 
+  paymentIntents.data = paymentIntents.data.filter(
+    (intent) => !intent.metadata?.deleted,
+  );
   // if any payments haven't been processed, i.e., credit added to cocalc, do that here:
   await processPaymentIntents({ paymentIntents: paymentIntents.data });
 
@@ -61,7 +64,7 @@ export async function getAllOpenPayments(
 
   // note that the query index is only updated *after a few seconds* to hour(s) so NOT reliable immediately!
   // https://docs.stripe.com/payments/paymentintents/lifecycle#intent-statuses
-  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" AND -status:"canceled"`;
+  const query = `customer:"${customer}" AND -metadata["purpose"]:null AND -status:"succeeded" AND -status:"canceled" AND -metadata['deleted]:"true"'`;
   const stripe = await getConn();
   const x = await stripe.paymentIntents.search({
     query,
@@ -69,7 +72,7 @@ export async function getAllOpenPayments(
   });
   // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"  console.log("x = ", x);
   x.data = x.data.filter((intent) => {
-    if (!intent.metadata.purpose) {
+    if (!intent.metadata.purpose || intent.metadata.deleted) {
       return false;
     }
     if (intent.metadata.confirm) {

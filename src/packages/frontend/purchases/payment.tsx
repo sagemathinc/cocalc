@@ -60,17 +60,31 @@ export default function Payment({ balance, update, cost }: Props) {
         {!!paymentAmount && !finished && (
           <div>
             <Divider />
-            <StripePayment
-              lineItems={[
-                { description: "Credit your account", amount: paymentAmount },
-              ]}
-              description={`Add ${currency(paymentAmount)} to your account from within the CoCalc app.`}
-              purpose={"add-credit"}
-              onFinished={() => {
-                update?.();
-                setFinished(true);
-              }}
-            />
+            <div>
+              <div
+                style={{
+                  margin: "auto",
+                  maxWidth: "600px",
+                  background: "white",
+                  padding: "30px",
+                }}
+              >
+                <StripePayment
+                  lineItems={[
+                    {
+                      description: "Credit your account",
+                      amount: paymentAmount,
+                    },
+                  ]}
+                  description={`Add ${currency(paymentAmount)} to your account from within the CoCalc app.`}
+                  purpose={"add-credit"}
+                  onFinished={() => {
+                    update?.();
+                    setFinished(true);
+                  }}
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>

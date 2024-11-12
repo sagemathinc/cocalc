@@ -377,10 +377,21 @@ function PaymentDetails({ paymentIntent, account_id, onFinished }) {
       {needsAttention(paymentIntent) && (
         <>
           {!isAdmin && (
-            <FinishStripePayment
-              onFinished={onFinished}
-              paymentIntent={paymentIntent}
-            />
+            <div>
+              <div
+                style={{
+                  margin: "auto",
+                  maxWidth: "600px",
+                  background: "white",
+                  padding: "30px",
+                }}
+              >
+                <FinishStripePayment
+                  onFinished={onFinished}
+                  paymentIntent={paymentIntent}
+                />
+              </div>
+            </div>
           )}
           {isAdmin && (
             <AdminCancelPayment id={paymentIntent.id} onFinished={onFinished} />

@@ -213,14 +213,24 @@ export async function cancelPaymentIntent({
       cancellation_reason: reason as any,
     });
   } catch (err) {
-    if (`${err}`.includes("invoice")) {
-      // maybe try voiding the invoice instead?
+    const e = `${err}`.toLowerCase();
+    if (e.includes("checkout") && e.includes("session")) {
+      // these cannot be canceled, ever.  so we mark metadata,
+      // then filter them out.
+      await stripe.paymentIntents.update(id, {
+        metadata: { deleted: "true" },
+      });
+      return;
+    }
+    if (e.includes("invoice")) {
+      // try voiding the invoice instead:
       const paymentIntent = await stripe.paymentIntents.retrieve(id);
       if (typeof paymentIntent.invoice == "string") {
         await stripe.invoices.voidInvoice(paymentIntent.invoice);
         return;
       }
     }
+    // I don't know any cases that end up here.
     throw err;
   }
 }
