@@ -3,6 +3,7 @@ import { getStripeCustomerId } from "./util";
 import processPaymentIntents from "./process-payment-intents";
 import setShoppingCartPaymentIntent from "@cocalc/server/shopping/cart/payment-intent";
 import type { StripeData } from "@cocalc/util/stripe/types";
+import getPool from "@cocalc/database/pool";
 
 export default async function getPayments({
   account_id,
@@ -45,6 +46,10 @@ export default async function getPayments({
   paymentIntents.data = paymentIntents.data.filter(
     (intent) => !intent.metadata?.deleted,
   );
+
+  const numOpen = paymentIntents.data.filter(isOpenPaymentIntent).length;
+  await setBalanceAlert({ account_id, balance_alert: numOpen > 0 });
+
   // if any payments haven't been processed, i.e., credit added to cocalc, do that here:
   await processPaymentIntents({ paymentIntents: paymentIntents.data });
 
@@ -71,17 +76,7 @@ export async function getAllOpenPayments(
     limit: 100, // should usually be very small, e.g., 0, 1 or 2.
   });
   // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"  console.log("x = ", x);
-  x.data = x.data.filter((intent) => {
-    if (!intent.metadata.purpose || intent.metadata.deleted) {
-      return false;
-    }
-    if (intent.metadata.confirm) {
-      return intent.status != "succeeded" && intent.status != "canceled";
-    } else {
-      return intent.status != "requires_payment_method";
-    }
-    return false;
-  });
+  x.data = x.data.filter(isOpenPaymentIntent);
   for (const intent of x.data) {
     const cart_ids_json = intent.metadata?.cart_ids;
     if (!cart_ids_json) {
@@ -95,5 +90,27 @@ export async function getAllOpenPayments(
       cart_ids,
     });
   }
+
+  await setBalanceAlert({ account_id, balance_alert: x.data.length > 0 });
   return { has_more: false, data: x.data, object: "list" };
+}
+
+function isOpenPaymentIntent(intent) {
+  if (!intent.metadata.purpose || intent.metadata.deleted) {
+    return false;
+  }
+  if (intent.metadata.confirm) {
+    return intent.status != "succeeded" && intent.status != "canceled";
+  } else {
+    return intent.status != "requires_payment_method";
+  }
+  return false;
+}
+
+async function setBalanceAlert({ account_id, balance_alert }) {
+  const pool = getPool();
+  await pool.query("UPDATE accounts SET balance_alert=$2 WHERE account_id=$1", [
+    account_id,
+    balance_alert,
+  ]);
 }

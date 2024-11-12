@@ -25,7 +25,7 @@ const EXTRA_LINE_ITEMS_COLUMNS = [
     title: "",
     dataIndex: "",
     key: "",
-    width: "30%",
+    width: "20%",
   } as const,
   {
     title: "",
@@ -36,7 +36,7 @@ const EXTRA_LINE_ITEMS_COLUMNS = [
       <div
         style={{
           fontWeight: bold ? "bold" : undefined,
-          fontSize: bold ? "13pt" : undefined,
+          fontSize: bold ? "12pt" : undefined,
         }}
       >
         {description}
@@ -52,7 +52,7 @@ const EXTRA_LINE_ITEMS_COLUMNS = [
         style={{
           whiteSpace: "nowrap",
           fontWeight: bold ? "bold" : undefined,
-          fontSize: bold ? "13pt" : undefined,
+          fontSize: bold ? "12pt" : undefined,
         }}
       >
         {currency(amount)}

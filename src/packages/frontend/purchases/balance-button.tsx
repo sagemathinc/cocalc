@@ -48,20 +48,23 @@ export default function BalanceButton({
   return (
     <>
       <Button
-        danger={balanceAlert}
         size={minimal ? "small" : undefined}
-        type="text"
+        type={"text"}
         style={style}
         onClick={() => {
           handleRefresh();
           setOpen(!open);
         }}
       >
-        {minimal && balanceAlert && <Badge count={1} />}
         {!minimal && <>Balance: </>}
-        {minimal && "("}
         {balance != null ? currency(round2down(balance)) : undefined}
-        {minimal && ")"}
+        {balanceAlert && (
+          <Badge
+            count={1}
+            size="small"
+            style={{ backgroundColor: "#52c41a" }}
+          />
+        )}
         {!minimal && loading && <Spin style={{ marginLeft: "5px" }} />}
       </Button>
       {open && (

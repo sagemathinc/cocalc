@@ -162,12 +162,7 @@ export const Page: React.FC = () => {
       */
       setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
     } else {
-      label = (
-        <>
-          {intl.formatMessage(labels.account)}
-          <BalanceButton minimal style={{ marginRight: "-10px" }} />
-        </>
-      );
+      label = <>{intl.formatMessage(labels.account)}</>;
       style = undefined;
     }
 
@@ -298,6 +293,7 @@ export const Page: React.FC = () => {
         {render_sign_in_tab()}
         {render_support()}
         {is_logged_in && render_account_tab()}
+        <BalanceButton minimal  />
         {render_notification()}
         {render_bell()}
         {!is_anonymous && (

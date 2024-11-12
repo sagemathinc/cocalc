@@ -24,9 +24,12 @@ interface Props {
 }
 
 export default function CreatePayment({ account_id, onClose }: Props) {
-  const [paymentDescription, setPaymentDescription] = useState<string>("");
+  const [paymentDescription, setPaymentDescription] = useState<string>(
+    "Manually entered payment initiated by CoCalc staff",
+  );
   const [amount, setAmount] = useState<number | null>(DEFAULT_PAYMENT);
-  const [description, setDescription] = useState<string>("");
+  const [total, setTotal] = useState<number>(0);
+  const [description, setDescription] = useState<string>("Add credit to account");
   const purposeRef = useRef<string>(`admin-${Date.now()}`);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -92,6 +95,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
               return;
             }
             setLineItems(lineItems.concat([{ amount, description }]));
+            setTotal(total + amount);
             setAmount(DEFAULT_PAYMENT);
             setDescription("");
           }}
@@ -109,7 +113,8 @@ export default function CreatePayment({ account_id, onClose }: Props) {
             done ||
             loading ||
             !paymentDescription ||
-            lineItems.length == 0
+            lineItems.length == 0 ||
+            total == 0
           }
           type="primary"
           onClick={doIt}
@@ -143,10 +148,7 @@ export default function CreatePayment({ account_id, onClose }: Props) {
           type="info"
           description={
             <>
-              User will be charged{" "}
-              {typeof amount == "number"
-                ? currency(amount)
-                : "the amount you enter "}
+              User will be charged {currency(total)}
               (+ sales tax), in exactly the same way automatic payments work.
               When the payment is completed a credit will be added to their
               account. If they have an automatic payment method on file (e.g. a
