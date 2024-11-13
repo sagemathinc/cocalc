@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import { useState } from "react";
-import { Alert, Button, Card, Tooltip, Spin } from "antd";
+import { Alert, Button, Card, Tooltip, Space, Spin } from "antd";
 import { zIndexTip } from "./zindex";
 import MoneyStatistic from "./money-statistic";
 import { currency } from "@cocalc/util/misc";
@@ -71,12 +71,17 @@ export default function Balance({
             <Icon name="credit-card" style={{ marginRight: "5px" }} />
             Deposit Money
           </Button>
-          {showTransferLink && balance > 0 && (
-            <div style={{ marginTop: "5px" }}>
-              <Next href={"store/vouchers"}>Transfer</Next>
-            </div>
-          )}
-          <AutoBalance />
+          <div style={{ marginTop: "15px" }}>
+            <Space>
+              <AutoBalance
+                type="link"
+                style={{ marginLeft: "-15px" /* so link looks centered */ }}
+              />
+              {showTransferLink && balance > 0 && (
+                <Next href={"store/vouchers"}>Vouchers</Next>
+              )}
+            </Space>
+          </div>
         </div>
       );
     } else {

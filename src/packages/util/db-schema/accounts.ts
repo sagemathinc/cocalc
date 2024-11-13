@@ -36,6 +36,8 @@ export interface AutoBalance {
   enabled?: boolean;
   // if credit was not added, last reason why (at most 1024 characters)
   reason?: string;
+  // ms since epoch of last attempt
+  time?: number;
   // how much has been added at the moment when we last updated.
   status?: { day: number; week: number; month: number };
 }
@@ -77,6 +79,12 @@ export function ensureAutoBalanceValid(obj) {
       }
       if (obj[key].length > 1024) {
         throw Error(`${key} must be at most 1024 characters`);
+      }
+      continue;
+    }
+    if (key == "time") {
+      if (typeof obj[key] != "number") {
+        throw Error(`${key} must be a number`);
       }
       continue;
     }
