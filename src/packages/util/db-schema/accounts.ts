@@ -50,7 +50,7 @@ export const AUTOBALANCE_RANGES = {
   amount: [5, 500],
   max_day: [5, 500],
   max_week: [5, 2500],
-  max_month: [5, 5000],
+  max_month: [5, 10000],
 };
 
 export const AUTOBALANCE_DEFAULTS = {
