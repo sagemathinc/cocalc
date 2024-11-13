@@ -7,13 +7,18 @@ import {
   isLanguageModelService,
   service2model,
 } from "@cocalc/util/db-schema/llm-utils";
-import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
+import {
+  QUOTA_SPEC,
+  Service,
+  isPaygService,
+} from "@cocalc/util/db-schema/purchase-quotas";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import { currency, round2up, round2down } from "@cocalc/util/misc";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { getPurchaseQuotas } from "./purchase-quotas";
 import isBanned from "@cocalc/server/accounts/is-banned";
+import { decimalSubtract } from "@cocalc/util/stripe/calc";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -45,7 +50,9 @@ export async function isPurchaseAllowed({
 }: Options): Promise<{
   allowed: boolean;
   reason?: string;
-  chargeAmount?: number; // if purchase is not allowed entirely because balance is too low -- this is how much you must pay, taking into account the configured minPayment. The reason will explain this.
+  // if purchase is not allowed entirely because balance is too low -- this is how much you must pay,
+  // taking into account the configured minPayment. The reason will explain this.
+  chargeAmount?: number;
 }> {
   if (cost != null && cost >= 0) {
     cost = round2up(cost);
@@ -105,14 +112,32 @@ export async function isPurchaseAllowed({
     return { allowed: false, reason: `cost must be positive` };
   }
   const { services, minBalance } = await getPurchaseQuotas(account_id, client);
+  const { pay_as_you_go_min_payment } = await getServerSettings();
+
+  if (!isPaygService(service)) {
+    // for non-PAYG, we just allow credit for positive balance and that is it.
+    const balance = round2down(await getBalance({ account_id, client }));
+    const required = round2up(decimalSubtract(cost, Math.max(balance, 0)));
+    const chargeAmount =
+      required <= 0 ? 0 : Math.max(pay_as_you_go_min_payment, required);
+    return {
+      // allowed means "without making any payment at all"
+      allowed: chargeAmount <= 0,
+      chargeAmount,
+      reason:
+        required < chargeAmount
+          ? `The minimum payment is ${currency(pay_as_you_go_min_payment)}.`
+          : "",
+    };
+  }
+
   // First check that making purchase won't reduce our balance below the minBalance.
   // Also, we round balance down since fractional pennies don't count, and
   // can cause required to be off by 1 below.
   const balance = round2down(await getBalance({ account_id, client })) + margin;
-  const amountAfterPurchase = balance - cost;
+  const balanceAfterPurchase = balance - cost;
   // add 0.01 due to potential rounding errors
-  if (amountAfterPurchase + 0.01 < minBalance) {
-    const { pay_as_you_go_min_payment } = await getServerSettings();
+  if (balanceAfterPurchase + 0.01 < minBalance) {
     const required = round2up(cost - (balance - minBalance));
     const chargeAmount = Math.max(pay_as_you_go_min_payment, required);
     const v: string[] = [];

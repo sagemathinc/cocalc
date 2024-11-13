@@ -1,16 +1,19 @@
 import { Alert, Button, Divider, Modal, Space, Spin } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import dayjs from "dayjs";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { zIndexPayAsGo } from "../zindex";
 import Cost, { getCost } from "./cost";
-import { isPurchaseAllowed, studentPay } from "../api";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { isPurchaseAllowed } from "../api";
 import { redux } from "@cocalc/frontend/app-framework";
 import PayLink from "./pay-link";
 import Transfer from "./transfer";
 import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
+import type { LineItem } from "@cocalc/util/stripe/types";
+import { currency } from "@cocalc/util/misc";
+import { decimalSubtract } from "@cocalc/util/stripe/calc";
+import Payments from "@cocalc/frontend/purchases/payments";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -27,37 +30,36 @@ export default function PayNow({
   open,
   setOpen,
 }: Props) {
-  const [purchasing, setPurchasing] = useState<boolean>(false);
-  const [allowed, setAllowed] = useState<boolean | null>(null);
   const [reason, setReason] = useState<string | undefined | null>(null);
-  const [chargeAmount, setChargeAmount] = useState<number | undefined>(
-    undefined,
-  );
   const [error, setError] = useState<string>("");
-  const update = async (addBalance = false) => {
+  const [lineItems, setLineItems] = useState<LineItem[] | null>(null);
+  const [done, setDone] = useState<boolean>(false);
+  const numPaymentsRef = useRef<number | null>(null);
+
+  const update = async () => {
     const cost = getCost(purchaseInfo);
     try {
-      let { allowed, reason, chargeAmount } = await isPurchaseAllowed(
-        "license",
-        cost,
-      );
-      if (open && addBalance) {
-        if (!allowed) {
-          await webapp_client.purchases_client.quotaModal({
-            service: "license",
-            reason,
-            allowed,
-            cost,
-          });
-        }
-        ({ allowed, reason, chargeAmount } = await isPurchaseAllowed(
-          "license",
-          cost,
-        ));
+      const { chargeAmount = 0 } = await isPurchaseAllowed("license", cost);
+      const lineItems: LineItem[] = [
+        {
+          description: `Course fee for project "${redux.getStore("projects").get_title(project_id)}"`,
+          amount: cost,
+        },
+      ];
+      if (chargeAmount < cost) {
+        lineItems.push({
+          description: "Apply account balance toward course fee.",
+          amount: -decimalSubtract(cost, chargeAmount),
+        });
       }
-      setAllowed(allowed);
-      setReason(reason);
-      setChargeAmount(chargeAmount);
+      setLineItems(lineItems);
+      if (cost < chargeAmount) {
+        setReason(
+          `NOTE: There is a minimum charge of ${currency(chargeAmount)}.`,
+        );
+      } else {
+        setReason(null);
+      }
     } catch (err) {
       setError(`${err}`);
     }
@@ -65,16 +67,6 @@ export default function PayNow({
   useEffect(() => {
     update();
   }, [purchaseInfo]);
-  const completePurchase = async () => {
-    try {
-      setPurchasing(true);
-      await studentPay(project_id);
-    } catch (err) {
-      setError(`${err}`);
-    } finally {
-      setPurchasing(false);
-    }
-  };
 
   return (
     <Modal
@@ -87,8 +79,8 @@ export default function PayNow({
       onCancel={() => setOpen?.(false)}
       title={
         <>
-          <Icon name="credit-card" style={{ marginRight: "10px" }} /> Pay the
-          course fee to upgrade this project
+          <Icon name="credit-card" style={{ marginRight: "10px" }} />
+          Pay the course fee to access this project
         </>
       }
     >
@@ -102,52 +94,35 @@ export default function PayNow({
       )}
       Due: <TimeAgo date={when} />
       <div style={{ textAlign: "center", fontSize: "15pt" }}>
-        <Cost purchaseInfo={purchaseInfo} />
+        Course Fee: <Cost purchaseInfo={purchaseInfo} />
       </div>
       <Divider />
-      {allowed == null && <Spin />}
-      {allowed != null && (
+      {done && (
+        <div>
+          When all open payments below are processed, you will be able to access
+          your project.
+          <Payments
+            unfinished
+            purpose={`student-pay-${project_id}`}
+            numPaymentsRef={numPaymentsRef}
+          />
+        </div>
+      )}
+      {!done && lineItems == null && <Spin />}
+      {!done && lineItems != null && (
         <>
           <div style={{ textAlign: "center" }}>
-            {allowed && (
-              <div>
-                <Button
-                  disabled={purchasing}
-                  size="large"
-                  type="primary"
-                  onClick={completePurchase}
-                >
-                  Complete Purchase...{" "}
-                  {purchasing && <Spin style={{ marginLeft: "15px" }} />}
-                </Button>
-                <Alert
-                  showIcon
-                  style={{ marginTop: "15px " }}
-                  type="success"
-                  message="You have enough credits to complete this purchase."
-                />
-              </div>
-            )}
             <StripePayment
-              lineItems={
-                chargeAmount == null
-                  ? undefined
-                  : [
-                      {
-                        description: `Course fee for project ${project_id}`,
-                        amount: chargeAmount,
-                      },
-                    ]
-              }
+              lineItems={lineItems}
               description="Pay fee for access to a course."
               purpose={`student-pay-${project_id}`}
+              metadata={{ student_pay: project_id }}
               onFinished={async () => {
-                await update(true);
-                await completePurchase();
+                setDone(true);
               }}
             />
           </div>
-          {!allowed && reason && (
+          {reason && (
             <Alert
               style={{ marginTop: "15px" }}
               type="warning"
@@ -157,21 +132,25 @@ export default function PayNow({
           )}
         </>
       )}
-      <Divider>Other Options</Divider>
-      <Space direction="vertical">
-        <PayLink project_id={project_id} />
-        <Transfer project_id={project_id} />
-        <Button
-          onClick={() => {
-            const actions = redux.getActions("page");
-            if (actions != null) {
-              actions.close_project_tab(project_id);
-            }
-          }}
-        >
-          Close Project
-        </Button>
-      </Space>
+      {!done && (
+        <>
+          <Divider>Other Options</Divider>
+          <Space direction="vertical">
+            <PayLink project_id={project_id} />
+            <Transfer project_id={project_id} />
+            <Button
+              onClick={() => {
+                const actions = redux.getActions("page");
+                if (actions != null) {
+                  actions.close_project_tab(project_id);
+                }
+              }}
+            >
+              Close Project
+            </Button>
+          </Space>
+        </>
+      )}
     </Modal>
   );
 }

@@ -17,10 +17,25 @@ interface Spec {
   noSet?: boolean; // if true, then no spend limits are set for this.
   color: string;
   category: ServiceCategory;
-  description?: string; // tooltip more detailed description
+  // tooltip more detailed description
+  description?: string;
 }
 
 export type QuotaSpec = Record<Service, Spec>;
+
+// for each category of service, this says whether or not it is a pay as you go service,
+// which can impact how spend options are determined.
+const IS_PAYG: { [name: ServiceCategory]: boolean } = {
+  money: false,
+  compute: true,
+  license: false,
+  ai: true,
+} as const;
+
+export function isPaygService(service: Service): boolean {
+  const category = QUOTA_SPEC[service]?.category;
+  return IS_PAYG[category ?? ""] ?? false;
+}
 
 const GPT_TURBO_128k: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
