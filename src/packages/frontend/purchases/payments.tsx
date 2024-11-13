@@ -126,7 +126,7 @@ export default function Payments({
       <Flex>
         <div style={{ flex: 1 }}>
           <Divider orientation="left">
-            <Tooltip title="These are cash payments to CoCalc from some outside source.">
+            <Tooltip title="These are payments to CoCalc from some outside source (your credit card, bank, etc.).">
               {describeNumberOf({
                 n: data?.length,
                 hasMore,
@@ -135,7 +135,7 @@ export default function Payments({
                 type: "payment",
                 adjective: unfinished ? "Unfinished " : "",
               })}
-              {unfinished && (data?.length ?? 0 > 0) && (
+              {!!unfinished && (data?.length ?? 0) > 0 && (
                 <Badge
                   count={data?.length}
                   style={{ backgroundColor: "#688ff1", marginLeft: "15px" }}

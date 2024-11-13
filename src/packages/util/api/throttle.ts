@@ -21,9 +21,9 @@ this hardcoded value, rather than an api endoint to get this.
 
 const THROTTLE = {
   "purchases/stripe/get-payments": {
-    second: 2,
-    minute: 20,
-    hour: 200,
+    second: 3,
+    minute: 15,
+    hour: 150,
   },
   "purchases/stripe/get-customer-session": {
     second: 1,

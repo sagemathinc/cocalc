@@ -8,6 +8,7 @@ import {
   InputNumber,
   Modal,
   Progress,
+  Space,
   Spin,
   Tooltip,
 } from "antd";
@@ -20,7 +21,8 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import {
   AUTOBALANCE_RANGES,
-  //ensureAutoBalanceValid,
+  AUTOBALANCE_DEFAULTS,
+  ensureAutoBalanceValid,
 } from "@cocalc/util/db-schema/accounts";
 
 interface Props {
@@ -31,19 +33,29 @@ interface Props {
 export default function AutoBalance({ style, type }: Props) {
   const [open, setOpen] = useState<boolean>(false);
   const autoBalance = useTypedRedux("account", "auto_balance")?.toJS();
-  return (
-    <>
+
+  let btn = (
+    <Button type={type} style={style} onClick={() => setOpen(!open)}>
+      {autoBalance?.enabled
+        ? "Automatic Deposits: Enabled"
+        : "Setup Automatic Deposits"}
+    </Button>
+  );
+  if (autoBalance != null) {
+    btn = (
       <Tooltip
         title={<Status autoBalance={autoBalance} />}
         color="white"
         overlayInnerStyle={{ width: "400px" }}
       >
-        <Button type={type} style={style} onClick={() => setOpen(!open)}>
-          {autoBalance?.enabled
-            ? "Automatic Deposits: Enabled"
-            : "Setup Automatic Deposits"}
-        </Button>
+        {btn}{" "}
       </Tooltip>
+    );
+  }
+
+  return (
+    <>
+      {btn}
       {open && <AutoBalanceModal onClose={() => setOpen(false)} />}
     </>
   );
@@ -63,15 +75,25 @@ function AutoBalanceModal({ onClose }) {
   } | null>(null);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    console.log("autoBalance changed", autoBalance);
+  const setDefaults = () => {
     setValue({
-      trigger: autoBalance?.trigger ?? AUTOBALANCE_RANGES.trigger[0],
-      amount: autoBalance?.amount ?? AUTOBALANCE_RANGES.amount[0],
-      max_day: autoBalance?.max_day ?? AUTOBALANCE_RANGES.max_day[0],
-      max_week: autoBalance?.max_week ?? AUTOBALANCE_RANGES.max_week[0],
-      max_month: autoBalance?.max_month ?? AUTOBALANCE_RANGES.max_month[0],
-      enabled: autoBalance?.enabled ?? false,
+      trigger: AUTOBALANCE_DEFAULTS.trigger,
+      amount: AUTOBALANCE_DEFAULTS.amount,
+      max_day: AUTOBALANCE_DEFAULTS.max_day,
+      max_week: AUTOBALANCE_DEFAULTS.max_week,
+      max_month: AUTOBALANCE_DEFAULTS.max_month,
+      enabled: AUTOBALANCE_DEFAULTS.enabled,
+    });
+  };
+
+  useEffect(() => {
+    setValue({
+      trigger: autoBalance?.trigger ?? AUTOBALANCE_DEFAULTS.trigger,
+      amount: autoBalance?.amount ?? AUTOBALANCE_DEFAULTS.amount,
+      max_day: autoBalance?.max_day ?? AUTOBALANCE_DEFAULTS.max_day,
+      max_week: autoBalance?.max_week ?? AUTOBALANCE_DEFAULTS.max_week,
+      max_month: autoBalance?.max_month ?? AUTOBALANCE_DEFAULTS.max_month,
+      enabled: autoBalance?.enabled ?? AUTOBALANCE_DEFAULTS.enabled,
     });
   }, [
     autoBalance?.trigger,
@@ -95,6 +117,7 @@ function AutoBalanceModal({ onClose }) {
       return;
     }
     try {
+      ensureAutoBalanceValid(value);
       setSaving(true);
       await webapp_client.async_query({
         query: { accounts: { auto_balance: value } },
@@ -106,7 +129,7 @@ function AutoBalanceModal({ onClose }) {
     }
   };
 
-  if (autoBalance == null || value == null) {
+  if (value == null) {
     return null;
   }
 
@@ -161,8 +184,8 @@ function AutoBalanceModal({ onClose }) {
                 <>
                   {currency(value.amount)} will typically be deposited when your
                   balance goes below {currency(value.trigger)}. More may be
-                  deposited if the balance drops significantly lower, subject
-                  to your daily, weekly and monthly limits.
+                  deposited if the balance drops significantly lower, subject to
+                  your daily, weekly and monthly limits.
                 </>
               }
             >
@@ -248,9 +271,12 @@ function AutoBalanceModal({ onClose }) {
         </Form.Item>
       </Form>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
-        <Button disabled={!changed || saving} onClick={save} type="primary">
-          Save Changes {saving && <Spin style={{ marginLeft: "15px" }} />}
-        </Button>
+        <Space>
+          <Button onClick={() => setDefaults()}>Defaults</Button>
+          <Button disabled={!changed || saving} onClick={save} type="primary">
+            Save Changes {saving && <Spin style={{ marginLeft: "15px" }} />}
+          </Button>
+        </Space>
       </div>
       <ShowError error={error} setError={setError} />
       <Status autoBalance={autoBalance} style={{ marginTop: "15px" }} />
@@ -268,24 +294,25 @@ function Status({ autoBalance, style }: { autoBalance; style? }) {
       showIcon
       type={autoBalance.enabled ? "warning" : "info"}
       message={
-        <>
-          Status: <b>{autoBalance.enabled ? " Enabled" : " NOT Enabled"}</b>
-        </>
+        <Flex>
+          <div>
+            Status: <b>{autoBalance.enabled ? " Enabled" : " NOT Enabled"}</b>
+          </div>
+          <div style={{ flex: 1 }} />
+          <div>
+            {!!autoBalance.time && (
+              <>
+                Updated <TimeAgo date={autoBalance.time} />
+              </>
+            )}
+          </div>
+        </Flex>
       }
       description={
         <div>
           <ProgressBars autoBalance={autoBalance} />
           <Divider />
-          {!!autoBalance.reason && (
-            <>
-              {autoBalance.time ? (
-                <TimeAgo date={autoBalance.time} />
-              ) : (
-                "Last Update"
-              )}
-              : {autoBalance.reason}
-            </>
-          )}
+          {autoBalance.reason}
         </div>
       }
     />

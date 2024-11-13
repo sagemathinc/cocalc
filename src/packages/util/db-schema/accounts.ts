@@ -33,7 +33,7 @@ export interface AutoBalance {
   // max amount of money to add per month
   max_month: number;
   // switch to disable/enable this.
-  enabled?: boolean;
+  enabled: boolean;
   // if credit was not added, last reason why (at most 1024 characters)
   reason?: string;
   // ms since epoch of last attempt
@@ -52,6 +52,15 @@ export const AUTOBALANCE_RANGES = {
   max_week: [5, 2500],
   max_month: [5, 5000],
 };
+
+export const AUTOBALANCE_DEFAULTS = {
+  trigger: 20,
+  amount: 25,
+  max_day: 200,
+  max_week: 1000,
+  max_month: 2500,
+  enabled: true,
+} as AutoBalance;
 
 // throw error if not valid
 export function ensureAutoBalanceValid(obj) {

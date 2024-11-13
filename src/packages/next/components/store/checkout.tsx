@@ -281,11 +281,9 @@ export default function Checkout() {
                       <Checkbox
                         checked={showApplyCredit}
                         onChange={(e) => {
+                          let x = 0;
                           if (e.target.checked) {
                             setShowApplyCredit(true);
-                          } else {
-                            setShowApplyCredit(false);
-                            let x = 0;
                             if (params.balance >= totalCost) {
                               x = totalCost;
                             } else if (
@@ -294,9 +292,11 @@ export default function Checkout() {
                             ) {
                               x = round2down(params.balance);
                             }
-                            setApplyCredit(x);
-                            updateParams(x);
+                          } else {
+                            setShowApplyCredit(false);
                           }
+                          setApplyCredit(x);
+                          updateParams(x);
                         }}
                       >
                         Apply account credit toward purchase

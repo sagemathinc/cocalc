@@ -87,7 +87,7 @@ export default async function maintainAutoBalance() {
         await pool.query(
           `
         UPDATE accounts
-          SET auto_balance = auto_balance || jsonb_build_object('reason', $2::text, 'time', $3::number)
+          SET auto_balance = auto_balance || jsonb_build_object('reason', $2::text, 'time', $3::numeric)
           WHERE account_id = $1`,
           [account_id, reason, Date.now()],
         );
