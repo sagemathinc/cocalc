@@ -23,6 +23,7 @@ import type { LineItem } from "@cocalc/util/stripe/types";
 
 // various specific payment purposes.
 export const SHOPPING_CART_CHECKOUT = "shopping-cart-checkout";
+export const AUTO_CREDIT = 'auto-credit';
 
 export type Reason =
   | "duplicate"
@@ -35,8 +36,10 @@ export type Reason =
 // monthly quota on each one in purchase-quotas.
 // The service names for openai are of the form "openai-[model name]"
 
+// todo: why is this "compute"? makes no sense.
 export type ComputeService =
   | "credit"
+  | "auto-credit"
   | "refund"
   | "project-upgrade"
   | "compute-server"
@@ -154,6 +157,12 @@ export interface Credit {
   line_items?: LineItem[];
   description?: string;
   purpose?: string;
+}
+
+export interface AutoCredit {
+  type: "auto-credit";
+  line_items?: LineItem[];
+  description?: string;
 }
 
 export interface Refund {

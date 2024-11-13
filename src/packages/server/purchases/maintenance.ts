@@ -5,6 +5,7 @@ import maintainSubscriptions from "./maintain-subscriptions";
 import maintainStatements from "./statements/maintenance";
 import getLogger from "@cocalc/backend/logger";
 import maintainAutomaticPayments from "./maintain-automatic-payments";
+import maintainAutoBalance from "./maintain-auto-balance";
 import maintainLegacyUpgrades from "./legacy/maintain-legacy-upgrades";
 import { updateAllPendingPurchases } from "@cocalc/server/purchases/update-pending-purchases";
 import { maintainPaymentIntents } from "./stripe/process-payment-intents";
@@ -31,6 +32,7 @@ const FUNCTIONS: MaintenanceDescription[] = [
     desc: "processing any outstanding payment intents",
   },
   { f: maintainAutomaticPayments, desc: "maintain automatic payments" },
+  { f: maintainAutoBalance, desc: "maintain auto balance" },
   {
     f: maintainLegacyUpgrades,
     desc: "maintain legacy upgrade packages from long long ago",

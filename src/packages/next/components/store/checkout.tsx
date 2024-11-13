@@ -285,8 +285,17 @@ export default function Checkout() {
                             setShowApplyCredit(true);
                           } else {
                             setShowApplyCredit(false);
-                            setApplyCredit(0);
-                            updateParams(0);
+                            let x = 0;
+                            if (params.balance >= totalCost) {
+                              x = totalCost;
+                            } else if (
+                              params.balance > 0 &&
+                              params.balance <= totalCost - params.minPayment
+                            ) {
+                              x = round2down(params.balance);
+                            }
+                            setApplyCredit(x);
+                            updateParams(x);
                           }
                         }}
                       >
@@ -322,13 +331,14 @@ export default function Checkout() {
                               Apply
                             </Button>
                           </Space.Compact>
-                          <>
-                            <Alert
-                              showIcon
-                              style={{ marginTop: "30px", textAlign: "left" }}
-                              message={getApplyCreditWarning()}
-                            />
-                          </>
+                          {applyCredit != totalCost &&
+                            applyCredit != params.balance && (
+                              <Alert
+                                showIcon
+                                style={{ marginTop: "30px", textAlign: "left" }}
+                                message={getApplyCreditWarning()}
+                              />
+                            )}
                         </div>
                       )}
                     </>

@@ -20,6 +20,89 @@ import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
 export const USER_SEARCH_LIMIT = 250;
 export const ADMIN_SEARCH_LIMIT = 2500;
 
+// AutoBalance: Every parameter is in dollars.
+export interface AutoBalance {
+  // deposit money when the balance goes below this
+  trigger: number;
+  // amount to automatically add
+  amount: number;
+  // max amount of money to add per day
+  max_day: number;
+  // max amount of money to add per week
+  max_week: number;
+  // max amount of money to add per month
+  max_month: number;
+  // switch to disable/enable this.
+  disabled?: boolean;
+  // if credit was not added, last reason why (at most 1024 characters)
+  reason?: string;
+  // how much has been added at the moment when we last updated.
+  status?: { day: number; week: number; month: number };
+}
+
+// each of the parameters above must be a number in the
+// given interval below.
+// All fields should always be explicitly specified.
+export const AUTOBALANCE_RANGES = {
+  trigger: [5, 100],
+  amount: [5, 500],
+  max_day: [5, 500],
+  max_week: [5, 2500],
+  max_month: [5, 5000],
+};
+
+// throw error if not valid
+export function ensureAutoBalanceValid(obj) {
+  if (obj == null) {
+    return;
+  }
+  if (typeof obj != "object") {
+    throw Error("must be an object");
+  }
+  for (const key in AUTOBALANCE_RANGES) {
+    if (obj[key] == null) {
+      throw Error(`${key} must be specified`);
+    }
+  }
+  for (const key in obj) {
+    if (key == "disabled") {
+      if (typeof obj[key] != "boolean") {
+        throw Error(`${key} must be boolean`);
+      }
+      continue;
+    }
+    if (key == "reason") {
+      if (typeof obj[key] != "string") {
+        throw Error(`${key} must be a string`);
+      }
+      if (obj[key].length > 1024) {
+        throw Error(`${key} must be at most 1024 characters`);
+      }
+      continue;
+    }
+    if (key == "status") {
+      if (typeof obj[key] != "object") {
+        throw Error(`${key} must be an object`);
+      }
+      continue;
+    }
+    const range = AUTOBALANCE_RANGES[key];
+    if (range == null) {
+      throw Error(`invalid key '${key}'`);
+    }
+    const value = obj[key];
+    if (typeof value != "number") {
+      throw Error("every value must be a number");
+    }
+    if (value < range[0]) {
+      throw Error(`${key} must be at least ${range[0]}`);
+    }
+    if (value > range[1]) {
+      throw Error(`${key} must be at most ${range[1]}`);
+    }
+  }
+}
+
 Table({
   name: "accounts",
   fields: {
@@ -247,6 +330,10 @@ Table({
         editable: true,
       },
     },
+    auto_balance: {
+      type: "map",
+      desc: "Determines protocol for automatically adding money to account.  This is relevant for pay as you go users.  The interface AutoBalance describes the parameters.  The user can in theory set this to anything, but ]",
+    },
     stripe_checkout_session: {
       type: "map",
       desc: "Part of the current open stripe checkout session object, namely {id:?, url:?}, but none of the other info.  When user is going to add credit to their account, we create a stripe checkout session and store it here until they complete checking out.  This makes it possible to guide them back to the checkout session, in case anything goes wrong, and also avoids confusion with potentially multiple checkout sessions at once.",
@@ -403,6 +490,7 @@ Table({
           min_balance: null,
           balance: null,
           balance_alert: null,
+          auto_balance: null,
           purchase_closing_day: null,
           stripe_usage_subscription: null,
           email_daily_statements: null,
@@ -428,6 +516,7 @@ Table({
           tours: true,
           email_daily_statements: true,
           // obviously min_balance can't be set!
+          auto_balance: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
           if (obj["name"] != null) {
@@ -456,6 +545,16 @@ Table({
                 cb(`${field} must be nonempty`);
                 return;
               }
+            }
+          }
+
+          // Make sure auto_balance is valid.
+          if (obj["auto_balance"] != null) {
+            try {
+              ensureAutoBalanceValid(obj["auto_balance"]);
+            } catch (err) {
+              cb(`${err}`);
+              return;
             }
           }
           cb();

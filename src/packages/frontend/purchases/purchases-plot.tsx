@@ -1,45 +1,31 @@
-import { Checkbox, Flex, Tooltip } from "antd";
-import SpendPlot from "./spend-plot";
-import { useMemo, useState } from "react";
+import { Flex, Tooltip } from "antd";
+import BalancePlot from "./balance-plot";
+import { useMemo } from "react";
 import { field_cmp } from "@cocalc/util/misc";
 
 export default function PurchasesPlot({ purchases }) {
-  const [credits, setCredits] = useState<boolean>(false);
-
   const data = useMemo(() => {
-    let v;
-    if (credits) {
-      v = purchases.filter((x) => (x.cost ?? 0) < 0 && x.time);
-    } else {
-      v = purchases.filter((x) => (x.cost ?? 0) > 0 && x.time);
-    }
-    v = v.map(({ cost, time }) => {
-      return {
-        amount: cost,
-        date: time ? new Date(time) : new Date(),
-      };
-    });
+    const v = purchases
+      .filter((x) => x.time)
+      .map(({ balance, time }) => {
+        return {
+          amount: balance,
+          date: time ? new Date(time) : new Date(),
+        };
+      });
     v.sort(field_cmp("date"));
     return v;
-  }, [purchases, credits]);
+  }, [purchases]);
 
   return (
-    <SpendPlot
+    <BalancePlot
       data={data}
       title={
         <Flex>
-          <Tooltip title="This is a plot of the internal purchases you have made using CoCalc credit listed in the table above. Credits are not shown.">
-            <div>Plot of CoCalc Purchases Shown Above</div>
+          <Tooltip title="This is a plot of your account balance based on the transactions loaded above.">
+            <div>Plot of Your Balance</div>
           </Tooltip>
           <div style={{ flex: 1 }} />
-          <Tooltip title="Show plot only of credits.  If unchecked only charges are included.">
-            <Checkbox
-              checked={credits}
-              onChange={(e) => setCredits(e.target.checked)}
-            >
-              Credits
-            </Checkbox>
-          </Tooltip>
         </Flex>
       }
       style={{ margin: "15px 0" }}

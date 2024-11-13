@@ -29,6 +29,7 @@ register({
         email_daily_statements: null,
         sign_up_usage_intent: null,
         balance_alert: null,
+        auto_balance: null,
       },
     ],
   },

@@ -10,7 +10,12 @@ interface Props {
   description?;
 }
 
-export default function SpendPlot({ data, title, description, style }: Props) {
+export default function BalancePlot({
+  data,
+  title,
+  description,
+  style,
+}: Props) {
   const [error, setError] = useState<string>("");
 
   const plotData = useMemo(() => {
@@ -20,8 +25,8 @@ export default function SpendPlot({ data, title, description, style }: Props) {
       {
         type: "area",
         x,
-        y: cumSum(y),
-        name: "Cost",
+        y,
+        name: "Balance",
         fill: "tozeroy",
       },
     ];
@@ -32,11 +37,7 @@ export default function SpendPlot({ data, title, description, style }: Props) {
   return (
     <Card
       style={style}
-      title={
-        <Tooltip title={description}>
-          {title ?? " Amount"}
-        </Tooltip>
-      }
+      title={<Tooltip title={description}>{title ?? " Balance"}</Tooltip>}
     >
       <br />
       <Plot
@@ -46,21 +47,11 @@ export default function SpendPlot({ data, title, description, style }: Props) {
             title: "Date",
           },
           yaxis: {
-            title: "Amount" + currency,
+            title: "Balance" + currency,
           },
         }}
       />
       <ShowError error={error} setError={setError} />
     </Card>
   );
-}
-
-function cumSum(z: number[]) {
-  const v: number[] = [];
-  let t = 0;
-  for (const a of z) {
-    t += a;
-    v.push(t);
-  }
-  return v;
 }

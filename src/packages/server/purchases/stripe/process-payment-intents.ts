@@ -6,6 +6,7 @@ import { LineItem } from "@cocalc/util/stripe/types";
 import { stripeToDecimal } from "@cocalc/util/stripe/calc";
 import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
 import { shoppingCartCheckout } from "@cocalc/server/purchases/shopping-cart-checkout";
+import { AUTO_CREDIT } from "@cocalc/util/db-schema/purchases";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -114,6 +115,8 @@ export async function processPaymentIntent(
       description: paymentIntent.description,
       purpose: paymentIntent.metadata.purpose,
     },
+    service:
+      paymentIntent.metadata.purpose == AUTO_CREDIT ? "auto-credit" : "credit",
   });
 
   // make metadata so we won't consider this payment intent ever again

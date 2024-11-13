@@ -25,6 +25,12 @@ export default async function getBalance({
   client?: PoolClient;
 }): Promise<number> {
   const pool = client ?? getPool();
+
+  // Criticism:
+  //   - user may have a large number of purchases, and this is adding the ALL up every single time
+  //     it computes the balance.
+  //   - the arithmetic is probably done using 32-bit floats and there could be a slight rounding error eventually.
+
   const { rows } = await pool.query(
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1 AND PENDING IS NOT true`,
     [account_id],

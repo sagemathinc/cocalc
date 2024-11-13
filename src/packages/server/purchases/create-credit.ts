@@ -23,6 +23,7 @@ export default async function createCredit({
   tag,
   description,
   client,
+  service = "credit",
 }: {
   account_id: string;
   // id of Stripe invoice or payment intent.
@@ -32,8 +33,9 @@ export default async function createCredit({
   tag?: string;
   description?: Omit<Credit, "type">;
   client?: PoolClient;
+  service?: "credit" | "auto-credit";
 }): Promise<number> {
-  logger.debug("createCredit", { account_id, invoice_id, amount });
+  logger.debug("createCredit", { account_id, invoice_id, amount, service });
   if (!(await isValidAccount(account_id))) {
     throw Error(`${account_id} is not a valid account`);
   }
@@ -44,8 +46,8 @@ export default async function createCredit({
 
   if (invoice_id) {
     const x = await pool.query(
-      "SELECT id FROM purchases WHERE invoice_id=$1 AND service='credit'",
-      [invoice_id],
+      "SELECT id FROM purchases WHERE invoice_id=$1 AND service=$2",
+      [invoice_id, service],
     );
     if (x.rows.length > 0) {
       logger.debug(
@@ -59,7 +61,7 @@ export default async function createCredit({
 
   logger.debug("createCredit -- adding to database");
   const { rows } = await pool.query(
-    "INSERT INTO purchases (service, time, account_id, cost, description, invoice_id, notes, tag) VALUES('credit', CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
+    "INSERT INTO purchases (service, time, account_id, cost, description, invoice_id, notes, tag) VALUES($7, CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
     [
       account_id,
       -amount,
@@ -67,6 +69,7 @@ export default async function createCredit({
       invoice_id,
       notes,
       tag,
+      service,
     ],
   );
   await updatePending(account_id, client);

@@ -45,6 +45,8 @@ export default function StoreLayout({ page }: Props) {
   const router = useRouter();
   const profile = useProfile({ noCache: true });
 
+  const [loading, setLoading] = useState<boolean>(false);
+
   const [balance, setBalance] = useState<number>();
 
   const refreshBalance = async () => {
@@ -55,7 +57,14 @@ export default function StoreLayout({ page }: Props) {
 
     // Set balance if user is logged in
     //
-    setBalance(await purchasesApi.getBalance());
+    try {
+      setLoading(true);
+      setBalance(await purchasesApi.getBalance());
+    } catch (err) {
+      console.warn("Error updating balance", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -155,7 +164,9 @@ export default function StoreLayout({ page }: Props) {
           }}
         >
           <div style={{ maxWidth: MAX_WIDTH, margin: "auto" }}>
-            <StoreBalanceContext.Provider value={{ balance, refreshBalance }}>
+            <StoreBalanceContext.Provider
+              value={{ balance, refreshBalance, loading }}
+            >
               <Menu main={main} />
               {body()}
             </StoreBalanceContext.Provider>

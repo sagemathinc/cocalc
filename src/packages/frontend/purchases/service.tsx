@@ -1,4 +1,4 @@
-import { Tag } from "antd";
+import { Tag, Tooltip } from "antd";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 
 export default function ServiceTag({
@@ -9,9 +9,21 @@ export default function ServiceTag({
   style?;
 }) {
   const spec = QUOTA_SPEC[service];
-  return (
-    <Tag style={{ whiteSpace: "pre-wrap", ...style }} color={spec?.color}>
+  let tag = (
+    <Tag
+      style={{
+        whiteSpace: "pre-wrap",
+        cursor: "pointer",
+        ...style,
+      }}
+      color={spec?.color}
+    >
       {spec?.display ?? service}
     </Tag>
   );
+  if (spec.description) {
+    return <Tooltip title={spec.description}>{tag}</Tooltip>;
+  } else {
+    return tag;
+  }
 }

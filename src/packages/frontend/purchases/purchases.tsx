@@ -211,7 +211,10 @@ export function PurchasesTable({
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
-  const [balance, setBalance] = useState<number>(0);
+  const accountBalance = useTypedRedux("account", "balance");
+  const [balance, setBalance] = useState<number | null | undefined>(
+    account_id ? null : accountBalance,
+  );
   const [hasMore, setHasMore] = useState<boolean>(true); // todo
   const [limit, setLimit] = useState<number>(DEFAULT_LIMIT);
   const [filter, setFilter] = useState<string>("");
@@ -220,11 +223,11 @@ export function PurchasesTable({
   >;
 
   const getBalance = async () => {
+    if (!account_id) {
+      return accountBalance;
+    }
     try {
-      const userBalance = account_id
-        ? await api.getBalanceAdmin(account_id)
-        : await api.getBalance();
-
+      const userBalance = await api.getBalanceAdmin(account_id);
       setBalance(userBalance);
     } catch (err) {
       setError(`${err}`);
@@ -356,14 +359,20 @@ export function PurchasesTable({
       }
       const cost = getCost(row);
       // Compute incremental balance
-      purchases.push({ ...row, balance: b });
+      if (b != null) {
+        purchases.push({ ...row, balance: b });
+      } else {
+        purchases.push(row);
+      }
 
       if (row.pending) {
         // pending transactions are not include in the total
         // or the balance
         continue;
       }
-      b = decimalAdd(b, cost);
+      if (b != null) {
+        b = decimalAdd(b, cost);
+      }
 
       // Compute total cost
       t = decimalAdd(t, cost);
@@ -477,9 +486,7 @@ export function PurchasesTable({
           <span>Current Balance: {currency(round2down(balance))}</span>
         )}
       </div>
-      {!group && purchases != null && (
-        <PurchasesPlot purchases={filteredPurchases ?? purchases} />
-      )}
+      {!group && purchases != null && <PurchasesPlot purchases={purchases} />}
     </div>
   );
 }
