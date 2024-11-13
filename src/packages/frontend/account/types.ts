@@ -17,6 +17,7 @@ import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { SETTINGS_LANGUAGE_MODEL_KEY } from "./useLanguageModelSetting";
+import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 
 // this is incomplete...
 
@@ -101,4 +102,5 @@ export interface AccountState {
   balance?: number;
   min_balance?: number;
   balance_alert?: boolean;
+  auto_balance?: TypedMap<AutoBalance>;
 }

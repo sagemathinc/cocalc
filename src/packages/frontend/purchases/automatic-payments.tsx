@@ -14,6 +14,7 @@ import {
 import Config from "./config";
 import ShowError from "@cocalc/frontend/components/error";
 import { SectionDivider } from "./util";
+import AutoBalance from "./auto-balance";
 
 const MAX_WIDTH = "900px";
 
@@ -63,6 +64,9 @@ export default function AutomaticPayments({
         setError={setError}
         style={{ marginBottom: "15px" }}
       />
+      <div style={{ textAlign: "center", margin: "15px 0" }}>
+        <AutoBalance />
+      </div>
       <div>
         <div style={{ margin: "auto", maxWidth: MAX_WIDTH }}>
           <Space style={{ alignItems: "flex-start" }}>

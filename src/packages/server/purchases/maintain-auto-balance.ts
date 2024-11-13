@@ -25,7 +25,7 @@ export default async function maintainAutoBalance() {
   const { rows: rows1 } = await pool.query(`
       SELECT account_id, auto_balance FROM accounts
            WHERE auto_balance IS NOT NULL
-           AND (auto_balance->>'disabled' IS NULL OR auto_balance->>'disabled' != 'true')
+           AND auto_balance->>'enabled' = 'true'
            AND balance IS NOT NULL
            AND banned IS NOT TRUE
            AND (auto_balance#>'{trigger}')::numeric >= balance
@@ -44,7 +44,7 @@ export default async function maintainAutoBalance() {
            AND purchases.cost IS NULL
            AND (purchases.cost_per_hour IS NOT NULL OR purchases.cost_so_far IS NOT NULL)
            AND accounts.auto_balance IS NOT NULL
-           AND (auto_balance->>'disabled' IS NULL OR auto_balance->>'disabled' != 'true')
+           AND auto_balance->>'enabled' = 'true'
        `);
   const n = accounts.size;
   for (const { account_id } of rows2) {
@@ -130,9 +130,9 @@ async function update({
   // should we? many reasons not to?
   ensureAutoBalanceValid(auto_balance);
   // shouldn't possibly be broken, but just in case...
-  if (auto_balance.disabled) {
+  if (!auto_balance.enabled) {
     // db query should have filtered this, but just in case.
-    return { reason: "disabled" };
+    return { reason: "Not Enabled" };
   }
 
   const balance = await getBalance({ account_id });

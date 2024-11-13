@@ -28,6 +28,7 @@ export class AccountTable extends Table {
           balance: null,
           min_balance: null,
           balance_alert: null,
+          auto_balance: null,
           email_address: null,
           email_address_verified: null,
           email_address_problem: null,

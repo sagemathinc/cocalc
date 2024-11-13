@@ -7,6 +7,7 @@ import { currency } from "@cocalc/util/misc";
 import Payment from "./payment";
 import Next from "@cocalc/frontend/components/next";
 import { Icon } from "@cocalc/frontend/components/icon";
+import AutoBalance from "./auto-balance";
 
 interface Props {
   balance?: number | null;
@@ -75,6 +76,7 @@ export default function Balance({
               <Next href={"store/vouchers"}>Transfer</Next>
             </div>
           )}
+          <AutoBalance />
         </div>
       );
     } else {

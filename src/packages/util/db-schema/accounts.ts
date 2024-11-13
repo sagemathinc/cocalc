@@ -33,7 +33,7 @@ export interface AutoBalance {
   // max amount of money to add per month
   max_month: number;
   // switch to disable/enable this.
-  disabled?: boolean;
+  enabled?: boolean;
   // if credit was not added, last reason why (at most 1024 characters)
   reason?: string;
   // how much has been added at the moment when we last updated.
@@ -65,7 +65,7 @@ export function ensureAutoBalanceValid(obj) {
     }
   }
   for (const key in obj) {
-    if (key == "disabled") {
+    if (key == "enabled") {
       if (typeof obj[key] != "boolean") {
         throw Error(`${key} must be boolean`);
       }
