@@ -1,0 +1,6 @@
+{
+  "main.site-description": "Cálculo Colaborativo",
+  "main.tagline": "CoCalc: Cálculo y Computación Colaborativa",
+  "main.title": "Hola mundo",
+  "variable-example": "Usando una variable {{count}}"
+}

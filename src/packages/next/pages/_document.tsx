@@ -15,12 +15,13 @@ See also the discussion at https://github.com/ant-design/ant-design/issues/39891
 */
 
 import type { DocumentContext, DocumentInitialProps } from "next/document";
-import Document, { Html, Head, Main, NextScript } from "next/document";
+import Document, { Head, Html, Main, NextScript } from "next/document";
+
 import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
 
 export default class MyDocument extends Document {
   static async getInitialProps(
-    ctx: DocumentContext
+    ctx: DocumentContext,
   ): Promise<DocumentInitialProps> {
     const cache = createCache();
     const originalRenderPage = ctx.renderPage;
@@ -52,9 +53,12 @@ export default class MyDocument extends Document {
       ),
     };
   }
+
   render() {
+    const locale = (this.props as any).__NEXT_DATA__?.query?.locale ?? "en-US";
+
     return (
-      <Html>
+      <Html lang={locale}>
         <Head />
         <body>
           <Main />

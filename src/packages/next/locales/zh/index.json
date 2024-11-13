@@ -1,0 +1,6 @@
+{
+  "main.site-description": "协作计算",
+  "main.tagline": "CoCalc：协作计算和计算",
+  "main.title": "你好，世界",
+  "variable-example": "使用变量{{count}}"
+}
