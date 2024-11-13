@@ -4,6 +4,8 @@ import {
   defaultReturnUrl,
   getStripeCustomerId,
   sanityCheckAmount,
+  assertValidUserMetadata,
+  getStripeLineItems,
 } from "./util";
 import type {
   LineItem,
@@ -47,17 +49,12 @@ export default async function createPaymentIntent({
   if (!purpose) {
     throw Error("purpose must be set");
   }
-  if (
-    metadata?.purpose != null ||
-    metadata?.account_id != null ||
-    metadata?.processed != null
-  ) {
-    throw Error(
-      "metadata must not include 'purpose', 'account_id' or 'processed' as a key",
-    );
-  }
+  assertValidUserMetadata(metadata);
 
-  await sanityCheckAmount(grandTotal(lineItems));
+  const { lineItemsWithoutCredit, total_excluding_tax_usd } =
+    getStripeLineItems(lineItems);
+
+  await sanityCheckAmount(grandTotal(lineItemsWithoutCredit));
 
   const stripe = await getConn();
   const customer = await getStripeCustomerId({ account_id, create: true });
@@ -72,6 +69,7 @@ export default async function createPaymentIntent({
     purpose,
     account_id,
     confirm: "true",
+    total_excluding_tax_usd: `${total_excluding_tax_usd}`,
   };
 
   if (!return_url) {
@@ -86,7 +84,7 @@ export default async function createPaymentIntent({
     automatic_tax: { enabled: true },
     currency: "usd",
   });
-  for (const { amount, description } of lineItems) {
+  for (const { amount, description } of lineItemsWithoutCredit) {
     await stripe.invoiceItems.create({
       customer,
       amount: decimalToStripe(amount),

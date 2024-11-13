@@ -39,13 +39,18 @@ const logger = getLogger("purchases:student-pay");
 interface Options {
   account_id: string;
   project_id: string;
-  allowOther?: boolean; //
+  allowOther?: boolean;
+  // if given, then we just captured this amount of money from the student; if it is
+  // enough to cover the purchase -- irregardless of possible negative balance --
+  // we always allow the purchase.
+  amount?: number;
 }
 
 export default async function studentPay({
   account_id,
   project_id,
   allowOther,
+  amount,
 }: Options): Promise<{ purchase_id: number }> {
   logger.debug({ account_id, project_id });
   const client = await getTransactionClient();
@@ -99,6 +104,7 @@ export default async function studentPay({
       service: "license",
       cost,
       client,
+      amount,
     });
 
     // Create the license

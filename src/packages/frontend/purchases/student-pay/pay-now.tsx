@@ -5,7 +5,7 @@ import dayjs from "dayjs";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { zIndexPayAsGo } from "../zindex";
 import Cost, { getCost } from "./cost";
-import { isPurchaseAllowed } from "../api";
+import { isPurchaseAllowed, studentPay } from "../api";
 import { redux } from "@cocalc/frontend/app-framework";
 import PayLink from "./pay-link";
 import Transfer from "./transfer";
@@ -14,6 +14,7 @@ import type { LineItem } from "@cocalc/util/stripe/types";
 import { currency } from "@cocalc/util/misc";
 import { decimalSubtract } from "@cocalc/util/stripe/calc";
 import Payments from "@cocalc/frontend/purchases/payments";
+import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
 
 interface Props {
   when: dayjs.Dayjs;
@@ -33,7 +34,10 @@ export default function PayNow({
   const [reason, setReason] = useState<string | undefined | null>(null);
   const [error, setError] = useState<string>("");
   const [lineItems, setLineItems] = useState<LineItem[] | null>(null);
-  const [done, setDone] = useState<boolean>(false);
+  const [place, setPlace] = useState<"checkout" | "processing" | "congrats">(
+    "checkout",
+  );
+  const [disabled, setDisabled] = useState<boolean>(false);
   const numPaymentsRef = useRef<number | null>(null);
 
   const update = async () => {
@@ -97,28 +101,46 @@ export default function PayNow({
         Course Fee: <Cost purchaseInfo={purchaseInfo} />
       </div>
       <Divider />
-      {done && (
+      {place == "processing" && (
         <div>
           When all open payments below are processed, you will be able to access
           your project.
           <Payments
-            unfinished
-            purpose={`student-pay-${project_id}`}
+            purpose={STUDENT_PAY}
             numPaymentsRef={numPaymentsRef}
           />
         </div>
       )}
-      {!done && lineItems == null && <Spin />}
-      {!done && lineItems != null && (
+      {place == "checkout" && lineItems == null && <Spin />}
+      {place == "checkout" && lineItems != null && (
         <>
           <div style={{ textAlign: "center" }}>
             <StripePayment
+              disabled={disabled}
               lineItems={lineItems}
               description="Pay fee for access to a course."
-              purpose={`student-pay-${project_id}`}
-              metadata={{ student_pay: project_id }}
-              onFinished={async () => {
-                setDone(true);
+              purpose={STUDENT_PAY}
+              metadata={{ project_id }}
+              onFinished={async (total) => {
+                if (!total) {
+                  // user is paying entirely using their credit on file, so we need to get
+                  // the purchase to happen via the API. Otherwise, they paid and metadata
+                  // got setup so when that payment intent is processed, their item gets
+                  // allocated.
+                  try {
+                    setError("");
+                    setDisabled(true);
+                    await studentPay(project_id);
+                  } catch (err) {
+                    setError(`${err}`);
+                    return;
+                  } finally {
+                    setDisabled(false);
+                  }
+                  setPlace("congrats");
+                  return;
+                }
+                setPlace("processing");
               }}
             />
           </div>
@@ -132,7 +154,7 @@ export default function PayNow({
           )}
         </>
       )}
-      {!done && (
+      {place == "checkout" && (
         <>
           <Divider>Other Options</Divider>
           <Space direction="vertical">

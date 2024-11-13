@@ -177,10 +177,12 @@ export default function AddStudents({
               set_include_name_search(!include_name_search);
             }}
           >
-            <FormattedMessage
-              id="course.add-students.search-students-by-name"
-              defaultMessage="Search by name too"
-            />
+            <div style={{ width: "250px" }}>
+              <FormattedMessage
+                id="course.add-students.search-students-by-name"
+                defaultMessage="Search by name too"
+              />
+            </div>
           </Checkbox>
         )}
       </Flex>

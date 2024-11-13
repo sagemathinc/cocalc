@@ -4,9 +4,13 @@ import getLogger from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { LineItem } from "@cocalc/util/stripe/types";
 import { stripeToDecimal } from "@cocalc/util/stripe/calc";
-import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
 import { shoppingCartCheckout } from "@cocalc/server/purchases/shopping-cart-checkout";
-import { AUTO_CREDIT } from "@cocalc/util/db-schema/purchases";
+import studentPay from "@cocalc/server/purchases/student-pay";
+import {
+  AUTO_CREDIT,
+  SHOPPING_CART_CHECKOUT,
+  STUDENT_PAY,
+} from "@cocalc/util/db-schema/purchases";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -53,9 +57,22 @@ export default async function processPaymentIntents({
     }
     seen.add(paymentIntent.id);
     if (isReadyToProcess(paymentIntent)) {
-      const id = await processPaymentIntent(paymentIntent);
-      if (id) {
-        purchase_ids.add(id);
+      try {
+        const id = await processPaymentIntent(paymentIntent);
+        if (id) {
+          purchase_ids.add(id);
+        }
+      } catch (err) {
+        // There are a number of things that can go wrong, hopefully ephemeral.  We log
+        // them.  Examples:
+        //   - Problem creating an item a user wants to buy because they spend too much right when
+        //     the purchase is happening. Result: they have their credit and try to do the purchase
+        //     again and get their thing.
+        //   - The line "await stripe.invoices.retrieve(paymentIntent.invoice);" below fails, since
+        //     invoice isn't actually quite created.  It will be the next time we try in a minute.
+        logger.debug(
+          `WARNING: issue processing a payment intent ${paymentIntent.id} -- ${err}`,
+        );
       }
     }
   }
@@ -92,15 +109,21 @@ export async function processPaymentIntent(
     }
   }
 
-  const stripe = await getConn();
-  const invoice = await stripe.invoices.retrieve(paymentIntent.invoice);
-  if (invoice.total_excluding_tax == null) {
-    logger.debug(
-      `WARNING: invoice ${paymentIntent.invoice} total_excluding_tax is not set`,
-    );
-    // [ ] TODO: what should we do when total_excluding_tax? Maybe assume 0? does this happen? why?  probably not if invoice is done.
+  // IMPORTANT: There is just no way in general to know directly from the payment intent
+  // and invoice exactly what we were trying to charge the customer!  The problem is that
+  // the invoice (and line items) in some cases (e.g., stripe checkout) is in a non-US currency.
+  // We thus set the metadata to have the total in **US PENNIES** (!). Users can't touch
+  // this metadata, and we depend on it for how much the invoice is worth to us. 
+  const total_excluding_tax_usd =
+    paymentIntent.metadata.total_excluding_tax_usd;
+  if (total_excluding_tax_usd == null) {
+    // cannot be processed further.
     return;
   }
+  const amount = stripeToDecimal(parseInt(total_excluding_tax_usd));
+
+  const stripe = await getConn();
+  const invoice = await stripe.invoices.retrieve(paymentIntent.invoice);
 
   // credit the account.  If the account was already credited for this (e.g.,
   // by another process doing this at the same time), that should be detected
@@ -109,7 +132,7 @@ export async function processPaymentIntent(
   const credit_id = await createCredit({
     account_id,
     invoice_id: paymentIntent.id,
-    amount: stripeToDecimal(invoice.total_excluding_tax),
+    amount,
     description: {
       line_items: getInvoiceLineItems(invoice),
       description: paymentIntent.description,
@@ -130,10 +153,19 @@ export async function processPaymentIntent(
     await shoppingCartCheckout({
       account_id,
       payment_intent: paymentIntent.id,
+      amount,
       cart_ids:
         paymentIntent.metadata.cart_ids != null
           ? JSON.parse(paymentIntent.metadata.cart_ids)
           : undefined,
+    });
+  } else if (paymentIntent.metadata.purpose == STUDENT_PAY) {
+    // Student pay for a course
+    await studentPay({
+      account_id,
+      project_id: paymentIntent.metadata.project_id,
+      allowOther: true,
+      amount,
     });
   }
 

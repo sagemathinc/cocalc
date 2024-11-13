@@ -3,6 +3,14 @@ import type { LineItem } from "@cocalc/util/stripe/types";
 import { Button, Table } from "antd";
 import { currency, plural } from "@cocalc/util/misc";
 
+export function moneyToString(amount, currency0 = "usd") {
+  if (currency0 == "usd") {
+    return currency(amount);
+  } else {
+    return `${currency0.toUpperCase()} ${amount}`;
+  }
+}
+
 const LINE_ITEMS_COLUMNS = [
   {
     title: "Description",
@@ -13,8 +21,10 @@ const LINE_ITEMS_COLUMNS = [
     title: "Amount",
     dataIndex: "amount",
     key: "amount",
-    render: (amount) => (
-      <div style={{ whiteSpace: "nowrap" }}>{currency(amount)}</div>
+    render: (amount, { currency }) => (
+      <div style={{ whiteSpace: "nowrap" }}>
+        {moneyToString(amount, currency)}
+      </div>
     ),
     align: "right",
   } as const,
@@ -47,7 +57,7 @@ const EXTRA_LINE_ITEMS_COLUMNS = [
     title: "",
     dataIndex: "amount",
     key: "amount",
-    render: (amount, { bold }) => (
+    render: (amount, { bold, currency }) => (
       <div
         style={{
           whiteSpace: "nowrap",
@@ -55,7 +65,7 @@ const EXTRA_LINE_ITEMS_COLUMNS = [
           fontSize: bold ? "12pt" : undefined,
         }}
       >
-        {currency(amount)}
+        {moneyToString(amount, currency)}
       </div>
     ),
     align: "right",
@@ -65,16 +75,18 @@ const EXTRA_LINE_ITEMS_COLUMNS = [
 export function LineItemsTable({
   lineItems,
   style,
+  currency = "usd",
 }: {
   lineItems: LineItem[];
   style?;
+  currency?: string;
 }) {
   const { dataSource, extraDataSource } = useMemo(() => {
     let key = 1;
     const dataSource: any[] = [];
     const extraDataSource: any[] = [];
     for (const item of lineItems) {
-      const x = { key, ...item };
+      const x = { key, ...item, currency };
       if (item.extra) {
         extraDataSource.push(x);
       } else {

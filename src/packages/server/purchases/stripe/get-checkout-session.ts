@@ -1,16 +1,19 @@
 import getConn from "@cocalc/server/stripe/connection";
 import getLogger from "@cocalc/backend/logger";
-import { getStripeCustomerId, sanityCheckAmount } from "./util";
+import {
+  assertValidUserMetadata,
+  getStripeCustomerId,
+  sanityCheckAmount,
+  getStripeLineItems,
+} from "./util";
 import type {
   CheckoutSessionSecret,
   CheckoutSessionOptions,
-  LineItem,
 } from "@cocalc/util/stripe/types";
 import base_path from "@cocalc/backend/base-path";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { isEqual } from "lodash";
-import { currency } from "@cocalc/util/misc";
-import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
+import { decimalToStripe, decimalAdd } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
 
@@ -38,20 +41,11 @@ export default async function getCheckoutSession({
   if (!purpose) {
     throw Error("purpose must be set");
   }
-  if (
-    metadata?.purpose != null ||
-    metadata?.account_id != null ||
-    metadata?.confirm != null ||
-    metadata?.processed != null
-  ) {
-    throw Error(
-      "metadata must not include 'purpose', 'account_id', 'confirm' or 'processed' as a key",
-    );
-  }
+  assertValidUserMetadata(metadata);
 
   let total = 0;
   for (const { amount } of lineItems) {
-    total += amount;
+    total = decimalAdd(total, amount);
   }
   await sanityCheckAmount(total);
 
@@ -88,10 +82,17 @@ export default async function getCheckoutSession({
     }
   }
 
+  const { lineItemsWithoutCredit, total_excluding_tax_usd } =
+    getStripeLineItems(lineItems);
+
+  metadata = {
+    ...metadata,
+    total_excluding_tax_usd: `${total_excluding_tax_usd}`,
+  };
   const session = await stripe.checkout.sessions.create({
     customer,
     ui_mode: "embedded",
-    line_items: accountForCredit(lineItems).map(({ amount, description }) => {
+    line_items: lineItemsWithoutCredit.map(({ amount, description }) => {
       return {
         price_data: {
           unit_amount: decimalToStripe(amount),
@@ -138,46 +139,4 @@ export default async function getCheckoutSession({
   }
 
   return { clientSecret: session.client_secret };
-}
-
-function accountForCredit(lineItems: LineItem[]): LineItem[] {
-  let credit = 0;
-  let total = 0;
-  for (const item of lineItems) {
-    const amount = decimalToStripe(item.amount);
-    if (item.amount < 0) {
-      credit += Math.abs(amount);
-    }
-    total += amount;
-  }
-  if (credit == 0) {
-    // no credits
-    return lineItems;
-  }
-  if (total <= 0) {
-    throw Error("invalid payment: credits exceed charges");
-  }
-  // reduce charges to use up the credits
-  const newLineItems: LineItem[] = [];
-  for (const item of lineItems) {
-    const amount = decimalToStripe(item.amount);
-    if (amount < 0) {
-      // a credit
-      continue;
-    }
-    const creditToUse = Math.min(amount, credit);
-    if (creditToUse == 0) {
-      newLineItems.push(item);
-    } else {
-      const amount2 = amount - creditToUse;
-      credit -= creditToUse;
-      newLineItems.push({
-        description:
-          item.description +
-          ` (${currency(stripeToDecimal(creditToUse))} credit deducted from your account)`,
-        amount: stripeToDecimal(amount2),
-      });
-    }
-  }
-  return newLineItems;
 }

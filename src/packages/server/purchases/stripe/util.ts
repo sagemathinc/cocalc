@@ -8,6 +8,8 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import basePath from "@cocalc/backend/base-path";
+import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
+import type { LineItem } from "@cocalc/util/stripe/types";
 
 const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at least $0.50.
 
@@ -133,4 +135,63 @@ export async function defaultReturnUrl() {
   const { dns } = await getServerSettings();
   const return_url = `https://${dns}${basePath}`;
   return return_url;
+}
+
+export function assertValidUserMetadata(metadata) {
+  if (
+    metadata?.purpose != null ||
+    metadata?.account_id != null ||
+    metadata?.confirm != null ||
+    metadata?.processed != null ||
+    metadata?.total_excluding_tax_usd != null
+  ) {
+    throw Error(
+      "metadata must not include 'purpose', 'account_id', 'confirm', 'total_excluding_tax_usd' or 'processed' as a key",
+    );
+  }
+}
+
+export function getStripeLineItems(lineItems: LineItem[]): {
+  lineItemsWithoutCredit: LineItem[];
+  total_excluding_tax_usd: number;
+} {
+  let credit = 0;
+  let total_excluding_tax_usd = 0;
+  for (const item of lineItems) {
+    const amount = decimalToStripe(item.amount);
+    if (item.amount < 0) {
+      credit += Math.abs(amount);
+    }
+    total_excluding_tax_usd += amount;
+  }
+  if (credit == 0) {
+    // no credits
+    return { lineItemsWithoutCredit: lineItems, total_excluding_tax_usd };
+  }
+  if (total_excluding_tax_usd <= 0) {
+    throw Error("invalid payment: credits are at least as much as charges");
+  }
+  // reduce charges to use up the credits
+  const newLineItems: LineItem[] = [];
+  for (const item of lineItems) {
+    const amount = decimalToStripe(item.amount);
+    if (amount < 0) {
+      // a credit
+      continue;
+    }
+    const creditToUse = Math.min(amount, credit);
+    if (creditToUse == 0) {
+      newLineItems.push(item);
+    } else {
+      const amount2 = amount - creditToUse;
+      credit -= creditToUse;
+      newLineItems.push({
+        description:
+          item.description +
+          ` (${currency(stripeToDecimal(creditToUse))} credit deducted from your account)`,
+        amount: stripeToDecimal(amount2),
+      });
+    }
+  }
+  return { lineItemsWithoutCredit: newLineItems, total_excluding_tax_usd };
 }

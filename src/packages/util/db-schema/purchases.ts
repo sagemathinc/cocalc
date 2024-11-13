@@ -23,7 +23,8 @@ import type { LineItem } from "@cocalc/util/stripe/types";
 
 // various specific payment purposes.
 export const SHOPPING_CART_CHECKOUT = "shopping-cart-checkout";
-export const AUTO_CREDIT = 'auto-credit';
+export const AUTO_CREDIT = "auto-credit";
+export const STUDENT_PAY = "student-pay";
 
 export type Reason =
   | "duplicate"

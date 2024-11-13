@@ -20,7 +20,11 @@ import {
   Tooltip,
 } from "antd";
 import { FinishStripePayment } from "./stripe-payment";
-import { capitalize, currency, replace_all } from "@cocalc/util/misc";
+import {
+  capitalize,
+  replace_all,
+  round2,
+} from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
@@ -29,7 +33,7 @@ import { describeNumberOf, RawJson } from "./util";
 import { PaymentMethod } from "./payment-methods";
 //import SpendPlot from "./spend-plot";
 import { decimalSubtract, stripeToDecimal } from "@cocalc/util/stripe/calc";
-import { LineItemsTable } from "./line-items";
+import { LineItemsTable, moneyToString } from "./line-items";
 import dayjs from "dayjs";
 
 const DEFAULT_LIMIT = 10;
@@ -198,7 +202,9 @@ function PaymentIntentsTable({
       title: "Amount",
       dataIndex: "amount",
       key: "amount",
-      render: (amount) => currency(amount / 100),
+      render: (amount, { intent }) => {
+        return moneyToString(round2(amount / 100), intent.currency);
+      },
     },
     {
       title: "Status",
@@ -228,7 +234,9 @@ function PaymentIntentsTable({
                   name="credit-card"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1">Fill in details</Tag>
+                <Tag color="#688ff1" style={{ whiteSpace: "normal" }}>
+                  Fill in details
+                </Tag>
               </div>
             );
           case "requires_confirmation":
@@ -239,7 +247,9 @@ function PaymentIntentsTable({
                   rotate="180"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1">Confirm payment</Tag>
+                <Tag color="#688ff1" style={{ whiteSpace: "normal" }}>
+                  Confirm payment
+                </Tag>
               </div>
             );
           case "requires_action":
@@ -249,7 +259,9 @@ function PaymentIntentsTable({
                   name="lock"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1">Authenticate payment</Tag>
+                <Tag color="#688ff1" style={{ whiteSpace: "normal" }}>
+                  Authenticate payment
+                </Tag>
               </div>
             );
           case "processing":
@@ -259,7 +271,9 @@ function PaymentIntentsTable({
                   name="clock"
                   style={{ color: "#688ff1", marginRight: "5px" }}
                 />
-                <Tag color="#688ff1">Processing order...</Tag>
+                <Tag color="#688ff1" style={{ whiteSpace: "normal" }}>
+                  Processing order...
+                </Tag>
               </div>
             );
 
@@ -270,7 +284,9 @@ function PaymentIntentsTable({
                   name="check-circle"
                   style={{ color: "#33c280", marginRight: "5px" }}
                 />
-                <Tag color="green">Payment successful</Tag>
+                <Tag color="green" style={{ whiteSpace: "normal" }}>
+                  Payment successful
+                </Tag>
               </div>
             );
 
@@ -281,7 +297,9 @@ function PaymentIntentsTable({
                   name="warning"
                   style={{ color: "#ed5f74", marginRight: "5px" }}
                 />
-                <Tag color="#ed5f74">Order canceled</Tag>
+                <Tag color="#ed5f74" style={{ whiteSpace: "normal" }}>
+                  Order canceled
+                </Tag>
               </div>
             );
 
@@ -496,7 +514,7 @@ function Invoice({ invoice }) {
       ),
     });
   }
-  return <LineItemsTable lineItems={lineItems} />;
+  return <LineItemsTable lineItems={lineItems} currency={invoice.currency} />;
 }
 
 function needsAttention(paymentIntent) {

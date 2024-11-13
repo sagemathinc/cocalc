@@ -19,6 +19,7 @@ import { getTotalChargesThisMonth } from "./get-charges";
 import { getPurchaseQuotas } from "./purchase-quotas";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import { decimalSubtract } from "@cocalc/util/stripe/calc";
+import { ALLOWED_SLACK } from "./shopping-cart-checkout";
 
 // Throws an exception if purchase is not allowed.  Code should
 // call this before giving the thing and doing createPurchase.
@@ -115,7 +116,7 @@ export async function isPurchaseAllowed({
   const { pay_as_you_go_min_payment } = await getServerSettings();
 
   if (!isPaygService(service)) {
-    // for non-PAYG, we just allow credit for positive balance and that is it.
+    // for non-PAYG, we only allow credit toward a purchase if your balance is positive.
     const balance = round2down(await getBalance({ account_id, client }));
     const required = round2up(decimalSubtract(cost, Math.max(balance, 0)));
     const chargeAmount =
@@ -197,9 +198,26 @@ export async function isPurchaseAllowed({
   return { allowed: true };
 }
 
-export async function assertPurchaseAllowed(opts: Options) {
+interface AssertOptions extends Options {
+  // we just successfully captured this amount of money from the user.  For
+  // non PAYG purchases, if amount >= cost, then we allow the purchase no
+  // matter what the user's balance situation is.
+  amount?: number;
+}
+
+export async function assertPurchaseAllowed(opts: AssertOptions) {
   const { allowed, reason } = await isPurchaseAllowed(opts);
   if (!allowed) {
+    if (
+      opts.cost != null &&
+      !isPaygService(opts.service) &&
+      (opts.amount ?? 0) + ALLOWED_SLACK >= opts.cost
+    ) {
+      // the cost is explicitly given, it is NOT a PAYG service,
+      // and the amount the user just paid us is at least as
+      // much as the cost, so we allow it.
+      return;
+    }
     throw Error(reason);
   }
 }

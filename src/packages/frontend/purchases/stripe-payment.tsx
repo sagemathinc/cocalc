@@ -56,7 +56,11 @@ export default function StripePayment({
   lineItems?: LineItem[];
   purpose?: string;
   metadata?: { [key: string]: string };
-  onFinished?: Function;
+  // onFinished gets called with the total (before taxes) once purchase is confirmed by user
+  //   - this means the paymentIntent was created when total > 0
+  //   - if total = 0, this means user confirmed "I want to make this purchase using credit"; the
+  //     caller then needs to actually allocate the thing they want to purchase.
+  onFinished?: (total: number) => void;
   style?;
   disabled?: boolean;
 }) {
@@ -128,7 +132,7 @@ export default function StripePayment({
                         purpose,
                         metadata,
                       });
-                      onFinished?.();
+                      onFinished?.(stripeToDecimal(totalStripe));
                     } catch (err) {
                       setError(`${err}`);
                     } finally {
@@ -150,7 +154,7 @@ export default function StripePayment({
                 onClick={() => {
                   if (totalStripe <= 0) {
                     // no need to do stripe part at all -- just do next step of whatever purchase is happening.
-                    onFinished?.();
+                    onFinished?.(0);
                   }
                   setRequiresPayment(true);
                 }}
@@ -174,6 +178,7 @@ export default function StripePayment({
               metadata,
               onFinished,
               style,
+              totalStripe,
             }}
           />
           <Button
@@ -195,6 +200,7 @@ function StripeCheckout({
   metadata,
   onFinished,
   style,
+  totalStripe,
 }) {
   const [secret, setSecret] = useState<PaymentIntentSecret | null>(null);
   const [error, setError] = useState<string>("");
@@ -261,7 +267,7 @@ function StripeCheckout({
         options={{
           fetchClientSecret: async () => secret.clientSecret,
           onComplete: () => {
-            onFinished?.();
+            onFinished?.(stripeToDecimal(totalStripe));
           },
         }}
         stripe={loadStripe()}

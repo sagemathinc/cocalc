@@ -26,7 +26,7 @@ const logger = getLogger("purchases:shopping-cart-checkout");
 // your purchase.  There is a very slight potential abuse where a user might
 // use the api to get a one time temporary $3 discount by abusing this.
 // We would still eventually invoice them for this.
-export const ALLOWED_SLACK = 3; // off by up to a dollar
+export const ALLOWED_SLACK = 3; // off by up to $3
 
 export interface CheckoutCartItem extends ShoppingCartItem {
   cost: CostInputPeriod;
@@ -47,6 +47,7 @@ export const shoppingCartCheckout = async ({
   account_id,
   payment_intent,
   cart_ids,
+  amount,
 }: {
   account_id: string;
   // in case items in the cart are partly paid for via stripe, this is the payment intent.
@@ -54,6 +55,11 @@ export const shoppingCartCheckout = async ({
   payment_intent?: string;
   // optional id's of shopping cart items user intends to purchase
   cart_ids?: number[];
+  // if given, then the user paid this amount in cash as part of a transaction to
+  // buy the things in the cart.  I.e., we definitely got this amount of money via
+  // stripe from the user.  If their total order is <= amount, then we will definitely
+  // fullfill their order, even if their account balance is negative.
+  amount?: number;
 }) => {
   logger.debug("shoppingCartCheckout", {
     account_id,
@@ -66,7 +72,10 @@ export const shoppingCartCheckout = async ({
     cart_ids,
   );
 
-  if (params.amountDue <= ALLOWED_SLACK) {
+  if (
+    params.amountDue <= ALLOWED_SLACK ||
+    (amount != null && params.total <= amount + ALLOWED_SLACK)
+  ) {
     // The user has sufficient balance to complete the cart checkout, so we immediately
     // create all the purchase items and products for the user and deduct the charges
     // for each from the existing balance.
@@ -172,7 +181,7 @@ export const getShoppingCartCheckoutParams = async (
     cart_ids,
   );
   const minBalance = await getMinBalance(account_id);
-  const balance = await getBalance({account_id});
+  const balance = await getBalance({ account_id });
   const { pay_as_you_go_min_payment: minPayment } = await getServerSettings();
   const { amountDue, chargeAmount, minimumPaymentCharge, cureAmount } =
     getChargeAmount({
