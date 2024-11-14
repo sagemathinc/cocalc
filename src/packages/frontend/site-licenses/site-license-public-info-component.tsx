@@ -7,7 +7,9 @@ import { Alert, Button, Input, Popconfirm, Popover } from "antd";
 import { fromJS } from "immutable";
 import { ReactNode } from "react";
 import { DebounceInput } from "react-debounce-input";
+import { useIntl } from "react-intl";
 
+import { labels } from "@cocalc/frontend/i18n";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   React,
@@ -73,6 +75,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     tableMode = false,
     refresh,
   } = props;
+  const intl = useIntl();
   const [info, set_info] = useState<Info | undefined>(undefined);
   const [err, set_err] = useState<string | undefined>(undefined);
   const [loading, set_loading] = useState<boolean>(true);
@@ -853,7 +856,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
               set_is_adding_manager(false);
             }}
           >
-            Cancel
+            {intl.formatMessage(labels.cancel)}
           </Button>
         </span>
       );

@@ -3,19 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useEffect, useState } from "react";
 import { Button, Card, Popconfirm, Popover } from "antd";
 import { isEqual } from "lodash";
+import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
+import { CSS, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import * as misc from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import type { ProjectSettings } from "../types";
 import QuotaRow from "./quota-row";
 import type { QuotaParams } from "./types";
-import { CSS, useRedux } from "@cocalc/frontend/app-framework";
 
 const QUOTA_PARAMS = PROJECT_UPGRADES.params;
 
@@ -25,6 +27,8 @@ interface Props {
 }
 
 export default function AdminQuotas({ project_id, style }: Props) {
+  const intl = useIntl();
+
   const projectSettings: ProjectSettings | undefined = useRedux([
     "projects",
     "project_map",
@@ -126,7 +130,7 @@ export default function AdminQuotas({ project_id, style }: Props) {
             {editing && (
               <>
                 <Button style={{ marginRight: "8px" }} onClick={handleCancel}>
-                  Cancel
+                  {intl.formatMessage(labels.cancel)}
                 </Button>
                 <Popconfirm
                   disabled={!isModified()}

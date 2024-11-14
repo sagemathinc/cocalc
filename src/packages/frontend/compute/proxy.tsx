@@ -3,21 +3,24 @@ The HTTPS proxy server.
 */
 
 import { Alert, Button, Input, Spin, Switch } from "antd";
+import { delay } from "awaiting";
+import jsonic from "jsonic";
 import { useEffect, useMemo, useRef, useState } from "react";
+
 import { A, Icon } from "@cocalc/frontend/components";
-import AuthToken from "./auth-token";
 import ShowError from "@cocalc/frontend/components/error";
 import { PROXY_CONFIG } from "@cocalc/util/compute/constants";
+import AuthToken from "./auth-token";
 import { writeTextFileToComputeServer } from "./project";
-import jsonic from "jsonic";
-import { defaultProxyConfig } from "@cocalc/util/compute/images";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { getQuery } from "./description";
-import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
-import { delay } from "awaiting";
 import { TimeAgo } from "@cocalc/frontend/components";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { defaultProxyConfig } from "@cocalc/util/compute/images";
 import { EditModal } from "./compute-server";
+import { getQuery } from "./description";
 
 export default function Proxy({
   id,
@@ -172,7 +175,7 @@ function ProxyConfig({
         }}
         style={{ marginRight: "5px" }}
       >
-        Cancel
+        <CancelText />
       </Button>
       <Button
         type="primary"
@@ -448,7 +451,7 @@ export function LauncherButton({
             setUrl("");
           }}
         >
-          Cancel
+          <CancelText />
         </Button>
       )}
       {log && (

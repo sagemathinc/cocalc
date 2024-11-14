@@ -15,15 +15,18 @@ const MIN_INTERVAL_MS = 2000;
 const MAX_INTERVAL_MS = 45000;
 const EXPONENTIAL_BACKOFF = 1.3;
 
-import { Modal, Checkbox, Button, Spin, Tooltip } from "antd";
-import { useEffect, useCallback, useRef, useState } from "react";
+import { Button, Checkbox, Modal, Spin, Tooltip } from "antd";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
-import { getSerialPortOutput } from "./api";
+import { Terminal } from "xterm";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
-import { Terminal } from "xterm";
+import { getSerialPortOutput } from "./api";
+
 import { setTheme } from "@cocalc/frontend/frame-editors/terminal-editor/themes";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 
 const WIDTH = 160;
 const HEIGHT = 40;
@@ -165,7 +168,7 @@ export function SerialLogModal({ id, title, close }) {
           Auto Refresh
         </Checkbox>,
         <Button key="cancel" onClick={close}>
-          Cancel
+          <CancelText />
         </Button>,
         <Button
           key="refresh"

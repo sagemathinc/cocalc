@@ -1,8 +1,7 @@
 import { Alert, Button, Space, Tooltip } from "antd";
-import { fieldToLabel } from "../util";
 import {
-  CSSProperties,
   createContext,
+  CSSProperties,
   FC,
   ReactNode,
   useContext,
@@ -10,6 +9,10 @@ import {
   useRef,
   useState,
 } from "react";
+import { useIntl } from "react-intl";
+import { fieldToLabel } from "../util";
+
+import { labels } from "@cocalc/frontend/i18n";
 
 export interface EditableContextType {
   counter: number;
@@ -38,7 +41,7 @@ export function useEditableContext<ValueType>(field: string): {
     obj: object,
     value: ValueType | null,
     moreChanges?: object,
-    noClose?: boolean
+    noClose?: boolean,
   ) => Promise<void>;
   counter: number;
   ClickToEdit: FC<{
@@ -46,6 +49,7 @@ export function useEditableContext<ValueType>(field: string): {
     children?;
   }>;
 } {
+  const intl = useIntl();
   const context = useContext(EditableContext);
   const [edit, setEdit] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
@@ -61,7 +65,7 @@ export function useEditableContext<ValueType>(field: string): {
       obj: object,
       value: ValueType | null,
       moreChanges?: object,
-      noClose?: boolean
+      noClose?: boolean,
     ) => {
       lastSaveRef.current = { obj, value };
       try {
@@ -104,7 +108,7 @@ export function useEditableContext<ValueType>(field: string): {
                   context.refresh();
                 }}
               >
-                Cancel
+                {intl.formatMessage(labels.cancel)}
               </Button>
               <Button
                 type="primary"
