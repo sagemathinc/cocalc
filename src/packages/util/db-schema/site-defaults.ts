@@ -964,8 +964,8 @@ export const site_settings_conf: SiteSettings = {
     tags: ["Security"],
   },
   samesite_remember_me: {
-    name: "sameSite setting for remember_me authentication token.",
-    desc: "The [sameSite setting](https://expressjs.com/en/resources/middleware/cookie-session.html) for the remember_me authentication token, which can be one of 'strict', 'lax', or 'none'.  The default is 'strict', which is the safest choice, as it is a useful line of defense against certain attacks.  The other options are supported since they are needed for certain development work; they could also be useful in on-prem settings.",
+    name: "sameSite setting for remember_me authentication cookie",
+    desc: "The [sameSite setting](https://expressjs.com/en/resources/middleware/cookie-session.html) for the remember_me authentication token, which can be one of 'strict', 'lax', or 'none'.  The default is 'strict', which is the safest choice, as it is a useful line of defense against certain attacks.  Using 'none' is **extremely** insecure, just begging to be hacked; using 'lax' might be OK.  The non-strict options are supported since they are needed for certain development work; they could also be useful in on-prem settings.",
     default: "strict",
     valid: ["strict", "lax", "none"],
     to_val: (x) => `${x}`,

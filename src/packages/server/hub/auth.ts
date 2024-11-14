@@ -392,13 +392,20 @@ export class PassportManager {
         // to match @cocalc/frontend/client/password-reset
         const name = encodeURIComponent(`${base_path}PWRESET`);
         const secure = req.protocol === "https";
+        let sameSite;
+        if (secure) {
+          const { samesite_remember_me } = await getServerSettings();
+          sameSite = samesite_remember_me;
+        } else {
+          sameSite = undefined;
+        }
 
         cookies.set(name, token, {
           maxAge: ms("5 minutes"),
           secure,
           overwrite: true,
           httpOnly: false,
-          sameSite: secure ? "strict" : undefined,
+          sameSite,
         });
         res.redirect("../app");
       }
