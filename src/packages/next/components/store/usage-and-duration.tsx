@@ -92,6 +92,7 @@ export function UsageAndDuration(props: Props) {
       const end = new Date(start.valueOf() + 1000 * 60 * 60 * 24 * 30);
       range = [start, end];
       form.setFieldsValue({ range });
+      onChange();
     }
     let suffix;
     try {
