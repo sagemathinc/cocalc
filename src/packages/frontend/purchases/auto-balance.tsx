@@ -1,7 +1,7 @@
 import {
   Alert,
   Button,
-  Checkbox,
+  Switch,
   Divider,
   Flex,
   Form,
@@ -154,11 +154,16 @@ export function AutoBalanceModal({ onClose }) {
       open
       title={
         <>
-          <Icon name="line-chart" /> Automatically Add Credit When Balance is
-          Low
+          <Icon name="line-chart" /> Make Automatic Deposits
+          {autoBalance?.trigger ? (
+            <> to Keep Balance Above {currency(autoBalance.trigger)}</>
+          ) : undefined}
         </>
       }
-      onOk={onClose}
+      onOk={() => {
+        save();
+        onClose();
+      }}
       onCancel={onClose}
     >
       If you are using pay as you go features of CoCalc (e.g., compute servers,
@@ -181,12 +186,12 @@ export function AutoBalanceModal({ onClose }) {
                 Every few minutes CoCalc will check if your balance is below{" "}
                 {currency(value.trigger)}, and if so, try to make a deposit to
                 bring the balance above this amount. If you have a payment that
-                is not working, or you hit any of the daily, weekly or monthly
-                limits, then no deposit will be attempted.
+                is not working, or you hit your limit, then no deposit will be
+                attempted.
               </>
             }
           >
-            Add credit when balance goes below
+            Keep Balance Above
           </Tooltip>
           name="trigger"
         >
@@ -200,11 +205,11 @@ export function AutoBalanceModal({ onClose }) {
                   {currency(value.amount)} will typically be deposited when your
                   balance goes below {currency(value.trigger)}. More may be
                   deposited if the balance drops significantly lower, subject to
-                  your daily, weekly and monthly limits.
+                  your limit.
                 </>
               }
             >
-              Amount to add
+              Add at Least
             </Tooltip>
           }
           name="amount"
@@ -217,7 +222,7 @@ export function AutoBalanceModal({ onClose }) {
               title={
                 <>
                   CoCalc will not deposit more than {currency(value.max_day)}{" "}
-                  per 24 hour period.
+                  per day.
                 </>
               }
             >
@@ -239,7 +244,7 @@ export function AutoBalanceModal({ onClose }) {
               title={
                 <>
                   CoCalc will not deposit more than {currency(value.max_week)}{" "}
-                  per 7 day period.
+                  per week.
                 </>
               }
             >
@@ -261,7 +266,7 @@ export function AutoBalanceModal({ onClose }) {
               title={
                 <>
                   CoCalc will not deposit more than {currency(value.max_month)}{" "}
-                  per month (30.5 days).
+                  per month.
                 </>
               }
             >
@@ -282,14 +287,14 @@ export function AutoBalanceModal({ onClose }) {
           name="enabled"
           valuePropName="checked"
         >
-          <Checkbox>Enabled</Checkbox>
+          <Switch>Enabled</Switch>
         </Form.Item>
       </Form>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
         <Space>
-          <Button onClick={() => setDefaults("min")}>Min</Button>
+          {/*<Button onClick={() => setDefaults("min")}>Min</Button> */}
           <Button onClick={() => setDefaults("default")}>Defaults</Button>
-          <Button onClick={() => setDefaults("max")}>Max</Button>
+          {/* <Button onClick={() => setDefaults("max")}>Max</Button> */}
           <Button disabled={!changed || saving} onClick={save} type="primary">
             Save Changes{" "}
             {saving && <Spin delay={2000} style={{ marginLeft: "15px" }} />}
@@ -328,15 +333,16 @@ function Status({ autoBalance, style }: { autoBalance; style? }) {
       }
       description={
         <div>
-          Strategy:{" "}
-          <i>
-            Add {currency(autoBalance.amount)} to keep balance above{" "}
-            {currency(autoBalance.trigger)}.
-          </i>
-          <br />
+          <div style={{ marginBottom: "15px" }}>
+            Strategy:{" "}
+            <i>
+              Keep balance above {currency(autoBalance.trigger)} by adding at
+              least {currency(autoBalance.amount)}.
+            </i>
+          </div>
           <ProgressBars autoBalance={autoBalance} />
           <Divider />
-          {autoBalance.reason}
+          Last Action: {autoBalance.reason}
         </div>
       }
     />
@@ -355,28 +361,28 @@ function ProgressBars({ autoBalance }) {
     <div>
       <Flex>
         <div style={{ width: "100px" }}>Day</div>
+        <div style={{ width: "100px" }}>{currency(day ?? 0)}</div>
         {autoBalance?.max_day != null && (
           <Progress
-            percent={(100 * (day ?? 0)) / autoBalance?.max_day}
-            format={() => currency(day)}
+            percent={Math.round((100 * (day ?? 0)) / autoBalance?.max_day)}
           />
         )}
       </Flex>
       <Flex>
         <div style={{ width: "100px" }}>Week</div>
+        <div style={{ width: "100px" }}>{currency(week ?? 0)}</div>
         {autoBalance?.max_week != null && (
           <Progress
-            percent={(100 * (week ?? 0)) / autoBalance?.max_week}
-            format={() => currency(week)}
+            percent={Math.round((100 * (week ?? 0)) / autoBalance?.max_week)}
           />
         )}
       </Flex>
       <Flex>
         <div style={{ width: "100px" }}>Month</div>
+        <div style={{ width: "100px" }}>{currency(month ?? 0)}</div>
         {autoBalance?.max_month != null && (
           <Progress
-            percent={(100 * (month ?? 0)) / autoBalance?.max_month}
-            format={() => currency(month)}
+            percent={Math.round((100 * (month ?? 0)) / autoBalance?.max_month)}
           />
         )}
       </Flex>

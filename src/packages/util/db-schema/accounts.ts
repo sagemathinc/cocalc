@@ -47,15 +47,15 @@ export interface AutoBalance {
 // All fields should always be explicitly specified.
 export const AUTOBALANCE_RANGES = {
   trigger: [5, 100],
-  amount: [5, 500],
+  amount: [10, 500],
   max_day: [5, 500],
   max_week: [5, 2500],
   max_month: [5, 10000],
 };
 
 export const AUTOBALANCE_DEFAULTS = {
-  trigger: 20,
-  amount: 25,
+  trigger: 10,
+  amount: 20,
   max_day: 200,
   max_week: 1000,
   max_month: 2500,
