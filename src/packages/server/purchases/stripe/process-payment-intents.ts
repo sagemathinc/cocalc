@@ -63,7 +63,7 @@ export default async function processPaymentIntents({
           purchase_ids.add(id);
         }
       } catch (err) {
-        // There are a number of things that can go wrong, hopefully ephemeral.  We log
+        // There are a number of things that are expected to go wrong, hopefully ephemeral.  We log
         // them.  Examples:
         //   - Problem creating an item a user wants to buy because they spend too much right when
         //     the purchase is happening. Result: they have their credit and try to do the purchase
@@ -87,6 +87,13 @@ export function isReadyToProcess(paymentIntent) {
     paymentIntent.invoice
   );
 }
+
+// NOT a critical assumption.  We do NOT assume processPaymentIntent is never run twice at
+// the same time for the same payment, either in the same process or on the cluster.
+// If $n$ attempts to run this happen at once, the createCredit call will succeed for
+// one of them and fail for all others due to the unique index on the invoice_id field.
+// The credit thus gets created at most once, and no items are created except by the
+// thread that created the credit.
 
 export async function processPaymentIntent(
   paymentIntent,
@@ -113,7 +120,7 @@ export async function processPaymentIntent(
   // and invoice exactly what we were trying to charge the customer!  The problem is that
   // the invoice (and line items) in some cases (e.g., stripe checkout) is in a non-US currency.
   // We thus set the metadata to have the total in **US PENNIES** (!). Users can't touch
-  // this metadata, and we depend on it for how much the invoice is worth to us. 
+  // this metadata, and we depend on it for how much the invoice is worth to us.
   const total_excluding_tax_usd =
     paymentIntent.metadata.total_excluding_tax_usd;
   if (total_excluding_tax_usd == null) {
@@ -182,7 +189,7 @@ export async function processAllRecentPaymentIntents(): Promise<number> {
   // due to time to update the index, but that is fine given the point of this function.
   // We also use a small limit, since in almost all cases this will be empty, and if it is
   // not empty, we would just call it again to get more results.
-  const query = `status:"succeeded" AND -metadata["processed"]:"true" -metadata["purpose"]:null`;
+  const query = `status:"succeeded" AND -metadata["processed"]:"true" AND -metadata["purpose"]:null`;
   const paymentIntents = await stripe.paymentIntents.search({
     query,
     limit: 10,

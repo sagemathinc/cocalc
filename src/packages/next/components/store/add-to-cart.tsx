@@ -23,7 +23,7 @@ interface Props {
 }
 
 // this is used by the "addBox" and the thin "InfoBar" to add/modify the selected license configuration to the cart
-
+// If something goes wrong it throws an error *and* also calls setCartError.
 export async function addToCart({ form, setCartError, router }: Props) {
   // we make a copy, because otherwise this actually modifies the fields (user sees brief red errors)
   const description = {
@@ -70,5 +70,6 @@ export async function addToCart({ form, setCartError, router }: Props) {
     router.push("/store/cart");
   } catch (err) {
     setCartError(err.message);
+    throw err;
   }
 }

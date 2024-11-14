@@ -28,7 +28,6 @@ import { IdleTimeout } from "./member-idletime";
 import { QuotaConfig } from "./quota-config";
 import { PRESETS, PRESET_MATCH_FIELDS, Preset } from "./quota-config-presets";
 import { decodeFormValues, encodeFormValues } from "./quota-query-params";
-import { Reset } from "./reset";
 import { RunLimit } from "./run-limit";
 import { SignInToPurchase } from "./sign-in-to-purchase";
 import { TitleDescription } from "./title-description";
@@ -287,12 +286,6 @@ function CreateSiteLicense({ showInfoBar = false, noAccount = false }) {
           />
         ) : undefined}
         <TitleDescription showExplanations={showExplanations} form={form} />
-        <Reset
-          addBox={addBox}
-          form={form}
-          onChange={onLicenseChange}
-          router={router}
-        />
       </Form>
     </div>
   );

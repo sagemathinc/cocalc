@@ -6,10 +6,11 @@
 /*
 Add a cash voucher to your shopping cart.
 */
+import { useState } from "react";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { round2up } from "@cocalc/util/misc";
 import { money } from "@cocalc/util/licenses/purchase/utils";
-import { Alert, Button } from "antd";
+import { Alert, Button, Spin } from "antd";
 import { addToCart } from "./add-to-cart";
 import { DisplayCost } from "./site-license-cost";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
@@ -141,22 +142,42 @@ export function AddToCartButton({
   variant = "primary",
   disabled: disabled0,
 }: CartButtonProps) {
+  const [clicked, setClicked] = useState<boolean>(false);
   const disabled =
-    (disabled0 ?? false) || !!cartError || cost == null || cost.cost === 0;
+    clicked ||
+    (disabled0 ?? false) ||
+    !!cartError ||
+    cost == null ||
+    cost.cost === 0;
 
   return (
     <Button
       size={variant === "small" ? "small" : "large"}
       type="primary"
       htmlType="submit"
-      onClick={() => addToCart({ form, setCartError, router })}
+      onClick={async () => {
+        // you can only click this add to cart button *once* -- due to slow
+        // turnaround, if we don't change this state, then the user could
+        // click multiple times and add the same item more than once, thus
+        // accidentally ending up with a "dobule purchase"
+        try {
+          setClicked(true);
+          await addToCart({ form, setCartError, router });
+        } catch (_err) {
+          // error is reported via setCartError.  But also
+          // give a chance to click the button again, since item
+          // wasn't actually added.
+          setClicked(false);
+        }
+      }}
       disabled={disabled}
     >
-      {disabled
-        ? "Finish Configuration"
+      {clicked
+        ? "Moving to Cart..."
         : router.query.id != null
           ? "Save Changes"
           : "Add to Cart"}
+      {clicked && <Spin style={{ marginLeft: "15px" }} />}
     </Button>
   );
 }

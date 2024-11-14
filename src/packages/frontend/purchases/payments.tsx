@@ -20,11 +20,7 @@ import {
   Tooltip,
 } from "antd";
 import { FinishStripePayment } from "./stripe-payment";
-import {
-  capitalize,
-  replace_all,
-  round2,
-} from "@cocalc/util/misc";
+import { capitalize, replace_all, round2 } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
@@ -77,7 +73,6 @@ export default function Payments({
       return;
     }
     lastLoadRef.current = now;
-
     try {
       setError("");
       setLoading(true);
@@ -108,6 +103,7 @@ export default function Payments({
         numPaymentsRef.current = data0.length;
       }
       setHasMore(result.has_more);
+      await refresh?.();
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -174,7 +170,6 @@ export default function Payments({
               paymentIntents={data}
               onFinished={() => {
                 loadMore({ init: true });
-                refresh?.();
               }}
               account_id={account_id}
               scroll={{ y: 400 }}

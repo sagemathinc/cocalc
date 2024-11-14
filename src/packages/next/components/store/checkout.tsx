@@ -279,6 +279,7 @@ export default function Checkout() {
                   {round2down(params.balance ?? 0) > 0 && (
                     <>
                       <Checkbox
+                        style={{ fontSize: "12pt" }}
                         checked={showApplyCredit}
                         onChange={(e) => {
                           let x = 0;
@@ -299,7 +300,12 @@ export default function Checkout() {
                           updateParams(x);
                         }}
                       >
-                        Apply account credit toward purchase
+                        <b>
+                          Use Account Balance -{" "}
+                          <span style={{ color: "#666" }}>
+                            {currency(round2down(params.balance))} available
+                          </span>
+                        </b>
                       </Checkbox>
                       {showApplyCredit && (
                         <div style={{ textAlign: "center", marginTop: "30px" }}>
@@ -472,8 +478,9 @@ function GetAQuote({ items }) {
   const router = useRouter();
   const [more, setMore] = useState<boolean>(false);
   let isSub;
+  console.log(items);
   for (const item of items) {
-    if (item.description.period != "range") {
+    if (item.description.period != "range" && item.product == "site-license") {
       isSub = true;
       break;
     }
@@ -519,7 +526,7 @@ function GetAQuote({ items }) {
       </div>
       {more && (
         <Paragraph>
-          {fullCost(items) <= MIN_AMOUNT || isSub ? (
+          {fullCost(items) < MIN_AMOUNT || isSub ? (
             <Alert
               showIcon
               style={{
@@ -533,10 +540,11 @@ function GetAQuote({ items }) {
                 <>
                   Customized payment options are available for{" "}
                   <b>non-subscription purchases over ${MIN_AMOUNT}</b>. Make
-                  sure your cost before discounts is over ${MIN_AMOUNT} and{" "}
-                  <A href="/store/cart">edit</A> any subscriptions in your cart
-                  to have explicit date ranges, then try again. If this is
-                  confusing, <A href="/support/new">make a support request</A>.
+                  sure your cost (currently {currency(fullCost(items))}) is over
+                  ${MIN_AMOUNT} and <A href="/store/cart">edit</A> any
+                  subscriptions in your cart to have explicit date ranges, then
+                  try again. If this is confusing,{" "}
+                  <A href="/support/new">make a support request</A>.
                 </>
               }
             />

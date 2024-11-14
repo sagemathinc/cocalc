@@ -291,7 +291,8 @@ export function AutoBalanceModal({ onClose }) {
           <Button onClick={() => setDefaults("default")}>Defaults</Button>
           <Button onClick={() => setDefaults("max")}>Max</Button>
           <Button disabled={!changed || saving} onClick={save} type="primary">
-            Save Changes {saving && <Spin style={{ marginLeft: "15px" }} />}
+            Save Changes{" "}
+            {saving && <Spin delay={2000} style={{ marginLeft: "15px" }} />}
           </Button>
         </Space>
       </div>

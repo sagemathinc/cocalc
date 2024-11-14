@@ -364,7 +364,6 @@ export default function CreateVouchers() {
       {loading && <Loading large center />}
       {renderAddBox()}
       {renderVoucherConfig()}
-      {renderAddBox()}
     </>
   );
 }

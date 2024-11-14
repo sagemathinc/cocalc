@@ -13,7 +13,6 @@ import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-chec
 import Payments from "@cocalc/frontend/purchases/payments";
 import { getColumns } from "./checkout";
 import {
-  getPayments,
   getShoppingCartCheckoutParams,
 } from "@cocalc/frontend/purchases/api";
 import { SHOPPING_CART_CHECKOUT } from "@cocalc/util/db-schema/purchases";
@@ -31,11 +30,6 @@ export default function Processing() {
     try {
       setError("");
       setLoading(true);
-      // This is entirely to make sure that any recent payments that have succeeded
-      // do get processed, i.e., the items in the cart get sent to the user.  This
-      // would happen without the call (eventually) or may happen due to payment update,
-      // but we want it to happen *now* if possible.
-      await getPayments({ limit: 3 });
       // Get what has NOT been processed.
       const params = await getShoppingCartCheckoutParams({
         processing: true,

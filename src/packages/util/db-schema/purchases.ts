@@ -312,6 +312,7 @@ Table({
     pg_unique_indexes: [
       // having two entries with same invoice_id or id would be very bad, since that
       // would mean user got money twice for one payment!
+      // Existence of this unique index is assumed in src/packages/server/purchases/stripe/process-payment-intents.ts
       "invoice_id",
     ],
     user_query: {

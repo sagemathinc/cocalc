@@ -77,7 +77,9 @@ export async function getAllOpenPayments(
   });
   // NOTE: the search index that stripe uses is wrong for a minute or two, so we do a "client side filter"  console.log("x = ", x);
   x.data = x.data.filter(isOpenPaymentIntent);
+  const known = new Set<string>();
   for (const intent of x.data) {
+    known.add(intent.id);
     const cart_ids_json = intent.metadata?.cart_ids;
     if (!cart_ids_json) {
       continue;
@@ -92,6 +94,21 @@ export async function getAllOpenPayments(
   }
 
   await setBalanceAlert({ account_id, balance_alert: x.data.length > 0 });
+
+  // We also include very recent (last 5 minutes) payments that haven't finished processing
+  const y = await getPayments({
+    account_id,
+    created: { gt: Math.round((Date.now() - 5 * 1000 * 60) / 1000) },
+    unfinished: false,
+  });
+
+  y.data = y.data.filter(isOpenPaymentIntent);
+  for (const intent of y.data) {
+    if (!known.has(intent.id) && !intent.metadata.processed) {
+      x.data.push(intent);
+    }
+  }
+
   return { has_more: false, data: x.data, object: "list" };
 }
 
