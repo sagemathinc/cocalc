@@ -38,7 +38,7 @@ export default function AutoBalance({ style, type }: Props) {
     <Button type={type} style={style} onClick={() => setOpen(!open)}>
       {autoBalance?.enabled
         ? "Automatic Deposits: Enabled"
-        : "Setup Automatic Deposits"}
+        : "Automatic Deposits: Disabled"}
     </Button>
   );
   if (autoBalance != null) {
@@ -162,7 +162,7 @@ export function AutoBalanceModal({ onClose }) {
       onCancel={onClose}
     >
       If you are using pay as you go features of CoCalc (e.g., compute servers,
-      project upgrades, or large language models), you can configure your
+      project upgrades, or large language models), you should configure your
       account so that money is deposited when your balance goes below a
       specified value.
       <Form

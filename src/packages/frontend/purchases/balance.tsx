@@ -78,7 +78,7 @@ export default function Balance({
                 style={{ marginLeft: "-15px" /* so link looks centered */ }}
               />
               {showTransferLink && balance > 0 && (
-                <Next href={"store/vouchers"}>Vouchers</Next>
+                <Next href={"store"}>Store</Next>
               )}
             </Space>
           </div>

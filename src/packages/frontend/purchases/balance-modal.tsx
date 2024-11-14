@@ -1,4 +1,4 @@
-import { Modal, Spin } from "antd";
+import { Button, Flex, Modal, Space, Spin } from "antd";
 import Balance from "./balance";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -6,7 +6,7 @@ import {
   getPendingBalance as getPendingBalanceUsingApi,
 } from "./api";
 import ShowError from "@cocalc/frontend/components/error";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import Payments from "@cocalc/frontend/purchases/payments";
 
 export default function BalanceModal({
@@ -57,7 +57,13 @@ export default function BalanceModal({
   return (
     <Modal
       width={700}
-      title={<>Balance {loading && <Spin style={{ marginLeft: "15px" }} />}</>}
+      title={
+        <Flex style={{ paddingRight: "30px" }}>
+          Balance {loading && <Spin style={{ marginLeft: "15px" }} />}
+          <div style={{ flex: 1 }} />
+          <Links onClose={onClose} />
+        </Flex>
+      }
       open
       onOk={() => {
         onClose();
@@ -84,5 +90,37 @@ export default function BalanceModal({
         refresh={handleRefresh}
       />
     </Modal>
+  );
+}
+
+const LINKS = [
+  { label: "Purchases", value: "purchases" },
+  { label: "Payments", value: "payments" },
+  { label: "Statements", value: "statements" },
+  { label: "Subscriptions", value: "subscriptions" },
+];
+
+function openPage(value) {
+  redux.getActions("page").set_active_tab("account");
+  redux.getActions("account").set_active_tab(value);
+}
+
+function Links({ onClose }) {
+  return (
+    <Space.Compact>
+      {LINKS.map(({ label, value }) => (
+        <Button
+          size="small"
+          key={value}
+          type="link"
+          onClick={() => {
+            openPage(value);
+            onClose();
+          }}
+        >
+          {label}
+        </Button>
+      ))}
+    </Space.Compact>
   );
 }

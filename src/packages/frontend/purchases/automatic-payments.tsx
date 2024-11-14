@@ -1,9 +1,7 @@
-/* Status of your purchases
+/* Status
+ */
 
-This is your balance, limit and spending rate.
-*/
-
-import { Card, Space } from "antd";
+import { Flex } from "antd";
 import MinBalance from "./min-balance";
 import SpendRate from "./spend-rate";
 import { useEffect, useState } from "react";
@@ -11,7 +9,6 @@ import {
   getMinBalance as getMinBalanceUsingApi,
   getSpendRate as getSpendRateUsingApi,
 } from "./api";
-import Config from "./config";
 import ShowError from "@cocalc/frontend/components/error";
 import { SectionDivider } from "./util";
 import AutoBalance from "./auto-balance";
@@ -57,34 +54,27 @@ export default function AutomaticPayments({
   return (
     <div style={style}>
       <SectionDivider onRefresh={handleRefresh} loading={loading}>
-        Automatic Payments
+        Pay As You Go Rate
       </SectionDivider>
       <ShowError
         error={error}
         setError={setError}
         style={{ marginBottom: "15px" }}
       />
-      <div style={{ textAlign: "center", margin: "15px 0" }}>
-        <AutoBalance />
-      </div>
       <div>
         <div style={{ margin: "auto", maxWidth: MAX_WIDTH }}>
-          <Space style={{ alignItems: "flex-start" }}>
-            <Card>
-              <div style={{ color: "#888", marginBottom: "10px" }}>
-                Subscription Payments
-              </div>
-              <Config style={{ flexDirection: "column" }} />
-            </Card>
-            <div style={{ width: "30px" }} />
+          <Flex>
+            <AutoBalance style={{ color: "#666", height: "135px" }} />
+            <div style={{ flex: 1 }} />
             <SpendRate spendRate={spendRate} />
+            <div style={{ flex: 1 }} />
             {!compact && (
               <>
                 <div style={{ width: "30px" }} />
                 <MinBalance minBalance={minBalance} />
               </>
             )}
-          </Space>
+          </Flex>
         </div>
       </div>
     </div>
