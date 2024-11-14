@@ -26,7 +26,7 @@ describe("Check Required SSO", () => {
     expect(emailBelongsToDomain("foo.com", "foo.co.uk")).toBe(false);
     expect(emailBelongsToDomain("foo.com", "foo.com.uk")).toBe(false);
     expect(emailBelongsToDomain("foobar.com", "bar.com")).toBe(false);
-    expect(emailBelongsToDomain("foobar.com", "bar.com")).toBe(false);
+    expect(emailBelongsToDomain("foobar.com", "bazfoobar.com")).toBe(false);
     expect(emailBelongsToDomain("foobar.com", "*")).toBe(false);
   });
 
@@ -47,6 +47,9 @@ describe("Check Required SSO", () => {
     expect(
       checkRequiredSSO({ email: "x@foo.abc.com", strategies })?.name,
     ).toEqual("baz");
+    expect(
+      checkRequiredSSO({ email: "instructor+123@foo.co.uk", strategies })?.name,
+    ).toEqual("foo");
     expect(
       checkRequiredSSO({ email: "x@students.foo.co.uk", strategies })?.name,
     ).toEqual("foo");

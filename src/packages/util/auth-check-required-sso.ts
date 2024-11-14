@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { is_valid_email_address } from "@cocalc/util/misc";
 import { Strategy } from "@cocalc/util/types/sso";
 
 interface Opts {
@@ -14,7 +15,8 @@ interface Opts {
 /**
  * If the domain of a given email address belongs to an SSO strategy,
  * which is configured to be an "exclusive" domain, then return the Strategy.
- * This also matches subdomains, i.e. "foo@bar.baz.edu" is goverend by "baz.edu".
+ * This also matches subdomains, i.e. "foo@bar.baz.edu" is goverend by "baz.edu",
+ * while "foo@barbaz.edu" is NOT goverend by "baz.edu".
  *
  * Special case: an sso domain "*" covers all domains, not covered by any other
  * exclusive SSO strategy. If there is just one such "*"-SSO strategy, it will deal with all
@@ -28,6 +30,7 @@ export function checkRequiredSSO(opts: Opts): Strategy | undefined {
   if (!email) return;
   if (strategies == null || strategies.length === 0) return;
   if (email.indexOf("@") === -1) return;
+  if (!is_valid_email_address(email)) return;
   const emailDomain = getEmailDomain(email);
   if (!emailDomain) return;
   for (const strategy of strategies) {
