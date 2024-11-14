@@ -117,7 +117,8 @@ export type SiteSettingsKeys =
   | "compute_servers_dns"
   | "compute_servers_hyperstack_enabled"
   | "cloud_filesystems_enabled"
-  | "insecure_test_mode";
+  | "insecure_test_mode"
+  | "samesite_remember_me";
 
 //| "compute_servers_lambda-cloud_enabled"
 
@@ -960,6 +961,14 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+    tags: ["Security"],
+  },
+  samesite_remember_me: {
+    name: "sameSite setting for remember_me authentication token.",
+    desc: "The [sameSite setting](https://expressjs.com/en/resources/middleware/cookie-session.html) for the remember_me authentication token, which can be one of 'strict', 'lax', or 'none'.  The default is 'strict', which is the safest choice, as it is a useful line of defense against certain attacks.  The other options are supported since they are needed for certain development work; they could also be useful in on-prem settings.",
+    default: "strict",
+    valid: ["strict", "lax", "none"],
+    to_val: (x) => `${x}`,
     tags: ["Security"],
   },
 } as const;

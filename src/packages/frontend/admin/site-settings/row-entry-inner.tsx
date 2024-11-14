@@ -3,9 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Input, Select } from "antd";
+import { Input, Select, Switch } from "antd";
 import { CSSProperties } from "react";
-
+import { isEqual } from "lodash";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import Password, {
   PasswordTextArea,
@@ -93,6 +93,18 @@ export function RowEntryInner({
             {option.label}
           </>
         )}
+      />
+    );
+  } else if (isEqual(valid, ["yes", "no"])) {
+    return (
+      <Switch
+        defaultChecked={value == "yes"}
+        checkedChildren="yes"
+        unCheckedChildren="no"
+        onChange={(checked) => {
+          onChangeEntry(name, checked ? "yes" : "no");
+          update();
+        }}
       />
     );
   } else if (Array.isArray(valid)) {
