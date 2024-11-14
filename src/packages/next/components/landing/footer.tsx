@@ -5,17 +5,20 @@
 
 import { Col, Flex, Layout, Row, Space, Typography } from "antd";
 
+import useTranslation from "next-translate/useTranslation";
+
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
-import A from "components/misc/A";
+import { liveDemoUrl } from "components/landing/live-demo";
 import Logo from "components/logo";
 import { CSS } from "components/misc";
-import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
+import A from "components/misc/A";
+
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
 
 import SocialMediaIconList from "./social-media-icon-list";
-import { liveDemoUrl } from "components/landing/live-demo";
 
 const FOOTER_STYLE: CSS = {
   borderTop: "1px solid lightgrey",
@@ -55,6 +58,10 @@ interface FooterColumn {
 }
 
 export default function Footer() {
+  return <FooterComponent />;
+}
+
+function FooterComponent() {
   const {
     contactEmail,
     onCoCalcCom,
@@ -65,9 +72,11 @@ export default function Footer() {
     account,
   } = useCustomize();
 
+  const { t } = useTranslation("footer");
+
   const footerColumns: Array<FooterColumn> = [
     {
-      header: "Product",
+      header: t("product"),
       links: [
         {
           text: "Store",

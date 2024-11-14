@@ -18,11 +18,26 @@ import type { DocumentContext, DocumentInitialProps } from "next/document";
 import Document, { Head, Html, Main, NextScript } from "next/document";
 
 import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
+import { isLocale } from "locales/consts";
+import { getI18nMessages } from "locales/lib";
+import { I18nDictionary } from "next-translate";
+import { Locale } from "@cocalc/util/i18n";
 
 export default class MyDocument extends Document {
-  static async getInitialProps(
-    ctx: DocumentContext,
-  ): Promise<DocumentInitialProps> {
+  static async getInitialProps(ctx: DocumentContext): Promise<
+    DocumentInitialProps & {
+      locale: Locale;
+      messages: Record<string, I18nDictionary>;
+    }
+  > {
+    const locale = ctx.query.locale ?? "en";
+
+    if (!isLocale(locale)) throw new Error(`Invalid locale: {locale}`);
+
+    const messages = isLocale(locale)
+      ? await getI18nMessages(locale)
+      : await getI18nMessages("en");
+
     const cache = createCache();
     const originalRenderPage = ctx.renderPage;
 
@@ -31,7 +46,7 @@ export default class MyDocument extends Document {
         enhanceApp: (App) => (props) =>
           (
             <StyleProvider cache={cache}>
-              <App {...props} />
+              <App {...props} {...{ locale, messages }} />
             </StyleProvider>
           ),
       });
@@ -40,6 +55,8 @@ export default class MyDocument extends Document {
 
     return {
       ...initialProps,
+      messages,
+      locale,
       styles: (
         <>
           {initialProps.styles}
@@ -55,10 +72,8 @@ export default class MyDocument extends Document {
   }
 
   render() {
-    const locale = (this.props as any).__NEXT_DATA__?.query?.locale ?? "en-US";
-
     return (
-      <Html lang={locale}>
+      <Html lang={this.props.locale}>
         <Head />
         <body>
           <Main />

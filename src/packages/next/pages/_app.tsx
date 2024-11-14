@@ -14,8 +14,37 @@ import "@cocalc/frontend/editors/slate/elements/elements.css";
 
 import type { AppProps } from "next/app";
 
-function MyApp({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />;
+import { isLocale, Locale } from "locales/consts";
+import I18nProvider from "next-translate/I18nProvider";
+
+import * as footerEN from "locales/en/footer.json";
+import * as indexEN from "locales/en/index.json";
+
+function MyApp({
+  Component,
+  pageProps,
+  router,
+  ...props
+}: AppProps & { messages: Record<string, I18nDictionary>; locale: Locale }) {
+  const locale = router.query.locale ?? props.locale;
+
+  if (isLocale(locale)) {
+    const messages = typeof window !== "undefined" ? {} : props.messages;
+    return (
+      <I18nProvider lang={locale} namespaces={messages}>
+        <Component {...pageProps} />
+      </I18nProvider>
+    );
+  } else {
+    return (
+      <I18nProvider
+        lang={"en"}
+        namespaces={{ footer: footerEN, index: indexEN }}
+      >
+        <Component {...pageProps} />
+      </I18nProvider>
+    );
+  }
 }
 
 export default MyApp;
@@ -78,5 +107,6 @@ import "@cocalc/cdn/dist/codemirror/theme/zenburn.css";
 import "@uiw/react-textarea-code-editor/dist.css";
 
 // this must be last to overwrite things like antd
-import "../styles/globals.css";
 import "../styles/bootstrap-visible.css";
+import "../styles/globals.css";
+import { I18nDictionary } from "next-translate";
