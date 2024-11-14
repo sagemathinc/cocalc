@@ -46,7 +46,7 @@ export default function AutoBalance({ style, type }: Props) {
       <Tooltip
         title={<Status autoBalance={autoBalance} />}
         color="white"
-        overlayInnerStyle={{ width: "400px" }}
+        overlayInnerStyle={{ width: "450px" }}
       >
         {btn}{" "}
       </Tooltip>
@@ -327,6 +327,12 @@ function Status({ autoBalance, style }: { autoBalance; style? }) {
       }
       description={
         <div>
+          Strategy:{" "}
+          <i>
+            Add {currency(autoBalance.amount)} to keep balance above{" "}
+            {currency(autoBalance.trigger)}.
+          </i>
+          <br />
           <ProgressBars autoBalance={autoBalance} />
           <Divider />
           {autoBalance.reason}

@@ -9,6 +9,11 @@ import { currency, round2up } from "@cocalc/util/misc";
 import getBalance from "./get-balance";
 import { getAllOpenPayments } from "@cocalc/server/purchases/stripe/get-payments";
 import { AUTO_CREDIT } from "@cocalc/util/db-schema/purchases";
+import sendEmail from "@cocalc/server/email/send-email";
+import { getServerSettings } from "@cocalc/database/settings";
+import { getUser } from "@cocalc/server/purchases/statements/email-statement";
+import { join } from "path";
+import basePath from "@cocalc/backend/base-path";
 
 import {
   type AutoBalance,
@@ -212,18 +217,22 @@ async function update({
   }
   amount = round2up(amount);
 
-  const reason = `Automatically added ${currency(auto_balance.amount)} credit due to low balance`;
+  const reason = `Deposit ${currency(amount)} due to low balance.`;
+  const description = `Deposit ${currency(amount)} since balance went below ${currency(auto_balance.trigger)}.`;
   await createPaymentIntent({
     account_id,
-    lineItems: [
-      {
-        description: `Automatically added credit since balance went below ${currency(auto_balance.trigger)}`,
-        amount,
-      },
-    ],
+    lineItems: [{ description, amount }],
     description: reason,
     purpose: AUTO_CREDIT,
   });
+
+  try {
+    await sendAutoBalanceAlert({ account_id, description });
+  } catch (err) {
+    logger.debug(
+      `WARNING: issue sending auto-balance email ${account_id} ${description} -- ${err}`,
+    );
+  }
 
   const status = {
     day: amount_day + amount,
@@ -243,4 +252,46 @@ async function update({
   }, 15000);
 
   return { reason, status };
+}
+
+async function sendAutoBalanceAlert({ account_id, description }) {
+  const { name, email_address: to } = await getUser(account_id);
+  if (!to) {
+    return;
+  }
+
+  const { site_name: siteName, dns } = await getServerSettings();
+  const url = `https://${dns}${join(basePath, "settings/payments")}`;
+
+  const subject = `${siteName}: Automatic Low Balance Deposit`;
+
+  const text = `
+Hello ${name},
+
+You have automatic deposits setup, which just did the following:
+${description}
+
+${url}
+
+ -- ${siteName}
+`;
+
+  const html = `
+Hello ${name},
+
+<br/><br/>
+
+You have automatic deposits setup, which just did the following:
+<br/>
+${description}
+
+<br/><br/>
+
+${url}
+
+<br/><br/>
+
+ -- ${siteName}
+`;
+  await sendEmail({ to, subject, text, html });
 }
