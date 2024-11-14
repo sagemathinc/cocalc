@@ -9,12 +9,13 @@ import { currency, round2up } from "@cocalc/util/misc";
 import getBalance from "./get-balance";
 import { getAllOpenPayments } from "@cocalc/server/purchases/stripe/get-payments";
 import { AUTO_CREDIT } from "@cocalc/util/db-schema/purchases";
+import { AUTOBALANCE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import sendEmail from "@cocalc/server/email/send-email";
 import { getServerSettings } from "@cocalc/database/settings";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { join } from "path";
 import basePath from "@cocalc/backend/base-path";
-
+import { decimalAdd } from "@cocalc/util/stripe/calc";
 import {
   type AutoBalance,
   ensureAutoBalanceValid,
@@ -158,13 +159,14 @@ async function update({
     "SELECT time, cost FROM purchases WHERE account_id=$1 AND service='auto-credit' AND time >= NOW() - interval '1 month'",
     [account_id],
   );
+  const period = auto_balance.period ?? AUTOBALANCE_DEFAULTS.period;
   let amount_day = 0;
   let amount_week = 0;
   let amount_month = 0;
   const now = Date.now();
   for (const { time, cost } of rows) {
     const t = time.valueOf();
-    if (now - t <= ONE_DAY) {
+    if (period == "day" && now - t <= ONE_DAY) {
       amount_day += -cost;
       if (amount_day + auto_balance.amount >= auto_balance.max_day) {
         return {
@@ -172,7 +174,7 @@ async function update({
         };
       }
     }
-    if (now - t <= ONE_WEEK) {
+    if (period == "week" && now - t <= ONE_WEEK) {
       amount_week += -cost;
       if (amount_week + auto_balance.amount >= auto_balance.max_week) {
         return {
@@ -180,7 +182,7 @@ async function update({
         };
       }
     }
-    if (now - t <= ONE_MONTH) {
+    if (period == "month" && now - t <= ONE_MONTH) {
       amount_month += -cost;
       if (amount_month + auto_balance.amount >= auto_balance.max_month) {
         return {
@@ -204,33 +206,34 @@ async function update({
   let amount = auto_balance.amount;
   if (balance + amount <= auto_balance.trigger) {
     // it won't be enough -- can we add more?
-    const remaining_day = auto_balance.max_day - amount_day - amount;
-    const remaining_week = auto_balance.max_week - amount_week - amount;
-    const remaining_month = auto_balance.max_month - amount_month - amount;
-    // this is the most we can add
-    const remaining = Math.min(
-      remaining_month,
-      Math.min(remaining_day, remaining_week),
-    );
+    let remaining; // the most we can add
+    if (period == "day") {
+      remaining = auto_balance.max_day - amount_day - amount;
+    } else if (period == "week") {
+      remaining = auto_balance.max_week - amount_week - amount;
+    } else {
+      remaining = auto_balance.max_month - amount_month - amount;
+    }
     const want = auto_balance.trigger - (balance + amount);
     amount += Math.min(want, remaining);
   }
   amount = round2up(amount);
 
-  const reason = `Deposit ${currency(amount)} due to low balance.`;
-  const description = `Deposit ${currency(amount)} since balance went below ${currency(auto_balance.trigger)}.`;
+  const result = decimalAdd(balance, amount);
+  const longDescription = `Deposit ${currency(amount)} to increase balance from ${currency(balance)} to ${currency(result)}, to keep balance above ${currency(auto_balance.trigger)}.`;
+  const shortDescription = `Deposit ${currency(amount)} since balance went below ${currency(auto_balance.trigger)}.`;
   await createPaymentIntent({
     account_id,
-    lineItems: [{ description, amount }],
-    description: reason,
+    lineItems: [{ description: longDescription, amount }],
+    description: shortDescription,
     purpose: AUTO_CREDIT,
   });
 
   try {
-    await sendAutoBalanceAlert({ account_id, description });
+    await sendAutoBalanceAlert({ account_id, description: longDescription });
   } catch (err) {
     logger.debug(
-      `WARNING: issue sending auto-balance email ${account_id} ${description} -- ${err}`,
+      `WARNING: issue sending auto-balance email ${account_id} ${longDescription} -- ${err}`,
     );
   }
 
@@ -251,7 +254,7 @@ async function update({
     }
   }, 15000);
 
-  return { reason, status };
+  return { reason: longDescription, status };
 }
 
 async function sendAutoBalanceAlert({ account_id, description }) {

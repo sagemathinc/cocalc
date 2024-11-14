@@ -32,6 +32,9 @@ export interface AutoBalance {
   max_week: number;
   // max amount of money to add per month
   max_month: number;
+  // period -- which of max_day, max_week, or max_month to actually enforce.
+  // we always enforce **exactly one of them**.
+  period: "day" | "week" | "month";
   // switch to disable/enable this.
   enabled: boolean;
   // if credit was not added, last reason why (at most 1024 characters)
@@ -46,10 +49,10 @@ export interface AutoBalance {
 // given interval below.
 // All fields should always be explicitly specified.
 export const AUTOBALANCE_RANGES = {
-  trigger: [5, 100],
-  amount: [10, 500],
-  max_day: [5, 500],
-  max_week: [5, 2500],
+  trigger: [5, 250],
+  amount: [10, 250],
+  max_day: [5, 1000],
+  max_week: [5, 5000],
   max_month: [5, 10000],
 };
 
@@ -59,6 +62,7 @@ export const AUTOBALANCE_DEFAULTS = {
   max_day: 200,
   max_week: 1000,
   max_month: 2500,
+  period: "week",
   enabled: true,
 } as AutoBalance;
 
@@ -76,6 +80,12 @@ export function ensureAutoBalanceValid(obj) {
     }
   }
   for (const key in obj) {
+    if (key == "period") {
+      if (!["day", "week", "month"].includes(obj[key])) {
+        throw Error(`${key} must be 'day', 'week' or 'month'`);
+      }
+      continue;
+    }
     if (key == "enabled") {
       if (typeof obj[key] != "boolean") {
         throw Error(`${key} must be boolean`);

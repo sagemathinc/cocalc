@@ -8,6 +8,7 @@ import {
   InputNumber,
   Modal,
   Progress,
+  Radio,
   Space,
   Spin,
   Tooltip,
@@ -71,6 +72,7 @@ export function AutoBalanceModal({ onClose }) {
     max_day: number;
     max_week: number;
     max_month: number;
+    period: "day" | "week" | "month";
     enabled: boolean;
   } | null>(null);
   const [form] = Form.useForm();
@@ -84,6 +86,7 @@ export function AutoBalanceModal({ onClose }) {
         max_day: AUTOBALANCE_DEFAULTS.max_day,
         max_week: AUTOBALANCE_DEFAULTS.max_week,
         max_month: AUTOBALANCE_DEFAULTS.max_month,
+        period: AUTOBALANCE_DEFAULTS.period,
         enabled: AUTOBALANCE_DEFAULTS.enabled,
       };
     } else {
@@ -94,7 +97,8 @@ export function AutoBalanceModal({ onClose }) {
         max_day: AUTOBALANCE_RANGES.max_day[i],
         max_week: AUTOBALANCE_RANGES.max_week[i],
         max_month: AUTOBALANCE_RANGES.max_month[i],
-        enabled: true,
+        period: AUTOBALANCE_DEFAULTS.period,
+        enabled: AUTOBALANCE_DEFAULTS.enabled,
       };
     }
     setValue(value);
@@ -108,6 +112,7 @@ export function AutoBalanceModal({ onClose }) {
       max_day: autoBalance?.max_day ?? AUTOBALANCE_DEFAULTS.max_day,
       max_week: autoBalance?.max_week ?? AUTOBALANCE_DEFAULTS.max_week,
       max_month: autoBalance?.max_month ?? AUTOBALANCE_DEFAULTS.max_month,
+      period: autoBalance?.period ?? AUTOBALANCE_DEFAULTS.period,
       enabled: autoBalance?.enabled ?? AUTOBALANCE_DEFAULTS.enabled,
     });
   }, [
@@ -116,6 +121,7 @@ export function AutoBalanceModal({ onClose }) {
     autoBalance?.max_day,
     autoBalance?.max_week,
     autoBalance?.max_month,
+    autoBalance?.period,
     autoBalance?.enabled,
   ]);
 
@@ -125,6 +131,7 @@ export function AutoBalanceModal({ onClose }) {
     autoBalance?.max_day != value?.max_day ||
     autoBalance?.max_week != value?.max_week ||
     autoBalance?.max_month != value?.max_month ||
+    autoBalance?.period != value?.period ||
     !!autoBalance?.enabled != value?.enabled;
 
   const save = async () => {
@@ -176,7 +183,7 @@ export function AutoBalanceModal({ onClose }) {
         labelCol={{ span: 14 }}
         wrapperCol={{ span: 10 }}
         style={{ maxWidth: 500, marginTop: "30px" }}
-        onValuesChange={(_, value) => setValue(value)}
+        onValuesChange={(_, newValue) => setValue({ ...value, ...newValue })}
         initialValues={value}
       >
         <Form.Item
@@ -191,11 +198,15 @@ export function AutoBalanceModal({ onClose }) {
               </>
             }
           >
-            Keep Balance Above
+            Keep balance above
           </Tooltip>
           name="trigger"
         >
-          <InputNumber addonBefore="$" />
+          <InputNumber
+            addonBefore="$"
+            min={AUTOBALANCE_RANGES.trigger[0]}
+            max={AUTOBALANCE_RANGES.trigger[1]}
+          />
         </Form.Item>
         <Form.Item
           label={
@@ -209,85 +220,106 @@ export function AutoBalanceModal({ onClose }) {
                 </>
               }
             >
-              Add at Least
+              By depositing at least
             </Tooltip>
           }
           name="amount"
         >
-          <InputNumber addonBefore="$" />
-        </Form.Item>
-        <Form.Item
-          label={
-            <Tooltip
-              title={
-                <>
-                  CoCalc will not deposit more than {currency(value.max_day)}{" "}
-                  per day.
-                </>
-              }
-            >
-              Maximum amount to add per day
-            </Tooltip>
-          }
-          name="max_day"
-        >
           <InputNumber
-            step={10}
             addonBefore="$"
-            min={AUTOBALANCE_RANGES.max_day[0]}
-            max={AUTOBALANCE_RANGES.max_day[1]}
+            min={AUTOBALANCE_RANGES.amount[0]}
+            max={AUTOBALANCE_RANGES.amount[1]}
           />
         </Form.Item>
-        <Form.Item
-          label={
-            <Tooltip
-              title={
-                <>
-                  CoCalc will not deposit more than {currency(value.max_week)}{" "}
-                  per week.
-                </>
-              }
-            >
-              Maximum amount to add per week
-            </Tooltip>
-          }
-          name="max_week"
-        >
-          <InputNumber
-            step={25}
-            addonBefore="$"
-            min={AUTOBALANCE_RANGES.max_week[0]}
-            max={AUTOBALANCE_RANGES.max_week[1]}
+        <Form.Item label={"Limit contribution during a given"} name="period">
+          <Radio.Group
+            options={[
+              { label: "Day", value: "day" },
+              { label: "Week", value: "week" },
+              { label: "Month", value: "month" },
+            ]}
+            optionType="button"
+            buttonStyle="solid"
           />
         </Form.Item>
-        <Form.Item
-          label={
-            <Tooltip
-              title={
-                <>
-                  CoCalc will not deposit more than {currency(value.max_month)}{" "}
-                  per month.
-                </>
-              }
-            >
-              Maximum amount to add per month
-            </Tooltip>
-          }
-          name="max_month"
-        >
-          <InputNumber
-            step={100}
-            addonBefore="$"
-            min={AUTOBALANCE_RANGES.max_month[0]}
-            max={AUTOBALANCE_RANGES.max_month[1]}
-          />
-        </Form.Item>
+        {value.period == "day" && (
+          <Form.Item
+            label={
+              <Tooltip
+                title={
+                  <>
+                    CoCalc will not deposit more than {currency(value.max_day)}{" "}
+                    per day.
+                  </>
+                }
+              >
+                Maximum amount to add per day
+              </Tooltip>
+            }
+            name="max_day"
+          >
+            <InputNumber
+              step={10}
+              addonBefore="$"
+              min={AUTOBALANCE_RANGES.max_day[0]}
+              max={AUTOBALANCE_RANGES.max_day[1]}
+            />
+          </Form.Item>
+        )}
+        {value.period == "week" && (
+          <Form.Item
+            label={
+              <Tooltip
+                title={
+                  <>
+                    CoCalc will not deposit more than {currency(value.max_week)}{" "}
+                    per week.
+                  </>
+                }
+              >
+                Maximum amount to add per week
+              </Tooltip>
+            }
+            name="max_week"
+          >
+            <InputNumber
+              step={25}
+              addonBefore="$"
+              min={AUTOBALANCE_RANGES.max_week[0]}
+              max={AUTOBALANCE_RANGES.max_week[1]}
+            />
+          </Form.Item>
+        )}
+        {value.period == "month" && (
+          <Form.Item
+            label={
+              <Tooltip
+                title={
+                  <>
+                    CoCalc will not deposit more than{" "}
+                    {currency(value.max_month)} per month.
+                  </>
+                }
+              >
+                Maximum amount to add per month
+              </Tooltip>
+            }
+            name="max_month"
+          >
+            <InputNumber
+              step={100}
+              addonBefore="$"
+              min={AUTOBALANCE_RANGES.max_month[0]}
+              max={AUTOBALANCE_RANGES.max_month[1]}
+            />
+          </Form.Item>
+        )}
         <Form.Item
           label="Enable automatic deposits"
           name="enabled"
           valuePropName="checked"
         >
-          <Switch>Enabled</Switch>
+          <Switch checkedChildren="Enabled" unCheckedChildren="Disabled" />
         </Form.Item>
       </Form>
       <div style={{ textAlign: "center", marginBottom: "15px" }}>
@@ -311,6 +343,14 @@ function Status({ autoBalance, style }: { autoBalance; style? }) {
   if (autoBalance == null) {
     return null;
   }
+  let limit;
+  if (autoBalance.period == "day") {
+    limit = autoBalance.max_day;
+  } else if (autoBalance.period == "week") {
+    limit = autoBalance.max_week;
+  } else if (autoBalance.period == "month") {
+    limit = autoBalance.max_month;
+  }
   return (
     <Alert
       style={style}
@@ -321,14 +361,6 @@ function Status({ autoBalance, style }: { autoBalance; style? }) {
           <div>
             Status: <b>{autoBalance.enabled ? " Enabled" : " NOT Enabled"}</b>
           </div>
-          <div style={{ flex: 1 }} />
-          <div>
-            {!!autoBalance.time && (
-              <>
-                Updated <TimeAgo date={autoBalance.time} />
-              </>
-            )}
-          </div>
         </Flex>
       }
       description={
@@ -336,13 +368,15 @@ function Status({ autoBalance, style }: { autoBalance; style? }) {
           <div style={{ marginBottom: "15px" }}>
             Strategy:{" "}
             <i>
-              Keep balance above {currency(autoBalance.trigger)} by adding at
-              least {currency(autoBalance.amount)}.
+              Try to keep balance above {currency(autoBalance.trigger)} by
+              depositing at least {currency(autoBalance.amount)}, never
+              depositing more than {currency(limit)} per {autoBalance.period}.
             </i>
           </div>
           <ProgressBars autoBalance={autoBalance} />
           <Divider />
-          Last Action: {autoBalance.reason}
+          Last Action (<TimeAgo date={autoBalance.time} />
+          ): {autoBalance.reason}
         </div>
       }
     />
@@ -354,38 +388,45 @@ function ProgressBars({ autoBalance }) {
     return null;
   }
   const { day, week, month } = autoBalance.status;
-  if (day == null || week == null || month == null) {
-    return null;
-  }
+  const { period } = autoBalance;
+
   return (
     <div>
-      <Flex>
-        <div style={{ width: "100px" }}>Day</div>
-        <div style={{ width: "100px" }}>{currency(day ?? 0)}</div>
-        {autoBalance?.max_day != null && (
-          <Progress
-            percent={Math.round((100 * (day ?? 0)) / autoBalance?.max_day)}
-          />
-        )}
-      </Flex>
-      <Flex>
-        <div style={{ width: "100px" }}>Week</div>
-        <div style={{ width: "100px" }}>{currency(week ?? 0)}</div>
-        {autoBalance?.max_week != null && (
-          <Progress
-            percent={Math.round((100 * (week ?? 0)) / autoBalance?.max_week)}
-          />
-        )}
-      </Flex>
-      <Flex>
-        <div style={{ width: "100px" }}>Month</div>
-        <div style={{ width: "100px" }}>{currency(month ?? 0)}</div>
-        {autoBalance?.max_month != null && (
-          <Progress
-            percent={Math.round((100 * (month ?? 0)) / autoBalance?.max_month)}
-          />
-        )}
-      </Flex>
+      {period == "day" && (
+        <Flex>
+          <div style={{ width: "100px" }}>Day</div>
+          <div style={{ width: "100px" }}>{currency(day ?? 0)}</div>
+          {autoBalance?.max_day != null && (
+            <Progress
+              percent={Math.round((100 * (day ?? 0)) / autoBalance?.max_day)}
+            />
+          )}
+        </Flex>
+      )}
+      {period == "week" && (
+        <Flex>
+          <div style={{ width: "100px" }}>Week</div>
+          <div style={{ width: "100px" }}>{currency(week ?? 0)}</div>
+          {autoBalance?.max_week != null && (
+            <Progress
+              percent={Math.round((100 * (week ?? 0)) / autoBalance?.max_week)}
+            />
+          )}
+        </Flex>
+      )}
+      {period == "month" && (
+        <Flex>
+          <div style={{ width: "100px" }}>Month</div>
+          <div style={{ width: "100px" }}>{currency(month ?? 0)}</div>
+          {autoBalance?.max_month != null && (
+            <Progress
+              percent={Math.round(
+                (100 * (month ?? 0)) / autoBalance?.max_month,
+              )}
+            />
+          )}
+        </Flex>
+      )}
     </div>
   );
 }
