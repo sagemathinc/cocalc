@@ -383,7 +383,7 @@ export class PassportManager {
     // reset password: user email link contains a token, which we store in a session cookie.
     // this prevents leaking that token to 3rd parties as a referrer
     // endpoint has to match with @cocalc/hub/password
-    this.router.get(`${AUTH_BASE}/password_reset`, (req, res) => {
+    this.router.get(`${AUTH_BASE}/password_reset`, async (req, res) => {
       if (typeof req.query.token !== "string") {
         res.send("ERROR: reset token must be set");
       } else {
