@@ -200,7 +200,7 @@ export default function AllQuotasConfig() {
   return (
     <div>
       <SectionDivider onRefresh={handleRefresh} loading={saving || loading}>
-        Pay as You Go Prices and Limits
+        Prices and Limits
       </SectionDivider>
       {error && (
         <Alert
@@ -234,7 +234,6 @@ export default function AllQuotasConfig() {
       {serviceQuotas != null ? (
         <div style={{ overflow: "auto" }}>
           <Table
-            scroll={{ y: 400 }}
             dataSource={serviceQuotas}
             columns={columns}
             pagination={false}

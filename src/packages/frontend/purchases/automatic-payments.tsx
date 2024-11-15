@@ -54,7 +54,7 @@ export default function AutomaticPayments({
   return (
     <div style={style}>
       <SectionDivider onRefresh={handleRefresh} loading={loading}>
-        Pay As You Go Rate
+        Automatic Deposits, Spend Rate and Minimum Balance
       </SectionDivider>
       <ShowError
         error={error}

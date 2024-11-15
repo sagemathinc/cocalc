@@ -150,8 +150,12 @@ export async function processPaymentIntent(
   });
 
   // make metadata so we won't consider this payment intent ever again
+  // NOTE: we are mutating this on purpose so that the paymentIntent
+  // that gets returned, e.g., by getPayments is already up to date with the credit_id!
+  paymentIntent.metadata.processed = "true";
+  paymentIntent.metadata.credit_id = credit_id;
   await stripe.paymentIntents.update(paymentIntent.id, {
-    metadata: { ...paymentIntent.metdata, processed: "true", credit_id },
+    metadata: paymentIntent.metadata,
   });
 
   if (paymentIntent.metadata.purpose == SHOPPING_CART_CHECKOUT) {

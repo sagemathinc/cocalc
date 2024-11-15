@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, Tooltip } from "antd";
 import Plot from "@cocalc/frontend/components/plotly";
 import ShowError from "@cocalc/frontend/components/error";
-import { currency, round2down } from "@cocalc/util/misc";
+import { round2down } from "@cocalc/util/misc";
 
 interface Props {
   title?;
