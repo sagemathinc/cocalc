@@ -128,7 +128,7 @@ export async function isPurchaseAllowed({
       reason:
         required < chargeAmount
           ? `The minimum payment is ${currency(pay_as_you_go_min_payment)}.`
-          : "",
+          : `Please pay ${currency(chargeAmount)}.`,
     };
   }
 

@@ -18,6 +18,7 @@ import getBalance from "./get-balance";
 import dayjs from "dayjs";
 import cancelSubscription from "./cancel-subscription";
 import resumeSubscription from "./resume-subscription";
+import createPurchase from "./create-purchase";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -162,8 +163,19 @@ describe("create a subscription license and edit it and confirm the subscription
     }
     await setClosingDay(item.account_id, day);
 
-    // balance starts at 0
-    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
+    await createPurchase({
+      account_id: item.account_id,
+      service: "credit",
+      description: {} as any,
+      client: null,
+      cost: -100000,
+    });
+
+    // balance starts at 100K
+    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(
+      100000,
+      0,
+    );
 
     const client = await getPoolClient();
     await purchaseShoppingCartItem(item as any, client);
@@ -176,7 +188,10 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
+    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(
+      100000,
+      0,
+    );
     await resumeSubscription({
       account_id: item.account_id,
       subscription_id,
@@ -186,6 +201,9 @@ describe("create a subscription license and edit it and confirm the subscription
       subscription_id,
       cancelImmediately: true,
     });
-    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(0, 1);
+    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(
+      100000,
+      0,
+    );
   });
 });
