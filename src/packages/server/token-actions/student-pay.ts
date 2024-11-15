@@ -1,4 +1,4 @@
-import { currency, round2up, round2down } from "@cocalc/util/misc";
+import { currency, round2up } from "@cocalc/util/misc";
 import getName from "@cocalc/server/accounts/get-name";
 import studentPayPurchase from "@cocalc/server/purchases/student-pay";
 import type { Description } from "@cocalc/util/db-schema/token-actions";
@@ -7,31 +7,15 @@ import { getCost } from "@cocalc/server/purchases/student-pay";
 import getBalance from "@cocalc/server/purchases/get-balance";
 import syncPaidInvoices from "@cocalc/server/purchases/sync-paid-invoices";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
+import { decimalSubtract } from "@cocalc/util/stripe/calc";
+import type { LineItem } from "@cocalc/util/stripe/types";
 
-export async function studentPay(token, description, account_id): Promise<any> {
+export async function studentPay(_token, description, account_id): Promise<any> {
   if (description.due > 0) {
-    const amount = description.due;
-    const user = await getName(account_id);
-    const studentName = await getName(description.account_id);
     return {
       type: "create-credit",
-      pay: {
-        description: `Pay course fee for ${studentName}`,
-        lineItems: [
-          {
-            amount,
-            description: `Add ${currency(
-              amount,
-              2,
-            )} to your account (signed in as ${user}) to pay the course fee for ${studentName}.`,
-          },
-        ],
-        purpose: `student-pay-${token}`,
-      },
-      instructions: `Click here to deposit ${currency(
-        amount,
-        2,
-      )} into your account, so you can pay the course fee for ${studentName}...`,
+      pay: description.payment,
     };
   } else {
     // should have enough money, so actually make the purchase
@@ -46,6 +30,7 @@ export async function extraInfo(description: Description, account_id?: string) {
   if (description.type != "student-pay") {
     throw Error("description must be of type student-pay");
   }
+
   const pool = getPool();
   const { rows } = await pool.query(
     "SELECT course, title FROM projects WHERE project_id=$1",
@@ -84,7 +69,7 @@ export async function extraInfo(description: Description, account_id?: string) {
   await syncPaidInvoices(account_id);
 
   const balance = await getBalance({ account_id });
-  const balanceAfterPay = balance - cost;
+  const balanceAfterPay = decimalSubtract(balance, cost);
   const { pay_as_you_go_min_payment } = await getServerSettings();
   let due = round2up(Math.max(0, -balanceAfterPay));
   let minPayment = "";
@@ -96,6 +81,27 @@ export async function extraInfo(description: Description, account_id?: string) {
   }
   const name = await getName(course.account_id);
 
+  const lineItems: LineItem[] = [];
+  if (due > 0) {
+    lineItems.push({
+      description: `Course Fee for project '${title}'`,
+      amount: cost,
+    });
+  }
+  if (balance > 0) {
+    lineItems.push({
+      description: "Apply account balance toward course fee",
+      amount: Math.min(0, -decimalSubtract(cost, due)),
+    });
+  }
+
+  const payment = {
+    purpose: STUDENT_PAY,
+    metadata: { project_id: description.project_id },
+    description: "Pay fee for access to a course.",
+    lineItems,
+  };
+
   return {
     ...description,
     due,
@@ -103,14 +109,14 @@ export async function extraInfo(description: Description, account_id?: string) {
     details: `
 - The course fee of ${currency(round2up(cost))} ${
       name ? `for ${name}'s ` : " for the "
-    } project ${projectLink} has not yet been paid.${
-      due == 0
-        ? "\n\n- Pay from your account balance without adding money to your account."
-        : `\n\n- Amount due: \\${currency(due, 2)}`
-    } \n\n- Your balance: \\${currency(round2down(balance), 2)}
-    ${minPayment}
+    } project ${projectLink} has not yet been paid.
+
+${minPayment}
 `,
-    okText: "Pay Course Fee",
+    okText:
+      due <= 0 ? "Purchase With 1-Click Using Account Credit" : "Checkout",
     icon: "graduation-cap",
+
+    payment,
   };
 }

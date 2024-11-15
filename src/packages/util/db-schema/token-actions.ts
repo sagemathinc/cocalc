@@ -37,6 +37,7 @@ nextjs application.
 
 import { Table } from "./types";
 import tokenGenerator from "voucher-code-generator";
+import type { LineItem } from "@cocalc/util/stripe/types";
 
 interface CancelSubscription {
   type: "cancel-subscription";
@@ -65,6 +66,15 @@ export interface StudentPay {
   account_id: string;
   project_id: string;
   paid?: number; // time in ms since epoch when payment completed
+  // If payment hasn't happened yet, this is the information needed to use
+  // the StripePayment component to do the payment, and also ensure the
+  // payment processing buys the license for the student project.
+  payment?: {
+    lineItems: LineItem[];
+    description: string;
+    metadata: object;
+    purpose: string;
+  };
 }
 
 export type Description =
