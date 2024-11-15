@@ -371,13 +371,14 @@ describe("test renewSubscriptions doesn't cancel tiny subscription", () => {
     expect(
       Math.abs(subs[0].current_period_start.valueOf() - Date.now()),
     ).toBeLessThan(1000 * 3600 * 24 * 3);
-    // the purchase should be pending, since we don't have any money.
+    // we don't have any money, but purchase still goes through due to "slack",
+    // i.e., we allow purchases to make balance slightly less than 0 without
+    // being pending
     const pool = getPool();
-    const { rows } = await pool.query(
-      "SELECT pending FROM purchases where id=$1",
-      [subs[0].latest_purchase_id],
-    );
-    expect(rows[0].pending).toBe(true);
+    const { rows } = await pool.query("SELECT * FROM purchases where id=$1", [
+      subs[0].latest_purchase_id,
+    ]);
+    expect(rows[0].pending).toBe(false);
   });
 
   it("changes time of purchase back to slightly more than grace period and verifies that cancelAllPendingSubscriptions does NOT cancel the subscription", async () => {

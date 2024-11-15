@@ -97,9 +97,6 @@ export default function SiteLicense({ noAccount }: Props) {
             >
               edited at any time.{" "}
             </A>
-            It is also possible to{" "}
-            <A href="https://doc.cocalc.com/vouchers.html">create vouchers</A>{" "}
-            for resale or distribution.
           </Paragraph>
         </div>
       )}
