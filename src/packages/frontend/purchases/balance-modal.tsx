@@ -59,7 +59,9 @@ export default function BalanceModal({
       width={700}
       title={
         <Flex style={{ paddingRight: "30px" }}>
-          Balance {loading && <Spin style={{ marginLeft: "15px" }} />}
+          <div style={{ fontSize: "14pt" }}>
+            Balance {loading && <Spin style={{ marginLeft: "15px" }} />}
+          </div>
           <div style={{ flex: 1 }} />
           <Links onClose={onClose} />
         </Flex>
@@ -98,6 +100,7 @@ const LINKS = [
   { label: "Payments", value: "payments" },
   { label: "Statements", value: "statements" },
   { label: "Subscriptions", value: "subscriptions" },
+  { label: "Pay As You Go", value: "payg" },
 ];
 
 function openPage(value) {

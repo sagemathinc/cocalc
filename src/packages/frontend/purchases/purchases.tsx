@@ -3,6 +3,7 @@ import {
   Button,
   Card,
   Checkbox,
+  DatePicker,
   Flex,
   Input,
   Popover,
@@ -21,7 +22,7 @@ import {
   MutableRefObject,
 } from "react";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Next from "@cocalc/frontend/components/next";
@@ -55,6 +56,7 @@ import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   capitalize,
+  cmp,
   field_cmp,
   currency,
   plural,
@@ -75,6 +77,7 @@ import { describeNumberOf, SectionDivider } from "./util";
 import PurchasesPlot from "./purchases-plot";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { debounce } from "lodash";
+import dayjs from "dayjs";
 
 const DEFAULT_LIMIT = 10;
 
@@ -104,6 +107,7 @@ function Purchases0({
   noTitle,
 }: Props) {
   const [group, setGroup] = useState<boolean>(!!group0);
+  const [cutoff, setCutoff] = useState<Date | undefined>(undefined);
 
   return (
     <div>
@@ -137,18 +141,32 @@ function Purchases0({
           )
         }
       >
-        <Flex>
+        <Flex style={{ alignItems: "center" }}>
           <div style={{ flex: 1 }} />
           <div>
             <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
               <Checkbox
                 checked={group}
-                onChange={(e) => setGroup(e.target.checked)}
+                onChange={(e) => {
+                  setGroup(e.target.checked);
+                }}
               >
                 Group by service and project
               </Checkbox>
             </Tooltip>
           </div>
+          {group && (
+            <div style={{ marginLeft: "30px" }}>
+              Starting{" "}
+              <DatePicker
+                changeOnBlur
+                allowClear
+                value={cutoff}
+                onChange={setCutoff}
+                disabledDate={(current) => current >= dayjs().startOf("day")}
+              />
+            </div>
+          )}
         </Flex>
         <PurchasesTable
           project_id={project_id}
@@ -158,6 +176,7 @@ function Purchases0({
           month_statement_id={month_statement_id}
           showBalance
           showTotal
+          cutoff={group ? cutoff : undefined}
         />
       </Card>
     </div>
@@ -337,7 +356,7 @@ export function PurchasesTable({
   useEffect(() => {
     loadMore({ init: true });
     getBalance();
-  }, []);
+  }, [cutoff]);
 
   useEffect(() => {
     refreshRecords();
@@ -396,15 +415,25 @@ export function PurchasesTable({
         onRefresh={() => loadMore({ init: true })}
       >
         <Tooltip title="These are transactions made within CoCalc, which includes all purchases and credits resulting from payments.">
-          {group
-            ? "Your Purchases Grouped by Service and Project"
-            : describeNumberOf({
-                n: purchases?.length,
-                hasMore,
-                loadMore,
-                loading,
-                type: "purchase",
-              })}
+          {group ? (
+            <>
+              All Your Purchases Grouped by Service and Project
+              {cutoff && (
+                <>
+                  {" "}
+                  starting <TimeAgo date={cutoff} />
+                </>
+              )}
+            </>
+          ) : (
+            describeNumberOf({
+              n: purchases?.length,
+              hasMore,
+              loadMore,
+              loading,
+              type: "purchase",
+            })
+          )}
         </Tooltip>
       </SectionDivider>
       <ShowError error={error} setError={setError} />
@@ -535,6 +564,16 @@ function GroupedPurchaseTable({ purchases }) {
               title: "Project",
               dataIndex: "project_id",
               key: "project_id",
+              sorter: (a: any, b: any) => {
+                const title_a = a.project_id
+                  ? redux.getStore("projects").get_title(a.project_id)
+                  : "";
+                const title_b = a.project_id
+                  ? redux.getStore("projects").get_title(b.project_id)
+                  : "";
+                return cmp(title_a, title_b);
+              },
+              sortDirections: ["ascend", "descend"],
               render: (project_id) =>
                 project_id ? (
                   <ProjectTitle project_id={project_id} trunc={30} />
