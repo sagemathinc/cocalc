@@ -30,7 +30,7 @@ import {
   getPaymentMethods,
   processPaymentIntents,
 } from "./api";
-import { Button, Card, Modal, Space, Spin, Tooltip } from "antd";
+import { Button, Card, Flex, Modal, Space, Spin, Tooltip } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
@@ -40,6 +40,7 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LineItemsTable } from "./line-items";
+import { AddressButton } from "./address";
 
 const PAYMENT_UPDATE_DEBOUNCE = 2000;
 
@@ -188,6 +189,12 @@ export default function StripePayment({
             Cancel
           </Button>
         </div>
+      )}
+      {showOneClick && (
+        <Flex style={{ marginTop: "30px" }}>
+          <div style={{ flex: 1 }} />
+          <AddressButton type="link" size="small" />
+        </Flex>
       )}
     </Card>
   );
@@ -432,13 +439,14 @@ function PaymentForm({ style, onFinished, disabled }) {
   );
 }
 
-function ConfirmButton({
+export function ConfirmButton({
   disabled,
   onClick,
   success,
   isSubmitting,
   label,
   notPrimary,
+  onCancel,
 }: {
   disabled?: boolean;
   onClick;
@@ -446,9 +454,19 @@ function ConfirmButton({
   isSubmitting?: boolean;
   label;
   notPrimary?: boolean;
+  onCancel?: Function;
 }) {
   return (
-    <div style={{ textAlign: "center", marginTop: "15px" }}>
+    <div style={{ textAlign: "center", marginTop: "15px", display: "flex" }}>
+      {onCancel != null && (
+        <Button
+          size="large"
+          onClick={() => onCancel()}
+          style={{ height: "44px", marginRight: "15px" }}
+        >
+          Cancel
+        </Button>
+      )}
       <Button
         size="large"
         style={

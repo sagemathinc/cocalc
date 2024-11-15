@@ -11,6 +11,7 @@ import ShowError from "@cocalc/frontend/components/error";
 import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { capitalize, path_to_title } from "@cocalc/util/misc";
 import { AddPaymentMethodButton } from "./stripe-payment";
+import { AddressButton } from "./address";
 
 type PaymentMethod = any;
 
@@ -91,11 +92,14 @@ export default function PaymentMethods() {
                 <>
                   Payment Method{" "}
                   <span style={{ marginLeft: "30px" }}>
-                    <AddPaymentMethodButton
-                      onFinished={() => {
-                        init({ limit: paymentMethods.length + 1 });
-                      }}
-                    />
+                    <Space>
+                      <AddPaymentMethodButton
+                        onFinished={() => {
+                          init({ limit: paymentMethods.length + 1 });
+                        }}
+                      />
+                      <AddressButton />
+                    </Space>
                   </span>
                 </>
               ),

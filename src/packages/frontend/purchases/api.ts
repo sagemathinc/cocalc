@@ -541,3 +541,15 @@ export async function deletePaymentMethod(opts: {
 }) {
   return await api("purchases/stripe/delete-payment-method", opts);
 }
+
+export async function getStripeCustomer() {
+  return await api("purchases/stripe/get-customer");
+}
+
+export async function setStripeCustomer(changes: {
+  name?: string;
+  address?;
+  email?: string;
+}) {
+  return await api("purchases/stripe/set-customer", { changes });
+}
