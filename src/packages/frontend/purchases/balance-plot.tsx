@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Card, Tooltip } from "antd";
 import Plot from "@cocalc/frontend/components/plotly";
 import ShowError from "@cocalc/frontend/components/error";
+import { currency, round2down } from "@cocalc/util/misc";
 
 interface Props {
   title?;
@@ -19,8 +20,20 @@ export default function BalancePlot({
   const [error, setError] = useState<string>("");
 
   const plotData = useMemo(() => {
-    const x = data.map(({ date }) => date);
-    const y = data.map(({ amount }) => amount);
+    const x: Date[] = [];
+    const y: number[] = [];
+    if (data.length > 0) {
+      let lastAmount = 0;
+      for (const { date, amount: amount0 } of data) {
+        const amount = round2down(amount0);
+        x.push(date);
+        y.push(lastAmount);
+        x.push(date);
+        y.push(amount);
+        lastAmount = amount;
+      }
+    }
+    console.log({ x, y });
     return [
       {
         type: "area",
