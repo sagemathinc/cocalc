@@ -339,7 +339,7 @@ export function StudentAssignmentInfo({
           size={size}
           onClick={() => set_recopy(step, false)}
         >
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>,
       );
       v.push(

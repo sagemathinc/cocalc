@@ -10,27 +10,29 @@ import {
   Spin,
 } from "antd";
 import { useEffect, useState } from "react";
-import ShowError from "@cocalc/frontend/components/error";
+
 import { A, Icon } from "@cocalc/frontend/components";
-import Color, { randomColor } from "../color";
-import Title from "../title";
+import ShowError from "@cocalc/frontend/components/error";
+import { checkInAll } from "@cocalc/frontend/compute/check-in";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import confirmCreateCloudFilesystem from "@cocalc/frontend/purchases/pay-as-you-go/confirm-create-cloud-filesystem";
 import type {
-  CreateCloudFilesystem,
   Compression,
+  CreateCloudFilesystem,
 } from "@cocalc/util/db-schema/cloud-filesystems";
 import {
-  MIN_BLOCK_SIZE,
-  MAX_BLOCK_SIZE,
-  RECOMMENDED_BLOCK_SIZE,
-  MAX_CLOUD_FILESYSTEMS_PER_PROJECT,
   DEFAULT_CONFIGURATION,
+  MAX_BLOCK_SIZE,
+  MAX_CLOUD_FILESYSTEMS_PER_PROJECT,
+  MIN_BLOCK_SIZE,
+  RECOMMENDED_BLOCK_SIZE,
 } from "@cocalc/util/db-schema/cloud-filesystems";
-import { BucketLocation, BucketStorageClass } from "./bucket";
-import { createCloudFilesystem } from "./api";
+import Color, { randomColor } from "../color";
 import { ProgressBarTimer } from "../state";
-import { checkInAll } from "@cocalc/frontend/compute/check-in";
+import Title from "../title";
+import { createCloudFilesystem } from "./api";
+import { BucketLocation, BucketStorageClass } from "./bucket";
 import type { CloudFilesystems } from "./cloud-filesystems";
-import confirmCreateCloudFilesystem from "@cocalc/frontend/purchases/pay-as-you-go/confirm-create-cloud-filesystem";
 
 interface Props {
   project_id: string;
@@ -161,7 +163,7 @@ export default function CreateCloudFilesystem({
               reset();
             }}
           >
-            Cancel
+            <CancelText />
           </Button>,
           <Button key="ok" type="primary" disabled={creating} onClick={create}>
             <>

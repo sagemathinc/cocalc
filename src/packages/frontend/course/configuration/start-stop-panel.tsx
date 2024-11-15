@@ -1,9 +1,10 @@
 import { Alert, Button, Card, Col, Popconfirm, Row, Space, Spin } from "antd";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { useActions, useRedux } from "@cocalc/frontend/app-framework";
 import { Paragraph } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { labels } from "@cocalc/frontend/i18n";
 import { capitalize } from "@cocalc/util/misc";
 import type { CourseActions } from "../actions";
 
@@ -18,6 +19,7 @@ export function StudentProjectsStartStopPanel({
   num_running_projects,
   num_students,
 }: Props) {
+  const intl = useIntl();
   const action_all_projects_state: string = useRedux([
     name,
     "action_all_projects_state",
@@ -53,7 +55,7 @@ export function StudentProjectsStartStopPanel({
                 actions.student_projects.cancel_action_all_student_projects()
               }
             >
-              Cancel
+              {intl.formatMessage(labels.cancel)}
             </Button>
           </div>
         }

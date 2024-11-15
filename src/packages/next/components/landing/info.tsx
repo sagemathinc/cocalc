@@ -73,7 +73,7 @@ export default function Info({
     return (
       <div style={{ margin: "auto" }}>
         <Space size={"large"}>
-          {icons.map(({ icon, title, link }) => {
+          {icons.map(({ icon, title, link }, idx) => {
             const elt = (
               <div style={{ textAlign: "center", color: "#333" }}>
                 <Icon name={icon} style={{ fontSize: "28pt" }} key={icon} />
@@ -82,7 +82,11 @@ export default function Info({
               </div>
             );
             if (link) {
-              return <A href={link}>{elt}</A>;
+              return (
+                <A key={idx} href={link}>
+                  {elt}
+                </A>
+              );
             }
             return elt;
           })}

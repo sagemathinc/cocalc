@@ -1,10 +1,12 @@
 import { Button, Input, Modal, Spin } from "antd";
 import { useState } from "react";
-import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
-import { Icon } from "@cocalc/frontend/components/icon";
+
 import ShowError from "@cocalc/frontend/components/error";
-import { editCloudFilesystem } from "./api";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import Color from "../color";
+import { editCloudFilesystem } from "./api";
 import { editModalStyle } from "./util";
 
 interface Props {
@@ -63,7 +65,7 @@ export default function EditTitleAndColor({
       onCancel={() => setOpen(false)}
       footer={[
         <Button key="cancel" onClick={() => setOpen(false)}>
-          Cancel
+          <CancelText />
         </Button>,
         <Button
           key="ok"

@@ -522,7 +522,7 @@ export default function LanguageModelTitleBarButton({
               setShowDialog(false);
             }}
           >
-            Cancel
+            {intl.formatMessage(labels.cancel)}
           </Button>
           <Popover
             trigger={["click"]}
