@@ -30,7 +30,7 @@ import {
   getPaymentMethods,
   processPaymentIntents,
 } from "./api";
-import { Button, Card, Flex, Modal, Space, Spin, Tooltip } from "antd";
+import { Button, Card, Modal, Space, Spin, Tooltip } from "antd";
 import { loadStripe } from "@cocalc/frontend/billing/stripe";
 import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
@@ -117,13 +117,14 @@ export default function StripePayment({
       <div>
         <div style={{ textAlign: "center" }}>
           <Space>
-            {showOneClick && (
+            {showOneClick && hasPaymentMethods != null && (
               <Tooltip title="Attempt to finish this purchase (including computing and adding tax) using any payment methods you have on file.">
                 <ConfirmButton
-                  isSubmitting={loading || hasPaymentMethods == null}
+                  isSubmitting={loading}
                   label={
                     "Buy Now With 1-Click" /* amazon's patent expired in 2017 */
                   }
+                  showAddress
                   onClick={async () => {
                     try {
                       setLoading(true);
@@ -147,6 +148,7 @@ export default function StripePayment({
               <ConfirmButton
                 notPrimary={showOneClick}
                 disabled={loading}
+                showAddress={!showOneClick && totalStripe > 0}
                 label={
                   totalStripe > 0
                     ? "Choose Payment Method"
@@ -189,12 +191,6 @@ export default function StripePayment({
             Cancel
           </Button>
         </div>
-      )}
-      {showOneClick && (
-        <Flex style={{ marginTop: "30px" }}>
-          <div style={{ flex: 1 }} />
-          <AddressButton type="link" size="small" />
-        </Flex>
       )}
     </Card>
   );
@@ -416,6 +412,7 @@ function PaymentForm({ style, onFinished, disabled }) {
       {ready && (
         <ConfirmButton
           label={<>Choose Payment Method</>}
+          showAddress
           disabled={
             success ||
             disabled ||
@@ -432,7 +429,7 @@ function PaymentForm({ style, onFinished, disabled }) {
       {/* Show error message */}
       <ShowError
         error={message}
-        style={{ marginTop: "15px" }}
+        style={{ marginTop: "10px" }}
         setError={setMessage}
       />
     </div>
@@ -447,6 +444,7 @@ export function ConfirmButton({
   label,
   notPrimary,
   onCancel,
+  showAddress,
 }: {
   disabled?: boolean;
   onClick;
@@ -455,39 +453,48 @@ export function ConfirmButton({
   label;
   notPrimary?: boolean;
   onCancel?: Function;
+  showAddress?: boolean;
 }) {
   return (
-    <div style={{ textAlign: "center", marginTop: "15px", display: "flex" }}>
-      {onCancel != null && (
+    <div style={{ marginTop: "15px", display: "flex" }}>
+      <div style={{ margin: "auto" }}>
+        {onCancel != null && (
+          <Button
+            size="large"
+            onClick={() => onCancel()}
+            style={{ height: "44px", marginRight: "15px" }}
+          >
+            Cancel
+          </Button>
+        )}
         <Button
           size="large"
-          onClick={() => onCancel()}
-          style={{ height: "44px", marginRight: "15px" }}
+          style={
+            {
+              minWidth: "150px",
+              height: "44px",
+              maxWidth: "100%",
+            } /* button sized to match stripe's */
+          }
+          type={notPrimary ? undefined : "primary"}
+          disabled={disabled || isSubmitting}
+          onClick={onClick}
         >
-          Cancel
+          {!success && (
+            <>
+              {label}
+              {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
+            </>
+          )}
+          {success && <>Purchase Successfully Completed!</>}
         </Button>
-      )}
-      <Button
-        size="large"
-        style={
-          {
-            minWidth: "150px",
-            height: "44px",
-            maxWidth: "100%",
-          } /* button sized to match stripe's */
-        }
-        type={notPrimary ? undefined : "primary"}
-        disabled={disabled || isSubmitting}
-        onClick={onClick}
-      >
-        {!success && (
-          <>
-            {label}
-            {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
-          </>
+        {showAddress && (
+          <AddressButton
+            size="large"
+            style={{ height: "44px", marginLeft: "15px" }}
+          />
         )}
-        {success && <>Purchase Successfully Completed!</>}
-      </Button>
+      </div>
     </div>
   );
 }

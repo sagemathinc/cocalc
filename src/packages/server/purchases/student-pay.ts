@@ -4,8 +4,7 @@ with that license exactly as prescribed by "student pay" for a course.
 
 This fails if:
 
- - The user doesn't have sufficient funds on their account to pay for the license.
- - The user is not the STUDENT that the project is meant for, or allowOther is set.
+ - The user doesn't have sufficient funds on their account to pay for the license (unless amount is sufficient).
  - The course fee was already paid.
 
 Everything is done in a single atomic transaction.
@@ -28,7 +27,6 @@ import createTokenAction, {
   getTokenUrl,
 } from "@cocalc/server/token-actions/create";
 import dayjs from "dayjs";
-import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import { len } from "@cocalc/util/misc";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
@@ -39,8 +37,8 @@ const logger = getLogger("purchases:student-pay");
 interface Options {
   account_id: string;
   project_id: string;
-  allowOther?: boolean;
-  // if given, then we just captured this amount of money from the student; if it is
+
+  // if given, then we just captured this amount of money from the payee; if it is
   // enough to cover the purchase -- irregardless of possible negative balance --
   // we always allow the purchase.
   amount?: number;
@@ -49,7 +47,6 @@ interface Options {
 export default async function studentPay({
   account_id,
   project_id,
-  allowOther,
   amount,
 }: Options): Promise<{ purchase_id: number }> {
   logger.debug({ account_id, project_id });
@@ -69,21 +66,6 @@ export default async function studentPay({
     const currentCourse: CourseInfo | undefined = rows[0].course;
     if (currentCourse == null) {
       throw Error("course fee not configured for this project");
-    }
-    // ensure account_id matches the student; this also ensures that currentCourse is not null.
-    if (!allowOther && currentCourse?.account_id != account_id) {
-      // Also allow possibility that only the email address matches.  This can happen if the course config
-      // doesn't have the user's account_id yet.
-      const email_address = await getEmailAddress(account_id);
-      if (email_address != currentCourse?.email_address) {
-        if (currentCourse?.email_address) {
-          throw Error("student pay is not properly configured");
-        } else {
-          throw Error(
-            `only the user with email address ${currentCourse?.email_address} can pay the course fee`,
-          );
-        }
-      }
     }
     if (currentCourse.paid) {
       throw Error("course fee already paid");
@@ -107,8 +89,12 @@ export default async function studentPay({
       amount,
     });
 
-    // Create the license
-    const license_id = await createLicense(account_id, purchaseInfo, client);
+    // Create the license, **owned by the student**
+    const license_id = await createLicense(
+      currentCourse?.account_id ?? account_id,
+      purchaseInfo,
+      client,
+    );
 
     // Add license to the project.
     await addLicenseToProject({ project_id, license_id, client });

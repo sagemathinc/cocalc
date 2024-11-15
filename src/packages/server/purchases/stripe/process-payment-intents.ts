@@ -175,7 +175,6 @@ export async function processPaymentIntent(
     await studentPay({
       account_id,
       project_id: paymentIntent.metadata.project_id,
-      allowOther: true,
       amount,
     });
   }

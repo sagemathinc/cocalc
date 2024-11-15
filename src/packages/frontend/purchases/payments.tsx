@@ -172,7 +172,6 @@ export default function Payments({
                 loadMore({ init: true });
               }}
               account_id={account_id}
-              scroll={{ y: 400 }}
             />
             {/*<PaymentsPlot data={data} />*/}
           </>
@@ -186,7 +185,6 @@ function PaymentIntentsTable({
   paymentIntents,
   onFinished,
   account_id,
-  scroll,
 }) {
   const columns = [
     {
@@ -328,7 +326,6 @@ function PaymentIntentsTable({
 
   return (
     <Table
-      scroll={scroll}
       pagination={false}
       dataSource={dataSource}
       columns={columns}

@@ -243,7 +243,9 @@ export function PurchasesTable({
 
   const getBalance = async () => {
     if (!account_id) {
-      return accountBalance;
+      const balance = await api.getBalance();
+      setBalance(balance);
+      return balance;
     }
     try {
       const userBalance = await api.getBalanceAdmin(account_id);
@@ -252,6 +254,10 @@ export function PurchasesTable({
       setError(`${err}`);
     }
   };
+
+  useEffect(() => {
+    setBalance(accountBalance);
+  }, [accountBalance]);
 
   const loadMore = async ({ init }: { init? } = {}) => {
     try {
@@ -528,7 +534,6 @@ function GroupedPurchaseTable({ purchases }) {
     <div style={{ overflow: "auto" }}>
       <div style={{ minWidth: "600px" }}>
         <Table
-          scroll={{ y: 400 }}
           pagination={false}
           dataSource={purchases}
           rowKey={({ service, project_id }) => `${service}-${project_id}`}
@@ -602,7 +607,6 @@ function DetailedPurchaseTable({
     <div style={{ overflow: "auto" }}>
       <div style={{ minWidth: "1000px" }}>
         <Table
-          scroll={{ y: 400 }}
           pagination={false}
           dataSource={purchases}
           rowKey="id"

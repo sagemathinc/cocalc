@@ -18,7 +18,6 @@ import {
   Space,
   Slider,
   Spin,
-  Tooltip,
 } from "antd";
 import { useContext, useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -203,23 +202,14 @@ export default function Checkout() {
           <>
             {" "}
             or exactly{" "}
-            <Tooltip
-              title={
-                <>
-                  The minimum payment size is {currency(params.minPayment)},
-                  which constrains the amount of credit you can apply.
-                </>
-              }
+            <a
+              onClick={() => {
+                setApplyCredit(totalCost);
+                updateParams(totalCost);
+              }}
             >
-              <a
-                onClick={() => {
-                  setApplyCredit(totalCost);
-                  updateParams(totalCost);
-                }}
-              >
-                {currency(totalCost)}
-              </a>
-            </Tooltip>
+              {currency(totalCost)}
+            </a>
             .
           </>
         )}
@@ -231,6 +221,8 @@ export default function Checkout() {
           value={applyCredit ?? 0}
           onChange={setApplyCredit}
         />
+        The minimum payment size is {currency(params.minPayment)}, which
+        constrains the amount of credit that can be applied.
       </>
     );
   }

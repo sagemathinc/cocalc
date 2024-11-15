@@ -177,10 +177,10 @@ export default function AddStudents({
               set_include_name_search(!include_name_search);
             }}
           >
-            <div style={{ width: "250px" }}>
+            <div style={{ width: "250px", marginTop: "15px" }}>
               <FormattedMessage
                 id="course.add-students.search-students-by-name"
-                defaultMessage="Search by name too"
+                defaultMessage="Search by name"
               />
             </div>
           </Checkbox>
