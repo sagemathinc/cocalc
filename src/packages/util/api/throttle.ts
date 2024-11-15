@@ -30,6 +30,12 @@ const THROTTLE = {
     minute: 3,
     hour: 40,
   },
+  "purchases/get-purchases-admin": {
+    // extra generous for admin
+    second: 5,
+    minute: 100,
+    hour: 1000,
+  },
 } as const;
 
 const DEFAULTS = {

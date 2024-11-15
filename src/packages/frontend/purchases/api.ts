@@ -133,8 +133,8 @@ interface PurchasesOptions {
   no_statement?: boolean;
 }
 
-function parsePurchaseDates(v): Partial<Purchase>[] {
-  for (const x of v) {
+function parsePurchaseDates(v) {
+  for (const x of v.purchases) {
     for (const field of ["time", "period_start", "period_end"]) {
       if (x[field]) {
         x[field] = new Date(x[field]);
@@ -144,15 +144,22 @@ function parsePurchaseDates(v): Partial<Purchase>[] {
   return v;
 }
 
-export const getPurchases = shortCache(async (opts: PurchasesOptions) => {
-  return parsePurchaseDates(await api("purchases/get-purchases", opts));
-}, "get-purchases");
+type PurchasesFunction = (
+  opts: PurchasesOptions,
+) => Promise<{ purchases: Purchase[]; balance: number }>;
+
+export const getPurchases: PurchasesFunction = shortCache(
+  async (opts: PurchasesOptions) => {
+    return parsePurchaseDates(await api("purchases/get-purchases", opts));
+  },
+  "get-purchases",
+);
 
 // Admins can get purchases for any specified user -- error if called by non-admin.
 // Same options as getPurchases, but specify the account_id.
 export async function getPurchasesAdmin(
   opts: PurchasesOptions & { account_id: string },
-) {
+): Promise<{ purchases: Purchase[]; balance: number }> {
   return parsePurchaseDates(await api("purchases/get-purchases-admin", opts));
 }
 

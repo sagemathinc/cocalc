@@ -458,42 +458,41 @@ export function ConfirmButton({
   return (
     <div style={{ marginTop: "15px", display: "flex" }}>
       <div style={{ margin: "auto" }}>
-        {onCancel != null && (
+        <Space wrap>
+          {onCancel != null && (
+            <Button
+              size="large"
+              onClick={() => onCancel()}
+              style={{ height: "44px" }}
+            >
+              Cancel
+            </Button>
+          )}
           <Button
             size="large"
-            onClick={() => onCancel()}
-            style={{ height: "44px", marginRight: "15px" }}
+            style={
+              {
+                minWidth: "150px",
+                height: "44px",
+                maxWidth: "100%",
+              } /* button sized to match stripe's */
+            }
+            type={notPrimary ? undefined : "primary"}
+            disabled={disabled || isSubmitting}
+            onClick={onClick}
           >
-            Cancel
+            {!success && (
+              <>
+                {label}
+                {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
+              </>
+            )}
+            {success && <>Purchase Successfully Completed!</>}
           </Button>
-        )}
-        <Button
-          size="large"
-          style={
-            {
-              minWidth: "150px",
-              height: "44px",
-              maxWidth: "100%",
-            } /* button sized to match stripe's */
-          }
-          type={notPrimary ? undefined : "primary"}
-          disabled={disabled || isSubmitting}
-          onClick={onClick}
-        >
-          {!success && (
-            <>
-              {label}
-              {isSubmitting && <Spin style={{ marginLeft: "15px" }} />}
-            </>
+          {showAddress && (
+            <AddressButton size="large" style={{ height: "44px" }} />
           )}
-          {success && <>Purchase Successfully Completed!</>}
-        </Button>
-        {showAddress && (
-          <AddressButton
-            size="large"
-            style={{ height: "44px", marginLeft: "15px" }}
-          />
-        )}
+        </Space>
       </div>
     </div>
   );

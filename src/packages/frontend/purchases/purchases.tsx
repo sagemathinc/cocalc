@@ -230,34 +230,13 @@ export function PurchasesTable({
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
-  const accountBalance = useTypedRedux("account", "balance");
-  const [balance, setBalance] = useState<number | null | undefined>(
-    account_id ? null : accountBalance,
-  );
+  const [balance, setBalance] = useState<number | null | undefined>(undefined);
   const [hasMore, setHasMore] = useState<boolean>(true); // todo
   const [limit, setLimit] = useState<number>(DEFAULT_LIMIT);
   const [filter, setFilter] = useState<string>("");
   const searchFilterRef = useRef<any>(null) as MutableRefObject<
     (string) => Promise<PurchaseItem[]> | null
   >;
-
-  const getBalance = async () => {
-    if (!account_id) {
-      const balance = await api.getBalance();
-      setBalance(balance);
-      return balance;
-    }
-    try {
-      const userBalance = await api.getBalanceAdmin(account_id);
-      setBalance(userBalance);
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
-
-  useEffect(() => {
-    setBalance(accountBalance);
-  }, [accountBalance]);
 
   const loadMore = async ({ init }: { init? } = {}) => {
     try {
@@ -292,10 +271,10 @@ export function PurchasesTable({
         service,
         thisMonth,
       };
-      let x = account_id
+      let { purchases: x, balance } = account_id
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
-
+      setBalance(balance);
       for (const purchase of x) {
         getFilter(purchase);
       }
@@ -353,7 +332,6 @@ export function PurchasesTable({
     // [ ] TODO: this needs to instead get only recent records (that could have possibly
     // changed or been added) and update them.
     await loadMore({ init: true });
-    await getBalance();
   };
   if (refreshRef != null) {
     refreshRef.current = refreshRecords;
@@ -361,7 +339,6 @@ export function PurchasesTable({
 
   useEffect(() => {
     loadMore({ init: true });
-    getBalance();
   }, [cutoff]);
 
   useEffect(() => {

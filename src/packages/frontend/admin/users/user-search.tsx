@@ -30,6 +30,7 @@ export function UserSearch({}) {
         <Flex style={{ maxWidth: "100%" }}>
           <Input.Search
             allowClear
+            autoFocus
             style={{ flex: 1, marginRight: "15px" }}
             value={query}
             placeholder="Search for users by partial name, email, account_id or project_id..."

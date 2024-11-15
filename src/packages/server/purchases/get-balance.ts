@@ -20,9 +20,12 @@ export const COST_OR_METERED_COST =
 export default async function getBalance({
   account_id,
   client,
+  noSave,
 }: {
   account_id: string;
   client?: PoolClient;
+  // do not save the computed balance to the accounts table.
+  noSave?: boolean;
 }): Promise<number> {
   const pool = client ?? getPool();
 
@@ -36,10 +39,12 @@ export default async function getBalance({
     [account_id],
   );
   const balance = rows[0]?.balance ?? 0;
-  await pool.query("UPDATE accounts SET balance=$2 WHERE account_id=$1", [
-    account_id,
-    balance,
-  ]);
+  if (!noSave) {
+    await pool.query("UPDATE accounts SET balance=$2 WHERE account_id=$1", [
+      account_id,
+      balance,
+    ]);
+  }
   return balance;
 }
 
