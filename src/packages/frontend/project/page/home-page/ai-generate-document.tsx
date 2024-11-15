@@ -997,7 +997,7 @@ function AIGenerateDocument({
                 setPreview(null);
               }}
             >
-              Cancel
+              {intl.formatMessage(labels.cancel)}
             </Button>
             <Button
               type="primary"

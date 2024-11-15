@@ -4,6 +4,7 @@
  */
 
 import { Button } from "antd";
+import { useIntl } from "react-intl";
 
 import { ResetProjectsConfirmation } from "@cocalc/frontend/account/upgrades/reset-projects";
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -20,6 +21,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Gap, Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { plural } from "@cocalc/util/misc";
 
@@ -32,6 +34,8 @@ export const ProjectsListingDescription: React.FC<Props> = ({
   visible_projects,
   onCancel,
 }) => {
+  const intl = useIntl();
+
   const deleted = useTypedRedux("projects", "deleted");
   const hidden = useTypedRedux("projects", "hidden");
   const search: string | undefined = useTypedRedux("projects", "search");
@@ -85,7 +89,7 @@ export const ProjectsListingDescription: React.FC<Props> = ({
             onCancel();
           }}
         >
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>
       </span>
     );

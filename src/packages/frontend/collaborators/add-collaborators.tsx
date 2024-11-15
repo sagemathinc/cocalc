@@ -8,6 +8,9 @@ Add collaborators to a project
 */
 
 import { Alert, Button, Input, Select } from "antd";
+import { useIntl } from "react-intl";
+
+import { labels } from "@cocalc/frontend/i18n";
 import {
   React,
   redux,
@@ -86,6 +89,7 @@ export const AddCollaborators: React.FC<Props> = ({
   where,
   mode = "project",
 }) => {
+  const intl = useIntl();
   const unlicensedLimit = useTypedRedux(
     "customize",
     "unlicensed_project_collaborator_limit",
@@ -482,7 +486,7 @@ export const AddCollaborators: React.FC<Props> = ({
                 set_email_body_editing(false);
               }}
             >
-              Cancel
+              {intl.formatMessage(labels.cancel)}
             </Button>
             <Gap />
             <Button

@@ -1,12 +1,14 @@
 import { Alert, Button, Modal, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
-import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
-import { Icon } from "@cocalc/frontend/components/icon";
+
 import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { checkInAll } from "@cocalc/frontend/compute/check-in";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { editCloudFilesystem } from "./api";
 import { Mountpoint } from "./cloud-filesystem";
-import { checkInAll } from "@cocalc/frontend/compute/check-in";
 import { editModalStyle } from "./util";
 
 interface Props {
@@ -72,7 +74,7 @@ export default function MountCloudFilesystem({
       onCancel={() => setOpen(false)}
       footer={[
         <Button key="cancel" onClick={() => setOpen(false)}>
-          Cancel
+          <CancelText />
         </Button>,
         <Button
           ref={buttonRef}
@@ -105,10 +107,10 @@ export default function MountCloudFilesystem({
           message={<b>Cloud File Systems Only Visible From Compute Servers</b>}
           description={
             <>
-              Currently cloud file systems can only be used from compute servers,
-              i.e., from a Jupyter notebook or terminal that is set to use a
-              compute server or from the file browser set to explore a compute
-              server.
+              Currently cloud file systems can only be used from compute
+              servers, i.e., from a Jupyter notebook or terminal that is set to
+              use a compute server or from the file browser set to explore a
+              compute server.
             </>
           }
         />

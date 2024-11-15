@@ -5,7 +5,9 @@
 import { Alert, Col, Row } from "antd";
 import jsonic from "jsonic";
 import { DebounceInput } from "react-debounce-input";
+import { useIntl } from "react-intl";
 
+import { labels } from "@cocalc/frontend/i18n";
 import { Projects } from "@cocalc/frontend/admin/users/projects";
 import { Button, Checkbox } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, Rendered, TypedMap } from "@cocalc/frontend/app-framework";
@@ -81,6 +83,8 @@ export const License: React.FC<Props> = (props: Props) => {
     show_projects,
     usage_stats,
   } = props;
+
+  const intl = useIntl();
 
   function render_data(): Rendered[] {
     const v: Rendered[] = [];
@@ -513,7 +517,7 @@ export const License: React.FC<Props> = (props: Props) => {
     return (
       <>
         <Button onClick={() => actions.cancel_editing(id)} disabled={saving}>
-          Cancel
+        {intl.formatMessage(labels.cancel)}
         </Button>
         <Gap />
         <Button

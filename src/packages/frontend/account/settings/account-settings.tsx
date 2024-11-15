@@ -7,6 +7,7 @@ import { Alert as AntdAlert, Space } from "antd";
 import { List, Map } from "immutable";
 import { join } from "path";
 import { FormattedMessage, useIntl } from "react-intl";
+
 import {
   Alert,
   Button,
@@ -34,6 +35,7 @@ import {
 import { SiteName, TermsOfService } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
+import { CancelText } from "@cocalc/frontend/i18n/components";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import {
   PassportStrategyIcon,
@@ -138,7 +140,7 @@ export function AccountSettings(props: Readonly<Props>) {
             <Icon name="external-link" /> Link My {name} Account
           </Button>
           <Button onClick={() => set_add_strategy_link(undefined)}>
-            Cancel
+            <CancelText />
           </Button>
         </ButtonToolbar>
       </Well>
@@ -209,7 +211,7 @@ export function AccountSettings(props: Readonly<Props>) {
               <Icon name="unlink" /> Unlink my {name} account
             </Button>
             <Button onClick={() => set_remove_strategy_button(undefined)}>
-              Cancel
+              <CancelText />
             </Button>
           </ButtonToolbar>
         </Well>

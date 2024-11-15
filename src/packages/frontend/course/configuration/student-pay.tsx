@@ -115,7 +115,7 @@ export default function StudentPay({ actions, settings }) {
           reset();
         }}
       >
-        Cancel
+        {intl.formatMessage(labels.cancel)}
       </Button>
       <Button
         disabled={

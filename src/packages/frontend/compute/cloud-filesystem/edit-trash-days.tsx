@@ -1,12 +1,14 @@
 import { Button, InputNumber, Modal, Spin } from "antd";
 import { useState } from "react";
-import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
-import { Icon } from "@cocalc/frontend/components/icon";
+
 import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { checkInAll } from "@cocalc/frontend/compute/check-in";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { editCloudFilesystem } from "./api";
 import { editModalStyle } from "./util";
-import { checkInAll } from "@cocalc/frontend/compute/check-in";
 
 interface Props {
   cloudFilesystem: CloudFilesystem;
@@ -67,7 +69,7 @@ export default function EditTrashDays({
       onCancel={() => setOpen(false)}
       footer={[
         <Button key="cancel" onClick={() => setOpen(false)}>
-          Cancel
+          <CancelText />
         </Button>,
         <Button
           key="ok"
