@@ -11,6 +11,20 @@ export interface LicenseMetadata {
 }
 export type Metadata = LicenseMetadata;
 
+export interface SubscriptionPayment {
+  // id of the payment intent in stripe
+  payment_intent_id: string;
+  // id of the subscription in cocalc
+  subscription_id: number;
+  // the cost of the subscription renewal; this is usually the same as the cost of the subscription,
+  // but could be different, e.g,. if part of the renewal is paid from the user's balance.
+  amount: number;
+  // timestamp in ms since epoch of when this was created.
+  created: number;
+  // paid -- set to true when it is paid.
+  paid?: boolean;
+}
+
 export interface Subscription {
   id: number;
   account_id: string;
@@ -80,6 +94,7 @@ Table({
     },
     metadata: {
       title: "Metadata",
+      // the ONLY type of subscriptions we have are for upgrade licenses:
       desc: "Metadata that describes what the subscription is for, e.g., {type:'license', license_id:'...'}",
       type: "map",
       pg_type: "jsonb",
@@ -89,6 +104,10 @@ Table({
       desc: "Timestamp when we last sent a reminder that this subscription will renew soon.",
     },
     notes: NOTES, // for admins to make notes about this subscription
+    payment: {
+      type: "map",
+      desc: "Data about the most recent payment intent for a subscription. The type is SubscriptionPayment (see typescript above).",
+    },
   },
   rules: {
     desc: "Subscriptions",
@@ -111,6 +130,7 @@ Table({
           current_period_end: null,
           latest_purchase_id: null,
           renewal_email: null,
+          payment: null,
         },
       },
     },
@@ -141,6 +161,7 @@ Table({
           metadata: null,
           renewal_email: null,
           notes: null,
+          payment: null,
         },
       },
       set: {
