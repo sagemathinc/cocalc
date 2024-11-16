@@ -307,6 +307,9 @@ export const test = {
 
 /*
 
+THE PREVIOUS WAYS WE AUTOMATED SUBSCRIPTIONS IN THE PAST.  Only relevant for better
+understanding how to transition, I guess.
+
 This is a plan regarding how to automate payments:
 
 I think what we need to do is simply empower users fully.  In particular, just make a section somewhere called "Automatic Payments".  A user can choose to configure this or not.  If they configure it:

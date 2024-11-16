@@ -24,21 +24,15 @@ import { isEqual } from "lodash";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
+import type { LicenseFromApi } from "@cocalc/util/db-schema/site-licenses";
 
 interface Props {
   license_id: string;
   refresh?: () => void;
 }
 
-interface License {
-  account_id: string;
-  info: PurchaseInfo;
-  number_running: number;
-  title: string;
-  description: string;
-}
 export default function EditLicense({ license_id, refresh }: Props) {
-  const [license, setLicense] = useState<License | null>(null);
+  const [license, setLicense] = useState<LicenseFromApi | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [editError, setEditError] = useState<string>("");
@@ -65,9 +59,9 @@ export default function EditLicense({ license_id, refresh }: Props) {
   const fetchLicense = async () => {
     try {
       setLoading(true);
-      const license = await getLicense(license_id);
+      const license = await getLicense({ license_id });
       setLicense(license);
-      const info = license.info?.purchased ?? null;
+      const info: any = license.info?.purchased ?? null;
       if (license.subscription_id) {
         const sub = await getSubscription(license.subscription_id);
         setSubscription(sub);
@@ -76,7 +70,9 @@ export default function EditLicense({ license_id, refresh }: Props) {
         if (sub.cost_per_hour == null) {
           throw Error("cost_per_hour must be set");
         }
-        info.cost_per_hour = sub.cost_per_hour;
+        if (info != null) {
+          info.cost_per_hour = sub.cost_per_hour;
+        }
       }
       if (info != null) {
         if (info.start != null) {

@@ -21,49 +21,22 @@ The subscriptions look like this in the database:
 ];
 */
 
-import {
-  Alert,
-  Button,
-  Collapse,
-  Modal,
-  Popconfirm,
-  Space,
-  Spin,
-  Table,
-  Tag,
-} from "antd";
+import { Alert, Collapse, Spin, Table, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
-
+import { useIntl } from "react-intl";
+import { ManageSubscriptionButton } from "./manage-subscription";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { labels } from "@cocalc/frontend/i18n";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import type { License } from "@cocalc/util/db-schema/site-licenses";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
 import { capitalize, currency, round2up } from "@cocalc/util/misc";
-import {
-  cancelSubscription,
-  costToResumeSubscription,
-  creditToCancelSubscription,
-  getLicense,
-  getSubscriptions as getSubscriptionsUsingApi,
-  renewSubscription,
-  resumeSubscription,
-} from "./api";
+import { getSubscriptions as getSubscriptionsUsingApi } from "./api";
 import Export from "./export";
 import Refresh from "./refresh";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
-
-// Cancel immediately makes it pointless to ever buy a license without
-// buying a subscription, since you can just buy a license via a subscription,
-// get a big discount, and cancel exactly at the end of the period. Hence
-// disabling this for now, unless we come up with something better.  This
-// flag can be toggled to turn the functionality back on.
-const SUPPORT_CANCEL_IMMEDIATELY = false;
 
 export function SubscriptionStatus({ status }) {
   return (
@@ -73,6 +46,7 @@ export function SubscriptionStatus({ status }) {
   );
 }
 
+/*
 function SubscriptionActions({
   subscription_id,
   license_id,
@@ -88,7 +62,7 @@ function SubscriptionActions({
 
   const updateLicense = async () => {
     try {
-      setLicense(await getLicense(license_id));
+      setLicense(await getLicense({license_id}));
     } catch (err) {
       setError(`${err}`);
     }
@@ -375,6 +349,7 @@ function SubscriptionActions({
     </Space>
   );
 }
+*/
 
 function LicenseDescription({ license_id, refresh }) {
   return (
@@ -518,14 +493,10 @@ export default function Subscriptions() {
       {
         title: "Action",
         key: "action",
-        render: (_, { cost, id, metadata, status, interval }) => (
-          <SubscriptionActions
-            subscription_id={id}
-            license_id={metadata.license_id}
-            status={status}
-            refresh={getSubscriptions}
-            cost={cost}
-            interval={interval}
+        render: (_, subscription) => (
+          <ManageSubscriptionButton
+            type="default"
+            subscription_id={subscription.id}
           />
         ),
       },

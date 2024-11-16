@@ -14,6 +14,7 @@ import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
+import type { LicenseFromApi } from "@cocalc/util/db-schema/site-licenses";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 import type {
@@ -400,8 +401,13 @@ export async function adminCreateRefund(opts: {
   return await api("purchases/create-refund", opts);
 }
 
-export async function getLicense(license_id: string) {
-  return await api("licenses/get-license", { license_id });
+// can get a license by either its full uuid or the subscription_id number,
+// if it is provided by a subscription.  In the case of a subscription_id,
+// this user has to be a manager of the license.
+export async function getLicense(
+  opts: { license_id: string } | { subscription_id: number },
+): Promise<LicenseFromApi> {
+  return await api("licenses/get-license", opts);
 }
 
 export async function cancelSubscription({

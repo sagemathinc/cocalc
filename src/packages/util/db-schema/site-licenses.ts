@@ -62,6 +62,11 @@ export interface License {
   subscription_id?: number;
 }
 
+export interface LicenseFromApi extends Partial<License> {
+  number_running?: number; // in some cases this can be filled in.
+  is_manager: boolean;
+}
+
 Table({
   name: "site_licenses",
   fields: {

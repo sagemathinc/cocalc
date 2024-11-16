@@ -165,7 +165,7 @@ export class PurchasesClient {
   }
 
   async getLicense(license_id: string) {
-    return await purchasesApi.getLicense(license_id);
+    return await purchasesApi.getLicense({ license_id });
   }
 
   async renewSubscription(
