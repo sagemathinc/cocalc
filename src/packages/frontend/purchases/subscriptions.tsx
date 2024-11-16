@@ -21,7 +21,7 @@ The subscriptions look like this in the database:
 ];
 */
 
-import { Alert, Collapse, Spin, Table, Tag } from "antd";
+import { Alert, Collapse, Spin, Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ManageSubscriptionButton } from "./manage-subscription";
@@ -31,20 +31,13 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { labels } from "@cocalc/frontend/i18n";
 import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
-import { STATUS_TO_COLOR } from "@cocalc/util/db-schema/subscriptions";
-import { capitalize, currency, round2up } from "@cocalc/util/misc";
+import { currency, round2up } from "@cocalc/util/misc";
 import { getSubscriptions as getSubscriptionsUsingApi } from "./api";
 import Export from "./export";
 import Refresh from "./refresh";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
 
-export function SubscriptionStatus({ status }) {
-  return (
-    <Tag color={STATUS_TO_COLOR[status]}>
-      {capitalize(status.replace("_", " "))}
-    </Tag>
-  );
-}
+import { SubscriptionStatus } from "./subscriptions-util";
 
 /*
 function SubscriptionActions({

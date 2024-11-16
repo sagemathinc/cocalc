@@ -28,11 +28,13 @@ export interface AppState {
   setTimeAgoAbsolute?: (boolean) => void;
 }
 
-export const AppContext = createContext<AppState>({
+export const DEFAULT_CONTEXT = {
   pageWidthPx: 1000, // gets updated
   pageStyle: calcStyle(false), // gets updated
   formatIntl: () => "Loading…",
-});
+};
+
+export const AppContext = createContext<AppState>(DEFAULT_CONTEXT);
 
 export default function useAppContext() {
   return useContext(AppContext);

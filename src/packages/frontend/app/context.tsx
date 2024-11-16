@@ -5,14 +5,9 @@
 
 import { theme, ThemeConfig } from "antd";
 import { debounce } from "lodash";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import {
-  useEffect,
-  useMemo,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";

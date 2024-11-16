@@ -70,7 +70,9 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
 }) => {
   if (live == null) live = true;
 
-  if (placement == null) placement = "top";
+  if (placement == null) {
+    placement = "top";
+  }
   if (time_ago_absolute == null) {
     time_ago_absolute = false;
   }
@@ -105,7 +107,9 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
       s = `${err}`;
     }
     const el = render_timeago_element(d);
-    if (!click_to_toggle) return el;
+    if (!click_to_toggle) {
+      return el;
+    }
     return (
       <Popover
         trigger="click"
@@ -132,8 +136,16 @@ export const TimeAgoElement: React.FC<TimeAgoElementProps> = ({
     } catch (err) {
       s = `${err}`;
     }
-    const el = <span style={{ cursor: "pointer", ...style }}>{s}</span>;
-    if (!click_to_toggle) return el;
+    const el = (
+      <span
+        style={{ cursor: click_to_toggle ? "pointer" : undefined, ...style }}
+      >
+        {s}
+      </span>
+    );
+    if (!click_to_toggle) {
+      return el;
+    }
     return (
       <Popover
         trigger="click"
@@ -181,7 +193,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
   (props: TimeAgoElementProps) => {
     const { placement, tip, live, style, date, click_to_toggle = true } = props;
 
-    const { timeAgoAbsolute, setTimeAgoAbsolute } = useAppContext();
+    const { timeAgoAbsolute } = useAppContext();
 
     if (date == null) {
       return <></>;
@@ -195,7 +207,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         live={live}
         time_ago_absolute={timeAgoAbsolute ?? false}
         style={style}
-        click_to_toggle={click_to_toggle && setTimeAgoAbsolute != null}
+        click_to_toggle={click_to_toggle}
       />
     );
   },
@@ -215,11 +227,13 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
 
 function ToggleRelativeAndAbsolute({}) {
   const { timeAgoAbsolute, setTimeAgoAbsolute } = useAppContext();
+  if (setTimeAgoAbsolute == null) {
+    return null;
+  }
 
   return (
     <div style={{ marginTop: "10px", textAlign: "center" }}>
       <Radio.Group
-        disabled={setTimeAgoAbsolute == null}
         onChange={() => {
           setTimeAgoAbsolute?.(!timeAgoAbsolute);
         }}

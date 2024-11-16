@@ -21,8 +21,11 @@ export interface SubscriptionPayment {
   amount: number;
   // timestamp in ms since epoch of when this was created.
   created: number;
-  // paid -- set to true when it is paid.
+  // paid -- set to true when the specific payment_intent_id is paid.
   paid?: boolean;
+  // when this payment gets paid, we change the expire date on the
+  // license to this (which is stored in ms since epoch):
+  new_expires_ms?: number;
 }
 
 export interface Subscription {
@@ -41,6 +44,7 @@ export interface Subscription {
   renewal_email?: Date;
   notes?: string;
   cost_per_hour?: number;
+  payment?: SubscriptionPayment;
 }
 
 export const STATUS_TO_COLOR = {

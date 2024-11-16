@@ -188,11 +188,29 @@ export async function getSubscription(
         current_period_end: null,
         latest_purchase_id: null,
         metadata: null,
+        payment: null,
       },
     },
   });
   const z = x.query.subscriptions;
+  for (const field of [
+    "created",
+    "canceled_at",
+    "resumed_at",
+    "current_period_start",
+    "current_period_end",
+  ]) {
+    if (z[field] != null) {
+      z[field] = new Date(z[field]);
+    }
+  }
   return { ...z, cost_per_hour: z.cost / hoursInInterval(z.interval) };
+}
+
+export async function createSubscriptionPayment(subscription_id: number) {
+  return await api("purchases/stripe/create-subscription-payment", {
+    subscription_id,
+  });
 }
 
 export interface LiveSubscription {

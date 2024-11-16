@@ -11,11 +11,22 @@ import "@cocalc/frontend/customize/app-base-path";
 import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
 import "@cocalc/frontend/editors/slate/elements/elements.css";
-
+import { AppContext, DEFAULT_CONTEXT } from "@cocalc/frontend/app/use-context";
 import type { AppProps } from "next/app";
 
+// const timeAgo = {
+//   timeAgoAbsolute: false,
+//   setTimeAgoAbsolute: (absolute) => {
+//     timeAgo.timeAgoAbsolute = absolute;
+//   },
+// };
+
 function MyApp({ Component, pageProps }: AppProps) {
-  return <Component {...pageProps} />;
+  return (
+    <AppContext.Provider value={{ ...DEFAULT_CONTEXT }}>
+      <Component {...pageProps} />
+    </AppContext.Provider>
+  );
 }
 
 export default MyApp;
