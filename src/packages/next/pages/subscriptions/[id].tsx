@@ -5,13 +5,15 @@
 
 // Show info and allow managing subscription with given id
 
-import { Layout } from "antd";
+import { Layout, Space } from "antd";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
 import { ManageSubscription } from "@cocalc/frontend/purchases/manage-subscription";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import basePath from "lib/base-path";
+import { join } from "path";
 
 export default function Preferences({ customize, id }) {
   return (
@@ -19,10 +21,22 @@ export default function Preferences({ customize, id }) {
       <Head title={`Subscription Id=${id}`} />
       <Layout>
         <Header />
-        <div>
+        <div style={{ background: "#fff" }}>
+          <div style={{ float: "right", margin: "30px" }}>
+            <Space>
+              <a href={join(basePath, "settings/subscriptions")}>
+                Subscriptions
+              </a>
+              <a href={join(basePath, "settings/licenses")}>Licenses</a>
+              <a href={join(basePath, "settings/purchases")}>Purchases</a>
+            </Space>
+          </div>
+          <h3 style={{ marginTop: "30px", textAlign: "center" }}>
+            Subscription Id={id}
+          </h3>
           <ManageSubscription
             subscription_id={id}
-            style={{ margin: "30px auto", maxWidth: "1100px" }}
+            style={{ margin: "0 auto", padding: "30px", maxWidth: "1100px" }}
           />
         </div>
         <Footer />

@@ -1,10 +1,12 @@
-import { Button, Modal, Spin } from "antd";
+import { Button, Modal, Space, Spin } from "antd";
 import { useEffect, useState } from "react";
 import { getLicense, getSubscription } from "./api";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import ShowError from "@cocalc/frontend/components/error";
 import type { LicenseFromApi } from "@cocalc/util/db-schema/site-licenses";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { capitalize, currency } from "@cocalc/util/misc";
+import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 
 export function ManageSubscriptionButton({ subscription_id, ...props }) {
   const [open, setOpen] = useState<boolean>(false);
@@ -32,6 +34,7 @@ export function ManageSubscriptionButton({ subscription_id, ...props }) {
 function ManageSubscriptionModal({ onClose, subscription_id }) {
   return (
     <Modal
+      width="600px"
       open
       title={<>Manage Subscription</>}
       onCancel={onClose}
@@ -85,16 +88,24 @@ export function ManageSubscription({
         error={error}
         setError={setError}
       />
-      {subscription && <DescribeSubscription subscription={subscription} />}
-      {license && <DescribeLicense license={license} />}
+      {subscription && (
+        <DescribeSubscription license={license} subscription={subscription} />
+      )}
     </div>
   );
 }
 
-function DescribeSubscription({ subscription }) {
-  return <pre>{JSON.stringify(subscription, undefined, 2)}</pre>;
-}
-
-function DescribeLicense({ license }) {
-  return <pre>{JSON.stringify(license, undefined, 2)}</pre>;
+function DescribeSubscription({ license, subscription }) {
+  return (
+    <div>
+      <Space direction="vertical">
+        <div>
+          {capitalize(subscription.interval)}ly Subscription that costs{" "}
+          {currency(subscription.cost)}/{subscription.interval}
+        </div>
+        <div> License: {license.id}</div>
+        {license.quota && <div>{describeQuota(license.quota, false)}</div>}
+      </Space>
+    </div>
+  );
 }
