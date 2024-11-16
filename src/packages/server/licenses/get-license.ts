@@ -61,7 +61,9 @@ export async function getLicenseBySubscriptionId(
     FROM site_licenses WHERE subscription_id=$1 AND $2=ANY(managers)`;
   const { rows } = await pool.query(query, [subscription_id, account_id]);
   if (rows.length == 0) {
-    throw Error(`you own no license with subscription id=${subscription_id}`);
+    throw Error(
+      `You are not the manager of any license with subscription id=${subscription_id}`,
+    );
   }
   const license = rows[0];
   toEpoch([license], ["expires", "activates", "last_used"]);

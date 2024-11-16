@@ -1,7 +1,6 @@
 /* Return information about a given license. */
 
 import getLicense, {
-  License,
   getLicenseBySubscriptionId,
 } from "@cocalc/server/licenses/get-license";
 import getAccountId from "lib/account/get-account";
@@ -16,7 +15,7 @@ export default async function handle(req, res) {
   }
 }
 
-async function get(req): Promise<License> {
+async function get(req) {
   const account_id = await getAccountId(req);
   const { license_id, subscription_id } = getParams(req);
   if (license_id) {
