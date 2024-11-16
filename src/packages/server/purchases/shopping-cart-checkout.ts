@@ -10,9 +10,7 @@ import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 import { currency, round2up } from "@cocalc/util/misc";
 import getMinBalance from "./get-min-balance";
 import getBalance from "./get-balance";
-import purchaseShoppingCartItem, {
-  getInitialCostForSubscription,
-} from "./purchase-shopping-cart-item";
+import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
 import { stripeToDecimal } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:shopping-cart-checkout");
@@ -141,21 +139,8 @@ export const getCheckoutCart = async (
     if (itemCost == null) {
       throw Error("bug cost must not be null");
     }
-    let lineItemAmount;
-    if (
-      cartItem.description.type != "cash-voucher" &&
-      cartItem.description.period != "range"
-    ) {
-      // it's a subscription
-      const x = await getInitialCostForSubscription(cartItem);
-      const firstPeriodCost = x.cost.cost;
-      itemCost.cost_sub_first_period = firstPeriodCost;
-      lineItemAmount = round2up(firstPeriodCost);
-    } else {
-      lineItemAmount = round2up(itemCost.cost);
-    }
+    const lineItemAmount = round2up(itemCost.cost);
     totalStripe += Math.ceil(100 * lineItemAmount);
-
     chargeableCart.push({
       ...cartItem,
       cost: itemCost,

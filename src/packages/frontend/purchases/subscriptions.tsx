@@ -102,9 +102,8 @@ function SubscriptionActions({
   );
   const updateCostToResume = async () => {
     try {
-      const { cost, periodicCost } = await costToResumeSubscription(
-        subscription_id,
-      );
+      const { cost, periodicCost } =
+        await costToResumeSubscription(subscription_id);
       setCostToResume(cost);
       setPeriodicCost(periodicCost);
       return cost;
@@ -544,7 +543,8 @@ export default function Subscriptions() {
     <SettingBox
       title={
         <>
-          <Icon name="calendar" /> {intl.formatMessage(labels.subscriptions)}
+          <Icon name="calendar" style={{ marginRight: "15px" }} />{" "}
+          {intl.formatMessage(labels.subscriptions)}
           <Refresh
             handleRefresh={getSubscriptions}
             style={{ marginLeft: "30px" }}

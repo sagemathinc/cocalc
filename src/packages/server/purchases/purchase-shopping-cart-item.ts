@@ -63,7 +63,6 @@ Here's what a typical shopping cart item looks like:
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
-import type { Cost } from "@cocalc/util/licenses/purchase/types";
 import { sanity_checks } from "@cocalc/util/licenses/purchase/sanity-checks";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
@@ -72,9 +71,6 @@ import getLogger from "@cocalc/backend/logger";
 import createSubscription from "./create-subscription";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
 import { round2up } from "@cocalc/util/misc";
-import { getNextClosingDate, getNextClosingDateAfter } from "./closing-date";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import dayjs from "dayjs";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 import createVouchers from "@cocalc/server/vouchers/create-vouchers";
 
@@ -176,14 +172,6 @@ export async function createLicenseFromShoppingCartItem(
   const info = getPurchaseInfo(item.description);
   let licenseCost = item.cost;
 
-  if (info.type != "vouchers" && item.description.period != "range") {
-    // handle initial purchase of subscription:
-    const { cost, start, end } = await getInitialCostForSubscription(item);
-    licenseCost = cost;
-    info.start = start;
-    info.end = end;
-  }
-
   logger.debug("running sanity checks on license...");
   const pool = client ?? getPool();
   await sanity_checks(pool, info);
@@ -192,29 +180,6 @@ export async function createLicenseFromShoppingCartItem(
     addLicenseToProjectAndRestart(item.project_id, license_id, client);
   }
   return { info, license_id, licenseCost };
-}
-
-export async function getInitialCostForSubscription(
-  item,
-): Promise<{ cost: Cost; start: Date; end: Date }> {
-  const info = getPurchaseInfo(item.description);
-  if (info.type != "quota") {
-    throw Error(`item must be a subscription, but type='${info.type}'`);
-  }
-  const start = new Date();
-  let end;
-  if (item.description.period == "yearly") {
-    end = await getNextClosingDateAfter(
-      item.account_id,
-      dayjs(start).add(11, "month").add(1, "day").toDate(),
-    );
-  } else if (item.description.period == "monthly") {
-    end = await getNextClosingDate(item.account_id);
-  } else {
-    throw Error(`invalid period -- "${item.description.period}"`);
-  }
-  const cost = compute_cost({ ...info, start, end });
-  return { cost, start, end };
 }
 
 async function markItemPurchased(
