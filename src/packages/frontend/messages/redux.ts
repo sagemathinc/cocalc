@@ -29,6 +29,24 @@ export class MessagesActions extends Actions<MessagesState> {
       .getTable("messages")
       .set({ id, read: read === null ? 0 : read, saved });
   };
+
+  send = ({
+    to_id,
+    to_type,
+    subject,
+    body,
+    thread_id,
+  }: {
+    to_id: string;
+    to_type?: string;
+    subject: string;
+    body: string;
+    thread_id?: number;
+  }) => {
+    redux
+      .getTable("messages")
+      .set({ subject, body, to_id, to_type, thread_id });
+  };
 }
 
 class MessagesTable extends Table {

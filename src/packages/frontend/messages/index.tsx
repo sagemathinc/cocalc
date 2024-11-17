@@ -2,7 +2,6 @@
 Component to show all your messages.
 */
 
-import { Card } from "antd";
 import ShowError from "@cocalc/frontend/components/error";
 import { useEffect, useState } from "react";
 import { init } from "./redux";
@@ -35,13 +34,13 @@ export default function Messages({ filter, style }: Props) {
   const messages = useTypedRedux("messages", "messages");
 
   return (
-    <Card title={"Messages"} style={style}>
+    <div style={style}>
       <ShowError
         error={error}
         setError={setError}
         style={{ margin: "30px auto" }}
       />
       <MessagesList messages={messages} filter={filter} />
-    </Card>
+    </div>
   );
 }

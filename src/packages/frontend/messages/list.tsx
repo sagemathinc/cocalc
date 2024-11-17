@@ -1,11 +1,13 @@
 import { useMemo } from "react";
-import { Spin } from "antd";
-import type { Message } from "@cocalc/util/db-schema/messages";
+import { Flex, List, Spin } from "antd";
+import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
+import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 
 export default function MessagesList({ messages, filter }) {
-  const filteredMessages: null | Message[] = useMemo(() => {
+  const filteredMessages: MessageType[] = useMemo(() => {
     if (messages == null) {
-      return null;
+      return [];
     }
     let m;
     if (filter == "messages-read") {
@@ -19,18 +21,39 @@ export default function MessagesList({ messages, filter }) {
     } else {
       m = messages;
     }
-    return m.valueSeq().toJS();
+    return m.valueSeq().toJS().sort(field_cmp("created")).reverse();
   }, [filter, messages]);
 
   if (messages == null) {
     return <Spin />;
   }
   return (
-    <pre>
-      {filter}
-      ---
-      {JSON.stringify(filteredMessages, undefined, 2)}
-    </pre>
+    <>
+      {filter == "messages-all" ? (
+        <h3>All Messages</h3>
+      ) : (
+        <h3>
+          {filteredMessages.length} {capitalize(filter?.split("-")[1])}{" "}
+          {plural(filteredMessages.length, "Message")}
+        </h3>
+      )}
+      <List
+        bordered
+        dataSource={filteredMessages}
+        renderItem={(message) => (
+          <List.Item>
+            <Flex style={{ width: "100%" }}>
+              <div style={{ flex: 0.8 }}>{message.subject}</div>
+              <div style={{ flex: 0.2 }} />
+              <TimeAgo
+                date={message.created}
+                style={{ width: "175px", textAlign: "right" }}
+              />
+            </Flex>
+          </List.Item>
+        )}
+      />
+    </>
   );
 }
 

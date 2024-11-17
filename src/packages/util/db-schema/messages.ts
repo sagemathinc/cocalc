@@ -167,10 +167,7 @@ Table({
             return;
           }
           if (old_val != null) {
-            const dbg = database._dbg("messages:instead_of_change");
-            dbg(JSON.stringify(old_val));
-            dbg(JSON.stringify(new_val));
-            dbg(JSON.stringify({ account_id }));
+            // const dbg = database._dbg("messages:instead_of_change");
             // setting saved or read
             try {
               // user is allowed to change messages *to* them only.
@@ -184,8 +181,6 @@ Table({
                   : (new_val.read ?? old_val.read),
                 new_val.saved ?? old_val.saved,
               ];
-              dbg(JSON.stringify({ query }));
-              dbg(JSON.stringify({ params }));
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
               await client.query(query, params);
