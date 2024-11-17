@@ -669,6 +669,10 @@ Table({
           account_id,
           cb,
         ): Promise<void> {
+          if (old_value == null) {
+            cb("must provide primary key");
+            return;
+          }
           if (new_val.managers != null) {
             // never allow removing the person who created the license.
             // They are old_value.info.purchased.account_id

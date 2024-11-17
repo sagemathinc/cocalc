@@ -36,6 +36,12 @@ const THROTTLE = {
     minute: 100,
     hour: 1000,
   },
+  // i'm worried about abuse/bugs with message sending for now, so
+  // pretty aggressive throttling:
+  "user_query-messages": {
+    minute: 6,
+    hour: 100,
+  },
 } as const;
 
 const DEFAULTS = {

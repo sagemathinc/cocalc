@@ -579,7 +579,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if r.on_change_hook? or r.before_change_hook? or r.instead_of_change_hook?
             for primary_key in r.primary_keys
                 if not r.query[primary_key]?
-                    cb("FATAL: query must specify (primary) key '#{primary_key}'")
+                    # this is fine -- it just means the old_val isn't defined.
+                    # this can happen, e.g., when creating a new object with a primary key that is a generated id.
+                    cb()
                     return
             # get the old value before changing it
             # TODO: optimization -- can we restrict columns below?

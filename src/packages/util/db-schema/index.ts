@@ -41,6 +41,7 @@ import "./listings";
 import "./llm";
 import "./lti";
 import "./mentions";
+import "./messages";
 import "./news";
 import "./organizations";
 import "./password-reset";

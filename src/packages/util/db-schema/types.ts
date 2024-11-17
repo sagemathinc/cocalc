@@ -218,6 +218,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * before the actual change to the database is made.
      * If cb(err) then no change is made and error is reported.
      # If cb(undefined, true) then no change is made and no error; any work is considered done.
+     #
+     # NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     before_change?: (
       database,
@@ -237,6 +239,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * code whenever the user does a certain type of set query.
      * Obviously, if that code doesn't set the query in the
      * database, then query won't be the new val.
+     *
+     * NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     instead_of_change?: (
       database,
@@ -250,6 +254,8 @@ export interface UserOrProjectQuery<F extends Fields> {
      * 3. AFTER:  If set, the on_change is called with
      *   (database, old_val, query, account_id, cb)
      * after everything the database has been modified.
+     *
+     * NOTE: old_val can be null if no primary key is specified, e.g., when creating a new object.
      */
     on_change?: (
       database,
