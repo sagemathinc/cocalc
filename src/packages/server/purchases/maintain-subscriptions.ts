@@ -82,7 +82,7 @@ for that subscription, we do the following:
     at this point, and the billing day for this subscription changes to the day
     of reactivation.
 
-- We will also implement feature so user can manually pay for the next period of a subscription at
+- User can manually pay for the next period of a subscription at
   any point in time by clicking a button.  This will make developing the above
   functionality easier, but also give users more clarity into what to
   expect and make it easier for them to plan.  This is also closely related to what
