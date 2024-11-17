@@ -284,6 +284,9 @@ export interface TableSchema<F extends Fields> {
   // One of the fields or array of fields; NOTE: should be required if virtual is not set.
   primary_key?: keyof F | (keyof F)[];
 
+  // Optional keys to also include in the select clause when creating changefeed.  Needed, e.g., when using a serial primary key.
+  changefeed_keys?: (keyof F)[];
+
   // this is only used when migrating when we *add* a new primary key as primary key for the schema for a table (e.g., for listings)
   default_primary_key_value?: { [key: string]: any };
 

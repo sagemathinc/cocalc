@@ -7,7 +7,6 @@ import { blue as ANTD_BLUE } from "@ant-design/colors";
 import { Badge, Menu } from "antd";
 import React, { useMemo } from "react";
 import { defineMessage, defineMessages, useIntl } from "react-intl";
-
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, MenuItems, Text } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
@@ -15,6 +14,7 @@ import { Channel, CHANNELS, CHANNELS_ICONS } from "@cocalc/util/types/news";
 import { IntlMessage } from "../i18n";
 import { NotificationFilter } from "./mentions/types";
 import { BOOKMARK_ICON_NAME } from "./mentions/util";
+import MessagesCounter from "@cocalc/frontend/messages/counter";
 
 export const NewsCounter = () => {
   const news_unread = useTypedRedux("news", "unread");
@@ -149,7 +149,52 @@ export function NotificationNav(props: Props) {
       ],
       type: "group",
     },
-    { key: "d1", type: "divider" },
+    { key: "divider-before-messages", type: "divider" },
+    {
+      key: "messages",
+      label: (
+        <Text strong style={{ fontSize: "125%" }}>
+          Messages <MessagesCounter />
+        </Text>
+      ),
+      children: [
+        {
+          key: "messages-unread",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="eye-slash" /> {intl.formatMessage(MSGS.unread)}
+            </span>
+          ),
+        },
+        {
+          key: "messages-read",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="eye" /> {intl.formatMessage(MSGS.read)}
+            </span>
+          ),
+        },
+        {
+          key: "messages-saved",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name={BOOKMARK_ICON_NAME} />{" "}
+              {intl.formatMessage(MSGS.saved)}
+            </span>
+          ),
+        },
+        {
+          key: "messages-all",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="comments" /> All Messages
+            </span>
+          ),
+        },
+      ],
+      type: "group",
+    },
+    { key: "divider-before-news", type: "divider" },
     {
       key: "news",
       label: (

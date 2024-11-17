@@ -1313,7 +1313,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             cb("FATAL: changes.cb must be a function")
             return
         for primary_key in primary_keys
-            if not user_query[primary_key]? and user_query[primary_key] != null  # TODO: this seems slightly off
+            if not user_query[primary_key]? and user_query[primary_key] != null
                 cb("FATAL: changefeed MUST include primary key (='#{primary_key}') in query")
                 return
         watch  = []
@@ -1322,11 +1322,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         possible_time_fields = misc.deep_copy(json_fields)
         feed = undefined
 
+        changefeed_keys = SCHEMA[table]?.changefeed_keys ? []
         for field, val of user_query
             type = pg_type(SCHEMA[table]?.fields?[field])
             if type == 'TIMESTAMP'
                 possible_time_fields[field] = 'all'
-            if val == null and field not in primary_keys
+            if val == null and field not in primary_keys and field not in changefeed_keys
                 watch.push(field)
             else
                 select[field] = type

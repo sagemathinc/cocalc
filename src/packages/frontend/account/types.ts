@@ -103,4 +103,5 @@ export interface AccountState {
   min_balance?: number;
   balance_alert?: boolean;
   auto_balance?: TypedMap<AutoBalance>;
+  unread_message_count?: number;
 }

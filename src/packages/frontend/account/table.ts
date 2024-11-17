@@ -54,6 +54,7 @@ export class AccountTable extends Table {
           stripe_checkout_session: null,
           stripe_usage_subscription: null,
           stripe_customer: null, // used for legacy upgrades ONLY.
+          unread_message_count: null,
         },
       ],
     };

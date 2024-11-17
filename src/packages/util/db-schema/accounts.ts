@@ -384,6 +384,15 @@ Table({
       render: { type: "account" },
       title: "Owner",
     },
+    unread_message_count: {
+      type: "integer",
+      desc: "Number of unread messages in the messages table for this user.  This gets updated whenever the messages table for this user gets changed, making it easier to have UI etc when there are unread messages.",
+      render: {
+        type: "number",
+        editable: false,
+        min: 0,
+      },
+    },
   },
   rules: {
     desc: "All user accounts.",
@@ -521,6 +530,7 @@ Table({
           purchase_closing_day: null,
           stripe_usage_subscription: null,
           email_daily_statements: null,
+          unread_message_count: null,
         },
       },
       set: {

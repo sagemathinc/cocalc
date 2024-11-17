@@ -742,7 +742,7 @@ export class SyncTable extends EventEmitter {
         // This can happen because we might suddenly NOT be ready
         // to query db immediately after we are ready...
         console.warn(
-          `${this.table} -- failed to connect -- ${err}; will retry`,
+          `${this.table} -- failed to create changefeed connection -- ${err}; will retry`,
         );
         await delay(delay_ms);
         if (delay_ms < 8000) {
@@ -938,7 +938,9 @@ export class SyncTable extends EventEmitter {
     //console.log("_save");
     const dbg = this.dbg("_save");
     dbg();
-    if (this.get_state() == "closed") return false;
+    if (this.get_state() == "closed") {
+      return false;
+    }
     if (this.client_query.set == null) {
       // Nothing to do -- can never set anything for this table.
       // There are some tables (e.g., stats) where the remote values
@@ -949,11 +951,17 @@ export class SyncTable extends EventEmitter {
     //console.log("_save", this.table);
     dbg("waiting for network");
     await this.wait_until_ready_to_query_db();
-    if (this.get_state() == "closed") return false;
+    if (this.get_state() == "closed") {
+      return false;
+    }
     dbg("waiting for value");
     await this.wait_until_value();
-    if (this.get_state() == "closed") return false;
-    if (len(this.changes) === 0) return false;
+    if (this.get_state() == "closed") {
+      return false;
+    }
+    if (len(this.changes) === 0) {
+      return false;
+    }
     if (this.value == null) {
       throw Error("value must not be null");
     }
