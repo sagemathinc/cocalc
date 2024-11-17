@@ -166,25 +166,33 @@ Table({
             cb("database not connected -- try again later");
             return;
           }
-          // const dbg = database._dbg("messages:instead_of_change");
-          // dbg(JSON.stringify({ old_val, new_val, account_id }));
           if (old_val != null) {
+            const dbg = database._dbg("messages:instead_of_change");
+            dbg(JSON.stringify(old_val));
+            dbg(JSON.stringify(new_val));
+            dbg(JSON.stringify({ account_id }));
             // setting saved or read
             try {
+              // user is allowed to change messages *to* them only.
+              const query =
+                "UPDATE messages SET read=$3, saved=$4 WHERE to_type='account' AND to_id=$1 AND id=$2";
+              const params = [
+                account_id,
+                parseInt(old_val.id),
+                new_val.read === 0 || new Date(new_val.read).valueOf() == 0
+                  ? null
+                  : (new_val.read ?? old_val.read),
+                new_val.saved ?? old_val.saved,
+              ];
+              dbg(JSON.stringify({ query }));
+              dbg(JSON.stringify({ params }));
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
-              await client.query(
-                "UPDATE messages SET read=$3, saved=$4 WHERE from_type='account' AND from_id=$1 AND id=$2",
-                [
-                  account_id,
-                  old_val.id,
-                  (new_val.read === 0 ? null : new_val.read) ?? old_val.read,
-                  new_val.saved ?? old_val.saved,
-                ],
-              );
+              await client.query(query, params);
               await database.updateUnreadMessageCount({ account_id });
               cb();
             } catch (err) {
+              dbg(`${err}`);
               cb(`${err}`);
             }
           } else {

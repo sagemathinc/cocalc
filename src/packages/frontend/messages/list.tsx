@@ -1,23 +1,25 @@
 import { useMemo } from "react";
 import { Spin } from "antd";
+import type { Message } from "@cocalc/util/db-schema/messages";
 
 export default function MessagesList({ messages, filter }) {
-  const filteredMessages = useMemo(() => {
+  const filteredMessages: null | Message[] = useMemo(() => {
     if (messages == null) {
       return null;
     }
+    let m;
     if (filter == "messages-read") {
-      return messages.filter(({ read }) => !!read);
+      m = messages.filter(isRead);
+    } else if (filter == "messages-saved") {
+      m = messages.filter(({ saved }) => saved);
+    } else if (filter == "messages-unread") {
+      m = messages.filter((message) => !isRead(message));
+    } else if (filter == "messages-all") {
+      m = messages;
+    } else {
+      m = messages;
     }
-    if (filter == "messages-saved") {
-      return messages.filter(({ saved }) => saved);
-    }
-    if (filter == "messages-unread") {
-      return messages.filter(({ read }) => !read);
-    }
-    if (filter == "messages-all") {
-      return messages;
-    }
+    return m.valueSeq().toJS();
   }, [filter, messages]);
 
   if (messages == null) {
@@ -30,4 +32,8 @@ export default function MessagesList({ messages, filter }) {
       {JSON.stringify(filteredMessages, undefined, 2)}
     </pre>
   );
+}
+
+function isRead(message) {
+  return message.get("read")?.valueOf();
 }

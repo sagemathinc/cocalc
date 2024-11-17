@@ -7,10 +7,11 @@ import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
 import type { Message } from "@cocalc/util/db-schema/messages";
 import type { TypedMap } from "@cocalc/util/types/typed-map";
-import type { List } from "immutable";
+import type { Map } from "immutable";
 
 export interface MessagesState {
-  messages?: List<TypedMap<Message>>;
+  // map from string version of message id to immutablejs Message.
+  messages?: Map<string, TypedMap<Message>>;
 }
 export class MessagesStore extends Store<MessagesState> {}
 
@@ -74,7 +75,7 @@ class MessagesTable extends Table {
 
 let initialized = false;
 export function init() {
-  if (initialized || redux.getStore("messages") != null ) {
+  if (initialized || redux.getStore("messages") != null) {
     return;
   }
   redux.createStore<MessagesState, MessagesStore>("messages", MessagesStore, {
