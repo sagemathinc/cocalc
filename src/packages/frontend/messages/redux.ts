@@ -8,10 +8,12 @@ import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
 import type { Message } from "@cocalc/util/db-schema/messages";
 import type { TypedMap } from "@cocalc/util/types/typed-map";
 import type { Map } from "immutable";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
   messages?: Map<string, TypedMap<Message>>;
+  sent_messages?: Map<string, TypedMap<Message>>;
 }
 export class MessagesStore extends Store<MessagesState> {}
 
@@ -30,9 +32,9 @@ export class MessagesActions extends Actions<MessagesState> {
       .set({ id, read: read === null ? 0 : read, saved });
   };
 
-  send = ({
+  send = async ({
     to_id,
-    to_type,
+    to_type = "account",
     subject,
     body,
     thread_id,
@@ -43,9 +45,9 @@ export class MessagesActions extends Actions<MessagesState> {
     body: string;
     thread_id?: number;
   }) => {
-    redux
-      .getTable("messages")
-      .set({ subject, body, to_id, to_type, thread_id });
+    await webapp_client.async_query({
+      query: { messages: { subject, body, to_id, to_type, thread_id } },
+    });
   };
 }
 
@@ -91,6 +93,48 @@ class MessagesTable extends Table {
   }
 }
 
+class SentMessagesTable extends Table {
+  constructor(name, redux) {
+    super(name, redux);
+    this.query = this.query.bind(this);
+    this._change = this._change.bind(this);
+  }
+
+  options() {
+    return [];
+  }
+
+  query() {
+    return {
+      sent_messages: [
+        {
+          id: null,
+          created: null,
+          from_type: null,
+          from_id: null,
+          to_type: null,
+          to_id: null,
+          subject: null,
+          body: null,
+          read: null,
+          saved: null,
+          thread_id: null,
+        },
+      ],
+    };
+  }
+
+  _change(table, _keys): void {
+    const actions = this.redux.getActions("messages");
+    if (actions == null) {
+      throw Error("actions must be defined");
+    }
+
+    const sent_messages = table.get();
+    actions.setState({ sent_messages });
+  }
+}
+
 let initialized = false;
 export function init() {
   if (initialized || redux.getStore("messages") != null) {
@@ -104,5 +148,6 @@ export function init() {
     MessagesActions,
   );
   redux.createTable("messages", MessagesTable);
+  redux.createTable("sent_messages", SentMessagesTable);
   initialized = true;
 }

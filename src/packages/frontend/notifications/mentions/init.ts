@@ -16,7 +16,7 @@ export function init(redux: AppRedux) {
   }
 
   redux.createStore<MentionsState, MentionsStore>(REDUX_NAME, MentionsStore, {
-    filter: getNotificationFilterFromFragment() ?? "unread",
+    filter: getNotificationFilterFromFragment() ?? "messages-inbox",
   });
 
   redux.createActions<MentionsState, MentionsActions>(

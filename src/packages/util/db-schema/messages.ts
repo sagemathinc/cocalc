@@ -40,6 +40,7 @@ references messages.
 import { Table } from "./types";
 import { ID } from "./crm";
 import throttle from "@cocalc/util/api/throttle";
+import { SCHEMA as schema } from "./index";
 
 export const NUM_MESSAGES = 300;
 
@@ -187,7 +188,6 @@ Table({
               await database.updateUnreadMessageCount({ account_id });
               cb();
             } catch (err) {
-              dbg(`${err}`);
               cb(`${err}`);
             }
           } else {
@@ -236,6 +236,22 @@ Table({
             }
           }
         },
+      },
+    },
+  },
+});
+
+Table({
+  name: "sent_messages",
+  fields: schema.messages.fields,
+  rules: {
+    primary_key: schema.messages.primary_key,
+    changefeed_keys: ["from_id"],
+    virtual: "messages",
+    user_query: {
+      get: {
+        ...schema.messages.user_query?.get!,
+        pg_where: [{ "from_id = $::UUID": "account_id" }],
       },
     },
   },

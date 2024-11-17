@@ -1298,7 +1298,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                 delete new_val[key]
 
     _user_get_query_changefeed: (changes, table, primary_keys, user_query,
-                                 where, json_fields, account_id, client_query, cb) =>
+                                 where, json_fields, account_id, client_query, orig_table, cb) =>
         dbg = @_dbg("_user_get_query_changefeed(table='#{table}')")
         dbg()
         # WARNING: always call changes.cb!  Do not do something like f = changes.cb, then call f!!!!
@@ -1322,7 +1322,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         possible_time_fields = misc.deep_copy(json_fields)
         feed = undefined
 
-        changefeed_keys = SCHEMA[table]?.changefeed_keys ? []
+        changefeed_keys = SCHEMA[orig_table]?.changefeed_keys ? SCHEMA[table]?.changefeed_keys ? []
         for field, val of user_query
             type = pg_type(SCHEMA[table]?.fields?[field])
             if type == 'TIMESTAMP'
@@ -1592,7 +1592,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     dbg("getting changefeed")
                     @_user_get_query_changefeed(opts.changes, table, primary_keys,
                                                 opts.query, _query_opts.where, json_fields,
-                                                opts.account_id, client_query, cb)
+                                                opts.account_id, client_query, opts.table,
+                                                cb)
                 else
                     cb()
 

@@ -19,6 +19,7 @@ interface Props {
   show_original?: boolean;
   name?: string;
   show_avatar?: boolean; // if true, show an avatar to the left of the user
+  avatarSize?: number; // in pixels
 }
 
 export class User extends Component<Props> {
@@ -37,7 +38,7 @@ export class User extends Component<Props> {
       !n.equals(
         this.props.user_map != null
           ? this.props.user_map.get(this.props.account_id)
-          : undefined
+          : undefined,
       )
     ) {
       return true; // something about the user changed in the user_map, so updated.
@@ -96,7 +97,7 @@ export class User extends Component<Props> {
       this.props.name != null
         ? this.props.name
         : `${info.first_name} ${info.last_name}`,
-      50
+      50,
     ).trim();
     if (x) {
       return x;
@@ -124,7 +125,11 @@ export class User extends Component<Props> {
         <span>
           {this.props.show_avatar && (
             <>
-              <Avatar account_id={this.props.account_id} first_name={n} />
+              <Avatar
+                account_id={this.props.account_id}
+                first_name={n}
+                size={this.props.avatarSize}
+              />
               <Gap />
             </>
           )}

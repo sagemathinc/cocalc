@@ -108,7 +108,7 @@ export const NotificationPage: React.FC<{}> = () => {
             id: "notifications.page.intro",
             description:
               "The @ sign in front of a user name handle is used to notify someone else.",
-            defaultMessage: `Global news or someone used "@your_name" to explicitly mention you as a collaborator.
+            defaultMessage: `Messaging, news or someone used "@your_name" to explicitly mention you as a collaborator.
             This could have happened in a <A1>Chatroom</A1>,
             in the context of <A2>teaching</A2>, or <A3>when editing files.</A3>
             For example, when editing text in a Jupyter notebook or whiteboard,

@@ -9,7 +9,7 @@ import MessagesList from "./list";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 type Filter =
-  | "messages-read"
+  | "messages-sent"
   | "messages-saved"
   | "messages-unread"
   | "messages-all";
@@ -32,6 +32,7 @@ export default function Messages({ filter, style }: Props) {
   }, []);
 
   const messages = useTypedRedux("messages", "messages");
+  const sentMessages = useTypedRedux("messages", "sent_messages");
 
   return (
     <div style={style}>
@@ -40,7 +41,7 @@ export default function Messages({ filter, style }: Props) {
         setError={setError}
         style={{ margin: "30px auto" }}
       />
-      <MessagesList messages={messages} filter={filter} />
+      <MessagesList messages={messages} sentMessages={sentMessages} filter={filter} />
     </div>
   );
 }

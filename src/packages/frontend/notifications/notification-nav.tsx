@@ -100,11 +100,54 @@ interface Props {
   style: React.CSSProperties;
 }
 
-export function NotificationNav(props: Props) {
-  const { filter, on_click, style } = props;
+export function NotificationNav({ filter, on_click, style }: Props) {
   const intl = useIntl();
 
   const ITEMS: MenuItems = [
+    {
+      key: "messages",
+      label: (
+        <Text strong style={{ fontSize: "125%" }}>
+          Messages <MessagesCounter />
+        </Text>
+      ),
+      children: [
+        {
+          key: "messages-compose",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="pen" /> Compose
+            </span>
+          ),
+        },
+        {
+          key: "messages-inbox",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="eye-slash" /> Inbox
+            </span>
+          ),
+        },
+        {
+          key: "messages-sent",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name={"external-link"} /> Sent
+            </span>
+          ),
+        },
+        {
+          key: "messages-all",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="comments" /> All Messages
+            </span>
+          ),
+        },
+      ],
+      type: "group",
+    },
+    { key: "divider-before-mentions", type: "divider" },
     {
       key: "mentions",
       label: (
@@ -143,51 +186,6 @@ export function NotificationNav(props: Props) {
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
               @ {intl.formatMessage(MSGS.all)}
-            </span>
-          ),
-        },
-      ],
-      type: "group",
-    },
-    { key: "divider-before-messages", type: "divider" },
-    {
-      key: "messages",
-      label: (
-        <Text strong style={{ fontSize: "125%" }}>
-          Messages <MessagesCounter />
-        </Text>
-      ),
-      children: [
-        {
-          key: "messages-unread",
-          label: (
-            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="eye-slash" /> {intl.formatMessage(MSGS.unread)}
-            </span>
-          ),
-        },
-        {
-          key: "messages-read",
-          label: (
-            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="eye" /> {intl.formatMessage(MSGS.read)}
-            </span>
-          ),
-        },
-        {
-          key: "messages-saved",
-          label: (
-            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name={BOOKMARK_ICON_NAME} />{" "}
-              {intl.formatMessage(MSGS.saved)}
-            </span>
-          ),
-        },
-        {
-          key: "messages-all",
-          label: (
-            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="comments" /> All Messages
             </span>
           ),
         },
