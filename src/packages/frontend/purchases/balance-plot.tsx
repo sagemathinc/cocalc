@@ -33,7 +33,6 @@ export default function BalancePlot({
         lastAmount = amount;
       }
     }
-    console.log({ x, y });
     return [
       {
         type: "area",

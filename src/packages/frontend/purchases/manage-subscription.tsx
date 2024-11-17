@@ -126,7 +126,7 @@ function DescribeSubscription({ license, subscription, reload }) {
           <div>
             <Space>
               <Statistic
-                title={<>Cost Per {capitalize(subscription.period)} (USD)</>}
+                title={<>Cost Per {capitalize(subscription.interval)} (USD)</>}
                 value={subscription.cost}
                 precision={2}
                 prefix={"$"}
