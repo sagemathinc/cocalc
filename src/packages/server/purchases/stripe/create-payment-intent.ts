@@ -38,7 +38,7 @@ export default async function createPaymentIntent({
   // optional extra metadata: do NOT use 'purpose', 'account_id', 'confirm' or 'processed'.
   // as a key.
   metadata?: { [key: string]: string };
-}): Promise<void> {
+}): Promise<string> {
   logger.debug("createPaymentIntent", {
     account_id,
     purpose,
@@ -164,7 +164,7 @@ export default async function createPaymentIntent({
     }
   }
   if (!success) {
-    return;
+    return paymentIntentId;
   }
   // succeeded, so immediately check if we can process, in case of an instant
   // payment method.  otherwise, has to wait on user intervention and/or our
@@ -173,6 +173,7 @@ export default async function createPaymentIntent({
   if (isReadyToProcess(paymentIntent)) {
     processPaymentIntent(paymentIntent);
   }
+  return paymentIntentId;
 }
 
 // returns first ~10 distinct payment method ids, with the default first if there

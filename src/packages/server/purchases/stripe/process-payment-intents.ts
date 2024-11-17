@@ -10,7 +10,9 @@ import {
   AUTO_CREDIT,
   SHOPPING_CART_CHECKOUT,
   STUDENT_PAY,
+  SUBSCRIPTION_RENEWAL,
 } from "@cocalc/util/db-schema/purchases";
+import { processSubscriptionRenewal } from "./create-subscription-payment";
 
 const logger = getLogger("purchases:stripe:process-payment-intents");
 
@@ -177,6 +179,8 @@ export async function processPaymentIntent(
       project_id: paymentIntent.metadata.project_id,
       amount,
     });
+  } else if (paymentIntent.metadata.purpose == SUBSCRIPTION_RENEWAL) {
+    await processSubscriptionRenewal({ account_id, paymentIntent, amount });
   }
 
   return credit_id;

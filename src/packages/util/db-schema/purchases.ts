@@ -21,10 +21,11 @@ import type { CourseInfo } from "./projects";
 import { Table } from "./types";
 import type { LineItem } from "@cocalc/util/stripe/types";
 
-// various specific payment purposes.
+// various specific payment purposes -- todo: should probably rewrite to use typescript enum?
 export const SHOPPING_CART_CHECKOUT = "shopping-cart-checkout";
 export const AUTO_CREDIT = "auto-credit";
 export const STUDENT_PAY = "student-pay";
+export const SUBSCRIPTION_RENEWAL = "subscription-renewal";
 
 export type Reason =
   | "duplicate"

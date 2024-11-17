@@ -1,4 +1,12 @@
-import { Button, Modal, Space, Spin, Statistic, Tooltip } from "antd";
+import {
+  Button,
+  Modal,
+  Popconfirm,
+  Space,
+  Spin,
+  Statistic,
+  Tooltip,
+} from "antd";
 import { useEffect, useState } from "react";
 import { getLicense, getSubscription, createSubscriptionPayment } from "./api";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
@@ -84,11 +92,11 @@ export function ManageSubscription({
     reload();
   }, []);
 
-  useEffect(() => {
-    if (window != null) {
-      window.x = { license, subscription };
-    }
-  }, [license, subscription]);
+  //   useEffect(() => {
+  //     if (window != null) {
+  //       window.x = { license, subscription };
+  //     }
+  //   }, [license, subscription]);
 
   return (
     <div style={style}>
@@ -166,8 +174,9 @@ function PaymentStatus({ license, subscription }) {
   if (payment == null) {
     return (
       <div>
-        No outstanding payment currently due. Next payment will be due{" "}
-        <TimeAgo date={expires} />.{" "}
+        <b>
+          Your subscription is fully paid through <TimeAgo date={expires} />.
+        </b>
       </div>
     );
   }
@@ -179,7 +188,7 @@ function MakeNextPayment({ license, subscription, reload }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
-  if (subscription.payment != null && !subscription.payment.paid) {
+  if (subscription.payment != null && subscription.payment.status == "active") {
     return <div>Payment in progress...</div>;
   }
 
@@ -187,9 +196,14 @@ function MakeNextPayment({ license, subscription, reload }) {
   const nextEnd = dayjs(expires).add(1, subscription.interval).toDate();
   return (
     <div>
-      <Button
-        disabled={loading}
-        onClick={async () => {
+      <Popconfirm
+        title={
+          <>
+            Are you sure you want to pay this subscription until{" "}
+            <TimeAgo date={nextEnd} />?
+          </>
+        }
+        onConfirm={async () => {
           try {
             setError("");
             setLoading(true);
@@ -201,11 +215,15 @@ function MakeNextPayment({ license, subscription, reload }) {
             setLoading(false);
           }
         }}
+        okText="Yes"
+        cancelText="No"
       >
-        Pay Subscription Through <TimeAgo date={nextEnd} />
-        ...
-        {loading && <Spin style={{ marginLeft: "30px" }} />}
-      </Button>
+        <Button disabled={loading}>
+          Pay Subscription Through <TimeAgo date={nextEnd} placement="bottom" />
+          ...
+          {loading && <Spin style={{ marginLeft: "30px" }} />}
+        </Button>
+      </Popconfirm>
       <ShowError
         style={{ margin: "15px 30px" }}
         error={error}

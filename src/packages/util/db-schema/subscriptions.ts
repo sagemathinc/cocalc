@@ -14,18 +14,16 @@ export type Metadata = LicenseMetadata;
 export interface SubscriptionPayment {
   // id of the payment intent in stripe
   payment_intent_id: string;
-  // id of the subscription in cocalc
-  subscription_id: number;
   // the cost of the subscription renewal; this is usually the same as the cost of the subscription,
   // but could be different, e.g,. if part of the renewal is paid from the user's balance.
   amount: number;
-  // timestamp in ms since epoch of when this was created.
+  // timestamp in ms since epoch of when this payment was created.
   created: number;
-  // paid -- set to true when the specific payment_intent_id is paid.
-  paid?: boolean;
+  // status of this payment: "active" --> "paid" or "active" --> "canceled"
+  status: "active" | "paid" | "canceled";
   // when this payment gets paid, we change the expire date on the
   // license to this (which is stored in ms since epoch):
-  new_expires_ms?: number;
+  new_expires_ms: number;
 }
 
 export interface Subscription {
