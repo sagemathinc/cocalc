@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Select } from "antd";
 import type { SelectProps } from "antd";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -27,14 +27,23 @@ export default function SelectUser({
   style,
   disabled,
   onChange,
+  defaultValue,
 }: {
   placeholder: string;
   style?;
   disabled?: boolean;
   onChange?: (user) => void;
+  defaultValue?;
 }) {
   const [data, setData] = useState<SelectProps["options"]>([]);
-  const [value, setValue] = useState<string>();
+  const [value, setValue] = useState<string>(defaultValue ?? "");
+
+  useEffect(() => {
+    if (!defaultValue) {
+      return;
+    }
+    handleSearch(defaultValue, setData);
+  }, []);
 
   const handleChange = (account_id: string) => {
     setValue(account_id);

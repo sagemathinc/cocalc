@@ -5,15 +5,31 @@ import { redux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import type { Message } from "@cocalc/util/db-schema/messages";
 
-export default function Compose() {
-  const [toId, setToId] = useState<string>("");
-  const [subject, setSubject] = useState<string>("");
+export default function Compose({
+  replyTo,
+  onCancel,
+  onSend,
+  title,
+}: {
+  replyTo?: Message;
+  onCancel?: Function;
+  onSend?: Function;
+  title?;
+}) {
+  const [toId, setToId] = useState<string>(
+    replyTo?.from_type == "account" ? replyTo.from_id : "",
+  );
+  const [subject, setSubject] = useState<string>(
+    replyTo?.subject ? `Re: ${replyTo?.subject}` : "",
+  );
   const [body, setBody] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [state, setState] = useState<"compose" | "sending" | "sent">("compose");
 
   const reset = () => {
+    onCancel?.();
     setToId("");
     setSubject("");
     setBody("");
@@ -22,10 +38,13 @@ export default function Compose() {
 
   return (
     <div>
-      <h3 style={{ marginBottom: "15px" }}>Compose Message</h3>
+      <h3 style={{ marginBottom: "15px" }}>{title ?? "Compose Message"}</h3>
       <Space direction="vertical" style={{ width: "100%" }}>
         <div>
           <SelectUser
+            defaultValue={
+              replyTo?.from_type == "account" ? replyTo.from_id : ""
+            }
             disabled={state != "compose"}
             placeholder="To..."
             style={{ width: "250px" }}
@@ -39,6 +58,7 @@ export default function Compose() {
           onChange={(e) => setSubject(e.target.value)}
         />
         <Input.TextArea
+          autoFocus={replyTo != null}
           disabled={state != "compose"}
           rows={10}
           placeholder="Body..."
@@ -49,8 +69,9 @@ export default function Compose() {
           <Space>
             <Button
               disabled={
-                state != "compose" ||
-                (subject == "" && toId == "" && body == "")
+                onCancel == null &&
+                (state != "compose" ||
+                  (subject == "" && toId == "" && body == ""))
               }
               onClick={() => reset()}
             >
@@ -70,8 +91,10 @@ export default function Compose() {
                     to_type: "account",
                     subject,
                     body,
+                    thread_id: replyTo?.thread_id ?? replyTo?.id,
                   });
                   setState("sent");
+                  onSend?.();
                 } catch (err) {
                   setError(`${err}`);
                   setState("compose");
@@ -112,7 +135,18 @@ export default function Compose() {
           setError={setError}
           style={{ margin: "30px auto" }}
         />
-        <StaticMarkdown value={body} />
+        <div
+          style={{
+            margin: "30px",
+            paddingTop: "15px",
+            borderTop: "1px solid #ccc",
+          }}
+        >
+          Preview:
+          <br />
+          <br />
+          <StaticMarkdown value={body} />
+        </div>
       </Space>
     </div>
   );

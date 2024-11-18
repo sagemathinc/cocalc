@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Card, Checkbox, Flex, List, Space, Spin } from "antd";
+import { Checkbox, Flex, List, Space, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { capitalize, field_cmp } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -8,6 +8,7 @@ import Compose from "./compose";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import ReplyButton from "./reply-button";
 
 export default function MessagesList({ messages, sentMessages, filter }) {
   const [visible, setVisible] = useState<Set<number>>(new Set());
@@ -46,7 +47,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
         bordered
         dataSource={filteredMessages}
         renderItem={(message) => (
-          <List.Item>
+          <List.Item style={{ background: "#f8f8f8" }}>
             <Space
               direction="vertical"
               style={{ width: "100%", marginBottom: "-10px" }}
@@ -102,9 +103,20 @@ export default function MessagesList({ messages, sentMessages, filter }) {
               </Flex>
               <div>
                 {visible.has(message.id) && (
-                  <Card style={{ margin: "30px" }}>
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #ccc",
+                      borderRadius: "5px",
+                      padding: "15px",
+                      marginBottom: "15px",
+                    }}
+                  >
                     <StaticMarkdown value={message.body} />
-                  </Card>
+                    {message.from_type == "account" && (
+                      <ReplyButton type="text" replyTo={message} />
+                    )}
+                  </div>
                 )}
               </div>
             </Space>
