@@ -50,8 +50,6 @@ export default function SelectUser({
     onChange?.(account_id);
   };
 
-  console.log({ value, placeholder });
-
   return (
     <Select
       disabled={disabled}

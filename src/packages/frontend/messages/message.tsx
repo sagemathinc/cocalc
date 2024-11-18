@@ -1,5 +1,5 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { Checkbox, Flex, Space } from "antd";
+import { Checkbox, Flex, Space, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { User } from "@cocalc/frontend/users";
@@ -7,6 +7,7 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
 import { isRead } from "./util";
+import { useState, useEffect } from "react";
 
 interface Props {
   message: MessageType;
@@ -21,6 +22,12 @@ export default function Message({
   setShowBody,
   filter,
 }: Props) {
+  // setting saved locally is a trigger so get instant feedback.
+  const [saved, setSaved] = useState<boolean>(!!message.saved);
+  useEffect(() => {
+    setSaved(!!message.saved);
+  }, [message.saved]);
+
   return (
     <Space
       direction="vertical"
@@ -30,8 +37,9 @@ export default function Message({
         {filter != "messages-sent" && (
           <Checkbox
             style={{ marginRight: "15px" }}
-            checked={message.saved}
+            checked={saved}
             onChange={(e) => {
+              setSaved(e.target.checked);
               redux.getActions("messages").mark({
                 id: message.id,
                 saved: e.target.checked,
@@ -60,27 +68,31 @@ export default function Message({
             setShowBody(new Set(showBody));
           }}
         >
-          {isRead(message) ? (
-            <>
-              {message.subject} (read <TimeAgo date={message.read} />)
-            </>
-          ) : (
-            <b>{message.subject}</b>
-          )}
+          {isRead(message) ? message.subject : <b>{message.subject}</b>}
         </div>
         <div style={{ flex: 0.2 }} />
-        {isRead(message) && (
-          <div style={{ textAlign: "right", marginRight: "15px", color:"#666" }}>
-            (read <TimeAgo date={message.read} />)
-          </div>
-        )}
-        <User
-          account_id={
-            filter == "messages-sent" ? message.to_id : message.from_id
-          }
-          show_avatar
-          avatarSize={20}
-        />
+        <div style={{ width: "200px" }}>
+          <Tooltip
+            title={
+              isRead(message) ? (
+                <>
+                  Read message <TimeAgo date={message.read} />
+                </>
+              ) : (
+                "Has not yet read message"
+              )
+            }
+          >
+            &nbsp;{/*the nbsp makes the tooltip work -- weird */}
+            <User
+              account_id={
+                filter == "messages-sent" ? message.to_id : message.from_id
+              }
+              show_avatar
+              avatarSize={20}
+            />
+          </Tooltip>
+        </div>
         <TimeAgo
           date={message.created}
           style={{ width: "150px", textAlign: "right" }}

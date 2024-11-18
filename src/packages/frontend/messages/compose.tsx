@@ -12,11 +12,13 @@ export default function Compose({
   onCancel,
   onSend,
   title,
+  style,
 }: {
   replyTo?: Message;
   onCancel?: Function;
   onSend?: Function;
   title?;
+  style?;
 }) {
   const [toId, setToId] = useState<string>(
     replyTo?.from_type == "account" ? replyTo.from_id : "",
@@ -37,7 +39,7 @@ export default function Compose({
   };
 
   return (
-    <div>
+    <div style={style}>
       <h3 style={{ marginBottom: "15px" }}>{title ?? "Compose Message"}</h3>
       <Space direction="vertical" style={{ width: "100%" }}>
         <div>
