@@ -7,9 +7,10 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
 import { isRead } from "./util";
-import { useState, useEffect } from "react";
 
 interface Props {
+  checked?: boolean;
+  setChecked?: (e: { checked: boolean; shiftKey: boolean }) => void;
   message: MessageType;
   showBody?;
   setShowBody?;
@@ -17,33 +18,26 @@ interface Props {
 }
 
 export default function Message({
+  checked,
+  setChecked,
   message,
   showBody,
   setShowBody,
   filter,
 }: Props) {
-  // setting saved locally is a trigger so get instant feedback.
-  const [saved, setSaved] = useState<boolean>(!!message.saved);
-  useEffect(() => {
-    setSaved(!!message.saved);
-  }, [message.saved]);
-
   return (
     <Space
       direction="vertical"
       style={{ width: "100%", marginBottom: "-10px" }}
     >
       <Flex style={{ width: "100%" }}>
-        {filter != "messages-sent" && (
+        {setChecked != null && (
           <Checkbox
             style={{ marginRight: "15px" }}
-            checked={saved}
+            checked={!!checked}
             onChange={(e) => {
-              setSaved(e.target.checked);
-              redux.getActions("messages").mark({
-                id: message.id,
-                saved: e.target.checked,
-              });
+              const shiftKey = e.nativeEvent.shiftKey;
+              setChecked({ checked: e.target.checked, shiftKey });
             }}
           />
         )}

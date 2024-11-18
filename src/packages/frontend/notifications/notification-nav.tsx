@@ -144,6 +144,14 @@ export function NotificationNav({ filter, on_click, style }: Props) {
             </span>
           ),
         },
+        {
+          key: "messages-trash",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="trash" /> Trash
+            </span>
+          ),
+        },
       ],
       type: "group",
     },
