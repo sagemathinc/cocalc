@@ -4,6 +4,7 @@ import { useState } from "react";
 import { redux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 
 export default function Compose() {
   const [toId, setToId] = useState<string>("");
@@ -111,6 +112,7 @@ export default function Compose() {
           setError={setError}
           style={{ margin: "30px auto" }}
         />
+        <StaticMarkdown value={body} />
       </Space>
     </div>
   );

@@ -24,7 +24,7 @@ export class MessagesActions extends Actions<MessagesState> {
     saved,
   }: {
     id: number;
-    read: Date | null;
+    read?: Date | null;
     saved?: boolean;
   }) => {
     redux
