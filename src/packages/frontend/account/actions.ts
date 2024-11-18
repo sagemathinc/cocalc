@@ -7,6 +7,7 @@ import { fromJS } from "immutable";
 import { join } from "path";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { AccountClient } from "@cocalc/frontend/client/account";
+import api from "@cocalc/frontend/client/api";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { set_url } from "@cocalc/frontend/history";
 import { track_conversion } from "@cocalc/frontend/misc";
@@ -188,9 +189,8 @@ If that doesn't work after a few minutes, try these ${doc_conn} or email ${this.
 
     try {
       // actually request to delete the account
-      await this.account_client.delete_account(
-        this.redux.getStore("account").get_account_id(),
-      );
+      // this should return {status: "success"}
+      await api("/accounts/delete");
     } catch (err) {
       this.setState({
         account_deletion_error: `Error trying to delete the account: ${err.message}`,

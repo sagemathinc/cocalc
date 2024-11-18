@@ -616,11 +616,13 @@ Table({
 });
 
 export type Datastore = boolean | string[] | undefined;
+
 // in the future, we might want to extend this to include custom environmment variables
 export interface EnvVarsRecord {
   inherit?: boolean;
 }
 export type EnvVars = EnvVarsRecord | undefined;
+
 export interface StudentProjectFunctionality {
   disableActions?: boolean;
   disableJupyterToggleReadonly?: boolean;
