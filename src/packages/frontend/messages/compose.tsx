@@ -135,18 +135,20 @@ export default function Compose({
           setError={setError}
           style={{ margin: "30px auto" }}
         />
-        <div
-          style={{
-            margin: "30px",
-            paddingTop: "15px",
-            borderTop: "1px solid #ccc",
-          }}
-        >
-          Preview:
-          <br />
-          <br />
-          <StaticMarkdown value={body} />
-        </div>
+        {!!body?.trim() && (
+          <div
+            style={{
+              margin: "30px",
+              paddingTop: "15px",
+              borderTop: "1px solid #ccc",
+            }}
+          >
+            Preview:
+            <br />
+            <br />
+            <StaticMarkdown value={body} />
+          </div>
+        )}
       </Space>
     </div>
   );

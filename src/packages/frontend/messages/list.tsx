@@ -1,17 +1,12 @@
 import { useMemo, useState } from "react";
-import { Checkbox, Flex, List, Space, Spin } from "antd";
+import { List, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { capitalize, field_cmp } from "@cocalc/util/misc";
-import { TimeAgo } from "@cocalc/frontend/components/time-ago";
-import { User } from "@cocalc/frontend/users";
 import Compose from "./compose";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { redux } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import ReplyButton from "./reply-button";
+import Message from "./message";
 
 export default function MessagesList({ messages, sentMessages, filter }) {
-  const [visible, setVisible] = useState<Set<number>>(new Set());
+  const [showBody, setShowBody] = useState<Set<number>>(new Set());
 
   const filteredMessages: MessageType[] = useMemo(() => {
     if (messages == null || filter == "message-compose") {
@@ -48,85 +43,15 @@ export default function MessagesList({ messages, sentMessages, filter }) {
         dataSource={filteredMessages}
         renderItem={(message) => (
           <List.Item style={{ background: "#f8f8f8" }}>
-            <Space
-              direction="vertical"
-              style={{ width: "100%", marginBottom: "-10px" }}
-            >
-              <Flex style={{ width: "100%" }}>
-                {filter != "messages-sent" && (
-                  <Checkbox
-                    style={{ marginRight: "15px" }}
-                    checked={message.saved}
-                    onChange={(e) => {
-                      redux.getActions("messages").mark({
-                        id: message.id,
-                        saved: e.target.checked,
-                      });
-                    }}
-                  />
-                )}
-                <div
-                  style={{ flex: 0.8, cursor: "pointer" }}
-                  onClick={() => {
-                    if (visible.has(message.id)) {
-                      visible.delete(message.id);
-                    } else {
-                      visible.add(message.id);
-                      if (filter != "messages-sent" && !message.read) {
-                        redux.getActions("messages").mark({
-                          id: message.id,
-                          read: webapp_client.server_time(),
-                        });
-                      }
-                    }
-                    // should use immutable js but I'm lazy and not big.
-                    setVisible(new Set(visible));
-                  }}
-                >
-                  {isRead(message) ? message.subject : <b>{message.subject}</b>}
-                </div>
-                <div style={{ flex: 0.2 }} />
-                <User
-                  account_id={
-                    filter == "messages-sent" ? message.to_id : message.from_id
-                  }
-                  show_avatar
-                  avatarSize={20}
-                />
-                <TimeAgo
-                  date={message.created}
-                  style={{ width: "175px", textAlign: "right" }}
-                />
-                {/*<div style={{ width: "50px", color: "#888", textAlign: "right" }}>
-                {message.id}
-              </div>*/}
-              </Flex>
-              <div>
-                {visible.has(message.id) && (
-                  <div
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #ccc",
-                      borderRadius: "5px",
-                      padding: "15px",
-                      marginBottom: "15px",
-                    }}
-                  >
-                    <StaticMarkdown value={message.body} />
-                    {message.from_type == "account" && (
-                      <ReplyButton type="text" replyTo={message} />
-                    )}
-                  </div>
-                )}
-              </div>
-            </Space>
+            <Message
+              message={message}
+              showBody={showBody}
+              setShowBody={setShowBody}
+              filter={filter}
+            />
           </List.Item>
         )}
       />
     </>
   );
-}
-
-export function isRead(message: MessageType) {
-  return !!message.read?.valueOf();
 }

@@ -36,7 +36,7 @@ export default function SelectUser({
   defaultValue?;
 }) {
   const [data, setData] = useState<SelectProps["options"]>([]);
-  const [value, setValue] = useState<string>(defaultValue ?? "");
+  const [value, setValue] = useState<string | null>(defaultValue ? defaultValue : null);
 
   useEffect(() => {
     if (!defaultValue) {
@@ -49,6 +49,8 @@ export default function SelectUser({
     setValue(account_id);
     onChange?.(account_id);
   };
+
+  console.log({ value, placeholder });
 
   return (
     <Select
