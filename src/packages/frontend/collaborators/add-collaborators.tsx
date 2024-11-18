@@ -9,7 +9,6 @@ Add collaborators to a project
 
 import { Alert, Button, Input, Select } from "antd";
 import { useIntl } from "react-intl";
-
 import { labels } from "@cocalc/frontend/i18n";
 import {
   React,

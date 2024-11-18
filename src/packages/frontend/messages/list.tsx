@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { Flex, List, Spin, Input, Space } from "antd";
+import { Flex, List, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { User } from "@cocalc/frontend/users";
+import Compose from "./compose";
 
 export default function MessagesList({ messages, sentMessages, filter }) {
   const filteredMessages: MessageType[] = useMemo(() => {
@@ -28,16 +29,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
   }
 
   if (filter == "messages-compose") {
-    return (
-      <div>
-        <h3 style={{ marginBottom: "15px" }}>Write a message</h3>
-        <Space direction="vertical" style={{width:'100%'}}>
-          <Input placeholder="To" />
-          <Input placeholder="Subject" />
-          <Input.TextArea rows={10} placeholder="Body..." />
-        </Space>
-      </div>
-    );
+    return <Compose />;
   }
 
   return (
