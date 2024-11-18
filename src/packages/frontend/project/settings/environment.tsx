@@ -14,6 +14,7 @@ values be treated as deleted.
 */
 import { Alert, Button } from "antd";
 import jsonic from "jsonic";
+import { useIntl } from "react-intl";
 
 import {
   React,
@@ -24,6 +25,7 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Gap, SettingBox } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 
 export const ENV_VARS_ICON = "bars";
 interface Props {
@@ -52,6 +54,7 @@ export const Environment: React.FC<Props> = ({
   mode = "project",
 }: Props) => {
   const isFlyout = mode === "flyout";
+  const intl = useIntl();
   const env = useRedux(["projects", "project_map", project_id, "env"]);
   const [focused, set_focused] = useState<boolean>(false);
   const [editing, set_editing] = useState<string>(to_json(env?.toJS()));
@@ -117,7 +120,7 @@ export const Environment: React.FC<Props> = ({
           disabled={disabled}
           onClick={() => set_editing(to_json(env?.toJS()))}
         >
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>
         <Gap />
         <Button disabled={disabled} onClick={save}>

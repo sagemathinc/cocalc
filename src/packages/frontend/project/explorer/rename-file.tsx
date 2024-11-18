@@ -1,15 +1,18 @@
 import { Alert, Button, Card, Checkbox, Input, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
+
+import { useRedux } from "@cocalc/frontend/app-framework";
+import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   filename_extension,
   path_split,
   path_to_file,
 } from "@cocalc/util/misc";
-import { useProjectContext } from "@cocalc/frontend/project/context";
-import { useRedux } from "@cocalc/frontend/app-framework";
 import CheckedFiles from "./checked-files";
-import { Icon } from "@cocalc/frontend/components/icon";
-import ShowError from "@cocalc/frontend/components/error";
 
 const MAX_FILENAME_LENGTH = 4095;
 
@@ -18,6 +21,7 @@ interface Props {
 }
 
 export default function RenameFile({ duplicate }: Props) {
+  const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
@@ -130,7 +134,7 @@ export default function RenameFile({ duplicate }: Props) {
             actions?.set_file_action();
           }}
         >
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>{" "}
         <Button
           onClick={doAction}

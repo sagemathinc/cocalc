@@ -1,8 +1,10 @@
 import { Button, Modal, Spin } from "antd";
 import { useState } from "react";
-import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
-import { Icon } from "@cocalc/frontend/components/icon";
+
 import ShowError from "@cocalc/frontend/components/error";
+import { Icon } from "@cocalc/frontend/components/icon";
+import { CancelText } from "@cocalc/frontend/i18n/components";
+import type { CloudFilesystem } from "@cocalc/util/db-schema/cloud-filesystems";
 import { editCloudFilesystem } from "./api";
 import { BucketStorageClass } from "./bucket";
 
@@ -62,7 +64,7 @@ export default function EditBucketStorageClass({
       onCancel={() => setOpen(false)}
       footer={[
         <Button key="cancel" onClick={() => setOpen(false)}>
-          Cancel
+          <CancelText />
         </Button>,
         <Button
           key="ok"

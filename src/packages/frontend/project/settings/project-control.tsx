@@ -355,7 +355,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
             </Button>
             &nbsp;
             <Button onClick={() => cancel_compute_image(current_image)}>
-              Cancel
+              {intl.formatMessage(labels.cancel)}
             </Button>
           </div>
         ) : undefined}
