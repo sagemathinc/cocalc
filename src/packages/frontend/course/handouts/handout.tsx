@@ -228,7 +228,7 @@ export function Handout({
     };
     return (
       <Button key="cancel" onClick={cancel}>
-        Cancel
+        {intl.formatMessage(labels.cancel)}
       </Button>
     );
   }

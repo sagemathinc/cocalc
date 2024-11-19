@@ -1019,7 +1019,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       >
         Halt the server and close this?
         <Button onClick={() => set_close_and_halt_confirm(false)}>
-          Cancel
+        {intl.formatMessage(labels.cancel)}
         </Button>
         <Button
           danger
