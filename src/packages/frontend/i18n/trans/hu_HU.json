@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "Rejtsd el a menü eszköztárat az összes szerkesztőnél",
   "commands.generic.toggle_button_bar.label": "{show, select, true {Elrejt} other {Megjelenít}} Menü Eszköztár...",
   "commands.generic.toggle_button_bar.title": "Kapcsolja be vagy ki, hogy az összes szerkesztőnél megjelenjen-e a menü eszköztár.",
+  "components.test-i18n.msg": "<p>Formázva <b>félkövérrel</b> és <i>dőlttel</i>.</p>",
   "connection-info.hub_server": "Hub szerver",
   "connection-info.info": "A kapcsolat ikon színe változik, ahogy a hub felé küldött üzenetek száma növekszik. Általában nincs szükség beavatkozásra, de a számok hasznosak lehetnek diagnosztikai célokra. Az egyszerre küldhető üzenetek maximális száma {max}.",
   "connection-info.messages_received": "kapott",

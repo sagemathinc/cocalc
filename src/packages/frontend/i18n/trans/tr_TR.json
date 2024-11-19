@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "Tüm Editörler İçin Menü Araç Çubuğunu Gizle",
   "commands.generic.toggle_button_bar.label": "{show, select, true {Gizle} other {Göster}} Menü Araç Çubuğu...",
   "commands.generic.toggle_button_bar.title": "Tüm düzenleyiciler için menü araç çubuğunun görüntülenip görüntülenmeyeceğini değiştir.",
+  "components.test-i18n.msg": "<p><b>Kalın</b> ve <i>italik</i> ile biçimlendirilmiş.</p>",
   "connection-info.hub_server": "Hub sunucusu",
   "connection-info.info": "Bağlantı simgesinin rengi, bir merkeze uçuşta olan mesajların sayısı arttıkça değişir. Genellikle bir işlem yapılması gerekmez, ancak sayılar teşhis amaçları için faydalıdır. Aynı anda gönderilebilecek maksimum mesaj sayısı {max}.",
   "connection-info.messages_received": "alındı",
