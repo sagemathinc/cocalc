@@ -1,8 +1,19 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 // The official antd docs suggest doing this first.  It normalizes
 // the css in a way that is compatible with antd.
 // I think this is the correct fix for https://github.com/sagemathinc/cocalc/issues/6285
 // now that we are using antd v5.
 import "antd/dist/reset.css";
+
+import { Locale } from "locales/consts";
+import type { I18nDictionary } from "next-translate";
+
+// The I18nProvider is either english by default, or based on the query path: /lang/[locale]
+import I18nProvider from "next-translate/I18nProvider";
 
 // Initialize the appBasePath for the frontend codebase.
 import "@cocalc/frontend/customize/app-base-path";
@@ -14,37 +25,32 @@ import "@cocalc/frontend/editors/slate/elements/elements.css";
 
 import type { AppProps } from "next/app";
 
-import { isLocale, Locale } from "locales/consts";
-import I18nProvider from "next-translate/I18nProvider";
+// The IntlProvider makes translated components from the frontend work.
+// It's english only, using the fallback defaultMessage.
+import { IntlProvider } from "react-intl";
 
-import * as footerEN from "locales/en/footer.json";
-import * as indexEN from "locales/en/index.json";
+import { LOCALIZE_DEFAULT_ELEMENTS } from "@cocalc/frontend/app/localize-default-elements";
+import { DEFAULT_LOCALE } from "@cocalc/util/i18n";
 
 function MyApp({
   Component,
   pageProps,
-  router,
-  ...props
+  // router,
+  locale,
+  messages,
 }: AppProps & { messages: Record<string, I18nDictionary>; locale: Locale }) {
-  const locale = router.query.locale ?? props.locale;
-
-  if (isLocale(locale)) {
-    const messages = typeof window !== "undefined" ? {} : props.messages;
-    return (
+  return (
+    <IntlProvider
+      locale={DEFAULT_LOCALE}
+      messages={{}}
+      defaultLocale={DEFAULT_LOCALE}
+      defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
+    >
       <I18nProvider lang={locale} namespaces={messages}>
         <Component {...pageProps} />
       </I18nProvider>
-    );
-  } else {
-    return (
-      <I18nProvider
-        lang={"en"}
-        namespaces={{ footer: footerEN, index: indexEN }}
-      >
-        <Component {...pageProps} />
-      </I18nProvider>
-    );
-  }
+    </IntlProvider>
+  );
 }
 
 export default MyApp;
@@ -109,4 +115,3 @@ import "@uiw/react-textarea-code-editor/dist.css";
 // this must be last to overwrite things like antd
 import "../styles/bootstrap-visible.css";
 import "../styles/globals.css";
-import { I18nDictionary } from "next-translate";

@@ -1,7 +1,13 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { Layout } from "antd";
 import { GetServerSidePropsContext } from "next";
-
 import useTranslation from "next-translate/useTranslation";
+
+import { TestI18N } from "@cocalc/frontend/components/test-i18n";
 
 import Content from "components/landing/content";
 import Footer from "components/landing/footer";
@@ -12,7 +18,6 @@ import Logo from "components/logo";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-
 import { LOCALES } from "locales/consts";
 
 function Nav() {
@@ -43,6 +48,9 @@ function Hello({ customize }) {
       <Nav />
       <div>lang: {JSON.stringify(lang)}</div>
       <div>example: {example}</div>
+      <div>
+        <TestI18N />
+      </div>
 
       <Customize value={customize}>
         <Head title={t("main.site-description")} />

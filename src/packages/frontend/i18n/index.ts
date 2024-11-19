@@ -3,20 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import {
-  createIntl,
-  createIntlCache,
-  IntlShape,
-  MessageFormatElement,
-} from "react-intl";
-
 import { AccountState } from "@cocalc/frontend/account/types";
-import { redux } from "@cocalc/frontend/app-framework";
-import {
-  DEFAULT_LOCALE,
-  KEEP_EN_LOCALE,
-  Locale,
-} from "@cocalc/util/consts/locale";
+import { DEFAULT_LOCALE, Locale } from "@cocalc/util/consts/locale";
 import {
   isIntlMessage,
   LOCALIZATIONS,
@@ -24,27 +12,20 @@ import {
 } from "@cocalc/util/i18n";
 import type { IntlMessage } from "@cocalc/util/i18n/types";
 import { unreachable } from "@cocalc/util/misc";
+import { Messages } from "./types";
+import { sanitizeLocale } from "./utils";
 
-export { dialogs, editor, jupyter, labels, menu, course } from "./common";
+export { course, dialogs, editor, jupyter, labels, menu } from "./common";
 
 export {
   DEFAULT_LOCALE,
   isIntlMessage,
-  OTHER_SETTINGS_LOCALE_KEY,
   LOCALIZATIONS,
+  OTHER_SETTINGS_LOCALE_KEY,
+  sanitizeLocale,
 };
 
-export type { IntlMessage, Locale };
-
-export type Messages =
-  | Record<string, string>
-  | Record<string, MessageFormatElement[]>;
-
-export function sanitizeLocale(l: unknown): Locale {
-  if (typeof l !== "string") return DEFAULT_LOCALE;
-  if (l === KEEP_EN_LOCALE) return "en";
-  return l in LOCALIZATIONS ? (l as Locale) : DEFAULT_LOCALE;
-}
+export type { IntlMessage, Locale, Messages };
 
 export function getLocale(
   other_settings: AccountState["other_settings"],
@@ -97,19 +78,4 @@ export function loadLocaleMessages(locale: Locale): Promise<Messages> {
         throw new Error(`Unknown locale '${locale}.`);
     }
   })() as any as Promise<Messages>;
-}
-
-// This is optional but highly recommended, since it prevents memory leak
-const cache = createIntlCache();
-
-// Use this for example in an action, outside of React. e.g.
-// const intl = await getIntl();
-// intl.formatMessage(labels.account);
-export async function getIntl(): Promise<IntlShape> {
-  const val = redux
-    .getStore("account")
-    .getIn(["other_settings", OTHER_SETTINGS_LOCALE_KEY]);
-  const locale = sanitizeLocale(val);
-  const messages: Messages = await loadLocaleMessages(locale);
-  return createIntl({ locale, messages }, cache);
 }
