@@ -9,7 +9,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
 
 export default function MessagesList({ messages, sentMessages, filter }) {
-  const [showBody, setShowBody] = useState<Set<number>>(new Set());
+  const [showBody, setShowBody] = useState<number | null>(null);
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
     new Set(),
   );
@@ -56,6 +56,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
 
   useEffect(() => {
     setCheckedMessageIds(new Set());
+    setShowBody(null);
   }, [filter]);
 
   if (messages == null) {
@@ -66,11 +67,46 @@ export default function MessagesList({ messages, sentMessages, filter }) {
     return <Compose />;
   }
 
+  const head = (
+    <h3 style={{ marginBottom: "15px" }}>
+      {capitalize(filter?.split("-")[1])} ({filteredMessages.length})
+    </h3>
+  );
+
+  if (showBody != null) {
+    const id = `${showBody}`;
+    return (
+      <>
+        {head}
+        <Flex style={{ marginBottom: "5px" }}>
+          <Button
+            type="text"
+            onClick={() => {
+              setShowBody(null);
+            }}
+          >
+            <Icon
+              name="left-circle-o"
+              style={{ fontSize: "14pt", color: "#666" }}
+            />
+          </Button>
+          {filter != "messages-sent" && (
+            <Actions filter={filter} checkedMessageIds={new Set([showBody])} />
+          )}
+        </Flex>
+        <Message
+          message={messages.get(id)?.toJS() ?? sentMessages.get(id)?.toJS()}
+          showBody
+          setShowBody={setShowBody}
+          filter={filter}
+        />
+      </>
+    );
+  }
+
   return (
     <>
-      <h3 style={{ marginBottom: "15px" }}>
-        {capitalize(filter?.split("-")[1])} ({filteredMessages.length})
-      </h3>
+      {head}
       {filter != "messages-sent" && (
         <Flex style={{ marginBottom: "5px", height: "32px" }}>
           <Icon

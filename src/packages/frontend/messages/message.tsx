@@ -15,6 +15,7 @@ interface Props {
   showBody?;
   setShowBody?;
   filter?;
+  style?;
 }
 
 export default function Message({
@@ -24,15 +25,16 @@ export default function Message({
   showBody,
   setShowBody,
   filter,
+  style,
 }: Props) {
   const toggleBody = () => {
-    if (showBody == null) {
+    if (setShowBody == null) {
       return;
     }
-    if (showBody.has(message.id)) {
-      showBody.delete(message.id);
+    if (showBody) {
+      setShowBody(null);
     } else {
-      showBody.add(message.id);
+      setShowBody(message.id);
       if (filter != "messages-sent" && !message.read) {
         redux.getActions("messages").mark({
           id: message.id,
@@ -40,14 +42,12 @@ export default function Message({
         });
       }
     }
-    // should use immutable js but I'm lazy and not big.
-    setShowBody(new Set(showBody));
   };
 
   return (
     <Space
       direction="vertical"
-      style={{ width: "100%", marginBottom: "-10px" }}
+      style={{ width: "100%", marginBottom: "-10px", ...style }}
     >
       <Flex style={{ width: "100%" }} onClick={() => toggleBody()}>
         {setChecked != null && (
@@ -105,7 +105,7 @@ export default function Message({
         </div>
       </Flex>
       <div>
-        {(showBody?.has(message.id) || showBody == null) && (
+        {showBody && (
           <div
             style={{
               background: "#fff",
@@ -116,9 +116,9 @@ export default function Message({
             }}
           >
             <StaticMarkdown value={message.body} />
-            {message.from_type == "account" &&
-              filter != "messages-sent" &&
-              showBody != null && <ReplyButton type="text" replyTo={message} />}
+            {message.from_type == "account" && filter != "messages-sent" && (
+              <ReplyButton type="text" replyTo={message} />
+            )}
           </div>
         )}
       </div>
