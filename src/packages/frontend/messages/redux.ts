@@ -48,7 +48,7 @@ export class MessagesActions extends Actions<MessagesState> {
           read: read === null ? 0 : read,
           saved,
           deleted,
-          expire,
+          expire: expire === null ? 0 : expire,
         });
       }
       await table.save();

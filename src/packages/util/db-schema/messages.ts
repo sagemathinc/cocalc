@@ -192,7 +192,9 @@ Table({
                   : (new_val.read ?? old_val.read),
                 new_val.saved ?? old_val.saved,
                 new_val.deleted ?? old_val.deleted,
-                new_val.expire ?? old_val.expire,
+                new_val.expire === 0 || new Date(new_val.expire).valueOf() == 0
+                  ? null
+                  : (new_val.expire ?? old_val.expire),
               ];
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.

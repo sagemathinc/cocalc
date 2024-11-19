@@ -91,7 +91,12 @@ export default function MessagesList({ messages, sentMessages, filter }) {
             />
           </Button>
           {filter != "messages-sent" && (
-            <Actions filter={filter} checkedMessageIds={new Set([showBody])} />
+            <Actions
+              filter={filter}
+              checkedMessageIds={new Set([showBody])}
+              messages={messages}
+              setShowBody={setShowBody}
+            />
           )}
         </Flex>
         <Message
@@ -134,7 +139,12 @@ export default function MessagesList({ messages, sentMessages, filter }) {
             }}
           />
           {checkedMessageIds.size > 0 && filter != "messages-sent" && (
-            <Actions filter={filter} checkedMessageIds={checkedMessageIds} />
+            <Actions
+              filter={filter}
+              checkedMessageIds={checkedMessageIds}
+              messages={messages}
+              setShowBody={setShowBody}
+            />
           )}
         </Flex>
       )}
@@ -189,7 +199,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
   );
 }
 
-function Actions({ filter, checkedMessageIds }) {
+function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
   return (
     <Space>
       <Button
@@ -200,6 +210,7 @@ function Actions({ filter, checkedMessageIds }) {
             ids: checkedMessageIds,
             saved: true,
           });
+          setShowBody(null);
         }}
       >
         <Icon name="download" /> Archive
@@ -212,6 +223,7 @@ function Actions({ filter, checkedMessageIds }) {
               ids: checkedMessageIds,
               deleted: true,
             });
+            setShowBody(null);
           }}
         >
           <Icon name="trash" /> Delete
@@ -221,11 +233,13 @@ function Actions({ filter, checkedMessageIds }) {
         <Button
           danger
           type="text"
+          disabled={!hasNotExpire(checkedMessageIds, messages)}
           onClick={() => {
             redux.getActions("messages").mark({
               ids: checkedMessageIds,
-              expire: dayjs().add(60, "minute").toDate(),
+              expire: dayjs().add(1, "day").toDate(),
             });
+            setShowBody(null);
           }}
         >
           <Icon name="trash" /> Delete Forever
@@ -234,6 +248,7 @@ function Actions({ filter, checkedMessageIds }) {
       {filter != "messages-trash" && (
         <Button
           type="text"
+          disabled={!hasUnread(checkedMessageIds, messages)}
           onClick={() => {
             redux.getActions("messages").mark({
               ids: checkedMessageIds,
@@ -247,6 +262,7 @@ function Actions({ filter, checkedMessageIds }) {
       {filter != "messages-trash" && (
         <Button
           type="text"
+          disabled={!hasRead(checkedMessageIds, messages)}
           onClick={() => {
             redux.getActions("messages").mark({
               ids: checkedMessageIds,
@@ -259,17 +275,72 @@ function Actions({ filter, checkedMessageIds }) {
       )}
       <Button
         type="text"
-        disabled={filter != "messages-all" && filter != "messages-trash"}
+        disabled={!enableMoveToInbox(filter, checkedMessageIds, messages)}
         onClick={() => {
           redux.getActions("messages").mark({
             ids: checkedMessageIds,
             saved: false,
             deleted: false,
+            expire: null,
           });
+          setShowBody(null);
         }}
       >
         <Icon name="mail" /> Move to Inbox
       </Button>
     </Space>
   );
+}
+
+function enableMoveToInbox(filter, checkedMessageIds, messages) {
+  if (filter == "messages-inbox" || filter == "messages-sent") {
+    return false;
+  }
+  if (filter == "messages-all" && !hasSaved(checkedMessageIds, messages)) {
+    // every message is already in the inbox
+    return false;
+  }
+  if (filter == "messages-trash") {
+    return true;
+  }
+  return true;
+}
+
+function hasUnread(checkedMessageIds, messages) {
+  for (const id of checkedMessageIds) {
+    const read = messages.getIn([`${id}`, "read"]);
+    if (!read || new Date(read).valueOf() == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasRead(checkedMessageIds, messages) {
+  for (const id of checkedMessageIds) {
+    const read = messages.getIn([`${id}`, "read"]);
+    if (read && new Date(read).valueOf() > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasSaved(checkedMessageIds, messages) {
+  for (const id of checkedMessageIds) {
+    if (messages.getIn([`${id}`, "saved"])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasNotExpire(checkedMessageIds, messages) {
+  for (const id of checkedMessageIds) {
+    const expire = messages.getIn([`${id}`, "expire"]);
+    if (expire == null || new Date(expire).valueOf() == 0) {
+      return true;
+    }
+  }
+  return false;
 }

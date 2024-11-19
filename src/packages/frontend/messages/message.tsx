@@ -49,7 +49,10 @@ export default function Message({
       direction="vertical"
       style={{ width: "100%", marginBottom: "-10px", ...style }}
     >
-      <Flex style={{ width: "100%" }} onClick={() => toggleBody()}>
+      <Flex
+        style={{ width: "100%" }}
+        onClick={showBody ? undefined : () => toggleBody()}
+      >
         {setChecked != null && (
           <Checkbox
             onClick={(e) => e.stopPropagation()}
@@ -135,7 +138,7 @@ function getTag(message, filter) {
   ) {
     return <Tag color="green">Inbox</Tag>;
   }
-  if (message.expire) {
+  if (message.expire && new Date(message.expire).valueOf()) {
     return (
       <Tooltip
         title={
@@ -145,7 +148,7 @@ function getTag(message, filter) {
           </>
         }
       >
-        <Tag color="red">Permanently Delete</Tag>
+        <Tag color="red">Deleting</Tag>
       </Tooltip>
     );
   }
