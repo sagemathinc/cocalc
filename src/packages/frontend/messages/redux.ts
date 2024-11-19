@@ -18,18 +18,41 @@ export interface MessagesState {
 export class MessagesStore extends Store<MessagesState> {}
 
 export class MessagesActions extends Actions<MessagesState> {
-  mark = ({
+  mark = async ({
     id,
+    ids,
     read,
     saved,
+    deleted,
+    expire,
   }: {
-    id: number;
+    id?: number;
+    ids?: Set<number>;
     read?: Date | null;
     saved?: boolean;
+    deleted?: boolean;
+    expire?: Date | null;
   }) => {
-    redux
-      .getTable("messages")
-      .set({ id, read: read === null ? 0 : read, saved });
+    if (id != null) {
+      await redux
+        .getTable("messages")
+        .set({ id, read: read === null ? 0 : read, saved, deleted, expire });
+    }
+    if (ids != null && ids.size > 0) {
+      // mark them all read or saved -- have to use _table to
+      // change more than one record at a time.
+      const table = redux.getTable("messages")._table;
+      for (const id of ids) {
+        table.set({
+          id,
+          read: read === null ? 0 : read,
+          saved,
+          deleted,
+          expire,
+        });
+      }
+      await table.save();
+    }
   };
 
   send = async ({
@@ -76,7 +99,9 @@ class MessagesTable extends Table {
           body: null,
           read: null,
           saved: null,
+          deleted: null,
           thread_id: null,
+          expire: null,
         },
       ],
     };

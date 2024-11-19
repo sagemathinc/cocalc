@@ -57,6 +57,7 @@ export interface Message {
   body: string;
   read?: Date;
   saved?: boolean;
+  deleted?: boolean;
   expire?: Date;
   // used for replies
   thread_id?: number;
@@ -81,6 +82,7 @@ Table({
       type: "uuid",
       desc: "A project_id when from='project' and an account_id when from='account'.  For type='system', haven't decided what this is yet (maybe some hardcoded uuid's for different components of the system?).",
       not_null: true,
+      render: { type: "account" },
     },
     to_type: {
       type: "string",
@@ -92,6 +94,7 @@ Table({
       type: "uuid",
       desc: "uuid of account that the message is being sent to",
       not_null: true,
+      render: { type: "account" },
     },
     subject: {
       type: "string",
@@ -111,9 +114,13 @@ Table({
       type: "boolean",
       desc: "If user saved this message for later.",
     },
+    deleted: {
+      type: "boolean",
+      desc: "If recipient deleted this message.",
+    },
     expire: {
       type: "timestamp",
-      desc: "delete this row after this date, if not null",
+      desc: "Recipient requested to permanently delete this message after this date.",
     },
     thread_id: {
       type: "number",
@@ -128,7 +135,6 @@ Table({
       get: {
         pg_where: [{ "to_id = $::UUID": "account_id" }],
         options: [{ order_by: "-created" }, { limit: NUM_MESSAGES }],
-        throttle_changes: 2000,
         fields: {
           id: null,
           created: null,
@@ -140,7 +146,9 @@ Table({
           body: null,
           read: null,
           saved: null,
+          deleted: null,
           thread_id: null,
+          expire: null,
         },
       },
       set: {
@@ -153,7 +161,9 @@ Table({
           // use read:0 to mark not read
           read: true,
           saved: true,
+          deleted: true,
           thread_id: true,
+          expire: true,
         },
         async instead_of_change(
           database,
@@ -173,7 +183,7 @@ Table({
             try {
               // user is allowed to change messages *to* them only.
               const query =
-                "UPDATE messages SET read=$3, saved=$4 WHERE to_type='account' AND to_id=$1 AND id=$2";
+                "UPDATE messages SET read=$3, saved=$4, deleted=$5, expire=$6 WHERE to_type='account' AND to_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -181,6 +191,8 @@ Table({
                   ? null
                   : (new_val.read ?? old_val.read),
                 new_val.saved ?? old_val.saved,
+                new_val.deleted ?? old_val.deleted,
+                new_val.expire ?? old_val.expire,
               ];
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
@@ -255,4 +267,19 @@ Table({
       },
     },
   },
+});
+
+Table({
+  name: "crm_messages",
+  rules: {
+    virtual: "messages",
+    primary_key: "id",
+    user_query: {
+      get: {
+        admin: true, // only admins can do get queries on this table
+        fields: schema.messages.user_query?.get?.fields ?? {},
+      },
+    },
+  },
+  fields: schema.messages.fields,
 });

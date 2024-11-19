@@ -1,5 +1,5 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { Checkbox, Flex, Space, Tooltip } from "antd";
+import { Checkbox, Flex, Space, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { User } from "@cocalc/frontend/users";
@@ -25,14 +25,34 @@ export default function Message({
   setShowBody,
   filter,
 }: Props) {
+  const toggleBody = () => {
+    if (showBody == null) {
+      return;
+    }
+    if (showBody.has(message.id)) {
+      showBody.delete(message.id);
+    } else {
+      showBody.add(message.id);
+      if (filter != "messages-sent" && !message.read) {
+        redux.getActions("messages").mark({
+          id: message.id,
+          read: webapp_client.server_time(),
+        });
+      }
+    }
+    // should use immutable js but I'm lazy and not big.
+    setShowBody(new Set(showBody));
+  };
+
   return (
     <Space
       direction="vertical"
       style={{ width: "100%", marginBottom: "-10px" }}
     >
-      <Flex style={{ width: "100%" }}>
+      <Flex style={{ width: "100%" }} onClick={() => toggleBody()}>
         {setChecked != null && (
           <Checkbox
+            onClick={(e) => e.stopPropagation()}
             style={{ marginRight: "15px" }}
             checked={!!checked}
             onChange={(e) => {
@@ -41,34 +61,11 @@ export default function Message({
             }}
           />
         )}
-        <div
-          style={{ flex: 0.8, cursor: "pointer" }}
-          onClick={() => {
-            if (showBody == null) {
-              return;
-            }
-            if (showBody.has(message.id)) {
-              showBody.delete(message.id);
-            } else {
-              showBody.add(message.id);
-              if (filter != "messages-sent" && !message.read) {
-                redux.getActions("messages").mark({
-                  id: message.id,
-                  read: webapp_client.server_time(),
-                });
-              }
-            }
-            // should use immutable js but I'm lazy and not big.
-            setShowBody(new Set(showBody));
-          }}
-        >
-          {isRead(message) ? message.subject : <b>{message.subject}</b>}
-        </div>
-        <div style={{ flex: 0.2 }} />
         <div style={{ width: "200px" }}>
           <Tooltip
+            placement="right"
             title={
-              isRead(message) ? (
+              filter != "messages-sent" ? undefined : isRead(message) ? (
                 <>
                   Read message <TimeAgo date={message.read} />
                 </>
@@ -87,10 +84,17 @@ export default function Message({
             />
           </Tooltip>
         </div>
-        <TimeAgo
-          date={message.created}
-          style={{ width: "150px", textAlign: "right" }}
-        />
+        <div style={{ flex: 0.2 }} />
+        <div style={{ flex: 0.8, cursor: "pointer" }}>
+          {getTag(message, filter)}
+          {isRead(message) ? message.subject : <b>{message.subject}</b>}
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <TimeAgo
+            date={message.created}
+            style={{ width: "150px", textAlign: "right" }}
+          />
+        </div>
       </Flex>
       <div>
         {(showBody?.has(message.id) || showBody == null) && (
@@ -112,4 +116,30 @@ export default function Message({
       </div>
     </Space>
   );
+}
+
+function getTag(message, filter) {
+  if (
+    filter != "messages-sent" &&
+    filter != "messages-inbox" &&
+    !message.saved &&
+    !message.deleted
+  ) {
+    return <Tag color="green">Inbox</Tag>;
+  }
+  if (message.expire) {
+    return (
+      <Tooltip
+        title={
+          <>
+            This message is scheduled to be permanently deleted{" "}
+            <TimeAgo date={message.expire} />.
+          </>
+        }
+      >
+        <Tag color="red">Permanently Delete</Tag>
+      </Tooltip>
+    );
+  }
+  return null;
 }

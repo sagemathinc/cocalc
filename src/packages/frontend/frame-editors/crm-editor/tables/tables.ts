@@ -18,6 +18,7 @@ import "./file-access-log";
 import "./file-use";
 import "./site-licenses";
 import "./accounts";
+import "./messages";
 import "./agents";
 import "./patches";
 import "./projects";
