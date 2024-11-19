@@ -110,6 +110,7 @@ export const NotificationPage: React.FC<{}> = () => {
 
   return (
     <div
+      className="smc-vfill"
       style={{
         padding: "15px 30px",
         display: "flex",

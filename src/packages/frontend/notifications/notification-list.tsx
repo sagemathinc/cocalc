@@ -29,11 +29,17 @@ export const NotificationList: React.FC<Props> = ({
   style,
   user_map,
 }: Props) => {
-  let body;
+  let body, className;
   if (isNewsFilter(filter)) {
     body = <NewsPanel news={news} filter={filter} />;
+    className = "smc-notificationlist";
   } else if (isMessagesFilter(filter)) {
     body = <Messages filter={filter} />;
+    // ATTENTION: this smc-notificationlist that harald wrote for some reason
+    // completely breaks markdown rendering, since it's a css rule that completely
+    // changes has lists are rendered everywhere below.  Thus we absolutely cannot
+    // apply it at the top level.
+    className = undefined;
   } else {
     body = (
       <MentionsPanel
@@ -44,10 +50,11 @@ export const NotificationList: React.FC<Props> = ({
         style={style}
       />
     );
+    className = "smc-notificationlist";
   }
 
   return (
-    <div className={"smc-notificationlist"} style={style}>
+    <div className={className} style={style}>
       {body}
     </div>
   );

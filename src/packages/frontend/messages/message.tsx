@@ -1,5 +1,5 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { Checkbox, Flex, Space, Tag, Tooltip } from "antd";
+import { Checkbox, Flex, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { User } from "@cocalc/frontend/users";
@@ -7,6 +7,8 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
 import { isNullDate, isRead } from "./util";
+
+const LEFT_OFFSET = "58px";
 
 interface Props {
   checked?: boolean;
@@ -62,7 +64,7 @@ export default function Message({
       <User
         style={{
           fontSize: showBody ? "12pt" : undefined,
-          ...(!read ? { fontWeight: "bold" } : undefined),
+          ...(!read || showBody ? { fontWeight: "bold" } : undefined),
         }}
         account_id={filter == "messages-sent" ? message.to_id : message.from_id}
         show_avatar
@@ -77,8 +79,8 @@ export default function Message({
         <Flex>
           <div
             style={{
-              marginLeft: "58px",
-              fontSize: "14pt",
+              marginLeft: LEFT_OFFSET,
+              fontSize: "16pt",
             }}
           >
             {message.subject}
@@ -113,82 +115,92 @@ export default function Message({
             />
           </div>
         </Flex>
-        <div style={{ marginTop: "-10px" }}>{user}</div>
+        <div style={{ marginTop: "-20px" }}>
+          {user}
+          <div
+            style={{
+              marginLeft: LEFT_OFFSET,
+              color: "#666",
+              marginTop: "-5px",
+            }}
+          >
+            {filter == "messages-sent" ? "from" : "to"} me
+          </div>
+        </div>
         <div
           className="smc-vfill"
-          style={{ marginLeft: "58px", overflowY: "auto" }}
+          style={{
+            marginLeft: LEFT_OFFSET,
+            marginTop: "15px",
+            overflowY: "auto",
+          }}
         >
           <StaticMarkdown value={message.body} />
           <div style={{ height: "30px" }} />
           {message.from_type == "account" && filter != "messages-sent" && (
             <ReplyButton size="large" replyTo={message} />
           )}
-          <pre>{JSON.stringify(message, undefined, 2)}</pre>
         </div>
       </div>
     );
   }
 
   return (
-    <Space
-      direction="vertical"
+    <Flex
       style={{
         width: "100%",
         marginBottom: "-10px",
         marginTop: "-10px",
+        cursor: "pointer",
         ...style,
       }}
+      onClick={showBody ? undefined : () => toggleBody()}
     >
-      <Flex
-        style={{ width: "100%" }}
-        onClick={showBody ? undefined : () => toggleBody()}
+      {setChecked != null && (
+        <Checkbox
+          onClick={(e) => e.stopPropagation()}
+          style={{ marginRight: "15px" }}
+          checked={!!checked}
+          onChange={(e) => {
+            const shiftKey = e.nativeEvent.shiftKey;
+            setChecked({ checked: e.target.checked, shiftKey });
+          }}
+        />
+      )}
+      <div
+        style={{
+          width: "150px",
+          textOverflow: "ellipsis",
+          overflow: "hidden",
+          whiteSpace: "pre",
+          marginRight: "10px",
+        }}
       >
-        {setChecked != null && (
-          <Checkbox
-            onClick={(e) => e.stopPropagation()}
-            style={{ marginRight: "15px" }}
-            checked={!!checked}
-            onChange={(e) => {
-              const shiftKey = e.nativeEvent.shiftKey;
-              setChecked({ checked: e.target.checked, shiftKey });
-            }}
-          />
-        )}
-        <div
+        {user}
+      </div>
+      <div
+        style={{
+          flex: 1,
+          textOverflow: "ellipsis",
+          overflow: "hidden",
+          whiteSpace: "pre",
+          marginRight: "10px",
+        }}
+      >
+        {getTag(message, filter)}
+        {read ? message.subject : <b>{message.subject}</b>}
+      </div>
+      <div onClick={(e) => e.stopPropagation()}>
+        <TimeAgo
+          date={message.created}
           style={{
             width: "150px",
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-            whiteSpace: "pre",
-            marginRight: "10px",
+            textAlign: "right",
+            fontWeight: read ? undefined : "bold",
           }}
-        >
-          {user}
-        </div>
-        <div
-          style={{
-            flex: 1,
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-            whiteSpace: "pre",
-            marginRight: "10px",
-          }}
-        >
-          {getTag(message, filter)}
-          {read ? message.subject : <b>{message.subject}</b>}
-        </div>
-        <div onClick={(e) => e.stopPropagation()}>
-          <TimeAgo
-            date={message.created}
-            style={{
-              width: "150px",
-              textAlign: "right",
-              fontWeight: read ? undefined : "bold",
-            }}
-          />
-        </div>
-      </Flex>
-    </Space>
+        />
+      </div>
+    </Flex>
   );
 }
 
