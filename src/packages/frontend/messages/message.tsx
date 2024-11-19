@@ -43,17 +43,85 @@ export default function Message({
       setShowBody(message.id);
     }
   };
-
   const read = isRead(message);
+
+  const user = (
+    <Tooltip
+      placement="right"
+      title={
+        filter != "messages-sent" ? undefined : isRead(message) ? (
+          <>
+            Read message <TimeAgo date={message.read} />
+          </>
+        ) : (
+          "Has not yet read message"
+        )
+      }
+    >
+      &nbsp;{/*the nbsp makes the tooltip work -- weird */}
+      <User
+        style={{
+          fontSize: showBody ? "12pt" : undefined,
+          ...(!read ? { fontWeight: "bold" } : undefined),
+        }}
+        account_id={filter == "messages-sent" ? message.to_id : message.from_id}
+        show_avatar
+        avatarSize={showBody ? 48 : 20}
+      />
+    </Tooltip>
+  );
+
   if (showBody) {
     return (
-      <div>
-        <h3>{message.subject}</h3>
-        <StaticMarkdown value={message.body} />
-        {message.from_type == "account" && filter != "messages-sent" && (
-          <ReplyButton type="text" replyTo={message} />
-        )}
-        <pre>{JSON.stringify(message, undefined, 2)}</pre>
+      <div style={{ marginRight: "30px" }}>
+        <Flex>
+          <div
+            style={{
+              marginLeft: "58px",
+              fontSize: "18pt",
+            }}
+          >
+            {message.subject}
+          </div>
+          <div style={{ flex: 1 }} />
+          {message.from_type == "account" && filter != "messages-sent" && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                marginRight: "15px",
+              }}
+            >
+              <ReplyButton type="text" replyTo={message} />
+            </div>
+          )}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+            }}
+          >
+            <TimeAgo
+              date={message.created}
+              style={{
+                whiteSpace: "pre",
+                textAlign: "right",
+                fontWeight: read ? undefined : "bold",
+              }}
+            />
+          </div>
+        </Flex>
+        <div>{user}</div>
+        <div style={{ marginLeft: "58px", marginTop: "30px" }}>
+          <StaticMarkdown value={message.body} />
+          <div style={{ height: "30px" }} />
+          {message.from_type == "account" && filter != "messages-sent" && (
+            <ReplyButton size="large" replyTo={message} />
+          )}
+          <pre>{JSON.stringify(message, undefined, 2)}</pre>
+        </div>
       </div>
     );
   }
@@ -61,7 +129,12 @@ export default function Message({
   return (
     <Space
       direction="vertical"
-      style={{ width: "100%", marginBottom: "-10px", ...style }}
+      style={{
+        width: "100%",
+        marginBottom: "-10px",
+        marginTop: "-10px",
+        ...style,
+      }}
     >
       <Flex
         style={{ width: "100%" }}
@@ -80,41 +153,22 @@ export default function Message({
         )}
         <div
           style={{
-            flex: 0.3,
+            width: "150px",
             textOverflow: "ellipsis",
             overflow: "hidden",
             whiteSpace: "pre",
+            marginRight: "10px",
           }}
         >
-          <Tooltip
-            placement="right"
-            title={
-              filter != "messages-sent" ? undefined : isRead(message) ? (
-                <>
-                  Read message <TimeAgo date={message.read} />
-                </>
-              ) : (
-                "Has not yet read message"
-              )
-            }
-          >
-            &nbsp;{/*the nbsp makes the tooltip work -- weird */}
-            <User
-              style={!read ? { fontWeight: "bold" } : undefined}
-              account_id={
-                filter == "messages-sent" ? message.to_id : message.from_id
-              }
-              show_avatar
-              avatarSize={20}
-            />
-          </Tooltip>
+          {user}
         </div>
         <div
           style={{
-            flex: 0.7,
+            flex: 1,
             textOverflow: "ellipsis",
             overflow: "hidden",
             whiteSpace: "pre",
+            marginRight: "10px",
           }}
         >
           {getTag(message, filter)}

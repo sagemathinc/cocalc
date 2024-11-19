@@ -1,4 +1,4 @@
-import { Button } from "antd";
+import { Button, Modal } from "antd";
 import Compose from "./compose";
 import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -13,13 +13,25 @@ export default function ReplyButton({ replyTo, ...props }) {
         </Button>
       )}
       {open && (
-        <Compose
-          style={{ marginBottom: "15px" }}
-          title="Compose Reply"
-          replyTo={replyTo}
-          onCancel={() => setOpen(false)}
-          onSend={() => setOpen(false)}
-        />
+        <Modal
+          open
+          footer={[]}
+          width={700}
+          onCancel={() => {
+            setOpen(false);
+          }}
+          onOk={() => {
+            setOpen(false);
+          }}
+        >
+          <Compose
+            style={{ marginBottom: "15px" }}
+            title="Compose Reply"
+            replyTo={replyTo}
+            onCancel={() => setOpen(false)}
+            onSend={() => setOpen(false)}
+          />
+        </Modal>
       )}
     </>
   );

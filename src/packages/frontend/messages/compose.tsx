@@ -42,17 +42,16 @@ export default function Compose({
     <div style={style}>
       <h3 style={{ marginBottom: "15px" }}>{title ?? "Compose Message"}</h3>
       <Space direction="vertical" style={{ width: "100%" }}>
-        <div>
-          <SelectUser
-            defaultValue={
-              replyTo?.from_type == "account" ? replyTo.from_id : ""
-            }
-            disabled={state != "compose"}
-            placeholder="To..."
-            style={{ width: "250px" }}
-            onChange={setToId}
-          />
-        </div>
+        {replyTo == null && (
+          <div>
+            <SelectUser
+              disabled={state != "compose"}
+              placeholder="To..."
+              style={{ width: "250px" }}
+              onChange={setToId}
+            />
+          </div>
+        )}
         <Input
           disabled={state != "compose"}
           placeholder="Subject..."
