@@ -26,7 +26,6 @@ export default function ReplyButton({ replyTo, ...props }) {
         >
           <Compose
             style={{ marginBottom: "15px" }}
-            title="Compose Reply"
             replyTo={replyTo}
             onCancel={() => setOpen(false)}
             onSend={() => setOpen(false)}

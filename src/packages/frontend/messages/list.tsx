@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Flex, List, Space, Spin, Tooltip } from "antd";
+import { Button, Flex, List, Space, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { capitalize, field_cmp, get_array_range } from "@cocalc/util/misc";
+import { field_cmp, get_array_range } from "@cocalc/util/misc";
 import Compose from "./compose";
 import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -68,7 +68,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
   }
 
   if (filter == "messages-compose") {
-    return <Compose />;
+    return <Compose style={{ overflowY: "auto", paddingRight: "15px" }} />;
   }
 
   const mesgIndex =
@@ -76,54 +76,10 @@ export default function MessagesList({ messages, sentMessages, filter }) {
       ? filteredMessages.map(({ id }) => id).indexOf(showBody)
       : undefined;
 
-  const head = (
-    <Flex>
-      <h3 style={{ marginBottom: "15px" }}>
-        <Tooltip
-          title={
-            <>
-              {filteredMessages.length} messages in{" "}
-              {capitalize(filter?.split("-")[1])}
-            </>
-          }
-        >
-          {capitalize(filter?.split("-")[1])}
-        </Tooltip>
-      </h3>
-      <div style={{ flex: 1 }} />
-      {showBody && mesgIndex != null && (
-        <Space>
-          {mesgIndex + 1} of {filteredMessages.length}
-          <Button
-            size="large"
-            disabled={mesgIndex <= 0}
-            type="text"
-            onClick={() => {
-              setShowBody(filteredMessages[mesgIndex - 1]?.id);
-            }}
-          >
-            <Icon name="chevron-left" />
-          </Button>
-          <Button
-            size="large"
-            disabled={mesgIndex >= filteredMessages.length - 1}
-            type="text"
-            onClick={() => {
-              setShowBody(filteredMessages[mesgIndex + 1]?.id);
-            }}
-          >
-            <Icon name="chevron-right" />
-          </Button>
-        </Space>
-      )}
-    </Flex>
-  );
-
   if (showBody != null) {
     const id = `${showBody}`;
     return (
       <>
-        {head}
         <Flex style={{ marginBottom: "5px" }}>
           <Button
             size="large"
@@ -146,6 +102,32 @@ export default function MessagesList({ messages, sentMessages, filter }) {
               setShowBody={setShowBody}
             />
           )}
+          <div style={{ flex: 1 }} />
+          {showBody && mesgIndex != null && (
+            <Space>
+              {mesgIndex + 1} of {filteredMessages.length}
+              <Button
+                size="large"
+                disabled={mesgIndex <= 0}
+                type="text"
+                onClick={() => {
+                  setShowBody(filteredMessages[mesgIndex - 1]?.id);
+                }}
+              >
+                <Icon name="chevron-left" />
+              </Button>
+              <Button
+                size="large"
+                disabled={mesgIndex >= filteredMessages.length - 1}
+                type="text"
+                onClick={() => {
+                  setShowBody(filteredMessages[mesgIndex + 1]?.id);
+                }}
+              >
+                <Icon name="chevron-right" />
+              </Button>
+            </Space>
+          )}
         </Flex>
         <Message
           message={messages.get(id)?.toJS() ?? sentMessages.get(id)?.toJS()}
@@ -160,7 +142,6 @@ export default function MessagesList({ messages, sentMessages, filter }) {
 
   return (
     <>
-      {head}
       {filter == "messages-sent" && <div style={{ height: "37px" }} />}
       {filter != "messages-sent" && (
         <Flex style={{ minHeight: "37px" }}>
@@ -199,6 +180,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
         </Flex>
       )}
       <List
+        style={{ overflowY: "auto" }}
         bordered
         dataSource={filteredMessages}
         renderItem={(message) => (

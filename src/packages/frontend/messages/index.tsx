@@ -35,13 +35,17 @@ export default function Messages({ filter, style }: Props) {
   const sentMessages = useTypedRedux("messages", "sent_messages");
 
   return (
-    <div style={style}>
+    <div style={style} className="smc-vfill">
       <ShowError
         error={error}
         setError={setError}
         style={{ margin: "30px auto" }}
       />
-      <MessagesList messages={messages} sentMessages={sentMessages} filter={filter} />
+      <MessagesList
+        messages={messages}
+        sentMessages={sentMessages}
+        filter={filter}
+      />
     </div>
   );
 }

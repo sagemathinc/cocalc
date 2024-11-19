@@ -73,12 +73,12 @@ export default function Message({
 
   if (showBody) {
     return (
-      <div style={{ marginRight: "30px" }}>
+      <div style={{ marginRight: "30px" }} className="smc-vfill">
         <Flex>
           <div
             style={{
               marginLeft: "58px",
-              fontSize: "18pt",
+              fontSize: "14pt",
             }}
           >
             {message.subject}
@@ -113,8 +113,11 @@ export default function Message({
             />
           </div>
         </Flex>
-        <div>{user}</div>
-        <div style={{ marginLeft: "58px", marginTop: "30px" }}>
+        <div style={{ marginTop: "-10px" }}>{user}</div>
+        <div
+          className="smc-vfill"
+          style={{ marginLeft: "58px", overflowY: "auto" }}
+        >
           <StaticMarkdown value={message.body} />
           <div style={{ height: "30px" }} />
           {message.from_type == "account" && filter != "messages-sent" && (

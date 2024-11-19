@@ -60,12 +60,12 @@ const MSGS = defineMessages({
   },
   saved: {
     id: "notifications.nav.saved",
-    defaultMessage: "Saved for later",
+    defaultMessage: "Saved for Later",
     description: "Label for messages saved for later",
   },
   all: {
     id: "notifications.nav.all",
-    defaultMessage: "All mentions",
+    defaultMessage: "All Mentions",
   },
   news: {
     id: "notifications.nav.news",
@@ -73,7 +73,7 @@ const MSGS = defineMessages({
   },
   allNews: {
     id: "notifications.nav.allNews",
-    defaultMessage: "All news",
+    defaultMessage: "All News",
   },
 });
 
