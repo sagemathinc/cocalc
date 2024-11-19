@@ -106,7 +106,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
         bordered
         dataSource={filteredMessages}
         renderItem={(message) => (
-          <List.Item style={{ background: "#f8f8f8" }}>
+          <List.Item style={{ background: "#f2f6fc" }}>
             <Message
               checked={checkedMessageIds.has(message.id)}
               setChecked={

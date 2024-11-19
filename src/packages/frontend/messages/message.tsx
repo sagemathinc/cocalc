@@ -85,7 +85,15 @@ export default function Message({
           </Tooltip>
         </div>
         <div style={{ flex: 0.2 }} />
-        <div style={{ flex: 0.8, cursor: "pointer" }}>
+        <div
+          style={{
+            flex: 0.8,
+            cursor: "pointer",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "pre",
+          }}
+        >
           {getTag(message, filter)}
           {isRead(message) ? message.subject : <b>{message.subject}</b>}
         </div>
