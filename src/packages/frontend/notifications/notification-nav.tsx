@@ -124,7 +124,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-inbox",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="eye-slash" /> Inbox
+              <Icon name="container" /> Inbox
             </span>
           ),
         },

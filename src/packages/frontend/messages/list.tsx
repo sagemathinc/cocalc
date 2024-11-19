@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Flex, List, Space, Spin } from "antd";
+import { Button, Flex, List, Space, Spin, Tooltip } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { capitalize, field_cmp, get_array_range } from "@cocalc/util/misc";
 import Compose from "./compose";
@@ -7,6 +7,7 @@ import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
+import { isNullDate } from "./util";
 
 export default function MessagesList({ messages, sentMessages, filter }) {
   const [showBody, setShowBody] = useState<number | null>(null);
@@ -23,6 +24,9 @@ export default function MessagesList({ messages, sentMessages, filter }) {
     }
     let m;
     if (filter == "messages-inbox") {
+      //       WARNING: If you change or add fields and logic that could impact the "number of
+      // messages in the inbox that are not read", make sure to also update
+      //  packages/database/postgres/messages.ts
       m = messages.filter(
         (message) => !message.get("saved") && !message.get("deleted"),
       );
@@ -67,10 +71,52 @@ export default function MessagesList({ messages, sentMessages, filter }) {
     return <Compose />;
   }
 
+  const mesgIndex =
+    showBody != null
+      ? filteredMessages.map(({ id }) => id).indexOf(showBody)
+      : undefined;
+
   const head = (
-    <h3 style={{ marginBottom: "15px" }}>
-      {capitalize(filter?.split("-")[1])} ({filteredMessages.length})
-    </h3>
+    <Flex>
+      <h3 style={{ marginBottom: "15px" }}>
+        <Tooltip
+          title={
+            <>
+              {filteredMessages.length} messages in{" "}
+              {capitalize(filter?.split("-")[1])}
+            </>
+          }
+        >
+          {capitalize(filter?.split("-")[1])}
+        </Tooltip>
+      </h3>
+      <div style={{ flex: 1 }} />
+      {showBody && mesgIndex != null && (
+        <Space>
+          {mesgIndex + 1} of {filteredMessages.length}
+          <Button
+            size="large"
+            disabled={mesgIndex <= 0}
+            type="text"
+            onClick={() => {
+              setShowBody(filteredMessages[mesgIndex - 1]?.id);
+            }}
+          >
+            <Icon name="chevron-left" />
+          </Button>
+          <Button
+            size="large"
+            disabled={mesgIndex >= filteredMessages.length - 1}
+            type="text"
+            onClick={() => {
+              setShowBody(filteredMessages[mesgIndex + 1]?.id);
+            }}
+          >
+            <Icon name="chevron-right" />
+          </Button>
+        </Space>
+      )}
+    </Flex>
   );
 
   if (showBody != null) {
@@ -80,6 +126,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
         {head}
         <Flex style={{ marginBottom: "5px" }}>
           <Button
+            size="large"
             type="text"
             onClick={() => {
               setShowBody(null);
@@ -89,6 +136,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
               name="left-circle-o"
               style={{ fontSize: "14pt", color: "#666" }}
             />
+            Back
           </Button>
           {filter != "messages-sent" && (
             <Actions
@@ -104,6 +152,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
           showBody
           setShowBody={setShowBody}
           filter={filter}
+          style={{ paddingLeft: "12px" }}
         />
       </>
     );
@@ -112,8 +161,9 @@ export default function MessagesList({ messages, sentMessages, filter }) {
   return (
     <>
       {head}
+      {filter == "messages-sent" && <div style={{ height: "37px" }} />}
       {filter != "messages-sent" && (
-        <Flex style={{ marginBottom: "5px", height: "32px" }}>
+        <Flex style={{ minHeight: "37px" }}>
           <Icon
             onClick={() => {
               if (checkedMessageIds.size == 0) {
@@ -201,7 +251,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
 
 function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
   return (
-    <Space>
+    <Space wrap>
       <Button
         type="text"
         disabled={filter != "messages-inbox"}
@@ -256,7 +306,7 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
             });
           }}
         >
-          <Icon name="eye" /> Mark Read
+          <Icon name="eye" /> Read
         </Button>
       )}
       {filter != "messages-trash" && (
@@ -270,7 +320,7 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
             });
           }}
         >
-          <Icon name="eye-slash" /> Mark Unread
+          <Icon name="eye-slash" /> Unread
         </Button>
       )}
       <Button
@@ -286,7 +336,7 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
           setShowBody(null);
         }}
       >
-        <Icon name="mail" /> Move to Inbox
+        <Icon name="container" /> To Inbox
       </Button>
     </Space>
   );
@@ -309,7 +359,7 @@ function enableMoveToInbox(filter, checkedMessageIds, messages) {
 function hasUnread(checkedMessageIds, messages) {
   for (const id of checkedMessageIds) {
     const read = messages.getIn([`${id}`, "read"]);
-    if (!read || new Date(read).valueOf() == 0) {
+    if (isNullDate(read)) {
       return true;
     }
   }
@@ -319,7 +369,7 @@ function hasUnread(checkedMessageIds, messages) {
 function hasRead(checkedMessageIds, messages) {
   for (const id of checkedMessageIds) {
     const read = messages.getIn([`${id}`, "read"]);
-    if (read && new Date(read).valueOf() > 0) {
+    if (!isNullDate(read)) {
       return true;
     }
   }
@@ -338,7 +388,7 @@ function hasSaved(checkedMessageIds, messages) {
 function hasNotExpire(checkedMessageIds, messages) {
   for (const id of checkedMessageIds) {
     const expire = messages.getIn([`${id}`, "expire"]);
-    if (expire == null || new Date(expire).valueOf() == 0) {
+    if (isNullDate(expire)) {
       return true;
     }
   }

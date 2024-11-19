@@ -3,11 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Row } from "antd";
+import { Flex } from "antd";
 import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
-
-import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
   Icon,
@@ -21,65 +20,6 @@ import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
-
-const OUTER_STYLE: CSS = {
-  display: "flex",
-  flex: "1",
-  flexDirection: "column",
-  height: "100%",
-  margin: "0",
-  overflowY: "hidden",
-  overflowX: "auto",
-} as const;
-
-const INNER_STYLE: CSS = {
-  display: "flex",
-  height: "100%",
-  flex: "1",
-  flexDirection: "column",
-  margin: "0px auto",
-  padding: "0 10px",
-  maxWidth: "1200px",
-  overflow: "hidden",
-} as const;
-
-const CONTENT_STYLE: CSS = {
-  display: "flex",
-  flex: "1 1 0",
-  flexDirection: "row",
-  height: "100%",
-  overflow: "hidden",
-};
-
-const NAV_COL_STYLE: CSS = {
-  height: "100%",
-  display: "flex",
-  flexDirection: "column",
-  flex: "1 1 0",
-  overflow: "auto",
-};
-
-const NAV_STYLE: CSS = {
-  width: "200px",
-  margin: "0",
-  borderInlineEnd: "none",
-} as const;
-
-const LIST_CONTAINER_STYLE: CSS = {
-  flex: "1 1 0",
-  display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  overflowX: "hidden",
-  overflowY: "auto",
-} as const;
-
-const LIST_STYLE: CSS = {
-  flex: "1 1 0",
-  height: "100%",
-  overflow: "auto",
-  margin: "0",
-} as const;
 
 export const NotificationPage: React.FC<{}> = () => {
   const intl = useIntl();
@@ -138,32 +78,47 @@ export const NotificationPage: React.FC<{}> = () => {
     }
 
     return (
-      <Row style={CONTENT_STYLE} gutter={[20, 20]}>
-        <Col span={6} style={NAV_COL_STYLE}>
-          <NotificationNav
-            filter={filter}
-            on_click={redux.getActions("mentions").set_filter}
-            style={NAV_STYLE}
-          />
-        </Col>
-
-        <Col span={18} style={LIST_CONTAINER_STYLE}>
-          <NotificationList
-            account_id={account_id}
-            mentions={mentions}
-            news={news}
-            style={LIST_STYLE}
-            user_map={user_map}
-            filter={filter}
-          />
-        </Col>
-      </Row>
+      <Flex style={{ overflow: "hidden", flex: 1 }}>
+        <NotificationNav
+          filter={filter}
+          on_click={redux.getActions("mentions").set_filter}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            width: "200px",
+            overflowY: "auto",
+            marginRight: "10px",
+            borderInlineEnd: "none",
+          }}
+        />
+        <NotificationList
+          account_id={account_id}
+          mentions={mentions}
+          news={news}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            flex: 1,
+            overflowY: "auto",
+          }}
+          user_map={user_map}
+          filter={filter}
+        />
+      </Flex>
     );
   }
 
   return (
-    <div style={OUTER_STYLE}>
-      <div style={INNER_STYLE}>
+    <div
+      style={{
+        padding: "15px 30px",
+        display: "flex",
+        flexDirection: "row",
+        justifyContent: "center",
+        overflowY: "hidden",
+      }}
+    >
+      <div className="smc-vfill" style={{ maxWidth: "1400px" }}>
         <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
           <Icon name="mail" /> {intl.formatMessage(labels.notifications)}
         </Title>

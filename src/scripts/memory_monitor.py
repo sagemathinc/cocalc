@@ -4,7 +4,7 @@ import psutil
 import time
 
 GB = 1024 * 1024 * 1024  # 1 GB in bytes
-THRESHOLD = 15 * GB  # 15 GB
+THRESHOLD = 20 * GB  
 
 while True:
     print(f"checking for processing using more than {THRESHOLD / GB:.2f} GB RAM")

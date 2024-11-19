@@ -6,7 +6,7 @@ import { User } from "@cocalc/frontend/users";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
-import { isRead } from "./util";
+import { isNullDate, isRead } from "./util";
 
 interface Props {
   checked?: boolean;
@@ -34,15 +34,29 @@ export default function Message({
     if (showBody) {
       setShowBody(null);
     } else {
-      setShowBody(message.id);
-      if (filter != "messages-sent" && !message.read) {
+      if (filter != "messages-sent" && !isRead(message)) {
         redux.getActions("messages").mark({
           id: message.id,
           read: webapp_client.server_time(),
         });
       }
+      setShowBody(message.id);
     }
   };
+
+  const read = isRead(message);
+  if (showBody) {
+    return (
+      <div>
+        <h3>{message.subject}</h3>
+        <StaticMarkdown value={message.body} />
+        {message.from_type == "account" && filter != "messages-sent" && (
+          <ReplyButton type="text" replyTo={message} />
+        )}
+        <pre>{JSON.stringify(message, undefined, 2)}</pre>
+      </div>
+    );
+  }
 
   return (
     <Space
@@ -64,7 +78,14 @@ export default function Message({
             }}
           />
         )}
-        <div style={{ width: "200px" }}>
+        <div
+          style={{
+            flex: 0.3,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "pre",
+          }}
+        >
           <Tooltip
             placement="right"
             title={
@@ -79,6 +100,7 @@ export default function Message({
           >
             &nbsp;{/*the nbsp makes the tooltip work -- weird */}
             <User
+              style={read ? { fontWeight: "bold" } : undefined}
               account_id={
                 filter == "messages-sent" ? message.to_id : message.from_id
               }
@@ -87,44 +109,28 @@ export default function Message({
             />
           </Tooltip>
         </div>
-        <div style={{ flex: 0.2 }} />
         <div
           style={{
-            flex: 0.8,
-            cursor: "pointer",
+            flex: 0.7,
             textOverflow: "ellipsis",
             overflow: "hidden",
             whiteSpace: "pre",
           }}
         >
           {getTag(message, filter)}
-          {isRead(message) ? message.subject : <b>{message.subject}</b>}
+          {read ? message.subject : <b>{message.subject}</b>}
         </div>
         <div onClick={(e) => e.stopPropagation()}>
           <TimeAgo
             date={message.created}
-            style={{ width: "150px", textAlign: "right" }}
+            style={{
+              width: "150px",
+              textAlign: "right",
+              fontWeight: read ? undefined : "bold",
+            }}
           />
         </div>
       </Flex>
-      <div>
-        {showBody && (
-          <div
-            style={{
-              background: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "5px",
-              padding: "10px 15px 0 15px",
-              marginBottom: "15px",
-            }}
-          >
-            <StaticMarkdown value={message.body} />
-            {message.from_type == "account" && filter != "messages-sent" && (
-              <ReplyButton type="text" replyTo={message} />
-            )}
-          </div>
-        )}
-      </div>
     </Space>
   );
 }
@@ -138,7 +144,7 @@ function getTag(message, filter) {
   ) {
     return <Tag color="green">Inbox</Tag>;
   }
-  if (message.expire && new Date(message.expire).valueOf()) {
+  if (!isNullDate(message.expire)) {
     return (
       <Tooltip
         title={

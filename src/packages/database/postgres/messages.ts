@@ -11,13 +11,13 @@ export async function updateUnreadMessageCount({ account_id }) {
     `
   SELECT COUNT(*) AS unread_count
 FROM (
-    SELECT read
+    SELECT read, COALESCE(saved, false) AS saved, COALESCE(deleted, false) AS deleted
     FROM messages
     WHERE to_type = 'account' AND to_id=$1
     ORDER BY id DESC
     LIMIT ${NUM_MESSAGES}
 ) AS subquery
-WHERE read IS NULL`,
+WHERE read IS NULL AND saved=false AND deleted=false`,
     [account_id],
   );
 

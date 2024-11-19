@@ -35,6 +35,7 @@ target type is to_type="support".  A support system needs to assign a person
 to handle the message, and keep track of the status of it.  That extra information
 does not get stored in this message, but instead in a new support table, which
 references messages.
+
 */
 
 import { Table } from "./types";
@@ -69,7 +70,7 @@ Table({
     id: ID,
     created: {
       type: "timestamp",
-      desc: "when this message was created",
+      desc: "When this message was created",
       not_null: true,
     },
     from_type: {
@@ -130,7 +131,7 @@ Table({
   rules: {
     primary_key: "id",
     changefeed_keys: ["to_id"],
-    pg_indexes: ["to_id", "created"],
+    pg_indexes: ["to_id", "to_type"],
     user_query: {
       get: {
         pg_where: [{ "to_id = $::UUID": "account_id" }],
