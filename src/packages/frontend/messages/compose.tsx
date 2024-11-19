@@ -1,4 +1,4 @@
-import { Alert, Button, Input, Space, Spin } from "antd";
+import { Alert, Button, Input, Modal, Space, Spin } from "antd";
 import SelectUser from "./select-user";
 import { useState } from "react";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -37,10 +37,7 @@ export default function Compose({
   };
 
   return (
-    <Space
-      direction="vertical"
-      style={{ width: "100%", ...style }}
-    >
+    <Space direction="vertical" style={{ width: "100%", ...style }}>
       {replyTo == null && (
         <div>
           <SelectUser
@@ -150,5 +147,30 @@ export default function Compose({
         </div>
       )}
     </Space>
+  );
+}
+
+export function ComposeButton(props) {
+  const [open, setOpen] = useState<boolean>(false);
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <Button {...props} onClick={() => setOpen(true)}>
+        <Icon name="pencil" /> Compose
+      </Button>
+      {open && (
+        <Modal
+          open
+          styles={{ content: { maxWidth: "1000px", margin: "auto" } }}
+          width={"85%"}
+          onCancel={close}
+          onOk={close}
+          footer={[]}
+        >
+          <Compose onSend={close} onCancel={close} />
+        </Modal>
+      )}
+    </>
   );
 }

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Button, Flex, List, Space, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { field_cmp, get_array_range } from "@cocalc/util/misc";
-import Compose from "./compose";
 import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -65,10 +64,6 @@ export default function MessagesList({ messages, sentMessages, filter }) {
 
   if (messages == null) {
     return <Spin />;
-  }
-
-  if (filter == "messages-compose") {
-    return <Compose style={{ overflowY: "auto", paddingRight: "15px" }} />;
   }
 
   const mesgIndex =

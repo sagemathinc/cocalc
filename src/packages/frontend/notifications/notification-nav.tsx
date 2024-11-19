@@ -15,6 +15,7 @@ import { IntlMessage } from "../i18n";
 import { NotificationFilter } from "./mentions/types";
 import { BOOKMARK_ICON_NAME } from "./mentions/util";
 import MessagesCounter from "@cocalc/frontend/messages/counter";
+import { ComposeButton } from "@cocalc/frontend/messages/compose";
 
 export const NewsCounter = () => {
   const news_unread = useTypedRedux("news", "unread");
@@ -109,17 +110,10 @@ export function NotificationNav({ filter, on_click, style }: Props) {
       label: (
         <Text strong style={{ fontSize: "125%" }}>
           Messages <MessagesCounter />
+          <ComposeButton type="text" style={{ marginTop: "15px" }} />
         </Text>
       ),
       children: [
-        {
-          key: "messages-compose",
-          label: (
-            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="pen" /> Compose
-            </span>
-          ),
-        },
         {
           key: "messages-inbox",
           label: (
