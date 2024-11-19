@@ -100,7 +100,7 @@ export default function Message({
           >
             &nbsp;{/*the nbsp makes the tooltip work -- weird */}
             <User
-              style={read ? { fontWeight: "bold" } : undefined}
+              style={!read ? { fontWeight: "bold" } : undefined}
               account_id={
                 filter == "messages-sent" ? message.to_id : message.from_id
               }

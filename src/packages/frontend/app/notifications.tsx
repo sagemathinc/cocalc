@@ -37,6 +37,8 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
   const mentions = useTypedRedux("mentions", "mentions");
   const notify_count = useTypedRedux("file_use", "notify_count");
   const news_unread = useTypedRedux("news", "unread");
+  const unread_message_count =
+    useTypedRedux("account", "unread_message_count") ?? 0;
 
   const count = useMemo(() => {
     switch (type) {
@@ -117,22 +119,30 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
         const wiggle = news_unread > 0;
         return (
           <Badge
-            color={count == 0 ? COLORS.GRAY : undefined}
-            count={count}
+            color={unread_message_count == 0 ? COLORS.GRAY : "green"}
+            count={unread_message_count}
             size="small"
+            showZero={false}
+            offset={[0, `${fontSizeIcons}`]}
           >
             <Badge
-              color={news_unread == 0 ? COLORS.GRAY : ANTD_BLUE.primary}
-              count={news_unread}
-              showZero={false}
+              color={count == 0 ? COLORS.GRAY : undefined}
+              count={count}
               size="small"
-              offset={[newsBadgeOffset, 0]}
             >
-              <Icon
-                style={{ fontSize: fontSizeIcons }}
-                className={wiggle ? "smc-bell-notification" : ""}
-                name="mail"
-              />{" "}
+              <Badge
+                color={news_unread == 0 ? COLORS.GRAY : ANTD_BLUE.primary}
+                count={news_unread}
+                showZero={false}
+                size="small"
+                offset={[newsBadgeOffset, 0]}
+              >
+                <Icon
+                  style={{ fontSize: fontSizeIcons }}
+                  className={wiggle ? "smc-bell-notification" : ""}
+                  name="mail"
+                />{" "}
+              </Badge>
             </Badge>
           </Badge>
         );

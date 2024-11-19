@@ -220,6 +220,7 @@ export const TimeAgo: React.FC<TimeAgoProps> = React.memo(
         "tip",
         "live",
         "click_to_toggle",
+        "style",
       ])
     );
   },

@@ -72,7 +72,7 @@ export function User(props: Props) {
   }
 
   const style = props.style;
-  
+
   const user_map = props.user_map ?? redux.getStore("users").get("user_map");
   if (user_map == null || user_map.size === 0) {
     return <span style={style}>Loading...</span>;
@@ -95,6 +95,10 @@ export function User(props: Props) {
               account_id={props.account_id}
               first_name={n}
               size={props.avatarSize}
+              no_tooltip={
+                true /* the tooltip just shows the name which is annoying/redundant since we are showing the name here anyways */
+              }
+              no_loading
             />
             <Gap />
           </>
