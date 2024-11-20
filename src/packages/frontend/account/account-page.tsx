@@ -270,7 +270,6 @@ export const AccountPage: React.FC = () => {
           </div>
           <Menu
             onClick={(e) => {
-              console.log("click ", e.key);
               handle_select(e.key);
             }}
             selectedKeys={[active_page]}
