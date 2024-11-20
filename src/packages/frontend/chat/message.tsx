@@ -4,7 +4,7 @@
  */
 
 import { Badge, Button, Col, Popconfirm, Row, Space, Tooltip } from "antd";
-import { Map } from "immutable";
+import { List, Map } from "immutable";
 import { CSSProperties, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
 
@@ -252,11 +252,9 @@ export default function Message({
 
   function editing_status(is_editing: boolean) {
     let text;
-    const other_editors = message
-      .get("editing")
-      .remove(account_id)
-      // @ts-ignore – not sure why this error shows up
-      .keySeq();
+
+    let other_editors = // @ts-ignore -- keySeq *is* a method of TypedMap
+      message.get("editing")?.remove(account_id).keySeq() ?? List();
     if (is_editing) {
       if (other_editors.size === 1) {
         // This user and someone else is also editing
@@ -415,7 +413,7 @@ export default function Message({
     const showEditButton = Date.now() - date < SHOW_EDIT_BUTTON_MS;
     const feedback = message.getIn(["feedback", account_id]);
     const otherFeedback =
-      isLLMThread && msgWrittenByLLM ? 0 : message.get("feedback")?.size ?? 0;
+      isLLMThread && msgWrittenByLLM ? 0 : (message.get("feedback")?.size ?? 0);
     const showOtherFeedback = otherFeedback > 0;
 
     const editControlRow = () => {
