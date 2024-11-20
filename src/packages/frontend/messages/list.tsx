@@ -42,26 +42,41 @@ export default function MessagesList({ messages, sentMessages, filter }) {
     }
 
     // another filter -- only keep the newest message in each thread
+    const missingThreadHeadIds = new Set<string>(); // string because the keys in m are string version id number :-(
     m = m.filter((message) => {
       const thread_id =
         message.get("thread_id") ??
         (threads[message.get("id")] != null ? message.get("id") : null);
       if (thread_id == null) {
+        // message is not part of a thread
         return true;
       }
+      // message is part of a thread.
       const thread = threads[thread_id];
       if (thread == null) {
+        // this should never happen
         return true;
       }
-      // of all messages in m in this thread, is this one the newest (in terms of id)?
-      const id = message.get("id");
-      for (const mesg of thread) {
-        if (mesg.id > id && m.get(`${mesg.id}`) != null) {
-          return false;
-        }
+      const headId = thread[thread.length - 1].id;
+      if (message.get("id") != headId) {
+        missingThreadHeadIds.add(`${headId}`);
+        return false;
       }
       return true;
     });
+
+    if (missingThreadHeadIds.size > 0) {
+      // add in messages where the newest message is not in m at all, e.g., maybe
+      // it is in sentMessages.
+      for (const id of missingThreadHeadIds) {
+        if (m.get(id) == null) {
+          const mesg = messages?.get(id) ?? sentMessages?.get(id);
+          if (mesg != null) {
+            m = m.set(id, mesg);
+          }
+        }
+      }
+    }
 
     const filteredMessages = m
       .valueSeq()

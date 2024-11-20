@@ -1,6 +1,6 @@
 import type { Threads } from "./types";
 import { List } from "antd";
-import Message from "./message";
+import { MessageInThread } from "./message";
 import { field_cmp } from "@cocalc/util/misc";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 
@@ -25,7 +25,7 @@ export default function Thread({ thread_id, threads, filter }: Props) {
       dataSource={thread.slice(0, thread.length - 1)}
       renderItem={(message) => (
         <List.Item style={{ background: "#f2f6fc" }}>
-          <Message message={message} filter={filter} />
+          <MessageInThread message={message} filter={filter} />
         </List.Item>
       )}
     />
@@ -52,7 +52,7 @@ export function getThreads({ messages, sentMessages }): Threads {
 
   const getMessage = (id: number): MessageType | null => {
     const k = `${id}`;
-    const m = messages.get(k) ?? sentMessages.get(k);
+    const m = messages?.get(k) ?? sentMessages?.get(k);
     return (m?.toJS() as MessageType) || null;
   };
 

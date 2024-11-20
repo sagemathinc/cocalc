@@ -10,7 +10,7 @@ import { isNullDate, isRead } from "./util";
 import Thread, { ThreadCount } from "./thread";
 import type { Threads } from "./types";
 
-const LEFT_OFFSET = "58px";
+const LEFT_OFFSET = "54px";
 
 interface Props {
   checked?: boolean;
@@ -23,32 +23,23 @@ interface Props {
   threads?: Threads;
 }
 
-export default function Message({
+export default function Message(props: Props) {
+  if (props.showBody) {
+    return <MessageFull {...props} />;
+  } else {
+    return <MessageInList {...props} />;
+  }
+}
+
+function MessageInList({
   checked,
   setChecked,
   message,
-  showBody,
   setShowBody,
   filter,
   style,
   threads,
 }: Props) {
-  const toggleBody = () => {
-    if (setShowBody == null) {
-      return;
-    }
-    if (showBody) {
-      setShowBody(null);
-    } else {
-      if (filter != "messages-sent" && !isRead(message)) {
-        redux.getActions("messages").mark({
-          id: message.id,
-          read: webapp_client.server_time(),
-        });
-      }
-      setShowBody(message.id);
-    }
-  };
   const read = isRead(message);
 
   const user = (
@@ -66,95 +57,13 @@ export default function Message({
     >
       &nbsp;{/*the nbsp makes the tooltip work -- weird */}
       <User
-        style={{
-          fontSize: showBody ? "12pt" : undefined,
-          ...(!read || showBody ? { fontWeight: "bold" } : undefined),
-        }}
+        style={!read ? { fontWeight: "bold" } : undefined}
         account_id={filter == "messages-sent" ? message.to_id : message.from_id}
         show_avatar
-        avatarSize={showBody ? 48 : 20}
+        avatarSize={20}
       />
     </Tooltip>
   );
-
-  if (showBody) {
-    return (
-      <div style={{ marginRight: "30px" }} className="smc-vfill">
-        {message.thread_id != null && threads != null && (
-          <Thread
-            thread_id={message.thread_id}
-            threads={threads}
-            filter={filter}
-          />
-        )}
-        <Flex>
-          <div
-            style={{
-              marginLeft: LEFT_OFFSET,
-              fontSize: "16pt",
-            }}
-          >
-            {message.subject}
-          </div>
-          <div style={{ flex: 1 }} />
-          {message.from_type == "account" && filter != "messages-sent" && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                marginRight: "15px",
-              }}
-            >
-              <ReplyButton type="text" replyTo={message} />
-            </div>
-          )}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-            }}
-          >
-            <TimeAgo
-              date={message.created}
-              style={{
-                whiteSpace: "pre",
-                textAlign: "right",
-                fontWeight: read ? undefined : "bold",
-              }}
-            />
-          </div>
-        </Flex>
-        <div style={{ marginTop: "-20px" }}>
-          {user}
-          <div
-            style={{
-              marginLeft: LEFT_OFFSET,
-              color: "#666",
-              marginTop: "-5px",
-            }}
-          >
-            {filter == "messages-sent" ? "from" : "to"} me
-          </div>
-        </div>
-        <div
-          className="smc-vfill"
-          style={{
-            marginLeft: LEFT_OFFSET,
-            marginTop: "15px",
-            overflowY: "auto",
-          }}
-        >
-          <StaticMarkdown value={message.body} />
-          <div style={{ height: "30px" }} />
-          {message.from_type == "account" && filter != "messages-sent" && (
-            <ReplyButton size="large" replyTo={message} />
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Flex
@@ -165,9 +74,16 @@ export default function Message({
         cursor: "pointer",
         ...style,
       }}
-      onClick={showBody ? undefined : () => toggleBody()}
+      onClick={() => {
+        if (!isRead(message)) {
+          redux.getActions("messages").mark({
+            id: message.id,
+            read: webapp_client.server_time(),
+          });
+        }
+        setShowBody(message.id);
+      }}
     >
-      <div style={{ color: "#888", marginRight: "10px" }}>{message.id}</div>
       {setChecked != null && (
         <Checkbox
           onClick={(e) => e.stopPropagation()}
@@ -215,7 +131,132 @@ export default function Message({
           }}
         />
       </div>
+      <div
+        style={{
+          color: "#888",
+          marginRight: "10px",
+          width: "25px",
+          textAlign: "right",
+        }}
+      >
+        {message.id}
+      </div>
     </Flex>
+  );
+}
+
+export function MessageInThread(props: Props) {
+  if (props.showBody) {
+    return <MessageFull {...props} />;
+  } else {
+    return <MessageInList {...props} />;
+  }
+}
+
+function MessageFull({ message, filter, threads }: Props) {
+  const read = isRead(message);
+
+  const user = (
+    <Tooltip
+      placement="right"
+      title={
+        filter != "messages-sent" ? undefined : isRead(message) ? (
+          <>
+            Read message <TimeAgo date={message.read} />
+          </>
+        ) : (
+          "Has not yet read message"
+        )
+      }
+    >
+      &nbsp;{/*the nbsp makes the tooltip work -- weird */}
+      <User
+        style={{
+          fontSize: "12pt",
+          ...(!read ? { fontWeight: "bold" } : undefined),
+        }}
+        account_id={filter == "messages-sent" ? message.to_id : message.from_id}
+        show_avatar
+        avatarSize={44}
+      />
+    </Tooltip>
+  );
+
+  return (
+    <div style={{ marginRight: "30px" }} className="smc-vfill">
+      {message.thread_id != null && threads != null && (
+        <Thread
+          thread_id={message.thread_id}
+          threads={threads}
+          filter={filter}
+        />
+      )}
+      <Flex>
+        <div
+          style={{
+            marginLeft: LEFT_OFFSET,
+            fontSize: "16pt",
+          }}
+        >
+          {message.subject}
+        </div>
+        <div style={{ flex: 1 }} />
+        {message.from_type == "account" && filter != "messages-sent" && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              marginRight: "15px",
+            }}
+          >
+            <ReplyButton type="text" replyTo={message} />
+          </div>
+        )}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+          }}
+        >
+          <TimeAgo
+            date={message.created}
+            style={{
+              whiteSpace: "pre",
+              textAlign: "right",
+              fontWeight: read ? undefined : "bold",
+            }}
+          />
+        </div>
+      </Flex>
+      <div style={{ marginTop: "-20px" }}>
+        {user}
+        <div
+          style={{
+            marginLeft: LEFT_OFFSET,
+            color: "#666",
+            marginTop: "-5px",
+          }}
+        >
+          {filter == "messages-sent" ? "from" : "to"} me
+        </div>
+      </div>
+      <div
+        className="smc-vfill"
+        style={{
+          marginLeft: LEFT_OFFSET,
+          marginTop: "15px",
+          overflowY: "auto",
+        }}
+      >
+        <StaticMarkdown value={message.body} />
+        <div style={{ height: "30px" }} />
+        {message.from_type == "account" && filter != "messages-sent" && (
+          <ReplyButton size="large" replyTo={message} />
+        )}
+      </div>
+    </div>
   );
 }
 

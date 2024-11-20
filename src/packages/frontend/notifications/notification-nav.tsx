@@ -110,7 +110,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
       label: (
         <Text strong style={{ fontSize: "125%" }}>
           Messages <MessagesCounter />
-          <ComposeButton type="text" style={{ marginTop: "15px" }} />
+          <ComposeButton style={{ marginTop: "15px" }} />
         </Text>
       ),
       children: [

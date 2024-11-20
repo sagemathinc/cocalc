@@ -43,6 +43,11 @@ export class MessagesActions extends Actions<MessagesState> {
       // change more than one record at a time.
       const table = redux.getTable("messages")._table;
       for (const id of ids) {
+        if (table.get_one(`${id}`) == null) {
+          // not in this table, so don't mark it. E.g., trying to mark a message we sent as read/archive/deleted
+          // isn't supported.
+          continue;
+        }
         table.set({
           id,
           read: read === null ? 0 : read,
