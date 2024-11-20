@@ -715,6 +715,11 @@ export const labels = defineMessages({
     id: "labels.open",
     defaultMessage: "Open",
   },
+  item_plural: {
+    id: "labels.item_plural",
+    defaultMessage: `{total, plural, one {item} other {items}}`,
+    description: "e.g. zero, one, or more items in a listing",
+  },
 });
 
 export const menu = defineMessages({
