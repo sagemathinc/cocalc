@@ -6,29 +6,6 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
-import * as async from "async";
-import { callback } from "awaiting";
-import { List, Map, Set, fromJS } from "immutable";
-import { isEqual } from "lodash";
-import { join } from "path";
-import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
-import { initChat } from "@cocalc/frontend/chat/register";
-import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
-import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
-import { dialogs, getIntl } from "@cocalc/frontend/i18n";
-import { set_local_storage } from "@cocalc/frontend/misc";
-import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
-import fetchDirectoryListing from "@cocalc/frontend/project/fetch-directory-listing";
-import track from "@cocalc/frontend/user-tracking";
-import { retry_until_success } from "@cocalc/util/async-utils";
-import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
-import * as misc from "@cocalc/util/misc";
-import { reduxNameToProjectId } from "@cocalc/util/redux/name";
-import { MARKERS } from "@cocalc/util/sagews";
-import { client_db } from "@cocalc/util/schema";
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -36,21 +13,31 @@ import {
   project_redux_name,
   redux,
 } from "@cocalc/frontend/app-framework";
+import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
+import { initChat } from "@cocalc/frontend/chat/register";
 import { IconName } from "@cocalc/frontend/components";
+import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
+import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
+import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
-import { get_editor } from "./editors/react-wrapper";
+import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import {
   query as client_query,
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
+import { IntlMessage, dialogs, getIntl } from "@cocalc/frontend/i18n";
 import {
   download_file,
   open_new_tab,
   open_popup_window,
+  set_local_storage,
 } from "@cocalc/frontend/misc";
+import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import * as project_file from "@cocalc/frontend/project-file";
 import { delete_files } from "@cocalc/frontend/project/delete-files";
+import fetchDirectoryListing from "@cocalc/frontend/project/fetch-directory-listing";
 import {
   ProjectEvent,
   SoftwareEnvironmentEvent,
@@ -100,7 +87,21 @@ import {
   ProjectStore,
   ProjectStoreState,
 } from "@cocalc/frontend/project_store";
+import track from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { retry_until_success } from "@cocalc/util/async-utils";
+import { DEFAULT_NEW_FILENAMES, NEW_FILENAMES } from "@cocalc/util/db-schema";
+import * as misc from "@cocalc/util/misc";
+import { reduxNameToProjectId } from "@cocalc/util/redux/name";
+import { MARKERS } from "@cocalc/util/sagews";
+import { client_db } from "@cocalc/util/schema";
+import * as async from "async";
+import { callback } from "awaiting";
+import { List, Map, Set, fromJS } from "immutable";
+import { isEqual } from "lodash";
+import { join } from "path";
+import { defineMessage } from "react-intl";
+import { get_editor } from "./editors/react-wrapper";
 
 const { defaults, required } = misc;
 
@@ -174,7 +175,7 @@ const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
 interface FileAction {
-  name: string;
+  name: IntlMessage;
   icon: IconName;
   allows_multiple_files?: boolean;
   hideFlyout?: boolean;
@@ -182,52 +183,92 @@ interface FileAction {
 
 export const FILE_ACTIONS: { [key: string]: FileAction } = {
   compress: {
-    name: "Compress",
+    name: defineMessage({
+      id: "file_actions.compress.name",
+      defaultMessage: "Compress",
+      description: "Compress a file",
+    }),
     icon: "compress" as IconName,
     allows_multiple_files: true,
   },
   delete: {
-    name: "Delete",
+    name: defineMessage({
+      id: "file_actions.delete.name",
+      defaultMessage: "Delete",
+      description: "Delete a file",
+    }),
     icon: "trash" as IconName,
     allows_multiple_files: true,
   },
   rename: {
-    name: "Rename",
+    name: defineMessage({
+      id: "file_actions.rename.name",
+      defaultMessage: "Rename",
+      description: "Rename a file",
+    }),
     icon: "swap" as IconName,
     allows_multiple_files: false,
   },
   duplicate: {
-    name: "Duplicate",
+    name: defineMessage({
+      id: "file_actions.duplicate.name",
+      defaultMessage: "Duplicate",
+      description: "Duplicate a file",
+    }),
     icon: "clone" as IconName,
     allows_multiple_files: false,
   },
   move: {
-    name: "Move",
+    name: defineMessage({
+      id: "file_actions.move.name",
+      defaultMessage: "Move",
+      description: "Move a file",
+    }),
     icon: "move" as IconName,
     allows_multiple_files: true,
   },
   copy: {
-    name: "Copy",
+    name: defineMessage({
+      id: "file_actions.copy.name",
+      defaultMessage: "Copy",
+      description: "Copy a file",
+    }),
     icon: "files" as IconName,
     allows_multiple_files: true,
   },
   share: {
-    name: "Publish",
+    name: defineMessage({
+      id: "file_actions.publish.name",
+      defaultMessage: "Publish",
+      description: "Publish a file",
+    }),
     icon: "share-square" as IconName,
     allows_multiple_files: false,
   },
   download: {
-    name: "Download",
+    name: defineMessage({
+      id: "file_actions.download.name",
+      defaultMessage: "Download",
+      description: "Download a file",
+    }),
     icon: "cloud-download" as IconName,
     allows_multiple_files: true,
   },
   upload: {
-    name: "Upload",
+    name: defineMessage({
+      id: "file_actions.upload.name",
+      defaultMessage: "Upload",
+      description: "Upload a file",
+    }),
     icon: "upload" as IconName,
     hideFlyout: true,
   },
   create: {
-    name: "Create",
+    name: defineMessage({
+      id: "file_actions.create.name",
+      defaultMessage: "Create",
+      description: "Create a file",
+    }),
     icon: "plus-circle" as IconName,
     hideFlyout: true,
   },
@@ -1375,8 +1416,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId =
-      await computeServerAssociations.getServerIdForPath(sidePath);
+    const currentId = await computeServerAssociations.getServerIdForPath(
+      sidePath,
+    );
     if (currentId != null) {
       // already set
       return;
@@ -2217,8 +2259,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-          ? { compute_server_id: opts.src_compute_server_id }
-          : undefined),
+        ? { compute_server_id: opts.src_compute_server_id }
+        : undefined),
     });
 
     if (opts.only_contents) {

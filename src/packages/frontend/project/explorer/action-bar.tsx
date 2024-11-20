@@ -4,7 +4,8 @@
  */
 
 import * as immutable from "immutable";
-import React from "react";
+import { throttle } from "lodash";
+import React, { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
@@ -12,7 +13,7 @@ import {
   ButtonGroup,
   ButtonToolbar,
 } from "@cocalc/frontend/antd-bootstrap";
-import { Gap, HiddenSM, Icon } from "@cocalc/frontend/components";
+import { Gap, Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
@@ -21,6 +22,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import { useProjectContext } from "../context";
 
 const ROW_INFO_STYLE = {
   color: COLORS.GRAY,
@@ -45,7 +47,11 @@ interface Props {
 
 export const ActionBar: React.FC<Props> = (props: Props) => {
   const intl = useIntl();
-  const [select_entire_directory, set_select_entire_directory] = React.useState<
+  const [showLabels, setShowLabels] = useState<boolean>(true);
+  const { mainWidthPx } = useProjectContext();
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const widthThld = useRef<number>(0);
+  const [select_entire_directory, set_select_entire_directory] = useState<
     "hidden" | "check" | "clear"
   >("hidden");
   const student_project_functionality = useStudentProjectFunctionality(
@@ -55,14 +61,14 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     return <div></div>;
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     // user changed directory, hide the "select entire directory" button
     if (select_entire_directory !== "hidden") {
       set_select_entire_directory("hidden");
     }
   }, [props.current_path]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (
       props.checked_files.size === props.listing.length &&
       select_entire_directory === "check"
@@ -71,6 +77,34 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       set_select_entire_directory("clear");
     }
   }, [props.checked_files, props.listing, select_entire_directory]);
+
+  useEffect(() => {
+    const btnbar = buttonRef.current;
+    if (btnbar == null) return;
+    const resizeObserver = new ResizeObserver(
+      throttle(
+        (entries) => {
+          if (entries.length > 0) {
+            const width = entries[0].contentRect.width;
+            // TODO: this "+100" is sloppy. This makes it much better than before
+            // (e.g. german buttons were cutoff all the time), but could need more tweaking
+            if (showLabels && width > mainWidthPx + 100) {
+              setShowLabels(false);
+              widthThld.current = width;
+            } else if (!showLabels && width < widthThld.current - 1) {
+              setShowLabels(true);
+            }
+          }
+        },
+        100,
+        { leading: false, trailing: true },
+      ),
+    );
+    resizeObserver.observe(btnbar);
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [mainWidthPx, buttonRef.current]);
 
   function clear_selection(): void {
     props.actions.set_all_files_unchecked();
@@ -173,7 +207,9 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     if (checked === 0) {
       return (
         <div style={style}>
-          <span>{total} {intl.formatMessage(labels.item_plural, { total })}</span>
+          <span>
+            {total} {intl.formatMessage(labels.item_plural, { total })}
+          </span>
           <div style={{ display: "inline" }}>
             {" "}
             &mdash;{" "}
@@ -222,7 +258,8 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
 
     return (
       <Button onClick={handle_click} disabled={disabled} key={name}>
-        <Icon name={obj.icon} /> <HiddenSM>{obj.name}...</HiddenSM>
+        <Icon name={obj.icon} />{" "}
+        {showLabels ? `${intl.formatMessage(obj.name)}...` : ""}
       </Button>
     );
   }
@@ -302,7 +339,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   }
   return (
     <div style={{ flex: "1 0 auto" }}>
-      <div style={{ flex: "1 0 auto" }}>
+      <div ref={buttonRef} style={{ flex: "1 0 auto" }}>
         <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
           <ButtonGroup>
             {props.project_is_running ? render_check_all_button() : undefined}

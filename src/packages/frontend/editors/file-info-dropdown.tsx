@@ -67,13 +67,13 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
       }
     }
 
-    function render_menu_item(name: string, icon: IconName): MenuItems[0] {
+    function render_menu_item(key: string, icon: IconName): MenuItems[0] {
       return {
-        key: name,
-        onClick: () => handle_click(name),
+        key,
+        onClick: () => handle_click(key),
         label: (
           <>
-            <Icon name={icon} style={{ width: "25px" }} /> {capitalize(name)}
+            <Icon name={icon} style={{ width: "25px" }} /> {capitalize(key)}
           </>
         ),
       };
@@ -94,16 +94,16 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         }
         // create a map from name to icon
         items = {};
-        for (const k in file_actions) {
-          const { name, icon, hideFlyout } = file_actions[k];
+        for (const key in file_actions) {
+          const { icon, hideFlyout } = file_actions[key];
           if (mode === "flyout" && hideFlyout) continue;
-          items[name] = icon;
+          items[key] = icon;
         }
       }
 
-      for (let name in items) {
-        const icon = items[name];
-        v.push(render_menu_item(name, icon));
+      for (let key in items) {
+        const icon = items[key];
+        v.push(render_menu_item(key, icon));
       }
       return v;
     }
