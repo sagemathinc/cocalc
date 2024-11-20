@@ -45,7 +45,7 @@ import { SCHEMA as schema } from "./index";
 
 export const NUM_MESSAGES = 300;
 
-type Entity = "project" | "system" | "support" | "account";
+export type Entity = "project" | "system" | "support" | "account";
 
 export interface Message {
   id: number;

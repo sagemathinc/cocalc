@@ -10,15 +10,15 @@ export function isNullDate(date: Date | number | undefined | null): boolean {
   return date == null || new Date(date).valueOf() == 0;
 }
 
-export function isFromMe(message: Message): boolean {
+export function isFromMe(message?: Message): boolean {
   return (
-    message.from_type == "account" &&
-    message.from_id == webapp_client.account_id
+    message?.from_type == "account" &&
+    message?.from_id == webapp_client.account_id
   );
 }
 
-export function isToMe(message: Message): boolean {
+export function isToMe(message?: Message): boolean {
   return (
-    message.to_type == "account" && message.to_id == webapp_client.account_id
+    message?.to_type == "account" && message?.to_id == webapp_client.account_id
   );
 }

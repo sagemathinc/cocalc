@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Select } from "antd";
 import type { SelectProps } from "antd";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { User } from "@cocalc/frontend/users";
+import User from "./user";
 import { throttle } from "lodash";
 
 const handleSearch = throttle(async (query: string, setData) => {
@@ -15,7 +15,12 @@ const handleSearch = throttle(async (query: string, setData) => {
       return {
         value: user.account_id,
         label: (
-          <User account_id={user.account_id} show_avatar avatarSize={20} />
+          <User
+            id={user.account_id}
+            type="account"
+            show_avatar
+            avatarSize={20}
+          />
         ),
       };
     }),
@@ -36,7 +41,9 @@ export default function SelectUser({
   defaultValue?;
 }) {
   const [data, setData] = useState<SelectProps["options"]>([]);
-  const [value, setValue] = useState<string | null>(defaultValue ? defaultValue : null);
+  const [value, setValue] = useState<string | null>(
+    defaultValue ? defaultValue : null,
+  );
 
   useEffect(() => {
     if (!defaultValue) {

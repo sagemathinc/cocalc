@@ -2,13 +2,13 @@ import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { Checkbox, Flex, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { User } from "@cocalc/frontend/users";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
-import { isNullDate, isRead } from "./util";
+import { isNullDate, isFromMe, isRead } from "./util";
 import Thread, { ThreadCount } from "./thread";
 import type { Threads } from "./types";
+import User from "./user";
 
 const LEFT_OFFSET = "54px";
 
@@ -21,6 +21,7 @@ interface Props {
   filter?;
   style?;
   threads?: Threads;
+  inThread?: boolean;
 }
 
 export default function Message(props: Props) {
@@ -39,14 +40,17 @@ function MessageInList({
   filter,
   style,
   threads,
+  inThread,
 }: Props) {
   const read = isRead(message);
 
+  // [ ] todo: need to factor this out and also
+  // support types besides 'account'
   const user = (
     <Tooltip
       placement="right"
       title={
-        filter != "messages-sent" ? undefined : isRead(message) ? (
+        !isFromMe(message) ? undefined : isRead(message) ? (
           <>
             Read message <TimeAgo date={message.read} />
           </>
@@ -58,7 +62,14 @@ function MessageInList({
       &nbsp;{/*the nbsp makes the tooltip work -- weird */}
       <User
         style={!read ? { fontWeight: "bold" } : undefined}
-        account_id={filter == "messages-sent" ? message.to_id : message.from_id}
+        type="account"
+        id={
+          inThread
+            ? message.from_id
+            : isFromMe(message)
+              ? message.to_id
+              : message.from_id
+        }
         show_avatar
         avatarSize={20}
       />
@@ -149,7 +160,7 @@ export function MessageInThread(props: Props) {
   if (props.showBody) {
     return <MessageFull {...props} />;
   } else {
-    return <MessageInList {...props} />;
+    return <MessageInList {...props} inThread />;
   }
 }
 
@@ -175,7 +186,8 @@ function MessageFull({ message, filter, threads }: Props) {
           fontSize: "12pt",
           ...(!read ? { fontWeight: "bold" } : undefined),
         }}
-        account_id={filter == "messages-sent" ? message.to_id : message.from_id}
+        type="account"
+        id={filter == "messages-sent" ? message.to_id : message.from_id}
         show_avatar
         avatarSize={44}
       />
@@ -201,7 +213,7 @@ function MessageFull({ message, filter, threads }: Props) {
           {message.subject}
         </div>
         <div style={{ flex: 1 }} />
-        {message.from_type == "account" && filter != "messages-sent" && (
+        {(message.from_type == "account" || isFromMe(message)) && (
           <div
             style={{
               display: "flex",

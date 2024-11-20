@@ -6,6 +6,8 @@ import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import type { Message } from "@cocalc/util/db-schema/messages";
+import { isFromMe } from "./util";
+import User from "./user";
 
 export default function Compose({
   replyTo,
@@ -18,8 +20,13 @@ export default function Compose({
   onSend?: Function;
   style?;
 }) {
+  // [ ] todo type != 'account' for destination!
   const [toId, setToId] = useState<string>(
-    replyTo?.from_type == "account" ? replyTo.from_id : "",
+    isFromMe(replyTo)
+      ? (replyTo?.to_id ?? "")
+      : replyTo?.from_type == "account"
+        ? replyTo.from_id
+        : "",
   );
   const [subject, setSubject] = useState<string>(
     replyTo?.subject ? `Re: ${replyTo?.subject}` : "",
@@ -46,6 +53,11 @@ export default function Compose({
             style={{ width: "250px" }}
             onChange={setToId}
           />
+        </div>
+      )}
+      {replyTo != null && toId != null && (
+        <div>
+          <User id={toId} type="account" show_avatar />
         </div>
       )}
       <Input
