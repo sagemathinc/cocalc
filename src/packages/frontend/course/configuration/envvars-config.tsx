@@ -20,7 +20,7 @@ import {
 import { Icon } from "@cocalc/frontend/components";
 import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
 
-const ENVVARS_DEFAULT = true;
+const ENVVARS_DEFAULT = false;
 
 interface Props {
   project_id: string;
@@ -117,12 +117,14 @@ export function EnvironmentVariablesConfig({
         >
           this project's settings
         </a>{" "}
-        for more details. Any changes to the configuration of this project will
+        for more details. Changes to the configuration of this project will only
         be reflected after the next start of a student project.
       </p>
       <p>
-        Note: inherited variables will take precedence over the ones defined in
-        the student project with the same name.
+        Note: environment variables from the instructor project overwrite
+        anything configured in the student project, as you can confirm by
+        looking at the settings of the student project after making this change
+        and configuring all student projects.
       </p>
       {toggle()}
     </Card>

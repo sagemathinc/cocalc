@@ -300,8 +300,13 @@ export function EmailInvitation({ actions, redux, project_id, name }) {
           id="course.configuration.email_invitation.info"
           defaultMessage={`If you add a student to this course using their email address,
           and they do not have a CoCalc account, then they will receive this email invitation.
-          Also, {title} will be replaced by the title of the course and {name} by your name.`}
-          description="Information message. Do not translate '{title}' and '{name}' as they are template variables."
+          Also, "{title}" will be replaced by the title of the course and "{name}" by your name.`}
+          description={`Email invitations for students in an online course. Do not change {name} and {title} since they are variables.`}
+          values={{
+            // the curly brackets are replaced by the variable with brackets, since we also use this for template vars.
+            title: "{title}",
+            name: "{name}",
+          }}
         />
       </span>
     </Card>

@@ -1,13 +1,17 @@
 import { Button, Card, Input, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { path_split, path_to_file, plural } from "@cocalc/util/misc";
+import { useIntl } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
-import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useRedux } from "@cocalc/frontend/app-framework";
-import CheckedFiles from "./checked-files";
 import ShowError from "@cocalc/frontend/components/error";
+import { labels } from "@cocalc/frontend/i18n";
+import { useProjectContext } from "@cocalc/frontend/project/context";
+import { path_split, path_to_file, plural } from "@cocalc/util/misc";
+import CheckedFiles from "./checked-files";
 
 export default function CreateArchive({}) {
+  const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
@@ -82,7 +86,7 @@ export default function CreateArchive({}) {
             actions?.set_file_action();
           }}
         >
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>{" "}
         <Button onClick={doCompress} type="primary" disabled={loading}>
           Compress {checked_files?.size} {plural(checked_files?.size, "item")}{" "}

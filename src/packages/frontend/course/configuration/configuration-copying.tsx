@@ -34,8 +34,9 @@ import {
   Tooltip,
 } from "antd";
 import { useMemo, useState } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
+import { labels } from "@cocalc/frontend/i18n";
 import {
   redux,
   useFrameContext,
@@ -51,6 +52,7 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { isIntlMessage } from "@cocalc/util/i18n";
 import { plural } from "@cocalc/util/misc";
 import { CONFIGURATION_GROUPS, ConfigurationGroup } from "./actions";
+import { COLORS } from "@cocalc/util/theme";
 
 export type CopyConfigurationOptions = {
   [K in ConfigurationGroup]?: boolean;
@@ -73,6 +75,8 @@ export default function ConfigurationCopying({
   actions,
   close,
 }: Props) {
+  const intl = useIntl();
+
   const [error, setError] = useState<string>("");
   const { numTargets, numOptions } = useMemo(() => {
     const targets = getTargets(settings);
@@ -110,19 +114,28 @@ export default function ConfigurationCopying({
     }
   };
 
+  const title = intl.formatMessage({
+    id: "course.configuration-copying.title",
+    defaultMessage: "Copy Course Configuration",
+  });
+
   return (
     <Card
       title={
         <>
-          <Icon name="copy" /> Copy Course Configuration
+          <Icon name="copy" /> {title}
         </>
       }
     >
-      <div style={{ color: "#666" }}>
-        Copy configuration from this course to other courses. If you divide a
-        large course into multiple smaller sections, you can list each of the
-        other .course files below, then easily open any or all of them, and copy
-        configuration from this course to them.
+      <div style={{ color: COLORS.GRAY_M }}>
+        <FormattedMessage
+          id="course.configuration-copying.info"
+          defaultMessage={`Copy configuration from this course to other courses.
+          If you divide a large course into multiple smaller sections,
+          you can list each of the other .course files below,
+          then easily open any or all of them,
+          and copy configuration from this course to them.`}
+        />
       </div>
       <div style={{ textAlign: "center", margin: "15px 0" }}>
         <Button
@@ -426,6 +439,7 @@ function numFalse(dict) {
 }
 
 function AddTarget({ settings, actions, project_id }) {
+  const intl = useIntl();
   const { path: course_path } = useFrameContext();
   const [adding, setAdding] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -514,7 +528,7 @@ function AddTarget({ settings, actions, project_id }) {
               setPath("");
             }}
           >
-            Cancel
+            {intl.formatMessage(labels.cancel)}
           </Button>
         )}
       </div>

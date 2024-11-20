@@ -564,8 +564,10 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     const cursors = this.jupyter_actions.syncdb
       .get_cursors({ maxAge: 0, excludeSelf: "never" })
       ?.toJS();
-    if (cursors == null) return; // no info
-    const locs = cursors[account_id]?.locs;
+    const locs = cursors?.[account_id]?.locs;
+    if (locs == null) {
+      return; // no info
+    }
     for (const loc of locs) {
       if (loc.id != null) {
         const frameActions = this.get_frame_actions(frameId);

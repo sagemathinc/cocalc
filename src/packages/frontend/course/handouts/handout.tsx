@@ -3,12 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { redux, CSS } from "@cocalc/frontend/app-framework";
+import { Alert, Button, Card, Col, Input, Popconfirm, Row, Space } from "antd";
 import { useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
+
+import { CSS, redux } from "@cocalc/frontend/app-framework";
+import { Icon, MarkdownInput, Tip } from "@cocalc/frontend/components";
+import { course, labels } from "@cocalc/frontend/i18n";
+import { UserMap } from "@cocalc/frontend/todo-types";
 import { capitalize, trunc_middle } from "@cocalc/util/misc";
-import { Alert, Button, Input, Card, Col, Popconfirm, Row, Space } from "antd";
-import { Icon, MarkdownInput, Tip } from "../../components";
-import { UserMap } from "../../todo-types";
 import { CourseActions } from "../actions";
 import { CourseStore, HandoutRecord, StudentsMap } from "../store";
 import * as styles from "../styles";
@@ -76,6 +79,7 @@ export function Handout({
   user_map,
   project_id,
 }: HandoutProps) {
+  const intl = useIntl();
   const [copy_confirm, set_copy_confirm] = useState<boolean>(false);
   const [copy_confirm_handout, set_copy_confirm_handout] =
     useState<boolean>(false);
@@ -120,12 +124,23 @@ export function Handout({
       <Row key="note" style={styles.note}>
         <Col xs={4}>
           <Tip
-            title="Notes about this handout"
-            tip="Record notes about this handout here. These notes are only visible to you, not to your students.  Put any instructions to students about handouts in a file in the directory that contains the handout."
+            title={intl.formatMessage({
+              id: "course.handouts.handout_notes.tooltip.title",
+              defaultMessage: "Notes about this handout",
+            })}
+            tip={intl.formatMessage({
+              id: "course.handouts.handout_notes.tooltip.tooltip",
+              defaultMessage: `Record notes about this handout here.
+                These notes are only visible to you, not to your students.
+                Put any instructions to students about handouts in a file in the directory
+                that contains the handout.`,
+            })}
           >
-            function Handout Notes
+            <FormattedMessage
+              id="course.handouts.handout_notes.title"
+              defaultMessage={"Handout Notes"}
+            />
             <br />
-            <span style={{ color: "#666" }} />
           </Tip>
         </Col>
         <Col xs={20}>
@@ -135,7 +150,11 @@ export function Handout({
             }
             attach_to={name}
             rows={6}
-            placeholder="function  notes about this handout (not visible to students)"
+            placeholder={intl.formatMessage({
+              id: "course.handouts.handout_notes.placeholder",
+              defaultMessage:
+                "Notes about this handout (not visible to students)",
+            })}
             default_value={handout.get("note")}
             on_save={(value) =>
               actions.handouts.set_handout_note(
@@ -159,7 +178,6 @@ export function Handout({
           >
             Export file use times
             <br />
-            <span style={{ color: "#666" }} />
           </Tip>
         </Col>
         <Col xs={20}>
@@ -210,7 +228,7 @@ export function Handout({
     };
     return (
       <Button key="cancel" onClick={cancel}>
-        Cancel
+        {intl.formatMessage(labels.cancel)}
       </Button>
     );
   }
@@ -394,6 +412,16 @@ export function Handout({
         type = "default";
       }
     }
+    const tooltip = intl.formatMessage({
+      id: "course.handouts.handout_button.tooltip",
+      defaultMessage:
+        "Copy the files for this handout from this project to all other student projects.",
+      description: "student in an online course",
+    });
+    const label = intl.formatMessage(course.handout);
+    const you = intl.formatMessage(labels.you);
+    const students = intl.formatMessage(course.students);
+
     return (
       <Button
         key="handout"
@@ -408,13 +436,14 @@ export function Handout({
         <Tip
           title={
             <span>
-              Handout: <Icon name="user-secret" /> You{" "}
-              <Icon name="arrow-right" /> <Icon name="users" /> Students{" "}
+              {label}: <Icon name="user-secret" /> {you}{" "}
+              <Icon name="arrow-right" /> <Icon name="users" /> {students}{" "}
             </span>
           }
-          tip="Copy the files for this handout from this project to all other student projects."
+          tip={tooltip}
         >
-          <Icon name="share-square" /> Distribute...
+          <Icon name="share-square" /> {intl.formatMessage(course.distribute)}
+          ...
         </Tip>
       </Button>
     );

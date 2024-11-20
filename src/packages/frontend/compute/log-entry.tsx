@@ -58,6 +58,13 @@ export default function LogEntry({
           {tag}
         </>
       );
+    case "automatic-shutdown":
+      return (
+        <>
+          {cs} - Automatic {capitalize(event.automatic_shutdown?.action ?? "Stop")}{" "}
+          {tag}
+        </>
+      );
     default:
       return (
         <>

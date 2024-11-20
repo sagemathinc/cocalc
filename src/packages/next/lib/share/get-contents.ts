@@ -14,13 +14,24 @@ import { getExtension } from "./util";
 const MB: number = 1000000;
 
 const LIMITS = {
-  listing: 10000, // directory listing is truncated after this many files
-  ipynb: 15 * MB,
-  sagews: 10 * MB,
-  whiteboard: 5 * MB,
-  slides: 5 * MB,
-  other: 2 * MB,
+  listing: 3000, // directory listing is truncated after this many files
+  ipynb: 7 * MB,
+  sagews: 5 * MB,
+  whiteboard: 3 * MB,
+  slides: 3 * MB,
+  other: 1 * MB,
+  // no special viewer
+  generic: 2 * MB,
 } as const;
+
+// also used for proxied content -- see https://github.com/sagemathinc/cocalc/issues/8020
+export function getSizeLimit(path: string): number {
+  const ext = getExtension(path);
+  if (hasSpecialViewer(ext)) {
+    return LIMITS[ext] ?? LIMITS.other;
+  }
+  return LIMITS.generic;
+}
 
 export interface FileInfo {
   name: string;
@@ -60,13 +71,10 @@ export default async function getContents(
     }
   } else {
     // get actual file content
-    const ext = getExtension(fsPath);
-    if (hasSpecialViewer(ext)) {
-      if (stats.size >= (LIMITS[ext] ?? LIMITS.other)) {
-        obj.truncated = "File too big to be displayed; download it instead.";
-      } else {
-        obj.content = (await fs.readFile(fsPath)).toString();
-      }
+    if (stats.size >= getSizeLimit(fsPath)) {
+      obj.truncated = "File too big to be displayed; download it instead.";
+    } else {
+      obj.content = (await fs.readFile(fsPath)).toString();
     }
     obj.size = stats.size;
   }

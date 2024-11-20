@@ -5,16 +5,19 @@
 
 // CoCalc libraries
 // React Libraries
+import { Button, Col, Row, Space } from "antd";
 import { useState } from "react";
+import { useIntl } from "react-intl";
+
+import { Icon, Tip } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
+import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
+import { labels } from "@cocalc/frontend/i18n";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { to_json } from "@cocalc/util/misc";
-import { Button, Space, Col, Row } from "antd";
-import { Icon, Tip } from "../../components";
 import { CourseActions } from "../actions";
 import { BigTime } from "../common";
 import { LastCopyInfo } from "../store";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
-import ShowError from "@cocalc/frontend/components/error";
 
 interface StudentHandoutInfoProps {
   actions: CourseActions;
@@ -27,6 +30,8 @@ export function StudentHandoutInfo({
   info,
   title,
 }: StudentHandoutInfoProps) {
+  const intl = useIntl();
+
   const [recopy, setRecopy] = useState<boolean>(false);
 
   function open(handout_id: string, student_id: string): void {
@@ -54,7 +59,7 @@ export function StudentHandoutInfo({
       const v: any[] = [];
       v.push(
         <Button key="copy_cancel" onClick={() => setRecopy(false)}>
-          Cancel
+          {intl.formatMessage(labels.cancel)}
         </Button>,
       );
       v.push(
