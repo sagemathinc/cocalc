@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "Ocultar Barra de Ferramentas do Menu Para Todos os Editores",
   "commands.generic.toggle_button_bar.label": "{show, select, true {Esconder} other {Mostrar}} Barra de Ferramentas do Menu...",
   "commands.generic.toggle_button_bar.title": "Alternar se a barra de ferramentas do menu é exibida para todos os editores.",
+  "components.test-i18n.msg": "<p>Formatado com <b>negrito</b> e <i>itálico</i>.</p>",
   "connection-info.hub_server": "Servidor Hub",
   "connection-info.info": "A cor do ícone de ligação muda à medida que o número de mensagens em trânsito para um hub aumenta. Normalmente, não é necessária nenhuma ação, mas as contagens são úteis para fins de diagnóstico. O número máximo de mensagens que podem ser enviadas ao mesmo tempo é {max}.",
   "connection-info.messages_received": "recebido",

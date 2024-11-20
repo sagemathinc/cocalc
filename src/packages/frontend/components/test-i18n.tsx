@@ -9,16 +9,21 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import { labels } from "@cocalc/frontend/i18n";
 
-export function TestI18N() {
+export function TestI18N({ num = 13 }: { num: number }) {
   const intl = useIntl();
 
   const msg = intl.formatMessage(labels.cancel);
-  const num = 13;
 
   return (
-    <span style={{ background: "yellow" }}>
-      {num} <FormattedMessage {...labels.message_plural} values={{ num }} />{" "}
-      {msg}
-    </span>
+    <>
+      <FormattedMessage
+        id="components.test-i18n.msg"
+        defaultMessage={"<p>Formatted with <b>bold</b> and <i>italic</i>.</p>"}
+      />
+      <div>
+        The following should say: "{num} messages Cancel": "{num}{" "}
+        <FormattedMessage {...labels.message_plural} values={{ num }} /> {msg}"
+      </div>
+    </>
   );
 }

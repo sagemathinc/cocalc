@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "إخفاء شريط الأدوات لقائمة جميع المحررين",
   "commands.generic.toggle_button_bar.label": "{show, select, true {إخفاء} other {إظهار}} شريط الأدوات...",
   "commands.generic.toggle_button_bar.title": "تبديل عرض أو إخفاء شريط أدوات القائمة لجميع المحررين.",
+  "components.test-i18n.msg": "<p>منسق مع <b>عريض</b> و<i>مائل</i>.</p>",
   "connection-info.hub_server": "خادم المحور",
   "connection-info.info": "يتغير لون أيقونة الاتصال مع زيادة عدد الرسائل المرسلة إلى المحور. عادةً، لا يلزم اتخاذ أي إجراء، لكن الأعداد مفيدة لأغراض التشخيص. الحد الأقصى لعدد الرسائل التي يمكن إرسالها في نفس الوقت هو {max}.",
   "connection-info.messages_received": "استلم",

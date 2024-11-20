@@ -23,14 +23,14 @@ import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
 import "@cocalc/frontend/editors/slate/elements/elements.css";
 
-import type { AppProps } from "next/app";
-
 // The IntlProvider makes translated components from the frontend work.
 // It's english only, using the fallback defaultMessage.
 import { IntlProvider } from "react-intl";
 
 import { LOCALIZE_DEFAULT_ELEMENTS } from "@cocalc/frontend/app/localize-default-elements";
 import { DEFAULT_LOCALE } from "@cocalc/util/i18n";
+
+import type { AppProps } from "next/app";
 
 function MyApp({
   Component,
@@ -49,6 +49,7 @@ function MyApp({
       <I18nProvider lang={locale} namespaces={messages}>
         <Component {...pageProps} />
       </I18nProvider>
+      <Component {...pageProps} />
     </IntlProvider>
   );
 }
