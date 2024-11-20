@@ -7,6 +7,8 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
 import { isNullDate, isRead } from "./util";
+import Thread, { ThreadCount } from "./thread";
+import type { Threads } from "./types";
 
 const LEFT_OFFSET = "58px";
 
@@ -18,6 +20,7 @@ interface Props {
   setShowBody?;
   filter?;
   style?;
+  threads?: Threads;
 }
 
 export default function Message({
@@ -28,6 +31,7 @@ export default function Message({
   setShowBody,
   filter,
   style,
+  threads,
 }: Props) {
   const toggleBody = () => {
     if (setShowBody == null) {
@@ -76,6 +80,13 @@ export default function Message({
   if (showBody) {
     return (
       <div style={{ marginRight: "30px" }} className="smc-vfill">
+        {message.thread_id != null && threads != null && (
+          <Thread
+            thread_id={message.thread_id}
+            threads={threads}
+            filter={filter}
+          />
+        )}
         <Flex>
           <div
             style={{
@@ -149,13 +160,14 @@ export default function Message({
     <Flex
       style={{
         width: "100%",
-        marginBottom: "-10px",
-        marginTop: "-10px",
+        marginBottom: "-5px",
+        marginTop: "-5px",
         cursor: "pointer",
         ...style,
       }}
       onClick={showBody ? undefined : () => toggleBody()}
     >
+      <div style={{ color: "#888", marginRight: "10px" }}>{message.id}</div>
       {setChecked != null && (
         <Checkbox
           onClick={(e) => e.stopPropagation()}
@@ -177,6 +189,9 @@ export default function Message({
         }}
       >
         {user}
+        {message.thread_id != null && threads != null && (
+          <ThreadCount thread_id={message.thread_id} threads={threads} />
+        )}
       </div>
       <div
         style={{

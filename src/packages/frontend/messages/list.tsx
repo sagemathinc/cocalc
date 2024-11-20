@@ -7,6 +7,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
 import { isNullDate } from "./util";
+import { getThreads } from "./thread";
 
 export default function MessagesList({ messages, sentMessages, filter }) {
   const [showBody, setShowBody] = useState<number | null>(null);
@@ -17,9 +18,10 @@ export default function MessagesList({ messages, sentMessages, filter }) {
     null,
   );
 
-  const filteredMessages: MessageType[] = useMemo(() => {
+  const { filteredMessages, threads } = useMemo(() => {
+    const threads = getThreads({ messages, sentMessages });
     if (messages == null || filter == "message-compose") {
-      return [];
+      return { filteredMessages: [] as MessageType[], threads };
     }
     let m;
     if (filter == "messages-inbox") {
@@ -38,11 +40,39 @@ export default function MessagesList({ messages, sentMessages, filter }) {
     } else {
       m = messages;
     }
-    const v = m.valueSeq().toJS().sort(field_cmp("created")).reverse();
+
+    // another filter -- only keep the newest message in each thread
+    m = m.filter((message) => {
+      const thread_id =
+        message.get("thread_id") ??
+        (threads[message.get("id")] != null ? message.get("id") : null);
+      if (thread_id == null) {
+        return true;
+      }
+      const thread = threads[thread_id];
+      if (thread == null) {
+        return true;
+      }
+      // of all messages in m in this thread, is this one the newest (in terms of id)?
+      const id = message.get("id");
+      for (const mesg of thread) {
+        if (mesg.id > id && m.get(`${mesg.id}`) != null) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    const filteredMessages = m
+      .valueSeq()
+      .toJS()
+      .sort(field_cmp("created"))
+      .reverse() as MessageType[];
 
     if (checkedMessageIds.size > 0) {
+      // update information about which messages are selected.
       let changed = false;
-      const messageIds = new Set(v.map(({ id }) => id));
+      const messageIds = new Set(filteredMessages.map(({ id }) => id));
       for (const id of checkedMessageIds) {
         if (!messageIds.has(id)) {
           checkedMessageIds.delete(id);
@@ -54,7 +84,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
       }
     }
 
-    return v;
+    return { filteredMessages, threads };
   }, [filter, messages, sentMessages]);
 
   useEffect(() => {
@@ -126,6 +156,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
         </Flex>
         <Message
           message={messages.get(id)?.toJS() ?? sentMessages.get(id)?.toJS()}
+          threads={threads}
           showBody
           setShowBody={setShowBody}
           filter={filter}
@@ -181,6 +212,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
         renderItem={(message) => (
           <List.Item style={{ background: "#f2f6fc" }}>
             <Message
+              threads={threads}
               checked={checkedMessageIds.has(message.id)}
               setChecked={
                 filter != "messages-sent"

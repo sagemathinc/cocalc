@@ -1,6 +1,6 @@
-import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
+import type { Message } from "@cocalc/util/db-schema/messages";
 
-export function isRead(message: MessageType) {
+export function isRead(message: Message) {
   return !isNullDate(message.read);
 }
 
