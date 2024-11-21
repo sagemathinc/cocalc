@@ -1,6 +1,8 @@
 import type { Message } from "@cocalc/util/db-schema/messages";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import type { iThreads, iMessage } from "./types";
+import type { iThreads, iMessage, iMessagesMap, Folder } from "./types";
+import { field_cmp } from "@cocalc/util/misc";
+//import type { List as iList } from "immutable";
 
 //       WARNING: If you change or add fields and logic that could impact the "number of
 // messages in the inbox that are not read", make sure to also update
@@ -13,7 +15,7 @@ export function isInFolderThreaded({
 }: {
   message: iMessage;
   threads: iThreads;
-  folder: "inbox" | "sent" | "all" | "trash";
+  folder: Folder;
 }) {
   const thread_id = message.get("thread_id");
   if (thread_id == null) {
@@ -116,17 +118,77 @@ export function expandToThreads({
 }: {
   ids: Set<number>;
   threads: iThreads | null;
-  messages; //immutable js map from id to message
+  messages: iMessagesMap;
 }): Set<number> {
   if (threads == null || messages == null) {
     return ids;
   }
   const expanded = new Set<number>();
   for (const id of ids) {
-    const thread_id = messages.getIn([id, "thread_id"]) ?? id;
+    const thread_id = messages.get(id)?.get("thread_id") ?? id;
     for (const message of (threads.get(thread_id)?.toJS() as any) ?? [{ id }]) {
       expanded.add(message.id);
     }
   }
   return expanded;
+}
+
+// Get newest "head" message in each thread in the given folder.
+// TODO: Will surely add a search filter as well soon.
+export function getFilteredMessages({
+  folder,
+  messages,
+  threads,
+}: {
+  folder: Folder;
+  messages: iMessagesMap;
+  threads: iThreads;
+}): Message[] {
+  let m = messages.filter((message) =>
+    isInFolderThreaded({ message, threads, folder }),
+  );
+
+  // only keep the newest message in each thread -- this is what we display
+  const missingThreadHeadIds = new Set<number>();
+  m = m.filter((message) => {
+    const thread_id =
+      message.get("thread_id") ??
+      (threads.get(message.get("id")) != null ? message.get("id") : null);
+    if (thread_id == null) {
+      // message is not part of a thread
+      return true;
+    }
+    // message is part of a thread.
+    const thread = threads.get(thread_id);
+    if (thread == null) {
+      // this should never happen
+      return true;
+    }
+    const headId = thread.get(thread.size - 1)?.get("id");
+    if (headId != null && message.get("id") != headId) {
+      missingThreadHeadIds.add(headId);
+      return false;
+    }
+    return true;
+  });
+
+  if (missingThreadHeadIds.size > 0) {
+    // add in messages where the newest message is not in m at all.
+    // TODO: does this happen anymore, since we got rid of sentMessages.
+    for (const id of missingThreadHeadIds) {
+      if (m.get(id) == null) {
+        const mesg = messages.get(id);
+        if (mesg != null) {
+          m = m.set(id, mesg);
+        }
+      }
+    }
+  }
+
+  const filteredMessages = m
+    .valueSeq()
+    .toJS()
+    .sort(field_cmp("created"))
+    .reverse() as unknown as Message[];
+  return filteredMessages;
 }

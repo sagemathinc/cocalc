@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Flex, List, Space, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { field_cmp, get_array_range } from "@cocalc/util/misc";
+import { get_array_range } from "@cocalc/util/misc";
 import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
-import { expandToThreads, isInFolderThreaded, isNullDate } from "./util";
+import { expandToThreads, getFilteredMessages, isNullDate } from "./util";
+import { isFolder } from "./types";
 
 export default function MessagesList({ messages, threads, filter }) {
   const [showBody, setShowBody] = useState<number | null>(null);
@@ -17,58 +18,18 @@ export default function MessagesList({ messages, threads, filter }) {
     null,
   );
 
-  const filteredMessages = useMemo(() => {
+  const filteredMessages: MessageType[] = useMemo(() => {
     if (messages == null || threads == null || filter == "message-compose") {
-      return [] as MessageType[];
+      return [];
     }
     const folder = filter.split("-")[1];
-    let m = messages.filter((message) =>
-      isInFolderThreaded({ message, threads, folder }),
-    );
-
-    // only keep the newest message in each thread -- this is what we display
-    const missingThreadHeadIds = new Set<number>();
-    m = m.filter((message) => {
-      const thread_id =
-        message.get("thread_id") ??
-        (threads.get(message.get("id")) != null ? message.get("id") : null);
-      if (thread_id == null) {
-        // message is not part of a thread
-        return true;
-      }
-      // message is part of a thread.
-      const thread = threads.get(thread_id);
-      if (thread == null) {
-        // this should never happen
-        return true;
-      }
-      const headId = thread.get(thread.size - 1).get("id");
-      if (message.get("id") != headId) {
-        missingThreadHeadIds.add(headId);
-        return false;
-      }
-      return true;
-    });
-
-    if (missingThreadHeadIds.size > 0) {
-      // add in messages where the newest message is not in m at all.
-      // TODO: does this happen anymore, since we got rid of sentMessages.
-      for (const id of missingThreadHeadIds) {
-        if (m.get(id) == null) {
-          const mesg = messages.get(id);
-          if (mesg != null) {
-            m = m.set(id, mesg);
-          }
-        }
-      }
+    if (!isFolder(folder)) {
+      return [];
     }
+    return getFilteredMessages({ messages, threads, folder });
+  }, [messages, threads, filter]);
 
-    const filteredMessages = m
-      .valueSeq()
-      .toJS()
-      .sort(field_cmp("created"))
-      .reverse() as MessageType[];
-
+  useEffect(() => {
     if (checkedMessageIds.size > 0) {
       // update information about which messages are selected.
       let changed = false;
@@ -83,9 +44,7 @@ export default function MessagesList({ messages, threads, filter }) {
         setCheckedMessageIds(new Set(checkedMessageIds));
       }
     }
-
-    return filteredMessages;
-  }, [filter, messages, threads]);
+  }, [filteredMessages]);
 
   useEffect(() => {
     setCheckedMessageIds(new Set());
