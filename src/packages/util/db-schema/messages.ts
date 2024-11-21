@@ -188,11 +188,11 @@ Table({
               const params = [
                 account_id,
                 parseInt(old_val.id),
-                new_val.read === 0 || new Date(new_val.read).valueOf() == 0
-                  ? null
-                  : (new_val.read ?? old_val.read),
+                new_val.read ?? old_val.read,
                 new_val.saved ?? old_val.saved,
                 new_val.deleted ?? old_val.deleted,
+                // todo -- if set to 0, becomes null, so not deleted, but doesn't
+                // get sync'd out either since sync doesn't support setting to null yet.
                 new_val.expire === 0 || new Date(new_val.expire).valueOf() == 0
                   ? null
                   : (new_val.expire ?? old_val.expire),

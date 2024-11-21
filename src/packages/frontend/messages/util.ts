@@ -2,8 +2,7 @@ import type { Message } from "@cocalc/util/db-schema/messages";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export function isRead(message: Message) {
-  // by definition you have read anything you wrote.
-  return !isNullDate(message.read) || isFromMe(message);
+  return !isNullDate(message.read);
 }
 
 export function isNullDate(date: Date | number | undefined | null): boolean {

@@ -33,15 +33,17 @@ export class MessagesActions extends Actions<MessagesState> {
     deleted?: boolean;
     expire?: Date | null;
   }) => {
+    const table = redux.getTable("messages")._table;
     if (id != null) {
-      await redux
-        .getTable("messages")
-        .set({ id, read: read === null ? 0 : read, saved, deleted, expire });
+      if (table.get_one(`${id}`) != null) {
+        await redux
+          .getTable("messages")
+          .set({ id, read: read === null ? 0 : read, saved, deleted, expire });
+      }
     }
     if (ids != null && ids.size > 0) {
       // mark them all read or saved -- have to use _table to
       // change more than one record at a time.
-      const table = redux.getTable("messages")._table;
       for (const id of ids) {
         if (table.get_one(`${id}`) == null) {
           // not in this table, so don't mark it. E.g., trying to mark a message we sent as read/archive/deleted

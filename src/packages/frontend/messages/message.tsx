@@ -5,13 +5,13 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
-import { isNullDate, isFromMe, isRead } from "./util";
+import { isNullDate, isFromMe, isToMe, isRead } from "./util";
 import Thread, { ThreadCount } from "./thread";
 import type { Threads } from "./types";
 import User from "./user";
 import { Icon } from "@cocalc/frontend/components/icon";
 
-const LEFT_OFFSET = "53px";
+const LEFT_OFFSET = "46px";
 
 interface Props {
   checked?: boolean;
@@ -41,52 +41,22 @@ function MessageInList({
   filter,
   style,
   threads,
+  inThread,
 }: Props) {
   const read = isRead(message);
 
-  // [ ] todo: need to factor this out and also
-  // support types besides 'account'
-  let user;
-  if (filter == "messages-sent") {
-    // message from us to somebody else, so our
-    // priority is on *them*.
-    user = (
-      <Tooltip
-        placement="right"
-        title={
-          isRead(message) ? (
-            <>
-              Read message <TimeAgo date={message.read} />
-            </>
-          ) : (
-            "Has not yet read message"
-          )
-        }
-      >
-        <User
-          style={!read ? { fontWeight: "bold" } : undefined}
-          type={message.to_type}
-          id={message.to_id}
-          show_avatar
-          avatarSize={20}
-        />
-      </Tooltip>
-    );
-  } else {
-    // message is to us from somebody else, so we care about them
-    user = (
-      <>
-        <User
-          style={!read ? { fontWeight: "bold" } : undefined}
-          type={message.from_type}
-          id={message.from_id}
-          show_avatar
-          avatarSize={20}
-        />
-      </>
-    );
-  }
+  const { id, type } = getDisplayedUser({ message, inThread });
 
+  let user = (
+    <User
+      style={!read ? { fontWeight: "bold" } : undefined}
+      type={type}
+      id={id}
+      show_avatar
+      avatarSize={20}
+    />
+  );
+ 
   const show = setShowBody
     ? () => {
         if (!isRead(message)) {
@@ -150,14 +120,26 @@ function MessageInList({
         {read ? message.subject : <b>{message.subject}</b>}
       </div>
       <div onClick={(e) => e.stopPropagation()}>
-        <TimeAgo
-          date={message.created}
-          style={{
-            width: "150px",
-            textAlign: "right",
-            fontWeight: read ? undefined : "bold",
-          }}
-        />
+        <Tooltip
+          placement="left"
+          title={
+            isRead(message) ? (
+              <>
+                Read message <TimeAgo date={message.read} />
+              </>
+            ) : undefined
+          }
+        >
+          &nbsp;
+          <TimeAgo
+            date={message.created}
+            style={{
+              width: "150px",
+              textAlign: "right",
+              fontWeight: read ? undefined : "bold",
+            }}
+          />
+        </Tooltip>
       </div>
       <div
         style={{
@@ -191,30 +173,16 @@ function MessageFull({
   const read = isRead(message);
 
   const user = (
-    <Tooltip
-      placement="right"
-      title={
-        filter != "messages-sent" ? undefined : isRead(message) ? (
-          <>
-            Read message <TimeAgo date={message.read} />
-          </>
-        ) : (
-          "Has not yet read message"
-        )
-      }
-    >
-      &nbsp;{/*the nbsp makes the tooltip work -- weird */}
-      <User
-        style={{
-          fontSize: "12pt",
-          ...(!read ? { fontWeight: "bold" } : undefined),
-        }}
-        type="account"
-        id={filter == "messages-sent" ? message.to_id : message.from_id}
-        show_avatar
-        avatarSize={44}
-      />
-    </Tooltip>
+    <User
+      style={{
+        fontSize: "12pt",
+        ...(!read ? { fontWeight: "bold" } : undefined),
+      }}
+      type={message.from_type}
+      id={message.from_id}
+      show_avatar
+      avatarSize={42}
+    />
   );
 
   return (
@@ -285,14 +253,26 @@ function MessageFull({
             justifyContent: "center",
           }}
         >
-          <TimeAgo
-            date={message.created}
-            style={{
-              whiteSpace: "pre",
-              textAlign: "right",
-              fontWeight: read ? undefined : "bold",
-            }}
-          />
+          <Tooltip
+            placement="left"
+            title={
+              isRead(message) ? (
+                <>
+                  Read message <TimeAgo date={message.read} />
+                </>
+              ) : undefined
+            }
+          >
+            &nbsp;
+            <TimeAgo
+              date={message.created}
+              style={{
+                whiteSpace: "pre",
+                textAlign: "right",
+                fontWeight: read ? undefined : "bold",
+              }}
+            />
+          </Tooltip>
         </div>
       </Flex>
       <div style={{ marginTop: "-20px" }}>
@@ -304,7 +284,13 @@ function MessageFull({
             marginTop: "-5px",
           }}
         >
-          {isFromMe(message) ? "from me" : "to me"}
+          {isToMe(message) ? (
+            "to me"
+          ) : (
+            <>
+              to <User id={message.to_id} type={message.to_type} />
+            </>
+          )}
         </div>
       </div>
       <div
@@ -351,4 +337,30 @@ function getTag(message, filter) {
     );
   }
   return null;
+}
+
+/* 
+Figure out who should be displayed in a top level thread.
+In all cases, this is the entity that isn't us in the thread,
+unless we are writing to ourself.  
+
+A key thing is that in cocalc messaging, messages go between
+at most two entities.  This is NOT group chat in a single thread! 
+To have messages between three people, copies of the message are
+made, or you are chatting with support (say), which is just 
+one entity.
+*/
+
+function getDisplayedUser({ message, inThread }) {
+  if (inThread) {
+    return { type: message.from_type, id: message.from_id };
+  }
+  // top level showing an overall thread -- always show the user that
+  // isn't us.  We don't need to look at the other messages in the thread
+  // since every message is between us and them.
+  if (isFromMe(message)) {
+    return { type: message.to_type, id: message.to_id };
+  } else {
+    return { type: message.from_type, id: message.from_id };
+  }
 }
