@@ -3,14 +3,18 @@ import { List } from "antd";
 import { MessageInThread } from "./message";
 import { field_cmp } from "@cocalc/util/misc";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
+import { useState } from "react";
 
 interface Props {
   thread_id?: number;
   threads: Threads;
   filter?;
+  style?;
 }
 
-export default function Thread({ thread_id, threads, filter }: Props) {
+export default function Thread({ thread_id, threads, filter, style }: Props) {
+  const [showBody, setShowBody] = useState<number | null>(null);
+
   if (thread_id == null) {
     return null;
   }
@@ -21,11 +25,17 @@ export default function Thread({ thread_id, threads, filter }: Props) {
 
   return (
     <List
+      style={style}
       bordered
       dataSource={thread.slice(0, thread.length - 1)}
       renderItem={(message) => (
-        <List.Item style={{ background: "#f2f6fc" }}>
-          <MessageInThread message={message} filter={filter} />
+        <List.Item>
+          <MessageInThread
+            message={message}
+            filter={filter}
+            showBody={message.id == showBody}
+            setShowBody={setShowBody}
+          />
         </List.Item>
       )}
     />

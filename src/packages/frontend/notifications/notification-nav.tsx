@@ -108,10 +108,20 @@ export function NotificationNav({ filter, on_click, style }: Props) {
     {
       key: "messages",
       label: (
-        <Text strong style={{ fontSize: "125%" }}>
-          Messages <MessagesCounter />
-          <ComposeButton style={{ marginTop: "15px" }} />
-        </Text>
+        <div
+          style={{
+            margin:
+              "0 -12px" /* weird margin is so the compose button lines up with the items */,
+          }}
+        >
+          <Text strong style={{ fontSize: "125%", marginLeft: "12px" }}>
+            Messages <MessagesCounter />
+          </Text>
+          <ComposeButton
+            size="large"
+            style={{ marginTop: "15px", width: "100%" }}
+          />
+        </div>
       ),
       children: [
         {
@@ -126,7 +136,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-sent",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name={"external-link"} /> Sent
+              <Icon name={"paper-plane"} /> Sent
             </span>
           ),
         },

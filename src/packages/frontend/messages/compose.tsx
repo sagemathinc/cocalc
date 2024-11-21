@@ -1,4 +1,4 @@
-import { Alert, Button, Input, Modal, Space, Spin } from "antd";
+import { Alert, Button, Divider, Input, Modal, Space, Spin } from "antd";
 import SelectUser from "./select-user";
 import { useState } from "react";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -75,8 +75,10 @@ export default function Compose({
         onChange={(e) => setBody(e.target.value)}
       />
       <div>
+        <Divider/>
         <Space>
           <Button
+            size="large"
             disabled={
               onCancel == null &&
               (state != "compose" ||
@@ -87,6 +89,7 @@ export default function Compose({
             Cancel
           </Button>{" "}
           <Button
+            size="large"
             disabled={
               !subject.trim() || !body.trim() || !toId || state != "compose"
             }

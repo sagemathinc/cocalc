@@ -1,5 +1,5 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { Checkbox, Flex, Tag, Tooltip } from "antd";
+import { Button, Checkbox, Flex, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -9,8 +9,9 @@ import { isNullDate, isFromMe, isRead } from "./util";
 import Thread, { ThreadCount } from "./thread";
 import type { Threads } from "./types";
 import User from "./user";
+import { Icon } from "@cocalc/frontend/components/icon";
 
-const LEFT_OFFSET = "54px";
+const LEFT_OFFSET = "53px";
 
 interface Props {
   checked?: boolean;
@@ -40,41 +41,63 @@ function MessageInList({
   filter,
   style,
   threads,
-  inThread,
 }: Props) {
   const read = isRead(message);
 
   // [ ] todo: need to factor this out and also
   // support types besides 'account'
-  const user = (
-    <Tooltip
-      placement="right"
-      title={
-        !isFromMe(message) ? undefined : isRead(message) ? (
-          <>
-            Read message <TimeAgo date={message.read} />
-          </>
-        ) : (
-          "Has not yet read message"
-        )
-      }
-    >
-      &nbsp;{/*the nbsp makes the tooltip work -- weird */}
-      <User
-        style={!read ? { fontWeight: "bold" } : undefined}
-        type="account"
-        id={
-          inThread
-            ? message.from_id
-            : isFromMe(message)
-              ? message.to_id
-              : message.from_id
+  let user;
+  if (filter == "messages-sent") {
+    // message from us to somebody else, so our
+    // priority is on *them*.
+    user = (
+      <Tooltip
+        placement="right"
+        title={
+          isRead(message) ? (
+            <>
+              Read message <TimeAgo date={message.read} />
+            </>
+          ) : (
+            "Has not yet read message"
+          )
         }
-        show_avatar
-        avatarSize={20}
-      />
-    </Tooltip>
-  );
+      >
+        <User
+          style={!read ? { fontWeight: "bold" } : undefined}
+          type={message.to_type}
+          id={message.to_id}
+          show_avatar
+          avatarSize={20}
+        />
+      </Tooltip>
+    );
+  } else {
+    // message is to us from somebody else, so we care about them
+    user = (
+      <>
+        <User
+          style={!read ? { fontWeight: "bold" } : undefined}
+          type={message.from_type}
+          id={message.from_id}
+          show_avatar
+          avatarSize={20}
+        />
+      </>
+    );
+  }
+
+  const show = setShowBody
+    ? () => {
+        if (!isRead(message)) {
+          redux.getActions("messages").mark({
+            id: message.id,
+            read: webapp_client.server_time(),
+          });
+        }
+        setShowBody?.(message.id);
+      }
+    : undefined;
 
   return (
     <Flex
@@ -85,15 +108,7 @@ function MessageInList({
         cursor: "pointer",
         ...style,
       }}
-      onClick={() => {
-        if (!isRead(message)) {
-          redux.getActions("messages").mark({
-            id: message.id,
-            read: webapp_client.server_time(),
-          });
-        }
-        setShowBody(message.id);
-      }}
+      onClick={show}
     >
       {setChecked != null && (
         <Checkbox
@@ -116,6 +131,8 @@ function MessageInList({
         }}
       >
         {user}
+      </div>
+      <div style={{ width: "20px", marginRight: "10px" }}>
         {message.thread_id != null && threads != null && (
           <ThreadCount thread_id={message.thread_id} threads={threads} />
         )}
@@ -158,13 +175,19 @@ function MessageInList({
 
 export function MessageInThread(props: Props) {
   if (props.showBody) {
-    return <MessageFull {...props} />;
+    return <MessageFull {...props} inThread />;
   } else {
     return <MessageInList {...props} inThread />;
   }
 }
 
-function MessageFull({ message, filter, threads }: Props) {
+function MessageFull({
+  message,
+  filter,
+  threads,
+  inThread,
+  setShowBody,
+}: Props) {
   const read = isRead(message);
 
   const user = (
@@ -195,15 +218,45 @@ function MessageFull({ message, filter, threads }: Props) {
   );
 
   return (
-    <div style={{ marginRight: "30px" }} className="smc-vfill">
-      {message.thread_id != null && threads != null && (
+    <div
+      style={{
+        width: "100%",
+        marginRight: "30px",
+        marginLeft: inThread ? "-24px" : undefined,
+        /* overflowY is so when threads are expanded we can scroll and see them*/
+        overflowY: "auto",
+      }}
+      className={inThread ? undefined : "smc-vfill"}
+    >
+      {!inThread && message.thread_id != null && threads != null && (
         <Thread
           thread_id={message.thread_id}
           threads={threads}
           filter={filter}
+          style={{ marginBottom: "10px" }}
         />
       )}
       <Flex>
+        {setShowBody != null && inThread && (
+          <Button
+            style={{
+              /* this whole style is just stupid and lazy.*/
+              position: "absolute",
+              marginTop: "-14px",
+              marginLeft: "-14px",
+              fontSize: "15pt",
+              color: "#666",
+            }}
+            type="text"
+            onClick={() => {
+              // if setShowBody is available, we're in a thread and expanded, so
+              // shrink.
+              setShowBody?.(null);
+            }}
+          >
+            <Icon name="minus-square" />
+          </Button>
+        )}
         <div
           style={{
             marginLeft: LEFT_OFFSET,
@@ -251,22 +304,24 @@ function MessageFull({ message, filter, threads }: Props) {
             marginTop: "-5px",
           }}
         >
-          {filter == "messages-sent" ? "from" : "to"} me
+          {isFromMe(message) ? "from me" : "to me"}
         </div>
       </div>
       <div
-        className="smc-vfill"
         style={{
           marginLeft: LEFT_OFFSET,
           marginTop: "15px",
-          overflowY: "auto",
         }}
       >
         <StaticMarkdown value={message.body} />
         <div style={{ height: "30px" }} />
-        {message.from_type == "account" && filter != "messages-sent" && (
-          <ReplyButton size="large" replyTo={message} />
-        )}
+        {!inThread &&
+          message.from_type == "account" &&
+          filter != "messages-sent" && (
+            <div>
+              <ReplyButton size="large" replyTo={message} />
+            </div>
+          )}
       </div>
     </div>
   );
