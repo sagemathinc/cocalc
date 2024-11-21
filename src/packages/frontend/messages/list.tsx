@@ -7,9 +7,13 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
 import { expandToThreads, isNullDate } from "./util";
-import { getThreads } from "./thread";
 
-export default function MessagesList({ messages, sentMessages, filter }) {
+export default function MessagesList({
+  messages,
+  sentMessages,
+  threads,
+  filter,
+}) {
   const [showBody, setShowBody] = useState<number | null>(null);
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
     new Set(),
@@ -18,10 +22,14 @@ export default function MessagesList({ messages, sentMessages, filter }) {
     null,
   );
 
-  const { filteredMessages, threads } = useMemo(() => {
-    const threads = getThreads({ messages, sentMessages });
-    if (messages == null || filter == "message-compose") {
-      return { filteredMessages: [] as MessageType[], threads };
+  const filteredMessages = useMemo(() => {
+    if (
+      messages == null ||
+      threads == null ||
+      sentMessages == null ||
+      filter == "message-compose"
+    ) {
+      return [] as MessageType[];
     }
     let m;
     if (filter == "messages-inbox") {
@@ -42,24 +50,24 @@ export default function MessagesList({ messages, sentMessages, filter }) {
     }
 
     // another filter -- only keep the newest message in each thread
-    const missingThreadHeadIds = new Set<string>(); // string because the keys in m are string version id number :-(
+    const missingThreadHeadIds = new Set<number>();
     m = m.filter((message) => {
       const thread_id =
         message.get("thread_id") ??
-        (threads[message.get("id")] != null ? message.get("id") : null);
+        (threads.get(message.get("id")) != null ? message.get("id") : null);
       if (thread_id == null) {
         // message is not part of a thread
         return true;
       }
       // message is part of a thread.
-      const thread = threads[thread_id];
+      const thread = threads.get(thread_id);
       if (thread == null) {
         // this should never happen
         return true;
       }
-      const headId = thread[thread.length - 1].id;
+      const headId = thread.get(thread.size - 1).get("id");
       if (message.get("id") != headId) {
-        missingThreadHeadIds.add(`${headId}`);
+        missingThreadHeadIds.add(headId);
         return false;
       }
       return true;
@@ -99,8 +107,8 @@ export default function MessagesList({ messages, sentMessages, filter }) {
       }
     }
 
-    return { filteredMessages, threads };
-  }, [filter, messages, sentMessages]);
+    return filteredMessages;
+  }, [filter, messages, sentMessages, threads]);
 
   useEffect(() => {
     setCheckedMessageIds(new Set());
@@ -117,7 +125,7 @@ export default function MessagesList({ messages, sentMessages, filter }) {
       : undefined;
 
   if (showBody != null) {
-    const id = `${showBody}`;
+    const id = showBody;
     return (
       <>
         <Flex style={{ marginBottom: "5px" }}>
@@ -439,9 +447,7 @@ function enableMoveToInbox({
 }
 
 function getIn({ id, messages, sentMessages, field }) {
-  return (
-    messages.getIn([`${id}`, field]) ?? sentMessages.getIn([`${id}`, field])
-  );
+  return messages.getIn([id, field]) ?? sentMessages.getIn([id, field]);
 }
 
 function hasUnread({ checkedMessageIds, messages, sentMessages }) {

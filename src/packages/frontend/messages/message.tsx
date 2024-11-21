@@ -7,7 +7,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
 import { isNullDate, isFromMe, isToMe, isRead } from "./util";
 import Thread, { ThreadCount } from "./thread";
-import type { Threads } from "./types";
+import type { iThreads } from "./types";
 import User from "./user";
 import { Icon } from "@cocalc/frontend/components/icon";
 
@@ -21,7 +21,7 @@ interface Props {
   setShowBody?;
   filter?;
   style?;
-  threads?: Threads;
+  threads?: iThreads;
   inThread?: boolean;
 }
 
@@ -56,7 +56,7 @@ function MessageInList({
       avatarSize={20}
     />
   );
- 
+
   const show = setShowBody
     ? () => {
         if (!isRead(message)) {

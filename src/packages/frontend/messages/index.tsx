@@ -31,6 +31,7 @@ export default function Messages({ filter, style }: Props) {
     init();
   }, []);
 
+  const threads = useTypedRedux("messages", "threads");
   const messages = useTypedRedux("messages", "messages");
   const sentMessages = useTypedRedux("messages", "sent_messages");
 
@@ -44,6 +45,7 @@ export default function Messages({ filter, style }: Props) {
       <MessagesList
         messages={messages}
         sentMessages={sentMessages}
+        threads={threads}
         filter={filter}
       />
     </div>

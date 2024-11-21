@@ -5,19 +5,40 @@
 
 import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
-import type { Message } from "@cocalc/util/db-schema/messages";
-import type { TypedMap } from "@cocalc/util/types/typed-map";
-import type { Map } from "immutable";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { getThreads } from "./thread";
+import type { iMessagesMap, iThreads } from "./types";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
-  messages?: Map<string, TypedMap<Message>>;
-  sent_messages?: Map<string, TypedMap<Message>>;
+  messages?: iMessagesMap;
+  sent_messages?: iMessagesMap;
+  threads?: iThreads;
 }
 export class MessagesStore extends Store<MessagesState> {}
 
 export class MessagesActions extends Actions<MessagesState> {
+  constructor(name, redux) {
+    super(name, redux);
+    const store = this.getStore();
+    let lastMessages: any = null,
+      lastSentMessages: any = null;
+    store.on("change", () => {
+      const messages = store.get("messages");
+      const sentMessages = store.get("sent_messages");
+      if (messages == lastMessages && sentMessages == lastSentMessages) {
+        return;
+      }
+      lastMessages = messages;
+      lastSentMessages = sentMessages;
+      // compute all derived state we need in general
+      const threads = getThreads({ messages, sentMessages });
+      this.setState({ threads });
+    });
+  }
+
+  getStore = () => this.redux.getStore("messages");
+
   mark = async ({
     id,
     ids,
@@ -33,11 +54,18 @@ export class MessagesActions extends Actions<MessagesState> {
     deleted?: boolean;
     expire?: Date | null;
   }) => {
-    console.log("mark", { ids, saved });
-    const table = redux.getTable("messages")._table;
+    //     console.log("mark", {
+    //       id,
+    //       ids,
+    //       read,
+    //       saved,
+    //       deleted,
+    //       expire,
+    //     });
+    const table = this.redux.getTable("messages")._table;
     if (id != null) {
       if (table.get_one(`${id}`) != null) {
-        await redux
+        await this.redux
           .getTable("messages")
           .set({ id, read: read === null ? 0 : read, saved, deleted, expire });
       }
@@ -49,7 +77,6 @@ export class MessagesActions extends Actions<MessagesState> {
         if (table.get_one(`${id}`) == null) {
           // not in this table, so don't mark it. E.g., trying to mark a message we sent as read/archive/deleted
           // isn't supported.
-          console.log("skipping", id);
           continue;
         }
         table.set({
@@ -122,7 +149,7 @@ class MessagesTable extends Table {
       throw Error("actions must be defined");
     }
 
-    const messages = table.get();
+    const messages = table.get().mapKeys(parseInt);
     actions.setState({ messages });
   }
 }
@@ -164,7 +191,7 @@ class SentMessagesTable extends Table {
       throw Error("actions must be defined");
     }
 
-    const sent_messages = table.get();
+    const sent_messages = table.get().mapKeys(parseInt);
     actions.setState({ sent_messages });
   }
 }

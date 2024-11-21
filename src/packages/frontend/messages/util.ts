@@ -1,6 +1,6 @@
 import type { Message } from "@cocalc/util/db-schema/messages";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import type { Threads } from "./types";
+import type { iThreads } from "./types";
 
 export function isRead(message: Message) {
   return !isNullDate(message.read);
@@ -32,7 +32,7 @@ export function expandToThreads({
   sentMessages,
 }: {
   ids: Set<number>;
-  threads: Threads | null;
+  threads: iThreads | null;
   messages; //immutable js map from id to message
   sentMessages;
 }): Set<number> {
@@ -42,13 +42,12 @@ export function expandToThreads({
   const expanded = new Set<number>();
   for (const id of ids) {
     const thread_id =
-      messages.getIn([`${id}`, "thread_id"]) ??
-      sentMessages.getIn([`${id}`, "thread_id"]) ??
+      messages.getIn([id, "thread_id"]) ??
+      sentMessages.getIn([id, "thread_id"]) ??
       id;
-    for (const message of threads[thread_id] ?? [{ id }]) {
+    for (const message of (threads.get(thread_id)?.toJS() as any) ?? [{ id }]) {
       expanded.add(message.id);
     }
   }
-  console.log("got", { expanded, ids, threads, messsages: messages?.toJS() });
   return expanded;
 }

@@ -1,13 +1,14 @@
-import type { Threads } from "./types";
+import type { iThreads } from "./types";
 import { List } from "antd";
 import { MessageInThread } from "./message";
 import { field_cmp } from "@cocalc/util/misc";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { useState } from "react";
+import { List as iList, Map as iMap } from "immutable";
 
 interface Props {
   thread_id?: number;
-  threads: Threads;
+  threads: iThreads;
   filter?;
   style?;
 }
@@ -18,7 +19,7 @@ export default function Thread({ thread_id, threads, filter, style }: Props) {
   if (thread_id == null) {
     return null;
   }
-  const thread = threads[thread_id];
+  const thread = threads.get(thread_id)?.toJS();
   if (thread == null) {
     return null;
   }
@@ -27,7 +28,9 @@ export default function Thread({ thread_id, threads, filter, style }: Props) {
     <List
       style={style}
       bordered
-      dataSource={thread.slice(0, thread.length - 1)}
+      dataSource={
+        thread.slice(0, thread.length - 1) as unknown as MessageType[]
+      }
       renderItem={(message) => (
         <List.Item>
           <MessageInThread
@@ -46,24 +49,21 @@ export function ThreadCount({ thread_id, threads }: Props) {
   if (thread_id == null) {
     return null;
   }
-  const n = threads[thread_id];
-  if (n == null) {
-    return null;
-  }
-  return <span style={{ marginLeft: "15px" }}>{Object.keys(n).length}</span>;
+  const thread = threads.get(thread_id);
+  return <span style={{ marginLeft: "15px" }}>{thread?.size}</span>;
 }
 
+// TODO: getThreads could be made much more efficient...
+//
 // here messages and sentMessages are null or immutable maps from string version of message
 // id to immutable map version of message.
 // Returns threads map from thread_id to map from messages id to messages in that thread
 // (target is null if message with given id is mysteriously missing)
-export function getThreads({ messages, sentMessages }): Threads {
-  const threads: Threads = {};
+export function getThreads({ messages, sentMessages }): iThreads {
+  let threads: iThreads = iMap();
 
-  const getMessage = (id: number): MessageType | null => {
-    const k = `${id}`;
-    const m = messages?.get(k) ?? sentMessages?.get(k);
-    return (m?.toJS() as MessageType) || null;
+  const getMessage = (id: number) => {
+    return messages?.get(id) ?? sentMessages?.get(id);
   };
 
   const process = (message) => {
@@ -72,11 +72,15 @@ export function getThreads({ messages, sentMessages }): Threads {
       return;
     }
     const m = getMessage(message.get("id"));
-    if (threads[thread_id] == null) {
-      threads[thread_id] = [getMessage(thread_id), m].filter((x) => x != null);
+    const thread = threads.get(thread_id);
+    if (thread == null) {
+      threads = threads.set(
+        thread_id,
+        iList([getMessage(thread_id), m]).filter((x) => x != null),
+      );
     } else {
       if (m != null) {
-        threads[thread_id].push(m);
+        threads = threads.set(thread_id, thread.push(m));
       }
     }
   };
@@ -84,8 +88,11 @@ export function getThreads({ messages, sentMessages }): Threads {
   messages?.map(process);
   sentMessages?.map(process);
 
-  for (const thread_id in threads) {
-    threads[thread_id].sort(field_cmp("created"));
+  for (const thread_id of threads.keySeq()) {
+    const thread = threads.get(thread_id);
+    if (thread != null) {
+      threads.set(thread_id, thread.sort(field_cmp("created")));
+    }
   }
 
   return threads;
