@@ -214,26 +214,6 @@ function MessageFull({
         />
       )}
       <Flex>
-        {setShowBody != null && inThread && (
-          <Button
-            style={{
-              /* this whole style is just stupid and lazy.*/
-              position: "absolute",
-              marginTop: "-14px",
-              marginLeft: "-14px",
-              fontSize: "15pt",
-              color: "#666",
-            }}
-            type="text"
-            onClick={() => {
-              // if setShowBody is available, we're in a thread and expanded, so
-              // shrink.
-              setShowBody?.(null);
-            }}
-          >
-            <Icon name="minus-square" />
-          </Button>
-        )}
         <div
           style={{
             marginLeft: LEFT_OFFSET,
@@ -243,6 +223,19 @@ function MessageFull({
           {message.subject}
         </div>
         <div style={{ flex: 1 }} />
+        {setShowBody != null && inThread && (
+          <Button
+            style={{ fontSize: "15pt", color: "#666" }}
+            type="text"
+            onClick={() => {
+              // if setShowBody is available, we're in a thread and expanded, so
+              // shrink.
+              setShowBody?.(null);
+            }}
+          >
+            <Icon name="ColumnHeightOutlined" />
+          </Button>
+        )}
         {(message.from_type == "account" || isFromMe(message)) && (
           <div
             style={{

@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function Thread({ thread_id, threads, filter, style }: Props) {
-  const [showBody, setShowBody] = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   if (thread_id == null) {
     return null;
@@ -34,8 +34,15 @@ export default function Thread({ thread_id, threads, filter, style }: Props) {
           <MessageInThread
             message={message}
             filter={filter}
-            showBody={message.id == showBody}
-            setShowBody={setShowBody}
+            showBody={expanded.has(message.id)}
+            setShowBody={(add) => {
+              if (add) {
+                expanded.add(message.id);
+              } else {
+                expanded.delete(message.id);
+              }
+              setExpanded(new Set(expanded));
+            }}
           />
         </List.Item>
       )}

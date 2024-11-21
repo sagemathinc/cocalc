@@ -75,7 +75,7 @@ export default function Compose({
         onChange={(e) => setBody(e.target.value)}
       />
       <div>
-        <Divider/>
+        <Divider />
         <Space>
           <Button
             size="large"
@@ -90,9 +90,7 @@ export default function Compose({
           </Button>{" "}
           <Button
             size="large"
-            disabled={
-              !subject.trim() || !body.trim() || !toId || state != "compose"
-            }
+            disabled={!subject.trim() || !toId || state != "compose"}
             type="primary"
             onClick={async () => {
               try {
