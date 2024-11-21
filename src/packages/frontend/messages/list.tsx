@@ -7,13 +7,9 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
 import { expandToThreads, isNullDate } from "./util";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
-export default function MessagesList({
-  messages,
-  sentMessages,
-  threads,
-  filter,
-}) {
+export default function MessagesList({ messages, threads, filter }) {
   const [showBody, setShowBody] = useState<number | null>(null);
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
     new Set(),
@@ -23,12 +19,7 @@ export default function MessagesList({
   );
 
   const filteredMessages = useMemo(() => {
-    if (
-      messages == null ||
-      threads == null ||
-      sentMessages == null ||
-      filter == "message-compose"
-    ) {
+    if (messages == null || threads == null || filter == "message-compose") {
       return [] as MessageType[];
     }
     let m;
@@ -42,7 +33,11 @@ export default function MessagesList({
     } else if (filter == "messages-all") {
       m = messages.filter((message) => !message.get("deleted"));
     } else if (filter == "messages-sent") {
-      m = sentMessages ?? [];
+      m = messages.filter(
+        (message) =>
+          message.get("from_id") == webapp_client.account_id &&
+          message.get("from_type") == "account",
+      );
     } else if (filter == "messages-trash") {
       m = messages.filter((message) => message.get("deleted"));
     } else {
@@ -74,11 +69,11 @@ export default function MessagesList({
     });
 
     if (missingThreadHeadIds.size > 0) {
-      // add in messages where the newest message is not in m at all, e.g., maybe
-      // it is in sentMessages.
+      // add in messages where the newest message is not in m at all.
+      // TODO: does this happen anymore, since we got rid of sentMessages.
       for (const id of missingThreadHeadIds) {
         if (m.get(id) == null) {
-          const mesg = messages?.get(id) ?? sentMessages?.get(id);
+          const mesg = messages.get(id);
           if (mesg != null) {
             m = m.set(id, mesg);
           }
@@ -108,7 +103,7 @@ export default function MessagesList({
     }
 
     return filteredMessages;
-  }, [filter, messages, sentMessages, threads]);
+  }, [filter, messages, threads]);
 
   useEffect(() => {
     setCheckedMessageIds(new Set());
@@ -148,7 +143,6 @@ export default function MessagesList({
               filter={filter}
               checkedMessageIds={new Set([showBody])}
               messages={messages}
-              sentMessages={sentMessages}
               setShowBody={setShowBody}
             />
           )}
@@ -180,7 +174,7 @@ export default function MessagesList({
           )}
         </Flex>
         <Message
-          message={messages.get(id)?.toJS() ?? sentMessages.get(id)?.toJS()}
+          message={messages.get(id)?.toJS()}
           threads={threads}
           showBody
           setShowBody={setShowBody}
@@ -225,7 +219,6 @@ export default function MessagesList({
               filter={filter}
               checkedMessageIds={checkedMessageIds}
               messages={messages}
-              sentMessages={sentMessages}
               setShowBody={setShowBody}
               threads={threads}
             />
@@ -289,7 +282,6 @@ function Actions({
   filter,
   checkedMessageIds,
   messages,
-  sentMessages,
   setShowBody,
   threads,
 }) {
@@ -304,7 +296,6 @@ function Actions({
               ids: checkedMessageIds,
               threads,
               messages,
-              sentMessages,
             }),
             saved: true,
           });
@@ -322,7 +313,6 @@ function Actions({
                 ids: checkedMessageIds,
                 threads,
                 messages,
-                sentMessages,
               }),
               deleted: true,
             });
@@ -336,16 +326,13 @@ function Actions({
         <Button
           danger
           type="text"
-          disabled={
-            !hasNotExpire({ checkedMessageIds, messages, sentMessages })
-          }
+          disabled={!hasNotExpire({ checkedMessageIds, messages })}
           onClick={() => {
             redux.getActions("messages").mark({
               ids: expandToThreads({
                 ids: checkedMessageIds,
                 threads,
                 messages,
-                sentMessages,
               }),
               expire: dayjs().add(1, "day").toDate(),
             });
@@ -358,14 +345,13 @@ function Actions({
       {filter != "messages-trash" && (
         <Button
           type="text"
-          disabled={!hasUnread({ checkedMessageIds, messages, sentMessages })}
+          disabled={!hasUnread({ checkedMessageIds, messages })}
           onClick={() => {
             redux.getActions("messages").mark({
               ids: expandToThreads({
                 ids: checkedMessageIds,
                 threads,
                 messages,
-                sentMessages,
               }),
               read: new Date(),
             });
@@ -377,14 +363,13 @@ function Actions({
       {filter != "messages-trash" && (
         <Button
           type="text"
-          disabled={!hasRead({ checkedMessageIds, messages, sentMessages })}
+          disabled={!hasRead({ checkedMessageIds, messages })}
           onClick={() => {
             redux.getActions("messages").mark({
               ids: expandToThreads({
                 ids: checkedMessageIds,
                 threads,
                 messages,
-                sentMessages,
               }),
               read: null,
             });
@@ -400,7 +385,6 @@ function Actions({
             filter,
             checkedMessageIds,
             messages,
-            sentMessages,
           })
         }
         onClick={() => {
@@ -409,7 +393,6 @@ function Actions({
               ids: checkedMessageIds,
               threads,
               messages,
-              sentMessages,
             }),
             saved: false,
             deleted: false,
@@ -424,19 +407,11 @@ function Actions({
   );
 }
 
-function enableMoveToInbox({
-  filter,
-  checkedMessageIds,
-  messages,
-  sentMessages,
-}) {
+function enableMoveToInbox({ filter, checkedMessageIds, messages }) {
   if (filter == "messages-inbox" || filter == "messages-sent") {
     return false;
   }
-  if (
-    filter == "messages-all" &&
-    !hasSaved({ checkedMessageIds, messages, sentMessages })
-  ) {
+  if (filter == "messages-all" && !hasSaved({ checkedMessageIds, messages })) {
     // every message is already in the inbox
     return false;
   }
@@ -446,13 +421,13 @@ function enableMoveToInbox({
   return true;
 }
 
-function getIn({ id, messages, sentMessages, field }) {
-  return messages.getIn([id, field]) ?? sentMessages.getIn([id, field]);
+function getIn({ id, messages, field }) {
+  return messages.getIn([id, field]);
 }
 
-function hasUnread({ checkedMessageIds, messages, sentMessages }) {
+function hasUnread({ checkedMessageIds, messages }) {
   for (const id of checkedMessageIds) {
-    const read = getIn({ id, field: "read", messages, sentMessages });
+    const read = getIn({ id, field: "read", messages });
     if (isNullDate(read)) {
       return true;
     }
@@ -460,9 +435,9 @@ function hasUnread({ checkedMessageIds, messages, sentMessages }) {
   return false;
 }
 
-function hasRead({ checkedMessageIds, messages, sentMessages }) {
+function hasRead({ checkedMessageIds, messages }) {
   for (const id of checkedMessageIds) {
-    const read = getIn({ id, field: "read", messages, sentMessages });
+    const read = getIn({ id, field: "read", messages });
     if (!isNullDate(read)) {
       return true;
     }
@@ -470,18 +445,18 @@ function hasRead({ checkedMessageIds, messages, sentMessages }) {
   return false;
 }
 
-function hasSaved({ checkedMessageIds, messages, sentMessages }) {
+function hasSaved({ checkedMessageIds, messages }) {
   for (const id of checkedMessageIds) {
-    if (getIn({ id, field: "saved", messages, sentMessages })) {
+    if (getIn({ id, field: "saved", messages })) {
       return true;
     }
   }
   return false;
 }
 
-function hasNotExpire({ checkedMessageIds, messages, sentMessages }) {
+function hasNotExpire({ checkedMessageIds, messages }) {
   for (const id of checkedMessageIds) {
-    const expire = getIn({ id, field: "expire", messages, sentMessages });
+    const expire = getIn({ id, field: "expire", messages });
     if (isNullDate(expire)) {
       return true;
     }

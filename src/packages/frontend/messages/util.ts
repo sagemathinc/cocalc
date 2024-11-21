@@ -29,22 +29,17 @@ export function expandToThreads({
   ids,
   threads,
   messages,
-  sentMessages,
 }: {
   ids: Set<number>;
   threads: iThreads | null;
   messages; //immutable js map from id to message
-  sentMessages;
 }): Set<number> {
-  if (threads == null || messages == null || sentMessages == null) {
+  if (threads == null || messages == null) {
     return ids;
   }
   const expanded = new Set<number>();
   for (const id of ids) {
-    const thread_id =
-      messages.getIn([id, "thread_id"]) ??
-      sentMessages.getIn([id, "thread_id"]) ??
-      id;
+    const thread_id = messages.getIn([id, "thread_id"]) ?? id;
     for (const message of (threads.get(thread_id)?.toJS() as any) ?? [{ id }]) {
       expanded.add(message.id);
     }

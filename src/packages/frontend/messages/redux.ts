@@ -5,14 +5,13 @@
 
 import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { getThreads } from "./thread";
 import type { iMessagesMap, iThreads } from "./types";
+import { List as iList, Map as iMap } from "immutable";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
   messages?: iMessagesMap;
-  sent_messages?: iMessagesMap;
   threads?: iThreads;
 }
 export class MessagesStore extends Store<MessagesState> {}
@@ -20,21 +19,6 @@ export class MessagesStore extends Store<MessagesState> {}
 export class MessagesActions extends Actions<MessagesState> {
   constructor(name, redux) {
     super(name, redux);
-    const store = this.getStore();
-    let lastMessages: any = null,
-      lastSentMessages: any = null;
-    store.on("change", () => {
-      const messages = store.get("messages");
-      const sentMessages = store.get("sent_messages");
-      if (messages == lastMessages && sentMessages == lastSentMessages) {
-        return;
-      }
-      lastMessages = messages;
-      lastSentMessages = sentMessages;
-      // compute all derived state we need in general
-      const threads = getThreads({ messages, sentMessages });
-      this.setState({ threads });
-    });
   }
 
   getStore = () => this.redux.getStore("messages");
@@ -54,14 +38,6 @@ export class MessagesActions extends Actions<MessagesState> {
     deleted?: boolean;
     expire?: Date | null;
   }) => {
-    //     console.log("mark", {
-    //       id,
-    //       ids,
-    //       read,
-    //       saved,
-    //       deleted,
-    //       expire,
-    //     });
     const table = this.redux.getTable("messages")._table;
     if (id != null) {
       if (table.get_one(`${id}`) != null) {
@@ -108,6 +84,54 @@ export class MessagesActions extends Actions<MessagesState> {
       query: { messages: { subject, body, to_id, to_type, thread_id } },
     });
   };
+
+  handleTableUpdate = (updatedMessages) => {
+    const store = this.getStore();
+    let messages = store.get("messages");
+    if (messages == null) {
+      messages = updatedMessages;
+    } else {
+      messages = messages.merge(updatedMessages);
+    }
+    const threads = getThreads(messages);
+    this.setState({ messages, threads });
+  };
+}
+
+export function getThreads(messages): iThreads {
+  let threads: iThreads = iMap();
+
+  const process = (message) => {
+    const thread_id = message.get("thread_id");
+    if (thread_id == null) {
+      return;
+    }
+    const root = messages.get(thread_id);
+    if (root == null) {
+      // messages is incomplete, e.g., maybe sent aren't loaded yet.
+      return;
+    }
+    const thread = threads.get(thread_id);
+    if (thread == null) {
+      threads = threads.set(thread_id, iList([root, message]));
+    } else {
+      threads = threads.set(thread_id, thread.push(message));
+    }
+  };
+
+  messages?.map(process);
+  for (const thread_id of threads.keySeq()) {
+    const thread = threads.get(thread_id);
+    if (thread == null) {
+      throw Error("bug");
+    }
+    threads = threads.set(
+      thread_id,
+      thread.sortBy((message) => message.get("created")),
+    );
+  }
+
+  return threads;
 }
 
 class MessagesTable extends Table {
@@ -148,9 +172,7 @@ class MessagesTable extends Table {
     if (actions == null) {
       throw Error("actions must be defined");
     }
-
-    const messages = table.get().mapKeys(parseInt);
-    actions.setState({ messages });
+    actions.handleTableUpdate(table.get().mapKeys(parseInt));
   }
 }
 
@@ -190,9 +212,7 @@ class SentMessagesTable extends Table {
     if (actions == null) {
       throw Error("actions must be defined");
     }
-
-    const sent_messages = table.get().mapKeys(parseInt);
-    actions.setState({ sent_messages });
+    actions.handleTableUpdate(table.get().mapKeys(parseInt));
   }
 }
 
