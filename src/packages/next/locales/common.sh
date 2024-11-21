@@ -1,4 +1,4 @@
-LANGS="en de fr es zh"
+LANGS="en es de zh ru fr it nl ja hi pt ko pl tr he hu ar"
 
 check_api_key() {
     if [ -z "${SIMPLELOCALIZE_KEY_NEXT}" ]; then

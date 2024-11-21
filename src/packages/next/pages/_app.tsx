@@ -9,11 +9,7 @@
 // now that we are using antd v5.
 import "antd/dist/reset.css";
 
-import { Locale } from "locales/consts";
-import type { I18nDictionary } from "next-translate";
-
-// The I18nProvider is either english by default, or based on the query path: /lang/[locale]
-import I18nProvider from "next-translate/I18nProvider";
+import { Locale } from "locales/misc";
 
 // Initialize the appBasePath for the frontend codebase.
 import "@cocalc/frontend/customize/app-base-path";
@@ -35,10 +31,8 @@ import type { AppProps } from "next/app";
 function MyApp({
   Component,
   pageProps,
-  // router,
-  locale,
-  messages,
-}: AppProps & { messages: Record<string, I18nDictionary>; locale: Locale }) {
+}: // router,
+AppProps & { locale: Locale }) {
   return (
     <IntlProvider
       locale={DEFAULT_LOCALE}
@@ -46,9 +40,6 @@ function MyApp({
       defaultLocale={DEFAULT_LOCALE}
       defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
     >
-      <I18nProvider lang={locale} namespaces={messages}>
-        <Component {...pageProps} />
-      </I18nProvider>
       <Component {...pageProps} />
     </IntlProvider>
   );
@@ -113,6 +104,5 @@ import "@cocalc/cdn/dist/codemirror/theme/yeti.css";
 import "@cocalc/cdn/dist/codemirror/theme/zenburn.css";
 import "@uiw/react-textarea-code-editor/dist.css";
 
-// this must be last to overwrite things like antd
 import "../styles/bootstrap-visible.css";
 import "../styles/globals.css";

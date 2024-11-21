@@ -5,19 +5,16 @@
 
 import { Col, Flex, Layout, Row, Space, Typography } from "antd";
 
-import useTranslation from "next-translate/useTranslation";
-
-import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
-import { liveDemoUrl } from "components/landing/live-demo";
+import { is_valid_email_address as isValidEmailAddress } from "@cocalc/util/misc";
 import Logo from "components/logo";
 import { CSS } from "components/misc";
 import A from "components/misc/A";
-
 import { MAX_WIDTH } from "lib/config";
 import { useCustomize } from "lib/customize";
 
+import { liveDemoUrl } from "components/landing/live-demo";
 import SocialMediaIconList from "./social-media-icon-list";
 
 const FOOTER_STYLE: CSS = {
@@ -28,23 +25,23 @@ const FOOTER_STYLE: CSS = {
 const FOOTER_COLUMNS_STYLE: CSS = {
   minWidth: "200px",
   flexGrow: 1,
-};
+} as const;
 
 const FOOTER_COLUMN_STYLE = {
   marginTop: "32px",
   minWidth: "128px",
-};
+} as const;
 
 const FOOTER_TABLE_STYLE: CSS = {
   maxWidth: MAX_WIDTH,
   marginBottom: "36px",
   width: "100%",
-};
+} as const;
 
 const LOGO_COLUMN_STYLE = {
   paddingBottom: "24px",
   marginTop: "32px",
-};
+} as const;
 
 interface FooterLink {
   text: string;
@@ -58,10 +55,6 @@ interface FooterColumn {
 }
 
 export default function Footer() {
-  return <FooterComponent />;
-}
-
-function FooterComponent() {
   const {
     contactEmail,
     onCoCalcCom,
@@ -72,11 +65,9 @@ function FooterComponent() {
     account,
   } = useCustomize();
 
-  const { t } = useTranslation("footer");
-
   const footerColumns: Array<FooterColumn> = [
     {
-      header: t("product"),
+      header: "Product",
       links: [
         {
           text: "Store",
@@ -102,6 +93,10 @@ function FooterComponent() {
           text: "On Premises",
           url: "/pricing/onprem",
           hide: !enabledPages?.onPrem,
+        },
+        {
+          text: "Translations",
+          url: "/lang",
         },
         {
           text: "System Activity",
@@ -146,7 +141,7 @@ function FooterComponent() {
         {
           text: "Get a Live Demo",
           url: liveDemoUrl("footer"),
-          hide: !account || !enabledPages?.support,
+          hide: !account || !enabledPages?.liveDemo,
         },
       ],
     },

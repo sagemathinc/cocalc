@@ -18,21 +18,18 @@ import type { DocumentContext, DocumentInitialProps } from "next/document";
 import Document, { Head, Html, Main, NextScript } from "next/document";
 
 import { createCache, extractStyle, StyleProvider } from "@ant-design/cssinjs";
+
 import { Locale } from "@cocalc/util/i18n";
-import { isLocale } from "locales/consts";
-import { getI18nMessages } from "locales/lib";
-import { I18nDictionary } from "next-translate";
+
+import { query2locale } from "locales/misc";
 
 export default class MyDocument extends Document {
   static async getInitialProps(ctx: DocumentContext): Promise<
     DocumentInitialProps & {
       locale: Locale;
-      messages: Record<string, I18nDictionary>;
     }
   > {
-    const localeCtx = ctx.query.locale;
-    const locale = isLocale(localeCtx) ? localeCtx : "en";
-    const messages = await getI18nMessages(locale);
+    const locale = query2locale(ctx.query);
 
     const cache = createCache();
     const originalRenderPage = ctx.renderPage;
@@ -43,7 +40,7 @@ export default class MyDocument extends Document {
         enhanceApp: (App) => (props) =>
           (
             <StyleProvider cache={cache}>
-              <App {...props} {...{ locale, messages }} />
+              <App {...props} {...{ locale }} />
             </StyleProvider>
           ),
       });
@@ -52,7 +49,6 @@ export default class MyDocument extends Document {
 
     return {
       ...initialProps,
-      messages,
       locale,
       styles: (
         <>
@@ -68,12 +64,14 @@ export default class MyDocument extends Document {
     };
   }
 
+  // TODO: this "lang={...}" is only working for the very first page that's being loaded
+  // next's dynamic page updates to not have an impact on this. So, to really fix this, we
+  // probably have to get rid of this _document customization and update to version 15 properly.
   render() {
     return (
       <Html lang={this.props.locale}>
         <Head />
         <body>
-          <pre>{JSON.stringify(this.props.locale, null, 2)}</pre>
           <Main />
           <NextScript />
         </body>

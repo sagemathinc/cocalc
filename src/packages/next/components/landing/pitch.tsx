@@ -20,12 +20,13 @@ interface Props {
   col1: ReactNode;
   col2: ReactNode;
   ext?: string;
+  style?: CSS;
 }
 
 export default function Pitch(props: Props) {
-  const { col1, col2, ext } = props;
+  const { col1, col2, ext, style } = props;
   return (
-    <div style={STYLE_PITCH}>
+    <div style={{ ...STYLE_PITCH, ...style }}>
       <Row
         gutter={20}
         style={{ maxWidth: MAX_WIDTH_LANDING, margin: "0 auto" }}
