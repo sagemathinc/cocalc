@@ -33,6 +33,7 @@ export class MessagesActions extends Actions<MessagesState> {
     deleted?: boolean;
     expire?: Date | null;
   }) => {
+    console.log("mark", { ids, saved });
     const table = redux.getTable("messages")._table;
     if (id != null) {
       if (table.get_one(`${id}`) != null) {
@@ -48,6 +49,7 @@ export class MessagesActions extends Actions<MessagesState> {
         if (table.get_one(`${id}`) == null) {
           // not in this table, so don't mark it. E.g., trying to mark a message we sent as read/archive/deleted
           // isn't supported.
+          console.log("skipping", id);
           continue;
         }
         table.set({

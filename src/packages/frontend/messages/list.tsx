@@ -6,7 +6,7 @@ import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
-import { isNullDate } from "./util";
+import { expandToThreads, isNullDate } from "./util";
 import { getThreads } from "./thread";
 
 export default function MessagesList({ messages, sentMessages, filter }) {
@@ -136,9 +136,11 @@ export default function MessagesList({ messages, sentMessages, filter }) {
           </Button>
           {filter != "messages-sent" && (
             <Actions
+              threads={threads}
               filter={filter}
               checkedMessageIds={new Set([showBody])}
               messages={messages}
+              sentMessages={sentMessages}
               setShowBody={setShowBody}
             />
           )}
@@ -215,7 +217,9 @@ export default function MessagesList({ messages, sentMessages, filter }) {
               filter={filter}
               checkedMessageIds={checkedMessageIds}
               messages={messages}
+              sentMessages={sentMessages}
               setShowBody={setShowBody}
+              threads={threads}
             />
           )}
         </Flex>
@@ -273,7 +277,14 @@ export default function MessagesList({ messages, sentMessages, filter }) {
   );
 }
 
-function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
+function Actions({
+  filter,
+  checkedMessageIds,
+  messages,
+  sentMessages,
+  setShowBody,
+  threads,
+}) {
   return (
     <Space wrap>
       <Button
@@ -281,7 +292,12 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
         disabled={filter != "messages-inbox"}
         onClick={() => {
           redux.getActions("messages").mark({
-            ids: checkedMessageIds,
+            ids: expandToThreads({
+              ids: checkedMessageIds,
+              threads,
+              messages,
+              sentMessages,
+            }),
             saved: true,
           });
           setShowBody(null);
@@ -294,7 +310,12 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
           type="text"
           onClick={() => {
             redux.getActions("messages").mark({
-              ids: checkedMessageIds,
+              ids: expandToThreads({
+                ids: checkedMessageIds,
+                threads,
+                messages,
+                sentMessages,
+              }),
               deleted: true,
             });
             setShowBody(null);
@@ -307,10 +328,17 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
         <Button
           danger
           type="text"
-          disabled={!hasNotExpire(checkedMessageIds, messages)}
+          disabled={
+            !hasNotExpire({ checkedMessageIds, messages, sentMessages })
+          }
           onClick={() => {
             redux.getActions("messages").mark({
-              ids: checkedMessageIds,
+              ids: expandToThreads({
+                ids: checkedMessageIds,
+                threads,
+                messages,
+                sentMessages,
+              }),
               expire: dayjs().add(1, "day").toDate(),
             });
             setShowBody(null);
@@ -322,10 +350,15 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
       {filter != "messages-trash" && (
         <Button
           type="text"
-          disabled={!hasUnread(checkedMessageIds, messages)}
+          disabled={!hasUnread({ checkedMessageIds, messages, sentMessages })}
           onClick={() => {
             redux.getActions("messages").mark({
-              ids: checkedMessageIds,
+              ids: expandToThreads({
+                ids: checkedMessageIds,
+                threads,
+                messages,
+                sentMessages,
+              }),
               read: new Date(),
             });
           }}
@@ -336,10 +369,15 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
       {filter != "messages-trash" && (
         <Button
           type="text"
-          disabled={!hasRead(checkedMessageIds, messages)}
+          disabled={!hasRead({ checkedMessageIds, messages, sentMessages })}
           onClick={() => {
             redux.getActions("messages").mark({
-              ids: checkedMessageIds,
+              ids: expandToThreads({
+                ids: checkedMessageIds,
+                threads,
+                messages,
+                sentMessages,
+              }),
               read: null,
             });
           }}
@@ -349,10 +387,22 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
       )}
       <Button
         type="text"
-        disabled={!enableMoveToInbox(filter, checkedMessageIds, messages)}
+        disabled={
+          !enableMoveToInbox({
+            filter,
+            checkedMessageIds,
+            messages,
+            sentMessages,
+          })
+        }
         onClick={() => {
           redux.getActions("messages").mark({
-            ids: checkedMessageIds,
+            ids: expandToThreads({
+              ids: checkedMessageIds,
+              threads,
+              messages,
+              sentMessages,
+            }),
             saved: false,
             deleted: false,
             expire: null,
@@ -366,11 +416,19 @@ function Actions({ filter, checkedMessageIds, messages, setShowBody }) {
   );
 }
 
-function enableMoveToInbox(filter, checkedMessageIds, messages) {
+function enableMoveToInbox({
+  filter,
+  checkedMessageIds,
+  messages,
+  sentMessages,
+}) {
   if (filter == "messages-inbox" || filter == "messages-sent") {
     return false;
   }
-  if (filter == "messages-all" && !hasSaved(checkedMessageIds, messages)) {
+  if (
+    filter == "messages-all" &&
+    !hasSaved({ checkedMessageIds, messages, sentMessages })
+  ) {
     // every message is already in the inbox
     return false;
   }
@@ -380,9 +438,15 @@ function enableMoveToInbox(filter, checkedMessageIds, messages) {
   return true;
 }
 
-function hasUnread(checkedMessageIds, messages) {
+function getIn({ id, messages, sentMessages, field }) {
+  return (
+    messages.getIn([`${id}`, field]) ?? sentMessages.getIn([`${id}`, field])
+  );
+}
+
+function hasUnread({ checkedMessageIds, messages, sentMessages }) {
   for (const id of checkedMessageIds) {
-    const read = messages.getIn([`${id}`, "read"]);
+    const read = getIn({ id, field: "read", messages, sentMessages });
     if (isNullDate(read)) {
       return true;
     }
@@ -390,9 +454,9 @@ function hasUnread(checkedMessageIds, messages) {
   return false;
 }
 
-function hasRead(checkedMessageIds, messages) {
+function hasRead({ checkedMessageIds, messages, sentMessages }) {
   for (const id of checkedMessageIds) {
-    const read = messages.getIn([`${id}`, "read"]);
+    const read = getIn({ id, field: "read", messages, sentMessages });
     if (!isNullDate(read)) {
       return true;
     }
@@ -400,18 +464,18 @@ function hasRead(checkedMessageIds, messages) {
   return false;
 }
 
-function hasSaved(checkedMessageIds, messages) {
+function hasSaved({ checkedMessageIds, messages, sentMessages }) {
   for (const id of checkedMessageIds) {
-    if (messages.getIn([`${id}`, "saved"])) {
+    if (getIn({ id, field: "saved", messages, sentMessages })) {
       return true;
     }
   }
   return false;
 }
 
-function hasNotExpire(checkedMessageIds, messages) {
+function hasNotExpire({ checkedMessageIds, messages, sentMessages }) {
   for (const id of checkedMessageIds) {
-    const expire = messages.getIn([`${id}`, "expire"]);
+    const expire = getIn({ id, field: "expire", messages, sentMessages });
     if (isNullDate(expire)) {
       return true;
     }
