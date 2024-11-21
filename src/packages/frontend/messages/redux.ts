@@ -38,6 +38,14 @@ export class MessagesActions extends Actions<MessagesState> {
     deleted?: boolean;
     expire?: Date | null;
   }) => {
+    //     console.log("mark", {
+    //       id,
+    //       ids,
+    //       read,
+    //       saved,
+    //       deleted,
+    //       expire,
+    //     });
     const table = this.redux.getTable("messages")._table;
     if (id != null) {
       if (table.get_one(`${id}`) != null) {

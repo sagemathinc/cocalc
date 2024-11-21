@@ -100,6 +100,9 @@ function MessageInList({
           marginRight: "10px",
         }}
       >
+        {filter == "messages-sent" && !inThread && (
+          <span style={{ marginRight: "5px" }}>To: </span>
+        )}
         {user}
       </div>
       <div style={{ width: "20px", marginRight: "10px" }}>
@@ -125,9 +128,15 @@ function MessageInList({
           title={
             isRead(message) ? (
               <>
-                Read message <TimeAgo date={message.read} />
+                <User id={message.to_id} type={message.to_type} /> read this
+                message <TimeAgo date={message.read} />
               </>
-            ) : undefined
+            ) : (
+              <>
+                <User id={message.to_id} type={message.to_type} /> has not read
+                this message
+              </>
+            )
           }
         >
           &nbsp;
@@ -258,9 +267,15 @@ function MessageFull({
             title={
               isRead(message) ? (
                 <>
-                  Read message <TimeAgo date={message.read} />
+                  <User id={message.to_id} type={message.to_type} /> read this
+                  message <TimeAgo date={message.read} />
                 </>
-              ) : undefined
+              ) : (
+                <>
+                  <User id={message.to_id} type={message.to_type} /> has not
+                  read this message
+                </>
+              )
             }
           >
             &nbsp;
@@ -353,6 +368,7 @@ one entity.
 
 function getDisplayedUser({ message, inThread }) {
   if (inThread) {
+    // in thread display always show who wrote the message
     return { type: message.from_type, id: message.from_id };
   }
   // top level showing an overall thread -- always show the user that

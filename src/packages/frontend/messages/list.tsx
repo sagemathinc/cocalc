@@ -6,8 +6,7 @@ import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
-import { expandToThreads, isNullDate } from "./util";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { expandToThreads, isInFolderThreaded, isNullDate } from "./util";
 
 export default function MessagesList({ messages, threads, filter }) {
   const [showBody, setShowBody] = useState<number | null>(null);
@@ -22,29 +21,12 @@ export default function MessagesList({ messages, threads, filter }) {
     if (messages == null || threads == null || filter == "message-compose") {
       return [] as MessageType[];
     }
-    let m;
-    if (filter == "messages-inbox") {
-      //       WARNING: If you change or add fields and logic that could impact the "number of
-      // messages in the inbox that are not read", make sure to also update
-      //  packages/database/postgres/messages.ts
-      m = messages.filter(
-        (message) => !message.get("saved") && !message.get("deleted"),
-      );
-    } else if (filter == "messages-all") {
-      m = messages.filter((message) => !message.get("deleted"));
-    } else if (filter == "messages-sent") {
-      m = messages.filter(
-        (message) =>
-          message.get("from_id") == webapp_client.account_id &&
-          message.get("from_type") == "account",
-      );
-    } else if (filter == "messages-trash") {
-      m = messages.filter((message) => message.get("deleted"));
-    } else {
-      m = messages;
-    }
+    const folder = filter.split("-")[1];
+    let m = messages.filter((message) =>
+      isInFolderThreaded({ message, threads, folder }),
+    );
 
-    // another filter -- only keep the newest message in each thread
+    // only keep the newest message in each thread -- this is what we display
     const missingThreadHeadIds = new Set<number>();
     m = m.filter((message) => {
       const thread_id =
