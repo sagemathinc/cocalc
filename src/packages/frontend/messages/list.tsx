@@ -10,7 +10,7 @@ import { expandToThreads, getFilteredMessages, isNullDate } from "./util";
 import { isFolder } from "./types";
 
 export default function MessagesList({ messages, threads, filter }) {
-  const [showBody, setShowBody] = useState<number | null>(null);
+  const [showThread, setShowThread] = useState<number | null>(null);
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
     new Set(),
   );
@@ -48,7 +48,7 @@ export default function MessagesList({ messages, threads, filter }) {
 
   useEffect(() => {
     setCheckedMessageIds(new Set());
-    setShowBody(null);
+    setShowThread(null);
   }, [filter]);
 
   if (messages == null) {
@@ -56,12 +56,12 @@ export default function MessagesList({ messages, threads, filter }) {
   }
 
   const mesgIndex =
-    showBody != null
-      ? filteredMessages.map(({ id }) => id).indexOf(showBody)
+    showThread != null
+      ? filteredMessages.map(({ id }) => id).indexOf(showThread)
       : undefined;
 
-  if (showBody != null) {
-    const id = showBody;
+  if (showThread != null) {
+    const id = showThread;
     return (
       <>
         <Flex style={{ marginBottom: "5px" }}>
@@ -69,7 +69,7 @@ export default function MessagesList({ messages, threads, filter }) {
             size="large"
             type="text"
             onClick={() => {
-              setShowBody(null);
+              setShowThread(null);
             }}
           >
             <Icon
@@ -82,13 +82,13 @@ export default function MessagesList({ messages, threads, filter }) {
             <Actions
               threads={threads}
               filter={filter}
-              checkedMessageIds={new Set([showBody])}
+              checkedMessageIds={new Set([showThread])}
               messages={messages}
-              setShowBody={setShowBody}
+              setShowThread={setShowThread}
             />
           )}
           <div style={{ flex: 1 }} />
-          {showBody && mesgIndex != null && (
+          {showThread && mesgIndex != null && (
             <Space>
               {mesgIndex + 1} of {filteredMessages.length}
               <Button
@@ -96,7 +96,7 @@ export default function MessagesList({ messages, threads, filter }) {
                 disabled={mesgIndex <= 0}
                 type="text"
                 onClick={() => {
-                  setShowBody(filteredMessages[mesgIndex - 1]?.id);
+                  setShowThread(filteredMessages[mesgIndex - 1]?.id);
                 }}
               >
                 <Icon name="chevron-left" />
@@ -106,7 +106,7 @@ export default function MessagesList({ messages, threads, filter }) {
                 disabled={mesgIndex >= filteredMessages.length - 1}
                 type="text"
                 onClick={() => {
-                  setShowBody(filteredMessages[mesgIndex + 1]?.id);
+                  setShowThread(filteredMessages[mesgIndex + 1]?.id);
                 }}
               >
                 <Icon name="chevron-right" />
@@ -117,8 +117,8 @@ export default function MessagesList({ messages, threads, filter }) {
         <Message
           message={messages.get(id)?.toJS()}
           threads={threads}
-          showBody
-          setShowBody={setShowBody}
+          showThread
+          setShowThread={setShowThread}
           filter={filter}
           style={{ paddingLeft: "12px" }}
         />
@@ -160,7 +160,7 @@ export default function MessagesList({ messages, threads, filter }) {
               filter={filter}
               checkedMessageIds={checkedMessageIds}
               messages={messages}
-              setShowBody={setShowBody}
+              setShowThread={setShowThread}
               threads={threads}
             />
           )}
@@ -208,8 +208,8 @@ export default function MessagesList({ messages, threads, filter }) {
                   : undefined
               }
               message={message}
-              showBody={showBody}
-              setShowBody={setShowBody}
+              showThread={showThread}
+              setShowThread={setShowThread}
               filter={filter}
             />
           </List.Item>
@@ -223,7 +223,7 @@ function Actions({
   filter,
   checkedMessageIds,
   messages,
-  setShowBody,
+  setShowThread,
   threads,
 }) {
   return (
@@ -240,7 +240,7 @@ function Actions({
             }),
             saved: true,
           });
-          setShowBody(null);
+          setShowThread(null);
         }}
       >
         <Icon name="download" /> Archive
@@ -257,7 +257,7 @@ function Actions({
               }),
               deleted: true,
             });
-            setShowBody(null);
+            setShowThread(null);
           }}
         >
           <Icon name="trash" /> Delete
@@ -277,7 +277,7 @@ function Actions({
               }),
               expire: dayjs().add(1, "day").toDate(),
             });
-            setShowBody(null);
+            setShowThread(null);
           }}
         >
           <Icon name="trash" /> Delete Forever
@@ -339,7 +339,7 @@ function Actions({
             deleted: false,
             expire: null,
           });
-          setShowBody(null);
+          setShowThread(null);
         }}
       >
         <Icon name="container" /> To Inbox

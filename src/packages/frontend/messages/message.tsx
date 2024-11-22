@@ -17,8 +17,8 @@ interface Props {
   checked?: boolean;
   setChecked?: (e: { checked: boolean; shiftKey: boolean }) => void;
   message: MessageType;
-  showBody?;
-  setShowBody?;
+  showThread?;
+  setShowThread?;
   filter?;
   style?;
   threads?: iThreads;
@@ -26,7 +26,7 @@ interface Props {
 }
 
 export default function Message(props: Props) {
-  if (props.showBody) {
+  if (props.showThread) {
     return <MessageFull {...props} />;
   } else {
     return <MessageInList {...props} />;
@@ -37,7 +37,7 @@ function MessageInList({
   checked,
   setChecked,
   message,
-  setShowBody,
+  setShowThread,
   filter,
   style,
   threads,
@@ -57,7 +57,7 @@ function MessageInList({
     />
   );
 
-  const show = setShowBody
+  const show = setShowThread
     ? () => {
         if (!isRead(message)) {
           redux.getActions("messages").mark({
@@ -65,7 +65,7 @@ function MessageInList({
             read: webapp_client.server_time(),
           });
         }
-        setShowBody?.(message.id);
+        setShowThread?.(message.id);
       }
     : undefined;
 
@@ -164,11 +164,19 @@ function MessageInList({
   );
 }
 
-export function MessageInThread(props: Props) {
+interface InThreadProps extends Props {
+  showBody: boolean;
+  setShowBody: (show: boolean) => void;
+}
+
+export function MessageInThread(props: InThreadProps) {
+  const setShowThread = (id) => props.setShowBody?.(id != null);
   if (props.showBody) {
-    return <MessageFull {...props} inThread />;
+    return <MessageFull {...props} setShowThread={setShowThread} inThread />;
   } else {
-    return <MessageInList {...props} inThread />;
+    return (
+      <MessageInList {...props} setShowThread={setShowThread} inThread />
+    );
   }
 }
 
@@ -177,7 +185,7 @@ function MessageFull({
   filter,
   threads,
   inThread,
-  setShowBody,
+  setShowThread,
 }: Props) {
   const read = isRead(message);
 
@@ -223,14 +231,14 @@ function MessageFull({
           {message.subject}
         </div>
         <div style={{ flex: 1 }} />
-        {setShowBody != null && inThread && (
+        {setShowThread != null && inThread && (
           <Button
             style={{ fontSize: "15pt", color: "#666" }}
             type="text"
             onClick={() => {
-              // if setShowBody is available, we're in a thread and expanded, so
+              // if setShowThread is available, we're in a thread and expanded, so
               // shrink.
-              setShowBody?.(null);
+              setShowThread?.(null);
             }}
           >
             <Icon name="ColumnHeightOutlined" />
