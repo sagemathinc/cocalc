@@ -26,7 +26,15 @@ export default function Messages({ filter, style }: Props) {
   const messages = useTypedRedux("messages", "messages");
 
   return (
-    <div style={style} className="smc-vfill">
+    <div
+      style={{
+        borderLeft: "1px solid #ccc",
+        overflowY: "auto",
+        paddingLeft: "15px",
+        ...style,
+      }}
+      className="smc-vfill"
+    >
       {threads == null || messages == null ? (
         <Spin />
       ) : (

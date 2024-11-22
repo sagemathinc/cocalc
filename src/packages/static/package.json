@@ -18,7 +18,7 @@
     "build0": "pnpm run copy-css && cd src && ../../node_modules/.bin/tsc --build",
     "build": "pnpm run build0 && ./production-build.py",
     "build-dev": "pnpm run build0 && NODE_ENV=development pnpm rspack build",
-    "watch": "NODE_ENV=development pnpm rspack build -w",
+    "watch": "NO_RSPACK_DEV_SERVER=yes NODE_ENV=development pnpm rspack build -w",
     "test": "pnpm exec jest",
     "prepublishOnly": "pnpm test"
   },

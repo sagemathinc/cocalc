@@ -49,6 +49,7 @@ export default function Compose({
       {replyTo == null && (
         <div>
           <SelectUser
+            autoFocus
             disabled={state != "compose"}
             placeholder="To..."
             style={{ width: "250px" }}
