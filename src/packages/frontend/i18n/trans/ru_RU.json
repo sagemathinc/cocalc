@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "Скрыть меню инструментов для всех редакторов",
   "commands.generic.toggle_button_bar.label": "{show, select, true {Скрыть} other {Показать}} Меню Панель инструментов...",
   "commands.generic.toggle_button_bar.title": "Переключить отображение панели меню для всех редакторов.",
+  "components.test-i18n.msg": "<p>Отформатировано с <b>жирным</b> и <i>курсивом</i>.</p>",
   "connection-info.hub_server": "Сервер хаба",
   "connection-info.info": "Цвет значка подключения меняется по мере увеличения числа сообщений, отправленных на хаб. Обычно действия не требуются, но эти данные полезны для диагностики. Максимальное количество сообщений, которые можно отправить одновременно: {max}.",
   "connection-info.messages_received": "получено",

@@ -11,7 +11,8 @@ import * as awaiting from "awaiting";
 import { fromJS, Map } from "immutable";
 import { debounce, isEqual } from "lodash";
 
-import { getIntl, jupyter, labels } from "@cocalc/frontend/i18n";
+import { jupyter, labels } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import {
   delete_local_storage,

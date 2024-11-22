@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 // The official antd docs suggest doing this first.  It normalizes
 // the css in a way that is compatible with antd.
 // I think this is the correct fix for https://github.com/sagemathinc/cocalc/issues/6285
@@ -12,6 +17,14 @@ import "@cocalc/cdn/dist/codemirror/lib/codemirror.css";
 import "@cocalc/cdn/dist/katex/katex.min.css";
 import "@cocalc/frontend/editors/slate/elements/elements.css";
 import { AppContext, DEFAULT_CONTEXT } from "@cocalc/frontend/app/use-context";
+
+// The IntlProvider makes translated components from the frontend work.
+// It's english only, using the fallback defaultMessage.
+import { IntlProvider } from "react-intl";
+
+import { LOCALIZE_DEFAULT_ELEMENTS } from "@cocalc/frontend/app/localize-default-elements";
+import { DEFAULT_LOCALE } from "@cocalc/util/i18n";
+
 import type { AppProps } from "next/app";
 
 // const timeAgo = {
@@ -24,7 +37,14 @@ import type { AppProps } from "next/app";
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <AppContext.Provider value={{ ...DEFAULT_CONTEXT }}>
-      <Component {...pageProps} />
+      <IntlProvider
+        locale={DEFAULT_LOCALE}
+        messages={{}}
+        defaultLocale={DEFAULT_LOCALE}
+        defaultRichTextElements={LOCALIZE_DEFAULT_ELEMENTS}
+      >
+        <Component {...pageProps} />
+      </IntlProvider>
     </AppContext.Provider>
   );
 }

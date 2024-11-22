@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "Alternar si la barra de herramientas del menú se muestra o no para todos los editores.",
   "commands.generic.toggle_button_bar.label": "{show, select, true {Ocultar} other {Mostrar}} Menú Barra de herramientas...",
   "commands.generic.toggle_button_bar.title": "Alternar si la barra de herramientas del menú se muestra o no para todos los editores.",
+  "components.test-i18n.msg": "<p>Formateado con <b>negrita</b> y <i>cursiva</i>.</p>",
   "connection-info.hub_server": "Servidor Hub",
   "connection-info.info": "El color del icono de conexión cambia a medida que aumenta el número de mensajes en vuelo hacia un hub. Normalmente, no se necesita ninguna acción, pero los conteos son útiles para fines de diagnóstico. El número máximo de mensajes que se pueden enviar al mismo tiempo es {max}.",
   "connection-info.messages_received": "recibido",

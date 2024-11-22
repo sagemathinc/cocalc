@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "सभी संपादकों के लिए मेनू टूलबार छिपाएं",
   "commands.generic.toggle_button_bar.label": "{show, select, true {छिपाएं} other {दिखाएं}} मेनू टूलबार...",
   "commands.generic.toggle_button_bar.title": "सभी संपादकों के लिए मेनू टूलबार प्रदर्शित हो या नहीं, इसे टॉगल करें।",
+  "components.test-i18n.msg": "<p><b>बोल्ड</b> और <i>इटैलिक</i> के साथ स्वरूपित।</p>",
   "connection-info.hub_server": "हब सर्वर",
   "connection-info.info": "जैसे-जैसे हब को भेजे जाने वाले संदेशों की संख्या बढ़ती है, कनेक्शन आइकन का रंग बदल जाता है। आमतौर पर, कोई कार्रवाई की आवश्यकता नहीं होती है, लेकिन गिनती निदान उद्देश्यों के लिए सहायक होती है। एक ही समय में भेजे जा सकने वाले संदेशों की अधिकतम संख्या {max} है।",
   "connection-info.messages_received": "प्राप्त किया",

@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "Ukryj menu i pasek narzędzi dla wszystkich edytorów",
   "commands.generic.toggle_button_bar.label": "{show, select, true {Ukryj} other {Pokaż}} Menu Pasek narzędzi...",
   "commands.generic.toggle_button_bar.title": "Przełącz, czy pasek narzędzi menu jest wyświetlany we wszystkich edytorach.",
+  "components.test-i18n.msg": "<p>Formatowany z <b>pogrubieniem</b> i <i>kursywą</i>.</p>",
   "connection-info.hub_server": "Serwer hub",
   "connection-info.info": "Kolor ikony połączenia zmienia się w miarę zwiększania liczby wiadomości przesyłanych do huba. Zwykle nie jest potrzebna żadna akcja, ale liczniki są pomocne do celów diagnostycznych. Maksymalna liczba wiadomości, które można wysłać jednocześnie, wynosi {max}.",
   "connection-info.messages_received": "otrzymano",

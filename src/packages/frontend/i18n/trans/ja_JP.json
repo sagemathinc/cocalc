@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "すべてのエディターのメニューツールバーを非表示",
   "commands.generic.toggle_button_bar.label": "{show, select, true {非表示} other {表示}} メニューツールバー...",
   "commands.generic.toggle_button_bar.title": "すべてのエディタでメニュー ツールバーを表示するかどうかを切り替えます。",
+  "components.test-i18n.msg": "<p><b>太字</b>と<i>斜体</i>でフォーマットされています。</p>",
   "connection-info.hub_server": "ハブサーバー",
   "connection-info.info": "接続アイコンの色は、ハブへの送信中のメッセージ数が増えると変わります。通常、アクションは不要ですが、カウントは診断のために役立ちます。同時に送信できるメッセージの最大数は {max} です。",
   "connection-info.messages_received": "受信",

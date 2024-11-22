@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "Nascondi Barra degli Strumenti del Menu per Tutti gli Editor",
   "commands.generic.toggle_button_bar.label": "{show, select, true {Nascondi} other {Mostra}} Menu Barra degli strumenti...",
   "commands.generic.toggle_button_bar.title": "Attiva o disattiva la visualizzazione della barra dei menu per tutti gli editor.",
+  "components.test-i18n.msg": "<p>Formattato con <b>grassetto</b> e <i>corsivo</i>.</p>",
   "connection-info.hub_server": "Server Hub",
   "connection-info.info": "Il colore dell'icona di connessione cambia man mano che aumenta il numero di messaggi in volo verso un hub. Di solito, non è necessaria alcuna azione, ma i conteggi sono utili per scopi diagnostici. Il numero massimo di messaggi che possono essere inviati contemporaneamente è {max}.",
   "connection-info.messages_received": "ricevuto",
