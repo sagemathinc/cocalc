@@ -1,8 +1,11 @@
 import type { iThreads, Folder } from "./types";
-import { List } from "antd";
+import { Badge, List, Tooltip } from "antd";
 import { MessageInThread } from "./message";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { useState } from "react";
+import { plural } from "@cocalc/util/misc";
+import { isFromMe } from "./util";
+import User from "./user";
 
 interface Props {
   thread_id?: number;
@@ -61,5 +64,41 @@ export function ThreadCount({
     return null;
   }
   const thread = threads.get(thread_id);
-  return <span style={{ marginLeft: "15px" }}>{thread?.size}</span>;
+  const count = thread?.size;
+  if (!count) {
+    return null;
+  }
+  return (
+    <Tooltip
+      mouseEnterDelay={0.5}
+      title={() => {
+        let from_me = 0;
+        let from_other = 0;
+        let other_type = "";
+        let other_id = "";
+        for (const message of thread) {
+          if (isFromMe(message.toJS())) {
+            from_me += 1;
+          } else {
+            from_other += 1;
+            other_type = message.get("from_type");
+            other_id = message.get("from_id");
+          }
+        }
+        const tip = `Thread contains ${count} ${plural(count, "message")} with ${from_me} from me`;
+        if (from_other == 0) {
+          return <>{tip}.</>;
+        } else {
+          return (
+            <>
+              {tip} and {from_other} from{" "}
+              <User id={other_id} type={other_type} />.
+            </>
+          );
+        }
+      }}
+    >
+      <Badge style={{ marginLeft: "15px" }} count={count} color="#aaa" />
+    </Tooltip>
+  );
 }

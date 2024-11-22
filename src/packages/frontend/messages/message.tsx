@@ -103,7 +103,7 @@ function MessageInList({
       )}
       <div
         style={{
-          width: "150px",
+          width: "200px",
           textOverflow: "ellipsis",
           overflow: "hidden",
           whiteSpace: "pre",
@@ -114,10 +114,10 @@ function MessageInList({
           <span style={{ marginRight: "5px" }}>To: </span>
         )}
         {user}
-      </div>
-      <div style={{ width: "20px", marginRight: "10px" }}>
         {message.thread_id != null && threads != null && (
-          <ThreadCount thread_id={message.thread_id} threads={threads} />
+          <span>
+            <ThreadCount thread_id={message.thread_id} threads={threads} />
+          </span>
         )}
       </div>
       <div
@@ -129,7 +129,7 @@ function MessageInList({
           marginRight: "10px",
         }}
       >
-        {!inThread && folder != 'inbox' && getTag({ message, threads })}
+        {!inThread && folder != "inbox" && getTag({ message, threads })}
         {read ? message.subject : <b>{message.subject}</b>}
       </div>
       <div onClick={(e) => e.stopPropagation()}>
@@ -251,18 +251,16 @@ function MessageFull({
             <Icon name="ColumnHeightOutlined" />
           </Button>
         )}
-        {(message.from_type == "account" || isFromMe(message)) && (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              marginRight: "15px",
-            }}
-          >
-            <ReplyButton type="text" replyTo={message} />
-          </div>
-        )}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            marginRight: "15px",
+          }}
+        >
+          <ReplyButton type="text" replyTo={message} />
+        </div>
         <div
           style={{
             display: "flex",
@@ -313,7 +311,7 @@ function MessageFull({
       >
         <StaticMarkdown value={message.body} />
         <div style={{ height: "30px" }} />
-        {!inThread && message.from_type == "account" && folder != "sent" && (
+        {!inThread && (
           <div>
             <ReplyButton size="large" replyTo={message} />
           </div>
