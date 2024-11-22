@@ -88,8 +88,60 @@ function isInFolderNotThreaded({
   }
 }
 
-export function isRead(message: Message) {
-  return !isNullDate(message.read);
+// If the folder is anything but "sent", then the
+// message is read if *we* have read it, where any
+// message we have sent we have automatically read, and any
+// message we receive is read if we mark it read.
+// (except sending message to ourselves)
+// If the folder is sent then things are switched: we
+// care if the other person read it -- if they sent it,
+// then of course they read it.  If we sent it, then they
+// read it if it is marked read.
+// Also note that we message.read can bew new Date(0) rather
+// than null!
+export function isRead({
+  message,
+  folder,
+}: {
+  message: Message;
+  folder: Folder;
+}) {
+  if (folder != "sent") {
+    if (isFromMe(message)) {
+      if (isToMe(message)) {
+        return !isNullDate(message.read);
+      }
+      return true;
+    }
+    return !isNullDate(message.read);
+  } else {
+    if (isFromMe(message)) {
+      return !isNullDate(message.read);
+    }
+    return true;
+  }
+}
+
+// true if every single message in the thread is read
+export function isThreadRead({
+  message,
+  threads,
+  folder,
+}: {
+  message: Message;
+  folder: Folder;
+  threads?: iThreads;
+}) {
+  const thread_id = message.thread_id;
+  if (threads == null || thread_id == null) {
+    return isRead({ message, folder });
+  }
+  for (const message1 of threads.get(thread_id) ?? []) {
+    if (!isRead({ message: message1.toJS(), folder })) {
+      return false;
+    }
+  }
+  return true;
 }
 
 export function isNullDate(date: Date | number | undefined | null): boolean {

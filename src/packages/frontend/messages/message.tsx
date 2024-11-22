@@ -5,21 +5,29 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
-import { isNullDate, isFromMe, isToMe, isRead } from "./util";
+import {
+  isNullDate,
+  isFromMe,
+  isToMe,
+  isThreadRead,
+  isRead,
+  isInFolderThreaded,
+} from "./util";
 import Thread, { ThreadCount } from "./thread";
-import type { iThreads } from "./types";
+import type { iThreads, Folder } from "./types";
 import User from "./user";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { fromJS } from "immutable";
 
 const LEFT_OFFSET = "46px";
 
 interface Props {
+  message: MessageType;
+  folder: Folder;
   checked?: boolean;
   setChecked?: (e: { checked: boolean; shiftKey: boolean }) => void;
-  message: MessageType;
   showThread?;
   setShowThread?;
-  filter?;
   style?;
   threads?: iThreads;
   inThread?: boolean;
@@ -38,12 +46,14 @@ function MessageInList({
   setChecked,
   message,
   setShowThread,
-  filter,
+  folder,
   style,
   threads,
   inThread,
 }: Props) {
-  const read = isRead(message);
+  const read = inThread
+    ? isRead({ message, folder })
+    : isThreadRead({ message, threads, folder });
 
   const { id, type } = getDisplayedUser({ message, inThread });
 
@@ -59,7 +69,7 @@ function MessageInList({
 
   const show = setShowThread
     ? () => {
-        if (!isRead(message)) {
+        if (!isRead({ message, folder })) {
           redux.getActions("messages").mark({
             id: message.id,
             read: webapp_client.server_time(),
@@ -100,7 +110,7 @@ function MessageInList({
           marginRight: "10px",
         }}
       >
-        {filter == "messages-sent" && !inThread && (
+        {folder == "sent" && !inThread && (
           <span style={{ marginRight: "5px" }}>To: </span>
         )}
         {user}
@@ -119,22 +129,21 @@ function MessageInList({
           marginRight: "10px",
         }}
       >
-        {getTag(message, filter)}
+        {!inThread && folder != 'inbox' && getTag({ message, threads })}
         {read ? message.subject : <b>{message.subject}</b>}
       </div>
       <div onClick={(e) => e.stopPropagation()}>
         <Tooltip
           placement="left"
           title={
-            isRead(message) ? (
+            isRead({ message, folder }) ? (
               <>
-                <User id={message.to_id} type={message.to_type} /> read this
-                message <TimeAgo date={message.read} />
+                <User id={message.to_id} type={message.to_type} /> read{" "}
+                <TimeAgo date={message.read} />
               </>
             ) : (
               <>
                 <User id={message.to_id} type={message.to_type} /> has not read
-                this message
               </>
             )
           }
@@ -174,20 +183,18 @@ export function MessageInThread(props: InThreadProps) {
   if (props.showBody) {
     return <MessageFull {...props} setShowThread={setShowThread} inThread />;
   } else {
-    return (
-      <MessageInList {...props} setShowThread={setShowThread} inThread />
-    );
+    return <MessageInList {...props} setShowThread={setShowThread} inThread />;
   }
 }
 
 function MessageFull({
   message,
-  filter,
+  folder,
   threads,
   inThread,
   setShowThread,
 }: Props) {
-  const read = isRead(message);
+  const read = isRead({ message, folder });
 
   const user = (
     <User
@@ -217,7 +224,7 @@ function MessageFull({
         <Thread
           thread_id={message.thread_id}
           threads={threads}
-          filter={filter}
+          folder={folder}
           style={{ marginBottom: "10px" }}
         />
       )}
@@ -263,32 +270,14 @@ function MessageFull({
             justifyContent: "center",
           }}
         >
-          <Tooltip
-            placement="left"
-            title={
-              isRead(message) ? (
-                <>
-                  <User id={message.to_id} type={message.to_type} /> read this
-                  message <TimeAgo date={message.read} />
-                </>
-              ) : (
-                <>
-                  <User id={message.to_id} type={message.to_type} /> has not
-                  read this message
-                </>
-              )
-            }
-          >
-            &nbsp;
-            <TimeAgo
-              date={message.created}
-              style={{
-                whiteSpace: "pre",
-                textAlign: "right",
-                fontWeight: read ? undefined : "bold",
-              }}
-            />
-          </Tooltip>
+          <TimeAgo
+            date={message.created}
+            style={{
+              whiteSpace: "pre",
+              textAlign: "right",
+              fontWeight: read ? undefined : "bold",
+            }}
+          />
         </div>
       </Flex>
       <div style={{ marginTop: "-20px" }}>
@@ -306,6 +295,13 @@ function MessageFull({
             <>
               to <User id={message.to_id} type={message.to_type} />
             </>
+          )}{" "}
+          {isRead({ message, folder }) ? (
+            <>
+              (read <TimeAgo date={message.read} />)
+            </>
+          ) : (
+            <>(has not read)</>
           )}
         </div>
       </div>
@@ -317,27 +313,27 @@ function MessageFull({
       >
         <StaticMarkdown value={message.body} />
         <div style={{ height: "30px" }} />
-        {!inThread &&
-          message.from_type == "account" &&
-          filter != "messages-sent" && (
-            <div>
-              <ReplyButton size="large" replyTo={message} />
-            </div>
-          )}
+        {!inThread && message.from_type == "account" && folder != "sent" && (
+          <div>
+            <ReplyButton size="large" replyTo={message} />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function getTag(message, filter) {
+function getTag({ message, threads }) {
   if (
-    filter != "messages-sent" &&
-    filter != "messages-inbox" &&
-    !message.saved &&
-    !message.deleted
+    isInFolderThreaded({
+      message: fromJS(message),
+      threads,
+      folder: "inbox",
+    })
   ) {
     return <Tag color="green">Inbox</Tag>;
   }
+
   if (!isNullDate(message.expire)) {
     return (
       <Tooltip

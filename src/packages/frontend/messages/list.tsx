@@ -6,8 +6,14 @@ import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
 import dayjs from "dayjs";
-import { expandToThreads, getFilteredMessages, isNullDate } from "./util";
-import { isFolder } from "./types";
+import {
+  expandToThreads,
+  getFilteredMessages,
+  isNullDate,
+  isThreadRead,
+  isInFolderThreaded,
+} from "./util";
+import { isFolder, Folder } from "./types";
 
 export default function MessagesList({ messages, threads, filter }) {
   const [showThread, setShowThread] = useState<number | null>(null);
@@ -18,16 +24,21 @@ export default function MessagesList({ messages, threads, filter }) {
     null,
   );
 
-  const filteredMessages: MessageType[] = useMemo(() => {
-    if (messages == null || threads == null || filter == "message-compose") {
-      return [];
-    }
+  const folder: Folder = useMemo(() => {
     const folder = filter.split("-")[1];
     if (!isFolder(folder)) {
+      // BUG -- should never happen!
+      return "inbox" as Folder;
+    }
+    return folder;
+  }, [filter]);
+
+  const filteredMessages: MessageType[] = useMemo(() => {
+    if (messages == null || threads == null) {
       return [];
     }
     return getFilteredMessages({ messages, threads, folder });
-  }, [messages, threads, filter]);
+  }, [messages, threads, folder]);
 
   useEffect(() => {
     if (checkedMessageIds.size > 0) {
@@ -49,7 +60,7 @@ export default function MessagesList({ messages, threads, filter }) {
   useEffect(() => {
     setCheckedMessageIds(new Set());
     setShowThread(null);
-  }, [filter]);
+  }, [folder]);
 
   if (messages == null) {
     return <Spin />;
@@ -78,10 +89,10 @@ export default function MessagesList({ messages, threads, filter }) {
             />
             Back
           </Button>
-          {filter != "messages-sent" && (
+          {folder != "sent" && (
             <Actions
               threads={threads}
-              filter={filter}
+              folder={folder}
               checkedMessageIds={new Set([showThread])}
               messages={messages}
               setShowThread={setShowThread}
@@ -119,7 +130,7 @@ export default function MessagesList({ messages, threads, filter }) {
           threads={threads}
           showThread
           setShowThread={setShowThread}
-          filter={filter}
+          folder={folder}
           style={{ paddingLeft: "12px" }}
         />
       </>
@@ -128,8 +139,8 @@ export default function MessagesList({ messages, threads, filter }) {
 
   return (
     <>
-      {filter == "messages-sent" && <div style={{ height: "37px" }} />}
-      {filter != "messages-sent" && (
+      {folder == "sent" && <div style={{ height: "37px" }} />}
+      {folder != "sent" && (
         <Flex style={{ minHeight: "37px" }}>
           <Icon
             onClick={() => {
@@ -155,9 +166,9 @@ export default function MessagesList({ messages, threads, filter }) {
               marginRight: "30px",
             }}
           />
-          {checkedMessageIds.size > 0 && filter != "messages-sent" && (
+          {checkedMessageIds.size > 0 && (
             <Actions
-              filter={filter}
+              folder={folder}
               checkedMessageIds={checkedMessageIds}
               messages={messages}
               setShowThread={setShowThread}
@@ -176,7 +187,7 @@ export default function MessagesList({ messages, threads, filter }) {
               threads={threads}
               checked={checkedMessageIds.has(message.id)}
               setChecked={
-                filter != "messages-sent"
+                folder != "sent"
                   ? ({ checked, shiftKey }) => {
                       if (shiftKey && mostRecentChecked != null) {
                         // set the range of id's between this message and the most recent one
@@ -210,7 +221,7 @@ export default function MessagesList({ messages, threads, filter }) {
               message={message}
               showThread={showThread}
               setShowThread={setShowThread}
-              filter={filter}
+              folder={folder}
             />
           </List.Item>
         )}
@@ -219,8 +230,9 @@ export default function MessagesList({ messages, threads, filter }) {
   );
 }
 
+// These are actions for an entire THREAD in all cases.
 function Actions({
-  filter,
+  folder,
   checkedMessageIds,
   messages,
   setShowThread,
@@ -230,7 +242,7 @@ function Actions({
     <Space wrap>
       <Button
         type="text"
-        disabled={filter != "messages-inbox"}
+        disabled={folder != "inbox"}
         onClick={() => {
           redux.getActions("messages").mark({
             ids: expandToThreads({
@@ -245,7 +257,7 @@ function Actions({
       >
         <Icon name="download" /> Archive
       </Button>
-      {filter != "messages-trash" && (
+      {folder != "trash" && (
         <Button
           type="text"
           onClick={() => {
@@ -263,7 +275,7 @@ function Actions({
           <Icon name="trash" /> Delete
         </Button>
       )}
-      {filter == "messages-trash" && (
+      {folder == "trash" && (
         <Button
           danger
           type="text"
@@ -283,10 +295,12 @@ function Actions({
           <Icon name="trash" /> Delete Forever
         </Button>
       )}
-      {filter != "messages-trash" && (
+      {folder != "trash" && (
         <Button
           type="text"
-          disabled={!hasUnread({ checkedMessageIds, messages })}
+          disabled={
+            !hasUnread({ checkedMessageIds, messages, threads, folder })
+          }
           onClick={() => {
             redux.getActions("messages").mark({
               ids: expandToThreads({
@@ -301,10 +315,10 @@ function Actions({
           <Icon name="eye" /> Read
         </Button>
       )}
-      {filter != "messages-trash" && (
+      {folder != "trash" && (
         <Button
           type="text"
-          disabled={!hasRead({ checkedMessageIds, messages })}
+          disabled={!hasRead({ checkedMessageIds, messages, threads, folder })}
           onClick={() => {
             redux.getActions("messages").mark({
               ids: expandToThreads({
@@ -323,9 +337,10 @@ function Actions({
         type="text"
         disabled={
           !enableMoveToInbox({
-            filter,
+            folder,
             checkedMessageIds,
             messages,
+            threads,
           })
         }
         onClick={() => {
@@ -348,15 +363,18 @@ function Actions({
   );
 }
 
-function enableMoveToInbox({ filter, checkedMessageIds, messages }) {
-  if (filter == "messages-inbox" || filter == "messages-sent") {
+function enableMoveToInbox({ folder, checkedMessageIds, messages, threads }) {
+  if (folder == "inbox" || folder == "sent") {
     return false;
   }
-  if (filter == "messages-all" && !hasSaved({ checkedMessageIds, messages })) {
+  if (
+    folder == "all" &&
+    everyMessageIsInInbox({ checkedMessageIds, messages, threads })
+  ) {
     // every message is already in the inbox
     return false;
   }
-  if (filter == "messages-trash") {
+  if (folder == "trash") {
     return true;
   }
   return true;
@@ -366,33 +384,37 @@ function getIn({ id, messages, field }) {
   return messages.getIn([id, field]);
 }
 
-function hasUnread({ checkedMessageIds, messages }) {
+function hasUnread({ checkedMessageIds, messages, threads, folder }) {
   for (const id of checkedMessageIds) {
-    const read = getIn({ id, field: "read", messages });
-    if (isNullDate(read)) {
+    if (!isThreadRead({ threads, folder, message: messages.get(id).toJS() })) {
       return true;
     }
   }
   return false;
 }
 
-function hasRead({ checkedMessageIds, messages }) {
+function hasRead({ checkedMessageIds, messages, threads, folder }) {
   for (const id of checkedMessageIds) {
-    const read = getIn({ id, field: "read", messages });
-    if (!isNullDate(read)) {
+    if (isThreadRead({ threads, folder, message: messages.get(id).toJS() })) {
       return true;
     }
   }
   return false;
 }
 
-function hasSaved({ checkedMessageIds, messages }) {
+function everyMessageIsInInbox({ checkedMessageIds, messages, threads }) {
   for (const id of checkedMessageIds) {
-    if (getIn({ id, field: "saved", messages })) {
-      return true;
+    if (
+      !isInFolderThreaded({
+        threads,
+        message: messages.get(id),
+        folder: "inbox",
+      })
+    ) {
+      return false;
     }
   }
-  return false;
+  return true;
 }
 
 function hasNotExpire({ checkedMessageIds, messages }) {

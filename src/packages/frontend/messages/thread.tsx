@@ -1,4 +1,4 @@
-import type { iThreads } from "./types";
+import type { iThreads, Folder } from "./types";
 import { List } from "antd";
 import { MessageInThread } from "./message";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
@@ -7,11 +7,11 @@ import { useState } from "react";
 interface Props {
   thread_id?: number;
   threads: iThreads;
-  filter?;
+  folder: Folder;
   style?;
 }
 
-export default function Thread({ thread_id, threads, filter, style }: Props) {
+export default function Thread({ thread_id, threads, folder, style }: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   if (thread_id == null) {
@@ -33,7 +33,7 @@ export default function Thread({ thread_id, threads, filter, style }: Props) {
         <List.Item>
           <MessageInThread
             message={message}
-            filter={filter}
+            folder={folder}
             showBody={expanded.has(message.id)}
             setShowBody={(add) => {
               if (add) {
@@ -50,7 +50,13 @@ export default function Thread({ thread_id, threads, filter, style }: Props) {
   );
 }
 
-export function ThreadCount({ thread_id, threads }: Props) {
+export function ThreadCount({
+  thread_id,
+  threads,
+}: {
+  thread_id?: number;
+  threads: iThreads;
+}) {
   if (thread_id == null) {
     return null;
   }
