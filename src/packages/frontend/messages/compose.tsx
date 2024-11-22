@@ -29,7 +29,7 @@ export default function Compose({
         : "",
   );
   const [subject, setSubject] = useState<string>(
-    replyTo?.subject ? `Re: ${replyTo?.subject}` : "",
+    replySubject(replyTo?.subject ?? ""),
   );
   const [body, setBody] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -186,4 +186,14 @@ export function ComposeButton(props) {
       )}
     </>
   );
+}
+
+function replySubject(subject) {
+  if (!subject?.trim()) {
+    return "";
+  }
+  if (subject.toLowerCase().startsWith("re:")) {
+    return subject;
+  }
+  return `Re: ${subject}`;
 }
