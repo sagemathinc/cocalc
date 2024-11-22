@@ -357,6 +357,18 @@ function ShowOneThread({
   filteredMessages,
 }) {
   const mesgIndex = filteredMessages.map(({ id }) => id).indexOf(showThread);
+  const message = useMemo(
+    () => messages.get(showThread)?.toJS(),
+    [messages, showThread],
+  );
+
+  const first = useMemo(() => {
+    if (message.thread_id == null) {
+      return message;
+    }
+    const thread = threads.get(message.thread_id);
+    return thread.get(0)?.toJS() ?? message;
+  }, [message, threads]);
 
   return (
     <>
@@ -410,8 +422,11 @@ function ShowOneThread({
           </Space>
         )}
       </Flex>
+      <div style={{ fontSize: "22px", marginBottom: "15px" }}>
+        {first.subject}
+      </div>
       <Message
-        message={messages.get(showThread)?.toJS()}
+        message={message}
         threads={threads}
         showThread
         setShowThread={setShowThread}

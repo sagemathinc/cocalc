@@ -1,5 +1,5 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { Button, Checkbox, Flex, Tag, Tooltip } from "antd";
+import { Checkbox, Flex, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -16,7 +16,6 @@ import {
 import Thread, { ThreadCount } from "./thread";
 import type { iThreads, Folder } from "./types";
 import User from "./user";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { fromJS } from "immutable";
 
 const LEFT_OFFSET = "46px";
@@ -121,18 +120,21 @@ function MessageInList({
             </span>
           )}
         </div>
-        <div
-          style={{
-            flex: 1,
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-            whiteSpace: "pre",
-            marginRight: "10px",
-          }}
-        >
-          {!inThread && folder != "inbox" && getTag({ message, threads })}
-          {read ? message.subject : <b>{message.subject}</b>}
-        </div>
+        {!inThread && (
+          <div
+            style={{
+              flex: 1,
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              whiteSpace: "pre",
+              marginRight: "10px",
+            }}
+          >
+            {folder != "inbox" && getTag({ message, threads })}
+            {read ? message.subject : <b>{message.subject}</b>}
+          </div>
+        )}
+        {inThread && <div style={{ flex: 1 }} />}
         <div onClick={(e) => e.stopPropagation()}>
           <Tooltip
             placement="left"
@@ -245,28 +247,7 @@ function MessageFull({
         />
       )}
       <Flex>
-        <div
-          style={{
-            marginLeft: LEFT_OFFSET,
-            fontSize: "16pt",
-          }}
-        >
-          {message.subject}
-        </div>
-        <div style={{ flex: 1 }} />
-        {setShowThread != null && inThread && (
-          <Button
-            style={{ fontSize: "15pt", color: "#666" }}
-            type="text"
-            onClick={() => {
-              // if setShowThread is available, we're in a thread and expanded, so
-              // shrink.
-              setShowThread?.(null);
-            }}
-          >
-            <Icon name="ColumnHeightOutlined" />
-          </Button>
-        )}
+        <div style={{ flex: 1 }} onClick={() => setShowThread?.(null)} />
         <div
           style={{
             display: "flex",
@@ -275,7 +256,7 @@ function MessageFull({
             marginRight: "15px",
           }}
         >
-          <ReplyButton type="text" replyTo={message} />
+          <ReplyButton type="text" replyTo={message} label="" />
         </div>
         <div
           style={{
@@ -294,13 +275,13 @@ function MessageFull({
           />
         </div>
       </Flex>
-      <div style={{ marginTop: "-20px" }}>
+      <div style={{ marginTop: "-20px" }} onClick={() => setShowThread?.(null)}>
         {user}
         <div
           style={{
             marginLeft: LEFT_OFFSET,
             color: "#666",
-            marginTop: "-5px",
+            marginTop: "-46px",
           }}
         >
           {isToMe(message) ? (
@@ -322,7 +303,7 @@ function MessageFull({
       <div
         style={{
           marginLeft: LEFT_OFFSET,
-          marginTop: "15px",
+          marginTop: "30px",
         }}
       >
         <StaticMarkdown value={message.body} />
