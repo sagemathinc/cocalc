@@ -157,11 +157,6 @@ Table({
       set: {
         fields: {
           id: true,
-          sent: true,
-          to_type: true,
-          to_id: true,
-          subject: true,
-          body: true,
           // use read:0 to mark not read
           read: true,
           saved: true,
@@ -187,7 +182,7 @@ Table({
             try {
               // user is allowed to change messages *to* them only.
               const query =
-                "UPDATE messages SET read=$3, saved=$4, deleted=$5, expire=$6, sent=$7 WHERE to_type='account' AND to_id=$1 AND id=$2";
+                "UPDATE messages SET read=$3, saved=$4, deleted=$5, expire=$6 WHERE to_type='account' AND to_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -199,9 +194,6 @@ Table({
                 new_val.expire === 0 || new Date(new_val.expire).valueOf() == 0
                   ? null
                   : (new_val.expire ?? old_val.expire),
-                new_val.sent === 0 || new Date(new_val.sent).valueOf() == 0
-                  ? null
-                  : (new_val.sent ?? old_val.sent),
               ];
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
@@ -212,13 +204,91 @@ Table({
               cb(`${err}`);
             }
           } else {
-            // create a new message, since there are no option to edit anything except the read time.
+            cb(`use the sent_messages table to create a new message`);
+          }
+        },
+      },
+    },
+  },
+});
+
+Table({
+  name: "sent_messages",
+  fields: schema.messages.fields,
+  rules: {
+    primary_key: schema.messages.primary_key,
+    changefeed_keys: ["from_id"],
+    virtual: "messages",
+    user_query: {
+      get: {
+        ...schema.messages.user_query?.get!,
+        pg_where: [{ "from_id = $::UUID": "account_id" }],
+      },
+      set: {
+        fields: {
+          id: true,
+          to_type: true,
+          to_id: true,
+          subject: true,
+          body: true,
+          sent: true,
+          thread_id: true,
+          deleted: true,
+          expire: true,
+        },
+        async instead_of_change(
+          database,
+          old_val,
+          new_val,
+          account_id,
+          cb,
+        ): Promise<void> {
+          const client = database._client();
+          if (client == null) {
+            cb("database not connected -- try again later");
+            return;
+          }
+          if (old_val != null) {
+            try {
+              if (new_val.deleted || new_val.expire) {
+                if (old_val.sent || new_val.sent) {
+                  throw Error(
+                    "cannot delete message after sending it (unsend it first)",
+                  );
+                }
+              }
+              // user is allowed to change subject/body/sent fields of messages *from* them only.
+              const query =
+                "UPDATE messages SET subject=$3,body=$4,sent=$5,deleted=$6,expire=$7 WHERE to_type='account' AND from_id=$1 AND id=$2";
+              const params = [
+                account_id,
+                parseInt(old_val.id),
+                new_val.subject ?? old_val.subject,
+                new_val.body ?? old_val.body,
+                new_val.sent === 0 || new Date(new_val.sent).valueOf() == 0
+                  ? null
+                  : (new_val.sent ?? old_val.sent),
+                new_val.deleted ?? old_val.deleted,
+                new_val.expire === 0 || new Date(new_val.expire).valueOf() == 0
+                  ? null
+                  : (new_val.expire ?? old_val.expire),
+              ];
+              // putting from_id in the query specifically as an extra security measure, so user can't change
+              // message with id they don't own.
+              await client.query(query, params);
+              await database.updateUnreadMessageCount({ account_id });
+              cb();
+            } catch (err) {
+              cb(`${err}`);
+            }
+          } else {
+            // create a new message:
             try {
               throttle({
                 endpoint: "user_query-messages",
                 account_id,
               });
-              const to_type = new_val.to_type ?? "account";
+              const to_type = new_val.to_type;
               if (to_type == "account") {
                 const { rows: counts } = await client.query(
                   "SELECT COUNT(*) AS count FROM accounts WHERE account_id=$1",
@@ -240,14 +310,14 @@ Table({
                 [
                   account_id,
                   new_val.to_id,
-                  to_type,
+                  new_val.to_type,
                   new_val.subject,
                   new_val.body,
                   new_val.thread_id,
                   new_val.sent,
                 ],
               );
-              if (to_type == "account") {
+              if (to_type == "account" && new_val.sent) {
                 await database.updateUnreadMessageCount({
                   account_id: new_val.to_id,
                 });
@@ -258,22 +328,6 @@ Table({
             }
           }
         },
-      },
-    },
-  },
-});
-
-Table({
-  name: "sent_messages",
-  fields: schema.messages.fields,
-  rules: {
-    primary_key: schema.messages.primary_key,
-    changefeed_keys: ["from_id"],
-    virtual: "messages",
-    user_query: {
-      get: {
-        ...schema.messages.user_query?.get!,
-        pg_where: [{ "from_id = $::UUID": "account_id" }],
       },
     },
   },

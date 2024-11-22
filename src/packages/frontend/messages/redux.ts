@@ -8,6 +8,8 @@ import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
 import type { iMessagesMap, iThreads } from "./types";
 import { List as iList, Map as iMap } from "immutable";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { uuid } from "@cocalc/util/misc";
+import { once } from "@cocalc/util/async-utils";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
@@ -38,20 +40,16 @@ export class MessagesActions extends Actions<MessagesState> {
     deleted?: boolean;
     expire?: Date | null;
   }) => {
-    //     console.log("mark", {
-    //       id,
-    //       ids,
-    //       read,
-    //       saved,
-    //       deleted,
-    //       expire,
-    //     });
     const table = this.redux.getTable("messages")._table;
+    const obj = {
+      read: read === null ? 0 : read,
+      saved,
+      deleted,
+      expire: expire === null ? 0 : expire,
+    };
     if (id != null) {
       if (table.get_one(`${id}`) != null) {
-        await this.redux
-          .getTable("messages")
-          .set({ id, read: read === null ? 0 : read, saved, deleted, expire });
+        await this.redux.getTable("messages").set({ id, ...obj });
       }
     }
     if (ids != null && ids.size > 0) {
@@ -59,16 +57,13 @@ export class MessagesActions extends Actions<MessagesState> {
       // change more than one record at a time.
       for (const id of ids) {
         if (table.get_one(`${id}`) == null) {
-          // not in this table, so don't mark it. E.g., trying to mark a message we sent as read/archive/deleted
-          // isn't supported.
+          // not in this table, so don't mark it. E.g., trying to mark a message
+          // we sent as read/archive/deleted isn't supported.
           continue;
         }
         table.set({
           id,
-          read: read === null ? 0 : read,
-          saved,
-          deleted,
-          expire: expire === null ? 0 : expire,
+          ...obj,
         });
       }
       await table.save();
@@ -90,7 +85,7 @@ export class MessagesActions extends Actions<MessagesState> {
   }) => {
     await webapp_client.async_query({
       query: {
-        messages: {
+        sent_messages: {
           sent: webapp_client.server_time(),
           subject,
           body,
@@ -112,6 +107,66 @@ export class MessagesActions extends Actions<MessagesState> {
     }
     const threads = getThreads(messages);
     this.setState({ messages, threads });
+  };
+
+  updateDraft = async ({
+    id,
+    subject,
+    body,
+    sent,
+    // deleted and expire are only allowed if the draft message is not sent
+    deleted,
+    expire,
+  }: {
+    id: number;
+    subject?: string;
+    body?: string;
+    sent?: Date | null;
+    deleted?: boolean;
+    expire?: Date | null;
+  }) => {
+    const table = this.redux.getTable("sent_messages");
+    if (table._table.get_one(`${id}`) == null) {
+      throw Error("message does not exist in sent_messages table");
+    }
+    await table.set({ id, subject, body, sent, deleted, expire });
+  };
+
+  createDraft = async ({
+    to_id,
+    to_type = "account",
+    subject = "",
+    body = "",
+    thread_id = undefined,
+  }) => {
+    // trick -- we use a sentinel subject for a moment, since async_query
+    // doesn't return the created primary key.  We'll implement that at some
+    // point, but for now this will have to do.
+    const uniqueSubject = `${subject}-${uuid()}`;
+    await webapp_client.async_query({
+      query: {
+        sent_messages: {
+          subject: uniqueSubject,
+          body,
+          to_id,
+          to_type,
+          thread_id: thread_id ?? undefined,
+        },
+      },
+    });
+    const table = this.redux.getTable("sent_messages")._table;
+    let t0 = Date.now();
+    while (Date.now() - t0 <= 30000) {
+      await once(table, "change", 10000);
+      for (const [_, message] of table.get()) {
+        if (message.get("subject") == uniqueSubject) {
+          const id = message.get("id");
+          // set the subject to actual one
+          await this.updateDraft({ id, subject });
+          return id;
+        }
+      }
+    }
   };
 }
 
@@ -218,7 +273,9 @@ class SentMessagesTable extends Table {
           body: null,
           read: null,
           saved: null,
+          deleted: null,
           thread_id: null,
+          expire: null,
         },
       ],
     };

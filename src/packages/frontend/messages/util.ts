@@ -1,8 +1,7 @@
 import type { Message } from "@cocalc/util/db-schema/messages";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { iThreads, iMessage, iMessagesMap, Folder } from "./types";
-import { field_cmp } from "@cocalc/util/misc";
-//import type { List as iList } from "immutable";
+import { cmp } from "@cocalc/util/misc";
 
 //       WARNING: If you change or add fields and logic that could impact the "number of
 // messages in the inbox that are not read", make sure to also update
@@ -65,6 +64,9 @@ function isInFolderNotThreaded({
   message: iMessage;
   folder: Folder;
 }) {
+  if (message.get("deleted") && folder != "trash") {
+    return false;
+  }
   if (folder == "drafts") {
     return (
       message.get("from_type") == "account" &&
@@ -248,7 +250,11 @@ export function getFilteredMessages({
   const filteredMessages = m
     .valueSeq()
     .toJS()
-    .sort(field_cmp("sent"))
-    .reverse() as unknown as Message[];
+    .sort((a: any, b: any) => {
+      if (a.sent && b.sent) {
+        return cmp(b.sent, a.sent);
+      }
+      return cmp(b.id, a.id);
+    }) as unknown as Message[];
   return filteredMessages;
 }

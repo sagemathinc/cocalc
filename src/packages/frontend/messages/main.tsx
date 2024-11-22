@@ -438,7 +438,12 @@ function ShowOneThread({
 }
 
 function enableMoveToInbox({ folder, checkedMessageIds, messages, threads }) {
-  if (folder == "inbox" || folder == "sent") {
+  if (
+    folder == "inbox" ||
+    folder == "sent" ||
+    folder == "drafts" ||
+    folder == "search"
+  ) {
     return false;
   }
   if (
