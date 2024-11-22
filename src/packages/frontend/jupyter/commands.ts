@@ -10,6 +10,8 @@ we support and how they work.
 See frontend/frame-editors/jupyter-editor/editor.ts for how these are organized into menus.
 */
 
+import { defineMessage } from "react-intl";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { IconName } from "@cocalc/frontend/components";
 import { FORMAT_SOURCE_ICON } from "@cocalc/frontend/frame-editors/frame-tree/config";
@@ -17,15 +19,14 @@ import { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-edi
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import {
   editor,
-  getIntl,
   IntlMessage,
   jupyter,
   labels,
   menu,
 } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { NotebookMode } from "@cocalc/jupyter/types";
-import { defineMessage } from "react-intl";
 import { JupyterActions } from "./browser-actions";
 import {
   COPY_CELL_ICON,

@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "Umschalten, ob die Menü-Symbolleiste für alle Editoren angezeigt wird oder nicht.",
   "commands.generic.toggle_button_bar.label": "{show, select, true {Verbergen} other {Anzeigen}} Menü Toolbar...",
   "commands.generic.toggle_button_bar.title": "Umschalten, ob die Menü-Symbolleiste für alle Editoren angezeigt wird oder nicht.",
+  "components.test-i18n.msg": "<p>Formatiert mit <b>fett</b> und <i>kursiv</i>.</p>",
   "connection-info.hub_server": "Hub-Server",
   "connection-info.info": "Die Farbe des Verbindungsicons ändert sich, wenn die Anzahl der Nachrichten, die zu einem Hub gesendet werden, zunimmt. Normalerweise ist keine Aktion erforderlich, aber die Zählungen sind hilfreich zu Diagnosezwecken. Die maximale Anzahl der Nachrichten, die gleichzeitig gesendet werden können, beträgt {max}.",
   "connection-info.messages_received": "empfangen",
