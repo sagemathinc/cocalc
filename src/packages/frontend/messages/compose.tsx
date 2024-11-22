@@ -29,7 +29,7 @@ export default function Compose({
         : "",
   );
   const [subject, setSubject] = useState<string>(
-    replySubject(replyTo?.subject ?? ""),
+    replySubject(replyTo?.subject),
   );
   const [body, setBody] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -101,7 +101,7 @@ export default function Compose({
                   to_type: "account",
                   subject,
                   body,
-                  thread_id: replyTo?.thread_id ?? replyTo?.id,
+                  thread_id: getThreadId({replyTo, subject})
                 });
                 setState("sent");
                 onSend?.();
@@ -196,4 +196,16 @@ function replySubject(subject) {
     return subject;
   }
   return `Re: ${subject}`;
+}
+
+// If user explicitly edits the thread in any way,
+// then reply starts a new thread (matching gmail behavior).
+function getThreadId({replyTo, subject}) {
+  if(replyTo == null) {
+    return undefined;
+  }
+  if (subject.trim() == replySubject(replyTo?.subject)) {
+    return replyTo?.thread_id ?? replyTo?.id;
+  }
+  return undefined;
 }
