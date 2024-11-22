@@ -80,7 +80,7 @@ function MessageInList({
     : undefined;
 
   return (
-    <Flex
+    <div
       style={{
         width: "100%",
         marginBottom: "-5px",
@@ -90,86 +90,102 @@ function MessageInList({
       }}
       onClick={show}
     >
-      {setChecked != null && (
-        <Checkbox
-          onClick={(e) => e.stopPropagation()}
-          style={{ marginRight: "15px" }}
-          checked={!!checked}
-          onChange={(e) => {
-            const shiftKey = e.nativeEvent.shiftKey;
-            setChecked({ checked: e.target.checked, shiftKey });
-          }}
-        />
-      )}
-      <div
-        style={{
-          width: "200px",
-          textOverflow: "ellipsis",
-          overflow: "hidden",
-          whiteSpace: "pre",
-          marginRight: "10px",
-        }}
-      >
-        {folder == "sent" && !inThread && (
-          <span style={{ marginRight: "5px" }}>To: </span>
-        )}
-        {user}
-        {message.thread_id != null && threads != null && (
-          <span>
-            <ThreadCount thread_id={message.thread_id} threads={threads} />
-          </span>
-        )}
-      </div>
-      <div
-        style={{
-          flex: 1,
-          textOverflow: "ellipsis",
-          overflow: "hidden",
-          whiteSpace: "pre",
-          marginRight: "10px",
-        }}
-      >
-        {!inThread && folder != "inbox" && getTag({ message, threads })}
-        {read ? message.subject : <b>{message.subject}</b>}
-      </div>
-      <div onClick={(e) => e.stopPropagation()}>
-        <Tooltip
-          placement="left"
-          title={
-            isRead({ message, folder }) ? (
-              <>
-                <User id={message.to_id} type={message.to_type} /> read{" "}
-                <TimeAgo date={message.read} />
-              </>
-            ) : (
-              <>
-                <User id={message.to_id} type={message.to_type} /> has not read
-              </>
-            )
-          }
-        >
-          &nbsp;
-          <TimeAgo
-            date={message.created}
-            style={{
-              width: "150px",
-              textAlign: "right",
-              fontWeight: read ? undefined : "bold",
+      <Flex>
+        {setChecked != null && (
+          <Checkbox
+            onClick={(e) => e.stopPropagation()}
+            style={{ marginRight: "15px" }}
+            checked={!!checked}
+            onChange={(e) => {
+              const shiftKey = e.nativeEvent.shiftKey;
+              setChecked({ checked: e.target.checked, shiftKey });
             }}
           />
-        </Tooltip>
-      </div>
-      <div
-        style={{
-          color: "#888",
-          marginRight: "10px",
-          width: "25px",
-          textAlign: "right",
-        }}
-      >
-        {message.id}
-      </div>
-    </Flex>
+        )}
+        <div
+          style={{
+            width: "200px",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "pre",
+            marginRight: "10px",
+          }}
+        >
+          {folder == "sent" && !inThread && (
+            <span style={{ marginRight: "5px" }}>To: </span>
+          )}
+          {user}
+          {message.thread_id != null && threads != null && (
+            <span>
+              <ThreadCount thread_id={message.thread_id} threads={threads} />
+            </span>
+          )}
+        </div>
+        <div
+          style={{
+            flex: 1,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "pre",
+            marginRight: "10px",
+          }}
+        >
+          {!inThread && folder != "inbox" && getTag({ message, threads })}
+          {read ? message.subject : <b>{message.subject}</b>}
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Tooltip
+            placement="left"
+            title={
+              isRead({ message, folder }) ? (
+                <>
+                  <User id={message.to_id} type={message.to_type} /> read{" "}
+                  <TimeAgo date={message.read} />
+                </>
+              ) : (
+                <>
+                  <User id={message.to_id} type={message.to_type} /> has not
+                  read
+                </>
+              )
+            }
+          >
+            &nbsp;
+            <TimeAgo
+              date={message.created}
+              style={{
+                width: "150px",
+                textAlign: "right",
+                fontWeight: read ? undefined : "bold",
+              }}
+            />
+          </Tooltip>
+        </div>
+        <div
+          style={{
+            color: "#888",
+            marginRight: "10px",
+            width: "25px",
+            textAlign: "right",
+          }}
+        >
+          {message.id}
+        </div>
+      </Flex>
+      {inThread && (
+        <div
+          style={{
+            overflow: "hidden",
+            height: "1.5em",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            color: "#666",
+          }}
+        >
+          {message.body}
+        </div>
+      )}
+    </div>
   );
 }
 
