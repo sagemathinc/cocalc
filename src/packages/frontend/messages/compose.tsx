@@ -44,6 +44,35 @@ export default function Compose({
     setState("compose");
   };
 
+  //   const saveDraft = async ({ subject, body }) => {
+  //     await redux.getActions("messages").saveDraft({
+  //       to_id: toId,
+  //       to_type: "account",
+  //       subject,
+  //       body,
+  //       thread_id: getThreadId({ replyTo, subject }),
+  //     });
+  //   };
+
+  const send = async (body0?: string) => {
+    try {
+      setError("");
+      setState("sending");
+      await redux.getActions("messages").send({
+        to_id: toId,
+        to_type: "account",
+        subject,
+        body,
+        thread_id: getThreadId({ replyTo, subject }),
+      });
+      setState("sent");
+      onSend?.(body0 ?? body);
+    } catch (err) {
+      setError(`${err}`);
+      setState("compose");
+    }
+  };
+
   return (
     <Space direction="vertical" style={{ width: "100%", ...style }}>
       {replyTo == null && (
@@ -58,8 +87,8 @@ export default function Compose({
         </div>
       )}
       {replyTo != null && toId != null && (
-        <div>
-          <User id={toId} type="account" show_avatar />
+        <div style={{ color: "#666" }}>
+          to <User id={toId} type="account" show_avatar />
         </div>
       )}
       <Input
@@ -76,6 +105,12 @@ export default function Compose({
           placeholder="Body..."
           autoFocus={replyTo != null}
           style={{ minHeight: "200px" }}
+          onShiftEnter={(body) => {
+            setBody(body);
+            if (body.trim()) {
+              send(body);
+            }
+          }}
         />
       )}
       <div>
@@ -94,26 +129,14 @@ export default function Compose({
           </Button>{" "}
           <Button
             size="large"
-            disabled={!subject.trim() || !toId || state != "compose"}
+            disabled={
+              !subject.trim() ||
+              !toId ||
+              state != "compose" ||
+              (replyTo != null && !body.trim())
+            }
             type="primary"
-            onClick={async () => {
-              try {
-                setError("");
-                setState("sending");
-                await redux.getActions("messages").send({
-                  to_id: toId,
-                  to_type: "account",
-                  subject,
-                  body,
-                  thread_id: getThreadId({ replyTo, subject }),
-                });
-                setState("sent");
-                onSend?.();
-              } catch (err) {
-                setError(`${err}`);
-                setState("compose");
-              }
-            }}
+            onClick={() => send()}
           >
             <Icon name="paper-plane" />{" "}
             {state == "sending" && (
@@ -121,7 +144,7 @@ export default function Compose({
                 Sending <Spin />
               </>
             )}
-            {state == "compose" && <>Send</>}
+            {state == "compose" && <>Send (shift+enter)</>}
             {state == "sent" && <>Sent</>}
           </Button>
         </Space>
@@ -149,20 +172,6 @@ export default function Compose({
         setError={setError}
         style={{ margin: "30px auto" }}
       />
-      {!!body?.trim() && (
-        <div
-          style={{
-            margin: "30px",
-            paddingTop: "15px",
-            borderTop: "1px solid #ccc",
-          }}
-        >
-          Preview:
-          <br />
-          <br />
-          <StaticMarkdown value={body} />
-        </div>
-      )}
     </Space>
   );
 }

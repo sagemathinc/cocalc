@@ -10,24 +10,30 @@ export type Filter =
   | "messages-sent"
   | "messages-saved"
   | "messages-unread"
-  | "messages-all";
+  | "messages-all"
+  | "messages-search"
+  | "messages-drafts";
 
 export function isMessagesFilter(filter: string): filter is Filter {
   return (
     filter == "messages-inbox" ||
     filter == "messages-sent" ||
     filter == "messages-all" ||
-    filter == "messages-trash"
+    filter == "messages-trash" ||
+    filter == "messages-search" ||
+    filter == "messages-drafts"
   );
 }
 
-export type Folder = "inbox" | "sent" | "all" | "trash";
+export type Folder = "inbox" | "sent" | "all" | "trash" | "search" | "drafts";
 
 export function isFolder(folder: string): folder is Folder {
   return (
     folder == "inbox" ||
     folder == "sent" ||
     folder == "all" ||
-    folder == "trash"
+    folder == "trash" ||
+    folder == "search" ||
+    folder == "drafts"
   );
 }

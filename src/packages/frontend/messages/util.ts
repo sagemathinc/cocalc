@@ -28,7 +28,7 @@ export function isInFolderThreaded({
       // data not fully loaded yet -- so use best fallback
       return isInFolderNotThreaded({ message, folder });
     }
-    if (folder == "inbox" || folder == "sent") {
+    if (folder == "inbox" || folder == "sent" || folder == "drafts") {
       // inbox = at least one message in the thread is in inbox
       // sent = at least one message was sent by us
       for (const message of thread) {
@@ -63,12 +63,20 @@ function isInFolderNotThreaded({
   folder,
 }: {
   message: iMessage;
-  folder: "inbox" | "sent" | "all" | "trash";
+  folder: Folder;
 }) {
+  if (folder == "drafts") {
+    return (
+      message.get("from_type") == "account" &&
+      message.get("from_id") == webapp_client.account_id &&
+      isNullDate(message.get("sent"))
+    );
+  }
   if (folder == "sent") {
     return (
       message.get("from_type") == "account" &&
-      message.get("from_id") == webapp_client.account_id
+      message.get("from_id") == webapp_client.account_id &&
+      !isNullDate(message.get("sent"))
     );
   }
   const toMe =
@@ -240,7 +248,7 @@ export function getFilteredMessages({
   const filteredMessages = m
     .valueSeq()
     .toJS()
-    .sort(field_cmp("created"))
+    .sort(field_cmp("sent"))
     .reverse() as unknown as Message[];
   return filteredMessages;
 }

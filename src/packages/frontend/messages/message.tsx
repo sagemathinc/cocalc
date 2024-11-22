@@ -1,5 +1,5 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { Checkbox, Flex, Tag, Tooltip } from "antd";
+import { Button, Checkbox, Flex, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -17,6 +17,9 @@ import Thread, { ThreadCount } from "./thread";
 import type { iThreads, Folder } from "./types";
 import User from "./user";
 import { fromJS } from "immutable";
+import Compose from "./compose";
+import { useState } from "react";
+import { Icon } from "@cocalc/frontend/components/icon";
 
 const LEFT_OFFSET = "46px";
 
@@ -154,7 +157,7 @@ function MessageInList({
           >
             &nbsp;
             <TimeAgo
-              date={message.created}
+              date={message.sent}
               style={{
                 width: "150px",
                 textAlign: "right",
@@ -213,6 +216,7 @@ function MessageFull({
   setShowThread,
 }: Props) {
   const read = isRead({ message, folder });
+  const [replyOpen, setReplyOpen] = useState<boolean>(false);
 
   const user = (
     <User
@@ -232,7 +236,7 @@ function MessageFull({
       style={{
         width: "100%",
         marginRight: "30px",
-        marginLeft: inThread ? "-24px" : undefined,
+        paddingRight: "15px",
         /* overflowY is so when threads are expanded we can scroll and see them*/
         overflowY: "auto",
       }}
@@ -256,7 +260,13 @@ function MessageFull({
             marginRight: "15px",
           }}
         >
-          <ReplyButton type="text" replyTo={message} label="" />
+          <Button
+            type="text"
+            disabled={replyOpen}
+            onClick={() => setReplyOpen(true)}
+          >
+            <Icon name="reply" />
+          </Button>
         </div>
         <div
           style={{
@@ -266,7 +276,7 @@ function MessageFull({
           }}
         >
           <TimeAgo
-            date={message.created}
+            date={message.sent}
             style={{
               whiteSpace: "pre",
               textAlign: "right",
@@ -312,6 +322,14 @@ function MessageFull({
           <div>
             <ReplyButton size="large" replyTo={message} />
           </div>
+        )}
+        {inThread && replyOpen && (
+          <Compose
+            style={{ marginBottom: "45px" }}
+            replyTo={message}
+            onCancel={() => setReplyOpen(false)}
+            onSend={() => setReplyOpen(false)}
+          />
         )}
       </div>
     </div>

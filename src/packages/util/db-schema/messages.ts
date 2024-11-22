@@ -49,7 +49,7 @@ export type Entity = "project" | "system" | "support" | "account";
 
 export interface Message {
   id: number;
-  created: Date;
+  sent: Date;
   from_type: Entity;
   from_id: string; // a uuid
   to_type: Entity;
@@ -68,10 +68,9 @@ Table({
   name: "messages",
   fields: {
     id: ID,
-    created: {
+    sent: {
       type: "timestamp",
-      desc: "When this message was created",
-      not_null: true,
+      desc: "When this message was actually sent.  A draft is a message where sent has not yet been set.",
     },
     from_type: {
       type: "string",
@@ -130,15 +129,18 @@ Table({
   },
   rules: {
     primary_key: "id",
-    changefeed_keys: ["to_id"],
+    changefeed_keys: ["to_id", "sent"],
     pg_indexes: ["to_id", "to_type"],
     user_query: {
       get: {
-        pg_where: [{ "to_id = $::UUID": "account_id" }],
-        options: [{ order_by: "-created" }, { limit: NUM_MESSAGES }],
+        pg_where: [
+          { "to_id = $::UUID": "account_id" },
+          { "sent IS NOT $": null },
+        ],
+        options: [{ order_by: "-id" }, { limit: NUM_MESSAGES }],
         fields: {
           id: null,
-          created: null,
+          sent: null,
           from_type: null,
           from_id: null,
           to_type: null,
@@ -155,6 +157,7 @@ Table({
       set: {
         fields: {
           id: true,
+          sent: true,
           to_type: true,
           to_id: true,
           subject: true,
@@ -184,7 +187,7 @@ Table({
             try {
               // user is allowed to change messages *to* them only.
               const query =
-                "UPDATE messages SET read=$3, saved=$4, deleted=$5, expire=$6 WHERE to_type='account' AND to_id=$1 AND id=$2";
+                "UPDATE messages SET read=$3, saved=$4, deleted=$5, expire=$6, sent=$7 WHERE to_type='account' AND to_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -196,6 +199,9 @@ Table({
                 new_val.expire === 0 || new Date(new_val.expire).valueOf() == 0
                   ? null
                   : (new_val.expire ?? old_val.expire),
+                new_val.sent === 0 || new Date(new_val.sent).valueOf() == 0
+                  ? null
+                  : (new_val.sent ?? old_val.sent),
               ];
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
@@ -228,8 +234,8 @@ Table({
                 return;
               }
               const { rows } = await client.query(
-                `INSERT INTO messages(created,from_type,from_id,to_id,to_type,subject,body,thread_id)
-                 VALUES(NOW(),'account',$1,$2,$3,$4,$5,$6) RETURNING *
+                `INSERT INTO messages(from_type,from_id,to_id,to_type,subject,body,thread_id,sent)
+                 VALUES('account',$1,$2,$3,$4,$5,$6,$7) RETURNING *
                 `,
                 [
                   account_id,
@@ -238,6 +244,7 @@ Table({
                   new_val.subject,
                   new_val.body,
                   new_val.thread_id,
+                  new_val.sent,
                 ],
               );
               if (to_type == "account") {

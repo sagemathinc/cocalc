@@ -141,10 +141,26 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           ),
         },
         {
+          key: "messages-drafts",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="note" /> Drafts
+            </span>
+          ),
+        },
+        {
           key: "messages-all",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
               <Icon name="comments" /> All Messages
+            </span>
+          ),
+        },
+        {
+          key: "messages-search",
+          label: (
+            <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
+              <Icon name="search" /> Search
             </span>
           ),
         },

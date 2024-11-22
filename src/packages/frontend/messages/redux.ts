@@ -89,7 +89,16 @@ export class MessagesActions extends Actions<MessagesState> {
     thread_id?: number;
   }) => {
     await webapp_client.async_query({
-      query: { messages: { subject, body, to_id, to_type, thread_id } },
+      query: {
+        messages: {
+          sent: webapp_client.server_time(),
+          subject,
+          body,
+          to_id,
+          to_type,
+          thread_id,
+        },
+      },
     });
   };
 
@@ -135,7 +144,7 @@ export function getThreads(messages): iThreads {
     }
     threads = threads.set(
       thread_id,
-      thread.sortBy((message) => message.get("created")),
+      thread.sortBy((message) => message.get("id")),
     );
   }
 
@@ -158,7 +167,7 @@ class MessagesTable extends Table {
       messages: [
         {
           id: null,
-          created: null,
+          sent: null,
           from_type: null,
           from_id: null,
           to_type: null,
@@ -200,7 +209,7 @@ class SentMessagesTable extends Table {
       sent_messages: [
         {
           id: null,
-          created: null,
+          sent: null,
           from_type: null,
           from_id: null,
           to_type: null,
