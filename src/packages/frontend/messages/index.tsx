@@ -2,21 +2,13 @@
 Component to show all your messages.
 */
 
-import ShowError from "@cocalc/frontend/components/error";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { init } from "./redux";
-import MessagesList from "./list";
+import Main from "./main";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-
-type Filter =
-  | "messages-sent"
-  | "messages-saved"
-  | "messages-unread"
-  | "messages-all";
-
-export function isMessagesFilter(filter: string): filter is Filter {
-  return filter?.startsWith("messages-");
-}
+import { Spin } from "antd";
+import type { Filter } from "./types";
+export { isMessagesFilter } from "./types";
 
 interface Props {
   filter?: Filter;
@@ -24,10 +16,9 @@ interface Props {
 }
 
 export default function Messages({ filter, style }: Props) {
-  const [error, setError] = useState<string>("");
   useEffect(() => {
     // ONLY initialize the state stuff if the actual messages
-    // are displayed, to avoid significant waste of resources/load
+    // are displayed, to avoid  waste of resources/load
     init();
   }, []);
 
@@ -36,12 +27,11 @@ export default function Messages({ filter, style }: Props) {
 
   return (
     <div style={style} className="smc-vfill">
-      <ShowError
-        error={error}
-        setError={setError}
-        style={{ margin: "30px auto" }}
-      />
-      <MessagesList messages={messages} threads={threads} filter={filter} />
+      {threads == null || messages == null ? (
+        <Spin />
+      ) : (
+        <Main messages={messages} threads={threads} filter={filter} />
+      )}
     </div>
   );
 }

@@ -15,7 +15,7 @@ import {
 } from "./util";
 import { isFolder, Folder } from "./types";
 
-export default function MessagesList({ messages, threads, filter }) {
+export default function Main({ messages, threads, filter }) {
   const [showThread, setShowThread] = useState<number | null>(null);
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
     new Set(),
@@ -66,168 +66,37 @@ export default function MessagesList({ messages, threads, filter }) {
     return <Spin />;
   }
 
-  const mesgIndex =
-    showThread != null
-      ? filteredMessages.map(({ id }) => id).indexOf(showThread)
-      : undefined;
-
   if (showThread != null) {
-    const id = showThread;
     return (
-      <>
-        <Flex style={{ marginBottom: "5px" }}>
-          <Button
-            size="large"
-            type="text"
-            onClick={() => {
-              setShowThread(null);
-            }}
-          >
-            <Icon
-              name="left-circle-o"
-              style={{ fontSize: "14pt", color: "#666" }}
-            />
-            Back
-          </Button>
-          {folder != "sent" && (
-            <Actions
-              threads={threads}
-              folder={folder}
-              checkedMessageIds={new Set([showThread])}
-              messages={messages}
-              setShowThread={setShowThread}
-            />
-          )}
-          <div style={{ flex: 1 }} />
-          {showThread && mesgIndex != null && (
-            <Space>
-              {mesgIndex + 1} of {filteredMessages.length}
-              <Button
-                size="large"
-                disabled={mesgIndex <= 0}
-                type="text"
-                onClick={() => {
-                  setShowThread(filteredMessages[mesgIndex - 1]?.id);
-                }}
-              >
-                <Icon name="chevron-left" />
-              </Button>
-              <Button
-                size="large"
-                disabled={mesgIndex >= filteredMessages.length - 1}
-                type="text"
-                onClick={() => {
-                  setShowThread(filteredMessages[mesgIndex + 1]?.id);
-                }}
-              >
-                <Icon name="chevron-right" />
-              </Button>
-            </Space>
-          )}
-        </Flex>
-        <Message
-          message={messages.get(id)?.toJS()}
-          threads={threads}
-          showThread
-          setShowThread={setShowThread}
-          folder={folder}
-          style={{ paddingLeft: "12px" }}
-        />
-      </>
+      <ShowOneThread
+        {...{
+          showThread,
+          setShowThread,
+          threads,
+          folder,
+          messages,
+          filteredMessages,
+        }}
+      />
+    );
+  } else {
+    return (
+      <ShowAllThreads
+        {...{
+          showThread,
+          setShowThread,
+          threads,
+          folder,
+          messages,
+          mostRecentChecked,
+          setMostRecentChecked,
+          checkedMessageIds,
+          setCheckedMessageIds,
+          filteredMessages,
+        }}
+      />
     );
   }
-
-  return (
-    <>
-      {folder == "sent" && <div style={{ height: "37px" }} />}
-      {folder != "sent" && (
-        <Flex style={{ minHeight: "37px" }}>
-          <Icon
-            onClick={() => {
-              if (checkedMessageIds.size == 0) {
-                setCheckedMessageIds(
-                  new Set(filteredMessages.map(({ id }) => id)),
-                );
-              } else {
-                setCheckedMessageIds(new Set());
-              }
-            }}
-            name={
-              checkedMessageIds.size == 0
-                ? "square"
-                : checkedMessageIds.size == filteredMessages.length
-                  ? "check-square"
-                  : "minus-square"
-            }
-            style={{
-              fontSize: "14pt",
-              color: "#666",
-              marginLeft: "24px",
-              marginRight: "30px",
-            }}
-          />
-          {checkedMessageIds.size > 0 && (
-            <Actions
-              folder={folder}
-              checkedMessageIds={checkedMessageIds}
-              messages={messages}
-              setShowThread={setShowThread}
-              threads={threads}
-            />
-          )}
-        </Flex>
-      )}
-      <List
-        style={{ overflowY: "auto" }}
-        bordered
-        dataSource={filteredMessages}
-        renderItem={(message) => (
-          <List.Item style={{ background: "#f2f6fc" }}>
-            <Message
-              threads={threads}
-              checked={checkedMessageIds.has(message.id)}
-              setChecked={
-                folder != "sent"
-                  ? ({ checked, shiftKey }) => {
-                      if (shiftKey && mostRecentChecked != null) {
-                        // set the range of id's between this message and the most recent one
-                        // to be checked.  This matches the algorithm I think in gmail and our file explorer.
-                        const v = get_array_range(
-                          filteredMessages.map(({ id }) => id),
-                          mostRecentChecked,
-                          message.id,
-                        );
-                        if (checked) {
-                          for (const id of v) {
-                            checkedMessageIds.add(id);
-                          }
-                        } else {
-                          for (const id of v) {
-                            checkedMessageIds.delete(id);
-                          }
-                        }
-                      } else {
-                        if (checked) {
-                          checkedMessageIds.add(message.id);
-                        } else {
-                          checkedMessageIds.delete(message.id);
-                        }
-                      }
-                      setCheckedMessageIds(new Set(checkedMessageIds));
-                      setMostRecentChecked(message.id);
-                    }
-                  : undefined
-              }
-              message={message}
-              showThread={showThread}
-              setShowThread={setShowThread}
-              folder={folder}
-            />
-          </List.Item>
-        )}
-      />
-    </>
-  );
 }
 
 // These are actions for an entire THREAD in all cases.
@@ -360,6 +229,196 @@ function Actions({
         <Icon name="container" /> To Inbox
       </Button>
     </Space>
+  );
+}
+
+function ShowAllThreads({
+  showThread,
+  setShowThread,
+  threads,
+  folder,
+  messages,
+  mostRecentChecked,
+  setMostRecentChecked,
+  checkedMessageIds,
+  setCheckedMessageIds,
+  filteredMessages,
+}: {
+  showThread;
+  setShowThread;
+  threads;
+  folder;
+  messages;
+  mostRecentChecked;
+  setMostRecentChecked;
+  checkedMessageIds;
+  setCheckedMessageIds;
+  filteredMessages: MessageType[];
+}) {
+  return (
+    <>
+      {folder == "sent" && <div style={{ height: "37px" }} />}
+      {folder != "sent" && (
+        <Flex style={{ minHeight: "37px" }}>
+          <Icon
+            onClick={() => {
+              if (checkedMessageIds.size == 0) {
+                setCheckedMessageIds(
+                  new Set(filteredMessages.map(({ id }) => id)),
+                );
+              } else {
+                setCheckedMessageIds(new Set());
+              }
+            }}
+            name={
+              checkedMessageIds.size == 0
+                ? "square"
+                : checkedMessageIds.size == filteredMessages.length
+                  ? "check-square"
+                  : "minus-square"
+            }
+            style={{
+              fontSize: "14pt",
+              color: "#666",
+              marginLeft: "24px",
+              marginRight: "30px",
+            }}
+          />
+          {checkedMessageIds.size > 0 && (
+            <Actions
+              folder={folder}
+              checkedMessageIds={checkedMessageIds}
+              messages={messages}
+              setShowThread={setShowThread}
+              threads={threads}
+            />
+          )}
+        </Flex>
+      )}
+      <List
+        style={{ overflowY: "auto" }}
+        bordered
+        dataSource={filteredMessages}
+        renderItem={(message) => (
+          <List.Item style={{ background: "#f2f6fc" }}>
+            <Message
+              threads={threads}
+              checked={checkedMessageIds.has(message.id)}
+              setChecked={
+                folder != "sent"
+                  ? ({ checked, shiftKey }) => {
+                      if (shiftKey && mostRecentChecked != null) {
+                        // set the range of id's between this message and the most recent one
+                        // to be checked.  This matches the algorithm I think in gmail and our file explorer.
+                        const v = get_array_range(
+                          filteredMessages.map(({ id }) => id),
+                          mostRecentChecked,
+                          message.id,
+                        );
+                        if (checked) {
+                          for (const id of v) {
+                            checkedMessageIds.add(id);
+                          }
+                        } else {
+                          for (const id of v) {
+                            checkedMessageIds.delete(id);
+                          }
+                        }
+                      } else {
+                        if (checked) {
+                          checkedMessageIds.add(message.id);
+                        } else {
+                          checkedMessageIds.delete(message.id);
+                        }
+                      }
+                      setCheckedMessageIds(new Set(checkedMessageIds));
+                      setMostRecentChecked(message.id);
+                    }
+                  : undefined
+              }
+              message={message}
+              showThread={showThread}
+              setShowThread={setShowThread}
+              folder={folder}
+            />
+          </List.Item>
+        )}
+      />
+    </>
+  );
+}
+
+function ShowOneThread({
+  showThread,
+  setShowThread,
+  threads,
+  folder,
+  messages,
+  filteredMessages,
+}) {
+  const mesgIndex = filteredMessages.map(({ id }) => id).indexOf(showThread);
+
+  return (
+    <>
+      <Flex style={{ marginBottom: "5px" }}>
+        <Button
+          size="large"
+          type="text"
+          onClick={() => {
+            setShowThread(null);
+          }}
+        >
+          <Icon
+            name="left-circle-o"
+            style={{ fontSize: "14pt", color: "#666" }}
+          />
+          Back
+        </Button>
+        {folder != "sent" && (
+          <Actions
+            threads={threads}
+            folder={folder}
+            checkedMessageIds={new Set([showThread])}
+            messages={messages}
+            setShowThread={setShowThread}
+          />
+        )}
+        <div style={{ flex: 1 }} />
+        {showThread && mesgIndex != null && (
+          <Space>
+            {mesgIndex + 1} of {filteredMessages.length}
+            <Button
+              size="large"
+              disabled={mesgIndex <= 0}
+              type="text"
+              onClick={() => {
+                setShowThread(filteredMessages[mesgIndex - 1]?.id);
+              }}
+            >
+              <Icon name="chevron-left" />
+            </Button>
+            <Button
+              size="large"
+              disabled={mesgIndex >= filteredMessages.length - 1}
+              type="text"
+              onClick={() => {
+                setShowThread(filteredMessages[mesgIndex + 1]?.id);
+              }}
+            >
+              <Icon name="chevron-right" />
+            </Button>
+          </Space>
+        )}
+      </Flex>
+      <Message
+        message={messages.get(showThread)?.toJS()}
+        threads={threads}
+        showThread
+        setShowThread={setShowThread}
+        folder={folder}
+        style={{ paddingLeft: "12px" }}
+      />
+    </>
   );
 }
 
