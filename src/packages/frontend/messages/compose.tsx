@@ -8,6 +8,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import type { Message } from "@cocalc/util/db-schema/messages";
 import { isFromMe } from "./util";
 import User from "./user";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 
 export default function Compose({
   replyTo,
@@ -66,14 +67,16 @@ export default function Compose({
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
       />
-      <Input.TextArea
-        autoFocus={replyTo != null}
-        disabled={state != "compose"}
-        rows={10}
-        placeholder="Body..."
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-      />
+      {state != "compose" && <StaticMarkdown value={body} />}
+      {state == "compose" && (
+        <MarkdownInput
+          value={body}
+          onChange={setBody}
+          placeholder="Body..."
+          autoFocus={replyTo != null}
+          style={{ minHeight: "200px" }}
+        />
+      )}
       <div>
         <Divider />
         <Space>
@@ -101,7 +104,7 @@ export default function Compose({
                   to_type: "account",
                   subject,
                   body,
-                  thread_id: getThreadId({replyTo, subject})
+                  thread_id: getThreadId({ replyTo, subject }),
                 });
                 setState("sent");
                 onSend?.();
@@ -200,8 +203,8 @@ function replySubject(subject) {
 
 // If user explicitly edits the thread in any way,
 // then reply starts a new thread (matching gmail behavior).
-function getThreadId({replyTo, subject}) {
-  if(replyTo == null) {
+function getThreadId({ replyTo, subject }) {
+  if (replyTo == null) {
     return undefined;
   }
   if (subject.trim() == replySubject(replyTo?.subject)) {

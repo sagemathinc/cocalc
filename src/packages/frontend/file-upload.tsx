@@ -104,6 +104,10 @@ function Header({ close_preview }: { close_preview?: Function }) {
 }
 
 function postUrl(project_id: string, path: string): string {
+  if (!project_id) {
+    // [ ] TODO: uploading to blob store instead
+    return join(appBasePath, "blobs/upload");
+  }
   const dest_dir = encode_path(path);
   const compute_server_id = redux
     .getProjectStore(project_id)
@@ -175,9 +179,8 @@ export function FileUpload({
           }}
           eventHandlers={dropzone_handler}
           djsConfig={{
-            previewTemplate: ReactDOMServer.renderToStaticMarkup(
-              dropzone_template(),
-            ),
+            previewTemplate:
+              ReactDOMServer.renderToStaticMarkup(dropzone_template()),
             ...UPLOAD_OPTIONS,
           }}
         />

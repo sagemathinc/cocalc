@@ -17,7 +17,8 @@ export default function ReplyButton({ label = "Reply", replyTo, ...props }) {
         <Modal
           open
           footer={[]}
-          width={700}
+          styles={{ content: { maxWidth: "1000px", margin: "auto" } }}
+          width={"85%"}
           onCancel={() => {
             setOpen(false);
           }}
