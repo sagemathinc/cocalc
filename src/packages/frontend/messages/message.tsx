@@ -315,26 +315,37 @@ function MessageFull({
           )}
         </div>
       </div>
+
       <div
         style={{
           marginLeft: LEFT_OFFSET,
           marginTop: "30px",
         }}
       >
-        <StaticMarkdown value={message.body} />
-        <div style={{ height: "30px" }} />
-        {!inThread && (
-          <div>
-            <ReplyButton size="large" replyTo={message} />
-          </div>
-        )}
-        {inThread && replyOpen && (
+        {isFromMe(message) && message.sent == null ? (
           <Compose
             style={{ marginBottom: "45px" }}
-            replyTo={message}
+            message={message}
             onCancel={() => setReplyOpen(false)}
-            onSend={() => setReplyOpen(false)}
           />
+        ) : (
+          <>
+            <StaticMarkdown value={message.body} />
+            <div style={{ height: "30px" }} />
+            {!inThread && (
+              <div>
+                <ReplyButton size="large" replyTo={message} />
+              </div>
+            )}
+            {inThread && replyOpen && (
+              <Compose
+                style={{ marginBottom: "45px" }}
+                replyTo={message}
+                onCancel={() => setReplyOpen(false)}
+                onSend={() => setReplyOpen(false)}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

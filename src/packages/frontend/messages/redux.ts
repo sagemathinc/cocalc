@@ -120,18 +120,7 @@ export class MessagesActions extends Actions<MessagesState> {
     this.setState({ messages, threads });
   };
 
-  updateDraft = async ({
-    id,
-    thread_id,
-    to_id,
-    to_type,
-    subject,
-    body,
-    sent,
-    // deleted and expire are only allowed if the draft message is not sent
-    deleted,
-    expire,
-  }: {
+  updateDraft = (obj: {
     id: number;
     thread_id?: number;
     to_id?: string;
@@ -139,24 +128,24 @@ export class MessagesActions extends Actions<MessagesState> {
     subject?: string;
     body?: string;
     sent?: Date | null;
+    // deleted and expire are only allowed if the draft message is not sent
     deleted?: boolean;
     expire?: Date | null;
   }) => {
-    const table = this.redux.getTable("sent_messages");
-    if (table._table.get_one(`${id}`) == null) {
+    const table = this.redux.getTable("sent_messages")._table;
+    if (table.get_one(`${obj.id}`) == null) {
       throw Error("message does not exist in sent_messages table");
     }
-    await table.set({
-      id,
-      thread_id,
-      to_id,
-      to_type,
-      subject,
-      body,
-      sent,
-      deleted,
-      expire,
-    });
+    // sets it in the local table so it's there when you come back.
+    // does NOT save the local table to the database though.
+    // Only save to database when user exits out of the draft,
+    // or sending it by setting sent to true (so recipient can see).
+    table.set(obj);
+  };
+
+  saveSentMessagesTable = async () => {
+    const table = this.redux.getTable("sent_messages")._table;
+    await table.save();
   };
 
   createDraft = async ({
