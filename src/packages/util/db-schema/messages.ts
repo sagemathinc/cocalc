@@ -271,7 +271,11 @@ Table({
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
               await client.query(query, params);
-              await database.updateUnreadMessageCount({ account_id });
+              if (new_val.to_id ?? old_val.to_id) {
+                await database.updateUnreadMessageCount({
+                  account_id: new_val.to_id ?? old_val.to_id,
+                });
+              }
               cb();
             } catch (err) {
               cb(`${err}`);

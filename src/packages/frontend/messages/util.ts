@@ -72,17 +72,20 @@ function isInFolderNotThreaded({
     return false;
   }
 
+  const isDraft = isNullDate(message.get("sent"));
+
   const fromMe =
     message.get("from_type") == "account" &&
     message.get("from_id") == webapp_client.account_id;
+
   // drafts are messages from us that haven't been sent yet.
   if (folder == "drafts") {
-    return fromMe && isNullDate(message.get("sent"));
+    return fromMe && isDraft;
   }
 
   // sent are messages from us that *have* been sent
   if (folder == "sent") {
-    return fromMe && !isNullDate(message.get("sent"));
+    return fromMe && !isDraft;
   }
 
   // remaining folders are all messages to me:
@@ -93,10 +96,10 @@ function isInFolderNotThreaded({
     return false;
   }
   if (folder == "inbox") {
-    return !message.get("saved") && !message.get("deleted");
+    return !message.get("saved") && !message.get("deleted") && !isDraft;
   }
   if (folder == "all") {
-    return !message.get("deleted");
+    return !message.get("deleted") && !isDraft;
   }
 
   return false;
