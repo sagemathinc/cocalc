@@ -147,7 +147,7 @@ function MessageInList({
           <Tooltip
             placement="left"
             title={
-              isRead({ message, folder }) ? (
+              isRead({ message, folder }) && !isNullDate(message.read) ? (
                 <>
                   <User id={message.to_id} type={message.to_type} /> read{" "}
                   <TimeAgo date={message.read} />
@@ -306,7 +306,7 @@ function MessageFull({
               to <User id={message.to_id} type={message.to_type} />
             </>
           )}{" "}
-          {isRead({ message, folder }) ? (
+          {isRead({ message, folder }) && !isNullDate(message.read) ? (
             <>
               (read <TimeAgo date={message.read} />)
             </>
