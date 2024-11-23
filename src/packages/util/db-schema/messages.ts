@@ -250,19 +250,14 @@ Table({
           }
           if (old_val != null) {
             try {
-              if (new_val.deleted || new_val.expire) {
-                if (old_val.sent || new_val.sent) {
-                  throw Error(
-                    "cannot delete message after sending it (unsend it first)",
-                  );
-                }
-              }
-              // user is allowed to change subject/body/sent fields of messages *from* them only.
+              // user is allowed to change a lot about messages *from* them only.
               const query =
-                "UPDATE messages SET subject=$3,body=$4,sent=$5,deleted=$6,expire=$7 WHERE to_type='account' AND from_id=$1 AND id=$2";
+                "UPDATE messages SET to_id=$3,to_type=$4,subject=$5,body=$6,sent=$7,deleted=$8,expire=$9 WHERE to_type='account' AND from_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
+                new_val.to_id ?? old_val.to_id,
+                new_val.to_type ?? old_val.to_type,
                 new_val.subject ?? old_val.subject,
                 new_val.body ?? old_val.body,
                 new_val.sent === 0 || new Date(new_val.sent).valueOf() == 0

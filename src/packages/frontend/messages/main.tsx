@@ -464,6 +464,9 @@ function getIn({ id, messages, field }) {
 }
 
 function hasUnread({ checkedMessageIds, messages, threads, folder }) {
+  if (folder == "drafts") {
+    return false;
+  }
   for (const id of checkedMessageIds) {
     if (!isThreadRead({ threads, folder, message: messages.get(id).toJS() })) {
       return true;
@@ -473,6 +476,9 @@ function hasUnread({ checkedMessageIds, messages, threads, folder }) {
 }
 
 function hasRead({ checkedMessageIds, messages, threads, folder }) {
+  if (folder == "drafts") {
+    return false;
+  }
   for (const id of checkedMessageIds) {
     if (isThreadRead({ threads, folder, message: messages.get(id).toJS() })) {
       return true;

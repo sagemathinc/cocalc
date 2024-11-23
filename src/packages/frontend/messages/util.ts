@@ -64,23 +64,28 @@ function isInFolderNotThreaded({
   message: iMessage;
   folder: Folder;
 }) {
-  if (message.get("deleted") && folder != "trash") {
+  // trash folder is exactly the deleted messages:
+  if (folder == "trash") {
+    return message.get("deleted");
+  }
+  if (message.get("deleted")) {
     return false;
   }
+
+  const fromMe =
+    message.get("from_type") == "account" &&
+    message.get("from_id") == webapp_client.account_id;
+  // drafts are messages from us that haven't been sent yet.
   if (folder == "drafts") {
-    return (
-      message.get("from_type") == "account" &&
-      message.get("from_id") == webapp_client.account_id &&
-      isNullDate(message.get("sent"))
-    );
+    return fromMe && isNullDate(message.get("sent"));
   }
+
+  // sent are messages from us that *have* been sent
   if (folder == "sent") {
-    return (
-      message.get("from_type") == "account" &&
-      message.get("from_id") == webapp_client.account_id &&
-      !isNullDate(message.get("sent"))
-    );
+    return fromMe && !isNullDate(message.get("sent"));
   }
+
+  // remaining folders are all messages to me: 
   const toMe =
     message.get("to_type") == "account" &&
     message.get("to_id") == webapp_client.account_id;
@@ -90,12 +95,11 @@ function isInFolderNotThreaded({
   if (folder == "inbox") {
     return !message.get("saved") && !message.get("deleted");
   }
-  if (folder == "trash") {
-    return message.get("deleted");
-  }
   if (folder == "all") {
     return !message.get("deleted");
   }
+
+  return false;
 }
 
 // If the folder is anything but "sent", then the

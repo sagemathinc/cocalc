@@ -50,6 +50,12 @@ export class MessagesActions extends Actions<MessagesState> {
     if (id != null) {
       if (table.get_one(`${id}`) != null) {
         await this.redux.getTable("messages").set({ id, ...obj });
+      } else {
+        await this.updateDraft({
+          id,
+          deleted,
+          expire,
+        });
       }
     }
     if (ids != null && ids.size > 0) {
@@ -59,12 +65,17 @@ export class MessagesActions extends Actions<MessagesState> {
         if (table.get_one(`${id}`) == null) {
           // not in this table, so don't mark it. E.g., trying to mark a message
           // we sent as read/archive/deleted isn't supported.
-          continue;
+          await this.updateDraft({
+            id,
+            deleted,
+            expire,
+          });
+        } else {
+          table.set({
+            id,
+            ...obj,
+          });
         }
-        table.set({
-          id,
-          ...obj,
-        });
       }
       await table.save();
     }
@@ -111,6 +122,9 @@ export class MessagesActions extends Actions<MessagesState> {
 
   updateDraft = async ({
     id,
+    thread_id,
+    to_id,
+    to_type,
     subject,
     body,
     sent,
@@ -119,6 +133,9 @@ export class MessagesActions extends Actions<MessagesState> {
     expire,
   }: {
     id: number;
+    thread_id?: number;
+    to_id?: string;
+    to_type?: string;
     subject?: string;
     body?: string;
     sent?: Date | null;
@@ -129,7 +146,17 @@ export class MessagesActions extends Actions<MessagesState> {
     if (table._table.get_one(`${id}`) == null) {
       throw Error("message does not exist in sent_messages table");
     }
-    await table.set({ id, subject, body, sent, deleted, expire });
+    await table.set({
+      id,
+      thread_id,
+      to_id,
+      to_type,
+      subject,
+      body,
+      sent,
+      deleted,
+      expire,
+    });
   };
 
   createDraft = async ({
@@ -137,7 +164,13 @@ export class MessagesActions extends Actions<MessagesState> {
     to_type = "account",
     subject = "",
     body = "",
-    thread_id = undefined,
+    thread_id,
+  }: {
+    to_id: string;
+    to_type?: string;
+    subject?: string;
+    body?: string;
+    thread_id?: number;
   }) => {
     // trick -- we use a sentinel subject for a moment, since async_query
     // doesn't return the created primary key.  We'll implement that at some
