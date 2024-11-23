@@ -14,6 +14,8 @@ import {
   isInFolderThreaded,
 } from "./util";
 import { isFolder, Folder } from "./types";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 
 export default function Main({ messages, threads, filter, search }) {
   const [showThread, setShowThread] = useState<number | null>(null);
@@ -356,6 +358,7 @@ function ShowOneThread({
   messages,
   filteredMessages,
 }) {
+  const searchWords = useTypedRedux("messages", "searchWords");
   const mesgIndex = filteredMessages.map(({ id }) => id).indexOf(showThread);
   const message = useMemo(
     () => messages.get(showThread)?.toJS(),
@@ -423,7 +426,7 @@ function ShowOneThread({
         )}
       </Flex>
       <div style={{ fontSize: "22px", marginBottom: "15px" }}>
-        {first.subject}
+        <HighlightText searchWords={searchWords} text={first.subject} />
       </div>
       <Message
         message={message}

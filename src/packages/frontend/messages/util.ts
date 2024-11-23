@@ -16,7 +16,7 @@ export function isInFolderThreaded({
   message: iMessage;
   threads: iThreads;
   folder: Folder;
-  search?: string;
+  search?: Set<number>;
 }) {
   const thread_id = message.get("thread_id");
   if (thread_id == null) {
@@ -71,7 +71,7 @@ function isInFolderNotThreaded({
 }: {
   message: iMessage;
   folder: Folder;
-  search?: string;
+  search?: Set<number>;
 }) {
   // trash folder is exactly the deleted messages:
   if (folder == "trash") {
@@ -88,11 +88,10 @@ function isInFolderNotThreaded({
     message.get("from_id") == webapp_client.account_id;
 
   if (folder == "search") {
-    if ((isDraft && !fromMe) || !search?.trim()) {
+    if ((isDraft && !fromMe) || search == null) {
       return false;
     }
-    //  the matching messages that aren't deleted
-    return JSON.stringify(message).toLowerCase().includes(search);
+    return search.has(message.get("id"));
   }
 
   // drafts are messages from us that haven't been sent yet.
@@ -224,7 +223,6 @@ export function expandToThreads({
 }
 
 // Get newest "head" message in each thread in the given folder.
-// TODO: Will surely add a search filter as well soon.
 export function getFilteredMessages({
   folder,
   messages,
@@ -234,7 +232,8 @@ export function getFilteredMessages({
   folder: Folder;
   messages: iMessagesMap;
   threads: iThreads;
-  search: string; // only matters if folder=='search'
+  // matching search results -- only matters if folder=='search'
+  search: Set<number>;
 }): Message[] {
   let m = messages.filter((message) =>
     isInFolderThreaded({ message, threads, folder, search }),

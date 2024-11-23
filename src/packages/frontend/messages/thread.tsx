@@ -6,6 +6,7 @@ import { useState } from "react";
 import { plural } from "@cocalc/util/misc";
 import { isFromMe } from "./util";
 import User from "./user";
+import { redux } from "@cocalc/frontend/app-framework";
 
 interface Props {
   thread_id?: number;
@@ -15,7 +16,13 @@ interface Props {
 }
 
 export default function Thread({ thread_id, threads, folder, style }: Props) {
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [expanded, setExpanded] = useState<Set<number>>(() => {
+    if (folder == "search") {
+      // auto-expand all matching results
+      return redux.getStore("messages").get("search");
+    }
+    return new Set();
+  });
 
   if (thread_id == null) {
     return null;

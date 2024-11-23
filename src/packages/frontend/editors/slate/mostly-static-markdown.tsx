@@ -47,6 +47,11 @@ import Hashtag from "./elements/hashtag/component";
 import Highlighter from "react-highlight-words";
 import { ChangeContext } from "./use-change";
 
+const HIGHLIGHT_STYLE = {
+  padding: 0,
+  backgroundColor: "#feff03", // to match what chrome browser users.
+};
+
 interface Props {
   value: string;
   className?: string;
@@ -81,7 +86,7 @@ export default function MostlyStaticMarkdown({
       if (mutateEditor(editor1.children, element, change)) {
         // actual change
         onChange(
-          slateToMarkdown(editor1.children, { cache: syncCacheRef.current })
+          slateToMarkdown(editor1.children, { cache: syncCacheRef.current }),
         );
         setEditor(editor1);
       }
@@ -149,7 +154,7 @@ function RenderElement({
           selectedHashtags={selectedHashtags}
           toggleHashtag={toggleHashtag}
           searchWords={searchWords}
-        />
+        />,
       );
       n += 1;
     }
@@ -190,21 +195,27 @@ function RenderElement({
   return (
     <Leaf leaf={element} text={{} as any} attributes={{} as any}>
       {searchWords != null ? (
-        <Highlighter
-          highlightStyle={
-            {
-              padding: 0,
-              backgroundColor: "#feff03", // to match what chrome browser users.
-            } /* since otherwise partial matches in parts of words add weird spaces in the word itself.*/
-          }
-          searchWords={searchWords}
-          autoEscape={true}
-          textToHighlight={element["text"]}
-        />
+        <HighlightText searchWords={searchWords} text={element["text"]} />
       ) : (
         element["text"]
       )}
     </Leaf>
+  );
+}
+
+export function HighlightText({ text, searchWords }) {
+  searchWords = Array.from(searchWords);
+  if (searchWords.length == 0) {
+    return <>{text}</>;
+  }
+  return (
+    <Highlighter
+      highlightStyle={HIGHLIGHT_STYLE}
+      searchWords={searchWords}
+      /* autoEscape: since otherwise partial matches in parts of words add weird spaces in the word itself.*/
+      autoEscape={true}
+      textToHighlight={text}
+    />
   );
 }
 

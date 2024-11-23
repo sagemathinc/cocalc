@@ -3,7 +3,7 @@ import { Button, Checkbox, Flex, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
-import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import ReplyButton from "./reply-button";
 import {
   isDraft,
@@ -21,6 +21,8 @@ import { fromJS } from "immutable";
 import Compose from "./compose";
 import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 
 const LEFT_OFFSET = "46px";
 
@@ -54,6 +56,7 @@ function MessageInList({
   threads,
   inThread,
 }: Props) {
+  const searchWords = useTypedRedux("messages", "searchWords");
   const read = inThread
     ? isRead({ message, folder })
     : isThreadRead({ message, threads, folder });
@@ -135,7 +138,12 @@ function MessageInList({
             }}
           >
             {getTag({ message, threads, folder })}
-            {read ? message.subject : <b>{message.subject}</b>}
+            <Subject
+              message={message}
+              threads={threads}
+              folder={folder}
+              searchWords={searchWords}
+            />
           </div>
         )}
         {inThread && (
@@ -192,11 +200,23 @@ function MessageInList({
             color: "#666",
           }}
         >
-          {message.body}
+          <HighlightText searchWords={searchWords} text={message.body} />
         </div>
       )}
     </div>
   );
+}
+
+function Subject({ message, folder, threads, searchWords }) {
+  const read = isThreadRead({ message, threads, folder });
+  let body;
+  if (searchWords.size > 0) {
+    body = <HighlightText text={message.subject} searchWords={searchWords} />;
+  } else {
+    body = message.subject;
+  }
+
+  return read ? body : <b>{body}</b>;
 }
 
 interface InThreadProps extends Props {
@@ -222,6 +242,7 @@ function MessageFull({
 }: Props) {
   const read = isRead({ message, folder });
   const [replyOpen, setReplyOpen] = useState<boolean>(false);
+  const searchWords = useTypedRedux("messages", "searchWords");
 
   const user = (
     <User
@@ -330,7 +351,10 @@ function MessageFull({
           />
         ) : (
           <>
-            <StaticMarkdown value={message.body} />
+            <MostlyStaticMarkdown
+              value={message.body}
+              searchWords={searchWords}
+            />
             <div style={{ height: "30px" }} />
             {!inThread && (
               <div>

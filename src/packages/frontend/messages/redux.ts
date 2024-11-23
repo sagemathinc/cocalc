@@ -8,18 +8,26 @@ import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
 import type { iMessagesMap, iThreads } from "./types";
 import { List as iList, Map as iMap } from "immutable";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { uuid } from "@cocalc/util/misc";
+import { search_split, uuid } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
+import searchFilter from "@cocalc/frontend/search/filter";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
   messages?: iMessagesMap;
   threads?: iThreads;
-  search: string;
+  search: Set<number>;
+  searchWords: Set<string>;
 }
 export class MessagesStore extends Store<MessagesState> {}
 
 export class MessagesActions extends Actions<MessagesState> {
+  searchIndex: {
+    messages: iMessagesMap | null;
+    filter: (search: string) => Promise<number[]>;
+  } = { messages: null, filter: async (_search: string) => [] };
+
   constructor(name, redux) {
     super(name, redux);
   }
@@ -192,12 +200,41 @@ export class MessagesActions extends Actions<MessagesState> {
     }
   };
 
-  search = (search: string) => {
-    this.setState({ search });
-    // update index
-    
+  updateSearchIndex = reuseInFlight(async () => {
+    const store = this.getStore();
+    const messages = store.get("messages");
+    if (messages == null) {
+      // nothing to do
+      return;
+    }
+    if (messages.equals(this.searchIndex.messages)) {
+      // already up to date
+      return;
+    }
+    const data = messages.keySeq().toJS();
+    const toString = (id) => {
+      return JSON.stringify(messages.get(id)?.toJS() ?? {});
+    };
+    const filter = await searchFilter<number>({
+      data,
+      toString,
+    });
+    this.searchIndex = { messages, filter };
+  });
 
-    // change folder
+  search = async (query: string) => {
+    // used for highlighting
+    const searchWords = new Set(
+      search_split(query, false).filter((x) => typeof x == "string"),
+    );
+    this.setState({ searchWords });
+    // update search index, if necessary
+    await this.updateSearchIndex();
+    // the matching results
+    const search = new Set(await this.searchIndex.filter(query));
+    this.setState({ search });
+
+    // change folder if necessary
     this.redux.getActions("mentions").set_filter("messages-search");
   };
 }
@@ -328,7 +365,8 @@ export function init() {
     return;
   }
   redux.createStore<MessagesState, MessagesStore>("messages", MessagesStore, {
-    search: "",
+    search: new Set<number>(),
+    searchWords: new Set<string>(),
   });
   redux.createActions<MessagesState, MessagesActions>(
     "messages",
