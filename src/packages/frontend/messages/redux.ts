@@ -15,6 +15,7 @@ export interface MessagesState {
   // map from string version of message id to immutablejs Message.
   messages?: iMessagesMap;
   threads?: iThreads;
+  search: string;
 }
 export class MessagesStore extends Store<MessagesState> {}
 
@@ -190,6 +191,15 @@ export class MessagesActions extends Actions<MessagesState> {
       }
     }
   };
+
+  search = (search: string) => {
+    this.setState({ search });
+    // update index
+    
+
+    // change folder
+    this.redux.getActions("mentions").set_filter("messages-search");
+  };
 }
 
 export function getThreads(messages): iThreads {
@@ -318,7 +328,7 @@ export function init() {
     return;
   }
   redux.createStore<MessagesState, MessagesStore>("messages", MessagesStore, {
-    filter: "unread",
+    search: "",
   });
   redux.createActions<MessagesState, MessagesActions>(
     "messages",

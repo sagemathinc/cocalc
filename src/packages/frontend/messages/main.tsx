@@ -15,7 +15,7 @@ import {
 } from "./util";
 import { isFolder, Folder } from "./types";
 
-export default function Main({ messages, threads, filter }) {
+export default function Main({ messages, threads, filter, search }) {
   const [showThread, setShowThread] = useState<number | null>(null);
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
     new Set(),
@@ -37,8 +37,8 @@ export default function Main({ messages, threads, filter }) {
     if (messages == null || threads == null) {
       return [];
     }
-    return getFilteredMessages({ messages, threads, folder });
-  }, [messages, threads, folder]);
+    return getFilteredMessages({ messages, threads, folder, search });
+  }, [messages, threads, folder, search]);
 
   useEffect(() => {
     if (checkedMessageIds.size > 0) {

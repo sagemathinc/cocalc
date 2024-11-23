@@ -9,6 +9,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Spin } from "antd";
 import type { Filter } from "./types";
 export { isMessagesFilter } from "./types";
+import Search from "./search";
 
 interface Props {
   filter?: Filter;
@@ -24,7 +25,7 @@ export default function Messages({ filter, style }: Props) {
 
   const threads = useTypedRedux("messages", "threads");
   const messages = useTypedRedux("messages", "messages");
-
+  const search = useTypedRedux("messages", "search");
   return (
     <div
       style={{
@@ -35,10 +36,16 @@ export default function Messages({ filter, style }: Props) {
       }}
       className="smc-vfill"
     >
+      <Search />
       {threads == null || messages == null ? (
         <Spin />
       ) : (
-        <Main messages={messages} threads={threads} filter={filter} />
+        <Main
+          messages={messages}
+          threads={threads}
+          filter={filter}
+          search={search}
+        />
       )}
     </div>
   );
