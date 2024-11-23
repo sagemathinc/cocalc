@@ -6,8 +6,9 @@ import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import ReplyButton from "./reply-button";
 import {
-  isNullDate,
+  isDraft,
   isFromMe,
+  isNullDate,
   isToMe,
   isThreadRead,
   isRead,
@@ -133,11 +134,15 @@ function MessageInList({
               marginRight: "10px",
             }}
           >
-            {folder != "inbox" && getTag({ message, threads })}
+            {getTag({ message, threads, folder })}
             {read ? message.subject : <b>{message.subject}</b>}
           </div>
         )}
-        {inThread && <div style={{ flex: 1 }} />}
+        {inThread && (
+          <div style={{ flex: 1 }}>
+            {isDraft(message) && <Tag color="orange">Draft</Tag>}
+          </div>
+        )}
         <div onClick={(e) => e.stopPropagation()}>
           <Tooltip
             placement="left"
@@ -336,20 +341,41 @@ function MessageFull({
   );
 }
 
-function getTag({ message, threads }) {
+function getTag({ message, threads, folder }) {
+  const v: JSX.Element[] = [];
   if (
+    isInFolderThreaded({
+      message: fromJS(message),
+      threads,
+      folder: "drafts",
+    })
+  ) {
+    v.push(
+      <Tag key="draft" color="orange">
+        Draft
+      </Tag>,
+    );
+  }
+
+  if (
+    folder != "inbox" &&
     isInFolderThreaded({
       message: fromJS(message),
       threads,
       folder: "inbox",
     })
   ) {
-    return <Tag color="green">Inbox</Tag>;
+    v.push(
+      <Tag key="inbox" color="green">
+        Inbox
+      </Tag>,
+    );
   }
 
   if (!isNullDate(message.expire)) {
-    return (
+    v.push(
       <Tooltip
+        key="deleting"
         title={
           <>
             This message is scheduled to be permanently deleted{" "}
@@ -358,10 +384,10 @@ function getTag({ message, threads }) {
         }
       >
         <Tag color="red">Deleting</Tag>
-      </Tooltip>
+      </Tooltip>,
     );
   }
-  return null;
+  return <>{v}</>;
 }
 
 /* 

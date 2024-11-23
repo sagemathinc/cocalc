@@ -85,7 +85,7 @@ function isInFolderNotThreaded({
     return fromMe && !isNullDate(message.get("sent"));
   }
 
-  // remaining folders are all messages to me: 
+  // remaining folders are all messages to me:
   const toMe =
     message.get("to_type") == "account" &&
     message.get("to_id") == webapp_client.account_id;
@@ -167,6 +167,10 @@ export function isFromMe(message?: Message): boolean {
     message?.from_type == "account" &&
     message?.from_id == webapp_client.account_id
   );
+}
+
+export function isDraft(message?: Message): boolean {
+  return isFromMe(message) && message?.sent == null;
 }
 
 export function isToMe(message?: Message): boolean {
