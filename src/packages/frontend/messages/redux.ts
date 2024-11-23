@@ -211,9 +211,24 @@ export class MessagesActions extends Actions<MessagesState> {
       // already up to date
       return;
     }
-    const data = messages.keySeq().toJS();
+    const data = messages
+      .filter((m) => !m.get("deleted"))
+      .keySeq()
+      .toJS();
+    const users = this.redux.getStore("users");
+
     const toString = (id) => {
-      return JSON.stringify(messages.get(id)?.toJS() ?? {});
+      const message = messages.get(id);
+      if (message == null) {
+        return "";
+      }
+      // todo -- adapt for non-accounts
+      return `
+From:${users.get_name(message.get("from_id")) ?? ""}
+To:${users.get_name(message.get("to_id")) ?? ""}
+Subject:${message.get("subject")}
+Body:${message.get("body")}
+`;
     };
     const filter = await searchFilter<number>({
       data,

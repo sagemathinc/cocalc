@@ -14,7 +14,8 @@ import {
   Paragraph,
   Title,
 } from "@cocalc/frontend/components";
-import { labels } from "@cocalc/frontend/i18n";
+// TODO: i18n again...
+//import { labels } from "@cocalc/frontend/i18n";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
@@ -121,7 +122,8 @@ export const NotificationPage: React.FC<{}> = () => {
     >
       <div className="smc-vfill" style={{ maxWidth: "1400px" }}>
         <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
-          <Icon name="mail" /> {intl.formatMessage(labels.notifications)}
+          <Icon name="mail" style={{ marginRight: "15px" }} /> Messages,
+          Mentions and News
         </Title>
         {renderExplanation()}
         {renderContent()}
