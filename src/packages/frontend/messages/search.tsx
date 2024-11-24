@@ -9,7 +9,7 @@ export default function Search({}) {
 
   return (
     <Input.Search
-      style={{ maxWidth: "500px" }}
+      style={{ maxWidth: "500px", marginBottom: "15px" }}
       size="large"
       allowClear
       enterButton

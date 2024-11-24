@@ -7,6 +7,7 @@ import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-m
 import ReplyButton from "./reply-button";
 import {
   isDraft,
+  isInTrash,
   isFromMe,
   isNullDate,
   isToMe,
@@ -343,7 +344,7 @@ function MessageFull({
           marginTop: "30px",
         }}
       >
-        {isFromMe(message) && message.sent == null ? (
+        {isFromMe(message) && message.sent == null && !isInTrash(message) ? (
           <Compose
             style={{ marginBottom: "45px" }}
             message={message}
@@ -356,12 +357,12 @@ function MessageFull({
               searchWords={searchWords}
             />
             <div style={{ height: "30px" }} />
-            {!inThread && (
+            {!inThread && !isInTrash(message) && (
               <div>
                 <ReplyButton size="large" replyTo={message} />
               </div>
             )}
-            {inThread && replyOpen && (
+            {inThread && replyOpen && !isInTrash(message) && (
               <Compose
                 style={{ marginBottom: "45px" }}
                 replyTo={message}
@@ -376,11 +377,14 @@ function MessageFull({
   );
 }
 
-function getTag({ message, threads, folder }) {
+function getTag({ message: message0, threads, folder }) {
+  // set deleted false so still see the tag even when message in the trash,
+  // which helps when undeleting.
+  const message = fromJS(message0).set("deleted", false);
   const v: JSX.Element[] = [];
   if (
     isInFolderThreaded({
-      message: fromJS(message),
+      message,
       threads,
       folder: "drafts",
     })
@@ -395,7 +399,7 @@ function getTag({ message, threads, folder }) {
   if (
     folder != "inbox" &&
     isInFolderThreaded({
-      message: fromJS(message),
+      message,
       threads,
       folder: "inbox",
     })

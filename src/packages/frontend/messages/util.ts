@@ -192,6 +192,10 @@ export function isDraft(message?: Message): boolean {
   return isFromMe(message) && message?.sent == null;
 }
 
+export function isInTrash(message?: Message): boolean {
+  return !!message?.deleted;
+}
+
 export function isToMe(message?: Message): boolean {
   return (
     message?.to_type == "account" && message?.to_id == webapp_client.account_id

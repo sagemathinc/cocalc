@@ -79,7 +79,7 @@ export async function open_file(
 
   if (opts.line != null && !opts.fragmentId) {
     // backward compat
-    opts.fragmentId = { line: opts.line };
+    opts.fragmentId = { line: `${opts.line}` };
   }
 
   const is_kiosk = () =>

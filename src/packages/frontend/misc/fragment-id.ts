@@ -7,12 +7,13 @@ The different types are inspired by https://en.wikipedia.org/wiki/URI_fragment
 import { debounce } from "lodash";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 
+// all the values are strings since they get stored in a URL, which is a string.
 export interface FragmentId {
   chat?: string; // fragment refers to ms since epoch of chat message
   anchor?: string;
   // a specific line in a document
-  line?: number;
-  // an id of an element or cell, e.g., in a whiteboard or Jupyter notebook.
+  line?: string;
+  // an id of an element or cell, e.g., in a whiteboard or Jupyter notebook or message
   // These ids are assumed globally unique, so no page is specified.
   id?: string;
   // a specific page in a document, but where no line or element in that page is specified.

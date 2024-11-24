@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { init } from "./redux";
 import Main from "./main";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Spin } from "antd";
+import { ConfigProvider, Empty, Spin } from "antd";
 import type { Filter } from "./types";
 export { isMessagesFilter } from "./types";
 import Search from "./search";
@@ -27,26 +27,28 @@ export default function Messages({ filter, style }: Props) {
   const messages = useTypedRedux("messages", "messages");
   const search = useTypedRedux("messages", "search");
   return (
-    <div
-      style={{
-        borderLeft: "1px solid #ccc",
-        overflowY: "auto",
-        paddingLeft: "15px",
-        ...style,
-      }}
-      className="smc-vfill"
-    >
-      <Search />
-      {threads == null || messages == null ? (
-        <Spin />
-      ) : (
-        <Main
-          messages={messages}
-          threads={threads}
-          filter={filter}
-          search={search}
-        />
-      )}
-    </div>
+    <ConfigProvider renderEmpty={() => <Empty description={"No messages"} />}>
+      <div
+        style={{
+          borderLeft: "1px solid #ccc",
+          overflowY: "auto",
+          paddingLeft: "15px",
+          ...style,
+        }}
+        className="smc-vfill"
+      >
+        <Search />
+        {threads == null || messages == null ? (
+          <Spin />
+        ) : (
+          <Main
+            messages={messages}
+            threads={threads}
+            filter={filter}
+            search={search}
+          />
+        )}
+      </div>
+    </ConfigProvider>
   );
 }

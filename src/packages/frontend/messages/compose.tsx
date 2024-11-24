@@ -239,6 +239,7 @@ export default function Compose({
         (state == "sent" && <StaticMarkdown value={body} />)}
       {!(state == "sending" || state == "sent") && (
         <MarkdownInput
+          saveDebounceMs={0}
           value={body}
           onChange={(body) => {
             setBody(body);
