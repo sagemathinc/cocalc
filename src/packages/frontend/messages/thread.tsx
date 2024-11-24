@@ -4,9 +4,10 @@ import { MessageInThread } from "./message";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { useState } from "react";
 import { plural } from "@cocalc/util/misc";
-import { isFromMe } from "./util";
+import { isFromMe, isToMe, isRead } from "./util";
 import User from "./user";
 import { redux } from "@cocalc/frontend/app-framework";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
   thread_id?: number;
@@ -24,14 +25,34 @@ export default function Thread({
   defaultExpanded,
 }: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(() => {
+    const expanded = new Set<number>();
     if (defaultExpanded != null) {
-      return defaultExpanded;
+      for (const id of defaultExpanded) {
+        expanded.add(id);
+      }
     }
     if (folder == "search") {
       // auto-expand all matching results
-      return redux.getStore("messages").get("search");
+      for (const id of redux.getStore("messages").get("search")) {
+        expanded.add(id);
+      }
     }
-    return new Set();
+    if (thread_id != null) {
+      const thread = threads.get(thread_id)?.toJS() as unknown as MessageType[];
+      if (thread != null) {
+        // expand each message *to me* that is not read:
+        const ids = new Set<number>();
+        for (const id of thread
+          .filter((message) => isToMe(message) && !isRead({ message, folder }))
+          .map(({ id }) => id)) {
+          ids.add(id);
+          expanded.add(id);
+        }
+        const actions = redux.getActions("messages");
+        actions.mark({ ids, read: webapp_client.server_time() });
+      }
+    }
+    return expanded;
   });
 
   if (thread_id == null) {
