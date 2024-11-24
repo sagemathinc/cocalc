@@ -39,6 +39,7 @@ export default function Main({ messages, threads, filter, search }) {
   const setShowThread = (id: number | null) => {
     setShowThread0(id);
     setFragment({ folder, id: id ?? undefined });
+    redux.getActions("mentions").setState({ id: id ?? undefined });
   };
 
   const filteredMessages: MessageType[] = useMemo(() => {
@@ -75,9 +76,8 @@ export default function Main({ messages, threads, filter, search }) {
   }, [folder]);
 
   useEffect(() => {
-    if (fragmentId != null) {
-      redux.getActions("mentions").setState({ id: undefined });
-      setShowThread(fragmentId);
+    if (fragmentId != showThread) {
+      setShowThread(fragmentId ?? null);
     }
   }, [fragmentId]);
 
