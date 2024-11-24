@@ -1,9 +1,18 @@
+/*
+Editing/composing a message.
+
+TODO: There is a slider with all versions, but it is not persisted
+between editing sessions of a draft.  It could be, e.g., via json
+to the database or something...
+*/
+
 import {
   Button,
   Divider,
   Flex,
   Input,
   Modal,
+  Slider,
   Space,
   Spin,
   Tooltip,
@@ -22,6 +31,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useInterval } from "react-interval-hook";
 import ephemeralSyncstring from "@cocalc/sync/editor/string/test/ephemeral-syncstring";
 import { useAsyncEffect } from "use-async-effect";
+import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 
 const SAVE_INTERVAL_S = 10;
 
@@ -61,12 +71,20 @@ export default function Compose({
   );
   const [body, setBody] = useState<string>(message?.body ?? "");
 
+  const [version, setVersion] = useState<number>(0);
+  const [versions, setVersions] = useState<Date[]>([]);
+  const renderSliderTooltip = (index) => {
+    const date = versions[index];
+    if (date == null) return;
+    return <TimeAgo date={date} />;
+  };
   const getValueRef = useRef<any>(null);
   const syncstringRef = useRef<any>(null);
   useAsyncEffect(async () => {
-    syncstringRef.current = await ephemeralSyncstring();
-    syncstringRef.current.from_str(body);
-    syncstringRef.current.save();
+    const syncstring = await ephemeralSyncstring();
+    syncstringRef.current = syncstring;
+    syncstring.from_str(body);
+    syncstring.save();
     return async () => {
       if (syncstringRef.current != null) {
         await syncstringRef.current.close();
@@ -259,10 +277,14 @@ export default function Compose({
           saveDebounceMs={200}
           value={body}
           onChange={(body) => {
-            if (syncstringRef.current != null) {
-              syncstringRef.current.from_str(body);
-              syncstringRef.current.save();
-              syncstringRef.current.exit_undo_mode();
+            const syncstring = syncstringRef.current;
+            if (syncstring != null) {
+              syncstring.from_str(body);
+              syncstring.save();
+              syncstring.exit_undo_mode();
+              const versions = syncstring.versions();
+              setVersions(versions);
+              setVersion(versions.length - 1);
             }
             setBody(body);
             saveDraft({ body, subject });
@@ -332,7 +354,32 @@ export default function Compose({
             )}
             {state == "sent" && <>Sent</>}
           </Button>
-          <div style={{ flex: 1 }} />
+          <div style={{ flex: 1 }}>
+            {version != null && versions != null && versions.length >= 2 && (
+              <Slider
+                style={{ margin: "10px 15px" }}
+                min={0}
+                max={versions.length - 1}
+                value={version}
+                onChange={(version) => {
+                  setVersion(version);
+                  if (version < versions.length) {
+                    const value = syncstringRef.current
+                      ?.version(versions[version])
+                      ?.to_str();
+                    if (value != null) {
+                      console.log({ value });
+                      setBody(value);
+                    }
+                  }
+                }}
+                tooltip={{
+                  formatter: renderSliderTooltip,
+                  placement: "bottom",
+                }}
+              />
+            )}
+          </div>
           <Button
             size="large"
             disabled={
