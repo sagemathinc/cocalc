@@ -2,6 +2,7 @@ import type { Message } from "@cocalc/util/db-schema/messages";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { iThreads, iMessage, iMessagesMap, Folder } from "./types";
 import { cmp } from "@cocalc/util/misc";
+import Fragment from "@cocalc/frontend/misc/fragment-id";
 
 //       WARNING: If you change or add fields and logic that could impact the "number of
 // messages in the inbox that are not read", make sure to also update
@@ -290,4 +291,11 @@ export function getFilteredMessages({
       return cmp(b.id, a.id);
     }) as unknown as Message[];
   return filteredMessages;
+}
+
+export function setFragment({ folder, id }: { folder: Folder; id?: number }) {
+  Fragment.set({
+    page: `messages-${folder}`,
+    ...(id != null ? { id: `${id}` } : undefined),
+  });
 }

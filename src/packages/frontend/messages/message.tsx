@@ -14,13 +14,14 @@ import {
   isThreadRead,
   isRead,
   isInFolderThreaded,
+  setFragment,
 } from "./util";
 import Thread, { ThreadCount } from "./thread";
 import type { iThreads, Folder } from "./types";
 import User from "./user";
 import { fromJS } from "immutable";
 import Compose from "./compose";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
@@ -244,6 +245,10 @@ function MessageFull({
   const read = isRead({ message, folder });
   const [replyOpen, setReplyOpen] = useState<boolean>(false);
   const searchWords = useTypedRedux("messages", "searchWords");
+
+  useEffect(() => {
+    setFragment({ folder, id: message.id });
+  }, [folder, message.id]);
 
   const user = (
     <User

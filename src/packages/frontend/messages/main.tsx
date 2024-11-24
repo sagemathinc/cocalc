@@ -12,6 +12,7 @@ import {
   isNullDate,
   isThreadRead,
   isInFolderThreaded,
+  setFragment,
 } from "./util";
 import { isFolder, Folder } from "./types";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -402,6 +403,7 @@ function ShowOneThread({
           type="text"
           onClick={() => {
             setShowThread(null);
+            setFragment({ folder });
           }}
         >
           <Icon
