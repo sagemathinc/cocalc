@@ -5,8 +5,8 @@
 
 import { Client } from "./client-test";
 import { SyncString } from "../sync";
-import { once } from "@cocalc/util/async-utils";
 import { a_txt } from "./data";
+import { once } from "@cocalc/util/async-utils";
 
 // This mostly tests the trivial minimal edge cases.
 describe("create a blank minimal string SyncDoc and call public methods on it", () => {
