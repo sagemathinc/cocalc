@@ -19,8 +19,8 @@ export class MentionsActions extends Actions<MentionsState> {
     this.setState({ mentions: sorted_mentions });
   }
 
-  public set_filter(filter: NotificationFilter) {
-    this.setState({ filter, id: undefined });
+  public set_filter(filter: NotificationFilter, id?: number) {
+    this.setState({ filter, id });
   }
 
   private update_mention(new_mention: MentionInfo, id: string) {

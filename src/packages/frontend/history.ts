@@ -43,7 +43,6 @@ The URI schema handled by the single page app is as follows:
 */
 
 import { join } from "path";
-
 import { redux } from "@cocalc/frontend/app-framework";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -156,9 +155,9 @@ export function load_target(
 
     case "notifications":
       if (!logged_in) return;
-      const { filter } = getNotificationFilterFromFragment();
+      const { filter, id } = getNotificationFilterFromFragment();
       if (filter) {
-        redux.getActions("mentions").set_filter(filter);
+        redux.getActions("mentions").set_filter(filter, id);
       }
       redux.getActions("page").set_active_tab("notifications", change_history);
       break;
