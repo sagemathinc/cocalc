@@ -32,6 +32,8 @@ import { useInterval } from "react-interval-hook";
 import ephemeralSyncstring from "@cocalc/sync/editor/string/test/ephemeral-syncstring";
 import { useAsyncEffect } from "use-async-effect";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
+import { human_readable_size } from "@cocalc/util/misc";
 
 const SAVE_INTERVAL_S = 10;
 
@@ -241,6 +243,7 @@ export default function Compose({
       )}
       <Flex>
         <Input
+          style={{ flex: 1 }}
           disabled={state == "sending" || state == "sent"}
           placeholder="Subject..."
           value={subject}
@@ -250,6 +253,32 @@ export default function Compose({
             saveDraft({ body, subject });
           }}
         />
+        {version != null && versions != null && versions.length >= 2 && (
+          <div style={{ flex: 1, margin: "0 10px" }}>
+            <Slider
+              min={0}
+              max={versions.length - 1}
+              value={version}
+              onChange={(version) => {
+                setVersion(version);
+                if (version < versions.length) {
+                  const body = syncstringRef.current
+                    ?.version(versions[version])
+                    ?.to_str();
+                  if (body != null) {
+                    setBody(body);
+                    saveDraft({ subject, body });
+                  }
+                }
+              }}
+              tooltip={{
+                formatter: renderSliderTooltip,
+                placement: "bottom",
+              }}
+            />
+          </div>
+        )}
+
         <Tooltip
           title={`Status: ${body == draft.body && subject == draft.subject ? "Saved" : "Not Saved"}. You can edit this later before sending it.`}
         >
@@ -329,6 +358,10 @@ export default function Compose({
         />
       )}
       <div>
+        <div style={{ color: "#888" }}>
+          Drag and drop or paste images or other files (max size:{" "}
+          {human_readable_size(MAX_BLOB_SIZE)}) to include them in your message.
+        </div>
         <Divider />
         <Flex>
           <Button
@@ -354,32 +387,7 @@ export default function Compose({
             )}
             {state == "sent" && <>Sent</>}
           </Button>
-          <div style={{ flex: 1 }}>
-            {version != null && versions != null && versions.length >= 2 && (
-              <Slider
-                style={{ margin: "10px 15px" }}
-                min={0}
-                max={versions.length - 1}
-                value={version}
-                onChange={(version) => {
-                  setVersion(version);
-                  if (version < versions.length) {
-                    const value = syncstringRef.current
-                      ?.version(versions[version])
-                      ?.to_str();
-                    if (value != null) {
-                      console.log({ value });
-                      setBody(value);
-                    }
-                  }
-                }}
-                tooltip={{
-                  formatter: renderSliderTooltip,
-                  placement: "bottom",
-                }}
-              />
-            )}
-          </div>
+          <div style={{ flex: 1 }} />
           <Button
             size="large"
             disabled={

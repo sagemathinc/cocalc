@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Flex, List, Space } from "antd";
+import { Button, Flex, List, Space, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { get_array_range } from "@cocalc/util/misc";
 import Message from "./message";
@@ -400,12 +400,16 @@ function ShowOneThread({
   );
 
   const first = useMemo(() => {
-    if (message.thread_id == null) {
+    if (message?.thread_id == null) {
       return message;
     }
-    const thread = threads.get(message.thread_id);
+    const thread = threads.get(message?.thread_id);
     return thread.get(0)?.toJS() ?? message;
   }, [message, threads]);
+
+  if (message == null) {
+    return <Spin />;
+  }
 
   return (
     <>

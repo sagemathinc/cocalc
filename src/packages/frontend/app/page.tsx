@@ -293,7 +293,7 @@ export const Page: React.FC = () => {
         {render_sign_in_tab()}
         {render_support()}
         {is_logged_in && render_account_tab()}
-        <BalanceButton minimal  />
+        <BalanceButton minimal />
         {render_notification()}
         {render_bell()}
         {!is_anonymous && (
@@ -343,7 +343,7 @@ export const Page: React.FC = () => {
         type: "info",
         title: "File Drop Rejected",
         message:
-          'To upload a file, drop it onto the files listing or the "Drop files to upload" area in the +New tab.',
+          'To upload a file, drop it onto a file you are editing, the file explorer listing or the "Drop files to upload" area in the +New page.',
       });
     }
   }
