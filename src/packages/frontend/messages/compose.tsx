@@ -61,6 +61,7 @@ export default function Compose({
   );
   const [body, setBody] = useState<string>(message?.body ?? "");
 
+  const getValueRef = useRef<any>(null);
   const syncstringRef = useRef<any>(null);
   useAsyncEffect(async () => {
     syncstringRef.current = await ephemeralSyncstring();
@@ -254,12 +255,14 @@ export default function Compose({
         (state == "sent" && <StaticMarkdown value={body} />)}
       {!(state == "sending" || state == "sent") && (
         <MarkdownInput
+          getValueRef={getValueRef}
           saveDebounceMs={200}
           value={body}
           onChange={(body) => {
             if (syncstringRef.current != null) {
               syncstringRef.current.from_str(body);
               syncstringRef.current.save();
+              syncstringRef.current.exit_undo_mode();
             }
             setBody(body);
             saveDraft({ body, subject });
@@ -274,17 +277,31 @@ export default function Compose({
             }
           }}
           onUndo={() => {
-            if (syncstringRef.current != null) {
-              syncstringRef.current.undo();
-              syncstringRef.current.save();
-              setBody(syncstringRef.current.to_str());
+            const syncstring = syncstringRef.current;
+            if (syncstring != null) {
+              if (syncstring.undo_state == null) {
+                const value = getValueRef.current?.();
+                if (value != null && value != syncstring.to_str()) {
+                  syncstring.from_str(value);
+                  syncstring.save();
+                }
+              }
+              syncstring.undo();
+              setBody(syncstring.to_str());
             }
           }}
           onRedo={() => {
-            if (syncstringRef.current != null) {
-              syncstringRef.current.redo();
-              syncstringRef.current.save();
-              setBody(syncstringRef.current.to_str());
+            const syncstring = syncstringRef.current;
+            if (syncstring != null) {
+              if (syncstring.undo_state == null) {
+                const value = getValueRef.current?.();
+                if (value != null && value != syncstring.to_str()) {
+                  syncstring.from_str(value);
+                  syncstring.save();
+                }
+              }
+              syncstring.redo();
+              setBody(syncstring.to_str());
             }
           }}
         />
