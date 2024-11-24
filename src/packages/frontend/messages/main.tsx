@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Flex, List, Space, Spin } from "antd";
+import { Button, Flex, List, Space } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { get_array_range } from "@cocalc/util/misc";
 import Message from "./message";
@@ -19,7 +19,6 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 
 export default function Main({ messages, threads, filter, search }) {
-  const [showThread, setShowThread] = useState<number | null>(null);
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
     new Set(),
   );
@@ -35,6 +34,12 @@ export default function Main({ messages, threads, filter, search }) {
     }
     return folder;
   }, [filter]);
+
+  const [showThread, setShowThread0] = useState<number | null>(null);
+  const setShowThread = (id: number | null) => {
+    setShowThread0(id);
+    setFragment({ folder, id: id ?? undefined });
+  };
 
   const filteredMessages: MessageType[] = useMemo(() => {
     if (messages == null || threads == null) {
@@ -60,14 +65,21 @@ export default function Main({ messages, threads, filter, search }) {
     }
   }, [filteredMessages]);
 
+  const fragmentId = useTypedRedux("mentions", "id");
+
   useEffect(() => {
     setCheckedMessageIds(new Set());
-    setShowThread(null);
+    if (fragmentId == null) {
+      setShowThread(null);
+    }
   }, [folder]);
 
-  if (messages == null) {
-    return <Spin />;
-  }
+  useEffect(() => {
+    if (fragmentId != null) {
+      redux.getActions("mentions").setState({ id: undefined });
+      setShowThread(fragmentId);
+    }
+  }, [fragmentId]);
 
   if (showThread != null) {
     return (
@@ -403,7 +415,6 @@ function ShowOneThread({
           type="text"
           onClick={() => {
             setShowThread(null);
-            setFragment({ folder });
           }}
         >
           <Icon
@@ -422,7 +433,7 @@ function ShowOneThread({
           />
         )}
         <div style={{ flex: 1 }} />
-        {showThread && mesgIndex != null && (
+        {mesgIndex != -1 && (
           <Space>
             {mesgIndex + 1} of {filteredMessages.length}
             <Button
@@ -454,7 +465,7 @@ function ShowOneThread({
       <Message
         message={message}
         threads={threads}
-        showThread
+        showThread={showThread}
         setShowThread={setShowThread}
         folder={folder}
         style={{ paddingLeft: "12px" }}

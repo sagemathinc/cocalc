@@ -9,6 +9,8 @@ import { MentionsMap, NotificationFilter } from "./types";
 export interface MentionsState {
   mentions: MentionsMap;
   filter: NotificationFilter;
+  // optional id of currently selected thing
+  id?: number;
 }
 export const MentionsState = null; // webpack + TS es2020 modules need this
 

@@ -6,18 +6,23 @@
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { NotificationFilter, isNotificationFilter } from "./mentions/types";
 
-export function getNotificationFilterFromFragment():
-  | NotificationFilter
-  | undefined {
+export function getNotificationFilterFromFragment(): {
+  filter: NotificationFilter;
+  id?: number;
+} {
   const fragmentId = Fragment.get();
   if (fragmentId == null) {
-    return;
+    return { filter: "messages-inbox" as NotificationFilter };
   }
-  const { page } = fragmentId;
-  if (!page) {
-    return;
+  const { page: filter, id: id0 } = fragmentId;
+  if (filter != null && isNotificationFilter(filter)) {
+    let id: number | undefined = undefined;
+    try {
+      if (id0 != null) {
+        id = parseInt(id0);
+      }
+    } catch (_err) {}
+    return { filter, id };
   }
-  if (isNotificationFilter(page)) {
-    return page;
-  }
+  return { filter: "messages-inbox" as NotificationFilter };
 }

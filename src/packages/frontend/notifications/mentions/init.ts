@@ -15,13 +15,16 @@ export function init(redux: AppRedux) {
     return;
   }
 
+  const { filter, id } = getNotificationFilterFromFragment();
+
   redux.createStore<MentionsState, MentionsStore>(REDUX_NAME, MentionsStore, {
-    filter: getNotificationFilterFromFragment() ?? "messages-inbox",
+    filter,
+    id,
   });
 
   redux.createActions<MentionsState, MentionsActions>(
     REDUX_NAME,
-    MentionsActions
+    MentionsActions,
   );
 
   redux.createTable(REDUX_NAME, MentionsTable);

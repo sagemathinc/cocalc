@@ -13,10 +13,20 @@ interface Props {
   threads: iThreads;
   folder: Folder;
   style?;
+  defaultExpanded?: Set<number>;
 }
 
-export default function Thread({ thread_id, threads, folder, style }: Props) {
+export default function Thread({
+  thread_id,
+  threads,
+  folder,
+  style,
+  defaultExpanded,
+}: Props) {
   const [expanded, setExpanded] = useState<Set<number>>(() => {
+    if (defaultExpanded != null) {
+      return defaultExpanded;
+    }
     if (folder == "search") {
       // auto-expand all matching results
       return redux.getStore("messages").get("search");

@@ -156,7 +156,7 @@ export function load_target(
 
     case "notifications":
       if (!logged_in) return;
-      const filter = getNotificationFilterFromFragment();
+      const { filter } = getNotificationFilterFromFragment();
       if (filter) {
         redux.getActions("mentions").set_filter(filter);
       }

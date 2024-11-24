@@ -33,7 +33,8 @@ interface Props {
   folder: Folder;
   checked?: boolean;
   setChecked?: (e: { checked: boolean; shiftKey: boolean }) => void;
-  showThread?;
+  // id of message in the thread to show
+  showThread?: number;
   setShowThread?;
   style?;
   threads?: iThreads;
@@ -241,6 +242,7 @@ function MessageFull({
   threads,
   inThread,
   setShowThread,
+  showThread,
 }: Props) {
   const read = isRead({ message, folder });
   const [replyOpen, setReplyOpen] = useState<boolean>(false);
@@ -280,6 +282,9 @@ function MessageFull({
           threads={threads}
           folder={folder}
           style={{ marginBottom: "10px" }}
+          defaultExpanded={
+            showThread != null ? new Set([showThread]) : undefined
+          }
         />
       )}
       <Flex>
