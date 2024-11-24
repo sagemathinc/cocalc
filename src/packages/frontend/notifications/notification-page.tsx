@@ -3,17 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Flex } from "antd";
+import { Empty, Flex } from "antd";
 import React, { useEffect } from "react";
 import { useIntl } from "react-intl";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import {
-  A,
-  Icon,
-  Loading,
-  Paragraph,
-  Title,
-} from "@cocalc/frontend/components";
+import { A, Loading, Paragraph, Title } from "@cocalc/frontend/components";
 // TODO: i18n again...
 //import { labels } from "@cocalc/frontend/i18n";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
@@ -49,8 +43,7 @@ export const NotificationPage: React.FC<{}> = () => {
             id: "notifications.page.intro",
             description:
               "The @ sign in front of a user name handle is used to notify someone else.",
-            defaultMessage: `Messaging, news or someone used "@your_name" to explicitly mention you as a collaborator.
-            This could have happened in a <A1>Chatroom</A1>,
+            defaultMessage: `Find messages, news or when someone used "@your_name" to explicitly mention you as a collaborator in a <A1>Chatroom</A1>,
             in the context of <A2>teaching</A2>, or <A3>when editing files.</A3>
             For example, when editing text in a Jupyter notebook or whiteboard,
             type an @ symbol, then select the name of a collaborator,
@@ -122,8 +115,7 @@ export const NotificationPage: React.FC<{}> = () => {
     >
       <div className="smc-vfill" style={{ maxWidth: "1400px" }}>
         <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
-          <Icon name="mail" style={{ marginRight: "15px" }} /> Messages,
-          Mentions and News
+          <Empty description="" /> Messages, Mentions and News
         </Title>
         {renderExplanation()}
         {renderContent()}

@@ -411,18 +411,19 @@ function getTag({ message: message0, threads, folder }) {
     );
   }
 
-  if (!isNullDate(message.expire)) {
+  const expire = message.get("expire");
+  if (!isNullDate(expire)) {
     v.push(
       <Tooltip
         key="deleting"
         title={
           <>
             This message is scheduled to be permanently deleted{" "}
-            <TimeAgo date={message.expire} />.
+            <TimeAgo date={expire} />.
           </>
         }
       >
-        <Tag color="red">Deleting</Tag>
+        <Tag color="red">Deleting...</Tag>
       </Tooltip>,
     );
   }
