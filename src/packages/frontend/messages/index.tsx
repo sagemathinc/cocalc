@@ -12,6 +12,7 @@ export { isMessagesFilter } from "./types";
 import Search from "./search";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import SmartAnchorTag from "@cocalc/frontend/components/smart-anchor-tag";
+import { ComposeModal } from "./compose";
 
 interface Props {
   filter?: Filter;
@@ -34,7 +35,6 @@ export default function Messages({ filter, style }: Props) {
       <ConfigProvider renderEmpty={() => <Empty description={"No messages"} />}>
         <div
           style={{
-            borderLeft: "1px solid #ccc",
             overflowY: "auto",
             paddingLeft: "15px",
             ...style,
@@ -53,6 +53,7 @@ export default function Messages({ filter, style }: Props) {
             />
           )}
         </div>
+        <ComposeModal />
       </ConfigProvider>
     </FileContext.Provider>
   );

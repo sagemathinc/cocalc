@@ -21,6 +21,8 @@ interface Props {
   show_avatar?: boolean; // if true, show an avatar to the left of the user
   avatarSize?: number; // in pixels
   style?;
+  addonAfter?;
+  trunc?: number;
 }
 
 export function User(props: Props) {
@@ -63,7 +65,7 @@ export function User(props: Props) {
   function name(info) {
     const x = trunc_middle(
       props.name != null ? props.name : `${info.first_name} ${info.last_name}`,
-      50,
+      props.trunc ?? 50,
     ).trim();
     if (x) {
       return x;
@@ -71,19 +73,24 @@ export function User(props: Props) {
     return "No Name";
   }
 
-  const style = props.style;
+  const { addonAfter, style } = props;
 
   const user_map = props.user_map ?? redux.getStore("users").get("user_map");
   if (user_map == null || user_map.size === 0) {
-    return <span style={style}>Loading...</span>;
+    return <span style={style}>Loading...{addonAfter}</span>;
   }
   let info = user_map?.get(props.account_id);
   if (info == null) {
     if (!is_valid_uuid_string(props.account_id)) {
-      return <span style={style}>Unknown User {props.account_id}</span>;
+      return (
+        <span style={style}>
+          Unknown User {props.account_id}
+          {addonAfter}
+        </span>
+      );
     }
     actions.fetch_non_collaborator(props.account_id);
-    return <span style={style}>Loading...</span>;
+    return <span style={style}>Loading...{addonAfter}</span>;
   } else {
     info = info.toJS();
     const n = name(info);
@@ -106,6 +113,7 @@ export function User(props: Props) {
         {n}
         {render_original(info)}
         {render_last_active()}
+        {addonAfter}
       </span>
     );
   }

@@ -82,7 +82,8 @@ export const NotificationPage: React.FC<{}> = () => {
             width: "200px",
             overflowY: "auto",
             marginRight: "10px",
-            borderInlineEnd: "none",
+            // paddingRight = so more scrollbar friendly
+            paddingRight: "15px",
           }}
         />
         <NotificationList

@@ -19,7 +19,7 @@ import {
 } from "antd";
 import SelectUser from "./select-user";
 import { useEffect, useRef, useState } from "react";
-import { useActions } from "@cocalc/frontend/app-framework";
+import { redux, useActions } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -34,6 +34,7 @@ import { useAsyncEffect } from "use-async-effect";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { human_readable_size } from "@cocalc/util/misc";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 const SAVE_INTERVAL_S = 10;
 
@@ -228,10 +229,10 @@ export default function Compose({
       {replyTo == null && message == null && (
         <div>
           <SelectUser
+            autoOpen={500}
             autoFocus
             disabled={state != "compose"}
-            placeholder="To..."
-            style={{ width: "250px" }}
+            placeholder="To (search by name or email)..."
             onChange={setToId}
           />
         </div>
@@ -320,7 +321,7 @@ export default function Compose({
           }}
           placeholder="Body..."
           autoFocus={replyTo != null || message != null}
-          style={{ minHeight: "200px" }}
+          style={{ minHeight: "200px", fontSize: "11pt" }}
           onShiftEnter={(body) => {
             setBody(body);
             if (body.trim()) {
@@ -409,27 +410,39 @@ export default function Compose({
 }
 
 export function ComposeButton(props) {
-  const [open, setOpen] = useState<boolean>(false);
-  const close = () => setOpen(false);
-
   return (
-    <>
-      <Button {...props} onClick={() => setOpen(true)}>
-        <Icon name="pencil" /> Compose
-      </Button>
-      {open && (
-        <Modal
-          open
-          styles={{ content: { maxWidth: "1000px", margin: "auto" } }}
-          width={"85%"}
-          onCancel={close}
-          onOk={close}
-          footer={[]}
-        >
-          <Compose onSend={close} onCancel={close} />
-        </Modal>
-      )}
-    </>
+    <Button
+      {...props}
+      onClick={() => {
+        redux.getActions("messages")?.setState({ compose: true });
+      }}
+    >
+      <Icon name="pencil" /> Compose
+    </Button>
+  );
+}
+
+// Modal has to be a separate component and can't be in the
+// ComposeButton component above, since that button is in the
+// nav menu, and if the Modal is in the nav menu, then when the
+// modal is open, the keyboard moves the nav menu up and down!
+export function ComposeModal() {
+  const compose = useTypedRedux("messages", "compose");
+  const close = () => {
+    redux.getActions("messages")?.setState({ compose: false });
+  };
+  return (
+    <Modal
+      destroyOnClose
+      open={compose}
+      styles={{ content: { maxWidth: "1000px", margin: "auto" } }}
+      width={"85%"}
+      onCancel={close}
+      onOk={close}
+      footer={[]}
+    >
+      <Compose onSend={close} onCancel={close} />
+    </Modal>
   );
 }
 

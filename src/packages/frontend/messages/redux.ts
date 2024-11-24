@@ -19,6 +19,8 @@ export interface MessagesState {
   threads?: iThreads;
   search: Set<number>;
   searchWords: Set<string>;
+  // show/hide the compose modal
+  compose?: boolean;
 }
 export class MessagesStore extends Store<MessagesState> {}
 

@@ -48,8 +48,13 @@ export default function Thread({
           ids.add(id);
           expanded.add(id);
         }
-        const actions = redux.getActions("messages");
-        actions.mark({ ids, read: webapp_client.server_time() });
+
+        setTimeout(() => {
+          // actually mark them read in a different event loop, since this
+          // mutates state.
+          const actions = redux.getActions("messages");
+          actions.mark({ ids, read: webapp_client.server_time() });
+        }, 0);
       }
     }
     return expanded;

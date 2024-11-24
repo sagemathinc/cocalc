@@ -365,6 +365,7 @@ function MessageFull({
             <MostlyStaticMarkdown
               value={message.body}
               searchWords={searchWords}
+              style={{ fontSize: "11pt" }}
             />
             <div style={{ height: "30px" }} />
             {!inThread && !isInTrash(message) && (
