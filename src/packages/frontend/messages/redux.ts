@@ -57,14 +57,10 @@ export class MessagesActions extends Actions<MessagesState> {
       expire: expire === null ? 0 : expire,
     };
     if (id != null) {
-      if (table.get_one(`${id}`) != null) {
-        await this.redux.getTable("messages").set({ id, ...obj });
+      if (ids != null) {
+        ids.add(id);
       } else {
-        await this.updateDraft({
-          id,
-          deleted,
-          expire,
-        });
+        ids = new Set([id]);
       }
     }
     if (ids != null && ids.size > 0) {
@@ -72,8 +68,6 @@ export class MessagesActions extends Actions<MessagesState> {
       // change more than one record at a time.
       for (const id of ids) {
         if (table.get_one(`${id}`) == null) {
-          // not in this table, so don't mark it. E.g., trying to mark a message
-          // we sent as read/archive/deleted isn't supported.
           await this.updateDraft({
             id,
             deleted,
@@ -87,6 +81,7 @@ export class MessagesActions extends Actions<MessagesState> {
         }
       }
       await table.save();
+      await this.saveSentMessagesTable();
     }
   };
 
@@ -144,6 +139,11 @@ export class MessagesActions extends Actions<MessagesState> {
     const table = this.redux.getTable("sent_messages")._table;
     if (table.get_one(`${obj.id}`) == null) {
       throw Error("message does not exist in sent_messages table");
+    }
+    for (const field of ["expire", "sent"]) {
+      if (obj[field] !== undefined) {
+        obj[field] = obj[field] === null ? 0 : obj[field];
+      }
     }
     // sets it in the local table so it's there when you come back.
     // does NOT save the local table to the database though.

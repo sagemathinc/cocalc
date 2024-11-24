@@ -204,32 +204,53 @@ function Actions({
           <Icon name="eye-slash" /> Unread
         </Button>
       )}
-      <Button
-        type="text"
-        disabled={
-          !enableMoveToInbox({
-            folder,
-            checkedMessageIds,
-            messages,
-            threads,
-          })
-        }
-        onClick={() => {
-          redux.getActions("messages").mark({
-            ids: expandToThreads({
-              ids: checkedMessageIds,
-              threads,
+      {folder != "trash" && (
+        <Button
+          type="text"
+          disabled={
+            !enableMoveToInbox({
+              folder,
+              checkedMessageIds,
               messages,
-            }),
-            saved: false,
-            deleted: false,
-            expire: null,
-          });
-          setShowThread(null);
-        }}
-      >
-        <Icon name="container" /> To Inbox
-      </Button>
+              threads,
+            })
+          }
+          onClick={() => {
+            redux.getActions("messages").mark({
+              ids: expandToThreads({
+                ids: checkedMessageIds,
+                threads,
+                messages,
+              }),
+              saved: false,
+              deleted: false,
+              expire: null,
+            });
+            setShowThread(null);
+          }}
+        >
+          <Icon name="container" /> To Inbox
+        </Button>
+      )}
+      {folder == "trash" && (
+        <Button
+          type="text"
+          onClick={() => {
+            redux.getActions("messages").mark({
+              ids: expandToThreads({
+                ids: checkedMessageIds,
+                threads,
+                messages,
+              }),
+              deleted: false,
+              expire: null,
+            });
+            setShowThread(null);
+          }}
+        >
+          <Icon name="undo" /> Undelete
+        </Button>
+      )}
     </Space>
   );
 }
