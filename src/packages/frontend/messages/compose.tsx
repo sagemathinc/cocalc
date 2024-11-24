@@ -20,6 +20,8 @@ import User from "./user";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useInterval } from "react-interval-hook";
+import ephemeralSyncstring from "@cocalc/sync/editor/string/test/ephemeral-syncstring";
+import { useAsyncEffect } from "use-async-effect";
 
 const SAVE_INTERVAL_S = 10;
 
@@ -58,6 +60,19 @@ export default function Compose({
     message?.subject ?? replySubject(replyTo?.subject),
   );
   const [body, setBody] = useState<string>(message?.body ?? "");
+
+  const syncstringRef = useRef<any>(null);
+  useAsyncEffect(async () => {
+    syncstringRef.current = await ephemeralSyncstring();
+    syncstringRef.current.from_str(body);
+    syncstringRef.current.save();
+    return async () => {
+      if (syncstringRef.current != null) {
+        await syncstringRef.current.close();
+        syncstringRef.current = null;
+      }
+    };
+  }, []);
 
   const [draft, setDraft] = useState<{
     to_id: string;
@@ -239,9 +254,13 @@ export default function Compose({
         (state == "sent" && <StaticMarkdown value={body} />)}
       {!(state == "sending" || state == "sent") && (
         <MarkdownInput
-          saveDebounceMs={0}
+          saveDebounceMs={200}
           value={body}
           onChange={(body) => {
+            if (syncstringRef.current != null) {
+              syncstringRef.current.from_str(body);
+              syncstringRef.current.save();
+            }
             setBody(body);
             saveDraft({ body, subject });
           }}
@@ -252,6 +271,20 @@ export default function Compose({
             setBody(body);
             if (body.trim()) {
               send(body);
+            }
+          }}
+          onUndo={() => {
+            if (syncstringRef.current != null) {
+              syncstringRef.current.undo();
+              syncstringRef.current.save();
+              setBody(syncstringRef.current.to_str());
+            }
+          }}
+          onRedo={() => {
+            if (syncstringRef.current != null) {
+              syncstringRef.current.redo();
+              syncstringRef.current.save();
+              setBody(syncstringRef.current.to_str());
             }
           }}
         />
