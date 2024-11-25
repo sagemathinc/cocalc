@@ -322,7 +322,7 @@ export default function Compose({
           }}
           placeholder="Body..."
           autoFocus={replyTo != null || message != null}
-          height="50vh"
+          height="40vh"
           style={{ fontSize: "11pt" }}
           onShiftEnter={(body) => {
             setBody(body);
@@ -417,6 +417,14 @@ export function ComposeButton(props) {
       {...props}
       onClick={() => {
         redux.getActions("messages")?.setState({ compose: true });
+        if (!redux.getStore("mentions").get("filter").startsWith("messages-")) {
+          redux
+            .getActions("mentions")
+            .setState({
+              filter: "messages-sent",
+              id: undefined,
+            });
+        }
       }}
     >
       <Icon name="pencil" /> Compose

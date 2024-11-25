@@ -393,7 +393,46 @@ function ShowOneThread({
   filteredMessages,
 }) {
   const searchWords = useTypedRedux("messages", "searchWords");
-  const mesgIndex = filteredMessages.map(({ id }) => id).indexOf(showThread);
+
+  const mesgIndex = useMemo(() => {
+    const v = filteredMessages.map(({ id }) => id);
+    const i = v.indexOf(showThread);
+    if (i != -1) {
+      return i;
+    }
+    // It might just be that there is a newer message in this thread.
+    // Alternatively, the thread we are currently viewing no longer exists in the given folder,
+    // so change state to viewing threads instead... soon.
+    const message = messages.get(showThread);
+    if (
+      message != null &&
+      isInFolderThreaded({
+        threads,
+        message,
+        folder,
+      })
+    ) {
+      // Maybe thread exists, but has a newer HEAD, so change to that.
+      const thread_id = message.get("thread_id") ?? message.get("id");
+      const m = threads.get(thread_id)?.last();
+      if (m != null) {
+        // fix?
+        const j = v.indexOf(m.get("id"));
+        if (j != -1) {
+          return j;
+        }
+      }
+    }
+
+    setTimeout(() => {
+      // Thread no longer exists, e.g., archiving a thread in the inbox,
+      // so just close the thread view.
+      setShowThread(null);
+    }, 0);
+
+    return -1;
+  }, [showThread, filteredMessages]);
+
   const message = useMemo(
     () => messages.get(showThread)?.toJS(),
     [messages, showThread],

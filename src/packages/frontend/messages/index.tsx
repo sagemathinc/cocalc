@@ -33,6 +33,7 @@ export default function Messages({ filter, style }: Props) {
   return (
     <FileContext.Provider value={{ AnchorTagComponent }}>
       <ConfigProvider renderEmpty={() => <Empty description={"No messages"} />}>
+        <ComposeModal />
         <div
           style={{
             overflowY: "auto",
@@ -53,7 +54,6 @@ export default function Messages({ filter, style }: Props) {
             />
           )}
         </div>
-        <ComposeModal />
       </ConfigProvider>
     </FileContext.Provider>
   );

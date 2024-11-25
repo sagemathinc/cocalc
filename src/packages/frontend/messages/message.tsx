@@ -28,6 +28,9 @@ import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-mark
 
 const LEFT_OFFSET = "46px";
 
+// useful for debuggin!
+const SHOW_ID = true;
+
 interface Props {
   message: MessageType;
   folder: Folder;
@@ -182,16 +185,18 @@ function MessageInList({
             />
           </Tooltip>
         </div>
-        {/*<div
-          style={{
-            color: "#888",
-            marginRight: "10px",
-            width: "25px",
-            textAlign: "right",
-          }}
-        >
-          {message.id}
-        </div>*/}
+        {SHOW_ID && (
+          <div
+            style={{
+              color: "#888",
+              marginRight: "10px",
+              width: "25px",
+              textAlign: "right",
+            }}
+          >
+            {message.id}
+          </div>
+        )}
       </Flex>
       {inThread && (
         <div
