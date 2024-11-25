@@ -5,11 +5,10 @@ import { get_array_range, plural } from "@cocalc/util/misc";
 import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
-import dayjs from "dayjs";
 import {
   expandToThreads,
   getFilteredMessages,
-  isNullDate,
+  isExpired,
   isThreadRead,
   isInFolderThreaded,
   setFragment,
@@ -177,10 +176,7 @@ function Actions({
                 threads,
                 messages,
               }),
-              // We actually provide a 1 day grace period for permanently deleted
-              // messages.  The user instantly sees them disappear, but they only
-              // get purged a day later, in case they make a support request, etc.
-              expire: dayjs().add(1, "day").toDate(),
+              expire: new Date(),
             });
             setShowThread(null);
           }}
@@ -254,7 +250,6 @@ function Actions({
               }),
               saved: false,
               deleted: false,
-              expire: null,
             });
             setShowThread(null);
           }}
@@ -273,7 +268,6 @@ function Actions({
                 messages,
               }),
               deleted: false,
-              expire: null,
             });
             setShowThread(null);
           }}
@@ -358,7 +352,7 @@ function ShowAllThreads({
               threads={threads}
               checked={checkedMessageIds.has(message.id)}
               setChecked={
-                folder != "sent" && folder != "search"
+                folder != "search"
                   ? ({ checked, shiftKey }) => {
                       if (shiftKey && mostRecentChecked != null) {
                         // set the range of id's between this message and the most recent one
@@ -562,10 +556,6 @@ function enableMoveToInbox({ folder, checkedMessageIds, messages, threads }) {
   return true;
 }
 
-function getIn({ id, messages, field }) {
-  return messages.getIn([id, field]);
-}
-
 function hasUnread({ checkedMessageIds, messages, threads, folder }) {
   if (folder == "drafts") {
     return false;
@@ -607,8 +597,7 @@ function everyMessageIsInInbox({ checkedMessageIds, messages, threads }) {
 
 function hasNotExpire({ checkedMessageIds, messages }) {
   for (const id of checkedMessageIds) {
-    const expire = getIn({ id, field: "expire", messages });
-    if (isNullDate(expire)) {
+    if (!isExpired(messages.get(id))) {
       return true;
     }
   }

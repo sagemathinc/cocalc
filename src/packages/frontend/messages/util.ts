@@ -3,9 +3,12 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { iThreads, iMessage, iMessagesMap, Folder } from "./types";
 import { cmp } from "@cocalc/util/misc";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
-import { Map as iMap } from "immutable";
+import { Map as iMap, List as iList } from "immutable";
+import { SCHEMA } from "@cocalc/util/schema";
 
-//       WARNING: If you change or add fields and logic that could impact the "number of
+type Mesg = iMessage | Message;
+
+// WARNING: If you change or add fields and logic that could impact the "number of
 // messages in the inbox that are not read", make sure to also update
 //  packages/database/postgres/messages.ts
 
@@ -15,12 +18,12 @@ export function isInFolderThreaded({
   folder,
   search,
 }: {
-  message: iMessage;
+  message: Mesg;
   threads: iThreads;
   folder: Folder;
   search?: Set<number>;
 }) {
-  const thread_id = message.get("thread_id");
+  const thread_id = get(message, "thread_id");
   if (!thread_id) {
     // not a thread
     return isInFolderNotThreaded({ message, folder, search });
@@ -59,7 +62,7 @@ export function isInFolderThreaded({
       // (expect expire when it's just gone or about to be)
       for (const message of thread) {
         if (
-          message.get("to_id") == webapp_client.account_id &&
+          get(message, "to_id") == webapp_client.account_id &&
           !isInFolderNotThreaded({ message, folder })
         ) {
           return false;
@@ -75,9 +78,30 @@ export function isInFolderThreaded({
   }
 }
 
-function isExpired(message) {
-  const expire = message.expire ?? message.get("expire");
-  return !isNullDate(expire);
+export function isExpired(message: Mesg) {
+  const from = isFromMe(message);
+  const to = isToMe(message);
+  if (from && to) {
+    return !!get(message, "to_expire") || !!get(message, "from_expire");
+  }
+  if (from) {
+    return !!get(message, "from_expire");
+  } else {
+    return !!get(message, "to_expire");
+  }
+}
+
+export function isDeleted(message: Mesg) {
+  const from = isFromMe(message);
+  const to = isToMe(message);
+  if (from && to) {
+    return !!get(message, "to_deleted") || !!get(message, "from_deleted");
+  }
+  if (from) {
+    return !!get(message, "from_deleted");
+  } else {
+    return !!get(message, "to_deleted");
+  }
 }
 
 function isInFolderNotThreaded({
@@ -85,7 +109,7 @@ function isInFolderNotThreaded({
   folder,
   search,
 }: {
-  message: iMessage;
+  message: Mesg;
   folder: Folder;
   search?: Set<number>;
 }) {
@@ -95,48 +119,44 @@ function isInFolderNotThreaded({
   }
 
   // trash folder is exactly the deleted messages:
+  const deleted = isDeleted(message);
   if (folder == "trash") {
-    return message.get("deleted");
+    return deleted;
   }
-  if (message.get("deleted")) {
+  if (deleted) {
     return false;
   }
 
-  const isDraft = isNullDate(message.get("sent"));
-
-  const fromMe =
-    message.get("from_type") == "account" &&
-    message.get("from_id") == webapp_client.account_id;
+  const draft = isDraft(message);
+  const fromMe = isFromMe(message);
 
   if (folder == "search") {
-    if ((isDraft && !fromMe) || search == null) {
+    if ((draft && !fromMe) || search == null) {
       return false;
     }
-    return search.has(message.get("id"));
+    return search.has(get(message, "id"));
   }
 
   // drafts are messages from us that haven't been sent yet.
   if (folder == "drafts") {
-    return fromMe && isDraft;
+    return fromMe && draft;
   }
 
   // sent are messages from us that *have* been sent
   if (folder == "sent") {
-    return fromMe && !isDraft;
+    return fromMe && !draft;
   }
 
   // remaining folders are all messages to me:
-  const toMe =
-    message.get("to_type") == "account" &&
-    message.get("to_id") == webapp_client.account_id;
+  const toMe = isToMe(message);
   if (!toMe) {
     return false;
   }
   if (folder == "inbox") {
-    return !message.get("saved") && !message.get("deleted") && !isDraft;
+    return !get(message, "saved") && !deleted && !draft;
   }
   if (folder == "all") {
-    return !message.get("deleted") && !isDraft;
+    return !deleted && !draft;
   }
 
   return false;
@@ -153,24 +173,18 @@ function isInFolderNotThreaded({
 // read it if it is marked read.
 // Also note that we message.read can bew new Date(0) rather
 // than null!
-export function isRead({
-  message,
-  folder,
-}: {
-  message: Message;
-  folder: Folder;
-}) {
+export function isRead({ message, folder }: { message: Mesg; folder: Folder }) {
   if (folder != "sent") {
     if (isFromMe(message)) {
       if (isToMe(message)) {
-        return !isNullDate(message.read);
+        return !isNullDate(get(message, "read"));
       }
       return true;
     }
-    return !isNullDate(message.read);
+    return !isNullDate(get(message, "read"));
   } else {
     if (isFromMe(message)) {
-      return !isNullDate(message.read);
+      return !isNullDate(get(message, "read"));
     }
     return true;
   }
@@ -182,16 +196,16 @@ export function isThreadRead({
   threads,
   folder,
 }: {
-  message: Message;
+  message: Mesg;
   folder: Folder;
   threads?: iThreads;
 }) {
-  const thread_id = message.thread_id;
+  const thread_id = get(message, "thread_id");
   if (threads == null || !thread_id) {
     return isRead({ message, folder });
   }
   for (const message1 of threads.get(thread_id) ?? []) {
-    if (!isRead({ message: message1.toJS(), folder })) {
+    if (!isRead({ message: message1, folder })) {
       return false;
     }
   }
@@ -202,24 +216,21 @@ export function isNullDate(date: Date | number | undefined | null): boolean {
   return date == null || new Date(date).valueOf() == 0;
 }
 
-export function isFromMe(message?: Message): boolean {
+export function isFromMe(message?: Mesg): boolean {
   return (
-    message?.from_type == "account" &&
-    message?.from_id == webapp_client.account_id
+    get(message, "from_type") == "account" &&
+    get(message, "from_id") == webapp_client.account_id
   );
 }
 
-export function isDraft(message?: Message): boolean {
-  return isFromMe(message) && message?.sent == null;
+export function isDraft(message?: Mesg): boolean {
+  return isFromMe(message) && !get(message, "sent");
 }
 
-export function isInTrash(message?: Message): boolean {
-  return !!message?.deleted;
-}
-
-export function isToMe(message?: Message): boolean {
+export function isToMe(message?: Mesg): boolean {
   return (
-    message?.to_type == "account" && message?.to_id == webapp_client.account_id
+    get(message, "to_type") == "account" &&
+    get(message, "to_id") == webapp_client.account_id
   );
 }
 
@@ -331,18 +342,75 @@ export function replySubject(subject) {
   return `Re: ${subject}`;
 }
 
+export function getNotExpired(messages) {
+  // filter out messages that are set to expire from our perspective.
+  //  - if we are sender, then from_expire is set
+  //  - if we are recipient, if to_expire is set.
+  return messages.filter((message) => !isExpired(message));
+}
+
+export function getThreads(messages): iThreads {
+  let threads: iThreads = iMap();
+
+  const process = (message) => {
+    const thread_id = message.get("thread_id");
+    if (!thread_id) {
+      return;
+    }
+    const root = messages.get(thread_id);
+    if (root == null) {
+      // messages is incomplete, e.g., maybe sent aren't loaded yet.
+      return;
+    }
+    const thread = threads.get(thread_id);
+    if (thread == null) {
+      threads = threads.set(thread_id, iList([root, message]));
+    } else {
+      threads = threads.set(thread_id, thread.push(message));
+    }
+  };
+
+  messages?.map(process);
+  for (const thread_id of threads.keySeq()) {
+    const thread = threads.get(thread_id);
+    if (thread == null) {
+      throw Error("bug");
+    }
+    threads = threads.set(
+      thread_id,
+      thread.sortBy((message) => message.get("id")),
+    );
+  }
+
+  return threads;
+}
+
 // the id of the root message or undefined in case message is null.
-export function getThreadId(
-  message: Message | iMessage | undefined,
-): number | undefined {
+export function getThreadId(message: Mesg | undefined): number | undefined {
+  const thread_id = get(message, "thread_id");
+  return thread_id ? thread_id : get(message, "id");
+}
+
+const FIELDS = new Set(Object.keys(SCHEMA.messages.fields));
+
+export function get(message: Mesg | undefined, field: string) {
   if (message == null) {
-    return undefined;
+    return;
+  }
+  if (field == "deleted") {
+    field = isFromMe(message) ? "from_deleted" : "to_deleted";
+  }
+  if (field == "expire") {
+    field = isFromMe(message) ? "from_expire" : "to_expire";
+  }
+  if (!FIELDS.has(field)) {
+    throw Error(`attempt to access invalid field ${field}`);
   }
   if (iMap.isMap(message)) {
     const m = message as unknown as iMessage;
-    return m.get("thread_id") ? m.get("thread_id") : m.get("id");
+    return m.get(field);
   } else {
     const m = message as unknown as Message;
-    return m.thread_id ? m.thread_id : m.id;
+    return m[field];
   }
 }

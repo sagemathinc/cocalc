@@ -6,13 +6,18 @@
 import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
 import type { iMessagesMap, iThreads, Message } from "./types";
-import { List as iList, Map as iMap } from "immutable";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { search_split, uuid } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { getThreadId, isFromMe, isNullDate, replySubject } from "./util";
+import {
+  getThreadId,
+  isFromMe,
+  replySubject,
+  getNotExpired,
+  getThreads,
+} from "./util";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
@@ -56,15 +61,10 @@ export class MessagesActions extends Actions<MessagesState> {
     read?: Date | null;
     saved?: boolean;
     deleted?: boolean;
-    expire?: Date | null;
+    expire?: Date;
   }) => {
     const table = this.redux.getTable("messages")._table;
-    const obj = {
-      read: read === null ? 0 : read,
-      saved,
-      deleted,
-      expire: expire === null ? 0 : expire,
-    };
+    const sent_table = this.redux.getTable("sent_messages")._table;
     if (id != null) {
       if (ids != null) {
         ids.add(id);
@@ -75,22 +75,34 @@ export class MessagesActions extends Actions<MessagesState> {
     if (ids != null && ids.size > 0) {
       // mark them all read or saved -- have to use _table to
       // change more than one record at a time.
+      let changed_table = false;
+      let changed_sent_table = false;
       for (const id of ids) {
-        if (table.get_one(`${id}`) == null) {
-          await this.updateDraft({
-            id,
-            deleted,
-            expire,
-          });
-        } else {
+        if (table.get_one(`${id}`) != null) {
           table.set({
             id,
-            ...obj,
+            read: read === null ? 0 : read,
+            saved,
+            to_deleted: deleted,
+            to_expire: expire,
           });
+          changed_table = true;
+        }
+        if (sent_table.get_one(`${id}`) != null) {
+          sent_table.set({
+            id,
+            from_deleted: deleted,
+            from_expire: expire,
+          });
+          changed_sent_table = true;
         }
       }
-      await table.save();
-      await this.saveSentMessagesTable();
+      if (changed_table) {
+        await table.save();
+      }
+      if (changed_sent_table) {
+        await sent_table.save();
+      }
     }
   };
 
@@ -129,7 +141,7 @@ export class MessagesActions extends Actions<MessagesState> {
     } else {
       messages = messages.merge(updatedMessages);
     }
-    messages = messages.filter((x) => isNullDate(x.get("expire")));
+    messages = getNotExpired(messages);
     const threads = getThreads(messages);
     this.setState({ messages, threads });
   };
@@ -141,24 +153,25 @@ export class MessagesActions extends Actions<MessagesState> {
     to_type?: string;
     subject?: string;
     body?: string;
-    sent?: Date | null;
+    sent?: Date;
     // deleted and expire are only allowed if the draft message is not sent
     deleted?: boolean;
-    expire?: Date | null;
+    expire?: Date;
   }) => {
     const table = this.redux.getTable("sent_messages")._table;
-    if (table.get_one(`${obj.id}`) == null) {
+    const current = table.get_one(`${obj.id}`);
+    if (current == null) {
       throw Error("message does not exist in sent_messages table");
     }
-    for (const field of ["expire", "sent"]) {
-      if (obj[field] !== undefined) {
-        obj[field] = obj[field] === null ? 0 : obj[field];
-      }
+    for (const field of ["expire", "deleted"]) {
+      obj[`from_${field}`] = obj[field];
+      delete obj[field];
     }
     // sets it in the local table so it's there when you come back.
     // does NOT save the local table to the database though.
     // Only save to database when user exits out of the draft,
     // or sending it by setting sent to true (so recipient can see).
+    // It also gets saved periodically.
     table.set(obj);
   };
 
@@ -241,10 +254,7 @@ export class MessagesActions extends Actions<MessagesState> {
         // already up to date
         return;
       }
-      const data = messages
-        .filter((m) => !m.get("deleted"))
-        .keySeq()
-        .toJS();
+      const data = messages.keySeq().toJS();
       const users = this.redux.getStore("users");
 
       const missingUsers = new Set<string>();
@@ -279,6 +289,7 @@ Body: ${message.get("body")}
         data,
         toString,
       });
+      console.log(data);
 
       this.searchIndex = { messages, filter };
 
@@ -319,45 +330,11 @@ Body: ${message.get("body")}
     const search = new Set(await this.searchIndex.filter(query));
     this.setState({ search });
 
-    // change folder if necessary
-    this.redux.getActions("mentions").set_filter("messages-search");
-  };
-}
-
-export function getThreads(messages): iThreads {
-  let threads: iThreads = iMap();
-
-  const process = (message) => {
-    const thread_id = message.get("thread_id");
-    if (!thread_id) {
-      return;
-    }
-    const root = messages.get(thread_id);
-    if (root == null) {
-      // messages is incomplete, e.g., maybe sent aren't loaded yet.
-      return;
-    }
-    const thread = threads.get(thread_id);
-    if (thread == null) {
-      threads = threads.set(thread_id, iList([root, message]));
-    } else {
-      threads = threads.set(thread_id, thread.push(message));
+    if (query.trim()) {
+      // change folder if necessary
+      this.redux.getActions("mentions").set_filter("messages-search");
     }
   };
-
-  messages?.map(process);
-  for (const thread_id of threads.keySeq()) {
-    const thread = threads.get(thread_id);
-    if (thread == null) {
-      throw Error("bug");
-    }
-    threads = threads.set(
-      thread_id,
-      thread.sortBy((message) => message.get("id")),
-    );
-  }
-
-  return threads;
 }
 
 class MessagesTable extends Table {
@@ -385,9 +362,9 @@ class MessagesTable extends Table {
           body: null,
           read: null,
           saved: null,
-          deleted: null,
           thread_id: null,
-          expire: null,
+          to_deleted: null,
+          to_expire: null,
         },
       ],
     };
@@ -427,9 +404,9 @@ class SentMessagesTable extends Table {
           body: null,
           read: null,
           saved: null,
-          deleted: null,
           thread_id: null,
-          expire: null,
+          from_expire: null,
+          from_deleted: null,
         },
       ],
     };

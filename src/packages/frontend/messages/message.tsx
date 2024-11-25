@@ -7,7 +7,7 @@ import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-m
 import ReplyButton from "./reply-button";
 import {
   isDraft,
-  isInTrash,
+  isDeleted,
   isFromMe,
   isNullDate,
   isToMe,
@@ -29,7 +29,7 @@ import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-mark
 const LEFT_OFFSET = "46px";
 
 // useful for debugging!
-const SHOW_ID = false;
+const SHOW_ID = true;
 
 interface Props {
   message: MessageType;
@@ -158,7 +158,7 @@ function MessageInList({
         )}
         {inThread && (
           <div style={{ flex: 1 }}>
-            {isDraft(message) && <Tag color="orange">Draft</Tag>}
+            {isDraft(message) && <Tag color="red">Draft</Tag>}
           </div>
         )}
         <div onClick={(e) => e.stopPropagation()}>
@@ -367,7 +367,7 @@ function MessageFull({
           marginTop: "30px",
         }}
       >
-        {isFromMe(message) && message.sent == null && !isInTrash(message) ? (
+        {isDraft(message) && !isDeleted(message) ? (
           <Compose style={{ marginBottom: "45px" }} message={message} />
         ) : (
           <>
@@ -377,7 +377,7 @@ function MessageFull({
               style={{ fontSize: "11pt" }}
             />
             <div style={{ height: "30px" }} />
-            {!inThread && !isInTrash(message) && (
+            {!inThread && !isDeleted(message) && (
               <div>
                 <ReplyButton size="large" replyTo={message} />
               </div>
@@ -392,7 +392,9 @@ function MessageFull({
 function getTag({ message: message0, threads, folder }) {
   // set deleted false so still see the tag even when message in the trash,
   // which helps when undeleting.
-  const message = fromJS(message0).set("deleted", false);
+  const message = fromJS(message0)
+    .set("to_deleted", false)
+    .set("from_deleted", false);
   const v: JSX.Element[] = [];
   if (
     isInFolderThreaded({
@@ -402,7 +404,7 @@ function getTag({ message: message0, threads, folder }) {
     })
   ) {
     v.push(
-      <Tag key="draft" color="orange">
+      <Tag key="draft" color="red">
         <Icon name="note" /> Draft
       </Tag>,
     );
@@ -410,6 +412,7 @@ function getTag({ message: message0, threads, folder }) {
 
   if (
     folder != "inbox" &&
+    folder != "trash" &&
     isInFolderThreaded({
       message,
       threads,
@@ -423,24 +426,21 @@ function getTag({ message: message0, threads, folder }) {
     );
   }
 
-  const expire = message.get("expire");
-  if (!isNullDate(expire)) {
+  if (
+    folder != "trash" &&
+    isInFolderThreaded({
+      message,
+      threads,
+      folder: "trash",
+    })
+  ) {
     v.push(
-      <Tooltip
-        key="deleting"
-        title={
-          <>
-            This message is scheduled to be permanently deleted{" "}
-            <TimeAgo date={expire} />.
-          </>
-        }
-      >
-        <Tag color="red">
-          <Icon name="trash" /> Deleting...
-        </Tag>
-      </Tooltip>,
+      <Tag key="inbox" color="blue">
+        <Icon name="trash" /> Trash
+      </Tag>,
     );
   }
+
   return <>{v}</>;
 }
 

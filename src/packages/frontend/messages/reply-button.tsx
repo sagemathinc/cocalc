@@ -35,7 +35,7 @@ export default function ReplyButton({
     <Button {...props} onClick={() => createReply()} disabled={creating}>
       <Icon name="reply" />
       {label}
-      {creating && <Spin style={{ marginLeft: "15px" }} />}
+      {creating && <Spin delay={1500} style={{ marginLeft: "15px" }} />}
     </Button>
   );
 }

@@ -114,13 +114,21 @@ Table({
       type: "boolean",
       desc: "If user saved this message for later.",
     },
-    deleted: {
+    to_deleted: {
       type: "boolean",
       desc: "If recipient deleted this message.",
     },
-    expire: {
+    from_deleted: {
+      type: "boolean",
+      desc: "If sender deleted this message.",
+    },
+    to_expire: {
       type: "timestamp",
-      desc: "Recipient requested to permanently delete this message after this date.",
+      desc: "Recipient requested to permanently delete this message.   The message is permanently deleted by a maintenance process when to_expire and from_expire are both set and in the past. (One exception -- if from_expire is set and the message wasn't sent then it also gets permanently deleted.)",
+    },
+    from_expire: {
+      type: "timestamp",
+      desc: "Sender requested to permanently delete this message. ",
     },
     thread_id: {
       type: "number",
@@ -149,9 +157,11 @@ Table({
           body: null,
           read: null,
           saved: null,
-          deleted: null,
           thread_id: null,
-          expire: null,
+          from_deleted: null,
+          from_expire: null,
+          to_deleted: null,
+          to_expire: null,
         },
       },
       set: {
@@ -160,9 +170,8 @@ Table({
           // use read:0 to mark not read
           read: true,
           saved: true,
-          deleted: true,
-          thread_id: true,
-          expire: true,
+          to_deleted: true,
+          to_expire: true,
         },
         async instead_of_change(
           database,
@@ -180,20 +189,22 @@ Table({
             // const dbg = database._dbg("messages:instead_of_change");
             // setting saved or read
             try {
-              // user is allowed to change messages *to* them only.
+              // user is allowed to change messages *to* them only, and then
+              // only limited fields.
               const query =
-                "UPDATE messages SET read=$3, saved=$4, deleted=$5, expire=$6 WHERE to_type='account' AND to_id=$1 AND id=$2";
+                "UPDATE messages SET read=$3, saved=$4, to_deleted=$5, to_expire=$6 WHERE to_type='account' AND to_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
                 new_val.read ?? old_val.read,
                 new_val.saved ?? old_val.saved,
-                new_val.deleted ?? old_val.deleted,
-                // todo -- if set to 0, becomes null, so not deleted, but doesn't
+                new_val.to_deleted ?? old_val.to_deleted,
+                // todo -- if set to 0, becomes null, so not to_deleted, but doesn't
                 // get sync'd out either since sync doesn't support setting to null yet.
-                new_val.expire === 0 || new Date(new_val.expire).valueOf() == 0
+                new_val.to_expire === 0 ||
+                new Date(new_val.to_expire).valueOf() == 0
                   ? null
-                  : (new_val.expire ?? old_val.expire),
+                  : (new_val.to_expire ?? old_val.to_expire),
               ];
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.
@@ -233,8 +244,8 @@ Table({
           body: true,
           sent: true,
           thread_id: true,
-          deleted: true,
-          expire: true,
+          from_deleted: true,
+          from_expire: true,
         },
         async instead_of_change(
           database,
@@ -250,9 +261,20 @@ Table({
           }
           if (old_val != null) {
             try {
+              if (old_val.sent) {
+                // once a message is sent, the ONLY thing you can change is from_deleted and from_expire.
+                // frontend client enforces this, but we also enforce it here by only whitelisting those
+                // two properties.
+                new_val = {
+                  from_deleted: new_val.from_deleted,
+                  from_expire: new_val.from_expire,
+                };
+                // TODO: we do plan to have a notion of editing messages after they are sent, but this will
+                // be by adding one or more patches, so the edit history is clear.
+              }
               // user is allowed to change a lot about messages *from* them only.
               const query =
-                "UPDATE messages SET to_id=$3,to_type=$4,subject=$5,body=$6,sent=$7,deleted=$8,expire=$9,thread_id=$10 WHERE to_type='account' AND from_id=$1 AND id=$2";
+                "UPDATE messages SET to_id=$3,to_type=$4,subject=$5,body=$6,sent=$7,from_deleted=$8,from_expire=$9,thread_id=$10 WHERE to_type='account' AND from_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -260,13 +282,9 @@ Table({
                 new_val.to_type ?? old_val.to_type,
                 new_val.subject ?? old_val.subject,
                 new_val.body ?? old_val.body,
-                new_val.sent === 0 || new Date(new_val.sent).valueOf() == 0
-                  ? null
-                  : (new_val.sent ?? old_val.sent),
-                new_val.deleted ?? old_val.deleted,
-                new_val.expire === 0 || new Date(new_val.expire).valueOf() == 0
-                  ? null
-                  : (new_val.expire ?? old_val.expire),
+                new_val.sent ?? old_val.sent,
+                new_val.from_deleted ?? old_val.from_deleted,
+                new_val.from_expire ?? old_val.from_expire,
                 new_val.thread_id ?? old_val.thread_id,
               ];
               // putting from_id in the query specifically as an extra security measure, so user can't change
@@ -299,6 +317,7 @@ Table({
                   return;
                 }
               } else if (to_type == "system") {
+                // TODO
               } else {
                 cb(`unknown to_type=${to_type}`);
                 return;
