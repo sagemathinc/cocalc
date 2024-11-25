@@ -202,42 +202,80 @@ export class MessagesActions extends Actions<MessagesState> {
     }
   };
 
-  updateSearchIndex = reuseInFlight(async () => {
-    const store = this.getStore();
-    const messages = store.get("messages");
-    if (messages == null) {
-      // nothing to do
-      return;
-    }
-    if (messages.equals(this.searchIndex.messages)) {
-      // already up to date
-      return;
-    }
-    const data = messages
-      .filter((m) => !m.get("deleted"))
-      .keySeq()
-      .toJS();
-    const users = this.redux.getStore("users");
-
-    const toString = (id) => {
-      const message = messages.get(id);
-      if (message == null) {
-        return "";
+  updateSearchIndex = reuseInFlight(
+    async (opts: { noRetryIfMissing?: boolean; force?: boolean } = {}) => {
+      const store = this.getStore();
+      const messages = store.get("messages");
+      if (messages == null) {
+        // nothing to do
+        return;
       }
-      // todo -- adapt for non-accounts
-      return `
-From:${users.get_name(message.get("from_id")) ?? ""}
-To:${users.get_name(message.get("to_id")) ?? ""}
-Subject:${message.get("subject")}
-Body:${message.get("body")}
+      if (!opts.force && messages.equals(this.searchIndex.messages)) {
+        // already up to date
+        return;
+      }
+      const data = messages
+        .filter((m) => !m.get("deleted"))
+        .keySeq()
+        .toJS();
+      const users = this.redux.getStore("users");
+
+      const missingUsers = new Set<string>();
+      const getName = (account_id) => {
+        const name = users.get_name(account_id);
+        if (name == null) {
+          missingUsers.add(account_id);
+        }
+        return name ?? "";
+      };
+      const toString = (id) => {
+        const message = messages.get(id);
+        if (message == null) {
+          return "";
+        }
+
+        // todo -- adapt for non-accounts
+
+        const s = `
+From: ${getName(message.get("from_id"))}
+
+To: ${getName(message.get("to_id"))}
+
+Subject: ${message.get("subject")}
+
+Body: ${message.get("body")}
 `;
-    };
-    const filter = await searchFilter<number>({
-      data,
-      toString,
-    });
-    this.searchIndex = { messages, filter };
-  });
+
+        return s;
+      };
+      const filter = await searchFilter<number>({
+        data,
+        toString,
+      });
+
+      this.searchIndex = { messages, filter };
+
+      if (!opts.noRetryIfMissing && missingUsers.size > 0) {
+        // after returning, we fire off loading of names
+        // of all missing users, then redo the search index.
+        // Otherwise non-collaborators will be missing in the
+        // search index until store.get('messages') changes again.
+        setTimeout(async () => {
+          try {
+            const actions = this.redux.getActions("users");
+            await Promise.all(
+              Array.from(missingUsers).map((account_id) =>
+                actions.fetch_non_collaborator(account_id),
+              ),
+            );
+            await this.updateSearchIndex({ force: true, noRetryIfMissing: true });
+          } catch (err) {
+            console.warn(err);
+          }
+        }, 1);
+      }
+    },
+  );
 
   search = async (query: string) => {
     // used for highlighting

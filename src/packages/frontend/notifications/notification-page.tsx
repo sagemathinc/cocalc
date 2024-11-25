@@ -118,7 +118,8 @@ export function NotificationPage() {
           level={2}
           style={{ textAlign: "center", flex: "0 0 auto", marginTop: "10px" }}
         >
-          <Icon name="comments" /> Messages, Mentions and News
+          <Icon name="comments" style={{ marginRight: "10px" }} /> Messages,
+          Mentions and News
           <Button
             type="link"
             style={{ fontSize: "12pt" }}
