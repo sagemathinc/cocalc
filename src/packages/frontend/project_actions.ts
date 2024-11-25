@@ -6,6 +6,13 @@
 // TODO: we should refactor our code to not have these window/document/$ references here.
 declare let window, document, $;
 
+import * as async from "async";
+import { callback } from "awaiting";
+import { List, Map, Set, fromJS } from "immutable";
+import { isEqual } from "lodash";
+import { join } from "path";
+import { defineMessage } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
@@ -27,7 +34,8 @@ import {
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
-import { IntlMessage, dialogs, getIntl } from "@cocalc/frontend/i18n";
+import { IntlMessage, dialogs } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   download_file,
   open_new_tab,
@@ -95,12 +103,6 @@ import * as misc from "@cocalc/util/misc";
 import { reduxNameToProjectId } from "@cocalc/util/redux/name";
 import { MARKERS } from "@cocalc/util/sagews";
 import { client_db } from "@cocalc/util/schema";
-import * as async from "async";
-import { callback } from "awaiting";
-import { List, Map, Set, fromJS } from "immutable";
-import { isEqual } from "lodash";
-import { join } from "path";
-import { defineMessage } from "react-intl";
 import { get_editor } from "./editors/react-wrapper";
 
 const { defaults, required } = misc;

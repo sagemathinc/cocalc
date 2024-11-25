@@ -4,7 +4,8 @@
  */
 
 import { redux } from "@cocalc/frontend/app-framework";
-import { dialogs, getIntl } from "@cocalc/frontend/i18n";
+import { dialogs } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 
 /* Various actions depend on the project running, so this function currently does the following:
     - Checks whether or not the project is starting or running (assuming project state known -- admins don't know).
