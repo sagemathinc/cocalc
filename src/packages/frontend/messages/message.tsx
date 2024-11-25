@@ -132,7 +132,6 @@ function MessageInList({
             <ThreadCount
               thread_id={message.thread_id}
               threads={threads}
-              read={read || folder == "sent"}
             />
           )}
         </div>

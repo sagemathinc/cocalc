@@ -99,12 +99,10 @@ export default function Thread({
 export function ThreadCount({
   thread_id,
   threads,
-  read,
   style,
 }: {
   thread_id?: number;
   threads: iThreads;
-  read?: boolean;
   style?;
 }) {
   if (!thread_id) {
