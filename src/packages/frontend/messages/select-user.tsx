@@ -32,7 +32,7 @@ function UserLabel({ account_id, knownUsers }) {
               : users?.get(account_id)?.get("collaborator")
                 ? "(collaborator)"
                 : knownUsers.has(account_id)
-                  ? "(messaged with)"
+                  ? "(messaged)"
                   : "(unrelated)"}
           </span>
         }

@@ -404,7 +404,7 @@ function ShowOneThread({
       return message;
     }
     const thread = threads.get(message?.thread_id);
-    return thread.get(0)?.toJS() ?? message;
+    return thread?.get(0)?.toJS() ?? message;
   }, [message, threads]);
 
   if (message == null) {

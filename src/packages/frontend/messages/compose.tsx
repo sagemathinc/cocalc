@@ -321,7 +321,8 @@ export default function Compose({
           }}
           placeholder="Body..."
           autoFocus={replyTo != null || message != null}
-          style={{ minHeight: "200px", fontSize: "11pt" }}
+          height="50vh"
+          style={{ fontSize: "11pt" }}
           onShiftEnter={(body) => {
             setBody(body);
             if (body.trim()) {
