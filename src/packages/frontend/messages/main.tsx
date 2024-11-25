@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Flex, List, Space, Spin } from "antd";
+import { Button, Flex, List, Popconfirm, Space, Spin } from "antd";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { get_array_range } from "@cocalc/util/misc";
+import { get_array_range, plural } from "@cocalc/util/misc";
 import Message from "./message";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -160,24 +160,40 @@ function Actions({
         </Button>
       )}
       {folder == "trash" && (
-        <Button
-          danger
-          type="text"
-          disabled={!hasNotExpire({ checkedMessageIds, messages })}
-          onClick={() => {
+        <Popconfirm
+          title={() => {
+            const n = expandToThreads({
+              ids: checkedMessageIds,
+              threads,
+              messages,
+            }).size;
+            return `Are you sure you want to delete ${n == 1 ? "this" : "these"} ${n} ${plural(n, "message")} permanently?`;
+          }}
+          onConfirm={() => {
             redux.getActions("messages").mark({
               ids: expandToThreads({
                 ids: checkedMessageIds,
                 threads,
                 messages,
               }),
+              // We actually provide a 1 day grace period for permanently deleted
+              // messages.  The user instantly sees them disappear, but they only
+              // get purged a day later, in case they make a support request, etc.
               expire: dayjs().add(1, "day").toDate(),
             });
             setShowThread(null);
           }}
+          okText="Yes"
+          cancelText="No"
         >
-          <Icon name="trash" /> Delete Forever
-        </Button>
+          <Button
+            danger
+            type="text"
+            disabled={!hasNotExpire({ checkedMessageIds, messages })}
+          >
+            <Icon name="trash" /> Delete Forever
+          </Button>
+        </Popconfirm>
       )}
       {folder != "trash" && (
         <Button
@@ -341,7 +357,7 @@ function ShowAllThreads({
               threads={threads}
               checked={checkedMessageIds.has(message.id)}
               setChecked={
-                folder != "sent"
+                folder != "sent" && folder != "search"
                   ? ({ checked, shiftKey }) => {
                       if (shiftKey && mostRecentChecked != null) {
                         // set the range of id's between this message and the most recent one

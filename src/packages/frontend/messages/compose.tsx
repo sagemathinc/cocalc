@@ -248,6 +248,7 @@ export default function Compose({
           style={{ flex: 1 }}
           disabled={state == "sending" || state == "sent"}
           placeholder="Subject..."
+          status={!subject?.trim() && body.trim() ? "error" : undefined}
           value={subject}
           onChange={(e) => {
             const subject = e.target.value;
@@ -387,7 +388,10 @@ export default function Compose({
               </>
             )}
             {(state == "saving" || state == "compose") && (
-              <>Send (shift+enter)</>
+              <>
+                Send (shift+enter){" "}
+                {!subject.trim() ? " - enter subject above" : ""}
+              </>
             )}
             {state == "sent" && <>Sent</>}
           </Button>

@@ -47,7 +47,12 @@ export function isInFolderThreaded({
     }
     if (folder == "trash") {
       // trash = every message in thread that we received is in trash
+      // (expect expire when it's just gone or about to be)
       for (const message of thread) {
+        if (!isNullDate(message.get("expire"))) {
+          // gone (or will be very soon).
+          return false;
+        }
         if (
           message.get("to_id") == webapp_client.account_id &&
           !isInFolderNotThreaded({ message, folder })
@@ -74,6 +79,11 @@ function isInFolderNotThreaded({
   folder: Folder;
   search?: Set<number>;
 }) {
+  if (!isNullDate(message.get("expire"))) {
+    // gone (or will be very soon).
+    return false;
+  }
+
   // trash folder is exactly the deleted messages:
   if (folder == "trash") {
     return message.get("deleted");
