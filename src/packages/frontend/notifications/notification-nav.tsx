@@ -152,7 +152,7 @@ export function NotificationNav({ filter, on_click, style }: Props) {
           key: "messages-all",
           label: (
             <span style={{ textOverflow: "ellipsis", overflow: "hidden" }}>
-              <Icon name="comments" /> All Messages
+              <Icon name="mail" /> All Messages
             </span>
           ),
         },

@@ -281,7 +281,8 @@ export default function Compose({
         )}
 
         <Tooltip
-          title={`Status: ${body == draft.body && subject == draft.subject ? "Saved" : "Not Saved"}. You can edit this later before sending it.`}
+          placement="right"
+          title={`${body == draft.body && subject == draft.subject ? "Saved" : "Not Saved"}.  Edit this message later before sending it.`}
         >
           <Button
             onClick={() => saveDraft({ subject, body })}

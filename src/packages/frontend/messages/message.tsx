@@ -402,7 +402,7 @@ function getTag({ message: message0, threads, folder }) {
   ) {
     v.push(
       <Tag key="draft" color="orange">
-        Draft
+        <Icon name="note" /> Draft
       </Tag>,
     );
   }
@@ -417,7 +417,7 @@ function getTag({ message: message0, threads, folder }) {
   ) {
     v.push(
       <Tag key="inbox" color="green">
-        Inbox
+        <Icon name="container" /> Inbox
       </Tag>,
     );
   }
@@ -434,7 +434,9 @@ function getTag({ message: message0, threads, folder }) {
           </>
         }
       >
-        <Tag color="red">Deleting...</Tag>
+        <Tag color="red">
+          <Icon name="trash" /> Deleting...
+        </Tag>
       </Tooltip>,
     );
   }
