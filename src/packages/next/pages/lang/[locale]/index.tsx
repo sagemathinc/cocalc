@@ -5,7 +5,7 @@
 
 import { DownOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Dropdown, Layout } from "antd";
+import { Button, Dropdown, Layout } from "antd";
 
 import { GetServerSidePropsContext } from "next";
 
@@ -32,10 +32,11 @@ import Pitch from "components/landing/pitch";
 import { Tagline } from "components/landing/tagline";
 import { SHADOW } from "components/landing/util";
 import Logo from "components/logo";
-import { Paragraph, Title } from "components/misc";
+import { CSS, Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
-import { Customize } from "lib/customize";
+import { Customize, useCustomize } from "lib/customize";
 import withCustomize from "lib/with-customize";
+import basePath from "lib/base-path";
 
 import SAGEMATH_JUPYTER from "public/cocalc-sagemath-2024-11-22-nq8.png";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
@@ -44,23 +45,26 @@ import RTC from "public/features/cocalc-real-time-jupyter.png";
 import CHATROOM from "/public/features/chatroom.png";
 import JupyterTF from "/public/features/cocalc-jupyter2-20170508.png";
 import terminal from "/public/features/terminal.png";
+import { join } from "path";
 
 const HEADER_LEVEL = 3;
 
 function Nav() {
   const { t, lang } = useTranslation("index");
 
-  const items: MenuProps["items"] = LOCALE.map((locale, idx) => {
-    const l = LOCALIZATIONS[locale];
-    return {
-      key: idx,
-      label: (
-        <A href={`/${locale}`}>
-          {l.flag} {l.native} ({l.name})
-        </A>
-      ),
-    };
-  });
+  const items: MenuProps["items"] = [...LOCALE]
+    .sort((a, b) => LOCALIZATIONS[a].name.localeCompare(LOCALIZATIONS[b].name))
+    .map((locale, idx) => {
+      const l = LOCALIZATIONS[locale];
+      return {
+        key: idx,
+        label: (
+          <A href={`/${locale}`}>
+            {l.flag} {l.native} ({l.name})
+          </A>
+        ),
+      };
+    });
 
   const l = LOCALIZATIONS[lang];
   const color = COLORS.GRAY_DD;
@@ -93,6 +97,7 @@ function Nav() {
 }
 
 function Features() {
+  const { onCoCalcCom } = useCustomize();
   const { t } = useTranslation("index");
 
   function vendorOpenWorld() {
@@ -435,6 +440,120 @@ function Features() {
     );
   }
 
+  function gettingStarted() {
+    const style: CSS = { color: COLORS.GRAY_LL } as const;
+
+    if (onCoCalcCom) {
+      return (
+        <Pitch
+          title={t("getting-started")}
+          style={{ backgroundColor: COLORS.BLUE_D, ...style }}
+          col1={
+            <Info
+              level={HEADER_LEVEL}
+              title={t("gettingstarted-saas")}
+              anchor="a-saas"
+              style={{ backgroundColor: COLORS.BLUE_D }}
+              textStyle={style}
+            >
+              <Trans
+                i18nKey="index:gettingstarted-saas-text"
+                components={{
+                  strong: <strong />,
+                  A2: <A style={style} href="/auth/sign-up" />,
+                  A: <A style={style} href="/store" />,
+                  li: <li style={style} />,
+                  ul: <ul />,
+                  p: <Paragraph style={style} />,
+                }}
+              />
+              <Paragraph style={{ textAlign: "center" }}>
+                <Button
+                  ghost
+                  size="large"
+                  style={{ fontWeight: "bold" }}
+                  onClick={() =>
+                    (window.location.href = join(basePath, "/auth/sign-up"))
+                  }
+                  title={t("sign-up")}
+                >
+                  {t("sign-up")}
+                </Button>
+              </Paragraph>
+            </Info>
+          }
+          col2={
+            <Info
+              level={HEADER_LEVEL}
+              title={t("gettingstarted-onprem")}
+              anchor="a-onprem"
+              style={{ backgroundColor: COLORS.BLUE_D }}
+              textStyle={style}
+            >
+              <Trans
+                i18nKey="index:gettingstarted-onprem-text"
+                components={{
+                  strong: <strong />,
+                  A: <A style={style} href="https://onprem.cocalc.com" />,
+                  li: <li style={style} />,
+                  ul: <ul />,
+                  p: <Paragraph style={style} />,
+                }}
+              />
+              <Paragraph style={{ textAlign: "center" }}>
+                <Button
+                  ghost
+                  size="large"
+                  style={{ fontWeight: "bold" }}
+                  onClick={() =>
+                    (window.location.href = join(basePath, "/pricing/onprem"))
+                  }
+                  title={"On-Premises"}
+                >
+                  {t("gettingstarted-onprem")}
+                </Button>
+              </Paragraph>
+            </Info>
+          }
+        />
+      );
+    } else {
+      return (
+        <Info
+          level={HEADER_LEVEL}
+          title={t("getting-started")}
+          anchor="a-signup"
+          style={{ backgroundColor: COLORS.BLUE_D }}
+          textStyle={style}
+        >
+          <Trans
+            i18nKey="index:gettingstarted-signup-text"
+            components={{
+              strong: <strong />,
+              A: <A style={style} href="/auth/sign-up" />,
+              li: <li />,
+              ul: <ul />,
+              p: <Paragraph style={{ ...style, textAlign: "center" }} />,
+            }}
+          />
+          <Paragraph style={{ textAlign: "center" }}>
+            <Button
+              ghost
+              size="large"
+              style={{ fontWeight: "bold" }}
+              onClick={() =>
+                (window.location.href = join(basePath, "/auth/sign-up"))
+              }
+              title={t("sign-up")}
+            >
+              {t("sign-up")}
+            </Button>
+          </Paragraph>
+        </Info>
+      );
+    }
+  }
+
   return (
     <>
       {realtimeChat()}
@@ -442,6 +561,7 @@ function Features() {
       {jupyterLatex()}
       {vendorOpenWorld()}
       {teachingLinux()}
+      {gettingStarted()}
     </>
   );
 }
