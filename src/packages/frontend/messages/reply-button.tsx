@@ -1,26 +1,41 @@
-import { Button } from "antd";
-import Compose from "./compose";
-import { useState } from "react";
+import { Button, Spin, type ButtonProps } from "antd";
+import { useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { redux } from "@cocalc/frontend/app-framework";
+import type { Message } from "./types";
 
-export default function ReplyButton({ label = "Reply", replyTo, ...props }) {
-  const [open, setOpen] = useState<boolean>(false);
+interface ReplyButtonProps extends ButtonProps {
+  label?;
+  replyTo: Message;
+}
+
+export default function ReplyButton({
+  label = "Reply",
+  replyTo,
+  ...props
+}: ReplyButtonProps) {
+  const [creating, setCreating] = useState<boolean>(false);
+
+  const createReply = useMemo(
+    () => async () => {
+      const actions = redux.getActions("messages");
+      try {
+        setCreating(true);
+        await actions.createReply(replyTo);
+      } catch (err) {
+        actions.setError(`${err}`);
+      } finally {
+        setCreating(false);
+      }
+    },
+    [replyTo],
+  );
+
   return (
-    <>
-      {!open && (
-        <Button {...props} onClick={() => setOpen(true)}>
-          <Icon name="reply" />
-          {label ? <> {label}</> : undefined}
-        </Button>
-      )}
-      {open && (
-        <Compose
-          style={{ marginBottom: "45px", width: "90%" }}
-          replyTo={replyTo}
-          onCancel={() => setOpen(false)}
-          onSend={() => setOpen(false)}
-        />
-      )}
-    </>
+    <Button {...props} onClick={() => createReply()} disabled={creating}>
+      <Icon name="reply" />
+      {label}
+      {creating && <Spin style={{ marginLeft: "15px" }} />}
+    </Button>
   );
 }

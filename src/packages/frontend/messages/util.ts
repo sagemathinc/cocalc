@@ -318,3 +318,14 @@ export function setFragment({ folder, id }: { folder: Folder; id?: number }) {
     ...(id != null ? { id: `${id}` } : undefined),
   });
 }
+
+
+export function replySubject(subject) {
+  if (!subject?.trim()) {
+    return "";
+  }
+  if (subject.toLowerCase().startsWith("re:")) {
+    return subject;
+  }
+  return `Re: ${subject}`;
+}

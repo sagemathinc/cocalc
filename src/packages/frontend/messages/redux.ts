@@ -5,13 +5,14 @@
 
 import { Table } from "@cocalc/frontend/app-framework/Table";
 import { redux, Store, Actions } from "@cocalc/frontend/app-framework";
-import type { iMessagesMap, iThreads } from "./types";
+import type { iMessagesMap, iThreads, Message } from "./types";
 import { List as iList, Map as iMap } from "immutable";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { search_split, uuid } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { isFromMe, replySubject } from "./util";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
@@ -21,6 +22,8 @@ export interface MessagesState {
   searchWords: Set<string>;
   // show/hide the compose modal
   compose?: boolean;
+  // error to display to user
+  error: string;
 }
 export class MessagesStore extends Store<MessagesState> {}
 
@@ -35,6 +38,10 @@ export class MessagesActions extends Actions<MessagesState> {
   }
 
   getStore = () => this.redux.getStore("messages");
+
+  setError = (error: string) => {
+    this.setState({ error });
+  };
 
   mark = async ({
     id,
@@ -128,7 +135,7 @@ export class MessagesActions extends Actions<MessagesState> {
 
   updateDraft = (obj: {
     id: number;
-    thread_id?: number;
+    thread_id?: number | null;
     to_id?: string;
     to_type?: string;
     subject?: string;
@@ -202,6 +209,25 @@ export class MessagesActions extends Actions<MessagesState> {
     }
   };
 
+  createReply = async (message: Message) => {
+    let to_id, to_type;
+    if (isFromMe(message)) {
+      to_id = message.to_id;
+      to_type = message.to_type;
+    } else {
+      to_id = message.from_id;
+      to_type = message.from_type;
+    }
+    const subject = replySubject(message.subject);
+    await this.createDraft({
+      to_id,
+      to_type,
+      thread_id: message.thread_id ?? message.id,
+      subject,
+      body: "",
+    });
+  };
+
   updateSearchIndex = reuseInFlight(
     async (opts: { noRetryIfMissing?: boolean; force?: boolean } = {}) => {
       const store = this.getStore();
@@ -268,7 +294,10 @@ Body: ${message.get("body")}
                 actions.fetch_non_collaborator(account_id),
               ),
             );
-            await this.updateSearchIndex({ force: true, noRetryIfMissing: true });
+            await this.updateSearchIndex({
+              force: true,
+              noRetryIfMissing: true,
+            });
           } catch (err) {
             console.warn(err);
           }
@@ -422,6 +451,7 @@ export function init() {
   redux.createStore<MessagesState, MessagesStore>("messages", MessagesStore, {
     search: new Set<number>(),
     searchWords: new Set<string>(),
+    error: "",
   });
   redux.createActions<MessagesState, MessagesActions>(
     "messages",

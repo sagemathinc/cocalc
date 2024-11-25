@@ -1,5 +1,5 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { Button, Checkbox, Flex, Tag, Tooltip } from "antd";
+import { Checkbox, Flex, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -21,7 +21,7 @@ import type { iThreads, Folder } from "./types";
 import User from "./user";
 import { fromJS } from "immutable";
 import Compose from "./compose";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
@@ -127,10 +127,14 @@ function MessageInList({
             <span style={{ marginRight: "5px" }}>To: </span>
           )}
           {user}
+        </div>
+        <div style={{ width: "45px", textAlign: "right", marginRight: "10px" }}>
           {message.thread_id != null && threads != null && (
-            <span>
-              <ThreadCount thread_id={message.thread_id} threads={threads} />
-            </span>
+            <ThreadCount
+              thread_id={message.thread_id}
+              threads={threads}
+              read={read}
+            />
           )}
         </div>
         {!inThread && (
@@ -250,7 +254,6 @@ function MessageFull({
   showThread,
 }: Props) {
   const read = isRead({ message, folder });
-  const [replyOpen, setReplyOpen] = useState<boolean>(false);
   const searchWords = useTypedRedux("messages", "searchWords");
 
   useEffect(() => {
@@ -302,13 +305,7 @@ function MessageFull({
             marginRight: "15px",
           }}
         >
-          <Button
-            type="text"
-            disabled={replyOpen}
-            onClick={() => setReplyOpen(true)}
-          >
-            <Icon name="reply" />
-          </Button>
+          <ReplyButton type="text" replyTo={message} label="" />
         </div>
         <div
           style={{
@@ -360,11 +357,7 @@ function MessageFull({
         }}
       >
         {isFromMe(message) && message.sent == null && !isInTrash(message) ? (
-          <Compose
-            style={{ marginBottom: "45px" }}
-            message={message}
-            onCancel={() => setReplyOpen(false)}
-          />
+          <Compose style={{ marginBottom: "45px" }} message={message} />
         ) : (
           <>
             <MostlyStaticMarkdown
@@ -377,14 +370,6 @@ function MessageFull({
               <div>
                 <ReplyButton size="large" replyTo={message} />
               </div>
-            )}
-            {inThread && replyOpen && !isInTrash(message) && (
-              <Compose
-                style={{ marginBottom: "45px" }}
-                replyTo={message}
-                onCancel={() => setReplyOpen(false)}
-                onSend={() => setReplyOpen(false)}
-              />
             )}
           </>
         )}

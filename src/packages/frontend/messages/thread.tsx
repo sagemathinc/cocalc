@@ -99,9 +99,13 @@ export default function Thread({
 export function ThreadCount({
   thread_id,
   threads,
+  read,
+  style,
 }: {
   thread_id?: number;
   threads: iThreads;
+  read?: boolean;
+  style?;
 }) {
   if (thread_id == null) {
     return null;
@@ -141,7 +145,7 @@ export function ThreadCount({
         }
       }}
     >
-      <Badge style={{ marginLeft: "15px" }} count={count} color="#aaa" />
+      <Badge style={style} count={count} color={read ? "#aaa" : "green"} />
     </Tooltip>
   );
 }

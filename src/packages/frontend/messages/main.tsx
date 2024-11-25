@@ -416,6 +416,7 @@ function ShowOneThread({
     if (i != -1) {
       return i;
     }
+    return i;
     // It might just be that there is a newer message in this thread.
     // Alternatively, the thread we are currently viewing no longer exists in the given folder,
     // so change state to viewing threads instead... soon.

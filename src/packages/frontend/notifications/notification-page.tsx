@@ -130,6 +130,7 @@ export function NotificationPage() {
         </Title>
         {renderContent()}
         <Modal
+          width={600}
           title={
             <>
               <Icon name="question-circle" /> About Messages, Mentions and News

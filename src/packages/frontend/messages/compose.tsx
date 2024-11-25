@@ -6,25 +6,18 @@ between editing sessions of a draft.  It could be, e.g., via json
 to the database or something...
 */
 
-import {
-  Button,
-  Divider,
-  Flex,
-  Input,
-  Modal,
-  Slider,
-  Space,
-  Spin,
-  Tooltip,
-} from "antd";
+import { Button, Flex, Input, Modal, Slider, Space, Spin, Tooltip } from "antd";
 import SelectUser from "./select-user";
 import { useEffect, useRef, useState } from "react";
-import { redux, useActions } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import type { Message } from "@cocalc/util/db-schema/messages";
-import { isFromMe } from "./util";
+import { replySubject } from "./util";
 import User from "./user";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -34,18 +27,15 @@ import { useAsyncEffect } from "use-async-effect";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { human_readable_size } from "@cocalc/util/misc";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 const SAVE_INTERVAL_S = 10;
 
 export default function Compose({
-  replyTo,
   onCancel,
   onSend,
   style,
   message,
 }: {
-  replyTo?: Message;
   onCancel?: Function;
   onSend?: Function;
   style?;
@@ -56,22 +46,15 @@ export default function Compose({
   const actions = useActions("messages");
   const draftId = useRef<number | null>(message?.id ?? null);
 
-  const [to_type] = useState<string>(
-    message?.to_type ?? replyTo?.from_type ?? "account",
-  );
+  const [to_type] = useState<string>(message?.to_type ?? "account");
   // [ ] todo type != 'account' for destination!
   const [to_id, setToId] = useState<string>(() => {
     if (message?.to_id) {
       return message.to_id;
     }
-    if (isFromMe(replyTo)) {
-      return replyTo?.to_id ?? "";
-    }
-    return replyTo?.from_id ?? "";
+    return "";
   });
-  const [subject, setSubject] = useState<string>(
-    message?.subject ?? replySubject(replyTo?.subject),
-  );
+  const [subject, setSubject] = useState<string>(message?.subject ?? "");
   const [body, setBody] = useState<string>(message?.body ?? "");
   const [bodyIsFocused, setBodyIsFocused] = useState<boolean | undefined>(
     undefined,
@@ -152,7 +135,7 @@ export default function Compose({
         draftId.current = await actions.createDraft({
           to_id,
           to_type,
-          thread_id: getThreadId({ message, replyTo, subject }),
+          thread_id: getThreadId({ message, subject }),
           subject,
           body,
         });
@@ -161,7 +144,6 @@ export default function Compose({
           id: draftId.current,
           to_id,
           to_type,
-          thread_id: getThreadId({ message, replyTo, subject }),
           subject,
           body,
         });
@@ -179,6 +161,8 @@ export default function Compose({
   };
 
   const send = async (body0?: string) => {
+    const thread_id = getThreadId({ message, subject });
+    console.log({ thread_id, message, subject });
     try {
       setError("");
       setState("sending");
@@ -187,7 +171,7 @@ export default function Compose({
           id: draftId.current,
           to_id,
           to_type,
-          thread_id: getThreadId({ message, replyTo, subject }),
+          thread_id: thread_id ?? null,
           subject,
           body: body0 ?? body,
           sent: webapp_client.server_time(),
@@ -199,7 +183,7 @@ export default function Compose({
           to_type,
           subject,
           body: body0 ?? body,
-          thread_id: getThreadId({ message, replyTo, subject }),
+          thread_id,
         });
       }
       setState("sent");
@@ -232,7 +216,7 @@ export default function Compose({
         setError={setError}
         style={{ marginTop: "15px" }}
       />
-      {replyTo == null && message == null && (
+      {message == null && (
         <div>
           <SelectUser
             autoOpen={500}
@@ -243,9 +227,9 @@ export default function Compose({
           />
         </div>
       )}
-      {replyTo != null && to_id != null && (
+      {message != null && to_id != null && to_type != null && (
         <div style={{ color: "#666" }}>
-          to <User id={to_id} type="account" show_avatar />
+          to <User id={to_id} type={to_type} show_avatar />
         </div>
       )}
       <Flex>
@@ -339,7 +323,7 @@ export default function Compose({
             saveDraft({ body, subject });
           }}
           placeholder="Body..."
-          autoFocus={replyTo != null || message != null}
+          autoFocus={message != null}
           height="40vh"
           style={{ fontSize: "11pt" }}
           onShiftEnter={(body) => {
@@ -379,11 +363,10 @@ export default function Compose({
         />
       )}
       <div>
-        <div style={{ color: "#888" }}>
+        <div style={{ color: "#888", marginBottom: "5px" }}>
           Drag and drop or paste images or other files (max size:{" "}
           {human_readable_size(MAX_BLOB_SIZE)}) to include them in your message.
         </div>
-        <Divider />
         <Flex>
           <Button
             size="large"
@@ -392,7 +375,7 @@ export default function Compose({
               !to_id ||
               state == "sending" ||
               state == "sent" ||
-              (replyTo != null && !body.trim())
+              !body.trim()
             }
             type="primary"
             onClick={() => send()}
@@ -475,27 +458,24 @@ export function ComposeModal() {
   );
 }
 
-function replySubject(subject) {
-  if (!subject?.trim()) {
-    return "";
-  }
-  if (subject.toLowerCase().startsWith("re:")) {
-    return subject;
-  }
-  return `Re: ${subject}`;
-}
-
 // If user explicitly edits the thread in any way,
-// then reply starts a new thread (matching gmail behavior).
-function getThreadId({ message, replyTo, subject }) {
-  if (message?.thread_id) {
-    return message?.thread_id;
+// then reply starts a new thread.
+function getThreadId({ message, subject }): undefined | number {
+  if (message == null) {
+    return;
   }
-  if (replyTo == null) {
-    return undefined;
+  const { thread_id } = message;
+  if (!thread_id) {
+    // not in a thread, e.g., a standalone draft
+    return;
   }
-  if (subject.trim() == replySubject(replyTo?.subject)) {
-    return replyTo?.thread_id ?? replyTo?.id;
+  const threadSubject = redux
+    .getStore("messages")
+    .getIn(["messsages", thread_id, "subject"]);
+
+  if (subject.trim() == replySubject(threadSubject)) {
+    return thread_id;
   }
-  return undefined;
+  // changed the subject, so start a new thread.
+  return;
 }
