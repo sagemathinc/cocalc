@@ -135,12 +135,11 @@ function isInFolderNotThreaded({
   }
 
   const draft = isDraft(message);
-  const fromMe = isFromMe(message);
 
-  // drafts are messages from us that haven't been sent yet.
   if (folder == "drafts") {
-    return fromMe && draft;
+    return draft;
   }
+  const fromMe = isFromMe(message);
 
   // sent are messages from us that *have* been sent
   if (folder == "sent") {
@@ -223,6 +222,7 @@ export function isFromMe(message?: Mesg): boolean {
   );
 }
 
+// drafts are messages from us that haven't been sent yet.
 export function isDraft(message?: Mesg): boolean {
   return isFromMe(message) && !get(message, "sent");
 }

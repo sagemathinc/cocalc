@@ -1,6 +1,6 @@
 import { Input } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Search({ filter }) {
   const [value, setValue] = useState<string>("");
@@ -9,6 +9,19 @@ export default function Search({ filter }) {
     const actions = redux.getActions("messages");
     actions?.search(query);
   };
+
+  useEffect(() => {
+    // reset on mount
+    search("");
+  }, []);
+
+  useEffect(() => {
+    // changing the filter to anything other than messages-search
+    // clears the search.
+    if (filter != "messages-search") {
+      search("");
+    }
+  }, [filter]);
 
   return (
     <Input.Search

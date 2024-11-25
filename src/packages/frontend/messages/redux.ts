@@ -18,6 +18,7 @@ import {
   getNotExpired,
   getThreads,
 } from "./util";
+import { throttle } from "lodash";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
@@ -317,23 +318,30 @@ Body: ${message.get("body")}
     },
   );
 
-  search = async (query: string) => {
-    // used for highlighting
-    const searchWords = new Set(
-      search_split(query, false).filter((x) => typeof x == "string"),
-    );
-    this.setState({ searchWords });
-    // update search index, if necessary
-    await this.updateSearchIndex();
-    // the matching results
-    const search = new Set(await this.searchIndex.filter(query));
-    this.setState({ search });
+  search = throttle(
+    async (query: string) => {
+      if (!query.trim()) {
+        // easy special case
+        this.setState({ search: new Set() });
+        return;
+      }
+      // used for highlighting
+      const searchWords = new Set(
+        search_split(query, false).filter((x) => typeof x == "string"),
+      );
+      this.setState({ searchWords });
+      // update search index, if necessary
+      await this.updateSearchIndex();
+      // the matching results
+      const search = new Set(await this.searchIndex.filter(query));
+      this.setState({ search });
 
-    if (query.trim()) {
       // change folder if necessary
       this.redux.getActions("mentions").set_filter("messages-search");
-    }
-  };
+    },
+    300,
+    { leading: true, trailing: true },
+  );
 }
 
 class MessagesTable extends Table {
