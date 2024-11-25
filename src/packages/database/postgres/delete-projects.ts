@@ -247,7 +247,7 @@ async function delete_associated_project_data(
   // collecting tables, where the primary key is the default (i.e. "id") and
   // the field to check is always called "project_id"
   const tables = [
-    "blobs",
+    //"blobs", // TODO: this is a bit tricky, because data could be used elsewhere. In the future, there will be an associated account_id!
     "file_access_log",
     "file_use",
     "jupyter_api_log",
