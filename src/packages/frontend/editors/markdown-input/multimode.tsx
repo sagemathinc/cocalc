@@ -121,7 +121,7 @@ interface Props {
   onCursorTop?: () => void;
   onCursorBottom?: () => void;
 
-  // Declarative control of whether or not the editor is focused.  Only has an imput
+  // Declarative control of whether or not the editor is focused.  Only has an impact
   // if it is explicitly set to true or false.
   isFocused?: boolean;
 

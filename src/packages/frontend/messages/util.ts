@@ -30,6 +30,14 @@ export function isInFolderThreaded({
       // data not fully loaded yet -- so use best fallback
       return isInFolderNotThreaded({ message, folder, search });
     }
+
+    // eliminate any thread with an expired message from ALL folders,
+    for (const message of thread) {
+      if (isExpired(message)) {
+        return false;
+      }
+    }
+
     if (
       folder == "inbox" ||
       folder == "sent" ||
@@ -49,10 +57,6 @@ export function isInFolderThreaded({
       // trash = every message in thread that we received is in trash
       // (expect expire when it's just gone or about to be)
       for (const message of thread) {
-        if (!isNullDate(message.get("expire"))) {
-          // gone (or will be very soon).
-          return false;
-        }
         if (
           message.get("to_id") == webapp_client.account_id &&
           !isInFolderNotThreaded({ message, folder })
@@ -70,6 +74,11 @@ export function isInFolderThreaded({
   }
 }
 
+function isExpired(message) {
+  const expire = message.expire ?? message.get("expire");
+  return !isNullDate(expire);
+}
+
 function isInFolderNotThreaded({
   message,
   folder,
@@ -79,7 +88,7 @@ function isInFolderNotThreaded({
   folder: Folder;
   search?: Set<number>;
 }) {
-  if (!isNullDate(message.get("expire"))) {
+  if (isExpired(message)) {
     // gone (or will be very soon).
     return false;
   }

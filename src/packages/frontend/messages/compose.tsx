@@ -73,6 +73,9 @@ export default function Compose({
     message?.subject ?? replySubject(replyTo?.subject),
   );
   const [body, setBody] = useState<string>(message?.body ?? "");
+  const [bodyIsFocused, setBodyIsFocused] = useState<boolean | undefined>(
+    undefined,
+  );
 
   const [version, setVersion] = useState<number>(0);
   const [versions, setVersions] = useState<Date[]>([]);
@@ -220,6 +223,8 @@ export default function Compose({
     actions.saveSentMessagesTable();
   }, SAVE_INTERVAL_S * 1000);
 
+  const editorDivRef = useRef<any>(null);
+
   return (
     <Space direction="vertical" style={{ width: "100%", ...style }}>
       <ShowError
@@ -245,6 +250,15 @@ export default function Compose({
       )}
       <Flex>
         <Input
+          onFocus={() => {
+            setBodyIsFocused(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key == "Tab") {
+              // yes I designed a really weird way to focus the markdown editor...
+              setTimeout(() => setBodyIsFocused(true), 1);
+            }
+          }}
           style={{ flex: 1 }}
           disabled={state == "sending" || state == "sent"}
           placeholder="Subject..."
@@ -306,6 +320,8 @@ export default function Compose({
         (state == "sent" && <StaticMarkdown value={body} />)}
       {!(state == "sending" || state == "sent") && (
         <MarkdownInput
+          isFocused={bodyIsFocused}
+          editorDivRef={editorDivRef}
           getValueRef={getValueRef}
           saveDebounceMs={200}
           value={body}
