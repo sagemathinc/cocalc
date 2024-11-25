@@ -117,6 +117,7 @@ export default function Compose({
         id: draftId.current,
         expire: webapp_client.server_time(),
         deleted: true,
+        thread_id: 0,
       });
       draftId.current = null;
     } catch (_err) {}
@@ -418,12 +419,10 @@ export function ComposeButton(props) {
       onClick={() => {
         redux.getActions("messages")?.setState({ compose: true });
         if (!redux.getStore("mentions").get("filter").startsWith("messages-")) {
-          redux
-            .getActions("mentions")
-            .setState({
-              filter: "messages-sent",
-              id: undefined,
-            });
+          redux.getActions("mentions").setState({
+            filter: "messages-sent",
+            id: undefined,
+          });
         }
       }}
     >

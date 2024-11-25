@@ -28,8 +28,8 @@ import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-mark
 
 const LEFT_OFFSET = "46px";
 
-// useful for debuggin!
-const SHOW_ID = true;
+// useful for debugging!
+const SHOW_ID = false;
 
 interface Props {
   message: MessageType;
@@ -190,7 +190,7 @@ function MessageInList({
             style={{
               color: "#888",
               marginRight: "10px",
-              width: "25px",
+              width: "35px",
               textAlign: "right",
             }}
           >
