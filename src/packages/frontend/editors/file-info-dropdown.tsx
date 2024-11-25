@@ -23,7 +23,7 @@ interface Props {
   mode?: "explorer" | "flyout";
 }
 
-export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
+const EditorFileInfoDropdown: React.FC<Props> = React.memo(
   (props: Props) => {
     const {
       filename,
@@ -55,12 +55,11 @@ export const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         actions.set_active_tab("new", { new_ext });
         return;
       }
-      for (const action in file_actions) {
-        const v = file_actions[action];
-        if (v?.name == name) {
+      for (const key in file_actions) {
+        if (key === name) {
           actions.show_file_action_panel({
             path: filename,
-            action,
+            action: key,
           });
           break;
         }
