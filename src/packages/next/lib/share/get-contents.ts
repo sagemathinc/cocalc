@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import pathToFiles from "./path-to-files";
 import { promises as fs } from "fs";
-import { join } from "path";
 import { sortBy } from "lodash";
+import { join } from "path";
+
+import { pathToFiles } from "@cocalc/backend/files/path-to-files";
 import { hasSpecialViewer } from "@cocalc/frontend/file-extensions";
 import { getExtension } from "./util";
 
@@ -21,7 +22,7 @@ const LIMITS = {
   other: 1 * MB,
   // no special viewer
   generic: 2 * MB,
-};
+} as const;
 
 // also used for proxied content -- see https://github.com/sagemathinc/cocalc/issues/8020
 export function getSizeLimit(path: string): number {
