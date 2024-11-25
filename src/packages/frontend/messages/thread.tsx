@@ -145,7 +145,7 @@ export function ThreadCount({
         }
       }}
     >
-      <Badge style={style} count={count} color={read ? "#aaa" : "green"} />
+      <Badge style={style} count={count} color={"#aaa"} />
     </Tooltip>
   );
 }
