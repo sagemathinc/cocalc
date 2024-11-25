@@ -303,6 +303,7 @@
   "commands.generic.toggle_button_bar.confirm.title": "הסתר סרגל כלים בתפריט עבור כל העורכים",
   "commands.generic.toggle_button_bar.label": "{show, select, true {הסתר} other {הצג}} תפריט סרגל כלים...",
   "commands.generic.toggle_button_bar.title": "החלף אם להציג את סרגל הכלים של התפריט בכל העורכים או לא.",
+  "components.test-i18n.msg": "<p>מעוצב עם <b>מודגש</b> ו<i>נטוי</i>.</p>",
   "connection-info.hub_server": "שרת Hub",
   "connection-info.info": "צבע סמל החיבור משתנה ככל שמספר ההודעות המועברות לרכזת גדל. בדרך כלל, אין צורך בפעולה, אך הספירות מועילות לצורכי אבחון. המספר המרבי של הודעות שניתן לשלוח בו זמנית הוא {max}",
   "connection-info.messages_received": "התקבל",

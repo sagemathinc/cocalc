@@ -90,6 +90,12 @@ export async function load_server_settings_from_env(
   db: PostgreSQL,
 ): Promise<void> {
   const PREFIX = SERVER_SETTINGS_ENV_PREFIX;
+
+  // if none of the envvars starts with the prefix, then we don't do anything
+  if (!Object.keys(process.env).some((k) => k.startsWith(PREFIX))) {
+    return;
+  }
+
   L.debug("load_server_settings_from_env variables prefixed by ", PREFIX);
   // reset all readonly values
   await db.async_query({

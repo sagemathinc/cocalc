@@ -6,11 +6,13 @@
 // Implement the open_file actions for opening one single file in a project.
 
 import { callback } from "awaiting";
+
 import { alert_message } from "@cocalc/frontend/alerts";
 import { redux } from "@cocalc/frontend/app-framework";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
 import { termPath } from "@cocalc/frontend/frame-editors/terminal-editor/connected-terminal";
-import { dialogs, getIntl } from "@cocalc/frontend/i18n";
+import { dialogs } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectActions } from "@cocalc/frontend/project_actions";

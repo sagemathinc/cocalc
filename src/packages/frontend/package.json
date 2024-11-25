@@ -10,6 +10,8 @@
     "./components/run-button": "./dist/components/run-button/index.js",
     "./markdown": "./dist/markdown/index.js",
     "./misc": "./dist/misc/index.js",
+    "./i18n": "./dist/i18n/index.js",
+    "./i18n/trans/*": "./i18n/trans/*",
     "./tracker": "./dist/tracker/index.js",
     "./compute": "./dist/compute/index.js",
     "./misc/*": "./dist/misc/*.js",

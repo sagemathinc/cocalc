@@ -6,7 +6,8 @@
 import { Actions, redux } from "@cocalc/frontend/app-framework";
 import { set_window_title } from "@cocalc/frontend/browser";
 import { set_url, update_params } from "@cocalc/frontend/history";
-import { getIntl, labels } from "@cocalc/frontend/i18n";
+import { labels } from "@cocalc/frontend/i18n";
+import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   exitFullscreen,
   isFullscreen,
