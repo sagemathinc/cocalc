@@ -182,7 +182,7 @@ function MessageInList({
             />
           </Tooltip>
         </div>
-        <div
+        {/*<div
           style={{
             color: "#888",
             marginRight: "10px",
@@ -191,7 +191,7 @@ function MessageInList({
           }}
         >
           {message.id}
-        </div>
+        </div>*/}
       </Flex>
       {inThread && (
         <div

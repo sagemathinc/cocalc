@@ -3,8 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Empty, Flex } from "antd";
-import React, { useEffect } from "react";
+import { Button, Flex, Modal } from "antd";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Paragraph, Title } from "@cocalc/frontend/components";
@@ -15,8 +15,9 @@ import { COLORS } from "@cocalc/util/theme";
 import { NotificationFilter } from "./mentions/types";
 import { NotificationList } from "./notification-list";
 import { NotificationNav } from "./notification-nav";
+import { Icon } from "@cocalc/frontend/components/icon";
 
-export const NotificationPage: React.FC<{}> = () => {
+export function NotificationPage() {
   const intl = useIntl();
   const account_id = useTypedRedux("account", "account_id");
   const mentions = useTypedRedux("mentions", "mentions");
@@ -28,27 +29,25 @@ export const NotificationPage: React.FC<{}> = () => {
     Fragment.set({ page: filter });
   }, [filter]);
 
+  const [showHelp, setShowHelp] = useState<boolean>(false);
+
   function renderExplanation() {
     return (
-      <Paragraph
-        ellipsis={{
-          rows: 1,
-          expandable: true,
-          symbol: <strong>read more</strong>,
-        }}
-        style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}
-      >
+      <Paragraph style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}>
         {intl.formatMessage(
           {
             id: "notifications.page.intro",
             description:
               "The @ sign in front of a user name handle is used to notify someone else.",
-            defaultMessage: `Find messages, news or when someone used "@your_name" to explicitly mention you as a collaborator in a <A1>Chatroom</A1>,
+            defaultMessage: `This page contains messages, news or when someone used "@your_name" to explicitly mention you as a collaborator in a <A1>Chatroom</A1>,
             in the context of <A2>teaching</A2>, or <A3>when editing files.</A3>
-            For example, when editing text in a Jupyter notebook or whiteboard,
+            Messages are similar to email and allow you to send direct messages to any user of CoCalc,
+            with embedding images, markdown, LaTeX formulas, and handling of internal links.
+            When editing text in a Jupyter notebook or whiteboard,
             type an @ symbol, then select the name of a collaborator,
-            and they will receive an email telling them that you mentioned them.
-            You can also "@mention" yourself for testing or to make it easy to find something later.`,
+            and they will receive an email and be listed under mentions, telling them that 
+            you mentioned them. You can also "@mention" yourself for testing or to make it 
+            easy to find something later.`,
           },
           {
             A1: (c) => <A href="https://doc.cocalc.com/chat.html">{c}</A>,
@@ -107,7 +106,7 @@ export const NotificationPage: React.FC<{}> = () => {
     <div
       className="smc-vfill"
       style={{
-        padding: "15px 30px",
+        padding: "0 30px 15px 30px",
         display: "flex",
         flexDirection: "row",
         justifyContent: "center",
@@ -115,12 +114,33 @@ export const NotificationPage: React.FC<{}> = () => {
       }}
     >
       <div className="smc-vfill" style={{ maxWidth: "1400px" }}>
-        <Title level={2} style={{ textAlign: "center", flex: "0 0 auto" }}>
-          <Empty description="" /> Messages, Mentions and News
+        <Title
+          level={2}
+          style={{ textAlign: "center", flex: "0 0 auto", marginTop: "10px" }}
+        >
+          <Icon name="comments" /> Messages, Mentions and News
+          <Button
+            type="link"
+            style={{ fontSize: "12pt" }}
+            onClick={() => setShowHelp(true)}
+          >
+            <Icon name="question-circle" />
+          </Button>
         </Title>
-        {renderExplanation()}
         {renderContent()}
+        <Modal
+          title={
+            <>
+              <Icon name="question-circle" /> About Messages, Mentions and News
+            </>
+          }
+          open={showHelp}
+          onCancel={() => setShowHelp(false)}
+          onOk={() => setShowHelp(false)}
+        >
+          {renderExplanation()}
+        </Modal>
       </div>
     </div>
   );
-};
+}
