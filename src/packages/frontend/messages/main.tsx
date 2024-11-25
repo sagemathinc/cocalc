@@ -32,6 +32,12 @@ export default function Main({ messages, threads, filter, search }) {
       // BUG -- should never happen!
       return "inbox" as Folder;
     }
+    if (folder != "search") {
+      // clear search when switching to any other folder -- in next update loop
+      setTimeout(() => {
+        redux.getActions("messages").search("");
+      }, 0);
+    }
     return folder;
   }, [filter]);
 
@@ -124,23 +130,25 @@ function Actions({
 }) {
   return (
     <Space wrap>
-      <Button
-        type="text"
-        disabled={folder != "inbox"}
-        onClick={() => {
-          redux.getActions("messages").mark({
-            ids: expandToThreads({
-              ids: checkedMessageIds,
-              threads,
-              messages,
-            }),
-            saved: true,
-          });
-          setShowThread(null);
-        }}
-      >
-        <Icon name="download" /> Archive
-      </Button>
+      {folder != "sent" && folder != "trash" && folder != "search" && (
+        <Button
+          type="text"
+          disabled={folder != "inbox"}
+          onClick={() => {
+            redux.getActions("messages").mark({
+              ids: expandToThreads({
+                ids: checkedMessageIds,
+                threads,
+                messages,
+              }),
+              saved: true,
+            });
+            setShowThread(null);
+          }}
+        >
+          <Icon name="download" /> Archive
+        </Button>
+      )}
       {folder != "trash" && (
         <Button
           type="text"
@@ -192,7 +200,7 @@ function Actions({
           </Button>
         </Popconfirm>
       )}
-      {folder != "trash" && (
+      {folder != "trash" && folder != "sent" && folder != "search" && (
         <Button
           type="text"
           disabled={
@@ -212,7 +220,7 @@ function Actions({
           <Icon name="eye" /> Read
         </Button>
       )}
-      {folder != "trash" && (
+      {folder != "trash" && folder != "sent" && folder != "search" && (
         <Button
           type="text"
           disabled={!hasRead({ checkedMessageIds, messages, threads, folder })}
@@ -230,34 +238,37 @@ function Actions({
           <Icon name="eye-slash" /> Unread
         </Button>
       )}
-      {folder != "trash" && (
-        <Button
-          type="text"
-          disabled={
-            !enableMoveToInbox({
-              folder,
-              checkedMessageIds,
-              messages,
-              threads,
-            })
-          }
-          onClick={() => {
-            redux.getActions("messages").mark({
-              ids: expandToThreads({
-                ids: checkedMessageIds,
-                threads,
+      {folder != "trash" &&
+        folder != "search" &&
+        folder != "sent" &&
+        folder != "search" && (
+          <Button
+            type="text"
+            disabled={
+              !enableMoveToInbox({
+                folder,
+                checkedMessageIds,
                 messages,
-              }),
-              saved: false,
-              deleted: false,
-            });
-            setShowThread(null);
-          }}
-        >
-          <Icon name="container" /> To Inbox
-        </Button>
-      )}
-      {folder == "trash" && (
+                threads,
+              })
+            }
+            onClick={() => {
+              redux.getActions("messages").mark({
+                ids: expandToThreads({
+                  ids: checkedMessageIds,
+                  threads,
+                  messages,
+                }),
+                saved: false,
+                deleted: false,
+              });
+              setShowThread(null);
+            }}
+          >
+            <Icon name="container" /> To Inbox
+          </Button>
+        )}
+      {(folder == "trash" || folder == "search") && (
         <Button
           type="text"
           onClick={() => {
@@ -304,44 +315,41 @@ function ShowAllThreads({
 }) {
   return (
     <>
-      {folder == "sent" && <div style={{ height: "37px" }} />}
-      {folder != "sent" && (
-        <Flex style={{ minHeight: "37px" }}>
-          <Icon
-            onClick={() => {
-              if (checkedMessageIds.size == 0) {
-                setCheckedMessageIds(
-                  new Set(filteredMessages.map(({ id }) => id)),
-                );
-              } else {
-                setCheckedMessageIds(new Set());
-              }
-            }}
-            name={
-              checkedMessageIds.size == 0
-                ? "square"
-                : checkedMessageIds.size == filteredMessages.length
-                  ? "check-square"
-                  : "minus-square"
+      <Flex style={{ minHeight: "37px" }}>
+        <Icon
+          onClick={() => {
+            if (checkedMessageIds.size == 0) {
+              setCheckedMessageIds(
+                new Set(filteredMessages.map(({ id }) => id)),
+              );
+            } else {
+              setCheckedMessageIds(new Set());
             }
-            style={{
-              fontSize: "14pt",
-              color: "#666",
-              marginLeft: "24px",
-              marginRight: "30px",
-            }}
+          }}
+          name={
+            checkedMessageIds.size == 0
+              ? "square"
+              : checkedMessageIds.size == filteredMessages.length
+                ? "check-square"
+                : "minus-square"
+          }
+          style={{
+            fontSize: "14pt",
+            color: "#666",
+            marginLeft: "24px",
+            marginRight: "30px",
+          }}
+        />
+        {checkedMessageIds.size > 0 && (
+          <Actions
+            folder={folder}
+            checkedMessageIds={checkedMessageIds}
+            messages={messages}
+            setShowThread={setShowThread}
+            threads={threads}
           />
-          {checkedMessageIds.size > 0 && (
-            <Actions
-              folder={folder}
-              checkedMessageIds={checkedMessageIds}
-              messages={messages}
-              setShowThread={setShowThread}
-              threads={threads}
-            />
-          )}
-        </Flex>
-      )}
+        )}
+      </Flex>
       <List
         style={{ overflowY: "auto" }}
         bordered
@@ -351,38 +359,34 @@ function ShowAllThreads({
             <Message
               threads={threads}
               checked={checkedMessageIds.has(message.id)}
-              setChecked={
-                folder != "search"
-                  ? ({ checked, shiftKey }) => {
-                      if (shiftKey && mostRecentChecked != null) {
-                        // set the range of id's between this message and the most recent one
-                        // to be checked.  This matches the algorithm I think in gmail and our file explorer.
-                        const v = get_array_range(
-                          filteredMessages.map(({ id }) => id),
-                          mostRecentChecked,
-                          message.id,
-                        );
-                        if (checked) {
-                          for (const id of v) {
-                            checkedMessageIds.add(id);
-                          }
-                        } else {
-                          for (const id of v) {
-                            checkedMessageIds.delete(id);
-                          }
-                        }
-                      } else {
-                        if (checked) {
-                          checkedMessageIds.add(message.id);
-                        } else {
-                          checkedMessageIds.delete(message.id);
-                        }
-                      }
-                      setCheckedMessageIds(new Set(checkedMessageIds));
-                      setMostRecentChecked(message.id);
+              setChecked={({ checked, shiftKey }) => {
+                if (shiftKey && mostRecentChecked != null) {
+                  // set the range of id's between this message and the most recent one
+                  // to be checked.  This matches the algorithm I think in gmail and our file explorer.
+                  const v = get_array_range(
+                    filteredMessages.map(({ id }) => id),
+                    mostRecentChecked,
+                    message.id,
+                  );
+                  if (checked) {
+                    for (const id of v) {
+                      checkedMessageIds.add(id);
                     }
-                  : undefined
-              }
+                  } else {
+                    for (const id of v) {
+                      checkedMessageIds.delete(id);
+                    }
+                  }
+                } else {
+                  if (checked) {
+                    checkedMessageIds.add(message.id);
+                  } else {
+                    checkedMessageIds.delete(message.id);
+                  }
+                }
+                setCheckedMessageIds(new Set(checkedMessageIds));
+                setMostRecentChecked(message.id);
+              }}
               message={message}
               showThread={showThread}
               setShowThread={setShowThread}
@@ -483,15 +487,13 @@ function ShowOneThread({
           />
           Back
         </Button>
-        {folder != "sent" && (
-          <Actions
-            threads={threads}
-            folder={folder}
-            checkedMessageIds={new Set([showThread])}
-            messages={messages}
-            setShowThread={setShowThread}
-          />
-        )}
+        <Actions
+          threads={threads}
+          folder={folder}
+          checkedMessageIds={new Set([showThread])}
+          messages={messages}
+          setShowThread={setShowThread}
+        />
         <div style={{ flex: 1 }} />
         {mesgIndex != -1 && (
           <Space>

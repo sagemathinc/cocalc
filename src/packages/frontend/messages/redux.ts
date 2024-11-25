@@ -289,7 +289,6 @@ Body: ${message.get("body")}
         data,
         toString,
       });
-      console.log(data);
 
       this.searchIndex = { messages, filter };
 

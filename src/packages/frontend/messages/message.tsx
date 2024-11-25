@@ -19,7 +19,6 @@ import {
 import Thread, { ThreadCount } from "./thread";
 import type { iThreads, Folder } from "./types";
 import User from "./user";
-import { fromJS } from "immutable";
 import Compose from "./compose";
 import { useEffect } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -29,7 +28,7 @@ import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-mark
 const LEFT_OFFSET = "46px";
 
 // useful for debugging!
-const SHOW_ID = true;
+const SHOW_ID = false;
 
 interface Props {
   message: MessageType;
@@ -389,12 +388,7 @@ function MessageFull({
   );
 }
 
-function getTag({ message: message0, threads, folder }) {
-  // set deleted false so still see the tag even when message in the trash,
-  // which helps when undeleting.
-  const message = fromJS(message0)
-    .set("to_deleted", false)
-    .set("from_deleted", false);
+function getTag({ message, threads, folder }) {
   const v: JSX.Element[] = [];
   if (
     isInFolderThreaded({
@@ -411,6 +405,22 @@ function getTag({ message: message0, threads, folder }) {
   }
 
   if (
+    folder != "trash" &&
+    isInFolderThreaded({
+      message,
+      threads,
+      folder: "trash",
+    })
+  ) {
+    // this happens for search.
+    v.push(
+      <Tag key="inbox" color="blue">
+        <Icon name="trash" /> Trash
+      </Tag>,
+    );
+  }
+
+  if (
     folder != "inbox" &&
     folder != "trash" &&
     isInFolderThreaded({
@@ -422,21 +432,6 @@ function getTag({ message: message0, threads, folder }) {
     v.push(
       <Tag key="inbox" color="green">
         <Icon name="container" /> Inbox
-      </Tag>,
-    );
-  }
-
-  if (
-    folder != "trash" &&
-    isInFolderThreaded({
-      message,
-      threads,
-      folder: "trash",
-    })
-  ) {
-    v.push(
-      <Tag key="inbox" color="blue">
-        <Icon name="trash" /> Trash
       </Tag>,
     );
   }

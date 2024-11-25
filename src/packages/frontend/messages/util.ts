@@ -28,6 +28,9 @@ export function isInFolderThreaded({
     // not a thread
     return isInFolderNotThreaded({ message, folder, search });
   } else {
+    if (folder == "search" && (!search || search.size == 0)) {
+      return false;
+    }
     // a message is in a folder if some message in the thread is in that folder.
     const thread = threads.get(thread_id);
     if (thread == null) {
@@ -61,10 +64,7 @@ export function isInFolderThreaded({
       // trash = every message in thread that we received is in trash
       // (expect expire when it's just gone or about to be)
       for (const message of thread) {
-        if (
-          get(message, "to_id") == webapp_client.account_id &&
-          !isInFolderNotThreaded({ message, folder })
-        ) {
+        if (!isDeleted(message)) {
           return false;
         }
       }
@@ -114,8 +114,15 @@ function isInFolderNotThreaded({
   search?: Set<number>;
 }) {
   if (isExpired(message)) {
-    // gone (or will be very soon).
+    // gone (or will be very soon)
     return false;
+  }
+
+  if (folder == "search") {
+    if (!search) {
+      return false;
+    }
+    return search.has(get(message, "id"));
   }
 
   // trash folder is exactly the deleted messages:
@@ -129,13 +136,6 @@ function isInFolderNotThreaded({
 
   const draft = isDraft(message);
   const fromMe = isFromMe(message);
-
-  if (folder == "search") {
-    if ((draft && !fromMe) || search == null) {
-      return false;
-    }
-    return search.has(get(message, "id"));
-  }
 
   // drafts are messages from us that haven't been sent yet.
   if (folder == "drafts") {

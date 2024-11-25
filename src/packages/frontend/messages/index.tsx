@@ -44,7 +44,7 @@ export default function Messages({ filter, style }: Props) {
           }}
           className="smc-vfill"
         >
-          <Search />
+          <Search filter={filter} />
           <ShowError
             error={error}
             setError={(error) => redux.getActions("messages").setError(error)}
