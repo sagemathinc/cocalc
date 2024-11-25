@@ -13,6 +13,7 @@ import {
   isThreadRead,
   isInFolderThreaded,
   setFragment,
+  getThreadId,
 } from "./util";
 import { isFolder, Folder } from "./types";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -401,6 +402,7 @@ function ShowAllThreads({
 }
 
 function ShowOneThread({
+  // showThread = id of a HEAD message in a thread.
   showThread,
   setShowThread,
   threads,
@@ -416,7 +418,7 @@ function ShowOneThread({
     if (i != -1) {
       return i;
     }
-    return i;
+    // return i;
     // It might just be that there is a newer message in this thread.
     // Alternatively, the thread we are currently viewing no longer exists in the given folder,
     // so change state to viewing threads instead... soon.
@@ -430,12 +432,16 @@ function ShowOneThread({
       })
     ) {
       // Maybe thread exists, but has a newer HEAD, so change to that.
-      const thread_id = message.get("thread_id") ?? message.get("id");
+      const thread_id = getThreadId(message);
       const m = threads.get(thread_id)?.last();
       if (m != null) {
         // fix?
-        const j = v.indexOf(m.get("id"));
+        const newHeadIndex = m.get("id");
+        const j = v.indexOf(newHeadIndex);
         if (j != -1) {
+          setTimeout(() => {
+            setShowThread(newHeadIndex);
+          }, 0);
           return j;
         }
       }
@@ -448,7 +454,7 @@ function ShowOneThread({
     }, 0);
 
     return -1;
-  }, [showThread, filteredMessages]);
+  }, [showThread, filteredMessages, threads, messages]);
 
   const message = useMemo(
     () => messages.get(showThread)?.toJS(),
@@ -456,7 +462,7 @@ function ShowOneThread({
   );
 
   const first = useMemo(() => {
-    if (message?.thread_id == null) {
+    if (!message?.thread_id) {
       return message;
     }
     const thread = threads.get(message?.thread_id);

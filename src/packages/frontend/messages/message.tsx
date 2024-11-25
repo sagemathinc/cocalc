@@ -133,7 +133,7 @@ function MessageInList({
             <ThreadCount
               thread_id={message.thread_id}
               threads={threads}
-              read={read}
+              read={read || folder == "sent"}
             />
           )}
         </div>
@@ -193,9 +193,8 @@ function MessageInList({
           <div
             style={{
               color: "#888",
-              marginRight: "10px",
-              width: "35px",
-              textAlign: "right",
+              position: "absolute",
+              right: 0,
             }}
           >
             {message.id}
@@ -284,7 +283,7 @@ function MessageFull({
       }}
       className={inThread ? undefined : "smc-vfill"}
     >
-      {!inThread && message.thread_id != null && threads != null && (
+      {!inThread && !!message.thread_id && threads != null && (
         <Thread
           thread_id={message.thread_id}
           threads={threads}
@@ -323,6 +322,18 @@ function MessageFull({
             }}
           />
         </div>
+        {SHOW_ID && (
+          <div
+            style={{
+              color: "#888",
+              marginRight: "10px",
+              width: "50px",
+              textAlign: "right",
+            }}
+          >
+            {message.id}
+          </div>
+        )}
       </Flex>
       <div style={{ marginTop: "-20px" }} onClick={() => setShowThread?.(null)}>
         {user}

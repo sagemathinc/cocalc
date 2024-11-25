@@ -252,7 +252,7 @@ Table({
             try {
               // user is allowed to change a lot about messages *from* them only.
               const query =
-                "UPDATE messages SET to_id=$3,to_type=$4,subject=$5,body=$6,sent=$7,deleted=$8,expire=$9 WHERE to_type='account' AND from_id=$1 AND id=$2";
+                "UPDATE messages SET to_id=$3,to_type=$4,subject=$5,body=$6,sent=$7,deleted=$8,expire=$9,thread_id=$10 WHERE to_type='account' AND from_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -267,6 +267,7 @@ Table({
                 new_val.expire === 0 || new Date(new_val.expire).valueOf() == 0
                   ? null
                   : (new_val.expire ?? old_val.expire),
+                new_val.thread_id ?? old_val.thread_id,
               ];
               // putting from_id in the query specifically as an extra security measure, so user can't change
               // message with id they don't own.

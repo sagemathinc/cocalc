@@ -45,7 +45,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             ttl        : 0         # object in blobstore will have *at least* this ttl in seconds;
                                    # if there is already something in blobstore with longer ttl, we leave it;
                                    # infinite ttl = 0.
-            project_id : required  # the id of the project that is saving the blob
+            project_id : undefined  # the id of the project that is saving the blob
+            account_id : undefined  # the id of the user that is saving the blob
             check      : false     # if true, will give error if misc_node.uuidsha1(opts.blob) != opts.uuid
             compress   : undefined # optional compression to use: 'gzip', 'zlib'; only used if blob not already in db.
             level      : -1        # compression level (if compressed) -- see https://github.com/expressjs/compression#level
@@ -98,6 +99,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                             id         : opts.uuid
                             blob       : '\\x'+opts.blob.toString('hex')
                             project_id : opts.project_id
+                            account_id : opts.account_id
                             count      : 0
                             size       : opts.blob.length
                             created    : new Date()

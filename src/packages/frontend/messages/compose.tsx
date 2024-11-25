@@ -130,12 +130,13 @@ export default function Compose({
     try {
       setError("");
       setState("saving");
+      const thread_id = message?.thread_id;
       if (draftId.current == null) {
         draftId.current = 0;
         draftId.current = await actions.createDraft({
           to_id,
           to_type,
-          thread_id: getThreadId({ message, subject }),
+          thread_id,
           subject,
           body,
         });
@@ -144,6 +145,7 @@ export default function Compose({
           id: draftId.current,
           to_id,
           to_type,
+          thread_id,
           subject,
           body,
         });
@@ -162,7 +164,6 @@ export default function Compose({
 
   const send = async (body0?: string) => {
     const thread_id = getThreadId({ message, subject });
-    console.log({ thread_id, message, subject });
     try {
       setError("");
       setState("sending");
@@ -171,7 +172,7 @@ export default function Compose({
           id: draftId.current,
           to_id,
           to_type,
-          thread_id: thread_id ?? null,
+          thread_id,
           subject,
           body: body0 ?? body,
           sent: webapp_client.server_time(),
@@ -371,11 +372,7 @@ export default function Compose({
           <Button
             size="large"
             disabled={
-              !subject.trim() ||
-              !to_id ||
-              state == "sending" ||
-              state == "sent" ||
-              !body.trim()
+              !subject.trim() || !to_id || state == "sending" || state == "sent"
             }
             type="primary"
             onClick={() => send()}
@@ -460,8 +457,9 @@ export function ComposeModal() {
 
 // If user explicitly edits the thread in any way,
 // then reply starts a new thread.
-function getThreadId({ message, subject }): undefined | number {
+function getThreadId({ message, subject }): number | undefined {
   if (message == null) {
+    // not loaded yet or not replying
     return;
   }
   const { thread_id } = message;
@@ -471,11 +469,11 @@ function getThreadId({ message, subject }): undefined | number {
   }
   const threadSubject = redux
     .getStore("messages")
-    .getIn(["messsages", thread_id, "subject"]);
+    .getIn(["messages", thread_id, "subject"]);
 
   if (subject.trim() == replySubject(threadSubject)) {
     return thread_id;
   }
   // changed the subject, so start a new thread.
-  return;
+  return 0;
 }

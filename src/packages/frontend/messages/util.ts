@@ -3,6 +3,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { iThreads, iMessage, iMessagesMap, Folder } from "./types";
 import { cmp } from "@cocalc/util/misc";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import { Map as iMap } from "immutable";
 
 //       WARNING: If you change or add fields and logic that could impact the "number of
 // messages in the inbox that are not read", make sure to also update
@@ -20,7 +21,7 @@ export function isInFolderThreaded({
   search?: Set<number>;
 }) {
   const thread_id = message.get("thread_id");
-  if (thread_id == null) {
+  if (!thread_id) {
     // not a thread
     return isInFolderNotThreaded({ message, folder, search });
   } else {
@@ -186,7 +187,7 @@ export function isThreadRead({
   threads?: iThreads;
 }) {
   const thread_id = message.thread_id;
-  if (threads == null || thread_id == null) {
+  if (threads == null || !thread_id) {
     return isRead({ message, folder });
   }
   for (const message1 of threads.get(thread_id) ?? []) {
@@ -238,9 +239,13 @@ export function expandToThreads({
   }
   const expanded = new Set<number>();
   for (const id of ids) {
-    const thread_id = messages.get(id)?.get("thread_id") ?? id;
-    for (const message of (threads.get(thread_id)?.toJS() as any) ?? [{ id }]) {
-      expanded.add(message.id);
+    const thread_id = getThreadId(messages.get(id));
+    if (thread_id != null) {
+      for (const message of (threads.get(thread_id)?.toJS() as any) ?? [
+        { id },
+      ]) {
+        expanded.add(message.id);
+      }
     }
   }
   return expanded;
@@ -266,19 +271,16 @@ export function getFilteredMessages({
   // only keep the newest message in each thread -- this is what we display
   const missingThreadHeadIds = new Set<number>();
   m = m.filter((message) => {
-    const thread_id =
-      message.get("thread_id") ??
-      (threads.get(message.get("id")) != null ? message.get("id") : null);
+    const thread_id = getThreadId(message);
     if (thread_id == null) {
-      // message is not part of a thread
       return true;
     }
-    // message is part of a thread.
     const thread = threads.get(thread_id);
     if (thread == null) {
-      // this should never happen
+      // message is not part of a nontrivial thread, so it is the head of its own trivial thread
       return true;
     }
+    // message is part of a nontrivial thread.
     const headId = thread.get(thread.size - 1)?.get("id");
     if (headId != null && message.get("id") != headId) {
       missingThreadHeadIds.add(headId);
@@ -319,7 +321,6 @@ export function setFragment({ folder, id }: { folder: Folder; id?: number }) {
   });
 }
 
-
 export function replySubject(subject) {
   if (!subject?.trim()) {
     return "";
@@ -328,4 +329,20 @@ export function replySubject(subject) {
     return subject;
   }
   return `Re: ${subject}`;
+}
+
+// the id of the root message or undefined in case message is null.
+export function getThreadId(
+  message: Message | iMessage | undefined,
+): number | undefined {
+  if (message == null) {
+    return undefined;
+  }
+  if (iMap.isMap(message)) {
+    const m = message as unknown as iMessage;
+    return m.get("thread_id") ? m.get("thread_id") : m.get("id");
+  } else {
+    const m = message as unknown as Message;
+    return m.thread_id ? m.thread_id : m.id;
+  }
 }

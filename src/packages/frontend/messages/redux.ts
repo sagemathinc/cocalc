@@ -12,7 +12,7 @@ import { search_split, uuid } from "@cocalc/util/misc";
 import { once } from "@cocalc/util/async-utils";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import { isFromMe, replySubject } from "./util";
+import { getThreadId, isFromMe, isNullDate, replySubject } from "./util";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
@@ -129,13 +129,14 @@ export class MessagesActions extends Actions<MessagesState> {
     } else {
       messages = messages.merge(updatedMessages);
     }
+    messages = messages.filter((x) => isNullDate(x.get("expire")));
     const threads = getThreads(messages);
     this.setState({ messages, threads });
   };
 
   updateDraft = (obj: {
     id: number;
-    thread_id?: number | null;
+    thread_id?: number;
     to_id?: string;
     to_type?: string;
     subject?: string;
@@ -190,7 +191,7 @@ export class MessagesActions extends Actions<MessagesState> {
           body,
           to_id,
           to_type,
-          thread_id: thread_id ?? undefined,
+          thread_id,
         },
       },
     });
@@ -222,7 +223,7 @@ export class MessagesActions extends Actions<MessagesState> {
     await this.createDraft({
       to_id,
       to_type,
-      thread_id: message.thread_id ?? message.id,
+      thread_id: getThreadId(message),
       subject,
       body: "",
     });
@@ -328,7 +329,7 @@ export function getThreads(messages): iThreads {
 
   const process = (message) => {
     const thread_id = message.get("thread_id");
-    if (thread_id == null) {
+    if (!thread_id) {
       return;
     }
     const root = messages.get(thread_id);

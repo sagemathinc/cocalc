@@ -60,7 +60,7 @@ export default function Thread({
     return expanded;
   });
 
-  if (thread_id == null) {
+  if (!thread_id) {
     return null;
   }
   const thread = threads.get(thread_id)?.toJS();
@@ -107,7 +107,7 @@ export function ThreadCount({
   read?: boolean;
   style?;
 }) {
-  if (thread_id == null) {
+  if (!thread_id) {
     return null;
   }
   const thread = threads.get(thread_id);
