@@ -325,7 +325,6 @@ export default function Compose({
           placeholder="Body..."
           autoFocus={message != null}
           height="40vh"
-          style={{ fontSize: "11pt" }}
           onShiftEnter={(body) => {
             setBody(body);
             if (body.trim()) {
@@ -363,7 +362,7 @@ export default function Compose({
         />
       )}
       <div>
-        <div style={{ color: "#888", marginBottom: "5px" }}>
+        <div style={{ color: "#888", marginBottom: "5px", fontSize: "11pt" }}>
           Drag and drop or paste images or other files (max size:{" "}
           {human_readable_size(MAX_BLOB_SIZE)}) to include them in your message.
         </div>
