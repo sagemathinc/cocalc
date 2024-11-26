@@ -22,6 +22,9 @@ export function getNotificationFilterFromFragment(): {
         id = parseInt(id0);
       }
     } catch (_err) {}
+    if (filter == "messages-search") {
+      return { filter: "messages-all", id };
+    }
     return { filter, id };
   }
   return { filter: "messages-inbox" as NotificationFilter };
