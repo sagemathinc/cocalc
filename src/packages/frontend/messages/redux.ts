@@ -18,7 +18,7 @@ import {
   getNotExpired,
   getThreads,
 } from "./util";
-import { throttle } from "lodash";
+import { debounce, throttle } from "lodash";
 
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
@@ -147,7 +147,7 @@ export class MessagesActions extends Actions<MessagesState> {
     this.setState({ messages, threads });
   };
 
-  updateDraft = (obj: {
+  updateDraft = async (obj: {
     id: number;
     thread_id?: number;
     to_id?: string;
@@ -155,9 +155,9 @@ export class MessagesActions extends Actions<MessagesState> {
     subject?: string;
     body?: string;
     sent?: Date;
-    // deleted and expire are only allowed if the draft message is not sent
     deleted?: boolean;
     expire?: Date;
+    debounceSave?: boolean;
   }) => {
     const table = this.redux.getTable("sent_messages")._table;
     const current = table.get_one(`${obj.id}`);
@@ -168,18 +168,33 @@ export class MessagesActions extends Actions<MessagesState> {
       obj[`from_${field}`] = obj[field];
       delete obj[field];
     }
+    const debounceSave = obj.debounceSave;
+    delete obj.debounceSave;
     // sets it in the local table so it's there when you come back.
-    // does NOT save the local table to the database though.
-    // Only save to database when user exits out of the draft,
-    // or sending it by setting sent to true (so recipient can see).
-    // It also gets saved periodically.
     table.set(obj);
+    if (debounceSave) {
+      this.debounceSaveSentMessagesTable();
+    } else {
+      await this.saveSentMessagesTable();
+    }
   };
 
-  saveSentMessagesTable = async () => {
+  private saveSentMessagesTable = async () => {
     const table = this.redux.getTable("sent_messages")._table;
     await table.save();
   };
+
+  private debounceSaveSentMessagesTable = debounce(
+    async () => {
+      try {
+        await this.saveSentMessagesTable();
+      } catch (err) {
+        console.warn(err);
+      }
+    },
+    5000,
+    { leading: false, trailing: true },
+  );
 
   createDraft = async ({
     to_id,
@@ -217,7 +232,14 @@ export class MessagesActions extends Actions<MessagesState> {
         if (message.get("subject") == uniqueSubject) {
           const id = message.get("id");
           // set the subject to actual one
-          await this.updateDraft({ id, subject });
+          // debounceSave:true is critical here, since if we also launch
+          // a backend save, then immediately call updateDraft due to
+          // new changes, they get missed. (TODO: This is a weird and worrisome
+          // aspect of SyncTable -- they can miss out on a write if it
+          // happens exactly when doing a save. Try changing the debounceSave
+          // to false below, click "Compose", type a subject quickly then
+          // immediately close the modal.)
+          await this.updateDraft({ id, subject, debounceSave: true });
           return id;
         }
       }

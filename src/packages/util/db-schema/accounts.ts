@@ -393,6 +393,10 @@ Table({
         min: 0,
       },
     },
+    last_message_summary: {
+      type: "timestamp",
+      desc: "The last time the system sent an email to this user with a summary about new messages (see messages.ts).",
+    },
   },
   rules: {
     desc: "All user accounts.",

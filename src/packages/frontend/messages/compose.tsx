@@ -8,7 +8,7 @@ to the database or something...
 
 import { Button, Flex, Input, Modal, Slider, Space, Spin, Tooltip } from "antd";
 import SelectUser from "./select-user";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   redux,
   useActions,
@@ -21,14 +21,11 @@ import { replySubject } from "./util";
 import User from "./user";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { useInterval } from "react-interval-hook";
 import ephemeralSyncstring from "@cocalc/sync/editor/string/test/ephemeral-syncstring";
 import { useAsyncEffect } from "use-async-effect";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { human_readable_size } from "@cocalc/util/misc";
-
-const SAVE_INTERVAL_S = 10;
 
 export default function Compose({
   onCancel,
@@ -101,29 +98,32 @@ export default function Compose({
     try {
       actions.updateDraft({
         id: draftId.current,
-        expire: webapp_client.server_time(),
         deleted: true,
+        // break it from the current thread
         thread_id: 0,
       });
       draftId.current = null;
     } catch (_err) {}
   };
 
-  const saveDraft = async ({ subject, body }, save = false) => {
+  const saveQueueRef = useRef<{ subject: string; body: string } | null>(null);
+  const saveDraft = async ({ subject, body }) => {
     if (draftId.current === 0) {
+      // it's very important not to just discard this, in case user
+      // quickly closes their draft
+      saveQueueRef.current = { subject, body };
       // currently creating draft
       return;
     }
     if (
-      !save &&
-      (state == "sending" ||
-        state == "sent" ||
-        !to_id ||
-        !to_type ||
-        (draft.to_id == to_id &&
-          draft.to_type == to_type &&
-          draft.subject == subject &&
-          draft.body == body))
+      state == "sending" ||
+      state == "sent" ||
+      !to_id ||
+      !to_type ||
+      (draft.to_id == to_id &&
+        draft.to_type == to_type &&
+        draft.subject == subject &&
+        draft.body == body)
     ) {
       return;
     }
@@ -133,13 +133,26 @@ export default function Compose({
       const thread_id = message?.thread_id;
       if (draftId.current == null) {
         draftId.current = 0;
-        draftId.current = await actions.createDraft({
+        const id = await actions.createDraft({
           to_id,
           to_type,
           thread_id,
           subject,
           body,
         });
+        draftId.current = id;
+        if (saveQueueRef.current != null) {
+          actions.updateDraft({
+            id,
+            to_id,
+            to_type,
+            thread_id,
+            subject: saveQueueRef.current.subject,
+            body: saveQueueRef.current.body,
+            debounceSave: true,
+          });
+          saveQueueRef.current = null;
+        }
       } else {
         actions.updateDraft({
           id: draftId.current,
@@ -148,6 +161,7 @@ export default function Compose({
           thread_id,
           subject,
           body,
+          debounceSave: true,
         });
       }
       setDraft({ to_id, to_type, subject, body });
@@ -177,7 +191,6 @@ export default function Compose({
           body: body0 ?? body,
           sent: webapp_client.server_time(),
         });
-        await actions.saveSentMessagesTable();
       } else {
         await actions.send({
           to_id,
@@ -195,19 +208,6 @@ export default function Compose({
     }
   };
 
-  // fire off a save on unmount of this component
-  useEffect(() => {
-    return () => {
-      actions.saveSentMessagesTable();
-    };
-  }, []);
-
-  // also just ensure every so often that any drafts are saved
-  // to the backend.
-  useInterval(() => {
-    actions.saveSentMessagesTable();
-  }, SAVE_INTERVAL_S * 1000);
-
   const editorDivRef = useRef<any>(null);
 
   return (
@@ -220,7 +220,7 @@ export default function Compose({
       {message == null && (
         <div>
           <SelectUser
-            autoOpen={500}
+            autoOpen={250}
             autoFocus
             disabled={state != "compose"}
             placeholder="To (search by name or email)..."
