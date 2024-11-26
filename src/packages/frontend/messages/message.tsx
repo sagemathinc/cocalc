@@ -61,6 +61,7 @@ function MessageInList({
   threads,
   inThread,
 }: Props) {
+  const fontSize = useTypedRedux("messages", "fontSize");
   const searchWords = useTypedRedux("messages", "searchWords");
   const read = inThread
     ? isRead({ message, folder })
@@ -120,6 +121,7 @@ function MessageInList({
             overflow: "hidden",
             whiteSpace: "pre",
             marginRight: "10px",
+            fontSize,
           }}
         >
           {folder == "sent" && !inThread && (
@@ -127,11 +129,18 @@ function MessageInList({
           )}
           {user}
         </div>
-        <div style={{ width: "45px", textAlign: "right", marginRight: "10px" }}>
+        <div
+          style={{
+            width: "45px",
+            textAlign: "right",
+            marginRight: "10px",
+          }}
+        >
           {message.thread_id != null && threads != null && (
             <ThreadCount
               thread_id={message.thread_id}
               threads={threads}
+              style={{ fontSize }}
             />
           )}
         </div>
@@ -143,6 +152,7 @@ function MessageInList({
               overflow: "hidden",
               whiteSpace: "pre",
               marginRight: "10px",
+              fontSize,
             }}
           >
             {getTag({ message, threads, folder })}
@@ -183,6 +193,7 @@ function MessageInList({
                 width: "150px",
                 textAlign: "right",
                 fontWeight: read ? undefined : "bold",
+                fontSize,
               }}
             />
           </Tooltip>
@@ -207,6 +218,7 @@ function MessageInList({
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
             color: "#666",
+            fontSize,
           }}
         >
           <HighlightText searchWords={searchWords} text={message.body} />
@@ -252,6 +264,7 @@ function MessageFull({
 }: Props) {
   const read = isRead({ message, folder });
   const searchWords = useTypedRedux("messages", "searchWords");
+  const fontSize = useTypedRedux("messages", "fontSize");
 
   useEffect(() => {
     setFragment({ folder, id: message.id });
@@ -286,7 +299,7 @@ function MessageFull({
           thread_id={message.thread_id}
           threads={threads}
           folder={folder}
-          style={{ marginBottom: "10px" }}
+          style={{ marginBottom: "10px", fontSize }}
           defaultExpanded={
             showThread != null ? new Set([showThread]) : undefined
           }
@@ -317,6 +330,7 @@ function MessageFull({
               whiteSpace: "pre",
               textAlign: "right",
               fontWeight: read ? undefined : "bold",
+              fontSize,
             }}
           />
         </div>
@@ -333,7 +347,10 @@ function MessageFull({
           </div>
         )}
       </Flex>
-      <div style={{ marginTop: "-20px" }} onClick={() => setShowThread?.(null)}>
+      <div
+        style={{ marginTop: "-20px", fontSize: "11pt" }}
+        onClick={() => setShowThread?.(null)}
+      >
         {user}
         <div
           style={{
@@ -363,6 +380,7 @@ function MessageFull({
         style={{
           marginLeft: LEFT_OFFSET,
           marginTop: "30px",
+          fontSize,
         }}
       >
         {isDraft(message) && !isDeleted(message) ? (
@@ -372,7 +390,7 @@ function MessageFull({
             <MostlyStaticMarkdown
               value={message.body}
               searchWords={searchWords}
-              style={{ fontSize: "11pt" }}
+              style={{ fontSize }}
             />
             <div style={{ height: "30px" }} />
             {!inThread && !isDeleted(message) && (

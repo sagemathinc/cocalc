@@ -17,6 +17,7 @@ import {
 import { isFolder, Folder } from "./types";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
+import Zoom from "./zoom";
 
 export default function Main({ messages, threads, filter, search }) {
   const [checkedMessageIds, setCheckedMessageIds] = useState<Set<number>>(
@@ -349,6 +350,8 @@ function ShowAllThreads({
             threads={threads}
           />
         )}
+        <div style={{ flex: 1 }} />
+        <Zoom />
       </Flex>
       <List
         style={{ overflowY: "auto" }}
@@ -497,6 +500,7 @@ function ShowOneThread({
         <div style={{ flex: 1 }} />
         {mesgIndex != -1 && (
           <Space>
+            <Zoom style={{ marginRight: "15px" }} />
             {mesgIndex + 1} of {filteredMessages.length}
             <Button
               size="large"

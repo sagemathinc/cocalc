@@ -18,7 +18,6 @@ import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { replySubject } from "./util";
-import User from "./user";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ephemeralSyncstring from "@cocalc/sync/editor/string/test/ephemeral-syncstring";
@@ -26,6 +25,7 @@ import { useAsyncEffect } from "use-async-effect";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { MAX_BLOB_SIZE } from "@cocalc/util/db-schema/blobs";
 import { human_readable_size } from "@cocalc/util/misc";
+import Zoom from "./zoom";
 
 export default function Compose({
   onCancel,
@@ -41,6 +41,7 @@ export default function Compose({
   message?;
 }) {
   const actions = useActions("messages");
+  const fontSize = useTypedRedux("messages", "fontSize");
   const draftId = useRef<number | null>(message?.id ?? null);
 
   const [to_type] = useState<string>(message?.to_type ?? "account");
@@ -228,11 +229,6 @@ export default function Compose({
           />
         </div>
       )}
-      {message != null && to_id != null && to_type != null && (
-        <div style={{ color: "#666" }}>
-          to <User id={to_id} type={to_type} show_avatar />
-        </div>
-      )}
       <Flex>
         <Input
           onFocus={() => {
@@ -244,7 +240,7 @@ export default function Compose({
               setTimeout(() => setBodyIsFocused(true), 1);
             }
           }}
-          style={{ flex: 1 }}
+          style={{ flex: 1, fontSize }}
           disabled={state == "sending" || state == "sent"}
           placeholder="Subject..."
           status={!subject?.trim() && body.trim() ? "error" : undefined}
@@ -280,7 +276,7 @@ export default function Compose({
             />
           </div>
         )}
-
+        <Zoom style={{ margin: "0 5px" }} />
         <Tooltip
           placement="right"
           title={`${body == draft.body && subject == draft.subject ? "Saved" : "Not Saved"}.  Edit this message later before sending it.`}
@@ -302,9 +298,12 @@ export default function Compose({
         </Tooltip>
       </Flex>
       {state == "sending" ||
-        (state == "sent" && <StaticMarkdown value={body} />)}
+        (state == "sent" && (
+          <StaticMarkdown value={body} style={{ fontSize }} />
+        ))}
       {!(state == "sending" || state == "sent") && (
         <MarkdownInput
+          fontSize={fontSize}
           isFocused={bodyIsFocused}
           editorDivRef={editorDivRef}
           getValueRef={getValueRef}

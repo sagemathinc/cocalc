@@ -30,6 +30,7 @@ export interface MessagesState {
   compose?: boolean;
   // error to display to user
   error: string;
+  fontSize: number;
 }
 export class MessagesStore extends Store<MessagesState> {}
 
@@ -364,6 +365,12 @@ Body: ${message.get("body")}
     300,
     { leading: true, trailing: true },
   );
+
+  setFontSize = (fontSize: number) => {
+    fontSize = Math.max(5, Math.min(fontSize, 100));
+    this.setState({ fontSize });
+    localStorage.messagesFontSize = `${fontSize}`;
+  };
 }
 
 class MessagesTable extends Table {
@@ -459,6 +466,7 @@ export function init() {
     search: new Set<number>(),
     searchWords: new Set<string>(),
     error: "",
+    fontSize: loadFontSize(),
   });
   redux.createActions<MessagesState, MessagesActions>(
     "messages",
@@ -467,4 +475,13 @@ export function init() {
   redux.createTable("messages", MessagesTable);
   redux.createTable("sent_messages", SentMessagesTable);
   initialized = true;
+}
+
+function loadFontSize() {
+  try {
+    const n = parseInt(localStorage.messagesFontSize ?? "11");
+    return isNaN(n) ? 11 : n;
+  } catch {
+    return 11;
+  }
 }
