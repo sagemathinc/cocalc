@@ -20,6 +20,8 @@ import {
 } from "./util";
 import { debounce, throttle } from "lodash";
 
+const DEFAULT_FONT_SIZE = 14;
+
 export interface MessagesState {
   // map from string version of message id to immutablejs Message.
   messages?: iMessagesMap;
@@ -479,9 +481,9 @@ export function init() {
 
 function loadFontSize() {
   try {
-    const n = parseInt(localStorage.messagesFontSize ?? "11");
-    return isNaN(n) ? 11 : n;
+    const n = parseInt(localStorage.messagesFontSize ?? "${DEFAULT_FONT_SIZE}");
+    return isNaN(n) ? DEFAULT_FONT_SIZE : n;
   } catch {
-    return 11;
+    return DEFAULT_FONT_SIZE;
   }
 }

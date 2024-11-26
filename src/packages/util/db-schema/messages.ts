@@ -43,7 +43,9 @@ import { ID } from "./crm";
 import throttle from "@cocalc/util/api/throttle";
 import { SCHEMA as schema } from "./index";
 
-export const NUM_MESSAGES = 300;
+// make this a bit big initially -- we'll add a feature to "load more", hopefully before
+// this limit is a problem
+export const NUM_MESSAGES = 1000;
 
 export type Entity = "project" | "system" | "support" | "account";
 
