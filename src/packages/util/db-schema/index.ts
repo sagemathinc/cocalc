@@ -34,6 +34,7 @@ import "./email-counter";
 import "./file-access-log";
 import "./file-use-times";
 import "./file-use";
+import "./groups";
 import "./hub-servers";
 import "./instances"; // probably deprecated
 import "./jupyter";

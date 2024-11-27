@@ -58,7 +58,7 @@ export class Changes extends EventEmitter {
     select: QuerySelect,
     watch: string[],
     where: WhereCondition,
-    cb: Function
+    cb: Function,
   ) {
     super();
     this.handle_change = this.handle_change.bind(this);
@@ -74,8 +74,8 @@ export class Changes extends EventEmitter {
   async init(cb: Function): Promise<void> {
     this.dbg("constructor")(
       `select=${misc.to_json(this.select)}, watch=${misc.to_json(
-        this.watch
-      )}, @_where=${misc.to_json(this.where)}`
+        this.watch,
+      )}, @_where=${misc.to_json(this.where)}`,
     );
 
     try {
@@ -90,7 +90,7 @@ export class Changes extends EventEmitter {
         this.db._listen,
         this.table,
         this.select,
-        this.watch
+        this.watch,
       );
     } catch (err) {
       cb(err);
@@ -286,7 +286,7 @@ export class Changes extends EventEmitter {
   private new_val_update(
     primary_part: { [key: string]: any },
     this_val: { [key: string]: any },
-    key: string
+    key: string,
   ):
     | { new_val: { [key: string]: any }; action: "insert" | "update" }
     | undefined {
@@ -340,7 +340,9 @@ export class Changes extends EventEmitter {
 
     this.condition = {};
     const add_condition = (field: string, op: Operator, val: any): void => {
-      if (this.condition == null) return; // won't happen
+      if (this.condition == null) {
+        return; // won't happen
+      }
       let f: Function, g: Function;
       field = field.trim();
       if (field[0] === '"') {
@@ -349,7 +351,7 @@ export class Changes extends EventEmitter {
       }
       if (this.select[field] == null) {
         throw Error(
-          `'${field}' must be in select="${JSON.stringify(this.select)}"`
+          `'${field}' must be in select="${JSON.stringify(this.select)}"`,
         );
       }
       if (misc.is_object(val)) {
@@ -406,6 +408,7 @@ export class Changes extends EventEmitter {
              - "field op $::TYPE"
              - "field op $" or
              - "field op any($)"
+             - "$ op any(field)"
              - 'field' (defaults to =)
           where op is one of =, <, >, <=, >=, !=
 
@@ -413,17 +416,52 @@ export class Changes extends EventEmitter {
              - something where javascript === and comparisons works as you expect!
              - or an array, in which case op must be = or !=, and we ALWAYS do inclusion (analogue of any).
           */
-          let found = false;
-          for (const op of OPERATORS) {
-            const i = k.indexOf(op);
-            if (i !== -1) {
-              add_condition(k.slice(0, i).trim(), op, val);
-              found = true;
-              break;
+          if (k.startsWith("$")) {
+            /*
+            The "$ op any(field)" is used, e.g., for having multiple owners
+            of a single thing, e.g.,:
+
+               pg_where: [{ "$::UUID = ANY(owner_account_ids)": "account_id" }]
+
+            where we need to get the field(=owner_account_ids) and check that 
+            val(=account_id) is in it, at the javascript level.
+            */
+            if (k.includes("<") || k.includes(">")) {
+              throw Error("only = and != are supported");
             }
-          }
-          if (!found) {
-            throw Error(`unable to parse '${k}'`);
+            const isEquals = !k.includes("!=");
+            const i = k.toLowerCase().indexOf("any(");
+            if (i == -1) {
+              throw Error(
+                "condition must be $=ANY(...) or $!=ANY(...) -- missing close paren",
+              );
+            }
+            const j = k.lastIndexOf(")");
+            if (j == -1) {
+              throw Error(
+                "condition must be $=ANY(...) or $!=ANY(...) -- missing close parent",
+              );
+            }
+            const field = k.slice(i + 4, j);
+            if (isEquals) {
+              this.condition[field] = (x) => !!x?.includes(val);
+            } else {
+              this.condition[field] = (x) => !x?.includes(val);
+            }
+          } else {
+            let found = false;
+            for (const op of OPERATORS) {
+              const i = k.indexOf(op);
+              if (i !== -1) {
+                const field = k.slice(0, i).trim();
+                add_condition(field, op, val);
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              throw Error(`unable to parse '${k}'`);
+            }
           }
         }
       } else if (typeof obj === "string") {
@@ -434,7 +472,7 @@ export class Changes extends EventEmitter {
             add_condition(
               obj.slice(0, i),
               op,
-              eval(obj.slice(i + op.length).trim())
+              eval(obj.slice(i + op.length).trim()),
             );
             found = true;
             break;

@@ -19,6 +19,7 @@ import {
   getThreads,
 } from "./util";
 import { debounce, throttle } from "lodash";
+import { init as initGroups } from "@cocalc/frontend/groups/redux";
 
 const DEFAULT_FONT_SIZE = 14;
 
@@ -476,6 +477,8 @@ export function init() {
   );
   redux.createTable("messages", MessagesTable);
   redux.createTable("sent_messages", SentMessagesTable);
+  // we also initialize the groups redux stuff if it isn't already done
+  initGroups();
   initialized = true;
 }
 
