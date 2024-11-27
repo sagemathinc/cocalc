@@ -5,6 +5,7 @@
 
 import { defineMessage } from "react-intl";
 
+import { IconName } from "@cocalc/frontend/components";
 import type { CourseEditorActions } from "@cocalc/frontend/frame-editors/course-editor/actions";
 import { course, IntlMessage, labels } from "@cocalc/frontend/i18n";
 import { ENV_VARS_ICON } from "@cocalc/frontend/project/settings/environment";
@@ -15,7 +16,7 @@ type Command = {
   title: string | IntlMessage;
   label: string | IntlMessage;
   onClick: (arg: { props: { actions: CourseEditorActions } }) => void;
-  icon: string;
+  icon: IconName;
   button: string | IntlMessage;
 };
 

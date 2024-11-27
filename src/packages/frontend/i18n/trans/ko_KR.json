@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "AI를 사용하여 {docName} 문서 생성",
   "ai-generator.select_llm": "언어 모델 선택",
   "app.fullscreen-button.tooltip": "풀스크린 모드, 현재 문서나 페이지에 집중.",
+  "app.verify-email-banner.text": "이메일 주소를 확인하고 검증하세요: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "문서 채팅 숨기기 또는 표시",
   "chat.input.placeholder": "새 메시지 입력 ({have_llm, select, true {AI와 채팅하거나 } other {}}@를 입력하여 협업자에게 알리기)...",
   "chatroom.chat_input.preview_button.label": "미리보기",

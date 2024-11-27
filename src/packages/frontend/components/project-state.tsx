@@ -12,7 +12,7 @@ import { ComputeState } from "@cocalc/util/compute-states";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { Gap } from "./gap";
-import { Icon } from "./icon";
+import { Icon, isIconName } from "./icon";
 
 interface Props {
   state?: ProjectStatus;
@@ -64,7 +64,8 @@ export const ProjectState: React.FC<Props> = (props: Props) => {
   const { display, icon, stable } = s;
   return (
     <span>
-      <Icon name={icon} /> {renderI18N(display)}
+      {isIconName(icon) ? <Icon name={icon} /> : undefined}{" "}
+      {renderI18N(display)}
       <Gap />
       {!stable && renderSpinner()}
       {renderDescription(s)}

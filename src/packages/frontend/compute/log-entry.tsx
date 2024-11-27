@@ -1,9 +1,9 @@
-import type { ComputeServerEvent } from "@cocalc/util/compute/log";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { capitalize, plural } from "@cocalc/util/misc";
-import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, isIconName } from "@cocalc/frontend/components";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
+import type { ComputeServerEvent } from "@cocalc/util/compute/log";
+import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
+import { capitalize, plural } from "@cocalc/util/misc";
 
 export default function LogEntry({
   project_id,
@@ -43,7 +43,7 @@ export default function LogEntry({
       return (
         <>
           <span style={{ color }}>
-            <Icon name={icon} /> {capitalize(event.state)}
+            {isIconName(icon) && <Icon name={icon} />} {capitalize(event.state)}
           </span>{" "}
           {cs}
           {tag}
@@ -61,8 +61,8 @@ export default function LogEntry({
     case "automatic-shutdown":
       return (
         <>
-          {cs} - Automatic {capitalize(event.automatic_shutdown?.action ?? "Stop")}{" "}
-          {tag}
+          {cs} - Automatic{" "}
+          {capitalize(event.automatic_shutdown?.action ?? "Stop")} {tag}
         </>
       );
     default:

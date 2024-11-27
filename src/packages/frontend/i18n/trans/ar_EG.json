@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "إنشاء مستند {docName} باستخدام الذكاء الاصطناعي",
   "ai-generator.select_llm": "اختر نموذج اللغة",
   "app.fullscreen-button.tooltip": "وضع الشاشة الكاملة، يركز على المستند أو الصفحة الحالية.",
+  "app.verify-email-banner.text": "يرجى التحقق من عنوان بريدك الإلكتروني: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "إخفاء أو إظهار محادثة المستندات",
   "chat.input.placeholder": "اكتب رسالة جديدة ({have_llm, select, true {الدردشة مع الذكاء الاصطناعي أو } other {}}إخطار زميل بكتابة @)...",
   "chatroom.chat_input.preview_button.label": "عرض",

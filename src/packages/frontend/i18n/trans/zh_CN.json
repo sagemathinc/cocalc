@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "使用AI生成{docName}文档",
   "ai-generator.select_llm": "选择语言模型",
   "app.fullscreen-button.tooltip": "全屏模式，专注于当前文档或页面",
+  "app.verify-email-banner.text": "请检查并验证您的电子邮件地址：<code>{email}</code>",
   "chat.chat-indicator.tooltip": "隐藏或显示文档聊天",
   "chat.input.placeholder": "输入新消息（{have_llm, select, true {与 AI 聊天或 } other {}}通过输入@通知协作者）...",
   "chatroom.chat_input.preview_button.label": "预览",

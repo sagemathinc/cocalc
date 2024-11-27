@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "AIを使用して{docName}ドキュメントを生成",
   "ai-generator.select_llm": "言語モデルを選択",
   "app.fullscreen-button.tooltip": "全画面モード、現在のドキュメントまたはページに集中。",
+  "app.verify-email-banner.text": "メールアドレスを確認し、検証してください: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "ドキュメントチャットを非表示または表示",
   "chat.input.placeholder": "新しいメッセージを入力 ({have_llm, select, true {AIとチャットするか } other {}}@を入力してコラボレーターに通知)...",
   "chatroom.chat_input.preview_button.label": "プレビュー",

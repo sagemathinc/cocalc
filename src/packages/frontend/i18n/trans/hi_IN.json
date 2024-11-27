@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "AI का उपयोग करके {docName} दस्तावेज़ उत्पन्न करें",
   "ai-generator.select_llm": "भाषा मॉडल चुनें",
   "app.fullscreen-button.tooltip": "पूर्ण स्क्रीन मोड, वर्तमान दस्तावेज़ या पृष्ठ पर केंद्रित।",
+  "app.verify-email-banner.text": "कृपया अपना ईमेल पता जांचें और सत्यापित करें: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "दस्तावेज़ चैट छुपाएं या दिखाएं",
   "chat.input.placeholder": "एक नया संदेश टाइप करें ({have_llm, select, true {AI से चैट करें या } other {}}सहयोगी को सूचित करने के लिए @ टाइप करें)...",
   "chatroom.chat_input.preview_button.label": "पूर्वावलोकन",

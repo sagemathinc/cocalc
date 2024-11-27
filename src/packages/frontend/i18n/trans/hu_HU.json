@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "Hozzon létre egy {docName} dokumentumot mesterséges intelligencia segítségével",
   "ai-generator.select_llm": "Nyelvi modell kiválasztása",
   "app.fullscreen-button.tooltip": "Teljes képernyős mód, a jelenlegi dokumentumra vagy oldalra összpontosítva.",
+  "app.verify-email-banner.text": "Kérjük, ellenőrizze és igazolja vissza az email címét: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "Dokumentum csevegés elrejtése vagy megjelenítése",
   "chat.input.placeholder": "Írjon egy új üzenetet ({have_llm, select, true {beszélgessen az AI-val vagy } other {}}értesítsen egy kollégát @ beírásával)...",
   "chatroom.chat_input.preview_button.label": "Előnézet",

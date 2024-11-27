@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "Сгенерировать документ {docName} с помощью ИИ",
   "ai-generator.select_llm": "Выберите языковую модель",
   "app.fullscreen-button.tooltip": "Полноэкранный режим, сосредоточенный на текущем документе или странице",
+  "app.verify-email-banner.text": "Пожалуйста, проверьте и подтвердите ваш адрес электронной почты: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "Скрыть или Показать Чат Документа",
   "chat.input.placeholder": "Введите новое сообщение ({have_llm, select, true {общайтесь с ИИ или } other {}}уведомите сотрудника, набрав @)...",
   "chatroom.chat_input.preview_button.label": "Предпросмотр",

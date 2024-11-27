@@ -11,7 +11,7 @@ import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { Icon, IconName, isIconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
@@ -308,7 +308,11 @@ export class ManageCommands {
           display: "inline-block",
         }}
       >
-        {typeof icon === "string" ? <Icon name={icon} rotate={rotate} /> : icon}
+        {typeof icon === "string" && isIconName(icon) ? (
+          <Icon name={icon} rotate={rotate} />
+        ) : (
+          icon
+        )}
       </span>
     );
   };

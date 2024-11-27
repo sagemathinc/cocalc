@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "Générer un document {docName} en utilisant l'IA",
   "ai-generator.select_llm": "Sélectionner le modèle de langue",
   "app.fullscreen-button.tooltip": "Mode plein écran, concentré sur le document ou la page actuelle.",
+  "app.verify-email-banner.text": "Veuillez vérifier et confirmer votre adresse e-mail : <code>{email}</code>",
   "chat.chat-indicator.tooltip": "Masquer ou Afficher le Chat du Document",
   "chat.input.placeholder": "Tapez un nouveau message ({have_llm, select, true {discutez avec l'IA ou } other {}}notifiez un collaborateur en tapant @)...",
   "chatroom.chat_input.preview_button.label": "Aperçu",

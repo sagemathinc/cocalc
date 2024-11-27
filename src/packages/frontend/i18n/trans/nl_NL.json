@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "Genereer een {docName} Document met AI",
   "ai-generator.select_llm": "Selecteer taalmodel",
   "app.fullscreen-button.tooltip": "Volledig schermmodus, gericht op het huidige document of de pagina.",
+  "app.verify-email-banner.text": "Controleer en verifieer uw e-mailadres: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "Verberg of Toon Document Chat",
   "chat.input.placeholder": "Typ een nieuw bericht ({have_llm, select, true {chat met AI of } other {}}breng een medewerker op de hoogte door @ te typen)...",
   "chatroom.chat_input.preview_button.label": "Voorbeeldweergave",

@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "Erzeuge ein {docName} Dokument mit KI",
   "ai-generator.select_llm": "Sprachmodell auswählen",
   "app.fullscreen-button.tooltip": "Vollbildmodus, fokussiert auf das aktuelle Dokument oder die aktuelle Seite",
+  "app.verify-email-banner.text": "Bitte überprüfen und bestätigen Sie Ihre E-Mail-Adresse: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "Dokument-Chat ausblenden oder anzeigen",
   "chat.input.placeholder": "Schreib eine neue Nachricht ({have_llm, select, true {sprich mit einer KI oder } other {}}kontaktiere eine/n Mitarbeiter/in durch Erwähnen mit einem @)...",
   "chatroom.chat_input.preview_button.label": "Vorschau",

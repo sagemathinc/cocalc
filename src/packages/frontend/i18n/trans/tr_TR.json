@@ -130,6 +130,7 @@
   "ai-generate-document.modal.title": "Yapay Zeka kullanarak bir {docName} Belgesi oluştur",
   "ai-generator.select_llm": "Dil modelini seç",
   "app.fullscreen-button.tooltip": "Tam ekran modu, mevcut belge veya sayfaya odaklanılmış.",
+  "app.verify-email-banner.text": "Lütfen e-posta adresinizi kontrol edin ve doğrulayın: <code>{email}</code>",
   "chat.chat-indicator.tooltip": "Belge Sohbetini Gizle veya Göster",
   "chat.input.placeholder": "Yeni bir mesaj yazın ({have_llm, select, true {AI ile sohbet edin veya } other {}}bir işbirlikçiyi @ yazarak bilgilendirin)...",
   "chatroom.chat_input.preview_button.label": "Önizleme",

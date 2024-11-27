@@ -4,7 +4,7 @@
  */
 
 import { Map } from "immutable";
-import { FormattedMessage, useIntl } from "react-intl";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
@@ -21,6 +21,11 @@ interface Props {
   email_address?: string;
   email_address_verified?: Map<string, boolean>;
 }
+
+export const emailVerificationMsg = defineMessage({
+  id: "account.settings.email-verification.button.status",
+  defaultMessage: `{disabled_button, select, true {Email Sent} other {Send Verification Email}}`,
+});
 
 export function EmailVerification({
   email_address,
@@ -83,11 +88,7 @@ export function EmailVerification({
               bsStyle="success"
               disabled={disabled_button}
             >
-              <FormattedMessage
-                id="account.settings.email-verification.button.status"
-                defaultMessage={`{disabled_button, select, true {Email Sent} other {Send Verification Email}}`}
-                values={{ disabled_button }}
-              />
+              {intl.formatMessage(emailVerificationMsg, { disabled_button })}
             </Button>
           </>
         );

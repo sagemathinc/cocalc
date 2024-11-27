@@ -7,7 +7,7 @@ import { Alert, Modal } from "antd";
 import { useIntl } from "react-intl";
 
 import { AppRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components/icon";
+import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { AddAssignments } from "@cocalc/frontend/course/assignments/assignments-panel";
 import { COMMANDS } from "@cocalc/frontend/course/commands";
 import { DeleteAllStudentProjects } from "@cocalc/frontend/course/configuration//delete-all-student-projects";
@@ -38,7 +38,7 @@ import { AddHandouts } from "@cocalc/frontend/course/handouts/handouts-panel";
 import { DeleteSharedProjectPanel } from "@cocalc/frontend/course/shared-project/delete-shared-project";
 import { SharedProjectPanel } from "@cocalc/frontend/course/shared-project/shared-project-panel";
 import AddStudents from "@cocalc/frontend/course/students/add-students";
-import { course, isIntlMessage } from "@cocalc/frontend/i18n";
+import { course, IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import type { ProjectMap, UserMap } from "@cocalc/frontend/todo-types";
 import { CourseEditorActions } from "../frame-editors/course-editor/actions";
 import { CourseActions } from "./actions";
@@ -100,7 +100,11 @@ export default function Modals(props: Props) {
   );
 }
 
-function getModal(modal: string) {
+function getModal(modal: string): {
+  Body: (props) => JSX.Element;
+  title?: string | IntlMessage;
+  icon?: IconName;
+} {
   const { label: title, icon } = COMMANDS[modal] ?? {};
   switch (modal) {
     case "add-students":
