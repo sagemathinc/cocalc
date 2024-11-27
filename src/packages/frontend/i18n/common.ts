@@ -31,6 +31,11 @@ export const labels = defineMessages({
     id: "labels.other",
     defaultMessage: "Other",
   },
+  on: {
+    id: "labels.on",
+    defaultMessage: "on",
+    description: "single word, somthing 'on' something else",
+  },
   project: {
     id: "labels.project",
     defaultMessage: "Project",
@@ -41,6 +46,10 @@ export const labels = defineMessages({
     defaultMessage: "Projects",
     description:
       "Label for a collection of projects, label on a button, title, etc.",
+  },
+  create: {
+    id: "labels.create",
+    defaultMessage: "create",
   },
   create_project: {
     id: "labels.create_project",
@@ -714,6 +723,11 @@ export const labels = defineMessages({
   open: {
     id: "labels.open",
     defaultMessage: "Open",
+  },
+  item_plural: {
+    id: "labels.item_plural",
+    defaultMessage: `{total, plural, one {item} other {items}}`,
+    description: "e.g. zero, one, or more items in a listing",
   },
 });
 

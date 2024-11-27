@@ -6,9 +6,11 @@
 import { Alert } from "antd";
 import * as immutable from "immutable";
 import React from "react";
-import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
+import { FormattedMessage } from "react-intl";
 import * as underscore from "underscore";
+
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
+import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   TypedMap,
   project_redux_name,
@@ -26,6 +28,8 @@ import {
   Paragraph,
   SettingBox,
 } from "@cocalc/frontend/components";
+import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
+import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -52,9 +56,6 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
-import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
-import { FormattedMessage } from "react-intl";
 
 function pager_range(page_size, page_number) {
   const start_index = page_size * page_number;
@@ -337,7 +338,7 @@ const Explorer0 = rclass(
             current_path={this.props.current_path}
             project_id={this.props.project_id}
             file_map={file_map}
-            new_name={this.props.new_name}
+            //new_name={this.props.new_name}
             actions={this.props.actions}
             displayed_listing={this.props.displayed_listing}
             name={project_redux_name(this.props.project_id)}

@@ -9,6 +9,8 @@
 // now that we are using antd v5.
 import "antd/dist/reset.css";
 
+import { Locale } from "locales/misc";
+
 // Initialize the appBasePath for the frontend codebase.
 import "@cocalc/frontend/customize/app-base-path";
 
@@ -27,14 +29,11 @@ import { DEFAULT_LOCALE } from "@cocalc/util/i18n";
 
 import type { AppProps } from "next/app";
 
-// const timeAgo = {
-//   timeAgoAbsolute: false,
-//   setTimeAgoAbsolute: (absolute) => {
-//     timeAgo.timeAgoAbsolute = absolute;
-//   },
-// };
-
-function MyApp({ Component, pageProps }: AppProps) {
+function MyApp({
+  Component,
+  pageProps,
+}: // router,
+AppProps & { locale: Locale }) {
   return (
     <AppContext.Provider value={{ ...DEFAULT_CONTEXT }}>
       <IntlProvider
@@ -108,6 +107,5 @@ import "@cocalc/cdn/dist/codemirror/theme/yeti.css";
 import "@cocalc/cdn/dist/codemirror/theme/zenburn.css";
 import "@uiw/react-textarea-code-editor/dist.css";
 
-// this must be last to overwrite things like antd
-import "../styles/globals.css";
 import "../styles/bootstrap-visible.css";
+import "../styles/globals.css";

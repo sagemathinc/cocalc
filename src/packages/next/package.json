@@ -38,7 +38,9 @@
     "prepublishOnly": "pnpm test",
     "patch-openapi": "sed -i '/^interface NrfOasData {/s/^interface/export interface/' node_modules/next-rest-framework/dist/index.d.ts",
     "generate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework generate",
-    "validate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework validate"
+    "validate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework validate",
+    "i18n:upload": "bash ./locales/upload.sh",
+    "i18n:download": "bash ./locales/download.sh"
   },
   "repository": {
     "type": "git",
@@ -80,6 +82,7 @@
     "next": "14.2.15",
     "next-remove-imports": "^1.0.11",
     "next-rest-framework": "6.0.0-beta.4",
+    "next-translate": "^2.6.2",
     "password-hash": "^1.2.2",
     "pg": "^8.7.1",
     "react": "^18.3.1",

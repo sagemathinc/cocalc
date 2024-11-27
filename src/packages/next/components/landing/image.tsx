@@ -8,8 +8,8 @@
 // too hard to work with.
 // import NextImage from "next/image";
 
-import { CSSProperties } from "react";
-import { MediaURL } from "./util";
+import { CSS } from "components/misc";
+import { MediaURL, SHADOW } from "./util";
 
 // copied from https://github.com/vercel/next.js/blob/eb871d30915d668dd9ba897d4d04ced207ce2e6d/packages/next/image-types/global.d.ts
 // since it seems not exported...
@@ -22,20 +22,30 @@ export interface StaticImageData {
 
 interface Props {
   src: string | StaticImageData;
-  style?: CSSProperties;
+  style?: CSS;
   alt: string;
   width?: number;
   height?: number;
   priority?: boolean;
+  shadow?: boolean;
 }
 
+
+
 export default function Image(props: Props) {
-  const { src, style, alt, width, height } = props;
+  const { src, style, alt, width, height, shadow = false } = props;
+
+  const imgStyle: CSS = {
+    ...style,
+    ...(shadow ? SHADOW : {}),
+    maxWidth: "100%",
+  } as const;
+
   if (typeof src === "string") {
     return (
       <img
         src={MediaURL(src)}
-        style={{ ...style, maxWidth: "100%" }}
+        style={imgStyle}
         alt={alt}
         width={width}
         height={height}
@@ -62,7 +72,7 @@ export default function Image(props: Props) {
         height={height}
         width={width}
         alt={alt}
-        style={{ ...style, maxWidth: "100%" }}
+        style={imgStyle}
       />
     );
   }
@@ -80,7 +90,7 @@ export default function Image(props: Props) {
           height={height}
           width={width}
           alt={alt}
-          style={{ ...style, maxWidth: "100%" }}
+          style={imgStyle}
         />
       </div>
     </div>

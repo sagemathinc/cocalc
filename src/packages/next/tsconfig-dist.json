@@ -10,7 +10,8 @@
     "**/*.ts",
     "**/*.tsx",
     "software-inventory/*.json",
-    "components/landing/*.json"
+    "components/landing/*.json",
+    "locales/*/*.json"
   ],
   "exclude": ["node_modules", "public", "styles", "dist"],
   "references": [
