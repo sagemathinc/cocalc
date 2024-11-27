@@ -1095,6 +1095,9 @@ importers:
       next-rest-framework:
         specifier: 6.0.0-beta.4
         version: 6.0.0-beta.4(zod@3.23.8)
+      next-translate:
+        specifier: ^2.6.2
+        version: 2.6.2(next@14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.4))(react@18.3.1)
       password-hash:
         specifier: ^1.2.2
         version: 1.2.2
@@ -8935,6 +8938,13 @@ packages:
   next-tick@1.1.0:
     resolution: {integrity: sha512-CXdUiJembsNjuToQvxayPZF9Vqht7hewsvy2sOWafLvi2awflj9mOC6bHIg50orX8IJvWKY9wYQ/zB2kogPslQ==}
 
+  next-translate@2.6.2:
+    resolution: {integrity: sha512-Dcfo2Vyw+Ds06+8BJM0RcV/lfN7R59kTY/NP+XJgSpcrFKZV6QJuKfS+K4+OHkKBdQnF3ZOT3wk1np9eZx/PEA==}
+    engines: {node: '>=16.10.0'}
+    peerDependencies:
+      next: '>= 13.2.5'
+      react: '>= 18.0.0'
+
   next@14.2.15:
     resolution: {integrity: sha512-h9ctmOokpoDphRvMGnwOJAedT6zKhwqyZML9mDtspgf4Rh3Pn7UTYKqePNoDvhsWBAO5GoPNYshnAUGIazVGmw==}
     engines: {node: '>=18.17.0'}
@@ -12278,7 +12288,7 @@ snapshots:
       '@babel/traverse': 7.25.6
       '@babel/types': 7.25.6
       convert-source-map: 2.0.0
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       gensync: 1.0.0-beta.2
       json5: 2.2.3
       semver: 6.3.1
@@ -12819,7 +12829,7 @@ snapshots:
       '@babel/parser': 7.25.6
       '@babel/template': 7.25.0
       '@babel/types': 7.25.6
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
@@ -13883,7 +13893,7 @@ snapshots:
   '@nestjs/axios@3.0.3(@nestjs/common@10.4.3(reflect-metadata@0.1.13)(rxjs@7.8.1))(axios@1.7.4)(rxjs@7.8.1)':
     dependencies:
       '@nestjs/common': 10.4.3(reflect-metadata@0.1.13)(rxjs@7.8.1)
-      axios: 1.7.4(debug@4.3.7)
+      axios: 1.7.4
       rxjs: 7.8.1
 
   '@nestjs/common@10.4.3(reflect-metadata@0.1.13)(rxjs@7.8.1)':
@@ -14027,7 +14037,7 @@ snapshots:
       '@nestjs/common': 10.4.3(reflect-metadata@0.1.13)(rxjs@7.8.1)
       '@nestjs/core': 10.4.3(@nestjs/common@10.4.3(reflect-metadata@0.1.13)(rxjs@7.8.1))(encoding@0.1.13)(reflect-metadata@0.1.13)(rxjs@7.8.1)
       '@nuxtjs/opencollective': 0.3.2(encoding@0.1.13)
-      axios: 1.7.4(debug@4.3.7)
+      axios: 1.7.4
       chalk: 4.1.2
       commander: 8.3.0
       compare-versions: 4.1.4
@@ -15276,7 +15286,7 @@ snapshots:
 
   agent-base@7.1.1:
     dependencies:
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -15574,6 +15584,14 @@ snapshots:
       bl: 4.1.0
 
   awaiting@3.0.0: {}
+
+  axios@1.7.4:
+    dependencies:
+      follow-redirects: 1.15.9
+      form-data: 4.0.0
+      proxy-from-env: 1.1.0
+    transitivePeerDependencies:
+      - debug
 
   axios@1.7.4(debug@4.3.7):
     dependencies:
@@ -16837,6 +16855,10 @@ snapshots:
     dependencies:
       ms: 2.1.2
 
+  debug@4.3.7:
+    dependencies:
+      ms: 2.1.3
+
   debug@4.3.7(supports-color@8.1.1):
     dependencies:
       ms: 2.1.3
@@ -17799,6 +17821,8 @@ snapshots:
     optionalDependencies:
       debug: 4.3.7(supports-color@8.1.1)
 
+  follow-redirects@1.15.9: {}
+
   follow-redirects@1.15.9(debug@4.3.7):
     optionalDependencies:
       debug: 4.3.7(supports-color@8.1.1)
@@ -18596,7 +18620,7 @@ snapshots:
   https-proxy-agent@7.0.4:
     dependencies:
       agent-base: 7.1.1
-      debug: 4.3.7(supports-color@8.1.1)
+      debug: 4.3.7
     transitivePeerDependencies:
       - supports-color
 
@@ -20395,6 +20419,11 @@ snapshots:
       - zod
 
   next-tick@1.1.0: {}
+
+  next-translate@2.6.2(next@14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.4))(react@18.3.1):
+    dependencies:
+      next: 14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.4)
+      react: 18.3.1
 
   next@14.2.15(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(sass@1.80.4):
     dependencies:

@@ -41,6 +41,7 @@ interface EnabledPageTree extends EnabledPageBranch {
   systemActivity: boolean | undefined;
   status: boolean | undefined;
   termsOfService: boolean | undefined;
+  liveDemo: boolean | undefined;
 }
 
 interface Customize extends ServerCustomize {
