@@ -11,6 +11,7 @@ import { callback } from "awaiting";
 import { List, Map, Set, fromJS } from "immutable";
 import { isEqual } from "lodash";
 import { join } from "path";
+import { defineMessage } from "react-intl";
 
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -33,7 +34,7 @@ import {
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
-import { dialogs } from "@cocalc/frontend/i18n";
+import { IntlMessage, dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   download_file,
@@ -176,7 +177,7 @@ const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
 interface FileAction {
-  name: string;
+  name: IntlMessage;
   icon: IconName;
   allows_multiple_files?: boolean;
   hideFlyout?: boolean;
@@ -184,52 +185,92 @@ interface FileAction {
 
 export const FILE_ACTIONS: { [key: string]: FileAction } = {
   compress: {
-    name: "Compress",
+    name: defineMessage({
+      id: "file_actions.compress.name",
+      defaultMessage: "Compress",
+      description: "Compress a file",
+    }),
     icon: "compress" as IconName,
     allows_multiple_files: true,
   },
   delete: {
-    name: "Delete",
+    name: defineMessage({
+      id: "file_actions.delete.name",
+      defaultMessage: "Delete",
+      description: "Delete a file",
+    }),
     icon: "trash" as IconName,
     allows_multiple_files: true,
   },
   rename: {
-    name: "Rename",
+    name: defineMessage({
+      id: "file_actions.rename.name",
+      defaultMessage: "Rename",
+      description: "Rename a file",
+    }),
     icon: "swap" as IconName,
     allows_multiple_files: false,
   },
   duplicate: {
-    name: "Duplicate",
+    name: defineMessage({
+      id: "file_actions.duplicate.name",
+      defaultMessage: "Duplicate",
+      description: "Duplicate a file",
+    }),
     icon: "clone" as IconName,
     allows_multiple_files: false,
   },
   move: {
-    name: "Move",
+    name: defineMessage({
+      id: "file_actions.move.name",
+      defaultMessage: "Move",
+      description: "Move a file",
+    }),
     icon: "move" as IconName,
     allows_multiple_files: true,
   },
   copy: {
-    name: "Copy",
+    name: defineMessage({
+      id: "file_actions.copy.name",
+      defaultMessage: "Copy",
+      description: "Copy a file",
+    }),
     icon: "files" as IconName,
     allows_multiple_files: true,
   },
   share: {
-    name: "Publish",
+    name: defineMessage({
+      id: "file_actions.publish.name",
+      defaultMessage: "Publish",
+      description: "Publish a file",
+    }),
     icon: "share-square" as IconName,
     allows_multiple_files: false,
   },
   download: {
-    name: "Download",
+    name: defineMessage({
+      id: "file_actions.download.name",
+      defaultMessage: "Download",
+      description: "Download a file",
+    }),
     icon: "cloud-download" as IconName,
     allows_multiple_files: true,
   },
   upload: {
-    name: "Upload",
+    name: defineMessage({
+      id: "file_actions.upload.name",
+      defaultMessage: "Upload",
+      description: "Upload a file",
+    }),
     icon: "upload" as IconName,
     hideFlyout: true,
   },
   create: {
-    name: "Create",
+    name: defineMessage({
+      id: "file_actions.create.name",
+      defaultMessage: "Create",
+      description: "Create a file",
+    }),
     icon: "plus-circle" as IconName,
     hideFlyout: true,
   },
