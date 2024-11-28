@@ -67,12 +67,11 @@ function MessageInList({
     ? isRead({ message, folder })
     : isThreadRead({ message, threads, folder });
 
-  const { id, type } = getDisplayedUser({ message, inThread });
+  const { id } = getDisplayedUser({ message, inThread });
 
   let user = (
     <User
       style={!read ? { fontWeight: "bold" } : undefined}
-      type={type}
       id={id}
       show_avatar
       avatarSize={20}
@@ -175,13 +174,12 @@ function MessageInList({
             title={
               isRead({ message, folder }) && !isNullDate(message.read) ? (
                 <>
-                  <User id={message.to_id} type={message.to_type} /> read{" "}
+                  <User id={message.to_id} /> read{" "}
                   <TimeAgo date={message.read} />
                 </>
               ) : (
                 <>
-                  <User id={message.to_id} type={message.to_type} /> has not
-                  read
+                  <User id={message.to_id} /> has not read
                 </>
               )
             }
@@ -276,7 +274,6 @@ function MessageFull({
         fontSize: "12pt",
         ...(!read ? { fontWeight: "bold" } : undefined),
       }}
-      type={message.from_type}
       id={message.from_id}
       show_avatar
       avatarSize={42}
@@ -363,7 +360,7 @@ function MessageFull({
             "to me"
           ) : (
             <>
-              to <User id={message.to_id} type={message.to_type} />
+              to <User id={message.to_id} />
             </>
           )}{" "}
           {isRead({ message, folder }) && !isNullDate(message.read) ? (
@@ -473,14 +470,14 @@ one entity.
 function getDisplayedUser({ message, inThread }) {
   if (inThread) {
     // in thread display always show who wrote the message
-    return { type: message.from_type, id: message.from_id };
+    return { id: message.from_id };
   }
   // top level showing an overall thread -- always show the user that
   // isn't us.  We don't need to look at the other messages in the thread
   // since every message is between us and them.
   if (isFromMe(message)) {
-    return { type: message.to_type, id: message.to_id };
+    return { id: message.to_id };
   } else {
-    return { type: message.from_type, id: message.from_id };
+    return { id: message.from_id };
   }
 }

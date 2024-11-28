@@ -12,9 +12,7 @@ register({
       {
         id: null,
         created: null,
-        from_type: null,
         from_id: null,
-        to_type: null,
         to_id: null,
         subject: null,
         body: null,

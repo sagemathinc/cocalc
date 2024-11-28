@@ -116,12 +116,8 @@ export default function SelectUser({
       return known;
     }
     for (const [_, message] of messages) {
-      if (message.get("from_type") == "account") {
-        known.add(message.get("from_id"));
-      }
-      if (message.get("to_type") == "account") {
-        known.add(message.get("to_id"));
-      }
+      known.add(message.get("from_id"));
+      known.add(message.get("to_id"));
     }
     for (const account_id of users?.keySeq() ?? []) {
       known.add(account_id);

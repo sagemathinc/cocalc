@@ -44,8 +44,6 @@ export default function Compose({
   const fontSize = useTypedRedux("messages", "fontSize");
   const draftId = useRef<number | null>(message?.id ?? null);
 
-  const [to_type] = useState<string>(message?.to_type ?? "account");
-  // [ ] todo type != 'account' for destination!
   const [to_id, setToId] = useState<string>(() => {
     if (message?.to_id) {
       return message.to_id;
@@ -82,10 +80,9 @@ export default function Compose({
 
   const [draft, setDraft] = useState<{
     to_id: string;
-    to_type: string;
     subject: string;
     body: string;
-  }>({ to_id, to_type, subject, body });
+  }>({ to_id, subject, body });
 
   const [error, setError] = useState<string>("");
   const [state, setState] = useState<"compose" | "saving" | "sending" | "sent">(
@@ -120,9 +117,7 @@ export default function Compose({
       state == "sending" ||
       state == "sent" ||
       !to_id ||
-      !to_type ||
       (draft.to_id == to_id &&
-        draft.to_type == to_type &&
         draft.subject == subject &&
         draft.body == body)
     ) {
@@ -136,7 +131,6 @@ export default function Compose({
         draftId.current = 0;
         const id = await actions.createDraft({
           to_id,
-          to_type,
           thread_id,
           subject,
           body,
@@ -146,7 +140,6 @@ export default function Compose({
           actions.updateDraft({
             id,
             to_id,
-            to_type,
             thread_id,
             subject: saveQueueRef.current.subject,
             body: saveQueueRef.current.body,
@@ -158,14 +151,13 @@ export default function Compose({
         actions.updateDraft({
           id: draftId.current,
           to_id,
-          to_type,
           thread_id,
           subject,
           body,
           debounceSave: true,
         });
       }
-      setDraft({ to_id, to_type, subject, body });
+      setDraft({ to_id, subject, body });
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -186,7 +178,6 @@ export default function Compose({
         actions.updateDraft({
           id: draftId.current,
           to_id,
-          to_type,
           thread_id,
           subject,
           body: body0 ?? body,
@@ -195,7 +186,6 @@ export default function Compose({
       } else {
         await actions.send({
           to_id,
-          to_type,
           subject,
           body: body0 ?? body,
           thread_id,

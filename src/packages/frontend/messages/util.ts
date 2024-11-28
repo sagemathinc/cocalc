@@ -216,10 +216,7 @@ export function isNullDate(date: Date | number | undefined | null): boolean {
 }
 
 export function isFromMe(message?: Mesg): boolean {
-  return (
-    get(message, "from_type") == "account" &&
-    get(message, "from_id") == webapp_client.account_id
-  );
+  return get(message, "from_id") == webapp_client.account_id;
 }
 
 // drafts are messages from us that haven't been sent yet.
@@ -228,10 +225,7 @@ export function isDraft(message?: Mesg): boolean {
 }
 
 export function isToMe(message?: Mesg): boolean {
-  return (
-    get(message, "to_type") == "account" &&
-    get(message, "to_id") == webapp_client.account_id
-  );
+  return get(message, "to_id") == webapp_client.account_id;
 }
 
 // returns new set that has all the ids in all threads that intersect ids.

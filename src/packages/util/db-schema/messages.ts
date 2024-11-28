@@ -29,13 +29,6 @@ in the body of the message.
 
 On purpose, all messages are sent/received in one central place in the UI, NOT associated
 to particular files/directories/projects.  Again, use links in the message for that.
-
-This could be used for support purposes -- e.g., user sends message where
-target type is to_type="support".  A support system needs to assign a person
-to handle the message, and keep track of the status of it.  That extra information
-does not get stored in this message, but instead in a new support table, which
-references messages.
-
 */
 
 import { Table } from "./types";
@@ -47,14 +40,10 @@ import { SCHEMA as schema } from "./index";
 // this limit is a problem
 export const NUM_MESSAGES = 1000;
 
-export type Entity = "project" | "system" | "support" | "account";
-
 export interface Message {
   id: number;
   sent: Date;
-  from_type: Entity;
   from_id: string; // a uuid
-  to_type: Entity;
   to_id: string; // a uuid
   subject: string;
   body: string;
@@ -74,23 +63,11 @@ Table({
       type: "timestamp",
       desc: "When this message was actually sent.  A draft is a message where sent has not yet been set.",
     },
-    from_type: {
-      type: "string",
-      pg_type: "varchar(32)",
-      desc: "What sort of thing created the message:  'project', 'system', 'account', 'support'",
-      not_null: true,
-    },
     from_id: {
       type: "uuid",
       desc: "A project_id when from='project' and an account_id when from='account'.  For type='system', haven't decided what this is yet (maybe some hardcoded uuid's for different components of the system?).",
       not_null: true,
       render: { type: "account" },
-    },
-    to_type: {
-      type: "string",
-      pg_type: "varchar(32)",
-      desc: "Type of thing the message is being sent to:  'project', 'system', 'account', 'support'",
-      not_null: true,
     },
     to_id: {
       type: "uuid",
@@ -140,7 +117,7 @@ Table({
   rules: {
     primary_key: "id",
     changefeed_keys: ["to_id", "sent"],
-    pg_indexes: ["to_id", "to_type"],
+    pg_indexes: ["to_id"],
     user_query: {
       get: {
         pg_where: [
@@ -151,9 +128,7 @@ Table({
         fields: {
           id: null,
           sent: null,
-          from_type: null,
           from_id: null,
-          to_type: null,
           to_id: null,
           subject: null,
           body: null,
@@ -194,7 +169,7 @@ Table({
               // user is allowed to change messages *to* them only, and then
               // only limited fields.
               const query =
-                "UPDATE messages SET read=$3, saved=$4, to_deleted=$5, to_expire=$6 WHERE to_type='account' AND to_id=$1 AND id=$2";
+                "UPDATE messages SET read=$3, saved=$4, to_deleted=$5, to_expire=$6 WHERE AND to_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
@@ -240,7 +215,6 @@ Table({
       set: {
         fields: {
           id: true,
-          to_type: true,
           to_id: true,
           subject: true,
           body: true,
@@ -276,12 +250,11 @@ Table({
               }
               // user is allowed to change a lot about messages *from* them only.
               const query =
-                "UPDATE messages SET to_id=$3,to_type=$4,subject=$5,body=$6,sent=$7,from_deleted=$8,from_expire=$9,thread_id=$10 WHERE to_type='account' AND from_id=$1 AND id=$2";
+                "UPDATE messages SET to_id=$3,subject=$4,body=$5,sent=$6,from_deleted=$7,from_expire=$8,thread_id=$9 WHERE AND from_id=$1 AND id=$2";
               const params = [
                 account_id,
                 parseInt(old_val.id),
                 new_val.to_id ?? old_val.to_id,
-                new_val.to_type ?? old_val.to_type,
                 new_val.subject ?? old_val.subject,
                 new_val.body ?? old_val.body,
                 new_val.sent ?? old_val.sent,
@@ -308,37 +281,28 @@ Table({
                 endpoint: "user_query-messages",
                 account_id,
               });
-              const to_type = new_val.to_type;
-              if (to_type == "account") {
-                const { rows: counts } = await client.query(
-                  "SELECT COUNT(*) AS count FROM accounts WHERE account_id=$1",
-                  [new_val.to_id],
-                );
-                if (counts[0].count == 0) {
-                  cb(`to account_id ${new_val.to_id} does not exist`);
-                  return;
-                }
-              } else if (to_type == "system") {
-                // TODO
-              } else {
-                cb(`unknown to_type=${to_type}`);
+              const { rows: counts } = await client.query(
+                "SELECT COUNT(*) AS count FROM accounts WHERE account_id=$1",
+                [new_val.to_id],
+              );
+              if (counts[0].count == 0) {
+                cb(`to account_id ${new_val.to_id} does not exist`);
                 return;
               }
               const { rows } = await client.query(
-                `INSERT INTO messages(from_type,from_id,to_id,to_type,subject,body,thread_id,sent)
-                 VALUES('account',$1,$2,$3,$4,$5,$6,$7) RETURNING *
+                `INSERT INTO messages(from_id,to_id,subject,body,thread_id,sent)
+                 VALUES($1,$2,$3,$4,$5) RETURNING *
                 `,
                 [
                   account_id,
                   new_val.to_id,
-                  new_val.to_type,
                   new_val.subject,
                   new_val.body,
                   new_val.thread_id,
                   new_val.sent,
                 ],
               );
-              if (to_type == "account" && new_val.sent) {
+              if (new_val.sent) {
                 await database.updateUnreadMessageCount({
                   account_id: new_val.to_id,
                 });

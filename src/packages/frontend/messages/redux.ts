@@ -113,13 +113,11 @@ export class MessagesActions extends Actions<MessagesState> {
 
   send = async ({
     to_id,
-    to_type = "account",
     subject,
     body,
     thread_id,
   }: {
     to_id: string;
-    to_type?: string;
     subject: string;
     body: string;
     thread_id?: number;
@@ -131,7 +129,6 @@ export class MessagesActions extends Actions<MessagesState> {
           subject,
           body,
           to_id,
-          to_type,
           thread_id,
         },
       },
@@ -155,7 +152,6 @@ export class MessagesActions extends Actions<MessagesState> {
     id: number;
     thread_id?: number;
     to_id?: string;
-    to_type?: string;
     subject?: string;
     body?: string;
     sent?: Date;
@@ -202,13 +198,11 @@ export class MessagesActions extends Actions<MessagesState> {
 
   createDraft = async ({
     to_id,
-    to_type = "account",
     subject = "",
     body = "",
     thread_id,
   }: {
     to_id: string;
-    to_type?: string;
     subject?: string;
     body?: string;
     thread_id?: number;
@@ -223,7 +217,6 @@ export class MessagesActions extends Actions<MessagesState> {
           subject: uniqueSubject,
           body,
           to_id,
-          to_type,
           thread_id,
         },
       },
@@ -251,18 +244,15 @@ export class MessagesActions extends Actions<MessagesState> {
   };
 
   createReply = async (message: Message) => {
-    let to_id, to_type;
+    let to_id;
     if (isFromMe(message)) {
       to_id = message.to_id;
-      to_type = message.to_type;
     } else {
       to_id = message.from_id;
-      to_type = message.from_type;
     }
     const subject = replySubject(message.subject);
     await this.createDraft({
       to_id,
-      to_type,
       thread_id: getThreadId(message),
       subject,
       body: "",
@@ -393,9 +383,7 @@ class MessagesTable extends Table {
         {
           id: null,
           sent: null,
-          from_type: null,
           from_id: null,
-          to_type: null,
           to_id: null,
           subject: null,
           body: null,
@@ -435,9 +423,7 @@ class SentMessagesTable extends Table {
         {
           id: null,
           sent: null,
-          from_type: null,
           from_id: null,
-          to_type: null,
           to_id: null,
           subject: null,
           body: null,

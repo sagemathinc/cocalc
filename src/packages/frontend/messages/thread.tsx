@@ -119,14 +119,12 @@ export function ThreadCount({
       title={() => {
         let from_me = 0;
         let from_other = 0;
-        let other_type = "";
         let other_id = "";
         for (const message of thread) {
           if (isFromMe(message.toJS())) {
             from_me += 1;
           } else {
             from_other += 1;
-            other_type = message.get("from_type");
             other_id = message.get("from_id");
           }
         }
@@ -136,8 +134,7 @@ export function ThreadCount({
         } else {
           return (
             <>
-              {tip} and {from_other} from{" "}
-              <User id={other_id} type={other_type} />.
+              {tip} and {from_other} from <User id={other_id} />.
             </>
           );
         }
