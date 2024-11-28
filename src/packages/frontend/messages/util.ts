@@ -225,7 +225,7 @@ export function isDraft(message?: Mesg): boolean {
 }
 
 export function isToMe(message?: Mesg): boolean {
-  return get(message, "to_ids").includes(webapp_client.account_id);
+  return !!get(message, "to_ids")?.includes(webapp_client.account_id);
 }
 
 // returns new set that has all the ids in all threads that intersect ids.

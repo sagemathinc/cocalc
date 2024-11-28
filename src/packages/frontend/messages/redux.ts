@@ -10,13 +10,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { search_split } from "@cocalc/util/misc";
 import searchFilter from "@cocalc/frontend/search/filter";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import {
-  getThreadId,
-  isFromMe,
-  replySubject,
-  getNotExpired,
-  getThreads,
-} from "./util";
+import { getThreadId, replySubject, getNotExpired, getThreads } from "./util";
 import { debounce, throttle } from "lodash";
 import { init as initGroups } from "@cocalc/frontend/groups/redux";
 
@@ -228,23 +222,19 @@ export class MessagesActions extends Actions<MessagesState> {
     replyAll,
   }: {
     message: Message;
-    replyAll?: boolean;
+    replyAll?: boolean | string[];
   }) => {
     let to_ids;
-    if (isFromMe(message)) {
-      to_ids = message.to_ids;
+    if (replyAll) {
+      to_ids = (typeof replyAll != "boolean" ? replyAll : message.to_ids)
+        .filter((account_id) => account_id != webapp_client.account_id)
+        .concat([message.from_id]);
     } else {
-      if (replyAll) {
-        to_ids = message.to_ids
-          .filter((account_id) => account_id != webapp_client.account_id)
-          .concat([message.from_id]);
-      } else {
-        to_ids = [message.from_id];
-      }
+      to_ids = [message.from_id];
     }
 
     const subject = replySubject(message.subject);
-    await this.createDraft({
+    return await this.createDraft({
       to_ids,
       thread_id: getThreadId(message),
       subject,
@@ -268,12 +258,21 @@ export class MessagesActions extends Actions<MessagesState> {
       const users = this.redux.getStore("users");
 
       const missingUsers = new Set<string>();
-      const getName = (account_id) => {
-        const name = users.get_name(account_id);
-        if (name == null) {
-          missingUsers.add(account_id);
+      const getName = (account_ids: string[] | undefined) => {
+        if (!account_ids) {
+          return "";
         }
-        return name ?? "";
+        const v: string[] = [];
+        for (const account_id of account_ids) {
+          const name = users.get_name(account_id);
+          if (name == null) {
+            missingUsers.add(account_id);
+          }
+          if (name) {
+            v.push(name);
+          }
+        }
+        return v.join(", ");
       };
       const toString = (id) => {
         const message = messages.get(id);
@@ -284,9 +283,9 @@ export class MessagesActions extends Actions<MessagesState> {
         // todo -- adapt for non-accounts
 
         const s = `
-From: ${getName(message.get("from_id"))}
+From: ${getName([message.get("from_id")])}
 
-To: ${getName(message.get("to_ids"))}
+To: ${getName(message.get("to_ids")?.toJS())}
 
 Subject: ${message.get("subject")}
 

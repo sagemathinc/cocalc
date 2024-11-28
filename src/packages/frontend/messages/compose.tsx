@@ -7,7 +7,7 @@ to the database or something...
 */
 
 import { Button, Flex, Input, Modal, Slider, Space, Spin, Tooltip } from "antd";
-import SelectUser from "./select-user";
+import SelectUsers from "./select-users";
 import { useRef, useState } from "react";
 import {
   redux,
@@ -210,13 +210,14 @@ export default function Compose({
         style={{ marginTop: "15px" }}
       />
       {message == null && (
-        <div>
-          <SelectUser
+        <div style={{ paddingRight: "20px" }}>
+          <SelectUsers
+            style={{ width: "100%" }}
             autoOpen={250}
             autoFocus
             disabled={state != "compose"}
             placeholder="To (search by name or email)..."
-            onChange={(account_id) => setToIds([account_id])}
+            onChange={(account_ids) => setToIds(account_ids)}
           />
         </div>
       )}

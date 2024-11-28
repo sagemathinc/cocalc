@@ -7,7 +7,7 @@ import { throttle } from "lodash";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { cmp, search_match, search_split } from "@cocalc/util/misc";
 
-const AVATAR_SIZE = 28;
+const AVATAR_SIZE = 22;
 
 function UserLabel({ account_id, knownUsers }) {
   const users = useTypedRedux("users", "user_map");
@@ -20,7 +20,7 @@ function UserLabel({ account_id, knownUsers }) {
     >
       <User
         id={account_id}
-        trunc={30}
+        trunc={24}
         type="account"
         show_avatar
         avatarSize={AVATAR_SIZE}
@@ -114,7 +114,7 @@ export default function SelectUser({
   placeholder: string;
   style?;
   disabled?: boolean;
-  onChange?: (user) => void;
+  onChange?: (users) => void;
   defaultValue?;
   autoFocus?: boolean;
   autoOpen?: number;
@@ -141,7 +141,7 @@ export default function SelectUser({
   }, [messages]);
 
   const [data, setData] = useState<SelectProps["options"]>([]);
-  const [value, setValue] = useState<string | null>(
+  const [value, setValue] = useState<string[] | null>(
     defaultValue ? defaultValue : null,
   );
 
@@ -158,13 +158,14 @@ export default function SelectUser({
     }
   }, []);
 
-  const handleChange = (account_id: string) => {
-    setValue(account_id);
-    onChange?.(account_id);
+  const handleChange = (account_ids: string[]) => {
+    setValue(account_ids);
+    onChange?.(account_ids);
   };
 
   return (
     <Select
+      mode="multiple"
       open={open}
       onDropdownVisibleChange={(open) => setOpen(open)}
       ref={ref}

@@ -1,5 +1,5 @@
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { Checkbox, Flex, Tag, Tooltip } from "antd";
+import { Checkbox, Flex, Space, Tag, Tooltip } from "antd";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -67,7 +67,7 @@ function MessageInList({
     ? isRead({ message, folder })
     : isThreadRead({ message, threads, folder });
 
-  const { id } = getDisplayedUser({ message, inThread });
+  const id = getDisplayedUser({ message, inThread, threads });
 
   let user = (
     <User
@@ -115,7 +115,7 @@ function MessageInList({
         )}
         <div
           style={{
-            width: "200px",
+            flex: 1,
             textOverflow: "ellipsis",
             overflow: "hidden",
             whiteSpace: "pre",
@@ -168,7 +168,15 @@ function MessageInList({
             {isDraft(message) && <Tag color="red">Draft</Tag>}
           </div>
         )}
-        <div onClick={(e) => e.stopPropagation()}>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: "150px",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "pre",
+          }}
+        >
           <Tooltip
             placement="left"
             title={
@@ -188,7 +196,6 @@ function MessageInList({
             <TimeAgo
               date={message.sent}
               style={{
-                width: "150px",
                 textAlign: "right",
                 fontWeight: read ? undefined : "bold",
                 fontSize,
@@ -271,7 +278,7 @@ function MessageFull({
   const user = (
     <User
       style={{
-        fontSize: "12pt",
+        fontSize: "15pt",
         ...(!read ? { fontWeight: "bold" } : undefined),
       }}
       id={message.from_id}
@@ -303,7 +310,30 @@ function MessageFull({
         />
       )}
       <Flex>
-        <div style={{ flex: 1 }} onClick={() => setShowThread?.(null)} />
+        <div style={{ flex: 1 }} onClick={() => setShowThread?.(null)}>
+          {user}
+          <div
+            style={{
+              marginLeft: LEFT_OFFSET,
+              color: "#666",
+            }}
+          >
+            {isToMe(message) && message.to_ids.length == 1 ? (
+              "to me"
+            ) : (
+              <>
+                to <User id={message.to_ids} />
+              </>
+            )}{" "}
+            {isRead({ message, folder }) && !isNullDate(message.read) ? (
+              <>
+                (read <TimeAgo date={message.read} />)
+              </>
+            ) : (
+              <>(has not read)</>
+            )}
+          </div>
+        </div>
         <div
           style={{
             display: "flex",
@@ -312,7 +342,17 @@ function MessageFull({
             marginRight: "15px",
           }}
         >
-          <ReplyButton type="text" replyTo={message} label="" />
+          <Space>
+            {rootMessage({ message, threads }).to_ids.length > 1 && (
+              <ReplyButton
+                type="text"
+                replyTo={message}
+                replyAll={rootMessage({ message, threads }).to_ids}
+                label=""
+              />
+            )}
+            <ReplyButton type="text" replyTo={message} label="" />
+          </Space>
         </div>
         <div
           style={{
@@ -344,34 +384,6 @@ function MessageFull({
           </div>
         )}
       </Flex>
-      <div
-        style={{ marginTop: "-20px", fontSize: "11pt" }}
-        onClick={() => setShowThread?.(null)}
-      >
-        {user}
-        <div
-          style={{
-            marginLeft: LEFT_OFFSET,
-            color: "#666",
-            marginTop: "-46px",
-          }}
-        >
-          {isToMe(message) ? (
-            "to me"
-          ) : (
-            <>
-              to <User id={message.to_ids} />
-            </>
-          )}{" "}
-          {isRead({ message, folder }) && !isNullDate(message.read) ? (
-            <>
-              (read <TimeAgo date={message.read} />)
-            </>
-          ) : (
-            <>(has not read)</>
-          )}
-        </div>
-      </div>
 
       <div
         style={{
@@ -392,7 +404,16 @@ function MessageFull({
             <div style={{ height: "30px" }} />
             {!inThread && !isDeleted(message) && (
               <div>
-                <ReplyButton size="large" replyTo={message} />
+                <Space>
+                  {rootMessage({ message, threads }).to_ids.length > 1 && (
+                    <ReplyButton
+                      size="large"
+                      replyTo={message}
+                      replyAll={rootMessage({ message, threads }).to_ids}
+                    />
+                  )}
+                  <ReplyButton size="large" replyTo={message} />
+                </Space>
               </div>
             )}
           </>
@@ -467,17 +488,29 @@ made, or you are chatting with support (say), which is just
 one entity.
 */
 
-function getDisplayedUser({ message, inThread }) {
+function rootMessage({ message, threads }) {
+  if (message.thread_id && threads != null) {
+    // right now participants in a thread can shrink when you do not "reply all",
+    // so we always show the root. people can't be added to an existing thread.
+    return threads.get(message.thread_id).first().toJS();
+  }
+  return message;
+}
+
+function getDisplayedUser({ message, inThread, threads }) {
+  // right now participants in a thread can shrink when you do not "reply all",
+  // so we always show the root. people can't be added to an existing thread.
+  message = rootMessage({ message, threads });
   if (inThread) {
     // in thread display always show who wrote the message
-    return { id: message.from_id };
+    return message.from_id;
   }
   // top level showing an overall thread -- always show the user that
   // isn't us.  We don't need to look at the other messages in the thread
   // since every message is between us and them.
   if (isFromMe(message)) {
-    return { id: message.to_ids };
+    return message.to_ids;
   } else {
-    return { id: message.from_id };
+    return message.from_id;
   }
 }
