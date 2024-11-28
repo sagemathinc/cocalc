@@ -308,11 +308,7 @@ export class ManageCommands {
           display: "inline-block",
         }}
       >
-        {typeof icon === "string" && isIconName(icon) ? (
-          <Icon name={icon} rotate={rotate} />
-        ) : (
-          icon
-        )}
+        {isIconName(icon) ? <Icon name={icon} rotate={rotate} /> : icon}
       </span>
     );
   };
