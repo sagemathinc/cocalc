@@ -152,7 +152,7 @@ function isInFolderNotThreaded({
     return false;
   }
   if (folder == "inbox") {
-    return !get(message, "saved") && !deleted && !draft;
+    return !getBitField(message, "saved") && !deleted && !draft;
   }
   if (folder == "all") {
     return !deleted && !draft;
@@ -453,7 +453,7 @@ export function getBitField(
     to_ids: get(message, "to_ids"),
     from_id: get(message, "from_id"),
   });
-  return get(message, field)[pos] == "1";
+  return (get(message, field) ?? "")[pos] == "1";
 }
 
 function getBitPosition({
