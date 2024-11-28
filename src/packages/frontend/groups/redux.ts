@@ -144,13 +144,16 @@ export class GroupsActions extends Actions<GroupsState> {
       throw Error(`color must be at most ${MAX_COLOR_LENGTH} long`);
     }
     const table = this.redux.getTable("groups")._table;
-    table.set({
-      group_id,
-      owner_account_ids,
-      member_account_ids,
-      title,
-      color,
-    });
+    table.set(
+      {
+        group_id,
+        owner_account_ids,
+        member_account_ids,
+        title,
+        color,
+      },
+      "shallow",
+    );
     await table.save();
   };
 }
