@@ -159,10 +159,10 @@ export class MessagesActions extends Actions<MessagesState> {
     debounceSave?: boolean;
   }) => {
     const table = this.redux.getTable("sent_messages")._table;
-    const current = table.get_one(`${obj.id}`);
-    if (current == null) {
-      throw Error("message does not exist in sent_messages table");
-    }
+    //     const current = table.get_one(`${obj.id}`);
+    //     if (current == null) {
+    //       throw Error("message does not exist in sent_messages table");
+    //     }
     for (const field of ["expire", "deleted"]) {
       obj[`from_${field}`] = obj[field];
       delete obj[field];
@@ -223,13 +223,26 @@ export class MessagesActions extends Actions<MessagesState> {
     return query.create_message.id;
   };
 
-  createReply = async (message: Message) => {
+  createReply = async ({
+    message,
+    replyAll,
+  }: {
+    message: Message;
+    replyAll?: boolean;
+  }) => {
     let to_ids;
     if (isFromMe(message)) {
       to_ids = message.to_ids;
     } else {
-      to_ids = message.from_id;
+      if (replyAll) {
+        to_ids = message.to_ids
+          .filter((account_id) => account_id != webapp_client.account_id)
+          .concat([message.from_id]);
+      } else {
+        to_ids = [message.from_id];
+      }
     }
+
     const subject = replySubject(message.subject);
     await this.createDraft({
       to_ids,

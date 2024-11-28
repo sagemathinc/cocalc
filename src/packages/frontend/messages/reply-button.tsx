@@ -21,7 +21,7 @@ export default function ReplyButton({
       const actions = redux.getActions("messages");
       try {
         setCreating(true);
-        await actions.createReply(replyTo);
+        await actions.createReply({ message: replyTo, replyAll: false });
       } catch (err) {
         actions.setError(`${err}`);
       } finally {
